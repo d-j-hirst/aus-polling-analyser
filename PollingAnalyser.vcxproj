@@ -1,0 +1,350 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DLL Debug|Win32">
+      <Configuration>DLL Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DLL Release|Win32">
+      <Configuration>DLL Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <SccProjectName />
+    <SccLocalPath />
+    <ProjectGuid>{F4383377-0633-47DE-8F4B-6FADDD659C86}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\vc_mswu\</OutDir>
+    <IntDir>.\vc_mswu\PollingAnalyser\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
+    <OutDir>.\vc_mswuddll\</OutDir>
+    <IntDir>.\vc_mswuddll\PollingAnalyser\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'">
+    <OutDir>.\vc_mswudll\</OutDir>
+    <IntDir>.\vc_mswudll\PollingAnalyser\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\vc_mswud\</OutDir>
+    <IntDir>.\vc_mswud\PollingAnalyser\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level4</WarningLevel>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswu;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\vc_mswu\PollingAnalyser\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\vc_mswu\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\vc_mswu\PollingAnalyser\</ObjectFileName>
+      <ProgramDataBaseFileName>vc_mswu\PollingAnalyser.pdb</ProgramDataBaseFileName>
+      <AdditionalOptions> /opt:ref /opt:icf /EHsc </AdditionalOptions>
+    </ClCompile>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>WIN32;__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\vc_mswu\PollingAnalyser.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_lib\mswu;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__WXMSW__;NDEBUG;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\vc_mswu\PollingAnalyser.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>vc_mswu\PollingAnalyser.exe</OutputFile>
+      <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level4</WarningLevel>
+      <PollingAnalyserRebuild>true</PollingAnalyserRebuild>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswud;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;__WXMSW__;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\vc_mswuddll\PollingAnalyser\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\vc_mswuddll\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\vc_mswuddll\PollingAnalyser\</ObjectFileName>
+      <ProgramDataBaseFileName>vc_mswuddll\PollingAnalyser.pdb</ProgramDataBaseFileName>
+      <AdditionalOptions> /EHsc </AdditionalOptions>
+    </ClCompile>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>WIN32;_DEBUG;__WXMSW__;_UNICODE;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\vc_mswuddll\PollingAnalyser.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswud;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;__WXMSW__;_UNICODE;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\vc_mswuddll\PollingAnalyser.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>vc_mswuddll\PollingAnalyser.exe</OutputFile>
+      <AdditionalLibraryDirectories>C:\wxWidgets-3.0.2\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wxmsw30ud_core.lib;wxbase30ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level4</WarningLevel>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswu;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__WXMSW__;NDEBUG;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\vc_mswudll\PollingAnalyser\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\vc_mswudll\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\vc_mswudll\PollingAnalyser\</ObjectFileName>
+      <ProgramDataBaseFileName>vc_mswudll\PollingAnalyser.pdb</ProgramDataBaseFileName>
+      <AdditionalOptions> /opt:ref /opt:icf /EHsc </AdditionalOptions>
+    </ClCompile>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>WIN32;__WXMSW__;NDEBUG;_UNICODE;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\vc_mswudll\PollingAnalyser.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_dll\mswu;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__WXMSW__;NDEBUG;_UNICODE;WXUSINGDLL;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\vc_mswudll\PollingAnalyser.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>vc_mswudll\PollingAnalyser.exe</OutputFile>
+      <AdditionalLibraryDirectories>C:\wxWidgets-3.0.2\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wxmsw30u_core.lib;wxbase30u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level4</WarningLevel>
+      <PollingAnalyserRebuild>true</PollingAnalyserRebuild>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswud;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.1.1\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;__WXMSW__;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\vc_mswud\PollingAnalyser\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\vc_mswud\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\vc_mswud\PollingAnalyser\</ObjectFileName>
+      <ProgramDataBaseFileName>vc_mswud\PollingAnalyser.pdb</ProgramDataBaseFileName>
+      <AdditionalOptions> /EHsc </AdditionalOptions>
+    </ClCompile>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>WIN32;_DEBUG;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\vc_mswud\PollingAnalyser.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>C:\wxWidgets-3.0.2\lib\vc_lib\mswud;C:\wxWidgets-3.0.2\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;__WXMSW__;_UNICODE;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\vc_mswud\PollingAnalyser.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>vc_mswud\PollingAnalyser.exe</OutputFile>
+      <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Debug.cpp" />
+    <ClCompile Include="DisplayFrame.cpp" />
+    <ClCompile Include="EditEventFrame.cpp" />
+    <ClCompile Include="EditModelFrame.cpp" />
+    <ClCompile Include="EditPartyFrame.cpp" />
+    <ClCompile Include="EditPollFrame.cpp" />
+    <ClCompile Include="EditPollsterFrame.cpp" />
+    <ClCompile Include="EditProjectionFrame.cpp" />
+    <ClCompile Include="EditRegionFrame.cpp" />
+    <ClCompile Include="EditSeatFrame.cpp" />
+    <ClCompile Include="EditSimulationFrame.cpp" />
+    <ClCompile Include="EventsFrame.cpp" />
+    <ClCompile Include="General.cpp" />
+    <ClCompile Include="GenericChildFrame.cpp" />
+    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ModelsFrame.cpp" />
+    <ClCompile Include="NewProjectFrame.cpp" />
+    <ClCompile Include="ParentFrame.cpp" />
+    <ClCompile Include="ProjectFrame.cpp" />
+    <ClCompile Include="PartiesFrame.cpp" />
+    <ClCompile Include="PartySettingsFrame.cpp" />
+    <ClCompile Include="PollingAnalyser.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"> /opt:ref /opt:icf /EHsc   /opt:ref /opt:icf /EHsc </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'"> /EHsc   /EHsc </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'"> /opt:ref /opt:icf /EHsc   /opt:ref /opt:icf /EHsc </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'"> /EHsc   /EHsc </AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="PollingProject.cpp" />
+    <ClCompile Include="PollsFrame.cpp" />
+    <ClCompile Include="PollstersFrame.cpp" />
+    <ClCompile Include="Projection.cpp" />
+    <ClCompile Include="ProjectionsFrame.cpp" />
+    <ClCompile Include="RegionsFrame.cpp" />
+    <ClCompile Include="SeatsFrame.cpp" />
+    <ClCompile Include="Simulation.cpp" />
+    <ClCompile Include="SimulationsFrame.cpp" />
+    <ClCompile Include="VisualiserFrame.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Debug.h" />
+    <ClInclude Include="DisplayFrame.h" />
+    <ClInclude Include="EditEventFrame.h" />
+    <ClInclude Include="EditModelFrame.h" />
+    <ClInclude Include="EditPollFrame.h" />
+    <ClInclude Include="EditPollsterFrame.h" />
+    <ClInclude Include="EditProjectionFrame.h" />
+    <ClInclude Include="EditRegionFrame.h" />
+    <ClInclude Include="EditSeatFrame.h" />
+    <ClInclude Include="EditSimulationFrame.h" />
+    <ClInclude Include="Event.h" />
+    <ClInclude Include="EventsFrame.h" />
+    <ClInclude Include="FileOpeningState.h" />
+    <ClInclude Include="General.h" />
+    <ClInclude Include="GenericChildFrame.h" />
+    <ClInclude Include="Model.h" />
+    <ClInclude Include="ModelsFrame.h" />
+    <ClInclude Include="ParentFrame.h" />
+    <ClInclude Include="Party.h" />
+    <ClInclude Include="EditPartyFrame.h" />
+    <ClInclude Include="NewProjectData.h" />
+    <ClInclude Include="NewProjectFrame.h" />
+    <ClInclude Include="ProjectFrame.h" />
+    <ClInclude Include="PartiesFrame.h" />
+    <ClInclude Include="PartySettingsFrame.h" />
+    <ClInclude Include="Poll.h" />
+    <ClInclude Include="PollingProject.h" />
+    <ClInclude Include="PollsFrame.h" />
+    <ClInclude Include="Pollster.h" />
+    <ClInclude Include="PollstersFrame.h" />
+    <ClInclude Include="Projection.h" />
+    <ClInclude Include="ProjectionsFrame.h" />
+    <ClInclude Include="Region.h" />
+    <ClInclude Include="RegionsFrame.h" />
+    <ClInclude Include="Seat.h" />
+    <ClInclude Include="SeatsFrame.h" />
+    <ClInclude Include="Simulation.h" />
+    <ClInclude Include="SimulationsFrame.h" />
+    <ClInclude Include="VisualiserFrame.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="bitmaps\plus.bmp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

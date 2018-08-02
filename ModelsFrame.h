@@ -1,0 +1,110 @@
+#pragma once
+
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
+
+#ifdef __BORLANDC__
+#pragma hdrstop
+#endif
+
+// for all others, include the necessary headers (this file is usually all you
+// need because it includes almost all "standard" wxWidgets headers)
+#ifndef WX_PRECOMP
+#include "wx/wx.h"
+#endif
+
+#include "wx/dataview.h"
+
+#include <memory>
+#include "GenericChildFrame.h"
+#include "PollingProject.h"
+#include "ProjectFrame.h"
+#include "Debug.h"
+#include "EditModelFrame.h"
+
+class ProjectFrame;
+class GenericChildFame;
+
+// ----------------------------------------------------------------------------
+// constants
+// ----------------------------------------------------------------------------
+
+// *** ModelsFrame ***
+// Frame that allows the user to create aggregated models using the poll data.
+class ModelsFrame : public GenericChildFrame
+{
+public:
+	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "project" is a pointer to the polling project object.
+	ModelsFrame(ProjectFrame* const parent, PollingProject* project);
+
+	// Calls on the frame to create a new model based on "Model".
+	void OnNewModelReady(Model& model);
+
+	// Calls on the frame to edit the currently selected model based on "Model".
+	void OnEditModelReady(Model& model);
+
+	// updates the data to take into account any changes, such as removed pollsters/parties.
+	void refreshData();
+
+private:
+
+	// Adjusts controls so that they fill the frame space when it is resized.
+	void OnResize(wxSizeEvent& WXUNUSED(event));
+
+	// Opens the dialog that allows the user to define settings for a new model.
+	void OnNewModel(wxCommandEvent& WXUNUSED(event));
+
+	// Opens the dialog that allows the user to edit an existing model.
+	void OnEditModel(wxCommandEvent& WXUNUSED(event));
+
+	// Opens the dialog that allows the user to remove an existing model.
+	void OnRemoveModel(wxCommandEvent& WXUNUSED(event));
+
+	// Runs the selected model.
+	void OnRunModel(wxCommandEvent& WXUNUSED(event));
+
+	// Runs the selected model.
+	void OnExtendModel(wxCommandEvent& WXUNUSED(event));
+
+	// updates the interface after a change in item selection.
+	void OnSelectionChange(wxDataViewEvent& event);
+
+	// does everything required to add the model "model".
+	void addModel(Model model);
+
+	// adds "model" to model data. Should not be used except within addModel.
+	void addModelToModelData(Model model);
+
+	// does everything required to replace the currently selected model with "model".
+	void replaceModel(Model model);
+
+	// replaces the currently selected model with "model" in model data.
+	// Should not be used except within replaceModel.
+	void replaceModelInModelData(Model model);
+
+	// does everything required to remove the currently selected model, if possible.
+	void removeModel();
+
+	// extends the time length of the currently selected model to the latest poll.
+	void extendModel();
+
+	// removes the currently selected model from model data.
+	// Should not be used except within removeModel.
+	void removeModelFromModelData();
+
+	// updates the interface for any changes, such as enabled/disabled buttons.
+	void updateInterface();
+
+	// does everything required to run the currently selected model, if possible.
+	void runModel();
+
+	// A pointer to the parent frame.
+	ProjectFrame* const parent;
+
+	// Panel containing poll data.
+	wxPanel* dataPanel = nullptr;
+
+	// Control containing model data.
+	wxDataViewListCtrl* modelData = nullptr;
+};

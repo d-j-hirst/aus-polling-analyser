@@ -1,0 +1,12 @@
+#Project
+name=Enter project name here
+#Parties
+@Party
+name=Labor
+pref=100
+abbr=ALP
+@Party
+name=Liberals
+pref=0
+abbr=LIB
+#End

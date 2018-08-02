@@ -1,0 +1,23 @@
+- Vector of classic seat, with structure (seatIndex, partyOne2PP)
+- Numbers of non-classic seats for each major party
+
+- Add classic seats to the vector
+- Increment the non-classic seats for each vector
+
+- Sort list of classic seats, call size of this list c_size
+- Calculate difference between non-classic seats won by party 1 and 2, call this nc_diff
+
+- Simulation should have a vector of float for each seat representing tipping point frequency
+
+- If number of major party seats won is odd:
+ - Find classic seat list element ((c_size - 1) / 2 - nc_diff / 2)
+ - If this is a valid seat in the classic seats list, increment the tipping point frequency of the seat by 1
+- If number of major party seats won is even:
+ - Find classic seat list element (c_size / 2 - nc_diff / 2)
+ - If this is a valid seat in the classic seats list, increment the tipping point frequency of the seat by 0.5
+ - If this number minus 1 is valid, increment the tipping point frequency of that seat by 0.5 also
+
+- Go through the vector of tipping point frequency and divide by number of simulations, then multiply by 100 to give tipping point frequency
+
+
+-- Make separate panel for seat-by-seat simulation results

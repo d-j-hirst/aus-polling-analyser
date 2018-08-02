@@ -1,0 +1,244 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="PollingAnalyser.cpp" />
+    <ClCompile Include="Debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ProjectFrame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ParentFrame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EditEventFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="EditModelFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="EditPartyFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="EditPollFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="EditPollsterFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="EventsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="GenericChildFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="NewProjectFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="PartiesFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="PartySettingsFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="PollingProject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PollsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="PollstersFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="VisualiserFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="ProjectionsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="EditProjectionFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="Projection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EditRegionFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="RegionsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="SeatsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="EditSeatFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="General.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SimulationsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="EditSimulationFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="Simulation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DisplayFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{056ec5d8-a074-4b74-9009-43f960027bba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{2b8fc972-45bc-4ef2-8fb1-e70517edfdf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Tabbed Frames">
+      <UniqueIdentifier>{663f109b-fba6-4f39-93ec-7324cc96ea9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Dialog Boxes">
+      <UniqueIdentifier>{bce88d9e-6108-40ce-ad23-252cc7acd60b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Data Objects">
+      <UniqueIdentifier>{696b0aaf-54c6-4a6f-9445-e200df5e8808}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dialog Boxes">
+      <UniqueIdentifier>{2fb398b1-56b8-4559-820a-7f495c889ed4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Tabbed Frames">
+      <UniqueIdentifier>{db23d37b-d55b-42ad-9bdd-a18c9bc05011}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="PollingProject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NewProjectData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileOpeningState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ProjectFrame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EventsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="GenericChildFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="PollstersFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="PollsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="PartiesFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="ParentFrame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EditEventFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="EditModelFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="EditPartyFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="EditPollFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="EditPollsterFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualiserFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="PartySettingsFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="Event.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="NewProjectFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="Party.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Poll.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Pollster.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="ProjectionsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="Projection.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="EditProjectionFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="RegionsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="Region.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="EditRegionFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="SeatsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="Seat.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="EditSeatFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="General.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationsFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="Simulation.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="EditSimulationFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplayFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="bitmaps\plus.bmp" />
+  </ItemGroup>
+</Project>
