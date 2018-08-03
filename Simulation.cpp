@@ -109,7 +109,7 @@ void Simulation::run(PollingProject& project) {
 
 		// Now cycle through all the seats and generate a result for each
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-			float seatFactor = 0.0f; // used for when we include election results, for now just set to zero
+			// float seatFactor = 0.0f; // used for when we include election results, for now just set to zero
 
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
 			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo);

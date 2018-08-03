@@ -13,9 +13,9 @@ std::string formatFloat(float floatToFormat, int numDigits) {
 		auto charIt = std::find(preliminaryString.begin(), preliminaryString.end(), '.');
 		if (charIt == preliminaryString.end()) preliminaryString += ".";
 		for (int i = 0; i < numDigits; ++i) {
-			auto charIt = std::find(preliminaryString.begin(), preliminaryString.end(), '.');
-			for (int j = 0; j <= i; ++j) ++charIt;
-			if (charIt == preliminaryString.end()) preliminaryString += "0";
+			auto subCharIt = std::find(preliminaryString.begin(), preliminaryString.end(), '.');
+			for (int j = 0; j <= i; ++j) ++subCharIt;
+			if (subCharIt == preliminaryString.end()) preliminaryString += "0";
 		}
 	}
 	return preliminaryString;

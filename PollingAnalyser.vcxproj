@@ -106,6 +106,7 @@
       <ObjectFileName>.\vc_mswu\PollingAnalyser\</ObjectFileName>
       <ProgramDataBaseFileName>vc_mswu\PollingAnalyser.pdb</ProgramDataBaseFileName>
       <AdditionalOptions> /opt:ref /opt:icf /EHsc </AdditionalOptions>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -235,6 +236,7 @@
       <ObjectFileName>.\vc_mswud\PollingAnalyser\</ObjectFileName>
       <ProgramDataBaseFileName>vc_mswud\PollingAnalyser.pdb</ProgramDataBaseFileName>
       <AdditionalOptions> /EHsc </AdditionalOptions>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>

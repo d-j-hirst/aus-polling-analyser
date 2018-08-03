@@ -48,7 +48,7 @@ public:
 	// parent: Parent frame for this (must be an EventsFrame).
 	// event: Event data to be used if editing (has default values for creating a new event).
 	EditEventFrame(bool isNewEvent, EventsFrame* const parent,
-		Event event = Event());
+		Event pollingEvent = Event());
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
@@ -72,7 +72,7 @@ private:
 	void updateTextVote(wxCommandEvent& event);
 
 	// Data container for the preliminary settings for the party to be created.
-	Event event;
+	Event pollingEvent;
 
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.

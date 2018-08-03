@@ -1,9 +1,9 @@
 #include "EditEventFrame.h"
 #include "General.h"
 
-EditEventFrame::EditEventFrame(bool isNewEvent, EventsFrame* const parent, Event event)
+EditEventFrame::EditEventFrame(bool isNewEvent, EventsFrame* const parent, Event pollingEvent)
 	: wxDialog(NULL, 0, (isNewEvent ? "New Event" : "Edit Event")),
-	isNewEvent(isNewEvent), parent(parent), event(event)
+	isNewEvent(isNewEvent), parent(parent), pollingEvent(pollingEvent)
 {
 
 	const int labelYOffset = 5;
@@ -12,7 +12,7 @@ EditEventFrame::EditEventFrame(bool isNewEvent, EventsFrame* const parent, Event
 	const int labelWidth = 140;
 
 	// Generate the string for the preference flow.
-	std::string voteString = formatFloat(event.vote, 3);
+	std::string voteString = formatFloat(pollingEvent.vote, 3);
 
 	// Store this string in case a text entry gives an error in the future.
 	lastVote = voteString;
@@ -21,7 +21,7 @@ EditEventFrame::EditEventFrame(bool isNewEvent, EventsFrame* const parent, Event
 
 	// Create the controls for the event name.
 	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	nameTextCtrl = new wxTextCtrl(this, PA_EditEvent_TextBoxID_Name, event.name, wxPoint(controlXOffset, 0), wxSize(controlWidth, 23));
+	nameTextCtrl = new wxTextCtrl(this, PA_EditEvent_TextBoxID_Name, pollingEvent.name, wxPoint(controlXOffset, 0), wxSize(controlWidth, 23));
 
 	currentHeight += 27;
 
@@ -36,7 +36,7 @@ EditEventFrame::EditEventFrame(bool isNewEvent, EventsFrame* const parent, Event
 		wxPoint(controlXOffset, currentHeight), wxSize(controlWidth, 23), eventTypeArray, wxCB_READONLY);
 
 	// Sets the combo box selection to the poll's pollster, if any.
-	eventTypeComboBox->SetSelection(event.eventType);
+	eventTypeComboBox->SetSelection(pollingEvent.eventType);
 
 	currentHeight += 27;
 
@@ -44,7 +44,7 @@ EditEventFrame::EditEventFrame(bool isNewEvent, EventsFrame* const parent, Event
 
 	// Create the controls for the poll date picker.
 	dateStaticText = new wxStaticText(this, 0, "Date:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	datePicker = new wxDatePickerCtrl(this, PA_EditEvent_DatePickerID_Date, event.date,
+	datePicker = new wxDatePickerCtrl(this, PA_EditEvent_DatePickerID_Date, pollingEvent.date,
 		wxPoint(controlXOffset, currentHeight), wxSize(controlWidth, 23), wxDP_DROPDOWN | wxDP_SHOWCENTURY); // not supported under OSX/Cocoa
 	// use wxDP_SPIN instead of wxDP_DROPDOWN
 
@@ -75,11 +75,11 @@ void EditEventFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 
 	if (isNewEvent) {
 		// Get the parent frame to add a new event
-		parent->OnNewEventReady(event);
+		parent->OnNewEventReady(pollingEvent);
 	}
 	else {
 		// Get the parent frame to replace the old event with the current one
-		parent->OnEditEventReady(event);
+		parent->OnEditEventReady(pollingEvent);
 	}
 
 	// Then close this dialog.
@@ -89,18 +89,18 @@ void EditEventFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 void EditEventFrame::updateTextName(wxCommandEvent& event) {
 
 	// updates the preliminary project data with the string from the event.
-	this->event.name = event.GetString();
+	this->pollingEvent.name = event.GetString();
 }
 
 void EditEventFrame::updateComboBoxEventType(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	this->event.eventType = EventType(eventTypeComboBox->GetCurrentSelection());
+	this->pollingEvent.eventType = EventType(eventTypeComboBox->GetCurrentSelection());
 }
 
 void EditEventFrame::updateDatePicker(wxDateEvent& event) {
-	this->event.date = event.GetDate();
-	this->event.date.SetHour(18);
+	this->pollingEvent.date = event.GetDate();
+	this->pollingEvent.date.SetHour(18);
 }
 
 void EditEventFrame::updateTextVote(wxCommandEvent& event) {
@@ -113,7 +113,7 @@ void EditEventFrame::updateTextVote(wxCommandEvent& event) {
 
 		// An empty string can be interpreted as zero, so it's ok.
 		if (str.empty()) {
-			this->event.vote = 0.0f;
+			this->pollingEvent.vote = 0.0f;
 			return;
 		}
 
@@ -122,7 +122,7 @@ void EditEventFrame::updateTextVote(wxCommandEvent& event) {
 		if (f > 100.0f) f = 100.0f;
 		if (f < 0.0f) f = 0.0f;
 
-		this->event.vote = f;
+		this->pollingEvent.vote = f;
 
 		// save this valid string in case the next text entry gives an error.
 		lastVote = str;

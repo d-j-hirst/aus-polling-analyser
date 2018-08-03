@@ -154,12 +154,12 @@ void VisualiserFrame::OnToggleProjections(wxCommandEvent& event) {
 	paint();
 }
 
-void VisualiserFrame::OnModelSelection(wxCommandEvent& event) {
+void VisualiserFrame::OnModelSelection(wxCommandEvent& WXUNUSED(event)) {
 	selectedModel = selectModelComboBox->GetCurrentSelection();
 	paint();
 }
 
-void VisualiserFrame::OnProjectionSelection(wxCommandEvent& event) {
+void VisualiserFrame::OnProjectionSelection(wxCommandEvent& WXUNUSED(event)) {
 	selectedProjection = selectProjectionComboBox->GetCurrentSelection();
 	paint();
 }

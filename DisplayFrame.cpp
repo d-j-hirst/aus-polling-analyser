@@ -113,17 +113,17 @@ void DisplayFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 	//	this->GetClientSize().y));
 }
 
-void DisplayFrame::OnSimulationSelection(wxCommandEvent& event) {
+void DisplayFrame::OnSimulationSelection(wxCommandEvent& WXUNUSED(event)) {
 	selectedSimulation = selectSimulationComboBox->GetCurrentSelection();
 	paint();
 }
 
 // Handles the movement of the mouse in the display frame.
-void DisplayFrame::OnMouseMove(wxMouseEvent& event) {
+void DisplayFrame::OnMouseMove(wxMouseEvent& WXUNUSED(event)) {
 	paint();
 }
 
-void DisplayFrame::OnPaint(wxPaintEvent& WXUNUSED(evt))
+void DisplayFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 {
 	wxBufferedPaintDC dc(dcPanel);
 	render(dc);
@@ -151,10 +151,10 @@ void DisplayFrame::render(wxDC& dc) {
 	if (!sim->lastUpdated.IsValid()) return;
 
 	defineGraphLimits();
-	wxFont font8 = wxFont(8, wxDEFAULT, wxNORMAL, wxNORMAL, false, "Segoe UI");
-	wxFont font13 = wxFont(13, wxDEFAULT, wxNORMAL, wxNORMAL, false, "Segoe UI");
-	wxFont font15 = wxFont(15, wxDEFAULT, wxNORMAL, wxNORMAL, false, "Segoe UI");
-	wxFont font18 = wxFont(18, wxDEFAULT, wxNORMAL, wxNORMAL, false, "Segoe UI");
+	wxFont font8 = wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
+	wxFont font13 = wxFont(13, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
+	wxFont font15 = wxFont(15, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
+	wxFont font18 = wxFont(18, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
 	dc.SetFont(font13);
 
 	// Background
