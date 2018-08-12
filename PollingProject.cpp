@@ -8,11 +8,8 @@
 PollingProject::PollingProject(NewProjectData& newProjectData) :
 		name(newProjectData.projectName),
 		lastFileName(newProjectData.projectName + ".pol"),
-		valid(true),
-		othersPreferenceFlow(46.5f),
-		visStartDay(-1000000.0),
-		visEndDay(-1000000.0) {
-
+		valid(true)
+{
 	// The project must always have at least two parties, no matter what. This initializes them with default values.
 	addParty(Party("Labor", 100, "ALP", Party::CountAsParty::IsPartyOne));
 	addParty(Party("Liberals", 0, "LIB", Party::CountAsParty::IsPartyTwo));
@@ -21,7 +18,8 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 }
 
 PollingProject::PollingProject(std::string pathName) :
-lastFileName(pathName.substr(pathName.rfind("\\")+1)) {
+		lastFileName(pathName.substr(pathName.rfind("\\")+1))
+{
 	PrintDebugLine(lastFileName);
 	open(pathName);
 }
@@ -201,6 +199,8 @@ int PollingProject::getEarliestDate() const {
 		int date = int(floor(getModel(i).endDate.GetModifiedJulianDayNumber()));
 		if (date < earliestDay) earliestDay = date;
 	}
+	PrintDebugInt(earliestDay);
+	PrintDebugLine(" - earliestDay");
 	return earliestDay;
 }
 
@@ -1169,4 +1169,6 @@ void PollingProject::finalizeFileLoading() {
 	auto thisParty = parties.begin();
 	thisParty->countAsParty = Party::CountAsParty::IsPartyOne;
 	thisParty->countAsParty = Party::CountAsParty::IsPartyTwo;
+
+	setVisualiserBounds(visStartDay, visEndDay);
 }

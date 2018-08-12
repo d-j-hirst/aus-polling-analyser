@@ -321,7 +321,7 @@ public:
 	int save(std::string filename);
 
 	// Returns whether the project is valid (after opening from a file).
-	// If this is false then the project should be closed be
+	// If this is false then the project should be closed by
 	// calling reset on the smart pointer.
 	bool isValid();
 
@@ -391,14 +391,14 @@ private:
 	// Vector containing the data for simulations.
 	std::list<Simulation> simulations;
 
-	bool valid;
+	bool valid = false;
 
 	// indicates the last-election preference flow from "Others" to the first listed major party.
-	float othersPreferenceFlow;
+	float othersPreferenceFlow = 46.5f;
 
 	// indicates the start day currently shown in the visualiser.
-	int visStartDay;
+	int visStartDay = -1000000;
 
 	// indicates the end day currently shown in the visualiser.
-	int visEndDay;
+	int visEndDay = 1000000;
 };
