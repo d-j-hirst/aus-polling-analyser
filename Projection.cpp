@@ -15,6 +15,9 @@ void Projection::run() {
 	std::normal_distribution<double> nDist(0.0f, dailyChange);
 	// t-distribution since we've estimated the SD from a random sample
 	std::student_t_distribution<double> initialDist(std::max(numElections - 1, 1));
+	// additional uncertainty from the state of the polling at the moment
+	float pollingStdDev = baseModel->finalStandardDeviation;
+	std::normal_distribution<double> pollingDist(0.0f, pollingStdDev);
 
 	std::vector<std::vector<double>> tempProjections;
 	int nDays = std::max(1, (endDate - baseModel->effEndDate).GetDays() + 1);
@@ -24,7 +27,9 @@ void Projection::run() {
 	double firstResult = double(baseModel->day.back().trend2pp);
 	for (auto& projVec : tempProjections) {
 		projVec.resize(nDays);
-		projVec[0] = firstResult + initialDist(gen) * initialChange;
+		double systematicVariation = initialDist(gen) * initialStdDev;
+		double samplingVariation = pollingDist(gen) * 2;
+		projVec[0] = firstResult + systematicVariation + samplingVariation;
 		for (int day = 1; day < nDays; ++day) {
 			projVec[day] = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + nDist(gen);
 		}

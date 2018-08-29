@@ -20,8 +20,17 @@ struct ModelTimePoint {
 		houseEffectScore.resize(pollsterCount, 0);
 		nextHouseEffect.resize(pollsterCount, 0);
 	}
+	constexpr static float DefaultTrend2pp = 50.0f;
+	void reset() {
+		trend2pp = DefaultTrend2pp;
+		nextTrend2pp = 0.0f;
+		trendScore = 0.0f;
+		std::fill(houseEffect.begin(), houseEffect.end(), 0.0f);
+		std::fill(nextHouseEffect.begin(), nextHouseEffect.end(), 0.0f);
+		std::fill(houseEffectScore.begin(), houseEffectScore.end(), 0.0f);
+	}
 	std::vector<SmallPoll> polls; // any polls on this day
-	float trend2pp = 50.0f; // the 2pp that the model thinks is actually occurring on this day
+	float trend2pp = DefaultTrend2pp; // the 2pp that the model thinks is actually occurring on this day
 	std::vector<float> houseEffect;
 	float nextTrend2pp = 0.0f;
 	std::vector<float> nextHouseEffect;
@@ -32,6 +41,10 @@ struct ModelTimePoint {
 };
 
 struct ModelPollster {
+	void reset() {
+		houseEffect = 0.0f;
+		accuracy = 1.0f;
+	}
 	float houseEffect = 0.0f;
 	float weight = 1.0f;
 	bool useForCalibration = false;
@@ -81,6 +94,8 @@ public:
 		if (!lastUpdated.IsValid()) return "";
 		else return lastUpdated.FormatISODate().ToStdString();
 	}
+
+	void run();
 
 	// sets the calibrated pollsters' combined bias to the
 	// first listed party (ALP by default).
@@ -183,7 +198,11 @@ public:
 	// adjusts the daily values (trend and house effects) in accordance with the above functions
 	void adjustDailyValues();
 
-	double func_normsdist(double z) const;
+	float getRecentTrendScore() const;
+
+	static double func_normsdist(double z);
+
+	static double Model::normsinv(double p);
 
 	// User-defined name.
 	std::string name;
@@ -213,6 +232,10 @@ public:
 	wxDateTime effEndDate;
 
 	float calibrationFirstPartyBias;
+
+	// final standard deviation of the trend 2pp. Used to determine, in part,
+	// the initial error for projections using this model
+	float finalStandardDeviation = 0.0f;
 
 	// vector of time points
 	std::vector<ModelTimePoint> day;

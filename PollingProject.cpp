@@ -199,8 +199,6 @@ int PollingProject::getEarliestDate() const {
 		int date = int(floor(getModel(i).endDate.GetModifiedJulianDayNumber()));
 		if (date < earliestDay) earliestDay = date;
 	}
-	PrintDebugInt(earliestDay);
-	PrintDebugLine(" - earliestDay");
 	return earliestDay;
 }
 
@@ -608,7 +606,7 @@ int PollingProject::save(std::string filename) {
 		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << std::endl;
 		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << std::endl;
 		os << "dlyc=" << thisProjection.dailyChange << std::endl;
-		os << "inic=" << thisProjection.initialChange << std::endl;
+		os << "inic=" << thisProjection.initialStdDev << std::endl;
 		os << "vtls=" << thisProjection.leaderVoteLoss << std::endl;
 		os << "nele=" << thisProjection.numElections << std::endl;
 		for (int dayIndex = 0; dayIndex < int(thisProjection.meanProjection.size()); ++dayIndex) {
@@ -993,7 +991,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("inic=")) {
-			it->initialChange = std::stof(line.substr(5));
+			it->initialStdDev = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("vtls=")) {

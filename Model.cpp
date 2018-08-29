@@ -2,8 +2,9 @@
 #include <algorithm>
 #include <numeric>
 
-const int NumIterationsFreedHouseEffects = 50;
-const float PollAccuracyFloor = 0.6f;
+constexpr int NumIterationsFreedHouseEffects = 50;
+constexpr float PollAccuracyFloor = 0.6f;
+constexpr float PollScoreMultipler = 10.0f;
 
 #undef min
 #undef max
@@ -28,6 +29,40 @@ void Model::initializeRun(wxDateTime earliestPoll, wxDateTime latestPoll, int nP
 	for (int pollsterIndex = 0; pollsterIndex < nPollsters; ++pollsterIndex) {
 		pollster[pollsterIndex].index = pollsterIndex;
 	}
+}
+
+void Model::run()
+{
+	if (!day.size()) return;
+	setInitialPath();
+	doModelIterations();
+	float originalTrendScore = getRecentTrendScore();
+	float final2pp = day.back().trend2pp;
+	std::vector<ModelTimePoint> tempDay = day;
+
+	const float adjust = 1.0f;
+	day.back().election = final2pp + adjust;
+	for (auto& thisDay : day) thisDay.reset();
+	for (auto& thisPollster : pollster) thisPollster.reset();
+	setInitialPath();
+	doModelIterations();
+	float adjustTrendScore = getRecentTrendScore();
+
+
+	float scoreDifference = std::max(adjustTrendScore - originalTrendScore, PollScoreMultipler);
+	float prob = PollScoreMultipler / scoreDifference * 0.5f;
+	float z = std::abs(normsinv(prob));
+	float sd = 1.0f / z;
+
+	finalStandardDeviation = sd;
+
+	day = tempDay;
+
+	PrintDebugFloat(day.back().trend2pp);
+	PrintDebugLine(" - final modelled 2pp");
+	PrintDebugFloat(finalStandardDeviation);
+	PrintDebugLine(" - final modelled standard deviation");
+	finalizeRun();
 }
 
 // sets the calibrated pollsters' combined bias to the
@@ -183,13 +218,6 @@ void Model::doModelIterations() {
 		calculateDailyTrendAdjustments();
 		calculateDailyHouseEffectAdjustments();
 		adjustDailyValues();
-	}
-
-	int a = 1;
-	for (ModelPollster thisPollster : pollster) {
-		PrintDebugInt(a);
-		PrintDebugFloat(thisPollster.accuracy);
-		++a;
 	}
 }
 
@@ -409,9 +437,8 @@ float Model::calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, 
 	float pollDiff = usetrend2pp - timePoint->polls[pollIndex].eff2pp;
 
 	// normalized z-score for this difference between this pollster and the trend line
+	// capping this ensures outliers don't have too much of an influence on things
 	float pollDeviation = std::min(std::max(pollDiff / thisPollster.accuracy, -3.0f), 3.0f);
-
-	const float PollScoreMultipler = 10.0f;
 
 	float pollScoreIncrease = 1.0f / (1.0f - abs((0.5f - float(func_normsdist(pollDeviation))) * 2.0f) + 0.001f) - 1.0f;
 
@@ -464,11 +491,6 @@ float Model::calculateHouseEffectTimeScore(ModelTimePoint const* timePoint, Mode
 void Model::calculateDailyTrendAdjustments() {
 	int lastResult = int(day.size()) - 1;
 	for (int i = 0; i <= lastResult; ++i) {
-
-		//if (i == lastResult) {
-		//	PrintDebugLine("last result");
-		//}
-
 		ModelTimePoint* thisDay = &day[i];
 		if (thisDay->election > 0.00001f) {
 			thisDay->nextTrend2pp = thisDay->trend2pp;
@@ -488,10 +510,6 @@ void Model::calculateDailyTrendAdjustments() {
 		for (float changeMod = 0.001f; changeMod < 1.0f; changeMod *= 2.0f) {
 			// loop through trend 2pp slightly lower and higher than this one.
 			for (float signedChangeMod = -changeMod, j = 0; j < 2; signedChangeMod += changeMod * 2.0f, ++j) {
-
-				//if (i == 3254) {
-				//	PrintDebugFloat(origScore);
-				//}
 
 				// set the new trend2pp to be adjusted by an increment
 				thisDay->trend2pp = origTrend2pp + signedChangeMod;
@@ -560,20 +578,25 @@ void Model::adjustDailyValues() {
 	}
 }
 
-void Model::finalizeRun() {
-
-	for (int i = 0; i < int(day.size()); ++i) {
-		wxDateTime thisPollTime = startDate;
-		thisPollTime.Add(wxDateSpan(0, 0, 0, i));
+float Model::getRecentTrendScore() const
+{
+	float totalTrend = 0.0f;
+	int pollCount = 0;
+	int dayCount = 0;
+	for (auto thisDay = day.rbegin(); thisDay != day.rend(); ++thisDay) {
+		totalTrend += thisDay->trendScore;
+		pollCount += thisDay->polls.size();
+		++dayCount;
+		if (pollCount >= 5 && dayCount >= 30) break;
 	}
-
-	lastUpdated = wxDateTime::Now();
-
-	// free memory used by the day counter.
-	//day.clear();
+	return totalTrend;
 }
 
-double Model::func_normsdist(double z) const {
+void Model::finalizeRun() {
+	lastUpdated = wxDateTime::Now();
+}
+
+double Model::func_normsdist(double z) {
 	//******************************************************************
 	//*  Adapted from http://lib.stat.cmu.edu/apstat/66
 	//******************************************************************
@@ -629,4 +652,47 @@ double Model::func_normsdist(double z) const {
 		return q;
 	else
 		return 1 - q;
+}
+
+// inverse normal distribution. Insert probability p, get a z-score.
+// Use when we know the probability (from a poll-score difference, perhaps)
+// and want to find the standard deviation
+// adapted from https://github.com/rozgo/UE4-DynamicalSystems/blob/master/Source/DynamicalSystems/Private/SignalGenerator.cpp
+double Model::normsinv(double p)
+{
+
+	// Coefficients in rational approximations
+	double a[] = { -39.696830f, 220.946098f, -275.928510f, 138.357751f, -30.664798f, 2.506628f };
+
+	double b[] = { -54.476098f, 161.585836f, -155.698979f, 66.801311f, -13.280681f };
+
+	double c[] = { -0.007784894002f, -0.32239645f, -2.400758f, -2.549732f, 4.374664f, 2.938163f };
+
+	double d[] = { 0.007784695709f, 0.32246712f, 2.445134f, 3.754408f };
+
+	// Define break-points.
+	double plow = 0.02425f;
+	double phigh = 1 - plow;
+
+	// Rational approximation for lower region:
+	if (p < plow) {
+		double q = std::sqrt(-2 * std::log(p));
+		return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+			((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+	}
+
+	// Rational approximation for upper region:
+	if (phigh < p) {
+		double q = std::sqrt(-2 * std::log(1 - p));
+		return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+			((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+	}
+
+	// Rational approximation for central region:
+	{
+		double q = p - 0.5f;
+		double r = q * q;
+		return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+			(((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+	}
 }

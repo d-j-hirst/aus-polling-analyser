@@ -221,11 +221,11 @@ void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 	data.push_back(wxVariant(projection.name));
 	data.push_back(wxVariant(projection.baseModel->name));
 	data.push_back(wxVariant(projection.getEndDateString()));
-	data.push_back(wxVariant(projection.numIterations));
+	data.push_back(wxVariant(std::to_string(projection.numIterations)));
 	data.push_back(wxVariant(formatFloat(projection.leaderVoteLoss, 5)));
 	data.push_back(wxVariant(formatFloat(projection.dailyChange, 4)));
-	data.push_back(wxVariant(formatFloat(projection.initialChange, 4)));
-	data.push_back(wxVariant(projection.numElections));
+	data.push_back(wxVariant(formatFloat(projection.initialStdDev, 4)));
+	data.push_back(wxVariant(std::to_string(projection.numElections)));
 	data.push_back(wxVariant(projection.getLastUpdatedString()));
 	projectionData->AppendItem(data);
 }

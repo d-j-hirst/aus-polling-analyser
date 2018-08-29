@@ -44,7 +44,7 @@ public:
 	float dailyChange = 0.1695f;
 
 	// Standard deviation of the initial uncertainty from the last model time point
-	float initialChange = 1.041161f;
+	float initialStdDev = 1.041161f;
 
 	// Number of elections used to determine the initial uncertainty
 	int numElections = 2;

@@ -229,7 +229,7 @@ void ModelsFrame::addModelToModelData(Model model) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(model.name));
-	data.push_back(wxVariant(model.numIterations));
+	data.push_back(wxVariant(std::to_string(model.numIterations)));
 	data.push_back(wxVariant(formatFloat(model.trendTimeScoreMultiplier, 2)));
 	data.push_back(wxVariant(formatFloat(model.houseEffectTimeScoreMultiplier, 2)));
 	data.push_back(wxVariant(formatFloat(model.calibrationFirstPartyBias, 3)));
@@ -298,9 +298,7 @@ void ModelsFrame::runModel() {
 			thisModel->importDiscontinuity(event->date);
 		}
 	}
-	thisModel->setInitialPath();
-	thisModel->doModelIterations();
-	thisModel->finalizeRun();
+	thisModel->run();
 
 	refreshData();
 

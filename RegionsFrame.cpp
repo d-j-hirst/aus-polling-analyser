@@ -81,7 +81,7 @@ void RegionsFrame::addRegionToRegionData(Region region) {
 	// Create a vector with all the region data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(region.name));
-	data.push_back(wxVariant(region.population));
+	data.push_back(wxVariant(std::to_string(region.population)));
 	data.push_back(wxVariant(formatFloat(region.lastElection2pp, 2)));
 	data.push_back(wxVariant(formatFloat(region.sample2pp, 2)));
 	data.push_back(wxVariant(formatFloat(region.swingDeviation, 2)));

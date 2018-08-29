@@ -205,7 +205,7 @@ void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(simulation.name));
 	data.push_back(wxVariant(simulation.baseProjection->name));
-	data.push_back(wxVariant(simulation.numIterations));
+	data.push_back(wxVariant(std::to_string(simulation.numIterations)));
 	data.push_back(wxVariant(formatFloat(simulation.prevElection2pp, 2)));
 	data.push_back(wxVariant(formatFloat(simulation.stateSD, 3)));
 	data.push_back(wxVariant(formatFloat(simulation.stateDecay, 5)));

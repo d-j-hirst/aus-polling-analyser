@@ -48,7 +48,7 @@ EditProjectionFrame::EditProjectionFrame(bool isNewProjection, ProjectionsFrame*
 	lastDailyChange = dailyChangeString;
 
 	// Generate the string for the standard deviation of initial model uncertainty.
-	std::string initialChangeString = formatFloat(projection.initialChange, 3);
+	std::string initialChangeString = formatFloat(projection.initialStdDev, 3);
 
 	// Store this string in case a text entry gives an error in the future.
 	lastInitialChange = initialChangeString;
@@ -283,7 +283,7 @@ void EditProjectionFrame::updateTextInitialChange(wxCommandEvent& event) {
 
 		// An empty string can be interpreted as zero, so it's ok.
 		if (str.empty()) {
-			projection.initialChange = 0.0f;
+			projection.initialStdDev = 0.0f;
 			return;
 		}
 
@@ -292,7 +292,7 @@ void EditProjectionFrame::updateTextInitialChange(wxCommandEvent& event) {
 		if (f > 10.0f) f = 10.0f; // Avoid ridiculous changes
 		if (f < 0) f = 0; // Negative and positive values are identical here, restrict to positive to avoid confusion.
 
-		projection.initialChange = f;
+		projection.initialStdDev = f;
 
 		// save this valid string in case the next text entry gives an error.
 		lastInitialChange = str;
