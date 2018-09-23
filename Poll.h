@@ -45,14 +45,18 @@ public:
 		else return "";
 	}
 	float getBest2pp() const {
+		// Note: because of differences in calculating previous-election preferences based on treatment
+		// of One Nation between Newspoll and others, 2pps are always calculated from primaries for now until
+		// we get a new consensus on this
 		float used2pp = 0.0f;
-		if (reported2pp > 0.1f) {
-			if (calc2pp > 0.1f) {
-				used2pp = std::max(std::min((reported2pp + calc2pp) * 0.5f, reported2pp + 0.5f), reported2pp - 0.5f);
-			}
-			else used2pp = reported2pp;
-		}
-		else if (calc2pp > 0.1f) used2pp = calc2pp;
+		//if (reported2pp > 0.1f) {
+		//	if (calc2pp > 0.1f) {
+		//		used2pp = std::max(std::min((reported2pp + calc2pp) * 0.5f, reported2pp + 0.5f), reported2pp - 0.5f);
+		//	}
+		//	else used2pp = reported2pp;
+		//}
+		/*else*/ if (calc2pp > 0.1f) used2pp = calc2pp;
+		else if (reported2pp > 0.1f) used2pp = reported2pp;
 		else if (respondent2pp > 0.1f) used2pp = respondent2pp;
 		return used2pp;
 	}

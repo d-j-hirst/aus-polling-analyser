@@ -1,0 +1,38 @@
+#Project
+name=NSW Election 2019
+opre=44.3899993896
+oexh=59.3979988098
+#Parties
+@Party
+name=Labor
+pref=100
+exha=0
+abbr=ALP
+cap =1
+@Party
+name=Liberals
+pref=0
+exha=0
+abbr=LIB
+cap =2
+@Party
+name=Greens
+pref=85.6900024414
+exha=44.0999984741
+abbr=GRN
+cap =0
+#Pollsters
+@Pollster
+name=Default Pollster
+weig=1
+colr=0
+cali=1
+igin=0
+#Polls
+#Events
+#Models
+#Projections
+#Regions
+#Seats
+#Simulations
+#End

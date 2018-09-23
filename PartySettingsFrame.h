@@ -31,14 +31,17 @@ enum
 {
 	PA_PartySettings_ButtonID_OK,
 	PA_PartySettings_TextBoxID_OthersPreferenceFlow,
+	PA_PartySettings_TextBoxID_OthersExhaustRate,
 };
 
 // *** PartySettingsData ***
 // Holds the data that is worked on by this frame.
 // If OK is pressed, this data is then passed back to the project and used to actually update the settings.
 struct PartySettingsData {
-	PartySettingsData(float othersPreferenceFlow) : othersPreferenceFlow(othersPreferenceFlow) {}
+	PartySettingsData(float othersPreferenceFlow, float othersExhaustRate) : 
+		othersPreferenceFlow(othersPreferenceFlow), othersExhaustRate(othersExhaustRate) {}
 	float othersPreferenceFlow;
+	float othersExhaustRate;
 };
 
 // *** PartySettingsFrame ***
@@ -59,6 +62,10 @@ private:
 	// the result of the GetFloat() method of "event".
 	void updateTextOthersPreferenceFlow(wxCommandEvent& event);
 
+	// Calls upon the window to update the preliminary "others" exhaust rate data based on
+	// the result of the GetFloat() method of "event".
+	void updateTextOthersExhaustRate(wxCommandEvent& event);
+
 	// Calls on the frame to initialize a new project based on the
 	// data in "newProjectData".
 	void OnPartySettingsReady(PartySettingsData& partySettingsData);
@@ -67,6 +74,8 @@ private:
 	// compiler about unused variables in the constructor - no harm done.
 	wxStaticText* othersPreferenceFlowStaticText;
 	wxTextCtrl* othersPreferenceFlowTextCtrl;
+	wxStaticText* othersExhaustRateStaticText;
+	wxTextCtrl* othersExhaustRateTextCtrl;
 	wxButton* okButton;
 	wxButton* cancelButton;
 
@@ -78,4 +87,7 @@ private:
 
 	// Keeps the "others" preference flow saved in case a text entry results in an invalid value.
 	std::string lastOthersPreferenceFlow;
+
+	// Keeps the "others" exhaust rate saved in case a text entry results in an invalid value.
+	std::string lastOthersExhaustRate;
 };

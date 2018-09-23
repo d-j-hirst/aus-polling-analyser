@@ -3,7 +3,9 @@
 #include <numeric>
 
 constexpr int NumIterationsFreedHouseEffects = 50;
-constexpr float PollAccuracyFloor = 0.6f;
+constexpr float PollAccuracyFloorZeroPolls = 1.0f;
+constexpr float PollAccuracyFloorPerPoll = 0.05f;
+constexpr float PollAccuracyFloorLimit = 0.4f;
 constexpr float PollScoreMultipler = 10.0f;
 
 #undef min
@@ -36,32 +38,8 @@ void Model::run()
 	if (!day.size()) return;
 	setInitialPath();
 	doModelIterations();
-	float originalTrendScore = getRecentTrendScore();
-	float final2pp = day.back().trend2pp;
-	std::vector<ModelTimePoint> tempDay = day;
-
-	const float adjust = 1.0f;
-	day.back().election = final2pp + adjust;
-	for (auto& thisDay : day) thisDay.reset();
-	for (auto& thisPollster : pollster) thisPollster.reset();
-	setInitialPath();
-	doModelIterations();
-	float adjustTrendScore = getRecentTrendScore();
-
-
-	float scoreDifference = std::max(adjustTrendScore - originalTrendScore, PollScoreMultipler);
-	float prob = PollScoreMultipler / scoreDifference * 0.5f;
-	float z = std::abs(normsinv(prob));
-	float sd = 1.0f / z;
-
-	finalStandardDeviation = sd;
-
-	day = tempDay;
-
-	PrintDebugFloat(day.back().trend2pp);
-	PrintDebugLine(" - final modelled 2pp");
-	PrintDebugFloat(finalStandardDeviation);
-	PrintDebugLine(" - final modelled standard deviation");
+	determineFinalStandardDeviation();
+	logRunStatistics();
 	finalizeRun();
 }
 
@@ -198,7 +176,7 @@ void Model::setInitialHouseEffectPath() {
 }
 
 void Model::doModelIterations() {
-	for (int iteration = 0; iteration < numIterations; iteration++) {
+	for (iteration = 0; iteration < numIterations; iteration++) {
 		calculateOverallHouseEffects();
 		calibrateOverallHouseEffects();
 		if (iteration > NumIterationsFreedHouseEffects) {
@@ -352,13 +330,14 @@ void Model::calculatePollsterAccuracy() {
 		for (ModelTimePoint& thisDay : day) {
 			for (SmallPoll& thisPoll : thisDay.polls) {
 				if (thisPoll.pollster == pollsterIndex) {
-					float error = thisPoll.eff2pp - thisDay.trend2pp;
+					float error = thisPoll.raw2pp - pollster[pollsterIndex].houseEffect - thisDay.trend2pp;
 					totalErrorSquared += error * error;
 					++numPolls;
 				}
 			}
 		}
-		pollster[pollsterIndex].accuracy = std::max(PollAccuracyFloor, std::sqrt(totalErrorSquared / float(std::max(1.0f, numPolls - 1))));
+		float accuracyFloor = std::max(PollAccuracyFloorLimit, PollAccuracyFloorZeroPolls - PollAccuracyFloorPerPoll * numPolls);
+		pollster[pollsterIndex].accuracy = std::max(accuracyFloor, std::sqrt(totalErrorSquared / float(std::max(1.0f, numPolls - 1))));
 	}
 }
 
@@ -427,6 +406,19 @@ float Model::calculateHouseEffectScore(ModelTimePoint const* thisDay, int dayInd
 }
 
 float Model::calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp) const {
+	ModelPollster const& thisPollster = pollster[timePoint->polls[pollIndex].pollster];
+
+	float pollScoreIncrease = 1.0f / (calculatePollLikelihood(timePoint, pollIndex, usetrend2pp) + 0.001f) - 1.0f;
+
+	pollScoreIncrease *= PollScoreMultipler;
+
+	pollScoreIncrease *= thisPollster.weight;
+
+	return pollScoreIncrease;
+}
+
+float Model::calculatePollLikelihood(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp) const
+{
 
 	// if we haven't been given a proper alternative 2pp, just use the actual trend 2pp.
 	if (usetrend2pp < 0.0f) usetrend2pp = timePoint->trend2pp;
@@ -440,13 +432,7 @@ float Model::calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, 
 	// capping this ensures outliers don't have too much of an influence on things
 	float pollDeviation = std::min(std::max(pollDiff / thisPollster.accuracy, -3.0f), 3.0f);
 
-	float pollScoreIncrease = 1.0f / (1.0f - abs((0.5f - float(func_normsdist(pollDeviation))) * 2.0f) + 0.001f) - 1.0f;
-
-	pollScoreIncrease *= PollScoreMultipler;
-
-	pollScoreIncrease *= thisPollster.weight;
-
-	return pollScoreIncrease;
+	return 1.0f - abs((0.5f - float(func_normsdist(pollDeviation))) * 2.0f);
 }
 
 float Model::calculateHouseEffectPollScore(ModelTimePoint const* timePoint, int pollIndex, int pollsterIndex, float useHouseEffect) const {
@@ -590,6 +576,55 @@ float Model::getRecentTrendScore() const
 		if (pollCount >= 5 && dayCount >= 30) break;
 	}
 	return totalTrend;
+}
+
+void Model::determineFinalStandardDeviation()
+{
+	float totalEvidence = 0.0f;
+	int daysBeforeFinal = 0;
+	float daysHalfLife = this->trendTimeScoreMultiplier * 2;
+	for (auto thisDay = day.rbegin(); thisDay != day.rend(); ++thisDay) {
+		for (std::size_t pollIndex = 0; pollIndex < thisDay->polls.size(); ++pollIndex) {
+			float basePollLikelihood = calculatePollLikelihood(&*thisDay, pollIndex);
+			ModelPollster const& thisPollster = pollster[thisDay->polls[pollIndex].pollster];
+			basePollLikelihood /= thisPollster.accuracy;
+			float timeBasedExponentialDecay = pow(2.0f, -float(daysBeforeFinal) / daysHalfLife);
+			totalEvidence += pow(basePollLikelihood, 0.5f) * timeBasedExponentialDecay;
+		}
+
+		// If there is some evidence after the discontinuity, then we
+		// don't want to count evidence before the discontinuity as it's irrelevant to the new situation
+		if (thisDay->discontinuity && totalEvidence) break;
+		++daysBeforeFinal;
+	}
+
+	constexpr float MaximumFinalDeviation = 3.0f;
+	finalStandardDeviation = (totalEvidence ?
+		std::min(MaximumFinalDeviation, 1.0f / totalEvidence) :
+		MaximumFinalDeviation);
+}
+
+void Model::logRunStatistics()
+{
+	PrintDebugLine("--------------------------------");
+	PrintDebugLine("Model run completed.");
+	PrintDebug("Final trend 2PP: ");
+	PrintDebugFloat(day.back().trend2pp);
+	PrintDebugNewLine();
+	PrintDebug("Final additional standard deviation: ");
+	PrintDebugFloat(finalStandardDeviation);
+	PrintDebugNewLine();
+	for (size_t pollsterIndex = 0; pollsterIndex < pollster.size(); ++pollsterIndex) {
+		PrintDebug(" Pollster index: ");
+		PrintDebugInt(pollsterIndex);
+		PrintDebug(" - Accuracy: ");
+		PrintDebugFloat(pollster[pollsterIndex].accuracy);
+		PrintDebugNewLine();
+		PrintDebug(" - House effect: ");
+		PrintDebugFloat(pollster[pollsterIndex].houseEffect);
+		PrintDebugNewLine();
+		PrintDebugLine(" ---------");
+	}
 }
 
 void Model::finalizeRun() {

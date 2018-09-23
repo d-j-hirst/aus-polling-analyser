@@ -45,6 +45,7 @@ enum {
 enum PartyColumnsEnum {
 	PartyColumn_Name,
 	PartyColumn_PreferenceFlow,
+	PartyColumn_ExhaustRate,
 	PartyColumn_Abbreviation,
 	PartyColumn_NumColumns,
 };

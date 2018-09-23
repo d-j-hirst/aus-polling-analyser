@@ -12,11 +12,12 @@ struct Party {
 		CountsAsPartyOne,
 		CountsAsPartyTwo
 	};
-	Party(std::string name, float preferenceShare, std::string abbreviation, CountAsParty countAsParty)
-		: name(name), preferenceShare(preferenceShare), abbreviation(abbreviation), countAsParty(countAsParty) {}
+	Party(std::string name, float preferenceShare, float exhaustRate, std::string abbreviation, CountAsParty countAsParty)
+		: name(name), preferenceShare(preferenceShare), exhaustRate(exhaustRate), abbreviation(abbreviation), countAsParty(countAsParty) {}
 	Party() {}
 	std::string name = "";
 	float preferenceShare = 50.0f;
+	float exhaustRate = 0.0f;
 	std::string abbreviation = "";
 	CountAsParty countAsParty = CountAsParty::None;
 };

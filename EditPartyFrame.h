@@ -32,6 +32,7 @@ enum
 	PA_EditParty_ButtonID_OK,
 	PA_EditParty_TextBoxID_Name,
 	PA_EditParty_TextBoxID_PreferenceFlow,
+	PA_EditParty_TextBoxID_ExhaustRate,
 	PA_EditParty_TextBoxID_Abbreviation,
 	PA_EditParty_ComboBoxID_CountAsParty,
 };
@@ -46,7 +47,7 @@ public:
 	// parent: Parent frame for this (must be a PartiesFrame).
 	// party: Party data to be used if editing (has default values for creating a new party).
 	EditPartyFrame(bool isNewParty, PartiesFrame* const parent,
-		Party party = Party("Enter party name here", 50.0f, "Enter abbreviation here", Party::CountAsParty::None));
+		Party party = Party("Enter party name here", 50.0f, 0.0f, "Enter abbreviation here", Party::CountAsParty::None));
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
@@ -60,6 +61,10 @@ private:
 	// Calls upon the window to update the preliminary preference flow data based on
 	// the result of the GetFloat() method of "event".
 	void updateTextPreferenceFlow(wxCommandEvent& event);
+
+	// Calls upon the window to update the preliminary exhaust rate data based on
+	// the result of the GetFloat() method of "event".
+	void updateTextExhaustRate(wxCommandEvent& event);
 
 	// Calls upon the window to update the preliminary abbreviation data based on
 	// the result of the GetString() method of "event".
@@ -84,6 +89,8 @@ private:
 	wxTextCtrl* preferenceFlowTextCtrl;
 	wxStaticText* abbreviationStaticText;
 	wxTextCtrl* abbreviationTextCtrl;
+	wxStaticText* exhaustRateStaticText;
+	wxTextCtrl* exhaustRateTextCtrl;
 	wxStaticText* countAsPartyStaticText;
 	wxComboBox* countAsPartyComboBox;
 	wxButton* okButton;
@@ -97,4 +104,7 @@ private:
 
 	// Keeps the preference flow saved in case a text entry results in an invalid value.
 	std::string lastPreferenceFlow;
+
+	// Keeps the preference flow saved in case a text entry results in an invalid value.
+	std::string lastExhaustRate;
 };

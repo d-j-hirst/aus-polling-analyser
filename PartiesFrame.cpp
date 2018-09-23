@@ -46,6 +46,7 @@ PartiesFrame::PartiesFrame(ProjectFrame* const parent, PollingProject* project)
 	// Add the data columns that show the properties of the parties.
 	partyData->AppendTextColumn("Party Name", wxDATAVIEW_CELL_INERT, 135); // wide enough to fit all significant party names
 	partyData->AppendTextColumn("Preference Flow", wxDATAVIEW_CELL_INERT, 98); // wide enough to fit the title
+	partyData->AppendTextColumn("Exhaust Rate", wxDATAVIEW_CELL_INERT, 98); // wide enough to fit the title
 	partyData->AppendTextColumn("Abbreviation");
 
 	// Add the party data
@@ -86,6 +87,7 @@ void PartiesFrame::OnEditPartyReady(Party& party) {
 
 void PartiesFrame::OnPartySettingsReady(PartySettingsData& partySettingsData) {
 	project->setOthersPreferenceFlow(partySettingsData.othersPreferenceFlow);
+	project->setOthersExhaustRate(partySettingsData.othersExhaustRate);
 	project->refreshCalc2PP();
 	parent->refreshPollData();
 }
@@ -103,6 +105,7 @@ void PartiesFrame::addPartyToPartyData(Party party) {
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(party.name));
 	data.push_back(wxVariant(formatFloat(party.preferenceShare, 3)));
+	data.push_back(wxVariant(formatFloat(party.exhaustRate, 3)));
 	data.push_back(wxVariant(party.abbreviation));
 
 	partyData->AppendItem(data);
@@ -123,6 +126,7 @@ void PartiesFrame::replacePartyInPartyData(Party party) {
 	wxDataViewListStore* store = partyData->GetStore();
 	store->SetValueByRow(party.name, partyIndex, PartyColumn_Name);
 	store->SetValueByRow(formatFloat(party.preferenceShare, 3), partyIndex, PartyColumn_PreferenceFlow);
+	store->SetValueByRow(formatFloat(party.exhaustRate, 3), partyIndex, PartyColumn_ExhaustRate);
 	store->SetValueByRow(party.abbreviation, partyIndex, PartyColumn_Abbreviation);
 }
 
@@ -219,7 +223,7 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 
 void PartiesFrame::OnPartySettings(wxCommandEvent& WXUNUSED(event)) {
 
-	PartySettingsData partySettingsData = PartySettingsData(project->getOthersPreferenceFlow());
+	PartySettingsData partySettingsData = PartySettingsData(project->getOthersPreferenceFlow(), project->getOthersExhaustRate());
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	PartySettingsFrame *frame = new PartySettingsFrame(this, partySettingsData);

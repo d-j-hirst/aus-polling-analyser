@@ -108,6 +108,15 @@ public:
 	// also gets the latest pollster count.
 	void initializeRun(wxDateTime earliestPoll, wxDateTime latestPoll, int nPollsters);
 
+	// Called once the model has been run, this determines the final standard deviation
+	// to be used in projections (in addition to the base deviation).
+	// This value is higher when there are fewer or dispersed polls and lower when there
+	// are many, mutually confirming polls
+	void determineFinalStandardDeviation();
+
+	// Outputs the most important run statistics to the log file.
+	void logRunStatistics();
+
 	// finalizes the run (update this description later).
 	void finalizeRun();
 
@@ -172,6 +181,9 @@ public:
 	// calculates the error scores for the time point's poll with index "pollIndex".
 	// if usetrend2pp is given (and positive/zero), then substitutes it for the current trend 2pp.
 	float calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp = -1.0f) const;
+
+	// calculates the probability of the trend 2pp being further than this distance from the poll
+	float calculatePollLikelihood(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp = -1.0f) const;
 
 	// calculates the error scores for the time point's poll with index "pollIndex".
 	// if usetrend2pp is given (and positive/zero), then substitutes it for the current trend 2pp.
@@ -245,4 +257,8 @@ public:
 
 	int pollsterCount;
 	int pollsterCalibrationCount;
+
+private:
+
+	int iteration;
 };
