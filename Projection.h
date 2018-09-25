@@ -30,6 +30,8 @@ public:
 
 	void run();
 
+	void logRunStatistics();
+
 	void setAsNowCast();
 
 	// User-defined name.

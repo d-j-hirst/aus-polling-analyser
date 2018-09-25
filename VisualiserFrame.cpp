@@ -173,9 +173,9 @@ void VisualiserFrame::render(wxDC& dc) {
 
 	getStartAndEndDays();
 
-	gv = GraphicsVariables();
-
 	if (project->getVisStartDay() < -100000.0) return; // if this is true there is nothing to draw.
+
+	gv = GraphicsVariables();
 
 	defineGraphLimits();
 	determineAxisTickInterval();
@@ -200,7 +200,7 @@ void VisualiserFrame::render(wxDC& dc) {
 }
 
 void VisualiserFrame::getStartAndEndDays() {
-	if (project->getPollCount()) {
+	if (project->getPollCount() > 1) {
 
 		// this can be uncommented once the user has control over the visualiser, but for now we'll just show all polls
 		if (project->getVisStartDay() < -100000.0)

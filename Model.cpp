@@ -615,6 +615,7 @@ void Model::logRunStatistics()
 	PrintDebugFloat(finalStandardDeviation);
 	PrintDebugNewLine();
 	for (size_t pollsterIndex = 0; pollsterIndex < pollster.size(); ++pollsterIndex) {
+		PrintDebugLine(" ---------");
 		PrintDebug(" Pollster index: ");
 		PrintDebugInt(pollsterIndex);
 		PrintDebug(" - Accuracy: ");
@@ -623,7 +624,6 @@ void Model::logRunStatistics()
 		PrintDebug(" - House effect: ");
 		PrintDebugFloat(pollster[pollsterIndex].houseEffect);
 		PrintDebugNewLine();
-		PrintDebugLine(" ---------");
 	}
 }
 

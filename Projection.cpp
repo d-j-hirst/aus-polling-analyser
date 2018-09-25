@@ -44,7 +44,21 @@ void Projection::run() {
 		}
 		sdProjection[day] = std::sqrt(sdProjection[day] / double(numIterations));
 	}
+	logRunStatistics();
 	lastUpdated = wxDateTime::Now();
+}
+
+
+void Projection::logRunStatistics()
+{
+	PrintDebugLine("--------------------------------");
+	PrintDebugLine("Projection completed.");
+	PrintDebug("Final 2PP mean value: ");
+	PrintDebugDouble(meanProjection.back());
+	PrintDebugNewLine();
+	PrintDebug("Final 2PP standard deviation: ");
+	PrintDebugDouble(sdProjection.back());
+	PrintDebugNewLine();
 }
 
 void Projection::setAsNowCast() {
