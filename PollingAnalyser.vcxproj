@@ -107,6 +107,7 @@
       <ProgramDataBaseFileName>vc_mswu\PollingAnalyser.pdb</ProgramDataBaseFileName>
       <AdditionalOptions> /opt:ref /opt:icf /EHsc </AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>

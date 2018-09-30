@@ -24,13 +24,17 @@ void Projection::run() {
 	tempProjections.resize(numIterations);
 	meanProjection.resize(nDays);
 	sdProjection.resize(nDays);
-	double firstResult = double(baseModel->day.back().trend2pp);
+	double modelEndpoint = double(baseModel->day.back().trend2pp);
 	for (auto& projVec : tempProjections) {
 		projVec.resize(nDays);
 		double systematicVariation = initialDist(gen) * initialStdDev;
 		double samplingVariation = pollingDist(gen) * 2;
-		projVec[0] = firstResult + systematicVariation + samplingVariation;
+		double initialDistributionResult = modelEndpoint + systematicVariation + samplingVariation;
+		initialDistributionResult = std::clamp(initialDistributionResult, 0.0, 100.0);
+		projVec[0] = initialDistributionResult;
 		for (int day = 1; day < nDays; ++day) {
+			double nextDayStatisticProjection = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + nDist(gen);
+			nextDayStatisticProjection = std::clamp(nextDayStatisticProjection, 0.0, 100.0);
 			projVec[day] = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + nDist(gen);
 		}
 	}
@@ -44,6 +48,7 @@ void Projection::run() {
 		}
 		sdProjection[day] = std::sqrt(sdProjection[day] / double(numIterations));
 	}
+
 	logRunStatistics();
 	lastUpdated = wxDateTime::Now();
 }
