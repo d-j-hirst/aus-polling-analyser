@@ -319,7 +319,7 @@ void EditProjectionFrame::updateTextNumElections(wxCommandEvent& event) {
 
 		// convert to a float between 0 and 1.
 		int i = std::stoi(str); // This may throw an error of the std::logic_error type.
-		if (i > 10.0f) i = 10.0f; // Avoid ridiculous changes
+		if (i > 1000.0f) i = 1000.0f; // Avoid ridiculous changes
 		if (i < 0) i = 0; // Negative and positive values are identical here, restrict to positive to avoid confusion.
 
 		projection.numElections = i;
