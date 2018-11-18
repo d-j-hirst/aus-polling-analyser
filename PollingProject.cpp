@@ -633,11 +633,13 @@ int PollingProject::save(std::string filename) {
 		os << "name=" << thisSeat.name << std::endl;
 		os << "incu=" << getPartyIndex(thisSeat.incumbent) << std::endl;
 		os << "chal=" << getPartyIndex(thisSeat.challenger) << std::endl;
+		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << std::endl;
 		os << "regn=" << getRegionIndex(thisSeat.region) << std::endl;
 		os << "marg=" << thisSeat.margin << std::endl;
 		os << "lmod=" << thisSeat.localModifier << std::endl;
 		os << "iodd=" << thisSeat.incumbentOdds << std::endl;
 		os << "codd=" << thisSeat.challengerOdds << std::endl;
+		os << "c2od=" << thisSeat.challenger2Odds << std::endl;
 		os << "prjm=" << thisSeat.projectedMargin << std::endl;
 		os << "winp=" << thisSeat.incumbentWinPercent << std::endl;
 		os << "tipp=" << thisSeat.tippingPointPercent << std::endl;
@@ -1071,6 +1073,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			it->challenger = getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
+		else if (!line.substr(0, 5).compare("cha2=")) {
+			it->challenger2 = getPartyPtr(std::stoi(line.substr(5)));
+			return true;
+		}
 		else if (!line.substr(0, 5).compare("regn=")) {
 			it->region = getRegionPtr(std::stoi(line.substr(5)));
 			return true;
@@ -1089,6 +1095,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("codd=")) {
 			it->challengerOdds = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("c2od=")) {
+			it->challenger2Odds = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("prjm=")) {

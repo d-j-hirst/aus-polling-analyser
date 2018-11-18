@@ -19,6 +19,7 @@ public:
 
 	Party const* incumbent = nullptr;
 	Party const* challenger = nullptr;
+	Party const* challenger2 = nullptr;
 	Region* region = nullptr;
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
@@ -30,6 +31,7 @@ public:
 	// Betting odds on the incumbent and challenger - only necessary for non-classic seats
 	float incumbentOdds = 2.0f;
 	float challengerOdds = 2.0f;
+	float challenger2Odds = 1000.0f;
 
 	float projectedMargin = 0.0f;
 	float incumbentWinPercent = 0.0f;

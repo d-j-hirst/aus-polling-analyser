@@ -36,11 +36,13 @@ enum
 	PA_EditSeat_TextBoxID_Name,
 	PA_EditSeat_ComboBoxID_Incumbent,
 	PA_EditSeat_ComboBoxID_Challenger,
+	PA_EditSeat_ComboBoxID_Challenger2,
 	PA_EditSeat_ComboBoxID_Region,
 	PA_EditSeat_TextBoxID_Margin,
 	PA_EditSeat_TextBoxID_LocalModifier,
 	PA_EditSeat_TextBoxID_IncumbentOdds,
 	PA_EditSeat_TextBoxID_ChallengerOdds,
+	PA_EditSeat_TextBoxID_Challenger2Odds,
 };
 
 // *** EditSeatFrame ***
@@ -72,6 +74,10 @@ private:
 	// the properties of the event.
 	void updateComboBoxChallenger(wxCommandEvent& event);
 
+	// Calls upon the window to update the second challenger based on
+	// the properties of the event.
+	void updateComboBoxChallenger2(wxCommandEvent& event);
+
 	// Calls upon the window to update the region based on
 	// the properties of the event.
 	void updateComboBoxRegion(wxCommandEvent& event);
@@ -92,6 +98,10 @@ private:
 	// the result of the GetString() method of "event".
 	void updateTextChallengerOdds(wxCommandEvent& event);
 
+	// Calls upon the window to update the challenger betting odds based on
+	// the result of the GetString() method of "event".
+	void updateTextChallenger2Odds(wxCommandEvent& event);
+
 	// Calls on the parent frame to initialize a new seat based on the
 	// data in "newProjectData".
 	void OnNewSeatReady();
@@ -110,6 +120,8 @@ private:
 	wxComboBox* incumbentComboBox;
 	wxStaticText* challengerStaticText;
 	wxComboBox* challengerComboBox;
+	wxStaticText* challenger2StaticText;
+	wxComboBox* challenger2ComboBox;
 	wxStaticText* regionStaticText;
 	wxComboBox* regionComboBox;
 	wxStaticText* marginStaticText;
@@ -120,6 +132,8 @@ private:
 	wxTextCtrl* incumbentOddsTextCtrl;
 	wxStaticText* challengerOddsStaticText;
 	wxTextCtrl* challengerOddsTextCtrl;
+	wxStaticText* challenger2OddsStaticText;
+	wxTextCtrl* challenger2OddsTextCtrl;
 	wxButton* okButton;
 	wxButton* cancelButton;
 
@@ -127,6 +141,7 @@ private:
 	std::string lastLocalModifier;
 	std::string lastIncumbentOdds;
 	std::string lastChallengerOdds;
+	std::string lastChallenger2Odds;
 
 	// A pointer to the parent frame.
 	SeatsFrame* const parent;
