@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include <vector>
 #include <array>
 #include <numeric>
@@ -123,4 +124,13 @@ public:
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;
+
+	private:
+		
+	struct OddsInfo {
+		float incumbentChance = 1.0f;
+		float topTwoChance = 1.0f;
+	};
+
+	OddsInfo calculateOddsInfo(std::list<Seat>::iterator thisSeat);
 };

@@ -125,18 +125,24 @@ void Simulation::run(PollingProject& project) {
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 				// If the margin is greater than zero, the incumbent wins the seat.
 				thisSeat->winner = (newMargin >= 0.0f ? thisSeat->incumbent : thisSeat->challenger);
+				// Sometimes a classic 2pp seat may also have a independent with a significant chance,
+				// but not high enough to make the top two - if so this will give a certain chance to
+				// override the swing-based result with a win from the challenger
+				if (thisSeat->challenger2Odds < 8.0) {
+					OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
+					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
+					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
+				}
 			} else {
-				// Non-standard seat; use odds adjusted for longshot bias
-				float incumbentOdds = (thisSeat->incumbentOdds > LongshotOddsThreshold ?
-					pow(thisSeat->incumbentOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->incumbentOdds);
-				float challengerOdds = (thisSeat->challengerOdds > LongshotOddsThreshold ?
-					pow(thisSeat->challengerOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->challengerOdds);
-				// Calculate incumbent chance based on adjusted odds
-				float incumbentChance = (1.0f / incumbentOdds) / (1.0f / incumbentOdds + 1.0f / challengerOdds);
+				// Non-standard seat; use odds adjusted for longshot bias since the presence of the
+				// third-party candidate may make swing-based projections inaccurate
+				OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
 				// Random number between 0 and 1
-				float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen); // random number from 0 to 1
+				float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 				// Winner 
-				thisSeat->winner = (uniformRand < incumbentChance ? thisSeat->incumbent : thisSeat->challenger);
+				if (uniformRand < oddsInfo.incumbentChance) thisSeat->winner = thisSeat->incumbent;
+				else if (uniformRand < oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger;
+				else thisSeat->winner = thisSeat->challenger2;
 			}
 			// If the winner is the incumbent, record this down in the seat's numbers
 			thisSeat->incumbentWins += (thisSeat->winner == thisSeat->incumbent ? 1 : 0);
@@ -290,4 +296,19 @@ int Simulation::findBestSeatDisplayCenter(Party* partySorted, int numSeatsDispla
 		}
 	}
 	return bestCenter;
+}
+
+Simulation::OddsInfo Simulation::calculateOddsInfo(std::list<Seat>::iterator thisSeat)
+{
+	float incumbentOdds = (thisSeat->incumbentOdds > LongshotOddsThreshold ?
+		pow(thisSeat->incumbentOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->incumbentOdds);
+	float challengerOdds = (thisSeat->challengerOdds > LongshotOddsThreshold ?
+		pow(thisSeat->challengerOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->challengerOdds);
+	float challenger2Odds = (thisSeat->challenger2Odds > LongshotOddsThreshold ?
+		pow(thisSeat->challenger2Odds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->challenger2Odds);
+	// Calculate incumbent chance based on adjusted odds
+	float totalChance = (1.0f / incumbentOdds + 1.0f / challengerOdds + 1.0f / challenger2Odds);
+	float incumbentChance = (1.0f / incumbentOdds) / totalChance;
+	float topTwoChance = (1.0f / challengerOdds) / totalChance + incumbentChance;
+	return OddsInfo{ incumbentChance, topTwoChance };
 }
