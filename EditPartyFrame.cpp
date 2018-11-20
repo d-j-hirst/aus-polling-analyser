@@ -49,6 +49,8 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 
 	if (party.countAsParty != Party::CountAsParty::IsPartyOne && party.countAsParty != Party::CountAsParty::IsPartyTwo) {
 
+		// Firstly do counts-as-party (i.e. formal coalition party) status
+
 		// Create the choices for the combo box.
 		// Also check if the party's count-as-party matches one of the options
 		wxArrayString countAsPartyArray;
@@ -57,8 +59,8 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 		countAsPartyArray.push_back("Counts As Party Two");
 		int currentSelection = 0;
 		switch (party.countAsParty) {
-		case Party::CountAsParty::CountsAsPartyOne: currentSelection = 1;
-		case Party::CountAsParty::CountsAsPartyTwo: currentSelection = 2;
+		case Party::CountAsParty::CountsAsPartyOne: currentSelection = 1; break;
+		case Party::CountAsParty::CountsAsPartyTwo: currentSelection = 2; break;
 		}
 
 		// Create the controls for the count-as-party combo box.
@@ -68,9 +70,33 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 
 		// Sets the combo box selection to the poll's pollster, if any.
 		countAsPartyComboBox->SetSelection(currentSelection);
-	}
 
-	currentHeight += 27;
+		currentHeight += 27;
+
+		// Now do supports-party (likely minority government support) status
+
+		// Create the choices for the combo box.
+		// Also check if the party's count-as-party matches one of the options
+		wxArrayString supportsPartyArray;
+		supportsPartyArray.push_back("None");
+		supportsPartyArray.push_back("Supports Party One");
+		supportsPartyArray.push_back("Supports Party Two");
+		currentSelection = 0;
+		switch (party.supportsParty) {
+		case Party::SupportsParty::One: currentSelection = 1; break;
+		case Party::SupportsParty::Two: currentSelection = 2; break;
+		}
+
+		// Create the controls for the count-as-party combo box.
+		supportsPartyStaticText = new wxStaticText(this, 0, "Supports party:", wxPoint(2, currentHeight), wxSize(198, 23));
+		supportsPartyComboBox = new wxComboBox(this, PA_EditParty_ComboBoxID_SupportsParty, supportsPartyArray[currentSelection],
+			wxPoint(200, currentHeight), wxSize(120, 23), supportsPartyArray, wxCB_READONLY);
+
+		// Sets the combo box selection to the poll's pollster, if any.
+		supportsPartyComboBox->SetSelection(currentSelection);
+
+		currentHeight += 27;
+	}
 
 	// Create the OK and cancel buttons.
 	okButton = new wxButton(this, PA_EditParty_ButtonID_OK, "OK", wxPoint(67, currentHeight), wxSize(100, 24));
@@ -82,6 +108,7 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextExhaustRate, this, PA_EditParty_TextBoxID_ExhaustRate);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
+	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxSupportsParty, this, PA_EditParty_ComboBoxID_SupportsParty);
 	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, PA_EditParty_ButtonID_OK);
 }
 
@@ -174,8 +201,18 @@ void EditPartyFrame::updateComboBoxCountAsParty(wxCommandEvent& WXUNUSED(event))
 
 	int selection = countAsPartyComboBox->GetCurrentSelection();
 	switch (selection) {
-	case 0: party.countAsParty = Party::CountAsParty::None;
-	case 1: party.countAsParty = Party::CountAsParty::CountsAsPartyOne;
-	case 2: party.countAsParty = Party::CountAsParty::CountsAsPartyTwo;
+	case 0: party.countAsParty = Party::CountAsParty::None; break;
+	case 1: party.countAsParty = Party::CountAsParty::CountsAsPartyOne; break;
+	case 2: party.countAsParty = Party::CountAsParty::CountsAsPartyTwo; break;
+	}
+}
+
+void EditPartyFrame::updateComboBoxSupportsParty(wxCommandEvent& WXUNUSED(event)) {
+
+	int selection = supportsPartyComboBox->GetCurrentSelection();
+	switch (selection) {
+	case 0: party.supportsParty = Party::SupportsParty::None; break;
+	case 1: party.supportsParty = Party::SupportsParty::One; break;
+	case 2: party.supportsParty = Party::SupportsParty::Two; break;
 	}
 }

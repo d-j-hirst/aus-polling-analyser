@@ -8,31 +8,36 @@ name=Labor
 pref=100
 exha=0
 abbr=ALP
-cap =2
+cap =1
+supp=1
 @Party
 name=Liberals
 pref=0
 exha=0
 abbr=LIB
 cap =2
+supp=2
 @Party
 name=Greens
 pref=83
 exha=0
 abbr=GRN
 cap =0
+supp=1
 @Party
 name=One Nation
 pref=40
 exha=0
 abbr=ONP
 cap =0
+supp=2
 @Party
 name=Independent
 pref=50
 exha=0
 abbr=IND
 cap =0
+supp=0
 #Pollsters
 @Pollster
 name=Newspoll

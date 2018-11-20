@@ -546,6 +546,7 @@ int PollingProject::save(std::string filename) {
 		os << "exha=" << thisParty.exhaustRate << std::endl;
 		os << "abbr=" << thisParty.abbreviation << std::endl;
 		os << "cap =" << int(thisParty.countAsParty) << std::endl;
+		os << "supp=" << int(thisParty.supportsParty) << std::endl;
 	}
 	os << "#Pollsters" << std::endl;
 	for (auto it = pollsters.begin(); it != pollsters.end(); ++it) {
@@ -836,6 +837,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("cap =")) {
 			parties.back().countAsParty = Party::CountAsParty(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("supp=")) {
+			parties.back().supportsParty = Party::SupportsParty(std::stoi(line.substr(5)));
 			return true;
 		}
 	}
@@ -1191,7 +1196,10 @@ void PollingProject::finalizeFileLoading() {
 	// Set the two major parties, in case this file comes from a version in which "count-as-party" data was not recorded
 	auto thisParty = parties.begin();
 	thisParty->countAsParty = Party::CountAsParty::IsPartyOne;
+	thisParty->supportsParty = Party::SupportsParty::One;
+	++thisParty;
 	thisParty->countAsParty = Party::CountAsParty::IsPartyTwo;
+	thisParty->supportsParty = Party::SupportsParty::Two;
 
 	setVisualiserBounds(visStartDay, visEndDay);
 }

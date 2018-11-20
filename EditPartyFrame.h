@@ -35,6 +35,7 @@ enum
 	PA_EditParty_TextBoxID_ExhaustRate,
 	PA_EditParty_TextBoxID_Abbreviation,
 	PA_EditParty_ComboBoxID_CountAsParty,
+	PA_EditParty_ComboBoxID_SupportsParty,
 };
 
 // *** EditPartyFrame ***
@@ -74,6 +75,10 @@ private:
 	// the properties of the event.
 	void updateComboBoxCountAsParty(wxCommandEvent& event);
 
+	// Calls upon the window to update the "supports party" data based on
+	// the properties of the event.
+	void updateComboBoxSupportsParty(wxCommandEvent& event);
+
 	// Calls on the frame to initialize a new project based on the
 	// data in "newProjectData".
 	void OnNewPartyReady(NewProjectData& newProjectData);
@@ -93,6 +98,8 @@ private:
 	wxTextCtrl* exhaustRateTextCtrl;
 	wxStaticText* countAsPartyStaticText;
 	wxComboBox* countAsPartyComboBox;
+	wxStaticText* supportsPartyStaticText;
+	wxComboBox* supportsPartyComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
 

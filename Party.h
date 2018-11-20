@@ -12,6 +12,13 @@ struct Party {
 		CountsAsPartyOne,
 		CountsAsPartyTwo
 	};
+
+	enum class SupportsParty : unsigned char {
+		None,
+		One,
+		Two
+	};
+
 	Party(std::string name, float preferenceShare, float exhaustRate, std::string abbreviation, CountAsParty countAsParty)
 		: name(name), preferenceShare(preferenceShare), exhaustRate(exhaustRate), abbreviation(abbreviation), countAsParty(countAsParty) {}
 	Party() {}
@@ -20,4 +27,5 @@ struct Party {
 	float exhaustRate = 0.0f;
 	std::string abbreviation = "";
 	CountAsParty countAsParty = CountAsParty::None;
+	SupportsParty supportsParty = SupportsParty::None;
 };
