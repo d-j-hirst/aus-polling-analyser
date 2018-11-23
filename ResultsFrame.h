@@ -46,6 +46,9 @@ private:
 	// Runs all "live" simulations found
 	void OnAddResult(wxCommandEvent& WXUNUSED(event));
 
+	// adds "result" to result data.
+	void addResultToResultData(Result result);
+
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 

@@ -543,6 +543,18 @@ void PollingProject::addResult(Result result)
 	results.push_front(result);
 }
 
+Result PollingProject::getResult(int resultIndex) const
+{
+	auto it = results.begin();
+	std::advance(it, resultIndex);
+	return *it;
+}
+
+int PollingProject::getResultCount() const
+{
+	return results.size();
+}
+
 int PollingProject::save(std::string filename) {
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
 	os << std::setprecision(12);

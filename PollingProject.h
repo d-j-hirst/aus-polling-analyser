@@ -326,6 +326,12 @@ public:
 	// Adds a result to the front of the results list
 	void addResult(Result result);
 
+	// Returns the result with index "resultIndex".
+	Result getResult(int resultIndex) const;
+
+	// Returns the number of results.
+	int getResultCount() const;
+
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);

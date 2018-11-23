@@ -62,6 +62,19 @@ void ResultsFrame::refreshData()
 {
 	resultsData->DeleteAllItems();
 	resultsData->ClearColumns();
+
+	resultsData->AppendTextColumn("Seat Name", wxDATAVIEW_CELL_INERT, 110, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("Swing", wxDATAVIEW_CELL_INERT, 50, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("Count %", wxDATAVIEW_CELL_INERT, 50, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("Updated", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+
+	for (int i = 0; i < project->getResultCount(); ++i) {
+		addResultToResultData(project->getResult(i));
+	}
 }
 
 void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
@@ -76,6 +89,8 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 		Simulation* simulation = project->getSimulationPtr(i);
 		if (simulation->live) simulation->run(*project);
 	}
+
+	refreshData();
 }
 
 void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
@@ -93,6 +108,19 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	Result result = Result(seat, swing, percentCounted, boothsIn, totalBooths);
 
 	project->addResult(result);
+
+	refreshData();
+}
+
+void ResultsFrame::addResultToResultData(Result result)
+{
+	// Create a vector with all the party data.
+	wxVector<wxVariant> data;
+	data.push_back(wxVariant(result.seat->name));
+	data.push_back(wxVariant(formatFloat(result.incumbentSwing, 1)));
+	data.push_back(wxVariant(formatFloat(result.percentCounted, 1)));
+	data.push_back(wxVariant(result.updateTime.FormatISOTime()));
+	resultsData->AppendItem(data);
 }
 
 void ResultsFrame::updateInterface()
