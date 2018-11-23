@@ -55,6 +55,19 @@ private:
 	// Text box used to enter the name of a seat to input results for
 	wxTextCtrl* seatNameTextCtrl = nullptr;
 
+	// Text box used to enter the swing for the seat selected
+	wxTextCtrl* swingTextCtrl = nullptr;
+
+	// Text box used to enter the percent counted for the seat
+	wxTextCtrl* percentCountedTextCtrl = nullptr;
+
+	// Text box used to enter the booths counted for the seat
+	// (only used if a percent counted is not available)
+	wxTextCtrl* currentBoothCountTextCtrl = nullptr;
+
+	// Text box used to enter the total number of booths for the seat
+	wxTextCtrl* totalBoothCountTextCtrl = nullptr;
+
 	// Panel containing vote count data.
 	wxPanel* dataPanel = nullptr;
 
