@@ -486,6 +486,14 @@ std::list<Seat>::iterator PollingProject::getSeatEnd() {
 	return seats.end();
 }
 
+Seat * PollingProject::getSeatPtrByName(std::string seatName)
+{
+	auto seatIt = std::find_if(seats.begin(), seats.end(),
+		[seatName](Seat const& s) {return s.name == seatName; });
+	if (seatIt != seats.end()) return &*seatIt;
+	return nullptr;
+}
+
 void PollingProject::addSimulation(Simulation simulation) {
 	simulations.push_back(simulation);
 }

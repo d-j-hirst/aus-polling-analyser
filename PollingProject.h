@@ -292,6 +292,9 @@ public:
 	// Gets the end iterator for the seat list.
 	std::list<Seat>::iterator getSeatEnd();
 
+	// Gets a pointer to the first seat found with this name. Returns null if no seat matches.
+	Seat* getSeatPtrByName(std::string name);
+
 	// Adds the simulation "simulation".
 	void addSimulation(Simulation simulation);
 

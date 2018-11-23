@@ -13,6 +13,7 @@ enum {
 	PA_ResultsFrame_PercentCountedID,
 	PA_ResultsFrame_CurrentBoothCountID,
 	PA_ResultsFrame_TotalBoothCountID,
+	PA_ResultsFrame_AddResultID
 };
 
 // frame constructor
@@ -54,6 +55,7 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 
 	// Binding events for the toolbar items.
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, PA_ResultsFrame_RunLiveSimulationsID);
+	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, PA_ResultsFrame_AddResultID);
 }
 
 void ResultsFrame::refreshData()
@@ -76,14 +78,25 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 	}
 }
 
+void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
+{
+	std::string enteredName = seatNameTextCtrl->GetLineText(0);
+	auto seat = project->getSeatPtrByName(enteredName);
+	if (!seat) {
+		wxMessageBox("No seat found matching this name!");
+		return;
+	}
+}
+
 void ResultsFrame::updateInterface()
 {
 }
 
 void ResultsFrame::refreshToolbar()
 {
-	wxBitmap toolBarBitmaps[1];
+	wxBitmap toolBarBitmaps[2];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[1] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -125,6 +138,8 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddControl(currentBoothCountTextCtrl);
 	toolBar->AddControl(totalBoothCountStaticText);
 	toolBar->AddControl(totalBoothCountTextCtrl);
+	toolBar->AddSeparator();
+	toolBar->AddTool(PA_ResultsFrame_AddResultID, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
