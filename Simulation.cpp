@@ -33,6 +33,7 @@ void Simulation::run(PollingProject& project) {
 	// Set up anything that needs to be prepared for seats
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 		thisSeat->incumbentWins = 0;
+		thisSeat->simulatedMarginAverage = 0;
 		bool isPartyOne = (thisSeat->incumbent == partyOne);
 		thisSeat->region->localModifierAverage += thisSeat->localModifier * (isPartyOne ? 1.0f : -1.0f);
 		++thisSeat->region->seatCount;
@@ -123,6 +124,7 @@ void Simulation::run(PollingProject& project) {
 				newMargin -= thisSeat->region->localModifierAverage * (incIsOne ? 1.0f : -1.0f);
 				// Add random noise to the new margin of this seat
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
+				thisSeat->simulatedMarginAverage += newMargin;
 				// If the margin is greater than zero, the incumbent wins the seat.
 				thisSeat->winner = (newMargin >= 0.0f ? thisSeat->incumbent : thisSeat->challenger);
 				// Sometimes a classic 2pp seat may also have a independent with a significant chance,
@@ -203,6 +205,7 @@ void Simulation::run(PollingProject& project) {
 		Seat* thisSeat = project.getSeatPtr(seatIndex);
 		incumbentWinPercent[seatIndex] = float(thisSeat->incumbentWins) / float(numIterations) * 100.0f;
 		thisSeat->incumbentWinPercent = incumbentWinPercent[seatIndex];
+		thisSeat->simulatedMarginAverage /= float(numIterations);
 	}
 
 	partyWinExpectation.resize(project.getPartyCount());

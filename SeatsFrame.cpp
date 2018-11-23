@@ -170,6 +170,8 @@ void SeatsFrame::refreshData() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	seatData->AppendTextColumn("Tipping Point %", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Sim. Margin", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the seat data
 	for (int i = 0; i < project->getSeatCount(); ++i) {
@@ -200,6 +202,7 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	data.push_back(wxVariant(formatFloat(seat.projectedMargin, 2)));
 	data.push_back(wxVariant(formatFloat(seat.incumbentWinPercent, 2)));
 	data.push_back(wxVariant(formatFloat(seat.tippingPointPercent, 2)));
+	data.push_back(wxVariant(formatFloat(seat.simulatedMarginAverage, 2)));
 
 	seatData->AppendItem(data);
 }

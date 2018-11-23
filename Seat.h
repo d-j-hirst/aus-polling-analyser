@@ -25,6 +25,11 @@ public:
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
 
+	// Margin by which the seat is expected to be on after simulation
+	// Note this variable holds the accumulated sum during simulations
+	// and is only divided to form the average once simulations are complete
+	float simulatedMarginAverage = 0.0f;
+
 	// Local modifier to the 2pp vote (towards the incumbent).
 	float localModifier = 0.0f;
 
