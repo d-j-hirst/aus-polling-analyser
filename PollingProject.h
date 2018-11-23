@@ -332,6 +332,12 @@ public:
 	// Returns the number of results.
 	int getResultCount() const;
 
+	// Gets the begin iterator for the simulation list.
+	std::list<Result>::iterator getResultBegin();
+
+	// Gets the end iterator for the simulation list.
+	std::list<Result>::iterator getResultEnd();
+
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);

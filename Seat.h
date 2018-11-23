@@ -4,6 +4,7 @@
 
 struct Region;
 struct Party;
+class Result;
 
 class Seat {
 
@@ -21,6 +22,7 @@ public:
 	Party const* challenger = nullptr;
 	Party const* challenger2 = nullptr;
 	Region* region = nullptr;
+	Result const* latestResult = nullptr;
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;

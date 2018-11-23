@@ -555,6 +555,16 @@ int PollingProject::getResultCount() const
 	return results.size();
 }
 
+std::list<Result>::iterator PollingProject::getResultBegin()
+{
+	return results.begin();
+}
+
+std::list<Result>::iterator PollingProject::getResultEnd()
+{
+	return results.end();
+}
+
 int PollingProject::save(std::string filename) {
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
 	os << std::setprecision(12);

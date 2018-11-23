@@ -34,6 +34,7 @@ void Simulation::run(PollingProject& project) {
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 		thisSeat->incumbentWins = 0;
 		thisSeat->simulatedMarginAverage = 0;
+		thisSeat->latestResult = nullptr;
 		bool isPartyOne = (thisSeat->incumbent == partyOne);
 		thisSeat->region->localModifierAverage += thisSeat->localModifier * (isPartyOne ? 1.0f : -1.0f);
 		++thisSeat->region->seatCount;
@@ -57,6 +58,10 @@ void Simulation::run(PollingProject& project) {
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 		totalPopulation += float(thisRegion->population);
 		thisRegion->localModifierAverage /= float(thisRegion->seatCount);
+	}
+
+	for (auto thisResult = project.getResultBegin(); thisResult != project.getResultEnd(); ++thisResult) {
+		if (!thisResult->seat->latestResult) thisResult->seat->latestResult = &*thisResult;
 	}
 
 	int partyOneMajority = 0;
@@ -124,6 +129,12 @@ void Simulation::run(PollingProject& project) {
 				newMargin -= thisSeat->region->localModifierAverage * (incIsOne ? 1.0f : -1.0f);
 				// Add random noise to the new margin of this seat
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
+				// Now work out the margin of the seat from actual results if live
+				if (live && thisSeat->latestResult) {
+					float liveMargin = thisSeat->latestResult->incumbentSwing + thisSeat->margin;
+					newMargin = liveMargin;
+				}
+				// Margin for this simulation is finalised, record it for later averaging
 				thisSeat->simulatedMarginAverage += newMargin;
 				// If the margin is greater than zero, the incumbent wins the seat.
 				thisSeat->winner = (newMargin >= 0.0f ? thisSeat->incumbent : thisSeat->challenger);
