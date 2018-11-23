@@ -49,10 +49,14 @@ public:
 	float stateDecay = 0.001633f;
 
 	float partyOneMajorityPercent = 0.0f;
-	float partyOneLeadPercent = 0.0f;
-	float tiePercent = 0.0f;
-	float partyTwoLeadPercent = 0.0f;
+	float partyOneMinorityPercent = 0.0f;
+	float hungPercent = 0.0f;
+	float partyTwoMinorityPercent = 0.0f;
 	float partyTwoMajorityPercent = 0.0f;
+
+	// If this is true then the simulation will take into account live vote counting data
+	// and will be run when the "live" frame's run button is clicked
+	bool live = false;
 
 	std::vector<ClassicSeat> classicSeatList;
 
@@ -79,11 +83,11 @@ public:
 	std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
 
 	float getPartyOneWinPercent() {
-		return partyOneMajorityPercent + partyOneLeadPercent + tiePercent * 0.5f;
+		return partyOneMajorityPercent + partyOneMinorityPercent + hungPercent * 0.5f;
 	}
 
 	float getPartyTwoWinPercent() {
-		return partyTwoMajorityPercent + partyTwoLeadPercent + tiePercent * 0.5f;
+		return partyTwoMajorityPercent + partyTwoMinorityPercent + hungPercent * 0.5f;
 	}
 
 	float getOthersWinExpectation(int regionIndex) {

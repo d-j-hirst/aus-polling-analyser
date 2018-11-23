@@ -90,7 +90,7 @@ ModelsFrame::ModelsFrame(ProjectFrame* const parent, PollingProject* project)
 }
 
 void ModelsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
-	// Set the pollster data table to the entire client size.
+	// Set the model data table to the entire client size.
 	modelData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
 }
 

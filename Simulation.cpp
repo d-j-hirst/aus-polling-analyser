@@ -59,9 +59,9 @@ void Simulation::run(PollingProject& project) {
 	}
 
 	int partyOneMajority = 0;
-	int partyOneLead = 0;
-	int partiesTied = 0;
-	int partyTwoLead = 0;
+	int partyOneMinority = 0;
+	int hungParliament = 0;
+	int partyTwoMinority = 0;
 	int partyTwoMajority = 0;
 
 	partySeatWinFrequency.clear();
@@ -163,14 +163,26 @@ void Simulation::run(PollingProject& project) {
 			}
 		}
 
+
+		//Get the number of seats supporting each major party in a minority government
+		std::array<int, 2> partySupport = { partyWins[0], partyWins[1] };
+		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
+			if (project.getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::One) {
+				partySupport[0] += partyWins[partyNum];
+			}
+			else if (project.getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::Two) {
+				partySupport[1] += partyWins[partyNum];
+			}
+		}
+
 		int minimumForMajority = project.getSeatCount() / 2 + 1;
 
 		// Look at the overall result and classify it
 		if (partyWins[0] >= minimumForMajority) ++partyOneMajority;
-		else if (partyWins[0] > partyWins[1]) ++partyOneLead;
+		else if (partySupport[0] >= minimumForMajority) ++partyOneMinority;
 		else if (partyWins[1] >= minimumForMajority) ++partyTwoMajority;
-		else if (partyWins[1] > partyWins[0]) ++partyTwoLead;
-		else ++partiesTied;
+		else if (partySupport[1] >= minimumForMajority) ++partyTwoMinority;
+		else ++hungParliament;
 
 		int othersWins = 0;
 		for (int partyIndex = 0; partyIndex < project.getPartyCount(); ++partyIndex) {
@@ -196,9 +208,9 @@ void Simulation::run(PollingProject& project) {
 	partyWinExpectation.resize(project.getPartyCount());
 
 	partyOneMajorityPercent = float(partyOneMajority) / float(numIterations) * 100.0f;
-	partyOneLeadPercent = float(partyOneLead) / float(numIterations) * 100.0f;
-	tiePercent = float(partiesTied) / float(numIterations) * 100.0f;
-	partyTwoLeadPercent = float(partyTwoLead) / float(numIterations) * 100.0f;
+	partyOneMinorityPercent = float(partyOneMinority) / float(numIterations) * 100.0f;
+	hungPercent = float(hungParliament) / float(numIterations) * 100.0f;
+	partyTwoMinorityPercent = float(partyTwoMinority) / float(numIterations) * 100.0f;
 	partyTwoMajorityPercent = float(partyTwoMajority) / float(numIterations) * 100.0f;
 
 	for (int partyIndex = 0; partyIndex < project.getPartyCount(); ++partyIndex) {

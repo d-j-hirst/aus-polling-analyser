@@ -30,7 +30,9 @@ enum TabsEnum {
 	Tab_Projections,
 	Tab_Regions,
 	Tab_Seats,
-	Tab_Simulations
+	Tab_Simulations,
+	Tab_Display,
+	Tab_Live
 };
 
 struct NewProjectData;
@@ -47,6 +49,7 @@ class RegionsFrame;
 class SeatsFrame;
 class SimulationsFrame;
 class DisplayFrame;
+class ResultsFrame;
 
 // The parent frame of the polling analyser application.
 class ProjectFrame : public wxNotebook
@@ -130,6 +133,9 @@ private:
 
 	// points to the display frame (if it exists).
 	DisplayFrame* displayFrame = nullptr;
+
+	// points to the live frame (if it exists).
+	ResultsFrame* resultsFrame = nullptr;
 
 	ParentFrame* parent;
 };

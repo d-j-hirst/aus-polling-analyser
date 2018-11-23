@@ -95,6 +95,9 @@
     <ClCompile Include="DisplayFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
+    <ClCompile Include="ResultsFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -235,6 +238,9 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="DisplayFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultsFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
   </ItemGroup>

@@ -280,6 +280,7 @@
     <ClCompile Include="EventsFrame.cpp" />
     <ClCompile Include="General.cpp" />
     <ClCompile Include="GenericChildFrame.cpp" />
+    <ClCompile Include="ResultsFrame.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="ModelsFrame.cpp" />
     <ClCompile Include="NewProjectFrame.cpp" />
@@ -320,6 +321,7 @@
     <ClInclude Include="FileOpeningState.h" />
     <ClInclude Include="General.h" />
     <ClInclude Include="GenericChildFrame.h" />
+    <ClInclude Include="ResultsFrame.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="ModelsFrame.h" />
     <ClInclude Include="ParentFrame.h" />

@@ -10,6 +10,7 @@
 #include "SeatsFrame.h"
 #include "SimulationsFrame.h"
 #include "DisplayFrame.h"
+#include "ResultsFrame.h"
 
 // ----------------------------------------------------------------------------
 // notebook frame
@@ -95,6 +96,7 @@ void ProjectFrame::setupPages() {
 	seatsFrame = new SeatsFrame(this, project.get());
 	simulationsFrame = new SimulationsFrame(this, project.get());
 	displayFrame = new DisplayFrame(this, project.get());
+	resultsFrame = new ResultsFrame(this, project.get());
 	AddPage(partiesFrame, "Parties", true);
 	AddPage(pollstersFrame, "Pollsters", true);
 	AddPage(pollsFrame, "Polls", true);
@@ -106,6 +108,7 @@ void ProjectFrame::setupPages() {
 	AddPage(seatsFrame, "Seats", true);
 	AddPage(simulationsFrame, "Simulations", true);
 	AddPage(displayFrame, "Display", true);
+	AddPage(resultsFrame, "Results", true);
 }
 
 void ProjectFrame::saveAs() {

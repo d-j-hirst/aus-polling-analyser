@@ -31,8 +31,8 @@ struct DisplayVariables {
 	float displayBottom;
 };
 
-// *** PartiesFrame ***
-// Frame that allows the user to add/delete/modify political poll data.
+// *** DisplayFrame ***
+// Frame that displays the results of election simulations
 class DisplayFrame : public GenericChildFrame
 {
 public:
