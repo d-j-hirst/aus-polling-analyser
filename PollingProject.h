@@ -14,6 +14,7 @@
 #include "Region.h"
 #include "Seat.h"
 #include "Simulation.h"
+#include "Result.h"
 #include "Debug.h"
 #include "FileOpeningState.h"
 
@@ -322,6 +323,9 @@ public:
 	// Gets the end iterator for the simulation list.
 	std::list<Simulation>::const_iterator getSimulationEnd() const;
 
+	// Adds a result to the front of the results list
+	void addResult(Result result);
+
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);
@@ -396,6 +400,9 @@ private:
 
 	// Vector containing the data for simulations.
 	std::list<Simulation> simulations;
+
+	// Live election results
+	std::list<Result> results;
 
 	bool valid = false;
 

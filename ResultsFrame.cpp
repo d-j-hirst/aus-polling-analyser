@@ -86,6 +86,13 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 		wxMessageBox("No seat found matching this name!");
 		return;
 	}
+	double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
+	double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
+	long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
+	long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
+	Result result = Result(seat, swing, percentCounted, boothsIn, totalBooths);
+
+	project->addResult(result);
 }
 
 void ResultsFrame::updateInterface()
