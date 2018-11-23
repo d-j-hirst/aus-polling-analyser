@@ -11,9 +11,6 @@
     <ClCompile Include="ParentFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="EditEventFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
@@ -65,9 +62,6 @@
     <ClCompile Include="EditProjectionFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
-    <ClCompile Include="Projection.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="EditRegionFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
@@ -89,14 +83,20 @@
     <ClCompile Include="EditSimulationFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
-    <ClCompile Include="Simulation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DisplayFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
     <ClCompile Include="ResultsFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Source Files\Data Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Simulation.cpp">
+      <Filter>Source Files\Data Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Projection.cpp">
+      <Filter>Source Files\Data Objects</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -120,6 +120,9 @@
     </Filter>
     <Filter Include="Source Files\Tabbed Frames">
       <UniqueIdentifier>{db23d37b-d55b-42ad-9bdd-a18c9bc05011}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Data Objects">
+      <UniqueIdentifier>{0d62a468-e7fa-468c-9517-e43acae4634b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -242,6 +245,9 @@
     </ClInclude>
     <ClInclude Include="ResultsFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="Result.h">
+      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

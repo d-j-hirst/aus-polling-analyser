@@ -321,6 +321,7 @@
     <ClInclude Include="FileOpeningState.h" />
     <ClInclude Include="General.h" />
     <ClInclude Include="GenericChildFrame.h" />
+    <ClInclude Include="Result.h" />
     <ClInclude Include="ResultsFrame.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="ModelsFrame.h" />

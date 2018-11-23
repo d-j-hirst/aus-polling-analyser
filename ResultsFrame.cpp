@@ -6,6 +6,7 @@ enum {
 	PA_ResultsFrame_FrameID,
 	PA_ResultsFrame_DataViewID,
 	PA_ResultsFrame_RunLiveSimulationsID,
+	PA_ResultsFrame_SeatNameID,
 };
 
 // frame constructor
@@ -81,8 +82,14 @@ void ResultsFrame::refreshToolbar()
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
 
+	auto seatNameStaticText = new wxStaticText(toolBar, wxID_ANY, "Seat name:");
+	seatNameTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_SeatNameID, "", wxPoint(0, 0), wxSize(150, 22));
+
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddTool(PA_ResultsFrame_RunLiveSimulationsID, "Run Model", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Run Live Simulations");
+	toolBar->AddSeparator();
+	toolBar->AddControl(seatNameStaticText);
+	toolBar->AddControl(seatNameTextCtrl);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();

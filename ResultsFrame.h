@@ -52,6 +52,9 @@ private:
 	// A pointer to the parent frame.
 	ProjectFrame* const parent;
 
+	// Text box used to enter the name of a seat to input results for
+	wxTextCtrl* seatNameTextCtrl = nullptr;
+
 	// Panel containing vote count data.
 	wxPanel* dataPanel = nullptr;
 
