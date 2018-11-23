@@ -97,6 +97,14 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 
 	currentHeight += 27;
 
+	// Create the controls for choosing whether this simulation is "live"
+	liveStaticText = new wxStaticText(this, 0, "Live:", wxPoint(2, currentHeight), wxSize(100, 23));
+	liveCheckBox = new wxCheckBox(this, PA_EditSimulation_CheckBoxID_Live, "", wxPoint(190, currentHeight - 2), wxSize(200, 23));
+
+	liveCheckBox->SetValue(simulation.live);
+
+	currentHeight += 27;
+
 	// Create the OK and cancel buttons.
 	okButton = new wxButton(this, PA_EditSimulation_ButtonID_OK, "OK", wxPoint(67, currentHeight), wxSize(100, 24));
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
@@ -108,6 +116,7 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextPrevElection2pp, this, PA_EditSimulation_TextBoxID_PrevElection2pp);
 	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextStateSD, this, PA_EditSimulation_TextBoxID_StateSD);
 	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextStateDecay, this, PA_EditSimulation_TextBoxID_StateDecay);
+	Bind(wxEVT_CHECKBOX, &EditSimulationFrame::updateLive, this, PA_EditSimulation_CheckBoxID_Live);
 	Bind(wxEVT_BUTTON, &EditSimulationFrame::OnOK, this, PA_EditSimulation_ButtonID_OK);
 }
 
@@ -259,4 +268,9 @@ void EditSimulationFrame::updateTextStateDecay(wxCommandEvent& event) {
 		// Set the text to the last valid string.
 		stateDecayTextCtrl->SetLabel(lastStateDecay);
 	}
+}
+
+void EditSimulationFrame::updateLive(wxCommandEvent & event)
+{
+	simulation.live = event.IsChecked();
 }

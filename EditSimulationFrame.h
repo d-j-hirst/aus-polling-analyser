@@ -38,7 +38,8 @@ enum
 	PA_EditSimulation_TextBoxID_NumIterations,
 	PA_EditSimulation_TextBoxID_PrevElection2pp,
 	PA_EditSimulation_TextBoxID_StateSD,
-	PA_EditSimulation_TextBoxID_StateDecay
+	PA_EditSimulation_TextBoxID_StateDecay,
+	PA_EditSimulation_CheckBoxID_Live,
 };
 
 // *** EditSimulationFrame ***
@@ -82,6 +83,10 @@ private:
 	// the result of the GetString() method of "event".
 	void updateTextStateDecay(wxCommandEvent& event);
 
+	// Calls upon the window to update whether the simulation is "live" or not
+	// the result of the isChecked() method of "event".
+	void updateLive(wxCommandEvent& event);
+
 	// Calls on the parent frame to initialize a new simulation based on the
 	// data in "newProjectData".
 	void OnNewSimulationReady();
@@ -106,6 +111,8 @@ private:
 	wxTextCtrl* stateSDTextCtrl;
 	wxStaticText* stateDecayStaticText;
 	wxTextCtrl* stateDecayTextCtrl;
+	wxStaticText* liveStaticText;
+	wxCheckBox* liveCheckBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
 
