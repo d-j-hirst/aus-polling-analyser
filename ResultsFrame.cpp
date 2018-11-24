@@ -91,6 +91,8 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 	}
 
 	refreshData();
+
+	parent->refreshSeatData();
 }
 
 void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))

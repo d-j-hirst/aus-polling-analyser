@@ -676,9 +676,9 @@ int PollingProject::save(std::string filename) {
 		os << "iodd=" << thisSeat.incumbentOdds << std::endl;
 		os << "codd=" << thisSeat.challengerOdds << std::endl;
 		os << "c2od=" << thisSeat.challenger2Odds << std::endl;
-		os << "prjm=" << thisSeat.projectedMargin << std::endl;
 		os << "winp=" << thisSeat.incumbentWinPercent << std::endl;
 		os << "tipp=" << thisSeat.tippingPointPercent << std::endl;
+		os << "sma =" << thisSeat.simulatedMarginAverage << std::endl;
 	}
 	os << "#Simulations" << std::endl;
 	for (auto const& thisSimulation : simulations) {
@@ -689,6 +689,7 @@ int PollingProject::save(std::string filename) {
 		os << "prev=" << thisSimulation.prevElection2pp << std::endl;
 		os << "stsd=" << thisSimulation.stateSD << std::endl;
 		os << "stde=" << thisSimulation.stateDecay << std::endl;
+		os << "live=" << int(thisSimulation.live) << std::endl;
 	}
 	os << "#End";
 	os.close();
@@ -1141,16 +1142,16 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			it->challenger2Odds = std::stof(line.substr(5));
 			return true;
 		}
-		else if (!line.substr(0, 5).compare("prjm=")) {
-			it->projectedMargin = std::stof(line.substr(5));
-			return true;
-		}
 		else if (!line.substr(0, 5).compare("winp=")) {
 			it->incumbentWinPercent = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("tipp=")) {
 			it->tippingPointPercent = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("sma =")) {
+			it->simulatedMarginAverage = std::stof(line.substr(5));
 			return true;
 		}
 	}
@@ -1180,6 +1181,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("stde=")) {
 			it->stateDecay = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("live=")) {
+			it->live = std::stoi(line.substr(5)) != 0;
 			return true;
 		}
 	}

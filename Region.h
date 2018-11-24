@@ -14,6 +14,11 @@ struct Region {
 	float localModifierAverage = 0.0f;
 	float additionalUncertainty = 0.0f;
 	int seatCount = 0;
+
+	float liveSwing = 0.0f;
+	float livePercentCounted = 0.0f;
+	int classicSeatCount = 0;
+
 	std::vector<int> partyLeading;
 	// party first, then region
 	std::vector<std::vector<int>> partyWins;

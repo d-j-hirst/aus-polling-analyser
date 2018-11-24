@@ -306,6 +306,7 @@
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CountProgress.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DisplayFrame.h" />
     <ClInclude Include="EditEventFrame.h" />

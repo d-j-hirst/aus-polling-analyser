@@ -17,4 +17,6 @@ public:
 	int boothsIn = 0;
 	int totalBooths = 0;
 	wxDateTime updateTime;
+
+	float getPercentCountedEstimate() const { return percentCounted; }
 };

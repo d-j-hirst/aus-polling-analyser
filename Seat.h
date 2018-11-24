@@ -40,7 +40,6 @@ public:
 	float challengerOdds = 2.0f;
 	float challenger2Odds = 1000.0f;
 
-	float projectedMargin = 0.0f;
 	float incumbentWinPercent = 0.0f;
 	float tippingPointPercent = 0.0f;
 

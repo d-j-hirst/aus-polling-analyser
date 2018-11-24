@@ -164,8 +164,6 @@ void SeatsFrame::refreshData() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	seatData->AppendTextColumn("Ch. Odds", wxDATAVIEW_CELL_INERT, 65, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Projected Margin", wxDATAVIEW_CELL_INERT, 105, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	seatData->AppendTextColumn("Inc. Win %", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	seatData->AppendTextColumn("Tipping Point %", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
@@ -199,7 +197,6 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	data.push_back(wxVariant(formatFloat(seat.localModifier, 2)));
 	data.push_back(wxVariant(formatFloat(seat.incumbentOdds, 3)));
 	data.push_back(wxVariant(formatFloat(seat.challengerOdds, 3)));
-	data.push_back(wxVariant(formatFloat(seat.projectedMargin, 2)));
 	data.push_back(wxVariant(formatFloat(seat.incumbentWinPercent, 2)));
 	data.push_back(wxVariant(formatFloat(seat.tippingPointPercent, 2)));
 	data.push_back(wxVariant(formatFloat(seat.simulatedMarginAverage, 2)));
