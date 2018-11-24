@@ -287,6 +287,9 @@ public:
 	// Returns the number of seats.
 	int getSeatCount() const;
 
+	// Gets the region index from a given pointer.
+	int getSeatIndex(Seat const* seatPtr);
+
 	// Gets the begin iterator for the seat list.
 	std::list<Seat>::iterator getSeatBegin();
 

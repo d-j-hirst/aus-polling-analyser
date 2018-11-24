@@ -8,6 +8,7 @@ class Seat;
 
 class Result {
 public:
+	Result() {}
 	Result(Seat* seat, double incumbentSwing, double percentCounted, std::size_t boothsIn, std::size_t totalBooths)
 		: seat(seat), incumbentSwing(incumbentSwing), percentCounted(percentCounted), boothsIn(boothsIn), totalBooths(totalBooths),
 		updateTime(wxDateTime::Now()) {}

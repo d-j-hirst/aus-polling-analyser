@@ -44,12 +44,14 @@ Party PollingProject::getParty(int partyIndex) const {
 }
 
 Party* PollingProject::getPartyPtr(int partyIndex) {
+	if (partyIndex < 0) return nullptr;
 	auto it = parties.begin();
 	for (int i = 0; i < partyIndex; i++) it++;
 	return &*it;
 }
 
 Party const* PollingProject::getPartyPtr(int partyIndex) const {
+	if (partyIndex < 0) return nullptr;
 	auto it = parties.begin();
 	for (int i = 0; i < partyIndex; i++) it++;
 	return &*it;
@@ -463,6 +465,7 @@ Seat PollingProject::getSeat(int seatIndex) const {
 }
 
 Seat* PollingProject::getSeatPtr(int seatIndex) {
+	if (seatIndex < 0) return nullptr;
 	auto it = seats.begin();
 	for (int i = 0; i < seatIndex; i++) it++;
 	return &*it;
@@ -476,6 +479,16 @@ void PollingProject::removeSeat(int seatIndex) {
 
 int PollingProject::getSeatCount() const {
 	return seats.size();
+}
+
+int PollingProject::getSeatIndex(Seat const* seatPtr)
+{
+	int i = 0;
+	for (auto it = seats.begin(); it != seats.end(); ++it) {
+		if (&*it == seatPtr) return i;
+		i++;
+	}
+	return -1;
 }
 
 std::list<Seat>::iterator PollingProject::getSeatBegin() {
@@ -679,6 +692,12 @@ int PollingProject::save(std::string filename) {
 		os << "winp=" << thisSeat.incumbentWinPercent << std::endl;
 		os << "tipp=" << thisSeat.tippingPointPercent << std::endl;
 		os << "sma =" << thisSeat.simulatedMarginAverage << std::endl;
+		os << "lp1 =" << getPartyIndex(thisSeat.livePartyOne) << std::endl;
+		os << "lp2 =" << getPartyIndex(thisSeat.livePartyTwo) << std::endl;
+		os << "lp3 =" << getPartyIndex(thisSeat.livePartyThree) << std::endl;
+		os << "p2pr=" << thisSeat.partyTwoProb << std::endl;
+		os << "p3pr=" << thisSeat.partyThreeProb << std::endl;
+		os << "over=" << int(thisSeat.overrideBettingOdds) << std::endl;
 	}
 	os << "#Simulations" << std::endl;
 	for (auto const& thisSimulation : simulations) {
@@ -690,6 +709,16 @@ int PollingProject::save(std::string filename) {
 		os << "stsd=" << thisSimulation.stateSD << std::endl;
 		os << "stde=" << thisSimulation.stateDecay << std::endl;
 		os << "live=" << int(thisSimulation.live) << std::endl;
+	}
+	os << "#Results" << std::endl;
+	for (auto const& thisResult : results) {
+		os << "@Result" << std::endl;
+		os << "seat=" << getSeatIndex(thisResult.seat) << std::endl;
+		os << "swng=" << thisResult.incumbentSwing << std::endl;
+		os << "cnt =" << thisResult.percentCounted << std::endl;
+		os << "btin=" << thisResult.boothsIn << std::endl;
+		os << "btto=" << thisResult.totalBooths << std::endl;
+		os << "updt=" << thisResult.updateTime.GetJulianDayNumber() << std::endl;
 	}
 	os << "#End";
 	os.close();
@@ -778,6 +807,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		fos.section = FileSection_Simulations;
 		return true;
 	}
+	else if (!line.compare("#Results")) {
+		fos.section = FileSection_Results;
+		return true;
+	}
 	else if (!line.compare("#End")) {
 		return false;
 	}
@@ -834,6 +867,12 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	else if (fos.section == FileSection_Simulations) {
 		if (!line.compare("@Simulation")) {
 			simulations.push_back(Simulation());
+			return true;
+		}
+	}
+	else if (fos.section == FileSection_Results) {
+		if (!line.compare("@Result")) {
+			results.push_back(Result());
 			return true;
 		}
 	}
@@ -1154,6 +1193,30 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			it->simulatedMarginAverage = std::stof(line.substr(5));
 			return true;
 		}
+		else if (!line.substr(0, 5).compare("lp1 =")) {
+			it->livePartyOne = getPartyPtr(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("lp2 =")) {
+			it->livePartyTwo = getPartyPtr(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("lp3 =")) {
+			it->livePartyThree = getPartyPtr(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("p2pr=")) {
+			it->partyTwoProb = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("p3pr=")) {
+			it->partyThreeProb = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("over=")) {
+			it->overrideBettingOdds = std::stoi(line.substr(5)) != 0;
+			return true;
+		}
 	}
 	else if (fos.section == FileSection_Simulations) {
 		if (!simulations.size()) return true; //prevent crash from mixed-up data.
@@ -1185,6 +1248,35 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("live=")) {
 			it->live = std::stoi(line.substr(5)) != 0;
+			return true;
+		}
+	}
+	else if (fos.section == FileSection_Results) {
+		if (!results.size()) return true; //prevent crash from mixed-up data.
+		auto it = results.end();
+		it--;
+		if (!line.substr(0, 5).compare("seat=")) {
+			it->seat = getSeatPtr(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("swng=")) {
+			it->incumbentSwing = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("cnt =")) {
+			it->percentCounted = std::stof(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("btin=")) {
+			it->boothsIn = std::stoi(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("btto=")) {
+			it->totalBooths = std::stoi(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("updt=")) {
+			it->updateTime = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 	}

@@ -11,7 +11,8 @@ enum FileSectionsEnum {
 	FileSection_Projections,
 	FileSection_Regions,
 	FileSection_Seats,
-	FileSection_Simulations
+	FileSection_Simulations,
+	FileSection_Results
 };
 
 struct FileOpeningState {
