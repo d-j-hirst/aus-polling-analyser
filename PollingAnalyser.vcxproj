@@ -280,6 +280,7 @@
     <ClCompile Include="EventsFrame.cpp" />
     <ClCompile Include="General.cpp" />
     <ClCompile Include="GenericChildFrame.cpp" />
+    <ClCompile Include="NonClassicFrame.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="ModelsFrame.cpp" />
@@ -323,6 +324,7 @@
     <ClInclude Include="General.h" />
     <ClInclude Include="GenericChildFrame.h" />
     <ClInclude Include="Result.h" />
+    <ClInclude Include="NonClassicFrame.h" />
     <ClInclude Include="ResultsFrame.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="ModelsFrame.h" />

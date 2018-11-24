@@ -43,6 +43,15 @@ public:
 	float incumbentWinPercent = 0.0f;
 	float tippingPointPercent = 0.0f;
 
+	// Party one probability is calculated as being 1 - the other two parties,
+	// which allows for conveniently adding a party as certain to win a seat without needing any other input
+	Party const* livePartyOne = nullptr;
+	Party const* livePartyTwo = nullptr;
+	Party const* livePartyThree = nullptr;
+	float partyOneProb() { return 1.0f - partyTwoProb - partyThreeProb; }
+	float partyTwoProb = 0.0f;
+	float partyThreeProb = 0.0f;
+
 	int incumbentWins = 0;
 
 	//float tempWinnerMargin = 0.0f;
@@ -53,6 +62,7 @@ public:
 	}
 
 	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {
+		if (livePartyOne) return false;
 		return (incumbent == partyOne && challenger == partyTwo) ||
 			(incumbent == partyTwo && challenger == partyOne);
 	}

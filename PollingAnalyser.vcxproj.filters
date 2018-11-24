@@ -98,6 +98,9 @@
     <ClCompile Include="Projection.cpp">
       <Filter>Source Files\Data Objects</Filter>
     </ClCompile>
+    <ClCompile Include="NonClassicFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -251,6 +254,9 @@
     </ClInclude>
     <ClInclude Include="CountProgress.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NonClassicFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

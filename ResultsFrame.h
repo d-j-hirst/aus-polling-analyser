@@ -43,8 +43,12 @@ private:
 	// Runs all "live" simulations found
 	void OnRunLiveSimulations(wxCommandEvent& WXUNUSED(event));
 
-	// Runs all "live" simulations found
+	// Adds the currently entered result to the records
 	void OnAddResult(wxCommandEvent& WXUNUSED(event));
+
+	// Brings up dialog box for setting a seat to have non-classic results
+	// (i.e. parties other than the two majors are competitive)
+	void OnNonClassic(wxCommandEvent& WXUNUSED(event));
 
 	// adds "result" to result data.
 	void addResultToResultData(Result result);

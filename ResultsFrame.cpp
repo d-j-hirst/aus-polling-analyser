@@ -1,5 +1,9 @@
 #include "ResultsFrame.h"
 
+#include "EditPollFrame.h"
+#include "EditSimulationFrame.h"
+#include "NonClassicFrame.h"
+
 #include <wx/valnum.h>
 
 // IDs for the controls and the menu commands
@@ -13,7 +17,8 @@ enum {
 	PA_ResultsFrame_PercentCountedID,
 	PA_ResultsFrame_CurrentBoothCountID,
 	PA_ResultsFrame_TotalBoothCountID,
-	PA_ResultsFrame_AddResultID
+	PA_ResultsFrame_AddResultID,
+	PA_ResultsFrame_NonClassicID
 };
 
 // frame constructor
@@ -56,6 +61,7 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 	// Binding events for the toolbar items.
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, PA_ResultsFrame_RunLiveSimulationsID);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, PA_ResultsFrame_AddResultID);
+	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, PA_ResultsFrame_NonClassicID);
 }
 
 void ResultsFrame::refreshData()
@@ -114,6 +120,27 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	refreshData();
 }
 
+void ResultsFrame::OnNonClassic(wxCommandEvent & WXUNUSED(even))
+{
+	std::string enteredName = seatNameTextCtrl->GetLineText(0);
+	auto seat = project->getSeatPtrByName(enteredName);
+	if (!seat) {
+		wxMessageBox("No seat found matching this name!");
+		return;
+	}
+
+	// Create the new project frame (where initial settings for the new project are chosen).
+	NonClassicFrame *frame = new NonClassicFrame(this, project, seat);
+
+	// Show the frame.
+	frame->ShowModal();
+
+	// This is needed to avoid a memory leak.
+	delete frame;
+
+	refreshData();
+}
+
 void ResultsFrame::addResultToResultData(Result result)
 {
 	// Create a vector with all the party data.
@@ -131,9 +158,10 @@ void ResultsFrame::updateInterface()
 
 void ResultsFrame::refreshToolbar()
 {
-	wxBitmap toolBarBitmaps[2];
+	wxBitmap toolBarBitmaps[3];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[2] = wxBitmap("bitmaps\\non_classic.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -177,6 +205,7 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddControl(totalBoothCountTextCtrl);
 	toolBar->AddSeparator();
 	toolBar->AddTool(PA_ResultsFrame_AddResultID, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
+	toolBar->AddTool(PA_ResultsFrame_NonClassicID, "Non-Classic Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Non-Classic Seat");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();

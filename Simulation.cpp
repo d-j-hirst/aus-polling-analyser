@@ -208,15 +208,29 @@ void Simulation::run(PollingProject& project) {
 					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
 				}
 			} else {
-				// Non-standard seat; use odds adjusted for longshot bias since the presence of the
-				// third-party candidate may make swing-based projections inaccurate
-				OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
-				// Random number between 0 and 1
-				float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
-				// Winner 
-				if (uniformRand < oddsInfo.incumbentChance) thisSeat->winner = thisSeat->incumbent;
-				else if (uniformRand < oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger;
-				else thisSeat->winner = thisSeat->challenger2;
+				if (live && thisSeat->livePartyOne) {
+					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
+					if (uniformRand < thisSeat->partyTwoProb) {
+						thisSeat->winner = thisSeat->livePartyTwo;
+					}
+					else if (uniformRand < thisSeat->partyTwoProb + thisSeat->partyThreeProb) {
+						thisSeat->winner = thisSeat->livePartyThree;
+					}
+					else {
+						thisSeat->winner = thisSeat->livePartyOne;
+					}
+				}
+				else {
+					// Non-standard seat; use odds adjusted for longshot bias since the presence of the
+					// third-party candidate may make swing-based projections inaccurate
+					OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
+					// Random number between 0 and 1
+					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
+					// Winner 
+					if (uniformRand < oddsInfo.incumbentChance) thisSeat->winner = thisSeat->incumbent;
+					else if (uniformRand < oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger;
+					else thisSeat->winner = thisSeat->challenger2;
+				}
 			}
 			// If the winner is the incumbent, record this down in the seat's numbers
 			thisSeat->incumbentWins += (thisSeat->winner == thisSeat->incumbent ? 1 : 0);
