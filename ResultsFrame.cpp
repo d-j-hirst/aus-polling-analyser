@@ -111,7 +111,8 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	}
 	Party const* const partyOne = project->getPartyPtr(0);
 	Party const* const partyTwo = project->getPartyPtr(1);
-	if (!seat->isClassic2pp(partyOne, partyTwo) && !seat->livePartyOne) {
+	if ((!seat->isClassic2pp(partyOne, partyTwo) || seat->challenger2Odds < 8.0f) &&
+			!seat->livePartyOne && !seat->overrideBettingOdds) {
 		int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
 			"Should this be overridden so that the seat is indeed counted as being classic for the remained of this election? "
 			" (You can always make it non-classic again by using the \"Non-classic\" tool.)", "Seat currently non-classic", wxYES_NO);

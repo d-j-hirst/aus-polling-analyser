@@ -202,7 +202,7 @@ void Simulation::run(PollingProject& project) {
 				// Sometimes a classic 2pp seat may also have a independent with a significant chance,
 				// but not high enough to make the top two - if so this will give a certain chance to
 				// override the swing-based result with a win from the challenger
-				if (thisSeat->challenger2Odds < 8.0) {
+				if (thisSeat->challenger2Odds < 8.0f && !thisSeat->overrideBettingOdds) {
 					OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
 					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
