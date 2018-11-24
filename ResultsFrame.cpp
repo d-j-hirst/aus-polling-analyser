@@ -113,6 +113,7 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
 	long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
 	long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
+	if (percentCounted < 0.001) percentCounted = 0.0;
 	Result result = Result(seat, swing, percentCounted, boothsIn, totalBooths);
 
 	project->addResult(result);
@@ -145,9 +146,10 @@ void ResultsFrame::addResultToResultData(Result result)
 {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
+	float percentCounted = result.getPercentCountedEstimate();
 	data.push_back(wxVariant(result.seat->name));
 	data.push_back(wxVariant(formatFloat(result.incumbentSwing, 1)));
-	data.push_back(wxVariant(formatFloat(result.percentCounted, 1)));
+	data.push_back(wxVariant(formatFloat(percentCounted, 1)));
 	data.push_back(wxVariant(result.updateTime.FormatISOTime()));
 	resultsData->AppendItem(data);
 }

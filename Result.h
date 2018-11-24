@@ -18,5 +18,13 @@ public:
 	int totalBooths = 0;
 	wxDateTime updateTime;
 
-	float getPercentCountedEstimate() const { return percentCounted; }
+	float getPercentCountedEstimate() const { 
+		if (percentCounted) {
+			return percentCounted;
+		}
+		else if (boothsIn) {
+			return float(boothsIn) / float(totalBooths) * (0.5 + 0.5 * (float(boothsIn) / float(totalBooths))) * 100.0f;
+		}
+		return 0.0f;
+	}
 };

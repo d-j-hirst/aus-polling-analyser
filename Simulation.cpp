@@ -187,9 +187,9 @@ void Simulation::run(PollingProject& project) {
 				// Add random noise to the new margin of this seat
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 				// Now work out the margin of the seat from actual results if live
-				if (live && thisSeat->latestResult) {
+				if (live && thisSeat->latestResult && thisSeat->latestResult->getPercentCountedEstimate()) {
 					float liveMargin = thisSeat->latestResult->incumbentSwing + thisSeat->margin;
-					float liveStdDev = stdDevSingleSeat(thisSeat->latestResult->percentCounted);
+					float liveStdDev = stdDevSingleSeat(thisSeat->latestResult->getPercentCountedEstimate());
 					liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 					float priorWeight = 0.5f;
 					float liveWeight = 6.0f / (liveStdDev * liveStdDev);
