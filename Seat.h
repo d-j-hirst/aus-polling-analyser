@@ -51,6 +51,7 @@ public:
 	float partyOneProb() { return 1.0f - partyTwoProb - partyThreeProb; }
 	float partyTwoProb = 0.0f;
 	float partyThreeProb = 0.0f;
+	bool overrideBettingOdds = false;
 
 	int incumbentWins = 0;
 
@@ -63,6 +64,7 @@ public:
 
 	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {
 		if (livePartyOne) return false;
+		if (overrideBettingOdds) return true;
 		return (incumbent == partyOne && challenger == partyTwo) ||
 			(incumbent == partyTwo && challenger == partyOne);
 	}

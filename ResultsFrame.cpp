@@ -109,6 +109,16 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 		wxMessageBox("No seat found matching this name!");
 		return;
 	}
+	Party const* const partyOne = project->getPartyPtr(0);
+	Party const* const partyTwo = project->getPartyPtr(1);
+	if (!seat->isClassic2pp(partyOne, partyTwo) && !seat->livePartyOne) {
+		int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
+			"Should this be overridden so that the seat is indeed counted as being classic for the remained of this election? "
+			" (You can always make it non-classic again by using the \"Non-classic\" tool.)", "Seat currently non-classic", wxYES_NO);
+		if (result == wxYES) {
+			seat->overrideBettingOdds = true;
+		}
+	}
 	double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
 	double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
 	long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
