@@ -44,7 +44,7 @@ ResultsDownloader::~ResultsDownloader()
 	curl_global_cleanup();
 }
 
-void ResultsDownloader::loadFile(std::string url)
+void ResultsDownloader::loadFile(std::string url, std::string match)
 {
 	CURLcode res;
 	struct FtpFile ftpfile = {
@@ -78,14 +78,20 @@ void ResultsDownloader::loadFile(std::string url)
 
 	// Now extract the xml file
 
+	std::wstring matchL(match.begin(), match.end());
 	HZIP hz = OpenZip(_T(TempResultsFileName.c_str()), 0);
 	// -1 gives overall information about the zipfile
 	ZIPENTRY ze; GetZipItem(hz, -1, &ze); int numitems = ze.index;
 	for (int zi = 0; zi<numitems; zi++)
 	{
 		GetZipItem(hz, zi, &ze);
-		std::wstring s = TEXT("downloads/results.xml");
-		UnzipItem(hz, zi, s.c_str());
+		std::wstring zippedName = ze.name;
+		if (!matchL.size() || zippedName.find(matchL)) {
+			if (zippedName.find(L".xml") != std::wstring::npos) {
+				std::wstring s = TEXT("downloads/results.xml");
+				UnzipItem(hz, zi, s.c_str());
+			}
+		}
 	}
 	CloseZip(hz);
 

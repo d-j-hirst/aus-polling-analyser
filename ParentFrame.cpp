@@ -12,6 +12,7 @@ ParentFrame::ParentFrame(const wxString& title)
 
 	ResultsDownloader resultsDownloader;
 	resultsDownloader.loadFile("ftp://ftp.tallyroom.vic.gov.au/State2018mediafileverboselh_20181125_022508.zip");
+	//resultsDownloader.loadFile("ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/aec-mediafeed-Detailed-Light-20499-20170511174118.zip");
 
 	// Set the frame icon.
 	SetIcon(wxICON(sample));

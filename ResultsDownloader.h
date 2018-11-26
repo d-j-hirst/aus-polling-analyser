@@ -15,8 +15,8 @@ public:
 
 	~ResultsDownloader();
 
-	// loads the file from "url" into a temporary file
-	void loadFile(std::string url);
+	// loads the file from "url" into a temporary zip file
+	void loadZippedFile(std::string url, std::string match = "");
 
 private:
 
