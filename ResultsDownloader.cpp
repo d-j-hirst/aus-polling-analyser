@@ -44,7 +44,7 @@ ResultsDownloader::~ResultsDownloader()
 	curl_global_cleanup();
 }
 
-void ResultsDownloader::loadFile(std::string url, std::string match)
+void ResultsDownloader::loadZippedFile(std::string url, std::string match)
 {
 	CURLcode res;
 	struct FtpFile ftpfile = {

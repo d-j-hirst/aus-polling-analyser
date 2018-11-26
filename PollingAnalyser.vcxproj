@@ -272,6 +272,7 @@
   <ItemGroup>
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
+    <ClCompile Include="DownloadFrame.cpp" />
     <ClCompile Include="EditEventFrame.cpp" />
     <ClCompile Include="EditModelFrame.cpp" />
     <ClCompile Include="EditPartyFrame.cpp" />
@@ -316,6 +317,7 @@
     <ClInclude Include="CountProgress.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DisplayFrame.h" />
+    <ClInclude Include="DownloadFrame.h" />
     <ClInclude Include="ResultsDownloader.h" />
     <ClInclude Include="EditEventFrame.h" />
     <ClInclude Include="EditModelFrame.h" />

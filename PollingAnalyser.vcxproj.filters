@@ -107,6 +107,7 @@
     <ClCompile Include="ResultsDownloader.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="DownloadFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -278,6 +279,9 @@
     </ClInclude>
     <ClInclude Include="ResultsDownloader.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="DownloadFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
