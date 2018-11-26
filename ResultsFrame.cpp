@@ -77,6 +77,14 @@ void ResultsFrame::refreshData()
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	resultsData->AppendTextColumn("Updated", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("Proj. Margin", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("ALP chance", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("LIB chance", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	resultsData->AppendTextColumn("OTH chance", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	for (int i = 0; i < project->getResultCount(); ++i) {
 		addResultToResultData(project->getResult(i));
@@ -162,6 +170,10 @@ void ResultsFrame::addResultToResultData(Result result)
 	data.push_back(wxVariant(formatFloat(result.incumbentSwing, 1)));
 	data.push_back(wxVariant(formatFloat(percentCounted, 1)));
 	data.push_back(wxVariant(result.updateTime.FormatISOTime()));
+	data.push_back(wxVariant(formatFloat(result.seat->simulatedMarginAverage, 2)));
+	data.push_back(wxVariant(formatFloat(result.seat->partyOneWinRate, 2)));
+	data.push_back(wxVariant(formatFloat(result.seat->partyTwoWinRate, 2)));
+	data.push_back(wxVariant(formatFloat(result.seat->partyOthersWinRate, 2)));
 	resultsData->AppendItem(data);
 }
 

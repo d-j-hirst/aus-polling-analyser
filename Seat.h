@@ -55,6 +55,10 @@ public:
 
 	int incumbentWins = 0;
 
+	double partyOneWinRate = 0.0;
+	double partyTwoWinRate = 0.0;
+	double partyOthersWinRate = 0.0;
+
 	//float tempWinnerMargin = 0.0f;
 	Party const* winner = nullptr;
 

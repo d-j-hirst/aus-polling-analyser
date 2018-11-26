@@ -38,6 +38,9 @@ void Simulation::run(PollingProject& project) {
 	// Set up anything that needs to be prepared for seats
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 		thisSeat->incumbentWins = 0;
+		thisSeat->partyOneWinRate = 0.0f;
+		thisSeat->partyTwoWinRate = 0.0f;
+		thisSeat->partyOthersWinRate = 0.0f;
 		thisSeat->simulatedMarginAverage = 0;
 		thisSeat->latestResult = nullptr;
 		bool isPartyOne = (thisSeat->incumbent == partyOne);
@@ -235,6 +238,10 @@ void Simulation::run(PollingProject& project) {
 			// If the winner is the incumbent, record this down in the seat's numbers
 			thisSeat->incumbentWins += (thisSeat->winner == thisSeat->incumbent ? 1 : 0);
 
+			if (thisSeat->winner == partyOne) ++thisSeat->partyOneWinRate;
+			else if (thisSeat->winner == partyTwo) ++thisSeat->partyTwoWinRate;
+			else ++thisSeat->partyOthersWinRate;
+
 			int winnerIndex = project.getPartyIndex(thisSeat->winner);
 			partyWins[winnerIndex]++;
 			int regionIndex = project.getRegionIndex(thisSeat->region);
@@ -291,6 +298,9 @@ void Simulation::run(PollingProject& project) {
 		Seat* thisSeat = project.getSeatPtr(seatIndex);
 		incumbentWinPercent[seatIndex] = float(thisSeat->incumbentWins) / float(numIterations) * 100.0f;
 		thisSeat->incumbentWinPercent = incumbentWinPercent[seatIndex];
+		thisSeat->partyOneWinRate /= double(numIterations);
+		thisSeat->partyTwoWinRate /= double(numIterations);
+		thisSeat->partyOthersWinRate /= double(numIterations);
 		thisSeat->simulatedMarginAverage /= float(numIterations);
 	}
 

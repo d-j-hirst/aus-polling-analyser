@@ -1,5 +1,7 @@
 #include "ParentFrame.h"
 
+#include "ResultsDownloader.h"
+
 // ----------------------------------------------------------------------------
 // notebook frame
 // ----------------------------------------------------------------------------
@@ -7,6 +9,10 @@
 ParentFrame::ParentFrame(const wxString& title)
 	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(1024, 720)),
 	notebookPanel(nullptr), notebook(nullptr) {
+
+	ResultsDownloader resultsDownloader;
+	resultsDownloader.loadFile("ftp://ftp.tallyroom.vic.gov.au/State2018mediafileverboselh_20181125_022508.zip");
+
 	// Set the frame icon.
 	SetIcon(wxICON(sample));
 

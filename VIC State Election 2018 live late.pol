@@ -48992,9 +48992,9 @@ lmod=1.39999997616
 iodd=1.29999995232
 codd=3.40000009537
 c2od=21
-winp=81.3040008545
+winp=100
 tipp=0
-sma =3.89763522148
+sma =8.82720279694
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49012,9 +49012,9 @@ lmod=1.39999997616
 iodd=1.33000004292
 codd=3.20000004768
 c2od=1000
-winp=84.0179977417
+winp=100
 tipp=0
-sma =4.07800865173
+sma =8.41056537628
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49032,9 +49032,9 @@ lmod=1.39999997616
 iodd=1.17999994755
 codd=5
 c2od=8
-winp=84.6329956055
+winp=100
 tipp=0
-sma =4.17697429657
+sma =11.8674793243
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49052,12 +49052,12 @@ lmod=0
 iodd=1.64999997616
 codd=2.20000004768
 c2od=1000
-winp=47.3819999695
+winp=100
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
+lp1 =0
+lp2 =1
+lp3 =0
 p2pr=0
 p3pr=0
 over=0
@@ -49072,9 +49072,9 @@ lmod=1.39999997616
 iodd=1.27999997139
 codd=3.65000009537
 c2od=1000
-winp=90.9120025635
+winp=100
 tipp=0
-sma =5.46834373474
+sma =10.6626119614
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49092,13 +49092,13 @@ lmod=0
 iodd=2.54999995232
 codd=1.5
 c2od=8
-winp=35.6570014954
+winp=24.9950008392
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =2
+lp3 =0
+p2pr=0.75
 p3pr=0
 over=0
 @Seat
@@ -49112,9 +49112,9 @@ lmod=-1
 iodd=1.20000004768
 codd=4.40000009537
 c2od=1000
-winp=81.5289993286
+winp=100
 tipp=0
-sma =3.69207715988
+sma =14.2268486023
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49132,9 +49132,9 @@ lmod=0
 iodd=1.27999997139
 codd=3.5
 c2od=1000
-winp=86.9980010986
+winp=100
 tipp=0
-sma =4.64379501343
+sma =9.69252300262
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49152,9 +49152,9 @@ lmod=0
 iodd=1.14999997616
 codd=5.5
 c2od=21
-winp=88.7449951172
+winp=100
 tipp=0
-sma =4.9883813858
+sma =13.2735385895
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49172,9 +49172,9 @@ lmod=0
 iodd=1.12000000477
 codd=6
 c2od=1000
-winp=90.2819976807
+winp=100
 tipp=0
-sma =5.34669923782
+sma =12.7335596085
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49192,9 +49192,9 @@ lmod=0
 iodd=1.03999996185
 codd=10
 c2od=1000
-winp=91.4699935913
+winp=100
 tipp=0
-sma =5.63826370239
+sma =14.9421892166
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49212,9 +49212,9 @@ lmod=0
 iodd=1.10000002384
 codd=6.5
 c2od=1000
-winp=91.9629974365
+winp=100
 tipp=0
-sma =5.76478385925
+sma =14.4032745361
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49232,9 +49232,9 @@ lmod=0
 iodd=1.07000005245
 codd=7.5
 c2od=1000
-winp=93.5890045166
+winp=100
 tipp=0
-sma =6.24792289734
+sma =14.105764389
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49252,9 +49252,9 @@ lmod=0
 iodd=1.13999998569
 codd=5.5
 c2od=1000
-winp=94.5830001831
+winp=100
 tipp=0
-sma =6.59026956558
+sma =13.5112581253
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49272,9 +49272,9 @@ lmod=0
 iodd=1.14999997616
 codd=5
 c2od=1000
-winp=94.7779998779
+winp=100
 tipp=0
-sma =6.68159866333
+sma =10.9016923904
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49292,9 +49292,9 @@ lmod=0
 iodd=1.17999994755
 codd=4.65000009537
 c2od=1000
-winp=95.03099823
+winp=100
 tipp=0
-sma =6.7724032402
+sma =13.733001709
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49312,9 +49312,9 @@ lmod=0
 iodd=1.08000004292
 codd=8
 c2od=1000
-winp=95.4469985962
+winp=100
 tipp=0
-sma =6.96877145767
+sma =13.4583797455
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49332,9 +49332,9 @@ lmod=0
 iodd=1.16999995708
 codd=4.75
 c2od=1000
-winp=95.4619979858
+winp=100
 tipp=0
-sma =6.96563816071
+sma =9.96138954163
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49352,9 +49352,9 @@ lmod=0
 iodd=1.14999997616
 codd=5
 c2od=1000
-winp=96.7580032349
+winp=100
 tipp=0
-sma =7.58289861679
+sma =7.63301420212
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49372,9 +49372,9 @@ lmod=0
 iodd=1.14999997616
 codd=5
 c2od=1000
-winp=97.0659942627
+winp=100
 tipp=0
-sma =7.76878261566
+sma =11.9478664398
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49392,15 +49392,15 @@ lmod=0
 iodd=1.13999998569
 codd=7
 c2od=10
-winp=97.6329956055
+winp=89.7099990845
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =4
+lp3 =0
+p2pr=0.10000000149
 p3pr=0
-over=0
+over=1
 @Seat
 name=Buninyong
 incu=0
@@ -49412,9 +49412,9 @@ lmod=0
 iodd=1.10000002384
 codd=6.5
 c2od=1000
-winp=97.8969955444
+winp=100
 tipp=0
-sma =8.3791475296
+sma =11.7288351059
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49432,9 +49432,9 @@ lmod=0
 iodd=1.02999997139
 codd=10
 c2od=1000
-winp=99.0250015259
+winp=100
 tipp=0
-sma =9.64694595337
+sma =14.022851944
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49452,9 +49452,9 @@ lmod=0
 iodd=1.03999996185
 codd=10
 c2od=1000
-winp=99.40599823
+winp=100
 tipp=0
-sma =10.2939367294
+sma =17.6566448212
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49472,9 +49472,9 @@ lmod=0
 iodd=1.05999994278
 codd=8
 c2od=1000
-winp=99.5
+winp=100
 tipp=0
-sma =10.6383638382
+sma =17.8608551025
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49492,13 +49492,13 @@ lmod=0
 iodd=1.37999999523
 codd=5
 c2od=26
-winp=93.4409942627
+winp=39.8600006104
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =4
+lp3 =0
+p2pr=0.600000023842
 p3pr=0
 over=0
 @Seat
@@ -49512,9 +49512,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.9769973755
+winp=100
 tipp=0
-sma =13.9906797409
+sma =11.0235891342
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49532,9 +49532,9 @@ lmod=0
 iodd=1.00999999046
 codd=15
 c2od=1000
-winp=99.96900177
+winp=100
 tipp=0
-sma =14.1552810669
+sma =19.6251449585
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49552,9 +49552,9 @@ lmod=0
 iodd=1.00999999046
 codd=16
 c2od=12
-winp=99.9749984741
+winp=100
 tipp=0
-sma =14.1495189667
+sma =20.018989563
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49572,15 +49572,15 @@ lmod=0
 iodd=1.13999998569
 codd=5
 c2od=1000
-winp=94.5200042725
+winp=100
 tipp=0
-sma =0
+sma =15.3128995895
 lp1 =-1
 lp2 =-1
 lp3 =-1
 p2pr=0
 p3pr=0
-over=0
+over=1
 @Seat
 name=Dandenong
 incu=0
@@ -49592,9 +49592,9 @@ lmod=0
 iodd=1.00999999046
 codd=11
 c2od=1000
-winp=99.9920043945
+winp=100
 tipp=0
-sma =14.9816026688
+sma =24.0536956787
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49612,15 +49612,15 @@ lmod=0
 iodd=1.02999997139
 codd=10
 c2od=1000
-winp=99.4020004272
+winp=100
 tipp=0
-sma =0
+sma =24.8132038116
 lp1 =-1
 lp2 =-1
 lp3 =-1
 p2pr=0
 p3pr=0
-over=0
+over=1
 @Seat
 name=Tarneit
 incu=0
@@ -49632,9 +49632,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.9980010986
+winp=100
 tipp=0
-sma =16.5518703461
+sma =18.9987468719
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49652,7 +49652,7 @@ lmod=0
 iodd=1.07000005245
 codd=7.5
 c2od=15
-winp=98.0469970703
+winp=98.3799972534
 tipp=0
 sma =0
 lp1 =-1
@@ -49674,7 +49674,7 @@ codd=16
 c2od=9
 winp=100
 tipp=0
-sma =17.8941135406
+sma =15.5362596512
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49694,7 +49694,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =18.250295639
+sma =22.5500984192
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49712,15 +49712,15 @@ lmod=0
 iodd=1.13999998569
 codd=5.5
 c2od=18
-winp=95.8109970093
+winp=100
 tipp=0
-sma =0
+sma =26.7005062103
 lp1 =-1
 lp2 =-1
 lp3 =-1
 p2pr=0
 p3pr=0
-over=0
+over=1
 @Seat
 name=Pascoe Vale
 incu=0
@@ -49732,13 +49732,13 @@ lmod=0
 iodd=1.35000002384
 codd=3.40000009537
 c2od=12
-winp=81.8649978638
+winp=80.1549987793
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =4
+lp3 =0
+p2pr=0.20000000298
 p3pr=0
 over=0
 @Seat
@@ -49752,9 +49752,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.9990005493
+winp=100
 tipp=0
-sma =19.0591659546
+sma =20.2810726166
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49774,7 +49774,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =19.4439678192
+sma =24.2215137482
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49794,7 +49794,7 @@ codd=16
 c2od=1000
 winp=100
 tipp=0
-sma =20.4501457214
+sma =18.3198165894
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49814,7 +49814,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =21.856098175
+sma =26.6922569275
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49834,7 +49834,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =21.9563999176
+sma =25.1534843445
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49852,15 +49852,15 @@ lmod=0
 iodd=1.02999997139
 codd=11
 c2od=14
-winp=99.3139953613
+winp=100
 tipp=0
-sma =0
+sma =26.3659534454
 lp1 =-1
 lp2 =-1
 lp3 =-1
 p2pr=0
 p3pr=0
-over=0
+over=1
 @Seat
 name=Broadmeadows
 incu=0
@@ -49874,7 +49874,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =29.7524967194
+sma =34.7302474976
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49894,7 +49894,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =30.3482608795
+sma =31.010591507
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49912,9 +49912,9 @@ lmod=1.70000004768
 iodd=2.29999995232
 codd=1.54999995232
 c2od=10
-winp=55.0800018311
+winp=0.179999992251
 tipp=0
-sma =0.526471197605
+sma =-2.20987176895
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49932,15 +49932,15 @@ lmod=2
 iodd=2.75
 codd=2.79999995232
 c2od=3
-winp=45.8170013428
+winp=0
 tipp=0
-sma =1.41904389858
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+sma =0
+lp1 =0
+lp2 =4
+lp3 =0
+p2pr=0.699999988079
 p3pr=0
-over=0
+over=1
 @Seat
 name=South Barwon
 incu=1
@@ -49952,9 +49952,9 @@ lmod=0
 iodd=2.59999990463
 codd=1.39999997616
 c2od=1000
-winp=59.2989997864
+winp=0
 tipp=0
-sma =0.941472172737
+sma =-4.52541542053
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49972,9 +49972,9 @@ lmod=0
 iodd=1.60000002384
 codd=2.25
 c2od=1000
-winp=61.9189987183
+winp=0
 tipp=0
-sma =1.24019098282
+sma =-5.29144001007
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -49992,9 +49992,9 @@ lmod=0
 iodd=1.5
 codd=3
 c2od=1000
-winp=67.2680053711
+winp=99.8649978638
 tipp=0
-sma =1.83216583729
+sma =2.40938425064
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50012,9 +50012,9 @@ lmod=0
 iodd=2.20000004768
 codd=1.64999997616
 c2od=1000
-winp=70.6030044556
+winp=0
 tipp=0
-sma =2.23201942444
+sma =-5.11653852463
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50032,9 +50032,9 @@ lmod=0
 iodd=1.22000002861
 codd=4
 c2od=1000
-winp=73.8099975586
+winp=0.75
 tipp=0
-sma =2.63021945953
+sma =-2.04560661316
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50052,9 +50052,9 @@ lmod=0
 iodd=1.25
 codd=3.75
 c2od=1000
-winp=73.6699981689
+winp=0.054999999702
 tipp=0
-sma =2.61245965958
+sma =-2.31747198105
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50072,9 +50072,9 @@ lmod=0
 iodd=1.10000002384
 codd=7
 c2od=1000
-winp=75.4290008545
+winp=95.1500015259
 tipp=0
-sma =2.8329885006
+sma =1.14123499393
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50092,9 +50092,9 @@ lmod=0
 iodd=1.10000002384
 codd=6
 c2od=1000
-winp=76.2519989014
+winp=0.00499999988824
 tipp=0
-sma =2.93341588974
+sma =-3.50325894356
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50112,9 +50112,9 @@ lmod=0
 iodd=1.04999995232
 codd=8
 c2od=1000
-winp=77.5179977417
+winp=0
 tipp=0
-sma =3.12207913399
+sma =-4.83981990814
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50132,9 +50132,9 @@ lmod=0
 iodd=1.05999994278
 codd=8
 c2od=1000
-winp=81.875
+winp=0
 tipp=0
-sma =3.7357840538
+sma =-3.81572628021
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50152,9 +50152,9 @@ lmod=0
 iodd=1.04999995232
 codd=9
 c2od=1000
-winp=90.2589950562
+winp=4.86000013351
 tipp=0
-sma =5.33775138855
+sma =-1.3787163496
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50172,9 +50172,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=91.3950042725
+winp=78.3300018311
 tipp=0
-sma =5.6447725296
+sma =0.665928542614
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50192,9 +50192,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=91.4580001831
+winp=0
 tipp=0
-sma =5.64891052246
+sma =-3.62232542038
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50212,9 +50212,9 @@ lmod=0
 iodd=1.05999994278
 codd=6
 c2od=1000
-winp=92.1920013428
+winp=99.5050048828
 tipp=0
-sma =5.81819486618
+sma =1.66142654419
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50232,13 +50232,13 @@ lmod=0
 iodd=1.39999997616
 codd=2.70000004768
 c2od=31
-winp=69.283996582
+winp=39.9650001526
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =1
+lp2 =4
+lp3 =0
+p2pr=0.600000023842
 p3pr=0
 over=0
 @Seat
@@ -50252,9 +50252,9 @@ lmod=0
 iodd=1.00999999046
 codd=16
 c2od=1000
-winp=94.0790023804
+winp=99.9000015259
 tipp=0
-sma =6.42598676682
+sma =2.6824195385
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50272,9 +50272,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=94.6569976807
+winp=0.20000000298
 tipp=0
-sma =6.6316204071
+sma =-2.34471201897
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50292,9 +50292,9 @@ lmod=0
 iodd=1.03999996185
 codd=10
 c2od=1000
-winp=95.4990005493
+winp=99.9150009155
 tipp=0
-sma =7.02507305145
+sma =2.27366065979
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50312,9 +50312,9 @@ lmod=0
 iodd=1.00999999046
 codd=16
 c2od=1000
-winp=96.2549972534
+winp=98.9700012207
 tipp=0
-sma =7.34106492996
+sma =1.52051818371
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50332,9 +50332,9 @@ lmod=0
 iodd=1.01999998093
 codd=14
 c2od=1000
-winp=96.8029937744
+winp=94.8199996948
 tipp=0
-sma =7.62857294083
+sma =1.24303817749
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50352,13 +50352,13 @@ lmod=0
 iodd=1.14999997616
 codd=7
 c2od=10
-winp=97.2220001221
+winp=15.1999998093
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =1
+lp2 =4
+lp3 =0
+p2pr=0.850000023842
 p3pr=0
 over=0
 @Seat
@@ -50372,9 +50372,9 @@ lmod=0
 iodd=1.01999998093
 codd=14
 c2od=14
-winp=97.1549987793
+winp=36.9850006104
 tipp=0
-sma =7.83792257309
+sma =-0.285738825798
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50392,9 +50392,9 @@ lmod=0
 iodd=1.00999999046
 codd=9
 c2od=1000
-winp=98.1760025024
+winp=100
 tipp=0
-sma =8.63504123688
+sma =8.6336145401
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50412,9 +50412,9 @@ lmod=0
 iodd=1.00999999046
 codd=16
 c2od=1000
-winp=98.2410049438
+winp=100
 tipp=0
-sma =8.64060115814
+sma =3.77256202698
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50432,9 +50432,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=98.2229995728
+winp=100
 tipp=0
-sma =8.6233253479
+sma =4.73687267303
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50452,14 +50452,14 @@ lmod=0
 iodd=1.14999997616
 codd=5.5
 c2od=31
-winp=98.3139953613
+winp=64.9850006104
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
-p3pr=0
+lp1 =0
+lp2 =1
+lp3 =4
+p2pr=0.649999976158
+p3pr=0.340000003576
 over=0
 @Seat
 name=Narracan
@@ -50472,9 +50472,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=98.4950027466
+winp=100
 tipp=0
-sma =8.92715358734
+sma =5.7009100914
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50492,9 +50492,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.03099823
+winp=100
 tipp=0
-sma =9.61842632294
+sma =3.56237339973
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50512,9 +50512,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.5130004883
+winp=99.1750030518
 tipp=0
-sma =10.6482486725
+sma =2.33257603645
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50532,9 +50532,9 @@ lmod=0
 iodd=1.01999998093
 codd=12
 c2od=1000
-winp=99.875
+winp=100
 tipp=0
-sma =12.5388364792
+sma =15.8169698715
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50552,9 +50552,9 @@ lmod=0
 iodd=1.00999999046
 codd=28
 c2od=1000
-winp=99.9400024414
+winp=100
 tipp=0
-sma =13.3318147659
+sma =14.5962533951
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50572,9 +50572,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.983001709
+winp=100
 tipp=0
-sma =14.3360891342
+sma =6.7550702095
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50592,15 +50592,15 @@ lmod=0
 iodd=1.22000002861
 codd=4
 c2od=14
-winp=89.0779953003
+winp=100
 tipp=0
-sma =0
+sma =11.017791748
 lp1 =-1
 lp2 =-1
 lp3 =-1
 p2pr=0
 p3pr=0
-over=0
+over=1
 @Seat
 name=Gippsland East
 incu=1
@@ -50612,9 +50612,9 @@ lmod=0
 iodd=1.00999999046
 codd=10
 c2od=1000
-winp=99.9899978638
+winp=100
 tipp=0
-sma =15.5346183777
+sma =16.3217468262
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50634,7 +50634,7 @@ codd=10
 c2od=1000
 winp=100
 tipp=0
-sma =19.3282775879
+sma =19.6605625153
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50654,7 +50654,7 @@ codd=18
 c2od=1000
 winp=100
 tipp=0
-sma =20.4335231781
+sma =23.4858589172
 lp1 =-1
 lp2 =-1
 lp3 =-1
@@ -50672,13 +50672,13 @@ lmod=0
 iodd=4
 codd=2.70000004768
 c2od=1.89999997616
-winp=7.1840004921
+winp=19.9750003815
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =2
+lp3 =0
+p2pr=0.20000000298
 p3pr=0
 over=0
 @Seat
@@ -50692,13 +50692,13 @@ lmod=0
 iodd=1.36000001431
 codd=3.09999990463
 c2od=10
-winp=77.236000061
+winp=91.935005188
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =2
+lp3 =0
+p2pr=0.920000016689
 p3pr=0
 over=0
 @Seat
@@ -50712,13 +50712,13 @@ lmod=0
 iodd=1.29999995232
 codd=4
 c2od=21
-winp=86.1180038452
+winp=7.05000019073
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =0
+lp2 =2
+lp3 =0
+p2pr=0.070000000298
 p3pr=0
 over=0
 @Seat
@@ -50732,13 +50732,13 @@ lmod=0
 iodd=1.20000004768
 codd=4.5
 c2od=17
-winp=83.9749984741
+winp=99
 tipp=0
 sma =0
-lp1 =-1
-lp2 =-1
-lp3 =-1
-p2pr=0
+lp1 =4
+lp2 =1
+lp3 =0
+p2pr=0.00999999977648
 p3pr=0
 over=0
 #Simulations
@@ -50758,5 +50758,2925 @@ prev=51.9900016785
 stsd=3
 stde=0
 live=0
+@Simulation
+name=Live Simulation
+iter=20000
+base=0
+prev=51.9900016785
+stsd=3
+stde=0
+live=1
 #Results
+@Result
+seat=60
+swng=-11.4
+cnt =38.1
+btin=0
+btto=1
+updt=2458447.0072
+@Result
+seat=60
+swng=-8.3
+cnt =65.2
+btin=0
+btto=1
+updt=2458447.00625
+@Result
+seat=66
+swng=-7.8
+cnt =71.6
+btin=0
+btto=1
+updt=2458447.00439
+@Result
+seat=69
+swng=-10.2
+cnt =42.9
+btin=0
+btto=1
+updt=2458447.00072
+@Result
+seat=66
+swng=-8.2
+cnt =65.1
+btin=0
+btto=1
+updt=2458446.99205
+@Result
+seat=66
+swng=-8.5
+cnt =52.2
+btin=0
+btto=1
+updt=2458446.98928
+@Result
+seat=65
+swng=-6.7
+cnt =60.4
+btin=0
+btto=1
+updt=2458446.98245
+@Result
+seat=59
+swng=-6.8
+cnt =41.5
+btin=0
+btto=1
+updt=2458446.98198
+@Result
+seat=58
+swng=-8.7
+cnt =43.6
+btin=0
+btto=1
+updt=2458446.9806
+@Result
+seat=58
+swng=-8.8
+cnt =43.6
+btin=0
+btto=1
+updt=2458446.96796
+@Result
+seat=64
+swng=-11.1
+cnt =47.3
+btin=0
+btto=1
+updt=2458446.9535
+@Result
+seat=53
+swng=-6.9
+cnt =65.5
+btin=0
+btto=1
+updt=2458446.95337
+@Result
+seat=59
+swng=-7.2
+cnt =41.5
+btin=0
+btto=1
+updt=2458446.95314
+@Result
+seat=65
+swng=-7.8
+cnt =52.5
+btin=0
+btto=1
+updt=2458446.95024
+@Result
+seat=54
+swng=-3.5
+cnt =66.8
+btin=0
+btto=1
+updt=2458446.94713
+@Result
+seat=69
+swng=-10.6
+cnt =38.9
+btin=0
+btto=1
+updt=2458446.94395
+@Result
+seat=54
+swng=-3.8
+cnt =55.9
+btin=0
+btto=1
+updt=2458446.94355
+@Result
+seat=69
+swng=-10.3
+cnt =38.9
+btin=0
+btto=1
+updt=2458446.94035
+@Result
+seat=54
+swng=-4.3
+cnt =55.9
+btin=0
+btto=1
+updt=2458446.94014
+@Result
+seat=64
+swng=-11.5
+cnt =47.3
+btin=0
+btto=1
+updt=2458446.93669
+@Result
+seat=46
+swng=-2.9
+cnt =51.3
+btin=0
+btto=1
+updt=2458446.93168
+@Result
+seat=69
+swng=-10.3
+cnt =38.8
+btin=0
+btto=1
+updt=2458446.93144
+@Result
+seat=65
+swng=-8.4
+cnt =39.3
+btin=0
+btto=1
+updt=2458446.93105
+@Result
+seat=58
+swng=-8.8
+cnt =39.7
+btin=0
+btto=1
+updt=2458446.93079
+@Result
+seat=59
+swng=-6.9
+cnt =32.5
+btin=0
+btto=1
+updt=2458446.93029
+@Result
+seat=64
+swng=-11.4
+cnt =47.3
+btin=0
+btto=1
+updt=2458446.93003
+@Result
+seat=67
+swng=-8.4
+cnt =52.9
+btin=0
+btto=1
+updt=2458446.92942
+@Result
+seat=66
+swng=-9.2
+cnt =42.3
+btin=0
+btto=1
+updt=2458446.92565
+@Result
+seat=55
+swng=-8.4
+cnt =47.1
+btin=0
+btto=1
+updt=2458446.9235
+@Result
+seat=69
+swng=-10.2
+cnt =38.8
+btin=0
+btto=1
+updt=2458446.92277
+@Result
+seat=76
+swng=-10.4
+cnt =31.4
+btin=0
+btto=1
+updt=2458446.92028
+@Result
+seat=64
+swng=-11.1
+cnt =47.3
+btin=0
+btto=1
+updt=2458446.9199
+@Result
+seat=46
+swng=-3
+cnt =46.8
+btin=0
+btto=1
+updt=2458446.91953
+@Result
+seat=52
+swng=-6.6
+cnt =42.8
+btin=0
+btto=1
+updt=2458446.91916
+@Result
+seat=67
+swng=-8
+cnt =47.2
+btin=0
+btto=1
+updt=2458446.91885
+@Result
+seat=65
+swng=-7.9
+cnt =39.3
+btin=0
+btto=1
+updt=2458446.91858
+@Result
+seat=59
+swng=-6.7
+cnt =42.3
+btin=0
+btto=1
+updt=2458446.91818
+@Result
+seat=66
+swng=-8.8
+cnt =42.3
+btin=0
+btto=1
+updt=2458446.91778
+@Result
+seat=54
+swng=-4.3
+cnt =47.8
+btin=0
+btto=1
+updt=2458446.91708
+@Result
+seat=69
+swng=-10.5
+cnt =38.8
+btin=0
+btto=1
+updt=2458446.91667
+@Result
+seat=58
+swng=-8.8
+cnt =34.9
+btin=0
+btto=1
+updt=2458446.91611
+@Result
+seat=58
+swng=8.8
+cnt =34.9
+btin=0
+btto=1
+updt=2458446.91596
+@Result
+seat=58
+swng=-8.6
+cnt =33.4
+btin=0
+btto=1
+updt=2458446.90852
+@Result
+seat=46
+swng=-3.2
+cnt =46.4
+btin=0
+btto=1
+updt=2458446.90823
+@Result
+seat=86
+swng=-7.7
+cnt =41.5
+btin=0
+btto=1
+updt=2458446.90758
+@Result
+seat=53
+swng=-7.7
+cnt =41.5
+btin=0
+btto=1
+updt=2458446.90734
+@Result
+seat=64
+swng=-11.1
+cnt =39.7
+btin=0
+btto=1
+updt=2458446.90706
+@Result
+seat=59
+swng=-6.7
+cnt =28
+btin=0
+btto=1
+updt=2458446.90686
+@Result
+seat=65
+swng=-8
+cnt =36.4
+btin=0
+btto=1
+updt=2458446.90674
+@Result
+seat=54
+swng=-4.5
+cnt =47.8
+btin=0
+btto=1
+updt=2458446.90648
+@Result
+seat=54
+swng=-4.5
+cnt =47.8
+btin=0
+btto=1
+updt=2458446.90639
+@Result
+seat=61
+swng=-6.1
+cnt =72.2
+btin=0
+btto=1
+updt=2458446.90625
+@Result
+seat=67
+swng=-8.1
+cnt =47.2
+btin=0
+btto=1
+updt=2458446.9061
+@Result
+seat=50
+swng=-1.3
+cnt =47.1
+btin=0
+btto=1
+updt=2458446.90583
+@Result
+seat=66
+swng=-8.8
+cnt =38.3
+btin=0
+btto=1
+updt=2458446.9056
+@Result
+seat=49
+swng=-8.5
+cnt =34.4
+btin=0
+btto=1
+updt=2458446.90436
+@Result
+seat=48
+swng=-7.5
+cnt =32.5
+btin=0
+btto=1
+updt=2458446.90013
+@Result
+seat=58
+swng=-8.6
+cnt =33.4
+btin=0
+btto=1
+updt=2458446.89976
+@Result
+seat=46
+swng=-2.5
+cnt =42.4
+btin=0
+btto=1
+updt=2458446.89957
+@Result
+seat=53
+swng=-8
+cnt =41.5
+btin=0
+btto=1
+updt=2458446.89912
+@Result
+seat=64
+swng=-10.7
+cnt =39.7
+btin=0
+btto=1
+updt=2458446.89883
+@Result
+seat=59
+swng=-6.8
+cnt =38.9
+btin=0
+btto=1
+updt=2458446.89866
+@Result
+seat=60
+swng=-11.4
+cnt =38.1
+btin=0
+btto=1
+updt=2458446.89807
+@Result
+seat=53
+swng=-8
+cnt =40.6
+btin=0
+btto=1
+updt=2458446.89765
+@Result
+seat=76
+swng=-10.4
+cnt =28.4
+btin=0
+btto=1
+updt=2458446.89713
+@Result
+seat=64
+swng=-10.3
+cnt =39.7
+btin=0
+btto=1
+updt=2458446.89634
+@Result
+seat=59
+swng=-6.8
+cnt =25.7
+btin=0
+btto=1
+updt=2458446.89622
+@Result
+seat=65
+swng=-8
+cnt =31.2
+btin=0
+btto=1
+updt=2458446.89609
+@Result
+seat=54
+swng=-4.5
+cnt =45.2
+btin=0
+btto=1
+updt=2458446.89595
+@Result
+seat=61
+swng=-8.3
+cnt =43.3
+btin=0
+btto=1
+updt=2458446.89582
+@Result
+seat=67
+swng=-8.1
+cnt =47.2
+btin=0
+btto=1
+updt=2458446.89569
+@Result
+seat=50
+swng=-2
+cnt =40.1
+btin=0
+btto=1
+updt=2458446.89554
+@Result
+seat=66
+swng=-8.6
+cnt =36
+btin=0
+btto=1
+updt=2458446.89535
+@Result
+seat=55
+swng=-10.2
+cnt =13
+btin=0
+btto=1
+updt=2458446.89517
+@Result
+seat=69
+swng=-10.7
+cnt =27.2
+btin=0
+btto=1
+updt=2458446.8949
+@Result
+seat=49
+swng=-6.2
+cnt =34.4
+btin=0
+btto=1
+updt=2458446.89421
+@Result
+seat=52
+swng=-6.6
+cnt =42.8
+btin=0
+btto=1
+updt=2458446.89382
+@Result
+seat=29
+swng=2.2
+cnt =19.6
+btin=0
+btto=1
+updt=2458446.891
+@Result
+seat=51
+swng=-10.2
+cnt =25.6
+btin=0
+btto=1
+updt=2458446.89073
+@Result
+seat=52
+swng=-6.3
+cnt =37.9
+btin=0
+btto=1
+updt=2458446.89054
+@Result
+seat=57
+swng=-9.6
+cnt =41.3
+btin=0
+btto=1
+updt=2458446.89032
+@Result
+seat=69
+swng=-10
+cnt =27.2
+btin=0
+btto=1
+updt=2458446.8901
+@Result
+seat=49
+swng=-7.1
+cnt =28.3
+btin=0
+btto=1
+updt=2458446.8897
+@Result
+seat=55
+swng=-9.5
+cnt =13
+btin=0
+btto=1
+updt=2458446.88955
+@Result
+seat=66
+swng=-8.4
+cnt =29.9
+btin=0
+btto=1
+updt=2458446.88936
+@Result
+seat=50
+swng=-1.7
+cnt =39.2
+btin=0
+btto=1
+updt=2458446.88919
+@Result
+seat=67
+swng=-8.5
+cnt =47.2
+btin=0
+btto=1
+updt=2458446.88899
+@Result
+seat=61
+swng=-7.9
+cnt =40.7
+btin=0
+btto=1
+updt=2458446.8888
+@Result
+seat=54
+swng=-4.5
+cnt =45.2
+btin=0
+btto=1
+updt=2458446.88863
+@Result
+seat=65
+swng=-8
+cnt =31.2
+btin=0
+btto=1
+updt=2458446.88841
+@Result
+seat=59
+swng=-7.4
+cnt =25.7
+btin=0
+btto=1
+updt=2458446.88826
+@Result
+seat=64
+swng=-9.8
+cnt =39.7
+btin=0
+btto=1
+updt=2458446.88809
+@Result
+seat=76
+swng=-10
+cnt =28.4
+btin=0
+btto=1
+updt=2458446.88689
+@Result
+seat=53
+swng=-8
+cnt =40.6
+btin=0
+btto=1
+updt=2458446.88628
+@Result
+seat=60
+swng=-11.2
+cnt =36.7
+btin=0
+btto=1
+updt=2458446.88601
+@Result
+seat=56
+swng=-10.1
+cnt =46.8
+btin=0
+btto=1
+updt=2458446.88485
+@Result
+seat=46
+swng=-0.2
+cnt =21
+btin=0
+btto=1
+updt=2458446.88465
+@Result
+seat=58
+swng=-9.2
+cnt =33.4
+btin=0
+btto=1
+updt=2458446.88337
+@Result
+seat=40
+swng=-1.3
+cnt =18.2
+btin=0
+btto=1
+updt=2458446.88146
+@Result
+seat=10
+swng=11.8
+cnt =23.8
+btin=0
+btto=1
+updt=2458446.88135
+@Result
+seat=36
+swng=10.5
+cnt =40.2
+btin=0
+btto=1
+updt=2458446.8812
+@Result
+seat=33
+swng=-1.3
+cnt =0.8
+btin=0
+btto=1
+updt=2458446.88091
+@Result
+seat=19
+swng=6.1
+cnt =24.7
+btin=0
+btto=1
+updt=2458446.88068
+@Result
+seat=75
+swng=-8.1
+cnt =34.3
+btin=0
+btto=1
+updt=2458446.88053
+@Result
+seat=45
+swng=1.5
+cnt =11.2
+btin=0
+btto=1
+updt=2458446.88042
+@Result
+seat=32
+swng=4.2
+cnt =25.2
+btin=0
+btto=1
+updt=2458446.8803
+@Result
+seat=35
+swng=6.3
+cnt =9.8
+btin=0
+btto=1
+updt=2458446.88019
+@Result
+seat=12
+swng=10.1
+cnt =30.4
+btin=0
+btto=1
+updt=2458446.88008
+@Result
+seat=39
+swng=6.9
+cnt =10.6
+btin=0
+btto=1
+updt=2458446.87993
+@Result
+seat=73
+swng=-6.8
+cnt =25.3
+btin=0
+btto=1
+updt=2458446.87981
+@Result
+seat=48
+swng=-10.8
+cnt =25.9
+btin=0
+btto=1
+updt=2458446.87957
+@Result
+seat=58
+swng=-8.2
+cnt =33.4
+btin=0
+btto=1
+updt=2458446.87943
+@Result
+seat=63
+swng=-5.6
+cnt =38.9
+btin=0
+btto=1
+updt=2458446.87932
+@Result
+seat=46
+swng=-1.6
+cnt =18.7
+btin=0
+btto=1
+updt=2458446.87914
+@Result
+seat=56
+swng=-10
+cnt =46.8
+btin=0
+btto=1
+updt=2458446.87898
+@Result
+seat=72
+swng=-5.9
+cnt =52.2
+btin=0
+btto=1
+updt=2458446.87867
+@Result
+seat=37
+swng=3.6
+cnt =18.2
+btin=0
+btto=1
+updt=2458446.87855
+@Result
+seat=80
+swng=-5.9
+cnt =25.6
+btin=0
+btto=1
+updt=2458446.87821
+@Result
+seat=23
+swng=9.8
+cnt =25.6
+btin=0
+btto=1
+updt=2458446.878
+@Result
+seat=22
+swng=6.4
+cnt =10.6
+btin=0
+btto=1
+updt=2458446.87782
+@Result
+seat=60
+swng=-10.7
+cnt =28.5
+btin=0
+btto=1
+updt=2458446.87766
+@Result
+seat=18
+swng=1.2
+cnt =13.9
+btin=0
+btto=1
+updt=2458446.8775
+@Result
+seat=14
+swng=6.3
+cnt =34.2
+btin=0
+btto=1
+updt=2458446.87737
+@Result
+seat=74
+swng=-5.6
+cnt =37.3
+btin=0
+btto=1
+updt=2458446.87726
+@Result
+seat=83
+swng=1.4
+cnt =35.9
+btin=0
+btto=1
+updt=2458446.87714
+@Result
+seat=13
+swng=9.2
+cnt =38.4
+btin=0
+btto=1
+updt=2458446.87701
+@Result
+seat=53
+swng=-8.9
+cnt =38.1
+btin=0
+btto=1
+updt=2458446.8769
+@Result
+seat=47
+swng=-7
+cnt =13.4
+btin=0
+btto=1
+updt=2458446.87672
+@Result
+seat=76
+swng=-9.7
+cnt =28.4
+btin=0
+btto=1
+updt=2458446.87639
+@Result
+seat=4
+swng=8.6
+cnt =16.2
+btin=0
+btto=1
+updt=2458446.87626
+@Result
+seat=17
+swng=4.8
+cnt =39.7
+btin=0
+btto=1
+updt=2458446.87611
+@Result
+seat=41
+swng=6.8
+cnt =16.2
+btin=0
+btto=1
+updt=2458446.87598
+@Result
+seat=25
+swng=-3.6
+cnt =7.8
+btin=0
+btto=1
+updt=2458446.87574
+@Result
+seat=79
+swng=-9.8
+cnt =13.9
+btin=0
+btto=1
+updt=2458446.87542
+@Result
+seat=11
+swng=11
+cnt =28.2
+btin=0
+btto=1
+updt=2458446.87528
+@Result
+seat=82
+swng=-1.4
+cnt =41.2
+btin=0
+btto=1
+updt=2458446.87517
+@Result
+seat=38
+swng=2.8
+cnt =25.7
+btin=0
+btto=1
+updt=2458446.87505
+@Result
+seat=42
+swng=5
+cnt =17.9
+btin=0
+btto=1
+updt=2458446.87492
+@Result
+seat=26
+swng=-2.9
+cnt =10.7
+btin=0
+btto=1
+updt=2458446.87481
+@Result
+seat=59
+swng=-8
+cnt =22.6
+btin=0
+btto=1
+updt=2458446.87457
+@Result
+seat=64
+swng=-10.9
+cnt =26.9
+btin=0
+btto=1
+updt=2458446.87444
+@Result
+seat=71
+swng=-6.7
+cnt =32.6
+btin=0
+btto=1
+updt=2458446.87422
+@Result
+seat=9
+swng=9.6
+cnt =27.2
+btin=0
+btto=1
+updt=2458446.87411
+@Result
+seat=64
+swng=-10.5
+cnt =26.9
+btin=0
+btto=1
+updt=2458446.87392
+@Result
+seat=59
+swng=-8.1
+cnt =22.6
+btin=0
+btto=1
+updt=2458446.87374
+@Result
+seat=78
+swng=-0.7
+cnt =31.7
+btin=0
+btto=1
+updt=2458446.87361
+@Result
+seat=81
+swng=-1.2
+cnt =31.7
+btin=0
+btto=1
+updt=2458446.8735
+@Result
+seat=65
+swng=-7.2
+cnt =31.2
+btin=0
+btto=1
+updt=2458446.87336
+@Result
+seat=20
+swng=4.9
+cnt =23.2
+btin=0
+btto=1
+updt=2458446.87324
+@Result
+seat=0
+swng=8.3
+cnt =20.9
+btin=0
+btto=1
+updt=2458446.87291
+@Result
+seat=54
+swng=-4.8
+cnt =40.4
+btin=0
+btto=1
+updt=2458446.87274
+@Result
+seat=31
+swng=12.2
+cnt =6.8
+btin=0
+btto=1
+updt=2458446.87264
+@Result
+seat=61
+swng=-7.7
+cnt =30
+btin=0
+btto=1
+updt=2458446.87249
+@Result
+seat=67
+swng=-8.5
+cnt =43.9
+btin=0
+btto=1
+updt=2458446.87234
+@Result
+seat=77
+swng=1.6
+cnt =40.4
+btin=0
+btto=1
+updt=2458446.87222
+@Result
+seat=24
+swng=9.4
+cnt =27.7
+btin=0
+btto=1
+updt=2458446.87208
+@Result
+seat=7
+swng=7
+cnt =35.7
+btin=0
+btto=1
+updt=2458446.87196
+@Result
+seat=50
+swng=-1.7
+cnt =26.5
+btin=0
+btto=1
+updt=2458446.87182
+@Result
+seat=30
+swng=11.7
+cnt =25.4
+btin=0
+btto=1
+updt=2458446.87171
+@Result
+seat=66
+swng=-8.5
+cnt =29.9
+btin=0
+btto=1
+updt=2458446.87154
+@Result
+seat=6
+swng=14.7
+cnt =6.2
+btin=0
+btto=1
+updt=2458446.8714
+@Result
+seat=34
+swng=-1.2
+cnt =20.9
+btin=0
+btto=1
+updt=2458446.87126
+@Result
+seat=55
+swng=-9.1
+cnt =11.7
+btin=0
+btto=1
+updt=2458446.87108
+@Result
+seat=1
+swng=7.3
+cnt =5.2
+btin=0
+btto=1
+updt=2458446.87095
+@Result
+seat=49
+swng=-6.8
+cnt =16.6
+btin=0
+btto=1
+updt=2458446.87086
+@Result
+seat=21
+swng=5.2
+cnt =27.5
+btin=0
+btto=1
+updt=2458446.87074
+@Result
+seat=28
+swng=7.9
+cnt =31.2
+btin=0
+btto=1
+updt=2458446.87051
+@Result
+seat=70
+swng=0.2
+cnt =8.9
+btin=0
+btto=1
+updt=2458446.87036
+@Result
+seat=44
+swng=7
+cnt =6.3
+btin=0
+btto=1
+updt=2458446.86998
+@Result
+seat=69
+swng=-7
+cnt =11.5
+btin=0
+btto=1
+updt=2458446.86986
+@Result
+seat=57
+swng=-7.5
+cnt =27.9
+btin=0
+btto=1
+updt=2458446.86973
+@Result
+seat=2
+swng=11.3
+cnt =33.6
+btin=0
+btto=1
+updt=2458446.86957
+@Result
+seat=27
+swng=7.5
+cnt =30.1
+btin=0
+btto=1
+updt=2458446.86944
+@Result
+seat=16
+swng=8.8
+cnt =16.1
+btin=0
+btto=1
+updt=2458446.86931
+@Result
+seat=68
+swng=-1.3
+cnt =30.9
+btin=0
+btto=1
+updt=2458446.86913
+@Result
+seat=15
+swng=9.2
+cnt =25.6
+btin=0
+btto=1
+updt=2458446.86887
+@Result
+seat=52
+swng=-5.9
+cnt =23
+btin=0
+btto=1
+updt=2458446.86868
+@Result
+seat=51
+swng=-11.7
+cnt =19.8
+btin=0
+btto=1
+updt=2458446.86844
+@Result
+seat=29
+swng=0
+cnt =9
+btin=0
+btto=1
+updt=2458446.86834
+@Result
+seat=8
+swng=11.2
+cnt =10.3
+btin=0
+btto=1
+updt=2458446.86814
+@Result
+seat=71
+swng=-7.8
+cnt =25.3
+btin=0
+btto=1
+updt=2458446.86025
+@Result
+seat=2
+swng=15.4
+cnt =21.6
+btin=0
+btto=1
+updt=2458446.86015
+@Result
+seat=4
+swng=10.2
+cnt =4.5
+btin=0
+btto=1
+updt=2458446.85991
+@Result
+seat=52
+swng=-4.5
+cnt =18.4
+btin=0
+btto=1
+updt=2458446.85978
+@Result
+seat=66
+swng=-8.9
+cnt =25.8
+btin=0
+btto=1
+updt=2458446.85963
+@Result
+seat=65
+swng=-8.9
+cnt =16.2
+btin=0
+btto=1
+updt=2458446.85951
+@Result
+seat=60
+swng=-6.7
+cnt =11
+btin=0
+btto=1
+updt=2458446.85938
+@Result
+seat=57
+swng=-4.8
+cnt =12.2
+btin=0
+btto=1
+updt=2458446.85926
+@Result
+seat=79
+swng=-11.6
+cnt =6.7
+btin=0
+btto=1
+updt=2458446.85912
+@Result
+seat=46
+swng=-0.3
+cnt =10.9
+btin=0
+btto=1
+updt=2458446.85898
+@Result
+seat=54
+swng=-6.1
+cnt =27.9
+btin=0
+btto=1
+updt=2458446.85876
+@Result
+seat=56
+swng=-9.6
+cnt =38.9
+btin=0
+btto=1
+updt=2458446.85854
+@Result
+seat=61
+swng=-8.5
+cnt =27
+btin=0
+btto=1
+updt=2458446.85837
+@Result
+seat=64
+swng=-9.4
+cnt =16.4
+btin=0
+btto=1
+updt=2458446.85821
+@Result
+seat=59
+swng=-7.6
+cnt =14.9
+btin=0
+btto=1
+updt=2458446.85807
+@Result
+seat=48
+swng=-6.4
+cnt =9.4
+btin=0
+btto=1
+updt=2458446.85791
+@Result
+seat=51
+swng=-8.4
+cnt =10.2
+btin=0
+btto=1
+updt=2458446.85777
+@Result
+seat=69
+swng=-7.2
+cnt =11.5
+btin=0
+btto=1
+updt=2458446.85767
+@Result
+seat=50
+swng=-1.9
+cnt =19.3
+btin=0
+btto=1
+updt=2458446.85751
+@Result
+seat=70
+swng=-3.8
+cnt =6.7
+btin=0
+btto=1
+updt=2458446.8574
+@Result
+seat=76
+swng=-12.2
+cnt =16.1
+btin=0
+btto=1
+updt=2458446.85726
+@Result
+seat=67
+swng=-8.1
+cnt =27.6
+btin=0
+btto=1
+updt=2458446.85705
+@Result
+seat=57
+swng=-4.8
+cnt =6.7
+btin=0
+btto=1
+updt=2458446.85653
+@Result
+seat=56
+swng=-9.3
+cnt =36.2
+btin=0
+btto=1
+updt=2458446.85635
+@Result
+seat=76
+swng=-12.2
+cnt =13.6
+btin=0
+btto=1
+updt=2458446.85596
+@Result
+seat=7
+swng=7.8
+cnt =29.9
+btin=0
+btto=1
+updt=2458446.85581
+@Result
+seat=12
+swng=13.4
+cnt =12.3
+btin=0
+btto=1
+updt=2458446.85567
+@Result
+seat=2
+swng=11.7
+cnt =14.8
+btin=0
+btto=1
+updt=2458446.85556
+@Result
+seat=65
+swng=-9.8
+cnt =13.8
+btin=0
+btto=1
+updt=2458446.85543
+@Result
+seat=6
+swng=9.2
+cnt =3.5
+btin=0
+btto=1
+updt=2458446.85531
+@Result
+seat=46
+swng=-0.7
+cnt =6.8
+btin=0
+btto=1
+updt=2458446.85519
+@Result
+seat=75
+swng=-7.9
+cnt =11.3
+btin=0
+btto=1
+updt=2458446.855
+@Result
+seat=71
+swng=-7.8
+cnt =16.5
+btin=0
+btto=1
+updt=2458446.85486
+@Result
+seat=59
+swng=-7.5
+cnt =13.6
+btin=0
+btto=1
+updt=2458446.85473
+@Result
+seat=50
+swng=-2.3
+cnt =18.8
+btin=0
+btto=1
+updt=2458446.85459
+@Result
+seat=53
+swng=-10.9
+cnt =15.5
+btin=0
+btto=1
+updt=2458446.85439
+@Result
+seat=55
+swng=7.3
+cnt =2.4
+btin=0
+btto=1
+updt=2458446.85418
+@Result
+seat=54
+swng=6.7
+cnt =24.9
+btin=0
+btto=1
+updt=2458446.85405
+@Result
+seat=60
+swng=-6.9
+cnt =8.2
+btin=0
+btto=1
+updt=2458446.85385
+@Result
+seat=64
+swng=-9.4
+cnt =12.9
+btin=0
+btto=1
+updt=2458446.85369
+@Result
+seat=58
+swng=-5.4
+cnt =5.4
+btin=0
+btto=1
+updt=2458446.85356
+@Result
+seat=52
+swng=-4.5
+cnt =11.1
+btin=0
+btto=1
+updt=2458446.85344
+@Result
+seat=61
+swng=-8.7
+cnt =21.7
+btin=0
+btto=1
+updt=2458446.85318
+@Result
+seat=64
+swng=-9.4
+cnt =11.4
+btin=0
+btto=1
+updt=2458446.85226
+@Result
+seat=60
+swng=-6.7
+cnt =8.2
+btin=0
+btto=1
+updt=2458446.85214
+@Result
+seat=28
+swng=-1.1
+cnt =18.8
+btin=0
+btto=1
+updt=2458446.85198
+@Result
+seat=48
+swng=-4.7
+cnt =6.2
+btin=0
+btto=1
+updt=2458446.85181
+@Result
+seat=0
+swng=10.9
+cnt =5.4
+btin=0
+btto=1
+updt=2458446.85163
+@Result
+seat=43
+swng=-1
+cnt =5.9
+btin=0
+btto=1
+updt=2458446.85144
+@Result
+seat=29
+swng=-1.2
+cnt =1.1
+btin=0
+btto=1
+updt=2458446.85126
+@Result
+seat=63
+swng=-4
+cnt =17.6
+btin=0
+btto=1
+updt=2458446.85112
+@Result
+seat=9
+swng=9.9
+cnt =4.6
+btin=0
+btto=1
+updt=2458446.85094
+@Result
+seat=75
+swng=-10
+cnt =14.8
+btin=0
+btto=1
+updt=2458446.85076
+@Result
+seat=76
+swng=-10.1
+cnt =7.3
+btin=0
+btto=1
+updt=2458446.85065
+@Result
+seat=41
+swng=14.9
+cnt =7.4
+btin=0
+btto=1
+updt=2458446.85052
+@Result
+seat=34
+swng=-0.6
+cnt =8.9
+btin=0
+btto=1
+updt=2458446.85038
+@Result
+seat=17
+swng=4.8
+cnt =12.7
+btin=0
+btto=1
+updt=2458446.85023
+@Result
+seat=46
+swng=-0.7
+cnt =4.4
+btin=0
+btto=1
+updt=2458446.85002
+@Result
+seat=71
+swng=-7.8
+cnt =12.5
+btin=0
+btto=1
+updt=2458446.84986
+@Result
+seat=2
+swng=11.3
+cnt =11.4
+btin=0
+btto=1
+updt=2458446.84972
+@Result
+seat=23
+swng=5.2
+cnt =8.5
+btin=0
+btto=1
+updt=2458446.84962
+@Result
+seat=19
+swng=6.8
+cnt =8.9
+btin=0
+btto=1
+updt=2458446.84947
+@Result
+seat=8
+swng=12.8
+cnt =6.5
+btin=0
+btto=1
+updt=2458446.84936
+@Result
+seat=59
+swng=-7.9
+cnt =6.5
+btin=0
+btto=1
+updt=2458446.84922
+@Result
+seat=15
+swng=6.1
+cnt =10.3
+btin=0
+btto=1
+updt=2458446.8491
+@Result
+seat=79
+swng=-7.7
+cnt =5.3
+btin=0
+btto=1
+updt=2458446.84888
+@Result
+seat=53
+swng=-10
+cnt =10.2
+btin=0
+btto=1
+updt=2458446.84872
+@Result
+seat=57
+swng=-5.1
+cnt =6.7
+btin=0
+btto=1
+updt=2458446.84847
+@Result
+seat=18
+swng=1.9
+cnt =2.8
+btin=0
+btto=1
+updt=2458446.84832
+@Result
+seat=30
+swng=10
+cnt =6.4
+btin=0
+btto=1
+updt=2458446.84817
+@Result
+seat=48
+swng=-2.3
+cnt =4.2
+btin=0
+btto=1
+updt=2458446.84806
+@Result
+seat=16
+swng=9.25
+cnt =5.5
+btin=0
+btto=1
+updt=2458446.84794
+@Result
+seat=51
+swng=-9.1
+cnt =5.7
+btin=0
+btto=1
+updt=2458446.8478
+@Result
+seat=54
+swng=-6
+cnt =13.9
+btin=0
+btto=1
+updt=2458446.84611
+@Result
+seat=74
+swng=-4.8
+cnt =9.4
+btin=0
+btto=1
+updt=2458446.84591
+@Result
+seat=72
+swng=-6.2
+cnt =17.1
+btin=0
+btto=1
+updt=2458446.84576
+@Result
+seat=65
+swng=-8
+cnt =7.4
+btin=0
+btto=1
+updt=2458446.84558
+@Result
+seat=52
+swng=-2.8
+cnt =5.2
+btin=0
+btto=1
+updt=2458446.84545
+@Result
+seat=69
+swng=-5.8
+cnt =3.8
+btin=0
+btto=1
+updt=2458446.84531
+@Result
+seat=50
+swng=-1.1
+cnt =10.1
+btin=0
+btto=1
+updt=2458446.8452
+@Result
+seat=12
+swng=7.7
+cnt =4.6
+btin=0
+btto=1
+updt=2458446.84505
+@Result
+seat=40
+swng=-1.5
+cnt =2.2
+btin=0
+btto=1
+updt=2458446.84491
+@Result
+seat=4
+swng=13.1
+cnt =4.5
+btin=0
+btto=1
+updt=2458446.84481
+@Result
+seat=7
+swng=8
+cnt =11.8
+btin=0
+btto=1
+updt=2458446.84465
+@Result
+seat=20
+swng=0.4
+cnt =9.5
+btin=0
+btto=1
+updt=2458446.84455
+@Result
+seat=10
+swng=10.1
+cnt =3.2
+btin=0
+btto=1
+updt=2458446.84441
+@Result
+seat=66
+swng=-10.8
+cnt =6.5
+btin=0
+btto=1
+updt=2458446.84425
+@Result
+seat=56
+swng=-10
+cnt =24
+btin=0
+btto=1
+updt=2458446.8441
+@Result
+seat=46
+swng=2.3
+cnt =4
+btin=0
+btto=1
+updt=2458446.84398
+@Result
+seat=8
+swng=10.6
+cnt =3.8
+btin=0
+btto=1
+updt=2458446.84388
+@Result
+seat=11
+swng=6.2
+cnt =5
+btin=0
+btto=1
+updt=2458446.84369
+@Result
+seat=2
+swng=10.7
+cnt =6.1
+btin=0
+btto=1
+updt=2458446.84353
+@Result
+seat=67
+swng=-9.2
+cnt =18.1
+btin=0
+btto=1
+updt=2458446.8434
+@Result
+seat=19
+swng=7.8
+cnt =8
+btin=0
+btto=1
+updt=2458446.84328
+@Result
+seat=27
+swng=6.8
+cnt =8.9
+btin=0
+btto=1
+updt=2458446.84311
+@Result
+seat=15
+swng=7.4
+cnt =7.3
+btin=0
+btto=1
+updt=2458446.84299
+@Result
+seat=1
+swng=5.5
+cnt =3.1
+btin=0
+btto=1
+updt=2458446.84287
+@Result
+seat=0
+swng=14.9
+cnt =3.9
+btin=0
+btto=1
+updt=2458446.84271
+@Result
+seat=60
+swng=-6.7
+cnt =7.1
+btin=0
+btto=1
+updt=2458446.84258
+@Result
+seat=59
+swng=-8.8
+cnt =5.3
+btin=0
+btto=1
+updt=2458446.8424
+@Result
+seat=24
+swng=11.2
+cnt =3.4
+btin=0
+btto=1
+updt=2458446.84228
+@Result
+seat=47
+swng=-5.9
+cnt =4
+btin=0
+btto=1
+updt=2458446.84204
+@Result
+seat=15
+swng=10.7
+cnt =2
+btin=0
+btto=1
+updt=2458446.84184
+@Result
+seat=72
+swng=-5.8
+cnt =11.3
+btin=0
+btto=1
+updt=2458446.84171
+@Result
+seat=51
+swng=-9.3
+cnt =3.1
+btin=0
+btto=1
+updt=2458446.8416
+@Result
+seat=9
+swng=9.6
+cnt =3.5
+btin=0
+btto=1
+updt=2458446.84145
+@Result
+seat=22
+swng=3.2
+cnt =3.1
+btin=0
+btto=1
+updt=2458446.84133
+@Result
+seat=65
+swng=-9.3
+cnt =5.3
+btin=0
+btto=1
+updt=2458446.84122
+@Result
+seat=69
+swng=-7.6
+cnt =0.6
+btin=0
+btto=1
+updt=2458446.84109
+@Result
+seat=6
+swng=19.4
+cnt =0.8
+btin=0
+btto=1
+updt=2458446.84095
+@Result
+seat=48
+swng=-2.3
+cnt =4.2
+btin=0
+btto=1
+updt=2458446.84084
+@Result
+seat=61
+swng=-8.9
+cnt =9.6
+btin=0
+btto=1
+updt=2458446.84075
+@Result
+seat=21
+swng=5.2
+cnt =4.6
+btin=0
+btto=1
+updt=2458446.84063
+@Result
+seat=7
+swng=7.4
+cnt =9.1
+btin=0
+btto=1
+updt=2458446.84051
+@Result
+seat=12
+swng=8
+cnt =2.2
+btin=0
+btto=1
+updt=2458446.84036
+@Result
+seat=13
+swng=7.8
+cnt =12.7
+btin=0
+btto=1
+updt=2458446.84024
+@Result
+seat=82
+swng=-1.4
+cnt =9.8
+btin=0
+btto=1
+updt=2458446.8401
+@Result
+seat=4
+swng=8.5
+cnt =3.3
+btin=0
+btto=1
+updt=2458446.83997
+@Result
+seat=2
+swng=10.4
+cnt =1.2
+btin=0
+btto=1
+updt=2458446.83986
+@Result
+seat=17
+swng=5.5
+cnt =5.2
+btin=0
+btto=1
+updt=2458446.83973
+@Result
+seat=19
+swng=7.8
+cnt =3
+btin=0
+btto=1
+updt=2458446.83958
+@Result
+seat=57
+swng=-5.1
+cnt =2
+btin=0
+btto=1
+updt=2458446.83939
+@Result
+seat=20
+swng=3.7
+cnt =4.1
+btin=0
+btto=1
+updt=2458446.83924
+@Result
+seat=11
+swng=3.7
+cnt =2
+btin=0
+btto=1
+updt=2458446.83877
+@Result
+seat=13
+swng=6.7
+cnt =8.5
+btin=0
+btto=1
+updt=2458446.83861
+@Result
+seat=79
+swng=-7.7
+cnt =5.3
+btin=0
+btto=1
+updt=2458446.8385
+@Result
+seat=38
+swng=4.6
+cnt =1.2
+btin=0
+btto=1
+updt=2458446.83837
+@Result
+seat=23
+swng=4.8
+cnt =5.4
+btin=0
+btto=1
+updt=2458446.83828
+@Result
+seat=27
+swng=7.5
+cnt =4.4
+btin=0
+btto=1
+updt=2458446.83815
+@Result
+seat=46
+swng=0.6
+cnt =2.6
+btin=0
+btto=1
+updt=2458446.838
+@Result
+seat=77
+swng=2.6
+cnt =8.9
+btin=0
+btto=1
+updt=2458446.83785
+@Result
+seat=74
+swng=-5.5
+cnt =6.7
+btin=0
+btto=1
+updt=2458446.83774
+@Result
+seat=73
+swng=-3.3
+cnt =4.8
+btin=0
+btto=1
+updt=2458446.83763
+@Result
+seat=50
+swng=-1.1
+cnt =7.6
+btin=0
+btto=1
+updt=2458446.83748
+@Result
+seat=21
+swng=5.2
+cnt =2.2
+btin=0
+btto=1
+updt=2458446.83735
+@Result
+seat=8
+swng=18.2
+cnt =1.2
+btin=0
+btto=1
+updt=2458446.83722
+@Result
+seat=41
+swng=6
+cnt =6.4
+btin=0
+btto=1
+updt=2458446.83711
+@Result
+seat=54
+swng=-2.4
+cnt =6.6
+btin=0
+btto=1
+updt=2458446.83697
+@Result
+seat=64
+swng=-16.7
+cnt =7.2
+btin=0
+btto=1
+updt=2458446.83684
+@Result
+seat=76
+swng=-12.6
+cnt =3.7
+btin=0
+btto=1
+updt=2458446.83674
+@Result
+seat=4
+swng=11.7
+cnt =1.1
+btin=0
+btto=1
+updt=2458446.83661
+@Result
+seat=19
+swng=7.8
+cnt =1.8
+btin=0
+btto=1
+updt=2458446.83649
+@Result
+seat=63
+swng=-3.6
+cnt =5.3
+btin=0
+btto=1
+updt=2458446.83637
+@Result
+seat=56
+swng=-12.3
+cnt =4.2
+btin=0
+btto=1
+updt=2458446.83624
+@Result
+seat=17
+swng=5.5
+cnt =3.3
+btin=0
+btto=1
+updt=2458446.83608
+@Result
+seat=51
+swng=-5.8
+cnt =3.1
+btin=0
+btto=1
+updt=2458446.83595
+@Result
+seat=72
+swng=-3.5
+cnt =7.2
+btin=0
+btto=1
+updt=2458446.83584
+@Result
+seat=83
+swng=2.4
+cnt =7.8
+btin=0
+btto=1
+updt=2458446.83573
+@Result
+seat=59
+swng=-8.7
+cnt =3.7
+btin=0
+btto=1
+updt=2458446.83561
+@Result
+seat=66
+swng=-10.8
+cnt =1.9
+btin=0
+btto=1
+updt=2458446.83544
+@Result
+seat=31
+swng=3.5
+cnt =0.9
+btin=0
+btto=1
+updt=2458446.83532
+@Result
+seat=46
+swng=0.6
+cnt =2.6
+btin=0
+btto=1
+updt=2458446.83506
+@Result
+seat=64
+swng=-16.7
+cnt =4
+btin=0
+btto=1
+updt=2458446.83481
+@Result
+seat=53
+swng=-11.4
+cnt =1.4
+btin=0
+btto=1
+updt=2458446.83471
+@Result
+seat=75
+swng=-16.9
+cnt =0.4
+btin=0
+btto=1
+updt=2458446.83459
+@Result
+seat=17
+swng=3.2
+cnt =3.3
+btin=0
+btto=1
+updt=2458446.83447
+@Result
+seat=28
+swng=-0.7
+cnt =0.4
+btin=0
+btto=1
+updt=2458446.83435
+@Result
+seat=14
+swng=2.3
+cnt =0.3
+btin=0
+btto=1
+updt=2458446.83417
+@Result
+seat=50
+swng=-1.1
+cnt =3.9
+btin=0
+btto=1
+updt=2458446.83405
+@Result
+seat=20
+swng=2.7
+cnt =2.6
+btin=0
+btto=1
+updt=2458446.83387
+@Result
+seat=65
+swng=-8.2
+cnt =3.9
+btin=0
+btto=1
+updt=2458446.83358
+@Result
+seat=48
+swng=-2.3
+cnt =4.2
+btin=0
+btto=1
+updt=2458446.83344
+@Result
+seat=21
+swng=5.2
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.83318
+@Result
+seat=60
+swng=-2.8
+cnt =1.9
+btin=0
+btto=1
+updt=2458446.83307
+@Result
+seat=0
+swng=9.1
+cnt =0.9
+btin=0
+btto=1
+updt=2458446.83294
+@Result
+seat=19
+swng=8.4
+cnt =1.1
+btin=0
+btto=1
+updt=2458446.83281
+@Result
+seat=76
+swng=-11
+cnt =2
+btin=0
+btto=1
+updt=2458446.8327
+@Result
+seat=54
+swng=-2.4
+cnt =3.2
+btin=0
+btto=1
+updt=2458446.83244
+@Result
+seat=78
+swng=-3.5
+cnt =5.4
+btin=0
+btto=1
+updt=2458446.83227
+@Result
+seat=54
+swng=5.3
+cnt =3.2
+btin=0
+btto=1
+updt=2458446.83214
+@Result
+seat=22
+swng=3.7
+cnt =1.4
+btin=0
+btto=1
+updt=2458446.83204
+@Result
+seat=82
+swng=-5.9
+cnt =3.4
+btin=0
+btto=1
+updt=2458446.8319
+@Result
+seat=67
+swng=-12.9
+cnt =0.4
+btin=0
+btto=1
+updt=2458446.83178
+@Result
+seat=80
+swng=-3.8
+cnt =2.3
+btin=0
+btto=1
+updt=2458446.83161
+@Result
+seat=11
+swng=5
+cnt =0.9
+btin=0
+btto=1
+updt=2458446.8315
+@Result
+seat=48
+swng=-2.3
+cnt =2.1
+btin=0
+btto=1
+updt=2458446.83138
+@Result
+seat=42
+swng=5.2
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.83123
+@Result
+seat=81
+swng=2.9
+cnt =1.4
+btin=0
+btto=1
+updt=2458446.83109
+@Result
+seat=21
+swng=2.5
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.83096
+@Result
+seat=63
+swng=-4.3
+cnt =2.1
+btin=0
+btto=1
+updt=2458446.83083
+@Result
+seat=72
+swng=0.1
+cnt =2.1
+btin=0
+btto=1
+updt=2458446.82767
+@Result
+seat=80
+swng=-3.8
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.82721
+@Result
+seat=80
+swng=3.8
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.82714
+@Result
+seat=31
+swng=3.5
+cnt =0.1
+btin=0
+btto=1
+updt=2458446.82687
+@Result
+seat=67
+swng=-14.8
+cnt =0.4
+btin=0
+btto=1
+updt=2458446.82668
+@Result
+seat=57
+swng=-3.9
+cnt =2
+btin=0
+btto=1
+updt=2458446.82654
+@Result
+seat=46
+swng=-2.4
+cnt =0.7
+btin=0
+btto=1
+updt=2458446.82634
+@Result
+seat=11
+swng=4.8
+cnt =0.8
+btin=0
+btto=1
+updt=2458446.82618
+@Result
+seat=17
+swng=6.5
+cnt =0.5
+btin=0
+btto=1
+updt=2458446.82604
+@Result
+seat=21
+swng=0.7
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.82591
+@Result
+seat=61
+swng=-8.8
+cnt =2.5
+btin=0
+btto=1
+updt=2458446.8258
+@Result
+seat=58
+swng=-4.6
+cnt =2.3
+btin=0
+btto=1
+updt=2458446.82566
+@Result
+seat=78
+swng=-3.5
+cnt =2.8
+btin=0
+btto=1
+updt=2458446.82553
+@Result
+seat=74
+swng=-8.1
+cnt =3.9
+btin=0
+btto=1
+updt=2458446.82531
+@Result
+seat=77
+swng=4
+cnt =6.4
+btin=0
+btto=1
+updt=2458446.8252
+@Result
+seat=82
+swng=-7
+cnt =3.2
+btin=0
+btto=1
+updt=2458446.82508
+@Result
+seat=48
+swng=-0.7
+cnt =2.1
+btin=0
+btto=1
+updt=2458446.82498
+@Result
+seat=10
+swng=10.1
+cnt =0.2
+btin=0
+btto=1
+updt=2458446.82461
+@Result
+seat=46
+swng=-5.4
+cnt =0.2
+btin=0
+btto=1
+updt=2458446.82448
+@Result
+seat=31
+swng=0.1
+cnt =0.1
+btin=0
+btto=1
+updt=2458446.82434
+@Result
+seat=54
+swng=-6.5
+cnt =2.4
+btin=0
+btto=1
+updt=2458446.82413
+@Result
+seat=81
+swng=1
+cnt =1
+btin=0
+btto=1
+updt=2458446.82402
+@Result
+seat=47
+swng=-5.9
+cnt =0.3
+btin=0
+btto=1
+updt=2458446.82391
+@Result
+seat=82
+swng=-9.8
+cnt =2.4
+btin=0
+btto=1
+updt=2458446.82374
+@Result
+seat=27
+swng=2.4
+cnt =1.3
+btin=0
+btto=1
+updt=2458446.82363
+@Result
+seat=78
+swng=-3.5
+cnt =2.2
+btin=0
+btto=1
+updt=2458446.82344
+@Result
+seat=50
+swng=3.5
+cnt =1.7
+btin=0
+btto=1
+updt=2458446.8233
+@Result
+seat=72
+swng=5.7
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.82315
+@Result
+seat=74
+swng=-8.6
+cnt =2.7
+btin=0
+btto=1
+updt=2458446.82303
+@Result
+seat=21
+swng=4.6
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.82292
+@Result
+seat=68
+swng=-1
+cnt =1.2
+btin=0
+btto=1
+updt=2458446.82271
+@Result
+seat=77
+swng=2
+cnt =1.8
+btin=0
+btto=1
+updt=2458446.82259
+@Result
+seat=83
+swng=0
+cnt =2.4
+btin=0
+btto=1
+updt=2458446.82242
+@Result
+seat=21
+swng=4.6
+cnt =0.7
+btin=0
+btto=1
+updt=2458446.82178
+@Result
+seat=76
+swng=-12.3
+cnt =0.3
+btin=0
+btto=1
+updt=2458446.82066
+@Result
+seat=64
+swng=-16.7
+cnt =0.3
+btin=0
+btto=1
+updt=2458446.82052
+@Result
+seat=78
+swng=-3.6
+cnt =2.2
+btin=0
+btto=1
+updt=2458446.82034
+@Result
+seat=45
+swng=21.2
+cnt =0.1
+btin=0
+btto=1
+updt=2458446.82012
+@Result
+seat=83
+swng=2.6
+cnt =0.8
+btin=0
+btto=1
+updt=2458446.81983
+@Result
+seat=35
+swng=12.2
+cnt =0.2
+btin=0
+btto=1
+updt=2458446.81959
+@Result
+seat=82
+swng=-4.1
+cnt =2.4
+btin=0
+btto=1
+updt=2458446.81946
+@Result
+seat=72
+swng=5.7
+cnt =0.3
+btin=0
+btto=1
+updt=2458446.81926
+@Result
+seat=81
+swng=0.7
+cnt =1
+btin=0
+btto=1
+updt=2458446.81905
+@Result
+seat=74
+swng=-11.6
+cnt =1.6
+btin=0
+btto=1
+updt=2458446.81887
+@Result
+seat=21
+swng=4.6
+cnt =0.7
+btin=0
+btto=1
+updt=2458446.81854
+@Result
+seat=10
+swng=6.3
+cnt =0.2
+btin=0
+btto=1
+updt=2458446.8181
+@Result
+seat=73
+swng=-5
+cnt =0.6
+btin=0
+btto=1
+updt=2458446.81791
+@Result
+seat=74
+swng=-16.1
+cnt =1
+btin=0
+btto=1
+updt=2458446.81757
+@Result
+seat=83
+swng=2.6
+cnt =0.6
+btin=0
+btto=1
+updt=2458446.81738
+@Result
+seat=82
+swng=-6.4
+cnt =1.4
+btin=0
+btto=1
+updt=2458446.81708
+@Result
+seat=78
+swng=-3.6
+cnt =1.5
+btin=0
+btto=1
+updt=2458446.81694
+@Result
+seat=81
+swng=0.7
+cnt =0.6
+btin=0
+btto=1
+updt=2458446.81682
+@Result
+seat=77
+swng=-0.8
+cnt =0.5
+btin=0
+btto=1
+updt=2458446.81661
+@Result
+seat=21
+swng=1.2
+cnt =0.5
+btin=0
+btto=1
+updt=2458446.81647
+@Result
+seat=51
+swng=-5.8
+cnt =0.2
+btin=0
+btto=1
+updt=2458446.81618
+@Result
+seat=51
+swng=5.8
+cnt =0.2
+btin=0
+btto=1
+updt=2458446.81611
 #End
