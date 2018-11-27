@@ -1,5 +1,6 @@
 #include "DownloadFrame.h"
 
+#include "PreviousElectionDataRetriever.h"
 #include "ResultsDownloader.h"
 
 // IDs for the controls and the menu commands
@@ -44,10 +45,14 @@ void DownloadFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 
 void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 {
+	// Commenting out this for now since we don't want to waste everyone's data
+	// downloading and re-downloading the same data
 	std::string url = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-17496-20140516155658.zip";
-	ResultsDownloader resultsDownloader;
-	resultsDownloader.loadZippedFile(url);
+	//ResultsDownloader resultsDownloader;
+	//resultsDownloader.loadZippedFile(url);
 	wxMessageBox("Downloaded data from: " + url);
+	PreviousElectionDataRetriever previousElevationDataRetriever;
+	previousElevationDataRetriever.collectData();
 }
 
 void DownloadFrame::refreshToolbar()

@@ -270,6 +270,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="PreviousElectionDataRetriever.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
     <ClCompile Include="DownloadFrame.cpp" />
@@ -314,10 +315,12 @@
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="PreviousElectionDataRetriever.h" />
     <ClInclude Include="CountProgress.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DisplayFrame.h" />
     <ClInclude Include="DownloadFrame.h" />
+    <ClInclude Include="RegexNavigation.h" />
     <ClInclude Include="ResultsDownloader.h" />
     <ClInclude Include="EditEventFrame.h" />
     <ClInclude Include="EditModelFrame.h" />

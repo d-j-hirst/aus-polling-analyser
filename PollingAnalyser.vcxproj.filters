@@ -108,6 +108,9 @@
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
     <ClCompile Include="DownloadFrame.cpp" />
+    <ClCompile Include="PreviousElectionDataRetriever.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -142,6 +145,12 @@
     </Filter>
     <Filter Include="Source Files\Utility">
       <UniqueIdentifier>{3edddf0c-f28c-490d-b954-8dcc6c500541}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Data Processing">
+      <UniqueIdentifier>{70508ff0-2344-44b1-8bc8-7bbbd8763a8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Data Processing">
+      <UniqueIdentifier>{d593dfea-a1ab-44ad-b3fd-bc79500b18ca}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -282,6 +291,12 @@
     </ClInclude>
     <ClInclude Include="DownloadFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="PreviousElectionDataRetriever.h">
+      <Filter>Header Files\Data Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="RegexNavigation.h">
+      <Filter>Header Files\Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

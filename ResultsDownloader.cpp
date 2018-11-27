@@ -9,8 +9,8 @@
 
 #pragma warning(disable : 4996)
 
-const std::string TempResultsFileName = "downloads/TempResults.zip";
-const std::wstring LTempResultsFileName(TempResultsFileName.begin(), TempResultsFileName.end());
+const std::string TempResultsZipFileName = "downloads/TempResults.zip";
+const std::wstring LTempResultsZipFileName(TempResultsZipFileName.begin(), TempResultsZipFileName.end());
 
 struct FtpFile {
 	const char *filename;
@@ -48,7 +48,7 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string match)
 {
 	CURLcode res;
 	struct FtpFile ftpfile = {
-		TempResultsFileName.c_str(), /* name to store the file as if successful */
+		TempResultsZipFileName.c_str(), /* name to store the file as if successful */
 		NULL
 	};
 	if (curl_handle) {
@@ -79,7 +79,7 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string match)
 	// Now extract the xml file
 
 	std::wstring matchL(match.begin(), match.end());
-	HZIP hz = OpenZip(_T(TempResultsFileName.c_str()), 0);
+	HZIP hz = OpenZip(_T(TempResultsZipFileName.c_str()), 0);
 	// -1 gives overall information about the zipfile
 	ZIPENTRY ze; GetZipItem(hz, -1, &ze); int numitems = ze.index;
 	for (int zi = 0; zi<numitems; zi++)
@@ -88,7 +88,7 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string match)
 		std::wstring zippedName = ze.name;
 		if (!matchL.size() || zippedName.find(matchL)) {
 			if (zippedName.find(L".xml") != std::wstring::npos) {
-				std::wstring s = TEXT("downloads/results.xml");
+				std::wstring s = TEXT(TempResultsXmlFileName);
 				UnzipItem(hz, zi, s.c_str());
 			}
 		}

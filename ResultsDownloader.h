@@ -7,6 +7,9 @@
 
 #include <string>
 
+const std::string TempResultsXmlFileName = "downloads/results.xml";
+const std::wstring LTempResultsXmlFileName(TempResultsXmlFileName.begin(), TempResultsXmlFileName.end());
+
 class ResultsDownloader {
 
 public:
