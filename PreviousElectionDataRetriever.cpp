@@ -119,23 +119,18 @@ void PreviousElectionDataRetriever::collectData()
 				boothData.tcpVote[1] = extractBoothTcp(xmlString, searchIt);
 				boothData.affiliationId[0] = seatData.finalCandidates[0].affiliationId;
 				boothData.affiliationId[1] = seatData.finalCandidates[1].affiliationId;
-				seatData.booths.push_back(boothData);
+				seatData.booths.push_back(boothData.officialId);
 				auto newBooth = boothMap.insert({ boothData.officialId, boothData });
 				if (!newBooth.second) {
 					PrintDebugInt(boothData.officialId);
 					PrintDebugLine(" - Duplicate booth detected!");
 				}
-				if (seatData.officialId == 150) {
-					PrintDebugLine("At suspect seat!");
-				}
 			} while (moreBoothData(xmlString, searchIt));
-			this->allSeatData.push_back(seatData);
 			auto newSeat = seatMap.insert({ seatData.officialId, seatData });
 			if (!newSeat.second) {
 				PrintDebugInt(seatData.officialId);
 				PrintDebugLine(" - Duplicate seat detected!"); // this shouldn't happen
 			}
-			PrintDebugLine(allSeatData.back().name);
 		} while (moreSeatData(xmlString, searchIt));
 
 		PrintDebugLine("Download complete!");

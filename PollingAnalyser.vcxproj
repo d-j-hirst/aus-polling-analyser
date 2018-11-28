@@ -315,6 +315,7 @@
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ElectionData.h" />
     <ClInclude Include="PreviousElectionDataRetriever.h" />
     <ClInclude Include="CountProgress.h" />
     <ClInclude Include="Debug.h" />

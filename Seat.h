@@ -24,6 +24,9 @@ public:
 	Region* region = nullptr;
 	Result const* latestResult = nullptr;
 
+	// Official seat ID from the electoral commission
+	int officialId = -1;
+
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
 

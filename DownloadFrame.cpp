@@ -53,6 +53,7 @@ void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 	wxMessageBox("Downloaded data from: " + url);
 	PreviousElectionDataRetriever previousElevationDataRetriever;
 	previousElevationDataRetriever.collectData();
+	project->incorporatePreviousElectionResults(previousElevationDataRetriever);
 }
 
 void DownloadFrame::refreshToolbar()

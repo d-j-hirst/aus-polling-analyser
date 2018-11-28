@@ -20,6 +20,8 @@
 
 const int PA_MaxPollsters = 100;
 
+class PreviousElectionDataRetriever;
+
 // Parent class for the entire polling analysis project.
 // Does not "know" about the UI at all.
 class PollingProject {
@@ -31,6 +33,8 @@ public:
 
 	// Initializes the polling project by loading from a file.
 	PollingProject(std::string pathName);
+
+	void incorporatePreviousElectionResults(PreviousElectionDataRetriever const& dataRetriever);
 
 	// Gets the name of the project.
 	std::string getName() { return name; }

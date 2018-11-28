@@ -1,4 +1,7 @@
 #include "PollingProject.h"
+
+#include "PreviousElectionDataRetriever.h"
+
 #include <iomanip>
 #include <algorithm>
 
@@ -22,6 +25,31 @@ PollingProject::PollingProject(std::string pathName) :
 {
 	PrintDebugLine(lastFileName);
 	open(pathName);
+}
+
+void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetriever const & dataRetriever)
+{
+	int seatMatchCount = 0;
+	for (auto it = dataRetriever.beginSeats(); it != dataRetriever.endSeats(); ++it) {
+		auto seatData = it->second;
+		auto matchedSeat = std::find_if(seats.begin(), seats.end(), 
+			[seatData](Seat const& seat) { return seat.name == seatData.name; });
+		if (matchedSeat != seats.end()) {
+			matchedSeat->officialId = seatData.officialId;
+			PrintDebug("Found seat match for ");
+			PrintDebug(matchedSeat->name);
+			PrintDebug(" - official ID: ");
+			PrintDebugInt(matchedSeat->officialId);
+			PrintDebugNewLine();
+			++seatMatchCount;
+		}
+		else {
+			PrintDebug("No seat match found for ");
+			PrintDebug(seatData.name);
+		}
+	}
+	PrintDebugInt(seatMatchCount);
+	PrintDebugLine(" seats matched.");
 }
 
 void PollingProject::refreshCalc2PP() {
