@@ -33,23 +33,19 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	for (auto it = dataRetriever.beginSeats(); it != dataRetriever.endSeats(); ++it) {
 		auto seatData = it->second;
 		auto matchedSeat = std::find_if(seats.begin(), seats.end(), 
-			[seatData](Seat const& seat) { return seat.name == seatData.name; });
+			[seatData](Seat const& seat) { return seat.name == seatData.name || seat.previousName ==seatData.name; });
 		if (matchedSeat != seats.end()) {
 			matchedSeat->officialId = seatData.officialId;
-			PrintDebug("Found seat match for ");
-			PrintDebug(matchedSeat->name);
-			PrintDebug(" - official ID: ");
-			PrintDebugInt(matchedSeat->officialId);
-			PrintDebugNewLine();
 			++seatMatchCount;
 		}
 		else {
-			PrintDebug("No seat match found for ");
+			PrintDebug("Note - No seat match found for ");
 			PrintDebug(seatData.name);
+			PrintDebugLine(".\n If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.");
 		}
 	}
 	PrintDebugInt(seatMatchCount);
-	PrintDebugLine(" seats matched.");
+	PrintDebugLine("seats matched.");
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -708,6 +704,7 @@ int PollingProject::save(std::string filename) {
 	for (auto const& thisSeat : seats) {
 		os << "@Seat" << std::endl;
 		os << "name=" << thisSeat.name << std::endl;
+		os << "pvnm=" << thisSeat.previousName << std::endl;
 		os << "incu=" << getPartyIndex(thisSeat.incumbent) << std::endl;
 		os << "chal=" << getPartyIndex(thisSeat.challenger) << std::endl;
 		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << std::endl;
@@ -1171,6 +1168,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		it--;
 		if (!line.substr(0, 5).compare("name=")) {
 			it->name = line.substr(5);
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("pvnm=")) {
+			it->previousName = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("incu=")) {

@@ -17,6 +17,7 @@ public:
 	{}
 
 	std::string name = "";
+	std::string previousName = "";
 
 	Party const* incumbent = nullptr;
 	Party const* challenger = nullptr;

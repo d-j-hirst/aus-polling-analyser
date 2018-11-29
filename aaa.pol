@@ -30438,6 +30438,7 @@ addu=3
 #Seats
 @Seat
 name=Banks
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30458,6 +30459,7 @@ p3pr=0
 over=0
 @Seat
 name=Barton
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30478,6 +30480,7 @@ p3pr=0
 over=0
 @Seat
 name=Bennelong
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30498,6 +30501,7 @@ p3pr=0
 over=0
 @Seat
 name=Berowra
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30518,6 +30522,7 @@ p3pr=0
 over=0
 @Seat
 name=Blaxland
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30538,6 +30543,7 @@ p3pr=0
 over=0
 @Seat
 name=Bradfield
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30558,6 +30564,7 @@ p3pr=0
 over=0
 @Seat
 name=Calare
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30578,6 +30585,7 @@ p3pr=0
 over=0
 @Seat
 name=Chifley
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30598,6 +30606,7 @@ p3pr=0
 over=0
 @Seat
 name=Cook
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30618,6 +30627,7 @@ p3pr=0
 over=0
 @Seat
 name=Cowper
+pvnm=
 incu=1
 chal=6
 cha2=-1
@@ -30638,6 +30648,7 @@ p3pr=0
 over=0
 @Seat
 name=Cunningham
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30658,6 +30669,7 @@ p3pr=0
 over=0
 @Seat
 name=Dobell
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30678,6 +30690,7 @@ p3pr=0
 over=0
 @Seat
 name=Eden-Monaro
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30698,6 +30711,7 @@ p3pr=0
 over=0
 @Seat
 name=Farrer
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30718,6 +30732,7 @@ p3pr=0
 over=0
 @Seat
 name=Fowler
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30738,6 +30753,7 @@ p3pr=0
 over=0
 @Seat
 name=Gilmore
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30758,6 +30774,7 @@ p3pr=0
 over=0
 @Seat
 name=Grayndler
+pvnm=
 incu=0
 chal=2
 cha2=-1
@@ -30778,6 +30795,7 @@ p3pr=0
 over=0
 @Seat
 name=Greenway
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30798,6 +30816,7 @@ p3pr=0
 over=0
 @Seat
 name=Hughes
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30818,6 +30837,7 @@ p3pr=0
 over=0
 @Seat
 name=Hume
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30838,6 +30858,7 @@ p3pr=0
 over=0
 @Seat
 name=Hunter
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30858,6 +30879,7 @@ p3pr=0
 over=0
 @Seat
 name=Kingsford Smith
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30878,6 +30900,7 @@ p3pr=0
 over=0
 @Seat
 name=Lindsay
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30898,6 +30921,7 @@ p3pr=0
 over=0
 @Seat
 name=Lyne
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30918,6 +30942,7 @@ p3pr=0
 over=0
 @Seat
 name=Mackellar
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30938,6 +30963,7 @@ p3pr=0
 over=0
 @Seat
 name=Macquarie
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30958,6 +30984,7 @@ p3pr=0
 over=0
 @Seat
 name=McMahon
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -30978,6 +31005,7 @@ p3pr=0
 over=0
 @Seat
 name=Mitchell
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -30998,6 +31026,7 @@ p3pr=0
 over=0
 @Seat
 name=New England
+pvnm=
 incu=1
 chal=6
 cha2=-1
@@ -31018,6 +31047,7 @@ p3pr=0
 over=0
 @Seat
 name=Newcastle
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31038,6 +31068,7 @@ p3pr=0
 over=0
 @Seat
 name=North Sydney
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31058,6 +31089,7 @@ p3pr=0
 over=0
 @Seat
 name=Page
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31078,6 +31110,7 @@ p3pr=0
 over=0
 @Seat
 name=Parkes
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31098,6 +31131,7 @@ p3pr=0
 over=0
 @Seat
 name=Parramatta
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31118,6 +31152,7 @@ p3pr=0
 over=0
 @Seat
 name=Paterson
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31138,6 +31173,7 @@ p3pr=0
 over=0
 @Seat
 name=Reid
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31158,6 +31194,7 @@ p3pr=0
 over=0
 @Seat
 name=Richmond
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31178,6 +31215,7 @@ p3pr=0
 over=0
 @Seat
 name=Macarthur
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31198,6 +31236,7 @@ p3pr=0
 over=0
 @Seat
 name=Riverina
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31218,6 +31257,7 @@ p3pr=0
 over=0
 @Seat
 name=Robertson
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31238,6 +31278,7 @@ p3pr=0
 over=0
 @Seat
 name=Shortland
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31258,6 +31299,7 @@ p3pr=0
 over=0
 @Seat
 name=Sydney
+pvnm=
 incu=0
 chal=2
 cha2=-1
@@ -31278,6 +31320,7 @@ p3pr=0
 over=0
 @Seat
 name=Warringah
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31298,6 +31341,7 @@ p3pr=0
 over=0
 @Seat
 name=Watson
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31318,6 +31362,7 @@ p3pr=0
 over=0
 @Seat
 name=Wentworth
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31338,6 +31383,7 @@ p3pr=0
 over=0
 @Seat
 name=Werriwa
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31358,9 +31404,10 @@ p3pr=0
 over=0
 @Seat
 name=Whitlam
+pvnm=Throsby
 incu=0
 chal=1
-cha2=-1
+cha2=6
 regn=0
 marg=6.90000009537
 lmod=0
@@ -31378,6 +31425,7 @@ p3pr=0
 over=0
 @Seat
 name=Aston
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31398,6 +31446,7 @@ p3pr=0
 over=0
 @Seat
 name=Ballarat
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31418,6 +31467,7 @@ p3pr=0
 over=0
 @Seat
 name=Batman
+pvnm=
 incu=0
 chal=2
 cha2=-1
@@ -31438,6 +31488,7 @@ p3pr=0
 over=0
 @Seat
 name=Bendigo
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31458,6 +31509,7 @@ p3pr=0
 over=0
 @Seat
 name=Bruce
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31478,6 +31530,7 @@ p3pr=0
 over=0
 @Seat
 name=Calwell
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31498,6 +31551,7 @@ p3pr=0
 over=0
 @Seat
 name=Casey
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31518,6 +31572,7 @@ p3pr=0
 over=0
 @Seat
 name=Chisholm
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31538,6 +31593,7 @@ p3pr=0
 over=0
 @Seat
 name=Corangamite
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31558,6 +31614,7 @@ p3pr=0
 over=0
 @Seat
 name=Corio
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31578,6 +31635,7 @@ p3pr=0
 over=0
 @Seat
 name=Deakin
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31598,6 +31656,7 @@ p3pr=0
 over=0
 @Seat
 name=Dunkley
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31618,6 +31677,7 @@ p3pr=0
 over=0
 @Seat
 name=Flinders
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31638,6 +31698,7 @@ p3pr=0
 over=0
 @Seat
 name=Gellibrand
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31658,6 +31719,7 @@ p3pr=0
 over=0
 @Seat
 name=Goldstein
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31678,6 +31740,7 @@ p3pr=0
 over=0
 @Seat
 name=Gorton
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31698,6 +31761,7 @@ p3pr=0
 over=0
 @Seat
 name=Higgins
+pvnm=
 incu=1
 chal=2
 cha2=-1
@@ -31718,6 +31782,7 @@ p3pr=0
 over=0
 @Seat
 name=Holt
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31738,6 +31803,7 @@ p3pr=0
 over=0
 @Seat
 name=Hotham
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31758,6 +31824,7 @@ p3pr=0
 over=0
 @Seat
 name=Indi
+pvnm=
 incu=6
 chal=1
 cha2=-1
@@ -31778,6 +31845,7 @@ p3pr=0
 over=0
 @Seat
 name=Isaacs
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31798,6 +31866,7 @@ p3pr=0
 over=0
 @Seat
 name=Jagajaga
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31818,6 +31887,7 @@ p3pr=0
 over=0
 @Seat
 name=Kooyong
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31838,6 +31908,7 @@ p3pr=0
 over=0
 @Seat
 name=La Trobe
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31858,6 +31929,7 @@ p3pr=0
 over=0
 @Seat
 name=Lalor
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31878,6 +31950,7 @@ p3pr=0
 over=0
 @Seat
 name=Mallee
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31898,6 +31971,7 @@ p3pr=0
 over=0
 @Seat
 name=Maribyrnong
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31918,6 +31992,7 @@ p3pr=0
 over=0
 @Seat
 name=McEwen
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31938,6 +32013,7 @@ p3pr=0
 over=0
 @Seat
 name=McMillan
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -31958,6 +32034,7 @@ p3pr=0
 over=0
 @Seat
 name=Melbourne
+pvnm=
 incu=2
 chal=0
 cha2=-1
@@ -31978,6 +32055,7 @@ p3pr=0
 over=0
 @Seat
 name=Melbourne Ports
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -31998,6 +32076,7 @@ p3pr=0
 over=0
 @Seat
 name=Menzies
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32018,6 +32097,7 @@ p3pr=0
 over=0
 @Seat
 name=Murray
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32038,6 +32118,7 @@ p3pr=0
 over=0
 @Seat
 name=Scullin
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32058,6 +32139,7 @@ p3pr=0
 over=0
 @Seat
 name=Wannon
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32078,6 +32160,7 @@ p3pr=0
 over=0
 @Seat
 name=Wills
+pvnm=
 incu=0
 chal=2
 cha2=-1
@@ -32098,6 +32181,7 @@ p3pr=0
 over=0
 @Seat
 name=Blair
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32118,6 +32202,7 @@ p3pr=0
 over=0
 @Seat
 name=Bonner
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32138,6 +32223,7 @@ p3pr=0
 over=0
 @Seat
 name=Bowman
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32158,6 +32244,7 @@ p3pr=0
 over=0
 @Seat
 name=Brisbane
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32178,6 +32265,7 @@ p3pr=0
 over=0
 @Seat
 name=Capricornia
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32198,6 +32286,7 @@ p3pr=0
 over=0
 @Seat
 name=Dawson
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32218,6 +32307,7 @@ p3pr=0
 over=0
 @Seat
 name=Dickson
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32238,6 +32328,7 @@ p3pr=0
 over=0
 @Seat
 name=Fadden
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32258,6 +32349,7 @@ p3pr=0
 over=0
 @Seat
 name=Fairfax
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32278,6 +32370,7 @@ p3pr=0
 over=0
 @Seat
 name=Fisher
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32298,6 +32391,7 @@ p3pr=0
 over=0
 @Seat
 name=Flynn
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32318,6 +32412,7 @@ p3pr=0
 over=0
 @Seat
 name=Forde
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32338,6 +32433,7 @@ p3pr=0
 over=0
 @Seat
 name=Griffith
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32358,6 +32454,7 @@ p3pr=0
 over=0
 @Seat
 name=Groom
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32378,6 +32475,7 @@ p3pr=0
 over=0
 @Seat
 name=Herbert
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32398,6 +32496,7 @@ p3pr=0
 over=0
 @Seat
 name=Hinkler
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32418,6 +32517,7 @@ p3pr=0
 over=0
 @Seat
 name=Kennedy
+pvnm=
 incu=4
 chal=1
 cha2=-1
@@ -32438,6 +32538,7 @@ p3pr=0
 over=0
 @Seat
 name=Leichhardt
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32458,6 +32559,7 @@ p3pr=0
 over=0
 @Seat
 name=Lilley
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32478,6 +32580,7 @@ p3pr=0
 over=0
 @Seat
 name=Longman
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32498,6 +32601,7 @@ p3pr=0
 over=0
 @Seat
 name=Maranoa
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32518,6 +32622,7 @@ p3pr=0
 over=0
 @Seat
 name=McPherson
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32538,6 +32643,7 @@ p3pr=0
 over=0
 @Seat
 name=Moncrieff
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32558,6 +32664,7 @@ p3pr=0
 over=0
 @Seat
 name=Moreton
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32578,6 +32685,7 @@ p3pr=0
 over=0
 @Seat
 name=Oxley
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32598,6 +32706,7 @@ p3pr=0
 over=0
 @Seat
 name=Petrie
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32618,6 +32727,7 @@ p3pr=0
 over=0
 @Seat
 name=Rankin
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32638,6 +32748,7 @@ p3pr=0
 over=0
 @Seat
 name=Ryan
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32658,6 +32769,7 @@ p3pr=0
 over=0
 @Seat
 name=Wide Bay
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32678,6 +32790,7 @@ p3pr=0
 over=0
 @Seat
 name=Wright
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32698,6 +32811,7 @@ p3pr=0
 over=0
 @Seat
 name=Brand
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32718,6 +32832,7 @@ p3pr=0
 over=0
 @Seat
 name=Burt
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32738,6 +32853,7 @@ p3pr=0
 over=0
 @Seat
 name=Canning
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32758,6 +32874,7 @@ p3pr=0
 over=0
 @Seat
 name=Cowan
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32778,6 +32895,7 @@ p3pr=0
 over=0
 @Seat
 name=Curtin
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32798,6 +32916,7 @@ p3pr=0
 over=0
 @Seat
 name=Durack
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32818,6 +32937,7 @@ p3pr=0
 over=0
 @Seat
 name=Forrest
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32838,6 +32958,7 @@ p3pr=0
 over=0
 @Seat
 name=Fremantle
+pvnm=
 incu=0
 chal=2
 cha2=-1
@@ -32858,6 +32979,7 @@ p3pr=0
 over=0
 @Seat
 name=Hasluck
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32878,6 +33000,7 @@ p3pr=0
 over=0
 @Seat
 name=Moore
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32898,6 +33021,7 @@ p3pr=0
 over=0
 @Seat
 name=O'Connor
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32918,6 +33042,7 @@ p3pr=0
 over=0
 @Seat
 name=Pearce
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32938,6 +33063,7 @@ p3pr=0
 over=0
 @Seat
 name=Perth
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -32958,6 +33084,7 @@ p3pr=0
 over=0
 @Seat
 name=Stirling
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32978,6 +33105,7 @@ p3pr=0
 over=0
 @Seat
 name=Swan
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -32998,6 +33126,7 @@ p3pr=0
 over=0
 @Seat
 name=Tangney
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -33018,6 +33147,7 @@ p3pr=0
 over=0
 @Seat
 name=Adelaide
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -33038,6 +33168,7 @@ p3pr=0
 over=0
 @Seat
 name=Barker
+pvnm=
 incu=1
 chal=5
 cha2=-1
@@ -33058,6 +33189,7 @@ p3pr=0
 over=0
 @Seat
 name=Boothby
+pvnm=
 incu=1
 chal=5
 cha2=-1
@@ -33078,6 +33210,7 @@ p3pr=0
 over=0
 @Seat
 name=Grey
+pvnm=
 incu=1
 chal=5
 cha2=-1
@@ -33098,6 +33231,7 @@ p3pr=0
 over=0
 @Seat
 name=Hindmarsh
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -33118,6 +33252,7 @@ p3pr=0
 over=0
 @Seat
 name=Kingston
+pvnm=
 incu=0
 chal=5
 cha2=-1
@@ -33138,6 +33273,7 @@ p3pr=0
 over=0
 @Seat
 name=Makin
+pvnm=
 incu=0
 chal=5
 cha2=-1
@@ -33158,6 +33294,7 @@ p3pr=0
 over=0
 @Seat
 name=Mayo
+pvnm=
 incu=1
 chal=5
 cha2=-1
@@ -33178,6 +33315,7 @@ p3pr=0
 over=0
 @Seat
 name=Port Adelaide
+pvnm=
 incu=0
 chal=5
 cha2=-1
@@ -33198,6 +33336,7 @@ p3pr=0
 over=0
 @Seat
 name=Sturt
+pvnm=
 incu=1
 chal=5
 cha2=-1
@@ -33218,6 +33357,7 @@ p3pr=0
 over=0
 @Seat
 name=Wakefield
+pvnm=
 incu=0
 chal=5
 cha2=-1
@@ -33238,6 +33378,7 @@ p3pr=0
 over=0
 @Seat
 name=Bass
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -33258,6 +33399,7 @@ p3pr=0
 over=0
 @Seat
 name=Braddon
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -33278,6 +33420,7 @@ p3pr=0
 over=0
 @Seat
 name=Denison
+pvnm=
 incu=6
 chal=0
 cha2=-1
@@ -33298,6 +33441,7 @@ p3pr=0
 over=0
 @Seat
 name=Franklin
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -33318,6 +33462,7 @@ p3pr=0
 over=0
 @Seat
 name=Lyons
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -33338,6 +33483,7 @@ p3pr=0
 over=0
 @Seat
 name=Lingiari
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -33358,6 +33504,7 @@ p3pr=0
 over=0
 @Seat
 name=Solomon
+pvnm=
 incu=1
 chal=0
 cha2=-1
@@ -33378,6 +33525,7 @@ p3pr=0
 over=0
 @Seat
 name=Canberra
+pvnm=
 incu=0
 chal=1
 cha2=-1
@@ -33398,9 +33546,10 @@ p3pr=0
 over=0
 @Seat
 name=Fenner
+pvnm=Fraser
 incu=0
 chal=1
-cha2=-1
+cha2=6
 regn=6
 marg=12.6000003815
 lmod=0
@@ -33418,6 +33567,7 @@ p3pr=0
 over=0
 @Seat
 name=Gippsland
+pvnm=
 incu=1
 chal=0
 cha2=-1
