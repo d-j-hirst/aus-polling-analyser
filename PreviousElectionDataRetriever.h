@@ -14,16 +14,16 @@ public:
 	// Make sure this has been downloaded by ResultsDownloader first.
 	void collectData();
 
-	SeatMap::const_iterator beginSeats() const { return seatMap.cbegin(); }
-	SeatMap::const_iterator endSeats() const { return seatMap.cend(); }
+	Results::SeatMap::const_iterator beginSeats() const { return seatMap.cbegin(); }
+	Results::SeatMap::const_iterator endSeats() const { return seatMap.cend(); }
 
-	BoothMap::const_iterator beginBooths() const { return boothMap.cbegin(); }
-	BoothMap::const_iterator endBooths() const { return boothMap.cend(); }
+	Results::BoothMap::const_iterator beginBooths() const { return boothMap.cbegin(); }
+	Results::BoothMap::const_iterator endBooths() const { return boothMap.cend(); }
 
 private:
 
 	// Map between AEC's seat ID and data for that seat
-	SeatMap seatMap;
+	Results::SeatMap seatMap;
 	// Map between AEC's booth ID and data for that booth
-	BoothMap boothMap;
+	Results::BoothMap boothMap;
 };

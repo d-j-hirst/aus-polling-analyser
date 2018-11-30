@@ -15,6 +15,10 @@ std::string extractSeatName(std::string const& xmlString, SearchIterator& search
 	return extractString(xmlString, "<Name>([^<]{1,20})</Name>", searchIt);
 }
 
+int extractSeatEnrolment(std::string const& xmlString, SearchIterator& searchIt) {
+	return extractInt(xmlString, "<Enrolment CloseOfRolls=\"(\\d+)", searchIt);
+}
+
 // Skip ahead to the two-candidate preferred section of this seat's results
 void seekToTcp(std::string const& xmlString, SearchIterator& searchIt) {
 	seekTo(xmlString, "TwoCandidatePreferred", searchIt);
@@ -91,12 +95,13 @@ void PreviousElectionDataRetriever::collectData()
 	try {
 		std::string::const_iterator searchIt = xmlString.begin();
 		do {
-			SeatData seatData;
+			Results::Seat seatData;
 			seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
 			seatData.name = extractSeatName(xmlString, searchIt);
+			seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
 			seekToTcp(xmlString, searchIt);
 			for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
-				CandidateData candidateData;
+				Results::Candidate candidateData;
 				bool independent = candidateIsIndependent(xmlString, searchIt);
 				candidateData.name = extractCandidateName(xmlString, searchIt);
 				if (!independent) {
@@ -111,7 +116,7 @@ void PreviousElectionDataRetriever::collectData()
 			}
 			seekToBooths(xmlString, searchIt);
 			do {
-				BoothData boothData;
+				Results::Booth boothData;
 				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
 				boothData.name = extractBoothName(xmlString, searchIt);
 				seekToTcp(xmlString, searchIt);

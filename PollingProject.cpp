@@ -36,6 +36,7 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 			[seatData](Seat const& seat) { return seat.name == seatData.name || seat.previousName ==seatData.name; });
 		if (matchedSeat != seats.end()) {
 			matchedSeat->officialId = seatData.officialId;
+			matchedSeat->previousResult = seatData;
 			++seatMatchCount;
 		}
 		else {

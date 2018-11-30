@@ -15,6 +15,17 @@ enum SeatColumnsEnum {
 	SeatColumn_TippingPoint,
 };
 
+// IDs for the controls and the menu commands
+enum {
+	PA_SeatsFrame_Base = 600, // To avoid mixing events with other frames.
+	PA_SeatsFrame_FrameID,
+	PA_SeatsFrame_DataViewID,
+	PA_SeatsFrame_NewSeatID,
+	PA_SeatsFrame_EditSeatID,
+	PA_SeatsFrame_RemoveSeatID,
+	PA_SeatsFrame_SeatResultsID,
+};
+
 // frame constructor
 SeatsFrame::SeatsFrame(ProjectFrame* const parent, PollingProject* project)
 	: GenericChildFrame(parent, PA_SeatsFrame_FrameID, "Seats", wxPoint(0, 0), project),
@@ -25,10 +36,11 @@ SeatsFrame::SeatsFrame(ProjectFrame* const parent, PollingProject* project)
 
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[3];
+	wxBitmap toolBarBitmaps[4];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[3] = wxBitmap("bitmaps\\details.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -37,6 +49,7 @@ SeatsFrame::SeatsFrame(ProjectFrame* const parent, PollingProject* project)
 	toolBar->AddTool(PA_SeatsFrame_NewSeatID, "New Seat", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Seat");
 	toolBar->AddTool(PA_SeatsFrame_EditSeatID, "Edit Seat", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Seat");
 	toolBar->AddTool(PA_SeatsFrame_RemoveSeatID, "Remove Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Seat");
+	toolBar->AddTool(PA_SeatsFrame_SeatResultsID, "Seat Results", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Seat Results");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -66,6 +79,7 @@ SeatsFrame::SeatsFrame(ProjectFrame* const parent, PollingProject* project)
 	Bind(wxEVT_TOOL, &SeatsFrame::OnNewSeat, this, PA_SeatsFrame_NewSeatID);
 	Bind(wxEVT_TOOL, &SeatsFrame::OnEditSeat, this, PA_SeatsFrame_EditSeatID);
 	Bind(wxEVT_TOOL, &SeatsFrame::OnRemoveSeat, this, PA_SeatsFrame_RemoveSeatID);
+	Bind(wxEVT_TOOL, &SeatsFrame::OnSeatResults, this, PA_SeatsFrame_SeatResultsID);
 
 	// Need to update the interface if the selection changes
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SeatsFrame::OnSelectionChange, this, PA_SeatsFrame_DataViewID);
@@ -125,6 +139,17 @@ void SeatsFrame::OnRemoveSeat(wxCommandEvent& WXUNUSED(event)) {
 	removeSeat();
 
 	return;
+}
+
+// updates the interface after a change in item selection.
+void SeatsFrame::OnSeatResults(wxCommandEvent& WXUNUSED(event)) {
+
+	int seatIndex = seatData->GetSelectedRow();
+
+	// If the button is somehow clicked when there is no poll selected, just stop.
+	if (seatIndex == -1) return;
+	
+	showSeatResults();
 }
 
 // updates the interface after a change in item selection.
@@ -217,6 +242,61 @@ void SeatsFrame::removeSeat() {
 	project->removeSeat(seatData->GetSelectedRow());
 
 	refreshData();
+}
+
+void SeatsFrame::showSeatResults()
+{
+	auto results = project->getSeat(seatData->GetSelectedRow()).previousResult;
+	if (!results) {
+		wxMessageBox("No previous election results for this seat!\n");
+		return;
+	}
+	std::string summaryString = results->name + "\n";
+	summaryString += "Official ID: " + std::to_string(results->officialId) + "\n";
+	summaryString += "Enrolment: " + std::to_string(results->enrolment) + "\n";
+	summaryString += "Ordinary Votes: " + std::to_string(results->ordinaryVotes()) +
+		" (" + formatFloat(results->ordinaryVotePercent(), 2) + "%)\n";
+	summaryString += "Absent Votes: " + std::to_string(results->absentVotes()) +
+		" (" + formatFloat(results->absentVotePercent(), 2) + "%)\n";
+	summaryString += "Provisional Votes: " + std::to_string(results->provisionalVotes()) +
+		" (" + formatFloat(results->provisionalVotePercent(), 2) + "%)\n";
+	summaryString += "Prepoll Votes: " + std::to_string(results->prepollVotes()) +
+		" (" + formatFloat(results->prepollVotePercent(), 2) + "%)\n";
+	summaryString += "Postal Votes: " + std::to_string(results->postalVotes()) +
+		" (" + formatFloat(results->postalVotePercent(), 2) + "%)\n";
+	wxMessageBox(summaryString);
+	std::string tcpString = "";
+	tcpString += results->leadingCandidate().name + " vs. " + results->trailingCandidate().name + "\n";
+	tcpString += "Total votes: " + std::to_string(results->leadingCandidate().totalVotes()) + " (" +
+		formatFloat(float(results->leadingCandidate().totalVotes()) / float(results->totalVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().totalVotes()) + " (" +
+		formatFloat(float(results->trailingCandidate().totalVotes()) / float(results->totalVotes()) * 100.0f, 2) + "%)\n---\n";
+	tcpString += "Ordinary votes: " + std::to_string(results->leadingCandidate().ordinaryVotes) + " (" +
+		formatFloat(float(results->leadingCandidate().ordinaryVotes) / float(results->ordinaryVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().ordinaryVotes) + " (" +
+		formatFloat(float(results->trailingCandidate().ordinaryVotes) / float(results->ordinaryVotes()) * 100.0f, 2) + "%)\n";
+	tcpString += "Declaration votes: " + std::to_string(results->leadingCandidate().declarationVotes()) + " (" +
+		formatFloat(float(results->leadingCandidate().declarationVotes()) / float(results->declarationVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().declarationVotes()) + " (" +
+		formatFloat(float(results->trailingCandidate().declarationVotes()) / float(results->declarationVotes()) * 100.0f, 2) +
+		"%)\n---\nBreakdown of declaration votes:\n";
+	tcpString += "Absent votes: " + std::to_string(results->leadingCandidate().absentVotes) + " (" +
+		formatFloat(float(results->leadingCandidate().absentVotes) / float(results->absentVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().absentVotes) + " (" +
+		formatFloat(float(results->trailingCandidate().absentVotes) / float(results->absentVotes()) * 100.0f, 2) + "%)\n";
+	tcpString += "Provisional votes: " + std::to_string(results->leadingCandidate().provisionalVotes) + " (" +
+		formatFloat(float(results->leadingCandidate().provisionalVotes) / float(results->provisionalVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().provisionalVotes) + " (" +
+		formatFloat(float(results->trailingCandidate().provisionalVotes) / float(results->provisionalVotes()) * 100.0f, 2) + "%)\n";
+	tcpString += "Prepoll votes: " + std::to_string(results->leadingCandidate().prepollVotes) + " (" +
+		formatFloat(float(results->leadingCandidate().prepollVotes) / float(results->prepollVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().prepollVotes) + " (" +
+		formatFloat(float(results->trailingCandidate().prepollVotes) / float(results->prepollVotes()) * 100.0f, 2) + "%)\n";
+	tcpString += "Postal votes: " + std::to_string(results->leadingCandidate().postalVotes) + " (" +
+		formatFloat(float(results->leadingCandidate().postalVotes) / float(results->postalVotes()) * 100.0f, 2) + "%), " +
+		std::to_string(results->trailingCandidate().postalVotes) + " (" +
+		formatFloat(float(results->trailingCandidate().postalVotes) / float(results->postalVotes()) * 100.0f, 2) + "%)\n";
+	wxMessageBox(tcpString);
 }
 
 void SeatsFrame::updateInterface() {

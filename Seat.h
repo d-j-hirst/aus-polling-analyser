@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Debug.h"
+#include "ElectionData.h"
+
+#include <optional>
 
 struct Region;
 struct Party;
@@ -27,6 +30,8 @@ public:
 
 	// Official seat ID from the electoral commission
 	int officialId = -1;
+
+	std::optional<Results::Seat> previousResult;
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
