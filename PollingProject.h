@@ -4,6 +4,9 @@
 #include <vector>
 #include <list>
 #include <fstream>
+#include <unordered_map>
+
+#include "ElectionData.h"
 #include "NewProjectData.h"
 #include "Party.h"
 #include "Pollster.h"
@@ -345,6 +348,9 @@ public:
 	// Gets the end iterator for the simulation list.
 	std::list<Result>::iterator getResultEnd();
 
+	// Gets the booth matching this official ID.
+	Results::Booth const& getBooth(int boothId);
+
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);
@@ -422,6 +428,9 @@ private:
 
 	// Live election results
 	std::list<Result> results;
+
+	// Booth data from a download
+	std::unordered_map<int, Results::Booth> booths;
 
 	bool valid = false;
 

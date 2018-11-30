@@ -47,6 +47,7 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	}
 	PrintDebugInt(seatMatchCount);
 	PrintDebugLine("seats matched.");
+	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -601,6 +602,11 @@ std::list<Result>::iterator PollingProject::getResultBegin()
 std::list<Result>::iterator PollingProject::getResultEnd()
 {
 	return results.end();
+}
+
+Results::Booth const& PollingProject::getBooth(int boothId)
+{
+	return booths.at(boothId);
 }
 
 int PollingProject::save(std::string filename) {

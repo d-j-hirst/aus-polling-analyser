@@ -297,6 +297,23 @@ void SeatsFrame::showSeatResults()
 		std::to_string(results->trailingCandidate().postalVotes) + " (" +
 		formatFloat(float(results->trailingCandidate().postalVotes) / float(results->postalVotes()) * 100.0f, 2) + "%)\n";
 	wxMessageBox(tcpString);
+	std::string boothString = "Booth results: ";
+	boothString += results->leadingCandidate().name + " vs. " + results->trailingCandidate().name + "\n";
+	int numBooths = 0;
+	for (int boothId : results->booths) {
+		auto boothResults = project->getBooth(boothId);
+		boothString += boothResults.name + ": " + std::to_string(boothResults.tcpVote[0]) +
+			" (" + formatFloat(boothResults.percentVote(0), 2) + "%) vs. " +
+			std::to_string(boothResults.tcpVote[1]) +
+			" (" + formatFloat(boothResults.percentVote(1), 2) + "%)\n";
+		++numBooths;
+		if (numBooths >= 20) {
+			wxMessageBox(boothString);
+			numBooths = 0;
+			boothString = "Booth results: ";
+			boothString += results->leadingCandidate().name + " vs. " + results->trailingCandidate().name + "\n";
+		}
+	}
 }
 
 void SeatsFrame::updateInterface() {
