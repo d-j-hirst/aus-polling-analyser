@@ -41,6 +41,10 @@ int extractAffiliationId(std::string const& xmlString, SearchIterator& searchIt)
 	return extractInt(xmlString, "AffiliationIdentifier Id=\"(\\d+)", searchIt);
 }
 
+std::string extractAffiliationShortCode(std::string const& xmlString, SearchIterator& searchIt) {
+	return extractString(xmlString, "ShortCode=\"([^\"]+)", searchIt);
+}
+
 int extractOrdinaryVotes(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes Type=\"Ordinary\" [^>]*>(\\d+)</Votes>", searchIt);
 }
@@ -106,6 +110,7 @@ void PreviousElectionDataRetriever::collectData()
 				candidateData.name = extractCandidateName(xmlString, searchIt);
 				if (!independent) {
 					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
+					affiliations.insert({ candidateData.affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
 				}
 				candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
 				candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);

@@ -9,6 +9,7 @@
 class PreviousElectionDataRetriever {
 public:
 
+	typedef std::unordered_map<int, std::string> AffiliationMap;
 
 	// collects booth data etc. from the downloaded results file.
 	// Make sure this has been downloaded by ResultsDownloader first.
@@ -20,10 +21,15 @@ public:
 	Results::BoothMap::const_iterator beginBooths() const { return boothMap.cbegin(); }
 	Results::BoothMap::const_iterator endBooths() const { return boothMap.cend(); }
 
+	AffiliationMap::const_iterator beginAffiliations() const { return affiliations.cbegin(); }
+	AffiliationMap::const_iterator endAffiliations() const { return affiliations.cend(); }
+
 private:
 
 	// Map between AEC's seat ID and data for that seat
 	Results::SeatMap seatMap;
 	// Map between AEC's booth ID and data for that booth
 	Results::BoothMap boothMap;
+
+	std::unordered_map<int, std::string> affiliations;
 };

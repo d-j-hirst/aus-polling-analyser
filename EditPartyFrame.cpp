@@ -1,6 +1,21 @@
 #include "EditPartyFrame.h"
 #include "General.h"
 
+#include <regex>
+
+// IDs for the controls and the menu commands
+enum
+{
+	PA_EditParty_ButtonID_OK,
+	PA_EditParty_TextBoxID_Name,
+	PA_EditParty_TextBoxID_PreferenceFlow,
+	PA_EditParty_TextBoxID_ExhaustRate,
+	PA_EditParty_TextBoxID_Abbreviation,
+	PA_EditParty_TextBoxID_OfficialShortCodes,
+	PA_EditParty_ComboBoxID_CountAsParty,
+	PA_EditParty_ComboBoxID_SupportsParty,
+};
+
 EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Party party)
 	: wxDialog(NULL, 0, (isNewParty ? "New Party" : "Edit Party")),
 	isNewParty(isNewParty), parent(parent), party(party)
@@ -20,28 +35,42 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	int currentHeight = 2;
 
 	// Create the controls for the party name.
-	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight), wxSize(100, 23));
-	nameTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_Name, party.name, wxPoint(100, currentHeight - 2), wxSize(200, 23));
+	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight), wxSize(150, 23));
+	nameTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_Name, party.name, wxPoint(150, currentHeight - 2), wxSize(200, 23));
 
 	currentHeight += 27;
 
 	// Create the controls for the preference flow.
-	preferenceFlowStaticText = new wxStaticText(this, 0, "Preference Flow:", wxPoint(2, currentHeight), wxSize(100, 23));
+	preferenceFlowStaticText = new wxStaticText(this, 0, "Preference Flow:", wxPoint(2, currentHeight), wxSize(150, 23));
 	preferenceFlowTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_PreferenceFlow, preferenceFlowString,
-		wxPoint(100, currentHeight - 2), wxSize(200, 23));
+		wxPoint(150, currentHeight - 2), wxSize(200, 23));
 
 	currentHeight += 27;
 
 	// Create the controls for the exhaust rate.
-	exhaustRateStaticText = new wxStaticText(this, 0, "Exhaust Rate:", wxPoint(2, currentHeight), wxSize(100, 23));
+	exhaustRateStaticText = new wxStaticText(this, 0, "Exhaust Rate:", wxPoint(2, currentHeight), wxSize(150, 23));
 	exhaustRateTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_ExhaustRate, exhaustRateString,
-		wxPoint(100, currentHeight - 2), wxSize(200, 23));
+		wxPoint(150, currentHeight - 2), wxSize(200, 23));
 
 	currentHeight += 27;
 
 	// Create the controls for the party name abbreviation.
-	abbreviationStaticText = new wxStaticText(this, 0, "Abbreviation:", wxPoint(2, currentHeight), wxSize(100, 23));
-	abbreviationTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_Abbreviation, party.abbreviation, wxPoint(100, currentHeight - 2), wxSize(200, 23));
+	abbreviationStaticText = new wxStaticText(this, 0, "Abbreviation:", wxPoint(2, currentHeight), wxSize(150, 23));
+	abbreviationTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_Abbreviation, party.abbreviation, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+
+	currentHeight += 27;
+
+	std::string shortCodes = "";
+	if (party.officialCodes.size()) {
+		shortCodes += party.officialCodes[0];
+		for (size_t i = 1; i < party.officialCodes.size(); ++i) {
+			shortCodes += "," + party.officialCodes[i];
+		}
+	}
+
+	// Create the controls for the party's official short codes
+	abbreviationStaticText = new wxStaticText(this, 0, "Official Short Codes:", wxPoint(2, currentHeight), wxSize(150, 23));
+	abbreviationTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_OfficialShortCodes, shortCodes, wxPoint(150, currentHeight - 2), wxSize(200, 23));
 
 	currentHeight += 27;
 
@@ -107,6 +136,7 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextPreferenceFlow, this, PA_EditParty_TextBoxID_PreferenceFlow);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextExhaustRate, this, PA_EditParty_TextBoxID_ExhaustRate);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
+	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextOfficialShortCodes, this, PA_EditParty_TextBoxID_OfficialShortCodes);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxSupportsParty, this, PA_EditParty_ComboBoxID_SupportsParty);
 	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, PA_EditParty_ButtonID_OK);
@@ -195,6 +225,21 @@ void EditPartyFrame::updateTextExhaustRate(wxCommandEvent & event)
 void EditPartyFrame::updateTextAbbreviation(wxCommandEvent& event) {
 	// updates the preliminary project data with the string from the event.
 	party.abbreviation = event.GetString();
+}
+
+void EditPartyFrame::updateTextOfficialShortCodes(wxCommandEvent& event) {
+	// updates the party short codes data with the string from the event.
+	std::string thisString = event.GetString();
+	std::regex partyCodeRegex("([^,]+)(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?");
+	std::smatch matchResults;
+	std::regex_match(thisString, matchResults, partyCodeRegex);
+	if (matchResults.size()) {
+		party.officialCodes.clear();
+		for (int matchIndex = 1; matchIndex < 12; matchIndex += 2) {
+			if (!matchResults[matchIndex].matched) break;
+			party.officialCodes.push_back(matchResults[matchIndex].str());
+		}
+	}
 }
 
 void EditPartyFrame::updateComboBoxCountAsParty(wxCommandEvent& WXUNUSED(event)) {

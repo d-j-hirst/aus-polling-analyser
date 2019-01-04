@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 const int PA_MAX_PARTIES = 15;
 
@@ -26,6 +27,7 @@ struct Party {
 	float preferenceShare = 50.0f;
 	float exhaustRate = 0.0f;
 	std::string abbreviation = "";
+	std::vector<std::string> officialCodes; // official codes that match to this party according to the electoral commission
 	CountAsParty countAsParty = CountAsParty::None;
 	SupportsParty supportsParty = SupportsParty::None;
 };

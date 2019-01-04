@@ -432,6 +432,9 @@ private:
 	// Booth data from a download
 	std::unordered_map<int, Results::Booth> booths;
 
+	typedef std::unordered_map<int, Party const*> AffiliationMap;
+	AffiliationMap affiliations;
+
 	bool valid = false;
 
 	// indicates the last-election preference flow from "Others" to the first listed major party.

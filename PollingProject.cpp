@@ -30,8 +30,8 @@ PollingProject::PollingProject(std::string pathName) :
 void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetriever const & dataRetriever)
 {
 	int seatMatchCount = 0;
-	for (auto it = dataRetriever.beginSeats(); it != dataRetriever.endSeats(); ++it) {
-		auto seatData = it->second;
+	for (auto seatIt = dataRetriever.beginSeats(); seatIt != dataRetriever.endSeats(); ++seatIt) {
+		auto seatData = seatIt->second;
 		auto matchedSeat = std::find_if(seats.begin(), seats.end(), 
 			[seatData](Seat const& seat) { return seat.name == seatData.name || seat.previousName ==seatData.name; });
 		if (matchedSeat != seats.end()) {
@@ -48,6 +48,18 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	PrintDebugInt(seatMatchCount);
 	PrintDebugLine("seats matched.");
 	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
+	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
+		// Don't bother doing any string comparisons if this affiliation is already recorded
+		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
+			for (auto const& party : parties) {
+				for (auto partyCode : party.officialCodes) {
+					if (affiliationIt->second == partyCode) {
+						affiliations.insert({ affiliationIt->first, &party});
+					}
+				}
+			}
+		}
+	}
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -613,144 +625,147 @@ int PollingProject::save(std::string filename) {
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
 	os << std::setprecision(12);
 	if (!os) return 1;
-	os << "#Project" << std::endl;
-	os << "name=" << name << std::endl;
-	os << "opre=" << othersPreferenceFlow << std::endl;
-	os << "oexh=" << othersExhaustRate << std::endl;
-	os << "#Parties" << std::endl;
+	os << "#Project" << "\n";
+	os << "name=" << name << "\n";
+	os << "opre=" << othersPreferenceFlow << "\n";
+	os << "oexh=" << othersExhaustRate << "\n";
+	os << "#Parties" << "\n";
 	for (Party const& thisParty : parties) {
-		os << "@Party" << std::endl;
-		os << "name=" << thisParty.name << std::endl;
-		os << "pref=" << thisParty.preferenceShare << std::endl;
-		os << "exha=" << thisParty.exhaustRate << std::endl;
-		os << "abbr=" << thisParty.abbreviation << std::endl;
-		os << "cap =" << int(thisParty.countAsParty) << std::endl;
-		os << "supp=" << int(thisParty.supportsParty) << std::endl;
-	}
-	os << "#Pollsters" << std::endl;
-	for (auto it = pollsters.begin(); it != pollsters.end(); ++it) {
-		os << "@Pollster" << std::endl;
-		os << "name=" << it->name << std::endl;
-		os << "weig=" << it->weight << std::endl;
-		os << "colr=" << it->colour << std::endl;
-		os << "cali=" << int(it->useForCalibration) << std::endl;
-		os << "igin=" << int(it->ignoreInitially) << std::endl;
-	}
-	os << "#Polls" << std::endl;
-	for (auto it = polls.begin(); it != polls.end(); ++it) {
-		os << "@Poll" << std::endl;
-		os << "poll=" << getPollsterIndex(it->pollster) << std::endl;
-		os << "year=" << it->date.GetYear() << std::endl;
-		os << "mont=" << it->date.GetMonth() << std::endl;
-		os << "day =" << it->date.GetDay() << std::endl;
-		os << "prev=" << it->reported2pp << std::endl;
-		os << "resp=" << it->respondent2pp << std::endl;
-		os << "calc=" << it->calc2pp << std::endl;
-		for (int i = 0; i < getPartyCount(); i++) {
-			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << std::endl;
+		os << "@Party" << "\n";
+		os << "name=" << thisParty.name << "\n";
+		os << "pref=" << thisParty.preferenceShare << "\n";
+		os << "exha=" << thisParty.exhaustRate << "\n";
+		os << "abbr=" << thisParty.abbreviation << "\n";
+		os << "cap =" << int(thisParty.countAsParty) << "\n";
+		os << "supp=" << int(thisParty.supportsParty) << "\n";
+		for (std::string officialCode : thisParty.officialCodes) {
+			os << "code=" << officialCode << "\n";
 		}
-		os << "py15=" << it->primary[15] << std::endl;
 	}
-	os << "#Events" << std::endl;
+	os << "#Pollsters" << "\n";
+	for (auto it = pollsters.begin(); it != pollsters.end(); ++it) {
+		os << "@Pollster" << "\n";
+		os << "name=" << it->name << "\n";
+		os << "weig=" << it->weight << "\n";
+		os << "colr=" << it->colour << "\n";
+		os << "cali=" << int(it->useForCalibration) << "\n";
+		os << "igin=" << int(it->ignoreInitially) << "\n";
+	}
+	os << "#Polls" << "\n";
+	for (auto it = polls.begin(); it != polls.end(); ++it) {
+		os << "@Poll" << "\n";
+		os << "poll=" << getPollsterIndex(it->pollster) << "\n";
+		os << "year=" << it->date.GetYear() << "\n";
+		os << "mont=" << it->date.GetMonth() << "\n";
+		os << "day =" << it->date.GetDay() << "\n";
+		os << "prev=" << it->reported2pp << "\n";
+		os << "resp=" << it->respondent2pp << "\n";
+		os << "calc=" << it->calc2pp << "\n";
+		for (int i = 0; i < getPartyCount(); i++) {
+			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << "\n";
+		}
+		os << "py15=" << it->primary[15] << "\n";
+	}
+	os << "#Events" << "\n";
 	for (auto const& thisEvent : events) {
-		os << "@Event" << std::endl;
-		os << "name=" << thisEvent.name << std::endl;
-		os << "type=" << thisEvent.eventType << std::endl;
-		os << "date=" << thisEvent.date.GetJulianDayNumber() << std::endl;
-		os << "vote=" << thisEvent.vote << std::endl;
+		os << "@Event" << "\n";
+		os << "name=" << thisEvent.name << "\n";
+		os << "type=" << thisEvent.eventType << "\n";
+		os << "date=" << thisEvent.date.GetJulianDayNumber() << "\n";
+		os << "vote=" << thisEvent.vote << "\n";
 	}
-	os << "#Models" << std::endl;
+	os << "#Models" << "\n";
 	for (auto const& thisModel : models) {
-		os << "@Model" << std::endl;
-		os << "name=" << thisModel.name << std::endl;
-		os << "iter=" << thisModel.numIterations << std::endl;
-		os << "trnd=" << thisModel.trendTimeScoreMultiplier << std::endl;
-		os << "hsm =" << thisModel.houseEffectTimeScoreMultiplier << std::endl;
-		os << "cfpb=" << thisModel.calibrationFirstPartyBias << std::endl;
-		os << "fstd=" << thisModel.finalStandardDeviation << std::endl;
-		os << "strt=" << thisModel.startDate.GetJulianDayNumber() << std::endl;
-		os << "end =" << thisModel.endDate.GetJulianDayNumber() << std::endl;
-		os << "updt=" << thisModel.lastUpdated.GetJulianDayNumber() << std::endl;
+		os << "@Model" << "\n";
+		os << "name=" << thisModel.name << "\n";
+		os << "iter=" << thisModel.numIterations << "\n";
+		os << "trnd=" << thisModel.trendTimeScoreMultiplier << "\n";
+		os << "hsm =" << thisModel.houseEffectTimeScoreMultiplier << "\n";
+		os << "cfpb=" << thisModel.calibrationFirstPartyBias << "\n";
+		os << "fstd=" << thisModel.finalStandardDeviation << "\n";
+		os << "strt=" << thisModel.startDate.GetJulianDayNumber() << "\n";
+		os << "end =" << thisModel.endDate.GetJulianDayNumber() << "\n";
+		os << "updt=" << thisModel.lastUpdated.GetJulianDayNumber() << "\n";
 		for (auto const& thisDay : thisModel.day) {
-			os << "$Day" << std::endl;
-			os << "mtnd=" << thisDay.trend2pp << std::endl;
+			os << "$Day" << "\n";
+			os << "mtnd=" << thisDay.trend2pp << "\n";
 			for (int pollsterIndex = 0; pollsterIndex < int(thisDay.houseEffect.size()); ++pollsterIndex) {
 				os << "he" << pollsterIndex << (pollsterIndex < 10 ? " " : "") << "=" <<
-					thisDay.houseEffect[pollsterIndex] << std::endl;
+					thisDay.houseEffect[pollsterIndex] << "\n";
 			}
 		}
 	}
-	os << "#Projections" << std::endl;
+	os << "#Projections" << "\n";
 	for (auto const& thisProjection : projections) {
-		os << "@Projection" << std::endl;
-		os << "name=" << thisProjection.name << std::endl;
-		os << "iter=" << thisProjection.numIterations << std::endl;
-		os << "base=" << getModelIndex(thisProjection.baseModel) << std::endl;
-		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << std::endl;
-		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << std::endl;
-		os << "dlyc=" << thisProjection.dailyChange << std::endl;
-		os << "inic=" << thisProjection.initialStdDev << std::endl;
-		os << "vtls=" << thisProjection.leaderVoteLoss << std::endl;
-		os << "nele=" << thisProjection.numElections << std::endl;
+		os << "@Projection" << "\n";
+		os << "name=" << thisProjection.name << "\n";
+		os << "iter=" << thisProjection.numIterations << "\n";
+		os << "base=" << getModelIndex(thisProjection.baseModel) << "\n";
+		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << "\n";
+		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << "\n";
+		os << "dlyc=" << thisProjection.dailyChange << "\n";
+		os << "inic=" << thisProjection.initialStdDev << "\n";
+		os << "vtls=" << thisProjection.leaderVoteLoss << "\n";
+		os << "nele=" << thisProjection.numElections << "\n";
 		for (int dayIndex = 0; dayIndex < int(thisProjection.meanProjection.size()); ++dayIndex) {
-			os << "mean=" << thisProjection.meanProjection[dayIndex] << std::endl;
-			os << "stdv=" << thisProjection.sdProjection[dayIndex] << std::endl;
+			os << "mean=" << thisProjection.meanProjection[dayIndex] << "\n";
+			os << "stdv=" << thisProjection.sdProjection[dayIndex] << "\n";
 		}
 	}
-	os << "#Regions" << std::endl;
+	os << "#Regions" << "\n";
 	for (auto const& thisRegion : regions) {
-		os << "@Region" << std::endl;
-		os << "name=" << thisRegion.name << std::endl;
-		os << "popn=" << thisRegion.population << std::endl;
-		os << "lele=" << thisRegion.lastElection2pp << std::endl;
-		os << "samp=" << thisRegion.sample2pp << std::endl;
-		os << "swng=" << thisRegion.swingDeviation << std::endl;
-		os << "addu=" << thisRegion.additionalUncertainty << std::endl;
+		os << "@Region" << "\n";
+		os << "name=" << thisRegion.name << "\n";
+		os << "popn=" << thisRegion.population << "\n";
+		os << "lele=" << thisRegion.lastElection2pp << "\n";
+		os << "samp=" << thisRegion.sample2pp << "\n";
+		os << "swng=" << thisRegion.swingDeviation << "\n";
+		os << "addu=" << thisRegion.additionalUncertainty << "\n";
 	}
-	os << "#Seats" << std::endl;
+	os << "#Seats" << "\n";
 	for (auto const& thisSeat : seats) {
-		os << "@Seat" << std::endl;
-		os << "name=" << thisSeat.name << std::endl;
-		os << "pvnm=" << thisSeat.previousName << std::endl;
-		os << "incu=" << getPartyIndex(thisSeat.incumbent) << std::endl;
-		os << "chal=" << getPartyIndex(thisSeat.challenger) << std::endl;
-		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << std::endl;
-		os << "regn=" << getRegionIndex(thisSeat.region) << std::endl;
-		os << "marg=" << thisSeat.margin << std::endl;
-		os << "lmod=" << thisSeat.localModifier << std::endl;
-		os << "iodd=" << thisSeat.incumbentOdds << std::endl;
-		os << "codd=" << thisSeat.challengerOdds << std::endl;
-		os << "c2od=" << thisSeat.challenger2Odds << std::endl;
-		os << "winp=" << thisSeat.incumbentWinPercent << std::endl;
-		os << "tipp=" << thisSeat.tippingPointPercent << std::endl;
-		os << "sma =" << thisSeat.simulatedMarginAverage << std::endl;
-		os << "lp1 =" << getPartyIndex(thisSeat.livePartyOne) << std::endl;
-		os << "lp2 =" << getPartyIndex(thisSeat.livePartyTwo) << std::endl;
-		os << "lp3 =" << getPartyIndex(thisSeat.livePartyThree) << std::endl;
-		os << "p2pr=" << thisSeat.partyTwoProb << std::endl;
-		os << "p3pr=" << thisSeat.partyThreeProb << std::endl;
-		os << "over=" << int(thisSeat.overrideBettingOdds) << std::endl;
+		os << "@Seat" << "\n";
+		os << "name=" << thisSeat.name << "\n";
+		os << "pvnm=" << thisSeat.previousName << "\n";
+		os << "incu=" << getPartyIndex(thisSeat.incumbent) << "\n";
+		os << "chal=" << getPartyIndex(thisSeat.challenger) << "\n";
+		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << "\n";
+		os << "regn=" << getRegionIndex(thisSeat.region) << "\n";
+		os << "marg=" << thisSeat.margin << "\n";
+		os << "lmod=" << thisSeat.localModifier << "\n";
+		os << "iodd=" << thisSeat.incumbentOdds << "\n";
+		os << "codd=" << thisSeat.challengerOdds << "\n";
+		os << "c2od=" << thisSeat.challenger2Odds << "\n";
+		os << "winp=" << thisSeat.incumbentWinPercent << "\n";
+		os << "tipp=" << thisSeat.tippingPointPercent << "\n";
+		os << "sma =" << thisSeat.simulatedMarginAverage << "\n";
+		os << "lp1 =" << getPartyIndex(thisSeat.livePartyOne) << "\n";
+		os << "lp2 =" << getPartyIndex(thisSeat.livePartyTwo) << "\n";
+		os << "lp3 =" << getPartyIndex(thisSeat.livePartyThree) << "\n";
+		os << "p2pr=" << thisSeat.partyTwoProb << "\n";
+		os << "p3pr=" << thisSeat.partyThreeProb << "\n";
+		os << "over=" << int(thisSeat.overrideBettingOdds) << "\n";
 	}
-	os << "#Simulations" << std::endl;
+	os << "#Simulations" << "\n";
 	for (auto const& thisSimulation : simulations) {
-		os << "@Simulation" << std::endl;
-		os << "name=" << thisSimulation.name << std::endl;
-		os << "iter=" << thisSimulation.numIterations << std::endl;
-		os << "base=" << getProjectionIndex(thisSimulation.baseProjection) << std::endl;
-		os << "prev=" << thisSimulation.prevElection2pp << std::endl;
-		os << "stsd=" << thisSimulation.stateSD << std::endl;
-		os << "stde=" << thisSimulation.stateDecay << std::endl;
-		os << "live=" << int(thisSimulation.live) << std::endl;
+		os << "@Simulation" << "\n";
+		os << "name=" << thisSimulation.name << "\n";
+		os << "iter=" << thisSimulation.numIterations << "\n";
+		os << "base=" << getProjectionIndex(thisSimulation.baseProjection) << "\n";
+		os << "prev=" << thisSimulation.prevElection2pp << "\n";
+		os << "stsd=" << thisSimulation.stateSD << "\n";
+		os << "stde=" << thisSimulation.stateDecay << "\n";
+		os << "live=" << int(thisSimulation.live) << "\n";
 	}
-	os << "#Results" << std::endl;
+	os << "#Results" << "\n";
 	for (auto const& thisResult : results) {
-		os << "@Result" << std::endl;
-		os << "seat=" << getSeatIndex(thisResult.seat) << std::endl;
-		os << "swng=" << thisResult.incumbentSwing << std::endl;
-		os << "cnt =" << thisResult.percentCounted << std::endl;
-		os << "btin=" << thisResult.boothsIn << std::endl;
-		os << "btto=" << thisResult.totalBooths << std::endl;
-		os << "updt=" << thisResult.updateTime.GetJulianDayNumber() << std::endl;
+		os << "@Result" << "\n";
+		os << "seat=" << getSeatIndex(thisResult.seat) << "\n";
+		os << "swng=" << thisResult.incumbentSwing << "\n";
+		os << "cnt =" << thisResult.percentCounted << "\n";
+		os << "btin=" << thisResult.boothsIn << "\n";
+		os << "btto=" << thisResult.totalBooths << "\n";
+		os << "updt=" << thisResult.updateTime.GetJulianDayNumber() << "\n";
 	}
 	os << "#End";
 	os.close();
@@ -948,6 +963,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("supp=")) {
 			parties.back().supportsParty = Party::SupportsParty(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("code=")) {
+			parties.back().officialCodes.push_back(line.substr(5));
 			return true;
 		}
 	}
