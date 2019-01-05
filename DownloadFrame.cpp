@@ -71,6 +71,7 @@ void DownloadFrame::OnDownloadPreloadData(wxCommandEvent& WXUNUSED(event))
 	wxMessageBox("Downloaded historic data from: " + url);
 	PreloadDataRetriever preloadDataRetriever;
 	preloadDataRetriever.collectData();
+	project->incorporatePreloadData(preloadDataRetriever);
 }
 
 void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))

@@ -1,5 +1,6 @@
 #include "PollingProject.h"
 
+#include "PreloadDataRetriever.h"
 #include "PreviousElectionDataRetriever.h"
 
 #include <iomanip>
@@ -49,6 +50,11 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	PrintDebugLine("seats matched.");
 	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
 	collectAffiliations(dataRetriever);
+}
+
+void PollingProject::incorporatePreloadData(PreloadDataRetriever const & dataRetriever)
+{
+	collectCandidates(dataRetriever);
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -1392,6 +1398,20 @@ void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & d
 					}
 				}
 			}
+		}
+	}
+}
+
+void PollingProject::collectCandidates(PreloadDataRetriever const & dataRetriever)
+{
+	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
+		auto affiliationIt = affiliations.find(candidateIt->second);
+		if (affiliationIt != affiliations.end()) {
+			candidates.insert({ candidateIt->first, affiliationIt->second });
+		}
+		else {
+			// treat unknown party as independent
+			candidates.insert({ candidateIt->first, affiliations[0] });
 		}
 	}
 }

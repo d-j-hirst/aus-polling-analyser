@@ -20,7 +20,7 @@ public:
 	void collectData();
 
 	CandidateMap::const_iterator beginCandidates() const { return candidates.cbegin(); }
-	CandidateMap::const_iterator endAffiliations() const { return candidates.cend(); }
+	CandidateMap::const_iterator endCandidates() const { return candidates.cend(); }
 
 private:
 

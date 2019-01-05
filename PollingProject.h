@@ -23,6 +23,7 @@
 
 const int PA_MaxPollsters = 100;
 
+class PreloadDataRetriever;
 class PreviousElectionDataRetriever;
 
 // Parent class for the entire polling analysis project.
@@ -38,6 +39,8 @@ public:
 	PollingProject(std::string pathName);
 
 	void incorporatePreviousElectionResults(PreviousElectionDataRetriever const& dataRetriever);
+
+	void incorporatePreloadData(PreloadDataRetriever const& dataRetriever);
 
 	// Gets the name of the project.
 	std::string getName() { return name; }
@@ -394,6 +397,9 @@ private:
 	// affiliation numbers correspond to.
 	void collectAffiliations(PreviousElectionDataRetriever const & dataRetriever);
 
+	// Creates the map between candidates and parties that they belong to.
+	void collectCandidates(PreloadDataRetriever const & dataRetriever);
+
 	// The name of the project.
 	std::string name;
 
@@ -438,6 +444,7 @@ private:
 
 	typedef std::unordered_map<int, Party const*> AffiliationMap;
 	AffiliationMap affiliations;
+	AffiliationMap candidates;
 
 	bool valid = false;
 

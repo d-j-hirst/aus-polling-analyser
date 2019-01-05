@@ -143,7 +143,7 @@ void PreviousElectionDataRetriever::collectData()
 				PrintDebugLine(" - Duplicate seat detected!"); // this shouldn't happen
 			}
 		} while (moreSeatData(xmlString, searchIt));
-
+		affiliations.insert({ 0, "IND" });
 		PrintDebugLine("Download complete!");
 	}
 	catch (const std::regex_error& e) {
