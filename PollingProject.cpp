@@ -48,18 +48,7 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	PrintDebugInt(seatMatchCount);
 	PrintDebugLine("seats matched.");
 	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
-	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
-		// Don't bother doing any string comparisons if this affiliation is already recorded
-		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
-			for (auto const& party : parties) {
-				for (auto partyCode : party.officialCodes) {
-					if (affiliationIt->second == partyCode) {
-						affiliations.insert({ affiliationIt->first, &party});
-					}
-				}
-			}
-		}
-	}
+	collectAffiliations(dataRetriever);
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -1389,4 +1378,20 @@ void PollingProject::finalizeFileLoading() {
 	thisParty->supportsParty = Party::SupportsParty::Two;
 
 	setVisualiserBounds(visStartDay, visEndDay);
+}
+
+void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & dataRetriever)
+{
+	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
+		// Don't bother doing any string comparisons if this affiliation is already recorded
+		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
+			for (auto const& party : parties) {
+				for (auto partyCode : party.officialCodes) {
+					if (affiliationIt->second == partyCode) {
+						affiliations.insert({ affiliationIt->first, &party });
+					}
+				}
+			}
+		}
+	}
 }

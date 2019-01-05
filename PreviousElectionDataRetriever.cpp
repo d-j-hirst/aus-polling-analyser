@@ -7,6 +7,8 @@
 
 #include <fstream>
 
+const std::string PreviousElectionDataRetriever::UnzippedFileName = "downloads/previous_results.xml";
+
 int extractSeatOfficialId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<PollingDistrictIdentifier Id=\"(\\d+)", searchIt);
 }
@@ -92,7 +94,7 @@ bool moreSeatData(std::string const& xmlString, SearchIterator const& searchIt) 
 
 void PreviousElectionDataRetriever::collectData()
 {
-	std::ifstream file(TempResultsXmlFileName);
+	std::ifstream file(UnzippedFileName);
 	std::string xmlString;
 	transferFileToString(file, xmlString);
 

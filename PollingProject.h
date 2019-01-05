@@ -390,6 +390,10 @@ private:
 	// Makes adjustments after a file has been loaded.
 	void finalizeFileLoading();
 
+	// Creates the map between what affiliation numbers and the parties in the project that those
+	// affiliation numbers correspond to.
+	void collectAffiliations(PreviousElectionDataRetriever const & dataRetriever);
+
 	// The name of the project.
 	std::string name;
 

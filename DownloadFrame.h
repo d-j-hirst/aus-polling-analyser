@@ -43,8 +43,12 @@ private:
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);
-	
+
 	void OnDownloadHistoricBoothData(wxCommandEvent& event);
+
+	void OnDownloadPreloadData(wxCommandEvent& event);
+
+	void OnDownloadLatestBoothData(wxCommandEvent& event);
 
 	void refreshToolbar();
 

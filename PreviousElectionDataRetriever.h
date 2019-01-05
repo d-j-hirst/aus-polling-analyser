@@ -11,6 +11,8 @@ public:
 
 	typedef std::unordered_map<int, std::string> AffiliationMap;
 
+	const static std::string UnzippedFileName;
+
 	// collects booth data etc. from the downloaded results file.
 	// Make sure this has been downloaded by ResultsDownloader first.
 	void collectData();

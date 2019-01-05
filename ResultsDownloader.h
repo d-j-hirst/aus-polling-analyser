@@ -7,9 +7,6 @@
 
 #include <string>
 
-const std::string TempResultsXmlFileName = "downloads/results.xml";
-const std::wstring LTempResultsXmlFileName(TempResultsXmlFileName.begin(), TempResultsXmlFileName.end());
-
 class ResultsDownloader {
 
 public:
@@ -19,7 +16,7 @@ public:
 	~ResultsDownloader();
 
 	// loads the file from "url" into a temporary zip file
-	void loadZippedFile(std::string url, std::string match = "");
+	void loadZippedFile(std::string url, std::string newFileName, std::string match = "");
 
 private:
 
