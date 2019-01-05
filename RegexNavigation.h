@@ -8,7 +8,7 @@
 
 typedef std::string::const_iterator SearchIterator;
 
-int extractInt(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline int extractInt(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
@@ -16,7 +16,7 @@ int extractInt(std::string const& xmlString, std::string const& regexString, Sea
 	return std::stoi(match.str(1));
 }
 
-std::string extractString(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline std::string extractString(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
@@ -24,7 +24,7 @@ std::string extractString(std::string const& xmlString, std::string const& regex
 	return match.str(1);
 }
 
-bool extractBool(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline bool extractBool(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
@@ -32,7 +32,7 @@ bool extractBool(std::string const& xmlString, std::string const& regexString, S
 	return match[1].matched;
 }
 
-void seekTo(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline void seekTo(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
@@ -40,7 +40,7 @@ void seekTo(std::string const& xmlString, std::string const& regexString, Search
 }
 
 // returns true if the first instance of firstString comes before the first instance of secondString
-bool comesBefore(std::string const& xmlString, std::string const& firstString, std::string const& secondString, SearchIterator const& searchIt) {
+inline bool comesBefore(std::string const& xmlString, std::string const& firstString, std::string const& secondString, SearchIterator const& searchIt) {
 	std::regex firstRegex(firstString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, firstRegex);

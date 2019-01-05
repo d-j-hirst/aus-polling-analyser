@@ -1,5 +1,6 @@
 #include "DownloadFrame.h"
 
+#include "PreloadDataRetriever.h"
 #include "PreviousElectionDataRetriever.h"
 #include "ResultsDownloader.h"
 
@@ -52,8 +53,8 @@ void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
 	std::string url = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-17496-20140516155658.zip";
-	ResultsDownloader resultsDownloader;
-	resultsDownloader.loadZippedFile(url, PreviousElectionDataRetriever::UnzippedFileName);
+	//ResultsDownloader resultsDownloader;
+	//resultsDownloader.loadZippedFile(url, PreviousElectionDataRetriever::UnzippedFileName);
 	wxMessageBox("Downloaded historic data from: " + url);
 	PreviousElectionDataRetriever previousElevationDataRetriever;
 	previousElevationDataRetriever.collectData();
@@ -62,15 +63,14 @@ void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 
 void DownloadFrame::OnDownloadPreloadData(wxCommandEvent& WXUNUSED(event))
 {
-	//// Commenting out this for now since we don't want to waste everyone's data
-	//// downloading and re-downloading the same data
-	//std::string url = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip";
+	// Commenting out this for now since we don't want to waste everyone's data
+	// downloading and re-downloading the same data
+	std::string url = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip";
 	//ResultsDownloader resultsDownloader;
-	//resultsDownloader.loadZippedFile(url);
-	//wxMessageBox("Downloaded historic data from: " + url);
-	//PreviousElectionDataRetriever previousElevationDataRetriever;
-	//previousElevationDataRetriever.collectData();
-	//project->incorporatePreviousElectionResults(previousElevationDataRetriever);
+	//resultsDownloader.loadZippedFile(url, PreloadDataRetriever::UnzippedFileName);
+	wxMessageBox("Downloaded historic data from: " + url);
+	PreloadDataRetriever preloadDataRetriever;
+	preloadDataRetriever.collectData();
 }
 
 void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
@@ -92,6 +92,7 @@ void DownloadFrame::refreshToolbar()
 	toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_TEXT | wxTB_NOICONS);
 
 	toolBar->AddTool(PA_DownloadFrame_DownloadHistoricBoothDataID, "Download Historic Booth Data", wxNullBitmap, wxNullBitmap, wxITEM_NORMAL, "Download Historic Booth Data");
+	toolBar->AddTool(PA_DownloadFrame_DownloadPreloadDataID, "Download Preload Data", wxNullBitmap, wxNullBitmap, wxITEM_NORMAL, "Download Preload Data");
 	toolBar->AddTool(PA_DownloadFrame_DownloadLatestBoothDataID, "Download Latest Booth Data", wxNullBitmap, wxNullBitmap, wxITEM_NORMAL, "Download Latest Booth Data");
 
 	// Realize the toolbar, so that the tools display.

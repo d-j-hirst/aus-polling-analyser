@@ -3,92 +3,91 @@
 #include "Debug.h"
 #include "General.h"
 #include "RegexNavigation.h"
-#include "ResultsDownloader.h" // for location of results file
 
 #include <fstream>
 
 const std::string PreviousElectionDataRetriever::UnzippedFileName = "downloads/previous_results.xml";
 
-int extractSeatOfficialId(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractSeatOfficialId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<PollingDistrictIdentifier Id=\"(\\d+)", searchIt);
 }
 
-std::string extractSeatName(std::string const& xmlString, SearchIterator& searchIt) {
+inline std::string extractSeatName(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractString(xmlString, "<Name>([^<]{1,20})</Name>", searchIt);
 }
 
-int extractSeatEnrolment(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractSeatEnrolment(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Enrolment CloseOfRolls=\"(\\d+)", searchIt);
 }
 
 // Skip ahead to the two-candidate preferred section of this seat's results
-void seekToTcp(std::string const& xmlString, SearchIterator& searchIt) {
+inline void seekToTcp(std::string const& xmlString, SearchIterator& searchIt) {
 	seekTo(xmlString, "TwoCandidatePreferred", searchIt);
 }
 
-bool candidateIsIndependent(std::string const& xmlString, SearchIterator& searchIt) {
+inline bool candidateIsIndependent(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractBool(xmlString, "<Candidate( Independent=\"true\")?>", searchIt);
 	
 }
 
-int extractCandidateId(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractCandidateId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "CandidateIdentifier Id=\"(\\d+)", searchIt);
 }
 
-std::string extractCandidateName(std::string const& xmlString, SearchIterator& searchIt) {
+inline std::string extractCandidateName(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractString(xmlString, "<eml:CandidateName>([^<]{1,40})</eml:CandidateName>", searchIt);
 }
 
-int extractAffiliationId(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractAffiliationId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "AffiliationIdentifier Id=\"(\\d+)", searchIt);
 }
 
-std::string extractAffiliationShortCode(std::string const& xmlString, SearchIterator& searchIt) {
+inline std::string extractAffiliationShortCode(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractString(xmlString, "ShortCode=\"([^\"]+)", searchIt);
 }
 
-int extractOrdinaryVotes(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractOrdinaryVotes(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes Type=\"Ordinary\" [^>]*>(\\d+)</Votes>", searchIt);
 }
 
-int extractAbsentVotes(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractAbsentVotes(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes Type=\"Absent\" [^>]*>(\\d+)</Votes>", searchIt);
 }
 
-int extractProvisionalVotes(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractProvisionalVotes(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes Type=\"Provisional\" [^>]*>(\\d+)</Votes>", searchIt);
 }
 
-int extractPrepollVotes(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractPrepollVotes(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes Type=\"PrePoll\" [^>]*>(\\d+)</Votes>", searchIt);
 }
 
-int extractPostalVotes(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractPostalVotes(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes Type=\"Postal\" [^>]*>(\\d+)</Votes>", searchIt);
 }
 
 // Skip ahead to the two-candidate preferred section of this seat's results
-void seekToBooths(std::string const& xmlString, SearchIterator& searchIt) {
+inline void seekToBooths(std::string const& xmlString, SearchIterator& searchIt) {
 	seekTo(xmlString, "PollingPlaces", searchIt);
 }
 
-int extractBoothOfficialId(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractBoothOfficialId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<PollingPlaceIdentifier Id=\"(\\d+)", searchIt);
 }
 
-std::string extractBoothName(std::string const& xmlString, SearchIterator& searchIt) {
+inline std::string extractBoothName(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractString(xmlString, "Name=\"([^\"]{1,60})\"", searchIt);
 }
 
-int extractBoothTcp(std::string const& xmlString, SearchIterator& searchIt) {
+inline int extractBoothTcp(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<Votes [^>]*>(\\d+)</Votes>", searchIt);
 }
 
-bool moreBoothData(std::string const& xmlString, SearchIterator const& searchIt) {
+inline bool moreBoothData(std::string const& xmlString, SearchIterator const& searchIt) {
 	return comesBefore(xmlString, "<PollingPlace", "</PollingPlaces>", searchIt);
 }
 
-bool moreSeatData(std::string const& xmlString, SearchIterator const& searchIt) {
+inline bool moreSeatData(std::string const& xmlString, SearchIterator const& searchIt) {
 	return comesBefore(xmlString, "<Contest", "<Analysis>", searchIt);
 }
 

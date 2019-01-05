@@ -33,5 +33,5 @@ private:
 	// Map between AEC's booth ID and data for that booth
 	Results::BoothMap boothMap;
 
-	std::unordered_map<int, std::string> affiliations;
+	AffiliationMap affiliations;
 };

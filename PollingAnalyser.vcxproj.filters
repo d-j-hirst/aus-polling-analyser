@@ -107,9 +107,14 @@
     <ClCompile Include="ResultsDownloader.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="DownloadFrame.cpp" />
     <ClCompile Include="PreviousElectionDataRetriever.cpp">
       <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="PreloadDataRetriever.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="DownloadFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -300,6 +305,9 @@
     </ClInclude>
     <ClInclude Include="ElectionData.h">
       <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="PreloadDataRetriever.h">
+      <Filter>Header Files\Data Processing</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
