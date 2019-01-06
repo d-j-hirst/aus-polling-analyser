@@ -23,6 +23,8 @@
 
 const int PA_MaxPollsters = 100;
 
+
+class LatestResultsDataRetriever;
 class PreloadDataRetriever;
 class PreviousElectionDataRetriever;
 
@@ -41,6 +43,8 @@ public:
 	void incorporatePreviousElectionResults(PreviousElectionDataRetriever const& dataRetriever);
 
 	void incorporatePreloadData(PreloadDataRetriever const& dataRetriever);
+
+	void incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever);
 
 	// Gets the name of the project.
 	std::string getName() { return name; }

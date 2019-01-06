@@ -270,6 +270,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="PreloadDataRetriever.cpp" />
     <ClCompile Include="PreviousElectionDataRetriever.cpp" />
     <ClCompile Include="Debug.cpp" />
@@ -317,6 +318,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ElectionData.h" />
+    <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="PreloadDataRetriever.h" />
     <ClInclude Include="PreviousElectionDataRetriever.h" />
     <ClInclude Include="CountProgress.h" />

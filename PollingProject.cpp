@@ -2,6 +2,7 @@
 
 #include "PreloadDataRetriever.h"
 #include "PreviousElectionDataRetriever.h"
+#include "LatestResultsDataRetriever.h"
 
 #include <iomanip>
 #include <algorithm>
@@ -28,7 +29,7 @@ PollingProject::PollingProject(std::string pathName) :
 	open(pathName);
 }
 
-void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetriever const & dataRetriever)
+void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetriever const& dataRetriever)
 {
 	int seatMatchCount = 0;
 	for (auto seatIt = dataRetriever.beginSeats(); seatIt != dataRetriever.endSeats(); ++seatIt) {
@@ -52,9 +53,14 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	collectAffiliations(dataRetriever);
 }
 
-void PollingProject::incorporatePreloadData(PreloadDataRetriever const & dataRetriever)
+void PollingProject::incorporatePreloadData(PreloadDataRetriever const& dataRetriever)
 {
 	collectCandidates(dataRetriever);
+}
+
+void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever)
+{
+	dataRetriever.beginBooths();
 }
 
 void PollingProject::refreshCalc2PP() {

@@ -9,7 +9,7 @@
 const std::string PreviousElectionDataRetriever::UnzippedFileName = "downloads/previous_results.xml";
 
 inline int extractSeatOfficialId(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<PollingDistrictIdentifier Id=\"(\\d+)", searchIt);
+	return extractInt(xmlString, "<ContestIdentifier Id=\"(\\d+)", searchIt);
 }
 
 inline std::string extractSeatName(std::string const& xmlString, SearchIterator& searchIt) {
@@ -47,23 +47,23 @@ inline std::string extractAffiliationShortCode(std::string const& xmlString, Sea
 }
 
 inline int extractOrdinaryVotes(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<Votes Type=\"Ordinary\" [^>]*>(\\d+)</Votes>", searchIt);
+	return extractInt(xmlString, "<Votes Type=\"Ordinary\"[^>]*>(\\d+)</Votes>", searchIt);
 }
 
 inline int extractAbsentVotes(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<Votes Type=\"Absent\" [^>]*>(\\d+)</Votes>", searchIt);
+	return extractInt(xmlString, "<Votes Type=\"Absent\"[^>]*>(\\d+)</Votes>", searchIt);
 }
 
 inline int extractProvisionalVotes(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<Votes Type=\"Provisional\" [^>]*>(\\d+)</Votes>", searchIt);
+	return extractInt(xmlString, "<Votes Type=\"Provisional\"[^>]*>(\\d+)</Votes>", searchIt);
 }
 
 inline int extractPrepollVotes(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<Votes Type=\"PrePoll\" [^>]*>(\\d+)</Votes>", searchIt);
+	return extractInt(xmlString, "<Votes Type=\"PrePoll\"[^>]*>(\\d+)</Votes>", searchIt);
 }
 
 inline int extractPostalVotes(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<Votes Type=\"Postal\" [^>]*>(\\d+)</Votes>", searchIt);
+	return extractInt(xmlString, "<Votes Type=\"Postal\"[^>]*>(\\d+)</Votes>", searchIt);
 }
 
 // Skip ahead to the two-candidate preferred section of this seat's results
@@ -80,7 +80,7 @@ inline std::string extractBoothName(std::string const& xmlString, SearchIterator
 }
 
 inline int extractBoothTcp(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractInt(xmlString, "<Votes [^>]*>(\\d+)</Votes>", searchIt);
+	return extractInt(xmlString, "<Votes[^>]*>(\\d+)</Votes>", searchIt);
 }
 
 inline bool moreBoothData(std::string const& xmlString, SearchIterator const& searchIt) {
