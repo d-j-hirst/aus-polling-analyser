@@ -9,6 +9,7 @@ namespace Results {
 		std::string name;
 		int officialId = -1;
 		std::array<int, 2> tcpVote;
+		std::array<int, 2> newTcpVote;
 		std::array<int, 2> affiliationId; // independent = 0
 		std::array<int, 2> candidateId;
 		float percentVote(int whichCandidate) { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }

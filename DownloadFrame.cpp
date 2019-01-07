@@ -85,7 +85,7 @@ void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
 	wxMessageBox("Downloaded latest data from: " + url);
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
-	//project->incorporatePreviousElectionResults(latestResultsDataRetriever);
+	project->incorporateLatestResults(latestResultsDataRetriever);
 }
 
 void DownloadFrame::refreshToolbar()

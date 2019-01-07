@@ -60,7 +60,20 @@ void PollingProject::incorporatePreloadData(PreloadDataRetriever const& dataRetr
 
 void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever)
 {
-	dataRetriever.beginBooths();
+	for (auto booth = dataRetriever.beginBooths(); booth != dataRetriever.endBooths(); ++booth) {
+		auto matchedBoothIt = booths.find(booth->second.officialId);
+		if (matchedBoothIt == booths.end()) {
+			PrintDebug("Could not find a matching booth for booth with Id ");
+			PrintDebugInt(booth->second.officialId);
+			PrintDebugNewLine();
+			continue;
+		}
+		auto& matchedBooth = matchedBoothIt->second;
+		PrintDebug("Found matching booth for booth ");
+		PrintDebugInt(booth->second.officialId);
+		PrintDebug(". Booth name is ");
+		PrintDebugLine(matchedBooth.name);
+	}
 }
 
 void PollingProject::refreshCalc2PP() {
