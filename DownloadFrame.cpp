@@ -79,10 +79,11 @@ void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
 {
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
-	std::string url = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/aec-mediafeed-Detailed-Light-20499-20160702235915.zip";
+	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/aec-mediafeed-Detailed-Light-20499-20160702235915.zip";
+	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
 	ResultsDownloader resultsDownloader;
-	resultsDownloader.loadZippedFile(url, LatestResultsDataRetriever::UnzippedFileName);
-	wxMessageBox("Downloaded latest data from: " + url);
+	resultsDownloader.loadZippedFile(userUrl, LatestResultsDataRetriever::UnzippedFileName);
+	wxMessageBox("Downloaded latest data from: " + userUrl);
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
