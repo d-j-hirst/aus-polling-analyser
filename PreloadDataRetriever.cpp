@@ -63,6 +63,7 @@ void PreloadDataRetriever::collectData()
 				}
 				candidates.insert({ candidateId, affiliationId });
 			} while (moreCandidateData(xmlString, searchIt));
+
 		} while (moreSeatData(xmlString, searchIt));
 
 		PrintDebugLine("Download complete!");

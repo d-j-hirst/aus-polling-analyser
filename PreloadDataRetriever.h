@@ -22,6 +22,7 @@ public:
 	CandidateMap::const_iterator beginCandidates() const { return candidates.cbegin(); }
 	CandidateMap::const_iterator endCandidates() const { return candidates.cend(); }
 
+	typedef std::vector<std::vector<int>> BoothDistribution;
 private:
 
 	CandidateMap candidates;

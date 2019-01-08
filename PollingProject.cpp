@@ -148,6 +148,12 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		}
 	}
 
+	for (auto seat = dataRetriever.beginSeats(); seat != dataRetriever.endSeats(); ++seat) {
+		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
+			{return thisSeat.name == seat->second.name; });
+		matchingSeat->booths = seat->second.booths;
+	}
+
 	std::array<int, 2> nationalTotalVotes = { 0, 0 };
 	std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
 
@@ -158,7 +164,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		PrintDebugLine(":");
 		std::array<int, 2> seatTotalVotes = { 0, 0 };
 		std::array<int, 2> seatTotalVotesOld = { 0, 0 };
-		for (auto booth : seat.previousResult->booths) {
+		for (auto booth : seat.booths) {
 			Results::Booth thisBooth = booths[booth];
 			int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
 			int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];

@@ -32,6 +32,7 @@ public:
 	int officialId = -1;
 
 	std::optional<Results::Seat> previousResult;
+	std::vector<int> booths;
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
