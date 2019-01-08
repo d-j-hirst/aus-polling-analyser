@@ -8,10 +8,10 @@ namespace Results {
 	struct Booth {
 		std::string name;
 		int officialId = -1;
-		std::array<int, 2> tcpVote;
-		std::array<int, 2> newTcpVote;
-		std::array<int, 2> affiliationId; // independent = 0
-		std::array<int, 2> candidateId;
+		std::array<int, 2> tcpVote = { 0, 0 };
+		std::array<int, 2> newTcpVote = { 0, 0 };
+		std::array<int, 2> affiliationId = { -1, -1 }; // independent = 0
+		std::array<int, 2> candidateId = { -1, -1 };
 		float percentVote(int whichCandidate) { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }
 	};
 

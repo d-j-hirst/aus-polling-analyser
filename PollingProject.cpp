@@ -10,6 +10,8 @@
 #undef max
 #undef min
 
+const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
+
 PollingProject::PollingProject(NewProjectData& newProjectData) :
 		name(newProjectData.projectName),
 		lastFileName(newProjectData.projectName + ".pol"),
@@ -61,18 +63,149 @@ void PollingProject::incorporatePreloadData(PreloadDataRetriever const& dataRetr
 void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever)
 {
 	for (auto booth = dataRetriever.beginBooths(); booth != dataRetriever.endBooths(); ++booth) {
-		auto matchedBoothIt = booths.find(booth->second.officialId);
-		if (matchedBoothIt == booths.end()) {
-			PrintDebug("Could not find a matching booth for booth with Id ");
-			PrintDebugInt(booth->second.officialId);
-			PrintDebugNewLine();
+		auto const& newBooth = booth->second;
+
+		// Determine which booth (if any) from the previous election this corresponds to
+		auto oldBoothIt = booths.find(newBooth.officialId);
+		if (oldBoothIt == booths.end()) {
+			//PrintDebug("Could not find a matching booth for booth with Id ");
+			//PrintDebugInt(newBooth.officialId);
+			//PrintDebugNewLine();
 			continue;
 		}
-		auto& matchedBooth = matchedBoothIt->second;
-		PrintDebug("Found matching booth for booth ");
-		PrintDebugInt(booth->second.officialId);
-		PrintDebug(". Booth name is ");
-		PrintDebugLine(matchedBooth.name);
+		auto& matchedBooth = oldBoothIt->second;
+		//PrintDebug("Found matching booth for booth ");
+		//PrintDebugInt(newBooth.officialId);
+		//PrintDebug(". Booth name is ");
+		//PrintDebugLine(matchedBooth.name);
+
+		// Check if the parties match
+		bool allValid = true;
+		Party const* newParty[2] = { candidates[newBooth.candidateId[0]], candidates[newBooth.candidateId[1]] };
+		Party const* oldParty[2] = { affiliations[matchedBooth.affiliationId[0]], affiliations[matchedBooth.affiliationId[1]] };
+		for (auto& a : newParty) if (!a) { a = &invalidParty; allValid = false; };
+		for (auto& a : oldParty) if (!a) { a = &invalidParty; allValid = false; };
+		bool matchedDirect = newParty[0] == oldParty[0] && (newParty[1] == oldParty[1]) && allValid;
+		bool matchedOpposite = newParty[0] == oldParty[1] && (newParty[1] == oldParty[0]) && allValid;
+
+		if (matchedDirect || matchedOpposite) {
+			//PrintDebug("Matched parties for this booth - ");
+			//PrintDebug(newParty[0]->name);
+			//PrintDebug(" and ");
+			//PrintDebugLine(newParty[1]->name);
+			if (matchedDirect) {
+				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
+				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
+			}
+			else {
+				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[0];
+				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[1];
+			}
+			//PrintDebug("Results: ");
+			//PrintDebug(oldParty[0]->name);
+			//PrintDebug(" ");
+			//PrintDebugInt(matchedBooth.newTcpVote[0]);
+			//PrintDebug(", ");
+			//PrintDebug(oldParty[1]->name);
+			//PrintDebug(" ");
+			//PrintDebugInt(matchedBooth.newTcpVote[1]);
+			//PrintDebugNewLine();
+			//PrintDebug("Previous results: ");
+			//PrintDebug(oldParty[0]->name);
+			//PrintDebug(" ");
+			//PrintDebugInt(matchedBooth.tcpVote[0]);
+			//PrintDebug(", ");
+			//PrintDebug(oldParty[1]->name);
+			//PrintDebug(" ");
+			//PrintDebugInt(matchedBooth.tcpVote[1]);
+			//PrintDebugNewLine();
+			//int totalOld = matchedBooth.tcpVote[0] + matchedBooth.tcpVote[1];
+			//int totalNew = matchedBooth.newTcpVote[0] + matchedBooth.newTcpVote[1];
+			//if (totalOld && totalNew) {
+			//	float swing = (float(matchedBooth.newTcpVote[0]) / float(totalNew) -
+			//		float(matchedBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
+			//	if (swing >= 0) {
+			//		PrintDebugFloat(swing);
+			//		PrintDebug("% swing to ");
+			//		PrintDebugLine(oldParty[0]->name);
+			//	}
+			//	else {
+			//		PrintDebugFloat(-swing);
+			//		PrintDebug(" swing to ");
+			//		PrintDebugLine(oldParty[1]->name);
+			//	}
+			//}
+		}
+		else {
+			//PrintDebug("Failed to match parties for this booth - ");
+			//PrintDebug(newParty[0]->name);
+			//PrintDebug(" and ");
+			//PrintDebugLine(newParty[1]->name);
+			//PrintDebug(" could not be matched with ");
+			//PrintDebug(oldParty[0]->name);
+			//PrintDebug(" and ");
+			//PrintDebugLine(oldParty[1]->name);
+		}
+	}
+
+	PrintDebugLine("Seats:");
+	for (auto seat : seats) {
+		PrintDebug(" Seat of ");
+		PrintDebug(seat.name);
+		PrintDebugLine(":");
+		std::array<int, 2> seatTotalVotes = { 0, 0 };
+		std::array<int, 2> seatTotalVotesOld = { 0, 0 };
+		for (auto booth : seat.previousResult->booths) {
+			Results::Booth thisBooth = booths[booth];
+			int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
+			int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
+			if (totalOld && totalNew) {
+				float swing = (float(thisBooth.newTcpVote[0]) / float(totalNew) -
+					float(thisBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
+				PrintDebug("  Booth - ");
+				PrintDebug(thisBooth.name);
+				PrintDebug(": ");
+				if (swing >= 0) {
+					PrintDebugFloat(swing);
+					PrintDebug(" swing to ");
+					PrintDebug(affiliations[thisBooth.affiliationId[0]]->name);
+				}
+				else {
+					PrintDebugFloat(-swing);
+					PrintDebug(" swing to ");
+					PrintDebug(affiliations[thisBooth.affiliationId[1]]->name);
+				}
+				PrintDebug(" from ");
+				PrintDebugInt(totalNew);
+				PrintDebugLine(" votes");
+				seatTotalVotes[0] += thisBooth.newTcpVote[0];
+				seatTotalVotes[1] += thisBooth.newTcpVote[1];
+				seatTotalVotesOld[0] += thisBooth.tcpVote[0];
+				seatTotalVotesOld[1] += thisBooth.tcpVote[1];
+			}
+		}
+
+		int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
+		int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
+
+		if (totalOldSeat && totalNewSeat) {
+			float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
+				float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
+			PrintDebug(" Total: ");
+			if (swing >= 0) {
+				PrintDebugFloat(swing);
+				PrintDebug(" swing to ");
+				PrintDebug(affiliations[seat.previousResult->finalCandidates[0].affiliationId]->name);
+			}
+			else {
+				PrintDebugFloat(-swing);
+				PrintDebug(" swing to ");
+				PrintDebug(affiliations[seat.previousResult->finalCandidates[1].affiliationId]->name);
+			}
+			PrintDebug(" from ");
+			PrintDebugInt(totalNewSeat);
+			PrintDebugLine(" votes");
+		}
 	}
 }
 
@@ -1407,6 +1540,7 @@ void PollingProject::finalizeFileLoading() {
 
 void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & dataRetriever)
 {
+	affiliations.insert({-1, &invalidParty});
 	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
 		// Don't bother doing any string comparisons if this affiliation is already recorded
 		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
@@ -1423,6 +1557,7 @@ void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & d
 
 void PollingProject::collectCandidates(PreloadDataRetriever const & dataRetriever)
 {
+	candidates.insert({ -1, &invalidParty });
 	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
 		auto affiliationIt = affiliations.find(candidateIt->second);
 		if (affiliationIt != affiliations.end()) {

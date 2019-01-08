@@ -450,6 +450,8 @@ private:
 	AffiliationMap affiliations;
 	AffiliationMap candidates;
 
+	static const Party invalidParty;
+
 	bool valid = false;
 
 	// indicates the last-election preference flow from "Others" to the first listed major party.

@@ -29,6 +29,10 @@ inline bool moreCandidateData(std::string const& xmlString, SearchIterator const
 	return comesBefore(xmlString, "<Candidate", "<Formal>", searchIt);
 }
 
+inline void seekToNextCandidate(std::string const& xmlString, SearchIterator& searchIt) {
+	seekTo(xmlString, "</Candidate>", searchIt);
+}
+
 inline bool moreSeatData(std::string const& xmlString, SearchIterator const& searchIt) {
 	return comesBefore(xmlString, "<Contest", "</Election>", searchIt);
 }
@@ -44,9 +48,16 @@ void PreloadDataRetriever::collectData()
 		do {
 			seekToFirstPreferences(xmlString, searchIt);
 			do {
+				seekToNextCandidate(xmlString, searchIt);
 				bool independent = candidateIsIndependent(xmlString, searchIt);
 				int candidateId = extractCandidateId(xmlString, searchIt);
 				int affiliationId = 0;
+				if (candidateId == 17322) {
+					PrintDebugLine("SCOTT, Duncan");
+				}
+				if (candidateId == 28049) {
+					PrintDebugLine("Ken O'Dowd");
+				}
 				if (!independent) {
 					affiliationId = extractAffiliationId(xmlString, searchIt);
 				}

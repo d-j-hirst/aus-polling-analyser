@@ -24,6 +24,7 @@ code=LP
 code=NAT
 code=LNP
 code=CLP
+code=NP
 @Party
 name=Greens
 pref=83.0299987793

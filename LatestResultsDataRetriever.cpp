@@ -115,8 +115,8 @@ void LatestResultsDataRetriever::collectData()
 				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
 				seekToTcp(xmlString, searchIt);
 				if (comesBefore(xmlString, "<Candidate>", "</PollingPlace>", searchIt)) {
-					boothData.tcpVote[0] = extractBoothTcp(xmlString, searchIt);
-					boothData.tcpVote[1] = extractBoothTcp(xmlString, searchIt);
+					boothData.newTcpVote[0] = extractBoothTcp(xmlString, searchIt);
+					boothData.newTcpVote[1] = extractBoothTcp(xmlString, searchIt);
 					boothData.candidateId[0] = seatData.finalCandidates[0].candidateId;
 					boothData.candidateId[1] = seatData.finalCandidates[1].candidateId;
 				}
