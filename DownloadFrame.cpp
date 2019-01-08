@@ -79,7 +79,7 @@ void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
 {
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
-	std::string url = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/aec-mediafeed-Detailed-Light-20499-20160702190043.zip";
+	std::string url = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/aec-mediafeed-Detailed-Light-20499-20160702235915.zip";
 	ResultsDownloader resultsDownloader;
 	resultsDownloader.loadZippedFile(url, LatestResultsDataRetriever::UnzippedFileName);
 	wxMessageBox("Downloaded latest data from: " + url);

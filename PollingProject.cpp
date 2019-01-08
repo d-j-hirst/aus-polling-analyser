@@ -148,6 +148,9 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		}
 	}
 
+	std::array<int, 2> nationalTotalVotes = { 0, 0 };
+	std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
+
 	PrintDebugLine("Seats:");
 	for (auto seat : seats) {
 		PrintDebug(" Seat of ");
@@ -182,6 +185,19 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 				seatTotalVotes[1] += thisBooth.newTcpVote[1];
 				seatTotalVotesOld[0] += thisBooth.tcpVote[0];
 				seatTotalVotesOld[1] += thisBooth.tcpVote[1];
+				Party const* party[2] = { affiliations[thisBooth.affiliationId[0]], affiliations[thisBooth.affiliationId[1]] };
+				if (party[0]->countAsParty == Party::CountAsParty::IsPartyOne && party[1]->countAsParty == Party::CountAsParty::IsPartyTwo) {
+					nationalTotalVotes[0] += thisBooth.newTcpVote[0];
+					nationalTotalVotes[1] += thisBooth.newTcpVote[1];
+					nationalTotalVotesOld[0] += thisBooth.tcpVote[0];
+					nationalTotalVotesOld[1] += thisBooth.tcpVote[1];
+				}
+				else if (party[0]->countAsParty == Party::CountAsParty::IsPartyTwo && party[1]->countAsParty == Party::CountAsParty::IsPartyOne) {
+					nationalTotalVotes[0] += thisBooth.newTcpVote[1];
+					nationalTotalVotes[1] += thisBooth.newTcpVote[0];
+					nationalTotalVotesOld[0] += thisBooth.tcpVote[1];
+					nationalTotalVotesOld[1] += thisBooth.tcpVote[0];
+				}
 			}
 		}
 
@@ -206,6 +222,28 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			PrintDebugInt(totalNewSeat);
 			PrintDebugLine(" votes");
 		}
+	}
+
+	int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
+	int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
+
+	if (totalOldNational && totalNewNational) {
+		float swing = (float(nationalTotalVotes[0]) / float(totalNewNational) -
+			float(nationalTotalVotesOld[0]) / float(totalOldNational)) * 100.0f;
+		PrintDebug("National: ");
+		if (swing >= 0) {
+			PrintDebugFloat(swing);
+			PrintDebug(" swing to ");
+			PrintDebug(parties.begin()->name);
+		}
+		else {
+			PrintDebugFloat(-swing);
+			PrintDebug(" swing to ");
+			PrintDebug((++parties.begin())->name);
+		}
+		PrintDebug(" from ");
+		PrintDebugInt(totalNewNational);
+		PrintDebugLine(" votes");
 	}
 }
 
