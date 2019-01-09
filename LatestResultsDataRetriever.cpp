@@ -74,7 +74,7 @@ namespace {
 	}
 
 	inline bool moreBoothData(std::string const& xmlString, SearchIterator const& searchIt) {
-		return comesBefore(xmlString, "<PollingPlace>", "</PollingPlaces>", searchIt);
+		return comesBefore(xmlString, "<PollingPlace", "</PollingPlaces>", searchIt);
 	}
 
 	inline bool moreSeatData(std::string const& xmlString, SearchIterator const& searchIt) {

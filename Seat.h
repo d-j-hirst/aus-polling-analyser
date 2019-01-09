@@ -26,13 +26,13 @@ public:
 	Party const* challenger = nullptr;
 	Party const* challenger2 = nullptr;
 	Region* region = nullptr;
-	Result const* latestResult = nullptr;
+	Result const* latestResult = nullptr; // used as a temporary in simulations for storing the latest live result
 
 	// Official seat ID from the electoral commission
 	int officialId = -1;
 
-	std::optional<Results::Seat> previousResult;
-	std::vector<int> booths;
+	std::optional<Results::Seat> previousResults;
+	std::optional<Results::Seat> latestResults;
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;

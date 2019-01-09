@@ -404,6 +404,12 @@ private:
 	// Creates the map between candidates and parties that they belong to.
 	void collectCandidates(PreloadDataRetriever const & dataRetriever);
 
+	// Assuming there is live results data added for this seat, calculates the swing to the incumbent here.
+	float calculateSwingToIncumbent(Seat const& seat);
+
+	// Assuming there is live results data added for this seat, calculates the % completion of the two-party preferred vote.
+	float calculatePercentComplete(Seat const& seat);
+
 	// The name of the project.
 	std::string name;
 

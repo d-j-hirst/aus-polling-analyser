@@ -40,7 +40,7 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 			[seatData](Seat const& seat) { return seat.name == seatData.name || seat.previousName ==seatData.name; });
 		if (matchedSeat != seats.end()) {
 			matchedSeat->officialId = seatData.officialId;
-			matchedSeat->previousResult = seatData;
+			matchedSeat->previousResults = seatData;
 			++seatMatchCount;
 		}
 		else {
@@ -151,20 +151,23 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 	for (auto seat = dataRetriever.beginSeats(); seat != dataRetriever.endSeats(); ++seat) {
 		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
 			{return thisSeat.name == seat->second.name; });
-		matchingSeat->booths = seat->second.booths;
+		matchingSeat->latestResults = seat->second;
 	}
+
+	// Note from here until the next comment is options, just outputs debug info and does not store anything.
 
 	std::array<int, 2> nationalTotalVotes = { 0, 0 };
 	std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
 
 	PrintDebugLine("Seats:");
 	for (auto seat : seats) {
+		if (seat.name != "Corangamite") continue;
 		PrintDebug(" Seat of ");
 		PrintDebug(seat.name);
 		PrintDebugLine(":");
 		std::array<int, 2> seatTotalVotes = { 0, 0 };
 		std::array<int, 2> seatTotalVotesOld = { 0, 0 };
-		for (auto booth : seat.booths) {
+		for (auto booth : seat.latestResults->booths) {
 			Results::Booth thisBooth = booths[booth];
 			int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
 			int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
@@ -187,10 +190,21 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 				PrintDebug(" from ");
 				PrintDebugInt(totalNew);
 				PrintDebugLine(" votes");
+
+				bool seatMatchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
+				if (seatMatchedSame) {
 				seatTotalVotes[0] += thisBooth.newTcpVote[0];
 				seatTotalVotes[1] += thisBooth.newTcpVote[1];
 				seatTotalVotesOld[0] += thisBooth.tcpVote[0];
 				seatTotalVotesOld[1] += thisBooth.tcpVote[1];
+				}
+				else {
+				seatTotalVotes[0] += thisBooth.newTcpVote[1];
+				seatTotalVotes[1] += thisBooth.newTcpVote[0];
+				seatTotalVotesOld[0] += thisBooth.tcpVote[1];
+				seatTotalVotesOld[1] += thisBooth.tcpVote[0];
+				}
+
 				Party const* party[2] = { affiliations[thisBooth.affiliationId[0]], affiliations[thisBooth.affiliationId[1]] };
 				if (party[0]->countAsParty == Party::CountAsParty::IsPartyOne && party[1]->countAsParty == Party::CountAsParty::IsPartyTwo) {
 					nationalTotalVotes[0] += thisBooth.newTcpVote[0];
@@ -217,19 +231,19 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			if (swing >= 0) {
 				PrintDebugFloat(swing);
 				PrintDebug(" swing to ");
-				PrintDebug(affiliations[seat.previousResult->finalCandidates[0].affiliationId]->name);
+				PrintDebug(affiliations[seat.previousResults->finalCandidates[0].affiliationId]->name);
 			}
 			else {
 				PrintDebugFloat(-swing);
 				PrintDebug(" swing to ");
-				PrintDebug(affiliations[seat.previousResult->finalCandidates[1].affiliationId]->name);
+				PrintDebug(affiliations[seat.previousResults->finalCandidates[1].affiliationId]->name);
 			}
 			PrintDebug(" from ");
 			PrintDebugInt(totalNewSeat);
 			PrintDebugLine(" votes");
 		}
 	}
-
+	/*
 	int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
 	int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
 
@@ -250,6 +264,16 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		PrintDebug(" from ");
 		PrintDebugInt(totalNewNational);
 		PrintDebugLine(" votes");
+	}*/
+
+	// Code below stores information
+
+	for (auto seat : seats) {
+		float swing = calculateSwingToIncumbent(seat);
+		float percentComplete = calculatePercentComplete(seat);
+		PrintDebugFloat(swing);
+		PrintDebugFloat(percentComplete);
+		PrintDebugLine(seat.name);
 	}
 }
 
@@ -1612,4 +1636,57 @@ void PollingProject::collectCandidates(PreloadDataRetriever const & dataRetrieve
 			candidates.insert({ candidateIt->first, affiliations[0] });
 		}
 	}
+}
+
+float PollingProject::calculateSwingToIncumbent(Seat const & seat)
+{
+	std::array<int, 2> seatTotalVotes = { 0, 0 };
+	std::array<int, 2> seatTotalVotesOld = { 0, 0 };
+	for (auto booth : seat.latestResults->booths) {
+		Results::Booth thisBooth = booths[booth];
+		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
+		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
+		if (totalOld && totalNew) {
+			bool matchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
+			if (seat.name == "Corangamite") {
+				PrintDebugInt(matchedSame);
+			}
+			if (matchedSame) {
+				seatTotalVotes[0] += thisBooth.newTcpVote[0];
+				seatTotalVotes[1] += thisBooth.newTcpVote[1];
+				seatTotalVotesOld[0] += thisBooth.tcpVote[0];
+				seatTotalVotesOld[1] += thisBooth.tcpVote[1];
+			}
+			else {
+				seatTotalVotes[0] += thisBooth.newTcpVote[1];
+				seatTotalVotes[1] += thisBooth.newTcpVote[0];
+				seatTotalVotesOld[0] += thisBooth.tcpVote[1];
+				seatTotalVotesOld[1] += thisBooth.tcpVote[0];
+			}
+		}
+	}
+
+	int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
+	int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
+
+	if (totalOldSeat && totalNewSeat) {
+		float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
+			float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
+		float swingToIncumbent = swing * (seat.incumbent == candidates[seat.latestResults->finalCandidates[0].candidateId] ? 1 : -1);
+		return swingToIncumbent;
+	}
+	return 0;
+}
+
+float PollingProject::calculatePercentComplete(Seat const & seat)
+{
+	if (seat.latestResults->enrolment <= 0) return 0;
+	int totalVotes = 0;
+	for (auto booth : seat.latestResults->booths) {
+		Results::Booth thisBooth = booths[booth];
+		totalVotes += thisBooth.newTcpVote[0];
+		totalVotes += thisBooth.newTcpVote[1];
+	}
+
+	return float(totalVotes) / float(seat.latestResults->enrolment);
 }

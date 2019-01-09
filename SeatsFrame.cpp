@@ -246,7 +246,7 @@ void SeatsFrame::removeSeat() {
 
 void SeatsFrame::showSeatResults()
 {
-	auto results = project->getSeat(seatData->GetSelectedRow()).previousResult;
+	auto results = project->getSeat(seatData->GetSelectedRow()).previousResults;
 	if (!results) {
 		wxMessageBox("No previous election results for this seat!\n");
 		return;
