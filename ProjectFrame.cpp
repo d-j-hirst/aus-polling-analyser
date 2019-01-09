@@ -172,6 +172,10 @@ void ProjectFrame::refreshDisplay() {
 	if (displayFrame) displayFrame->refreshData();
 }
 
+void ProjectFrame::refreshResults() {
+	if (resultsFrame) resultsFrame->refreshData();
+}
+
 bool ProjectFrame::checkSave() {
 
 	if (project.get()) {

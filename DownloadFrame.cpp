@@ -14,7 +14,7 @@ enum {
 	PA_DownloadFrame_DownloadLatestBoothDataID,
 };
 
-DownloadFrame::DownloadFrame(ProjectFrame* const parent, PollingProject* project)
+DownloadFrame::DownloadFrame(ProjectFrame* parent, PollingProject* project)
 	: GenericChildFrame(parent, PA_DownloadFrame_FrameID, "Downloads", wxPoint(0, 0), project),
 		parent(parent)
 {
@@ -87,6 +87,7 @@ void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
+	parent->refreshResults();
 }
 
 void DownloadFrame::refreshToolbar()

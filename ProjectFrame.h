@@ -78,6 +78,9 @@ public:
 	// Refreshes the Display frame.
 	void refreshDisplay();
 
+	// Refreshes the Results frame.
+	void refreshResults();
+
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 

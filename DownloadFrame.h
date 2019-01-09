@@ -37,7 +37,7 @@ class DownloadFrame : public GenericChildFrame
 public:
 	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
 	// "project" is a pointer to the polling project object.
-	DownloadFrame(ProjectFrame* const parent, PollingProject* project);
+	DownloadFrame(ProjectFrame* parent, PollingProject* project);
 
 private:
 
@@ -56,5 +56,5 @@ private:
 	void updateInterface();
 
 	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	ProjectFrame* parent;
 };

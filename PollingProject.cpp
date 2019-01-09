@@ -156,124 +156,128 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 	// Note from here until the next comment is options, just outputs debug info and does not store anything.
 
-	std::array<int, 2> nationalTotalVotes = { 0, 0 };
-	std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
+	//std::array<int, 2> nationalTotalVotes = { 0, 0 };
+	//std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
 
-	PrintDebugLine("Seats:");
-	for (auto seat : seats) {
-		if (seat.name != "Corangamite") continue;
-		PrintDebug(" Seat of ");
-		PrintDebug(seat.name);
-		PrintDebugLine(":");
-		std::array<int, 2> seatTotalVotes = { 0, 0 };
-		std::array<int, 2> seatTotalVotesOld = { 0, 0 };
-		for (auto booth : seat.latestResults->booths) {
-			Results::Booth thisBooth = booths[booth];
-			int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
-			int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
-			if (totalOld && totalNew) {
-				float swing = (float(thisBooth.newTcpVote[0]) / float(totalNew) -
-					float(thisBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
-				PrintDebug("  Booth - ");
-				PrintDebug(thisBooth.name);
-				PrintDebug(": ");
-				if (swing >= 0) {
-					PrintDebugFloat(swing);
-					PrintDebug(" swing to ");
-					PrintDebug(affiliations[thisBooth.affiliationId[0]]->name);
-				}
-				else {
-					PrintDebugFloat(-swing);
-					PrintDebug(" swing to ");
-					PrintDebug(affiliations[thisBooth.affiliationId[1]]->name);
-				}
-				PrintDebug(" from ");
-				PrintDebugInt(totalNew);
-				PrintDebugLine(" votes");
+	//PrintDebugLine("Seats:");
+	//for (auto seat : seats) {
+	//	if (seat.name != "Corangamite") continue;
+	//	PrintDebug(" Seat of ");
+	//	PrintDebug(seat.name);
+	//	PrintDebugLine(":");
+	//	std::array<int, 2> seatTotalVotes = { 0, 0 };
+	//	std::array<int, 2> seatTotalVotesOld = { 0, 0 };
+	//	for (auto booth : seat.latestResults->booths) {
+	//		Results::Booth thisBooth = booths[booth];
+	//		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
+	//		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
+	//		if (totalOld && totalNew) {
+	//			float swing = (float(thisBooth.newTcpVote[0]) / float(totalNew) -
+	//				float(thisBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
+	//			PrintDebug("  Booth - ");
+	//			PrintDebug(thisBooth.name);
+	//			PrintDebug(": ");
+	//			if (swing >= 0) {
+	//				PrintDebugFloat(swing);
+	//				PrintDebug(" swing to ");
+	//				PrintDebug(affiliations[thisBooth.affiliationId[0]]->name);
+	//			}
+	//			else {
+	//				PrintDebugFloat(-swing);
+	//				PrintDebug(" swing to ");
+	//				PrintDebug(affiliations[thisBooth.affiliationId[1]]->name);
+	//			}
+	//			PrintDebug(" from ");
+	//			PrintDebugInt(totalNew);
+	//			PrintDebugLine(" votes");
 
-				bool seatMatchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
-				if (seatMatchedSame) {
-				seatTotalVotes[0] += thisBooth.newTcpVote[0];
-				seatTotalVotes[1] += thisBooth.newTcpVote[1];
-				seatTotalVotesOld[0] += thisBooth.tcpVote[0];
-				seatTotalVotesOld[1] += thisBooth.tcpVote[1];
-				}
-				else {
-				seatTotalVotes[0] += thisBooth.newTcpVote[1];
-				seatTotalVotes[1] += thisBooth.newTcpVote[0];
-				seatTotalVotesOld[0] += thisBooth.tcpVote[1];
-				seatTotalVotesOld[1] += thisBooth.tcpVote[0];
-				}
+	//			bool seatMatchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
+	//			if (seatMatchedSame) {
+	//			seatTotalVotes[0] += thisBooth.newTcpVote[0];
+	//			seatTotalVotes[1] += thisBooth.newTcpVote[1];
+	//			seatTotalVotesOld[0] += thisBooth.tcpVote[0];
+	//			seatTotalVotesOld[1] += thisBooth.tcpVote[1];
+	//			}
+	//			else {
+	//			seatTotalVotes[0] += thisBooth.newTcpVote[1];
+	//			seatTotalVotes[1] += thisBooth.newTcpVote[0];
+	//			seatTotalVotesOld[0] += thisBooth.tcpVote[1];
+	//			seatTotalVotesOld[1] += thisBooth.tcpVote[0];
+	//			}
 
-				Party const* party[2] = { affiliations[thisBooth.affiliationId[0]], affiliations[thisBooth.affiliationId[1]] };
-				if (party[0]->countAsParty == Party::CountAsParty::IsPartyOne && party[1]->countAsParty == Party::CountAsParty::IsPartyTwo) {
-					nationalTotalVotes[0] += thisBooth.newTcpVote[0];
-					nationalTotalVotes[1] += thisBooth.newTcpVote[1];
-					nationalTotalVotesOld[0] += thisBooth.tcpVote[0];
-					nationalTotalVotesOld[1] += thisBooth.tcpVote[1];
-				}
-				else if (party[0]->countAsParty == Party::CountAsParty::IsPartyTwo && party[1]->countAsParty == Party::CountAsParty::IsPartyOne) {
-					nationalTotalVotes[0] += thisBooth.newTcpVote[1];
-					nationalTotalVotes[1] += thisBooth.newTcpVote[0];
-					nationalTotalVotesOld[0] += thisBooth.tcpVote[1];
-					nationalTotalVotesOld[1] += thisBooth.tcpVote[0];
-				}
-			}
-		}
+	//			Party const* party[2] = { affiliations[thisBooth.affiliationId[0]], affiliations[thisBooth.affiliationId[1]] };
+	//			if (party[0]->countAsParty == Party::CountAsParty::IsPartyOne && party[1]->countAsParty == Party::CountAsParty::IsPartyTwo) {
+	//				nationalTotalVotes[0] += thisBooth.newTcpVote[0];
+	//				nationalTotalVotes[1] += thisBooth.newTcpVote[1];
+	//				nationalTotalVotesOld[0] += thisBooth.tcpVote[0];
+	//				nationalTotalVotesOld[1] += thisBooth.tcpVote[1];
+	//			}
+	//			else if (party[0]->countAsParty == Party::CountAsParty::IsPartyTwo && party[1]->countAsParty == Party::CountAsParty::IsPartyOne) {
+	//				nationalTotalVotes[0] += thisBooth.newTcpVote[1];
+	//				nationalTotalVotes[1] += thisBooth.newTcpVote[0];
+	//				nationalTotalVotesOld[0] += thisBooth.tcpVote[1];
+	//				nationalTotalVotesOld[1] += thisBooth.tcpVote[0];
+	//			}
+	//		}
+	//	}
 
-		int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
-		int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
+	//	int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
+	//	int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
 
-		if (totalOldSeat && totalNewSeat) {
-			float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
-				float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
-			PrintDebug(" Total: ");
-			if (swing >= 0) {
-				PrintDebugFloat(swing);
-				PrintDebug(" swing to ");
-				PrintDebug(affiliations[seat.previousResults->finalCandidates[0].affiliationId]->name);
-			}
-			else {
-				PrintDebugFloat(-swing);
-				PrintDebug(" swing to ");
-				PrintDebug(affiliations[seat.previousResults->finalCandidates[1].affiliationId]->name);
-			}
-			PrintDebug(" from ");
-			PrintDebugInt(totalNewSeat);
-			PrintDebugLine(" votes");
-		}
-	}
-	/*
-	int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
-	int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
+	//	if (totalOldSeat && totalNewSeat) {
+	//		float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
+	//			float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
+	//		PrintDebug(" Total: ");
+	//		if (swing >= 0) {
+	//			PrintDebugFloat(swing);
+	//			PrintDebug(" swing to ");
+	//			PrintDebug(affiliations[seat.previousResults->finalCandidates[0].affiliationId]->name);
+	//		}
+	//		else {
+	//			PrintDebugFloat(-swing);
+	//			PrintDebug(" swing to ");
+	//			PrintDebug(affiliations[seat.previousResults->finalCandidates[1].affiliationId]->name);
+	//		}
+	//		PrintDebug(" from ");
+	//		PrintDebugInt(totalNewSeat);
+	//		PrintDebugLine(" votes");
+	//	}
+	//}
+	
+	//int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
+	//int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
 
-	if (totalOldNational && totalNewNational) {
-		float swing = (float(nationalTotalVotes[0]) / float(totalNewNational) -
-			float(nationalTotalVotesOld[0]) / float(totalOldNational)) * 100.0f;
-		PrintDebug("National: ");
-		if (swing >= 0) {
-			PrintDebugFloat(swing);
-			PrintDebug(" swing to ");
-			PrintDebug(parties.begin()->name);
-		}
-		else {
-			PrintDebugFloat(-swing);
-			PrintDebug(" swing to ");
-			PrintDebug((++parties.begin())->name);
-		}
-		PrintDebug(" from ");
-		PrintDebugInt(totalNewNational);
-		PrintDebugLine(" votes");
-	}*/
+	//if (totalOldNational && totalNewNational) {
+	//	float swing = (float(nationalTotalVotes[0]) / float(totalNewNational) -
+	//		float(nationalTotalVotesOld[0]) / float(totalOldNational)) * 100.0f;
+	//	PrintDebug("National: ");
+	//	if (swing >= 0) {
+	//		PrintDebugFloat(swing);
+	//		PrintDebug(" swing to ");
+	//		PrintDebug(parties.begin()->name);
+	//	}
+	//	else {
+	//		PrintDebugFloat(-swing);
+	//		PrintDebug(" swing to ");
+	//		PrintDebug((++parties.begin())->name);
+	//	}
+	//	PrintDebug(" from ");
+	//	PrintDebugInt(totalNewNational);
+	//	PrintDebugLine(" votes");
+	//}
 
 	// Code below stores information
 
-	for (auto seat : seats) {
-		float swing = calculateSwingToIncumbent(seat);
+	wxDateTime dateTime = wxDateTime::Now();
+	for (auto& seat : seats) {
+		float incumbentSwing = calculateSwingToIncumbent(seat);
 		float percentComplete = calculatePercentComplete(seat);
-		PrintDebugFloat(swing);
-		PrintDebugFloat(percentComplete);
-		PrintDebugLine(seat.name);
+		Result thisResult;
+		thisResult.seat = &seat;
+		thisResult.incumbentSwing = incumbentSwing;
+		thisResult.percentCounted = percentComplete;
+		thisResult.updateTime = dateTime;
+		addResult(thisResult);
 	}
 }
 
@@ -1648,9 +1652,6 @@ float PollingProject::calculateSwingToIncumbent(Seat const & seat)
 		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
 		if (totalOld && totalNew) {
 			bool matchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
-			if (seat.name == "Corangamite") {
-				PrintDebugInt(matchedSame);
-			}
 			if (matchedSame) {
 				seatTotalVotes[0] += thisBooth.newTcpVote[0];
 				seatTotalVotes[1] += thisBooth.newTcpVote[1];
@@ -1688,5 +1689,5 @@ float PollingProject::calculatePercentComplete(Seat const & seat)
 		totalVotes += thisBooth.newTcpVote[1];
 	}
 
-	return float(totalVotes) / float(seat.latestResults->enrolment);
+	return float(totalVotes) / float(seat.latestResults->enrolment) * 100.0f;
 }
