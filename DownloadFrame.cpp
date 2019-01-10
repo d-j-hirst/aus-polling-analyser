@@ -81,6 +81,7 @@ void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
 	// downloading and re-downloading the same data
 	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/aec-mediafeed-Detailed-Light-20499-20160702235915.zip";
 	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
+	if (userUrl.empty()) return;
 	ResultsDownloader resultsDownloader;
 	resultsDownloader.loadZippedFile(userUrl, LatestResultsDataRetriever::UnzippedFileName);
 	wxMessageBox("Downloaded latest data from: " + userUrl);

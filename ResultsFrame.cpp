@@ -184,14 +184,19 @@ void ResultsFrame::addResultToResultData(Result result)
 	float p3 = result.seat->partyOthersWinRate;
 	float leaderProb = std::max(result.seat->partyOneWinRate * 100.0f,
 		std::max(result.seat->partyTwoWinRate * 100.0f, result.seat->partyOthersWinRate * 100.0f));
-	std::string leadingPartyName = (p1 > p2 && p1 > p3 ? project->getParty(0).abbreviation
-		: (p2 > p3 ? project->getParty(1).abbreviation : "OTH"));
+	Party const* thisParty = (p1 > p2 && p1 > p3 ? project->getPartyPtr(0)
+		: (p2 > p3 ? project->getPartyPtr(1) : nullptr));
+	std::string leadingPartyName = (thisParty ? thisParty->abbreviation : "OTH");
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
 		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));
 	std::string likelihoodString = (likelihoodRating == 0 ? "Slight Lean" : (likelihoodRating == 1 ? "Lean" :
 		(likelihoodRating == 2 ? "Likely" : (likelihoodRating == 3 ? "Very Likely" : (
 		(likelihoodRating == 4 ? "Solid" :  "Safe"))))));
 	std::string statusString = likelihoodString + " (" + formatFloat(leaderProb, 2) + ") " + leadingPartyName;
+	float lightnessFactor = (float(5 - likelihoodRating) * 0.2f) * 0.8f;
+	wxColour resultColour = wxColour(int(255.0f * lightnessFactor + float(thisParty ? thisParty->colour.r : 128) * (1.0f - lightnessFactor)),
+		int(255.0f * lightnessFactor + float(thisParty ? thisParty->colour.g : 128) * (1.0f - lightnessFactor)),
+		int(255.0f * lightnessFactor + float(thisParty ? thisParty->colour.b : 128) * (1.0f - lightnessFactor)));
 
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
@@ -204,6 +209,7 @@ void ResultsFrame::addResultToResultData(Result result)
 	resultsData->SetCellValue(row, 6, formatFloat(result.seat->partyTwoWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 8, statusString);
+	resultsData->SetCellBackgroundColour(row, 8, resultColour);
 }
 
 void ResultsFrame::updateInterface()
