@@ -6,6 +6,7 @@
 
 #include <wx/valnum.h>
 
+
 // IDs for the controls and the menu commands
 enum {
 	PA_ResultsFrame_Base = 700, // To avoid mixing events with other frames.
@@ -41,7 +42,7 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
 	// Create the model data control.
-	resultsData = new wxDataViewListCtrl(dataPanel,
+	resultsData = new wxGrid(dataPanel,
 		PA_ResultsFrame_DataViewID,
 		wxPoint(0, 0),
 		dataPanel->GetClientSize());
@@ -66,29 +67,36 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 
 void ResultsFrame::refreshData()
 {
-	resultsData->DeleteAllItems();
-	resultsData->ClearColumns();
+	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
 
-	resultsData->AppendTextColumn("Seat Name", wxDATAVIEW_CELL_INERT, 110, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("Swing", wxDATAVIEW_CELL_INERT, 50, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("Count %", wxDATAVIEW_CELL_INERT, 50, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("Updated", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("Proj. Margin", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("ALP chance", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("LIB chance", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	resultsData->AppendTextColumn("OTH chance", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	if (!resultsData->GetNumberCols()) {
+		resultsData->CreateGrid(0, int(8), wxGrid::wxGridSelectCells);
+		resultsData->SetColLabelValue(0, "Seat Name");
+		resultsData->SetColLabelValue(1, "Swing");
+		resultsData->SetColLabelValue(2, "Count %");
+		resultsData->SetColLabelValue(3, "Updated");
+		resultsData->SetColLabelValue(4, "Proj. Margin");
+		resultsData->SetColLabelValue(5, "ALP prob.");
+		resultsData->SetColLabelValue(6, "LNP prob.");
+		resultsData->SetColLabelValue(7, "Other prob.");
+		resultsData->SetColSize(0, 100);
+		resultsData->SetColSize(1, 40);
+		resultsData->SetColSize(2, 60);
+		resultsData->SetColSize(3, 60);
+		resultsData->SetColSize(4, 85);
+		resultsData->SetColSize(5, 70);
+		resultsData->SetColSize(6, 70);
+		resultsData->SetColSize(7, 70);
+		resultsData->SetRowLabelSize(0);
+	}
+
+	if (resultsData->GetNumberRows()) resultsData->DeleteRows(0, resultsData->GetNumberRows());
 
 	for (int i = 0; i < project->getResultCount(); ++i) {
 		addResultToResultData(project->getResult(i));
 	}
+
+	resultsData->EndBatch(); // refresh grid data on screen
 }
 
 void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
@@ -166,15 +174,20 @@ void ResultsFrame::addResultToResultData(Result result)
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	float percentCounted = result.getPercentCountedEstimate();
-	data.push_back(wxVariant(result.seat->name));
-	data.push_back(wxVariant(formatFloat(result.incumbentSwing, 1)));
-	data.push_back(wxVariant(formatFloat(percentCounted, 1)));
-	data.push_back(wxVariant(result.updateTime.FormatISOTime()));
-	data.push_back(wxVariant(formatFloat(result.seat->simulatedMarginAverage, 2)));
-	data.push_back(wxVariant(formatFloat(result.seat->partyOneWinRate, 2)));
-	data.push_back(wxVariant(formatFloat(result.seat->partyTwoWinRate, 2)));
-	data.push_back(wxVariant(formatFloat(result.seat->partyOthersWinRate, 2)));
-	resultsData->AppendItem(data);
+	float projectedSwing = result.seat->simulatedMarginAverage - result.seat->margin;
+	std::string projectedMarginString = formatFloat(result.seat->simulatedMarginAverage, 2) + " (" +
+		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
+
+	resultsData->AppendRows(1);
+	int row = resultsData->GetNumberRows() - 1;
+	resultsData->SetCellValue(row, 0, result.seat->name);
+	resultsData->SetCellValue(row, 1, formatFloat(result.incumbentSwing, 1));
+	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
+	resultsData->SetCellValue(row, 3, result.updateTime.FormatISOTime());
+	resultsData->SetCellValue(row, 4, projectedMarginString);
+	resultsData->SetCellValue(row, 5, formatFloat(result.seat->partyOneWinRate, 2));
+	resultsData->SetCellValue(row, 6, formatFloat(result.seat->partyTwoWinRate, 2));
+	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate, 2));
 }
 
 void ResultsFrame::updateInterface()

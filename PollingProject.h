@@ -355,6 +355,10 @@ public:
 	// Gets the end iterator for the simulation list.
 	std::list<Result>::iterator getResultEnd();
 
+	// Each seat has a pointer to the latest live result (if any)
+	// This updates these pointers to point to the most recent results.
+	void updateLatestResultsForSeats();
+
 	// Gets the booth matching this official ID.
 	Results::Booth const& getBooth(int boothId);
 

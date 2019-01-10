@@ -150,7 +150,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 	for (auto seat = dataRetriever.beginSeats(); seat != dataRetriever.endSeats(); ++seat) {
 		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
-			{return thisSeat.name == seat->second.name; });
+		{return thisSeat.name == seat->second.name; });
 		matchingSeat->latestResults = seat->second;
 	}
 
@@ -243,7 +243,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 	//		PrintDebugLine(" votes");
 	//	}
 	//}
-	
+
 	//int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
 	//int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
 
@@ -268,17 +268,22 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 	// Code below stores information
 
+	updateLatestResultsForSeats(); // only overwrite different results
 	wxDateTime dateTime = wxDateTime::Now();
 	for (auto& seat : seats) {
+		float percentCounted = calculatePercentComplete(seat);
+		if (!percentCounted) continue; // don't update seats that don't have results yet
 		float incumbentSwing = calculateSwingToIncumbent(seat);
-		float percentComplete = calculatePercentComplete(seat);
 		Result thisResult;
 		thisResult.seat = &seat;
 		thisResult.incumbentSwing = incumbentSwing;
-		thisResult.percentCounted = percentComplete;
+		thisResult.percentCounted = percentCounted;
 		thisResult.updateTime = dateTime;
-		addResult(thisResult);
+		if (!seat.latestResult || seat.latestResult->percentCounted != percentCounted) {
+			addResult(thisResult);
+		}
 	}
+	updateLatestResultsForSeats(); // only overwrite different results
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -840,6 +845,12 @@ Results::Booth const& PollingProject::getBooth(int boothId)
 	return booths.at(boothId);
 }
 
+void PollingProject::updateLatestResultsForSeats() {
+	for (auto& thisResult : results) {
+		if (!thisResult.seat->latestResult) thisResult.seat->latestResult = &thisResult;
+	}
+}
+
 int PollingProject::save(std::string filename) {
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
 	os << std::setprecision(12);
@@ -1026,6 +1037,8 @@ void PollingProject::open(std::string filename) {
 	}
 
 	is.close();
+
+	results.clear(); // *** remove!
 
 	finalizeFileLoading();
 }

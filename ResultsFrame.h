@@ -18,6 +18,7 @@
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 #include "Debug.h"
+#include "wx/grid.h"
 
 class ProjectFrame;
 class GenericChildFrame;
@@ -82,7 +83,7 @@ private:
 	wxPanel* dataPanel = nullptr;
 
 	// Control containing vote count data (from the dataPanel above)
-	wxDataViewListCtrl* resultsData = nullptr;
+	wxGrid* resultsData = nullptr;
 
 	bool displayPolls = true;
 };

@@ -48,9 +48,7 @@ void Simulation::run(PollingProject& project) {
 		++thisSeat->region->seatCount;
 	}
 
-	for (auto thisResult = project.getResultBegin(); thisResult != project.getResultEnd(); ++thisResult) {
-		if (!thisResult->seat->latestResult) thisResult->seat->latestResult = &*thisResult;
-	}
+	project.updateLatestResultsForSeats();
 
 	// Resize regional seat counts based on the counted number of seats for each region
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
@@ -216,7 +214,7 @@ void Simulation::run(PollingProject& project) {
 					if (uniformRand < thisSeat->partyTwoProb) {
 						thisSeat->winner = thisSeat->livePartyTwo;
 					}
-					else if (uniformRand < thisSeat->partyTwoProb + thisSeat->partyThreeProb) {
+					else if (thisSeat->livePartyThree && uniformRand < thisSeat->partyTwoProb + thisSeat->partyThreeProb) {
 						thisSeat->winner = thisSeat->livePartyThree;
 					}
 					else {
@@ -231,7 +229,7 @@ void Simulation::run(PollingProject& project) {
 					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 					// Winner 
 					if (uniformRand < oddsInfo.incumbentChance) thisSeat->winner = thisSeat->incumbent;
-					else if (uniformRand < oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger;
+					else if (uniformRand < oddsInfo.topTwoChance || !thisSeat->challenger2) thisSeat->winner = thisSeat->challenger;
 					else thisSeat->winner = thisSeat->challenger2;
 				}
 			}
