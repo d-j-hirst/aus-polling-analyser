@@ -20,6 +20,12 @@ struct Party {
 		Two
 	};
 
+	struct Colour {
+		int r;
+		int g;
+		int b;
+	};
+
 	Party(std::string name, float preferenceShare, float exhaustRate, std::string abbreviation, CountAsParty countAsParty)
 		: name(name), preferenceShare(preferenceShare), exhaustRate(exhaustRate), abbreviation(abbreviation), countAsParty(countAsParty) {}
 	Party() {}
@@ -30,4 +36,5 @@ struct Party {
 	std::vector<std::string> officialCodes; // official codes that match to this party according to the electoral commission
 	CountAsParty countAsParty = CountAsParty::None;
 	SupportsParty supportsParty = SupportsParty::None;
+	Colour colour = { 255, 255, 255 };
 };

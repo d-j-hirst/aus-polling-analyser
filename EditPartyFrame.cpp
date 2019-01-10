@@ -12,12 +12,13 @@ enum
 	PA_EditParty_TextBoxID_ExhaustRate,
 	PA_EditParty_TextBoxID_Abbreviation,
 	PA_EditParty_TextBoxID_OfficialShortCodes,
+	PA_EditParty_ColourPickerID_Colour,
 	PA_EditParty_ComboBoxID_CountAsParty,
 	PA_EditParty_ComboBoxID_SupportsParty,
 };
 
 EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Party party)
-	: wxDialog(NULL, 0, (isNewParty ? "New Party" : "Edit Party")),
+	: wxDialog(NULL, 0, (isNewParty ? "New Party" : "Edit Party"), wxDefaultPosition, wxSize(400, 400)),
 	isNewParty(isNewParty), parent(parent), party(party)
 {
 	// Generate the string for the preference flow.
@@ -69,8 +70,16 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	}
 
 	// Create the controls for the party's official short codes
-	abbreviationStaticText = new wxStaticText(this, 0, "Official Short Codes:", wxPoint(2, currentHeight), wxSize(150, 23));
-	abbreviationTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_OfficialShortCodes, shortCodes, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	officialShortCodesStaticText = new wxStaticText(this, 0, "Official Short Codes:", wxPoint(2, currentHeight), wxSize(150, 23));
+	officialShortCodesTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_OfficialShortCodes, shortCodes, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+
+	currentHeight += 27;
+
+	wxColour currentColour(party.colour.r, party.colour.g, party.colour.b);
+
+	// Create the controls for the party's colour
+	colourPickerText = new wxStaticText(this, 0, "Colour:", wxPoint(2, currentHeight), wxSize(150, 23));
+	colourPicker = new wxColourPickerCtrl(this, PA_EditParty_ColourPickerID_Colour, currentColour, wxPoint(150, currentHeight - 2), wxSize(200, 23));
 
 	currentHeight += 27;
 
@@ -137,6 +146,7 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextExhaustRate, this, PA_EditParty_TextBoxID_ExhaustRate);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextOfficialShortCodes, this, PA_EditParty_TextBoxID_OfficialShortCodes);
+	Bind(wxEVT_COLOURPICKER_CHANGED, &EditPartyFrame::updateColourPicker, this, PA_EditParty_ColourPickerID_Colour);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxSupportsParty, this, PA_EditParty_ComboBoxID_SupportsParty);
 	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, PA_EditParty_ButtonID_OK);
@@ -240,6 +250,13 @@ void EditPartyFrame::updateTextOfficialShortCodes(wxCommandEvent& event) {
 			party.officialCodes.push_back(matchResults[matchIndex].str());
 		}
 	}
+}
+
+void EditPartyFrame::updateColourPicker(wxColourPickerEvent & event)
+{
+	party.colour.r = event.GetColour().Red();
+	party.colour.g = event.GetColour().Green();
+	party.colour.b = event.GetColour().Blue();
 }
 
 void EditPartyFrame::updateComboBoxCountAsParty(wxCommandEvent& WXUNUSED(event)) {

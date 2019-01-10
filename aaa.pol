@@ -12,6 +12,9 @@ cap =1
 supp=1
 code=ALP
 code=CLR
+colr=255
+colg=32
+colb=32
 @Party
 name=Coalition
 pref=0
@@ -25,14 +28,20 @@ code=NAT
 code=LNP
 code=CLP
 code=NP
+colr=55
+colg=55
+colb=255
 @Party
 name=Greens
 pref=83.0299987793
 exha=0
 abbr=GRN
 cap =0
-supp=0
+supp=1
 code=GRN
+colr=0
+colg=213
+colb=0
 @Party
 name=Palmer United Party
 pref=46.3300018311
@@ -41,14 +50,20 @@ abbr=PUP
 cap =0
 supp=0
 code=PUP
+colr=226
+colg=216
+colb=22
 @Party
 name=Katter's Australian Party
 pref=46
 exha=0
 abbr=KAP
 cap =0
-supp=0
+supp=2
 code=KAP
+colr=199
+colg=97
+colb=35
 @Party
 name=Nick Xenophon Team
 pref=46.9700012207
@@ -58,6 +73,9 @@ cap =0
 supp=0
 code=NXT
 code=CA
+colr=255
+colg=128
+colb=0
 @Party
 name=Independent
 pref=47
@@ -66,6 +84,9 @@ abbr=IND
 cap =0
 supp=0
 code=IND
+colr=144
+colg=144
+colb=144
 #Pollsters
 @Pollster
 name=Newspoll

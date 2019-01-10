@@ -70,7 +70,7 @@ void ResultsFrame::refreshData()
 	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
 
 	if (!resultsData->GetNumberCols()) {
-		resultsData->CreateGrid(0, int(8), wxGrid::wxGridSelectCells);
+		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
 		resultsData->SetColLabelValue(0, "Seat Name");
 		resultsData->SetColLabelValue(1, "Swing");
 		resultsData->SetColLabelValue(2, "Count %");
@@ -79,6 +79,7 @@ void ResultsFrame::refreshData()
 		resultsData->SetColLabelValue(5, "ALP prob.");
 		resultsData->SetColLabelValue(6, "LNP prob.");
 		resultsData->SetColLabelValue(7, "Other prob.");
+		resultsData->SetColLabelValue(8, "Status");
 		resultsData->SetColSize(0, 100);
 		resultsData->SetColSize(1, 40);
 		resultsData->SetColSize(2, 60);
@@ -87,6 +88,7 @@ void ResultsFrame::refreshData()
 		resultsData->SetColSize(5, 70);
 		resultsData->SetColSize(6, 70);
 		resultsData->SetColSize(7, 70);
+		resultsData->SetColSize(8, 150);
 		resultsData->SetRowLabelSize(0);
 	}
 
@@ -177,6 +179,19 @@ void ResultsFrame::addResultToResultData(Result result)
 	float projectedSwing = result.seat->simulatedMarginAverage - result.seat->margin;
 	std::string projectedMarginString = formatFloat(result.seat->simulatedMarginAverage, 2) + " (" +
 		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
+	float p1 = result.seat->partyOneWinRate;
+	float p2 = result.seat->partyTwoWinRate;
+	float p3 = result.seat->partyOthersWinRate;
+	float leaderProb = std::max(result.seat->partyOneWinRate * 100.0f,
+		std::max(result.seat->partyTwoWinRate * 100.0f, result.seat->partyOthersWinRate * 100.0f));
+	std::string leadingPartyName = (p1 > p2 && p1 > p3 ? project->getParty(0).abbreviation
+		: (p2 > p3 ? project->getParty(1).abbreviation : "OTH"));
+	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
+		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));
+	std::string likelihoodString = (likelihoodRating == 0 ? "Slight Lean" : (likelihoodRating == 1 ? "Lean" :
+		(likelihoodRating == 2 ? "Likely" : (likelihoodRating == 3 ? "Very Likely" : (
+		(likelihoodRating == 4 ? "Solid" :  "Safe"))))));
+	std::string statusString = likelihoodString + " (" + formatFloat(leaderProb, 2) + ") " + leadingPartyName;
 
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
@@ -185,9 +200,10 @@ void ResultsFrame::addResultToResultData(Result result)
 	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
 	resultsData->SetCellValue(row, 3, result.updateTime.FormatISOTime());
 	resultsData->SetCellValue(row, 4, projectedMarginString);
-	resultsData->SetCellValue(row, 5, formatFloat(result.seat->partyOneWinRate, 2));
-	resultsData->SetCellValue(row, 6, formatFloat(result.seat->partyTwoWinRate, 2));
-	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate, 2));
+	resultsData->SetCellValue(row, 5, formatFloat(result.seat->partyOneWinRate * 100.0f, 2));
+	resultsData->SetCellValue(row, 6, formatFloat(result.seat->partyTwoWinRate * 100.0f, 2));
+	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate * 100.0f, 2));
+	resultsData->SetCellValue(row, 8, statusString);
 }
 
 void ResultsFrame::updateInterface()

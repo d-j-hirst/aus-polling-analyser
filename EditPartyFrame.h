@@ -15,6 +15,7 @@
 
 #include <sstream>
 #include <wx/valnum.h>
+#include <wx/clrpicker.h>
 
 #include "PartiesFrame.h"
 #include "Debug.h"
@@ -63,6 +64,10 @@ private:
 	// the result of the GetString() method of "event".
 	void updateTextOfficialShortCodes(wxCommandEvent& event);
 
+	// Calls upon the window to update the preliminary abbreviation data based on
+	// the result of the GetString() method of "event".
+	void updateColourPicker(wxColourPickerEvent& event);
+
 	// Calls upon the window to update the "count-as-party" data based on
 	// the properties of the event.
 	void updateComboBoxCountAsParty(wxCommandEvent& event);
@@ -90,6 +95,8 @@ private:
 	wxTextCtrl* exhaustRateTextCtrl;
 	wxStaticText* officialShortCodesStaticText;
 	wxTextCtrl* officialShortCodesTextCtrl;
+	wxStaticText* colourPickerText;
+	wxColourPickerCtrl* colourPicker;
 	wxStaticText* countAsPartyStaticText;
 	wxComboBox* countAsPartyComboBox;
 	wxStaticText* supportsPartyStaticText;

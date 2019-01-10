@@ -52,13 +52,7 @@ void PreloadDataRetriever::collectData()
 				bool independent = candidateIsIndependent(xmlString, searchIt);
 				int candidateId = extractCandidateId(xmlString, searchIt);
 				int affiliationId = 0;
-				if (candidateId == 17322) {
-					PrintDebugLine("SCOTT, Duncan");
-				}
-				if (candidateId == 28049) {
-					PrintDebugLine("Ken O'Dowd");
-				}
-				if (!independent) {
+				if (!independent && comesBefore(xmlString, "<Affiliation", "</Candidate>", searchIt)) {
 					affiliationId = extractAffiliationId(xmlString, searchIt);
 				}
 				candidates.insert({ candidateId, affiliationId });

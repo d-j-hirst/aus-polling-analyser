@@ -161,16 +161,27 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 	//PrintDebugLine("Seats:");
 	//for (auto seat : seats) {
-	//	if (seat.name != "Corangamite") continue;
+	//	if (seat.name != "Longman") continue;
 	//	PrintDebug(" Seat of ");
 	//	PrintDebug(seat.name);
 	//	PrintDebugLine(":");
 	//	std::array<int, 2> seatTotalVotes = { 0, 0 };
 	//	std::array<int, 2> seatTotalVotesOld = { 0, 0 };
+	//	PrintDebugInt(seat.latestResults->booths.size());
+	//	PrintDebugLine("booths for this seat");
 	//	for (auto booth : seat.latestResults->booths) {
 	//		Results::Booth thisBooth = booths[booth];
 	//		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
 	//		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
+	//		PrintDebugInt(totalOld);
+	//		PrintDebugInt(totalNew);
+	//		PrintDebug("old/new votes for booth ");
+	//		PrintDebugInt(thisBooth.officialId);
+	//		PrintDebugNewLine();
+	//		PrintDebugInt(thisBooth.newTcpVote[0]);
+	//		PrintDebugInt(thisBooth.newTcpVote[1]);
+	//		PrintDebug("votes for each candidate ");
+	//		PrintDebugNewLine();
 	//		if (totalOld && totalNew) {
 	//			float swing = (float(thisBooth.newTcpVote[0]) / float(totalNew) -
 	//				float(thisBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
@@ -871,6 +882,9 @@ int PollingProject::save(std::string filename) {
 		for (std::string officialCode : thisParty.officialCodes) {
 			os << "code=" << officialCode << "\n";
 		}
+		os << "colr=" << thisParty.colour.r << "\n";
+		os << "colg=" << thisParty.colour.g << "\n";
+		os << "colb=" << thisParty.colour.b << "\n";
 	}
 	os << "#Pollsters" << "\n";
 	for (auto it = pollsters.begin(); it != pollsters.end(); ++it) {
@@ -1199,6 +1213,18 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("code=")) {
 			parties.back().officialCodes.push_back(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("colr=")) {
+			parties.back().colour.r = std::stoi(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("colg=")) {
+			parties.back().colour.g = std::stoi(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("colb=")) {
+			parties.back().colour.b = std::stoi(line.substr(5));
 			return true;
 		}
 	}
