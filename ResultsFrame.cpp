@@ -184,7 +184,10 @@ void ResultsFrame::addResultToResultData(Result result)
 {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
-	wxColour swingColour = wxColour(255, 255 - std::min(127, int(abs(result.incumbentSwing) * 10.f)), 255 - std::min(255, int(abs(result.incumbentSwing) * 20.f)));
+	Party::Colour swingPartyColour = (result.incumbentSwing > 0.0f ? result.seat->incumbent->colour : result.seat->challenger->colour);
+	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };
+	float incSw = std::min(1.0f, float(abs(result.incumbentSwing)) * 0.08f);
+	wxColour swingColour = wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
 	float percentCounted = result.getPercentCountedEstimate();
 	wxColour percentCountedColour = wxColour(255 - std::min(255, int(result.percentCounted * 2.55f)), 255, 255 - std::min(255, int(result.percentCounted * 2.55f)));
 	float projectedSwing = result.seat->simulatedMarginAverage - result.seat->margin;
