@@ -79,6 +79,9 @@ private:
 	// Text box used to enter the total number of booths for the seat
 	wxTextCtrl* totalBoothCountTextCtrl = nullptr;
 
+	// Text box used to enter the total number of booths for the seat
+	//wxComboBox* totalBoothCountTextCtrl = nullptr;
+
 	// Panel containing vote count data.
 	wxPanel* dataPanel = nullptr;
 

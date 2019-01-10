@@ -175,10 +175,15 @@ void ResultsFrame::addResultToResultData(Result result)
 {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
+	wxColour swingColour = wxColour(255, 255 - std::min(127, int(abs(result.incumbentSwing) * 10.f)), 255 - std::min(255, int(abs(result.incumbentSwing) * 20.f)));
 	float percentCounted = result.getPercentCountedEstimate();
+	wxColour percentCountedColour = wxColour(255 - std::min(255, int(result.percentCounted * 2.55f)), 255, 255 - std::min(255, int(result.percentCounted * 2.55f)));
 	float projectedSwing = result.seat->simulatedMarginAverage - result.seat->margin;
 	std::string projectedMarginString = formatFloat(result.seat->simulatedMarginAverage, 2) + " (" +
 		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
+	float margin = abs(result.seat->simulatedMarginAverage);
+	float marginSignificance = (margin ? 1.0f / (1.0f + abs(result.seat->simulatedMarginAverage)) : 0.0f);
+	wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
 	float p1 = result.seat->partyOneWinRate;
 	float p2 = result.seat->partyTwoWinRate;
 	float p3 = result.seat->partyOthersWinRate;
@@ -202,9 +207,12 @@ void ResultsFrame::addResultToResultData(Result result)
 	int row = resultsData->GetNumberRows() - 1;
 	resultsData->SetCellValue(row, 0, result.seat->name);
 	resultsData->SetCellValue(row, 1, formatFloat(result.incumbentSwing, 1));
+	resultsData->SetCellBackgroundColour(row, 1, swingColour);
 	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
+	resultsData->SetCellBackgroundColour(row, 2, percentCountedColour);
 	resultsData->SetCellValue(row, 3, result.updateTime.FormatISOTime());
 	resultsData->SetCellValue(row, 4, projectedMarginString);
+	resultsData->SetCellBackgroundColour(row, 4, projectedMarginColour);
 	resultsData->SetCellValue(row, 5, formatFloat(result.seat->partyOneWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 6, formatFloat(result.seat->partyTwoWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate * 100.0f, 2));
