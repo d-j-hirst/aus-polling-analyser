@@ -859,6 +859,7 @@ Results::Booth const& PollingProject::getBooth(int boothId)
 void PollingProject::updateLatestResultsForSeats() {
 	for (auto& thisResult : results) {
 		if (!thisResult.seat->latestResult) thisResult.seat->latestResult = &thisResult;
+		else if (thisResult.seat->latestResult->updateTime < thisResult.updateTime) thisResult.seat->latestResult = &thisResult;
 	}
 }
 

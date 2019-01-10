@@ -19,7 +19,8 @@ enum {
 	PA_ResultsFrame_CurrentBoothCountID,
 	PA_ResultsFrame_TotalBoothCountID,
 	PA_ResultsFrame_AddResultID,
-	PA_ResultsFrame_NonClassicID
+	PA_ResultsFrame_NonClassicID,
+	PA_ResultsFrame_FilterID
 };
 
 // frame constructor
@@ -63,6 +64,7 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, PA_ResultsFrame_RunLiveSimulationsID);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, PA_ResultsFrame_AddResultID);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, PA_ResultsFrame_NonClassicID);
+	Bind(wxEVT_COMBOBOX, &ResultsFrame::OnFilterSelection, this, PA_ResultsFrame_FilterID);
 }
 
 void ResultsFrame::refreshData()
@@ -95,7 +97,8 @@ void ResultsFrame::refreshData()
 	if (resultsData->GetNumberRows()) resultsData->DeleteRows(0, resultsData->GetNumberRows());
 
 	for (int i = 0; i < project->getResultCount(); ++i) {
-		addResultToResultData(project->getResult(i));
+		Result thisResult = project->getResult(i);
+		if (resultPassesFilter(thisResult)) addResultToResultData(thisResult);
 	}
 
 	resultsData->EndBatch(); // refresh grid data on screen
@@ -168,6 +171,12 @@ void ResultsFrame::OnNonClassic(wxCommandEvent & WXUNUSED(even))
 	// This is needed to avoid a memory leak.
 	delete frame;
 
+	refreshData();
+}
+
+void ResultsFrame::OnFilterSelection(wxCommandEvent& WXUNUSED(event))
+{
+	filter = Filter(filterComboBox->GetSelection());
 	refreshData();
 }
 
@@ -258,6 +267,13 @@ void ResultsFrame::refreshToolbar()
 	auto totalBoothCountStaticText = new wxStaticText(toolBar, wxID_ANY, "Booths total:");
 	totalBoothCountTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_TotalBoothCountID, "", wxPoint(0, 0), wxSize(25, 22), 0, wxIntegerValidator<int>());
 
+	wxArrayString choices;
+	choices.push_back("Show All Results");
+	choices.push_back("Show Latest Results");
+	choices.push_back("Show Significant Results");
+	choices.push_back("Show Key Results");
+	filterComboBox = new wxComboBox(toolBar, PA_ResultsFrame_FilterID, "Show All Results", wxPoint(0, 0), wxSize(160, 22), choices);
+
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddTool(PA_ResultsFrame_RunLiveSimulationsID, "Run Model", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Run Live Simulations");
 	toolBar->AddSeparator();
@@ -274,7 +290,28 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddSeparator();
 	toolBar->AddTool(PA_ResultsFrame_AddResultID, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
 	toolBar->AddTool(PA_ResultsFrame_NonClassicID, "Non-Classic Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Non-Classic Seat");
+	toolBar->AddControl(filterComboBox);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
+
+bool ResultsFrame::resultPassesFilter(Result const& thisResult)
+{
+	if (filter == Filter::AllResults) return true;
+	if (thisResult.seat->latestResult->updateTime != thisResult.updateTime) return false;
+	if (filter == Filter::LatestResults) return true;
+
+	float significance = 0.0f;
+	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(thisResult.seat->margin))));
+	if (thisResult.seat->simulatedMarginAverage) {
+		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(thisResult.seat->simulatedMarginAverage))));
+	}
+	if (thisResult.seat->simulatedMarginAverage < 0.0f) significance += 5.0f; // automatically treat seats changing hands as significant
+
+	if (filter == Filter::SignificantResults) return significance > 1.5f;
+	if (filter == Filter::KeyResults) return significance > 5.0f;
+
+	// replace later
+	return true;
 }
