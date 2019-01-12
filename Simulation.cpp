@@ -7,7 +7,6 @@
 #include "PollingProject.h"
 #include "CountProgress.h"
 #include <algorithm>
-#include <random>
 
 #undef min
 #undef max
@@ -15,12 +14,14 @@
 const float LongshotOddsThreshold = 2.5f;
 const float seatStdDev = 2.0f; // Seat standard deviation, should remove this and use a user-input parameter instead
 
+static std::random_device rd;
+static std::mt19937 gen;
+
 void Simulation::run(PollingProject& project) {
 
 	if (int(baseProjection->meanProjection.size()) == 0) return;
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
+	gen.seed(rd());
 
 	// Get pointers to the major parties (for later checking if seats are classic or non-classic 2CP)
 	Party const* const partyOne = project.getPartyPtr(0);
@@ -188,14 +189,7 @@ void Simulation::run(PollingProject& project) {
 				// Add random noise to the new margin of this seat
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 				// Now work out the margin of the seat from actual results if live
-				if (live && thisSeat->latestResult && thisSeat->latestResult->getPercentCountedEstimate()) {
-					float liveMargin = thisSeat->latestResult->incumbentSwing + thisSeat->margin;
-					float liveStdDev = stdDevSingleSeat(thisSeat->latestResult->getPercentCountedEstimate());
-					liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-					float priorWeight = 0.5f;
-					float liveWeight = 6.0f / (liveStdDev * liveStdDev);
-					newMargin = (newMargin * priorWeight + liveMargin * liveWeight) / (priorWeight + liveWeight);
-				}
+				newMargin = calculateLiveMargin(*thisSeat, newMargin);
 				// Margin for this simulation is finalised, record it for later averaging
 				thisSeat->simulatedMarginAverage += newMargin;
 				// If the margin is greater than zero, the incumbent wins the seat.
@@ -204,7 +198,7 @@ void Simulation::run(PollingProject& project) {
 				// but not high enough to make the top two - if so this will give a certain chance to
 				// override the swing-based result with a win from the challenger
 				if (thisSeat->challenger2Odds < 8.0f && !thisSeat->overrideBettingOdds) {
-					OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
+					OddsInfo oddsInfo = calculateOddsInfo(*thisSeat);
 					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
 				}
@@ -224,7 +218,7 @@ void Simulation::run(PollingProject& project) {
 				else {
 					// Non-standard seat; use odds adjusted for longshot bias since the presence of the
 					// third-party candidate may make swing-based projections inaccurate
-					OddsInfo oddsInfo = calculateOddsInfo(thisSeat);
+					OddsInfo oddsInfo = calculateOddsInfo(*thisSeat);
 					// Random number between 0 and 1
 					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 					// Winner 
@@ -407,17 +401,30 @@ int Simulation::findBestSeatDisplayCenter(Party* partySorted, int numSeatsDispla
 	return bestCenter;
 }
 
-Simulation::OddsInfo Simulation::calculateOddsInfo(std::list<Seat>::iterator thisSeat)
+Simulation::OddsInfo Simulation::calculateOddsInfo(Seat const& thisSeat)
 {
-	float incumbentOdds = (thisSeat->incumbentOdds > LongshotOddsThreshold ?
-		pow(thisSeat->incumbentOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->incumbentOdds);
-	float challengerOdds = (thisSeat->challengerOdds > LongshotOddsThreshold ?
-		pow(thisSeat->challengerOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->challengerOdds);
-	float challenger2Odds = (thisSeat->challenger2Odds > LongshotOddsThreshold ?
-		pow(thisSeat->challenger2Odds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat->challenger2Odds);
+	float incumbentOdds = (thisSeat.incumbentOdds > LongshotOddsThreshold ?
+		pow(thisSeat.incumbentOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat.incumbentOdds);
+	float challengerOdds = (thisSeat.challengerOdds > LongshotOddsThreshold ?
+		pow(thisSeat.challengerOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat.challengerOdds);
+	float challenger2Odds = (thisSeat.challenger2Odds > LongshotOddsThreshold ?
+		pow(thisSeat.challenger2Odds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat.challenger2Odds);
 	// Calculate incumbent chance based on adjusted odds
 	float totalChance = (1.0f / incumbentOdds + 1.0f / challengerOdds + 1.0f / challenger2Odds);
 	float incumbentChance = (1.0f / incumbentOdds) / totalChance;
 	float topTwoChance = (1.0f / challengerOdds) / totalChance + incumbentChance;
 	return OddsInfo{ incumbentChance, topTwoChance };
+}
+
+float Simulation::calculateLiveMargin(Seat const& seat, float priorMargin)
+{
+	if (live && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+		float liveMargin = seat.latestResult->incumbentSwing + seat.margin;
+		float liveStdDev = stdDevSingleSeat(seat.latestResult->getPercentCountedEstimate());
+		liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+		float priorWeight = 0.5f;
+		float liveWeight = 6.0f / (liveStdDev * liveStdDev);
+		return (priorMargin * priorWeight + liveMargin * liveWeight) / (priorWeight + liveWeight);
+	}
+	return priorMargin;
 }

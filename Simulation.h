@@ -1,11 +1,14 @@
 #pragma once
 
-#include <list>
-#include <vector>
-#include <array>
-#include <numeric>
-#include <wx/datetime.h>
 #include "Debug.h"
+
+#include <wx/datetime.h>
+
+#include <array>
+#include <list>
+#include <numeric>
+#include <random>
+#include <vector>
 
 const int NumProbabilityBoundIndices = 8;
 
@@ -136,5 +139,7 @@ public:
 		float topTwoChance = 1.0f;
 	};
 
-	OddsInfo calculateOddsInfo(std::list<Seat>::iterator thisSeat);
+	OddsInfo calculateOddsInfo(Seat const& thisSeat);
+
+	float calculateLiveMargin(Seat const& seat, float priorMargin);
 };
