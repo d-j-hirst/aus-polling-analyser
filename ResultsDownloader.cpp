@@ -86,8 +86,8 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName,
 	{
 		GetZipItem(hz, zi, &ze);
 		std::wstring zippedName = ze.name;
-		if (!matchL.size() || zippedName.find(matchL)) {
-			if (zippedName.find(L".xml") != std::wstring::npos) {
+		if (zippedName.find(L".xml") != std::wstring::npos) {
+			if (!matchL.size() || zippedName.find(matchL) != std::wstring::npos) {
 				std::wstring s(newFileName.begin(), newFileName.end());
 				UnzipItem(hz, zi, s.c_str());
 			}

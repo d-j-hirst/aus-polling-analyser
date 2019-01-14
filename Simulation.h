@@ -141,5 +141,5 @@ public:
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
-	float calculateLiveMargin(Seat const& seat, float priorMargin);
+	float calculateLiveMarginClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
 };

@@ -53,6 +53,8 @@ public:
 	float incumbentWinPercent = 0.0f;
 	float tippingPointPercent = 0.0f;
 
+	float liveBoothSwing = 0.0f;
+
 	// Party one probability is calculated as being 1 - the other two parties,
 	// which allows for conveniently adding a party as certain to win a seat without needing any other input
 	Party const* livePartyOne = nullptr;

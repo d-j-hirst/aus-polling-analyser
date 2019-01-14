@@ -115,10 +115,14 @@ void LatestResultsDataRetriever::collectData()
 				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
 				seekToTcp(xmlString, searchIt);
 				if (comesBefore(xmlString, "<Candidate>", "</PollingPlace>", searchIt)) {
+					bool resultsIn = comesBefore(xmlString, "Updated", "</PollingPlace>", searchIt);
 					boothData.newTcpVote[0] = extractBoothTcp(xmlString, searchIt);
 					boothData.newTcpVote[1] = extractBoothTcp(xmlString, searchIt);
 					boothData.candidateId[0] = seatData.finalCandidates[0].candidateId;
 					boothData.candidateId[1] = seatData.finalCandidates[1].candidateId;
+					boothData.affiliationId[0] = seatData.finalCandidates[0].affiliationId;
+					boothData.affiliationId[1] = seatData.finalCandidates[1].affiliationId;
+					if (resultsIn & !(boothData.newTcpVote[0] + boothData.newTcpVote[1])) boothData.newResultsZero = true;
 				}
 				seatData.booths.push_back(boothData.officialId);
 				auto newBooth = boothMap.insert({ boothData.officialId, boothData });

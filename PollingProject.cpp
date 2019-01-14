@@ -57,7 +57,8 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 
 void PollingProject::incorporatePreloadData(PreloadDataRetriever const& dataRetriever)
 {
-	collectCandidates(dataRetriever);
+	collectCandidatesFromPreload(dataRetriever);
+	collectBoothsFromPreload(dataRetriever);
 }
 
 void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever)
@@ -87,8 +88,9 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		for (auto& a : oldParty) if (!a) { a = &invalidParty; allValid = false; };
 		bool matchedDirect = newParty[0] == oldParty[0] && (newParty[1] == oldParty[1]) && allValid;
 		bool matchedOpposite = newParty[0] == oldParty[1] && (newParty[1] == oldParty[0]) && allValid;
+		bool noOldResults = !matchedBooth.hasOldResults(); // no old results, therefore don't need to match for swing purposes, just get the results in whatever order
 
-		if (matchedDirect || matchedOpposite) {
+		if (matchedDirect || matchedOpposite || noOldResults) {
 			//PrintDebug("Matched parties for this booth - ");
 			//PrintDebug(newParty[0]->name);
 			//PrintDebug(" and ");
@@ -96,10 +98,21 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			if (matchedDirect) {
 				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
 				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
+				matchedBooth.newResultsZero = newBooth.newResultsZero;
+			}
+			else if (noOldResults) {
+				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
+				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
+				matchedBooth.candidateId[0] = newBooth.candidateId[0];
+				matchedBooth.candidateId[1] = newBooth.candidateId[1];
+				matchedBooth.affiliationId[0] = candidateAffiliations[newBooth.candidateId[0]];
+				matchedBooth.affiliationId[1] = candidateAffiliations[newBooth.candidateId[1]];
+				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
 			else {
 				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[0];
 				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[1];
+				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
 			//PrintDebug("Results: ");
 			//PrintDebug(oldParty[0]->name);
@@ -851,9 +864,16 @@ std::list<Result>::iterator PollingProject::getResultEnd()
 	return results.end();
 }
 
-Results::Booth const& PollingProject::getBooth(int boothId)
+Results::Booth const& PollingProject::getBooth(int boothId) const
 {
 	return booths.at(boothId);
+}
+
+Party const* PollingProject::getPartyByAffliation(int affiliationId) const
+{
+	auto affiliationIt = affiliations.find(affiliationId);
+	if (affiliationIt == affiliations.end()) return nullptr;
+	return affiliationIt->second;
 }
 
 void PollingProject::updateLatestResultsForSeats() {
@@ -1667,17 +1687,28 @@ void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & d
 	}
 }
 
-void PollingProject::collectCandidates(PreloadDataRetriever const & dataRetriever)
+void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & dataRetriever)
 {
 	candidates.insert({ -1, &invalidParty });
 	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
 		auto affiliationIt = affiliations.find(candidateIt->second);
 		if (affiliationIt != affiliations.end()) {
 			candidates.insert({ candidateIt->first, affiliationIt->second });
+			candidateAffiliations.insert(*candidateIt);
 		}
 		else {
 			// treat unknown party as independent
 			candidates.insert({ candidateIt->first, affiliations[0] });
+			candidateAffiliations.insert({ candidateIt->first, -1 });
+		}
+	}
+}
+
+void PollingProject::collectBoothsFromPreload(PreloadDataRetriever const & dataRetriever)
+{
+	for (auto boothIt = dataRetriever.beginBooths(); boothIt != dataRetriever.endBooths(); ++boothIt) {
+		if (booths.find(boothIt->first) == booths.end()) {
+			booths.insert({ boothIt->first, boothIt->second });
 		}
 	}
 }

@@ -360,7 +360,11 @@ public:
 	void updateLatestResultsForSeats();
 
 	// Gets the booth matching this official ID.
-	Results::Booth const& getBooth(int boothId);
+	Results::Booth const& getBooth(int boothId) const;
+
+	// Returns the party that this affiliation ID refers to.
+	// Returns nullptr if affiliation did not match any known party
+	Party const* getPartyByAffliation(int affiliationId) const;
 
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
@@ -403,10 +407,14 @@ private:
 
 	// Creates the map between what affiliation numbers and the parties in the project that those
 	// affiliation numbers correspond to.
-	void collectAffiliations(PreviousElectionDataRetriever const & dataRetriever);
+	void collectAffiliations(PreviousElectionDataRetriever const& dataRetriever);
 
 	// Creates the map between candidates and parties that they belong to.
-	void collectCandidates(PreloadDataRetriever const & dataRetriever);
+	void collectCandidatesFromPreload(PreloadDataRetriever const& dataRetriever);
+
+	// Adds booth information from preload data to the project. Necessary because some booths may not have
+	// existed prior to this election.
+	void collectBoothsFromPreload(PreloadDataRetriever const& dataRetriever);
 
 	// Assuming there is live results data added for this seat, calculates the swing to the incumbent here.
 	float calculateSwingToIncumbent(Seat const& seat);
@@ -457,8 +465,10 @@ private:
 	std::unordered_map<int, Results::Booth> booths;
 
 	typedef std::unordered_map<int, Party const*> AffiliationMap;
+	typedef std::unordered_map<int, int> CandidateAffiliationMap;
 	AffiliationMap affiliations;
 	AffiliationMap candidates;
+	CandidateAffiliationMap candidateAffiliations;
 
 	static const Party invalidParty;
 

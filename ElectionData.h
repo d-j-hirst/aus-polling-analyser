@@ -12,7 +12,13 @@ namespace Results {
 		std::array<int, 2> newTcpVote = { 0, 0 };
 		std::array<int, 2> affiliationId = { -1, -1 }; // independent = 0
 		std::array<int, 2> candidateId = { -1, -1 };
-		float percentVote(int whichCandidate) { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }
+		bool newResultsZero = false;
+		float percentVote(int whichCandidate) const { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }
+		bool hasOldResults() const { return tcpVote[0] + tcpVote[1]; }
+		bool hasNewResults() const { return newResultsZero || (newTcpVote[0] + newTcpVote[1]); }
+		bool hasOldAndNewResults() const { return hasOldResults() && hasNewResults(); }
+		int totalOldVotes() const { return tcpVote[0] + tcpVote[1]; }
+		int totalNewVotes() const { return newTcpVote[0] + newTcpVote[1]; }
 	};
 
 	struct Candidate {

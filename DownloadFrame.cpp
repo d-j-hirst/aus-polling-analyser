@@ -67,9 +67,11 @@ void DownloadFrame::OnDownloadPreloadData(wxCommandEvent& WXUNUSED(event))
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
 	std::string url = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip";
-	//ResultsDownloader resultsDownloader;
-	//resultsDownloader.loadZippedFile(url, PreloadDataRetriever::UnzippedFileName);
-	wxMessageBox("Downloaded historic data from: " + url);
+	ResultsDownloader resultsDownloader;
+	resultsDownloader.loadZippedFile(url, PreloadDataRetriever::UnzippedCandidatesFileName, PreloadDataRetriever::CandidateMatch);
+	wxMessageBox("Downloaded preload candidate data from: " + url);
+	resultsDownloader.loadZippedFile(url, PreloadDataRetriever::UnzippedBoothsFileName, PreloadDataRetriever::BoothsMatch);
+	wxMessageBox("Downloaded preload booth data from: " + url);
 	PreloadDataRetriever preloadDataRetriever;
 	preloadDataRetriever.collectData();
 	project->incorporatePreloadData(preloadDataRetriever);
