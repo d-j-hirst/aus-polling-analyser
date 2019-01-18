@@ -10,8 +10,8 @@ namespace Results {
 		int officialId = -1;
 		std::array<int, 2> tcpVote = { 0, 0 };
 		std::array<int, 2> newTcpVote = { 0, 0 };
-		std::array<int, 2> affiliationId = { -1, -1 }; // independent = 0
-		std::array<int, 2> candidateId = { -1, -1 };
+		std::array<int, 2> tcpAffiliationId = { -1, -1 }; // independent = 0
+		std::array<int, 2> tcpCandidateId = { -1, -1 };
 		bool newResultsZero = false;
 		float percentVote(int whichCandidate) const { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }
 		bool hasOldResults() const { return tcpVote[0] + tcpVote[1]; }
@@ -39,6 +39,7 @@ namespace Results {
 		int officialId = -1;
 		int enrolment = 0;
 		std::array<Candidate, 2> finalCandidates;
+		std::vector<Candidate> fpCandidates;
 		std::vector<int> booths; // stores official booth id
 		Candidate const& leadingCandidate() const { return finalCandidates[0].totalVotes() > finalCandidates[1].totalVotes() ? finalCandidates[0] : finalCandidates[1]; }
 		Candidate const& trailingCandidate() const { return finalCandidates[1].totalVotes() > finalCandidates[0].totalVotes() ? finalCandidates[0] : finalCandidates[1]; }

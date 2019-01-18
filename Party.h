@@ -36,5 +36,6 @@ struct Party {
 	std::vector<std::string> officialCodes; // official codes that match to this party according to the electoral commission
 	CountAsParty countAsParty = CountAsParty::None;
 	SupportsParty supportsParty = SupportsParty::None;
+	int ideology = 2; // 0 = strong left, 4 = strong right
 	Colour colour = { 255, 255, 255 };
 };

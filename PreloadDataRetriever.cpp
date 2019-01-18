@@ -68,7 +68,6 @@ void PreloadDataRetriever::collectData()
 		do {
 			seekToFirstPreferences(xmlString, searchIt);
 			do {
-				seekToNextCandidate(xmlString, searchIt);
 				bool independent = candidateIsIndependent(xmlString, searchIt);
 				int candidateId = extractCandidateId(xmlString, searchIt);
 				int affiliationId = 0;
@@ -76,7 +75,9 @@ void PreloadDataRetriever::collectData()
 					affiliationId = extractAffiliationId(xmlString, searchIt);
 				}
 				candidates.insert({ candidateId, affiliationId });
-			} while (moreCandidateData(xmlString, searchIt));
+				if (!moreCandidateData(xmlString, searchIt)) break;
+				seekToNextCandidate(xmlString, searchIt);
+			} while (true);
 
 		} while (moreSeatData(xmlString, searchIt));
 

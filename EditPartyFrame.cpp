@@ -13,6 +13,7 @@ enum
 	PA_EditParty_TextBoxID_Abbreviation,
 	PA_EditParty_TextBoxID_OfficialShortCodes,
 	PA_EditParty_ColourPickerID_Colour,
+	PA_EditParty_ComboBoxID_Ideology,
 	PA_EditParty_ComboBoxID_CountAsParty,
 	PA_EditParty_ComboBoxID_SupportsParty,
 };
@@ -83,6 +84,25 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 
 	currentHeight += 27;
 
+	// Ideology combo box
+	wxArrayString ideologyArray;
+	ideologyArray.push_back("Strong Left");
+	ideologyArray.push_back("Moderate Left");
+	ideologyArray.push_back("Centrist");
+	ideologyArray.push_back("Moderate Right");
+	ideologyArray.push_back("Strong Right");
+	int currentIdeologySelection = party.ideology;
+
+	// Create the controls for the ideology combo box.
+	ideologyStaticText = new wxStaticText(this, 0, "Ideology:", wxPoint(2, currentHeight), wxSize(198, 23));
+	ideologyComboBox = new wxComboBox(this, PA_EditParty_ComboBoxID_Ideology, ideologyArray[currentIdeologySelection],
+		wxPoint(200, currentHeight), wxSize(120, 23), ideologyArray, wxCB_READONLY);
+
+	// Sets the combo box selection to the poll's pollster, if any.
+	ideologyComboBox->SetSelection(currentIdeologySelection);
+
+	currentHeight += 27;
+
 	// *** Count-As-Party Combo Box *** //
 
 	if (party.countAsParty != Party::CountAsParty::IsPartyOne && party.countAsParty != Party::CountAsParty::IsPartyTwo) {
@@ -147,6 +167,7 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextOfficialShortCodes, this, PA_EditParty_TextBoxID_OfficialShortCodes);
 	Bind(wxEVT_COLOURPICKER_CHANGED, &EditPartyFrame::updateColourPicker, this, PA_EditParty_ColourPickerID_Colour);
+	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxIdeology, this, PA_EditParty_ComboBoxID_Ideology);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxSupportsParty, this, PA_EditParty_ComboBoxID_SupportsParty);
 	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, PA_EditParty_ButtonID_OK);
@@ -252,11 +273,16 @@ void EditPartyFrame::updateTextOfficialShortCodes(wxCommandEvent& event) {
 	}
 }
 
-void EditPartyFrame::updateColourPicker(wxColourPickerEvent & event)
+void EditPartyFrame::updateColourPicker(wxColourPickerEvent& event)
 {
 	party.colour.r = event.GetColour().Red();
 	party.colour.g = event.GetColour().Green();
 	party.colour.b = event.GetColour().Blue();
+}
+
+void EditPartyFrame::updateComboBoxIdeology(wxCommandEvent& WXUNUSED(event))
+{
+	party.ideology = ideologyComboBox->GetCurrentSelection();
 }
 
 void EditPartyFrame::updateComboBoxCountAsParty(wxCommandEvent& WXUNUSED(event)) {

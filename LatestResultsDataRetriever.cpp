@@ -22,6 +22,11 @@ namespace {
 		return extractInt(xmlString, "<Enrolment>(\\d+)", searchIt);
 	}
 
+	// Skip ahead to the first preference section of this seat's results
+	inline void seekToFp(std::string const& xmlString, SearchIterator& searchIt) {
+		seekTo(xmlString, "FirstPreferences", searchIt);
+	}
+
 	// Skip ahead to the two-candidate preferred section of this seat's results
 	inline void seekToTcp(std::string const& xmlString, SearchIterator& searchIt) {
 		seekTo(xmlString, "TwoCandidatePreferred", searchIt);
@@ -73,6 +78,10 @@ namespace {
 		return extractInt(xmlString, "<Votes[^>]*>(\\d+)</Votes>", searchIt);
 	}
 
+	inline bool moreFpData(std::string const& xmlString, SearchIterator const& searchIt) {
+		return comesBefore(xmlString, "<Candidate", "</FirstPreferences>", searchIt);
+	}
+
 	inline bool moreBoothData(std::string const& xmlString, SearchIterator const& searchIt) {
 		return comesBefore(xmlString, "<PollingPlace", "</PollingPlaces>", searchIt);
 	}
@@ -96,6 +105,21 @@ void LatestResultsDataRetriever::collectData()
 			seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
 			seatData.name = extractSeatName(xmlString, searchIt);
 			seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
+			seekToFp(xmlString, searchIt);
+			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
+				do {
+					Results::Candidate candidateData;
+					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
+					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
+					candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
+					candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
+					candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
+					candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
+					seatData.fpCandidates.push_back(candidateData);
+				} while (moreFpData(xmlString, searchIt));
+				std::sort(seatData.fpCandidates.begin(), seatData.fpCandidates.end(),
+					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
+			}
 			seekToTcp(xmlString, searchIt);
 			if (comesBefore(xmlString, "<Candidate>", "<PollingPlaces>", searchIt)) {
 				for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
@@ -118,10 +142,10 @@ void LatestResultsDataRetriever::collectData()
 					bool resultsIn = comesBefore(xmlString, "Updated", "</PollingPlace>", searchIt);
 					boothData.newTcpVote[0] = extractBoothTcp(xmlString, searchIt);
 					boothData.newTcpVote[1] = extractBoothTcp(xmlString, searchIt);
-					boothData.candidateId[0] = seatData.finalCandidates[0].candidateId;
-					boothData.candidateId[1] = seatData.finalCandidates[1].candidateId;
-					boothData.affiliationId[0] = seatData.finalCandidates[0].affiliationId;
-					boothData.affiliationId[1] = seatData.finalCandidates[1].affiliationId;
+					boothData.tcpCandidateId[0] = seatData.finalCandidates[0].candidateId;
+					boothData.tcpCandidateId[1] = seatData.finalCandidates[1].candidateId;
+					boothData.tcpAffiliationId[0] = seatData.finalCandidates[0].affiliationId;
+					boothData.tcpAffiliationId[1] = seatData.finalCandidates[1].affiliationId;
 					if (resultsIn & !(boothData.newTcpVote[0] + boothData.newTcpVote[1])) boothData.newResultsZero = true;
 				}
 				seatData.booths.push_back(boothData.officialId);

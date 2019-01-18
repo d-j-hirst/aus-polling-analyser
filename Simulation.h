@@ -142,4 +142,6 @@ public:
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
 	float calculateLiveMarginClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
+
+	float calculateLiveMarginNonClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
 };

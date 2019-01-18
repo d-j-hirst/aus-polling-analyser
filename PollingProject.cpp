@@ -82,8 +82,8 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 		// Check if the parties match
 		bool allValid = true;
-		Party const* newParty[2] = { candidates[newBooth.candidateId[0]], candidates[newBooth.candidateId[1]] };
-		Party const* oldParty[2] = { affiliations[matchedBooth.affiliationId[0]], affiliations[matchedBooth.affiliationId[1]] };
+		Party const* newParty[2] = { candidates[newBooth.tcpCandidateId[0]], candidates[newBooth.tcpCandidateId[1]] };
+		Party const* oldParty[2] = { affiliations[matchedBooth.tcpAffiliationId[0]], affiliations[matchedBooth.tcpAffiliationId[1]] };
 		for (auto& a : newParty) if (!a) { a = &invalidParty; allValid = false; };
 		for (auto& a : oldParty) if (!a) { a = &invalidParty; allValid = false; };
 		bool matchedDirect = newParty[0] == oldParty[0] && (newParty[1] == oldParty[1]) && allValid;
@@ -103,10 +103,10 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			else if (noOldResults) {
 				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
 				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
-				matchedBooth.candidateId[0] = newBooth.candidateId[0];
-				matchedBooth.candidateId[1] = newBooth.candidateId[1];
-				matchedBooth.affiliationId[0] = candidateAffiliations[newBooth.candidateId[0]];
-				matchedBooth.affiliationId[1] = candidateAffiliations[newBooth.candidateId[1]];
+				matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
+				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
+				matchedBooth.tcpAffiliationId[0] = candidateAffiliations[newBooth.tcpCandidateId[0]];
+				matchedBooth.tcpAffiliationId[1] = candidateAffiliations[newBooth.tcpCandidateId[1]];
 				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
 			else {
@@ -165,6 +165,11 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
 		{return thisSeat.name == seat->second.name; });
 		matchingSeat->latestResults = seat->second;
+		PrintDebugLine(matchingSeat->name);
+		for (auto candidate : matchingSeat->latestResults->fpCandidates) {
+			PrintDebugInt(candidate.totalVotes());
+			PrintDebugLine(candidates[candidate.candidateId]->name);
+		}
 	}
 
 	// Note from here until the next comment is options, just outputs debug info and does not store anything.
@@ -869,6 +874,13 @@ Results::Booth const& PollingProject::getBooth(int boothId) const
 	return booths.at(boothId);
 }
 
+Party const * PollingProject::getPartyByCandidate(int candidateId) const
+{
+	auto candidateIt = candidates.find(candidateId);
+	if (candidateIt == candidates.end()) return nullptr;
+	return candidateIt->second;
+}
+
 Party const* PollingProject::getPartyByAffliation(int affiliationId) const
 {
 	auto affiliationIt = affiliations.find(affiliationId);
@@ -900,6 +912,7 @@ int PollingProject::save(std::string filename) {
 		os << "abbr=" << thisParty.abbreviation << "\n";
 		os << "cap =" << int(thisParty.countAsParty) << "\n";
 		os << "supp=" << int(thisParty.supportsParty) << "\n";
+		os << "ideo=" << thisParty.ideology << "\n";
 		for (std::string officialCode : thisParty.officialCodes) {
 			os << "code=" << officialCode << "\n";
 		}
@@ -1230,6 +1243,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("supp=")) {
 			parties.back().supportsParty = Party::SupportsParty(std::stoi(line.substr(5)));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("ideo=")) {
+			parties.back().ideology = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("code=")) {
@@ -1722,7 +1739,7 @@ float PollingProject::calculateSwingToIncumbent(Seat const & seat)
 		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
 		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
 		if (totalOld && totalNew) {
-			bool matchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
+			bool matchedSame = (affiliations[thisBooth.tcpAffiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
 			if (matchedSame) {
 				seatTotalVotes[0] += thisBooth.newTcpVote[0];
 				seatTotalVotes[1] += thisBooth.newTcpVote[1];

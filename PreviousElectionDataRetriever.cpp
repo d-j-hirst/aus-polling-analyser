@@ -132,8 +132,8 @@ void PreviousElectionDataRetriever::collectData()
 				seekToTcp(xmlString, searchIt);
 				boothData.tcpVote[0] = extractBoothTcp(xmlString, searchIt);
 				boothData.tcpVote[1] = extractBoothTcp(xmlString, searchIt);
-				boothData.affiliationId[0] = seatData.finalCandidates[0].affiliationId;
-				boothData.affiliationId[1] = seatData.finalCandidates[1].affiliationId;
+				boothData.tcpAffiliationId[0] = seatData.finalCandidates[0].affiliationId;
+				boothData.tcpAffiliationId[1] = seatData.finalCandidates[1].affiliationId;
 				seatData.booths.push_back(boothData.officialId);
 				auto newBooth = boothMap.insert({ boothData.officialId, boothData });
 				if (!newBooth.second) {

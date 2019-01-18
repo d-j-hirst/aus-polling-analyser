@@ -68,6 +68,10 @@ private:
 	// the result of the GetString() method of "event".
 	void updateColourPicker(wxColourPickerEvent& event);
 
+	// Calls upon the window to update the "ideology" data based on
+	// the properties of the event.
+	void updateComboBoxIdeology(wxCommandEvent& event);
+
 	// Calls upon the window to update the "count-as-party" data based on
 	// the properties of the event.
 	void updateComboBoxCountAsParty(wxCommandEvent& event);
@@ -101,6 +105,8 @@ private:
 	wxComboBox* countAsPartyComboBox;
 	wxStaticText* supportsPartyStaticText;
 	wxComboBox* supportsPartyComboBox;
+	wxStaticText* ideologyStaticText;
+	wxComboBox* ideologyComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
 

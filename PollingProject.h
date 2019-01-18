@@ -362,6 +362,10 @@ public:
 	// Gets the booth matching this official ID.
 	Results::Booth const& getBooth(int boothId) const;
 
+	// Returns the party that this candidate ID refers to.
+	// Returns nullptr if candidate did not match any known party
+	Party const* getPartyByCandidate(int candidateId) const;
+
 	// Returns the party that this affiliation ID refers to.
 	// Returns nullptr if affiliation did not match any known party
 	Party const* getPartyByAffliation(int affiliationId) const;
