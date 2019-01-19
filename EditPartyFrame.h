@@ -72,6 +72,10 @@ private:
 	// the properties of the event.
 	void updateComboBoxIdeology(wxCommandEvent& event);
 
+	// Calls upon the window to update the "ideology" data based on
+	// the properties of the event.
+	void updateComboBoxConsistency(wxCommandEvent& event);
+
 	// Calls upon the window to update the "count-as-party" data based on
 	// the properties of the event.
 	void updateComboBoxCountAsParty(wxCommandEvent& event);
@@ -107,6 +111,8 @@ private:
 	wxComboBox* supportsPartyComboBox;
 	wxStaticText* ideologyStaticText;
 	wxComboBox* ideologyComboBox;
+	wxStaticText* consistencyStaticText;
+	wxComboBox* consistencyComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
 

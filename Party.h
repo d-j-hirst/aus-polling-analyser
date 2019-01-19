@@ -37,5 +37,6 @@ struct Party {
 	CountAsParty countAsParty = CountAsParty::None;
 	SupportsParty supportsParty = SupportsParty::None;
 	int ideology = 2; // 0 = strong left, 4 = strong right
+	int consistency = 1; // 0 = weak flow, 1 = normal flow, 2 = tight flow
 	Colour colour = { 255, 255, 255 };
 };

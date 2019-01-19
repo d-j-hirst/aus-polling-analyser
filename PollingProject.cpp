@@ -913,6 +913,7 @@ int PollingProject::save(std::string filename) {
 		os << "cap =" << int(thisParty.countAsParty) << "\n";
 		os << "supp=" << int(thisParty.supportsParty) << "\n";
 		os << "ideo=" << thisParty.ideology << "\n";
+		os << "cons=" << thisParty.consistency << "\n";
 		for (std::string officialCode : thisParty.officialCodes) {
 			os << "code=" << officialCode << "\n";
 		}
@@ -1247,6 +1248,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("ideo=")) {
 			parties.back().ideology = std::stoi(line.substr(5));
+			return true;
+		}
+		else if (!line.substr(0, 5).compare("cons=")) {
+			parties.back().consistency = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("code=")) {
