@@ -38,6 +38,7 @@ namespace Results {
 		std::string name;
 		int officialId = -1;
 		int enrolment = 0;
+		bool classic2pp = true;
 		std::array<Candidate, 2> finalCandidates;
 		std::vector<Candidate> fpCandidates;
 		std::vector<int> booths; // stores official booth id

@@ -79,6 +79,8 @@ public:
 	}
 
 	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {
+		if (latestResults.has_value() && latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
+		if (previousResults.has_value() && !previousResults->classic2pp) return false;
 		if (livePartyOne) return false;
 		if (overrideBettingOdds) return true;
 		return (incumbent == partyOne && challenger == partyTwo) ||

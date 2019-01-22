@@ -39,4 +39,10 @@ struct Party {
 	int ideology = 2; // 0 = strong left, 4 = strong right
 	int consistency = 1; // 0 = weak flow, 1 = normal flow, 2 = tight flow
 	Colour colour = { 255, 255, 255 };
+	bool countsAsMajor() const { return !(countAsParty == CountAsParty::None); }
+	bool countsAsOne() const { return countAsParty == CountAsParty::CountsAsPartyOne || countAsParty == CountAsParty::IsPartyOne; }
+	bool countsAsTwo() const { return countAsParty == CountAsParty::CountsAsPartyTwo || countAsParty == CountAsParty::IsPartyTwo; }
+	static bool oppositeMajors(Party const& party1, Party const& party2) {
+		return (party1.countsAsOne() && party2.countsAsTwo()) || (party1.countsAsTwo() && party2.countsAsOne());
+	}
 };

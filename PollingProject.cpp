@@ -165,10 +165,20 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
 		{return thisSeat.name == seat->second.name; });
 		matchingSeat->latestResults = seat->second;
-		PrintDebugLine(matchingSeat->name);
-		for (auto candidate : matchingSeat->latestResults->fpCandidates) {
-			PrintDebugInt(candidate.totalVotes());
-			PrintDebugLine(candidates[candidate.candidateId]->name);
+		if (matchingSeat->latestResults->totalVotes()) {
+			Party const* partyOne = candidates[matchingSeat->latestResults->finalCandidates[0].candidateId];
+			Party const* partyTwo = candidates[matchingSeat->latestResults->finalCandidates[1].candidateId];
+			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->latestResults->classic2pp = false;
+		}
+		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->totalVotes()) {
+			Party const* partyOne = affiliations[matchingSeat->previousResults->finalCandidates[0].affiliationId];
+			Party const* partyTwo = affiliations[matchingSeat->previousResults->finalCandidates[1].affiliationId];
+			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->previousResults->classic2pp = false;
+		}
+		if (matchingSeat->name == "Fairfax") {
+			PrintDebugInt(matchingSeat->latestResults->classic2pp);
+			PrintDebugInt(matchingSeat->previousResults->classic2pp);
+			PrintDebugLine("Fairfax previous classic2pp");
 		}
 	}
 

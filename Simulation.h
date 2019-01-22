@@ -139,9 +139,17 @@ public:
 		float topTwoChance = 1.0f;
 	};
 
+	struct SeatResult {
+		Party const* winner = nullptr;
+		Party const* runnerUp = nullptr;
+		float margin = 0.0f;
+	};
+
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
 	float calculateLiveMarginClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
 
-	float calculateLiveMarginNonClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
+	SeatResult calculateLiveMarginNonClassic2CP(PollingProject const& project, Seat const& seat);
+
+	Party const* simulateWinnerFromBettingOdds(Seat const& thisSeat);
 };
