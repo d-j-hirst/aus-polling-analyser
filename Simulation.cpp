@@ -53,6 +53,8 @@ void Simulation::run(PollingProject& project) {
 
 	project.updateLatestResultsForSeats();
 
+	determinePreviousVoteEnrolmentRatios(project);
+
 	// Resize regional seat counts based on the counted number of seats for each region
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 		thisRegion->partyLeading.clear();
@@ -176,7 +178,6 @@ void Simulation::run(PollingProject& project) {
 
 		// Now cycle through all the seats and generate a result for each
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-			// float seatFactor = 0.0f; // used for when we include election results, for now just set to zero
 
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
 			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo);
@@ -402,6 +403,22 @@ int Simulation::findBestSeatDisplayCenter(Party* partySorted, int numSeatsDispla
 	return bestCenter;
 }
 
+void Simulation::determinePreviousVoteEnrolmentRatios(PollingProject& project)
+{
+	int ordinaryVoteNumerator = 0;
+	int declarationVoteNumerator = 0;
+	int voteDenominator = 0;
+	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
+		if (thisSeat->previousResults) {
+			ordinaryVoteNumerator += thisSeat->previousResults->ordinaryVotes();
+			declarationVoteNumerator += thisSeat->previousResults->declarationVotes();
+			voteDenominator += thisSeat->previousResults->enrolment;
+		}
+	}
+	previousOrdinaryVoteEnrolmentRatio = float(ordinaryVoteNumerator) / float(voteDenominator);
+	previousDeclarationVoteEnrolmentRatio = float(declarationVoteNumerator) / float(voteDenominator);
+}
+
 Simulation::OddsInfo Simulation::calculateOddsInfo(Seat const& thisSeat)
 {
 	float incumbentOdds = (thisSeat.incumbentOdds > LongshotOddsThreshold ?
@@ -481,8 +498,12 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 		// Now we have also tallied the estimated votes from booths that are uncounted but matched, if any
 
 		// Need to calculate the remaining pool of uncounted and unmatched booths
-		float enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
-		int estimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
+		float enrolmentChange = 1.0f;
+		int estimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
+		if (seat.previousResults) {
+			enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
+			estimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
+		}
 		float incumbentTallyPercent = float(incumbentTcpTally) / float(incumbentTcpTally + challengerTcpTally) * 100.0f;
 
 		if (mysteryStandardBooths + mysteryTeamBooths + mysteryPPVCBooths) {
@@ -504,9 +525,9 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 		if (seat.previousResults) {
 			int estimatedTotalVotes = int(float(seat.previousResults->totalVotes()) * enrolmentChange);
 			bool incumbentFirst = project.getPartyByAffliation(seat.previousResults->finalCandidates[0].affiliationId) == seat.incumbent;
-			int estimatedNonOrdinaryVotes = estimatedTotalVotes - estimatedTotalOrdinaryVotes;
-			int oldNonOrdinaryVotes = seat.previousResults->totalVotes() - seat.previousResults->ordinaryVotes();
-			float nonOrdinaryVoteChange = float(estimatedNonOrdinaryVotes) / float(oldNonOrdinaryVotes);
+			int estimatedDeclarationVotes = estimatedTotalVotes - estimatedTotalOrdinaryVotes;
+			int oldDeclarationVotes = seat.previousResults->totalVotes() - seat.previousResults->ordinaryVotes();
+			float declarationVoteChange = float(estimatedDeclarationVotes) / float(oldDeclarationVotes);
 
 			float incumbentNewOrdinaryPercent = float(incumbentTcpTally) / totalOrdinaryTally * 100.0f;
 			float incumbentOldOrdinaryPercent = float(seat.previousResults->finalCandidates[(incumbentFirst ? 0 : 1)].ordinaryVotes) / float(seat.previousResults->ordinaryVotes()) * 100.0f;
@@ -516,7 +537,7 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 			float absentSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, absentStdDev)(gen);
 			float incumbentOldAbsentPercent = float(seat.previousResults->finalCandidates[(incumbentFirst ? 0 : 1)].absentVotes) / float(seat.previousResults->absentVotes()) * 100.0f;
 			float incumbentNewAbsentPercent = incumbentOldAbsentPercent + absentSwing;
-			int estimatedAbsentVotes = int(std::round(float(seat.previousResults->absentVotes()) * nonOrdinaryVoteChange));
+			int estimatedAbsentVotes = int(std::round(float(seat.previousResults->absentVotes()) * declarationVoteChange));
 			int incumbentAbsentVotes = int(std::round(incumbentNewAbsentPercent * float(estimatedAbsentVotes) * 0.01f));
 			int challengerAbsentVotes = estimatedAbsentVotes - incumbentAbsentVotes;
 
@@ -524,7 +545,7 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 			float provisionalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, provisionalStdDev)(gen);
 			float incumbentOldProvisionalPercent = float(seat.previousResults->finalCandidates[(incumbentFirst ? 0 : 1)].provisionalVotes) / float(seat.previousResults->provisionalVotes()) * 100.0f;
 			float incumbentNewProvisionalPercent = incumbentOldProvisionalPercent + provisionalSwing;
-			int estimatedProvisionalVotes = int(std::round(float(seat.previousResults->provisionalVotes()) * nonOrdinaryVoteChange));
+			int estimatedProvisionalVotes = int(std::round(float(seat.previousResults->provisionalVotes()) * declarationVoteChange));
 			int incumbentProvisionalVotes = int(std::round(incumbentNewProvisionalPercent * float(estimatedProvisionalVotes) * 0.01f));
 			int challengerProvisionalVotes = estimatedProvisionalVotes - incumbentProvisionalVotes;
 
@@ -532,7 +553,7 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 			float prepollSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, prepollStdDev)(gen);
 			float incumbentOldPrepollPercent = float(seat.previousResults->finalCandidates[(incumbentFirst ? 0 : 1)].prepollVotes) / float(seat.previousResults->prepollVotes()) * 100.0f;
 			float incumbentNewPrepollPercent = incumbentOldPrepollPercent + prepollSwing;
-			int estimatedPrepollVotes = int(std::round(float(seat.previousResults->prepollVotes()) * nonOrdinaryVoteChange));
+			int estimatedPrepollVotes = int(std::round(float(seat.previousResults->prepollVotes()) * declarationVoteChange));
 			int incumbentPrepollVotes = int(std::round(incumbentNewPrepollPercent * float(estimatedPrepollVotes) * 0.01f));
 			int challengerPrepollVotes = estimatedPrepollVotes - incumbentPrepollVotes;
 
@@ -540,12 +561,29 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 			float postalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, postalStdDev)(gen);
 			float incumbentOldPostalPercent = float(seat.previousResults->finalCandidates[(incumbentFirst ? 0 : 1)].postalVotes) / float(seat.previousResults->postalVotes()) * 100.0f;
 			float incumbentNewPostalPercent = incumbentOldPostalPercent + postalSwing;
-			int estimatedPostalVotes = int(std::round(float(seat.previousResults->postalVotes()) * nonOrdinaryVoteChange));
+			int estimatedPostalVotes = int(std::round(float(seat.previousResults->postalVotes()) * declarationVoteChange));
 			int incumbentPostalVotes = int(std::round(incumbentNewPostalPercent * float(estimatedPostalVotes) * 0.01f));
 			int challengerPostalVotes = estimatedPostalVotes - incumbentPostalVotes;
 
 			incumbentTcpTally += incumbentAbsentVotes + incumbentProvisionalVotes + incumbentPrepollVotes + incumbentPostalVotes;
 			challengerTcpTally += challengerAbsentVotes + challengerProvisionalVotes + challengerPrepollVotes + challengerPostalVotes;
+		}
+		else {
+			int estimatedTotalDeclarationVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
+			if (seat.latestResults->ordinaryVotes() > estimatedTotalOrdinaryVotes) {
+				float estimatedNonOrdinaryVotePotential = float(seat.latestResults->enrolment - estimatedTotalOrdinaryVotes);
+				float estimatedPercentageRemainingFormal = float(estimatedTotalDeclarationVotes) / estimatedNonOrdinaryVotePotential;
+				float actualNonOrdinaryVotePotential = float(seat.latestResults->enrolment - seat.latestResults->ordinaryVotes());
+				estimatedTotalDeclarationVotes = int(actualNonOrdinaryVotePotential * estimatedPercentageRemainingFormal);
+
+				float incumbentPercent = float(incumbentTcpTally) / totalOrdinaryTally;
+				float declarationStdDev = 0.05f;
+				float declarationVoteIncumbentProportion = std::clamp(incumbentPercent + std::normal_distribution<float>(0.0f, declarationStdDev)(gen), 0.0f, 1.0f);
+				int incumbentTcpDeclarationVotes = int(estimatedTotalDeclarationVotes * declarationVoteIncumbentProportion);
+				int challengerTcpDeclarationVotes = int(estimatedTotalDeclarationVotes * (1.0f - declarationVoteIncumbentProportion));
+				incumbentTcpTally += incumbentTcpDeclarationVotes;
+				challengerTcpTally += challengerTcpDeclarationVotes;
+			}
 		}
 		float totalTally = float(incumbentTcpTally + challengerTcpTally);
 		return (float(incumbentTcpTally) - totalTally * 0.5f) / totalTally * 100.0f;
@@ -556,6 +594,7 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 Simulation::SeatResult Simulation::calculateLiveMarginNonClassic2CP(PollingProject const & project, Seat const & seat)
 {
 	if (live && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+
 		int firstTcpTally = 0;
 		int secondTcpTally = 0;
 		int newComparisonVotes = 0;

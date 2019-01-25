@@ -145,6 +145,11 @@ public:
 		float margin = 0.0f;
 	};
 
+	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
+	float previousDeclarationVoteEnrolmentRatio = 1.0f;
+
+	void determinePreviousVoteEnrolmentRatios(PollingProject& project);
+
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
 	float calculateLiveMarginClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);

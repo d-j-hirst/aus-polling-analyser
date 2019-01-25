@@ -29,6 +29,10 @@ inline int extractAffiliationId(std::string const& xmlString, SearchIterator& se
 	return extractInt(xmlString, "AffiliationIdentifier Id=\"(\\d+)", searchIt);
 }
 
+inline std::string extractAffiliationShortCode(std::string const& xmlString, SearchIterator& searchIt) {
+	return extractString(xmlString, "ShortCode=\"([^\"]+)", searchIt);
+}
+
 inline bool moreCandidateData(std::string const& xmlString, SearchIterator const& searchIt) {
 	return comesBefore(xmlString, "<Candidate", "<Formal>", searchIt);
 }
@@ -73,6 +77,7 @@ void PreloadDataRetriever::collectData()
 				int affiliationId = 0;
 				if (!independent && comesBefore(xmlString, "<Affiliation", "</Candidate>", searchIt)) {
 					affiliationId = extractAffiliationId(xmlString, searchIt);
+					affiliations.insert({ affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
 				}
 				candidates.insert({ candidateId, affiliationId });
 				if (!moreCandidateData(xmlString, searchIt)) break;

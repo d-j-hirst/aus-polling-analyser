@@ -175,11 +175,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			Party const* partyTwo = affiliations[matchingSeat->previousResults->finalCandidates[1].affiliationId];
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->previousResults->classic2pp = false;
 		}
-		if (matchingSeat->name == "Fairfax") {
-			PrintDebugInt(matchingSeat->latestResults->classic2pp);
-			PrintDebugInt(matchingSeat->previousResults->classic2pp);
-			PrintDebugLine("Fairfax previous classic2pp");
-		}
 	}
 
 	// Note from here until the next comment is options, just outputs debug info and does not store anything.
@@ -1721,6 +1716,20 @@ void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & d
 
 void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & dataRetriever)
 {
+	affiliations.insert({ -1, &invalidParty });
+	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
+		// Don't bother doing any string comparisons if this affiliation is already recorded
+		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
+			for (auto const& party : parties) {
+				for (auto partyCode : party.officialCodes) {
+					if (affiliationIt->second == partyCode) {
+						affiliations.insert({ affiliationIt->first, &party });
+					}
+				}
+			}
+		}
+	}
+
 	candidates.insert({ -1, &invalidParty });
 	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
 		auto affiliationIt = affiliations.find(candidateIt->second);
