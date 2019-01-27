@@ -17,7 +17,7 @@ const float seatStdDev = 2.0f; // Seat standard deviation, should remove this an
 static std::random_device rd;
 static std::mt19937 gen;
 
-static const std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.5f, 2.0f };
+static const std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.4f, 1.8f };
 
 void Simulation::run(PollingProject& project) {
 
@@ -181,6 +181,7 @@ void Simulation::run(PollingProject& project) {
 
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
 			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo);
+
 			if (isClassic2CP) {
 				bool incIsOne = thisSeat->incumbent == partyOne; // stores whether the incumbent is Party One
 				// Add or subtract the simulation regional deviation depending on which party is incumbent
@@ -207,7 +208,7 @@ void Simulation::run(PollingProject& project) {
 					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
 				}
 			} else {
-				if (live && thisSeat->latestResults->totalVotes()) {
+				if (live && thisSeat->hasLiveResults()) {
 					SeatResult result = calculateLiveMarginNonClassic2CP(project, *thisSeat);
 					thisSeat->winner = result.winner;
 				}
@@ -594,7 +595,6 @@ float Simulation::calculateLiveMarginClassic2CP(PollingProject const& project, S
 Simulation::SeatResult Simulation::calculateLiveMarginNonClassic2CP(PollingProject const & project, Seat const & seat)
 {
 	if (live && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
-
 		int firstTcpTally = 0;
 		int secondTcpTally = 0;
 		int newComparisonVotes = 0;
@@ -619,6 +619,7 @@ Simulation::SeatResult Simulation::calculateLiveMarginNonClassic2CP(PollingProje
 			: project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId));
 		Party const* runnerUp = (margin >= 0.0f ? project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId)
 			: project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId));
+
 		return { winner, runnerUp, margin };
 	}
 	else if (live && seat.latestResults->fpCandidates.size()) {
@@ -641,6 +642,7 @@ Simulation::SeatResult Simulation::calculateLiveMarginNonClassic2CP(PollingProje
 				if (!sourceCandidate.party->countsAsMajor() && !targetCandidate.party->countsAsMajor()) thisWeight *= 1.6f;
 				if (Party::oppositeMajors(*sourceCandidate.party, *targetCandidate.party)) thisWeight /= 2.0f;
 				thisWeight *= std::uniform_real_distribution<float>(0.5f, 1.5f)(gen);
+				thisWeight *= std::sqrt(float(targetCandidate.vote)); // preferences tend to flow to more popular candidates
 				weights[targetIndex] = thisWeight;
 			}
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0f) + 0.0000001f; // avoid divide by zero warning
@@ -656,6 +658,7 @@ Simulation::SeatResult Simulation::calculateLiveMarginNonClassic2CP(PollingProje
 		float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
 		Party const* winner = candidates[0].party;
 		Party const* runnerUp = candidates[1].party;
+
 		return { winner, runnerUp, margin };
 	}
 

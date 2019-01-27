@@ -165,12 +165,13 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
 		{return thisSeat.name == seat->second.name; });
 		matchingSeat->latestResults = seat->second;
-		if (matchingSeat->latestResults->totalVotes()) {
+		// *** need something here to check if two-candidate preferred is not recorded because of seat maverick status
+		if (matchingSeat->latestResults->totalVotes() && matchingSeat->latestResults->classic2pp) {
 			Party const* partyOne = candidates[matchingSeat->latestResults->finalCandidates[0].candidateId];
 			Party const* partyTwo = candidates[matchingSeat->latestResults->finalCandidates[1].candidateId];
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->latestResults->classic2pp = false;
 		}
-		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->totalVotes()) {
+		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->totalVotes() && matchingSeat->previousResults->classic2pp) {
 			Party const* partyOne = affiliations[matchingSeat->previousResults->finalCandidates[0].affiliationId];
 			Party const* partyTwo = affiliations[matchingSeat->previousResults->finalCandidates[1].affiliationId];
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->previousResults->classic2pp = false;

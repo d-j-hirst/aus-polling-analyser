@@ -133,6 +133,9 @@ void LatestResultsDataRetriever::collectData()
 					seatData.finalCandidates[candidateNum] = (candidateData);
 				}
 			}
+			else if (comesBefore(xmlString, "Maverick=\"true\"", "<PollingPlaces>", searchIt)) {
+				seatData.classic2pp = false;
+			}
 			seekToBooths(xmlString, searchIt);
 			do {
 				Results::Booth boothData;

@@ -78,9 +78,21 @@ public:
 		return (margin > 0.0f ? incumbent : challenger);
 	}
 
+	bool hasFpResults() const {
+		if (!latestResults.has_value()) return false;
+		return std::find_if(latestResults->fpCandidates.begin(), latestResults->fpCandidates.end(),
+			[](Results::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
+	}
+
+	bool hasLiveResults() const {
+		if (!latestResults.has_value()) return false;
+		return latestResults->totalVotes() || hasFpResults();
+	}
+
 	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {
 		if (latestResults.has_value() && latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
 		if (previousResults.has_value() && !previousResults->classic2pp) return false;
+		if (latestResults.has_value() && !latestResults->classic2pp) return false;
 		if (livePartyOne) return false;
 		if (overrideBettingOdds) return true;
 		return (incumbent == partyOne && challenger == partyTwo) ||
