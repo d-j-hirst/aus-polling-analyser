@@ -152,9 +152,9 @@ public:
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
-	float calculateLiveMarginClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
+	SeatResult calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
 
-	SeatResult calculateLiveMarginNonClassic2CP(PollingProject const& project, Seat const& seat);
+	SeatResult calculateLiveResultNonClassic2CP(PollingProject const& project, Seat const& seat);
 
 	Party const* simulateWinnerFromBettingOdds(Seat const& thisSeat);
 };

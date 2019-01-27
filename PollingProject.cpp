@@ -98,6 +98,8 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			if (matchedDirect) {
 				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
 				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
+				matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
+				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
 				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
 			else if (noOldResults) {
