@@ -439,11 +439,11 @@ Simulation::OddsInfo Simulation::calculateOddsInfo(Seat const& thisSeat)
 
 Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin)
 {
-	Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
-	bool incumbentFirst = firstParty == seat.incumbent;
 	if (live && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
 		// All swings are in terms of a swing to candidate 0 as per latest results
+		Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+		Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
+		bool incumbentFirst = firstParty == seat.incumbent;
 		float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.latestResult->incumbentSwing;
 		std::array<int, 2> tcpTally = { 0, 0 };
 		int newComparisonVotes = 0;
@@ -600,8 +600,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		return {winner, runnerUp, abs(firstMargin)};
 	}
 
-	Party const* winner = (priorMargin >= 0.0f ? firstParty : secondParty);
-	Party const* runnerUp = (priorMargin >= 0.0f ? secondParty : firstParty);
+	Party const* winner = (priorMargin >= 0.0f ? seat.incumbent : seat.challenger);
+	Party const* runnerUp = (priorMargin >= 0.0f ? seat.challenger : seat.incumbent);
 	return { winner, runnerUp, abs(priorMargin) };
 }
 
