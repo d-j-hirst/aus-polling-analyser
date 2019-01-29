@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <numeric>
 #include <unordered_map>
 #include <vector>
 
@@ -57,6 +58,7 @@ namespace Results {
 		float provisionalVotePercent() const { return float(provisionalVotes()) / float(totalVotes()) * 100.0f; }
 		float prepollVotePercent() const { return float(prepollVotes()) / float(totalVotes()) * 100.0f; }
 		float postalVotePercent() const { return float(postalVotes()) / float(totalVotes()) * 100.0f; }
+		int totalFpVotes() const { return std::accumulate(fpCandidates.begin(), fpCandidates.end(), 0, [](int val, Candidate c) {return val + c.totalVotes(); }); }
 	};
 
 	typedef std::unordered_map<int, Booth> BoothMap;

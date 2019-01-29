@@ -607,7 +607,7 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 
 Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProject const & project, Seat const & seat)
 {
-	if (live && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+	if (live && seat.latestResults && seat.latestResults->totalVotes()) {
 		int firstTcpTally = 0;
 		int secondTcpTally = 0;
 		int newComparisonVotes = 0;
@@ -635,7 +635,7 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 
 		return { winner, runnerUp, margin };
 	}
-	else if (live && seat.latestResults->fpCandidates.size()) {
+	else if (live && seat.latestResults && seat.latestResults->fpCandidates.size()) {
 		struct Candidate { int vote; Party const* party; } ;
 
 		std::vector<Candidate> candidates;

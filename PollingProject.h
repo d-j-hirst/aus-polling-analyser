@@ -73,6 +73,9 @@ public:
 	// Returns the party with index "partyIndex".
 	Party getParty(int partyIndex) const;
 
+	Party const* partyOne() const { return &*parties.begin(); }
+	Party const* partyTwo() const { return &*std::next(parties.begin()); }
+
 	// Returns a pointer to the party with index "partyIndex".
 	Party* getPartyPtr(int partyIndex);
 
@@ -424,7 +427,10 @@ private:
 	float calculateSwingToIncumbent(Seat const& seat);
 
 	// Assuming there is live results data added for this seat, calculates the % completion of the two-party preferred vote.
-	float calculatePercentComplete(Seat const& seat);
+	float calculate2cpPercentComplete(Seat const& seat);
+
+	// Assuming there is live results data added for this seat, calculates the % completion of the two-party preferred vote.
+	float calculateFpPercentComplete(Seat const& seat);
 
 	// The name of the project.
 	std::string name;

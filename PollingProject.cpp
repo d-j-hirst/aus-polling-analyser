@@ -152,6 +152,16 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			//}
 		}
 		else {
+			// Could not match parties, wipe previous results
+			matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
+			matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
+			matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
+			matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
+			matchedBooth.tcpAffiliationId[0] = candidateAffiliations[newBooth.tcpCandidateId[0]];
+			matchedBooth.tcpAffiliationId[1] = candidateAffiliations[newBooth.tcpCandidateId[1]];
+			matchedBooth.tcpVote[0] = 0;
+			matchedBooth.tcpVote[1] = 0;
+			matchedBooth.newResultsZero = newBooth.newResultsZero;
 			//PrintDebug("Failed to match parties for this booth - ");
 			//PrintDebug(newParty[0]->name);
 			//PrintDebug(" and ");
@@ -308,15 +318,26 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 	updateLatestResultsForSeats(); // only overwrite different results
 	wxDateTime dateTime = wxDateTime::Now();
 	for (auto& seat : seats) {
-		float percentCounted = calculatePercentComplete(seat);
-		if (!percentCounted) continue; // don't update seats that don't have results yet
+		float percentCounted2cp = calculate2cpPercentComplete(seat);
+		if (!percentCounted2cp) {
+			if (seat.isClassic2pp(partyOne(), partyTwo())) return;
+			float percentCountedFp = calculateFpPercentComplete(seat);
+			Result thisResult;
+			thisResult.seat = &seat;
+			thisResult.percentCounted = percentCountedFp;
+			thisResult.updateTime = dateTime;
+			if (!seat.latestResult || seat.latestResult->percentCounted != percentCountedFp) {
+				addResult(thisResult);
+			}
+			continue;
+		}
 		float incumbentSwing = calculateSwingToIncumbent(seat);
 		Result thisResult;
 		thisResult.seat = &seat;
 		thisResult.incumbentSwing = incumbentSwing;
-		thisResult.percentCounted = percentCounted;
+		thisResult.percentCounted = percentCounted2cp;
 		thisResult.updateTime = dateTime;
-		if (!seat.latestResult || seat.latestResult->percentCounted != percentCounted) {
+		if (!seat.latestResult || seat.latestResult->percentCounted != percentCounted2cp) {
 			addResult(thisResult);
 		}
 	}
@@ -1794,7 +1815,7 @@ float PollingProject::calculateSwingToIncumbent(Seat const & seat)
 	return 0;
 }
 
-float PollingProject::calculatePercentComplete(Seat const & seat)
+float PollingProject::calculate2cpPercentComplete(Seat const & seat)
 {
 	if (seat.latestResults->enrolment <= 0) return 0;
 	int totalVotes = 0;
@@ -1803,6 +1824,14 @@ float PollingProject::calculatePercentComplete(Seat const & seat)
 		totalVotes += thisBooth.newTcpVote[0];
 		totalVotes += thisBooth.newTcpVote[1];
 	}
+
+	return float(totalVotes) / float(seat.latestResults->enrolment) * 100.0f;
+}
+
+float PollingProject::calculateFpPercentComplete(Seat const & seat)
+{
+	if (seat.latestResults->enrolment <= 0) return 0;
+	int totalVotes = seat.latestResults->totalFpVotes();
 
 	return float(totalVotes) / float(seat.latestResults->enrolment) * 100.0f;
 }
