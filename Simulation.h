@@ -145,6 +145,8 @@ public:
 		float margin = 0.0f;
 	};
 
+	int currentIteration = 0;
+
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
 
@@ -157,4 +159,10 @@ public:
 	SeatResult calculateLiveResultNonClassic2CP(PollingProject const& project, Seat const& seat);
 
 	Party const* simulateWinnerFromBettingOdds(Seat const& thisSeat);
+
+	bool seatPartiesMatchBetweenElections(PollingProject const & project, Seat const& seat);
+
+	// determines enrolment change and also returns 
+	// estimatedTotalOrdinaryVotes representing an estimate of the total ordinary vote count
+	float determineEnrolmentChange(Seat const & seat, int& estimatedTotalOrdinaryVotes);
 };

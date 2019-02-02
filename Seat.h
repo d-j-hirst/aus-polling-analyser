@@ -2,6 +2,7 @@
 
 #include "Debug.h"
 #include "ElectionData.h"
+#include "Party.h"
 
 #include <optional>
 
@@ -86,7 +87,7 @@ public:
 
 	bool hasLiveResults() const {
 		if (!latestResults.has_value()) return false;
-		return latestResults->totalVotes() || hasFpResults();
+		return latestResults->total2cpVotes() || hasFpResults();
 	}
 
 	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {

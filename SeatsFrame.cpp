@@ -268,9 +268,9 @@ void SeatsFrame::showSeatResults()
 	std::string tcpString = "";
 	tcpString += results->leadingCandidate().name + " vs. " + results->trailingCandidate().name + "\n";
 	tcpString += "Total votes: " + std::to_string(results->leadingCandidate().totalVotes()) + " (" +
-		formatFloat(float(results->leadingCandidate().totalVotes()) / float(results->totalVotes()) * 100.0f, 2) + "%), " +
+		formatFloat(float(results->leadingCandidate().totalVotes()) / float(results->total2cpVotes()) * 100.0f, 2) + "%), " +
 		std::to_string(results->trailingCandidate().totalVotes()) + " (" +
-		formatFloat(float(results->trailingCandidate().totalVotes()) / float(results->totalVotes()) * 100.0f, 2) + "%)\n---\n";
+		formatFloat(float(results->trailingCandidate().totalVotes()) / float(results->total2cpVotes()) * 100.0f, 2) + "%)\n---\n";
 	tcpString += "Ordinary votes: " + std::to_string(results->leadingCandidate().ordinaryVotes) + " (" +
 		formatFloat(float(results->leadingCandidate().ordinaryVotes) / float(results->ordinaryVotes()) * 100.0f, 2) + "%), " +
 		std::to_string(results->trailingCandidate().ordinaryVotes) + " (" +

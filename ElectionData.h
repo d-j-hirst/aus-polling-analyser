@@ -51,13 +51,13 @@ namespace Results {
 		int provisionalVotes() const { return finalCandidates[0].provisionalVotes + finalCandidates[1].provisionalVotes; }
 		int prepollVotes() const { return finalCandidates[0].prepollVotes + finalCandidates[1].prepollVotes; }
 		int postalVotes() const { return finalCandidates[0].postalVotes + finalCandidates[1].postalVotes; }
-		int totalVotes() const { return finalCandidates[0].totalVotes() + finalCandidates[1].totalVotes(); }
-		float ordinaryVotePercent() const { return float(ordinaryVotes()) / float(totalVotes()) * 100.0f; }
-		float declarationVotePercent() const { return float(declarationVotes()) / float(totalVotes()) * 100.0f; }
-		float absentVotePercent() const { return float(absentVotes()) / float(totalVotes()) * 100.0f; }
-		float provisionalVotePercent() const { return float(provisionalVotes()) / float(totalVotes()) * 100.0f; }
-		float prepollVotePercent() const { return float(prepollVotes()) / float(totalVotes()) * 100.0f; }
-		float postalVotePercent() const { return float(postalVotes()) / float(totalVotes()) * 100.0f; }
+		int total2cpVotes() const { return finalCandidates[0].totalVotes() + finalCandidates[1].totalVotes(); }
+		float ordinaryVotePercent() const { return float(ordinaryVotes()) / float(total2cpVotes()) * 100.0f; }
+		float declarationVotePercent() const { return float(declarationVotes()) / float(total2cpVotes()) * 100.0f; }
+		float absentVotePercent() const { return float(absentVotes()) / float(total2cpVotes()) * 100.0f; }
+		float provisionalVotePercent() const { return float(provisionalVotes()) / float(total2cpVotes()) * 100.0f; }
+		float prepollVotePercent() const { return float(prepollVotes()) / float(total2cpVotes()) * 100.0f; }
+		float postalVotePercent() const { return float(postalVotes()) / float(total2cpVotes()) * 100.0f; }
 		int totalFpVotes() const { return std::accumulate(fpCandidates.begin(), fpCandidates.end(), 0, [](int val, Candidate c) {return val + c.totalVotes(); }); }
 	};
 

@@ -177,13 +177,19 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
 		{return thisSeat.name == seat->second.name; });
 		matchingSeat->latestResults = seat->second;
+		for (auto& candidate : matchingSeat->latestResults->finalCandidates) {
+			candidate.affiliationId = candidateAffiliations[candidate.candidateId];
+		}
+		for (auto& candidate : matchingSeat->latestResults->fpCandidates) {
+			candidate.affiliationId = candidateAffiliations[candidate.candidateId];
+		}
 		// *** need something here to check if two-candidate preferred is not recorded because of seat maverick status
-		if (matchingSeat->latestResults->totalVotes() && matchingSeat->latestResults->classic2pp) {
+		if (matchingSeat->latestResults->total2cpVotes() && matchingSeat->latestResults->classic2pp) {
 			Party const* partyOne = candidates[matchingSeat->latestResults->finalCandidates[0].candidateId];
 			Party const* partyTwo = candidates[matchingSeat->latestResults->finalCandidates[1].candidateId];
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->latestResults->classic2pp = false;
 		}
-		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->totalVotes() && matchingSeat->previousResults->classic2pp) {
+		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->total2cpVotes() && matchingSeat->previousResults->classic2pp) {
 			Party const* partyOne = affiliations[matchingSeat->previousResults->finalCandidates[0].affiliationId];
 			Party const* partyTwo = affiliations[matchingSeat->previousResults->finalCandidates[1].affiliationId];
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->previousResults->classic2pp = false;
@@ -320,8 +326,9 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 	for (auto& seat : seats) {
 		float percentCounted2cp = calculate2cpPercentComplete(seat);
 		if (!percentCounted2cp) {
-			if (seat.isClassic2pp(partyOne(), partyTwo())) return;
+			if (seat.isClassic2pp(partyOne(), partyTwo())) continue;
 			float percentCountedFp = calculateFpPercentComplete(seat);
+			//if (!percentCountedFp) continue;
 			Result thisResult;
 			thisResult.seat = &seat;
 			thisResult.percentCounted = percentCountedFp;
