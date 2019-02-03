@@ -158,6 +158,8 @@ public:
 
 	SeatResult calculateLiveResultNonClassic2CP(PollingProject const& project, Seat const& seat);
 
+	SeatResult calculateLiveResultFromFirstPreferences(PollingProject const& project, Seat const& seat);
+
 	Party const* simulateWinnerFromBettingOdds(Seat const& thisSeat);
 
 	bool seatPartiesMatchBetweenElections(PollingProject const & project, Seat const& seat);

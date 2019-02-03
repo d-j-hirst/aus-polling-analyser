@@ -83,7 +83,7 @@ void Simulation::run(PollingProject& project) {
 	float sampleRepresentativeness = 0.0f;
 	if (live) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-			if (!thisSeat->isClassic2pp(partyOne, partyTwo)) continue;
+			if (!thisSeat->isClassic2pp(partyOne, partyTwo, live)) continue;
 			++classicSeatCount;
 			++thisSeat->region->classicSeatCount;
 			if (!thisSeat->latestResult) continue;
@@ -180,7 +180,7 @@ void Simulation::run(PollingProject& project) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
-			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo);
+			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo, live);
 
 			if (isClassic2CP) {
 				bool incIsOne = thisSeat->incumbent == partyOne; // stores whether the incumbent is Party One
@@ -204,13 +204,13 @@ void Simulation::run(PollingProject& project) {
 				// Sometimes a classic 2pp seat may also have a independent with a significant chance,
 				// but not high enough to make the top two - if so this will give a certain chance to
 				// override the swing-based result with a win from the challenger
-				if (!thisSeat->latestResults && thisSeat->challenger2Odds < 8.0f && !thisSeat->overrideBettingOdds) {
+				if ((!live || !thisSeat->hasLiveResults(partyOne, partyTwo)) && thisSeat->challenger2Odds < 8.0f && !thisSeat->overrideBettingOdds) {
 					OddsInfo oddsInfo = calculateOddsInfo(*thisSeat);
 					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
 				}
 			} else {
-				if (live && thisSeat->hasLiveResults()) {
+				if (live && thisSeat->hasLiveResults(partyOne, partyTwo)) {
 					SeatResult result = calculateLiveResultNonClassic2CP(project, *thisSeat);
 					thisSeat->winner = result.winner;
 				}
@@ -232,6 +232,7 @@ void Simulation::run(PollingProject& project) {
 					}
 				}
 			}
+
 			// If the winner is the incumbent, record this down in the seat's numbers
 			thisSeat->incumbentWins += (thisSeat->winner == thisSeat->incumbent ? 1 : 0);
 
@@ -373,7 +374,7 @@ void Simulation::run(PollingProject& project) {
 	classicSeatList.clear();
 	for (int seatIndex = 0; seatIndex < project.getSeatCount(); ++seatIndex) {
 		Seat* seat = project.getSeatPtr(seatIndex);
-		if (seat->isClassic2pp(partyOne, partyTwo)) {
+		if (seat->isClassic2pp(partyOne, partyTwo, live)) {
 			classicSeatList.push_back(ClassicSeat(seat, seatIndex));
 		}
 	}
@@ -598,6 +599,12 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		float firstMargin = (float(tcpTally[0]) - totalTally * 0.5f) / totalTally * 100.0f;
 		Party const* winner = (firstMargin >= 0.0f ? firstParty : secondParty);
 		Party const* runnerUp = (firstMargin >= 0.0f ? secondParty : firstParty);
+		
+		// Third parties can potentially be a "spoiler" for a seat expected to be classic
+		// This check replaces the winner by a third party if it is simulated but doesn't
+		// affect the balance between the 2cp candidates.
+		SeatResult spoilerResult = calculateLiveResultFromFirstPreferences(project, seat);
+		if (spoilerResult.winner != winner && spoilerResult.winner != runnerUp) return spoilerResult;
 
 		return {winner, runnerUp, abs(firstMargin)};
 	}
@@ -667,85 +674,95 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		Party const* winner = (margin >= 0.0f ? firstParty : secondParty);
 		Party const* runnerUp = (margin >= 0.0f ? secondParty : firstParty);
 
+		// Third parties can potentially be a "spoiler" for a seat expected to be classic
+		// This check replaces the winner by a third party if it is simulated but doesn't
+		// affect the balance between the 2cp candidates.
+		SeatResult spoilerResult = calculateLiveResultFromFirstPreferences(project, seat);
+		if (spoilerResult.winner != winner && spoilerResult.winner != runnerUp) return spoilerResult;
+
 		return { winner, runnerUp, margin };
 	}
 	else if (live && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
 		if (!currentIteration) { PrintDebug(seat.name); PrintDebugLine(" - fp votes"); }
-
-		struct Candidate { int vote; Party const* party; float weight; };
-
-		std::vector<Candidate> candidates;
-		for (auto const& fpCandidate : seat.latestResults->fpCandidates) {
-			candidates.push_back({ fpCandidate.totalVotes(), project.getPartyByCandidate(fpCandidate.candidateId) });
-		}
-
-		// now estimate the remaining votes with considerable variance
-		int countedVotes = std::accumulate(candidates.begin(), candidates.end(), 0,
-			[](int i, Candidate const& c) { return i + c.vote; });
-		float enrolmentChange = determineEnrolmentChange(seat, nullptr);
-		int estimatedTotalVotes = 0; // use previous 2cp votes to determine estimated total votes
-		if (seat.previousResults) {
-			estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
-		}
-		else {
-			estimatedTotalVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
-		}
-		int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
-		int minTotalVotes = countedVotes;
-		constexpr float totalVoteNumberDeviation = 0.05f;
-		float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
-		int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
-		int estimatedRemainingVotes = std::max(0, clampedTotalVotes - countedVotes);
-
-		float totalProjectionWeight = 0.0f;
-		for (auto& candidate : candidates) {
-			float countedProportion = float(candidate.vote) / float(countedVotes);
-			float candidateStdDev = std::min(countedProportion * 0.2f, 0.04f);
-			float remainingProportion = std::normal_distribution<float>(float(countedProportion), candidateStdDev)(gen);
-			candidate.weight = std::max(0.0f, remainingProportion);
-			totalProjectionWeight += candidate.weight;
-		}
-
-		for (auto& candidate : candidates) {
-			candidate.vote += int(float(estimatedRemainingVotes) * candidate.weight / totalProjectionWeight);
-		}
-
-		for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
-			Candidate sourceCandidate = candidates[sourceIndex];
-			candidates[sourceIndex].vote = 0;
-			std::vector<float> weights;
-			weights.resize(candidates.size(), 0);
-			for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
-				Candidate const& targetCandidate = candidates[targetIndex];
-				int ideologyDistance = float(std::abs(sourceCandidate.party->ideology - targetCandidate.party->ideology));
-				float consistencyBase = PreferenceConsistencyBase[sourceCandidate.party->consistency];
-				float thisWeight = std::pow(consistencyBase, -ideologyDistance);
-				if (!sourceCandidate.party->countsAsMajor() && !targetCandidate.party->countsAsMajor()) thisWeight *= 1.6f;
-				if (Party::oppositeMajors(*sourceCandidate.party, *targetCandidate.party)) thisWeight /= 2.0f;
-				thisWeight *= std::uniform_real_distribution<float>(0.5f, 1.5f)(gen);
-				thisWeight *= std::sqrt(float(targetCandidate.vote)); // preferences tend to flow to more popular candidates
-				weights[targetIndex] = thisWeight;
-			}
-			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0f) + 0.0000001f; // avoid divide by zero warning
-			for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
-				// this will cause a few votes to be lost to rounding errors but since we're only running
-				// these calculations when uncertainty is high that doesn't really matter.
-				candidates[targetIndex].vote += int(float(sourceCandidate.vote) * weights[targetIndex] / totalWeight);
-			}
-			std::sort(candidates.begin(), candidates.end(),
-				[](Candidate lhs, Candidate rhs) {return lhs.vote > rhs.vote; });
-		}
-		float totalTally = float(candidates[0].vote + candidates[1].vote);
-		float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
-		Party const* winner = candidates[0].party;
-		Party const* runnerUp = candidates[1].party;
-
-		return { winner, runnerUp, margin };
+		return calculateLiveResultFromFirstPreferences(project, seat);
 	}
 	else {
 		PrintDebug(seat.name); PrintDebugLine(" - fp votes");
 		return { seat.incumbent, seat.challenger, seat.margin };
 	}
+}
+
+Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(PollingProject const & project, Seat const & seat)
+{
+	struct Candidate { int vote; Party const* party; float weight; };
+
+	std::vector<Candidate> candidates;
+	for (auto const& fpCandidate : seat.latestResults->fpCandidates) {
+		candidates.push_back({ fpCandidate.totalVotes(), project.getPartyByCandidate(fpCandidate.candidateId) });
+	}
+
+	// now estimate the remaining votes with considerable variance
+	int countedVotes = std::accumulate(candidates.begin(), candidates.end(), 0,
+		[](int i, Candidate const& c) { return i + c.vote; });
+	float enrolmentChange = determineEnrolmentChange(seat, nullptr);
+	int estimatedTotalVotes = 0; // use previous 2cp votes to determine estimated total votes
+	if (seat.previousResults) {
+		estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
+	}
+	else {
+		estimatedTotalVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
+	}
+	int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
+	int minTotalVotes = countedVotes;
+	constexpr float totalVoteNumberDeviation = 0.05f;
+	float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
+	int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
+	int estimatedRemainingVotes = std::max(0, clampedTotalVotes - countedVotes);
+
+	float totalProjectionWeight = 0.0f;
+	for (auto& candidate : candidates) {
+		float countedProportion = float(candidate.vote) / float(countedVotes);
+		float candidateStdDev = std::min(countedProportion * 0.2f, 0.04f);
+		float remainingProportion = std::normal_distribution<float>(float(countedProportion), candidateStdDev)(gen);
+		candidate.weight = std::max(0.0f, remainingProportion);
+		totalProjectionWeight += candidate.weight;
+	}
+
+	for (auto& candidate : candidates) {
+		candidate.vote += int(float(estimatedRemainingVotes) * candidate.weight / totalProjectionWeight);
+	}
+
+	for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
+		Candidate sourceCandidate = candidates[sourceIndex];
+		candidates[sourceIndex].vote = 0;
+		std::vector<float> weights;
+		weights.resize(candidates.size(), 0);
+		for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
+			Candidate const& targetCandidate = candidates[targetIndex];
+			int ideologyDistance = float(std::abs(sourceCandidate.party->ideology - targetCandidate.party->ideology));
+			float consistencyBase = PreferenceConsistencyBase[sourceCandidate.party->consistency];
+			float thisWeight = std::pow(consistencyBase, -ideologyDistance);
+			if (!sourceCandidate.party->countsAsMajor() && !targetCandidate.party->countsAsMajor()) thisWeight *= 1.6f;
+			if (Party::oppositeMajors(*sourceCandidate.party, *targetCandidate.party)) thisWeight /= 2.0f;
+			thisWeight *= std::uniform_real_distribution<float>(0.5f, 1.5f)(gen);
+			thisWeight *= std::sqrt(float(targetCandidate.vote)); // preferences tend to flow to more popular candidates
+			weights[targetIndex] = thisWeight;
+		}
+		float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0f) + 0.0000001f; // avoid divide by zero warning
+		for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
+			// this will cause a few votes to be lost to rounding errors but since we're only running
+			// these calculations when uncertainty is high that doesn't really matter.
+			candidates[targetIndex].vote += int(float(sourceCandidate.vote) * weights[targetIndex] / totalWeight);
+		}
+		std::sort(candidates.begin(), candidates.end(),
+			[](Candidate lhs, Candidate rhs) {return lhs.vote > rhs.vote; });
+	}
+	float totalTally = float(candidates[0].vote + candidates[1].vote);
+	float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
+	Party const* winner = candidates[0].party;
+	Party const* runnerUp = candidates[1].party;
+
+	return { winner, runnerUp, margin };
 }
 
 Party const * Simulation::simulateWinnerFromBettingOdds(Seat const& thisSeat)

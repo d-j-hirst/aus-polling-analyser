@@ -326,9 +326,9 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 	for (auto& seat : seats) {
 		float percentCounted2cp = calculate2cpPercentComplete(seat);
 		if (!percentCounted2cp) {
-			if (seat.isClassic2pp(partyOne(), partyTwo())) continue;
+			if (seat.isClassic2pp(partyOne(), partyTwo(), true)) continue;
 			float percentCountedFp = calculateFpPercentComplete(seat);
-			//if (!percentCountedFp) continue;
+			if (!percentCountedFp) continue;
 			Result thisResult;
 			thisResult.seat = &seat;
 			thisResult.percentCounted = percentCountedFp;

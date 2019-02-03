@@ -85,19 +85,31 @@ public:
 			[](Results::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
 	}
 
-	bool hasLiveResults() const {
-		if (!latestResults.has_value()) return false;
-		return latestResults->total2cpVotes() || hasFpResults();
+	bool has2cpResults() const {
+		return latestResults->total2cpVotes();
 	}
 
-	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {
-		if (latestResults.has_value() && latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
-		if (previousResults.has_value() && !previousResults->classic2pp) return false;
-		if (latestResults.has_value() && !latestResults->classic2pp) return false;
-		if (livePartyOne) return false;
-		if (overrideBettingOdds) return true;
-		return (incumbent == partyOne && challenger == partyTwo) ||
-			(incumbent == partyTwo && challenger == partyOne);
+	bool hasLiveResults(Party const* partyOne, Party const* partyTwo) const {
+		if (!latestResults.has_value()) return false;
+		if (has2cpResults()) return true;
+		if (hasFpResults()) return !isClassic2pp(partyOne, partyTwo, true);
+		return false;
+	}
+
+	bool isClassic2pp(Party const* partyOne, Party const* partyTwo, bool live) const {
+		if (live && has2cpResults()) {
+			if (latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
+			return false;
+		}
+		else if (live && hasFpResults()) {
+			if (!latestResults->classic2pp) return false;
+			return true;
+		}
+		else {
+			if (livePartyOne) return false;
+			return (incumbent == partyOne && challenger == partyTwo) ||
+				(incumbent == partyTwo && challenger == partyOne);
+		}
 	}
 
 	float getMajorPartyWinRate(Party const* thisParty) const {
