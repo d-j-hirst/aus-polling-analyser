@@ -152,6 +152,8 @@ public:
 
 	void determinePreviousVoteEnrolmentRatios(PollingProject& project);
 
+	void determineSeatCachedBoothData(PollingProject const& project, Seat& seat);
+
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
 	SeatResult calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);

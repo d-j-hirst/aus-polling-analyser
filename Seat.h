@@ -75,6 +75,9 @@ public:
 	//float tempWinnerMargin = 0.0f;
 	Party const* winner = nullptr;
 
+	std::array<int, 2> tcpTally = { 0, 0 }; // cached data for simulations
+	float individualBoothGrowth; // cached data for simulations
+
 	Party const* getLeadingParty() const {
 		return (margin > 0.0f ? incumbent : challenger);
 	}

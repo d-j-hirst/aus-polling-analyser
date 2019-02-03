@@ -49,6 +49,7 @@ void Simulation::run(PollingProject& project) {
 		bool isPartyOne = (thisSeat->incumbent == partyOne);
 		thisSeat->region->localModifierAverage += thisSeat->localModifier * (isPartyOne ? 1.0f : -1.0f);
 		++thisSeat->region->seatCount;
+		determineSeatCachedBoothData(project, *thisSeat);
 	}
 
 	project.updateLatestResultsForSeats();
@@ -423,6 +424,28 @@ void Simulation::determinePreviousVoteEnrolmentRatios(PollingProject& project)
 	previousDeclarationVoteEnrolmentRatio = float(declarationVoteNumerator) / float(voteDenominator);
 }
 
+void Simulation::determineSeatCachedBoothData(PollingProject const& project, Seat& seat)
+{
+	Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	seat.tcpTally[0] = 0;
+	seat.tcpTally[1] = 0;
+	int newComparisonVotes = 0;
+	int oldComparisonVotes = 0;
+	for (auto boothId : seat.latestResults->booths) {
+		Results::Booth const& booth = project.getBooth(boothId);
+		bool isInSeatOrder = project.getPartyByCandidate(booth.tcpCandidateId[0]) == firstParty;
+		if (booth.hasNewResults()) {
+			seat.tcpTally[0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
+			seat.tcpTally[1] += float(isInSeatOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
+		}
+		if (booth.hasOldAndNewResults()) {
+			oldComparisonVotes += booth.totalOldVotes();
+			newComparisonVotes += booth.totalNewVotes();
+		}
+	}
+	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
+}
+
 Simulation::OddsInfo Simulation::calculateOddsInfo(Seat const& thisSeat)
 {
 	float incumbentOdds = (thisSeat.incumbentOdds > LongshotOddsThreshold ?
@@ -446,20 +469,13 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
 		bool incumbentFirst = firstParty == seat.incumbent;
 		float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.latestResult->incumbentSwing;
-		std::array<int, 2> tcpTally = { 0, 0 };
-		int newComparisonVotes = 0;
-		int oldComparisonVotes = 0;
-		for (auto boothId : seat.latestResults->booths) {
-			Results::Booth const& booth = project.getBooth(boothId);
-			bool isInSeatOrder = project.getPartyByCandidate(booth.tcpCandidateId[0]) == firstParty;
-			if (booth.hasNewResults()) {
-				tcpTally[0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
-				tcpTally[1] += float(isInSeatOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
-			}
-			if (booth.hasOldAndNewResults()) {
-				oldComparisonVotes += booth.totalOldVotes();
-				newComparisonVotes += booth.totalNewVotes();
-			}
+		std::array<int, 2> tcpTally = seat.tcpTally;
+
+		if (seat.name == "Kennedy") {
+			PrintDebugInt(tcpTally[0]);
+			PrintDebugLine(firstParty->name);
+			PrintDebugInt(tcpTally[1]);
+			PrintDebugLine(secondParty->name);
 		}
 
 		// At this point we have tallied all the counted votes from booths (matched or otherwise)
@@ -474,14 +490,13 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		// To estimate the vote count for individual booths we need to adjust the previous election's total votes
 		// according to how the already-counted individual booth growth as occurred
 		// There may not be any old comparison votes in which case we assume no growth
-		float individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
 		int mysteryStandardBooths = 0; // count all booths that can't be matched and haven't been counted yet
 		int mysteryPPVCBooths = 0; // count all booths that can't be matched and haven't been counted yet
 		int mysteryTeamBooths = 0; // count all booths that can't be matched and haven't been counted yet
 		for (auto boothId : seat.latestResults->booths) {
 			Results::Booth const& booth = project.getBooth(boothId);
 			if (booth.hasOldResults() && !booth.hasNewResults()) {
-				int estimatedTotalVotes = int(std::round(float(booth.totalOldVotes()) * individualBoothGrowth));
+				int estimatedTotalVotes = int(std::round(float(booth.totalOldVotes()) * seat.individualBoothGrowth));
 				bool isInSeatOrder = project.getPartyByCandidate(booth.tcpCandidateId[0]) == firstParty;
 				float oldVotes0 = float(isInSeatOrder ? booth.tcpVote[0] : booth.tcpVote[1]);
 				float oldVotes1 = float(isInSeatOrder ? booth.tcpVote[1] : booth.tcpVote[0]);
