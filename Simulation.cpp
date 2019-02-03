@@ -635,8 +635,7 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 			}
 		}
 
-		int estimatedTotalOrdinaryVotes;
-		float enrolmentChange = determineEnrolmentChange(seat, estimatedTotalOrdinaryVotes);
+		float enrolmentChange = determineEnrolmentChange(seat, nullptr);
 
 		// now estimate the remaining votes with considerable variance
 		int estimatedTotalVotes = 0;
@@ -648,13 +647,13 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		}
 		int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
 		int minTotalVotes = firstTcpTally + secondTcpTally;
-		const float totalVoteNumberDeviation = 0.05f;
+		constexpr float totalVoteNumberDeviation = 0.05f;
 		float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
 		int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
 		int estimatedRemainingVotes = std::max(0, clampedTotalVotes - firstTcpTally - secondTcpTally);
 
 		float firstProportionCounted = float(firstTcpTally) / float(firstTcpTally + secondTcpTally);
-		const float firstProportionChangeDeviation = 0.08f;
+		constexpr float firstProportionChangeDeviation = 0.08f;
 		float firstProportionChange = std::normal_distribution<float>(0.0f, firstProportionChangeDeviation)(gen);
 		float firstProportionRemaining = std::clamp(firstProportionChange + firstProportionCounted, 0.0f, 1.0f);
 		int firstRemainingVotes = int(firstProportionRemaining * float(estimatedRemainingVotes));
@@ -673,12 +672,44 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 	else if (live && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
 		if (!currentIteration) { PrintDebug(seat.name); PrintDebugLine(" - fp votes"); }
 
-		struct Candidate { int vote; Party const* party; } ;
+		struct Candidate { int vote; Party const* party; float weight; };
 
 		std::vector<Candidate> candidates;
 		for (auto const& fpCandidate : seat.latestResults->fpCandidates) {
 			candidates.push_back({ fpCandidate.totalVotes(), project.getPartyByCandidate(fpCandidate.candidateId) });
 		}
+
+		// now estimate the remaining votes with considerable variance
+		int countedVotes = std::accumulate(candidates.begin(), candidates.end(), 0,
+			[](int i, Candidate const& c) { return i + c.vote; });
+		float enrolmentChange = determineEnrolmentChange(seat, nullptr);
+		int estimatedTotalVotes = 0; // use previous 2cp votes to determine estimated total votes
+		if (seat.previousResults) {
+			estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
+		}
+		else {
+			estimatedTotalVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
+		}
+		int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
+		int minTotalVotes = countedVotes;
+		constexpr float totalVoteNumberDeviation = 0.05f;
+		float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
+		int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
+		int estimatedRemainingVotes = std::max(0, clampedTotalVotes - countedVotes);
+
+		float totalProjectionWeight = 0.0f;
+		for (auto& candidate : candidates) {
+			float countedProportion = float(candidate.vote) / float(countedVotes);
+			float candidateStdDev = std::min(countedProportion * 0.2f, 0.04f);
+			float remainingProportion = std::normal_distribution<float>(float(countedProportion), candidateStdDev)(gen);
+			candidate.weight = std::max(0.0f, remainingProportion);
+			totalProjectionWeight += candidate.weight;
+		}
+
+		for (auto& candidate : candidates) {
+			candidate.vote += int(float(estimatedRemainingVotes) * candidate.weight / totalProjectionWeight);
+		}
+
 		for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
 			Candidate sourceCandidate = candidates[sourceIndex];
 			candidates[sourceIndex].vote = 0;
@@ -743,14 +774,15 @@ bool Simulation::seatPartiesMatchBetweenElections(PollingProject const & project
 	return false;
 }
 
-float Simulation::determineEnrolmentChange(Seat const & seat, int & estimatedTotalOrdinaryVotes)
+float Simulation::determineEnrolmentChange(Seat const & seat, int* estimatedTotalOrdinaryVotes)
 {
 	// Need to calculate the remaining pool of uncounted and unmatched booths
 	float enrolmentChange = 1.0f;
-	estimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
+	int tempEstimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
 	if (seat.previousResults) {
 		enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
-		estimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
+		tempEstimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
 	}
+	if (estimatedTotalOrdinaryVotes) *estimatedTotalOrdinaryVotes = tempEstimatedTotalOrdinaryVotes;
 	return enrolmentChange;
 }

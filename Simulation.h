@@ -164,5 +164,5 @@ public:
 
 	// determines enrolment change and also returns 
 	// estimatedTotalOrdinaryVotes representing an estimate of the total ordinary vote count
-	float determineEnrolmentChange(Seat const & seat, int& estimatedTotalOrdinaryVotes);
+	float determineEnrolmentChange(Seat const & seat, int* estimatedTotalOrdinaryVotes);
 };
