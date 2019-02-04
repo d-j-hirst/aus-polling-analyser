@@ -408,6 +408,7 @@ void Simulation::run(PollingProject& project) {
 		if (seat->isClassic2pp(partyOne, partyTwo, live)) {
 			classicSeatList.push_back(ClassicSeat(seat, seatIndex));
 		}
+		if (!currentIteration) { PrintDebug(seat->name); PrintDebug(seat->winner->name); PrintDebugLine(" - seat results"); }
 	}
 	std::sort(classicSeatList.begin(), classicSeatList.end(),
 		[partyTwo](ClassicSeat seatA, ClassicSeat seatB)
@@ -473,6 +474,13 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 			newComparisonVotes += booth.totalNewVotes();
 		}
 	}
+
+	if (seat.name == "Aston") {
+		PrintDebugInt(seat.tcpTally[0]);
+		PrintDebugInt(seat.tcpTally[1]);
+		PrintDebugLine("Aston counted vote estimate");
+	}
+
 	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
 }
 
@@ -493,7 +501,7 @@ Simulation::OddsInfo Simulation::calculateOddsInfo(Seat const& thisSeat)
 
 Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin)
 {
-	if (live && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+	if (live && seat.latestResults && seat.latestResults->total2cpVotes()) {
 		// All swings are in terms of a swing to candidate 0 as per latest results
 		Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 		Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
@@ -809,7 +817,7 @@ Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(Polli
 	float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
 	Party const* winner = candidates[0].party;
 	Party const* runnerUp = candidates[1].party;
-	float significance = std::clamp(float(seat.latestResults->totalFpVotes()) / float(estimatedTotalVotes) * 20.0f, 0.0f, 1.0f);
+	float significance = std::clamp(float(seat.latestResults->totalFpVotes()) / float(estimatedTotalVotes) * 5.0f, 0.0f, 1.0f);
 
 	return { winner, runnerUp, margin, significance };
 }
