@@ -104,15 +104,12 @@ public:
 			if (latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
 			return false;
 		}
-		else if (live && hasFpResults()) {
+		if (live && hasFpResults()) {
 			if (!latestResults->classic2pp) return false;
-			return true;
 		}
-		else {
-			if (livePartyOne) return false;
-			return (incumbent == partyOne && challenger == partyTwo) ||
-				(incumbent == partyTwo && challenger == partyOne);
-		}
+		if (livePartyOne) return false;
+		return (incumbent == partyOne && challenger == partyTwo) ||
+			(incumbent == partyTwo && challenger == partyOne);
 	}
 
 	float getMajorPartyWinRate(Party const* thisParty) const {

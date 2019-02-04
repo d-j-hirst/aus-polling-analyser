@@ -121,7 +121,7 @@ void LatestResultsDataRetriever::collectData()
 					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
 			}
 			seekToTcp(xmlString, searchIt);
-			if (comesBefore(xmlString, "<Candidate>", "<PollingPlaces>", searchIt)) {
+			if (!comesBefore(xmlString, "<PollingPlaces>", "<Candidate>", searchIt)) {
 				for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
 					Results::Candidate candidateData;
 					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
@@ -133,7 +133,7 @@ void LatestResultsDataRetriever::collectData()
 					seatData.finalCandidates[candidateNum] = (candidateData);
 				}
 			}
-			else if (comesBefore(xmlString, "Maverick=\"true\"", "<PollingPlaces>", searchIt)) {
+			else if (!comesBefore(xmlString, "<PollingPlaces>", "Maverick=\"true\"", searchIt)) {
 				seatData.classic2pp = false;
 			}
 			seekToBooths(xmlString, searchIt);
@@ -142,7 +142,7 @@ void LatestResultsDataRetriever::collectData()
 				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
 				seekToTcp(xmlString, searchIt);
 				if (comesBefore(xmlString, "<Candidate>", "</PollingPlace>", searchIt)) {
-					bool resultsIn = comesBefore(xmlString, "Updated", "</PollingPlace>", searchIt);
+					bool resultsIn = !comesBefore(xmlString, "</PollingPlace>", "Updated", searchIt);
 					boothData.newTcpVote[0] = extractBoothTcp(xmlString, searchIt);
 					boothData.newTcpVote[1] = extractBoothTcp(xmlString, searchIt);
 					boothData.tcpCandidateId[0] = seatData.finalCandidates[0].candidateId;

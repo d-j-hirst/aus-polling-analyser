@@ -143,6 +143,7 @@ public:
 		Party const* winner = nullptr;
 		Party const* runnerUp = nullptr;
 		float margin = 0.0f;
+		float significance = 0.0f;
 	};
 
 	int currentIteration = 0;
