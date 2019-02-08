@@ -148,6 +148,8 @@ public:
 
 	int currentIteration = 0;
 
+	float PPVCbias = 0.0f;
+
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
 

@@ -136,6 +136,9 @@ void Simulation::run(PollingProject& project) {
 			float priorWeight = 0.5f;
 			float liveWeight = 1.0f / (liveStdDev * liveStdDev) * sampleRepresentativeness;
 			simulationOverallSwing = (simulationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+
+			constexpr float ppvcBiasStdDev = 4.0f;
+			PPVCbias = std::normal_distribution<float>(0.0f, ppvcBiasStdDev)(gen);
 		}
 
 		// Add random variation to the state-by-state swings and calculate the implied national 2pp
@@ -528,12 +531,19 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 			Results::Booth const& booth = project.getBooth(boothId);
 			if (booth.hasOldResults() && !booth.hasNewResults()) {
 				int estimatedTotalVotes = int(std::round(float(booth.totalOldVotes()) * seat.individualBoothGrowth));
-				bool isInSeatOrder = project.getPartyByCandidate(booth.tcpCandidateId[0]) == firstParty;
+				Party const* boothFirstParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
+				// Party const* boothSecondParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
+				bool isInSeatOrder = boothFirstParty == firstParty;
 				float oldVotes0 = float(isInSeatOrder ? booth.tcpVote[0] : booth.tcpVote[1]);
 				float oldVotes1 = float(isInSeatOrder ? booth.tcpVote[1] : booth.tcpVote[0]);
 				float oldPercent0 = oldVotes0 / (oldVotes0 + oldVotes1) * 100.0f;
 				float boothSwingStdDev = 2.5f + 200.0f / booth.totalOldVotes(); // small booths a lot swingier
 				float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
+				if (booth.isPPVC()) {
+					// votes are already in order for the seat, not the booth
+					if (project.partyOne() == firstParty && project.partyTwo() == secondParty) boothSwing += PPVCbias;
+					if (project.partyOne() == secondParty && project.partyTwo() == firstParty) boothSwing -= PPVCbias;
+				}
 				float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
 				int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
 				int newVotes1 = estimatedTotalVotes - newVotes0;
@@ -541,7 +551,7 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 				tcpTally[1] += newVotes1;
 			}
 			if (!booth.hasOldResults() && !booth.hasNewResults()) {
-				if (booth.name.find("PPVC") != std::string::npos) ++mysteryPPVCBooths;
+				if (booth.isPPVC()) ++mysteryPPVCBooths;
 				else if (booth.name.find(" Team") != std::string::npos) ++mysteryTeamBooths;
 				else ++mysteryStandardBooths;
 			}
@@ -562,11 +572,14 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 			int estimatedRemainingOrdinaryVotes = std::max(0, estimatedTotalOrdinaryVotes - tcpTally[0] - tcpTally[1]);
 			// sanity check to make sure we aren't assigning 5000 votes to a special hospital team or something
 			int plausibleMaximumRemainingOrdinaryVotes = mysteryPPVCBooths * 10000 + mysteryStandardBooths * 2000 + mysteryTeamBooths * 200;
+			float proportionPPVC = float(mysteryPPVCBooths * 10000) / float(plausibleMaximumRemainingOrdinaryVotes);
 			estimatedRemainingOrdinaryVotes = std::min(estimatedRemainingOrdinaryVotes, plausibleMaximumRemainingOrdinaryVotes);
 			estimatedTotalOrdinaryVotes = estimatedRemainingOrdinaryVotes + tcpTally[0] + tcpTally[1];
 
 			const float MysteryVoteStdDev = 6.0f;
 			float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
+			if (project.partyOne() == firstParty && project.partyTwo() == secondParty) incumbentMysteryPercent += PPVCbias * proportionPPVC;
+			if (project.partyOne() == secondParty && project.partyTwo() == firstParty) incumbentMysteryPercent -= PPVCbias * proportionPPVC;
 			int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
 			int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
 			tcpTally[0] += incumbentMysteryVotes;

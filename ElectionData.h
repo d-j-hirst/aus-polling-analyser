@@ -20,6 +20,7 @@ namespace Results {
 		bool hasOldAndNewResults() const { return hasOldResults() && hasNewResults(); }
 		int totalOldVotes() const { return tcpVote[0] + tcpVote[1]; }
 		int totalNewVotes() const { return newTcpVote[0] + newTcpVote[1]; }
+		bool isPPVC() const { return name.find("PPVC") != std::string::npos; }
 	};
 
 	struct Candidate {
