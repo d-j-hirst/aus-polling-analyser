@@ -148,10 +148,17 @@ public:
 
 	int currentIteration = 0;
 
-	float PPVCbias = 0.0f;
+	float ppvcBias = 0.0f;
+	float ppvcBiasNumerator = 0.0f;
+	float ppvcBiasDenominator = 0.0f; // should be the total number of PPVC votes counted
+	float ppvcBiasObserved = 0.0f;
+	float ppvcBiasConfidence = 0.0f;
+	int totalOldPpvcVotes = 0;
 
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
+
+	void determinePpvcBias();
 
 	void determinePreviousVoteEnrolmentRatios(PollingProject& project);
 

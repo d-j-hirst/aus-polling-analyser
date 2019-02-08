@@ -39,6 +39,9 @@ void Simulation::run(PollingProject& project) {
 	}
 
 	// Set up anything that needs to be prepared for seats
+	ppvcBiasNumerator = 0.0f;
+	ppvcBiasDenominator = 0.0f;
+	totalOldPpvcVotes = 0;
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 		thisSeat->incumbentWins = 0;
 		thisSeat->partyOneWinRate = 0.0f;
@@ -51,6 +54,8 @@ void Simulation::run(PollingProject& project) {
 		++thisSeat->region->seatCount;
 		determineSeatCachedBoothData(project, *thisSeat);
 	}
+
+	determinePpvcBias();
 
 	project.updateLatestResultsForSeats();
 
@@ -138,7 +143,8 @@ void Simulation::run(PollingProject& project) {
 			simulationOverallSwing = (simulationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 
 			constexpr float ppvcBiasStdDev = 4.0f;
-			PPVCbias = std::normal_distribution<float>(0.0f, ppvcBiasStdDev)(gen);
+			float ppvcBiasRandom = std::normal_distribution<float>(0.0f, ppvcBiasStdDev)(gen);
+			ppvcBias = ppvcBiasObserved * ppvcBiasConfidence + ppvcBiasRandom * (1.0f - ppvcBiasConfidence);
 		}
 
 		// Add random variation to the state-by-state swings and calculate the implied national 2pp
@@ -442,6 +448,24 @@ int Simulation::findBestSeatDisplayCenter(Party* partySorted, int numSeatsDispla
 	return bestCenter;
 }
 
+void Simulation::determinePpvcBias()
+{
+	if (!ppvcBiasDenominator) {
+		ppvcBias = 0.0f;
+		ppvcBiasConfidence = 0.0f;
+		return;
+	}
+	ppvcBias = ppvcBiasNumerator / ppvcBiasDenominator;
+	ppvcBiasConfidence = std::clamp(ppvcBiasDenominator / float(totalOldPpvcVotes) * 5.0f, 0.0f, 1.0f);
+
+	PrintDebugFloat(ppvcBiasNumerator);
+	PrintDebugFloat(ppvcBiasDenominator);
+	PrintDebugFloat(ppvcBias);
+	PrintDebugInt(totalOldPpvcVotes);
+	PrintDebugFloat(ppvcBiasConfidence);
+	PrintDebugLine(" - ppvc bias measures");
+}
+
 void Simulation::determinePreviousVoteEnrolmentRatios(PollingProject& project)
 {
 	int ordinaryVoteNumerator = 0;
@@ -465,23 +489,64 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 	seat.tcpTally[1] = 0;
 	int newComparisonVotes = 0;
 	int oldComparisonVotes = 0;
+	float nonPpvcSwingNumerator = 0.0f;
+	float nonPpvcSwingDenominator = 0.0f; // total number of votes in counted non-PPVC booths
+	float ppvcSwingNumerator = 0.0f;
+	float ppvcSwingDenominator = 0.0f; // total number of votes in counted PPVC booths
 	for (auto boothId : seat.latestResults->booths) {
 		Results::Booth const& booth = project.getBooth(boothId);
-		bool isInSeatOrder = project.getPartyByCandidate(booth.tcpCandidateId[0]) == firstParty;
+		Party const* firstBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
+		Party const* secondBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
+		bool isInSeatOrder = firstBoothParty == firstParty;
+		bool isPpvc = booth.isPPVC();
+		if (booth.officialId == 65744) {
+			PrintDebugInt(isPpvc);
+			PrintDebugInt(booth.hasNewResults());
+			PrintDebugInt(booth.hasOldResults());
+			PrintDebugInt(booth.hasOldAndNewResults());
+			PrintDebugLine("Lidcombe booth");
+		}
 		if (booth.hasNewResults()) {
 			seat.tcpTally[0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
 			seat.tcpTally[1] += float(isInSeatOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
 		}
+		if (booth.hasOldResults()) {
+			if (isPpvc) totalOldPpvcVotes += booth.totalOldVotes();
+		}
 		if (booth.hasOldAndNewResults()) {
 			oldComparisonVotes += booth.totalOldVotes();
 			newComparisonVotes += booth.totalNewVotes();
+			bool directMatch = project.partyOne() == firstBoothParty && project.partyTwo() == secondBoothParty;
+			bool oppositeMatch = project.partyOne() == secondBoothParty && project.partyTwo() == firstBoothParty;
+			if (!isPpvc) {
+				if (directMatch) {
+					nonPpvcSwingNumerator += booth.rawSwing() * booth.totalNewVotes();
+					nonPpvcSwingDenominator += booth.totalNewVotes();
+				}
+				else if (oppositeMatch) {
+					nonPpvcSwingNumerator -= booth.rawSwing() * booth.totalNewVotes();
+					nonPpvcSwingDenominator += booth.totalNewVotes();
+				}
+			}
+			else {
+				if (directMatch) {
+					ppvcSwingNumerator += booth.rawSwing() * booth.totalNewVotes();
+					ppvcSwingDenominator += booth.totalNewVotes();
+				}
+				else if (oppositeMatch) {
+					ppvcSwingNumerator -= booth.rawSwing() * booth.totalNewVotes();
+					ppvcSwingDenominator += booth.totalNewVotes();
+				}
+			}
 		}
 	}
-
-	if (seat.name == "Aston") {
-		PrintDebugInt(seat.tcpTally[0]);
-		PrintDebugInt(seat.tcpTally[1]);
-		PrintDebugLine("Aston counted vote estimate");
+	if (nonPpvcSwingDenominator && ppvcSwingDenominator) {
+		float nonPpvcSwing = nonPpvcSwingNumerator / nonPpvcSwingDenominator;
+		float ppvcSwing = ppvcSwingNumerator / ppvcSwingDenominator;
+		float ppvcSwingDiff = ppvcSwing - nonPpvcSwing;
+		float weightedSwing = ppvcSwingDiff * ppvcSwingDenominator;
+		ppvcBiasNumerator += weightedSwing;
+		ppvcBiasDenominator += ppvcSwingDenominator;
 	}
 
 	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
@@ -541,8 +606,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 				float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
 				if (booth.isPPVC()) {
 					// votes are already in order for the seat, not the booth
-					if (project.partyOne() == firstParty && project.partyTwo() == secondParty) boothSwing += PPVCbias;
-					if (project.partyOne() == secondParty && project.partyTwo() == firstParty) boothSwing -= PPVCbias;
+					if (project.partyOne() == firstParty && project.partyTwo() == secondParty) boothSwing += ppvcBias;
+					if (project.partyOne() == secondParty && project.partyTwo() == firstParty) boothSwing -= ppvcBias;
 				}
 				float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
 				int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
@@ -578,8 +643,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 
 			const float MysteryVoteStdDev = 6.0f;
 			float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
-			if (project.partyOne() == firstParty && project.partyTwo() == secondParty) incumbentMysteryPercent += PPVCbias * proportionPPVC;
-			if (project.partyOne() == secondParty && project.partyTwo() == firstParty) incumbentMysteryPercent -= PPVCbias * proportionPPVC;
+			if (project.partyOne() == firstParty && project.partyTwo() == secondParty) incumbentMysteryPercent += ppvcBias * proportionPPVC;
+			if (project.partyOne() == secondParty && project.partyTwo() == firstParty) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
 			int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
 			int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
 			tcpTally[0] += incumbentMysteryVotes;

@@ -21,6 +21,10 @@ namespace Results {
 		int totalOldVotes() const { return tcpVote[0] + tcpVote[1]; }
 		int totalNewVotes() const { return newTcpVote[0] + newTcpVote[1]; }
 		bool isPPVC() const { return name.find("PPVC") != std::string::npos; }
+		float rawSwing() const { 
+			if (!(totalNewVotes() && totalOldVotes())) return 0.0f; 
+			return float(newTcpVote[0]) / float(totalNewVotes()) - float(tcpVote[0]) / float(totalOldVotes());
+		}
 	};
 
 	struct Candidate {

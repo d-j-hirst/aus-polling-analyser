@@ -102,6 +102,13 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
 				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
+			else if (matchedOpposite) {
+				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[1];
+				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[0];
+				matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[1];
+				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[0];
+				matchedBooth.newResultsZero = newBooth.newResultsZero;
+			}
 			else if (noOldResults) {
 				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
 				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
@@ -109,11 +116,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
 				matchedBooth.tcpAffiliationId[0] = candidateAffiliations[newBooth.tcpCandidateId[0]];
 				matchedBooth.tcpAffiliationId[1] = candidateAffiliations[newBooth.tcpCandidateId[1]];
-				matchedBooth.newResultsZero = newBooth.newResultsZero;
-			}
-			else {
-				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[0];
-				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[1];
 				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
 			//PrintDebug("Results: ");
