@@ -6,24 +6,32 @@
 #include <vector>
 
 namespace Results {
+
 	struct Booth {
+		struct Candidate {
+			int affiliationId = -1;
+			int candidateId = -1;
+			int fpVotes = 0;
+		};
 		std::string name;
 		int officialId = -1;
 		std::array<int, 2> tcpVote = { 0, 0 };
 		std::array<int, 2> newTcpVote = { 0, 0 };
 		std::array<int, 2> tcpAffiliationId = { -1, -1 }; // independent = 0
 		std::array<int, 2> tcpCandidateId = { -1, -1 };
+		std::vector<Candidate> fpCandidates;
 		bool newResultsZero = false;
 		float percentVote(int whichCandidate) const { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }
 		bool hasOldResults() const { return tcpVote[0] + tcpVote[1]; }
 		bool hasNewResults() const { return newResultsZero || (newTcpVote[0] + newTcpVote[1]); }
 		bool hasOldAndNewResults() const { return hasOldResults() && hasNewResults(); }
-		int totalOldVotes() const { return tcpVote[0] + tcpVote[1]; }
-		int totalNewVotes() const { return newTcpVote[0] + newTcpVote[1]; }
+		int totalOldTcpVotes() const { return tcpVote[0] + tcpVote[1]; }
+		int totalNewTcpVotes() const { return newTcpVote[0] + newTcpVote[1]; }
+		int totalNewFpVotes() const { return std::accumulate(fpCandidates.begin(), fpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }
 		bool isPPVC() const { return name.find("PPVC") != std::string::npos; }
 		float rawSwing() const { 
-			if (!(totalNewVotes() && totalOldVotes())) return 0.0f; 
-			return float(newTcpVote[0]) / float(totalNewVotes()) - float(tcpVote[0]) / float(totalOldVotes());
+			if (!(totalNewTcpVotes() && totalOldTcpVotes())) return 0.0f; 
+			return float(newTcpVote[0]) / float(totalNewTcpVotes()) - float(tcpVote[0]) / float(totalOldTcpVotes());
 		}
 	};
 

@@ -75,6 +75,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			continue;
 		}
 		auto& matchedBooth = oldBoothIt->second;
+		matchedBooth.fpCandidates = newBooth.fpCandidates; // always record fp candidates regardless of whether booth matching is successful
 		//PrintDebug("Found matching booth for booth ");
 		//PrintDebugInt(newBooth.officialId);
 		//PrintDebug(". Booth name is ");

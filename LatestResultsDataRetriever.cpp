@@ -74,7 +74,7 @@ namespace {
 		return extractString(xmlString, "Name=\"([^\"]{1,60})\"", searchIt);
 	}
 
-	inline int extractBoothTcp(std::string const& xmlString, SearchIterator& searchIt) {
+	inline int extractBoothVotes(std::string const& xmlString, SearchIterator& searchIt) {
 		return extractInt(xmlString, "<Votes[^>]*>(\\d+)</Votes>", searchIt);
 	}
 
@@ -140,11 +140,18 @@ void LatestResultsDataRetriever::collectData()
 			do {
 				Results::Booth boothData;
 				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
+				seekToFp(xmlString, searchIt);
+				while (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
+					Results::Booth::Candidate candidate;
+					candidate.candidateId = extractCandidateId(xmlString, searchIt);
+					candidate.fpVotes = extractBoothVotes(xmlString, searchIt);
+					boothData.fpCandidates.push_back(candidate);
+				}
 				seekToTcp(xmlString, searchIt);
 				if (comesBefore(xmlString, "<Candidate>", "</PollingPlace>", searchIt)) {
 					bool resultsIn = !comesBefore(xmlString, "</PollingPlace>", "Updated", searchIt);
-					boothData.newTcpVote[0] = extractBoothTcp(xmlString, searchIt);
-					boothData.newTcpVote[1] = extractBoothTcp(xmlString, searchIt);
+					boothData.newTcpVote[0] = extractBoothVotes(xmlString, searchIt);
+					boothData.newTcpVote[1] = extractBoothVotes(xmlString, searchIt);
 					boothData.tcpCandidateId[0] = seatData.finalCandidates[0].candidateId;
 					boothData.tcpCandidateId[1] = seatData.finalCandidates[1].candidateId;
 					boothData.tcpAffiliationId[0] = seatData.finalCandidates[0].affiliationId;
