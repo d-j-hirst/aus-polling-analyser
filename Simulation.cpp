@@ -557,6 +557,9 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 				}
 				int boothFirstPartyPreferences = firstPartyTcp - firstPartyFpVotes;
 				int boothSecondPartyPreferences = totalDistributedVotes - boothFirstPartyPreferences;
+				// We can't magically detect entry errors but if we're getting a negative preference total that's
+				// a pretty good sign that the Tcp has been flipped (as in Warilla THROSBY PPVC in 2016)
+				// and we shouldn't use the booth
 				if (boothFirstPartyPreferences >= 0 && boothSecondPartyPreferences >= 0) {
 					seatFirstPartyPreferences += boothFirstPartyPreferences;
 					seatSecondPartyPreferences += boothSecondPartyPreferences;
@@ -573,11 +576,14 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 		ppvcBiasDenominator += ppvcSwingDenominator;
 	}
 	if (seatFirstPartyPreferences + seatSecondPartyPreferences) {
-		seat.firstPartyPreferenceFlow = float(seatFirstPartyPreferences) / float(seatFirstPartyPreferences + seatSecondPartyPreferences);
+		float totalPreferences = float(seatFirstPartyPreferences + seatSecondPartyPreferences);
+		seat.firstPartyPreferenceFlow = float(seatFirstPartyPreferences) / totalPreferences;
+		seat.preferenceFlowVariation = std::clamp(0.1f - totalPreferences / float(seat.latestResults->enrolment), 0.03f, 0.1f);
 
 		PrintDebugInt(seatFirstPartyPreferences);
 		PrintDebugInt(seatSecondPartyPreferences);
 		PrintDebugFloat(seat.firstPartyPreferenceFlow);
+		PrintDebugFloat(seat.preferenceFlowVariation);
 		PrintDebug(" preference flow to ");
 		PrintDebug(firstSeatParty->name);
 		PrintDebug(" vs ");
@@ -789,12 +795,15 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 	}
 	else if (live && seat.latestResults && seat.latestResults->total2cpVotes()) {
 		if (!currentIteration) { PrintDebug(seat.name); PrintDebugLine(" - 2cp votes"); }
-		Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-		Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
+		int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
+		int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
+		Party const* firstParty = project.getPartyByCandidate(firstCandidateId);
+		Party const* secondParty = project.getPartyByCandidate(secondCandidateId);
 		int firstTcpTally = 0;
 		int secondTcpTally = 0;
 		int newComparisonVotes = 0;
 		int oldComparisonVotes = 0;
+		float preferenceFlowGuess = std::normal_distribution<float>(seat.firstPartyPreferenceFlow, seat.preferenceFlowVariation)(gen);
 		for (auto boothId : seat.latestResults->booths) {
 			Results::Booth const& booth = project.getBooth(boothId);
 			bool matchingOrder = project.getPartyByAffliation(booth.tcpAffiliationId[0]) == project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
@@ -802,6 +811,20 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 			if (booth.hasNewResults()) {
 				firstTcpTally += (matchingOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
 				secondTcpTally += (matchingOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
+			}
+			else if (booth.totalNewFpVotes()) {
+				int firstTcpEstimate = 0;
+				for (auto const& candidate : booth.fpCandidates) {
+					if (candidate.candidateId == firstCandidateId) {
+						firstTcpEstimate += candidate.fpVotes;
+					}
+					else if (candidate.candidateId != secondCandidateId) {
+						firstTcpEstimate += int(float(candidate.fpVotes) * preferenceFlowGuess);
+					}
+				}
+				int secondTcpEstimate = booth.totalNewFpVotes() - firstTcpEstimate;
+				firstTcpTally += firstTcpEstimate;
+				secondTcpTally += secondTcpEstimate;
 			}
 			if (booth.hasOldAndNewResults()) {
 				oldComparisonVotes += booth.totalOldTcpVotes();
