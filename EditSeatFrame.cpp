@@ -4,7 +4,7 @@
 #include "General.h"
 
 EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingProject* project, Seat seat)
-	: wxDialog(NULL, 0, (isNewSeat ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 371)),
+	: wxDialog(NULL, 0, (isNewSeat ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 344)),
 	isNewSeat(isNewSeat), parent(parent), project(project), seat(seat)
 {
 	int partyCount = project->getPartyCount();
@@ -50,12 +50,6 @@ EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingPr
 	// Create the controls for the seat name.
 	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
 	nameTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_Name, seat.name, wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the seat name.
-	previousNameStaticText = new wxStaticText(this, 0, "Previous Name:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	previousNameTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_PreviousName, seat.previousName, wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
 
 	currentHeight += 27;
 
@@ -168,7 +162,6 @@ EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingPr
 
 	// Bind events to the functions that should be carried out by them.
 	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextName, this, PA_EditSeat_TextBoxID_Name);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextPreviousName, this, PA_EditSeat_TextBoxID_PreviousName);
 	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxIncumbent, this, PA_EditSeat_ComboBoxID_Incumbent);
 	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxChallenger, this, PA_EditSeat_ComboBoxID_Challenger);
 	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxChallenger2, this, PA_EditSeat_ComboBoxID_Challenger2);
@@ -208,12 +201,6 @@ void EditSeatFrame::updateTextName(wxCommandEvent& event) {
 
 	// updates the preliminary project data with the string from the event.
 	seat.name = event.GetString();
-}
-
-void EditSeatFrame::updateTextPreviousName(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	seat.previousName = event.GetString();
 }
 
 void EditSeatFrame::updateComboBoxIncumbent(wxCommandEvent& WXUNUSED(event)) {

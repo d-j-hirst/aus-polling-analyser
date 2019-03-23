@@ -34,7 +34,6 @@ enum
 	PA_EditSeat_Base = 650, // To avoid mixing events with other frames.
 	PA_EditSeat_ButtonID_OK,
 	PA_EditSeat_TextBoxID_Name,
-	PA_EditSeat_TextBoxID_PreviousName,
 	PA_EditSeat_ComboBoxID_Incumbent,
 	PA_EditSeat_ComboBoxID_Challenger,
 	PA_EditSeat_ComboBoxID_Challenger2,
@@ -66,10 +65,6 @@ private:
 	// Calls upon the window to update the preliminary name data based on
 	// the result of the GetString() method of "event".
 	void updateTextName(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextPreviousName(wxCommandEvent& event);
 
 	// Calls upon the window to update the incumbent based on
 	// the properties of the event.
@@ -121,8 +116,6 @@ private:
 	// compiler about unused variables in the constructor - no harm done.
 	wxStaticText* nameStaticText;
 	wxTextCtrl* nameTextCtrl;
-	wxStaticText* previousNameStaticText;
-	wxTextCtrl* previousNameTextCtrl;
 	wxStaticText* incumbentStaticText;
 	wxComboBox* incumbentComboBox;
 	wxStaticText* challengerStaticText;

@@ -4,8 +4,6 @@
 
 #include <wx/time.h>
 
-#include <array>
-
 class Seat;
 
 class Result {
@@ -20,7 +18,6 @@ public:
 	int boothsIn = 0;
 	int totalBooths = 0;
 	wxDateTime updateTime;
-	std::array<int, 2> twoCandidatePreferred; // 0 = "incumbent", 1 = other candidate
 
 	float getPercentCountedEstimate() const { 
 		if (percentCounted) {

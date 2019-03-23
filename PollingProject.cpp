@@ -1,16 +1,9 @@
 #include "PollingProject.h"
-
-#include "PreloadDataRetriever.h"
-#include "PreviousElectionDataRetriever.h"
-#include "LatestResultsDataRetriever.h"
-
 #include <iomanip>
 #include <algorithm>
 
 #undef max
 #undef min
-
-const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
 
 PollingProject::PollingProject(NewProjectData& newProjectData) :
 		name(newProjectData.projectName),
@@ -29,329 +22,6 @@ PollingProject::PollingProject(std::string pathName) :
 {
 	PrintDebugLine(lastFileName);
 	open(pathName);
-}
-
-void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetriever const& dataRetriever)
-{
-	int seatMatchCount = 0;
-	for (auto seatIt = dataRetriever.beginSeats(); seatIt != dataRetriever.endSeats(); ++seatIt) {
-		auto seatData = seatIt->second;
-		auto matchedSeat = std::find_if(seats.begin(), seats.end(), 
-			[seatData](Seat const& seat) { return seat.name == seatData.name || seat.previousName ==seatData.name; });
-		if (matchedSeat != seats.end()) {
-			matchedSeat->officialId = seatData.officialId;
-			matchedSeat->previousResults = seatData;
-			++seatMatchCount;
-		}
-		else {
-			PrintDebug("Note - No seat match found for ");
-			PrintDebug(seatData.name);
-			PrintDebugLine(".\n If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.");
-		}
-	}
-	PrintDebugInt(seatMatchCount);
-	PrintDebugLine("seats matched.");
-	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
-	collectAffiliations(dataRetriever);
-}
-
-void PollingProject::incorporatePreloadData(PreloadDataRetriever const& dataRetriever)
-{
-	collectCandidatesFromPreload(dataRetriever);
-	collectBoothsFromPreload(dataRetriever);
-}
-
-void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever)
-{
-	for (auto booth = dataRetriever.beginBooths(); booth != dataRetriever.endBooths(); ++booth) {
-		auto const& newBooth = booth->second;
-
-		// Determine which booth (if any) from the previous election this corresponds to
-		auto oldBoothIt = booths.find(newBooth.officialId);
-		if (oldBoothIt == booths.end()) {
-			//PrintDebug("Could not find a matching booth for booth with Id ");
-			//PrintDebugInt(newBooth.officialId);
-			//PrintDebugNewLine();
-			continue;
-		}
-		auto& matchedBooth = oldBoothIt->second;
-		matchedBooth.fpCandidates = newBooth.fpCandidates; // always record fp candidates regardless of whether booth matching is successful
-		//PrintDebug("Found matching booth for booth ");
-		//PrintDebugInt(newBooth.officialId);
-		//PrintDebug(". Booth name is ");
-		//PrintDebugLine(matchedBooth.name);
-
-		// Check if the parties match
-		bool allValid = true;
-		Party const* newParty[2] = { candidates[newBooth.tcpCandidateId[0]], candidates[newBooth.tcpCandidateId[1]] };
-		Party const* oldParty[2] = { affiliations[matchedBooth.tcpAffiliationId[0]], affiliations[matchedBooth.tcpAffiliationId[1]] };
-		for (auto& a : newParty) if (!a) { a = &invalidParty; allValid = false; };
-		for (auto& a : oldParty) if (!a) { a = &invalidParty; allValid = false; };
-		bool matchedDirect = newParty[0] == oldParty[0] && (newParty[1] == oldParty[1]) && allValid;
-		bool matchedOpposite = newParty[0] == oldParty[1] && (newParty[1] == oldParty[0]) && allValid;
-		bool noOldResults = !matchedBooth.hasOldResults(); // no old results, therefore don't need to match for swing purposes, just get the results in whatever order
-
-		if (matchedDirect || matchedOpposite || noOldResults) {
-			//PrintDebug("Matched parties for this booth - ");
-			//PrintDebug(newParty[0]->name);
-			//PrintDebug(" and ");
-			//PrintDebugLine(newParty[1]->name);
-			if (matchedDirect) {
-				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
-				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
-				matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
-				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
-				matchedBooth.newResultsZero = newBooth.newResultsZero;
-			}
-			else if (matchedOpposite) {
-				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[1];
-				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[0];
-				matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[1];
-				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[0];
-				matchedBooth.newResultsZero = newBooth.newResultsZero;
-			}
-			else if (noOldResults) {
-				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
-				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
-				matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
-				matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
-				matchedBooth.tcpAffiliationId[0] = candidateAffiliations[newBooth.tcpCandidateId[0]];
-				matchedBooth.tcpAffiliationId[1] = candidateAffiliations[newBooth.tcpCandidateId[1]];
-				matchedBooth.newResultsZero = newBooth.newResultsZero;
-			}
-			//PrintDebug("Results: ");
-			//PrintDebug(oldParty[0]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.newTcpVote[0]);
-			//PrintDebug(", ");
-			//PrintDebug(oldParty[1]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.newTcpVote[1]);
-			//PrintDebugNewLine();
-			//PrintDebug("Previous results: ");
-			//PrintDebug(oldParty[0]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.tcpVote[0]);
-			//PrintDebug(", ");
-			//PrintDebug(oldParty[1]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.tcpVote[1]);
-			//PrintDebugNewLine();
-			//int totalOld = matchedBooth.tcpVote[0] + matchedBooth.tcpVote[1];
-			//int totalNew = matchedBooth.newTcpVote[0] + matchedBooth.newTcpVote[1];
-			//if (totalOld && totalNew) {
-			//	float swing = (float(matchedBooth.newTcpVote[0]) / float(totalNew) -
-			//		float(matchedBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
-			//	if (swing >= 0) {
-			//		PrintDebugFloat(swing);
-			//		PrintDebug("% swing to ");
-			//		PrintDebugLine(oldParty[0]->name);
-			//	}
-			//	else {
-			//		PrintDebugFloat(-swing);
-			//		PrintDebug(" swing to ");
-			//		PrintDebugLine(oldParty[1]->name);
-			//	}
-			//}
-		}
-		else {
-			// Could not match parties, wipe previous results
-			matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
-			matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
-			matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
-			matchedBooth.tcpCandidateId[1] = newBooth.tcpCandidateId[1];
-			matchedBooth.tcpAffiliationId[0] = candidateAffiliations[newBooth.tcpCandidateId[0]];
-			matchedBooth.tcpAffiliationId[1] = candidateAffiliations[newBooth.tcpCandidateId[1]];
-			matchedBooth.tcpVote[0] = 0;
-			matchedBooth.tcpVote[1] = 0;
-			matchedBooth.newResultsZero = newBooth.newResultsZero;
-			//PrintDebug("Failed to match parties for this booth - ");
-			//PrintDebug(newParty[0]->name);
-			//PrintDebug(" and ");
-			//PrintDebugLine(newParty[1]->name);
-			//PrintDebug(" could not be matched with ");
-			//PrintDebug(oldParty[0]->name);
-			//PrintDebug(" and ");
-			//PrintDebugLine(oldParty[1]->name);
-		}
-	}
-
-	for (auto seat = dataRetriever.beginSeats(); seat != dataRetriever.endSeats(); ++seat) {
-		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
-		{return thisSeat.name == seat->second.name; });
-		matchingSeat->latestResults = seat->second;
-		for (auto& candidate : matchingSeat->latestResults->finalCandidates) {
-			candidate.affiliationId = candidateAffiliations[candidate.candidateId];
-		}
-		for (auto& candidate : matchingSeat->latestResults->fpCandidates) {
-			candidate.affiliationId = candidateAffiliations[candidate.candidateId];
-		}
-		// *** need something here to check if two-candidate preferred is not recorded because of seat maverick status
-		if (matchingSeat->latestResults->total2cpVotes() && matchingSeat->latestResults->classic2pp) {
-			Party const* partyOne = candidates[matchingSeat->latestResults->finalCandidates[0].candidateId];
-			Party const* partyTwo = candidates[matchingSeat->latestResults->finalCandidates[1].candidateId];
-			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->latestResults->classic2pp = false;
-		}
-		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->total2cpVotes() && matchingSeat->previousResults->classic2pp) {
-			Party const* partyOne = affiliations[matchingSeat->previousResults->finalCandidates[0].affiliationId];
-			Party const* partyTwo = affiliations[matchingSeat->previousResults->finalCandidates[1].affiliationId];
-			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->previousResults->classic2pp = false;
-		}
-	}
-
-	// Note from here until the next comment is options, just outputs debug info and does not store anything.
-
-	//std::array<int, 2> nationalTotalVotes = { 0, 0 };
-	//std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
-
-	//PrintDebugLine("Seats:");
-	//for (auto seat : seats) {
-	//	if (seat.name != "Longman") continue;
-	//	PrintDebug(" Seat of ");
-	//	PrintDebug(seat.name);
-	//	PrintDebugLine(":");
-	//	std::array<int, 2> seatTotalVotes = { 0, 0 };
-	//	std::array<int, 2> seatTotalVotesOld = { 0, 0 };
-	//	PrintDebugInt(seat.latestResults->booths.size());
-	//	PrintDebugLine("booths for this seat");
-	//	for (auto booth : seat.latestResults->booths) {
-	//		Results::Booth thisBooth = booths[booth];
-	//		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
-	//		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
-	//		PrintDebugInt(totalOld);
-	//		PrintDebugInt(totalNew);
-	//		PrintDebug("old/new votes for booth ");
-	//		PrintDebugInt(thisBooth.officialId);
-	//		PrintDebugNewLine();
-	//		PrintDebugInt(thisBooth.newTcpVote[0]);
-	//		PrintDebugInt(thisBooth.newTcpVote[1]);
-	//		PrintDebug("votes for each candidate ");
-	//		PrintDebugNewLine();
-	//		if (totalOld && totalNew) {
-	//			float swing = (float(thisBooth.newTcpVote[0]) / float(totalNew) -
-	//				float(thisBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
-	//			PrintDebug("  Booth - ");
-	//			PrintDebug(thisBooth.name);
-	//			PrintDebug(": ");
-	//			if (swing >= 0) {
-	//				PrintDebugFloat(swing);
-	//				PrintDebug(" swing to ");
-	//				PrintDebug(affiliations[thisBooth.affiliationId[0]]->name);
-	//			}
-	//			else {
-	//				PrintDebugFloat(-swing);
-	//				PrintDebug(" swing to ");
-	//				PrintDebug(affiliations[thisBooth.affiliationId[1]]->name);
-	//			}
-	//			PrintDebug(" from ");
-	//			PrintDebugInt(totalNew);
-	//			PrintDebugLine(" votes");
-
-	//			bool seatMatchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
-	//			if (seatMatchedSame) {
-	//			seatTotalVotes[0] += thisBooth.newTcpVote[0];
-	//			seatTotalVotes[1] += thisBooth.newTcpVote[1];
-	//			seatTotalVotesOld[0] += thisBooth.tcpVote[0];
-	//			seatTotalVotesOld[1] += thisBooth.tcpVote[1];
-	//			}
-	//			else {
-	//			seatTotalVotes[0] += thisBooth.newTcpVote[1];
-	//			seatTotalVotes[1] += thisBooth.newTcpVote[0];
-	//			seatTotalVotesOld[0] += thisBooth.tcpVote[1];
-	//			seatTotalVotesOld[1] += thisBooth.tcpVote[0];
-	//			}
-
-	//			Party const* party[2] = { affiliations[thisBooth.affiliationId[0]], affiliations[thisBooth.affiliationId[1]] };
-	//			if (party[0]->countAsParty == Party::CountAsParty::IsPartyOne && party[1]->countAsParty == Party::CountAsParty::IsPartyTwo) {
-	//				nationalTotalVotes[0] += thisBooth.newTcpVote[0];
-	//				nationalTotalVotes[1] += thisBooth.newTcpVote[1];
-	//				nationalTotalVotesOld[0] += thisBooth.tcpVote[0];
-	//				nationalTotalVotesOld[1] += thisBooth.tcpVote[1];
-	//			}
-	//			else if (party[0]->countAsParty == Party::CountAsParty::IsPartyTwo && party[1]->countAsParty == Party::CountAsParty::IsPartyOne) {
-	//				nationalTotalVotes[0] += thisBooth.newTcpVote[1];
-	//				nationalTotalVotes[1] += thisBooth.newTcpVote[0];
-	//				nationalTotalVotesOld[0] += thisBooth.tcpVote[1];
-	//				nationalTotalVotesOld[1] += thisBooth.tcpVote[0];
-	//			}
-	//		}
-	//	}
-
-	//	int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
-	//	int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
-
-	//	if (totalOldSeat && totalNewSeat) {
-	//		float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
-	//			float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
-	//		PrintDebug(" Total: ");
-	//		if (swing >= 0) {
-	//			PrintDebugFloat(swing);
-	//			PrintDebug(" swing to ");
-	//			PrintDebug(affiliations[seat.previousResults->finalCandidates[0].affiliationId]->name);
-	//		}
-	//		else {
-	//			PrintDebugFloat(-swing);
-	//			PrintDebug(" swing to ");
-	//			PrintDebug(affiliations[seat.previousResults->finalCandidates[1].affiliationId]->name);
-	//		}
-	//		PrintDebug(" from ");
-	//		PrintDebugInt(totalNewSeat);
-	//		PrintDebugLine(" votes");
-	//	}
-	//}
-
-	//int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
-	//int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
-
-	//if (totalOldNational && totalNewNational) {
-	//	float swing = (float(nationalTotalVotes[0]) / float(totalNewNational) -
-	//		float(nationalTotalVotesOld[0]) / float(totalOldNational)) * 100.0f;
-	//	PrintDebug("National: ");
-	//	if (swing >= 0) {
-	//		PrintDebugFloat(swing);
-	//		PrintDebug(" swing to ");
-	//		PrintDebug(parties.begin()->name);
-	//	}
-	//	else {
-	//		PrintDebugFloat(-swing);
-	//		PrintDebug(" swing to ");
-	//		PrintDebug((++parties.begin())->name);
-	//	}
-	//	PrintDebug(" from ");
-	//	PrintDebugInt(totalNewNational);
-	//	PrintDebugLine(" votes");
-	//}
-
-	// Code below stores information
-
-	updateLatestResultsForSeats(); // only overwrite different results
-	wxDateTime dateTime = wxDateTime::Now();
-	for (auto& seat : seats) {
-		float percentCounted2cp = calculate2cpPercentComplete(seat);
-		if (!percentCounted2cp) {
-			if (seat.isClassic2pp(partyOne(), partyTwo(), true)) continue;
-			float percentCountedFp = calculateFpPercentComplete(seat);
-			if (!percentCountedFp) continue;
-			Result thisResult;
-			thisResult.seat = &seat;
-			thisResult.percentCounted = percentCountedFp;
-			thisResult.updateTime = dateTime;
-			if (!seat.latestResult || seat.latestResult->percentCounted != percentCountedFp) {
-				addResult(thisResult);
-			}
-			continue;
-		}
-		float incumbentSwing = calculateSwingToIncumbent(seat);
-		Result thisResult;
-		thisResult.seat = &seat;
-		thisResult.incumbentSwing = incumbentSwing;
-		thisResult.percentCounted = percentCounted2cp;
-		thisResult.updateTime = dateTime;
-		if (!seat.latestResult || seat.latestResult->percentCounted != percentCounted2cp) {
-			addResult(thisResult);
-		}
-	}
-	updateLatestResultsForSeats(); // only overwrite different results
 }
 
 void PollingProject::refreshCalc2PP() {
@@ -908,182 +578,147 @@ std::list<Result>::iterator PollingProject::getResultEnd()
 	return results.end();
 }
 
-Results::Booth const& PollingProject::getBooth(int boothId) const
-{
-	return booths.at(boothId);
-}
-
-Party const * PollingProject::getPartyByCandidate(int candidateId) const
-{
-	auto candidateIt = candidates.find(candidateId);
-	if (candidateIt == candidates.end()) return nullptr;
-	return candidateIt->second;
-}
-
-Party const* PollingProject::getPartyByAffliation(int affiliationId) const
-{
-	auto affiliationIt = affiliations.find(affiliationId);
-	if (affiliationIt == affiliations.end()) return nullptr;
-	return affiliationIt->second;
-}
-
-void PollingProject::updateLatestResultsForSeats() {
-	for (auto& thisResult : results) {
-		if (!thisResult.seat->latestResult) thisResult.seat->latestResult = &thisResult;
-		else if (thisResult.seat->latestResult->updateTime < thisResult.updateTime) thisResult.seat->latestResult = &thisResult;
-	}
-}
-
 int PollingProject::save(std::string filename) {
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
 	os << std::setprecision(12);
 	if (!os) return 1;
-	os << "#Project" << "\n";
-	os << "name=" << name << "\n";
-	os << "opre=" << othersPreferenceFlow << "\n";
-	os << "oexh=" << othersExhaustRate << "\n";
-	os << "#Parties" << "\n";
+	os << "#Project" << std::endl;
+	os << "name=" << name << std::endl;
+	os << "opre=" << othersPreferenceFlow << std::endl;
+	os << "oexh=" << othersExhaustRate << std::endl;
+	os << "#Parties" << std::endl;
 	for (Party const& thisParty : parties) {
-		os << "@Party" << "\n";
-		os << "name=" << thisParty.name << "\n";
-		os << "pref=" << thisParty.preferenceShare << "\n";
-		os << "exha=" << thisParty.exhaustRate << "\n";
-		os << "abbr=" << thisParty.abbreviation << "\n";
-		os << "cap =" << int(thisParty.countAsParty) << "\n";
-		os << "supp=" << int(thisParty.supportsParty) << "\n";
-		os << "ideo=" << thisParty.ideology << "\n";
-		os << "cons=" << thisParty.consistency << "\n";
-		for (std::string officialCode : thisParty.officialCodes) {
-			os << "code=" << officialCode << "\n";
-		}
-		os << "colr=" << thisParty.colour.r << "\n";
-		os << "colg=" << thisParty.colour.g << "\n";
-		os << "colb=" << thisParty.colour.b << "\n";
+		os << "@Party" << std::endl;
+		os << "name=" << thisParty.name << std::endl;
+		os << "pref=" << thisParty.preferenceShare << std::endl;
+		os << "exha=" << thisParty.exhaustRate << std::endl;
+		os << "abbr=" << thisParty.abbreviation << std::endl;
+		os << "cap =" << int(thisParty.countAsParty) << std::endl;
+		os << "supp=" << int(thisParty.supportsParty) << std::endl;
 	}
-	os << "#Pollsters" << "\n";
+	os << "#Pollsters" << std::endl;
 	for (auto it = pollsters.begin(); it != pollsters.end(); ++it) {
-		os << "@Pollster" << "\n";
-		os << "name=" << it->name << "\n";
-		os << "weig=" << it->weight << "\n";
-		os << "colr=" << it->colour << "\n";
-		os << "cali=" << int(it->useForCalibration) << "\n";
-		os << "igin=" << int(it->ignoreInitially) << "\n";
+		os << "@Pollster" << std::endl;
+		os << "name=" << it->name << std::endl;
+		os << "weig=" << it->weight << std::endl;
+		os << "colr=" << it->colour << std::endl;
+		os << "cali=" << int(it->useForCalibration) << std::endl;
+		os << "igin=" << int(it->ignoreInitially) << std::endl;
 	}
-	os << "#Polls" << "\n";
+	os << "#Polls" << std::endl;
 	for (auto it = polls.begin(); it != polls.end(); ++it) {
-		os << "@Poll" << "\n";
-		os << "poll=" << getPollsterIndex(it->pollster) << "\n";
-		os << "year=" << it->date.GetYear() << "\n";
-		os << "mont=" << it->date.GetMonth() << "\n";
-		os << "day =" << it->date.GetDay() << "\n";
-		os << "prev=" << it->reported2pp << "\n";
-		os << "resp=" << it->respondent2pp << "\n";
-		os << "calc=" << it->calc2pp << "\n";
+		os << "@Poll" << std::endl;
+		os << "poll=" << getPollsterIndex(it->pollster) << std::endl;
+		os << "year=" << it->date.GetYear() << std::endl;
+		os << "mont=" << it->date.GetMonth() << std::endl;
+		os << "day =" << it->date.GetDay() << std::endl;
+		os << "prev=" << it->reported2pp << std::endl;
+		os << "resp=" << it->respondent2pp << std::endl;
+		os << "calc=" << it->calc2pp << std::endl;
 		for (int i = 0; i < getPartyCount(); i++) {
-			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << "\n";
+			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << std::endl;
 		}
-		os << "py15=" << it->primary[15] << "\n";
+		os << "py15=" << it->primary[15] << std::endl;
 	}
-	os << "#Events" << "\n";
+	os << "#Events" << std::endl;
 	for (auto const& thisEvent : events) {
-		os << "@Event" << "\n";
-		os << "name=" << thisEvent.name << "\n";
-		os << "type=" << thisEvent.eventType << "\n";
-		os << "date=" << thisEvent.date.GetJulianDayNumber() << "\n";
-		os << "vote=" << thisEvent.vote << "\n";
+		os << "@Event" << std::endl;
+		os << "name=" << thisEvent.name << std::endl;
+		os << "type=" << thisEvent.eventType << std::endl;
+		os << "date=" << thisEvent.date.GetJulianDayNumber() << std::endl;
+		os << "vote=" << thisEvent.vote << std::endl;
 	}
-	os << "#Models" << "\n";
+	os << "#Models" << std::endl;
 	for (auto const& thisModel : models) {
-		os << "@Model" << "\n";
-		os << "name=" << thisModel.name << "\n";
-		os << "iter=" << thisModel.numIterations << "\n";
-		os << "trnd=" << thisModel.trendTimeScoreMultiplier << "\n";
-		os << "hsm =" << thisModel.houseEffectTimeScoreMultiplier << "\n";
-		os << "cfpb=" << thisModel.calibrationFirstPartyBias << "\n";
-		os << "fstd=" << thisModel.finalStandardDeviation << "\n";
-		os << "strt=" << thisModel.startDate.GetJulianDayNumber() << "\n";
-		os << "end =" << thisModel.endDate.GetJulianDayNumber() << "\n";
-		os << "updt=" << thisModel.lastUpdated.GetJulianDayNumber() << "\n";
+		os << "@Model" << std::endl;
+		os << "name=" << thisModel.name << std::endl;
+		os << "iter=" << thisModel.numIterations << std::endl;
+		os << "trnd=" << thisModel.trendTimeScoreMultiplier << std::endl;
+		os << "hsm =" << thisModel.houseEffectTimeScoreMultiplier << std::endl;
+		os << "cfpb=" << thisModel.calibrationFirstPartyBias << std::endl;
+		os << "fstd=" << thisModel.finalStandardDeviation << std::endl;
+		os << "strt=" << thisModel.startDate.GetJulianDayNumber() << std::endl;
+		os << "end =" << thisModel.endDate.GetJulianDayNumber() << std::endl;
+		os << "updt=" << thisModel.lastUpdated.GetJulianDayNumber() << std::endl;
 		for (auto const& thisDay : thisModel.day) {
-			os << "$Day" << "\n";
-			os << "mtnd=" << thisDay.trend2pp << "\n";
+			os << "$Day" << std::endl;
+			os << "mtnd=" << thisDay.trend2pp << std::endl;
 			for (int pollsterIndex = 0; pollsterIndex < int(thisDay.houseEffect.size()); ++pollsterIndex) {
 				os << "he" << pollsterIndex << (pollsterIndex < 10 ? " " : "") << "=" <<
-					thisDay.houseEffect[pollsterIndex] << "\n";
+					thisDay.houseEffect[pollsterIndex] << std::endl;
 			}
 		}
 	}
-	os << "#Projections" << "\n";
+	os << "#Projections" << std::endl;
 	for (auto const& thisProjection : projections) {
-		os << "@Projection" << "\n";
-		os << "name=" << thisProjection.name << "\n";
-		os << "iter=" << thisProjection.numIterations << "\n";
-		os << "base=" << getModelIndex(thisProjection.baseModel) << "\n";
-		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << "\n";
-		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << "\n";
-		os << "dlyc=" << thisProjection.dailyChange << "\n";
-		os << "inic=" << thisProjection.initialStdDev << "\n";
-		os << "vtls=" << thisProjection.leaderVoteLoss << "\n";
-		os << "nele=" << thisProjection.numElections << "\n";
+		os << "@Projection" << std::endl;
+		os << "name=" << thisProjection.name << std::endl;
+		os << "iter=" << thisProjection.numIterations << std::endl;
+		os << "base=" << getModelIndex(thisProjection.baseModel) << std::endl;
+		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << std::endl;
+		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << std::endl;
+		os << "dlyc=" << thisProjection.dailyChange << std::endl;
+		os << "inic=" << thisProjection.initialStdDev << std::endl;
+		os << "vtls=" << thisProjection.leaderVoteLoss << std::endl;
+		os << "nele=" << thisProjection.numElections << std::endl;
 		for (int dayIndex = 0; dayIndex < int(thisProjection.meanProjection.size()); ++dayIndex) {
-			os << "mean=" << thisProjection.meanProjection[dayIndex] << "\n";
-			os << "stdv=" << thisProjection.sdProjection[dayIndex] << "\n";
+			os << "mean=" << thisProjection.meanProjection[dayIndex] << std::endl;
+			os << "stdv=" << thisProjection.sdProjection[dayIndex] << std::endl;
 		}
 	}
-	os << "#Regions" << "\n";
+	os << "#Regions" << std::endl;
 	for (auto const& thisRegion : regions) {
-		os << "@Region" << "\n";
-		os << "name=" << thisRegion.name << "\n";
-		os << "popn=" << thisRegion.population << "\n";
-		os << "lele=" << thisRegion.lastElection2pp << "\n";
-		os << "samp=" << thisRegion.sample2pp << "\n";
-		os << "swng=" << thisRegion.swingDeviation << "\n";
-		os << "addu=" << thisRegion.additionalUncertainty << "\n";
+		os << "@Region" << std::endl;
+		os << "name=" << thisRegion.name << std::endl;
+		os << "popn=" << thisRegion.population << std::endl;
+		os << "lele=" << thisRegion.lastElection2pp << std::endl;
+		os << "samp=" << thisRegion.sample2pp << std::endl;
+		os << "swng=" << thisRegion.swingDeviation << std::endl;
+		os << "addu=" << thisRegion.additionalUncertainty << std::endl;
 	}
-	os << "#Seats" << "\n";
+	os << "#Seats" << std::endl;
 	for (auto const& thisSeat : seats) {
-		os << "@Seat" << "\n";
-		os << "name=" << thisSeat.name << "\n";
-		os << "pvnm=" << thisSeat.previousName << "\n";
-		os << "incu=" << getPartyIndex(thisSeat.incumbent) << "\n";
-		os << "chal=" << getPartyIndex(thisSeat.challenger) << "\n";
-		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << "\n";
-		os << "regn=" << getRegionIndex(thisSeat.region) << "\n";
-		os << "marg=" << thisSeat.margin << "\n";
-		os << "lmod=" << thisSeat.localModifier << "\n";
-		os << "iodd=" << thisSeat.incumbentOdds << "\n";
-		os << "codd=" << thisSeat.challengerOdds << "\n";
-		os << "c2od=" << thisSeat.challenger2Odds << "\n";
-		os << "winp=" << thisSeat.incumbentWinPercent << "\n";
-		os << "tipp=" << thisSeat.tippingPointPercent << "\n";
-		os << "sma =" << thisSeat.simulatedMarginAverage << "\n";
-		os << "lp1 =" << getPartyIndex(thisSeat.livePartyOne) << "\n";
-		os << "lp2 =" << getPartyIndex(thisSeat.livePartyTwo) << "\n";
-		os << "lp3 =" << getPartyIndex(thisSeat.livePartyThree) << "\n";
-		os << "p2pr=" << thisSeat.partyTwoProb << "\n";
-		os << "p3pr=" << thisSeat.partyThreeProb << "\n";
-		os << "over=" << int(thisSeat.overrideBettingOdds) << "\n";
+		os << "@Seat" << std::endl;
+		os << "name=" << thisSeat.name << std::endl;
+		os << "incu=" << getPartyIndex(thisSeat.incumbent) << std::endl;
+		os << "chal=" << getPartyIndex(thisSeat.challenger) << std::endl;
+		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << std::endl;
+		os << "regn=" << getRegionIndex(thisSeat.region) << std::endl;
+		os << "marg=" << thisSeat.margin << std::endl;
+		os << "lmod=" << thisSeat.localModifier << std::endl;
+		os << "iodd=" << thisSeat.incumbentOdds << std::endl;
+		os << "codd=" << thisSeat.challengerOdds << std::endl;
+		os << "c2od=" << thisSeat.challenger2Odds << std::endl;
+		os << "winp=" << thisSeat.incumbentWinPercent << std::endl;
+		os << "tipp=" << thisSeat.tippingPointPercent << std::endl;
+		os << "sma =" << thisSeat.simulatedMarginAverage << std::endl;
+		os << "lp1 =" << getPartyIndex(thisSeat.livePartyOne) << std::endl;
+		os << "lp2 =" << getPartyIndex(thisSeat.livePartyTwo) << std::endl;
+		os << "lp3 =" << getPartyIndex(thisSeat.livePartyThree) << std::endl;
+		os << "p2pr=" << thisSeat.partyTwoProb << std::endl;
+		os << "p3pr=" << thisSeat.partyThreeProb << std::endl;
+		os << "over=" << int(thisSeat.overrideBettingOdds) << std::endl;
 	}
-	os << "#Simulations" << "\n";
+	os << "#Simulations" << std::endl;
 	for (auto const& thisSimulation : simulations) {
-		os << "@Simulation" << "\n";
-		os << "name=" << thisSimulation.name << "\n";
-		os << "iter=" << thisSimulation.numIterations << "\n";
-		os << "base=" << getProjectionIndex(thisSimulation.baseProjection) << "\n";
-		os << "prev=" << thisSimulation.prevElection2pp << "\n";
-		os << "stsd=" << thisSimulation.stateSD << "\n";
-		os << "stde=" << thisSimulation.stateDecay << "\n";
-		os << "live=" << int(thisSimulation.live) << "\n";
+		os << "@Simulation" << std::endl;
+		os << "name=" << thisSimulation.name << std::endl;
+		os << "iter=" << thisSimulation.numIterations << std::endl;
+		os << "base=" << getProjectionIndex(thisSimulation.baseProjection) << std::endl;
+		os << "prev=" << thisSimulation.prevElection2pp << std::endl;
+		os << "stsd=" << thisSimulation.stateSD << std::endl;
+		os << "stde=" << thisSimulation.stateDecay << std::endl;
+		os << "live=" << int(thisSimulation.live) << std::endl;
 	}
-	os << "#Results" << "\n";
+	os << "#Results" << std::endl;
 	for (auto const& thisResult : results) {
-		os << "@Result" << "\n";
-		os << "seat=" << getSeatIndex(thisResult.seat) << "\n";
-		os << "swng=" << thisResult.incumbentSwing << "\n";
-		os << "cnt =" << thisResult.percentCounted << "\n";
-		os << "btin=" << thisResult.boothsIn << "\n";
-		os << "btto=" << thisResult.totalBooths << "\n";
-		os << "updt=" << thisResult.updateTime.GetJulianDayNumber() << "\n";
+		os << "@Result" << std::endl;
+		os << "seat=" << getSeatIndex(thisResult.seat) << std::endl;
+		os << "swng=" << thisResult.incumbentSwing << std::endl;
+		os << "cnt =" << thisResult.percentCounted << std::endl;
+		os << "btin=" << thisResult.boothsIn << std::endl;
+		os << "btto=" << thisResult.totalBooths << std::endl;
+		os << "updt=" << thisResult.updateTime.GetJulianDayNumber() << std::endl;
 	}
 	os << "#End";
 	os.close();
@@ -1125,8 +760,6 @@ void PollingProject::open(std::string filename) {
 	}
 
 	is.close();
-
-	results.clear(); // *** remove!
 
 	finalizeFileLoading();
 }
@@ -1283,30 +916,6 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 5).compare("supp=")) {
 			parties.back().supportsParty = Party::SupportsParty(std::stoi(line.substr(5)));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("ideo=")) {
-			parties.back().ideology = std::stoi(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("cons=")) {
-			parties.back().consistency = std::stoi(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("code=")) {
-			parties.back().officialCodes.push_back(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("colr=")) {
-			parties.back().colour.r = std::stoi(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("colg=")) {
-			parties.back().colour.g = std::stoi(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("colb=")) {
-			parties.back().colour.b = std::stoi(line.substr(5));
 			return true;
 		}
 	}
@@ -1536,10 +1145,6 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			it->name = line.substr(5);
 			return true;
 		}
-		else if (!line.substr(0, 5).compare("pvnm=")) {
-			it->previousName = line.substr(5);
-			return true;
-		}
 		else if (!line.substr(0, 5).compare("incu=")) {
 			it->incumbent = getPartyPtr(std::stoi(line.substr(5)));
 			return true;
@@ -1729,119 +1334,4 @@ void PollingProject::finalizeFileLoading() {
 	thisParty->supportsParty = Party::SupportsParty::Two;
 
 	setVisualiserBounds(visStartDay, visEndDay);
-}
-
-void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & dataRetriever)
-{
-	affiliations.insert({-1, &invalidParty});
-	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
-		// Don't bother doing any string comparisons if this affiliation is already recorded
-		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
-			for (auto const& party : parties) {
-				for (auto partyCode : party.officialCodes) {
-					if (affiliationIt->second == partyCode) {
-						affiliations.insert({ affiliationIt->first, &party });
-					}
-				}
-			}
-		}
-	}
-}
-
-void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & dataRetriever)
-{
-	affiliations.insert({ -1, &invalidParty });
-	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
-		// Don't bother doing any string comparisons if this affiliation is already recorded
-		if (affiliations.find(affiliationIt->first) == affiliations.end()) {
-			for (auto const& party : parties) {
-				for (auto partyCode : party.officialCodes) {
-					if (affiliationIt->second == partyCode) {
-						affiliations.insert({ affiliationIt->first, &party });
-					}
-				}
-			}
-		}
-	}
-
-	candidates.insert({ -1, &invalidParty });
-	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
-		auto affiliationIt = affiliations.find(candidateIt->second);
-		if (affiliationIt != affiliations.end()) {
-			candidates.insert({ candidateIt->first, affiliationIt->second });
-			candidateAffiliations.insert(*candidateIt);
-		}
-		else {
-			// treat unknown party as independent
-			candidates.insert({ candidateIt->first, affiliations[0] });
-			candidateAffiliations.insert({ candidateIt->first, -1 });
-		}
-	}
-}
-
-void PollingProject::collectBoothsFromPreload(PreloadDataRetriever const & dataRetriever)
-{
-	for (auto boothIt = dataRetriever.beginBooths(); boothIt != dataRetriever.endBooths(); ++boothIt) {
-		if (booths.find(boothIt->first) == booths.end()) {
-			booths.insert({ boothIt->first, boothIt->second });
-		}
-	}
-}
-
-float PollingProject::calculateSwingToIncumbent(Seat const & seat)
-{
-	std::array<int, 2> seatTotalVotes = { 0, 0 };
-	std::array<int, 2> seatTotalVotesOld = { 0, 0 };
-	for (auto booth : seat.latestResults->booths) {
-		Results::Booth thisBooth = booths[booth];
-		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
-		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
-		if (totalOld && totalNew) {
-			bool matchedSame = (affiliations[thisBooth.tcpAffiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
-			if (matchedSame) {
-				seatTotalVotes[0] += thisBooth.newTcpVote[0];
-				seatTotalVotes[1] += thisBooth.newTcpVote[1];
-				seatTotalVotesOld[0] += thisBooth.tcpVote[0];
-				seatTotalVotesOld[1] += thisBooth.tcpVote[1];
-			}
-			else {
-				seatTotalVotes[0] += thisBooth.newTcpVote[1];
-				seatTotalVotes[1] += thisBooth.newTcpVote[0];
-				seatTotalVotesOld[0] += thisBooth.tcpVote[1];
-				seatTotalVotesOld[1] += thisBooth.tcpVote[0];
-			}
-		}
-	}
-
-	int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
-	int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
-
-	if (totalOldSeat && totalNewSeat) {
-		float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
-			float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
-		float swingToIncumbent = swing * (seat.incumbent == candidates[seat.latestResults->finalCandidates[0].candidateId] ? 1 : -1);
-		return swingToIncumbent;
-	}
-	return 0;
-}
-
-float PollingProject::calculate2cpPercentComplete(Seat const & seat)
-{
-	if (seat.latestResults->enrolment <= 0) return 0;
-	int totalVotes = 0;
-	for (auto booth : seat.latestResults->booths) {
-		Results::Booth thisBooth = booths[booth];
-		totalVotes += thisBooth.newTcpVote[0];
-		totalVotes += thisBooth.newTcpVote[1];
-	}
-
-	return float(totalVotes) / float(seat.latestResults->enrolment) * 100.0f;
-}
-
-float PollingProject::calculateFpPercentComplete(Seat const & seat)
-{
-	if (seat.latestResults->enrolment <= 0) return 0;
-	int totalVotes = seat.latestResults->totalFpVotes();
-
-	return float(totalVotes) / float(seat.latestResults->enrolment) * 100.0f;
 }

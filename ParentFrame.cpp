@@ -7,7 +7,6 @@
 ParentFrame::ParentFrame(const wxString& title)
 	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(1024, 720)),
 	notebookPanel(nullptr), notebook(nullptr) {
-
 	// Set the frame icon.
 	SetIcon(wxICON(sample));
 

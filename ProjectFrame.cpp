@@ -11,7 +11,6 @@
 #include "SimulationsFrame.h"
 #include "DisplayFrame.h"
 #include "ResultsFrame.h"
-#include "DownloadFrame.h"
 
 // ----------------------------------------------------------------------------
 // notebook frame
@@ -98,7 +97,6 @@ void ProjectFrame::setupPages() {
 	simulationsFrame = new SimulationsFrame(this, project.get());
 	displayFrame = new DisplayFrame(this, project.get());
 	resultsFrame = new ResultsFrame(this, project.get());
-	downloadFrame = new DownloadFrame(this, project.get());
 	AddPage(partiesFrame, "Parties", true);
 	AddPage(pollstersFrame, "Pollsters", true);
 	AddPage(pollsFrame, "Polls", true);
@@ -111,7 +109,6 @@ void ProjectFrame::setupPages() {
 	AddPage(simulationsFrame, "Simulations", true);
 	AddPage(displayFrame, "Display", true);
 	AddPage(resultsFrame, "Results", true);
-	AddPage(downloadFrame, "Download", true);
 }
 
 void ProjectFrame::saveAs() {
@@ -170,10 +167,6 @@ void ProjectFrame::refreshVisualiser() {
 // Refreshes the Polls frame data.
 void ProjectFrame::refreshDisplay() {
 	if (displayFrame) displayFrame->refreshData();
-}
-
-void ProjectFrame::refreshResults() {
-	if (resultsFrame) resultsFrame->refreshData();
 }
 
 bool ProjectFrame::checkSave() {

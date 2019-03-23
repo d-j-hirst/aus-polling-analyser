@@ -18,7 +18,6 @@
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 #include "Debug.h"
-#include "wx/grid.h"
 
 class ProjectFrame;
 class GenericChildFrame;
@@ -38,28 +37,18 @@ public:
 
 private:
 
-	enum class Filter {
-		AllResults,
-		LatestResults,
-		SignificantResults,
-		KeyResults
-	};
-
 	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnResize(wxSizeEvent& event);
+	void OnResize(wxSizeEvent& WXUNUSED(event));
 
 	// Runs all "live" simulations found
-	void OnRunLiveSimulations(wxCommandEvent& event);
+	void OnRunLiveSimulations(wxCommandEvent& WXUNUSED(event));
 
 	// Adds the currently entered result to the records
-	void OnAddResult(wxCommandEvent& event);
+	void OnAddResult(wxCommandEvent& WXUNUSED(event));
 
 	// Brings up dialog box for setting a seat to have non-classic results
 	// (i.e. parties other than the two majors are competitive)
-	void OnNonClassic(wxCommandEvent& event);
-
-	// Handles selection of the results filter
-	void OnFilterSelection(wxCommandEvent& event);
+	void OnNonClassic(wxCommandEvent& WXUNUSED(event));
 
 	// adds "result" to result data.
 	void addResultToResultData(Result result);
@@ -69,9 +58,6 @@ private:
 
 	// updates the toolbar
 	void refreshToolbar();
-
-	// checks whether thisResult passes the current filter
-	bool resultPassesFilter(Result const& thisResult);
 
 	// A pointer to the parent frame.
 	ProjectFrame* const parent;
@@ -92,16 +78,11 @@ private:
 	// Text box used to enter the total number of booths for the seat
 	wxTextCtrl* totalBoothCountTextCtrl = nullptr;
 
-	// Text box used to enter the total number of booths for the seat
-	wxComboBox* filterComboBox = nullptr;
-
 	// Panel containing vote count data.
 	wxPanel* dataPanel = nullptr;
 
 	// Control containing vote count data (from the dataPanel above)
-	wxGrid* resultsData = nullptr;
+	wxDataViewListCtrl* resultsData = nullptr;
 
 	bool displayPolls = true;
-
-	Filter filter = Filter::AllResults;
 };
