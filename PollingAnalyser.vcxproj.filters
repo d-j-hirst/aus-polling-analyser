@@ -2,9 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="PollingAnalyser.cpp" />
-    <ClCompile Include="Debug.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ProjectFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -74,9 +71,6 @@
     <ClCompile Include="EditSeatFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
-    <ClCompile Include="General.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="SimulationsFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
@@ -100,6 +94,30 @@
     </ClCompile>
     <ClCompile Include="NonClassicFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
+    <ClCompile Include="unzip.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Debug.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="General.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="ResultsDownloader.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="PreviousElectionDataRetriever.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="PreloadDataRetriever.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="DownloadFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
+    <ClCompile Include="LatestResultsDataRetriever.cpp">
+      <Filter>Source Files\Data Processing</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -127,12 +145,24 @@
     <Filter Include="Source Files\Data Objects">
       <UniqueIdentifier>{0d62a468-e7fa-468c-9517-e43acae4634b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Zip stuff">
+      <UniqueIdentifier>{0568daec-01ef-4a02-8c98-395bd81c5731}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utility">
+      <UniqueIdentifier>{04bc66c2-3371-4381-b150-e4589cb79e2d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utility">
+      <UniqueIdentifier>{3edddf0c-f28c-490d-b954-8dcc6c500541}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Data Processing">
+      <UniqueIdentifier>{70508ff0-2344-44b1-8bc8-7bbbd8763a8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Data Processing">
+      <UniqueIdentifier>{d593dfea-a1ab-44ad-b3fd-bc79500b18ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PollingProject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="NewProjectData.h">
@@ -231,9 +261,6 @@
     <ClInclude Include="EditSeatFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
-    <ClInclude Include="General.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="SimulationsFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
@@ -252,11 +279,41 @@
     <ClInclude Include="Result.h">
       <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
-    <ClInclude Include="CountProgress.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NonClassicFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="unzip.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="CountProgress.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Debug.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="General.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultsDownloader.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="DownloadFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="PreviousElectionDataRetriever.h">
+      <Filter>Header Files\Data Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="RegexNavigation.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="ElectionData.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="PreloadDataRetriever.h">
+      <Filter>Header Files\Data Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="LatestResultsDataRetriever.h">
+      <Filter>Header Files\Data Processing</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

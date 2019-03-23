@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Debug.h"
+#include "ElectionData.h"
+#include "Party.h"
+
+#include <optional>
 
 struct Region;
 struct Party;
@@ -17,12 +21,19 @@ public:
 	{}
 
 	std::string name = "";
+	std::string previousName = "";
 
 	Party const* incumbent = nullptr;
 	Party const* challenger = nullptr;
 	Party const* challenger2 = nullptr;
 	Region* region = nullptr;
-	Result const* latestResult = nullptr;
+	Result const* latestResult = nullptr; // used as a temporary in simulations for storing the latest live result
+
+	// Official seat ID from the electoral commission
+	int officialId = -1;
+
+	std::optional<Results::Seat> previousResults;
+	std::optional<Results::Seat> latestResults;
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
@@ -43,6 +54,11 @@ public:
 	float incumbentWinPercent = 0.0f;
 	float tippingPointPercent = 0.0f;
 
+	float liveBoothSwing = 0.0f;
+
+	float firstPartyPreferenceFlow = 0.0f;
+	float preferenceFlowVariation = 0.03f;
+
 	// Party one probability is calculated as being 1 - the other two parties,
 	// which allows for conveniently adding a party as certain to win a seat without needing any other input
 	Party const* livePartyOne = nullptr;
@@ -55,16 +71,46 @@ public:
 
 	int incumbentWins = 0;
 
+	double partyOneWinRate = 0.0;
+	double partyTwoWinRate = 0.0;
+	double partyOthersWinRate = 0.0;
+
 	//float tempWinnerMargin = 0.0f;
 	Party const* winner = nullptr;
+
+	std::array<int, 2> tcpTally = { 0, 0 }; // cached data for simulations
+	float individualBoothGrowth; // cached data for simulations
 
 	Party const* getLeadingParty() const {
 		return (margin > 0.0f ? incumbent : challenger);
 	}
 
-	bool isClassic2pp(Party const* partyOne, Party const* partyTwo) const {
+	bool hasFpResults() const {
+		if (!latestResults.has_value()) return false;
+		return std::find_if(latestResults->fpCandidates.begin(), latestResults->fpCandidates.end(),
+			[](Results::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
+	}
+
+	bool has2cpResults() const {
+		return latestResults->total2cpVotes();
+	}
+
+	bool hasLiveResults(Party const* partyOne, Party const* partyTwo) const {
+		if (!latestResults.has_value()) return false;
+		if (has2cpResults()) return true;
+		if (hasFpResults()) return !isClassic2pp(partyOne, partyTwo, true);
+		return false;
+	}
+
+	bool isClassic2pp(Party const* partyOne, Party const* partyTwo, bool live) const {
+		if (live && has2cpResults()) {
+			if (latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
+			return false;
+		}
+		if (live && hasFpResults()) {
+			if (!latestResults->classic2pp) return false;
+		}
 		if (livePartyOne) return false;
-		if (overrideBettingOdds) return true;
 		return (incumbent == partyOne && challenger == partyTwo) ||
 			(incumbent == partyTwo && challenger == partyOne);
 	}

@@ -1,11 +1,14 @@
 #pragma once
 
-#include <list>
-#include <vector>
-#include <array>
-#include <numeric>
-#include <wx/datetime.h>
 #include "Debug.h"
+
+#include <wx/datetime.h>
+
+#include <array>
+#include <list>
+#include <numeric>
+#include <random>
+#include <vector>
 
 const int NumProbabilityBoundIndices = 8;
 
@@ -136,5 +139,44 @@ public:
 		float topTwoChance = 1.0f;
 	};
 
-	OddsInfo calculateOddsInfo(std::list<Seat>::iterator thisSeat);
+	struct SeatResult {
+		Party const* winner = nullptr;
+		Party const* runnerUp = nullptr;
+		float margin = 0.0f;
+		float significance = 0.0f;
+	};
+
+	int currentIteration = 0;
+
+	float ppvcBias = 0.0f;
+	float ppvcBiasNumerator = 0.0f;
+	float ppvcBiasDenominator = 0.0f; // should be the total number of PPVC votes counted
+	float ppvcBiasObserved = 0.0f;
+	float ppvcBiasConfidence = 0.0f;
+	int totalOldPpvcVotes = 0;
+
+	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
+	float previousDeclarationVoteEnrolmentRatio = 1.0f;
+
+	void determinePpvcBias();
+
+	void determinePreviousVoteEnrolmentRatios(PollingProject& project);
+
+	void determineSeatCachedBoothData(PollingProject const& project, Seat& seat);
+
+	OddsInfo calculateOddsInfo(Seat const& thisSeat);
+
+	SeatResult calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
+
+	SeatResult calculateLiveResultNonClassic2CP(PollingProject const& project, Seat const& seat);
+
+	SeatResult calculateLiveResultFromFirstPreferences(PollingProject const& project, Seat const& seat);
+
+	Party const* simulateWinnerFromBettingOdds(Seat const& thisSeat);
+
+	bool seatPartiesMatchBetweenElections(PollingProject const & project, Seat const& seat);
+
+	// determines enrolment change and also returns 
+	// estimatedTotalOrdinaryVotes representing an estimate of the total ordinary vote count
+	float determineEnrolmentChange(Seat const & seat, int* estimatedTotalOrdinaryVotes);
 };
