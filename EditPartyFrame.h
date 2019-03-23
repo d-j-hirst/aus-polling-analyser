@@ -15,6 +15,7 @@
 
 #include <sstream>
 #include <wx/valnum.h>
+#include <wx/clrpicker.h>
 
 #include "PartiesFrame.h"
 #include "Debug.h"
@@ -25,18 +26,6 @@ class PartiesFrame;
 // ----------------------------------------------------------------------------
 // constants
 // ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum
-{
-	PA_EditParty_ButtonID_OK,
-	PA_EditParty_TextBoxID_Name,
-	PA_EditParty_TextBoxID_PreferenceFlow,
-	PA_EditParty_TextBoxID_ExhaustRate,
-	PA_EditParty_TextBoxID_Abbreviation,
-	PA_EditParty_ComboBoxID_CountAsParty,
-	PA_EditParty_ComboBoxID_SupportsParty,
-};
 
 // *** EditPartyFrame ***
 // Frame that allows the user to edit an already-existing party
@@ -71,6 +60,22 @@ private:
 	// the result of the GetString() method of "event".
 	void updateTextAbbreviation(wxCommandEvent& event);
 
+	// Calls upon the window to update the preliminary abbreviation data based on
+	// the result of the GetString() method of "event".
+	void updateTextOfficialShortCodes(wxCommandEvent& event);
+
+	// Calls upon the window to update the preliminary abbreviation data based on
+	// the result of the GetString() method of "event".
+	void updateColourPicker(wxColourPickerEvent& event);
+
+	// Calls upon the window to update the "ideology" data based on
+	// the properties of the event.
+	void updateComboBoxIdeology(wxCommandEvent& event);
+
+	// Calls upon the window to update the "ideology" data based on
+	// the properties of the event.
+	void updateComboBoxConsistency(wxCommandEvent& event);
+
 	// Calls upon the window to update the "count-as-party" data based on
 	// the properties of the event.
 	void updateComboBoxCountAsParty(wxCommandEvent& event);
@@ -96,10 +101,18 @@ private:
 	wxTextCtrl* abbreviationTextCtrl;
 	wxStaticText* exhaustRateStaticText;
 	wxTextCtrl* exhaustRateTextCtrl;
+	wxStaticText* officialShortCodesStaticText;
+	wxTextCtrl* officialShortCodesTextCtrl;
+	wxStaticText* colourPickerText;
+	wxColourPickerCtrl* colourPicker;
 	wxStaticText* countAsPartyStaticText;
 	wxComboBox* countAsPartyComboBox;
 	wxStaticText* supportsPartyStaticText;
 	wxComboBox* supportsPartyComboBox;
+	wxStaticText* ideologyStaticText;
+	wxComboBox* ideologyComboBox;
+	wxStaticText* consistencyStaticText;
+	wxComboBox* consistencyComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
 

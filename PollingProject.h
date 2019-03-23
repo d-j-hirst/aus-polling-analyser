@@ -4,6 +4,9 @@
 #include <vector>
 #include <list>
 #include <fstream>
+#include <unordered_map>
+
+#include "ElectionData.h"
 #include "NewProjectData.h"
 #include "Party.h"
 #include "Pollster.h"
@@ -20,6 +23,11 @@
 
 const int PA_MaxPollsters = 100;
 
+
+class LatestResultsDataRetriever;
+class PreloadDataRetriever;
+class PreviousElectionDataRetriever;
+
 // Parent class for the entire polling analysis project.
 // Does not "know" about the UI at all.
 class PollingProject {
@@ -31,6 +39,12 @@ public:
 
 	// Initializes the polling project by loading from a file.
 	PollingProject(std::string pathName);
+
+	void incorporatePreviousElectionResults(PreviousElectionDataRetriever const& dataRetriever);
+
+	void incorporatePreloadData(PreloadDataRetriever const& dataRetriever);
+
+	void incorporateLatestResults(LatestResultsDataRetriever const& dataRetriever);
 
 	// Gets the name of the project.
 	std::string getName() { return name; }
@@ -58,6 +72,9 @@ public:
 
 	// Returns the party with index "partyIndex".
 	Party getParty(int partyIndex) const;
+
+	Party const* partyOne() const { return &*parties.begin(); }
+	Party const* partyTwo() const { return &*std::next(parties.begin()); }
 
 	// Returns a pointer to the party with index "partyIndex".
 	Party* getPartyPtr(int partyIndex);
@@ -341,6 +358,21 @@ public:
 	// Gets the end iterator for the simulation list.
 	std::list<Result>::iterator getResultEnd();
 
+	// Each seat has a pointer to the latest live result (if any)
+	// This updates these pointers to point to the most recent results.
+	void updateLatestResultsForSeats();
+
+	// Gets the booth matching this official ID.
+	Results::Booth const& getBooth(int boothId) const;
+
+	// Returns the party that this candidate ID refers to.
+	// Returns nullptr if candidate did not match any known party
+	Party const* getPartyByCandidate(int candidateId) const;
+
+	// Returns the party that this affiliation ID refers to.
+	// Returns nullptr if affiliation did not match any known party
+	Party const* getPartyByAffliation(int affiliationId) const;
+
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);
@@ -380,6 +412,26 @@ private:
 	// Makes adjustments after a file has been loaded.
 	void finalizeFileLoading();
 
+	// Creates the map between what affiliation numbers and the parties in the project that those
+	// affiliation numbers correspond to.
+	void collectAffiliations(PreviousElectionDataRetriever const& dataRetriever);
+
+	// Creates the map between candidates and parties that they belong to.
+	void collectCandidatesFromPreload(PreloadDataRetriever const& dataRetriever);
+
+	// Adds booth information from preload data to the project. Necessary because some booths may not have
+	// existed prior to this election.
+	void collectBoothsFromPreload(PreloadDataRetriever const& dataRetriever);
+
+	// Assuming there is live results data added for this seat, calculates the swing to the incumbent here.
+	float calculateSwingToIncumbent(Seat const& seat);
+
+	// Assuming there is live results data added for this seat, calculates the % completion of the two-party preferred vote.
+	float calculate2cpPercentComplete(Seat const& seat);
+
+	// Assuming there is live results data added for this seat, calculates the % completion of the two-party preferred vote.
+	float calculateFpPercentComplete(Seat const& seat);
+
 	// The name of the project.
 	std::string name;
 
@@ -418,6 +470,17 @@ private:
 
 	// Live election results
 	std::list<Result> results;
+
+	// Booth data from a download
+	std::unordered_map<int, Results::Booth> booths;
+
+	typedef std::unordered_map<int, Party const*> AffiliationMap;
+	typedef std::unordered_map<int, int> CandidateAffiliationMap;
+	AffiliationMap affiliations;
+	AffiliationMap candidates;
+	CandidateAffiliationMap candidateAffiliations;
+
+	static const Party invalidParty;
 
 	bool valid = false;
 

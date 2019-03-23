@@ -73,6 +73,8 @@
     <OutDir>.\vc_mswu\</OutDir>
     <IntDir>.\vc_mswu\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
     <OutDir>.\vc_mswuddll\</OutDir>
@@ -88,6 +90,8 @@
     <OutDir>.\vc_mswud\</OutDir>
     <IntDir>.\vc_mswud\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -100,7 +104,7 @@
       <WarningLevel>Level4</WarningLevel>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswu;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CURL_STATICLIB;WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswu\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswu\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\vc_mswu\PollingAnalyser\</ObjectFileName>
@@ -131,7 +135,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswu\PollingAnalyser.exe</OutputFile>
       <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl_a.lib;wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
@@ -231,7 +235,7 @@
       <PollingAnalyserRebuild>true</PollingAnalyserRebuild>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswud;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.1.1\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;__WXMSW__;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CURL_STATICLIB;WIN32;_DEBUG;__WXMSW__;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswud\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswud\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\vc_mswud\PollingAnalyser\</ObjectFileName>
@@ -262,12 +266,16 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswud\PollingAnalyser.exe</OutputFile>
       <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl_a.lib;wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LatestResultsDataRetriever.cpp" />
+    <ClCompile Include="PreloadDataRetriever.cpp" />
+    <ClCompile Include="PreviousElectionDataRetriever.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
+    <ClCompile Include="DownloadFrame.cpp" />
     <ClCompile Include="EditEventFrame.cpp" />
     <ClCompile Include="EditModelFrame.cpp" />
     <ClCompile Include="EditPartyFrame.cpp" />
@@ -281,6 +289,7 @@
     <ClCompile Include="General.cpp" />
     <ClCompile Include="GenericChildFrame.cpp" />
     <ClCompile Include="NonClassicFrame.cpp" />
+    <ClCompile Include="ResultsDownloader.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="ModelsFrame.cpp" />
@@ -304,12 +313,20 @@
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
+    <ClCompile Include="unzip.cpp" />
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ElectionData.h" />
+    <ClInclude Include="LatestResultsDataRetriever.h" />
+    <ClInclude Include="PreloadDataRetriever.h" />
+    <ClInclude Include="PreviousElectionDataRetriever.h" />
     <ClInclude Include="CountProgress.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DisplayFrame.h" />
+    <ClInclude Include="DownloadFrame.h" />
+    <ClInclude Include="RegexNavigation.h" />
+    <ClInclude Include="ResultsDownloader.h" />
     <ClInclude Include="EditEventFrame.h" />
     <ClInclude Include="EditModelFrame.h" />
     <ClInclude Include="EditPollFrame.h" />
@@ -349,6 +366,7 @@
     <ClInclude Include="SeatsFrame.h" />
     <ClInclude Include="Simulation.h" />
     <ClInclude Include="SimulationsFrame.h" />
+    <ClInclude Include="unzip.h" />
     <ClInclude Include="VisualiserFrame.h" />
   </ItemGroup>
   <ItemGroup>
