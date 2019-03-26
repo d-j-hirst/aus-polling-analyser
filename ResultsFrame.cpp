@@ -114,7 +114,7 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 {
 	for (int i = 0; i < project->getSimulationCount(); ++i) {
 		Simulation* simulation = project->getSimulationPtr(i);
-		if (simulation->live) simulation->run(*project);
+		if (simulation->isLive()) simulation->run(*project);
 	}
 
 	refreshData();

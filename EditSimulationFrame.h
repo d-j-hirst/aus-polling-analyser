@@ -28,20 +28,6 @@ class PollingProject;
 // constants
 // ----------------------------------------------------------------------------
 
-// IDs for the controls and the menu commands
-enum
-{
-	PA_EditSimulation_Base = 650, // To avoid mixing events with other frames.
-	PA_EditSimulation_ButtonID_OK,
-	PA_EditSimulation_TextBoxID_Name,
-	PA_EditSimulation_ComboBoxID_BaseProjection,
-	PA_EditSimulation_TextBoxID_NumIterations,
-	PA_EditSimulation_TextBoxID_PrevElection2pp,
-	PA_EditSimulation_TextBoxID_StateSD,
-	PA_EditSimulation_TextBoxID_StateDecay,
-	PA_EditSimulation_CheckBoxID_Live,
-};
-
 // *** EditSimulationFrame ***
 // Frame that allows the user to edit an already-existing simulation
 // or create a new one if isNewSimulation is set to true.
@@ -112,7 +98,7 @@ private:
 	wxStaticText* stateDecayStaticText;
 	wxTextCtrl* stateDecayTextCtrl;
 	wxStaticText* liveStaticText;
-	wxCheckBox* liveCheckBox;
+	wxComboBox* liveComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
 

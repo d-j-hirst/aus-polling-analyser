@@ -3,6 +3,20 @@
 #include "PollingProject.h"
 #include "General.h"
 
+// IDs for the controls and the menu commands
+enum
+{
+	PA_EditSimulation_Base = 650, // To avoid mixing events with other frames.
+	PA_EditSimulation_ButtonID_OK,
+	PA_EditSimulation_TextBoxID_Name,
+	PA_EditSimulation_ComboBoxID_BaseProjection,
+	PA_EditSimulation_TextBoxID_NumIterations,
+	PA_EditSimulation_TextBoxID_PrevElection2pp,
+	PA_EditSimulation_TextBoxID_StateSD,
+	PA_EditSimulation_TextBoxID_StateDecay,
+	PA_EditSimulation_ComboBoxID_Live,
+};
+
 EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame* const parent, PollingProject const* project, Simulation simulation)
 	: wxDialog(NULL, 0, (isNewSimulation ? "New Simulation" : "Edit Simulation"), wxDefaultPosition, wxSize(375, 260)),
 	isNewSimulation(isNewSimulation), parent(parent), project(project), simulation(simulation)
@@ -97,11 +111,19 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 
 	currentHeight += 27;
 
-	// Create the controls for choosing whether this simulation is "live"
-	liveStaticText = new wxStaticText(this, 0, "Live:", wxPoint(2, currentHeight), wxSize(100, 23));
-	liveCheckBox = new wxCheckBox(this, PA_EditSimulation_CheckBoxID_Live, "", wxPoint(190, currentHeight - 2), wxSize(200, 23));
+	// Live status combo box
+	wxArrayString liveArray;
+	liveArray.push_back("Projection only");
+	liveArray.push_back("Manual input");
+	liveArray.push_back("Automatic downloading");
+	int currentLiveSelection = int(simulation.live);
 
-	liveCheckBox->SetValue(simulation.live);
+	// Create the controls for choosing whether this simulation is "live"
+	liveStaticText = new wxStaticText(this, 0, "Live status:", wxPoint(2, currentHeight), wxSize(100, 23));
+	liveComboBox = new wxComboBox(this, PA_EditSimulation_ComboBoxID_Live, liveArray[currentLiveSelection], 
+		wxPoint(190, currentHeight - 2), wxSize(200, 23), liveArray, wxCB_READONLY);
+
+	liveComboBox->SetSelection(currentLiveSelection);
 
 	currentHeight += 27;
 
@@ -116,7 +138,7 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextPrevElection2pp, this, PA_EditSimulation_TextBoxID_PrevElection2pp);
 	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextStateSD, this, PA_EditSimulation_TextBoxID_StateSD);
 	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextStateDecay, this, PA_EditSimulation_TextBoxID_StateDecay);
-	Bind(wxEVT_CHECKBOX, &EditSimulationFrame::updateLive, this, PA_EditSimulation_CheckBoxID_Live);
+	Bind(wxEVT_COMBOBOX, &EditSimulationFrame::updateLive, this, PA_EditSimulation_ComboBoxID_Live);
 	Bind(wxEVT_BUTTON, &EditSimulationFrame::OnOK, this, PA_EditSimulation_ButtonID_OK);
 }
 
@@ -272,5 +294,5 @@ void EditSimulationFrame::updateTextStateDecay(wxCommandEvent& event) {
 
 void EditSimulationFrame::updateLive(wxCommandEvent & event)
 {
-	simulation.live = event.IsChecked();
+	simulation.live = Simulation::Mode(event.GetSelection());
 }

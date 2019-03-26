@@ -1642,7 +1642,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("live=")) {
-			it->live = std::stoi(line.substr(5)) != 0;
+			it->live = Simulation::Mode(std::stoi(line.substr(5)));
 			return true;
 		}
 	}

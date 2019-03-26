@@ -57,9 +57,13 @@ public:
 	float partyTwoMinorityPercent = 0.0f;
 	float partyTwoMajorityPercent = 0.0f;
 
-	// If this is true then the simulation will take into account live vote counting data
-	// and will be run when the "live" frame's run button is clicked
-	bool live = false;
+	enum class Mode {
+		Projection,
+		LiveManual,
+		LiveAutomatic
+	};
+
+	Mode live = Mode::Projection;
 
 	std::vector<ClassicSeat> classicSeatList;
 
@@ -126,6 +130,10 @@ public:
 		if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
 		return *std::max_element(partySeatWinFrequency[partyIndex].begin(), partySeatWinFrequency[partyIndex].end());
 	}
+
+	bool isLiveAutomatic() { return live == Mode::LiveAutomatic; }
+	bool isLiveManual() { return live == Mode::LiveManual; }
+	bool isLive() { return isLiveManual() || isLiveAutomatic(); }
 
 	int findBestSeatDisplayCenter(Party* partySorted, int numSeatsDisplayed);
 
