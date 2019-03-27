@@ -105,13 +105,22 @@ public:
 
 	bool isClassic2pp(Party const* partyOne, Party const* partyTwo, bool live) const {
 		if (live && has2cpResults()) {
+			// First possibility, we have a live classic 2cp count and can booth-match it, then it is classic overall
 			if (latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
+			// otherwise it wasn't classic one of the times so we can't use standard classic procedure
 			return false;
 		}
 		if (live && hasFpResults()) {
+			// Here we don't have any 2cp results, but if the fp results are determined to not be classic
+			// (e.g. because it's been noted as a maverick seat) then we can't use standard procedure
 			if (!latestResults->classic2pp) return false;
 		}
-		if (livePartyOne) return false;
+		// Even if there are some first-preference results consistent with a classic 2cp
+		// we can still manually override this if we judge otherwise
+		if (live && livePartyOne) return false;
+		// At this point, we have no 2cp results, and maybe some regular fp results,
+		// and might not even be running live results yet,
+		// so just go by the incumbent/challenger pairs recorded pre-election.
 		return (incumbent == partyOne && challenger == partyTwo) ||
 			(incumbent == partyTwo && challenger == partyOne);
 	}

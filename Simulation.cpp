@@ -224,7 +224,7 @@ void Simulation::run(PollingProject& project) {
 				}
 				// If a seat is marked as classic by the AEC but betting odds say it isn't, possibly use the betting
 				// odds to give a more accurate reflection
-				// For e.g. 2016 Cowper had Coalition vs. Independent in betting but was class in early count,
+				// For e.g. 2016 Cowper had Coalition vs. Independent in betting but was classic in early count,
 				// so the independent's recorded votes were considered insignificant and the seat was overly favourable
 				// to the Coalition.
 				if (result.significance < 1.0f) {
