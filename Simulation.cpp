@@ -89,7 +89,7 @@ void Simulation::run(PollingProject& project) {
 	// A bunch of votes from one seat is less likely to be representative than from a wide variety of seats,
 	// so this factor is introduced to avoid a small number of seats from having undue influence early in the count
 	float sampleRepresentativeness = 0.0f;
-	if (isLiveAutomatic()) {
+	if (isLive()) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 			if (!thisSeat->isClassic2pp(partyOne, partyTwo, isLiveAutomatic())) continue;
 			++classicSeatCount;
@@ -138,7 +138,7 @@ void Simulation::run(PollingProject& project) {
 		// First, randomly determine the national swing for this particular simulation
 		float simulationOverallSwing = std::normal_distribution<float>(pollOverallSwing, pollOverallStdDev)(gen);
 
-		if (isLiveAutomatic() && liveOverallPercent) {
+		if (isLive() && liveOverallPercent) {
 			float liveSwing = liveOverallSwing;
 			float liveStdDev = stdDevOverall(liveOverallPercent);
 			liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
@@ -168,7 +168,7 @@ void Simulation::run(PollingProject& project) {
 				thisRegion->simulationSwing = regionMeanSwing;
 			}
 
-			if (isLiveAutomatic() && thisRegion->livePercentCounted) {
+			if (isLive() && thisRegion->livePercentCounted) {
 				float liveSwing = thisRegion->liveSwing;
 				float liveStdDev = stdDevSingleSeat(thisRegion->livePercentCounted);
 				liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
@@ -255,6 +255,9 @@ void Simulation::run(PollingProject& project) {
 					thisSeat->winner = result.winner;
 					liveSignificance = result.significance;
 				}
+				// If we haven't got very far into the live count, it might be unrepresentative,
+				// so randomly choose between seat betting odds and the actual live count until
+				// more results come in.
 				if (liveSignificance < 1.0f) {
 					if (!isLiveAutomatic() || !thisSeat->winner || std::uniform_real_distribution<float>(0.0f, 1.0f)(gen) > liveSignificance) {
 						if (isLiveAutomatic() && thisSeat->livePartyOne) {
