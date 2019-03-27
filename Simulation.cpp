@@ -194,7 +194,7 @@ void Simulation::run(PollingProject& project) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
-			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo, isLiveAutomatic());
+			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo, isLive());
 
 			if (isClassic2CP) {
 				bool incIsOne = thisSeat->incumbent == partyOne; // stores whether the incumbent is Party One
@@ -250,7 +250,7 @@ void Simulation::run(PollingProject& project) {
 				}
 			} else {
 				float liveSignificance = 0.0f;
-				if (isLiveAutomatic() && thisSeat->hasLiveResults(partyOne, partyTwo)) {
+				if (isLiveAutomatic()) {
 					SeatResult result = calculateLiveResultNonClassic2CP(project, *thisSeat);
 					thisSeat->winner = result.winner;
 					liveSignificance = result.significance;
@@ -260,7 +260,7 @@ void Simulation::run(PollingProject& project) {
 				// more results come in.
 				if (liveSignificance < 1.0f) {
 					if (!isLiveAutomatic() || !thisSeat->winner || std::uniform_real_distribution<float>(0.0f, 1.0f)(gen) > liveSignificance) {
-						if (isLiveAutomatic() && thisSeat->livePartyOne) {
+						if (isLive() && thisSeat->livePartyOne) {
 							float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 							if (uniformRand < thisSeat->partyTwoProb) {
 								thisSeat->winner = thisSeat->livePartyTwo;
@@ -792,6 +792,17 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		float significance = std::clamp(float(seat.latestResults->total2cpVotes()) / float(estimatedTotalVotes) * 20.0f, 0.0f, 1.0f);
 
 		return {winner, runnerUp, abs(firstMargin), float(significance)};
+	} else if (isLive() && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+		float liveMargin = seat.latestResult->incumbentSwing + seat.margin;
+		float liveStdDev = stdDevSingleSeat(seat.latestResult->getPercentCountedEstimate());
+		liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+		float priorWeight = 0.5f;
+		float liveWeight = 6.0f / (liveStdDev * liveStdDev);
+		float newMargin = (priorMargin * priorWeight + liveMargin * liveWeight) / (priorWeight + liveWeight);
+		Party const* winner = (newMargin >= 0.0f ? seat.incumbent : seat.challenger);
+		Party const* runnerUp = (newMargin >= 0.0f ? seat.challenger : seat.incumbent);
+		float significance = std::clamp(float(seat.latestResult->percentCounted) * 0.2f, 0.0f, 1.0f);
+		return { winner, runnerUp, abs(newMargin), significance };
 	}
 
 	Party const* winner = (priorMargin >= 0.0f ? seat.incumbent : seat.challenger);
@@ -887,12 +898,10 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		return { winner, runnerUp, margin, significance };
 	}
 	else if (isLiveAutomatic() && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
-		if (!currentIteration) { PrintDebug(seat.name); PrintDebugLine(" - fp votes"); }
 		return calculateLiveResultFromFirstPreferences(project, seat);
 	}
 	else {
-		PrintDebug(seat.name); PrintDebugLine(" - fp votes");
-		return { seat.incumbent, seat.challenger, seat.margin };
+		return { seat.incumbent, seat.challenger, seat.margin, 0.0f };
 	}
 }
 
