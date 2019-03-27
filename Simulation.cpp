@@ -57,6 +57,8 @@ void Simulation::run(PollingProject& project) {
 
 	determinePpvcBias();
 
+	// this stores the manually input results for seats so that they're ready for the simulations
+	// to use them if set to "Live Manual"
 	project.updateLatestResultsForSeats();
 
 	determinePreviousVoteEnrolmentRatios(project);
@@ -102,14 +104,16 @@ void Simulation::run(PollingProject& project) {
 			thisSeat->region->livePercentCounted += percentCounted;
 			sampleRepresentativeness += std::min(2.0f, percentCounted) * 0.5f;
 		}
-		liveOverallSwing /= liveOverallPercent;
-		liveOverallPercent /= classicSeatCount;
-		sampleRepresentativeness /= classicSeatCount;
-		sampleRepresentativeness = std::sqrt(sampleRepresentativeness);
-		for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
-			if (!thisRegion->livePercentCounted) continue;
-			thisRegion->liveSwing /= thisRegion->livePercentCounted;
-			thisRegion->livePercentCounted /= thisRegion->classicSeatCount;
+		if (liveOverallPercent) {
+			liveOverallSwing /= liveOverallPercent;
+			liveOverallPercent /= classicSeatCount;
+			sampleRepresentativeness /= classicSeatCount;
+			sampleRepresentativeness = std::sqrt(sampleRepresentativeness);
+			for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
+				if (!thisRegion->livePercentCounted) continue;
+				thisRegion->liveSwing /= thisRegion->livePercentCounted;
+				thisRegion->livePercentCounted /= thisRegion->classicSeatCount;
+			}
 		}
 	}
 
@@ -178,7 +182,7 @@ void Simulation::run(PollingProject& project) {
 		}
 		tempOverallSwing /= totalPopulation;
 
-		// Adjust regional swings to keep the implied overall 2pp the same as that actually calculated
+		// Adjust regional swings to keep the implied overall 2pp the same as that actually projected
 		float regionSwingAdjustment = simulationOverallSwing - tempOverallSwing;
 		for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 			thisRegion->simulationSwing += regionSwingAdjustment;
@@ -210,7 +214,6 @@ void Simulation::run(PollingProject& project) {
 				thisSeat->simulatedMarginAverage += incumbentNewMargin;
 				// If the margin is greater than zero, the incumbent wins the seat.
 				thisSeat->winner = result.winner;
-				//PrintDebugLine(thisSeat->winner->name);
 				// Sometimes a classic 2pp seat may also have a independent with a significant chance,
 				// but not high enough to make the top two - if so this will give a certain chance to
 				// override the swing-based result with a win from the challenger
@@ -451,6 +454,8 @@ int Simulation::findBestSeatDisplayCenter(Party* partySorted, int numSeatsDispla
 void Simulation::determinePpvcBias()
 {
 	if (!ppvcBiasDenominator) {
+		// whether or not this is a live simulation, if there hasn't been any PPVC votes recorded
+		// then we can set these to zero and it will be assumed there is no PPVC bias
 		ppvcBias = 0.0f;
 		ppvcBiasConfidence = 0.0f;
 		return;
@@ -468,6 +473,8 @@ void Simulation::determinePpvcBias()
 
 void Simulation::determinePreviousVoteEnrolmentRatios(PollingProject& project)
 {
+	if (!isLiveAutomatic()) return;
+
 	int ordinaryVoteNumerator = 0;
 	int declarationVoteNumerator = 0;
 	int voteDenominator = 0;
@@ -478,6 +485,7 @@ void Simulation::determinePreviousVoteEnrolmentRatios(PollingProject& project)
 			voteDenominator += thisSeat->previousResults->enrolment;
 		}
 	}
+	if (!voteDenominator) return;
 	previousOrdinaryVoteEnrolmentRatio = float(ordinaryVoteNumerator) / float(voteDenominator);
 	previousDeclarationVoteEnrolmentRatio = float(declarationVoteNumerator) / float(voteDenominator);
 }

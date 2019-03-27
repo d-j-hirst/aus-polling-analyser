@@ -314,7 +314,7 @@ bool ResultsFrame::resultPassesFilter(Result const& thisResult)
 	float significance = 0.0f;
 	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(thisResult.seat->margin))));
 	if (thisResult.seat->simulatedMarginAverage) {
-		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(thisResult.seat->simulatedMarginAverage))));
+		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(thisResult.seat->simulatedMarginAverage)))));
 	}
 	if (thisResult.seat->simulatedMarginAverage < 0.0f) significance += 5.0f; // automatically treat seats changing hands as significant
 
