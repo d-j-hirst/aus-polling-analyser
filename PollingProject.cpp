@@ -81,11 +81,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		//PrintDebug(". Booth name is ");
 		//PrintDebugLine(matchedBooth.name);
 
-		if (newBooth.officialId == 7602) {
-			PrintDebugLine(matchedBooth.name);
-			PrintDebugLine(" - 7602 matched booth name");
-		}
-
 		// Check if the parties match
 		bool allValid = true;
 		Party const* newParty[2] = { candidates[newBooth.tcpCandidateId[0]], candidates[newBooth.tcpCandidateId[1]] };
@@ -96,14 +91,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		bool matchedOpposite = newParty[0] == oldParty[1] && (newParty[1] == oldParty[0]) && allValid;
 		bool noOldResults = !matchedBooth.hasOldResults(); // no old results, therefore don't need to match for swing purposes, just get the results in whatever order
 		bool newResults = newBooth.totalNewTcpVotes();
-
-		if (newBooth.officialId == 7602) {
-			PrintDebugInt(matchedDirect);
-			PrintDebugInt(matchedOpposite);
-			PrintDebugInt(noOldResults);
-			PrintDebugLine(" - 7602 matching flags");
-			PrintDebugLine(" - 7602 parties");
-		}
 
 		if (matchedDirect || matchedOpposite || noOldResults) {
 			//PrintDebug("Matched parties for this booth - ");
