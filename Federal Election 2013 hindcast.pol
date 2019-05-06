@@ -1,76 +1,165 @@
 #Project
 name=Federal Election 2016
 opre=41.7000007629
+oexh=0
 #Parties
 @Party
 name=Labor
 pref=100
+exha=0
 abbr=ALP
+cap =1
+supp=1
+ideo=2
+cons=1
+code=ALP
+code=CLR
+colr=255
+colg=0
+colb=0
 @Party
 name=Coalition
 pref=0
+exha=0
 abbr=LNP
+cap =2
+supp=2
+ideo=2
+cons=1
+code=LIB
+code=LP
+code=NAT
+code=LNP
+code=CLP
+code=NP
+colr=0
+colg=0
+colb=255
 @Party
 name=Greens
 pref=78.8000030518
+exha=0
 abbr=GRN
+cap =0
+supp=1
+ideo=0
+cons=2
+code=GRN
+colr=0
+colg=255
+colb=0
 @Party
 name=Palmer United Party
 pref=41.7000007629
+exha=0
 abbr=PUP
+cap =0
+supp=0
+ideo=3
+cons=0
+code=PUP
+colr=236
+colg=255
+colb=4
 @Party
 name=Katter's Australian Party
 pref=41.7000007629
+exha=0
 abbr=KAP
+cap =0
+supp=2
+ideo=3
+cons=0
+code=KAP
+colr=179
+colg=121
+colb=64
+@Party
+name=Independent
+pref=41.7000007629
+exha=0
+abbr=IND
+cap =0
+supp=0
+ideo=2
+cons=1
+code=IND
+colr=192
+colg=192
+colb=192
 #Pollsters
 @Pollster
 name=Newspoll
 weig=1
 colr=9502720
+cali=0
+igin=0
 @Pollster
 name=Nielsen
 weig=1
 colr=215
+cali=0
+igin=0
 @Pollster
 name=Galaxy
 weig=1
 colr=45824
+cali=0
+igin=0
 @Pollster
 name=Newspoll2
 weig=1
 colr=0
+cali=0
+igin=0
 @Pollster
 name=Ipsos
 weig=1
 colr=16711935
+cali=0
+igin=0
 @Pollster
 name=ReachTEL
 weig=1
 colr=8388736
+cali=0
+igin=0
 @Pollster
 name=Morgan multi-mode
 weig=0.699999988079
 colr=40168
+cali=0
+igin=0
 @Pollster
 name=Morgan phone
 weig=0.699999988079
 colr=18327
+cali=0
+igin=0
 @Pollster
 name=Morgan face-to-face
 weig=0.40000000596
 colr=3383039
+cali=0
+igin=0
 @Pollster
 name=Essential
 weig=0.40000000596
 colr=16234617
+cali=0
+igin=0
 @Pollster
 name=AMR
 weig=0.40000000596
 colr=16776960
+cali=0
+igin=0
 @Pollster
 name=Lonergan
 weig=0.40000000596
 colr=7776199
+cali=0
+igin=0
 #Polls
 @Poll
 poll=8
@@ -85,6 +174,7 @@ py01=41
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -99,6 +189,7 @@ py01=43
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=1
@@ -113,6 +204,7 @@ py01=42
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -127,6 +219,7 @@ py01=42
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -141,6 +234,7 @@ py01=42
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -155,6 +249,7 @@ py01=41
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -169,6 +264,7 @@ py01=39
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -183,6 +279,7 @@ py01=47
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -197,6 +294,7 @@ py01=40
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -211,6 +309,7 @@ py01=43
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=1
@@ -225,6 +324,7 @@ py01=43
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -239,6 +339,7 @@ py01=43.5
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -253,6 +354,7 @@ py01=43
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -267,6 +369,7 @@ py01=42.5
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -281,6 +384,7 @@ py01=41.5
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -295,6 +399,7 @@ py01=43.7000007629
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -309,6 +414,7 @@ py01=43
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -323,6 +429,7 @@ py01=45
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -337,6 +444,7 @@ py01=41.5
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -345,12 +453,13 @@ mont=6
 day =24
 prev=49
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -365,6 +474,7 @@ py01=47
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -379,6 +489,7 @@ py01=40
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -393,6 +504,7 @@ py01=39
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=1
@@ -407,6 +519,7 @@ py01=39
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=7
@@ -415,12 +528,13 @@ mont=6
 day =27
 prev=54.5
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -435,6 +549,7 @@ py01=43
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -449,6 +564,7 @@ py01=39
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -463,6 +579,7 @@ py01=43
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -477,6 +594,7 @@ py01=45
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=2
@@ -491,6 +609,7 @@ py01=46
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -505,6 +624,7 @@ py01=46
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -519,6 +639,7 @@ py01=38.5
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -533,6 +654,7 @@ py01=46
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=7
@@ -541,12 +663,13 @@ mont=8
 day =16
 prev=54.5
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -561,6 +684,7 @@ py01=48
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -575,6 +699,7 @@ py01=43
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=2
@@ -583,12 +708,13 @@ mont=8
 day =18
 prev=49
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -597,12 +723,13 @@ mont=8
 day =20
 prev=53
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=7
@@ -611,12 +738,13 @@ mont=8
 day =22
 prev=48.5
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -631,6 +759,7 @@ py01=43
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -639,12 +768,13 @@ mont=8
 day =25
 prev=50
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=7
@@ -653,12 +783,13 @@ mont=8
 day =29
 prev=47.5
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -667,12 +798,13 @@ mont=9
 day =2
 prev=48
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -687,6 +819,7 @@ py01=46
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -695,12 +828,13 @@ mont=9
 day =2
 prev=51.5
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -709,12 +843,13 @@ mont=9
 day =2
 prev=48
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -729,6 +864,7 @@ py01=45
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=1
@@ -737,12 +873,13 @@ mont=9
 day =8
 prev=46
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -751,12 +888,13 @@ mont=9
 day =8
 prev=48
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -771,6 +909,7 @@ py01=46
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -785,6 +924,7 @@ py01=47
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -799,6 +939,7 @@ py01=46
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -813,6 +954,7 @@ py01=46
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -827,6 +969,7 @@ py01=48
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -841,6 +984,7 @@ py01=47
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -855,6 +999,7 @@ py01=45
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -869,6 +1014,7 @@ py01=47
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -883,6 +1029,7 @@ py01=43
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -897,6 +1044,7 @@ py01=45
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -911,6 +1059,7 @@ py01=46
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -925,6 +1074,7 @@ py01=45
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -939,6 +1089,7 @@ py01=47
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -953,6 +1104,7 @@ py01=44
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -967,6 +1119,7 @@ py01=44
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -981,6 +1134,7 @@ py01=45
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -995,6 +1149,7 @@ py01=42
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -1009,6 +1164,7 @@ py01=44
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -1023,6 +1179,7 @@ py01=42
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1037,6 +1194,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1051,6 +1209,7 @@ py01=44
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1065,6 +1224,7 @@ py01=43
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1079,6 +1239,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1093,6 +1254,7 @@ py01=41
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1107,6 +1269,7 @@ py01=39
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1121,6 +1284,7 @@ py01=38
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1135,6 +1299,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=8
@@ -1149,6 +1314,7 @@ py01=46.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1163,6 +1329,7 @@ py01=44.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -1177,6 +1344,7 @@ py01=44
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1191,6 +1359,7 @@ py01=46.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1205,6 +1374,7 @@ py01=45.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1219,6 +1389,7 @@ py01=47
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1233,6 +1404,7 @@ py01=45
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -1247,6 +1419,7 @@ py01=45
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1261,6 +1434,7 @@ py01=46
 py02=7.5
 py03=7.5
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -1275,6 +1449,7 @@ py01=44.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -1289,6 +1464,7 @@ py01=44.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1303,6 +1479,7 @@ py01=44
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -1317,6 +1494,7 @@ py01=40.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1331,6 +1509,7 @@ py01=42
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1345,6 +1524,7 @@ py01=42
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -1359,6 +1539,7 @@ py01=43
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -1373,6 +1554,7 @@ py01=45
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -1387,6 +1569,7 @@ py01=43.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1401,6 +1584,7 @@ py01=42
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1415,6 +1599,7 @@ py01=42.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1429,6 +1614,7 @@ py01=41.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -1443,6 +1629,7 @@ py01=39
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=8
@@ -1457,6 +1644,7 @@ py01=44
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -1471,6 +1659,7 @@ py01=39.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -1485,6 +1674,7 @@ py01=44
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=8
@@ -1499,6 +1689,7 @@ py01=42
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -1513,6 +1704,7 @@ py01=39.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -1527,6 +1719,7 @@ py01=39
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -1541,6 +1734,7 @@ py01=38.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -1555,6 +1749,7 @@ py01=43.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1569,6 +1764,7 @@ py01=35.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -1583,6 +1779,7 @@ py01=38.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1597,6 +1794,7 @@ py01=39.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -1611,6 +1809,7 @@ py01=45
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -1625,6 +1824,7 @@ py01=44
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1639,6 +1839,7 @@ py01=41
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=15
 @Poll
 poll=0
@@ -1653,6 +1854,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1667,6 +1869,7 @@ py01=45
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1681,6 +1884,7 @@ py01=41
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1695,6 +1899,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1709,6 +1914,7 @@ py01=42
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1723,6 +1929,7 @@ py01=43
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1737,6 +1944,7 @@ py01=40
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1751,6 +1959,7 @@ py01=44
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -1765,6 +1974,7 @@ py01=42
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -1779,6 +1989,7 @@ py01=43
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1793,6 +2004,7 @@ py01=42
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -1807,6 +2019,7 @@ py01=44
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1821,6 +2034,7 @@ py01=44
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -1835,6 +2049,7 @@ py01=39
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=0
@@ -1849,6 +2064,7 @@ py01=41
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -1863,6 +2079,7 @@ py01=41
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -1877,6 +2094,7 @@ py01=42
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -1891,6 +2109,7 @@ py01=41
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1905,6 +2124,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -1919,6 +2139,7 @@ py01=39
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -1933,6 +2154,7 @@ py01=39
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -1947,6 +2169,7 @@ py01=42
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=8
@@ -1961,6 +2184,7 @@ py01=40.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -1975,6 +2199,7 @@ py01=40
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=8
@@ -1989,6 +2214,7 @@ py01=43
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2003,6 +2229,7 @@ py01=44
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2017,6 +2244,7 @@ py01=39
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2031,6 +2259,7 @@ py01=38.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2045,6 +2274,7 @@ py01=40
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=8
@@ -2059,6 +2289,7 @@ py01=39
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2073,6 +2304,7 @@ py01=42
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -2087,6 +2319,7 @@ py01=42
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2101,6 +2334,7 @@ py01=39.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -2115,6 +2349,7 @@ py01=42
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2129,6 +2364,7 @@ py01=39
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2143,6 +2379,7 @@ py01=45
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2157,6 +2394,7 @@ py01=40
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2171,6 +2409,7 @@ py01=40.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2185,6 +2424,7 @@ py01=39
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -2199,6 +2439,7 @@ py01=38
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2213,6 +2454,7 @@ py01=41.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2227,6 +2469,7 @@ py01=39
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2241,6 +2484,7 @@ py01=40.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -2255,6 +2499,7 @@ py01=41.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2269,6 +2514,7 @@ py01=40.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2283,6 +2529,7 @@ py01=41.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -2297,6 +2544,7 @@ py01=34.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -2311,6 +2559,7 @@ py01=35.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=0
@@ -2325,6 +2574,7 @@ py01=39
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -2339,6 +2589,7 @@ py01=38
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -2353,6 +2604,7 @@ py01=41
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -2367,6 +2619,7 @@ py01=37
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -2381,6 +2634,7 @@ py01=36.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -2395,6 +2649,7 @@ py01=39
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2409,6 +2664,7 @@ py01=37
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -2423,6 +2679,7 @@ py01=38
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -2437,6 +2694,7 @@ py01=34
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -2451,6 +2709,7 @@ py01=33
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=1
@@ -2459,12 +2718,13 @@ mont=2
 day =9
 prev=61
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -2479,6 +2739,7 @@ py01=34
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2493,6 +2754,7 @@ py01=34
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -2507,6 +2769,7 @@ py01=36
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -2521,6 +2784,7 @@ py01=38
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2535,6 +2799,7 @@ py01=34.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -2549,6 +2814,7 @@ py01=35
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -2563,6 +2829,7 @@ py01=35.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -2577,6 +2844,7 @@ py01=37
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2591,6 +2859,7 @@ py01=34.5
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -2605,6 +2874,7 @@ py01=36
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=2
@@ -2619,6 +2889,7 @@ py01=39
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=3
 @Poll
 poll=8
@@ -2633,6 +2904,7 @@ py01=35.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -2647,6 +2919,7 @@ py01=36
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=0
@@ -2661,6 +2934,7 @@ py01=39
 py02=3
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -2675,6 +2949,7 @@ py01=39
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -2689,6 +2964,7 @@ py01=35
 py02=3
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -2703,6 +2979,7 @@ py01=39
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -2717,6 +2994,7 @@ py01=35.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -2731,6 +3009,7 @@ py01=37.5
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -2745,6 +3024,7 @@ py01=38
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -2759,6 +3039,7 @@ py01=37
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=7
@@ -2767,12 +3048,13 @@ mont=5
 day =12
 prev=55
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -2787,6 +3069,7 @@ py01=42
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=4
 @Poll
 poll=1
@@ -2801,6 +3084,7 @@ py01=39
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -2815,6 +3099,7 @@ py01=39
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=7
@@ -2823,12 +3108,13 @@ mont=5
 day =5
 prev=55
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -2843,6 +3129,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=2
@@ -2857,6 +3144,7 @@ py01=41
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=4
 @Poll
 poll=8
@@ -2871,6 +3159,7 @@ py01=36
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -2885,6 +3174,7 @@ py01=39
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=7
@@ -2899,6 +3189,7 @@ py01=37.5
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -2913,6 +3204,7 @@ py01=39
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -2927,6 +3219,7 @@ py01=40.5
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -2941,6 +3234,7 @@ py01=40
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=7
@@ -2949,12 +3243,13 @@ mont=6
 day =26
 prev=59
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -2969,6 +3264,7 @@ py01=41
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -2983,6 +3279,7 @@ py01=40.5
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -2997,6 +3294,7 @@ py01=39
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=7
@@ -3005,12 +3303,13 @@ mont=7
 day =9
 prev=58.5
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -3019,12 +3318,13 @@ mont=7
 day =11
 prev=54
 resp=55
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3039,6 +3339,7 @@ py01=36.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -3053,6 +3354,7 @@ py01=39
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=7
@@ -3061,12 +3363,13 @@ mont=7
 day =22
 prev=60
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -3075,12 +3378,13 @@ mont=7
 day =25
 prev=57
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3095,6 +3399,7 @@ py01=41
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -3109,6 +3414,7 @@ py01=37
 py02=3
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -3123,6 +3429,7 @@ py01=34.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=1
@@ -3131,12 +3438,13 @@ mont=8
 day =7
 prev=57
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3151,6 +3459,7 @@ py01=36
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -3165,6 +3474,7 @@ py01=41
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -3179,6 +3489,7 @@ py01=39.5
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=2
@@ -3187,12 +3498,13 @@ mont=8
 day =22
 prev=56
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3207,6 +3519,7 @@ py01=36
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=4.5
 @Poll
 poll=0
@@ -3221,6 +3534,7 @@ py01=39
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -3235,6 +3549,7 @@ py01=35.5
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=1
@@ -3243,12 +3558,13 @@ mont=9
 day =5
 prev=56
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=7
@@ -3257,12 +3573,13 @@ mont=9
 day =8
 prev=59
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3277,6 +3594,7 @@ py01=38
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -3291,6 +3609,7 @@ py01=39
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=2
@@ -3299,12 +3618,13 @@ mont=9
 day =16
 prev=53
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -3313,12 +3633,13 @@ mont=9
 day =19
 prev=54
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3333,6 +3654,7 @@ py01=39.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=4
 @Poll
 poll=7
@@ -3347,6 +3669,7 @@ py01=39.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -3361,6 +3684,7 @@ py01=38
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -3375,6 +3699,7 @@ py01=41
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=4.5
 @Poll
 poll=8
@@ -3389,6 +3714,7 @@ py01=39.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -3403,6 +3729,7 @@ py01=42
 py02=4
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -3411,12 +3738,13 @@ mont=9
 day =30
 prev=55
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3431,6 +3759,7 @@ py01=39
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=4.5
 @Poll
 poll=2
@@ -3439,12 +3768,13 @@ mont=10
 day =3
 prev=54
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -3459,6 +3789,7 @@ py01=42
 py02=5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -3473,6 +3804,7 @@ py01=39
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -3487,6 +3819,7 @@ py01=34
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -3501,6 +3834,7 @@ py01=40
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -3509,12 +3843,13 @@ mont=10
 day =13
 prev=54
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -3529,6 +3864,7 @@ py01=39
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -3543,6 +3879,7 @@ py01=40
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -3557,6 +3894,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=2
@@ -3565,12 +3903,13 @@ mont=10
 day =20
 prev=52
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=1
@@ -3579,12 +3918,13 @@ mont=10
 day =20
 prev=57
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=7
@@ -3599,6 +3939,7 @@ py01=40.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -3613,6 +3954,7 @@ py01=43
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -3627,6 +3969,7 @@ py01=41.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=7
@@ -3641,6 +3984,7 @@ py01=36.5
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -3655,6 +3999,7 @@ py01=34
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -3669,6 +4014,7 @@ py01=33
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -3683,6 +4029,7 @@ py01=35
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -3697,6 +4044,7 @@ py01=36
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=7
@@ -3711,6 +4059,7 @@ py01=32
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=7
@@ -3725,6 +4074,7 @@ py01=34.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -3739,6 +4089,7 @@ py01=33
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -3753,6 +4104,7 @@ py01=36
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -3767,6 +4119,7 @@ py01=31.5
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -3781,6 +4134,7 @@ py01=31
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -3795,6 +4149,7 @@ py01=30.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=7
@@ -3809,6 +4164,7 @@ py01=31.5
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -3823,6 +4179,7 @@ py01=35
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -3837,6 +4194,7 @@ py01=31
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -3851,6 +4209,7 @@ py01=32
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -3865,6 +4224,7 @@ py01=35
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -3879,6 +4239,7 @@ py01=32
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=7
@@ -3893,6 +4254,7 @@ py01=33
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -3907,6 +4269,7 @@ py01=33.5
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -3921,6 +4284,7 @@ py01=34
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -3935,6 +4299,7 @@ py01=33.5
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -3949,6 +4314,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -3963,6 +4329,7 @@ py01=32.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -3977,6 +4344,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -3991,6 +4359,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -4005,6 +4374,7 @@ py01=38
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4019,6 +4389,7 @@ py01=35
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -4033,6 +4404,7 @@ py01=34
 py02=5.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -4047,6 +4419,7 @@ py01=37
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4061,6 +4434,7 @@ py01=31.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4075,6 +4449,7 @@ py01=36
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -4089,6 +4464,7 @@ py01=38.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=1
@@ -4103,6 +4479,7 @@ py01=38
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -4117,6 +4494,7 @@ py01=33
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4131,6 +4509,7 @@ py01=34
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -4145,6 +4524,7 @@ py01=39
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4159,6 +4539,7 @@ py01=35
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=0
@@ -4173,6 +4554,7 @@ py01=38
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=1
@@ -4187,6 +4569,7 @@ py01=40
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4201,6 +4584,7 @@ py01=34.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -4215,6 +4599,7 @@ py01=39.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -4229,6 +4614,7 @@ py01=37
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -4243,6 +4629,7 @@ py01=39.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4257,6 +4644,7 @@ py01=38
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -4271,6 +4659,7 @@ py01=39
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4285,6 +4674,7 @@ py01=37.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4299,6 +4689,7 @@ py01=38
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4313,6 +4704,7 @@ py01=37
 py02=6.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -4327,6 +4719,7 @@ py01=37
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4341,6 +4734,7 @@ py01=36.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4355,6 +4749,7 @@ py01=38
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -4369,6 +4764,7 @@ py01=38
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -4383,6 +4779,7 @@ py01=42
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4397,6 +4794,7 @@ py01=38
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4411,6 +4809,7 @@ py01=36
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=7
@@ -4425,6 +4824,7 @@ py01=38
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -4439,6 +4839,7 @@ py01=39
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4453,6 +4854,7 @@ py01=39
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4467,6 +4869,7 @@ py01=37.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -4481,6 +4884,7 @@ py01=38
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4495,6 +4899,7 @@ py01=36
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=1
@@ -4509,6 +4914,7 @@ py01=39
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=2
@@ -4523,6 +4929,7 @@ py01=40
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -4537,6 +4944,7 @@ py01=38
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4551,6 +4959,7 @@ py01=35.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -4565,6 +4974,7 @@ py01=35
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4579,6 +4989,7 @@ py01=34.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=8
@@ -4593,6 +5004,7 @@ py01=35.5
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -4607,6 +5019,7 @@ py01=35
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -4621,6 +5034,7 @@ py01=39
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4635,6 +5049,7 @@ py01=36
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -4649,6 +5064,7 @@ py01=38
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -4663,6 +5079,7 @@ py01=36
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4677,6 +5094,7 @@ py01=35.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=8
@@ -4691,6 +5109,7 @@ py01=36.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4705,6 +5124,7 @@ py01=36
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4719,6 +5139,7 @@ py01=33
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4733,6 +5154,7 @@ py01=36
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -4747,6 +5169,7 @@ py01=34.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4761,6 +5184,7 @@ py01=39
 py02=6
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -4775,6 +5199,7 @@ py01=37
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -4789,6 +5214,7 @@ py01=37
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -4803,6 +5229,7 @@ py01=33.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -4817,6 +5244,7 @@ py01=36
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4831,6 +5259,7 @@ py01=33.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4845,6 +5274,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -4859,6 +5289,7 @@ py01=36.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=0
@@ -4873,6 +5304,7 @@ py01=38
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4887,6 +5319,7 @@ py01=34
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -4901,6 +5334,7 @@ py01=43
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=0
@@ -4915,6 +5349,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -4929,6 +5364,7 @@ py01=37.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=7
@@ -4943,6 +5379,7 @@ py01=40.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -4957,6 +5394,7 @@ py01=38
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -4971,6 +5409,7 @@ py01=36
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=2
@@ -4985,6 +5424,7 @@ py01=40
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -4999,6 +5439,7 @@ py01=39.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=7
@@ -5013,6 +5454,7 @@ py01=37
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -5027,6 +5469,7 @@ py01=40
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5041,6 +5484,7 @@ py01=38
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=8
@@ -5055,6 +5499,7 @@ py01=41
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=4.5
 @Poll
 poll=0
@@ -5069,6 +5514,7 @@ py01=37
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=1
@@ -5077,12 +5523,13 @@ mont=5
 day =26
 prev=-1
 resp=58
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=2
@@ -5091,12 +5538,13 @@ mont=5
 day =27
 prev=56
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -5111,6 +5559,7 @@ py01=35
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -5125,6 +5574,7 @@ py01=39
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -5139,6 +5589,7 @@ py01=37.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -5153,6 +5604,7 @@ py01=38
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -5167,6 +5619,7 @@ py01=34
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -5181,6 +5634,7 @@ py01=37.5
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -5195,6 +5649,7 @@ py01=37
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=1
@@ -5203,12 +5658,13 @@ mont=7
 day =14
 prev=-1
 resp=56
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -5223,6 +5679,7 @@ py01=34.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=0
@@ -5237,6 +5694,7 @@ py01=38
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -5251,6 +5709,7 @@ py01=33.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -5265,6 +5724,7 @@ py01=39
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -5273,12 +5733,13 @@ mont=8
 day =11
 prev=-1
 resp=55
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -5293,6 +5754,7 @@ py01=32.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -5307,6 +5769,7 @@ py01=38
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5321,6 +5784,7 @@ py01=35.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -5335,6 +5799,7 @@ py01=35
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -5349,6 +5814,7 @@ py01=36
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -5357,12 +5823,13 @@ mont=9
 day =9
 prev=-1
 resp=57
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -5377,6 +5844,7 @@ py01=34
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -5391,6 +5859,7 @@ py01=34
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5405,6 +5874,7 @@ py01=34.5
 py02=7.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -5419,6 +5889,7 @@ py01=41
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5433,6 +5904,7 @@ py01=32.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -5441,12 +5913,13 @@ mont=10
 day =6
 prev=-1
 resp=56
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -5461,6 +5934,7 @@ py01=37
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -5475,6 +5949,7 @@ py01=38.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -5489,6 +5964,7 @@ py01=41.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5503,6 +5979,7 @@ py01=36.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -5517,6 +5994,7 @@ py01=35.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -5531,6 +6009,7 @@ py01=35
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -5545,6 +6024,7 @@ py01=37
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=7
@@ -5559,6 +6039,7 @@ py01=43
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -5573,6 +6054,7 @@ py01=38
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=7
@@ -5587,6 +6069,7 @@ py01=41.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -5601,6 +6084,7 @@ py01=35.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -5615,6 +6099,7 @@ py01=37
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=7
@@ -5629,6 +6114,7 @@ py01=39
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=0
@@ -5643,6 +6129,7 @@ py01=38
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -5657,6 +6144,7 @@ py01=35.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -5671,6 +6159,7 @@ py01=41
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -5679,12 +6168,13 @@ mont=1
 day =5
 prev=-1
 resp=54
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=7
@@ -5699,6 +6189,7 @@ py01=41
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -5713,6 +6204,7 @@ py01=40
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -5727,6 +6219,7 @@ py01=37
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -5741,6 +6234,7 @@ py01=37.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=0
@@ -5755,6 +6249,7 @@ py01=41
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -5763,12 +6258,13 @@ mont=2
 day =5
 prev=53
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -5783,6 +6279,7 @@ py01=38.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -5797,6 +6294,7 @@ py01=41
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -5811,6 +6309,7 @@ py01=37
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -5825,6 +6324,7 @@ py01=38
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -5839,6 +6339,7 @@ py01=36.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -5853,6 +6354,7 @@ py01=42
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -5867,6 +6369,7 @@ py01=40
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -5881,6 +6384,7 @@ py01=37.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -5895,6 +6399,7 @@ py01=40.5
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -5909,6 +6414,7 @@ py01=43
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=7
@@ -5923,6 +6429,7 @@ py01=44.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -5937,6 +6444,7 @@ py01=42
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5951,6 +6459,7 @@ py01=42.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -5965,6 +6474,7 @@ py01=43
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=2
@@ -5979,6 +6489,7 @@ py01=43
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -5993,6 +6504,7 @@ py01=43
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -6007,6 +6519,7 @@ py01=41
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -6021,6 +6534,7 @@ py01=41
 py02=16
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=7
@@ -6035,6 +6549,7 @@ py01=43
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -6049,6 +6564,7 @@ py01=41
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=1
@@ -6063,6 +6579,7 @@ py01=43
 py02=15
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -6077,6 +6594,7 @@ py01=41.5
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -6091,6 +6609,7 @@ py01=41
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -6105,6 +6624,7 @@ py01=40
 py02=15
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -6119,6 +6639,7 @@ py01=42
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=3
 @Poll
 poll=2
@@ -6133,6 +6654,7 @@ py01=42
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -6147,6 +6669,7 @@ py01=41
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -6161,6 +6684,7 @@ py01=40
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=7
@@ -6175,6 +6699,7 @@ py01=45.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -6189,6 +6714,7 @@ py01=38
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=2
@@ -6203,6 +6729,7 @@ py01=42
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=1
@@ -6217,6 +6744,7 @@ py01=42
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -6231,6 +6759,7 @@ py01=41
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=2
@@ -6245,6 +6774,7 @@ py01=42
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -6259,6 +6789,7 @@ py01=38
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=2
@@ -6273,6 +6804,7 @@ py01=44
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -6287,6 +6819,7 @@ py01=39.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=7
@@ -6301,6 +6834,7 @@ py01=38.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -6315,6 +6849,7 @@ py01=41
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=0
@@ -6329,6 +6864,7 @@ py01=42
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=2
@@ -6343,6 +6879,7 @@ py01=41
 py02=15
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -6357,6 +6894,7 @@ py01=42
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=8
@@ -6371,6 +6909,7 @@ py01=37
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=1
@@ -6385,6 +6924,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -6399,6 +6939,7 @@ py01=44
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -6413,6 +6954,7 @@ py01=45
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -6421,12 +6963,13 @@ mont=7
 day =4
 prev=-1
 resp=49
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -6441,6 +6984,7 @@ py01=42
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=2
@@ -6455,6 +6999,7 @@ py01=42
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -6469,6 +7014,7 @@ py01=37
 py02=15.5
 py03=-1
 py04=-1
+py05=-1
 py15=4.5
 @Poll
 poll=1
@@ -6483,6 +7029,7 @@ py01=41
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -6497,6 +7044,7 @@ py01=44
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=3
 @Poll
 poll=0
@@ -6511,6 +7059,7 @@ py01=41
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -6525,6 +7074,7 @@ py01=43
 py02=13.5
 py03=-1
 py04=-1
+py05=-1
 py15=3.5
 @Poll
 poll=2
@@ -6539,6 +7089,7 @@ py01=41
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -6553,6 +7104,7 @@ py01=43.5999984741
 py02=11.8000001907
 py03=-1
 py04=-1
+py05=-1
 py15=6.59999990463
 @Poll
 poll=1
@@ -6567,6 +7119,7 @@ py01=41.5
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=7
@@ -6581,6 +7134,7 @@ py01=42.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -6595,6 +7149,7 @@ py01=40
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -6609,6 +7164,7 @@ py01=39.5
 py02=15
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=0
@@ -6623,6 +7179,7 @@ py01=41
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=7
@@ -6637,6 +7194,7 @@ py01=45
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=8
@@ -6651,6 +7209,7 @@ py01=41
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -6665,6 +7224,7 @@ py01=38.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=0
@@ -6679,6 +7239,7 @@ py01=42
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -6693,6 +7254,7 @@ py01=40.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -6707,6 +7269,7 @@ py01=43
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -6721,6 +7284,7 @@ py01=43
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -6735,6 +7299,7 @@ py01=40
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -6749,6 +7314,7 @@ py01=43
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -6763,6 +7329,7 @@ py01=40.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -6777,6 +7344,7 @@ py01=43
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -6791,6 +7359,7 @@ py01=39
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -6805,6 +7374,7 @@ py01=41
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -6819,6 +7389,7 @@ py01=42
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -6833,6 +7404,7 @@ py01=40.5
 py02=13.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=7
@@ -6847,6 +7419,7 @@ py01=47
 py02=13.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -6861,6 +7434,7 @@ py01=43
 py02=13.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -6875,6 +7449,7 @@ py01=44
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=4.5
 @Poll
 poll=8
@@ -6889,6 +7464,7 @@ py01=41.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=7
@@ -6903,6 +7479,7 @@ py01=42.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -6917,6 +7494,7 @@ py01=44
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -6931,6 +7509,7 @@ py01=43
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=1
@@ -6945,6 +7524,7 @@ py01=46
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -6959,6 +7539,7 @@ py01=41
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=7
@@ -6973,6 +7554,7 @@ py01=45.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -6987,6 +7569,7 @@ py01=43
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -7001,6 +7584,7 @@ py01=45
 py02=15
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -7015,6 +7599,7 @@ py01=41
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=8
@@ -7029,6 +7614,7 @@ py01=46.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=7
@@ -7043,6 +7629,7 @@ py01=47.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=1
@@ -7057,6 +7644,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=7
@@ -7071,6 +7659,7 @@ py01=42.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -7085,6 +7674,7 @@ py01=40
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=7
@@ -7099,6 +7689,7 @@ py01=47
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=8
@@ -7113,6 +7704,7 @@ py01=43.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -7127,6 +7719,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -7141,6 +7734,7 @@ py01=48
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -7155,6 +7749,7 @@ py01=46
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -7169,6 +7764,7 @@ py01=44
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7183,6 +7779,7 @@ py01=46
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=7
@@ -7197,6 +7794,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -7211,6 +7809,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -7225,6 +7824,7 @@ py01=47
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -7239,6 +7839,7 @@ py01=46
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7253,6 +7854,7 @@ py01=44.5
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -7267,6 +7869,7 @@ py01=44
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -7281,6 +7884,7 @@ py01=45.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=7
@@ -7295,6 +7899,7 @@ py01=50
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -7309,6 +7914,7 @@ py01=46.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -7323,6 +7929,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=1
@@ -7331,12 +7938,13 @@ mont=5
 day =17
 prev=41
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -7351,6 +7959,7 @@ py01=46.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -7365,6 +7974,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=8
@@ -7379,6 +7989,7 @@ py01=49
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -7393,6 +8004,7 @@ py01=49
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=7
@@ -7407,6 +8019,7 @@ py01=52.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=1
@@ -7415,12 +8028,13 @@ mont=6
 day =15
 prev=39
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -7435,6 +8049,7 @@ py01=47
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7449,6 +8064,7 @@ py01=47
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=2
@@ -7463,6 +8079,7 @@ py01=48
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -7477,6 +8094,7 @@ py01=47
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=1
@@ -7491,6 +8109,7 @@ py01=48
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=7
@@ -7505,6 +8124,7 @@ py01=49
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=0
@@ -7519,6 +8139,7 @@ py01=47.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=8
@@ -7533,6 +8154,7 @@ py01=49.5
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -7547,6 +8169,7 @@ py01=47
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -7561,6 +8184,7 @@ py01=50
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7575,6 +8199,7 @@ py01=46.5
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=1
@@ -7589,6 +8214,7 @@ py01=48
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -7603,6 +8229,7 @@ py01=48
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=8
@@ -7617,6 +8244,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -7631,6 +8259,7 @@ py01=46.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -7645,6 +8274,7 @@ py01=49
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -7659,6 +8289,7 @@ py01=43.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=1
@@ -7673,6 +8304,7 @@ py01=48
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=2
@@ -7687,6 +8319,7 @@ py01=51
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=8
@@ -7701,6 +8334,7 @@ py01=44
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=0
@@ -7715,6 +8349,7 @@ py01=45
 py02=15
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7729,6 +8364,7 @@ py01=49.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=5
 @Poll
 poll=7
@@ -7743,6 +8379,7 @@ py01=47
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=8
@@ -7757,6 +8394,7 @@ py01=46.5
 py02=13.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=7
@@ -7771,6 +8409,7 @@ py01=45
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=0
@@ -7785,6 +8424,7 @@ py01=44
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=1
@@ -7799,6 +8439,7 @@ py01=45
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7813,6 +8454,7 @@ py01=47
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -7827,6 +8469,7 @@ py01=48
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -7841,6 +8484,7 @@ py01=45.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -7855,6 +8499,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=8
@@ -7869,6 +8514,7 @@ py01=46.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -7883,6 +8529,7 @@ py01=49
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -7897,6 +8544,7 @@ py01=43
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=8
@@ -7911,6 +8559,7 @@ py01=45
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=7
@@ -7925,6 +8574,7 @@ py01=46.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -7939,6 +8589,7 @@ py01=42.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -7953,6 +8604,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=2
@@ -7967,6 +8619,7 @@ py01=48
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -7981,6 +8634,7 @@ py01=45
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=7
@@ -7995,6 +8649,7 @@ py01=46.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=8
@@ -8009,6 +8664,7 @@ py01=41.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -8023,6 +8679,7 @@ py01=45.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=6.5
 @Poll
 poll=0
@@ -8037,6 +8694,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -8051,6 +8709,7 @@ py01=41.5
 py02=14.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=2
@@ -8065,6 +8724,7 @@ py01=47
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=1
@@ -8079,6 +8739,7 @@ py01=44
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -8093,6 +8754,7 @@ py01=45
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -8107,6 +8769,7 @@ py01=42.5
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -8121,6 +8784,7 @@ py01=43.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=0
@@ -8135,6 +8799,7 @@ py01=43
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=8
@@ -8149,6 +8814,7 @@ py01=45.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -8163,6 +8829,7 @@ py01=47
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -8177,6 +8844,7 @@ py01=45
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=1
@@ -8191,6 +8859,7 @@ py01=47
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8205,6 +8874,7 @@ py01=44.5
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -8219,6 +8889,7 @@ py01=48
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -8233,6 +8904,7 @@ py01=46.5
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=7
@@ -8247,6 +8919,7 @@ py01=47.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -8261,6 +8934,7 @@ py01=47.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=2
@@ -8275,6 +8949,7 @@ py01=49
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -8289,6 +8964,7 @@ py01=51
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=1
@@ -8303,6 +8979,7 @@ py01=49
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=7
@@ -8317,6 +8994,7 @@ py01=50.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -8331,6 +9009,7 @@ py01=45.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -8345,6 +9024,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=8
@@ -8359,6 +9039,7 @@ py01=46
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=8
@@ -8373,6 +9054,7 @@ py01=45.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -8387,6 +9069,7 @@ py01=46
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -8401,6 +9084,7 @@ py01=49
 py02=13
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=1
@@ -8415,6 +9099,7 @@ py01=48
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8429,6 +9114,7 @@ py01=45
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=0
@@ -8443,6 +9129,7 @@ py01=44
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -8457,6 +9144,7 @@ py01=42.5
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=2
@@ -8471,6 +9159,7 @@ py01=49
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -8485,6 +9174,7 @@ py01=46
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8499,6 +9189,7 @@ py01=45.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=1
@@ -8513,6 +9204,7 @@ py01=48
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -8527,6 +9219,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=8
@@ -8541,6 +9234,7 @@ py01=43
 py02=14.5
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -8555,6 +9249,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=15
 @Poll
 poll=8
@@ -8569,6 +9264,7 @@ py01=43
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=1
@@ -8583,6 +9279,7 @@ py01=47
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -8597,6 +9294,7 @@ py01=45
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8611,6 +9309,7 @@ py01=43.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -8625,6 +9324,7 @@ py01=45
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -8639,6 +9339,7 @@ py01=44
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=1
@@ -8653,6 +9354,7 @@ py01=45
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -8667,6 +9369,7 @@ py01=46
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=8
@@ -8681,6 +9384,7 @@ py01=41.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=0
@@ -8695,6 +9399,7 @@ py01=41
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=1
@@ -8709,6 +9414,7 @@ py01=45
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -8723,6 +9429,7 @@ py01=40.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=7
@@ -8737,6 +9444,7 @@ py01=47
 py02=8
 py03=-1
 py04=-1
+py05=-1
 py15=5.5
 @Poll
 poll=8
@@ -8751,6 +9459,7 @@ py01=41.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=0
@@ -8765,6 +9474,7 @@ py01=45
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8779,6 +9489,7 @@ py01=43
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=1
@@ -8793,6 +9504,7 @@ py01=43
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8807,6 +9519,7 @@ py01=38.5
 py02=12.5
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=0
@@ -8821,6 +9534,7 @@ py01=41
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=2
@@ -8835,6 +9549,7 @@ py01=47
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -8849,6 +9564,7 @@ py01=43
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=0
@@ -8863,6 +9579,7 @@ py01=43
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=1
@@ -8877,6 +9594,7 @@ py01=45
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -8891,6 +9609,7 @@ py01=38.5
 py02=11.5
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=0
@@ -8905,6 +9624,7 @@ py01=43
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=7
@@ -8919,6 +9639,7 @@ py01=44.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=2
@@ -8933,6 +9654,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -8947,6 +9669,7 @@ py01=40.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -8961,6 +9684,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=1
@@ -8975,6 +9699,7 @@ py01=43
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=8
@@ -8989,6 +9714,7 @@ py01=37.5
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -9003,6 +9729,7 @@ py01=44
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=8
@@ -9017,6 +9744,7 @@ py01=41.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=8
@@ -9031,6 +9759,7 @@ py01=39
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -9045,6 +9774,7 @@ py01=48
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=2
@@ -9059,6 +9789,7 @@ py01=48
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=8
@@ -9073,6 +9804,7 @@ py01=39
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=1
@@ -9081,12 +9813,13 @@ mont=1
 day =15
 prev=44
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=8
@@ -9101,6 +9834,7 @@ py01=45
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=0
@@ -9115,6 +9849,7 @@ py01=47
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=8
@@ -9129,6 +9864,7 @@ py01=44
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=2
@@ -9143,6 +9879,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -9157,6 +9894,7 @@ py01=44
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=6
@@ -9171,6 +9909,7 @@ py01=45
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=6
@@ -9185,6 +9924,7 @@ py01=47
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=1
@@ -9199,6 +9939,7 @@ py01=47
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=6
@@ -9213,6 +9954,7 @@ py01=46
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=2
@@ -9227,6 +9969,7 @@ py01=47
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=6
@@ -9241,6 +9984,7 @@ py01=46.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=0
@@ -9255,6 +9999,7 @@ py01=50
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=6
@@ -9269,6 +10014,7 @@ py01=49
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -9283,6 +10029,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=6
@@ -9297,6 +10044,7 @@ py01=46.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=1
@@ -9311,6 +10059,7 @@ py01=49
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=2
@@ -9325,6 +10074,7 @@ py01=47
 py02=12
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=6
@@ -9339,6 +10089,7 @@ py01=47.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=5
@@ -9353,6 +10104,7 @@ py01=49.7999992371
 py02=10.1999998093
 py03=-1
 py04=2.79999995232
+py05=-1
 py15=6
 @Poll
 poll=0
@@ -9367,6 +10119,7 @@ py01=46
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=6
@@ -9381,6 +10134,7 @@ py01=44
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=6
@@ -9395,6 +10149,7 @@ py01=48
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -9409,6 +10164,7 @@ py01=47
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=5
@@ -9423,6 +10179,7 @@ py01=48.5
 py02=10.1999998093
 py03=-1
 py04=3.20000004768
+py05=-1
 py15=8.69999980927
 @Poll
 poll=6
@@ -9437,6 +10194,7 @@ py01=46
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=6
@@ -9451,6 +10209,7 @@ py01=46.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=2
@@ -9465,6 +10224,7 @@ py01=46
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=1
@@ -9479,6 +10239,7 @@ py01=44
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=13
 @Poll
 poll=0
@@ -9493,6 +10254,7 @@ py01=46
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=6
@@ -9507,6 +10269,7 @@ py01=45.5
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12.5
 @Poll
 poll=6
@@ -9521,6 +10284,7 @@ py01=45.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=0
@@ -9535,6 +10299,7 @@ py01=49
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=6
@@ -9549,6 +10314,7 @@ py01=45.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=6
@@ -9563,6 +10329,7 @@ py01=46
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=1
@@ -9577,6 +10344,7 @@ py01=47
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=2
@@ -9591,6 +10359,7 @@ py01=47
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=6
@@ -9605,6 +10374,7 @@ py01=44.5
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=0
@@ -9619,6 +10389,7 @@ py01=48
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=14
 @Poll
 poll=6
@@ -9633,6 +10404,7 @@ py01=47
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=13.5
 @Poll
 poll=5
@@ -9647,6 +10419,7 @@ py01=45.0999984741
 py02=8.69999980927
 py03=2
 py04=2.20000004768
+py05=-1
 py15=3.59999990463
 @Poll
 poll=2
@@ -9661,6 +10434,7 @@ py01=44
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=0
@@ -9675,6 +10449,7 @@ py01=43
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=6
@@ -9689,6 +10464,7 @@ py01=40.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=11.5
 @Poll
 poll=6
@@ -9703,6 +10479,7 @@ py01=39.5
 py02=8.5
 py03=-1
 py04=-1
+py05=-1
 py15=10.5
 @Poll
 poll=0
@@ -9717,6 +10494,7 @@ py01=42
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=1
@@ -9731,6 +10509,7 @@ py01=44
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=6
@@ -9745,6 +10524,7 @@ py01=41
 py02=7
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=5
@@ -9759,6 +10539,7 @@ py01=45.4000015259
 py02=8.30000019073
 py03=1.70000004768
 py04=1.10000002384
+py05=-1
 py15=4.19999980927
 @Poll
 poll=0
@@ -9773,6 +10554,7 @@ py01=45
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=6
@@ -9787,6 +10569,7 @@ py01=41
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=8.5
 @Poll
 poll=2
@@ -9801,6 +10584,7 @@ py01=44
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=6
@@ -9815,6 +10599,7 @@ py01=41.5
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=0
@@ -9829,6 +10614,7 @@ py01=44
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=5
@@ -9843,6 +10629,7 @@ py01=45.7000007629
 py02=8.19999980927
 py03=1.79999995232
 py04=1.39999997616
+py05=-1
 py15=5.40000009537
 @Poll
 poll=6
@@ -9857,6 +10644,7 @@ py01=43
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=1
@@ -9871,6 +10659,7 @@ py01=46
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=5
@@ -9885,6 +10674,7 @@ py01=46.9000015259
 py02=8.89999961853
 py03=1.70000004768
 py04=1.5
+py05=-1
 py15=4.19999980927
 @Poll
 poll=2
@@ -9899,6 +10689,7 @@ py01=45
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -9913,6 +10704,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=8
 @Poll
 poll=6
@@ -9927,6 +10719,7 @@ py01=44
 py02=10.5
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=2
@@ -9935,12 +10728,13 @@ mont=7
 day =15
 prev=48
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=0
@@ -9955,6 +10749,7 @@ py01=47
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=6
@@ -9969,6 +10764,7 @@ py01=44.5
 py02=9.5
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=11
@@ -9977,12 +10773,13 @@ mont=6
 day =7
 prev=50
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=11
@@ -9991,12 +10788,13 @@ mont=7
 day =16
 prev=48
 resp=-1
-calc=-1.#IND
+calc=-nan(ind)
 py00=-1
 py01=-1
 py02=-1
 py03=-1
 py04=-1
+py05=-1
 py15=-1
 @Poll
 poll=10
@@ -10011,6 +10809,7 @@ py01=41
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=11
 @Poll
 poll=1
@@ -10025,6 +10824,7 @@ py01=46
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=0
@@ -10039,6 +10839,7 @@ py01=47
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=7
 @Poll
 poll=6
@@ -10053,6 +10854,7 @@ py01=45
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=9.5
 @Poll
 poll=5
@@ -10067,6 +10869,7 @@ py01=46.5
 py02=10.1000003815
 py03=2.40000009537
 py04=1.29999995232
+py05=-1
 py15=4
 @Poll
 poll=2
@@ -10081,6 +10884,7 @@ py01=46
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=9
 @Poll
 poll=0
@@ -10095,6 +10899,7 @@ py01=46
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=6
@@ -10109,6 +10914,7 @@ py01=43
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=5
@@ -10123,6 +10929,7 @@ py01=44.2000007629
 py02=9.69999980927
 py03=4.40000009537
 py04=0.899999976158
+py05=-1
 py15=5.40000009537
 @Poll
 poll=10
@@ -10137,6 +10944,7 @@ py01=44
 py02=10
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=2
@@ -10151,6 +10959,7 @@ py01=45
 py02=9
 py03=5
 py04=-1
+py05=-1
 py15=6
 @Poll
 poll=5
@@ -10165,6 +10974,7 @@ py01=43.5999984741
 py02=10
 py03=6.09999990463
 py04=1.60000002384
+py05=-1
 py15=6
 @Poll
 poll=5
@@ -10179,6 +10989,7 @@ py01=43.5
 py02=10.1999998093
 py03=7
 py04=1.10000002384
+py05=-1
 py15=4.59999990463
 @Poll
 poll=6
@@ -10193,6 +11004,7 @@ py01=44
 py02=10.5
 py03=6.5
 py04=-1
+py05=-1
 py15=7.5
 @Poll
 poll=11
@@ -10207,6 +11019,7 @@ py01=42
 py02=14
 py03=-1
 py04=-1
+py05=-1
 py15=10
 @Poll
 poll=0
@@ -10221,6 +11034,7 @@ py01=46
 py02=9
 py03=-1
 py04=-1
+py05=-1
 py15=12
 @Poll
 poll=1
@@ -10235,6 +11049,7 @@ py01=46
 py02=11
 py03=-1
 py04=-1
+py05=-1
 py15=10
 #Events
 @Event
@@ -10298,6 +11113,8 @@ name=Standard Model
 iter=1000
 trnd=7
 hsm =28
+cfpb=2.10194769649e-44
+fstd=0
 strt=2453109.83333
 end =2456540.83333
 updt=2457580.27214
@@ -58363,4 +59180,4402 @@ he8 =1.40331351757
 he9 =0.14578551054
 he10=1.99629080296
 he11=1.5869781971
+#Projections
+@Projection
+name=Standard Projection
+iter=10000
+base=0
+end =2456542.83333
+updt=2458602.89141
+dlyc=0.169499993324
+inic=0.592999994755
+vtls=0.00163299997803
+nele=5
+mean=45.8932571554
+stdv=0.824930962166
+mean=45.9004103043
+stdv=0.894155180641
+mean=45.905793393
+stdv=0.958761747415
+#Regions
+@Region
+name=NSW
+popn=7407700
+lele=48.8400001526
+samp=45.6500015259
+swng=0.299987792969
+addu=0
+@Region
+name=VIC
+popn=5737600
+lele=55.3100013733
+samp=50.2000007629
+swng=-1.62001419067
+addu=0
+@Region
+name=QLD
+popn=4658600
+lele=44.8600006104
+samp=43.0200004578
+swng=1.64998626709
+addu=1
+@Region
+name=WA
+popn=2517200
+lele=43.5900001526
+samp=41.7200012207
+swng=1.61998748779
+addu=1
+@Region
+name=SA
+popn=1670800
+lele=53.1800003052
+samp=47.6399993896
+swng=-2.05001449585
+addu=1
+@Region
+name=TAS
+popn=513000
+lele=60.6199989319
+samp=51.2299995422
+swng=-5.90001296997
+addu=2
+@Region
+name=ACT
+popn=383400
+lele=61.6699981689
+samp=59.9099998474
+swng=1.72998809814
+addu=3
+@Region
+name=NT
+popn=239500
+lele=49.6500015259
+samp=50.7400016785
+swng=4.57998657227
+addu=3
+#Seats
+@Seat
+name=Corangamite
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=0.280000001192
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0.449999988079
+tipp=0
+sma =-3.70843186308
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Deakin
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=0.600000023842
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0.680000007153
+tipp=0
+sma =-2.78212985177
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Greenway
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=0.879999995232
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =3.7728122449
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Robertson
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=1
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0.15000000596
+tipp=0
+sma =-3.39234114049
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Lindsay
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=1.12000000477
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=3.17000007629
+tipp=0
+sma =-1.68041734565
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Moreton
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=1.12999999523
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.8499984741
+tipp=0
+sma =3.13354687164
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Banks
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=1.45000004768
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=2.86999988556
+tipp=0
+sma =-2.06422609534
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=La Trobe
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=1.65999996662
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=2.25999999046
+tipp=0
+sma =-2.63240736171
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Petrie
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=2.50999999046
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=66.3699951172
+tipp=0
+sma =0.464358488568
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Reid
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=2.68000006676
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=7.42999982834
+tipp=0
+sma =-1.31363241402
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Lilley
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=3.18000006676
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=96.7200012207
+tipp=0
+sma =1.79432002751
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Brand
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=3
+marg=3.32999992371
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=59.469997406
+tipp=0
+sma =0.816768929885
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Capricornia
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=3.68000006676
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=52.9900016785
+tipp=0
+sma =0.0935872493903
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Lingiari
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=7
+marg=3.70000004768
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=12.2899999619
+tipp=0
+sma =-2.7540027669
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Page
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=4.19000005722
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=2.52999997139
+tipp=0
+sma =-2.39176015536
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Grayndler
+pvnm=
+incu=0
+chal=2
+cha2=4
+regn=0
+marg=20.6299991608
+lmod=0
+iodd=1.10000002384
+codd=6
+c2od=1000
+winp=100
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Eden-Monaro
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=4.23999977112
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=74.8099975586
+tipp=0
+sma =0.800706327632
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Blair
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=4.23999977112
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =5.50348631139
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Parramatta
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=4.36999988556
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=86.6599960327
+tipp=0
+sma =1.13527992756
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Dobell
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=5.07000017166
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=40.7400016785
+tipp=0
+sma =-0.239881647922
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Kingsford Smith
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=5.15999984741
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=99.9199981689
+tipp=0
+sma =3.34293524536
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Rankin
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=5.40999984741
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =6.05263309174
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Fremantle
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=3
+marg=5.69999980927
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=83.0900039673
+tipp=0
+sma =3.26773772076
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Oxley
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=2
+marg=5.76999998093
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =4.8573498458
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Chisholm
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=5.78000020981
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=97.25
+tipp=0
+sma =2.29438236517
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Perth
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=3
+marg=5.88000011444
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=76
+tipp=0
+sma =2.40315908823
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hindmarsh
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=4
+marg=6.07999992371
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0.920000016689
+tipp=0
+sma =-2.03160393972
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bass
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=5
+marg=6.73999977112
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0
+tipp=0
+sma =-3.69601276203
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Werriwa
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=6.75
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.6900024414
+tipp=0
+sma =2.95607968694
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Barton
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=6.86000013351
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=67.0899963379
+tipp=0
+sma =0.412988191215
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Richmond
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=6.98999977112
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.8099975586
+tipp=0
+sma =4.11768985678
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Braddon
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=5
+marg=7.48000001907
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0
+tipp=0
+sma =-2.76624351236
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Adelaide
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=4
+marg=7.51999998093
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.9300003052
+tipp=0
+sma =3.39515984902
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bruce
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=7.71000003815
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=96.0500030518
+tipp=0
+sma =1.78101036312
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Batman
+pvnm=
+incu=0
+chal=2
+cha2=4
+regn=1
+marg=24.9099998474
+lmod=0
+iodd=1.20000004768
+codd=4
+c2od=1000
+winp=100
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=McMahon
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=7.80999994278
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.9899978638
+tipp=0
+sma =4.23353249701
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Melbourne Ports
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=7.88999986649
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.9899978638
+tipp=0
+sma =5.14093689745
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Griffith
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=8.46000003815
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =4.26168887042
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Fowler
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=8.76000022888
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =17.1848602875
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Watson
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=9.14000034332
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.04436094813
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Canberra
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=6
+marg=9.14999961853
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.74413139229
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=McEwen
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=9.18000030518
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=78.9799957275
+tipp=0
+sma =1.20991263991
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bendigo
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=9.42000007629
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=94.7799987793
+tipp=0
+sma =2.08808597867
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Isaacs
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=10.4099998474
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.4799957275
+tipp=0
+sma =3.90778819196
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Wakefield
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=4
+marg=10.529999733
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.9800033569
+tipp=0
+sma =3.06767087706
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Franklin
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=5
+marg=10.8199996948
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =4.50564906552
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Jagajaga
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=11.1499996185
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.8499984741
+tipp=0
+sma =3.51146271385
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Ballarat
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=11.6999998093
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.9800033569
+tipp=0
+sma =5.8412418497
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Makin
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=4
+marg=12
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =5.4349734583
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Throsby
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.1099996567
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =8.99201712041
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Blaxland
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.2299995422
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.8731515716
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Lyons
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=5
+marg=12.2899999619
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=0.350000023842
+tipp=0
+sma =-1.62138495329
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Chifley
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.3400001526
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.4554788023
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hunter
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.4799995422
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =4.20893132107
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Newcastle
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.4899997711
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.46941493239
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Charlton
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.6700000763
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.56760457048
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Shortland
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=12.8500003815
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.3762158586
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Cunningham
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=13.1700000763
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =10.0622488826
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Corio
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=13.470000267
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.68616292701
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hotham
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=13.9600000381
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =8.25241427646
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Holt
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=13.970000267
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.55422608333
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Fraser
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=6
+marg=14.1999998093
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =13.4515995776
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Kingston
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=4
+marg=14.5500001907
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =10.0906221945
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Sydney
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=0
+marg=18.0699996948
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =14.3099834064
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Maribyrnong
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=17.4899997711
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =10.8099206482
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Calwell
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=20.0599994659
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =13.8990307749
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Scullin
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=20.5300006866
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =15.1993773643
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Port Adelaide
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=4
+marg=20.9099998474
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =14.6857192554
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Lalor
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=22.1200008392
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =14.4628962961
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Wills
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=23.5300006866
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =20.4613647894
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Gorton
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=23.6299991608
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =17.1423888927
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Gellibrand
+pvnm=
+incu=0
+chal=1
+cha2=4
+regn=1
+marg=24.1299991608
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =17.1750398719
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hasluck
+pvnm=
+incu=1
+chal=0
+cha2=1
+regn=3
+marg=0.569999992847
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=90.25
+tipp=0
+sma =4.45178123262
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Boothby
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=4
+marg=0.620000004768
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.24972736707
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Aston
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=0.670000016689
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.59485840893
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Dunkley
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=1.03999996185
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =4.38812699852
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Brisbane
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=1.12999999523
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =3.91528398365
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Macquarie
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=1.25999999046
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=99.9700012207
+tipp=0
+sma =3.80238388534
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Forde
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=1.62999999523
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=99.0699996948
+tipp=0
+sma =3.32211586525
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Solomon
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=7
+marg=1.75
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=49.0399971008
+tipp=0
+sma =-0.0302241806867
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Casey
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=1.86000001431
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.02596210783
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Longman
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=1.91999995708
+lmod=1.70000004768
+iodd=2
+codd=2
+c2od=1000
+winp=99.9899978638
+tipp=0
+sma =5.8143732333
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Herbert
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=2.17000007629
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =5.30277689518
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Canning
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=2.19000005722
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=91.1100006104
+tipp=0
+sma =4.60532612818
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Dawson
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=2.43000006676
+lmod=1.70000004768
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =6.97408658371
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Swan
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=2.52999997139
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=92.5999984741
+tipp=0
+sma =4.95259746172
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bonner
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=2.81999993324
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=99.8600006104
+tipp=0
+sma =3.35174514441
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Macarthur
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=3.01999998093
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =10.9661189783
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bennelong
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=3.11999988556
+lmod=1.39999997616
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.25449847617
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=O'Connor
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=23
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=50.3799972534
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Flynn
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=3.57999992371
+lmod=1.70000004768
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =6.05592826169
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Sturt
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=4
+marg=3.59999990463
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.65652860632
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Fisher
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=4.13000011444
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.88384729731
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=McMillan
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=4.21000003815
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.5376732762
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Leichhardt
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=4.55000019073
+lmod=1.70000004768
+iodd=2
+codd=2
+c2od=1000
+winp=98.0499954224
+tipp=0
+sma =3.33603763324
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Dickson
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=5.13000011444
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =6.54141862957
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hughes
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=5.40000009537
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.4722691465
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Gilmore
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=5.32000017166
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=95.0999984741
+tipp=0
+sma =2.39724742154
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Paterson
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=5.32999992371
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.1382081851
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Higgins
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=5.40000009537
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.69599331846
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Stirling
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=5.55000019073
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.1199951172
+tipp=0
+sma =8.01275953185
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Wannon
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=5.65999984741
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =10.4053633811
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Goldstein
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=6.01000022888
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.2312654467
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Cowan
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=6.28999996185
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=99.4700012207
+tipp=0
+sma =8.73503804945
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Fairfax
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=6.94999980927
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=92.8799972534
+tipp=0
+sma =10.1001544308
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Ryan
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=7.15999984741
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =8.27703178277
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Mayo
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=4
+marg=7.28999996185
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.5775971394
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Kooyong
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=7.44999980927
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =10.5065667264
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Menzies
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=8.64999961853
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =14.0818775744
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hume
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=8.72000026703
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.620052057
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Forrest
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=8.73999977112
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =29.9469098122
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Pearce
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=8.85999965668
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=99.8399963379
+tipp=0
+sma =10.3116151761
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Flinders
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=9.14000034332
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.9503554283
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Cowper
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=9.27000045776
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.5991965689
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Indi
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=8.98999977112
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=94
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Wright
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=10.1499996185
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.6813434539
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=McPherson
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=10.279999733
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =11.9129577664
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Hinkler
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=10.3900003433
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =9.02222848155
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bowman
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=10.3900003433
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =7.69412010182
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Calare
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=10.7399997711
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =15.3412734919
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Grey
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=4
+marg=11.1599998474
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =13.2987055969
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Moore
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=11.1899995804
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=99.9899978638
+tipp=0
+sma =12.6283954558
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Gippsland
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=11.4499998093
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =14.750962451
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Tangney
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=12.3199996948
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =14.7994143829
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Cook
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=12.6599998474
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =16.5271624193
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Barker
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=4
+marg=13.0100002289
+lmod=-1
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =16.8558797402
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Warringah
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=13.0900001526
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =15.101704363
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Durack
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=13.6700000763
+lmod=-1
+iodd=1.00999999046
+codd=21
+c2od=1000
+winp=99.9400024414
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=North Sydney
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=14.0600004196
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =15.8133108659
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Fadden
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=14.1899995804
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =12.4915583251
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Farrer
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=14.5100002289
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =17.5400393646
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Wentworth
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=14.8599996567
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =17.2811136006
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Wide Bay
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=15.6099996567
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =12.1330215661
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Mackellar
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=15.720000267
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =18.6564950431
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Curtin
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=3
+marg=16.1900005341
+lmod=0
+iodd=1.00999999046
+codd=21
+c2od=1000
+winp=87.6399993896
+tipp=0
+sma =7.14701378598
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Berowra
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=16.2000007629
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =19.0029352427
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Mitchell
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=17.1599998474
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =21.6657525759
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Moncrieff
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=17.4899997711
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =17.7144384332
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Riverina
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=18.1700000763
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =20.8061523659
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Bradfield
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=18.1800003052
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =20.8717040031
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Groom
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=18.5300006866
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =15.7766154851
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Parkes
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=0
+marg=18.8600006104
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =22.0670065407
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Murray
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=19.5799999237
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =20.9411058445
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Maranoa
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=2
+marg=22.8899993896
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =22.6321375286
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Mallee
+pvnm=
+incu=1
+chal=0
+cha2=4
+regn=1
+marg=13.2600002289
+lmod=0
+iodd=2
+codd=2
+c2od=1000
+winp=100
+tipp=0
+sma =23.8033615385
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Kennedy
+pvnm=
+incu=4
+chal=1
+cha2=4
+regn=2
+marg=1
+lmod=0
+iodd=1.11000001431
+codd=7
+c2od=1000
+winp=67.1399993896
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Melbourne
+pvnm=
+incu=2
+chal=0
+cha2=1
+regn=1
+marg=1
+lmod=0
+iodd=1.20000004768
+codd=4
+c2od=1000
+winp=99.9499969482
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Denison
+pvnm=
+incu=5
+chal=0
+cha2=5
+regn=5
+marg=1
+lmod=0
+iodd=1.03999996185
+codd=9
+c2od=1000
+winp=100
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=Lyne
+pvnm=
+incu=1
+chal=0
+cha2=5
+regn=0
+marg=12.4499998093
+lmod=0
+iodd=1.00999999046
+codd=21
+c2od=1000
+winp=100
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+@Seat
+name=New England
+pvnm=
+incu=1
+chal=0
+cha2=5
+regn=0
+marg=16.7999992371
+lmod=0
+iodd=1.00999999046
+codd=21
+c2od=1000
+winp=100
+tipp=0
+sma =0
+lp1 =-1
+lp2 =-1
+lp3 =-1
+p2pr=0
+p3pr=0
+over=0
+#Simulations
+@Simulation
+name=Standard Simulation
+iter=10000
+base=0
+prev=50.1199989319
+stsd=2
+stde=0.00163299997803
+live=0
+@Simulation
+name=Live Simulation
+iter=10000
+base=0
+prev=50.1199989319
+stsd=2
+stde=0.00163299997803
+live=2
+#Results
+@Result
+seat=149
+swng=0
+cnt =37.4113731384
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=148
+swng=0
+cnt =51.476524353
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=147
+swng=12.9216375351
+cnt =51.5015716553
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=146
+swng=-0.86162686348
+cnt =16.4901428223
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=145
+swng=0
+cnt =26.5795288086
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=144
+swng=0.480794906616
+cnt =40.3482246399
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=143
+swng=-0.264817476273
+cnt =42.0185966492
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=142
+swng=1.20905041695
+cnt =39.5711708069
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=141
+swng=3.30752134323
+cnt =48.4711036682
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=140
+swng=-2.78338193893
+cnt =51.6888122559
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=139
+swng=2.64485478401
+cnt =43.9127655029
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=138
+swng=2.64930129051
+cnt =49.6742477417
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=137
+swng=0.198888778687
+cnt =48.848487854
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=136
+swng=4.50065135956
+cnt =51.6335258484
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=135
+swng=2.79847979546
+cnt =40.230846405
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=134
+swng=0
+cnt =0.173985004425
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=133
+swng=2.92193603516
+cnt =60.4726905823
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=132
+swng=-3.45467925072
+cnt =47.2687225342
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=131
+swng=2.49186468124
+cnt =33.5185127258
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=130
+swng=3.00609469414
+cnt =43.8916740417
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=129
+swng=-1.77423357964
+cnt =38.4008827209
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=128
+swng=1.74405574799
+cnt =56.8045082092
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=127
+swng=0
+cnt =0.192896991968
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=126
+swng=1.9349783659
+cnt =27.2837162018
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=125
+swng=3.76100826263
+cnt =29.9538383484
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=124
+swng=4.04653263092
+cnt =45.3278045654
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=122
+swng=3.54269742966
+cnt =43.4779090881
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=120
+swng=1.73410475254
+cnt =35.6732330322
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=119
+swng=4.4650850296
+cnt =56.0942344666
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=118
+swng=-2.77923941612
+cnt =49.4094314575
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=117
+swng=-1.4028608799
+cnt =45.0497627258
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=116
+swng=1.56641304493
+cnt =49.0330238342
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=115
+swng=1.46620869637
+cnt =50.0692558289
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=114
+swng=0
+cnt =39.791053772
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=113
+swng=2.31210589409
+cnt =52.9898147583
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=112
+swng=2.79363393784
+cnt =39.6985244751
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=110
+swng=0
+cnt =0.131263434887
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=109
+swng=2.68141317368
+cnt =48.2498664856
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=108
+swng=5.38583993912
+cnt =44.9022903442
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=107
+swng=2.84992456436
+cnt =40.5687789917
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=106
+swng=4.01344299316
+cnt =35.3852882385
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=105
+swng=1.29870474339
+cnt =49.789981842
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=104
+swng=3.72638702393
+cnt =42.3613319397
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=102
+swng=5.22201061249
+cnt =50.8050308228
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=101
+swng=4.50847434998
+cnt =40.2500839233
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=99
+swng=4.35038805008
+cnt =37.6077690125
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=98
+swng=3.82574510574
+cnt =54.4257354736
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=97
+swng=-3.10275268555
+cnt =48.27501297
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=96
+swng=6.34531402588
+cnt =54.6477127075
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=95
+swng=1.18409395218
+cnt =51.4987220764
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=94
+swng=-1.28898620605
+cnt =40.5125427246
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=93
+swng=6.72147846222
+cnt =32.0116004944
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=92
+swng=3.54881286621
+cnt =33.876411438
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=91
+swng=6.05198764801
+cnt =23.3860988617
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=90
+swng=2.7551472187
+cnt =46.08385849
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=89
+swng=0
+cnt =0.0926735252142
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=88
+swng=4.09745264053
+cnt =56.9438743591
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=87
+swng=8.02819728851
+cnt =49.480670929
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=86
+swng=0.0852108001709
+cnt =47.9149856567
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=84
+swng=4.58559417725
+cnt =44.07056427
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=82
+swng=3.04807424545
+cnt =34.1890220642
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=81
+swng=4.28810691833
+cnt =50.1938323975
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=80
+swng=5.09333610535
+cnt =45.016002655
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=79
+swng=-2.34060573578
+cnt =27.6593723297
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=78
+swng=1.63556337357
+cnt =33.079208374
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=77
+swng=2.49328017235
+cnt =42.8726119995
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=76
+swng=2.78453230858
+cnt =52.8070106506
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=75
+swng=3.23784065247
+cnt =35.3836669922
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=74
+swng=7.38684225082
+cnt =51.4971199036
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=73
+swng=6.91797161102
+cnt =30.41705513
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=71
+swng=-7.00329828262
+cnt =27.2507076263
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=70
+swng=-6.62304162979
+cnt =19.3836784363
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=69
+swng=-3.5682349205
+cnt =32.5993652344
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=68
+swng=-8.06303596497
+cnt =10.7320709229
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=67
+swng=-6.60418891907
+cnt =22.1346683502
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=66
+swng=-5.52560091019
+cnt =19.2697162628
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=65
+swng=-6.39942884445
+cnt =22.8672370911
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=64
+swng=-5.86425685883
+cnt =27.8828258514
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=63
+swng=-2.66274809837
+cnt =38.1283874512
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=62
+swng=-4.57437944412
+cnt =28.7126712799
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=61
+swng=-0.479385256767
+cnt =33.6163330078
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=60
+swng=-4.17420578003
+cnt =27.2927722931
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=59
+swng=-5.75416088104
+cnt =52.9750175476
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=58
+swng=-5.83862066269
+cnt =48.1195335388
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=57
+swng=-3.12610578537
+cnt =58.0229454041
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=56
+swng=-5.38678741455
+cnt =61.5247268677
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=55
+swng=-3.09563875198
+cnt =50.0477256775
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=54
+swng=-2.91118621826
+cnt =49.9388618469
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=53
+swng=-8.36959457397
+cnt =53.8288345337
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=52
+swng=-0.807970762253
+cnt =41.6350784302
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=51
+swng=-14.0250358582
+cnt =57.5399398804
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=50
+swng=-0.396609306335
+cnt =41.1228561401
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=49
+swng=-2.94812011719
+cnt =45.0666542053
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=48
+swng=-6.4285993576
+cnt =29.7565517426
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=47
+swng=-5.81979465485
+cnt =45.099521637
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=46
+swng=-7.61818313599
+cnt =50.7365531921
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=45
+swng=-6.27617835999
+cnt =59.4916229248
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=44
+swng=-7.39017105103
+cnt =28.9044055939
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=43
+swng=-6.15152740479
+cnt =26.3854980469
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=42
+swng=-7.40517377853
+cnt =44.6533126831
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=41
+swng=-7.92517089844
+cnt =29.2183227539
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=40
+swng=-1.48198008537
+cnt =35.3602905273
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=39
+swng=-2.04248714447
+cnt =37.653427124
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=38
+swng=8.98621940613
+cnt =37.7473144531
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=37
+swng=-4.28624153137
+cnt =42.4000663757
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=36
+swng=-2.86279320717
+cnt =27.5826931
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=35
+swng=-3.5765080452
+cnt =48.2396736145
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=34
+swng=6.27917671204
+cnt =22.0838356018
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=33
+swng=-6.04202747345
+cnt =49.4079627991
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=32
+swng=-3.81292700768
+cnt =31.5611000061
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=31
+swng=-10.1441059113
+cnt =61.884475708
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=30
+swng=-2.86027193069
+cnt =44.3671150208
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=29
+swng=-6.48416280746
+cnt =46.8254051208
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=28
+swng=-3.8092045784
+cnt =34.9685325623
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=27
+swng=-10.5495605469
+cnt =52.7578468323
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=26
+swng=-7.8870177269
+cnt =35.9774436951
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=24
+swng=-3.5102725029
+cnt =45.6028137207
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=23
+swng=-0.91245174408
+cnt =42.7095489502
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=21
+swng=0.271987915039
+cnt =29.6113872528
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=20
+swng=-1.76708102226
+cnt =46.2666015625
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=19
+swng=-5.27685880661
+cnt =35.4099082947
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=18
+swng=-3.23900580406
+cnt =34.6330375671
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=17
+swng=1.23693943024
+cnt =48.4789237976
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=16
+swng=-3.42560720444
+cnt =43.4962158203
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=15
+swng=0
+cnt =35.8782844543
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=14
+swng=-6.4908118248
+cnt =58.6642570496
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=13
+swng=-7.87861061096
+cnt =12.0945701599
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=12
+swng=-3.59680056572
+cnt =53.9048538208
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=10
+swng=-1.40761137009
+cnt =49.7231674194
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=9
+swng=-3.48080992699
+cnt =54.7154350281
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=8
+swng=-1.91130042076
+cnt =56.4946784973
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=7
+swng=-4.12568473816
+cnt =48.0294113159
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=6
+swng=-3.67377090454
+cnt =48.3670043945
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=5
+swng=1.84824466705
+cnt =49.040687561
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=4
+swng=-2.77960586548
+cnt =41.8001289368
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=3
+swng=-4.53336524963
+cnt =37.7410354614
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=2
+swng=3.12506246567
+cnt =40.9962768555
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=1
+swng=-3.64474964142
+cnt =36.6608695984
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=0
+swng=-3.98695468903
+cnt =50.5626029968
+btin=0
+btto=0
+updt=2458609.47243
+@Result
+seat=149
+swng=0
+cnt =0.425986140966
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=148
+swng=0
+cnt =0.11532124877
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=145
+swng=0
+cnt =0.262865334749
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=143
+swng=7.0481801033
+cnt =0.0975119322538
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=142
+swng=3.32635045052
+cnt =0.0919632166624
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=141
+swng=1.91395878792
+cnt =1.21035432816
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=138
+swng=4.68248748779
+cnt =0.39170229435
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=132
+swng=-13.6426811218
+cnt =0.144333586097
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=130
+swng=0.224173069
+cnt =0.285732418299
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=122
+swng=10.6380987167
+cnt =0.0955580621958
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=119
+swng=0.410598516464
+cnt =0.506872653961
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=113
+swng=1.75614953041
+cnt =0.195648357272
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=109
+swng=-1.80533528328
+cnt =0.191634565592
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=101
+swng=2.22753572464
+cnt =0.620515584946
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=98
+swng=-0.0813990831375
+cnt =0.0556437186897
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=94
+swng=6.08642673492
+cnt =0.106821455061
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=86
+swng=-22.5365810394
+cnt =0.052453238517
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=84
+swng=2.64482498169
+cnt =0.193972557783
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=53
+swng=-17.4825153351
+cnt =0.0113081466407
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=51
+swng=-23.509803772
+cnt =0.132683455944
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=31
+swng=-14.7937412262
+cnt =0.371586233377
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=30
+swng=4.7459897995
+cnt =0.559227764606
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=17
+swng=-21.5172405243
+cnt =0.0327598489821
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=16
+swng=-5.26054477692
+cnt =0.185979545116
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=14
+swng=-3.32504796982
+cnt =0.264389902353
+btin=0
+btto=0
+updt=2458609.47073
+@Result
+seat=12
+swng=-0.400446355343
+cnt =0.0965865701437
+btin=0
+btto=0
+updt=2458609.47073
 #End

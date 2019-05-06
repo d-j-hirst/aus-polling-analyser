@@ -196,7 +196,14 @@ void Simulation::run(PollingProject& project) {
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
 			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo, isLive());
 
+			if (thisSeat->name == "Curtin" && !currentIteration) {
+				PrintDebugLine("Found Curtin!");
+			}
+
 			if (isClassic2CP) {
+				if (thisSeat->name == "Curtin" && !currentIteration) {
+					PrintDebugLine("Classic 2CP");
+				}
 				bool incIsOne = thisSeat->incumbent == partyOne; // stores whether the incumbent is Party One
 				// Add or subtract the simulation regional deviation depending on which party is incumbent
 				float newMargin = thisSeat->margin + thisSeat->region->simulationSwing * (incIsOne ? 1.0f : -1.0f);
@@ -208,6 +215,14 @@ void Simulation::run(PollingProject& project) {
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 				// Now work out the margin of the seat from actual results if live
 				SeatResult result = calculateLiveResultClassic2CP(project, *thisSeat, newMargin);
+				if (thisSeat->name == "Curtin" && !currentIteration) {
+					PrintDebugFloat(result.margin);
+					PrintDebugLine("Result margin");
+					PrintDebugFloat(result.significance);
+					PrintDebugLine("Result significance");
+					PrintDebug(result.winner->name);
+					PrintDebugLine("Result winner");
+				}
 
 				float incumbentNewMargin = result.margin * (result.winner == thisSeat->incumbent ? 1.0f : -1.0f);
 				// Margin for this simulation is finalised, record it for later averaging
@@ -259,6 +274,10 @@ void Simulation::run(PollingProject& project) {
 				// so randomly choose between seat betting odds and the actual live count until
 				// more results come in.
 				if (liveSignificance < 1.0f) {
+					if (thisSeat->name == "Curtin" && !currentIteration) {
+						PrintDebugFloat(liveSignificance);
+						PrintDebugLine("live significance");
+					}
 					if (!isLiveAutomatic() || !thisSeat->winner || std::uniform_real_distribution<float>(0.0f, 1.0f)(gen) > liveSignificance) {
 						if (isLive() && thisSeat->livePartyOne) {
 							float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
@@ -624,12 +643,35 @@ Simulation::OddsInfo Simulation::calculateOddsInfo(Seat const& thisSeat)
 Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin)
 {
 	if (isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugLine("Using live automatic results");
+		}
 		// All swings are in terms of a swing to candidate 0 as per latest results
 		Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 		Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
 		bool incumbentFirst = firstParty == seat.incumbent;
 		float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.latestResult->incumbentSwing;
 		std::array<int, 2> tcpTally = seat.tcpTally;
+
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebug(seat.incumbent->name);
+			PrintDebugLine("Seat incumbent");
+			PrintDebug(firstParty->name);
+			PrintDebugLine("First party");
+			PrintDebug(secondParty->name);
+			PrintDebugLine("Second party");
+			PrintDebugInt(incumbentFirst);
+			PrintDebugLine("Incumbent first");
+			PrintDebugInt(tcpTally[0]);
+			PrintDebugInt(tcpTally[1]);
+			PrintDebugLine("Tallied counted booths");
+		}
+
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugFloat(seat.latestResult->incumbentSwing);
+			PrintDebugFloat(liveSwing);
+			PrintDebugLine("Current incumbent swing");
+		}
 
 		// At this point we have tallied all the counted votes from booths (matched or otherwise)
 
@@ -640,6 +682,13 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		float priorSwing = (incumbentFirst ? 1.0f : -1.0f) * (priorMargin - seat.margin);
 		float remainingVoteSwing = (priorSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugFloat(priorSwing);
+			PrintDebugLine("Prior Swing");
+			PrintDebugFloat(remainingVoteSwing);
+			PrintDebugLine("remainingVoteSwing");
+		}
+
 		// To estimate the vote count for individual booths we need to adjust the previous election's total votes
 		// according to how the already-counted individual booth growth as occurred
 		// There may not be any old comparison votes in which case we assume no growth
@@ -648,6 +697,16 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		int mysteryTeamBooths = 0; // count all booths that can't be matched and haven't been counted yet
 		for (auto boothId : seat.latestResults->booths) {
 			Results::Booth const& booth = project.getBooth(boothId);
+			if (seat.name == "Curtin" && !currentIteration) {
+				PrintDebug(booth.name);
+				PrintDebugLine("Name");
+				PrintDebugInt(booth.officialId);
+				PrintDebugLine("Official ID");
+				PrintDebugInt(booth.hasOldResults());
+				PrintDebugLine("Booth has old results");
+				PrintDebugInt(booth.hasNewResults());
+				PrintDebugLine("Booth has new results");
+			}
 			if (booth.hasOldResults() && !booth.hasNewResults()) {
 				int estimatedTotalVotes = int(std::round(float(booth.totalOldTcpVotes()) * seat.individualBoothGrowth));
 				Party const* boothFirstParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
@@ -674,6 +733,12 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 				else if (booth.name.find(" Team") != std::string::npos) ++mysteryTeamBooths;
 				else ++mysteryStandardBooths;
 			}
+		}
+
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugInt(tcpTally[0]);
+			PrintDebugInt(tcpTally[1]);
+			PrintDebugLine("Tallied uncounted-but-matched booths");
 		}
 
 		// Now we have also tallied the estimated votes from booths that are uncounted but matched, if any
@@ -703,6 +768,12 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 			int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
 			tcpTally[0] += incumbentMysteryVotes;
 			tcpTally[1] += challengerMysteryVotes;
+		}
+
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugInt(tcpTally[0]);
+			PrintDebugInt(tcpTally[1]);
+			PrintDebugLine("Tallied unmatched booths");
 		}
 
 		// Now estimate declaration vote totals and add these to the total tallies
@@ -774,10 +845,23 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 				tcpTally[1] += secondTcpDeclarationVotes;
 			}
 		}
+
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugInt(tcpTally[0]);
+			PrintDebugInt(tcpTally[1]);
+			PrintDebugLine("Tallied estimated declaration votes");
+		}
+
 		float totalTally = float(tcpTally[0] + tcpTally[1]);
 		float firstMargin = (float(tcpTally[0]) - totalTally * 0.5f) / totalTally * 100.0f;
 		Party const* winner = (firstMargin >= 0.0f ? firstParty : secondParty);
 		Party const* runnerUp = (firstMargin >= 0.0f ? secondParty : firstParty);
+
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugInt(tcpTally[0]);
+			PrintDebugInt(tcpTally[1]);
+			PrintDebugLine("Tallied estimated declaration votes");
+		}
 		
 		// Third parties can potentially be a "spoiler" for a seat expected to be classic
 		// This check replaces the winner by a third party if it is simulated but doesn't
@@ -793,6 +877,9 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 
 		return {winner, runnerUp, abs(firstMargin), float(significance)};
 	} else if (isLive() && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+		if (seat.name == "Curtin" && !currentIteration) {
+			PrintDebugLine("Does not yet have latest results");
+		}
 		float liveMargin = seat.latestResult->incumbentSwing + seat.margin;
 		float liveStdDev = stdDevSingleSeat(seat.latestResult->getPercentCountedEstimate());
 		liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);

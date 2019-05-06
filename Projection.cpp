@@ -13,6 +13,7 @@ void Projection::run() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::normal_distribution<double> nDist(0.0f, dailyChange);
+	std::normal_distribution<double> campaignDist(0.0f, dailyChange * 2.0f);
 	// t-distribution since we've estimated the SD from a random sample
 	std::student_t_distribution<double> initialDist(std::max(numElections - 1, 1));
 	// additional uncertainty from the state of the polling at the moment
@@ -33,9 +34,10 @@ void Projection::run() {
 		initialDistributionResult = std::clamp(initialDistributionResult, 0.0, 100.0);
 		projVec[0] = initialDistributionResult;
 		for (int day = 1; day < nDays; ++day) {
-			double nextDayStatisticProjection = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + nDist(gen);
+			double randomVariance = (day > nDays - 30 ? campaignDist(gen) : nDist(gen));
+			double nextDayStatisticProjection = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + randomVariance;
 			nextDayStatisticProjection = std::clamp(nextDayStatisticProjection, 0.0, 100.0);
-			projVec[day] = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + nDist(gen);
+			projVec[day] = nextDayStatisticProjection;
 		}
 	}
 	for (int day = 0; day < nDays; ++day) {
