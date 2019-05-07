@@ -280,12 +280,12 @@ void EditPartyFrame::updateTextAbbreviation(wxCommandEvent& event) {
 void EditPartyFrame::updateTextOfficialShortCodes(wxCommandEvent& event) {
 	// updates the party short codes data with the string from the event.
 	std::string thisString = event.GetString();
-	std::regex partyCodeRegex("([^,]+)(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?");
+	std::regex partyCodeRegex("([^,]+)(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?");
 	std::smatch matchResults;
 	std::regex_match(thisString, matchResults, partyCodeRegex);
 	if (matchResults.size()) {
 		party.officialCodes.clear();
-		for (int matchIndex = 1; matchIndex < 12; matchIndex += 2) {
+		for (int matchIndex = 1; matchIndex < 56; matchIndex += 2) {
 			if (!matchResults[matchIndex].matched) break;
 			party.officialCodes.push_back(matchResults[matchIndex].str());
 		}

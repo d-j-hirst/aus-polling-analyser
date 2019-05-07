@@ -229,6 +229,9 @@ void Model::calculateOverallHouseEffects() {
 			pollster[pollsterIndex].houseEffect = houseEffectNum[pollsterIndex] / houseEffectDenom[pollsterIndex];
 		else
 			pollster[pollsterIndex].houseEffect = 0;
+		if (std::isnan(pollster[pollsterIndex].houseEffect)) {
+			PrintDebugLine("NAN house effect U");
+		}
 	}
 }
 
@@ -310,6 +313,7 @@ void Model::calibrateDailyHouseEffects() {
 		for (ModelPollster& thisPollster : pollster) {
 			thisDay.houseEffect[thisPollster.index] += houseEffectsCalibrationAdjustment;
 		}
+
 	}
 }
 

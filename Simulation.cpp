@@ -498,6 +498,7 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 	if (!seat.latestResults) return;
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
+	if (!firstCandidateId || !secondCandidateId) return; // maverick results mean we shouldn't try to estimate 2cp swings
 	Party const* firstSeatParty = project.getPartyByCandidate(firstCandidateId);
 	Party const* secondSeatParty = project.getPartyByCandidate(secondCandidateId);
 	seat.tcpTally[0] = 0;
