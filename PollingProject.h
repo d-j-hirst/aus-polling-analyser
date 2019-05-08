@@ -371,7 +371,7 @@ public:
 
 	// Returns the party that this affiliation ID refers to.
 	// Returns nullptr if affiliation did not match any known party
-	Party const* getPartyByAffliation(int affiliationId) const;
+	Party const* getPartyByAffiliation(int affiliationId) const;
 
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.

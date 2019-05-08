@@ -921,7 +921,7 @@ Party const * PollingProject::getPartyByCandidate(int candidateId) const
 	return candidateIt->second;
 }
 
-Party const* PollingProject::getPartyByAffliation(int affiliationId) const
+Party const* PollingProject::getPartyByAffiliation(int affiliationId) const
 {
 	auto affiliationIt = affiliations.find(affiliationId);
 	if (affiliationIt == affiliations.end()) return nullptr;

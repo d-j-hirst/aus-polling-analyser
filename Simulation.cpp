@@ -711,7 +711,7 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		float totalOrdinaryTally = float(tcpTally[0] + tcpTally[1]);
 		int estimatedTotalVotes = 0;
 		if (seat.previousResults) {
-			bool sameOrder = firstParty == project.getPartyByAffliation(seat.previousResults->finalCandidates[0].affiliationId);
+			bool sameOrder = firstParty == project.getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
 			estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
 			int estimatedDeclarationVotes = estimatedTotalVotes - estimatedTotalOrdinaryVotes;
 			int oldDeclarationVotes = seat.previousResults->total2cpVotes() - seat.previousResults->ordinaryVotes();
@@ -726,32 +726,52 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 			float firstOldAbsentPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].absentVotes) / float(seat.previousResults->absentVotes()) * 100.0f;
 			float firstNewAbsentPercent = firstOldAbsentPercent + absentSwing;
 			int estimatedAbsentVotes = int(std::round(float(seat.previousResults->absentVotes()) * declarationVoteChange));
-			int firstAbsentVotes = int(std::round(firstNewAbsentPercent * float(estimatedAbsentVotes) * 0.01f));
-			int secondAbsentVotes = estimatedAbsentVotes - firstAbsentVotes;
+			int firstCountedAbsentVotes = seat.latestResults->finalCandidates[0].absentVotes;
+			int secondCountedAbsentVotes = seat.latestResults->finalCandidates[1].absentVotes;
+			int estimatedRemainingAbsentVotes = std::max(0, estimatedAbsentVotes - firstCountedAbsentVotes - secondCountedAbsentVotes);
+			int firstRemainingAbsentVotes = int(std::round(firstNewAbsentPercent * float(estimatedRemainingAbsentVotes) * 0.01f));
+			int secondRemainingAbsentVotes = estimatedRemainingAbsentVotes - firstRemainingAbsentVotes;
+			int firstAbsentVotes = firstCountedAbsentVotes + firstRemainingAbsentVotes;
+			int secondAbsentVotes = secondCountedAbsentVotes + secondRemainingAbsentVotes;
 
 			float provisionalStdDev = 5.0f; // needs more research
 			float provisionalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, provisionalStdDev)(gen);
 			float firstOldProvisionalPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].provisionalVotes) / float(seat.previousResults->provisionalVotes()) * 100.0f;
 			float firstNewProvisionalPercent = firstOldProvisionalPercent + provisionalSwing;
 			int estimatedProvisionalVotes = int(std::round(float(seat.previousResults->provisionalVotes()) * declarationVoteChange));
-			int firstProvisionalVotes = int(std::round(firstNewProvisionalPercent * float(estimatedProvisionalVotes) * 0.01f));
-			int secondProvisionalVotes = estimatedProvisionalVotes - firstProvisionalVotes;
+			int firstCountedProvisionalVotes = seat.latestResults->finalCandidates[0].provisionalVotes;
+			int secondCountedProvisionalVotes = seat.latestResults->finalCandidates[1].provisionalVotes;
+			int estimatedRemainingProvisionalVotes = std::max(0, estimatedProvisionalVotes - firstCountedProvisionalVotes - secondCountedProvisionalVotes);
+			int firstRemainingProvisionalVotes = int(std::round(firstNewProvisionalPercent * float(estimatedRemainingProvisionalVotes) * 0.01f));
+			int secondRemainingProvisionalVotes = estimatedRemainingProvisionalVotes - firstRemainingProvisionalVotes;
+			int firstProvisionalVotes = firstCountedProvisionalVotes + firstRemainingProvisionalVotes;
+			int secondProvisionalVotes = secondCountedProvisionalVotes + secondRemainingProvisionalVotes;
 
 			float prepollStdDev = 5.0f; // needs more research
 			float prepollSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, prepollStdDev)(gen);
 			float firstOldPrepollPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].prepollVotes) / float(seat.previousResults->prepollVotes()) * 100.0f;
 			float firstNewPrepollPercent = firstOldPrepollPercent + prepollSwing;
 			int estimatedPrepollVotes = int(std::round(float(seat.previousResults->prepollVotes()) * declarationVoteChange));
-			int firstPrepollVotes = int(std::round(firstNewPrepollPercent * float(estimatedPrepollVotes) * 0.01f));
-			int secondPrepollVotes = estimatedPrepollVotes - firstPrepollVotes;
+			int firstCountedPrepollVotes = seat.latestResults->finalCandidates[0].prepollVotes;
+			int secondCountedPrepollVotes = seat.latestResults->finalCandidates[1].prepollVotes;
+			int estimatedRemainingPrepollVotes = std::max(0, estimatedPrepollVotes - firstCountedPrepollVotes - secondCountedPrepollVotes);
+			int firstRemainingPrepollVotes = int(std::round(firstNewPrepollPercent * float(estimatedRemainingPrepollVotes) * 0.01f));
+			int secondRemainingPrepollVotes = estimatedRemainingPrepollVotes - firstRemainingPrepollVotes;
+			int firstPrepollVotes = firstCountedPrepollVotes + firstRemainingPrepollVotes;
+			int secondPrepollVotes = secondCountedPrepollVotes + secondRemainingPrepollVotes;
 
 			float postalStdDev = 5.0f; // needs more research
 			float postalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, postalStdDev)(gen);
 			float firstOldPostalPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].postalVotes) / float(seat.previousResults->postalVotes()) * 100.0f;
 			float firstNewPostalPercent = firstOldPostalPercent + postalSwing;
 			int estimatedPostalVotes = int(std::round(float(seat.previousResults->postalVotes()) * declarationVoteChange));
-			int firstPostalVotes = int(std::round(firstNewPostalPercent * float(estimatedPostalVotes) * 0.01f));
-			int secondPostalVotes = estimatedPostalVotes - firstPostalVotes;
+			int firstCountedPostalVotes = seat.latestResults->finalCandidates[0].postalVotes;
+			int secondCountedPostalVotes = seat.latestResults->finalCandidates[1].postalVotes;
+			int estimatedRemainingPostalVotes = std::max(0, estimatedPostalVotes - firstCountedPostalVotes - secondCountedPostalVotes);
+			int firstRemainingPostalVotes = int(std::round(firstNewPostalPercent * float(estimatedRemainingPostalVotes) * 0.01f));
+			int secondRemainingPostalVotes = estimatedRemainingPostalVotes - firstRemainingPostalVotes;
+			int firstPostalVotes = firstCountedPostalVotes + firstRemainingPostalVotes;
+			int secondPostalVotes = secondCountedPostalVotes + secondRemainingPostalVotes;
 
 			tcpTally[0] += firstAbsentVotes + firstProvisionalVotes + firstPrepollVotes + firstPostalVotes;
 			tcpTally[1] += secondAbsentVotes + secondProvisionalVotes + secondPrepollVotes + secondPostalVotes;
@@ -831,7 +851,7 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		float preferenceFlowGuess = std::normal_distribution<float>(seat.firstPartyPreferenceFlow, seat.preferenceFlowVariation)(gen);
 		for (auto boothId : seat.latestResults->booths) {
 			Results::Booth const& booth = project.getBooth(boothId);
-			bool matchingOrder = project.getPartyByAffliation(booth.tcpAffiliationId[0]) == project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+			bool matchingOrder = project.getPartyByAffiliation(booth.tcpAffiliationId[0]) == project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 
 			if (booth.hasNewResults()) {
 				firstTcpTally += (matchingOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
@@ -999,10 +1019,10 @@ bool Simulation::seatPartiesMatchBetweenElections(PollingProject const & project
 {
 	if (!seat.latestResults) return false;
 	if (!seat.previousResults) return false;
-	Party const* oldPartyOne = project.getPartyByAffliation(seat.previousResults->finalCandidates[0].affiliationId);
-	Party const* oldPartyTwo = project.getPartyByAffliation(seat.previousResults->finalCandidates[1].affiliationId);
-	Party const* newPartyOne = project.getPartyByAffliation(seat.latestResults->finalCandidates[0].affiliationId);
-	Party const* newPartyTwo = project.getPartyByAffliation(seat.latestResults->finalCandidates[1].affiliationId);
+	Party const* oldPartyOne = project.getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	Party const* oldPartyTwo = project.getPartyByAffiliation(seat.previousResults->finalCandidates[1].affiliationId);
+	Party const* newPartyOne = project.getPartyByAffiliation(seat.latestResults->finalCandidates[0].affiliationId);
+	Party const* newPartyTwo = project.getPartyByAffiliation(seat.latestResults->finalCandidates[1].affiliationId);
 	if (oldPartyOne == newPartyOne && oldPartyTwo == newPartyTwo) return true;
 	if (oldPartyOne == newPartyTwo && oldPartyTwo == newPartyOne) return true;
 	return false;
