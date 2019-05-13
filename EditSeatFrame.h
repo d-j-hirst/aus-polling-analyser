@@ -18,7 +18,6 @@
 #include <wx/datectrl.h>
 #include <wx/dateevt.h>
 
-#include "Debug.h"
 #include "Seat.h"
 
 class SeatsFrame;

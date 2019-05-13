@@ -18,7 +18,6 @@
 #include <wx/clrpicker.h>
 
 #include "PartiesFrame.h"
-#include "Debug.h"
 #include "Party.h"
 
 class PartiesFrame;

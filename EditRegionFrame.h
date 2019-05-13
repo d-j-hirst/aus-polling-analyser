@@ -18,7 +18,6 @@
 #include <wx/clrpicker.h>
 
 #include "RegionsFrame.h"
-#include "Debug.h"
 #include "Region.h"
 
 class RegionsFrame;

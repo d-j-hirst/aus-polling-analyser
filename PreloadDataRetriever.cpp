@@ -1,7 +1,7 @@
 #include "PreloadDataRetriever.h"
 
-#include "Debug.h"
 #include "General.h"
+#include "Log.h"
 #include "RegexNavigation.h"
 
 #include <fstream>
@@ -86,11 +86,10 @@ void PreloadDataRetriever::collectData()
 
 		} while (moreSeatData(xmlString, searchIt));
 
-		PrintDebugLine("Download complete!");
+		logger << "Download complete!\n";
 	}
 	catch (const std::regex_error& e) {
-		PrintDebug("regex_error caught: ");
-		PrintDebugLine(e.what());
+		logger << "regex_error caught: " << e.what() << "\n";
 	}
 
 	std::ifstream boothsFile(UnzippedBoothsFileName);
@@ -107,10 +106,9 @@ void PreloadDataRetriever::collectData()
 			booths.insert({ boothData.officialId, boothData });
 		} while (moreBoothData(xmlString, searchIt));
 
-		PrintDebugLine("Download complete!");
+		logger << "Download complete!" << "\n";
 	}
 	catch (const std::regex_error& e) {
-		PrintDebug("regex_error caught: ");
-		PrintDebugLine(e.what());
+		logger << "regex_error caught: " << e.what() << "\n";
 	}
 }

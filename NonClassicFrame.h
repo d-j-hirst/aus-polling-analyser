@@ -19,7 +19,6 @@
 #include <wx/dateevt.h>
 
 #include "ResultsFrame.h"
-#include "Debug.h"
 #include "Poll.h"
 #include "PollingProject.h"
 

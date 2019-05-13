@@ -19,7 +19,6 @@
 #include <wx/dateevt.h>
 
 #include "EventsFrame.h"
-#include "Debug.h"
 #include "Event.h"
 
 class EventsFrame;

@@ -18,7 +18,6 @@
 #include "Seat.h"
 #include "Simulation.h"
 #include "Result.h"
-#include "Debug.h"
 #include "FileOpeningState.h"
 
 const int PA_MaxPollsters = 100;

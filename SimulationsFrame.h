@@ -19,7 +19,6 @@
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "Debug.h"
 #include "EditSimulationFrame.h"
 
 class ProjectFrame;

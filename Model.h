@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <wx/datetime.h>
-#include "Debug.h"
 
 const float DefaultVoteTimeScoreMultiplier = 8.0f;
 const float DefaultHouseEffectTimeScoreMultiplier = 28.0f;

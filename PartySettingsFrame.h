@@ -17,7 +17,6 @@
 #include <wx/valnum.h>
 
 #include "PartiesFrame.h"
-#include "Debug.h"
 #include "PollingProject.h"
 
 class PartiesFrame;

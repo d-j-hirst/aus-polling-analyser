@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <wx/datetime.h>
-#include "Debug.h"
 
 class Model;
 

@@ -1,7 +1,5 @@
 #include "ResultsDownloader.h"
 
-#include "Debug.h"
-
 #include <stdio.h>
 #include <curl/curl.h>
 #include <tchar.h>

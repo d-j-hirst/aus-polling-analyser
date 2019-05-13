@@ -14,7 +14,6 @@
 #endif
 
 #include "ProjectFrame.h"
-#include "Debug.h"
 #include "NewProjectData.h"
 
 class ParentFrame;

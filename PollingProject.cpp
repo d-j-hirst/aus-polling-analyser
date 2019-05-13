@@ -1,14 +1,12 @@
 #include "PollingProject.h"
 
+#include "LatestResultsDataRetriever.h"
+#include "Log.h"
 #include "PreloadDataRetriever.h"
 #include "PreviousElectionDataRetriever.h"
-#include "LatestResultsDataRetriever.h"
 
 #include <iomanip>
 #include <algorithm>
-
-#undef max
-#undef min
 
 const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
 
@@ -27,7 +25,7 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 PollingProject::PollingProject(std::string pathName) :
 		lastFileName(pathName.substr(pathName.rfind("\\")+1))
 {
-	PrintDebugLine(lastFileName);
+	logger << lastFileName << "\n";
 	open(pathName);
 }
 
@@ -44,13 +42,11 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 			++seatMatchCount;
 		}
 		else {
-			PrintDebug("Note - No seat match found for ");
-			PrintDebug(seatData.name);
-			PrintDebugLine(".\n If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.");
+			logger << "Note - No seat match found for " << seatData.name << ".\n";
+			logger << "If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.\n";
 		}
 	}
-	PrintDebugInt(seatMatchCount);
-	PrintDebugLine("seats matched.");
+	logger << seatMatchCount << " seats matched.\n";
 	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
 	collectAffiliations(dataRetriever);
 }
@@ -69,17 +65,10 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		// Determine which booth (if any) from the previous election this corresponds to
 		auto oldBoothIt = booths.find(newBooth.officialId);
 		if (oldBoothIt == booths.end()) {
-			//PrintDebug("Could not find a matching booth for booth with Id ");
-			//PrintDebugInt(newBooth.officialId);
-			//PrintDebugNewLine();
 			continue;
 		}
 		auto& matchedBooth = oldBoothIt->second;
 		matchedBooth.fpCandidates = newBooth.fpCandidates; // always record fp candidates regardless of whether booth matching is successful
-		//PrintDebug("Found matching booth for booth ");
-		//PrintDebugInt(newBooth.officialId);
-		//PrintDebug(". Booth name is ");
-		//PrintDebugLine(matchedBooth.name);
 
 		// Check if the parties match
 		bool allValid = true;
@@ -93,10 +82,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		bool newResults = newBooth.totalNewTcpVotes();
 
 		if (matchedDirect || matchedOpposite || noOldResults) {
-			//PrintDebug("Matched parties for this booth - ");
-			//PrintDebug(newParty[0]->name);
-			//PrintDebug(" and ");
-			//PrintDebugLine(newParty[1]->name);
 			if (matchedDirect) {
 				matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
 				matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
@@ -120,40 +105,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 				matchedBooth.tcpAffiliationId[1] = candidateAffiliations[newBooth.tcpCandidateId[1]];
 				matchedBooth.newResultsZero = newBooth.newResultsZero;
 			}
-			//PrintDebug("Results: ");
-			//PrintDebug(oldParty[0]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.newTcpVote[0]);
-			//PrintDebug(", ");
-			//PrintDebug(oldParty[1]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.newTcpVote[1]);
-			//PrintDebugNewLine();
-			//PrintDebug("Previous results: ");
-			//PrintDebug(oldParty[0]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.tcpVote[0]);
-			//PrintDebug(", ");
-			//PrintDebug(oldParty[1]->name);
-			//PrintDebug(" ");
-			//PrintDebugInt(matchedBooth.tcpVote[1]);
-			//PrintDebugNewLine();
-			//int totalOld = matchedBooth.tcpVote[0] + matchedBooth.tcpVote[1];
-			//int totalNew = matchedBooth.newTcpVote[0] + matchedBooth.newTcpVote[1];
-			//if (totalOld && totalNew) {
-			//	float swing = (float(matchedBooth.newTcpVote[0]) / float(totalNew) -
-			//		float(matchedBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
-			//	if (swing >= 0) {
-			//		PrintDebugFloat(swing);
-			//		PrintDebug("% swing to ");
-			//		PrintDebugLine(oldParty[0]->name);
-			//	}
-			//	else {
-			//		PrintDebugFloat(-swing);
-			//		PrintDebug(" swing to ");
-			//		PrintDebugLine(oldParty[1]->name);
-			//	}
-			//}
 		}
 		else if (newResults) {
 			// Could not match parties are there are some results, wipe previous results
@@ -166,14 +117,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			matchedBooth.tcpVote[0] = 0;
 			matchedBooth.tcpVote[1] = 0;
 			matchedBooth.newResultsZero = newBooth.newResultsZero;
-			//PrintDebug("Failed to match parties for this booth - ");
-			//PrintDebug(newParty[0]->name);
-			//PrintDebug(" and ");
-			//PrintDebugLine(newParty[1]->name);
-			//PrintDebug(" could not be matched with ");
-			//PrintDebug(oldParty[0]->name);
-			//PrintDebug(" and ");
-			//PrintDebugLine(oldParty[1]->name);
 		}
 	}
 
@@ -199,129 +142,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->previousResults->classic2pp = false;
 		}
 	}
-
-	// Note from here until the next comment is options, just outputs debug info and does not store anything.
-
-	//std::array<int, 2> nationalTotalVotes = { 0, 0 };
-	//std::array<int, 2> nationalTotalVotesOld = { 0, 0 };
-
-	//PrintDebugLine("Seats:");
-	//for (auto seat : seats) {
-	//	if (seat.name != "Longman") continue;
-	//	PrintDebug(" Seat of ");
-	//	PrintDebug(seat.name);
-	//	PrintDebugLine(":");
-	//	std::array<int, 2> seatTotalVotes = { 0, 0 };
-	//	std::array<int, 2> seatTotalVotesOld = { 0, 0 };
-	//	PrintDebugInt(seat.latestResults->booths.size());
-	//	PrintDebugLine("booths for this seat");
-	//	for (auto booth : seat.latestResults->booths) {
-	//		Results::Booth thisBooth = booths[booth];
-	//		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
-	//		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
-	//		PrintDebugInt(totalOld);
-	//		PrintDebugInt(totalNew);
-	//		PrintDebug("old/new votes for booth ");
-	//		PrintDebugInt(thisBooth.officialId);
-	//		PrintDebugNewLine();
-	//		PrintDebugInt(thisBooth.newTcpVote[0]);
-	//		PrintDebugInt(thisBooth.newTcpVote[1]);
-	//		PrintDebug("votes for each candidate ");
-	//		PrintDebugNewLine();
-	//		if (totalOld && totalNew) {
-	//			float swing = (float(thisBooth.newTcpVote[0]) / float(totalNew) -
-	//				float(thisBooth.tcpVote[0]) / float(totalOld)) * 100.0f;
-	//			PrintDebug("  Booth - ");
-	//			PrintDebug(thisBooth.name);
-	//			PrintDebug(": ");
-	//			if (swing >= 0) {
-	//				PrintDebugFloat(swing);
-	//				PrintDebug(" swing to ");
-	//				PrintDebug(affiliations[thisBooth.affiliationId[0]]->name);
-	//			}
-	//			else {
-	//				PrintDebugFloat(-swing);
-	//				PrintDebug(" swing to ");
-	//				PrintDebug(affiliations[thisBooth.affiliationId[1]]->name);
-	//			}
-	//			PrintDebug(" from ");
-	//			PrintDebugInt(totalNew);
-	//			PrintDebugLine(" votes");
-
-	//			bool seatMatchedSame = (affiliations[thisBooth.affiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
-	//			if (seatMatchedSame) {
-	//			seatTotalVotes[0] += thisBooth.newTcpVote[0];
-	//			seatTotalVotes[1] += thisBooth.newTcpVote[1];
-	//			seatTotalVotesOld[0] += thisBooth.tcpVote[0];
-	//			seatTotalVotesOld[1] += thisBooth.tcpVote[1];
-	//			}
-	//			else {
-	//			seatTotalVotes[0] += thisBooth.newTcpVote[1];
-	//			seatTotalVotes[1] += thisBooth.newTcpVote[0];
-	//			seatTotalVotesOld[0] += thisBooth.tcpVote[1];
-	//			seatTotalVotesOld[1] += thisBooth.tcpVote[0];
-	//			}
-
-	//			Party const* party[2] = { affiliations[thisBooth.affiliationId[0]], affiliations[thisBooth.affiliationId[1]] };
-	//			if (party[0]->countAsParty == Party::CountAsParty::IsPartyOne && party[1]->countAsParty == Party::CountAsParty::IsPartyTwo) {
-	//				nationalTotalVotes[0] += thisBooth.newTcpVote[0];
-	//				nationalTotalVotes[1] += thisBooth.newTcpVote[1];
-	//				nationalTotalVotesOld[0] += thisBooth.tcpVote[0];
-	//				nationalTotalVotesOld[1] += thisBooth.tcpVote[1];
-	//			}
-	//			else if (party[0]->countAsParty == Party::CountAsParty::IsPartyTwo && party[1]->countAsParty == Party::CountAsParty::IsPartyOne) {
-	//				nationalTotalVotes[0] += thisBooth.newTcpVote[1];
-	//				nationalTotalVotes[1] += thisBooth.newTcpVote[0];
-	//				nationalTotalVotesOld[0] += thisBooth.tcpVote[1];
-	//				nationalTotalVotesOld[1] += thisBooth.tcpVote[0];
-	//			}
-	//		}
-	//	}
-
-	//	int totalOldSeat = seatTotalVotesOld[0] + seatTotalVotesOld[1];
-	//	int totalNewSeat = seatTotalVotes[0] + seatTotalVotes[1];
-
-	//	if (totalOldSeat && totalNewSeat) {
-	//		float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
-	//			float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
-	//		PrintDebug(" Total: ");
-	//		if (swing >= 0) {
-	//			PrintDebugFloat(swing);
-	//			PrintDebug(" swing to ");
-	//			PrintDebug(affiliations[seat.previousResults->finalCandidates[0].affiliationId]->name);
-	//		}
-	//		else {
-	//			PrintDebugFloat(-swing);
-	//			PrintDebug(" swing to ");
-	//			PrintDebug(affiliations[seat.previousResults->finalCandidates[1].affiliationId]->name);
-	//		}
-	//		PrintDebug(" from ");
-	//		PrintDebugInt(totalNewSeat);
-	//		PrintDebugLine(" votes");
-	//	}
-	//}
-
-	//int totalOldNational = nationalTotalVotesOld[0] + nationalTotalVotesOld[1];
-	//int totalNewNational = nationalTotalVotes[0] + nationalTotalVotes[1];
-
-	//if (totalOldNational && totalNewNational) {
-	//	float swing = (float(nationalTotalVotes[0]) / float(totalNewNational) -
-	//		float(nationalTotalVotesOld[0]) / float(totalOldNational)) * 100.0f;
-	//	PrintDebug("National: ");
-	//	if (swing >= 0) {
-	//		PrintDebugFloat(swing);
-	//		PrintDebug(" swing to ");
-	//		PrintDebug(parties.begin()->name);
-	//	}
-	//	else {
-	//		PrintDebugFloat(-swing);
-	//		PrintDebug(" swing to ");
-	//		PrintDebug((++parties.begin())->name);
-	//	}
-	//	PrintDebug(" from ");
-	//	PrintDebugInt(totalNewNational);
-	//	PrintDebugLine(" votes");
-	//}
 
 	// Code below stores information
 

@@ -17,7 +17,6 @@
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "Debug.h"
 #include "wx/grid.h"
 
 class ProjectFrame;

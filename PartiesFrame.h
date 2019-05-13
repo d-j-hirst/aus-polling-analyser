@@ -20,7 +20,6 @@
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "Debug.h"
 #include "EditPartyFrame.h"
 #include "PartySettingsFrame.h"
 

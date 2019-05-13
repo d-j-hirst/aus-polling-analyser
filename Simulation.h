@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Debug.h"
-
 #include <wx/datetime.h>
 
 #include <array>

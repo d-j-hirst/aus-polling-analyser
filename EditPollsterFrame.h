@@ -18,7 +18,6 @@
 #include <wx/clrpicker.h>
 
 #include "PollstersFrame.h"
-#include "Debug.h"
 #include "Pollster.h"
 
 class PollstersFrame;

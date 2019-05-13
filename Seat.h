@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Debug.h"
 #include "ElectionData.h"
 #include "Party.h"
 

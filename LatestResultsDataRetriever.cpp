@@ -1,7 +1,7 @@
 #include "LatestResultsDataRetriever.h"
 
-#include "Debug.h"
 #include "General.h"
+#include "Log.h"
 #include "RegexNavigation.h"
 
 #include <fstream>
@@ -160,22 +160,17 @@ void LatestResultsDataRetriever::collectData()
 				}
 				seatData.booths.push_back(boothData.officialId);
 				auto newBooth = boothMap.insert({ boothData.officialId, boothData });
-				if (!newBooth.second) {
-					PrintDebugInt(boothData.officialId);
-					PrintDebugLine(" - Duplicate booth detected!");
-				}
+				if (!newBooth.second) logger << boothData.officialId << " - Duplicate booth detected!\n";
 			} while (moreBoothData(xmlString, searchIt));
 			auto newSeat = seatMap.insert({ seatData.officialId, seatData });
-			PrintDebugLine(seatData.name);
+			logger << seatData.name << "\n";
 			if (!newSeat.second) {
-				PrintDebugInt(seatData.officialId);
-				PrintDebugLine(" - Duplicate seat detected!"); // this shouldn't happen
+				logger << seatData.officialId << " - Duplicate seat detected!\n"; // this shouldn't happen
 			}
 		} while (moreSeatData(xmlString, searchIt));
-		PrintDebugLine("Download complete!");
+		logger << "Download complete!\n";
 	}
 	catch (const std::regex_error& e) {
-		PrintDebug("regex_error caught: ");
-		PrintDebugLine(e.what());
+		logger << "regex_error caught: " << e.what() << "\n";
 	}
 }

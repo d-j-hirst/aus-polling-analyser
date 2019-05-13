@@ -203,12 +203,6 @@ void ResultsFrame::addResultToResultData(Result result)
 		std::max(result.seat->partyTwoWinRate * 100.0f, result.seat->partyOthersWinRate * 100.0f));
 	Party const* thisParty = (p1 > p2 && p1 > p3 ? project->getPartyPtr(0)
 		: (p2 > p3 ? project->getPartyPtr(1) : nullptr));
-	//PrintDebugFloat(p1);
-	//PrintDebugFloat(p2);
-	//PrintDebugFloat(p3);
-	//PrintDebugFloat(leaderProb);
-	//if (thisParty) PrintDebug(thisParty->name + " ");
-	//PrintDebugLine(result.seat->name);
 	std::string leadingPartyName = (thisParty ? thisParty->abbreviation : "OTH");
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
 		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));

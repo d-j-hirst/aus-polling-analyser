@@ -18,7 +18,6 @@
 #include <wx/datectrl.h>
 #include <wx/dateevt.h>
 
-#include "Debug.h"
 #include "Simulation.h"
 
 class SimulationsFrame;

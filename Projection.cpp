@@ -1,5 +1,8 @@
 #include "Projection.h"
+
 #include "Model.h"
+#include "Log.h"
+
 #include <random>
 #include <cmath>
 #include <algorithm>
@@ -58,14 +61,10 @@ void Projection::run() {
 
 void Projection::logRunStatistics()
 {
-	PrintDebugLine("--------------------------------");
-	PrintDebugLine("Projection completed.");
-	PrintDebug("Final 2PP mean value: ");
-	PrintDebugDouble(meanProjection.back());
-	PrintDebugNewLine();
-	PrintDebug("Final 2PP standard deviation: ");
-	PrintDebugDouble(sdProjection.back());
-	PrintDebugNewLine();
+	logger << "--------------------------------\n";
+	logger << "Projection completed.\n";
+	logger << "Final 2PP mean value: " << meanProjection.back() << "\n";
+	logger << "Final 2PP standard deviation: " << sdProjection.back() << "\n";
 }
 
 void Projection::setAsNowCast() {

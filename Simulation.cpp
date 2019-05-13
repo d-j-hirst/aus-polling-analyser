@@ -1,11 +1,12 @@
 #include "Simulation.h"
-#include "Projection.h"
+
+#include "CountProgress.h"
+#include "Log.h"
 #include "Model.h"
-#include "Debug.h"
-#include "Region.h"
 #include "Party.h"
 #include "PollingProject.h"
-#include "CountProgress.h"
+#include "Projection.h"
+#include "Region.h"
 #include <algorithm>
 
 #undef min
@@ -374,7 +375,6 @@ void Simulation::run(PollingProject& project) {
 				totalSeats += seatNum * thisRegion.partyWins[partyIndex][seatNum];
 			}
 			regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(numIterations);
-			//PrintDebugFloat(regionPartyWinExpectation - thisRegion.partyLeading[0]);
 		}
 	}
 
@@ -423,7 +423,6 @@ void Simulation::run(PollingProject& project) {
 		if (seat->isClassic2pp(partyOne, partyTwo, isLiveAutomatic())) {
 			classicSeatList.push_back(ClassicSeat(seat, seatIndex));
 		}
-		if (!currentIteration) { PrintDebug(seat->name); PrintDebug(seat->winner->name); PrintDebugLine(" - seat results"); }
 	}
 	std::sort(classicSeatList.begin(), classicSeatList.end(),
 		[partyTwo](ClassicSeat seatA, ClassicSeat seatB)
@@ -466,12 +465,8 @@ void Simulation::determinePpvcBias()
 	ppvcBias = ppvcBiasNumerator / ppvcBiasDenominator;
 	ppvcBiasConfidence = std::clamp(ppvcBiasDenominator / float(totalOldPpvcVotes) * 5.0f, 0.0f, 1.0f);
 
-	PrintDebugFloat(ppvcBiasNumerator);
-	PrintDebugFloat(ppvcBiasDenominator);
-	PrintDebugFloat(ppvcBias);
-	PrintDebugInt(totalOldPpvcVotes);
-	PrintDebugFloat(ppvcBiasConfidence);
-	PrintDebugLine(" - ppvc bias measures");
+	logger << ppvcBiasNumerator << " " << ppvcBiasDenominator << " " << ppvcBias << " " << totalOldPpvcVotes <<
+		" " << ppvcBiasConfidence << " - ppvc bias measures\n";
 }
 
 void Simulation::determinePreviousVoteEnrolmentRatios(PollingProject& project)
@@ -593,15 +588,9 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 		seat.firstPartyPreferenceFlow = float(seatFirstPartyPreferences) / totalPreferences;
 		seat.preferenceFlowVariation = std::clamp(0.1f - totalPreferences / float(seat.latestResults->enrolment), 0.03f, 0.1f);
 
-		PrintDebugInt(seatFirstPartyPreferences);
-		PrintDebugInt(seatSecondPartyPreferences);
-		PrintDebugFloat(seat.firstPartyPreferenceFlow);
-		PrintDebugFloat(seat.preferenceFlowVariation);
-		PrintDebug(" preference flow to ");
-		PrintDebug(firstSeatParty->name);
-		PrintDebug(" vs ");
-		PrintDebug(secondSeatParty->name);
-		PrintDebugLine(seat.name);
+		logger << seatFirstPartyPreferences << " " << seatSecondPartyPreferences << " " <<
+			seat.firstPartyPreferenceFlow << " " << seat.preferenceFlowVariation << " preference flow to " <<
+			firstSeatParty->name << " vs " << secondSeatParty->name << " - " << seat.name << "\n";
 	}
 
 	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
@@ -835,11 +824,11 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProject const& project, Seat const& seat)
 {
 	if (isLiveAutomatic() && seatPartiesMatchBetweenElections(project, seat)) {
-		if (!currentIteration) { PrintDebug(seat.name); PrintDebugLine(" - matched booths"); }
+		if (!currentIteration) logger << seat.name << " - matched booths\n";
 		return calculateLiveResultClassic2CP(project, seat, seat.margin);
 	}
 	else if (isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
-		if (!currentIteration) { PrintDebug(seat.name); PrintDebugLine(" - 2cp votes"); }
+		if (!currentIteration) logger << seat.name << " - 2cp votes\n";
 		int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 		int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
 		Party const* firstParty = project.getPartyByCandidate(firstCandidateId);
@@ -920,6 +909,7 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		return { winner, runnerUp, margin, significance };
 	}
 	else if (isLiveAutomatic() && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
+		if (!currentIteration) logger << seat.name << " - first preferences\n";
 		return calculateLiveResultFromFirstPreferences(project, seat);
 	}
 	else {

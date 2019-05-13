@@ -271,9 +271,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
+    <ClCompile Include="Log.cpp" />
     <ClCompile Include="PreloadDataRetriever.cpp" />
     <ClCompile Include="PreviousElectionDataRetriever.cpp" />
-    <ClCompile Include="Debug.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
     <ClCompile Include="DownloadFrame.cpp" />
     <ClCompile Include="EditEventFrame.cpp" />
@@ -319,10 +319,10 @@
   <ItemGroup>
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
+    <ClInclude Include="Log.h" />
     <ClInclude Include="PreloadDataRetriever.h" />
     <ClInclude Include="PreviousElectionDataRetriever.h" />
     <ClInclude Include="CountProgress.h" />
-    <ClInclude Include="Debug.h" />
     <ClInclude Include="DisplayFrame.h" />
     <ClInclude Include="DownloadFrame.h" />
     <ClInclude Include="RegexNavigation.h" />

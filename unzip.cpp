@@ -5,8 +5,6 @@
 #include <tchar.h>
 #include "unzip.h"
 
-#include "Debug.h"
-
 #pragma warning (disable : 5033 4457 4996)
 
 // THIS FILE is almost entirely based upon code by Jean-loup Gailly

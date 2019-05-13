@@ -35,8 +35,6 @@ bool MyApp::OnInit()
     if ( !wxApp::OnInit() )
         return false;
 
-	ResetDebug();
-
 	wxImage::AddHandler(new wxPNGHandler);
 
     // create the main application window

@@ -98,9 +98,6 @@
     <ClCompile Include="unzip.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="Debug.cpp">
-      <Filter>Source Files\Utility</Filter>
-    </ClCompile>
     <ClCompile Include="General.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
@@ -118,6 +115,9 @@
     </ClCompile>
     <ClCompile Include="LatestResultsDataRetriever.cpp">
       <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="Log.cpp">
+      <Filter>Source Files\Utility</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -288,9 +288,6 @@
     <ClInclude Include="CountProgress.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="Debug.h">
-      <Filter>Header Files\Utility</Filter>
-    </ClInclude>
     <ClInclude Include="General.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
@@ -314,6 +311,9 @@
     </ClInclude>
     <ClInclude Include="LatestResultsDataRetriever.h">
       <Filter>Header Files\Data Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.h">
+      <Filter>Header Files\Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

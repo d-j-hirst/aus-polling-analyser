@@ -1,15 +1,15 @@
 #include "Model.h"
+
 #include <algorithm>
 #include <numeric>
+
+#include "Log.h"
 
 constexpr int NumIterationsFreedHouseEffects = 50;
 constexpr float PollAccuracyFloorZeroPolls = 1.0f;
 constexpr float PollAccuracyFloorPerPoll = 0.05f;
 constexpr float PollAccuracyFloorLimit = 0.4f;
 constexpr float PollScoreMultipler = 10.0f;
-
-#undef min
-#undef max
 
 void Model::updateEffectiveDates(wxDateTime earliestPoll, wxDateTime latestPoll) {
 	if (!startDate.IsValid()) effStartDate = earliestPoll;
@@ -229,9 +229,6 @@ void Model::calculateOverallHouseEffects() {
 			pollster[pollsterIndex].houseEffect = houseEffectNum[pollsterIndex] / houseEffectDenom[pollsterIndex];
 		else
 			pollster[pollsterIndex].houseEffect = 0;
-		if (std::isnan(pollster[pollsterIndex].houseEffect)) {
-			PrintDebugLine("NAN house effect U");
-		}
 	}
 }
 
@@ -610,24 +607,14 @@ void Model::determineFinalStandardDeviation()
 
 void Model::logRunStatistics()
 {
-	PrintDebugLine("--------------------------------");
-	PrintDebugLine("Model run completed.");
-	PrintDebug("Final trend 2PP: ");
-	PrintDebugFloat(day.back().trend2pp);
-	PrintDebugNewLine();
-	PrintDebug("Final additional standard deviation: ");
-	PrintDebugFloat(finalStandardDeviation);
-	PrintDebugNewLine();
+	logger <<  "--------------------------------" << "\n";
+	logger << "Model run completed.\n";
+	logger << "Final trend 2PP: " << day.back().trend2pp << "\n";
+	logger << "Final additional standard deviation: " << finalStandardDeviation << "\n";
 	for (size_t pollsterIndex = 0; pollsterIndex < pollster.size(); ++pollsterIndex) {
-		PrintDebugLine(" ---------");
-		PrintDebug(" Pollster index: ");
-		PrintDebugInt(pollsterIndex);
-		PrintDebug(" - Accuracy: ");
-		PrintDebugFloat(pollster[pollsterIndex].accuracy);
-		PrintDebugNewLine();
-		PrintDebug(" - House effect: ");
-		PrintDebugFloat(pollster[pollsterIndex].houseEffect);
-		PrintDebugNewLine();
+		logger << " ---------" << "\n";
+		logger << " Pollster index: " << pollsterIndex << " - Accuracy: " << pollster[pollsterIndex].accuracy << "\n";
+		logger << " - House effect: " << pollster[pollsterIndex].houseEffect << "\n";
 	}
 }
 
