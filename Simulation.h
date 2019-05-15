@@ -55,6 +55,8 @@ public:
 	float partyTwoMinorityPercent = 0.0f;
 	float partyTwoMajorityPercent = 0.0f;
 
+	double partyOneSwing = 0.0;
+
 	enum class Mode {
 		Projection,
 		LiveManual,
@@ -87,15 +89,15 @@ public:
 	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 	std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
 
-	float getPartyOneWinPercent() {
+	float getPartyOneWinPercent() const {
 		return partyOneMajorityPercent + partyOneMinorityPercent + hungPercent * 0.5f;
 	}
 
-	float getPartyTwoWinPercent() {
+	float getPartyTwoWinPercent() const {
 		return partyTwoMajorityPercent + partyTwoMinorityPercent + hungPercent * 0.5f;
 	}
 
-	float getOthersWinExpectation(int regionIndex) {
+	float getOthersWinExpectation(int regionIndex) const {
 		if (regionIndex < 0 || regionIndex >= int(regionPartyWinExpectation.size())) return 0.0f;
 		if (regionPartyWinExpectation[regionIndex].size() < 3) return 0.0f;
 		return std::accumulate(regionPartyWinExpectation[regionIndex].begin() + 2, regionPartyWinExpectation[regionIndex].end(), 0.0f);
@@ -105,7 +107,7 @@ public:
 		if (partyCount > numIterations / 200 * probThreshold && bound == -1) bound = numSeats;
 	}
 
-	int getMinimumSeatFrequency(int partyIndex) {
+	int getMinimumSeatFrequency(int partyIndex) const {
 		if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
 		if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
 		for (int i = 0; i < int(partySeatWinFrequency[partyIndex].size()); ++i) {
@@ -114,7 +116,7 @@ public:
 		return 0;
 	}
 
-	int getMaximumSeatFrequency(int partyIndex) {
+	int getMaximumSeatFrequency(int partyIndex) const {
 		if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
 		if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
 		for (int i = int(partySeatWinFrequency[partyIndex].size()) - 1; i >= 0; --i) {
@@ -123,15 +125,19 @@ public:
 		return 0;
 	}
 
-	int getModalSeatFrequencyCount(int partyIndex) {
+	int getModalSeatFrequencyCount(int partyIndex) const {
 		if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
 		if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
 		return *std::max_element(partySeatWinFrequency[partyIndex].begin(), partySeatWinFrequency[partyIndex].end());
 	}
 
-	bool isLiveAutomatic() { return live == Mode::LiveAutomatic; }
-	bool isLiveManual() { return live == Mode::LiveManual; }
-	bool isLive() { return isLiveManual() || isLiveAutomatic(); }
+	double getPartyOne2pp() const {
+		return partyOneSwing + prevElection2pp;
+	}
+
+	bool isLiveAutomatic() const { return live == Mode::LiveAutomatic; }
+	bool isLiveManual() const { return live == Mode::LiveManual; }
+	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
 
 	int findBestSeatDisplayCenter(Party* partySorted, int numSeatsDisplayed);
 

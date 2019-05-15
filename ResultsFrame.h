@@ -94,7 +94,13 @@ private:
 	// Text box used to enter the total number of booths for the seat
 	wxComboBox* filterComboBox = nullptr;
 
-	// Panel containing vote count data.
+	// Panel containing overall count data
+	wxPanel* summaryPanel = nullptr;
+
+	// Static text showing overall statistics (projected 2pp, seat count, overall % counted)
+	wxStaticText* summaryText = nullptr;
+
+	// Panel containing seat count data.
 	wxPanel* dataPanel = nullptr;
 
 	// Control containing vote count data (from the dataPanel above)

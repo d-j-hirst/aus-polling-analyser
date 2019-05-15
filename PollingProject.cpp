@@ -44,6 +44,7 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 		else {
 			logger << "Note - No seat match found for " << seatData.name << ".\n";
 			logger << "If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.\n";
+			logger << "Also check that the existing seat data download link is correct and hasn't been set to skip the download.\n";
 		}
 	}
 	logger << seatMatchCount << " seats matched.\n";

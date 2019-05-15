@@ -19,7 +19,7 @@ namespace {
 	}
 
 	inline int extractSeatEnrolment(std::string const& xmlString, SearchIterator& searchIt) {
-		return extractInt(xmlString, "<Enrolment>(\\d+)", searchIt);
+		return extractInt(xmlString, "<Enrolment[^>]*>(\\d+)", searchIt);
 	}
 
 	// Skip ahead to the first preference section of this seat's results
@@ -105,6 +105,7 @@ void LatestResultsDataRetriever::collectData()
 			seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
 			seatData.name = extractSeatName(xmlString, searchIt);
 			seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
+			logger << seatData.name << "\n";
 			seekToFp(xmlString, searchIt);
 			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
 				do {
@@ -120,6 +121,7 @@ void LatestResultsDataRetriever::collectData()
 				std::sort(seatData.fpCandidates.begin(), seatData.fpCandidates.end(),
 					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
 			}
+			logger << seatData.name << "\n";
 			seekToTcp(xmlString, searchIt);
 			if (!comesBefore(xmlString, "<PollingPlaces>", "<Candidate>", searchIt)) {
 				for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {

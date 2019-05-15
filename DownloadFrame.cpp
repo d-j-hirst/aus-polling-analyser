@@ -51,6 +51,8 @@ void DownloadFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 
 void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 {
+	// 2016 federal election results - use when simulating 2019 federal election
+	 std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-20499-20170511174118.zip";
 
 	// 2013 federal election results - use when simulating 2016 federal election
 	// std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-17496-20140516155658.zip";
@@ -59,14 +61,14 @@ void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 	//std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-15508-20101022115746.zip";
 
 	// 2007 federal election results - use when simulating 2010 federal election
-	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/13745/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-13745-20080903130113.zip";
+	//std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/13745/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-13745-20080903130113.zip";
 
 	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
 
 	// Comment this out if we don't want to waste everyone's data
 	// downloading and re-downloading the same data
 	ResultsDownloader resultsDownloader;
-	//resultsDownloader.loadZippedFile(userUrl, PreviousElectionDataRetriever::UnzippedFileName);
+	resultsDownloader.loadZippedFile(userUrl, PreviousElectionDataRetriever::UnzippedFileName);
 
 	wxMessageBox("Downloaded historic data from: " + userUrl);
 	PreviousElectionDataRetriever previousElevationDataRetriever;
@@ -76,6 +78,9 @@ void DownloadFrame::OnDownloadHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 
 void DownloadFrame::OnDownloadPreloadData(wxCommandEvent& WXUNUSED(event))
 {
+	// 2019 federal election preload
+	 std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Preload/aec-mediafeed-Detailed-Preload-24310-20190501133154.zip";
+
 	// 2016 federal election preload
 	// std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip";
 
@@ -83,16 +88,16 @@ void DownloadFrame::OnDownloadPreloadData(wxCommandEvent& WXUNUSED(event))
 	//std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Preload/aec-mediafeed-Detailed-Preload-17496-20130903105057.zip";
 
 	// 2010 federal election preload
-	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Preload/aec-mediafeed-Detailed-Preload-15508-20100817220132.zip";
+	//std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Preload/aec-mediafeed-Detailed-Preload-15508-20100817220132.zip";
 
 	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
 
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
 	ResultsDownloader resultsDownloader;
-	//resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedCandidatesFileName, PreloadDataRetriever::CandidateMatch);
+	resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedCandidatesFileName, PreloadDataRetriever::CandidateMatch);
 	wxMessageBox("Downloaded preload candidate data from: " + userUrl);
-	//resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedBoothsFileName, PreloadDataRetriever::BoothsMatch);
+	resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedBoothsFileName, PreloadDataRetriever::BoothsMatch);
 	wxMessageBox("Downloaded preload booth data from: " + userUrl);
 
 	PreloadDataRetriever preloadDataRetriever;
@@ -104,7 +109,7 @@ void DownloadFrame::OnDownloadLatestBoothData(wxCommandEvent& WXUNUSED(event))
 {
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
-	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Light/aec-mediafeed-Detailed-Light-15508-20100821190032.zip";
+	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Light/aec-mediafeed-Detailed-Light-24310-20190515142406.zip";
 	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
 	if (userUrl.empty()) return;
 	ResultsDownloader resultsDownloader;

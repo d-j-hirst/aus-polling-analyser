@@ -18,7 +18,7 @@ inline void seekToFirstPreferences(std::string const& xmlString, SearchIterator&
 }
 
 inline bool candidateIsIndependent(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractBool(xmlString, "<Candidate( Independent=\"yes\")?", searchIt);
+	return extractBool(xmlString, "<Candidate( Independent=\"(yes|true)\")?", searchIt);
 }
 
 inline int extractCandidateId(std::string const& xmlString, SearchIterator& searchIt) {
@@ -34,7 +34,7 @@ inline std::string extractAffiliationShortCode(std::string const& xmlString, Sea
 }
 
 inline bool moreCandidateData(std::string const& xmlString, SearchIterator const& searchIt) {
-	return comesBefore(xmlString, "<Candidate", "<Formal>", searchIt);
+	return comesBefore(xmlString, "<CandidateIdentifier", "</CandidateList>", searchIt);
 }
 
 inline void seekToNextCandidate(std::string const& xmlString, SearchIterator& searchIt) {

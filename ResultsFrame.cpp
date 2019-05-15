@@ -11,6 +11,7 @@
 enum {
 	PA_ResultsFrame_Base = 700, // To avoid mixing events with other frames.
 	PA_ResultsFrame_FrameID,
+	PA_ResultsFrame_SummaryTextID,
 	PA_ResultsFrame_DataViewID,
 	PA_ResultsFrame_RunLiveSimulationsID,
 	PA_ResultsFrame_SeatNameID,
@@ -40,13 +41,16 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
-	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
+	constexpr int SummaryPanelHeight = 20;
+	summaryPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), wxSize(GetClientSize().GetX(), SummaryPanelHeight));
+
+	summaryText = new wxStaticText(summaryPanel, PA_ResultsFrame_SummaryTextID, "Some sample text", wxPoint(0, 0), summaryPanel->GetClientSize());
+	summaryText->SetBackgroundColour(wxColour(237, 237, 237));
+
+	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight + SummaryPanelHeight), GetClientSize() - wxSize(0, toolBarHeight + SummaryPanelHeight));
 
 	// Create the model data control.
-	resultsData = new wxGrid(dataPanel,
-		PA_ResultsFrame_DataViewID,
-		wxPoint(0, 0),
-		dataPanel->GetClientSize());
+	resultsData = new wxGrid(dataPanel, PA_ResultsFrame_DataViewID, wxPoint(0, 0), dataPanel->GetClientSize());
 
 	// *** Party Data Table Columns *** //
 
@@ -69,6 +73,14 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 
 void ResultsFrame::refreshData()
 {
+	for (auto simulation = project->getSimulationBegin(); simulation != project->getSimulationEnd(); ++simulation) {
+		if (simulation->isLive()) {
+			std::string summaryString = "ALP win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) + " " +
+				"Projected 2PP: ALP " + formatFloat(float(simulation->getPartyOne2pp()), 2);
+			summaryText->SetLabel("ALP win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2));
+		}
+	}
+
 	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
 
 	if (!resultsData->GetNumberCols()) {

@@ -128,6 +128,7 @@ void Simulation::run(PollingProject& project) {
 	partySeatWinFrequency.resize(project.getPartyCount(), std::vector<int>(project.getSeatCount() + 1));
 	othersWinFrequency.clear();
 	othersWinFrequency.resize(project.getSeatCount() + 1);
+	partyOneSwing = 0.0;
 
 	float pollOverallSwing = baseProjection->meanProjection.back() - prevElection2pp;
 	float pollOverallStdDev = baseProjection->sdProjection.back();
@@ -188,6 +189,8 @@ void Simulation::run(PollingProject& project) {
 		for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 			thisRegion->simulationSwing += regionSwingAdjustment;
 		}
+
+		partyOneSwing += double(simulationOverallSwing);
 
 		std::vector<int> partyWins(project.getPartyCount());
 
@@ -356,6 +359,7 @@ void Simulation::run(PollingProject& project) {
 	hungPercent = float(hungParliament) / float(numIterations) * 100.0f;
 	partyTwoMinorityPercent = float(partyTwoMinority) / float(numIterations) * 100.0f;
 	partyTwoMajorityPercent = float(partyTwoMajority) / float(numIterations) * 100.0f;
+	partyOneSwing = partyOneSwing / double(numIterations);
 
 	for (int partyIndex = 0; partyIndex < project.getPartyCount(); ++partyIndex) {
 		int totalSeats = 0;
