@@ -146,7 +146,7 @@ void PreviousElectionDataRetriever::collectData()
 			}
 		} while (moreSeatData(xmlString, searchIt));
 		affiliations.insert({ 0, "IND" });
-		logger << "Download complete!\n";
+		logger << "Previous election download complete!\n";
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";

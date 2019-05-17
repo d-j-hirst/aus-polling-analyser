@@ -86,7 +86,7 @@ void PreloadDataRetriever::collectData()
 
 		} while (moreSeatData(xmlString, searchIt));
 
-		logger << "Download complete!\n";
+		logger << "Preload (candidates) download complete!\n";
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";
@@ -106,7 +106,7 @@ void PreloadDataRetriever::collectData()
 			booths.insert({ boothData.officialId, boothData });
 		} while (moreBoothData(xmlString, searchIt));
 
-		logger << "Download complete!" << "\n";
+		logger << "Preload (booths) download complete!" << "\n";
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";

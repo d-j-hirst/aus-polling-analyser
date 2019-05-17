@@ -40,19 +40,31 @@ public:
 
 private:
 
+	enum Preset {
+		Federal2010,
+		Federal2013,
+		Federal2016,
+		Federal2019
+	};
+
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);
 
-	void OnDownloadHistoricBoothData(wxCommandEvent& event);
+	void OnGetHistoricBoothData(wxCommandEvent& event);
 
-	void OnDownloadPreloadData(wxCommandEvent& event);
+	void OnGetPreloadData(wxCommandEvent& event);
 
-	void OnDownloadLatestBoothData(wxCommandEvent& event);
+	void OnGetCustomBoothData(wxCommandEvent& event);
+
+	void OnGetLatestBoothData(wxCommandEvent& event);
 
 	void refreshToolbar();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
+
+	// Text box used to enter the name of a seat to input results for
+	wxComboBox* presetComboBox = nullptr;
 
 	// A pointer to the parent frame.
 	ProjectFrame* parent;

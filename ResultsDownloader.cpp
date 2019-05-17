@@ -1,5 +1,7 @@
 #include "ResultsDownloader.h"
 
+#include <fstream>
+#include <sstream>
 #include <stdio.h>
 #include <curl/curl.h>
 #include <tchar.h>
@@ -9,6 +11,7 @@
 
 const std::string TempZipFileName = "downloads/TempResults.zip";
 const std::wstring LTempZipFileName(TempZipFileName.begin(), TempZipFileName.end());
+const std::string TempFileName = "downloads/Temp.dat";
 
 struct FtpFile {
 	const char *filename;
@@ -26,7 +29,6 @@ static size_t my_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 	}
 	return fwrite(buffer, size, nmemb, out->stream);
 }
-
 
 ResultsDownloader::ResultsDownloader()
 {
@@ -94,4 +96,44 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName,
 	CloseZip(hz);
 
 	return;
+}
+
+void ResultsDownloader::loadUrlToString(std::string url, std::string& outputString)
+{
+	CURLcode res;
+	struct FtpFile ftpfile = {
+		TempFileName.c_str(), /* name to store the file as if successful */
+		NULL
+	};
+	if (curl_handle) {
+		/*
+		* You better replace the URL with one that works!
+		*/
+		curl_easy_setopt(curl_handle, CURLOPT_URL,
+			url.c_str());
+		/* Define our callback to get called when there's data to be written */
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, my_fwrite);
+		/* Set a pointer to our struct to pass to the callback */
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &ftpfile);
+
+		/* Switch on full protocol/debug output */
+		curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+
+		res = curl_easy_perform(curl_handle);
+
+		if (CURLE_OK != res) {
+			/* we failed */
+			fprintf(stderr, "curl told us %d\n", res);
+		}
+	}
+
+	if (ftpfile.stream)
+		fclose(ftpfile.stream); /* close the local file */
+
+								// Now extract the xml file
+
+	std::ifstream tempFile(TempFileName);
+	std::stringstream buffer;
+	buffer << tempFile.rdbuf();
+	outputString = buffer.str();
 }

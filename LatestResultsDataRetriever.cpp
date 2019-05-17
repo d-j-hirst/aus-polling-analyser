@@ -6,7 +6,8 @@
 
 #include <fstream>
 
-const std::string LatestResultsDataRetriever::UnzippedFileName = "downloads/latest_results.xml";
+const std::string LatestResultsDataRetriever::UnzippedFileName = "downloads/custom_results.xml";
+const std::string LatestResultsDataRetriever::DirectoryListingFileName = "downloads/results_directory_listing.xml";
 
 namespace {
 
@@ -105,7 +106,6 @@ void LatestResultsDataRetriever::collectData()
 			seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
 			seatData.name = extractSeatName(xmlString, searchIt);
 			seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
-			logger << seatData.name << "\n";
 			seekToFp(xmlString, searchIt);
 			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
 				do {
@@ -121,7 +121,6 @@ void LatestResultsDataRetriever::collectData()
 				std::sort(seatData.fpCandidates.begin(), seatData.fpCandidates.end(),
 					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
 			}
-			logger << seatData.name << "\n";
 			seekToTcp(xmlString, searchIt);
 			if (!comesBefore(xmlString, "<PollingPlaces>", "<Candidate>", searchIt)) {
 				for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
@@ -165,12 +164,11 @@ void LatestResultsDataRetriever::collectData()
 				if (!newBooth.second) logger << boothData.officialId << " - Duplicate booth detected!\n";
 			} while (moreBoothData(xmlString, searchIt));
 			auto newSeat = seatMap.insert({ seatData.officialId, seatData });
-			logger << seatData.name << "\n";
 			if (!newSeat.second) {
 				logger << seatData.officialId << " - Duplicate seat detected!\n"; // this shouldn't happen
 			}
 		} while (moreSeatData(xmlString, searchIt));
-		logger << "Download complete!\n";
+		logger << "Latest results download complete!\n";
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";

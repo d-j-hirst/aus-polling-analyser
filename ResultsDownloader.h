@@ -15,8 +15,12 @@ public:
 
 	~ResultsDownloader();
 
-	// loads the file from "url" into a temporary zip file
+	// loads the file from "url" into a temporary zip file, then unzips any file
+	// with name matching "match" into the file named "newFileName"
 	void loadZippedFile(std::string url, std::string newFileName, std::string match = "");
+
+	// loads the file or directory listing from "url" into "outputString"
+	void loadUrlToString(std::string url, std::string& outputString);
 
 private:
 

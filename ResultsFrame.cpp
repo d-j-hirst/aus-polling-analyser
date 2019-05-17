@@ -2,6 +2,7 @@
 
 #include "EditPollFrame.h"
 #include "EditSimulationFrame.h"
+#include "Log.h"
 #include "NonClassicFrame.h"
 
 #include <wx/valnum.h>
@@ -77,7 +78,7 @@ void ResultsFrame::refreshData()
 		if (simulation->isLive()) {
 			std::string summaryString = "ALP win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) + " " +
 				"Projected 2PP: ALP " + formatFloat(float(simulation->getPartyOne2pp()), 2);
-			summaryText->SetLabel("ALP win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2));
+			summaryText->SetLabel(summaryString);
 		}
 	}
 
@@ -242,6 +243,7 @@ void ResultsFrame::addResultToResultData(Result result)
 	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 8, statusString);
 	resultsData->SetCellBackgroundColour(row, 8, resultColour);
+	resultsData->Refresh();
 }
 
 void ResultsFrame::updateInterface()

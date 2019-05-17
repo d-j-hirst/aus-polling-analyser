@@ -9,6 +9,7 @@
 class LatestResultsDataRetriever {
 public:
 	const static std::string UnzippedFileName;
+	const static std::string DirectoryListingFileName;
 
 	// collects booth data etc. from the downloaded results file.
 	// Make sure this has been downloaded by ResultsDownloader first.
