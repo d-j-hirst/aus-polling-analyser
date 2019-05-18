@@ -1657,6 +1657,8 @@ float PollingProject::calculate2cpPercentComplete(Seat const & seat)
 		totalVotes += thisBooth.newTcpVote[1];
 	}
 
+	totalVotes += seat.latestResults->declarationVotes();
+
 	return float(totalVotes) / float(seat.latestResults->enrolment) * 100.0f;
 }
 

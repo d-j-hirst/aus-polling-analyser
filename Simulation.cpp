@@ -90,6 +90,8 @@ void Simulation::run(PollingProject& project) {
 	// A bunch of votes from one seat is less likely to be representative than from a wide variety of seats,
 	// so this factor is introduced to avoid a small number of seats from having undue influence early in the count
 	float sampleRepresentativeness = 0.0f;
+	int total2cpVotes = 0;
+	int totalEnrolment = 0;
 	if (isLive()) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 			if (!thisSeat->isClassic2pp(partyOne, partyTwo, isLiveAutomatic())) continue;
@@ -104,6 +106,8 @@ void Simulation::run(PollingProject& project) {
 			liveOverallPercent += percentCounted;
 			thisSeat->region->livePercentCounted += percentCounted;
 			sampleRepresentativeness += std::min(2.0f, percentCounted) * 0.5f;
+			total2cpVotes += thisSeat->latestResults->total2cpVotes();
+			totalEnrolment += thisSeat->latestResults->enrolment;
 		}
 		if (liveOverallPercent) {
 			liveOverallSwing /= liveOverallPercent;
@@ -117,6 +121,8 @@ void Simulation::run(PollingProject& project) {
 			}
 		}
 	}
+
+	total2cpPercentCounted = float(total2cpVotes) / float(totalEnrolment);
 
 	int partyOneMajority = 0;
 	int partyOneMinority = 0;

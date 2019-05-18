@@ -75,9 +75,15 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 void ResultsFrame::refreshData()
 {
 	for (auto simulation = project->getSimulationBegin(); simulation != project->getSimulationEnd(); ++simulation) {
-		if (simulation->isLive()) {
-			std::string summaryString = "ALP win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) + " " +
-				"Projected 2PP: ALP " + formatFloat(float(simulation->getPartyOne2pp()), 2);
+		if (simulation->isLive() && simulation->isValid()) {
+			std::string party1 = project->getParty(0).abbreviation;
+			std::string party2 = project->getParty(1).abbreviation;
+			std::string summaryString = party1 + " win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) +
+				" Projected 2PP: " + party1 + " " + formatFloat(float(simulation->getPartyOne2pp()), 2) +
+				"Seats: " + party1 + " " + formatFloat(simulation->partyWinExpectation[0], 2) + " " +
+				party2 + " " + formatFloat(simulation->partyWinExpectation[1], 2) +
+				"Others " + formatFloat(simulation->getOthersWinExpectation(), 2) +
+				" & counted: " + formatFloat(simulation->get2cpPercentCounted() * 100.0f, 2);
 			summaryText->SetLabel(summaryString);
 		}
 	}

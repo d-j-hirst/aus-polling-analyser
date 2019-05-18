@@ -89,12 +89,21 @@ public:
 	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 	std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
 
+	bool isValid() const {
+		return lastUpdated.IsValid();
+	}
+
 	float getPartyOneWinPercent() const {
 		return partyOneMajorityPercent + partyOneMinorityPercent + hungPercent * 0.5f;
 	}
 
 	float getPartyTwoWinPercent() const {
 		return partyTwoMajorityPercent + partyTwoMinorityPercent + hungPercent * 0.5f;
+	}
+
+	float getOthersWinExpectation() const {
+		if (partyWinExpectation.size() < 3) return 0.0f;
+		return std::accumulate(std::next(partyWinExpectation.begin(), 2), partyWinExpectation.end(), 0.0f);
 	}
 
 	float getOthersWinExpectation(int regionIndex) const {
@@ -139,6 +148,8 @@ public:
 	bool isLiveManual() const { return live == Mode::LiveManual; }
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
 
+	float get2cpPercentCounted() const { return total2cpPercentCounted; }
+
 	int findBestSeatDisplayCenter(Party* partySorted, int numSeatsDisplayed);
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
@@ -166,6 +177,7 @@ public:
 	float ppvcBiasObserved = 0.0f;
 	float ppvcBiasConfidence = 0.0f;
 	int totalOldPpvcVotes = 0;
+	float total2cpPercentCounted = 0.0f;
 
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
