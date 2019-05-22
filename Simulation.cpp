@@ -122,7 +122,7 @@ void Simulation::run(PollingProject& project) {
 		}
 	}
 
-	total2cpPercentCounted = float(total2cpVotes) / float(totalEnrolment);
+	total2cpPercentCounted = (float(totalEnrolment) ? float(total2cpVotes) / float(totalEnrolment) : 0);
 
 	int partyOneMajority = 0;
 	int partyOneMinority = 0;

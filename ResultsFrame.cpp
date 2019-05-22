@@ -42,10 +42,10 @@ ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
 
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
-	constexpr int SummaryPanelHeight = 20;
+	constexpr int SummaryPanelHeight = 40;
 	summaryPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), wxSize(GetClientSize().GetX(), SummaryPanelHeight));
 
-	summaryText = new wxStaticText(summaryPanel, PA_ResultsFrame_SummaryTextID, "Some sample text", wxPoint(0, 0), summaryPanel->GetClientSize());
+	summaryText = new wxStaticText(summaryPanel, PA_ResultsFrame_SummaryTextID, "", wxPoint(0, 0), summaryPanel->GetClientSize());
 	summaryText->SetBackgroundColour(wxColour(237, 237, 237));
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight + SummaryPanelHeight), GetClientSize() - wxSize(0, toolBarHeight + SummaryPanelHeight));
@@ -79,11 +79,15 @@ void ResultsFrame::refreshData()
 			std::string party1 = project->getParty(0).abbreviation;
 			std::string party2 = project->getParty(1).abbreviation;
 			std::string summaryString = party1 + " win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) +
-				" Projected 2PP: " + party1 + " " + formatFloat(float(simulation->getPartyOne2pp()), 2) +
-				"Seats: " + party1 + " " + formatFloat(simulation->partyWinExpectation[0], 2) + " " +
+				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation->getPartyOne2pp()), 2) +
+				"   Seats: " + party1 + " " + formatFloat(simulation->partyWinExpectation[0], 2) + " " +
 				party2 + " " + formatFloat(simulation->partyWinExpectation[1], 2) +
-				"Others " + formatFloat(simulation->getOthersWinExpectation(), 2) +
-				" & counted: " + formatFloat(simulation->get2cpPercentCounted() * 100.0f, 2);
+				" Others " + formatFloat(simulation->getOthersWinExpectation(), 2) +
+				"   Count progress: " + formatFloat(simulation->get2cpPercentCounted() * 100.0f, 2) + "%\n" +
+				party1 + " swing by region: ";
+			for (auto region = project->getRegionBegin(); region != project->getRegionEnd(); ++region) {
+				summaryString += region->name + " " + formatFloat(region->liveSwing, 2) + " ";
+			}
 			summaryText->SetLabel(summaryString);
 		}
 	}
