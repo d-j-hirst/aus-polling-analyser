@@ -114,6 +114,15 @@ void ProjectFrame::setupPages() {
 	AddPage(downloadFrame, "Download", true);
 }
 
+void ProjectFrame::save()
+{
+	if (!project->getLastFileName().empty()) {
+		saveUnderFilename(project->getLastFileName());
+	} else {
+		saveAs();
+	}
+}
+
 void ProjectFrame::saveAs() {
 	if (!project.get()) return; // There is no project to save.
 
@@ -130,7 +139,11 @@ void ProjectFrame::saveAs() {
 		return;     // the user changed their mind...
 
 	std::string pathName = saveFileDialog->GetPath().ToStdString();
+	saveUnderFilename(pathName);
+}
 
+void ProjectFrame::saveUnderFilename(std::string const& pathName)
+{
 	if (project->save(pathName)) {
 		wxMessageDialog* message = new wxMessageDialog(
 			this,
@@ -194,9 +207,4 @@ bool ProjectFrame::checkSave() {
 		}
 	}
 	return false;
-}
-
-void ParentFrame::updateInterface() {
-	bool projectExists = notebook != nullptr;
-	toolBar->EnableTool(PA_ToolID_SaveAs, projectExists);
 }

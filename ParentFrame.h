@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ProjectFrame.h"
+#include "NewProjectFrame.h"
+
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
 
@@ -14,48 +17,6 @@
 #endif
 
 #include <memory>
-#include "ProjectFrame.h"
-#include "NewProjectFrame.h"
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands of the ProjectFrame
-enum
-{
-	PA_ProjectFrame_Items_Base = 0, // To avoid mixing events with other frames.
-	// Item ID for starting a new project
-	PA_ItemID_New = wxID_NEW,
-
-	// Item ID for opening a project
-	PA_ItemID_Open = wxID_OPEN,
-
-	// Item ID for saving the project
-	PA_ItemID_SaveAs = wxID_SAVEAS,
-
-	// Item ID for exiting the program
-	PA_ItemID_Quit = wxID_EXIT,
-
-	// it is important for the id corresponding to the "About" command to have
-	// this standard value as otherwise it won't be handled properly under Mac
-	// (where it is special and put into the "Apple" menu)
-	PA_ItemID_About = wxID_ABOUT
-};
-
-// IDs for the controls and the menu commands of the ProjectFrame
-enum
-{
-	PA_PartiesFrame_Tools_Base = 100, // To avoid mixing events with other frames.
-	// Tool ID for starting a new project
-	PA_ToolID_New = wxID_NEW,
-
-	// Tool ID for opening the project
-	PA_ToolID_Open = wxID_OPEN,
-
-	// Tool ID for saving the project
-	PA_ToolID_SaveAs = wxID_SAVEAS,
-};
 
 struct NewProjectData;
 class ProjectFrame;
@@ -67,8 +28,8 @@ public:
 
 	friend class ProjectFrame;
 
-	// Calls on the frame to quit.
-	void OnQuit(wxCommandEvent& event);
+	// Calls on the frame to exit. This closes the whole program
+	void OnExit(wxCommandEvent& event);
 
 	// Calls on the frame to display an "About" message dialog.
 	void OnAbout(wxCommandEvent& event);
@@ -79,6 +40,10 @@ public:
 	// Calls on the frame to open the dialog for a existing project, if appropriate.
 	void OnOpen(wxCommandEvent& event);
 
+	// Calls on the frame to save the current project under the existing filename
+	// (or use the save project dialog, if possible)
+	void OnSave(wxCommandEvent& event);
+
 	// Calls on the frame to open the dialog for saving a project, if appropriate.
 	void OnSaveAs(wxCommandEvent& event);
 
@@ -87,6 +52,18 @@ public:
 	void OnNewProjectReady(NewProjectData& newProjectData);
 
 private:
+
+	// Sets the icon for the frame's top left corner
+	void setIcon();
+
+	// Creates the menu bar (along the top of the window)
+	void setupMenuBar();
+
+	// Creates the tool bar and its icons (new project, open project, save project)
+	void setupToolBar();
+
+	// Binds event handler routines to their respective controls
+	void bindEventHandlers();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

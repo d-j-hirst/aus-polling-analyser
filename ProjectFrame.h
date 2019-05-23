@@ -100,8 +100,14 @@ private:
 	// Checks to see if the user wants to save this project before it is closed.
 	bool checkSave();
 
+	// Saves using the existing file name if possible, or opens a dialog if there is no existing name.
+	void save();
+
 	// Saves as a new file, always opening the file dialog.
 	void saveAs();
+
+	// Saves the project under the given filename. Will display a message to indicate success/failure.
+	void saveUnderFilename(std::string const& pathName);
 
 	// all data internal to the project (which is to be saved).
 	std::unique_ptr<PollingProject> project;
