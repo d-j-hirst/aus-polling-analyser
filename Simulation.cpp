@@ -850,7 +850,7 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		float preferenceFlowGuess = std::normal_distribution<float>(seat.firstPartyPreferenceFlow, seat.preferenceFlowVariation)(gen);
 		for (auto boothId : seat.latestResults->booths) {
 			Results::Booth const& booth = project.getBooth(boothId);
-			bool matchingOrder = project.getPartyByAffiliation(booth.tcpAffiliationId[0]) == project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+			bool matchingOrder = project.getPartyByCandidate(booth.tcpCandidateId[0]) == project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 
 			if (booth.hasNewResults()) {
 				firstTcpTally += (matchingOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
@@ -874,6 +874,11 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 				oldComparisonVotes += booth.totalOldTcpVotes();
 				newComparisonVotes += booth.totalNewTcpVotes();
 			}
+		}
+
+		if (!currentIteration && seat.name == "Calare") {
+			logger << firstParty->name << " " << firstCandidateId << " " << firstTcpTally << "\n";
+			logger << secondParty->name << " " << secondCandidateId << " " << secondTcpTally << "\n";
 		}
 
 		float enrolmentChange = determineEnrolmentChange(seat, nullptr);
@@ -901,6 +906,11 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		int secondRemainingVotes = estimatedRemainingVotes - firstRemainingVotes;
 		firstTcpTally += firstRemainingVotes;
 		secondTcpTally += secondRemainingVotes;
+
+		if (!currentIteration && seat.name == "Calare") {
+			logger << firstParty->name << " " << firstCandidateId << " " << firstTcpTally << "\n";
+			logger << secondParty->name << " " << secondCandidateId << " " << secondTcpTally << "\n";
+		}
 
 		float totalTally = float(firstTcpTally + secondTcpTally);
 		float margin = (float(firstTcpTally) - totalTally * 0.5f) / totalTally * 100.0f;
