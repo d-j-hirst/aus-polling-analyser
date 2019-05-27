@@ -34,7 +34,7 @@ enum
 class NewProjectFrame : public wxDialog
 {
 public:
-	NewProjectFrame(const wxString& title, ParentFrame* const parent);
+	NewProjectFrame(ParentFrame* const parent, NewProjectData& newProjectData);
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
@@ -46,7 +46,7 @@ public:
 private:
 
 	// Data container for the preliminary settings for the new project to be created.
-	NewProjectData newProjectData;
+	NewProjectData& newProjectData;
 
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.

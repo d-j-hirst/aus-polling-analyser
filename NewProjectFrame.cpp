@@ -1,10 +1,11 @@
 #include "NewProjectFrame.h"
 
-// frame constructor
-NewProjectFrame::NewProjectFrame(const wxString& title, ParentFrame* const parent)
-	: wxDialog(NULL, 0, title), parent(parent)
-{
+const std::string FrameTitle = "New Project";
 
+// frame constructor
+NewProjectFrame::NewProjectFrame(ParentFrame* const parent, NewProjectData& newProjectData)
+	: wxDialog(NULL, 0, FrameTitle), parent(parent), newProjectData(newProjectData)
+{
 	// setup the internal data, we'll use it to define the buttons to avoid bugs.
 	newProjectData.projectName = "Enter project name here";
 
@@ -22,9 +23,8 @@ NewProjectFrame::NewProjectFrame(const wxString& title, ParentFrame* const paren
 }
 
 void NewProjectFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
-
-	// Get the parent frame to initialize the project using the data.
-	parent->OnNewProjectReady(newProjectData);
+	// Signal that we've clicked OK rather than Cancel
+	newProjectData.valid = true;
 
 	// Then close this dialog.
 	Close();

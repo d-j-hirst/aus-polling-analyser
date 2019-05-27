@@ -4,6 +4,13 @@
 // constants
 // ----------------------------------------------------------------------------
 
+const std::string AboutScreenText = std::string("Welcome to Polling Analyser!\n\n"
+	"This is Polling Analyser, a polling and election analysis program\n"
+	"based on the minimal wxWidgets sample\n"
+	"using ") + wxVERSION_STRING + std::string("\nunder ") + wxGetOsDescription() + ".";
+
+const std::string AboutScreenTitle = "About Polling Analyser";
+
 // IDs for the controls and the menu commands of the ProjectFrame
 enum class Item
 {
@@ -67,19 +74,7 @@ void ParentFrame::OnExit(wxCommandEvent& WXUNUSED(event))
 void ParentFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
 	// Displays a message box "about" the program.
-	wxMessageBox(wxString::Format
-		(
-		"Welcome to Polling Analyser!\n"
-		"\n"
-		"This is Polling Analyser, a polling analysis program\n"
-		"based on the minimal wxWidgets sample\n"
-		"running under %s.",
-		wxVERSION_STRING,
-		wxGetOsDescription()
-		),
-		"About Polling Analyser",
-		wxOK | wxICON_INFORMATION,
-		this);
+	wxMessageBox(AboutScreenText, AboutScreenTitle, wxOK | wxICON_INFORMATION, this);
 }
 
 void ParentFrame::OnNew(wxCommandEvent& WXUNUSED(event))
@@ -90,18 +85,13 @@ void ParentFrame::OnNew(wxCommandEvent& WXUNUSED(event))
 		if (notebook->checkSave()) return;
 	}
 
-	// Create the new project frame (where initial settings for the new project are chosen).
-	NewProjectFrame *frame = new NewProjectFrame("New Project", this);
+	NewProjectData newProjectData = receiveNewProjectInfoFromUser();
+	if (!newProjectData.valid) return;
 
-	// Show the frame.
-	frame->ShowModal();
+	createNotebook(newProjectData);
 
 	// update the interface (so that the save tool is enabled, for instance).
 	updateInterface();
-
-	// This is needed to avoid a memory leak.
-	delete frame;
-	return;
 }
 
 void ParentFrame::OnOpen(wxCommandEvent& WXUNUSED(event))
@@ -112,24 +102,12 @@ void ParentFrame::OnOpen(wxCommandEvent& WXUNUSED(event))
 		if (notebook->checkSave()) return;
 	}
 
-	// initialize the open dialog
-	wxFileDialog* openFileDialog = new wxFileDialog(
-		this,
-		"Open Project",
-		"",
-		"",
-		"Polling Analysis files (*.pol)|*.pol",
-		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	std::string pathName = receiveOpenProjectPathnameFromUser();
+	if (pathName.empty()) return;
 
-	if (openFileDialog->ShowModal() == wxID_CANCEL)
-		return;     // the user changed their mind...
+	createNotebook(pathName);
 
-	std::string pathName = openFileDialog->GetPath().ToStdString();
-
-	notebookPanel.reset(new wxPanel(this, wxID_ANY, wxDefaultPosition, this->GetClientSize()));
-
-	notebook.reset(new ProjectFrame(this, pathName));
-
+	// update the interface (so that the save tool is enabled, for instance).
 	updateInterface();
 }
 
@@ -147,13 +125,19 @@ void ParentFrame::OnSaveAs(wxCommandEvent& WXUNUSED(event))
 	}
 }
 
-void ParentFrame::OnNewProjectReady(NewProjectData& newProjectData) {
-
-	// Initialize the project using the NewProjectData provided.
-
-	notebookPanel.reset(new wxPanel(this, wxID_ANY, wxDefaultPosition, this->GetClientSize()));
-
+void ParentFrame::createNotebook(NewProjectData newProjectData) {
+	createNotebookPanel();
 	notebook.reset(new ProjectFrame(this, newProjectData));
+}
+
+void ParentFrame::createNotebook(std::string pathName) {
+	createNotebookPanel();
+	notebook.reset(new ProjectFrame(this, pathName));
+}
+
+void ParentFrame::createNotebookPanel()
+{
+	notebookPanel.reset(new wxPanel(this, wxID_ANY, wxDefaultPosition, this->GetClientSize()));
 }
 
 void ParentFrame::setIcon()
@@ -224,4 +208,35 @@ void ParentFrame::bindEventHandlers()
 void ParentFrame::updateInterface() {
 	bool projectExists = notebook != nullptr;
 	toolBar->EnableTool(int(Tool::Save), projectExists);
+}
+
+NewProjectData ParentFrame::receiveNewProjectInfoFromUser()
+{
+	// The NewProjectFrame will add the relevant information into this structure
+	NewProjectData newProjectData;
+
+	// When the frame is shown it will recieve the settings for the new project and store them in newProjectData
+	NewProjectFrame *frame = new NewProjectFrame(this, newProjectData);
+	frame->ShowModal();
+
+	delete frame;
+
+	return newProjectData;
+}
+
+std::string ParentFrame::receiveOpenProjectPathnameFromUser()
+{
+	// initialize the open dialog
+	wxFileDialog* openFileDialog = new wxFileDialog(
+		this,
+		"Open Project",
+		"",
+		"",
+		"Polling Analysis files (*.pol)|*.pol",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+	if (openFileDialog->ShowModal() == wxID_CANCEL)
+		return "";     // the user changed their mind...
+
+	return openFileDialog->GetPath().ToStdString();
 }
