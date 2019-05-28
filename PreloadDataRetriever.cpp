@@ -49,6 +49,14 @@ inline void seekToPollingPlace(std::string const& xmlString, SearchIterator& sea
 	seekTo(xmlString, "<PollingPlace", searchIt);
 }
 
+inline float extractPollingPlaceLatitude(std::string const& xmlString, SearchIterator& searchIt) {
+	return extractFloat(xmlString, "<xal:AddressLatitude>([^<]*)<", searchIt);
+}
+
+inline float extractPollingPlaceLongitude(std::string const& xmlString, SearchIterator& searchIt) {
+	return extractFloat(xmlString, "<xal:AddressLongitude>([^<]*)<", searchIt);
+}
+
 inline int extractPollingPlaceId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "<PollingPlaceIdentifier Id=\"(\\d+)", searchIt);
 }
@@ -100,6 +108,8 @@ void PreloadDataRetriever::collectData()
 		std::string::const_iterator searchIt = xmlString.begin();
 		do {
 			Results::Booth boothData;
+			boothData.coords.latitude = extractPollingPlaceLatitude(xmlString, searchIt);
+			boothData.coords.longitude = extractPollingPlaceLongitude(xmlString, searchIt);
 			boothData.officialId = extractPollingPlaceId(xmlString, searchIt);
 			boothData.name = extractPollingPlaceName(xmlString, searchIt);
 

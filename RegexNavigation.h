@@ -8,28 +8,36 @@
 
 typedef std::string::const_iterator SearchIterator;
 
-inline int extractInt(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline int extractInt(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt, int matchNum = 1) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
 	searchIt = match.suffix().first;
-	return std::stoi(match.str(1));
+	return std::stoi(match.str(matchNum));
 }
 
-inline std::string extractString(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline float extractFloat(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt, int matchNum = 1) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
 	searchIt = match.suffix().first;
-	return match.str(1);
+	return std::stof(match.str(matchNum));
 }
 
-inline bool extractBool(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {
+inline std::string extractString(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt, int matchNum = 1) {
 	std::regex thisRegex(regexString);
 	std::smatch match;
 	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
 	searchIt = match.suffix().first;
-	return match[1].matched;
+	return match.str(matchNum);
+}
+
+inline bool extractBool(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt, int matchNum = 1) {
+	std::regex thisRegex(regexString);
+	std::smatch match;
+	std::regex_search(searchIt, xmlString.cend(), match, thisRegex);
+	searchIt = match.suffix().first;
+	return match[matchNum].matched;
 }
 
 inline void seekTo(std::string const& xmlString, std::string const& regexString, SearchIterator& searchIt) {

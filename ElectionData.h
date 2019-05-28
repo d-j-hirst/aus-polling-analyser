@@ -33,6 +33,10 @@ namespace Results {
 			if (!(totalNewTcpVotes() && totalOldTcpVotes())) return 0.0f; 
 			return float(newTcpVote[0]) / float(totalNewTcpVotes()) - float(tcpVote[0]) / float(totalOldTcpVotes());
 		}
+		struct Coords {
+			float latitude; float longitude;
+		};
+		Coords coords;
 	};
 
 	struct Candidate {
