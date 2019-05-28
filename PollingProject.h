@@ -364,6 +364,10 @@ public:
 	// Gets the booth matching this official ID.
 	Results::Booth const& getBooth(int boothId) const;
 
+	std::pair<float, float> boothLatitudeRange() const;
+
+	std::pair<float, float> boothLongitudeRange() const;
+
 	// Returns the party that this candidate ID refers to.
 	// Returns nullptr if candidate did not match any known party
 	Party const* getPartyByCandidate(int candidateId) const;

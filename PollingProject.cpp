@@ -735,6 +735,46 @@ Results::Booth const& PollingProject::getBooth(int boothId) const
 	return booths.at(boothId);
 }
 
+std::pair<float, float> PollingProject::boothLatitudeRange() const
+{
+	if (!booths.size()) return { 0.0f, 0.0f };
+	bool latitudeInitiated = false;
+	float minLatitude;
+	float maxLatitude;
+	for (auto const& booth : booths) {
+		float latitude = booth.second.coords.latitude;
+		if (std::abs(latitude) < 0.000001f) continue; // discontinued booths won't have a location
+		if (!latitudeInitiated) {
+			minLatitude = latitude;
+			maxLatitude = latitude;
+			latitudeInitiated = true;
+		}
+		minLatitude = std::min(minLatitude, latitude);
+		maxLatitude = std::max(maxLatitude, latitude);
+	}
+	return { minLatitude, maxLatitude };
+}
+
+std::pair<float, float> PollingProject::boothLongitudeRange() const
+{
+	if (!booths.size()) return { 0.0f, 0.0f };
+	bool longitudeInitiated = false;
+	float minLongitude;
+	float maxLongitude;
+	for (auto const& booth : booths) {
+		float longitude = booth.second.coords.longitude;
+		if (std::abs(longitude) < 0.000001f) continue; // discontinued booths won't have a location
+		if (!longitudeInitiated) {
+			minLongitude = longitude;
+			maxLongitude = longitude;
+			longitudeInitiated = true;
+		}
+		minLongitude = std::min(minLongitude, longitude);
+		maxLongitude = std::max(maxLongitude, longitude);
+	}
+	return { minLongitude, maxLongitude };
+}
+
 Party const * PollingProject::getPartyByCandidate(int candidateId) const
 {
 	auto candidateIt = candidates.find(candidateId);
@@ -1604,8 +1644,12 @@ void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & d
 void PollingProject::collectBoothsFromPreload(PreloadDataRetriever const & dataRetriever)
 {
 	for (auto boothIt = dataRetriever.beginBooths(); boothIt != dataRetriever.endBooths(); ++boothIt) {
-		if (booths.find(boothIt->first) == booths.end()) {
+		auto foundBooth = booths.find(boothIt->first);
+		if (foundBooth == booths.end()) {
 			booths.insert({ boothIt->first, boothIt->second });
+		}
+		else {
+			foundBooth->second.coords = boothIt->second.coords;
 		}
 	}
 }
