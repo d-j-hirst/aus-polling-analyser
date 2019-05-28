@@ -15,22 +15,22 @@
 
 #include "wx/dcbuffer.h"
 
-#include <memory>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 
+#include <memory>
+
 class ProjectFrame;
-class GenericChildFrame;
 
 // *** DisplayFrame ***
 // Frame that displays the results of election simulations
-class DisplayFrame : public GenericChildFrame
+class MapFrame : public GenericChildFrame
 {
 public:
 	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
 	// "project" is a pointer to the polling project object.
-	DisplayFrame(ProjectFrame* const parent, PollingProject* project);
+	MapFrame(ProjectFrame* const parent, PollingProject* project);
 
 	// paints immediately if needed.
 	void paint();
@@ -62,9 +62,6 @@ private:
 	// Handles the movement of the mouse in the display frame.
 	void OnMouseMove(wxMouseEvent& event);
 
-	// Handles the movement of the mouse in the display frame.
-	void OnMouseDown(wxMouseEvent& event);
-
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
@@ -83,13 +80,13 @@ private:
 	// updates the toolbar
 	void refreshToolbar();
 
-	wxComboBox* selectSimulationComboBox = nullptr;
+	wxComboBox* selectSeatComboBox = nullptr;
 
 	wxPanel* dcPanel = nullptr;
 
 	DisplayVariables dv;
 
-	int selectedSimulation = -1;
+	int selectedSeat = -1;
 
 	// A pointer to the parent frame.
 	ProjectFrame* const parent;

@@ -34,6 +34,7 @@ enum TabsEnum {
 	Tab_Display,
 	Tab_Results,
 	Tab_Downloads,
+	Tab_Map
 };
 
 struct NewProjectData;
@@ -52,6 +53,7 @@ class SimulationsFrame;
 class DisplayFrame;
 class ResultsFrame;
 class DownloadFrame;
+class MapFrame;
 
 // The parent frame of the polling analyser application.
 class ProjectFrame : public wxNotebook
@@ -80,6 +82,9 @@ public:
 
 	// Refreshes the Results frame.
 	void refreshResults();
+
+	// Refreshes the Map frame.
+	void refreshMap();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
@@ -150,6 +155,9 @@ private:
 
 	// points to the download frame (if it exists).
 	DownloadFrame* downloadFrame = nullptr;
+
+	// points to the map frame (if it exists).
+	MapFrame* mapFrame = nullptr;
 
 	ParentFrame* parent;
 };

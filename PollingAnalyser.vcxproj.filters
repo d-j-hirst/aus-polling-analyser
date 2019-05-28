@@ -119,6 +119,9 @@
     <ClCompile Include="Log.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="MapFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -314,6 +317,9 @@
     </ClInclude>
     <ClInclude Include="Log.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MapFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -198,6 +198,7 @@ void SimulationsFrame::addSimulation(Simulation simulation) {
 	updateInterface();
 
 	parent->refreshDisplay();
+	parent->refreshMap();
 }
 
 void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
@@ -223,6 +224,7 @@ void SimulationsFrame::replaceSimulation(Simulation simulation) {
 	updateInterface();
 
 	parent->refreshDisplay();
+	parent->refreshMap();
 }
 
 void SimulationsFrame::removeSimulation() {
@@ -234,6 +236,7 @@ void SimulationsFrame::removeSimulation() {
 	updateInterface();
 
 	parent->refreshDisplay();
+	parent->refreshMap();
 }
 
 void SimulationsFrame::removeSimulationFromSimulationData() {

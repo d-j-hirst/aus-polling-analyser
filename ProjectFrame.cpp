@@ -1,4 +1,5 @@
 #include "ProjectFrame.h"
+
 #include "PartiesFrame.h"
 #include "PollstersFrame.h"
 #include "PollsFrame.h"
@@ -12,6 +13,7 @@
 #include "DisplayFrame.h"
 #include "ResultsFrame.h"
 #include "DownloadFrame.h"
+#include "MapFrame.h"
 
 // ----------------------------------------------------------------------------
 // notebook frame
@@ -99,6 +101,7 @@ void ProjectFrame::setupPages() {
 	displayFrame = new DisplayFrame(this, project.get());
 	resultsFrame = new ResultsFrame(this, project.get());
 	downloadFrame = new DownloadFrame(this, project.get());
+	mapFrame = new MapFrame(this, project.get());
 	AddPage(partiesFrame, "Parties", true);
 	AddPage(pollstersFrame, "Pollsters", true);
 	AddPage(pollsFrame, "Polls", true);
@@ -112,6 +115,7 @@ void ProjectFrame::setupPages() {
 	AddPage(displayFrame, "Display", true);
 	AddPage(resultsFrame, "Results", true);
 	AddPage(downloadFrame, "Download", true);
+	AddPage(mapFrame, "Map", true);
 }
 
 void ProjectFrame::save()
@@ -165,28 +169,34 @@ void ProjectFrame::refreshPollData() {
 	if (pollsFrame) pollsFrame->refreshData();
 }
 
-// Refreshes the Polls frame data.
+// Refreshes the Projections frame data.
 void ProjectFrame::refreshProjectionData() {
 	if (projectionsFrame) projectionsFrame->refreshData();
 }
 
-// Refreshes the Polls frame data.
+// Refreshes the Seats frame data.
 void ProjectFrame::refreshSeatData() {
 	if (seatsFrame) seatsFrame->refreshData();
 }
 
-// Refreshes the Polls frame data.
+// Refreshes the Visualiser frame data.
 void ProjectFrame::refreshVisualiser() {
 	if (visualiserFrame) visualiserFrame->refreshData();
 }
 
-// Refreshes the Polls frame data.
+// Refreshes the Display frame data.
 void ProjectFrame::refreshDisplay() {
 	if (displayFrame) displayFrame->refreshData();
 }
 
+// Refreshes the Results frame data.
 void ProjectFrame::refreshResults() {
 	if (resultsFrame) resultsFrame->refreshData();
+}
+
+// Refreshes the Map frame data.
+void ProjectFrame::refreshMap() {
+	if (mapFrame) mapFrame->refreshData();
 }
 
 bool ProjectFrame::checkSave() {

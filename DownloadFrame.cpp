@@ -115,6 +115,7 @@ void DownloadFrame::OnGetCustomBoothData(wxCommandEvent& WXUNUSED(event))
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
 	parent->refreshResults();
+	parent->refreshMap();
 }
 
 void DownloadFrame::OnGetLatestBoothData(wxCommandEvent& WXUNUSED(event))
@@ -141,6 +142,7 @@ void DownloadFrame::OnGetLatestBoothData(wxCommandEvent& WXUNUSED(event))
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
 	parent->refreshResults();
+	parent->refreshMap();
 }
 
 void DownloadFrame::refreshToolbar()
