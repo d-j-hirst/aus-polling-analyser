@@ -44,6 +44,7 @@ MapFrame::MapFrame(ProjectFrame* const parent, PollingProject* project)
 	Bind(wxEVT_COMBOBOX, &MapFrame::OnSimulationSelection, this, PA_MapFrame_SelectSeatID);
 	dcPanel->Bind(wxEVT_MOTION, &MapFrame::OnMouseMove, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_PAINT, &MapFrame::OnPaint, this, PA_MapFrame_DcPanelID);
+	dcPanel->Bind(wxEVT_MOUSEWHEEL, &MapFrame::OnMouseWheel, this, PA_MapFrame_DcPanelID);
 }
 
 void MapFrame::paint() {
@@ -76,6 +77,26 @@ void MapFrame::OnMouseMove(wxMouseEvent& WXUNUSED(event)) {
 	paint();
 }
 
+void MapFrame::OnMouseWheel(wxMouseEvent& event)
+{
+	Point2Df mapSize = dv.maxCoords - dv.minCoords;
+	Point2Di scrollPos = Point2Di(event.GetX(), event.GetY());
+	Point2Df scrollCoords = Point2Df(scrollPos).scale(dv.dcTopLeft, dv.dcBottomRight).componentMultiplication(mapSize);
+	Point2Df newMapSize = mapSize * 0.5f;
+	Point2Df newTopLeft = scrollCoords - newMapSize * 0.5f;
+	auto currentLatitudeRange = project->boothLatitudeRange();
+	auto currentLongitudeRange = project->boothLongitudeRange();
+	Point2Df minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
+	Point2Df maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
+	Point2Df maxSize = maxCoords - minCoords;
+	mapSize = mapSize.min(maxSize);
+	newTopLeft = newTopLeft.min(minCoords);
+	newTopLeft = newTopLeft.max(maxCoords - mapSize);
+	dv.minCoords = newTopLeft;
+	dv.maxCoords = newTopLeft + newMapSize;
+	paint();
+}
+
 void MapFrame::OnPaint(wxPaintEvent& WXUNUSED(event))
 {
 	wxBufferedPaintDC dc(dcPanel);
@@ -105,31 +126,33 @@ void MapFrame::render(wxDC& dc) {
 	dc.SetFont(font13);
 
 	// Background
-	float BackgroundHeight = dv.DCheight - dv.displayTop;
-	wxRect backgroundRect = wxRect(0, dv.displayTop, dv.DCwidth, BackgroundHeight);
+	wxRect backgroundRect = wxRect(dv.dcTopLeft.x, dv.dcTopLeft.y, dv.dcSize().x, dv.dcSize().y);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRectangle(backgroundRect);
 	const wxColour backgroundGrey = wxColour(210, 210, 210); // light grey
 	setBrushAndPen(backgroundGrey, dc);
 	dc.DrawRectangle(backgroundRect);
 
-	auto longitudeRange = project->boothLongitudeRange();
-	auto latitudeRange = project->boothLatitudeRange();
+	if (dv.minCoords.isZero()) {
+		auto currentLatitudeRange = project->boothLatitudeRange();
+		auto currentLongitudeRange = project->boothLongitudeRange();
+		dv.minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
+		dv.maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
+	}
 	int numBooths = 0;
 	dc.SetPen(wxPen(wxColour(0, 0, 0), 1));
 	for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
 		if (!seat->latestResults) continue;
 		for (int boothId : seat->latestResults->booths) {
 			auto const& booth = project->getBooth(boothId);
-			float longitude = booth.coords.longitude;
-			float latitude = booth.coords.latitude;
-			float mapX = (longitude - longitudeRange.first) / (longitudeRange.second - longitudeRange.first) * dv.DCwidth;
-			float mapY = dv.DCheight - (latitude - latitudeRange.first) / (latitudeRange.second - latitudeRange.first) * dv.DCheight;
+			Point2Df coords = { booth.coords.longitude , booth.coords.latitude };
+			Point2Df mapCoords = coords.scale(dv.minCoords, dv.maxCoords).componentMultiplication(dv.dcSize());
+			mapCoords.y = dv.dcSize().y - mapCoords.y; // transformation to fix wxWidgets's definition of screen coordinates
 			int winnerId = (booth.tcpVote[0] > booth.tcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
 			Party const* winnerParty = project->getPartyByCandidate(winnerId);
 			wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
 			dc.SetBrush(winnerColour);
-			dc.DrawCircle(wxPoint(int(mapX), int(mapY)), 5);
+			dc.DrawCircle(wxPoint(int(mapCoords.x), int(mapCoords.y)), 5);
 			++numBooths;
 		}
 	}
@@ -142,12 +165,8 @@ void MapFrame::clearDC(wxDC& dc) {
 }
 
 void MapFrame::defineGraphLimits() {
-	dv.DCwidth = dcPanel->GetClientSize().GetWidth();
-	dv.DCheight = dcPanel->GetClientSize().GetHeight();
-
-	dv.displayBottom = dv.DCheight;
-	//dv.displayTop = toolBar->GetSize().GetHeight();
-	dv.displayTop = 0;
+	dv.dcTopLeft = { 0.0f, 0.0f };
+	dv.dcBottomRight = {float(dcPanel->GetClientSize().GetWidth()), float(dcPanel->GetClientSize().GetHeight())};
 }
 
 void MapFrame::refreshToolbar() {

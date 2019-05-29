@@ -735,12 +735,12 @@ Results::Booth const& PollingProject::getBooth(int boothId) const
 	return booths.at(boothId);
 }
 
-std::pair<float, float> PollingProject::boothLatitudeRange() const
+Point2Df PollingProject::boothLatitudeRange() const
 {
 	if (!booths.size()) return { 0.0f, 0.0f };
 	bool latitudeInitiated = false;
-	float minLatitude;
-	float maxLatitude;
+	float minLatitude = 0.0f;
+	float maxLatitude = 0.0f;
 	for (auto const& booth : booths) {
 		float latitude = booth.second.coords.latitude;
 		if (std::abs(latitude) < 0.000001f) continue; // discontinued booths won't have a location
@@ -752,15 +752,16 @@ std::pair<float, float> PollingProject::boothLatitudeRange() const
 		minLatitude = std::min(minLatitude, latitude);
 		maxLatitude = std::max(maxLatitude, latitude);
 	}
+	if (!latitudeInitiated) return { 0.0f, 0.0f };
 	return { minLatitude, maxLatitude };
 }
 
-std::pair<float, float> PollingProject::boothLongitudeRange() const
+Point2Df PollingProject::boothLongitudeRange() const
 {
 	if (!booths.size()) return { 0.0f, 0.0f };
 	bool longitudeInitiated = false;
-	float minLongitude;
-	float maxLongitude;
+	float minLongitude = 0.0f;
+	float maxLongitude = 0.0f;
 	for (auto const& booth : booths) {
 		float longitude = booth.second.coords.longitude;
 		if (std::abs(longitude) < 0.000001f) continue; // discontinued booths won't have a location
@@ -772,6 +773,7 @@ std::pair<float, float> PollingProject::boothLongitudeRange() const
 		minLongitude = std::min(minLongitude, longitude);
 		maxLongitude = std::max(maxLongitude, longitude);
 	}
+	if (!longitudeInitiated) return { 0.0f, 0.0f };
 	return { minLongitude, maxLongitude };
 }
 

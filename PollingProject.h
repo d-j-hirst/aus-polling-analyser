@@ -7,7 +7,10 @@
 #include <unordered_map>
 
 #include "ElectionData.h"
+#include "FileOpeningState.h"
 #include "NewProjectData.h"
+#include "Points.h"
+
 #include "Party.h"
 #include "Pollster.h"
 #include "Poll.h"
@@ -18,7 +21,6 @@
 #include "Seat.h"
 #include "Simulation.h"
 #include "Result.h"
-#include "FileOpeningState.h"
 
 const int PA_MaxPollsters = 100;
 
@@ -364,9 +366,9 @@ public:
 	// Gets the booth matching this official ID.
 	Results::Booth const& getBooth(int boothId) const;
 
-	std::pair<float, float> boothLatitudeRange() const;
+	Point2Df boothLatitudeRange() const;
 
-	std::pair<float, float> boothLongitudeRange() const;
+	Point2Df boothLongitudeRange() const;
 
 	// Returns the party that this candidate ID refers to.
 	// Returns nullptr if candidate did not match any known party

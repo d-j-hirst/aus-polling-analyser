@@ -273,6 +273,7 @@
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MapFrame.cpp" />
+    <ClCompile Include="Points.cpp" />
     <ClCompile Include="PreloadDataRetriever.cpp" />
     <ClCompile Include="PreviousElectionDataRetriever.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
@@ -322,6 +323,7 @@
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="MapFrame.h" />
+    <ClInclude Include="Points.h" />
     <ClInclude Include="PreloadDataRetriever.h" />
     <ClInclude Include="PreviousElectionDataRetriever.h" />
     <ClInclude Include="CountProgress.h" />

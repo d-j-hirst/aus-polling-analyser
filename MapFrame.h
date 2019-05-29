@@ -17,6 +17,7 @@
 
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
+#include "Points.h"
 #include "ProjectFrame.h"
 
 #include <memory>
@@ -44,10 +45,11 @@ public:
 private:
 
 	struct DisplayVariables {
-		float DCwidth;
-		float DCheight;
-		float displayTop;
-		float displayBottom;
+		Point2Df dcTopLeft;
+		Point2Df dcBottomRight;
+		Point2Df dcSize() { return dcBottomRight - dcTopLeft; };
+		Point2Df minCoords;
+		Point2Df maxCoords;
 	};
 
 	// Adjusts controls so that they fill the frame space when it is resized.
@@ -61,6 +63,9 @@ private:
 
 	// Handles the movement of the mouse in the display frame.
 	void OnMouseMove(wxMouseEvent& event);
+
+	// Handles the scrolling of the mouse wheel.
+	void OnMouseWheel(wxMouseEvent& event);
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
@@ -79,6 +84,9 @@ private:
 
 	// updates the toolbar
 	void refreshToolbar();
+
+	// For handling horizontal scrolling of the visualiser
+	int dragStart = -1;
 
 	wxComboBox* selectSeatComboBox = nullptr;
 

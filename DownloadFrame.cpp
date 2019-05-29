@@ -64,6 +64,7 @@ void DownloadFrame::OnGetHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 	}
 
 	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
+	if (userUrl.empty()) return;
 
 	// Comment this out if we don't want to waste everyone's data
 	// downloading and re-downloading the same data
@@ -87,6 +88,7 @@ void DownloadFrame::OnGetPreloadData(wxCommandEvent& WXUNUSED(event))
 	}
 
 	std::string userUrl = wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl);
+	if (userUrl.empty()) return;
 
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
