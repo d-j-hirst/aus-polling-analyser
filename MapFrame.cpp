@@ -116,14 +116,19 @@ void MapFrame::render(wxDC& dc) {
 	auto longitudeRange = project->boothLongitudeRange();
 	auto latitudeRange = project->boothLatitudeRange();
 	int numBooths = 0;
-	setBrushAndPen(wxColour(0, 0, 0), dc);
+	dc.SetPen(wxPen(wxColour(0, 0, 0), 1));
 	for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
 		if (!seat->latestResults) continue;
 		for (int boothId : seat->latestResults->booths) {
-			float longitude = project->getBooth(boothId).coords.longitude;
-			float latitude = project->getBooth(boothId).coords.latitude;
+			auto const& booth = project->getBooth(boothId);
+			float longitude = booth.coords.longitude;
+			float latitude = booth.coords.latitude;
 			float mapX = (longitude - longitudeRange.first) / (longitudeRange.second - longitudeRange.first) * dv.DCwidth;
 			float mapY = dv.DCheight - (latitude - latitudeRange.first) / (latitudeRange.second - latitudeRange.first) * dv.DCheight;
+			int winnerId = (booth.tcpVote[0] > booth.tcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+			Party const* winnerParty = project->getPartyByCandidate(winnerId);
+			wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
+			dc.SetBrush(winnerColour);
 			dc.DrawCircle(wxPoint(int(mapX), int(mapY)), 5);
 			++numBooths;
 		}
