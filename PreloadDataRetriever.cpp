@@ -50,7 +50,9 @@ inline void seekToPollingPlace(std::string const& xmlString, SearchIterator& sea
 }
 
 inline float extractPollingPlaceLatitude(std::string const& xmlString, SearchIterator& searchIt) {
-	return extractFloat(xmlString, "<xal:AddressLatitude>([^<]*)<", searchIt);
+	// negative sign because southerly longitude being a higher values
+	// fits with the wxWidgets display coordinate system
+	return -extractFloat(xmlString, "<xal:AddressLatitude>([^<]*)<", searchIt);
 }
 
 inline float extractPollingPlaceLongitude(std::string const& xmlString, SearchIterator& searchIt) {

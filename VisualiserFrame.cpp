@@ -120,7 +120,7 @@ void VisualiserFrame::OnMouseDown(wxMouseEvent& event) {
 void VisualiserFrame::OnMouseWheel(wxMouseEvent& event) {
 	if (dragStart != -1) return; // don't zoom while dragging
 	float currentViewLength = float(project->getVisEndDay() - project->getVisStartDay());
-	float zoomFactor = pow(2.0f, -float(event.GetWheelRotation()) / 120.0f);
+	float zoomFactor = pow(2.0f, -float(event.GetWheelRotation()) / float(event.GetWheelDelta()));
 	float effectiveX = std::max(std::min(float(event.GetX()), gv.graphMargin + gv.graphWidth), gv.graphMargin);
 	float normX = ((effectiveX - gv.graphMargin) / gv.graphWidth);
 	int focusDate = std::max(std::min(int(getDateFromX(int(effectiveX)).GetMJD()), project->getVisEndDay()), project->getVisStartDay());

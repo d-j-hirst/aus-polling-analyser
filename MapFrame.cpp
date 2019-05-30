@@ -79,19 +79,21 @@ void MapFrame::OnMouseMove(wxMouseEvent& WXUNUSED(event)) {
 
 void MapFrame::OnMouseWheel(wxMouseEvent& event)
 {
+	float zoomFactor = pow(2.0f, -float(event.GetWheelRotation()) / float(event.GetWheelDelta()));
 	Point2Df mapSize = dv.maxCoords - dv.minCoords;
 	Point2Di scrollPos = Point2Di(event.GetX(), event.GetY());
-	Point2Df scrollCoords = Point2Df(scrollPos).scale(dv.dcTopLeft, dv.dcBottomRight).componentMultiplication(mapSize);
-	Point2Df newMapSize = mapSize * 0.5f;
+	Point2Df scaledScrollPos = Point2Df(scrollPos).scale(dv.dcTopLeft, dv.dcBottomRight);
+	Point2Df scrollCoords = scaledScrollPos.componentMultiplication(mapSize) + dv.minCoords;
+	Point2Df newMapSize = mapSize * zoomFactor;
 	Point2Df newTopLeft = scrollCoords - newMapSize * 0.5f;
 	auto currentLatitudeRange = project->boothLatitudeRange();
 	auto currentLongitudeRange = project->boothLongitudeRange();
 	Point2Df minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
 	Point2Df maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
 	Point2Df maxSize = maxCoords - minCoords;
-	mapSize = mapSize.min(maxSize);
-	newTopLeft = newTopLeft.min(minCoords);
-	newTopLeft = newTopLeft.max(maxCoords - mapSize);
+	newMapSize = newMapSize.min(maxSize);
+	newTopLeft = newTopLeft.max(minCoords);
+	newTopLeft = newTopLeft.min(maxCoords - newMapSize);
 	dv.minCoords = newTopLeft;
 	dv.maxCoords = newTopLeft + newMapSize;
 	paint();
@@ -147,7 +149,6 @@ void MapFrame::render(wxDC& dc) {
 			auto const& booth = project->getBooth(boothId);
 			Point2Df coords = { booth.coords.longitude , booth.coords.latitude };
 			Point2Df mapCoords = coords.scale(dv.minCoords, dv.maxCoords).componentMultiplication(dv.dcSize());
-			mapCoords.y = dv.dcSize().y - mapCoords.y; // transformation to fix wxWidgets's definition of screen coordinates
 			int winnerId = (booth.tcpVote[0] > booth.tcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
 			Party const* winnerParty = project->getPartyByCandidate(winnerId);
 			wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
