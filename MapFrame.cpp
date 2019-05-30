@@ -137,6 +137,13 @@ void MapFrame::setBrushAndPen(wxColour currentColour, wxDC& dc) {
 	dc.SetPen(wxPen(currentColour));
 }
 
+wxColour mixColour(wxColour const& colour1, wxColour const& colour2, float colour1Percent) {
+	unsigned char red = unsigned char(std::clamp(float(colour1.Red()) * colour1Percent + float(colour2.Red()) * (1.0f - colour1Percent), 0.0f, 255.0f));
+	unsigned char green = unsigned char(std::clamp(float(colour1.Green()) * colour1Percent + float(colour2.Green()) * (1.0f - colour1Percent), 0.0f, 255.0f));
+	unsigned char blue = unsigned char(std::clamp(float(colour1.Blue()) * colour1Percent + float(colour2.Blue()) * (1.0f - colour1Percent), 0.0f, 255.0f));
+	return wxColour(red, green, blue);
+}
+
 void MapFrame::render(wxDC& dc) {
 
 	using std::to_string;
@@ -172,11 +179,16 @@ void MapFrame::render(wxDC& dc) {
 			auto const& booth = project->getBooth(boothId);
 			Point2Df coords = { booth.coords.longitude , booth.coords.latitude };
 			Point2Df mapCoords = coords.scale(dv.minCoords, dv.maxCoords).componentMultiplication(dv.dcSize());
-			int winnerId = (booth.tcpVote[0] > booth.tcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+			if (!booth.totalNewTcpVotes()) continue;
+			int winnerId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
 			Party const* winnerParty = project->getPartyByCandidate(winnerId);
 			wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
-			dc.SetBrush(winnerColour);
-			dc.DrawCircle(wxPoint(int(mapCoords.x), int(mapCoords.y)), 5);
+			float tcpMargin = float(std::max(booth.newTcpVote[0], booth.newTcpVote[1])) / float(booth.totalNewTcpVotes()) - 0.5f;
+			float colourFactor = std::clamp(tcpMargin * 4.0f, 0.0f, 1.0f);
+			wxColour finalColour = mixColour(winnerColour, wxColour(255, 255, 255), colourFactor);
+			int circleSize = std::clamp(int(std::log(booth.totalNewTcpVotes()) - 2.5f), 2, 6);
+ 			dc.SetBrush(finalColour);
+			dc.DrawCircle(wxPoint(int(mapCoords.x), int(mapCoords.y)), circleSize);
 			++numBooths;
 		}
 	}
