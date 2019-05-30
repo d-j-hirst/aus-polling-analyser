@@ -86,7 +86,7 @@ private:
 	void refreshToolbar();
 
 	// For handling horizontal scrolling of the visualiser
-	int dragStart = -1;
+	Point2Di dragStart = { -1, -1 };
 
 	wxComboBox* selectSeatComboBox = nullptr;
 

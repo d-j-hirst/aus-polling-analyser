@@ -454,6 +454,10 @@ inline constexpr void operator-=(Point2Df& lhs, const Point2Df& rhs) {
 	lhs.y -= rhs.y;
 }
 
+inline constexpr Point2Df operator-(const Point2Df& operand) {
+	return Point2Df(-operand.x, -operand.y);
+}
+
 inline constexpr Point2Df operator-(Point2Df lhs, const Point2Df& rhs) {
 	lhs -= rhs;
 	return lhs;

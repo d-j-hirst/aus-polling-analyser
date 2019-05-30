@@ -62,9 +62,6 @@ void MapFrame::refreshData() {
 }
 
 void MapFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
-	// Set the poll data table to the entire client size.
-	//pollData->SetSize(wxSize(this->GetClientSize().x,
-	//	this->GetClientSize().y));
 }
 
 void MapFrame::OnSimulationSelection(wxCommandEvent& WXUNUSED(event)) {
@@ -73,7 +70,33 @@ void MapFrame::OnSimulationSelection(wxCommandEvent& WXUNUSED(event)) {
 }
 
 // Handles the movement of the mouse in the display frame.
-void MapFrame::OnMouseMove(wxMouseEvent& WXUNUSED(event)) {
+void MapFrame::OnMouseMove(wxMouseEvent& event) {
+	if (event.Dragging()) {
+		if (dragStart.x == -1) {
+			dragStart = Point2Di(event.GetX(), event.GetY());
+		}
+		else {
+			Point2Di mousePos = Point2Di(event.GetX(), event.GetY());
+			Point2Di pixelsMoved = Point2Di(event.GetX(), event.GetY()) - dragStart;
+			Point2Df mapSize = dv.maxCoords - dv.minCoords;
+			Point2Df scaledPixelsMoved = Point2Df(pixelsMoved).scale(dv.dcTopLeft, dv.dcBottomRight);
+			Point2Df degreesMoved = -scaledPixelsMoved.componentMultiplication(mapSize);
+			Point2Df newTopLeft = dv.minCoords + degreesMoved;
+			auto currentLatitudeRange = project->boothLatitudeRange();
+			auto currentLongitudeRange = project->boothLongitudeRange();
+			Point2Df minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
+			Point2Df maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
+			newTopLeft = newTopLeft.max(minCoords);
+			newTopLeft = newTopLeft.min(maxCoords - mapSize);
+			dv.minCoords = newTopLeft;
+			dv.maxCoords = newTopLeft + mapSize;
+			dragStart = mousePos;
+		}
+	}
+	else {
+		dragStart = Point2Di(-1, -1);
+	}
+	//mouseOverPoll = getPollFromMouse(event.GetPosition());
 	paint();
 }
 
