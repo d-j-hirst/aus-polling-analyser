@@ -52,6 +52,8 @@ private:
 		Point2Df maxCoords;
 	};
 
+	void drawBoothsForSeat(Seat const& seat, wxDC& dc);
+
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
 
