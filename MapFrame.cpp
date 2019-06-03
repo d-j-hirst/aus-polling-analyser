@@ -68,23 +68,33 @@ wxColour mixColour(wxColour const& colour1, wxColour const& colour2, float colou
 	return wxColour(red, green, blue);
 }
 
+Point2Di MapFrame::calculateScreenPosFromCoords(Point2Df coords)
+{
+	Point2Df mapCoords = coords.scale(dv.minCoords, dv.maxCoords).componentMultiplication(dv.dcSize());
+	return Point2Di(int(std::floor(mapCoords.x)), int(std::floor(mapCoords.y)));
+}
+
+int MapFrame::calculateCircleSizeFromBooth(Results::Booth const & booth)
+{
+	return std::clamp(int(std::log(booth.totalNewTcpVotes()) - 2.5f), 2, 6);
+}
+
 void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 {
 	if (!seat.latestResults) return;
 	for (int boothId : seat.latestResults->booths) {
 		auto const& booth = project->getBooth(boothId);
-		Point2Df coords = { booth.coords.longitude , booth.coords.latitude };
-		Point2Df mapCoords = coords.scale(dv.minCoords, dv.maxCoords).componentMultiplication(dv.dcSize());
 		if (!booth.totalNewTcpVotes()) continue;
+		Point2Di mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 		int winnerId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
 		Party const* winnerParty = project->getPartyByCandidate(winnerId);
 		wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
 		float tcpMargin = float(std::max(booth.newTcpVote[0], booth.newTcpVote[1])) / float(booth.totalNewTcpVotes()) - 0.5f;
 		float colourFactor = std::clamp(tcpMargin * 4.0f, 0.0f, 1.0f);
 		wxColour finalColour = mixColour(winnerColour, wxColour(255, 255, 255), colourFactor);
-		int circleSize = std::clamp(int(std::log(booth.totalNewTcpVotes()) - 2.5f), 2, 6);
+		int circleSize = calculateCircleSizeFromBooth(booth);
 		dc.SetBrush(finalColour);
-		dc.DrawCircle(wxPoint(int(mapCoords.x), int(mapCoords.y)), circleSize);
+		dc.DrawCircle(wxPoint(mapCoords.x, mapCoords.y), circleSize);
 	}
 }
 

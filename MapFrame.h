@@ -52,6 +52,10 @@ private:
 		Point2Df maxCoords;
 	};
 
+	Point2Di calculateScreenPosFromCoords(Point2Df coords);
+
+	int calculateCircleSizeFromBooth(Results::Booth const& booth);
+
 	void drawBoothsForSeat(Seat const& seat, wxDC& dc);
 
 	// Adjusts controls so that they fill the frame space when it is resized.
