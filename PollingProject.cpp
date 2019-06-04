@@ -1652,6 +1652,7 @@ void PollingProject::collectBoothsFromPreload(PreloadDataRetriever const & dataR
 		}
 		else {
 			foundBooth->second.coords = boothIt->second.coords;
+			foundBooth->second.name = boothIt->second.name;
 		}
 	}
 }
