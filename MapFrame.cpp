@@ -265,10 +265,11 @@ void MapFrame::refreshToolbar() {
 void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 {
 	Point2Df mousePosF = Point2Df(mousePos);
-	int seatIndex = 1;
+	int seatIndex = 0;
 	float smallestDistance = std::numeric_limits<float>::max();
 	int bestBooth = -1;
 	for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
+		++seatIndex; // need this to be increased even if the seat isn't checked so that it'll be correct when we get to the selected seat
 		if (selectedSeat > 0 && selectedSeat != seatIndex) continue;
 		if (!seat->latestResults) return;
 		for (int boothId : seat->latestResults->booths) {
@@ -283,7 +284,6 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 				bestBooth = boothId;
 			}
 		}
-		++seatIndex;
 	}
 	mouseoverBooth = bestBooth;
 }
