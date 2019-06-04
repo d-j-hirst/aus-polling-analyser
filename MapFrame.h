@@ -91,8 +91,17 @@ private:
 	// updates the toolbar
 	void refreshToolbar();
 
+	// updates the pointed-to booth based on the given mouse position (relative to top-left of the display region)
+	void updateMouseoverBooth(Point2Di mousePos);
+
+	// Draws a tooltip for the pointed-to booth on the map with details of the poll results.
+	void drawBoothDetails(wxDC& dc);
+
 	// For handling horizontal scrolling of the visualiser
 	Point2Di dragStart = { -1, -1 };
+
+	// last pointed-to booth
+	int mouseoverBooth = -1;
 
 	wxComboBox* selectSeatComboBox = nullptr;
 

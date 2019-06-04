@@ -575,7 +575,7 @@ void VisualiserFrame::drawMouseOverPollRect(wxDC& dc) {
 void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
 	if (!mouseOverPoll) return;
 	wxPoint currentPoint = mouseOverPollRect.GetTopLeft() += wxPoint(3, 3);
-	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black border
+	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text
 	dc.DrawText(mouseOverPoll->pollster->name, currentPoint);
 	currentPoint += wxPoint(0, 20);
 	dc.DrawText(mouseOverPoll->date.FormatISODate(), currentPoint);

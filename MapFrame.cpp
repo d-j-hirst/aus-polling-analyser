@@ -108,13 +108,13 @@ void MapFrame::OnSimulationSelection(wxCommandEvent& WXUNUSED(event)) {
 
 // Handles the movement of the mouse in the display frame.
 void MapFrame::OnMouseMove(wxMouseEvent& event) {
+	Point2Di mousePos = Point2Di(event.GetX(), event.GetY());
 	if (event.Dragging()) {
 		if (dragStart.x == -1) {
-			dragStart = Point2Di(event.GetX(), event.GetY());
+			dragStart = mousePos;
 		}
 		else {
-			Point2Di mousePos = Point2Di(event.GetX(), event.GetY());
-			Point2Di pixelsMoved = Point2Di(event.GetX(), event.GetY()) - dragStart;
+			Point2Di pixelsMoved = mousePos - dragStart;
 			Point2Df mapSize = dv.maxCoords - dv.minCoords;
 			Point2Df scaledPixelsMoved = Point2Df(pixelsMoved).scale(dv.dcTopLeft, dv.dcBottomRight);
 			Point2Df degreesMoved = -scaledPixelsMoved.componentMultiplication(mapSize);
@@ -133,16 +133,16 @@ void MapFrame::OnMouseMove(wxMouseEvent& event) {
 	else {
 		dragStart = Point2Di(-1, -1);
 	}
-	//mouseOverPoll = getPollFromMouse(event.GetPosition());
+	updateMouseoverBooth(mousePos);
 	paint();
 }
 
 void MapFrame::OnMouseWheel(wxMouseEvent& event)
 {
+	Point2Di mousePos = Point2Di(event.GetX(), event.GetY());
 	float zoomFactor = pow(2.0f, -float(event.GetWheelRotation()) / float(event.GetWheelDelta()));
 	Point2Df mapSize = dv.maxCoords - dv.minCoords;
-	Point2Di scrollPos = Point2Di(event.GetX(), event.GetY());
-	Point2Df scaledScrollPos = Point2Df(scrollPos).scale(dv.dcTopLeft, dv.dcBottomRight);
+	Point2Df scaledScrollPos = Point2Df(mousePos).scale(dv.dcTopLeft, dv.dcBottomRight);
 	Point2Df scrollCoords = scaledScrollPos.componentMultiplication(mapSize) + dv.minCoords;
 	Point2Df newMapSize = mapSize * zoomFactor;
 	Point2Df newTopLeft = scrollCoords - newMapSize * 0.5f;
@@ -156,6 +156,7 @@ void MapFrame::OnMouseWheel(wxMouseEvent& event)
 	newTopLeft = newTopLeft.min(maxCoords - newMapSize);
 	dv.minCoords = newTopLeft;
 	dv.maxCoords = newTopLeft + newMapSize;
+	updateMouseoverBooth(mousePos);
 	paint();
 }
 
@@ -212,6 +213,7 @@ void MapFrame::render(wxDC& dc) {
 		drawBoothsForSeat(project->getSeat(selectedSeat - 1), dc);
 	}
 
+	drawBoothDetails(dc);
 }
 
 void MapFrame::clearDC(wxDC& dc) {
@@ -258,4 +260,40 @@ void MapFrame::refreshToolbar() {
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
+
+void MapFrame::updateMouseoverBooth(Point2Di mousePos)
+{
+	Point2Df mousePosF = Point2Df(mousePos);
+	int seatIndex = 1;
+	float smallestDistance = std::numeric_limits<float>::max();
+	int bestBooth = -1;
+	for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
+		if (selectedSeat > 0 && selectedSeat != seatIndex) continue;
+		if (!seat->latestResults) return;
+		for (int boothId : seat->latestResults->booths) {
+			auto const& booth = project->getBooth(boothId);
+			if (!booth.totalNewTcpVotes()) continue;
+			Point2Di mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+			Point2Df mapCoordsF = Point2Df(mapCoords);
+			float thisDistance = mousePosF.distance(mapCoordsF);
+			int circleSize = calculateCircleSizeFromBooth(booth);
+			if (thisDistance < smallestDistance && thisDistance <= circleSize + 1) {
+				smallestDistance = thisDistance;
+				bestBooth = boothId;
+			}
+		}
+		++seatIndex;
+	}
+	mouseoverBooth = bestBooth;
+}
+
+void MapFrame::drawBoothDetails(wxDC& dc)
+{
+	if (mouseoverBooth == -1) return;
+	auto const& booth = project->getBooth(mouseoverBooth);
+	Point2Di screenPos = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+	Point2Di textPoint = screenPos + Point2Di(3, 3);
+	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text
+	dc.DrawText(booth.name, wxPoint(textPoint.x, textPoint.y));
 }
