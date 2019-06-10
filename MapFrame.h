@@ -94,6 +94,9 @@ private:
 	// updates the pointed-to booth based on the given mouse position (relative to top-left of the display region)
 	void updateMouseoverBooth(Point2Di mousePos);
 
+	// Returns text for the booth results tooltip
+	std::string decideTooltipText(Results::Booth const& booth);
+
 	// calculate the size for the booth tooltip
 	// dc parameter is used to determine size of texts
 	Point2Di calculateTooltipSize(wxDC const& dc, Results::Booth const& booth);

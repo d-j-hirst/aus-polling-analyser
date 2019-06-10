@@ -1,5 +1,8 @@
 #include "MapFrame.h"
 #include "General.h"
+
+#include <wx/tokenzr.h> 
+
 #include <algorithm>
 
 // IDs for the controls and the menu commands
@@ -11,6 +14,8 @@ enum {
 };
 
 const wxFont TooltipFont = wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
+
+constexpr int TooltipSpacing = 3;
 
 // ----------------------------------------------------------------------------
 // constants
@@ -284,11 +289,35 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 	mouseoverBooth = bestBooth;
 }
 
+std::string MapFrame::decideTooltipText(Results::Booth const & booth)
+{
+	std::string returnString = booth.name;
+	returnString += "\n";
+	bool firstCandidateLeading = booth.newTcpVote[0] > booth.newTcpVote[1];
+	int leadingCandidate = (firstCandidateLeading ? 0 : 1);
+	int trailingCandidate = (firstCandidateLeading ? 1 : 0);
+	returnString += project->getPartyByCandidate(booth.tcpCandidateId[leadingCandidate])->name;
+	returnString += ": ";
+	returnString += std::to_string(booth.newTcpVote[leadingCandidate]);
+	returnString += "\n";
+	returnString += project->getPartyByCandidate(booth.tcpCandidateId[trailingCandidate])->name;
+	returnString += ": ";
+	returnString += std::to_string(booth.newTcpVote[trailingCandidate]);
+	return returnString;
+}
+
 Point2Di MapFrame::calculateTooltipSize(wxDC const& dc, Results::Booth const& booth)
 {
-	wxSize textExtent = dc.GetTextExtent(booth.name);
-	Point2Di size = Point2Di(textExtent.x + 6, textExtent.y + 6);
-	// placeholder value
+	std::string tooltipText = decideTooltipText(booth);
+	wxArrayString lines = wxStringTokenize(tooltipText, "\n");
+	wxSize maxTextExtent = wxSize(0, 0);
+	for (auto const& line : lines) {
+		wxSize textExtent = dc.GetTextExtent(line);
+		maxTextExtent.x = std::max(maxTextExtent.x, textExtent.x);
+	}
+	maxTextExtent.x += TooltipSpacing * 2;
+	maxTextExtent.y = (dc.GetTextExtent(lines[0]).y + TooltipSpacing) * lines.size() + TooltipSpacing;
+	Point2Di size = Point2Di(maxTextExtent.x, maxTextExtent.y);
 	return size;
 }
 
@@ -319,6 +348,6 @@ void MapFrame::drawBoothDetails(wxDC& dc)
 	Point2Di textPoint = tooltipPos + Point2Di(3, 3);
 	dc.SetBrush(wxBrush(wxColour(255, 255, 255))); // white background
 	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text & border
-	dc.DrawRectangle(wxRect(tooltipPos.x, tooltipPos.y, tooltipSize.x, tooltipSize.y));
-	dc.DrawText(booth.name, wxPoint(textPoint.x, textPoint.y));
+	dc.DrawRoundedRectangle(wxRect(tooltipPos.x, tooltipPos.y, tooltipSize.x, tooltipSize.y), 3);
+	dc.DrawText(decideTooltipText(booth), wxPoint(textPoint.x, textPoint.y));
 }
