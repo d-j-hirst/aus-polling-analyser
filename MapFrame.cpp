@@ -10,6 +10,7 @@ enum {
 	PA_MapFrame_SelectSeatID
 };
 
+const wxFont TooltipFont = wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
 
 // ----------------------------------------------------------------------------
 // constants
@@ -182,11 +183,6 @@ void MapFrame::render(wxDC& dc) {
 	clearDC(dc);
 
 	defineGraphLimits();
-	wxFont font8 = wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
-	wxFont font13 = wxFont(13, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
-	wxFont font15 = wxFont(15, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
-	wxFont font18 = wxFont(18, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
-	dc.SetFont(font13);
 
 	// Background
 	wxRect backgroundRect = wxRect(dv.dcTopLeft.x, dv.dcTopLeft.y, dv.dcSize().x, dv.dcSize().y);
@@ -288,12 +284,41 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 	mouseoverBooth = bestBooth;
 }
 
+Point2Di MapFrame::calculateTooltipSize(wxDC const& dc, Results::Booth const& booth)
+{
+	wxSize textExtent = dc.GetTextExtent(booth.name);
+	Point2Di size = Point2Di(textExtent.x + 6, textExtent.y + 6);
+	// placeholder value
+	return size;
+}
+
+Point2Di MapFrame::calculateTooltipPosition(Point2Di cursorPosition, Point2Di tooltipSize)
+{
+	Point2Di potentialTopLeft = cursorPosition + Point2Di(10, 0);
+	Point2Di potentialBottomRight = potentialTopLeft + tooltipSize;
+	if (potentialBottomRight.y >= dv.dcBottomRight.y) {
+		int upwardShift = potentialBottomRight.y - dv.dcBottomRight.y + 1;
+		potentialTopLeft.y -= upwardShift;
+		potentialBottomRight = potentialTopLeft + tooltipSize;
+	}
+	if (potentialBottomRight.x > dv.dcBottomRight.x) {
+		potentialTopLeft.x = std::max(0, cursorPosition.x - tooltipSize.x);
+		potentialBottomRight = potentialTopLeft + tooltipSize;
+	}
+	return potentialTopLeft;
+}
+
 void MapFrame::drawBoothDetails(wxDC& dc)
 {
 	if (mouseoverBooth == -1) return;
+	dc.SetFont(TooltipFont);
 	auto const& booth = project->getBooth(mouseoverBooth);
 	Point2Di screenPos = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
-	Point2Di textPoint = screenPos + Point2Di(3, 3);
-	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text
+	Point2Di tooltipSize = calculateTooltipSize(dc, booth);
+	Point2Di tooltipPos = calculateTooltipPosition(screenPos, tooltipSize);
+	Point2Di textPoint = tooltipPos + Point2Di(3, 3);
+	dc.SetBrush(wxBrush(wxColour(255, 255, 255))); // white background
+	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text & border
+	dc.DrawRectangle(wxRect(tooltipPos.x, tooltipPos.y, tooltipSize.x, tooltipSize.y));
 	dc.DrawText(booth.name, wxPoint(textPoint.x, textPoint.y));
 }

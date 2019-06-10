@@ -94,6 +94,13 @@ private:
 	// updates the pointed-to booth based on the given mouse position (relative to top-left of the display region)
 	void updateMouseoverBooth(Point2Di mousePos);
 
+	// calculate the size for the booth tooltip
+	// dc parameter is used to determine size of texts
+	Point2Di calculateTooltipSize(wxDC const& dc, Results::Booth const& booth);
+
+	// calculate the position for the tooltip given the cursor position and tooltip size
+	Point2Di calculateTooltipPosition(Point2Di cursorPosition, Point2Di tooltipSize);
+
 	// Draws a tooltip for the pointed-to booth on the map with details of the poll results.
 	void drawBoothDetails(wxDC& dc);
 
