@@ -5,6 +5,9 @@
 
 #include <algorithm>
 
+using Results::Booth;
+using Candidate = Results::Booth::Candidate;
+
 // IDs for the controls and the menu commands
 enum {
 	PA_MapFrame_Base = 450, // To avoid mixing events with other frames.
@@ -80,7 +83,7 @@ Point2Di MapFrame::calculateScreenPosFromCoords(Point2Df coords)
 	return Point2Di(int(std::floor(mapCoords.x)), int(std::floor(mapCoords.y)));
 }
 
-int MapFrame::calculateCircleSizeFromBooth(Results::Booth const & booth)
+int MapFrame::calculateCircleSizeFromBooth(Booth const & booth)
 {
 	return std::clamp(int(std::log(booth.totalNewTcpVotes()) - 2.5f), 2, 6);
 }
@@ -289,24 +292,64 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 	mouseoverBooth = bestBooth;
 }
 
-std::string MapFrame::decideTooltipText(Results::Booth const & booth)
+std::string MapFrame::decideTooltipText(Booth const & booth)
 {
 	std::string returnString = booth.name;
 	returnString += "\n";
+
 	bool firstCandidateLeading = booth.newTcpVote[0] > booth.newTcpVote[1];
 	int leadingCandidate = (firstCandidateLeading ? 0 : 1);
 	int trailingCandidate = (firstCandidateLeading ? 1 : 0);
+
 	returnString += project->getPartyByCandidate(booth.tcpCandidateId[leadingCandidate])->name;
 	returnString += ": ";
 	returnString += std::to_string(booth.newTcpVote[leadingCandidate]);
+	returnString += " - ";
+	float leadingProportion = float(booth.newTcpVote[leadingCandidate]) / float(booth.totalNewTcpVotes());
+	returnString += formatFloat(leadingProportion * 100.0f, 2);
+	returnString += "%";
+	if (booth.hasOldAndNewResults()) {
+		float swingPercent = booth.rawSwing(leadingCandidate) * 100.0f;
+		returnString += " (";
+		returnString += formatFloat(swingPercent, 2, true);
+		returnString += ")";
+	}
 	returnString += "\n";
+
 	returnString += project->getPartyByCandidate(booth.tcpCandidateId[trailingCandidate])->name;
 	returnString += ": ";
 	returnString += std::to_string(booth.newTcpVote[trailingCandidate]);
+	returnString += " - ";
+	float trailingProportion = float(booth.newTcpVote[trailingCandidate]) / float(booth.totalNewTcpVotes());
+	returnString += formatFloat(trailingProportion * 100.0f, 2);
+	returnString += "%";
+	if (booth.hasOldAndNewResults()) {
+		float swingPercent = booth.rawSwing(trailingCandidate) * 100.0f;
+		returnString += " (";
+		returnString += formatFloat(swingPercent, 2, true);
+		returnString += "%)";
+	}
+
+	int totalFpVotes = booth.totalNewFpVotes();
+	if (totalFpVotes) {
+		returnString += "\n";
+		std::vector<Candidate> sortedCandidates(booth.fpCandidates.begin(), booth.fpCandidates.end());
+		std::sort(sortedCandidates.begin(), sortedCandidates.end(), [](Candidate c1, Candidate c2) {return c1.fpVotes > c2.fpVotes; });
+		for (auto const& candidate : sortedCandidates) {
+			returnString += "\n";
+			returnString += project->getPartyByCandidate(candidate.candidateId)->name;
+			returnString += ": ";
+			returnString += std::to_string(candidate.fpVotes);
+			returnString += " - ";
+			float proportion = float(candidate.fpVotes) / float(totalFpVotes);
+			returnString += formatFloat(proportion * 100.0f, 2);
+			returnString += "%";
+		}
+	}
 	return returnString;
 }
 
-Point2Di MapFrame::calculateTooltipSize(wxDC const& dc, Results::Booth const& booth)
+Point2Di MapFrame::calculateTooltipSize(wxDC const& dc, Booth const& booth)
 {
 	std::string tooltipText = decideTooltipText(booth);
 	wxArrayString lines = wxStringTokenize(tooltipText, "\n");

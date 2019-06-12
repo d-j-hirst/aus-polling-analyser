@@ -29,9 +29,9 @@ namespace Results {
 		int totalNewTcpVotes() const { return newTcpVote[0] + newTcpVote[1]; }
 		int totalNewFpVotes() const { return std::accumulate(fpCandidates.begin(), fpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }
 		bool isPPVC() const { return name.find("PPVC") != std::string::npos; }
-		float rawSwing() const { 
+		float rawSwing(int candidate = 0) const { 
 			if (!(totalNewTcpVotes() && totalOldTcpVotes())) return 0.0f; 
-			return float(newTcpVote[0]) / float(totalNewTcpVotes()) - float(tcpVote[0]) / float(totalOldTcpVotes());
+			return float(newTcpVote[candidate]) / float(totalNewTcpVotes()) - float(tcpVote[candidate]) / float(totalOldTcpVotes());
 		}
 		struct Coords {
 			float latitude; float longitude;

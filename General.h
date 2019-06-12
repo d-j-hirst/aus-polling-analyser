@@ -6,10 +6,11 @@
 #include <sstream>
 #include <string>
 
-inline std::string formatFloat(float floatToFormat, int numDigits) {
+inline std::string formatFloat(float floatToFormat, int numDigits, bool addPlusToPositives = false) {
 	double floatTimesDigits = double(floatToFormat) * pow(10.0f, numDigits);
 	double rounded = round(floatTimesDigits) * pow(0.1f, numDigits);
 	std::stringstream ss;
+	if (addPlusToPositives && !std::signbit(rounded)) ss << "+";
 	ss << std::noshowpoint << std::defaultfloat << rounded;
 	std::string preliminaryString = ss.str();
 	if (numDigits > 0) {
