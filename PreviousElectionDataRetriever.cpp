@@ -22,6 +22,11 @@ namespace {
 		return extractInt(xmlString, "<Enrolment CloseOfRolls=\"(\\d+)", searchIt);
 	}
 
+	// Skip ahead to the first preference section of this seat's results
+	inline void seekToFp(std::string const& xmlString, SearchIterator& searchIt) {
+		seekTo(xmlString, "FirstPreferences", searchIt);
+	}
+
 	// Skip ahead to the two-candidate preferred section of this seat's results
 	inline void seekToTcp(std::string const& xmlString, SearchIterator& searchIt) {
 		seekTo(xmlString, "TwoCandidatePreferred", searchIt);
@@ -81,8 +86,12 @@ namespace {
 		return extractString(xmlString, "Name=\"([^\"]{1,60})\"", searchIt);
 	}
 
-	inline int extractBoothTcp(std::string const& xmlString, SearchIterator& searchIt) {
+	inline int extractBoothVotes(std::string const& xmlString, SearchIterator& searchIt) {
 		return extractInt(xmlString, "<Votes[^>]*>(\\d+)</Votes>", searchIt);
+	}
+
+	inline bool moreFpData(std::string const& xmlString, SearchIterator const& searchIt) {
+		return comesBefore(xmlString, "<Candidate", "</FirstPreferences>", searchIt);
 	}
 
 	inline bool moreBoothData(std::string const& xmlString, SearchIterator const& searchIt) {
@@ -108,6 +117,22 @@ void PreviousElectionDataRetriever::collectData()
 			seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
 			seatData.name = extractSeatName(xmlString, searchIt);
 			seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
+			seekToFp(xmlString, searchIt);
+			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
+				do {
+					Results::Candidate candidateData;
+					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
+					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
+					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
+					candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
+					candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
+					candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
+					candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
+					seatData.oldFpCandidates.push_back(candidateData);
+				} while (moreFpData(xmlString, searchIt));
+				std::sort(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
+					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
+			}
 			seekToTcp(xmlString, searchIt);
 			for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
 				Results::Candidate candidateData;
@@ -129,9 +154,19 @@ void PreviousElectionDataRetriever::collectData()
 				Results::Booth boothData;
 				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
 				boothData.name = extractBoothName(xmlString, searchIt);
+				seekToFp(xmlString, searchIt);
+				while (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
+					Results::Booth::Candidate candidate;
+					candidate.candidateId = extractCandidateId(xmlString, searchIt);
+					auto matchedCandidate = std::find_if(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
+						[&candidate](Results::Candidate const& c) {return c.candidateId == candidate.candidateId; });
+					if (matchedCandidate != seatData.oldFpCandidates.end()) candidate.affiliationId = matchedCandidate->affiliationId;
+					candidate.fpVotes = extractBoothVotes(xmlString, searchIt);
+					boothData.oldFpCandidates.push_back(candidate);
+				}
 				seekToTcp(xmlString, searchIt);
-				boothData.tcpVote[0] = extractBoothTcp(xmlString, searchIt);
-				boothData.tcpVote[1] = extractBoothTcp(xmlString, searchIt);
+				boothData.tcpVote[0] = extractBoothVotes(xmlString, searchIt);
+				boothData.tcpVote[1] = extractBoothVotes(xmlString, searchIt);
 				boothData.tcpAffiliationId[0] = seatData.finalCandidates[0].affiliationId;
 				boothData.tcpAffiliationId[1] = seatData.finalCandidates[1].affiliationId;
 				seatData.booths.push_back(boothData.officialId);

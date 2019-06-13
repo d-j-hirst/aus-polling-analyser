@@ -344,6 +344,21 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 			float proportion = float(candidate.fpVotes) / float(totalFpVotes);
 			returnString += formatFloat(proportion * 100.0f, 2);
 			returnString += "%";
+			for (auto const& oldCandidate : booth.oldFpCandidates) {
+				bool matchedParty = project->getPartyByAffiliation(oldCandidate.affiliationId) ==
+					project->getPartyByCandidate(candidate.candidateId);
+				if (project->getPartyByAffiliation(oldCandidate.affiliationId) <= 0) matchedParty = false;
+				bool matchedCandidate = oldCandidate.candidateId == candidate.candidateId;
+				if (matchedParty || matchedCandidate) {
+					int totalOldFpVotes = booth.totalOldFpVotes();
+					returnString += " (";
+					float oldProportion = float(oldCandidate.fpVotes) / float(totalOldFpVotes);
+					float swing = proportion - oldProportion;
+					returnString += formatFloat(swing * 100.0f, 2, true);
+					returnString += "%)";
+					break;
+				}
+			}
 		}
 	}
 	return returnString;

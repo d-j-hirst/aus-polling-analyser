@@ -19,6 +19,7 @@ namespace Results {
 		std::array<int, 2> newTcpVote = { 0, 0 };
 		std::array<int, 2> tcpAffiliationId = { -1, -1 }; // independent = 0
 		std::array<int, 2> tcpCandidateId = { -1, -1 };
+		std::vector<Candidate> oldFpCandidates;
 		std::vector<Candidate> fpCandidates;
 		bool newResultsZero = false;
 		float percentVote(int whichCandidate) const { return float(tcpVote[whichCandidate]) / float(tcpVote[0] + tcpVote[1]) * 100.0f; }
@@ -27,6 +28,7 @@ namespace Results {
 		bool hasOldAndNewResults() const { return hasOldResults() && hasNewResults(); }
 		int totalOldTcpVotes() const { return tcpVote[0] + tcpVote[1]; }
 		int totalNewTcpVotes() const { return newTcpVote[0] + newTcpVote[1]; }
+		int totalOldFpVotes() const { return std::accumulate(oldFpCandidates.begin(), oldFpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }
 		int totalNewFpVotes() const { return std::accumulate(fpCandidates.begin(), fpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }
 		bool isPPVC() const { return name.find("PPVC") != std::string::npos; }
 		float rawSwing(int candidate = 0) const { 
@@ -34,7 +36,7 @@ namespace Results {
 			return float(newTcpVote[candidate]) / float(totalNewTcpVotes()) - float(tcpVote[candidate]) / float(totalOldTcpVotes());
 		}
 		struct Coords {
-			float latitude; float longitude;
+			float latitude = 0.0f; float longitude = 0.0f;
 		};
 		Coords coords;
 	};
@@ -59,6 +61,7 @@ namespace Results {
 		bool classic2pp = true;
 		std::array<Candidate, 2> finalCandidates;
 		std::vector<Candidate> fpCandidates;
+		std::vector<Candidate> oldFpCandidates;
 		std::vector<int> booths; // stores official booth id
 		Candidate const& leadingCandidate() const { return finalCandidates[0].totalVotes() > finalCandidates[1].totalVotes() ? finalCandidates[0] : finalCandidates[1]; }
 		Candidate const& trailingCandidate() const { return finalCandidates[1].totalVotes() > finalCandidates[0].totalVotes() ? finalCandidates[0] : finalCandidates[1]; }

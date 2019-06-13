@@ -42,6 +42,10 @@ namespace {
 		return extractInt(xmlString, "CandidateIdentifier Id=\"(\\d+)", searchIt);
 	}
 
+	inline int extractAffiliationId(std::string const& xmlString, SearchIterator& searchIt) {
+		return extractInt(xmlString, "AffiliationIdentifier Id=\"(\\d+)", searchIt);
+	}
+
 	inline int extractOrdinaryVotes(std::string const& xmlString, SearchIterator& searchIt) {
 		return extractInt(xmlString, "<Votes Type=\"Ordinary\"[^>]*>(\\d+)</Votes>", searchIt);
 	}

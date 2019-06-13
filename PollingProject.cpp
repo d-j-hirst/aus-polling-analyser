@@ -765,6 +765,9 @@ Point2Df PollingProject::boothLongitudeRange() const
 	for (auto const& booth : booths) {
 		float longitude = booth.second.coords.longitude;
 		if (std::abs(longitude) < 0.000001f) continue; // discontinued booths won't have a location
+		if (longitude > 180.0f) {
+			logger << booth.second.name << " - bad longitude - " << longitude << "\n";
+		}
 		if (!longitudeInitiated) {
 			minLongitude = longitude;
 			maxLongitude = longitude;
