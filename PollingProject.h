@@ -378,6 +378,9 @@ public:
 	// Returns nullptr if affiliation did not match any known party
 	Party const* getPartyByAffiliation(int affiliationId) const;
 
+	// Gets the affiliation Id for the given candidate (-1 if candidate not found).
+	int getCandidateAffiliationId(int candidateId) const;
+
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);

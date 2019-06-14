@@ -794,6 +794,13 @@ Party const* PollingProject::getPartyByAffiliation(int affiliationId) const
 	return affiliationIt->second;
 }
 
+int PollingProject::getCandidateAffiliationId(int candidateId) const
+{
+	auto affiliationIt = candidateAffiliations.find(candidateId);
+	if (affiliationIt == candidateAffiliations.end()) return -1;
+	return affiliationIt->second;
+}
+
 void PollingProject::updateLatestResultsForSeats() {
 	for (auto& thisResult : results) {
 		if (!thisResult.seat->latestResult) thisResult.seat->latestResult = &thisResult;

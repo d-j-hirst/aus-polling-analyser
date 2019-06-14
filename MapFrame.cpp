@@ -344,20 +344,45 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 			float proportion = float(candidate.fpVotes) / float(totalFpVotes);
 			returnString += formatFloat(proportion * 100.0f, 2);
 			returnString += "%";
+			int matchedCandidateVotes = 0;
+			int matchedPartyVotes = 0;
 			for (auto const& oldCandidate : booth.oldFpCandidates) {
 				bool matchedParty = project->getPartyByAffiliation(oldCandidate.affiliationId) ==
 					project->getPartyByCandidate(candidate.candidateId);
-				if (project->getPartyByAffiliation(oldCandidate.affiliationId) <= 0) matchedParty = false;
+				// *** This doesn't actually match the same candidate since candidate IDs for the same person differ between elections!
 				bool matchedCandidate = oldCandidate.candidateId == candidate.candidateId;
-				if (matchedParty || matchedCandidate) {
-					int totalOldFpVotes = booth.totalOldFpVotes();
-					returnString += " (";
-					float oldProportion = float(oldCandidate.fpVotes) / float(totalOldFpVotes);
-					float swing = proportion - oldProportion;
-					returnString += formatFloat(swing * 100.0f, 2, true);
-					returnString += "%)";
-					break;
+				// Matching to "independent party" or "invalid party" is not actually a match
+				if (project->getPartyByAffiliation(oldCandidate.affiliationId) <= 0) {
+					matchedParty = false;
 				}
+				// If we match the party, but not the exact affiliation, and another candidate DOES match the exact affiliation
+				// then this is no longer a match
+				if (matchedParty) {
+					if (oldCandidate.affiliationId != project->getCandidateAffiliationId(candidate.candidateId)) {
+						for (auto const& otherCandidate : sortedCandidates) {
+							if (oldCandidate.affiliationId == project->getCandidateAffiliationId(otherCandidate.candidateId)) {
+								matchedParty = false;
+								break;
+							}
+						}
+					}
+				}
+				if (matchedCandidate) matchedCandidateVotes = std::max(matchedCandidateVotes, oldCandidate.fpVotes);
+				if (matchedParty) matchedPartyVotes = std::max(matchedPartyVotes, oldCandidate.fpVotes);
+			}
+			// match with same coalition first (to ensure continuation of parties rather than matching to a former independent)
+			// then with same candidate if no other match is found
+			int matchedVotes = 0;
+			if (matchedPartyVotes) matchedVotes = matchedPartyVotes;
+			else if (matchedCandidateVotes) matchedVotes = matchedCandidateVotes;
+
+			if (matchedVotes) {
+				int totalOldFpVotes = booth.totalOldFpVotes();
+				returnString += " (";
+				float oldProportion = float(matchedVotes) / float(totalOldFpVotes);
+				float swing = proportion - oldProportion;
+				returnString += formatFloat(swing * 100.0f, 2, true);
+				returnString += "%)";
 			}
 		}
 	}
