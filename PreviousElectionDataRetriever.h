@@ -10,6 +10,7 @@ class PreviousElectionDataRetriever {
 public:
 
 	typedef std::unordered_map<int, std::string> AffiliationMap;
+	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
 
 	const static std::string UnzippedFileName;
 
@@ -26,6 +27,9 @@ public:
 	AffiliationMap::const_iterator beginAffiliations() const { return affiliations.cbegin(); }
 	AffiliationMap::const_iterator endAffiliations() const { return affiliations.cend(); }
 
+	CandidateMap::const_iterator beginCandidates() const { return candidates.cbegin(); }
+	CandidateMap::const_iterator endCandidates() const { return candidates.cend(); }
+
 private:
 
 	// Map between AEC's seat ID and data for that seat
@@ -34,4 +38,5 @@ private:
 	Results::BoothMap boothMap;
 
 	AffiliationMap affiliations;
+	CandidateMap candidates;
 };

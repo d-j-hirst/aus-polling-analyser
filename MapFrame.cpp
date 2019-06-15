@@ -349,18 +349,18 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 			int matchedCandidateVotes = 0;
 			int matchedPartyVotes = 0;
 			for (auto const& oldCandidate : booth.oldFpCandidates) {
-				bool matchedParty = project->getPartyByAffiliation(oldCandidate.affiliationId) ==
+				bool matchedParty = project->getPartyByCandidate(oldCandidate.candidateId) ==
 					project->getPartyByCandidate(candidate.candidateId);
-				// *** This doesn't actually match the same candidate since candidate IDs for the same person differ between elections!
-				bool matchedCandidate = oldCandidate.candidateId == candidate.candidateId;
+				bool matchedCandidate = project->getCandidateById(oldCandidate.candidateId)->name == 
+					project->getCandidateById(candidate.candidateId)->name;
 				// Matching to "independent party" or "invalid party" is not actually a match
-				if (project->getPartyByAffiliation(oldCandidate.affiliationId) <= 0) {
+				if (project->getCandidateById(oldCandidate.candidateId)->affiliationId <= 0) {
 					matchedParty = false;
 				}
 				// If we match the party, but not the exact affiliation, and another candidate DOES match the exact affiliation
 				// then this is no longer a match
 				if (matchedParty) {
-					if (oldCandidate.affiliationId != project->getCandidateAffiliationId(candidate.candidateId)) {
+					if (project->getCandidateAffiliationId(oldCandidate.candidateId) != project->getCandidateAffiliationId(candidate.candidateId)) {
 						for (auto const& otherCandidate : sortedCandidates) {
 							if (oldCandidate.affiliationId == project->getCandidateAffiliationId(otherCandidate.candidateId)) {
 								matchedParty = false;

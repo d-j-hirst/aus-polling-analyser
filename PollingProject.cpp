@@ -49,7 +49,26 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	}
 	logger << seatMatchCount << " seats matched.\n";
 	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
+	std::copy(dataRetriever.beginCandidates(), dataRetriever.endCandidates(), std::inserter(candidates, candidates.end()));
 	collectAffiliations(dataRetriever);
+
+	candidateParties.insert({ -1, &invalidParty });
+	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
+		candidates.insert(*candidateIt);
+		int affiliationId = candidateIt->second.affiliationId;
+		auto affiliationIt = affiliations.find(affiliationId);
+		if (affiliationIt != affiliations.end()) {
+			candidateParties.insert({ candidateIt->first, affiliationIt->second });
+			candidateAffiliations.insert({ candidateIt->first, affiliationId });
+			logger << candidateIt->first << " - adding candidate ID for party ID\n";
+		}
+		else {
+			// treat unknown party as independent
+			candidateParties.insert({ candidateIt->first, affiliations[0] });
+			candidateAffiliations.insert({ candidateIt->first, -1 });
+			logger << candidateIt->first << " - adding candidate ID for independent\n";
+		}
+	}
 }
 
 void PollingProject::incorporatePreloadData(PreloadDataRetriever const& dataRetriever)
@@ -1639,7 +1658,6 @@ void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & d
 				for (auto partyCode : party.officialCodes) {
 					if (affiliationIt->second == partyCode) {
 						affiliations.insert({ affiliationIt->first, &party });
-						logger << affiliationIt->first << " - affiliation ID\n";
 					}
 				}
 			}

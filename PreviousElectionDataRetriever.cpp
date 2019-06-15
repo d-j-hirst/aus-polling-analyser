@@ -33,8 +33,7 @@ namespace {
 	}
 
 	inline bool candidateIsIndependent(std::string const& xmlString, SearchIterator& searchIt) {
-		return extractBool(xmlString, "<Candidate( Independent=\"true\")?>", searchIt);
-
+		return extractBool(xmlString, "<Candidate( Independent=\"(yes|true)\")?", searchIt);
 	}
 
 	inline int extractCandidateId(std::string const& xmlString, SearchIterator& searchIt) {
@@ -121,14 +120,23 @@ void PreviousElectionDataRetriever::collectData()
 			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
 				do {
 					Results::Seat::Candidate candidateData;
+					Results::Candidate candidate;
+					bool independent = candidateIsIndependent(xmlString, searchIt);
 					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
-					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
+					candidate.name = extractCandidateName(xmlString, searchIt);
+					int affiliationId = 0;
+					if (!independent && comesBefore(xmlString, "Affiliation", "</Candidate>", searchIt)) {
+						affiliationId = extractAffiliationId(xmlString, searchIt);
+						affiliations.insert({ affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
+					}
+					candidate.affiliationId = affiliationId;
 					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
 					candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
 					candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
 					candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
 					candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
 					seatData.oldFpCandidates.push_back(candidateData);
+					candidates.insert({ candidateData.candidateId, candidate });
 				} while (moreFpData(xmlString, searchIt));
 				std::sort(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
 					[](Results::Seat::Candidate lhs, Results::Seat::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
