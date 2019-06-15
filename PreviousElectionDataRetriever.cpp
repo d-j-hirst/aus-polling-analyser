@@ -137,7 +137,7 @@ void PreviousElectionDataRetriever::collectData()
 			for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
 				Results::Seat::Candidate candidateData;
 				bool independent = candidateIsIndependent(xmlString, searchIt);
-				candidateData.name = extractCandidateName(xmlString, searchIt);
+				candidateData.candidateId = extractCandidateId(xmlString, searchIt);
 				if (!independent) {
 					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
 					affiliations.insert({ candidateData.affiliationId , extractAffiliationShortCode(xmlString, searchIt) });

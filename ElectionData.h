@@ -48,7 +48,6 @@ namespace Results {
 
 	struct Seat {
 		struct Candidate {
-			std::string name;
 			int candidateId = 0;
 			int affiliationId = 0; // independent = 0
 			int ordinaryVotes = 0;
