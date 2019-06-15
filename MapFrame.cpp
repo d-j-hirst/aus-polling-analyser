@@ -337,8 +337,10 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 		std::sort(sortedCandidates.begin(), sortedCandidates.end(), [](Candidate c1, Candidate c2) {return c1.fpVotes > c2.fpVotes; });
 		for (auto const& candidate : sortedCandidates) {
 			returnString += "\n";
+			returnString += project->getCandidateById(candidate.candidateId)->name;
+			returnString += " (";
 			returnString += project->getPartyByCandidate(candidate.candidateId)->name;
-			returnString += ": ";
+			returnString += "): ";
 			returnString += std::to_string(candidate.fpVotes);
 			returnString += " - ";
 			float proportion = float(candidate.fpVotes) / float(totalFpVotes);

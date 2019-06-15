@@ -113,7 +113,7 @@ void LatestResultsDataRetriever::collectData()
 			seekToFp(xmlString, searchIt);
 			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
 				do {
-					Results::Candidate candidateData;
+					Results::Seat::Candidate candidateData;
 					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
 					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
 					candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
@@ -123,12 +123,12 @@ void LatestResultsDataRetriever::collectData()
 					seatData.fpCandidates.push_back(candidateData);
 				} while (moreFpData(xmlString, searchIt));
 				std::sort(seatData.fpCandidates.begin(), seatData.fpCandidates.end(),
-					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
+					[](Results::Seat::Candidate lhs, Results::Seat::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
 			}
 			seekToTcp(xmlString, searchIt);
 			if (!comesBefore(xmlString, "<PollingPlaces>", "<Candidate>", searchIt)) {
 				for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
-					Results::Candidate candidateData;
+					Results::Seat::Candidate candidateData;
 					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
 					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
 					candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);

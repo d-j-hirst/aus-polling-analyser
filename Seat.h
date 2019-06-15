@@ -87,7 +87,7 @@ public:
 	bool hasFpResults() const {
 		if (!latestResults.has_value()) return false;
 		return std::find_if(latestResults->fpCandidates.begin(), latestResults->fpCandidates.end(),
-			[](Results::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
+			[](Results::Seat::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
 	}
 
 	bool has2cpResults() const {

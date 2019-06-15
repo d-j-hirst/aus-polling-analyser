@@ -378,6 +378,10 @@ public:
 	// Returns nullptr if affiliation did not match any known party
 	Party const* getPartyByAffiliation(int affiliationId) const;
 
+	// Gets data for the candidate this id refers to
+	// Returns nullptr if the id does not match a known candidate
+	Results::Candidate const* getCandidateById(int candidateId) const;
+
 	// Gets the affiliation Id for the given candidate (-1 if candidate not found).
 	int getCandidateAffiliationId(int candidateId) const;
 
@@ -484,9 +488,11 @@ private:
 
 	typedef std::unordered_map<int, Party const*> AffiliationMap;
 	typedef std::unordered_map<int, int> CandidateAffiliationMap;
+	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
 	AffiliationMap affiliations;
-	AffiliationMap candidates;
+	AffiliationMap candidateParties;
 	CandidateAffiliationMap candidateAffiliations;
+	CandidateMap candidates;
 
 	static const Party invalidParty;
 

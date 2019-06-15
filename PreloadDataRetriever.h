@@ -11,7 +11,7 @@ class PreloadDataRetriever {
 public:
 
 	// Map from a candidate's ID to their party ID
-	typedef std::unordered_map<int, int> CandidateMap;
+	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
 
 	typedef std::unordered_map<int, std::string> AffiliationMap;
 

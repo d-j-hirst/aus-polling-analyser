@@ -73,7 +73,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 		// Check if the parties match
 		bool allValid = true;
-		Party const* newParty[2] = { candidates[newBooth.tcpCandidateId[0]], candidates[newBooth.tcpCandidateId[1]] };
+		Party const* newParty[2] = { candidateParties[newBooth.tcpCandidateId[0]], candidateParties[newBooth.tcpCandidateId[1]] };
 		Party const* oldParty[2] = { affiliations[matchedBooth.tcpAffiliationId[0]], affiliations[matchedBooth.tcpAffiliationId[1]] };
 		for (auto& a : newParty) if (!a) { a = &invalidParty; allValid = false; };
 		for (auto& a : oldParty) if (!a) { a = &invalidParty; allValid = false; };
@@ -133,8 +133,8 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		}
 		// *** need something here to check if two-candidate preferred is not recorded because of seat maverick status
 		if (matchingSeat->latestResults->total2cpVotes() && matchingSeat->latestResults->classic2pp) {
-			Party const* partyOne = candidates[matchingSeat->latestResults->finalCandidates[0].candidateId];
-			Party const* partyTwo = candidates[matchingSeat->latestResults->finalCandidates[1].candidateId];
+			Party const* partyOne = candidateParties[matchingSeat->latestResults->finalCandidates[0].candidateId];
+			Party const* partyTwo = candidateParties[matchingSeat->latestResults->finalCandidates[1].candidateId];
 			if (!Party::oppositeMajors(*partyOne, *partyTwo)) matchingSeat->latestResults->classic2pp = false;
 		}
 		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->total2cpVotes() && matchingSeat->previousResults->classic2pp) {
@@ -782,8 +782,8 @@ Point2Df PollingProject::boothLongitudeRange() const
 
 Party const * PollingProject::getPartyByCandidate(int candidateId) const
 {
-	auto candidateIt = candidates.find(candidateId);
-	if (candidateIt == candidates.end()) return nullptr;
+	auto candidateIt = candidateParties.find(candidateId);
+	if (candidateIt == candidateParties.end()) return nullptr;
 	return candidateIt->second;
 }
 
@@ -792,6 +792,13 @@ Party const* PollingProject::getPartyByAffiliation(int affiliationId) const
 	auto affiliationIt = affiliations.find(affiliationId);
 	if (affiliationIt == affiliations.end()) return nullptr;
 	return affiliationIt->second;
+}
+
+Results::Candidate const * PollingProject::getCandidateById(int candidateId) const
+{
+	auto candidateIt = candidates.find(candidateId);
+	if (candidateIt == candidates.end()) return nullptr;
+	return &candidateIt->second;
 }
 
 int PollingProject::getCandidateAffiliationId(int candidateId) const
@@ -1632,23 +1639,28 @@ void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & d
 				for (auto partyCode : party.officialCodes) {
 					if (affiliationIt->second == partyCode) {
 						affiliations.insert({ affiliationIt->first, &party });
+						logger << affiliationIt->first << " - affiliation ID\n";
 					}
 				}
 			}
 		}
 	}
 
-	candidates.insert({ -1, &invalidParty });
+	candidateParties.insert({ -1, &invalidParty });
 	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
-		auto affiliationIt = affiliations.find(candidateIt->second);
+		candidates.insert(*candidateIt);
+		int affiliationId = candidateIt->second.affiliationId;
+		auto affiliationIt = affiliations.find(affiliationId);
 		if (affiliationIt != affiliations.end()) {
-			candidates.insert({ candidateIt->first, affiliationIt->second });
-			candidateAffiliations.insert(*candidateIt);
+			candidateParties.insert({ candidateIt->first, affiliationIt->second });
+			candidateAffiliations.insert({ candidateIt->first, affiliationId });
+			logger << candidateIt->first << " - adding candidate ID for party ID\n";
 		}
 		else {
 			// treat unknown party as independent
-			candidates.insert({ candidateIt->first, affiliations[0] });
+			candidateParties.insert({ candidateIt->first, affiliations[0] });
 			candidateAffiliations.insert({ candidateIt->first, -1 });
+			logger << candidateIt->first << " - adding candidate ID for independent\n";
 		}
 	}
 }
@@ -1676,7 +1688,7 @@ float PollingProject::calculateSwingToIncumbent(Seat const & seat)
 		int totalOld = thisBooth.tcpVote[0] + thisBooth.tcpVote[1];
 		int totalNew = thisBooth.newTcpVote[0] + thisBooth.newTcpVote[1];
 		if (totalOld && totalNew) {
-			bool matchedSame = (affiliations[thisBooth.tcpAffiliationId[0]] == candidates[seat.latestResults->finalCandidates[0].candidateId]);
+			bool matchedSame = (affiliations[thisBooth.tcpAffiliationId[0]] == candidateParties[seat.latestResults->finalCandidates[0].candidateId]);
 			if (matchedSame) {
 				seatTotalVotes[0] += thisBooth.newTcpVote[0];
 				seatTotalVotes[1] += thisBooth.newTcpVote[1];
@@ -1698,7 +1710,7 @@ float PollingProject::calculateSwingToIncumbent(Seat const & seat)
 	if (totalOldSeat && totalNewSeat) {
 		float swing = (float(seatTotalVotes[0]) / float(totalNewSeat) -
 			float(seatTotalVotesOld[0]) / float(totalOldSeat)) * 100.0f;
-		float swingToIncumbent = swing * (seat.incumbent == candidates[seat.latestResults->finalCandidates[0].candidateId] ? 1 : -1);
+		float swingToIncumbent = swing * (seat.incumbent == candidateParties[seat.latestResults->finalCandidates[0].candidateId] ? 1 : -1);
 		return swingToIncumbent;
 	}
 	return 0;

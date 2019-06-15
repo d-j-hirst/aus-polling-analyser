@@ -120,7 +120,7 @@ void PreviousElectionDataRetriever::collectData()
 			seekToFp(xmlString, searchIt);
 			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
 				do {
-					Results::Candidate candidateData;
+					Results::Seat::Candidate candidateData;
 					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
 					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
 					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
@@ -131,11 +131,11 @@ void PreviousElectionDataRetriever::collectData()
 					seatData.oldFpCandidates.push_back(candidateData);
 				} while (moreFpData(xmlString, searchIt));
 				std::sort(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
-					[](Results::Candidate lhs, Results::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
+					[](Results::Seat::Candidate lhs, Results::Seat::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
 			}
 			seekToTcp(xmlString, searchIt);
 			for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
-				Results::Candidate candidateData;
+				Results::Seat::Candidate candidateData;
 				bool independent = candidateIsIndependent(xmlString, searchIt);
 				candidateData.name = extractCandidateName(xmlString, searchIt);
 				if (!independent) {
@@ -159,7 +159,7 @@ void PreviousElectionDataRetriever::collectData()
 					Results::Booth::Candidate candidate;
 					candidate.candidateId = extractCandidateId(xmlString, searchIt);
 					auto matchedCandidate = std::find_if(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
-						[&candidate](Results::Candidate const& c) {return c.candidateId == candidate.candidateId; });
+						[&candidate](Results::Seat::Candidate const& c) {return c.candidateId == candidate.candidateId; });
 					if (matchedCandidate != seatData.oldFpCandidates.end()) candidate.affiliationId = matchedCandidate->affiliationId;
 					candidate.fpVotes = extractBoothVotes(xmlString, searchIt);
 					boothData.oldFpCandidates.push_back(candidate);

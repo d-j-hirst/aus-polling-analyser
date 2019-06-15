@@ -42,19 +42,24 @@ namespace Results {
 	};
 
 	struct Candidate {
+		int affiliationId = 0;
 		std::string name;
-		int candidateId = 0;
-		int affiliationId = 0; // independent = 0
-		int ordinaryVotes = 0;
-		int absentVotes = 0;
-		int provisionalVotes = 0;
-		int prepollVotes = 0;
-		int postalVotes = 0;
-		int declarationVotes() const { return absentVotes + provisionalVotes + prepollVotes + postalVotes; }
-		int totalVotes() const { return ordinaryVotes + declarationVotes(); }
 	};
 
 	struct Seat {
+		struct Candidate {
+			std::string name;
+			int candidateId = 0;
+			int affiliationId = 0; // independent = 0
+			int ordinaryVotes = 0;
+			int absentVotes = 0;
+			int provisionalVotes = 0;
+			int prepollVotes = 0;
+			int postalVotes = 0;
+			int declarationVotes() const { return absentVotes + provisionalVotes + prepollVotes + postalVotes; }
+			int totalVotes() const { return ordinaryVotes + declarationVotes(); }
+		};
+
 		std::string name;
 		int officialId = -1;
 		int enrolment = 0;

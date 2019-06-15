@@ -25,6 +25,10 @@ inline int extractCandidateId(std::string const& xmlString, SearchIterator& sear
 	return extractInt(xmlString, "CandidateIdentifier Id=\"(\\d+)", searchIt);
 }
 
+inline std::string extractCandidateName(std::string const& xmlString, SearchIterator& searchIt) {
+	return extractString(xmlString, "<CandidateName>([^<]+)", searchIt);
+}
+
 inline int extractAffiliationId(std::string const& xmlString, SearchIterator& searchIt) {
 	return extractInt(xmlString, "AffiliationIdentifier Id=\"(\\d+)", searchIt);
 }
@@ -82,14 +86,17 @@ void PreloadDataRetriever::collectData()
 		do {
 			seekToFirstPreferences(xmlString, searchIt);
 			do {
+				Results::Candidate candidate;
 				bool independent = candidateIsIndependent(xmlString, searchIt);
 				int candidateId = extractCandidateId(xmlString, searchIt);
+				candidate.name = extractCandidateName(xmlString, searchIt);
 				int affiliationId = 0;
 				if (!independent && comesBefore(xmlString, "<Affiliation", "</Candidate>", searchIt)) {
 					affiliationId = extractAffiliationId(xmlString, searchIt);
 					affiliations.insert({ affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
 				}
-				candidates.insert({ candidateId, affiliationId });
+				candidate.affiliationId = affiliationId;
+				candidates.insert({ candidateId, candidate });
 				if (!moreCandidateData(xmlString, searchIt)) break;
 				seekToNextCandidate(xmlString, searchIt);
 			} while (true);
