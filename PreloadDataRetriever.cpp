@@ -93,7 +93,7 @@ void PreloadDataRetriever::collectData()
 				int affiliationId = 0;
 				if (!independent && comesBefore(xmlString, "<Affiliation", "</Candidate>", searchIt)) {
 					affiliationId = extractAffiliationId(xmlString, searchIt);
-					affiliations.insert({ affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
+					affiliations.insert({ affiliationId , {extractAffiliationShortCode(xmlString, searchIt) } });
 				}
 				candidate.affiliationId = affiliationId;
 				candidates.insert({ candidateId, candidate });

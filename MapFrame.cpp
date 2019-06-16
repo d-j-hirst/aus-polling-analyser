@@ -301,7 +301,7 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 	int leadingCandidate = (firstCandidateLeading ? 0 : 1);
 	int trailingCandidate = (firstCandidateLeading ? 1 : 0);
 
-	returnString += project->getPartyByCandidate(booth.tcpCandidateId[leadingCandidate])->name;
+	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[leadingCandidate]))->shortCode;
 	returnString += ": ";
 	returnString += std::to_string(booth.newTcpVote[leadingCandidate]);
 	returnString += " - ";
@@ -316,7 +316,7 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 	}
 	returnString += "\n";
 
-	returnString += project->getPartyByCandidate(booth.tcpCandidateId[trailingCandidate])->name;
+	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[trailingCandidate]))->shortCode;
 	returnString += ": ";
 	returnString += std::to_string(booth.newTcpVote[trailingCandidate]);
 	returnString += " - ";
@@ -339,7 +339,7 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 			returnString += "\n";
 			returnString += project->getCandidateById(candidate.candidateId)->name;
 			returnString += " (";
-			returnString += project->getPartyByCandidate(candidate.candidateId)->name;
+			returnString += project->getAffiliationById(project->getCandidateAffiliationId(candidate.candidateId))->shortCode;
 			returnString += "): ";
 			returnString += std::to_string(candidate.fpVotes);
 			returnString += " - ";

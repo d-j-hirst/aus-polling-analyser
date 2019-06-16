@@ -127,7 +127,7 @@ void PreviousElectionDataRetriever::collectData()
 					int affiliationId = 0;
 					if (!independent && comesBefore(xmlString, "Affiliation", "</Candidate>", searchIt)) {
 						affiliationId = extractAffiliationId(xmlString, searchIt);
-						affiliations.insert({ affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
+						affiliations.insert({ affiliationId , {extractAffiliationShortCode(xmlString, searchIt) } });
 					}
 					candidate.affiliationId = affiliationId;
 					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
@@ -148,7 +148,7 @@ void PreviousElectionDataRetriever::collectData()
 				candidateData.candidateId = extractCandidateId(xmlString, searchIt);
 				if (!independent) {
 					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
-					affiliations.insert({ candidateData.affiliationId , extractAffiliationShortCode(xmlString, searchIt) });
+					affiliations.insert({ candidateData.affiliationId , {extractAffiliationShortCode(xmlString, searchIt)} });
 				}
 				candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
 				candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
@@ -188,7 +188,7 @@ void PreviousElectionDataRetriever::collectData()
 				logger << seatData.officialId << " - Duplicate seat detected!\n"; // this shouldn't happen
 			}
 		} while (moreSeatData(xmlString, searchIt));
-		affiliations.insert({ 0, "IND" });
+		affiliations.insert({ 0, {"IND"} });
 		logger << "Previous election download complete!\n";
 	}
 	catch (const std::regex_error& e) {

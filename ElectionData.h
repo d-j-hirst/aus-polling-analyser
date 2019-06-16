@@ -46,6 +46,10 @@ namespace Results {
 		std::string name;
 	};
 
+	struct Affiliation {
+		std::string shortCode;
+	};
+
 	struct Seat {
 		struct Candidate {
 			int candidateId = 0;

@@ -13,7 +13,7 @@ public:
 	// Map from a candidate's ID to their party ID
 	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
 
-	typedef std::unordered_map<int, std::string> AffiliationMap;
+	typedef std::unordered_map<int, Results::Affiliation> AffiliationMap;
 
 	// Maps a booth's ID to it's data (ID and name)
 	typedef std::unordered_map<int, Results::Booth> BoothMap;

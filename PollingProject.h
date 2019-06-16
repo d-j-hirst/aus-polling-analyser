@@ -382,6 +382,10 @@ public:
 	// Returns nullptr if the id does not match a known candidate
 	Results::Candidate const* getCandidateById(int candidateId) const;
 
+	// Gets data for the candidate this id refers to
+	// Returns nullptr if the id does not match a known candidate
+	Results::Affiliation const* getAffiliationById(int affiliationId) const;
+
 	// Gets the affiliation Id for the given candidate (-1 if candidate not found).
 	int getCandidateAffiliationId(int candidateId) const;
 
@@ -486,13 +490,15 @@ private:
 	// Booth data from a download
 	std::unordered_map<int, Results::Booth> booths;
 
-	typedef std::unordered_map<int, Party const*> AffiliationMap;
+	typedef std::unordered_map<int, Party const*> IdPartyMap;
 	typedef std::unordered_map<int, int> CandidateAffiliationMap;
 	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
-	AffiliationMap affiliations;
-	AffiliationMap candidateParties;
+	typedef std::unordered_map<int, Results::Affiliation> AffiliationMap;
+	IdPartyMap affiliationParties;
+	IdPartyMap candidateParties;
 	CandidateAffiliationMap candidateAffiliations;
 	CandidateMap candidates;
+	AffiliationMap affiliations;
 
 	static const Party invalidParty;
 

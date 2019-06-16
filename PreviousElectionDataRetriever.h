@@ -9,7 +9,7 @@
 class PreviousElectionDataRetriever {
 public:
 
-	typedef std::unordered_map<int, std::string> AffiliationMap;
+	typedef std::unordered_map<int, Results::Affiliation> AffiliationMap;
 	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
 
 	const static std::string UnzippedFileName;
