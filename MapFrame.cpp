@@ -354,7 +354,7 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 				bool matchedCandidate = project->getCandidateById(oldCandidate.candidateId)->name == 
 					project->getCandidateById(candidate.candidateId)->name;
 				// Matching to "independent party" or "invalid party" is not actually a match
-				if (project->getCandidateById(oldCandidate.candidateId)->affiliationId <= 0) {
+				if (project->getCandidateAffiliationId(oldCandidate.candidateId) <= 0) {
 					matchedParty = false;
 				}
 				// If we match the party, but not the exact affiliation, and another candidate DOES match the exact affiliation
@@ -362,13 +362,14 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 				if (matchedParty) {
 					if (project->getCandidateAffiliationId(oldCandidate.candidateId) != project->getCandidateAffiliationId(candidate.candidateId)) {
 						for (auto const& otherCandidate : sortedCandidates) {
-							if (oldCandidate.affiliationId == project->getCandidateAffiliationId(otherCandidate.candidateId)) {
+							if (project->getCandidateAffiliationId(oldCandidate.candidateId) == project->getCandidateAffiliationId(otherCandidate.candidateId)) {
 								matchedParty = false;
 								break;
 							}
 						}
 					}
 				}
+
 				if (matchedCandidate) matchedCandidateVotes = std::max(matchedCandidateVotes, oldCandidate.fpVotes);
 				if (matchedParty) matchedPartyVotes = std::max(matchedPartyVotes, oldCandidate.fpVotes);
 			}

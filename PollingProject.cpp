@@ -60,13 +60,11 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 		if (affiliationIt != affiliations.end()) {
 			candidateParties.insert({ candidateIt->first, affiliationIt->second });
 			candidateAffiliations.insert({ candidateIt->first, affiliationId });
-			logger << candidateIt->first << " - adding candidate ID for party ID\n";
 		}
 		else {
 			// treat unknown party as independent
 			candidateParties.insert({ candidateIt->first, affiliations[0] });
 			candidateAffiliations.insert({ candidateIt->first, -1 });
-			logger << candidateIt->first << " - adding candidate ID for independent\n";
 		}
 	}
 }
@@ -1672,13 +1670,11 @@ void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & d
 		if (affiliationIt != affiliations.end()) {
 			candidateParties.insert({ candidateIt->first, affiliationIt->second });
 			candidateAffiliations.insert({ candidateIt->first, affiliationId });
-			logger << candidateIt->first << " - adding candidate ID for party ID\n";
 		}
 		else {
 			// treat unknown party as independent
 			candidateParties.insert({ candidateIt->first, affiliations[0] });
 			candidateAffiliations.insert({ candidateIt->first, -1 });
-			logger << candidateIt->first << " - adding candidate ID for independent\n";
 		}
 	}
 }
