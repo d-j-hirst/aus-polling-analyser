@@ -115,11 +115,25 @@ private:
 
 	wxComboBox* selectSeatComboBox = nullptr;
 
+	wxComboBox* colourModeComboBox = nullptr;
+
 	wxPanel* dcPanel = nullptr;
 
 	DisplayVariables dv;
 
 	int selectedSeat = -1;
+
+	enum ColourMode {
+		Tcp,
+		TcpSwing,
+		TopPrimary,
+		Tpp,
+		TppSwing,
+		SpecificPrimary // add an offset to this for the particular party
+	};
+
+	// Use ColourMode enum for the presets
+	int selectedColourMode = 0;
 
 	// A pointer to the parent frame.
 	ProjectFrame* const parent;

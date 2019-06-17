@@ -13,7 +13,8 @@ enum {
 	PA_MapFrame_Base = 450, // To avoid mixing events with other frames.
 	PA_MapFrame_FrameID,
 	PA_MapFrame_DcPanelID,
-	PA_MapFrame_SelectSeatID
+	PA_MapFrame_SelectSeatID,
+	PA_MapFrame_ColourModeID,
 };
 
 const wxFont TooltipFont = wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
@@ -242,25 +243,33 @@ void MapFrame::refreshToolbar() {
 	// Create the choices for the combo box.
 	// By default "no seat" is the selected seat
 	// Set the selected seat to be the first seat
-	wxArrayString seatArray;
-	seatArray.push_back("None");
+	wxArrayString seatStrings;
+	seatStrings.push_back("None");
 	for (auto it = project->getSeatBegin(); it != project->getSeatEnd(); ++it) {
-		seatArray.push_back(it->name);
+		seatStrings.push_back(it->name);
 	}
 	std::string comboBoxString;
-	if (selectedSeat >= int(seatArray.size())) {
-		selectedSeat = int(seatArray.size()) - 1;
-	}
-	if (selectedSeat >= 0) {
-		comboBoxString = seatArray[selectedSeat];
-	}
-
-	selectSeatComboBox = new wxComboBox(toolBar, PA_MapFrame_SelectSeatID, comboBoxString, wxPoint(0, 0), wxSize(150, 30), seatArray);
 	selectedSeat = 0;
-	selectSeatComboBox->Select(0);
+	comboBoxString = seatStrings[selectedSeat];
+
+	selectSeatComboBox = new wxComboBox(toolBar, PA_MapFrame_SelectSeatID, comboBoxString, wxPoint(0, 0), wxSize(150, 30), seatStrings);
+	selectSeatComboBox->Select(selectedSeat);
+
+	wxArrayString colourModeStrings;
+	colourModeStrings.push_back("Two-candidate preferred %");
+	colourModeStrings.push_back("Two-candidate preferred swing");
+	colourModeStrings.push_back("Highest primary vote");
+	colourModeStrings.push_back("Two-party preferred %");
+
+	selectedColourMode = 0;
+	comboBoxString = colourModeStrings[selectedColourMode];
+
+	colourModeComboBox = new wxComboBox(toolBar, PA_MapFrame_ColourModeID, comboBoxString, wxPoint(0, 0), wxSize(150, 30), colourModeStrings);
+	colourModeComboBox->Select(selectedColourMode);
 
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddControl(selectSeatComboBox);
+	toolBar->AddControl(colourModeComboBox);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -301,8 +310,10 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 	int leadingCandidate = (firstCandidateLeading ? 0 : 1);
 	int trailingCandidate = (firstCandidateLeading ? 1 : 0);
 
+	returnString += project->getCandidateById(booth.tcpCandidateId[leadingCandidate])->name;
+	returnString += " (";
 	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[leadingCandidate]))->shortCode;
-	returnString += ": ";
+	returnString += "): ";
 	returnString += std::to_string(booth.newTcpVote[leadingCandidate]);
 	returnString += " - ";
 	float leadingProportion = float(booth.newTcpVote[leadingCandidate]) / float(booth.totalNewTcpVotes());
@@ -316,6 +327,8 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 	}
 	returnString += "\n";
 
+	returnString += project->getCandidateById(booth.tcpCandidateId[trailingCandidate])->name;
+	returnString += " (";
 	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[trailingCandidate]))->shortCode;
 	returnString += ": ";
 	returnString += std::to_string(booth.newTcpVote[trailingCandidate]);
