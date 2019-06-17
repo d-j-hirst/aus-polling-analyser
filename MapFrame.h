@@ -56,13 +56,20 @@ private:
 
 	int calculateCircleSizeFromBooth(Results::Booth const& booth);
 
+	wxColour decideCircleColourFromBooth(Results::Booth const& booth);
+
+	bool decideCircleVisibilityFromBooth(Results::Booth const& booth);
+
 	void drawBoothsForSeat(Seat const& seat, wxDC& dc);
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
 
-	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnSimulationSelection(wxCommandEvent& WXUNUSED(event));
+	// Selects a new seat and redraws the map.
+	void OnSeatSelection(wxCommandEvent& WXUNUSED(event));
+
+	// Gets the colour mode the user has chosen and redraws the map.
+	void OnColourModeSelection(wxCommandEvent& WXUNUSED(event));
 
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);
@@ -124,10 +131,10 @@ private:
 	int selectedSeat = -1;
 
 	enum ColourMode {
-		Tcp,
+		TcpMargin,
 		TcpSwing,
 		TopPrimary,
-		Tpp,
+		TppMargin,
 		TppSwing,
 		SpecificPrimary // add an offset to this for the particular party
 	};

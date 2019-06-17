@@ -31,6 +31,7 @@ namespace Results {
 		int totalOldFpVotes() const { return std::accumulate(oldFpCandidates.begin(), oldFpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }
 		int totalNewFpVotes() const { return std::accumulate(fpCandidates.begin(), fpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }
 		bool isPPVC() const { return name.find("PPVC") != std::string::npos; }
+		// raw Swing in proportion terms (not percentage)
 		float rawSwing(int candidate = 0) const { 
 			if (!(totalNewTcpVotes() && totalOldTcpVotes())) return 0.0f; 
 			return float(newTcpVote[candidate]) / float(totalNewTcpVotes()) - float(tcpVote[candidate]) / float(totalOldTcpVotes());

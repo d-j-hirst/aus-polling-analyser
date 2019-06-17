@@ -51,7 +51,8 @@ MapFrame::MapFrame(ProjectFrame* const parent, PollingProject* project)
 	// Need to resize controls if this frame is resized.
 	//Bind(wxEVT_SIZE, &MapFrame::OnResize, this, PA_MapFrame_FrameID);
 
-	Bind(wxEVT_COMBOBOX, &MapFrame::OnSimulationSelection, this, PA_MapFrame_SelectSeatID);
+	Bind(wxEVT_COMBOBOX, &MapFrame::OnSeatSelection, this, PA_MapFrame_SelectSeatID);
+	Bind(wxEVT_COMBOBOX, &MapFrame::OnColourModeSelection, this, PA_MapFrame_ColourModeID);
 	dcPanel->Bind(wxEVT_MOTION, &MapFrame::OnMouseMove, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_PAINT, &MapFrame::OnPaint, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_MOUSEWHEEL, &MapFrame::OnMouseWheel, this, PA_MapFrame_DcPanelID);
@@ -89,21 +90,60 @@ int MapFrame::calculateCircleSizeFromBooth(Booth const & booth)
 	return std::clamp(int(std::log(booth.totalNewTcpVotes()) - 2.5f), 2, 6);
 }
 
-void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
+wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 {
-	if (!seat.latestResults) return;
-	for (int boothId : seat.latestResults->booths) {
-		auto const& booth = project->getBooth(boothId);
-		if (!booth.totalNewTcpVotes()) continue;
-		Point2Di mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
-		int winnerId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+	int winnerId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+	switch (selectedColourMode) {
+	case ColourMode::TcpMargin:
+	{
 		Party const* winnerParty = project->getPartyByCandidate(winnerId);
 		wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
 		float tcpMargin = float(std::max(booth.newTcpVote[0], booth.newTcpVote[1])) / float(booth.totalNewTcpVotes()) - 0.5f;
 		float colourFactor = std::clamp(tcpMargin * 4.0f, 0.0f, 1.0f);
 		wxColour finalColour = mixColour(winnerColour, wxColour(255, 255, 255), colourFactor);
+		return finalColour;
+	}
+	case ColourMode::TcpSwing:
+	{
+		wxColour finalColour = wxColour(255, 255, 255);
+		if (booth.hasOldAndNewResults()) {
+			int swingToId = (booth.rawSwing(0) > 0.0f ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+			Party const* swingToParty = project->getPartyByCandidate(swingToId);
+			float swingSize = abs(booth.rawSwing(0));
+			float colourFactor = std::clamp(swingSize * 6.0f, 0.0f, 1.0f);
+			wxColour partyColour = wxColour(swingToParty->colour.r, swingToParty->colour.g, swingToParty->colour.b, 255);
+			finalColour = mixColour(partyColour, finalColour, colourFactor);
+		}
+		return finalColour;
+	}
+	default:
+		return wxColour(255, 255, 255);
+	}
+}
+
+bool MapFrame::decideCircleVisibilityFromBooth(Results::Booth const & booth)
+{
+	switch (selectedColourMode) {
+	case ColourMode::TcpMargin:
+		if (!booth.totalNewTcpVotes()) return false;
+		break;
+	case ColourMode::TcpSwing:
+		if (!booth.hasOldAndNewResults()) return false;
+		break;
+	}
+	return true;
+}
+
+void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
+{
+	if (!seat.latestResults) return;
+	for (int boothId : seat.latestResults->booths) {
+		auto const& booth = project->getBooth(boothId);
+		if (!decideCircleVisibilityFromBooth(booth)) continue;
+		Point2Di mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 		int circleSize = calculateCircleSizeFromBooth(booth);
-		dc.SetBrush(finalColour);
+		wxColour boothColour = decideCircleColourFromBooth(booth);
+		dc.SetBrush(boothColour);
 		dc.DrawCircle(wxPoint(mapCoords.x, mapCoords.y), circleSize);
 	}
 }
@@ -111,8 +151,14 @@ void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 void MapFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 }
 
-void MapFrame::OnSimulationSelection(wxCommandEvent& WXUNUSED(event)) {
+void MapFrame::OnSeatSelection(wxCommandEvent& WXUNUSED(event)) {
 	selectedSeat = selectSeatComboBox->GetCurrentSelection();
+	paint();
+}
+
+void MapFrame::OnColourModeSelection(wxCommandEvent& WXUNUSED(event))
+{
+	selectedColourMode = colourModeComboBox->GetCurrentSelection();
 	paint();
 }
 
@@ -256,10 +302,10 @@ void MapFrame::refreshToolbar() {
 	selectSeatComboBox->Select(selectedSeat);
 
 	wxArrayString colourModeStrings;
-	colourModeStrings.push_back("Two-candidate preferred %");
+	colourModeStrings.push_back("Two-candidate preferred margin");
 	colourModeStrings.push_back("Two-candidate preferred swing");
 	colourModeStrings.push_back("Highest primary vote");
-	colourModeStrings.push_back("Two-party preferred %");
+	colourModeStrings.push_back("Two-party preferred margin");
 
 	selectedColourMode = 0;
 	comboBoxString = colourModeStrings[selectedColourMode];
