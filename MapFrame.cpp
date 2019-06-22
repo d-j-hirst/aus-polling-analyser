@@ -1,9 +1,12 @@
 #include "MapFrame.h"
+
 #include "General.h"
+#include "MiscGeometry.h"
 
 #include <wx/tokenzr.h> 
 
 #include <algorithm>
+#include <cmath>
 
 using Results::Booth;
 using Candidate = Results::Booth::Candidate;
@@ -79,10 +82,21 @@ wxColour mixColour(wxColour const& colour1, wxColour const& colour2, float colou
 	return wxColour(red, green, blue);
 }
 
+Point2Df MapFrame::webMercatorProjection(Point2Df const & latLong)
+{
+	float globeX = 0.5f * (1 + toRadians(latLong.x) / Pi_f);
+	float globeY = 0.5f * (1 - std::log(std::tan(toRadians(-latLong.y) * 0.5f + Pi_f * 0.25f)));
+	return { globeX, globeY };
+}
+
 Point2Di MapFrame::calculateScreenPosFromCoords(Point2Df coords)
 {
-	Point2Df mapCoords = coords.scale(dv.minCoords, dv.maxCoords).componentMultiplication(dv.dcSize());
-	return Point2Di(int(std::floor(mapCoords.x)), int(std::floor(mapCoords.y)));
+	Point2Df pointProjection = webMercatorProjection(coords);
+	Point2Df minProjection = webMercatorProjection(dv.minCoords);
+	Point2Df maxProjection = webMercatorProjection(dv.maxCoords);
+	Point2Df scaledProjection = pointProjection.scale(minProjection, maxProjection);
+	Point2Df screenProjection = scaledProjection.componentMultiplication(dv.dcSize());
+	return { int(std::floor(screenProjection.x)), int(std::floor(screenProjection.y)) };
 }
 
 int MapFrame::calculateCircleSizeFromBooth(Booth const & booth)
@@ -191,6 +205,20 @@ void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 	}
 }
 
+Point2Df MapFrame::getMinWorldCoords()
+{
+	auto currentLatitudeRange = project->boothLatitudeRange();
+	auto currentLongitudeRange = project->boothLongitudeRange();
+	return { currentLongitudeRange.x - 1.0f, currentLatitudeRange.x - 1.0f };
+}
+
+Point2Df MapFrame::getMaxWorldCoords()
+{
+	auto currentLatitudeRange = project->boothLatitudeRange();
+	auto currentLongitudeRange = project->boothLongitudeRange();
+	return { currentLongitudeRange.y + 1.0f, currentLatitudeRange.y + 1.0f };
+}
+
 void MapFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 }
 
@@ -218,10 +246,8 @@ void MapFrame::OnMouseMove(wxMouseEvent& event) {
 			Point2Df scaledPixelsMoved = Point2Df(pixelsMoved).scale(dv.dcTopLeft, dv.dcBottomRight);
 			Point2Df degreesMoved = -scaledPixelsMoved.componentMultiplication(mapSize);
 			Point2Df newTopLeft = dv.minCoords + degreesMoved;
-			auto currentLatitudeRange = project->boothLatitudeRange();
-			auto currentLongitudeRange = project->boothLongitudeRange();
-			Point2Df minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
-			Point2Df maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
+			Point2Df minCoords = getMinWorldCoords();
+			Point2Df maxCoords = getMaxWorldCoords();
 			newTopLeft = newTopLeft.max(minCoords);
 			newTopLeft = newTopLeft.min(maxCoords - mapSize);
 			dv.minCoords = newTopLeft;
@@ -245,10 +271,8 @@ void MapFrame::OnMouseWheel(wxMouseEvent& event)
 	Point2Df scrollCoords = scaledScrollPos.componentMultiplication(mapSize) + dv.minCoords;
 	Point2Df newMapSize = mapSize * zoomFactor;
 	Point2Df newTopLeft = scrollCoords - newMapSize * 0.5f;
-	auto currentLatitudeRange = project->boothLatitudeRange();
-	auto currentLongitudeRange = project->boothLongitudeRange();
-	Point2Df minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
-	Point2Df maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
+	Point2Df minCoords = getMinWorldCoords();
+	Point2Df maxCoords = getMaxWorldCoords();
 	Point2Df maxSize = maxCoords - minCoords;
 	newMapSize = newMapSize.min(maxSize);
 	newTopLeft = newTopLeft.max(minCoords);
@@ -280,6 +304,8 @@ void MapFrame::render(wxDC& dc) {
 
 	clearDC(dc);
 
+	if (project->boothLatitudeRange().isZero()) return;
+
 	defineGraphLimits();
 
 	// Background
@@ -290,11 +316,11 @@ void MapFrame::render(wxDC& dc) {
 	setBrushAndPen(backgroundGrey, dc);
 	dc.DrawRectangle(backgroundRect);
 
+	drawBackgroundMap(dc);
+
 	if (dv.minCoords.isZero()) {
-		auto currentLatitudeRange = project->boothLatitudeRange();
-		auto currentLongitudeRange = project->boothLongitudeRange();
-		dv.minCoords = { currentLongitudeRange.x, currentLatitudeRange.x };
-		dv.maxCoords = { currentLongitudeRange.y, currentLatitudeRange.y };
+		dv.minCoords = getMinWorldCoords();
+		dv.maxCoords = getMaxWorldCoords();
 	}
 
 	dc.SetPen(wxPen(wxColour(0, 0, 0), 1));
@@ -542,4 +568,17 @@ void MapFrame::drawBoothDetails(wxDC& dc)
 	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text & border
 	dc.DrawRoundedRectangle(wxRect(tooltipPos.x, tooltipPos.y, tooltipSize.x, tooltipSize.y), 3);
 	dc.DrawText(decideTooltipText(booth), wxPoint(textPoint.x, textPoint.y));
+}
+
+void MapFrame::drawBackgroundMap(wxDC& dc)
+{
+	if (dv.coordsRange().isZero()) return;
+	const Point2Df imageWorldTopLeft = { 110.84f, 9.5f };
+	const Point2Df imageWorldBottomRight = { 157.84f, 44.77f };
+	const Point2Di pixelTopLeft = calculateScreenPosFromCoords(imageWorldTopLeft);
+	const Point2Di pixelBottomRight = calculateScreenPosFromCoords(imageWorldBottomRight);
+	const Point2Di pixelSize = pixelBottomRight - pixelTopLeft;
+	wxImage image("bitmaps/map_australia.png", wxBITMAP_TYPE_PNG);
+	image = image.Rescale(pixelSize.x, pixelSize.y);
+	dc.DrawBitmap(wxBitmap(image), pixelTopLeft.x, pixelTopLeft.y);
 }

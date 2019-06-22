@@ -80,7 +80,7 @@ std::string Point2Df::stringify() const
 	return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
 }
 
-Point2Df Point2Df::scale(Point2Df zeroPoint, Point2Df onePoint)
+Point2Df Point2Df::scale(Point2Df zeroPoint, Point2Df onePoint) const
 {
 	Point2Df scaledPoint;
 	scaledPoint.x = (x - zeroPoint.x) / (onePoint.x - zeroPoint.x);

@@ -323,6 +323,7 @@
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="MapFrame.h" />
+    <ClInclude Include="MiscGeometry.h" />
     <ClInclude Include="Points.h" />
     <ClInclude Include="PreloadDataRetriever.h" />
     <ClInclude Include="PreviousElectionDataRetriever.h" />

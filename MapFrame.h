@@ -50,8 +50,13 @@ private:
 		Point2Df dcSize() { return dcBottomRight - dcTopLeft; };
 		Point2Df minCoords;
 		Point2Df maxCoords;
+		Point2Df coordsRange() { return maxCoords - minCoords; };
 	};
 
+	// converts to a point between 0 and 1 on the globe
+	Point2Df webMercatorProjection(Point2Df const& latLong);
+
+	// Given a set of world coordinates (lat/long) converts it to a pixel location on the map
 	Point2Di calculateScreenPosFromCoords(Point2Df coords);
 
 	int calculateCircleSizeFromBooth(Results::Booth const& booth);
@@ -61,6 +66,9 @@ private:
 	bool decideCircleVisibilityFromBooth(Results::Booth const& booth);
 
 	void drawBoothsForSeat(Seat const& seat, wxDC& dc);
+
+	Point2Df getMinWorldCoords();
+	Point2Df getMaxWorldCoords();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -113,6 +121,8 @@ private:
 
 	// Draws a tooltip for the pointed-to booth on the map with details of the poll results.
 	void drawBoothDetails(wxDC& dc);
+
+	void drawBackgroundMap(wxDC& dc);
 
 	// For handling horizontal scrolling of the visualiser
 	Point2Di dragStart = { -1, -1 };

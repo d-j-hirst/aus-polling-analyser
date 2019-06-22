@@ -419,9 +419,9 @@ struct Point2Df {
 	constexpr bool isZero() const { return (x == 0 && y == 0); }
     double distance(Point2Df other) const;
 	std::string stringify() const;
-	// returns the point's coordinates scales so that xBound and yBound
+	// returns the point's coordinates scaled so that xBound and yBound
 	// represent the new 0-1 values of returned coordinates
-	Point2Df scale(Point2Df zeroPoint, Point2Df onePoint);
+	Point2Df scale(Point2Df zeroPoint, Point2Df onePoint) const;
 	// New point with component-wise minima of this and the other given point
 	Point2Df min(Point2Df otherPoint) { return Point2Df(std::min(x, otherPoint.x), std::min(y, otherPoint.y)); }
 	// New point with component-wise maxima of this and the other given point
