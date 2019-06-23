@@ -1,0 +1,5 @@
+bitmaps/map_australia.png
+110.84
+9.5
+157.84
+44.77

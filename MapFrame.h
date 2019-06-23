@@ -54,6 +54,19 @@ private:
 		Point2Df coordsRange() { return maxCoords - minCoords; };
 	};
 
+	struct BackgroundMap {
+		std::string filename;
+		Point2Df topLeft; // plain lat/long coordinates
+		Point2Df bottomRight; // plain lat/long coordinates
+		wxImage image;
+		bool valid = false;
+		BackgroundMap(std::string filename, Point2Df topLeft, Point2Df bottomRight)
+			: filename(filename), topLeft(topLeft), bottomRight(bottomRight),
+			image(filename, wxBITMAP_TYPE_PNG) {}
+	};
+
+	void initialiseBackgroundMaps();
+
 	// converts to a point between 0 and 1 on the globe
 	Point2Df webMercatorProjection(Point2Df const& latLong);
 
@@ -127,7 +140,9 @@ private:
 	// Draws a tooltip for the pointed-to booth on the map with details of the poll results.
 	void drawBoothDetails(wxDC& dc);
 
-	void drawBackgroundMap(wxDC& dc);
+	void drawBackgroundMaps(wxDC& dc);
+
+	void drawBackgroundMap(wxDC& dc, BackgroundMap const& map);
 
 	// For handling horizontal scrolling of the visualiser
 	Point2Di dragStart = { -1, -1 };
@@ -161,4 +176,6 @@ private:
 	ProjectFrame* const parent;
 
 	bool displayPolls = true;
+
+	std::vector<BackgroundMap> backgroundMaps;
 };

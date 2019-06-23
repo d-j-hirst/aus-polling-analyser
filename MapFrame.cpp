@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 
 using Results::Booth;
 using Candidate = Results::Booth::Candidate;
@@ -59,6 +60,8 @@ MapFrame::MapFrame(ProjectFrame* const parent, PollingProject* project)
 	dcPanel->Bind(wxEVT_MOTION, &MapFrame::OnMouseMove, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_PAINT, &MapFrame::OnPaint, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_MOUSEWHEEL, &MapFrame::OnMouseWheel, this, PA_MapFrame_DcPanelID);
+
+	initialiseBackgroundMaps();
 }
 
 void MapFrame::paint() {
@@ -80,6 +83,24 @@ wxColour mixColour(wxColour const& colour1, wxColour const& colour2, float colou
 	unsigned char green = unsigned char(std::clamp(float(colour1.Green()) * colour1Percent + float(colour2.Green()) * (1.0f - colour1Percent), 0.0f, 255.0f));
 	unsigned char blue = unsigned char(std::clamp(float(colour1.Blue()) * colour1Percent + float(colour2.Blue()) * (1.0f - colour1Percent), 0.0f, 255.0f));
 	return wxColour(red, green, blue);
+}
+
+void MapFrame::initialiseBackgroundMaps()
+{
+	backgroundMaps.clear();
+	std::ifstream is("maps/maps.txt");
+	while (is) {
+		std::string filename;
+		std::getline(is, filename);
+		if (!is) break;
+		Point2Df topLeft;
+		is >> topLeft.x;
+		is >> topLeft.y;
+		Point2Df bottomRight;
+		is >> bottomRight.x;
+		is >> bottomRight.y;
+		backgroundMaps.push_back(BackgroundMap(filename, topLeft, bottomRight));
+	}
 }
 
 Point2Df MapFrame::webMercatorProjection(Point2Df const & latLong)
@@ -326,7 +347,7 @@ void MapFrame::render(wxDC& dc) {
 	setBrushAndPen(backgroundGrey, dc);
 	dc.DrawRectangle(backgroundRect);
 
-	drawBackgroundMap(dc);
+	drawBackgroundMaps(dc);
 
 	if (dv.minCoords.isZero()) {
 		dv.minCoords = getMinWorldCoords();
@@ -579,25 +600,30 @@ void MapFrame::drawBoothDetails(wxDC& dc)
 	dc.DrawText(decideTooltipText(booth), wxPoint(textPoint.x, textPoint.y));
 }
 
-void MapFrame::drawBackgroundMap(wxDC& dc)
+void MapFrame::drawBackgroundMaps(wxDC& dc)
 {
 	if (dv.coordsRange().isZero()) return;
-	const Point2Df imageWorldTopLeft = { 110.84f, 9.5f };
-	const Point2Df imageWorldBottomRight = { 157.84f, 44.77f };
-	const Point2Df imageScreenTopLeft = calculateScreenPosFromCoords(imageWorldTopLeft);
-	const Point2Df imageScreenBottomRight = calculateScreenPosFromCoords(imageWorldBottomRight);
+	logger << "Checkpoint A";
+	for (auto const& backgroundMap : backgroundMaps) {
+		logger << "Checkpoint B";
+		drawBackgroundMap(dc, backgroundMap);
+	}
+}
+
+void MapFrame::drawBackgroundMap(wxDC & dc, BackgroundMap const& map)
+{
+	const Point2Df imageScreenTopLeft = calculateScreenPosFromCoords(map.topLeft);
+	const Point2Df imageScreenBottomRight = calculateScreenPosFromCoords(map.bottomRight);
 	const Point2Df imageScreenSize = imageScreenBottomRight - imageScreenTopLeft;
 
-	wxImage image("bitmaps/map_australia.png", wxBITMAP_TYPE_PNG);
-
-	const Point2Df screenImageTopLeft = calculateImageCoordsFromScreenPos(dv.dcTopLeft, image, imageWorldTopLeft, imageWorldBottomRight);
-	const Point2Df screenImageBottomRight = calculateImageCoordsFromScreenPos(dv.dcBottomRight, image, imageWorldTopLeft, imageWorldBottomRight);
-	const Point2Di imageSize = { image.GetWidth(), image.GetHeight() };
+	const Point2Df screenImageTopLeft = calculateImageCoordsFromScreenPos(dv.dcTopLeft, map.image, map.topLeft, map.bottomRight);
+	const Point2Df screenImageBottomRight = calculateImageCoordsFromScreenPos(dv.dcBottomRight, map.image, map.topLeft, map.bottomRight);
+	const Point2Di imageSize = { map.image.GetWidth(), map.image.GetHeight() };
 	const Point2Di subimageImageTopLeft = Point2Di(screenImageTopLeft).max({ 0, 0 });
 	const Point2Di subimageImageBottomRight = (Point2Di(screenImageBottomRight) + Point2Di(1, 1)).min(imageSize);
 	wxRect subImageRect = wxRect(wxPoint(subimageImageTopLeft.x, subimageImageTopLeft.y),
 		wxPoint(subimageImageBottomRight.x, subimageImageBottomRight.y));
-	wxImage subimage = image.GetSubImage(subImageRect);
+	wxImage subimage = map.image.GetSubImage(subImageRect);
 
 	const Point2Df subimageScreenPosTopLeft = Point2Df(subimageImageTopLeft).scale({ 0, 0 }, Point2Df(imageSize))
 		.componentMultiplication(imageScreenSize) + imageScreenTopLeft;
