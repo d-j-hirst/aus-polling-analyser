@@ -584,7 +584,6 @@ void MapFrame::drawBackgroundMap(wxDC& dc)
 	if (dv.coordsRange().isZero()) return;
 	const Point2Df imageWorldTopLeft = { 110.84f, 9.5f };
 	const Point2Df imageWorldBottomRight = { 157.84f, 44.77f };
-	const Point2Df imageWorldSize = imageWorldBottomRight - imageWorldTopLeft;
 	const Point2Df imageScreenTopLeft = calculateScreenPosFromCoords(imageWorldTopLeft);
 	const Point2Df imageScreenBottomRight = calculateScreenPosFromCoords(imageWorldBottomRight);
 	const Point2Df imageScreenSize = imageScreenBottomRight - imageScreenTopLeft;
