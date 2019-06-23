@@ -89,14 +89,24 @@ Point2Df MapFrame::webMercatorProjection(Point2Df const & latLong)
 	return { globeX, globeY };
 }
 
-Point2Di MapFrame::calculateScreenPosFromCoords(Point2Df coords)
+Point2Df MapFrame::calculateScreenPosFromCoords(Point2Df coords)
 {
 	Point2Df pointProjection = webMercatorProjection(coords);
 	Point2Df minProjection = webMercatorProjection(dv.minCoords);
 	Point2Df maxProjection = webMercatorProjection(dv.maxCoords);
 	Point2Df scaledProjection = pointProjection.scale(minProjection, maxProjection);
 	Point2Df screenProjection = scaledProjection.componentMultiplication(dv.dcSize());
-	return { int(std::floor(screenProjection.x)), int(std::floor(screenProjection.y)) };
+	return screenProjection;
+}
+
+Point2Df MapFrame::calculateImageCoordsFromScreenPos(Point2Df screenPos, wxImage const& image, Point2Df imageTopLeft, Point2Df imageBottomRight)
+{
+	Point2Df imageTopLeftScreenPos = calculateScreenPosFromCoords(imageTopLeft);
+	Point2Df imageBottomRightScreenPos = calculateScreenPosFromCoords(imageBottomRight);
+	Point2Df screenPosRelative = screenPos.scale(imageTopLeftScreenPos, imageBottomRightScreenPos);
+	Point2Df imageSize = { float(image.GetWidth()), float(image.GetHeight()) };
+	Point2Df imageCoords = screenPosRelative.componentMultiplication(imageSize);
+	return imageCoords;
 }
 
 int MapFrame::calculateCircleSizeFromBooth(Booth const & booth)
@@ -197,11 +207,11 @@ void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 	for (int boothId : seat.latestResults->booths) {
 		auto const& booth = project->getBooth(boothId);
 		if (!decideCircleVisibilityFromBooth(booth)) continue;
-		Point2Di mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+		Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 		int circleSize = calculateCircleSizeFromBooth(booth);
 		wxColour boothColour = decideCircleColourFromBooth(booth);
 		dc.SetBrush(boothColour);
-		dc.DrawCircle(wxPoint(mapCoords.x, mapCoords.y), circleSize);
+		dc.DrawCircle(wxPoint(int(std::floor(mapCoords.x)), int(std::floor(mapCoords.y))), circleSize);
 	}
 }
 
@@ -407,9 +417,8 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 		for (int boothId : seat->latestResults->booths) {
 			auto const& booth = project->getBooth(boothId);
 			if (!booth.totalNewTcpVotes()) continue;
-			Point2Di mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
-			Point2Df mapCoordsF = Point2Df(mapCoords);
-			float thisDistance = mousePosF.distance(mapCoordsF);
+			Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+			float thisDistance = mousePosF.distance(mapCoords);
 			int circleSize = calculateCircleSizeFromBooth(booth);
 			if (thisDistance < smallestDistance && thisDistance <= circleSize + 1) {
 				smallestDistance = thisDistance;
@@ -560,9 +569,9 @@ void MapFrame::drawBoothDetails(wxDC& dc)
 	if (mouseoverBooth == -1) return;
 	dc.SetFont(TooltipFont);
 	auto const& booth = project->getBooth(mouseoverBooth);
-	Point2Di screenPos = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+	Point2Df screenPos = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 	Point2Di tooltipSize = calculateTooltipSize(dc, booth);
-	Point2Di tooltipPos = calculateTooltipPosition(screenPos, tooltipSize);
+	Point2Di tooltipPos = calculateTooltipPosition(Point2Di(screenPos), tooltipSize);
 	Point2Di textPoint = tooltipPos + Point2Di(3, 3);
 	dc.SetBrush(wxBrush(wxColour(255, 255, 255))); // white background
 	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text & border
@@ -575,10 +584,30 @@ void MapFrame::drawBackgroundMap(wxDC& dc)
 	if (dv.coordsRange().isZero()) return;
 	const Point2Df imageWorldTopLeft = { 110.84f, 9.5f };
 	const Point2Df imageWorldBottomRight = { 157.84f, 44.77f };
-	const Point2Di pixelTopLeft = calculateScreenPosFromCoords(imageWorldTopLeft);
-	const Point2Di pixelBottomRight = calculateScreenPosFromCoords(imageWorldBottomRight);
-	const Point2Di pixelSize = pixelBottomRight - pixelTopLeft;
+	const Point2Df imageWorldSize = imageWorldBottomRight - imageWorldTopLeft;
+	const Point2Df imageScreenTopLeft = calculateScreenPosFromCoords(imageWorldTopLeft);
+	const Point2Df imageScreenBottomRight = calculateScreenPosFromCoords(imageWorldBottomRight);
+	const Point2Df imageScreenSize = imageScreenBottomRight - imageScreenTopLeft;
+
 	wxImage image("bitmaps/map_australia.png", wxBITMAP_TYPE_PNG);
-	image = image.Rescale(pixelSize.x, pixelSize.y);
-	dc.DrawBitmap(wxBitmap(image), pixelTopLeft.x, pixelTopLeft.y);
+
+	const Point2Df screenImageTopLeft = calculateImageCoordsFromScreenPos(dv.dcTopLeft, image, imageWorldTopLeft, imageWorldBottomRight);
+	const Point2Df screenImageBottomRight = calculateImageCoordsFromScreenPos(dv.dcBottomRight, image, imageWorldTopLeft, imageWorldBottomRight);
+	const Point2Di imageSize = { image.GetWidth(), image.GetHeight() };
+	const Point2Di subimageImageTopLeft = Point2Di(screenImageTopLeft).max({ 0, 0 });
+	const Point2Di subimageImageBottomRight = (Point2Di(screenImageBottomRight) + Point2Di(1, 1)).min(imageSize);
+	wxRect subImageRect = wxRect(wxPoint(subimageImageTopLeft.x, subimageImageTopLeft.y),
+		wxPoint(subimageImageBottomRight.x, subimageImageBottomRight.y));
+	wxImage subimage = image.GetSubImage(subImageRect);
+
+	const Point2Df subimageScreenPosTopLeft = Point2Df(subimageImageTopLeft).scale({ 0, 0 }, Point2Df(imageSize))
+		.componentMultiplication(imageScreenSize) + imageScreenTopLeft;
+	const Point2Df subimageScreenPosBottomRight = Point2Df(subimageImageBottomRight).scale({ 0, 0 }, Point2Df(imageSize))
+		.componentMultiplication(imageScreenSize) + imageScreenTopLeft;
+
+	const Point2Di pixelSize = Point2Di(subimageScreenPosBottomRight) - Point2Di(subimageScreenPosTopLeft);
+	const Point2Di pixelTopLeft = Point2Di(subimageScreenPosTopLeft);
+
+	subimage.Rescale(pixelSize.x, pixelSize.y);
+	dc.DrawBitmap(wxBitmap(subimage), pixelTopLeft.x, pixelTopLeft.y);
 }

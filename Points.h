@@ -317,6 +317,7 @@ struct Point2Di {
 	constexpr explicit Point2Di(int in) : x(in), y(in) {}
 	constexpr Point2Di() : x(0), y(0) {}
     explicit Point2Di(Point3D point) : x(int(floor(point.x))), y(int(floor(point.y))) {}
+	explicit Point2Di(Point2Df point);
 	constexpr int minimum() const { return std::min(x, y); }
 	constexpr int maximum() const { return std::max(x, y); }
 	constexpr Point2Di add_x(int xx) const { return Point2Di(x + xx, y); }
@@ -326,6 +327,10 @@ struct Point2Di {
 	constexpr Point2Di subtract(Point2Di point) const { return Point2Di(x - point.x, y - point.y); }
 	constexpr Point2Di subtract(int xx, int yy) const { return Point2Di(x - xx, y - yy); }
 	constexpr Point2Di halve() const { return Point2Di(x / 2, y / 2); }
+	// New point with component-wise minima of this and the other given point
+	Point2Di min(Point2Di otherPoint) const { return Point2Di(std::min(x, otherPoint.x), std::min(y, otherPoint.y)); }
+	// New point with component-wise maxima of this and the other given point
+	Point2Di max(Point2Di otherPoint) const { return Point2Di(std::max(x, otherPoint.x), std::max(y, otherPoint.y)); }
 	constexpr bool isWithin(Point2Di lowPoint, Point2Di highPoint) const {
         if (x < lowPoint.x) return false;
         if (x > highPoint.x) return false;
@@ -423,9 +428,9 @@ struct Point2Df {
 	// represent the new 0-1 values of returned coordinates
 	Point2Df scale(Point2Df zeroPoint, Point2Df onePoint) const;
 	// New point with component-wise minima of this and the other given point
-	Point2Df min(Point2Df otherPoint) { return Point2Df(std::min(x, otherPoint.x), std::min(y, otherPoint.y)); }
+	Point2Df min(Point2Df otherPoint) const { return Point2Df(std::min(x, otherPoint.x), std::min(y, otherPoint.y)); }
 	// New point with component-wise maxima of this and the other given point
-	Point2Df max(Point2Df otherPoint) { return Point2Df(std::max(x, otherPoint.x), std::max(y, otherPoint.y)); }
+	Point2Df max(Point2Df otherPoint) const { return Point2Df(std::max(x, otherPoint.x), std::max(y, otherPoint.y)); }
     float x;
     float y;
 };

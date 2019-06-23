@@ -65,6 +65,11 @@ std::string Point3Di::stringify() const
 
 // Point2Di
 
+Point2Di::Point2Di(Point2Df point)
+	: x(int(std::floor(point.x))), y (int(std::floor(point.y)))
+{
+}
+
 std::string Point2Di::stringify() const
 {
 	return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";

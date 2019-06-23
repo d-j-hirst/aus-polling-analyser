@@ -23,6 +23,7 @@
 #include <memory>
 
 class ProjectFrame;
+class wxImage;
 
 // *** DisplayFrame ***
 // Frame that displays the results of election simulations
@@ -57,7 +58,11 @@ private:
 	Point2Df webMercatorProjection(Point2Df const& latLong);
 
 	// Given a set of world coordinates (lat/long) converts it to a pixel location on the map
-	Point2Di calculateScreenPosFromCoords(Point2Df coords);
+	Point2Df calculateScreenPosFromCoords(Point2Df coords);
+
+	// calculates the coordinates that the given screen position will have on the given image, given the
+	// world-coordinates of image boundaries are defined by imageTopLeft and imageBottomRight
+	Point2Df calculateImageCoordsFromScreenPos(Point2Df screenPos, wxImage const& image, Point2Df imageTopLeft, Point2Df imageBottomRight);
 
 	int calculateCircleSizeFromBooth(Results::Booth const& booth);
 
