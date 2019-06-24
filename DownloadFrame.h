@@ -58,6 +58,15 @@ private:
 
 	void OnGetLatestBoothData(wxCommandEvent& event);
 
+	void OnDownloadCompleteData(wxCommandEvent& event);
+
+	void collectHistoricBoothData(bool skipPrompt = false);
+	void collectPreloadData(bool skipPrompt = false);
+	void collectCustomBoothData(bool skipPrompt = false);
+	void collectLatestBoothData(bool skipPrompt = false);
+
+	void collectCompleteData(bool skipPrompt = false);
+
 	void refreshToolbar();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.

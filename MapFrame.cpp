@@ -603,9 +603,7 @@ void MapFrame::drawBoothDetails(wxDC& dc)
 void MapFrame::drawBackgroundMaps(wxDC& dc)
 {
 	if (dv.coordsRange().isZero()) return;
-	logger << "Checkpoint A";
 	for (auto const& backgroundMap : backgroundMaps) {
-		logger << "Checkpoint B";
 		drawBackgroundMap(dc, backgroundMap);
 	}
 }
