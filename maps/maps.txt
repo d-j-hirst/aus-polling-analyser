@@ -3,3 +3,8 @@ bitmaps/map_australia.png
 9.5
 157.84
 44.77
+bitmaps/map_victoria.png
+140.42
+33.61
+150.45
+39.33

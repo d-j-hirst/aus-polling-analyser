@@ -19,6 +19,7 @@ enum {
 	PA_MapFrame_DcPanelID,
 	PA_MapFrame_SelectSeatID,
 	PA_MapFrame_ColourModeID,
+	PA_MapFrame_RefreshMapsID,
 };
 
 const wxFont TooltipFont = wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
@@ -56,6 +57,7 @@ MapFrame::MapFrame(ProjectFrame* const parent, PollingProject* project)
 	//Bind(wxEVT_SIZE, &MapFrame::OnResize, this, PA_MapFrame_FrameID);
 
 	Bind(wxEVT_COMBOBOX, &MapFrame::OnSeatSelection, this, PA_MapFrame_SelectSeatID);
+	Bind(wxEVT_TOOL, &MapFrame::OnMapRefresh, this, PA_MapFrame_RefreshMapsID);
 	Bind(wxEVT_COMBOBOX, &MapFrame::OnColourModeSelection, this, PA_MapFrame_ColourModeID);
 	dcPanel->Bind(wxEVT_MOTION, &MapFrame::OnMouseMove, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_PAINT, &MapFrame::OnPaint, this, PA_MapFrame_DcPanelID);
@@ -91,7 +93,7 @@ void MapFrame::initialiseBackgroundMaps()
 	std::ifstream is("maps/maps.txt");
 	while (is) {
 		std::string filename;
-		std::getline(is, filename);
+		is >> filename;
 		if (!is) break;
 		Point2Df topLeft;
 		is >> topLeft.x;
@@ -264,6 +266,11 @@ void MapFrame::OnColourModeSelection(wxCommandEvent& WXUNUSED(event))
 	paint();
 }
 
+void MapFrame::OnMapRefresh(wxCommandEvent& WXUNUSED(event))
+{
+	this->initialiseBackgroundMaps();
+}
+
 // Handles the movement of the mouse in the display frame.
 void MapFrame::OnMouseMove(wxMouseEvent& event) {
 	Point2Di mousePos = Point2Di(event.GetX(), event.GetY());
@@ -382,7 +389,7 @@ void MapFrame::refreshToolbar() {
 	if (toolBar) toolBar->Destroy();
 
 	// Initialize the toolbar.
-	toolBar = new wxToolBar(this, wxID_ANY);
+	toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_HORZ_TEXT | wxTB_NOICONS);
 
 	// *** Simulation Combo Box *** //
 
@@ -420,6 +427,8 @@ void MapFrame::refreshToolbar() {
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddControl(selectSeatComboBox);
 	toolBar->AddControl(colourModeComboBox);
+	toolBar->AddSeparator();
+	toolBar->AddTool(PA_MapFrame_RefreshMapsID, "Refresh Map", wxNullBitmap, wxNullBitmap, wxITEM_NORMAL, "Refresh Map");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -618,7 +627,7 @@ void MapFrame::drawBackgroundMap(wxDC & dc, BackgroundMap const& map)
 	const Point2Df screenImageBottomRight = calculateImageCoordsFromScreenPos(dv.dcBottomRight, map.image, map.topLeft, map.bottomRight);
 	const Point2Di imageSize = { map.image.GetWidth(), map.image.GetHeight() };
 	const Point2Di subimageImageTopLeft = Point2Di(screenImageTopLeft).max({ 0, 0 });
-	const Point2Di subimageImageBottomRight = (Point2Di(screenImageBottomRight) + Point2Di(1, 1)).min(imageSize);
+	const Point2Di subimageImageBottomRight = (Point2Di(screenImageBottomRight) + Point2Di(1, 1)).min(imageSize - Point2Di(1, 1));
 	wxRect subImageRect = wxRect(wxPoint(subimageImageTopLeft.x, subimageImageTopLeft.y),
 		wxPoint(subimageImageBottomRight.x, subimageImageBottomRight.y));
 	wxImage subimage = map.image.GetSubImage(subImageRect);

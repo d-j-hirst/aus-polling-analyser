@@ -92,10 +92,13 @@ private:
 	void OnResize(wxSizeEvent& WXUNUSED(event));
 
 	// Selects a new seat and redraws the map.
-	void OnSeatSelection(wxCommandEvent& WXUNUSED(event));
+	void OnSeatSelection(wxCommandEvent& event);
 
 	// Gets the colour mode the user has chosen and redraws the map.
-	void OnColourModeSelection(wxCommandEvent& WXUNUSED(event));
+	void OnColourModeSelection(wxCommandEvent& event);
+
+	// Refreshes the map files so that they can be updated without requiring a game restart.
+	void OnMapRefresh(wxCommandEvent& event);
 
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);
