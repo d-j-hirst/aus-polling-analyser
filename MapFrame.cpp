@@ -108,7 +108,10 @@ void MapFrame::initialiseBackgroundMaps()
 Point2Df MapFrame::webMercatorProjection(Point2Df const & latLong)
 {
 	float globeX = 0.5f * (1 + toRadians(latLong.x) / Pi_f);
-	float globeY = 0.5f * (1 - std::log(std::tan(toRadians(-latLong.y) * 0.5f + Pi_f * 0.25f)));
+	// The 0.7f that follows is a fudge factor to keep directional proportionality when using OSM's map tiles
+	// Value was found via trial and error and does not seem to be related to anything in particular
+	// but it works ...
+	float globeY = 0.7f * (1 - std::log(std::tan(toRadians(-latLong.y) * 0.5f + Pi_f * 0.25f)));
 	return { globeX, globeY };
 }
 
@@ -252,6 +255,25 @@ Point2Df MapFrame::getMaxWorldCoords()
 	return { currentLongitudeRange.y + 1.0f, currentLatitudeRange.y + 1.0f };
 }
 
+MapFrame::RectF MapFrame::getMaximumBounds()
+{
+	Point2Df minCoords = getMinWorldCoords();
+	Point2Df maxCoords = getMaxWorldCoords();
+	float dcRatio = dv.dcSize().y / dv.dcSize().x;
+	for (int i = 0; i < 1; ++i) {
+		Point2Df minProjection = webMercatorProjection(minCoords);
+		Point2Df maxProjection = webMercatorProjection(maxCoords);
+		float projectionRatio = (maxProjection.y - minProjection.y) / (maxProjection.x / minProjection.x);
+		if (projectionRatio < dcRatio) {
+			maxCoords.x = minCoords.x + (maxCoords.x - minCoords.x) * (dcRatio / projectionRatio);
+		}
+		else if (projectionRatio > dcRatio) {
+			maxCoords.y = minCoords.y + (maxCoords.y - minCoords.y) * (projectionRatio / dcRatio);
+		}
+	}
+	return { minCoords, maxCoords };
+}
+
 void MapFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 }
 
@@ -284,10 +306,9 @@ void MapFrame::OnMouseMove(wxMouseEvent& event) {
 			Point2Df scaledPixelsMoved = Point2Df(pixelsMoved).scale(dv.dcTopLeft, dv.dcBottomRight);
 			Point2Df degreesMoved = -scaledPixelsMoved.componentMultiplication(mapSize);
 			Point2Df newTopLeft = dv.minCoords + degreesMoved;
-			Point2Df minCoords = getMinWorldCoords();
-			Point2Df maxCoords = getMaxWorldCoords();
-			newTopLeft = newTopLeft.max(minCoords);
-			newTopLeft = newTopLeft.min(maxCoords - mapSize);
+			RectF bounds = getMaximumBounds();
+			newTopLeft = newTopLeft.max(bounds.topLeft);
+			newTopLeft = newTopLeft.min(bounds.bottomRight - mapSize);
 			dv.minCoords = newTopLeft;
 			dv.maxCoords = newTopLeft + mapSize;
 			dragStart = mousePos;
@@ -308,13 +329,11 @@ void MapFrame::OnMouseWheel(wxMouseEvent& event)
 	Point2Df scaledScrollPos = Point2Df(mousePos).scale(dv.dcTopLeft, dv.dcBottomRight);
 	Point2Df scrollCoords = scaledScrollPos.componentMultiplication(mapSize) + dv.minCoords;
 	Point2Df newMapSize = mapSize * zoomFactor;
+	RectF bound = getMaximumBounds();
+	newMapSize = newMapSize.min(bound.bottomRight - bound.topLeft);
 	Point2Df newTopLeft = scrollCoords - newMapSize * 0.5f;
-	Point2Df minCoords = getMinWorldCoords();
-	Point2Df maxCoords = getMaxWorldCoords();
-	Point2Df maxSize = maxCoords - minCoords;
-	newMapSize = newMapSize.min(maxSize);
-	newTopLeft = newTopLeft.max(minCoords);
-	newTopLeft = newTopLeft.min(maxCoords - newMapSize);
+	newTopLeft = newTopLeft.max(bound.topLeft);
+	newTopLeft = newTopLeft.min(bound.bottomRight - newMapSize);
 	dv.minCoords = newTopLeft;
 	dv.maxCoords = newTopLeft + newMapSize;
 	updateMouseoverBooth(mousePos);
@@ -357,8 +376,9 @@ void MapFrame::render(wxDC& dc) {
 	drawBackgroundMaps(dc);
 
 	if (dv.minCoords.isZero()) {
-		dv.minCoords = getMinWorldCoords();
-		dv.maxCoords = getMaxWorldCoords();
+		RectF bound = getMaximumBounds();
+		dv.minCoords = bound.topLeft;
+		dv.maxCoords = bound.bottomRight;
 	}
 
 	dc.SetPen(wxPen(wxColour(0, 0, 0), 1));

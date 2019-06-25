@@ -45,6 +45,11 @@ public:
 
 private:
 
+	struct RectF {
+		Point2Df topLeft;
+		Point2Df bottomRight;
+	};
+
 	struct DisplayVariables {
 		Point2Df dcTopLeft;
 		Point2Df dcBottomRight;
@@ -87,6 +92,7 @@ private:
 
 	Point2Df getMinWorldCoords();
 	Point2Df getMaxWorldCoords();
+	RectF getMaximumBounds();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
