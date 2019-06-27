@@ -508,7 +508,7 @@ std::string MapFrame::decideTooltipText(Booth const & booth)
 	returnString += project->getCandidateById(booth.tcpCandidateId[trailingCandidate])->name;
 	returnString += " (";
 	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[trailingCandidate]))->shortCode;
-	returnString += ": ";
+	returnString += "): ";
 	returnString += std::to_string(booth.newTcpVote[trailingCandidate]);
 	returnString += " - ";
 	float trailingProportion = float(booth.newTcpVote[trailingCandidate]) / float(booth.totalNewTcpVotes());
@@ -644,7 +644,7 @@ void MapFrame::drawBackgroundMap(wxDC & dc, BackgroundMap const& map)
 	const Point2Df imageScreenSize = imageScreenBottomRight - imageScreenTopLeft;
 
 	// don't draw really small maps since the detail won't be sufficiently visible
-	if (imageScreenSize.x < dv.dcSize().x * 0.85f && imageScreenSize.y < dv.dcSize().y * 0.85f) return;
+	if (imageScreenSize.x < dv.dcSize().x * 0.88f && imageScreenSize.y < dv.dcSize().y * 0.88f) return;
 
 	const Point2Df screenImageTopLeft = calculateImageCoordsFromScreenPos(dv.dcTopLeft, map.image, map.topLeft, map.bottomRight);
 	const Point2Df screenImageBottomRight = calculateImageCoordsFromScreenPos(dv.dcBottomRight, map.image, map.topLeft, map.bottomRight);
