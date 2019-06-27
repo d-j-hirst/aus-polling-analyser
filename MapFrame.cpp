@@ -644,13 +644,16 @@ void MapFrame::drawBackgroundMap(wxDC & dc, BackgroundMap const& map)
 	const Point2Df imageScreenSize = imageScreenBottomRight - imageScreenTopLeft;
 
 	// don't draw really small maps since the detail won't be sufficiently visible
-	if (imageScreenSize.x < dv.dcSize().x * 0.6f && imageScreenSize.y < dv.dcSize().y * 0.6f) return;
+	if (imageScreenSize.x < dv.dcSize().x * 0.85f && imageScreenSize.y < dv.dcSize().y * 0.85f) return;
 
 	const Point2Df screenImageTopLeft = calculateImageCoordsFromScreenPos(dv.dcTopLeft, map.image, map.topLeft, map.bottomRight);
 	const Point2Df screenImageBottomRight = calculateImageCoordsFromScreenPos(dv.dcBottomRight, map.image, map.topLeft, map.bottomRight);
 	const Point2Di imageSize = { map.image.GetWidth(), map.image.GetHeight() };
 	const Point2Di subimageImageTopLeft = Point2Di(screenImageTopLeft).max({ 0, 0 });
 	const Point2Di subimageImageBottomRight = (Point2Di(screenImageBottomRight) + Point2Di(1, 1)).min(imageSize - Point2Di(1, 1));
+
+	// shouldn't attempt to draw maps with zero or smaller size
+	if (subimageImageBottomRight.x <= subimageImageTopLeft.x || subimageImageBottomRight.y <= subimageImageTopLeft.y) return;
 	wxRect subImageRect = wxRect(wxPoint(subimageImageTopLeft.x, subimageImageTopLeft.y),
 		wxPoint(subimageImageBottomRight.x, subimageImageBottomRight.y));
 	wxImage subimage = map.image.GetSubImage(subImageRect);
