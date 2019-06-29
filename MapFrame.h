@@ -106,6 +106,9 @@ private:
 	// Refreshes the map files so that they can be updated without requiring a game restart.
 	void OnMapRefresh(wxCommandEvent& event);
 
+	// Refreshes the map files so that they can be updated without requiring a game restart.
+	void OnTogglePpvcs(wxCommandEvent& event);
+
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);
 
@@ -184,7 +187,7 @@ private:
 	// A pointer to the parent frame.
 	ProjectFrame* const parent;
 
-	bool displayPolls = true;
+	bool displayPpvcs = true;
 
 	std::vector<BackgroundMap> backgroundMaps;
 };

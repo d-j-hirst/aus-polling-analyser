@@ -20,6 +20,7 @@ enum {
 	PA_MapFrame_SelectSeatID,
 	PA_MapFrame_ColourModeID,
 	PA_MapFrame_RefreshMapsID,
+	PA_MapFrame_ShowPpvcID,
 };
 
 const wxFont TooltipFont = wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
@@ -57,8 +58,9 @@ MapFrame::MapFrame(ProjectFrame* const parent, PollingProject* project)
 	//Bind(wxEVT_SIZE, &MapFrame::OnResize, this, PA_MapFrame_FrameID);
 
 	Bind(wxEVT_COMBOBOX, &MapFrame::OnSeatSelection, this, PA_MapFrame_SelectSeatID);
-	Bind(wxEVT_TOOL, &MapFrame::OnMapRefresh, this, PA_MapFrame_RefreshMapsID);
 	Bind(wxEVT_COMBOBOX, &MapFrame::OnColourModeSelection, this, PA_MapFrame_ColourModeID);
+	Bind(wxEVT_TOOL, &MapFrame::OnMapRefresh, this, PA_MapFrame_RefreshMapsID);
+	Bind(wxEVT_TOOL, &MapFrame::OnTogglePpvcs, this, PA_MapFrame_ShowPpvcID);
 	dcPanel->Bind(wxEVT_MOTION, &MapFrame::OnMouseMove, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_PAINT, &MapFrame::OnPaint, this, PA_MapFrame_DcPanelID);
 	dcPanel->Bind(wxEVT_MOUSEWHEEL, &MapFrame::OnMouseWheel, this, PA_MapFrame_DcPanelID);
@@ -201,6 +203,7 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 
 bool MapFrame::decideCircleVisibilityFromBooth(Results::Booth const & booth)
 {
+	if (booth.isPPVC() && !displayPpvcs) return false;
 	switch (selectedColourMode) {
 	case ColourMode::TcpMargin:
 		if (!booth.totalNewTcpVotes()) return false;
@@ -290,7 +293,13 @@ void MapFrame::OnColourModeSelection(wxCommandEvent& WXUNUSED(event))
 
 void MapFrame::OnMapRefresh(wxCommandEvent& WXUNUSED(event))
 {
-	this->initialiseBackgroundMaps();
+	initialiseBackgroundMaps();
+}
+
+void MapFrame::OnTogglePpvcs(wxCommandEvent & event)
+{
+	displayPpvcs = bool(event.GetInt());
+	paint();
 }
 
 // Handles the movement of the mouse in the display frame.
@@ -449,6 +458,8 @@ void MapFrame::refreshToolbar() {
 	toolBar->AddControl(colourModeComboBox);
 	toolBar->AddSeparator();
 	toolBar->AddTool(PA_MapFrame_RefreshMapsID, "Refresh Map", wxNullBitmap, wxNullBitmap, wxITEM_NORMAL, "Refresh Map");
+	toolBar->AddCheckTool(PA_MapFrame_ShowPpvcID, "Show PPVCs", wxNullBitmap);
+	toolBar->ToggleTool(PA_MapFrame_ShowPpvcID, true);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
