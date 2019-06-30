@@ -10,6 +10,7 @@ exha=0
 abbr=ALP
 cap =1
 supp=1
+bcmt=1.60000002384
 ideo=1
 cons=2
 code=ALP
@@ -24,6 +25,7 @@ exha=0
 abbr=LNP
 cap =2
 supp=2
+bcmt=1.60000002384
 ideo=3
 cons=1
 code=LIB
@@ -42,6 +44,7 @@ exha=0
 abbr=GRN
 cap =0
 supp=1
+bcmt=1
 ideo=0
 cons=2
 code=GRN
@@ -56,6 +59,7 @@ exha=0
 abbr=UAP
 cap =0
 supp=2
+bcmt=1.60000002384
 ideo=3
 cons=0
 code=UAP
@@ -70,6 +74,7 @@ exha=0
 abbr=KAP
 cap =0
 supp=2
+bcmt=1.60000002384
 ideo=3
 cons=0
 code=KAP
@@ -83,6 +88,7 @@ exha=0
 abbr=CA
 cap =0
 supp=0
+bcmt=1.60000002384
 ideo=2
 cons=1
 code=NXT
@@ -98,6 +104,7 @@ exha=0
 abbr=IND
 cap =0
 supp=0
+bcmt=1.60000002384
 ideo=2
 cons=1
 code=IND
@@ -111,6 +118,7 @@ exha=0
 abbr=ONP
 cap =0
 supp=2
+bcmt=1.60000002384
 ideo=4
 cons=0
 code=ON
@@ -38913,1055 +38921,1055 @@ swng=-6.38234901428
 cnt =84.4508666992
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=149
 swng=-1.52252912521
 cnt =88.6056900024
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=148
 swng=-1.7618983984
 cnt =87.2767715454
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=147
 swng=-1.22250914574
 cnt =90.2267303467
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=146
 swng=5.27746677399
 cnt =90.5997009277
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=145
 swng=-4.08733463287
 cnt =79.3209838867
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=144
 swng=-2.0468711853
 cnt =66.3924713135
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=143
 swng=1.34987831116
 cnt =89.8762969971
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=142
 swng=1.56682431698
 cnt =91.7017974854
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=141
 swng=4.06692028046
 cnt =90.0116424561
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=140
 swng=-5.24443674088
 cnt =88.3564376831
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=139
 swng=-6.96243333817
 cnt =89.8094863892
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=138
 swng=-1.93390250206
 cnt =84.2651901245
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=137
 swng=0.443631410599
 cnt =88.5339813232
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=136
 swng=1.4740973711
 cnt =91.3251724243
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=135
 swng=-0.161617994308
 cnt =88.8133239746
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=134
 swng=-1.27640962601
 cnt =89.3426513672
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=133
 swng=3.21025562286
 cnt =88.2702102661
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=132
 swng=7.1498541832
 cnt =85.6022109985
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=131
 swng=-2.44261026382
 cnt =89.2116928101
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=130
 swng=5.59806251526
 cnt =89.2667922974
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=129
 swng=0.902730226517
 cnt =86.9981765747
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=128
 swng=-0.180920958519
 cnt =88.0601959229
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=127
 swng=-1.87837481499
 cnt =83.4220733643
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=126
 swng=-0.80703496933
 cnt =85.7135772705
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=125
 swng=2.59176492691
 cnt =86.3101425171
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=124
 swng=5.04001379013
 cnt =83.5595397949
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=123
 swng=-0.75558423996
 cnt =84.2856140137
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=122
 swng=0.293439626694
 cnt =87.4471817017
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=121
 swng=2.69428491592
 cnt =85.3747558594
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=120
 swng=0.0202059745789
 cnt =86.3822097778
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=119
 swng=2.25918292999
 cnt =85.7850036621
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=118
 swng=3.45134139061
 cnt =80.0389251709
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=117
 swng=-6.95961093903
 cnt =88.6449127197
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=116
 swng=0.0476777553558
 cnt =86.0011138916
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=115
 swng=4.67262268066
 cnt =84.7593917847
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=114
 swng=-1.72473192215
 cnt =83.6595840454
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=113
 swng=-4.95118522644
 cnt =83.0305252075
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=112
 swng=4.33713197708
 cnt =86.4228668213
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=111
 swng=5.00309753418
 cnt =87.3268508911
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=110
 swng=-4.13346290588
 cnt =90.754737854
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=109
 swng=-4.76145744324
 cnt =81.9538192749
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=108
 swng=6.82903528214
 cnt =88.001625061
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=107
 swng=-2.06682395935
 cnt =86.8626098633
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=106
 swng=-1.08971595764
 cnt =88.1997451782
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=105
 swng=0.769954919815
 cnt =82.5229415894
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=104
 swng=0.559309124947
 cnt =84.6788864136
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=103
 swng=6.8429889679
 cnt =88.2999649048
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=102
 swng=-4.87632751465
 cnt =86.369178772
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=101
 swng=-4.65449380875
 cnt =88.9483261108
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=100
 swng=-0.479936599731
 cnt =81.9848709106
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=99
 swng=2.08089351654
 cnt =85.390838623
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=98
 swng=5.8872461319
 cnt =85.4513549805
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=97
 swng=-7.06904220581
 cnt =84.7528381348
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=96
 swng=4.87731075287
 cnt =90.0639801025
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=95
 swng=1.01644396782
 cnt =88.993812561
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=94
 swng=8.26706027985
 cnt =85.3376312256
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=93
 swng=8.07462310791
 cnt =86.8000488281
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=92
 swng=2.56061267853
 cnt =87.4600067139
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=91
 swng=2.52329111099
 cnt =85.4796981812
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=90
 swng=3.77607631683
 cnt =85.2280807495
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=89
 swng=1.64788365364
 cnt =89.5916290283
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=88
 swng=11.6920890808
 cnt =84.4206085205
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=87
 swng=12.3044548035
 cnt =86.7251586914
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=86
 swng=-1.43972635269
 cnt =88.2196655273
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=85
 swng=2.8956592083
 cnt =89.8688583374
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=84
 swng=2.94266939163
 cnt =90.0266723633
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=83
 swng=-7.56139755249
 cnt =84.5005264282
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=82
 swng=3.31231069565
 cnt =86.8351135254
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=81
 swng=2.27303504944
 cnt =90.3510437012
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=80
 swng=0.445240736008
 cnt =87.3090896606
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=79
 swng=8.46553707123
 cnt =85.1071624756
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=78
 swng=-0.364309549332
 cnt =91.2106552124
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=77
 swng=6.28052663803
 cnt =85.005531311
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=76
 swng=3.39496731758
 cnt =84.8956985474
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=75
 swng=0.377163290977
 cnt =88.3013458252
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=74
 swng=-2.07033753395
 cnt =88.9736328125
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=73
 swng=0.434929132462
 cnt =89.4193115234
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=72
 swng=-2.2748708725
 cnt =82.3138504028
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=71
 swng=-2.15810537338
 cnt =87.540145874
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=70
 swng=1.97061896324
 cnt =89.1330490112
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=69
 swng=0
 cnt =91.1901702881
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=68
 swng=1.8385887146
 cnt =90.9012298584
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=67
 swng=6.10643625259
 cnt =89.4179916382
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=66
 swng=-2.8965651989
 cnt =89.5198440552
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=65
 swng=1.23357176781
 cnt =88.9041366577
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=64
 swng=-3.64633798599
 cnt =88.6482772827
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=63
 swng=-3.92905759811
 cnt =90.5101165771
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=62
 swng=-3.41562628746
 cnt =85.7131195068
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=61
 swng=-6.06574106216
 cnt =91.5421066284
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=60
 swng=1.73122882843
 cnt =88.045211792
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=59
 swng=-2.73271799088
 cnt =87.4050369263
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=58
 swng=-2.13772058487
 cnt =87.5194320679
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=57
 swng=-2.23298668861
 cnt =90.3175125122
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=56
 swng=1.86353325844
 cnt =89.501739502
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=55
 swng=-2.06589102745
 cnt =91.0565338135
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=54
 swng=-3.83892965317
 cnt =89.2751312256
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=53
 swng=0.500512123108
 cnt =88.1039962769
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=52
 swng=-1.89416408539
 cnt =81.3305206299
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=51
 swng=-2.18141078949
 cnt =85.0945510864
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=50
 swng=4.70432662964
 cnt =90.1609649658
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=49
 swng=14.9517745972
 cnt =87.818939209
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=48
 swng=3.97740602493
 cnt =89.3252944946
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=47
 swng=1.48538351059
 cnt =90.7088851929
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=46
 swng=-2.84319519997
 cnt =86.4998550415
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=45
 swng=-2.29862928391
 cnt =80.0633850098
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=44
 swng=0
 cnt =86.7205123901
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=43
 swng=-4.06115627289
 cnt =78.1728439331
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=42
 swng=0
 cnt =87.7403640747
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=41
 swng=3.02592229843
 cnt =82.9864730835
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=40
 swng=-5.08886575699
 cnt =87.6602325439
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=39
 swng=2.48464345932
 cnt =86.4308700562
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=38
 swng=3.36912274361
 cnt =88.5468597412
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=37
 swng=0.754952430725
 cnt =83.5508117676
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=36
 swng=-0.182580947876
 cnt =83.9447937012
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=35
 swng=-1.49094164371
 cnt =86.0869216919
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=34
 swng=-6.27733755112
 cnt =87.7861938477
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=33
 swng=-3.37358999252
 cnt =82.106628418
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=32
 swng=2.06944942474
 cnt =85.790725708
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=31
 swng=7.43612670898
 cnt =88.1361618042
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=30
 swng=-4.60814523697
 cnt =88.6483917236
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=29
 swng=0.212424993515
 cnt =87.6047592163
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=28
 swng=5.62841892242
 cnt =86.9759521484
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=27
 swng=0.0232577323914
 cnt =89.3887329102
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=26
 swng=-4.88801002502
 cnt =79.990447998
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=25
 swng=-1.57686769962
 cnt =89.8010406494
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=24
 swng=-2.60910701752
 cnt =88.6705093384
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=23
 swng=3.1976878643
 cnt =85.2214355469
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=22
 swng=-6.43187141418
 cnt =82.0346298218
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=21
 swng=0.828552246094
 cnt =84.948425293
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=20
 swng=-10.2416400909
 cnt =84.0162658691
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=19
 swng=3.16581439972
 cnt =88.0048065186
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=18
 swng=0.0640332698822
 cnt =89.9128112793
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=17
 swng=-2.17794179916
 cnt =86.5891799927
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=16
 swng=0.521582365036
 cnt =87.4478607178
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=15
 swng=-3.02575826645
 cnt =87.9972839355
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=14
 swng=-2.72154808044
 cnt =78.2337875366
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=13
 swng=0
 cnt =84.1800460815
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=12
 swng=-2.55274772644
 cnt =86.9571685791
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=11
 swng=-3.37229967117
 cnt =86.5595626831
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=10
 swng=0.320175290108
 cnt =87.3697128296
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=9
 swng=2.86766290665
 cnt =84.870513916
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=8
 swng=3.34357619286
 cnt =87.9072875977
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=7
 swng=-6.48941707611
 cnt =81.2698745728
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=6
 swng=1.35582387447
 cnt =88.3055725098
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=5
 swng=-5.53889846802
 cnt =89.5987091064
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=4
 swng=-4.38099479675
 cnt =76.6802978516
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=3
 swng=-1.46737098694
 cnt =88.3533477783
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=2
 swng=-4.0640296936
 cnt =88.5034179688
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=1
 swng=1.07590556145
 cnt =82.4895401001
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 @Result
 seat=0
 swng=4.97792959213
 cnt =86.3316802979
 btin=0
 btto=0
-updt=2458658.86902
+updt=2458664.94156
 #End
