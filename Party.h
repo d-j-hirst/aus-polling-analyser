@@ -39,6 +39,7 @@ struct Party {
 	int ideology = 2; // 0 = strong left, 4 = strong right
 	int consistency = 1; // 0 = weak flow, 1 = normal flow, 2 = tight flow
 	Colour colour = { 255, 255, 255 };
+	float boothColourMult = 1.6f;
 	bool countsAsMajor() const { return !(countAsParty == CountAsParty::None); }
 	bool countsAsOne() const { return countAsParty == CountAsParty::CountsAsPartyOne || countAsParty == CountAsParty::IsPartyOne; }
 	bool countsAsTwo() const { return countAsParty == CountAsParty::CountsAsPartyTwo || countAsParty == CountAsParty::IsPartyTwo; }

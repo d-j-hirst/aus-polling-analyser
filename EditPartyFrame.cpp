@@ -15,6 +15,7 @@ enum
 	PA_EditParty_ColourPickerID_Colour,
 	PA_EditParty_ComboBoxID_Ideology,
 	PA_EditParty_ComboBoxID_Consistency,
+	PA_EditParty_TextBoxID_BoothColourMult,
 	PA_EditParty_ComboBoxID_CountAsParty,
 	PA_EditParty_ComboBoxID_SupportsParty,
 };
@@ -121,9 +122,15 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 
 	currentHeight += 27;
 
-	// *** Count-As-Party Combo Box *** //
-
 	if (party.countAsParty != Party::CountAsParty::IsPartyOne && party.countAsParty != Party::CountAsParty::IsPartyTwo) {
+
+		// Create the controls for the party name abbreviation.
+		boothColourMultStaticText = new wxStaticText(this, 0, "Booth Colour Multiplier:", wxPoint(2, currentHeight), wxSize(150, 23));
+		boothColourMultTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_BoothColourMult, formatFloat(party.boothColourMult, 3), wxPoint(150, currentHeight - 2), wxSize(200, 23));
+
+		currentHeight += 27;
+
+		// *** Count-As-Party Combo Box *** //
 
 		// Firstly do counts-as-party (i.e. formal coalition party) status
 
@@ -187,6 +194,7 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 	Bind(wxEVT_COLOURPICKER_CHANGED, &EditPartyFrame::updateColourPicker, this, PA_EditParty_ColourPickerID_Colour);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxIdeology, this, PA_EditParty_ComboBoxID_Ideology);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxConsistency, this, PA_EditParty_ComboBoxID_Consistency);
+	Bind(wxEVT_TEXT, &EditPartyFrame::updateBoothColourMult, this, PA_EditParty_TextBoxID_BoothColourMult);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxSupportsParty, this, PA_EditParty_ComboBoxID_SupportsParty);
 	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, PA_EditParty_ButtonID_OK);
@@ -307,6 +315,36 @@ void EditPartyFrame::updateComboBoxIdeology(wxCommandEvent& WXUNUSED(event))
 void EditPartyFrame::updateComboBoxConsistency(wxCommandEvent& WXUNUSED(event))
 {
 	party.consistency = consistencyComboBox->GetCurrentSelection();
+}
+
+void EditPartyFrame::updateBoothColourMult(wxCommandEvent & event)
+{
+	// updates the preliminary project data with the string from the event.
+	// This code effectively acts as a pseudo-validator
+	// (can't get the standard one to work properly with pre-initialized values)
+	try {
+		std::string str = event.GetString().ToStdString();
+
+		// An empty string can be interpreted as zero, so it's ok.
+		if (str.empty()) {
+			party.boothColourMult = 0.0f;
+			return;
+		}
+
+		// convert to a float between 0 and 100.
+		float f = std::stof(str); // This may throw an error of the std::logic_error type.
+		if (f > 100.0f) f = 100.0f;
+		if (f < 0.0f) f = 0.0f;
+
+		party.boothColourMult = f;
+
+		// save this valid string in case the next text entry gives an error.
+		lastBoothColourMult = str;
+	}
+	catch (std::logic_error err) {
+		// Set the text to the last valid string.
+		boothColourMultTextCtrl->SetLabel(lastBoothColourMult);
+	}
 }
 
 void EditPartyFrame::updateComboBoxCountAsParty(wxCommandEvent& WXUNUSED(event)) {

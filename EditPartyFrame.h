@@ -75,6 +75,10 @@ private:
 	// the properties of the event.
 	void updateComboBoxConsistency(wxCommandEvent& event);
 
+	// Calls upon the window to update the preliminary booth colour multiplier data based on
+	// the result of the GetString() method of "event".
+	void updateBoothColourMult(wxCommandEvent& event);
+
 	// Calls upon the window to update the "count-as-party" data based on
 	// the properties of the event.
 	void updateComboBoxCountAsParty(wxCommandEvent& event);
@@ -82,10 +86,6 @@ private:
 	// Calls upon the window to update the "supports party" data based on
 	// the properties of the event.
 	void updateComboBoxSupportsParty(wxCommandEvent& event);
-
-	// Calls on the frame to initialize a new project based on the
-	// data in "newProjectData".
-	void OnNewPartyReady(NewProjectData& newProjectData);
 
 	// Data container for the preliminary settings for the party to be created.
 	Party party;
@@ -102,6 +102,8 @@ private:
 	wxTextCtrl* exhaustRateTextCtrl;
 	wxStaticText* officialShortCodesStaticText;
 	wxTextCtrl* officialShortCodesTextCtrl;
+	wxStaticText* boothColourMultStaticText;
+	wxTextCtrl* boothColourMultTextCtrl;
 	wxStaticText* colourPickerText;
 	wxColourPickerCtrl* colourPicker;
 	wxStaticText* countAsPartyStaticText;
@@ -126,4 +128,7 @@ private:
 
 	// Keeps the preference flow saved in case a text entry results in an invalid value.
 	std::string lastExhaustRate;
+
+	// Keeps the preference flow saved in case a text entry results in an invalid value.
+	std::string lastBoothColourMult;
 };

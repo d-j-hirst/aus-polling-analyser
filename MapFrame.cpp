@@ -193,7 +193,9 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 		}
 		float primaryVoteProportion = float(partyFpVotes) / float(booth.totalNewFpVotes());
 		float colourFactor = std::clamp((primaryVoteProportion) * 1.4f, 0.0f, 1.0f);
-		if (partyIndex >= 2) colourFactor = std::clamp(std::sqrt(primaryVoteProportion) * 1.6f, 0.0f, 1.0f);
+		if (partyIndex >= 2) {
+			colourFactor = std::clamp(std::sqrt(primaryVoteProportion) * selectedParty->boothColourMult, 0.0f, 1.0f);
+		}
 		wxColour partyColour = wxColour(selectedParty->colour.r, selectedParty->colour.g, selectedParty->colour.b, 255);
 		finalColour = mixColour(partyColour, finalColour, colourFactor);
 		return finalColour;
