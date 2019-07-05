@@ -51,9 +51,9 @@ enum EventColumnsEnum {
 class EventsFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	EventsFrame(ProjectFrame* const parent, PollingProject* project);
+	EventsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// Calls on the frame to create a new model based on "Model".
 	void OnNewEventReady(Event& event);
@@ -104,8 +104,8 @@ private:
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 
 	// Panel containing poll data.
 	wxPanel* dataPanel = nullptr;

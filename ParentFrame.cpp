@@ -14,17 +14,10 @@ const std::string AboutScreenTitle = "About Polling Analyser";
 // IDs for the controls and the menu commands of the ProjectFrame
 enum class Item
 {
-	Base = 0, // To avoid mixing events with other frames.
-	// Item ID for starting a new project
+	Base = 0, // To avoid mixing events with other frames, each frame's IDs have a unique value.
 	New = wxID_NEW,
-
-	// Item ID for opening a project
 	Open = wxID_OPEN,
-
-	// Item ID for saving the project
 	Save = wxID_SAVE,
-
-	// Item ID for saving the project
 	SaveAs = wxID_SAVEAS,
 
 	// Item ID for exiting the program
@@ -40,13 +33,8 @@ enum class Item
 enum class Tool
 {
 	Base = 100, // To avoid mixing events with other frames.
-	// Tool ID for starting a new project
 	New = wxID_NEW,
-
-	// Tool ID for opening the project
 	Open = wxID_OPEN,
-
-	// Tool ID for saving the project
 	Save = wxID_SAVE,
 };
 

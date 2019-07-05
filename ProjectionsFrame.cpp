@@ -14,9 +14,9 @@ enum ProjectionColumnsEnum {
 };
 
 // frame constructor
-ProjectionsFrame::ProjectionsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_ProjectionsFrame_FrameID, "Projections", wxPoint(0, 0), project),
-	parent(parent)
+ProjectionsFrame::ProjectionsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_ProjectionsFrame_FrameID, "Projections", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //

@@ -60,9 +60,9 @@ struct GraphicsVariables {
 class VisualiserFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	VisualiserFrame(ProjectFrame* const parent, PollingProject* project);
+	VisualiserFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// paints immediately if needed.
 	void paint();
@@ -200,8 +200,8 @@ private:
 	int originalStartDay = -1;
 	int originalEndDay = -1;
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 
 	// Combo box used to select the displayed model
 	wxComboBox* selectModelComboBox = nullptr;

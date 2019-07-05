@@ -45,9 +45,9 @@ enum {
 class ProjectionsFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	ProjectionsFrame(ProjectFrame* const parent, PollingProject* project);
+	ProjectionsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// Calls on the frame to create a new projection based on "Projection".
 	void OnNewProjectionReady(Projection& projection);
@@ -110,8 +110,8 @@ private:
 	// Sets the projection to be a "now-cast" (ends one day after the model ends)
 	void setAsNowCast();
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 
 	// Panel containing poll data.
 	wxPanel* dataPanel = nullptr;

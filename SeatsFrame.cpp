@@ -27,9 +27,9 @@ enum {
 };
 
 // frame constructor
-SeatsFrame::SeatsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_SeatsFrame_FrameID, "Seats", wxPoint(0, 0), project),
-	parent(parent)
+SeatsFrame::SeatsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_SeatsFrame_FrameID, "Seats", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //

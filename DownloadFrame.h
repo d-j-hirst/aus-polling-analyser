@@ -34,9 +34,9 @@ class GenericChildFame;
 class DownloadFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	DownloadFrame(ProjectFrame* parent, PollingProject* project);
+	DownloadFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 private:
 
@@ -75,6 +75,6 @@ private:
 	// Text box used to enter the name of a seat to input results for
 	wxComboBox* presetComboBox = nullptr;
 
-	// A pointer to the parent frame.
-	ProjectFrame* parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 };

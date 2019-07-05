@@ -28,9 +28,9 @@ class GenericChildFrame;
 class ResultsFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	ResultsFrame(ProjectFrame* const parent, PollingProject* project);
+	ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// updates the data to take into account any changes, such as removed pollsters/parties.
 	void refreshData();
@@ -72,8 +72,8 @@ private:
 	// checks whether thisResult passes the current filter
 	bool resultPassesFilter(Result const& thisResult);
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 
 	// Text box used to enter the name of a seat to input results for
 	wxTextCtrl* seatNameTextCtrl = nullptr;

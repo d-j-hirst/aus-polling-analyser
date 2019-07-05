@@ -30,9 +30,9 @@ class wxImage;
 class MapFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	MapFrame(ProjectFrame* const parent, PollingProject* project);
+	MapFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// paints immediately if needed.
 	void paint();
@@ -184,8 +184,8 @@ private:
 	// Use ColourMode enum for the presets
 	int selectedColourMode = 0;
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 
 	bool displayPpvcs = true;
 

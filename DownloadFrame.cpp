@@ -18,9 +18,9 @@ enum {
 	PA_DownloadFrame_DownloadCompleteDataID,
 };
 
-DownloadFrame::DownloadFrame(ProjectFrame* parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_DownloadFrame_FrameID, "Downloads", wxPoint(0, 0), project),
-		parent(parent)
+DownloadFrame::DownloadFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_DownloadFrame_FrameID, "Downloads", wxPoint(0, 0), project),
+		refresher(refresher)
 {
 	// *** Toolbar *** //
 
@@ -143,8 +143,8 @@ void DownloadFrame::collectCustomBoothData(bool skipPrompt)
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
-	parent->refreshResults();
-	parent->refreshMap();
+	refresher.refreshResults();
+	refresher.refreshMap();
 }
 
 void DownloadFrame::collectLatestBoothData(bool skipPrompt)
@@ -170,8 +170,8 @@ void DownloadFrame::collectLatestBoothData(bool skipPrompt)
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
-	parent->refreshResults();
-	parent->refreshMap();
+	refresher.refreshResults();
+	refresher.refreshMap();
 }
 
 void DownloadFrame::collectCompleteData(bool skipPrompt)

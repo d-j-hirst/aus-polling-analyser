@@ -2,9 +2,9 @@
 #include "General.h"
 
 // frame constructor
-PollstersFrame::PollstersFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_PollstersFrame_FrameID, "Polling Houses", wxPoint(0, 0), project),
-	parent(parent)
+PollstersFrame::PollstersFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_PollstersFrame_FrameID, "Polling Houses", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //
@@ -177,7 +177,7 @@ void PollstersFrame::OnRemovePollster(wxCommandEvent& WXUNUSED(event)) {
 
 	removePollster();
 
-	parent->refreshPollData();
+	refresher.refreshPollData();
 
 	return;
 }

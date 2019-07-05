@@ -66,9 +66,9 @@ const float TextBoxCornerRounding = 20.0f;
 const int PA_Poll_Select_Distance_Squared_Maximum = 16;
 
 // frame constructor
-DisplayFrame::DisplayFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_DisplayFrame_FrameID, "Display", wxPoint(333, 0), project),
-	parent(parent)
+DisplayFrame::DisplayFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_DisplayFrame_FrameID, "Display", wxPoint(333, 0), project),
+	refresher(refresher)
 {
 	// *** Toolbar *** //
 

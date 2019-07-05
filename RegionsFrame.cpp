@@ -11,9 +11,9 @@ enum RegionColumnsEnum {
 };
 
 // frame constructor
-RegionsFrame::RegionsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_RegionsFrame_FrameID, "Polling Houses", wxPoint(0, 218), project),
-	parent(parent)
+RegionsFrame::RegionsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_RegionsFrame_FrameID, "Polling Houses", wxPoint(0, 218), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //

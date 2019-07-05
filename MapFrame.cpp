@@ -35,9 +35,9 @@ constexpr int TooltipSpacing = 3;
 const int PA_Poll_Select_Distance_Squared_Maximum = 16;
 
 // frame constructor
-MapFrame::MapFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_MapFrame_FrameID, "Display", wxPoint(333, 0), project),
-	parent(parent)
+MapFrame::MapFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_MapFrame_FrameID, "Display", wxPoint(333, 0), project),
+	refresher(refresher)
 {
 	// *** Toolbar *** //
 

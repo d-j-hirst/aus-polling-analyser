@@ -25,9 +25,9 @@ enum {
 };
 
 // frame constructor
-ModelsFrame::ModelsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_ModelsFrame_FrameID, "Models", wxPoint(0, 0), project),
-	parent(parent)
+ModelsFrame::ModelsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_ModelsFrame_FrameID, "Models", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //
@@ -134,7 +134,7 @@ void ModelsFrame::OnRemoveModel(wxCommandEvent& WXUNUSED(event)) {
 
 	removeModel();
 
-	parent->refreshProjectionData();
+	refresher.refreshProjectionData();
 
 	return;
 }
@@ -148,7 +148,7 @@ void ModelsFrame::OnExtendModel(wxCommandEvent& WXUNUSED(event)) {
 
 	extendModel();
 
-	parent->refreshProjectionData();
+	refresher.refreshProjectionData();
 
 	return;
 }
@@ -162,7 +162,7 @@ void ModelsFrame::OnRunModel(wxCommandEvent& WXUNUSED(event)) {
 
 	runModel();
 
-	parent->refreshProjectionData();
+	refresher.refreshProjectionData();
 
 	return;
 }
@@ -178,7 +178,7 @@ void ModelsFrame::OnNewModelReady(Model& model) {
 
 void ModelsFrame::OnEditModelReady(Model& model) {
 	replaceModel(model);
-	parent->refreshProjectionData();
+	refresher.refreshProjectionData();
 }
 
 void ModelsFrame::refreshData() {
@@ -222,7 +222,7 @@ void ModelsFrame::addModel(Model model) {
 
 	refreshData();
 
-	parent->refreshVisualiser();
+	refresher.refreshVisualiser();
 }
 
 void ModelsFrame::addModelToModelData(Model model) {
@@ -246,7 +246,7 @@ void ModelsFrame::replaceModel(Model model) {
 
 	refreshData();
 
-	parent->refreshVisualiser();
+	refresher.refreshVisualiser();
 }
 
 void ModelsFrame::removeModel() {
@@ -255,7 +255,7 @@ void ModelsFrame::removeModel() {
 
 	refreshData();
 
-	parent->refreshVisualiser();
+	refresher.refreshVisualiser();
 }
 
 void ModelsFrame::extendModel() {

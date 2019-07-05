@@ -2,9 +2,9 @@
 #include "General.h"
 
 // frame constructor
-EventsFrame::EventsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_EventsFrame_FrameID, "Events", wxPoint(0, 0), project),
-	parent(parent)
+EventsFrame::EventsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_EventsFrame_FrameID, "Events", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //

@@ -23,9 +23,9 @@ enum {
 const int PA_Poll_Select_Distance_Squared_Maximum = 16;
 
 // frame constructor
-VisualiserFrame::VisualiserFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_VisualiserFrame_FrameID, "Visualiser", wxPoint(333, 0), project),
-	parent(parent),
+VisualiserFrame::VisualiserFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_VisualiserFrame_FrameID, "Visualiser", wxPoint(333, 0), project),
+	refresher(refresher),
 	mouseOverPoll(nullptr)
 {
 	refreshToolbar();

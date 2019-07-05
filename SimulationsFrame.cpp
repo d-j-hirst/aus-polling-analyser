@@ -12,9 +12,9 @@ enum SimulationColumnsEnum {
 };
 
 // frame constructor
-SimulationsFrame::SimulationsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_SimulationsFrame_FrameID, "Simulations", wxPoint(0, 0), project),
-	parent(parent)
+SimulationsFrame::SimulationsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_SimulationsFrame_FrameID, "Simulations", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //
@@ -138,7 +138,7 @@ void SimulationsFrame::OnRunSimulation(wxCommandEvent& WXUNUSED(event)) {
 
 	runSimulation();
 
-	parent->refreshSeatData();
+	refresher.refreshSeatData();
 
 	return;
 }
@@ -197,8 +197,8 @@ void SimulationsFrame::addSimulation(Simulation simulation) {
 
 	updateInterface();
 
-	parent->refreshDisplay();
-	parent->refreshMap();
+	refresher.refreshDisplay();
+	refresher.refreshMap();
 }
 
 void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
@@ -223,8 +223,8 @@ void SimulationsFrame::replaceSimulation(Simulation simulation) {
 
 	updateInterface();
 
-	parent->refreshDisplay();
-	parent->refreshMap();
+	refresher.refreshDisplay();
+	refresher.refreshMap();
 }
 
 void SimulationsFrame::removeSimulation() {
@@ -235,8 +235,8 @@ void SimulationsFrame::removeSimulation() {
 
 	updateInterface();
 
-	parent->refreshDisplay();
-	parent->refreshMap();
+	refresher.refreshDisplay();
+	refresher.refreshMap();
 }
 
 void SimulationsFrame::removeSimulationFromSimulationData() {

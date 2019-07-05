@@ -54,9 +54,9 @@ enum PartyColumnsEnum {
 class PartiesFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	PartiesFrame(ProjectFrame* const parent, PollingProject* project);
+	PartiesFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// Calls on the frame to create a new party based on "Party".
 	void OnNewPartyReady(Party& party);
@@ -110,8 +110,8 @@ private:
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher const refresher;
 
 	// Panel containing poll data.
 	wxPanel* dataPanel = nullptr;

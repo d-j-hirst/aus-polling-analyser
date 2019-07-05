@@ -20,23 +20,6 @@
 #include "NewProjectFrame.h"
 #include "ParentFrame.h"
 
-enum TabsEnum {
-	Tab_Parties,
-	Tab_Pollsters,
-	Tab_Polls,
-	Tab_Events,
-	Tab_Visualiser,
-	Tab_Models,
-	Tab_Projections,
-	Tab_Regions,
-	Tab_Seats,
-	Tab_Simulations,
-	Tab_Display,
-	Tab_Results,
-	Tab_Downloads,
-	Tab_Map
-};
-
 struct NewProjectData;
 
 class ParentFrame;
@@ -55,52 +38,36 @@ class ResultsFrame;
 class DownloadFrame;
 class MapFrame;
 
-// The parent frame of the polling analyser application.
+// Frame that controls input and display for a particular project.
+// Designed to be a child to the ParentFrame class.
+// Includes a notebook-style interface with many tabs for different
+// areas of the project
 class ProjectFrame : public wxNotebook
 {
 public:
-	ProjectFrame(ParentFrame* parent);
 	ProjectFrame(ParentFrame* parent, std::string pathName);
 	ProjectFrame(ParentFrame* parent, NewProjectData newProjectData);
 
-	// *** Event Handlers *** //
+	class Refresher {
+	public:
+		void refreshPollData() const;
+		void refreshVisualiser() const;
+		void refreshProjectionData() const;
+		void refreshSeatData() const;
+		void refreshDisplay() const;
+		void refreshResults() const;
+		void refreshMap() const;
+		// Gives a reference to the underlying notebook so that this
+		// can be used to construct children of the ProjectFrame
+		wxNotebook* notebook() const { return &projectFrame; }
+	private:
+		// ProjectFrame should be the only class allowed to construct this
+		friend class ProjectFrame;
+		Refresher(ProjectFrame& projectFrame) 
+			: projectFrame(projectFrame) {}
 
-	// Refreshes the Polls frame data.
-	void refreshPollData();
-
-	// Refreshes the Visualiser frame.
-	void refreshVisualiser();
-
-	// Refreshes the Polls frame data.
-	void refreshProjectionData();
-
-	// Refreshes the Seats frame data.
-	void refreshSeatData();
-
-	// Refreshes the Display frame.
-	void refreshDisplay();
-
-	// Refreshes the Results frame.
-	void refreshResults();
-
-	// Refreshes the Map frame.
-	void refreshMap();
-
-	// updates the interface for any changes, such as enabled/disabled buttons.
-	void updateInterface();
-
-	friend class ParentFrame;
-
-private:
-
-	// base constructor, should not actually be called as it does not create a project.
-	ProjectFrame(ParentFrame* parent, int dummyInt);
-
-	// action to be taken when the user switches tabs.
-	void OnSwitch(wxBookCtrlEvent& event);
-
-	// sets up pages once the project has been defined.
-	void setupPages();
+		ProjectFrame& projectFrame;
+	};
 
 	// Checks to see if the user wants to save this project before it is closed.
 	bool checkSave();
@@ -110,6 +77,25 @@ private:
 
 	// Saves as a new file, always opening the file dialog.
 	void saveAs();
+
+private:
+
+	// base constructor, should not actually be called as it does not create a project.
+	ProjectFrame(ParentFrame* parent, int dummyInt);
+
+	// Creates an object that can be called on to refresh certain tabs in this frame.
+	// Used to allow tabs to trigger display refreshes in other tabs without giving them 
+	Refresher createRefresher();
+
+	// Updates the interface for any changes, such as enabled/disabled buttons.
+	// This will also affect the interface of the parent frame.
+	void updateInterface();
+
+	// action to be taken when the user switches tabs.
+	void OnSwitch(wxBookCtrlEvent& event);
+
+	// sets up pages once the project has been defined.
+	void setupPages();
 
 	// Saves the project under the given filename. Will display a message to indicate success/failure.
 	void saveUnderFilename(std::string const& pathName);

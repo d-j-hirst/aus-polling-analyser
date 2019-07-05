@@ -26,9 +26,9 @@ enum {
 };
 
 // frame constructor
-ResultsFrame::ResultsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_ResultsFrame_FrameID, "Live", wxPoint(0, 0), project),
-	parent(parent)
+ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_ResultsFrame_FrameID, "Live", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 	wxLogNull something;
 
@@ -142,7 +142,7 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 
 	refreshData();
 
-	parent->refreshSeatData();
+	refresher.refreshSeatData();
 }
 
 void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))

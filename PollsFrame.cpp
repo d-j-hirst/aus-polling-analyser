@@ -2,9 +2,9 @@
 #include "General.h"
 
 // frame constructor
-PollsFrame::PollsFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_PollsFrame_FrameID, "Polls", wxPoint(0, 0), project),
-	parent(parent)
+PollsFrame::PollsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_PollsFrame_FrameID, "Polls", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 	// *** Toolbar *** //
 

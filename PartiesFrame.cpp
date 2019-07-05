@@ -2,9 +2,9 @@
 #include "General.h"
 
 // frame constructor
-PartiesFrame::PartiesFrame(ProjectFrame* const parent, PollingProject* project)
-	: GenericChildFrame(parent, PA_PartiesFrame_FrameID, "Political Parties", wxPoint(0, 0), project),
-	parent(parent)
+PartiesFrame::PartiesFrame(ProjectFrame::Refresher refresher, PollingProject* project)
+	: GenericChildFrame(refresher.notebook(), PA_PartiesFrame_FrameID, "Political Parties", wxPoint(0, 0), project),
+	refresher(refresher)
 {
 
 	// *** Toolbar *** //
@@ -76,20 +76,20 @@ PartiesFrame::PartiesFrame(ProjectFrame* const parent, PollingProject* project)
 
 void PartiesFrame::OnNewPartyReady(Party& party) {
 	addParty(party);
-	parent->refreshPollData();
+	refresher.refreshPollData();
 }
 
 void PartiesFrame::OnEditPartyReady(Party& party) {
 	replaceParty(party);
 	project->refreshCalc2PP();
-	parent->refreshPollData();
+	refresher.refreshPollData();
 }
 
 void PartiesFrame::OnPartySettingsReady(PartySettingsData& partySettingsData) {
 	project->setOthersPreferenceFlow(partySettingsData.othersPreferenceFlow);
 	project->setOthersExhaustRate(partySettingsData.othersExhaustRate);
 	project->refreshCalc2PP();
-	parent->refreshPollData();
+	refresher.refreshPollData();
 }
 
 void PartiesFrame::addParty(Party party) {
@@ -216,7 +216,7 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 
 	removeParty();
 
-	parent->refreshPollData();
+	refresher.refreshPollData();
 
 	return;
 }

@@ -28,9 +28,9 @@ class GenericChildFrame;
 class DisplayFrame : public GenericChildFrame
 {
 public:
-	// "parent" is a pointer to the top-level frame (or notebook page, etc.).
+	// "refresher" is used to refresh the display of other tabs, etc. as needed
 	// "project" is a pointer to the polling project object.
-	DisplayFrame(ProjectFrame* const parent, PollingProject* project);
+	DisplayFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// paints immediately if needed.
 	void paint();
@@ -91,8 +91,8 @@ private:
 
 	int selectedSimulation = -1;
 
-	// A pointer to the parent frame.
-	ProjectFrame* const parent;
+	// Allows actions in this frame to trigger refreshes in other frames
+	ProjectFrame::Refresher refresher;
 
 	bool displayPolls = true;
 };
