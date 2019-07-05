@@ -3,7 +3,7 @@
 
 // frame constructor
 PartiesFrame::PartiesFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_PartiesFrame_FrameID, "Political Parties", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), PA_PartiesFrame_FrameID, "Parties", wxPoint(0, 0), project),
 	refresher(refresher)
 {
 

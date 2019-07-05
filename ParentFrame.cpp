@@ -53,6 +53,11 @@ ParentFrame::ParentFrame(const wxString& title)
 	updateInterface();
 }
 
+wxWindow* ParentFrame::accessNotebookPanel()
+{
+	return notebookPanel.get();
+}
+
 void ParentFrame::OnExit(wxCommandEvent& WXUNUSED(event))
 {
 	// The argument is true in order to force the program to close.
@@ -93,7 +98,13 @@ void ParentFrame::OnOpen(wxCommandEvent& WXUNUSED(event))
 	std::string pathName = receiveOpenProjectPathnameFromUser();
 	if (pathName.empty()) return;
 
-	createNotebook(pathName);
+	// we need to destroy the notebook if loading failed
+	try {
+		createNotebook(pathName);
+	}
+	catch (LoadProjectFailedException) {
+		notebook.reset();
+	}
 
 	// update the interface (so that the save tool is enabled, for instance).
 	updateInterface();

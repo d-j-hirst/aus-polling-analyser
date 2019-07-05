@@ -27,7 +27,7 @@ enum {
 
 // frame constructor
 ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_ResultsFrame_FrameID, "Live", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), PA_ResultsFrame_FrameID, "Results", wxPoint(0, 0), project),
 	refresher(refresher)
 {
 	wxLogNull something;

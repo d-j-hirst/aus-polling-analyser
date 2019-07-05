@@ -26,6 +26,8 @@ class ParentFrame : public wxFrame
 public:
 	ParentFrame(const wxString& title);
 
+	wxWindow* accessNotebookPanel();
+
 	friend class ProjectFrame;
 
 private:

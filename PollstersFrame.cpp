@@ -3,7 +3,7 @@
 
 // frame constructor
 PollstersFrame::PollstersFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_PollstersFrame_FrameID, "Polling Houses", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), PA_PollstersFrame_FrameID, "Pollsters", wxPoint(0, 0), project),
 	refresher(refresher)
 {
 

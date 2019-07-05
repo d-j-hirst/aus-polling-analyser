@@ -39,19 +39,9 @@ ProjectFrame::ProjectFrame(ParentFrame* parent, std::string pathName)
 	project.reset(new PollingProject(pathName));
 
 	if (!project->isValid()) {
-		project.reset(); // effectively, close the project if opening fails.
-		wxMessageDialog* message = new wxMessageDialog(
-			this,
-			"Could not open file.",
-			"Save Error",
-			wxOK | wxCENTRE | wxICON_ERROR);
-		message->ShowModal();
-
-		Destroy();
-
-		// kills this notebook.
-		parent->notebook.reset();
-		return;
+		// this will pop up a message to the user
+		// and throw an exception which will be passed to the parent frame
+		cancelConstructionFromFile();
 	}
 
 	setupPages();
@@ -111,12 +101,11 @@ bool ProjectFrame::checkSave() {
 			"Warning",
 			wxYES_NO | wxCANCEL | wxICON_WARNING);
 		int response = message->ShowModal();
-		if (response == 5101) {
+		if (response == wxID_CANCEL) {
 			return true;
 		}
-		else if (response == 5103) {
-			wxCommandEvent temp; // never actually used
-			parent->OnSaveAs(temp);
+		else if (response == wxID_YES) {
+			save();
 		}
 	}
 	return false;
@@ -153,21 +142,15 @@ void ProjectFrame::saveAs() {
 
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.
 ProjectFrame::ProjectFrame(ParentFrame* parent, int WXUNUSED(dummyInt))
-	: wxNotebook(parent->notebookPanel.get(), wxID_ANY)
+	: wxNotebook(parent->accessNotebookPanel(), wxID_ANY)
 {
-	wxSize parentSize = parent->GetClientSize();
-	SetSize(parentSize);
+	SetSize(parent->GetClientSize());
 	Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &ProjectFrame::OnSwitch, this, this->GetId());
 }
 
 ProjectFrame::Refresher ProjectFrame::createRefresher()
 {
 	return Refresher(*this);
-}
-
-
-void ProjectFrame::updateInterface() {
-	parent->updateInterface();
 }
 
 void ProjectFrame::OnSwitch(wxBookCtrlEvent& event) {
@@ -183,34 +166,20 @@ void ProjectFrame::OnSwitch(wxBookCtrlEvent& event) {
 }
 
 void ProjectFrame::setupPages() {
-	partiesFrame = new PartiesFrame(createRefresher(), project.get());
-	pollstersFrame = new PollstersFrame(createRefresher(), project.get());
-	pollsFrame = new PollsFrame(createRefresher(), project.get());
-	eventsFrame = new EventsFrame(createRefresher(), project.get());
-	visualiserFrame = new VisualiserFrame(createRefresher(), project.get());
-	modelsFrame = new ModelsFrame(createRefresher(), project.get());
-	projectionsFrame = new ProjectionsFrame(createRefresher(), project.get());
-	regionsFrame = new RegionsFrame(createRefresher(), project.get());
-	seatsFrame = new SeatsFrame(createRefresher(), project.get());
-	simulationsFrame = new SimulationsFrame(createRefresher(), project.get());
-	displayFrame = new DisplayFrame(createRefresher(), project.get());
-	resultsFrame = new ResultsFrame(createRefresher(), project.get());
-	downloadFrame = new DownloadFrame(createRefresher(), project.get());
-	mapFrame = new MapFrame(createRefresher(), project.get());
-	AddPage(partiesFrame, "Parties", true);
-	AddPage(pollstersFrame, "Pollsters", true);
-	AddPage(pollsFrame, "Polls", true);
-	AddPage(eventsFrame, "Events", true);
-	AddPage(visualiserFrame, "Visualiser", true);
-	AddPage(modelsFrame, "Models", true);
-	AddPage(projectionsFrame, "Projections", true);
-	AddPage(regionsFrame, "Regions", true);
-	AddPage(seatsFrame, "Seats", true);
-	AddPage(simulationsFrame, "Simulations", true);
-	AddPage(displayFrame, "Display", true);
-	AddPage(resultsFrame, "Results", true);
-	AddPage(downloadFrame, "Download", true);
-	AddPage(mapFrame, "Map", true);
+	createPage<PartiesFrame>(partiesFrame);
+	createPage<PollstersFrame>(pollstersFrame);
+	createPage<PollsFrame>(pollsFrame);
+	createPage<EventsFrame>(eventsFrame);
+	createPage<VisualiserFrame>(visualiserFrame);
+	createPage<ModelsFrame>(modelsFrame);
+	createPage<ProjectionsFrame>(projectionsFrame);
+	createPage<RegionsFrame>(regionsFrame);
+	createPage<SeatsFrame>(seatsFrame);
+	createPage<SimulationsFrame>(simulationsFrame);
+	createPage<DisplayFrame>(displayFrame);
+	createPage<ResultsFrame>(resultsFrame);
+	createPage<DownloadFrame>(downloadFrame);
+	createPage<MapFrame>(mapFrame);
 }
 
 void ProjectFrame::saveUnderFilename(std::string const& pathName)
@@ -229,4 +198,19 @@ void ProjectFrame::saveUnderFilename(std::string const& pathName)
 		this,
 		"File successfully saved: " + pathName);
 	message->ShowModal();
+}
+
+void ProjectFrame::cancelConstructionFromFile()
+{
+	project.reset(); // effectively, close the project if opening fails.
+	wxMessageDialog* message = new wxMessageDialog(
+		this,
+		"Could not open file.",
+		"Save Error",
+		wxOK | wxCENTRE | wxICON_ERROR);
+	message->ShowModal();
+
+	Destroy();
+
+	throw LoadProjectFailedException();
 }

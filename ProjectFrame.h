@@ -13,12 +13,14 @@
 #include "wx/wx.h"
 #endif
 
-#include <memory>
-#include "wx/bookctrl.h"
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "NewProjectFrame.h"
 #include "ParentFrame.h"
+
+#include "wx/bookctrl.h"
+
+#include <memory>
 
 struct NewProjectData;
 
@@ -38,6 +40,11 @@ class ResultsFrame;
 class DownloadFrame;
 class MapFrame;
 
+class LoadProjectFailedException : public std::runtime_error {
+public:
+	LoadProjectFailedException() : std::runtime_error("") {}
+};
+
 // Frame that controls input and display for a particular project.
 // Designed to be a child to the ParentFrame class.
 // Includes a notebook-style interface with many tabs for different
@@ -45,7 +52,10 @@ class MapFrame;
 class ProjectFrame : public wxNotebook
 {
 public:
+	// constructor to load the project from a given file
 	ProjectFrame(ParentFrame* parent, std::string pathName);
+
+	// constructor to create a new project
 	ProjectFrame(ParentFrame* parent, NewProjectData newProjectData);
 
 	class Refresher {
@@ -69,36 +79,42 @@ public:
 		ProjectFrame& projectFrame;
 	};
 
-	// Checks to see if the user wants to save this project before it is closed.
+	// Checks to see if the user wants to save this project before it is closed
 	bool checkSave();
 
-	// Saves using the existing file name if possible, or opens a dialog if there is no existing name.
+	// Saves using the existing file name if possible, or opens a dialog if there is no existing name
 	void save();
 
-	// Saves as a new file, always opening the file dialog.
+	// Saves as a new file, always opening the file dialog
 	void saveAs();
 
 private:
 
-	// base constructor, should not actually be called as it does not create a project.
+	// Base constructor, should not actually be called as it does not create a project.
+	// Delegated to by the above public constructors to avoid duplication of shared functions.
 	ProjectFrame(ParentFrame* parent, int dummyInt);
 
 	// Creates an object that can be called on to refresh certain tabs in this frame.
 	// Used to allow tabs to trigger display refreshes in other tabs without giving them 
 	Refresher createRefresher();
 
-	// Updates the interface for any changes, such as enabled/disabled buttons.
-	// This will also affect the interface of the parent frame.
-	void updateInterface();
-
 	// action to be taken when the user switches tabs.
 	void OnSwitch(wxBookCtrlEvent& event);
+
+	template <class C>
+	void createPage(C*& createThis) {
+		createThis = new C(createRefresher(), project.get());
+		AddPage(createThis, (createThis)->GetLabel(), true);
+	}
 
 	// sets up pages once the project has been defined.
 	void setupPages();
 
 	// Saves the project under the given filename. Will display a message to indicate success/failure.
 	void saveUnderFilename(std::string const& pathName);
+
+	// Cancel construction from an invalid file, displaying an error message to the user
+	void cancelConstructionFromFile();
 
 	// all data internal to the project (which is to be saved).
 	std::unique_ptr<PollingProject> project;

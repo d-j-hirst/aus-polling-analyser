@@ -12,7 +12,7 @@ enum RegionColumnsEnum {
 
 // frame constructor
 RegionsFrame::RegionsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_RegionsFrame_FrameID, "Polling Houses", wxPoint(0, 218), project),
+	: GenericChildFrame(refresher.notebook(), PA_RegionsFrame_FrameID, "Regions", wxPoint(0, 218), project),
 	refresher(refresher)
 {
 
