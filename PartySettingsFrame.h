@@ -16,10 +16,7 @@
 #include <sstream>
 #include <wx/valnum.h>
 
-#include "PartiesFrame.h"
 #include "PollingProject.h"
-
-class PartiesFrame;
 
 // ----------------------------------------------------------------------------
 // constants
@@ -50,12 +47,12 @@ class PartySettingsFrame : public wxDialog
 public:
 	// parent: Parent frame for this (must be a PartiesFrame).
 	// partySettingsData: Party Settings data to be used.
-	PartySettingsFrame(PartiesFrame* const parent, PartySettingsData partySettingsData);
+	PartySettingsFrame(PartySettingsData partySettingsData, std::function<void(PartySettingsData)> callback);
+
+private:
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
-
-private:
 
 	// Calls upon the window to update the preliminary "others" preference flow data based on
 	// the result of the GetFloat() method of "event".
@@ -64,10 +61,6 @@ private:
 	// Calls upon the window to update the preliminary "others" exhaust rate data based on
 	// the result of the GetFloat() method of "event".
 	void updateTextOthersExhaustRate(wxCommandEvent& event);
-
-	// Calls on the frame to initialize a new project based on the
-	// data in "newProjectData".
-	void OnPartySettingsReady(PartySettingsData& partySettingsData);
 
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.
@@ -78,9 +71,6 @@ private:
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	// A pointer to the parent frame.
-	PartiesFrame* const parent;
-
 	// The party settings data being worked on by this frame.
 	PartySettingsData partySettingsData;
 
@@ -89,4 +79,7 @@ private:
 
 	// Keeps the "others" exhaust rate saved in case a text entry results in an invalid value.
 	std::string lastOthersExhaustRate;
+
+	// function to call back to once the user clicks OK.
+	std::function<void(PartySettingsData)> callback;
 };

@@ -13,41 +13,17 @@
 #include "wx/wx.h"
 #endif
 
-#include "wx/dataview.h"
-
-#include <memory>
-#include "wx/bookctrl.h"
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "EditPartyFrame.h"
-#include "PartySettingsFrame.h"
+
+#include "wx/dataview.h"
+#include "wx/bookctrl.h"
+
+#include <memory>
 
 class ProjectFrame;
 struct PartySettingsData;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_PartiesFrame_Base = 200, // To avoid mixing events with other frames.
-	PA_PartiesFrame_FrameID,
-	PA_PartiesFrame_DataViewID,
-	PA_PartiesFrame_NewPartyID,
-	PA_PartiesFrame_EditPartyID,
-	PA_PartiesFrame_RemovePartyID,
-	PA_PartiesFrame_PartySettingsID,
-};
-
-enum PartyColumnsEnum {
-	PartyColumn_Name,
-	PartyColumn_PreferenceFlow,
-	PartyColumn_ExhaustRate,
-	PartyColumn_Abbreviation,
-	PartyColumn_NumColumns,
-};
 
 // *** PartiesFrame ***
 // Frame that allows the user to add/delete/modify political party data.
@@ -58,16 +34,30 @@ public:
 	// "project" is a pointer to the polling project object.
 	PartiesFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
-	// Calls on the frame to create a new party based on "Party".
-	void OnNewPartyReady(Party& party);
-
-	// Calls on the frame to edit the currently selected party based on "Party".
-	void OnEditPartyReady(Party& party);
-
-	// Calls on the frame to create a new party based on "Party".
-	void OnPartySettingsReady(PartySettingsData& partySettingsData);
-
 private:
+
+	// For the new party dialog to callback once the user has clicked OK.
+	// Adds the new party to the project and updates the data panel.
+	void newPartyCallback(Party party);
+
+	// For the edit party dialog to callback once the user has clicked OK.
+	// Replaces the existing party with the new party and updates the data panel
+	void editPartyCallback(Party party);
+
+	// For the party settings dialog to callback once the user has clicked OK.
+	// Changes the relevant party settings in the project
+	void partySettingsCallback(PartySettingsData partySettingsData);
+
+	// Creates the tool bar and its icons (new project, open project, save project)
+	void setupToolBar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	// refresh the (already existing) data table
+	void refreshDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -96,16 +86,8 @@ private:
 	// does everything required to replace the currently selected party with "party".
 	void replaceParty(Party party);
 
-	// replaces the currently selected party with "party" in party data.
-	// Should not be used except within replaceParty.
-	void replacePartyInPartyData(Party party);
-
 	// does everything required to remove the currently selected party, if possible.
 	void removeParty();
-
-	// removes the currently selected party from party data.
-	// Should not be used except within removeParty.
-	void removePartyFromPartyData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

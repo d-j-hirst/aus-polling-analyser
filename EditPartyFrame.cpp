@@ -20,9 +20,9 @@ enum
 	PA_EditParty_ComboBoxID_SupportsParty,
 };
 
-EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Party party)
+EditPartyFrame::EditPartyFrame(bool isNewParty, std::function<void(Party)> callback, Party party)
 	: wxDialog(NULL, 0, (isNewParty ? "New Party" : "Edit Party"), wxDefaultPosition, wxSize(400, 400)),
-	isNewParty(isNewParty), parent(parent), party(party)
+	isNewParty(isNewParty), party(party), callback(callback)
 {
 	// Generate the string for the preference flow.
 	std::string preferenceFlowString = formatFloat(party.preferenceShare, 2);
@@ -201,15 +201,8 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, PartiesFrame* const parent, Part
 }
 
 void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
-
-	if (isNewParty) {
-		// Get the parent frame to add a new party
-		parent->OnNewPartyReady(party);
-	}
-	else {
-		// Get the parent frame to replace the old party with the current one
-		parent->OnEditPartyReady(party);
-	}
+	// Call the function that was passed when this frame was opened.
+	callback(party);
 
 	// Then close this dialog.
 	Close();

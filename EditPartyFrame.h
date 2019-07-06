@@ -35,13 +35,13 @@ public:
 	// isNewParty: true if this dialog is for creating a new party, false if it's for editing.
 	// parent: Parent frame for this (must be a PartiesFrame).
 	// party: Party data to be used if editing (has default values for creating a new party).
-	EditPartyFrame(bool isNewParty, PartiesFrame* const parent,
+	EditPartyFrame(bool isNewParty, std::function<void(Party)> callback,
 		Party party = Party("Enter party name here", 50.0f, 0.0f, "Enter abbreviation here", Party::CountAsParty::None));
+
+private:
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
-
-private:
 
 	// Calls upon the window to update the preliminary name data based on
 	// the result of the GetString() method of "event".
@@ -117,9 +117,6 @@ private:
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	// A pointer to the parent frame.
-	PartiesFrame* const parent;
-
 	// Stores whether this dialog is for creating a new party (true) or editing an existing one (false).
 	bool isNewParty;
 
@@ -131,4 +128,7 @@ private:
 
 	// Keeps the preference flow saved in case a text entry results in an invalid value.
 	std::string lastBoothColourMult;
+
+	// function to call back to once the user clicks OK.
+	std::function<void(Party)> callback;
 };

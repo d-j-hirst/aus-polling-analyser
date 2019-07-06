@@ -1,9 +1,9 @@
 #include "PartySettingsFrame.h"
 #include "General.h"
 
-PartySettingsFrame::PartySettingsFrame(PartiesFrame* const parent, PartySettingsData partySettingsData)
+PartySettingsFrame::PartySettingsFrame(PartySettingsData partySettingsData, std::function<void(PartySettingsData)> callback)
 	: wxDialog(NULL, 0, "General settings for political parties", wxDefaultPosition, wxSize(420, 122)),
-	parent(parent), partySettingsData(partySettingsData)
+	partySettingsData(partySettingsData), callback(callback)
 {
 	// Generate the string for the preference flow.
 	std::string othersPreferenceFlowString = formatFloat(partySettingsData.othersPreferenceFlow, 3);
@@ -44,9 +44,7 @@ PartySettingsFrame::PartySettingsFrame(PartiesFrame* const parent, PartySettings
 }
 
 void PartySettingsFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
-
-	// Get the parent frame to actually update the party settings
-	parent->OnPartySettingsReady(partySettingsData);
+	callback(partySettingsData);
 
 	// Then close this dialog.
 	Close();
