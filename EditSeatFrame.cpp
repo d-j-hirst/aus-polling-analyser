@@ -7,11 +7,11 @@ EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingPr
 	: wxDialog(NULL, 0, (isNewSeat ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 371)),
 	isNewSeat(isNewSeat), parent(parent), project(project), seat(seat)
 {
-	int partyCount = project->getPartyCount();
+	int partyCount = project->parties().getPartyCount();
 	// If a model has not been specified it should default to the first.
-	if (this->seat.incumbent == nullptr) this->seat.incumbent = project->getPartyPtr(0);
-	if (this->seat.challenger == nullptr) this->seat.challenger = project->getPartyPtr(std::min(1, partyCount - 1));
-	if (this->seat.challenger2 == nullptr) this->seat.challenger2 = project->getPartyPtr(partyCount - 1);
+	if (this->seat.incumbent == nullptr) this->seat.incumbent = project->parties().getPartyPtr(0);
+	if (this->seat.challenger == nullptr) this->seat.challenger = project->parties().getPartyPtr(std::min(1, partyCount - 1));
+	if (this->seat.challenger2 == nullptr) this->seat.challenger2 = project->parties().getPartyPtr(partyCount - 1);
 	if (this->seat.region == nullptr) this->seat.region = project->getRegionPtr(0);
 
 	// Generate the string for the seat's incumbent's margin
@@ -68,7 +68,7 @@ EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingPr
 	int selectedChallenger = 0;
 	int selectedChallenger2 = 0;
 	int partyNum = 0;
-	for (auto it = project->getPartyBegin(); it != project->getPartyEnd(); ++it, ++partyNum) {
+	for (auto it = project->parties().begin(); it != project->parties().end(); ++it, ++partyNum) {
 		partyArray.push_back(it->name);
 		if (&*it == seat.incumbent) selectedIncumbent = partyNum;
 		if (&*it == seat.challenger) selectedChallenger = partyNum;
@@ -219,19 +219,19 @@ void EditSeatFrame::updateTextPreviousName(wxCommandEvent& event) {
 void EditSeatFrame::updateComboBoxIncumbent(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	seat.incumbent = project->getPartyPtr(incumbentComboBox->GetCurrentSelection());
+	seat.incumbent = project->parties().getPartyPtr(incumbentComboBox->GetCurrentSelection());
 }
 
 void EditSeatFrame::updateComboBoxChallenger(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	seat.challenger = project->getPartyPtr(challengerComboBox->GetCurrentSelection());
+	seat.challenger = project->parties().getPartyPtr(challengerComboBox->GetCurrentSelection());
 }
 
 void EditSeatFrame::updateComboBoxChallenger2(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	seat.challenger2 = project->getPartyPtr(challenger2ComboBox->GetCurrentSelection());
+	seat.challenger2 = project->parties().getPartyPtr(challenger2ComboBox->GetCurrentSelection());
 }
 
 void EditSeatFrame::updateComboBoxRegion(wxCommandEvent& WXUNUSED(event)) {

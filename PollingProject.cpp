@@ -13,17 +13,19 @@ const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", 
 PollingProject::PollingProject(NewProjectData& newProjectData) :
 		name(newProjectData.projectName),
 		lastFileName(newProjectData.projectName + ".pol"),
-		valid(true)
+		valid(true),
+		partyCollection(*this)
 {
-	// The project must always have at least two parties, no matter what. This initializes them with default values.
-	addParty(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
-	addParty(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
+	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
+	partyCollection.addParty(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
+	partyCollection.addParty(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
 
 	addPollster(Pollster("Default Pollster", 1.0f, 0, true, false));
 }
 
 PollingProject::PollingProject(std::string pathName) :
-		lastFileName(pathName.substr(pathName.rfind("\\")+1))
+		lastFileName(pathName.substr(pathName.rfind("\\")+1)),
+		partyCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -88,7 +90,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		auto& matchedBooth = oldBoothIt->second;
 		matchedBooth.fpCandidates = newBooth.fpCandidates; // always record fp candidates regardless of whether booth matching is successful
 
-		// Check if the parties match
+		// Check if the partyCollection match
 		bool allValid = true;
 		Party const* newParty[2] = { candidateParties[newBooth.tcpCandidateId[0]], candidateParties[newBooth.tcpCandidateId[1]] };
 		Party const* oldParty[2] = { affiliationParties[matchedBooth.tcpAffiliationId[0]], affiliationParties[matchedBooth.tcpAffiliationId[1]] };
@@ -125,7 +127,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 			}
 		}
 		else if (newResults) {
-			// Could not match parties are there are some results, wipe previous results
+			// Could not match partyCollection are there are some results, wipe previous results
 			matchedBooth.newTcpVote[0] = newBooth.newTcpVote[0];
 			matchedBooth.newTcpVote[1] = newBooth.newTcpVote[1];
 			matchedBooth.tcpCandidateId[0] = newBooth.tcpCandidateId[0];
@@ -168,7 +170,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 	for (auto& seat : seats) {
 		float percentCounted2cp = calculate2cpPercentComplete(seat);
 		if (!percentCounted2cp) {
-			if (seat.isClassic2pp(partyOne(), partyTwo(), true)) continue;
+			if (seat.isClassic2pp(partyCollection.partyOne(), partyCollection.partyTwo(), true)) continue;
 			float percentCountedFp = calculateFpPercentComplete(seat);
 			if (!percentCountedFp) continue;
 			Result thisResult;
@@ -196,62 +198,6 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 void PollingProject::refreshCalc2PP() {
 	for (auto it = polls.begin(); it != polls.end(); it++)
 		recalculatePollCalc2PP(*it);
-}
-
-void PollingProject::addParty(Party party) {
-	parties.push_back(party);
-}
-
-void PollingProject::replaceParty(int partyIndex, Party party) {
-	*getPartyPtr(partyIndex) = party;
-}
-
-Party PollingProject::getParty(int partyIndex) const {
-	auto it = parties.begin();
-	for (int i = 0; i < partyIndex; i++) it++;
-	return *it;
-}
-
-Party* PollingProject::getPartyPtr(int partyIndex) {
-	if (partyIndex < 0) return nullptr;
-	auto it = parties.begin();
-	for (int i = 0; i < partyIndex; i++) it++;
-	return &*it;
-}
-
-Party const* PollingProject::getPartyPtr(int partyIndex) const {
-	if (partyIndex < 0) return nullptr;
-	auto it = parties.begin();
-	for (int i = 0; i < partyIndex; i++) it++;
-	return &*it;
-}
-
-void PollingProject::removeParty(int partyIndex) {
-	auto it = parties.begin();
-	for (int i = 0; i < partyIndex; i++) it++;
-	parties.erase(it);
-	adjustPollsAfterPartyRemoval(partyIndex);
-}
-
-int PollingProject::getPartyCount() const {
-	return parties.size();
-}
-
-int PollingProject::getPartyIndex(Party const* const partyPtr) {
-	int i = 0;
-	for (auto it = parties.begin(); it != parties.end(); it++) {
-		if (&*it == partyPtr) return i;
-		i++;
-	}
-	return -1;
-}
-
-std::list<Party>::const_iterator PollingProject::getPartyBegin() const {
-	return parties.begin();
-}
-
-std::list<Party>::const_iterator PollingProject::getPartyEnd() const {
-	return parties.end();
 }
 
 void PollingProject::addPollster(Pollster pollster) {
@@ -847,8 +793,8 @@ int PollingProject::save(std::string filename) {
 	os << "name=" << name << "\n";
 	os << "opre=" << othersPreferenceFlow << "\n";
 	os << "oexh=" << othersExhaustRate << "\n";
-	os << "#Parties" << "\n";
-	for (Party const& thisParty : parties) {
+	os << "#partyCollection" << "\n";
+	for (Party const& thisParty : partyCollection) {
 		os << "@Party" << "\n";
 		os << "name=" << thisParty.name << "\n";
 		os << "pref=" << thisParty.preferenceShare << "\n";
@@ -885,7 +831,7 @@ int PollingProject::save(std::string filename) {
 		os << "prev=" << it->reported2pp << "\n";
 		os << "resp=" << it->respondent2pp << "\n";
 		os << "calc=" << it->calc2pp << "\n";
-		for (int i = 0; i < getPartyCount(); i++) {
+		for (int i = 0; i < partyCollection.getPartyCount(); i++) {
 			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << "\n";
 		}
 		os << "py15=" << it->primary[15] << "\n";
@@ -951,9 +897,9 @@ int PollingProject::save(std::string filename) {
 		os << "@Seat" << "\n";
 		os << "name=" << thisSeat.name << "\n";
 		os << "pvnm=" << thisSeat.previousName << "\n";
-		os << "incu=" << getPartyIndex(thisSeat.incumbent) << "\n";
-		os << "chal=" << getPartyIndex(thisSeat.challenger) << "\n";
-		os << "cha2=" << getPartyIndex(thisSeat.challenger2) << "\n";
+		os << "incu=" << partyCollection.getPartyIndex(thisSeat.incumbent) << "\n";
+		os << "chal=" << partyCollection.getPartyIndex(thisSeat.challenger) << "\n";
+		os << "cha2=" << partyCollection.getPartyIndex(thisSeat.challenger2) << "\n";
 		os << "regn=" << getRegionIndex(thisSeat.region) << "\n";
 		os << "marg=" << thisSeat.margin << "\n";
 		os << "lmod=" << thisSeat.localModifier << "\n";
@@ -963,9 +909,9 @@ int PollingProject::save(std::string filename) {
 		os << "winp=" << thisSeat.incumbentWinPercent << "\n";
 		os << "tipp=" << thisSeat.tippingPointPercent << "\n";
 		os << "sma =" << thisSeat.simulatedMarginAverage << "\n";
-		os << "lp1 =" << getPartyIndex(thisSeat.livePartyOne) << "\n";
-		os << "lp2 =" << getPartyIndex(thisSeat.livePartyTwo) << "\n";
-		os << "lp3 =" << getPartyIndex(thisSeat.livePartyThree) << "\n";
+		os << "lp1 =" << partyCollection.getPartyIndex(thisSeat.livePartyOne) << "\n";
+		os << "lp2 =" << partyCollection.getPartyIndex(thisSeat.livePartyTwo) << "\n";
+		os << "lp3 =" << partyCollection.getPartyIndex(thisSeat.livePartyThree) << "\n";
 		os << "p2pr=" << thisSeat.partyTwoProb << "\n";
 		os << "p3pr=" << thisSeat.partyThreeProb << "\n";
 		os << "over=" << int(thisSeat.overrideBettingOdds) << "\n";
@@ -1001,13 +947,13 @@ bool PollingProject::isValid() {
 }
 
 void PollingProject::recalculatePollCalc2PP(Poll& poll) const {
-	int nParties = getPartyCount();
+	int npartyCollection = partyCollection.getPartyCount();
 	float sum2PP = 0.0f;
 	float sumPrimaries = 0.0f;
-	for (int i = 0; i < nParties; i++) {
+	for (int i = 0; i < npartyCollection; i++) {
 		if (poll.primary[i] < 0) continue;
-		sum2PP += poll.primary[i] * getParty(i).preferenceShare * (1.0f - getParty(i).exhaustRate * 0.01f);
-		sumPrimaries += poll.primary[i] * (1.0f - getParty(i).exhaustRate * 0.01f);
+		sum2PP += poll.primary[i] * partyCollection.getParty(i).preferenceShare * (1.0f - partyCollection.getParty(i).exhaustRate * 0.01f);
+		sumPrimaries += poll.primary[i] * (1.0f - partyCollection.getParty(i).exhaustRate * 0.01f);
 	}
 	if (poll.primary[15] > 0) {
 		sum2PP += poll.primary[15] * othersPreferenceFlow * (1.0f - othersExhaustRate * 0.01f);
@@ -1091,7 +1037,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	// New item changes
 	if (fos.section == FileSection_Parties) {
 		if (!line.compare("@Party")) {
-			parties.push_back(Party());
+			partyCollection.addParty(Party());
 			return true;
 		}
 	}
@@ -1166,57 +1112,57 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Parties) {
-		if (!parties.size()) return true; //prevent crash from mixed-up data.
+		if (!partyCollection.getPartyCount()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			parties.back().name = line.substr(5);
+			partyCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("pref=")) {
-			parties.back().preferenceShare = std::stof(line.substr(5));
+			partyCollection.back().preferenceShare = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("exha=")) {
-			parties.back().exhaustRate = std::stof(line.substr(5));
+			partyCollection.back().exhaustRate = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("abbr=")) {
-			parties.back().abbreviation = line.substr(5);
+			partyCollection.back().abbreviation = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cap =")) {
-			parties.back().countAsParty = Party::CountAsParty(std::stoi(line.substr(5)));
+			partyCollection.back().countAsParty = Party::CountAsParty(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("supp=")) {
-			parties.back().supportsParty = Party::SupportsParty(std::stoi(line.substr(5)));
+			partyCollection.back().supportsParty = Party::SupportsParty(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("ideo=")) {
-			parties.back().ideology = std::stoi(line.substr(5));
+			partyCollection.back().ideology = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cons=")) {
-			parties.back().consistency = std::stoi(line.substr(5));
+			partyCollection.back().consistency = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("bcmt=")) {
-			parties.back().boothColourMult = std::stof(line.substr(5));
+			partyCollection.back().boothColourMult = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("code=")) {
-			parties.back().officialCodes.push_back(line.substr(5));
+			partyCollection.back().officialCodes.push_back(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("colr=")) {
-			parties.back().colour.r = std::stoi(line.substr(5));
+			partyCollection.back().colour.r = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("colg=")) {
-			parties.back().colour.g = std::stoi(line.substr(5));
+			partyCollection.back().colour.g = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("colb=")) {
-			parties.back().colour.b = std::stoi(line.substr(5));
+			partyCollection.back().colour.b = std::stoi(line.substr(5));
 			return true;
 		}
 	}
@@ -1451,15 +1397,15 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("incu=")) {
-			it->incumbent = getPartyPtr(std::stoi(line.substr(5)));
+			it->incumbent = partyCollection.getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("chal=")) {
-			it->challenger = getPartyPtr(std::stoi(line.substr(5)));
+			it->challenger = partyCollection.getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cha2=")) {
-			it->challenger2 = getPartyPtr(std::stoi(line.substr(5)));
+			it->challenger2 = partyCollection.getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("regn=")) {
@@ -1499,15 +1445,15 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp1 =")) {
-			it->livePartyOne = getPartyPtr(std::stoi(line.substr(5)));
+			it->livePartyOne = partyCollection.getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp2 =")) {
-			it->livePartyTwo = getPartyPtr(std::stoi(line.substr(5)));
+			it->livePartyTwo = partyCollection.getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp3 =")) {
-			it->livePartyThree = getPartyPtr(std::stoi(line.substr(5)));
+			it->livePartyThree = partyCollection.getPartyPtr(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("p2pr=")) {
@@ -1592,7 +1538,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 void PollingProject::adjustPollsAfterPartyRemoval(int partyIndex) {
 
 	// This is the new party count after the party was already removed
-	int partyCount = getPartyCount();
+	int partyCount = partyCollection.getPartyCount();
 
 	int pollCount = getPollCount();
 
@@ -1630,8 +1576,8 @@ void PollingProject::finalizeFileLoading() {
 		model.updateEffectiveDates(MjdToDate(getEarliestPollDate()), MjdToDate(getLatestPollDate()));
 	}
 
-	// Set the two major parties, in case this file comes from a version in which "count-as-party" data was not recorded
-	auto thisParty = parties.begin();
+	// Set the two major partyCollection, in case this file comes from a version in which "count-as-party" data was not recorded
+	auto thisParty = partyCollection.begin();
 	thisParty->countAsParty = Party::CountAsParty::IsPartyOne;
 	thisParty->supportsParty = Party::SupportsParty::One;
 	++thisParty;
@@ -1649,7 +1595,7 @@ void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & d
 		affiliations.insert({ affiliationIt->first, affiliationIt->second });
 		// Don't bother doing any string comparisons if this affiliation is already recorded
 		if (affiliationParties.find(affiliationIt->first) == affiliationParties.end()) {
-			for (auto const& party : parties) {
+			for (auto const& party : partyCollection) {
 				for (auto partyCode : party.officialCodes) {
 					if (affiliationIt->second.shortCode == partyCode) {
 						affiliationParties.insert({ affiliationIt->first, &party });
@@ -1667,7 +1613,7 @@ void PollingProject::collectCandidatesFromPreload(PreloadDataRetriever const & d
 		affiliations.insert({ affiliationIt->first, affiliationIt->second });
 		// Don't bother doing any string comparisons if this affiliation is already recorded
 		if (affiliationParties.find(affiliationIt->first) == affiliationParties.end()) {
-			for (auto const& party : parties) {
+			for (auto const& party : partyCollection) {
 				for (auto partyCode : party.officialCodes) {
 					if (affiliationIt->second.shortCode == partyCode) {
 						affiliationParties.insert({ affiliationIt->first, &party });

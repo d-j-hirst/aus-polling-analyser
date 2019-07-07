@@ -11,6 +11,7 @@
 #include "NewProjectData.h"
 #include "Points.h"
 
+#include "PartyCollection.h"
 #include "Party.h"
 #include "Pollster.h"
 #include "Poll.h"
@@ -62,38 +63,11 @@ public:
 	// Refreshes the calculated 2PPs for all polls.
 	void refreshCalc2PP();
 
-	// Adds the party "party".
-	void addParty(Party party);
+	PartyCollection& parties() { return partyCollection; }
+	PartyCollection const& parties() const { return partyCollection; }
 
-	// Replaces the party with index "partyIndex" by "party".
-	void replaceParty(int partyIndex, Party party);
-
-	// Removes the party with index "partyIndex".
-	void removeParty(int partyIndex);
-
-	// Returns the party with index "partyIndex".
-	Party getParty(int partyIndex) const;
-
-	Party const* partyOne() const { return &*parties.begin(); }
-	Party const* partyTwo() const { return &*std::next(parties.begin()); }
-
-	// Returns a pointer to the party with index "partyIndex".
-	Party* getPartyPtr(int partyIndex);
-
-	// Returns a pointer to the party with index "partyIndex".
-	Party const* getPartyPtr(int partyIndex) const;
-
-	// Returns the number of parties.
-	int getPartyCount() const;
-
-	// Gets the party index from a given pointer.
-	int getPartyIndex(Party const* partyPtr);
-
-	// Gets the begin iterator for the pollster list.
-	std::list<Party>::const_iterator getPartyBegin() const;
-
-	// Gets the end iterator for the pollster list.
-	std::list<Party>::const_iterator getPartyEnd() const;
+	// If a party is removed, all the polls need to be adjusted to account for this.
+	void adjustPollsAfterPartyRemoval(int partyIndex);
 
 	// Adds the pollster "pollster".
 	void addPollster(Pollster pollster);
@@ -416,9 +390,6 @@ private:
 	// Returns false if the end of the file is reached (marked by "#End").
 	bool processFileLine(std::string line, FileOpeningState& fos);
 
-	// If a party is removed, all the polls need to be adjusted to account for this.
-	void adjustPollsAfterPartyRemoval(int partyIndex);
-
 	// Removes all the polls from a particular pollster. Used when deleting a pollster.
 	void removePollsFromPollster(Pollster const* pollster);
 
@@ -456,7 +427,7 @@ private:
 	std::string lastFileName;
 
 	// Vector containing the data for political parties.
-	std::list<Party> parties;
+	PartyCollection partyCollection;
 
 	// List containing the data for pollsters.
 	// Polls have pointers to individual pollsters,

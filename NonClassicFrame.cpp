@@ -31,7 +31,7 @@ NonClassicFrame::NonClassicFrame(ResultsFrame * const parent, PollingProject con
 	int selectedPartyTwo = 1;
 	int selectedPartyThree = 0;
 	int count = 0;
-	for (auto it = project->getPartyBegin(); it != project->getPartyEnd(); ++it, ++count) {
+	for (auto it = project->parties().cbegin(); it != project->parties().cend(); ++it, ++count) {
 		partyArray.push_back(it->name);
 		if (&*it == seat->livePartyOne) selectedPartyOne = count;
 		if (&*it == seat->livePartyTwo) selectedPartyTwo = count;
@@ -126,9 +126,9 @@ void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 
 	if (seat) {
 		try {
-			Party const* partyOne = project->getPartyPtr(partyOneComboBox->GetSelection());
-			Party const* partyTwo = project->getPartyPtr(partyTwoComboBox->GetSelection());
-			Party const* partyThree = project->getPartyPtr(partyThreeComboBox->GetSelection());
+			Party const* partyOne = project->parties().getPartyPtr(partyOneComboBox->GetSelection());
+			Party const* partyTwo = project->parties().getPartyPtr(partyTwoComboBox->GetSelection());
+			Party const* partyThree = project->parties().getPartyPtr(partyThreeComboBox->GetSelection());
 			float chanceTwo = std::stof(partyTwoProbTextCtrl->GetLineText(0).ToStdString());
 			float chanceThree = std::stof(partyThreeProbTextCtrl->GetLineText(0).ToStdString());
 			float chanceOne = 1.0f - chanceTwo - chanceThree;

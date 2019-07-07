@@ -104,8 +104,8 @@ void PartiesFrame::refreshDataTable()
 	partyData->DeleteAllItems();
 
 	// Add the party data
-	for (int i = 0; i < project->getPartyCount(); ++i) {
-		addPartyToPartyData(project->getParty(i));
+	for (int i = 0; i < project->parties().getPartyCount(); ++i) {
+		addPartyToPartyData(project->parties().getParty(i));
 	}
 }
 
@@ -133,8 +133,7 @@ void PartiesFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 }
 
 void PartiesFrame::OnNewParty(wxCommandEvent& WXUNUSED(event)) {
-
-	if (project->getPartyCount() >= 15) {
+	if (project->parties().getPartyCount() >= 15) {
 
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Cannot have more than 15 parties.");
@@ -166,7 +165,7 @@ void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&PartiesFrame::editPartyCallback, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditPartyFrame *frame = new EditPartyFrame(false, callback, project->getParty(partyIndex));
+	EditPartyFrame *frame = new EditPartyFrame(false, callback, project->parties().getParty(partyIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -223,7 +222,7 @@ void PartiesFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 }
 
 void PartiesFrame::addParty(Party party) {
-	project->addParty(party);
+	project->parties().addParty(party);
 
 	refreshDataTable();
 	updateInterface();
@@ -242,7 +241,7 @@ void PartiesFrame::addPartyToPartyData(Party party) {
 
 void PartiesFrame::replaceParty(Party party) {
 	int partyIndex = partyData->GetSelectedRow();
-	project->replaceParty(partyIndex, party);
+	project->parties().replaceParty(partyIndex, party);
 	project->refreshCalc2PP();
 
 	refreshDataTable();
@@ -251,14 +250,14 @@ void PartiesFrame::replaceParty(Party party) {
 
 void PartiesFrame::removeParty() {
 	// Simultaneously add to the party data control and to the polling project.
-	if (project->getPartyCount() < 3) {
+	if (project->parties().getPartyCount() < 3) {
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Must always have at least 2 parties. Rename the existing parties if they are not the ones you want.");
 
 		message->ShowModal();
 		return;
 	}
-	project->removeParty(partyData->GetSelectedRow());
+	project->parties().removeParty(partyData->GetSelectedRow());
 
 	refreshDataTable();
 	updateInterface();

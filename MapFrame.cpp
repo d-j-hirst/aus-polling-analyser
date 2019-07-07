@@ -181,11 +181,11 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 			return finalColour;
 		}
 	}
-	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->getPartyCount()) {
+	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().getPartyCount()) {
 		wxColour finalColour = wxColour(255, 255, 255);
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;
 		int partyFpVotes = 0;
-		auto selectedParty = project->getPartyPtr(partyIndex);
+		auto selectedParty = project->parties().getPartyPtr(partyIndex);
 		for (auto const& candidate : booth.fpCandidates) {
 			if (project->getPartyByCandidate(candidate.candidateId) == selectedParty) {
 				partyFpVotes += candidate.fpVotes;
@@ -217,11 +217,11 @@ bool MapFrame::decideCircleVisibilityFromBooth(Results::Booth const & booth)
 		if (!booth.totalNewFpVotes()) return false;
 		break;
 	}
-	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->getPartyCount()) {
+	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().getPartyCount()) {
 		// At least one of the parties running in the seat must match the selected "party"
 		if (!booth.totalNewFpVotes()) return false;
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;
-		auto selectedParty = project->getPartyPtr(partyIndex);
+		auto selectedParty = project->parties().getPartyPtr(partyIndex);
 		for (auto const& candidate : booth.fpCandidates) {
 			if (project->getPartyByCandidate(candidate.candidateId) == selectedParty) {
 				return true;
@@ -445,7 +445,7 @@ void MapFrame::refreshToolbar() {
 	colourModeStrings.push_back("Highest primary vote");
 	colourModeStrings.push_back("Two-party preferred margin (not implemented)");
 	colourModeStrings.push_back("Two-party preferred swing (not implemented)");
-	for (auto party = project->getPartyBegin(); party != project->getPartyEnd(); ++party) {
+	for (auto party = project->parties().cbegin(); party != project->parties().cend(); ++party) {
 		colourModeStrings.push_back(party->name + "");
 	}
 

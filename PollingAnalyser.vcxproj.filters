@@ -125,6 +125,7 @@
     <ClCompile Include="Points.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="PartyCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -165,6 +166,9 @@
     </Filter>
     <Filter Include="Source Files\Data Processing">
       <UniqueIdentifier>{d593dfea-a1ab-44ad-b3fd-bc79500b18ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Project Sections">
+      <UniqueIdentifier>{46ecfa32-7c58-4d03-bde3-fc9ddbec2518}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -329,6 +333,9 @@
     </ClInclude>
     <ClInclude Include="MiscGeometry.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PartyCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

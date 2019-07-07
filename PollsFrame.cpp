@@ -78,7 +78,7 @@ void PollsFrame::addPollToPollData(Poll poll) {
 	data.push_back(wxVariant(poll.getReported2ppString()));
 	data.push_back(wxVariant(poll.getRespondent2ppString()));
 	data.push_back(wxVariant(poll.getCalc2ppString()));
-	for (int i = 0; i < project->getPartyCount(); i++)
+	for (int i = 0; i < project->parties().getPartyCount(); i++)
 		data.push_back(wxVariant(poll.getPrimaryString(i)));
 	data.push_back(wxVariant(poll.getPrimaryString(15)));
 
@@ -105,7 +105,7 @@ void PollsFrame::replacePollInPollData(Poll poll) {
 	store->SetValueByRow(poll.getRespondent2ppString(), pollIndex, PollColumn_Respondent2pp);
 	store->SetValueByRow(poll.getCalc2ppString(), pollIndex, PollColumn_Calc2pp);
 	int i = 0;
-	for (; i < project->getPartyCount(); i++)
+	for (; i < project->parties().getPartyCount(); i++)
 		store->SetValueByRow(poll.getPrimaryString(i), pollIndex, PollColumn_Primary + i);
 	store->SetValueByRow(poll.getPrimaryString(15), pollIndex, PollColumn_Primary + i);
 }
@@ -208,8 +208,8 @@ void PollsFrame::refreshData() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// add columns for each party's primary votes
-	for (int i = 0; i < project->getPartyCount(); i++)
-		pollData->AppendTextColumn(project->getParty(i).abbreviation, wxDATAVIEW_CELL_INERT, 40, wxALIGN_LEFT,
+	for (int i = 0; i < project->parties().getPartyCount(); i++)
+		pollData->AppendTextColumn(project->parties().getParty(i).abbreviation, wxDATAVIEW_CELL_INERT, 40, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// add column for Others primary votes

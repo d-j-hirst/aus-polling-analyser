@@ -594,7 +594,7 @@ void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
 	}
 	for (int i = 0; i < 15; ++i) {
 		if (mouseOverPoll->primary[i] >= 0) {
-			dc.DrawText(project->getParty(i).abbreviation + " primary: " + mouseOverPoll->getPrimaryString(i), currentPoint);
+			dc.DrawText(project->parties().getParty(i).abbreviation + " primary: " + mouseOverPoll->getPrimaryString(i), currentPoint);
 			currentPoint += wxPoint(0, 20);
 		}
 	}

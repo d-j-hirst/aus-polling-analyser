@@ -76,8 +76,8 @@ void ResultsFrame::refreshData()
 {
 	for (auto simulation = project->getSimulationBegin(); simulation != project->getSimulationEnd(); ++simulation) {
 		if (simulation->isLive() && simulation->isValid()) {
-			std::string party1 = project->getParty(0).abbreviation;
-			std::string party2 = project->getParty(1).abbreviation;
+			std::string party1 = project->parties().getParty(0).abbreviation;
+			std::string party2 = project->parties().getParty(1).abbreviation;
 			std::string summaryString = party1 + " win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) +
 				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation->getPartyOne2pp()), 2) +
 				"   Seats: " + party1 + " " + formatFloat(simulation->partyWinExpectation[0], 2) + " " +
@@ -153,8 +153,8 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 		wxMessageBox("No seat found matching this name!");
 		return;
 	}
-	Party const* const partyOne = project->getPartyPtr(0);
-	Party const* const partyTwo = project->getPartyPtr(1);
+	Party const* const partyOne = project->parties().getPartyPtr(0);
+	Party const* const partyTwo = project->parties().getPartyPtr(1);
 	if ((!seat->isClassic2pp(partyOne, partyTwo, true) || seat->challenger2Odds < 8.0f) &&
 			!seat->livePartyOne && !seat->overrideBettingOdds) {
 		int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
@@ -224,8 +224,8 @@ void ResultsFrame::addResultToResultData(Result result)
 	float p3 = result.seat->partyOthersWinRate;
 	float leaderProb = std::max(result.seat->partyOneWinRate * 100.0f,
 		std::max(result.seat->partyTwoWinRate * 100.0f, result.seat->partyOthersWinRate * 100.0f));
-	Party const* thisParty = (p1 > p2 && p1 > p3 ? project->getPartyPtr(0)
-		: (p2 > p3 ? project->getPartyPtr(1) : nullptr));
+	Party const* thisParty = (p1 > p2 && p1 > p3 ? project->parties().getPartyPtr(0)
+		: (p2 > p3 ? project->parties().getPartyPtr(1) : nullptr));
 	std::string leadingPartyName = (thisParty ? thisParty->abbreviation : "OTH");
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
 		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));

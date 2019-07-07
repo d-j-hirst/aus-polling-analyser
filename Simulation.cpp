@@ -27,8 +27,8 @@ void Simulation::run(PollingProject& project) {
 	gen.seed(rd());
 
 	// Get pointers to the major parties (for later checking if seats are classic or non-classic 2CP)
-	Party const* const partyOne = project.getPartyPtr(0);
-	Party const* const partyTwo = project.getPartyPtr(1);
+	Party const* const partyOne = project.parties().getPartyPtr(0);
+	Party const* const partyTwo = project.parties().getPartyPtr(1);
 
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 		thisRegion->localModifierAverage = 0.0f;
@@ -68,13 +68,13 @@ void Simulation::run(PollingProject& project) {
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 		thisRegion->partyLeading.clear();
 		thisRegion->partyWins.clear();
-		thisRegion->partyLeading.resize(project.getPartyCount());
-		thisRegion->partyWins.resize(project.getPartyCount(), std::vector<int>(thisRegion->seatCount + 1));
+		thisRegion->partyLeading.resize(project.parties().getPartyCount());
+		thisRegion->partyWins.resize(project.parties().getPartyCount(), std::vector<int>(thisRegion->seatCount + 1));
 	}
 
 	// Record how many seats each party leads in (notionally) in each region
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-		++thisSeat->region->partyLeading[project.getPartyIndex(thisSeat->getLeadingParty())];
+		++thisSeat->region->partyLeading[project.parties().getPartyIndex(thisSeat->getLeadingParty())];
 	}
 
 	// Some setup - calculating total population here since it's constant across all simulations
@@ -131,7 +131,7 @@ void Simulation::run(PollingProject& project) {
 	int partyTwoMajority = 0;
 
 	partySeatWinFrequency.clear();
-	partySeatWinFrequency.resize(project.getPartyCount(), std::vector<int>(project.getSeatCount() + 1));
+	partySeatWinFrequency.resize(project.parties().getPartyCount(), std::vector<int>(project.getSeatCount() + 1));
 	othersWinFrequency.clear();
 	othersWinFrequency.resize(project.getSeatCount() + 1);
 	partyOneSwing = 0.0;
@@ -141,7 +141,7 @@ void Simulation::run(PollingProject& project) {
 	for (currentIteration = 0; currentIteration < numIterations; ++currentIteration) {
 
 		// temporary for storing number of seat wins by each party in each region, 1st index = parties, 2nd index = regions
-		std::vector<std::vector<int>> regionSeatCount(project.getPartyCount(), std::vector<int>(project.getRegionCount()));
+		std::vector<std::vector<int>> regionSeatCount(project.parties().getPartyCount(), std::vector<int>(project.getRegionCount()));
 
 		// First, randomly determine the national swing for this particular simulation
 		float simulationOverallSwing = std::normal_distribution<float>(pollOverallSwing, pollOverallStdDev)(gen);
@@ -198,7 +198,7 @@ void Simulation::run(PollingProject& project) {
 
 		partyOneSwing += double(simulationOverallSwing);
 
-		std::vector<int> partyWins(project.getPartyCount());
+		std::vector<int> partyWins(project.parties().getPartyCount());
 
 		// Now cycle through all the seats and generate a result for each
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
@@ -296,7 +296,7 @@ void Simulation::run(PollingProject& project) {
 			else if (thisSeat->winner == partyTwo) ++thisSeat->partyTwoWinRate;
 			else ++thisSeat->partyOthersWinRate;
 
-			int winnerIndex = project.getPartyIndex(thisSeat->winner);
+			int winnerIndex = project.parties().getPartyIndex(thisSeat->winner);
 			partyWins[winnerIndex]++;
 			int regionIndex = project.getRegionIndex(thisSeat->region);
 			++regionSeatCount[winnerIndex][regionIndex];
@@ -304,10 +304,10 @@ void Simulation::run(PollingProject& project) {
 
 		//Assign all the wins from coalition third-parties to the respective major party
 		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
-			if (project.getPartyPtr(partyNum)->countAsParty == Party::CountAsParty::CountsAsPartyOne){
+			if (project.parties().getPartyPtr(partyNum)->countAsParty == Party::CountAsParty::CountsAsPartyOne){
 				partyWins[0] += partyWins[partyNum];
 			}
-			else if (project.getPartyPtr(partyNum)->countAsParty == Party::CountAsParty::CountsAsPartyTwo){
+			else if (project.parties().getPartyPtr(partyNum)->countAsParty == Party::CountAsParty::CountsAsPartyTwo){
 				partyWins[1] += partyWins[partyNum];
 			}
 		}
@@ -316,10 +316,10 @@ void Simulation::run(PollingProject& project) {
 		//Get the number of seats supporting each major party in a minority government
 		std::array<int, 2> partySupport = { partyWins[0], partyWins[1] };
 		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
-			if (project.getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::One) {
+			if (project.parties().getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::One) {
 				partySupport[0] += partyWins[partyNum];
 			}
-			else if (project.getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::Two) {
+			else if (project.parties().getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::Two) {
 				partySupport[1] += partyWins[partyNum];
 			}
 		}
@@ -334,7 +334,7 @@ void Simulation::run(PollingProject& project) {
 		else ++hungParliament;
 
 		int othersWins = 0;
-		for (int partyIndex = 0; partyIndex < project.getPartyCount(); ++partyIndex) {
+		for (int partyIndex = 0; partyIndex < project.parties().getPartyCount(); ++partyIndex) {
 			++partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
 			if (partyIndex > 1) othersWins += partyWins[partyIndex];
 			for (int regionIndex = 0; regionIndex < project.getRegionCount(); ++regionIndex) {
@@ -358,7 +358,7 @@ void Simulation::run(PollingProject& project) {
 		thisSeat->simulatedMarginAverage /= float(numIterations);
 	}
 
-	partyWinExpectation.resize(project.getPartyCount());
+	partyWinExpectation.resize(project.parties().getPartyCount());
 
 	partyOneMajorityPercent = float(partyOneMajority) / float(numIterations) * 100.0f;
 	partyOneMinorityPercent = float(partyOneMinority) / float(numIterations) * 100.0f;
@@ -367,7 +367,7 @@ void Simulation::run(PollingProject& project) {
 	partyTwoMajorityPercent = float(partyTwoMajority) / float(numIterations) * 100.0f;
 	partyOneSwing = partyOneSwing / double(numIterations);
 
-	for (int partyIndex = 0; partyIndex < project.getPartyCount(); ++partyIndex) {
+	for (int partyIndex = 0; partyIndex < project.parties().getPartyCount(); ++partyIndex) {
 		int totalSeats = 0;
 		for (int seatNum = 1; seatNum < project.getSeatCount(); ++seatNum) {
 			totalSeats += seatNum * partySeatWinFrequency[partyIndex][seatNum];
@@ -375,11 +375,11 @@ void Simulation::run(PollingProject& project) {
 		partyWinExpectation[partyIndex] = float(totalSeats) / float(numIterations);
 	}
 
-	regionPartyWinExpectation.resize(project.getRegionCount(), std::vector<float>(project.getPartyCount(), 0.0f));
+	regionPartyWinExpectation.resize(project.getRegionCount(), std::vector<float>(project.parties().getPartyCount(), 0.0f));
 
 	for (int regionIndex = 0; regionIndex < project.getRegionCount(); ++regionIndex) {
 		Region thisRegion = project.getRegion(regionIndex);
-		for (int partyIndex = 0; partyIndex < project.getPartyCount(); ++partyIndex) {
+		for (int partyIndex = 0; partyIndex < project.parties().getPartyCount(); ++partyIndex) {
 			int totalSeats = 0;
 			for (int seatNum = 1; seatNum < int(thisRegion.partyWins[partyIndex].size()); ++seatNum) {
 				totalSeats += seatNum * thisRegion.partyWins[partyIndex][seatNum];
@@ -532,8 +532,8 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 		if (booth.hasOldAndNewResults()) {
 			oldComparisonVotes += booth.totalOldTcpVotes();
 			newComparisonVotes += booth.totalNewTcpVotes();
-			bool directMatch = project.partyOne() == firstBoothParty && project.partyTwo() == secondBoothParty;
-			bool oppositeMatch = project.partyOne() == secondBoothParty && project.partyTwo() == firstBoothParty;
+			bool directMatch = project.parties().partyOne() == firstBoothParty && project.parties().partyTwo() == secondBoothParty;
+			bool oppositeMatch = project.parties().partyOne() == secondBoothParty && project.parties().partyTwo() == firstBoothParty;
 			if (!isPpvc) {
 				if (directMatch) {
 					nonPpvcSwingNumerator += booth.rawSwing() * booth.totalNewTcpVotes();
@@ -660,8 +660,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 				float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
 				if (booth.isPPVC()) {
 					// votes are already in order for the seat, not the booth
-					if (project.partyOne() == firstParty && project.partyTwo() == secondParty) boothSwing += ppvcBias;
-					if (project.partyOne() == secondParty && project.partyTwo() == firstParty) boothSwing -= ppvcBias;
+					if (project.parties().partyOne() == firstParty && project.parties().partyTwo() == secondParty) boothSwing += ppvcBias;
+					if (project.parties().partyOne() == secondParty && project.parties().partyTwo() == firstParty) boothSwing -= ppvcBias;
 				}
 				float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
 				int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
@@ -697,8 +697,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 
 			const float MysteryVoteStdDev = 6.0f;
 			float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
-			if (project.partyOne() == firstParty && project.partyTwo() == secondParty) incumbentMysteryPercent += ppvcBias * proportionPPVC;
-			if (project.partyOne() == secondParty && project.partyTwo() == firstParty) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
+			if (project.parties().partyOne() == firstParty && project.parties().partyTwo() == secondParty) incumbentMysteryPercent += ppvcBias * proportionPPVC;
+			if (project.parties().partyOne() == secondParty && project.parties().partyTwo() == firstParty) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
 			int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
 			int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
 			tcpTally[0] += incumbentMysteryVotes;
