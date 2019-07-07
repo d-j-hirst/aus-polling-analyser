@@ -11,16 +11,16 @@ public:
 	PartyCollection(PollingProject& project) : project(project) {}
 
 	// Adds the party "party".
-	void addParty(Party party);
+	void add(Party party);
 
 	// Replaces the party with index "partyIndex" by "party".
-	void replaceParty(int partyIndex, Party party);
+	void replace(int partyIndex, Party party);
 
 	// Removes the party with index "partyIndex".
-	void removeParty(int partyIndex);
+	void remove(int partyIndex);
 
 	// Returns the party with index "partyIndex".
-	Party getParty(int partyIndex) const;
+	Party const& view(int partyIndex) const;
 
 	Party const* partyOne() const { return &*parties.begin(); }
 	Party const* partyTwo() const { return &*std::next(parties.begin()); }
@@ -32,7 +32,7 @@ public:
 	Party const* getPartyPtr(int partyIndex) const;
 
 	// Returns the number of parties.
-	int getPartyCount() const;
+	int count() const;
 
 	// Gets the party index from a given pointer.
 	int getPartyIndex(Party const* partyPtr);

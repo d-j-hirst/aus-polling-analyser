@@ -7,7 +7,7 @@ EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingPr
 	: wxDialog(NULL, 0, (isNewSeat ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 371)),
 	isNewSeat(isNewSeat), parent(parent), project(project), seat(seat)
 {
-	int partyCount = project->parties().getPartyCount();
+	int partyCount = project->parties().count();
 	// If a model has not been specified it should default to the first.
 	if (this->seat.incumbent == nullptr) this->seat.incumbent = project->parties().getPartyPtr(0);
 	if (this->seat.challenger == nullptr) this->seat.challenger = project->parties().getPartyPtr(std::min(1, partyCount - 1));

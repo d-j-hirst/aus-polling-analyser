@@ -2,15 +2,15 @@
 
 #include "PollingProject.h"
 
-void PartyCollection::addParty(Party party) {
+void PartyCollection::add(Party party) {
 	parties.push_back(party);
 }
 
-void PartyCollection::replaceParty(int partyIndex, Party party) {
+void PartyCollection::replace(int partyIndex, Party party) {
 	*getPartyPtr(partyIndex) = party;
 }
 
-Party PartyCollection::getParty(int partyIndex) const {
+Party const& PartyCollection::view(int partyIndex) const {
 	auto it = parties.begin();
 	for (int i = 0; i < partyIndex; i++) it++;
 	return *it;
@@ -30,14 +30,14 @@ Party const* PartyCollection::getPartyPtr(int partyIndex) const {
 	return &*it;
 }
 
-void PartyCollection::removeParty(int partyIndex) {
+void PartyCollection::remove(int partyIndex) {
 	auto it = parties.begin();
 	for (int i = 0; i < partyIndex; i++) it++;
 	parties.erase(it);
 	project.adjustPollsAfterPartyRemoval(partyIndex);
 }
 
-int PartyCollection::getPartyCount() const {
+int PartyCollection::count() const {
 	return parties.size();
 }
 

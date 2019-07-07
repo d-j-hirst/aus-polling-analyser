@@ -68,8 +68,8 @@ void Simulation::run(PollingProject& project) {
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 		thisRegion->partyLeading.clear();
 		thisRegion->partyWins.clear();
-		thisRegion->partyLeading.resize(project.parties().getPartyCount());
-		thisRegion->partyWins.resize(project.parties().getPartyCount(), std::vector<int>(thisRegion->seatCount + 1));
+		thisRegion->partyLeading.resize(project.parties().count());
+		thisRegion->partyWins.resize(project.parties().count(), std::vector<int>(thisRegion->seatCount + 1));
 	}
 
 	// Record how many seats each party leads in (notionally) in each region
@@ -131,7 +131,7 @@ void Simulation::run(PollingProject& project) {
 	int partyTwoMajority = 0;
 
 	partySeatWinFrequency.clear();
-	partySeatWinFrequency.resize(project.parties().getPartyCount(), std::vector<int>(project.getSeatCount() + 1));
+	partySeatWinFrequency.resize(project.parties().count(), std::vector<int>(project.getSeatCount() + 1));
 	othersWinFrequency.clear();
 	othersWinFrequency.resize(project.getSeatCount() + 1);
 	partyOneSwing = 0.0;
@@ -141,7 +141,7 @@ void Simulation::run(PollingProject& project) {
 	for (currentIteration = 0; currentIteration < numIterations; ++currentIteration) {
 
 		// temporary for storing number of seat wins by each party in each region, 1st index = parties, 2nd index = regions
-		std::vector<std::vector<int>> regionSeatCount(project.parties().getPartyCount(), std::vector<int>(project.getRegionCount()));
+		std::vector<std::vector<int>> regionSeatCount(project.parties().count(), std::vector<int>(project.getRegionCount()));
 
 		// First, randomly determine the national swing for this particular simulation
 		float simulationOverallSwing = std::normal_distribution<float>(pollOverallSwing, pollOverallStdDev)(gen);
@@ -198,7 +198,7 @@ void Simulation::run(PollingProject& project) {
 
 		partyOneSwing += double(simulationOverallSwing);
 
-		std::vector<int> partyWins(project.parties().getPartyCount());
+		std::vector<int> partyWins(project.parties().count());
 
 		// Now cycle through all the seats and generate a result for each
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
@@ -334,7 +334,7 @@ void Simulation::run(PollingProject& project) {
 		else ++hungParliament;
 
 		int othersWins = 0;
-		for (int partyIndex = 0; partyIndex < project.parties().getPartyCount(); ++partyIndex) {
+		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			++partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
 			if (partyIndex > 1) othersWins += partyWins[partyIndex];
 			for (int regionIndex = 0; regionIndex < project.getRegionCount(); ++regionIndex) {
@@ -358,7 +358,7 @@ void Simulation::run(PollingProject& project) {
 		thisSeat->simulatedMarginAverage /= float(numIterations);
 	}
 
-	partyWinExpectation.resize(project.parties().getPartyCount());
+	partyWinExpectation.resize(project.parties().count());
 
 	partyOneMajorityPercent = float(partyOneMajority) / float(numIterations) * 100.0f;
 	partyOneMinorityPercent = float(partyOneMinority) / float(numIterations) * 100.0f;
@@ -367,7 +367,7 @@ void Simulation::run(PollingProject& project) {
 	partyTwoMajorityPercent = float(partyTwoMajority) / float(numIterations) * 100.0f;
 	partyOneSwing = partyOneSwing / double(numIterations);
 
-	for (int partyIndex = 0; partyIndex < project.parties().getPartyCount(); ++partyIndex) {
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 		int totalSeats = 0;
 		for (int seatNum = 1; seatNum < project.getSeatCount(); ++seatNum) {
 			totalSeats += seatNum * partySeatWinFrequency[partyIndex][seatNum];
@@ -375,11 +375,11 @@ void Simulation::run(PollingProject& project) {
 		partyWinExpectation[partyIndex] = float(totalSeats) / float(numIterations);
 	}
 
-	regionPartyWinExpectation.resize(project.getRegionCount(), std::vector<float>(project.parties().getPartyCount(), 0.0f));
+	regionPartyWinExpectation.resize(project.getRegionCount(), std::vector<float>(project.parties().count(), 0.0f));
 
 	for (int regionIndex = 0; regionIndex < project.getRegionCount(); ++regionIndex) {
 		Region thisRegion = project.getRegion(regionIndex);
-		for (int partyIndex = 0; partyIndex < project.parties().getPartyCount(); ++partyIndex) {
+		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			int totalSeats = 0;
 			for (int seatNum = 1; seatNum < int(thisRegion.partyWins[partyIndex].size()); ++seatNum) {
 				totalSeats += seatNum * thisRegion.partyWins[partyIndex][seatNum];

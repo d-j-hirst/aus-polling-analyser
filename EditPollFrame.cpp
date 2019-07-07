@@ -79,7 +79,7 @@ EditPollFrame::EditPollFrame(bool isNewPoll, PollsFrame* const parent, PollingPr
 
 	// *** Primary Votes *** //
 
-	int partyCount = project->parties().getPartyCount() + 1; // includes "others".
+	int partyCount = project->parties().count() + 1; // includes "others".
 
 	// Generate the string for the preference flow.
 	std::vector<std::string> primaryString;
@@ -93,7 +93,7 @@ EditPollFrame::EditPollFrame(bool isNewPoll, PollsFrame* const parent, PollingPr
 	for (; i < partyCount; i++) {
 		if (i < partyCount - 1) {
 			primaryString[i] = poll.getPrimaryString(i);
-			partyString[i] = project->parties().getParty(i).name + " primary vote:";
+			partyString[i] = project->parties().view(i).name + " primary vote:";
 		}
 		else {
 			primaryString[i] = poll.getPrimaryString(15);
@@ -232,7 +232,7 @@ void EditPollFrame::updateTextPrimary(wxCommandEvent& event) {
 	int whichParty = event.GetId() - PA_EditPoll_TextBoxID_Primary;
 	
 	// if the party number is equal to the number of parties then this is for "others".
-	int partyPollIndex = (whichParty == project->parties().getPartyCount() ? 15 : whichParty);
+	int partyPollIndex = (whichParty == project->parties().count() ? 15 : whichParty);
 
 	// updates the preliminary weight data with the string from the event.
 	// This code effectively acts as a pseudo-validator

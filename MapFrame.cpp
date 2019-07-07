@@ -181,7 +181,7 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 			return finalColour;
 		}
 	}
-	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().getPartyCount()) {
+	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().count()) {
 		wxColour finalColour = wxColour(255, 255, 255);
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;
 		int partyFpVotes = 0;
@@ -217,7 +217,7 @@ bool MapFrame::decideCircleVisibilityFromBooth(Results::Booth const & booth)
 		if (!booth.totalNewFpVotes()) return false;
 		break;
 	}
-	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().getPartyCount()) {
+	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().count()) {
 		// At least one of the parties running in the seat must match the selected "party"
 		if (!booth.totalNewFpVotes()) return false;
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;

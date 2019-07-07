@@ -287,9 +287,9 @@ void DisplayFrame::render(wxDC& dc) {
 	wxRect expBoxDataRect = wxRect(expBoxNameRect.GetRight(), expBoxTitleRect.GetBottom(),
 		ExpectationBoxWidth - expBoxNameRect.GetWidth(), ExpectationBoxTextHeight);
 	dc.SetFont(font13);
-	for (int partyIndex = 0; partyIndex < project->parties().getPartyCount(); ++partyIndex) {
+	for (int partyIndex = 0; partyIndex < project->parties().count(); ++partyIndex) {
 		if (partyIndex >= int(sim->partyWinExpectation.size())) break;
-		dc.DrawLabel(project->parties().getParty(partyIndex).name, expBoxNameRect, wxALIGN_CENTRE);
+		dc.DrawLabel(project->parties().view(partyIndex).name, expBoxNameRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(sim->partyWinExpectation[partyIndex], 2), expBoxDataRect, wxALIGN_CENTRE);
 		expBoxNameRect.Offset(0, ExpectationBoxTextHeight);
 		expBoxDataRect.Offset(0, ExpectationBoxTextHeight);
@@ -372,7 +372,7 @@ void DisplayFrame::render(wxDC& dc) {
 		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
-		dc.DrawLabel(project->parties().getParty(0).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
+		dc.DrawLabel(project->parties().view(0).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
 		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[3]) + "-" + to_string(sim->partyOneProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
 		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[2]) + "-" + to_string(sim->partyOneProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
 		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[1]) + "-" + to_string(sim->partyOneProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
@@ -382,7 +382,7 @@ void DisplayFrame::render(wxDC& dc) {
 		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
-		dc.DrawLabel(project->parties().getParty(1).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
+		dc.DrawLabel(project->parties().view(1).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
 		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[3]) + "-" + to_string(sim->partyTwoProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
 		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[2]) + "-" + to_string(sim->partyTwoProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
 		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[1]) + "-" + to_string(sim->partyTwoProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);

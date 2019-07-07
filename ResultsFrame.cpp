@@ -76,8 +76,8 @@ void ResultsFrame::refreshData()
 {
 	for (auto simulation = project->getSimulationBegin(); simulation != project->getSimulationEnd(); ++simulation) {
 		if (simulation->isLive() && simulation->isValid()) {
-			std::string party1 = project->parties().getParty(0).abbreviation;
-			std::string party2 = project->parties().getParty(1).abbreviation;
+			std::string party1 = project->parties().view(0).abbreviation;
+			std::string party2 = project->parties().view(1).abbreviation;
 			std::string summaryString = party1 + " win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) +
 				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation->getPartyOne2pp()), 2) +
 				"   Seats: " + party1 + " " + formatFloat(simulation->partyWinExpectation[0], 2) + " " +

@@ -17,8 +17,8 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 		partyCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
-	partyCollection.addParty(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
-	partyCollection.addParty(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
+	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
+	partyCollection.add(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
 
 	addPollster(Pollster("Default Pollster", 1.0f, 0, true, false));
 }
@@ -831,7 +831,7 @@ int PollingProject::save(std::string filename) {
 		os << "prev=" << it->reported2pp << "\n";
 		os << "resp=" << it->respondent2pp << "\n";
 		os << "calc=" << it->calc2pp << "\n";
-		for (int i = 0; i < partyCollection.getPartyCount(); i++) {
+		for (int i = 0; i < partyCollection.count(); i++) {
 			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << "\n";
 		}
 		os << "py15=" << it->primary[15] << "\n";
@@ -947,13 +947,13 @@ bool PollingProject::isValid() {
 }
 
 void PollingProject::recalculatePollCalc2PP(Poll& poll) const {
-	int npartyCollection = partyCollection.getPartyCount();
+	int npartyCollection = partyCollection.count();
 	float sum2PP = 0.0f;
 	float sumPrimaries = 0.0f;
 	for (int i = 0; i < npartyCollection; i++) {
 		if (poll.primary[i] < 0) continue;
-		sum2PP += poll.primary[i] * partyCollection.getParty(i).preferenceShare * (1.0f - partyCollection.getParty(i).exhaustRate * 0.01f);
-		sumPrimaries += poll.primary[i] * (1.0f - partyCollection.getParty(i).exhaustRate * 0.01f);
+		sum2PP += poll.primary[i] * partyCollection.view(i).preferenceShare * (1.0f - partyCollection.view(i).exhaustRate * 0.01f);
+		sumPrimaries += poll.primary[i] * (1.0f - partyCollection.view(i).exhaustRate * 0.01f);
 	}
 	if (poll.primary[15] > 0) {
 		sum2PP += poll.primary[15] * othersPreferenceFlow * (1.0f - othersExhaustRate * 0.01f);
@@ -1037,7 +1037,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	// New item changes
 	if (fos.section == FileSection_Parties) {
 		if (!line.compare("@Party")) {
-			partyCollection.addParty(Party());
+			partyCollection.add(Party());
 			return true;
 		}
 	}
@@ -1112,7 +1112,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Parties) {
-		if (!partyCollection.getPartyCount()) return true; //prevent crash from mixed-up data.
+		if (!partyCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
 			partyCollection.back().name = line.substr(5);
 			return true;
@@ -1538,7 +1538,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 void PollingProject::adjustPollsAfterPartyRemoval(int partyIndex) {
 
 	// This is the new party count after the party was already removed
-	int partyCount = partyCollection.getPartyCount();
+	int partyCount = partyCollection.count();
 
 	int pollCount = getPollCount();
 
