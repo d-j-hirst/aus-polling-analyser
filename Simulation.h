@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Party.h"
+
 #include <wx/datetime.h>
 
 #include <array>
@@ -78,7 +80,7 @@ public:
 
 	std::vector<float> incumbentWinPercent;
 
-	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, Party const* thisParty) const;
+	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const;
 
 	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 	std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds;
@@ -150,7 +152,7 @@ public:
 
 	float get2cpPercentCounted() const { return total2cpPercentCounted; }
 
-	int findBestSeatDisplayCenter(Party* partySorted, int numSeatsDisplayed);
+	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed);
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;
@@ -163,8 +165,8 @@ public:
 	};
 
 	struct SeatResult {
-		Party const* winner = nullptr;
-		Party const* runnerUp = nullptr;
+		Party::Id winner = Party::InvalidId;
+		Party::Id runnerUp = Party::InvalidId;
 		float margin = 0.0f;
 		float significance = 0.0f;
 	};
@@ -196,7 +198,7 @@ public:
 
 	SeatResult calculateLiveResultFromFirstPreferences(PollingProject const& project, Seat const& seat);
 
-	Party const* simulateWinnerFromBettingOdds(Seat const& thisSeat);
+	Party::Id simulateWinnerFromBettingOdds(Seat const& thisSeat);
 
 	bool seatPartiesMatchBetweenElections(PollingProject const & project, Seat const& seat);
 

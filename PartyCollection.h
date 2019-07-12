@@ -2,58 +2,75 @@
 
 #include "Party.h"
 
-#include <list>
+#include <map>
 
 class PollingProject;
 
 class PartyCollection {
 public:
-	PartyCollection(PollingProject& project) : project(project) {}
+	// Collection is a map between ID values and parties
+	// IDs are not preserved between sessions, and are used to ensure
+	// consistent display with party deletions etc. while making sure references
+	// from other components are preserved
+	// Map must be ordered to ensure order of parties is in order they are added.
+	typedef int PartyKey;
+	typedef std::map<PartyKey, Party> PartyContainer;
+
+	// Party index refers to the position of the party in the order of currently existing parties
+	// Should not be stored persistently as removal of a party will change the indices
+	// (use the PartyKey for that)
+	typedef int Index;
+
+	PartyCollection(PollingProject& project);
+	
+	// Any post-processing of files that must be done after loading from the file
+	void finaliseFileLoading();
 
 	// Adds the party "party".
 	void add(Party party);
 
 	// Replaces the party with index "partyIndex" by "party".
-	void replace(int partyIndex, Party party);
+	void replace(Party::Id partyId, Party party);
 
 	// Removes the party with index "partyIndex".
-	void remove(int partyIndex);
+	void remove(Party::Id partyId);
 
 	// Returns the party with index "partyIndex".
-	Party const& view(int partyIndex) const;
+	Party const& view(Party::Id partyId) const;
 
-	Party const* partyOne() const { return &*parties.begin(); }
-	Party const* partyTwo() const { return &*std::next(parties.begin()); }
+	// Returns the party with index "partyIndex".
+	Party const& viewByIndex(Index partyIndex) const { return view(indexToId(partyIndex)); }
 
-	// Returns a pointer to the party with index "partyIndex".
-	Party* getPartyPtr(int partyIndex);
-
-	// Returns a pointer to the party with index "partyIndex".
-	Party const* getPartyPtr(int partyIndex) const;
+	Index idToIndex(Party::Id id) const;
+	Party::Id indexToId(Index id) const;
 
 	// Returns the number of parties.
 	int count() const;
 
-	// Gets the party index from a given pointer.
-	int getPartyIndex(Party const* partyPtr);
-
-	Party& back() { return parties.back(); }
+	Party& back() { return std::prev(parties.end())->second; }
 
 	// Gets the begin iterator for the pollster list.
-	std::list<Party>::iterator begin() { return parties.begin(); }
+	PartyContainer::iterator begin() { return parties.begin(); }
 
 	// Gets the end iterator for the pollster list.
-	std::list<Party>::iterator end() { return parties.end(); }
+	PartyContainer::iterator end() { return parties.end(); }
 
 	// Gets the begin iterator for the pollster list.
-	std::list<Party>::const_iterator cbegin() const { return parties.cbegin(); }
+	PartyContainer::const_iterator cbegin() const { return parties.cbegin(); }
 
 	// Gets the end iterator for the pollster list.
-	std::list<Party>::const_iterator cend() const { return parties.cend(); }
+	PartyContainer::const_iterator cend() const { return parties.cend(); }
 
+	// returns true if the two parties given are opposite major parties,
+	// or parties that count as if they were those parties
+	bool oppositeMajors(Party::Id party1, Party::Id party2) const;
+	
 private:
 
-	std::list<Party> parties;
+	// what the next ID for an item in the container will be
+	int nextId = 0;
+
+	PartyContainer parties;
 
 	PollingProject& project;
 };

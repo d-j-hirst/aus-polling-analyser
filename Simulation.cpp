@@ -26,10 +26,6 @@ void Simulation::run(PollingProject& project) {
 
 	gen.seed(rd());
 
-	// Get pointers to the major parties (for later checking if seats are classic or non-classic 2CP)
-	Party const* const partyOne = project.parties().getPartyPtr(0);
-	Party const* const partyTwo = project.parties().getPartyPtr(1);
-
 	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
 		thisRegion->localModifierAverage = 0.0f;
 		thisRegion->seatCount = 0;
@@ -50,7 +46,7 @@ void Simulation::run(PollingProject& project) {
 		thisSeat->partyOthersWinRate = 0.0f;
 		thisSeat->simulatedMarginAverage = 0;
 		thisSeat->latestResult = nullptr;
-		bool isPartyOne = (thisSeat->incumbent == partyOne);
+		bool isPartyOne = (thisSeat->incumbent == 0);
 		thisSeat->region->localModifierAverage += thisSeat->localModifier * (isPartyOne ? 1.0f : -1.0f);
 		++thisSeat->region->seatCount;
 		if (isLiveAutomatic()) determineSeatCachedBoothData(project, *thisSeat);
@@ -74,7 +70,7 @@ void Simulation::run(PollingProject& project) {
 
 	// Record how many seats each party leads in (notionally) in each region
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-		++thisSeat->region->partyLeading[project.parties().getPartyIndex(thisSeat->getLeadingParty())];
+		++thisSeat->region->partyLeading[project.parties().idToIndex(thisSeat->getLeadingParty())];
 	}
 
 	// Some setup - calculating total population here since it's constant across all simulations
@@ -94,11 +90,11 @@ void Simulation::run(PollingProject& project) {
 	int totalEnrolment = 0;
 	if (isLive()) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-			if (!thisSeat->isClassic2pp(partyOne, partyTwo, isLiveAutomatic())) continue;
+			if (!thisSeat->isClassic2pp(isLiveAutomatic())) continue;
 			++classicSeatCount;
 			++thisSeat->region->classicSeatCount;
 			if (!thisSeat->latestResult) continue;
-			bool incIsOne = thisSeat->incumbent == partyOne;
+			bool incIsOne = thisSeat->incumbent == 0;
 			float percentCounted = thisSeat->latestResult->getPercentCountedEstimate();
 			float weightedSwing = thisSeat->latestResult->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
 			liveOverallSwing += weightedSwing;
@@ -204,10 +200,10 @@ void Simulation::run(PollingProject& project) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 
 			// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
-			bool isClassic2CP = thisSeat->isClassic2pp(partyOne, partyTwo, isLive());
+			bool isClassic2CP = thisSeat->isClassic2pp(isLive());
 
 			if (isClassic2CP) {
-				bool incIsOne = thisSeat->incumbent == partyOne; // stores whether the incumbent is Party One
+				bool incIsOne = thisSeat->incumbent == 0; // stores whether the incumbent is Party One
 				// Add or subtract the simulation regional deviation depending on which party is incumbent
 				float newMargin = thisSeat->margin + thisSeat->region->simulationSwing * (incIsOne ? 1.0f : -1.0f);
 				// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
@@ -227,7 +223,7 @@ void Simulation::run(PollingProject& project) {
 				// Sometimes a classic 2pp seat may also have a independent with a significant chance,
 				// but not high enough to make the top two - if so this will give a certain chance to
 				// override the swing-based result with a win from the challenger
-				if ((!isLiveAutomatic() || !thisSeat->hasLiveResults(partyOne, partyTwo)) && thisSeat->challenger2Odds < 8.0f && !thisSeat->overrideBettingOdds) {
+				if ((!isLiveAutomatic() || !thisSeat->hasLiveResults()) && thisSeat->challenger2Odds < 8.0f && !thisSeat->overrideBettingOdds) {
 					OddsInfo oddsInfo = calculateOddsInfo(*thisSeat);
 					float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
 					if (uniformRand >= oddsInfo.topTwoChance) thisSeat->winner = thisSeat->challenger2;
@@ -238,7 +234,7 @@ void Simulation::run(PollingProject& project) {
 				// so the independent's recorded votes were considered insignificant and the seat was overly favourable
 				// to the Coalition.
 				if (result.significance < 1.0f) {
-					if (!Party::oppositeMajors(*thisSeat->incumbent, *thisSeat->challenger)) {
+					if (!project.parties().oppositeMajors(thisSeat->incumbent, thisSeat->challenger)) {
 						if (!isLiveAutomatic() || !thisSeat->winner || std::uniform_real_distribution<float>(0.0f, 1.0f)(gen) > result.significance) {
 							if (isLiveAutomatic() && thisSeat->livePartyOne) {
 								float uniformRand = std::uniform_real_distribution<float>(0.0f, 1.0f)(gen);
@@ -292,11 +288,11 @@ void Simulation::run(PollingProject& project) {
 			// If the winner is the incumbent, record this down in the seat's numbers
 			thisSeat->incumbentWins += (thisSeat->winner == thisSeat->incumbent ? 1 : 0);
 
-			if (thisSeat->winner == partyOne) ++thisSeat->partyOneWinRate;
-			else if (thisSeat->winner == partyTwo) ++thisSeat->partyTwoWinRate;
+			if (thisSeat->winner == 0) ++thisSeat->partyOneWinRate;
+			else if (thisSeat->winner == 1) ++thisSeat->partyTwoWinRate;
 			else ++thisSeat->partyOthersWinRate;
 
-			int winnerIndex = project.parties().getPartyIndex(thisSeat->winner);
+			int winnerIndex = project.parties().idToIndex(thisSeat->winner);
 			partyWins[winnerIndex]++;
 			int regionIndex = project.getRegionIndex(thisSeat->region);
 			++regionSeatCount[winnerIndex][regionIndex];
@@ -304,10 +300,11 @@ void Simulation::run(PollingProject& project) {
 
 		//Assign all the wins from coalition third-parties to the respective major party
 		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
-			if (project.parties().getPartyPtr(partyNum)->countAsParty == Party::CountAsParty::CountsAsPartyOne){
+			Party const& thisParty = project.parties().view(project.parties().indexToId(partyNum));
+			if (thisParty.countAsParty == Party::CountAsParty::CountsAsPartyOne){
 				partyWins[0] += partyWins[partyNum];
 			}
-			else if (project.parties().getPartyPtr(partyNum)->countAsParty == Party::CountAsParty::CountsAsPartyTwo){
+			else if (thisParty.countAsParty == Party::CountAsParty::CountsAsPartyTwo){
 				partyWins[1] += partyWins[partyNum];
 			}
 		}
@@ -316,10 +313,11 @@ void Simulation::run(PollingProject& project) {
 		//Get the number of seats supporting each major party in a minority government
 		std::array<int, 2> partySupport = { partyWins[0], partyWins[1] };
 		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
-			if (project.parties().getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::One) {
+			Party const& thisParty = project.parties().view(project.parties().indexToId(partyNum));
+			if (thisParty.supportsParty == Party::SupportsParty::One) {
 				partySupport[0] += partyWins[partyNum];
 			}
-			else if (project.parties().getPartyPtr(partyNum)->supportsParty == Party::SupportsParty::Two) {
+			else if (thisParty.supportsParty == Party::SupportsParty::Two) {
 				partySupport[1] += partyWins[partyNum];
 			}
 		}
@@ -430,24 +428,24 @@ void Simulation::run(PollingProject& project) {
 	classicSeatList.clear();
 	for (int seatIndex = 0; seatIndex < project.getSeatCount(); ++seatIndex) {
 		Seat* seat = project.getSeatPtr(seatIndex);
-		if (seat->isClassic2pp(partyOne, partyTwo, isLiveAutomatic())) {
+		if (seat->isClassic2pp(isLiveAutomatic())) {
 			classicSeatList.push_back(ClassicSeat(seat, seatIndex));
 		}
 	}
 	std::sort(classicSeatList.begin(), classicSeatList.end(),
-		[partyTwo](ClassicSeat seatA, ClassicSeat seatB)
-	{return seatA.seat->getMajorPartyWinRate(partyTwo) > seatB.seat->getMajorPartyWinRate(partyTwo); });
+		[](ClassicSeat seatA, ClassicSeat seatB)
+	{return seatA.seat->getMajorPartyWinRate(1) > seatB.seat->getMajorPartyWinRate(1); });
 
 	lastUpdated = wxDateTime::Now();
 }
 
-float Simulation::getClassicSeatMajorPartyWinRate(int classicSeatIndex, Party const* thisParty) const {
-	return (classicSeatList[classicSeatIndex].seat->incumbent == thisParty ?
+float Simulation::getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const {
+	return (classicSeatList[classicSeatIndex].seat->incumbent == partyIndex ?
 		incumbentWinPercent[classicSeatList[classicSeatIndex].seatIndex] :
 		100.0f - incumbentWinPercent[classicSeatList[classicSeatIndex].seatIndex]);
 }
 
-int Simulation::findBestSeatDisplayCenter(Party* partySorted, int numSeatsDisplayed) {
+int Simulation::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) {
 	// aim here is to find the range of seats with the greatest difference between most and least likely for "partySorted" to wion
 	float bestProbRange = 50.0f;
 	int bestCenter = int(classicSeatList.size()) / 2;
@@ -504,8 +502,8 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
 	if (!firstCandidateId || !secondCandidateId) return; // maverick results mean we shouldn't try to estimate 2cp swings
-	Party const* firstSeatParty = project.getPartyByCandidate(firstCandidateId);
-	Party const* secondSeatParty = project.getPartyByCandidate(secondCandidateId);
+	Party::Id firstSeatParty = project.getPartyByCandidate(firstCandidateId);
+	Party::Id secondSeatParty = project.getPartyByCandidate(secondCandidateId);
 	seat.tcpTally[0] = 0;
 	seat.tcpTally[1] = 0;
 	int newComparisonVotes = 0;
@@ -518,8 +516,8 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 	float seatSecondPartyPreferences = 0;
 	for (auto boothId : seat.latestResults->booths) {
 		Results::Booth const& booth = project.getBooth(boothId);
-		Party const* firstBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
-		Party const* secondBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
+		Party::Id firstBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
+		Party::Id secondBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
 		bool isInSeatOrder = firstBoothParty == firstSeatParty;
 		bool isPpvc = booth.isPPVC();
 		if (booth.hasNewResults()) {
@@ -532,8 +530,8 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 		if (booth.hasOldAndNewResults()) {
 			oldComparisonVotes += booth.totalOldTcpVotes();
 			newComparisonVotes += booth.totalNewTcpVotes();
-			bool directMatch = project.parties().partyOne() == firstBoothParty && project.parties().partyTwo() == secondBoothParty;
-			bool oppositeMatch = project.parties().partyOne() == secondBoothParty && project.parties().partyTwo() == firstBoothParty;
+			bool directMatch = firstBoothParty == 0 && secondBoothParty == 1;
+			bool oppositeMatch = secondBoothParty == 0 && firstBoothParty == 1;
 			if (!isPpvc) {
 				if (directMatch) {
 					nonPpvcSwingNumerator += booth.rawSwing() * booth.totalNewTcpVotes();
@@ -600,7 +598,7 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 
 		logger << seatFirstPartyPreferences << " " << seatSecondPartyPreferences << " " <<
 			seat.firstPartyPreferenceFlow << " " << seat.preferenceFlowVariation << " preference flow to " <<
-			firstSeatParty->name << " vs " << secondSeatParty->name << " - " << seat.name << "\n";
+			project.parties().view(firstSeatParty).name << " vs " << project.parties().view(secondSeatParty).name << " - " << seat.name << "\n";
 	}
 
 	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
@@ -625,8 +623,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 {
 	if (isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
 		// All swings are in terms of a swing to candidate 0 as per latest results
-		Party const* firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-		Party const* secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
+		Party::Id firstParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+		Party::Id secondParty = project.getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
 		bool incumbentFirst = firstParty == seat.incumbent;
 		float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.latestResult->incumbentSwing;
 		std::array<int, 2> tcpTally = seat.tcpTally;
@@ -650,7 +648,7 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 			Results::Booth const& booth = project.getBooth(boothId);
 			if (booth.hasOldResults() && !booth.hasNewResults()) {
 				int estimatedTotalVotes = int(std::round(float(booth.totalOldTcpVotes()) * seat.individualBoothGrowth));
-				Party const* boothFirstParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
+				Party::Id boothFirstParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
 				// Party const* boothSecondParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
 				bool isInSeatOrder = boothFirstParty == firstParty;
 				float oldVotes0 = float(isInSeatOrder ? booth.tcpVote[0] : booth.tcpVote[1]);
@@ -660,8 +658,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 				float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
 				if (booth.isPPVC()) {
 					// votes are already in order for the seat, not the booth
-					if (project.parties().partyOne() == firstParty && project.parties().partyTwo() == secondParty) boothSwing += ppvcBias;
-					if (project.parties().partyOne() == secondParty && project.parties().partyTwo() == firstParty) boothSwing -= ppvcBias;
+					if (firstParty == 0 && secondParty == 1) boothSwing += ppvcBias;
+					if (secondParty == 0 && firstParty == 1) boothSwing -= ppvcBias;
 				}
 				float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
 				int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
@@ -697,8 +695,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 
 			const float MysteryVoteStdDev = 6.0f;
 			float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
-			if (project.parties().partyOne() == firstParty && project.parties().partyTwo() == secondParty) incumbentMysteryPercent += ppvcBias * proportionPPVC;
-			if (project.parties().partyOne() == secondParty && project.parties().partyTwo() == firstParty) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
+			if (firstParty == 0 && secondParty == 1) incumbentMysteryPercent += ppvcBias * proportionPPVC;
+			if (secondParty == 1 && firstParty == 0) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
 			int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
 			int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
 			tcpTally[0] += incumbentMysteryVotes;
@@ -797,8 +795,8 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 
 		float totalTally = float(tcpTally[0] + tcpTally[1]);
 		float firstMargin = (float(tcpTally[0]) - totalTally * 0.5f) / totalTally * 100.0f;
-		Party const* winner = (firstMargin >= 0.0f ? firstParty : secondParty);
-		Party const* runnerUp = (firstMargin >= 0.0f ? secondParty : firstParty);
+		Party::Id winner = (firstMargin >= 0.0f ? firstParty : secondParty);
+		Party::Id runnerUp = (firstMargin >= 0.0f ? secondParty : firstParty);
 		
 		// Third parties can potentially be a "spoiler" for a seat expected to be classic
 		// This check replaces the winner by a third party if it is simulated but doesn't
@@ -820,14 +818,14 @@ Simulation::SeatResult Simulation::calculateLiveResultClassic2CP(PollingProject 
 		float priorWeight = 0.5f;
 		float liveWeight = 6.0f / (liveStdDev * liveStdDev);
 		float newMargin = (priorMargin * priorWeight + liveMargin * liveWeight) / (priorWeight + liveWeight);
-		Party const* winner = (newMargin >= 0.0f ? seat.incumbent : seat.challenger);
-		Party const* runnerUp = (newMargin >= 0.0f ? seat.challenger : seat.incumbent);
+		Party::Id winner = (newMargin >= 0.0f ? seat.incumbent : seat.challenger);
+		Party::Id runnerUp = (newMargin >= 0.0f ? seat.challenger : seat.incumbent);
 		float significance = std::clamp(float(seat.latestResult->percentCounted) * 0.2f, 0.0f, 1.0f);
 		return { winner, runnerUp, abs(newMargin), significance };
 	}
 
-	Party const* winner = (priorMargin >= 0.0f ? seat.incumbent : seat.challenger);
-	Party const* runnerUp = (priorMargin >= 0.0f ? seat.challenger : seat.incumbent);
+	Party::Id winner = (priorMargin >= 0.0f ? seat.incumbent : seat.challenger);
+	Party::Id runnerUp = (priorMargin >= 0.0f ? seat.challenger : seat.incumbent);
 	return { winner, runnerUp, abs(priorMargin), 0.0f };
 }
 
@@ -841,8 +839,8 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		if (!currentIteration) logger << seat.name << " - 2cp votes\n";
 		int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 		int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
-		Party const* firstParty = project.getPartyByCandidate(firstCandidateId);
-		Party const* secondParty = project.getPartyByCandidate(secondCandidateId);
+		Party::Id firstParty = project.getPartyByCandidate(firstCandidateId);
+		Party::Id secondParty = project.getPartyByCandidate(secondCandidateId);
 		int firstTcpTally = 0;
 		int secondTcpTally = 0;
 		int newComparisonVotes = 0;
@@ -876,11 +874,6 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 			}
 		}
 
-		if (!currentIteration && seat.name == "Calare") {
-			logger << firstParty->name << " " << firstCandidateId << " " << firstTcpTally << "\n";
-			logger << secondParty->name << " " << secondCandidateId << " " << secondTcpTally << "\n";
-		}
-
 		float enrolmentChange = determineEnrolmentChange(seat, nullptr);
 
 		// now estimate the remaining votes with considerable variance
@@ -907,16 +900,11 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 		firstTcpTally += firstRemainingVotes;
 		secondTcpTally += secondRemainingVotes;
 
-		if (!currentIteration && seat.name == "Calare") {
-			logger << firstParty->name << " " << firstCandidateId << " " << firstTcpTally << "\n";
-			logger << secondParty->name << " " << secondCandidateId << " " << secondTcpTally << "\n";
-		}
-
 		float totalTally = float(firstTcpTally + secondTcpTally);
 		float margin = (float(firstTcpTally) - totalTally * 0.5f) / totalTally * 100.0f;
 
-		Party const* winner = (margin >= 0.0f ? firstParty : secondParty);
-		Party const* runnerUp = (margin >= 0.0f ? secondParty : firstParty);
+		Party::Id winner = (margin >= 0.0f ? firstParty : secondParty);
+		Party::Id runnerUp = (margin >= 0.0f ? secondParty : firstParty);
 
 		// Third parties can potentially be a "spoiler" for a seat expected to be classic
 		// This check replaces the winner by a third party if it is simulated but doesn't
@@ -939,7 +927,7 @@ Simulation::SeatResult Simulation::calculateLiveResultNonClassic2CP(PollingProje
 
 Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(PollingProject const & project, Seat const & seat)
 {
-	struct Candidate { int vote; Party const* party; float weight; };
+	struct Candidate { int vote; Party::Id partyId; float weight; };
 
 	std::vector<Candidate> candidates;
 	for (auto const& fpCandidate : seat.latestResults->fpCandidates) {
@@ -958,9 +946,12 @@ Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(Polli
 		estimatedTotalVotes = int(float(seat.latestResults->enrolment) * previousOrdinaryVoteEnrolmentRatio);
 	}
 	int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
-	int minTotalVotes = countedVotes;
+	int minTotalVotes = std::min(countedVotes, maxTotalVotes);
 	constexpr float totalVoteNumberDeviation = 0.05f;
 	float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
+	if (seat.name == "Bean" && !currentIteration) {
+		logger << "found problem seat!\n";
+	}
 	int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
 	int estimatedRemainingVotes = std::max(0, clampedTotalVotes - countedVotes);
 
@@ -979,16 +970,18 @@ Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(Polli
 
 	for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
 		Candidate sourceCandidate = candidates[sourceIndex];
+		Party const& sourceParty = project.parties().view(sourceCandidate.partyId);
 		candidates[sourceIndex].vote = 0;
 		std::vector<float> weights;
 		weights.resize(candidates.size(), 0);
 		for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
 			Candidate const& targetCandidate = candidates[targetIndex];
-			int ideologyDistance = float(std::abs(sourceCandidate.party->ideology - targetCandidate.party->ideology));
-			float consistencyBase = PreferenceConsistencyBase[sourceCandidate.party->consistency];
+			Party const& targetParty = project.parties().view(targetCandidate.partyId);
+			int ideologyDistance = float(std::abs(sourceParty.ideology - targetParty.ideology));
+			float consistencyBase = PreferenceConsistencyBase[sourceParty.consistency];
 			float thisWeight = std::pow(consistencyBase, -ideologyDistance);
-			if (!sourceCandidate.party->countsAsMajor() && !targetCandidate.party->countsAsMajor()) thisWeight *= 1.6f;
-			if (Party::oppositeMajors(*sourceCandidate.party, *targetCandidate.party)) thisWeight /= 2.0f;
+			if (!sourceParty.countsAsMajor() && !targetParty.countsAsMajor()) thisWeight *= 1.6f;
+			if (project.parties().oppositeMajors(sourceCandidate.partyId, targetCandidate.partyId)) thisWeight /= 2.0f;
 			// note, these frequent calls to the RNG are a significant bottleneck
 			thisWeight *= std::uniform_real_distribution<float>(0.5f, 1.5f)(gen);
 			thisWeight *= std::sqrt(float(targetCandidate.vote)); // preferences tend to flow to more popular candidates
@@ -1005,14 +998,14 @@ Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(Polli
 	}
 	float totalTally = float(candidates[0].vote + candidates[1].vote);
 	float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
-	Party const* winner = candidates[0].party;
-	Party const* runnerUp = candidates[1].party;
+	Party::Id winner = candidates[0].partyId;
+	Party::Id runnerUp = candidates[1].partyId;
 	float significance = std::clamp(float(seat.latestResults->totalFpVotes()) / float(estimatedTotalVotes) * 5.0f, 0.0f, 1.0f);
 
 	return { winner, runnerUp, margin, significance };
 }
 
-Party const * Simulation::simulateWinnerFromBettingOdds(Seat const& thisSeat)
+Party::Id Simulation::simulateWinnerFromBettingOdds(Seat const& thisSeat)
 {
 	// Non-standard seat; use odds adjusted for longshot bias since the presence of the
 	// third-party candidate may make swing-based projections inaccurate
@@ -1029,10 +1022,10 @@ bool Simulation::seatPartiesMatchBetweenElections(PollingProject const & project
 {
 	if (!seat.latestResults) return false;
 	if (!seat.previousResults) return false;
-	Party const* oldPartyOne = project.getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	Party const* oldPartyTwo = project.getPartyByAffiliation(seat.previousResults->finalCandidates[1].affiliationId);
-	Party const* newPartyOne = project.getPartyByAffiliation(seat.latestResults->finalCandidates[0].affiliationId);
-	Party const* newPartyTwo = project.getPartyByAffiliation(seat.latestResults->finalCandidates[1].affiliationId);
+	Party::Id oldPartyOne = project.getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	Party::Id oldPartyTwo = project.getPartyByAffiliation(seat.previousResults->finalCandidates[1].affiliationId);
+	Party::Id newPartyOne = project.getPartyByAffiliation(seat.latestResults->finalCandidates[0].affiliationId);
+	Party::Id newPartyTwo = project.getPartyByAffiliation(seat.latestResults->finalCandidates[1].affiliationId);
 	if (oldPartyOne == newPartyOne && oldPartyTwo == newPartyTwo) return true;
 	if (oldPartyOne == newPartyTwo && oldPartyTwo == newPartyOne) return true;
 	return false;

@@ -105,7 +105,7 @@ void PartiesFrame::refreshDataTable()
 
 	// Add the party data
 	for (int i = 0; i < project->parties().count(); ++i) {
-		addPartyToPartyData(project->parties().view(i));
+		addPartyToPartyData(project->parties().viewByIndex(i));
 	}
 }
 
@@ -165,7 +165,7 @@ void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&PartiesFrame::editPartyCallback, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditPartyFrame *frame = new EditPartyFrame(false, callback, project->parties().view(partyIndex));
+	EditPartyFrame *frame = new EditPartyFrame(false, callback, project->parties().viewByIndex(partyIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -182,11 +182,9 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no party selected, just stop.
 	if (partyIndex == -1) return;
 
-	int numParties = partyData->GetItemCount();
-
-	if (numParties == 2) {
+	if (partyIndex < 2) {
 		wxMessageDialog* message = new wxMessageDialog(this,
-			"Cannot remove the final two remaining parties. Edit the party data instead.");
+			"Cannot remove the first two parties. Edit the party data instead.");
 		
 		message->ShowModal();
 		return;
@@ -195,6 +193,9 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 	removeParty();
 
 	refresher.refreshPollData();
+	refresher.refreshMap();
+	refresher.refreshResults();
+	refresher.refreshSeatData();
 
 	return;
 }
@@ -241,7 +242,7 @@ void PartiesFrame::addPartyToPartyData(Party party) {
 
 void PartiesFrame::replaceParty(Party party) {
 	int partyIndex = partyData->GetSelectedRow();
-	project->parties().replace(partyIndex, party);
+	project->parties().replace(project->parties().indexToId(partyIndex), party);
 	project->refreshCalc2PP();
 
 	refreshDataTable();
@@ -257,7 +258,7 @@ void PartiesFrame::removeParty() {
 		message->ShowModal();
 		return;
 	}
-	project->parties().remove(partyData->GetSelectedRow());
+	project->parties().remove(project->parties().indexToId(partyData->GetSelectedRow()));
 
 	refreshDataTable();
 	updateInterface();

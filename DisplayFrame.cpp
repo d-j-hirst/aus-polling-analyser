@@ -465,14 +465,14 @@ void DisplayFrame::render(wxDC& dc) {
 	wxRect seatsBoxLnpWinRect = wxRect(seatsBoxMarginRect.GetRight(), seatsBoxTitleRect.GetBottom(),
 		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
 	int seatsFittingInBox = int((SeatsBoxHeight - SeatsBoxTitleHeight) / SeatsBoxTextHeight);
-	int closeSeat = sim->findBestSeatDisplayCenter(project->parties().getPartyPtr(GraphParty), seatsFittingInBox);
+	int closeSeat = sim->findBestSeatDisplayCenter(GraphParty, seatsFittingInBox);
 	int firstSeat = std::max(std::min(closeSeat - seatsFittingInBox / 2, int(sim->classicSeatList.size()) - seatsFittingInBox), 0);
 	dc.SetFont(font8);
 	for (int seatIndex = firstSeat; seatIndex < firstSeat + seatsFittingInBox && seatIndex < int(sim->classicSeatList.size()); ++seatIndex) {
 		ClassicSeat seat = sim->classicSeatList[seatIndex];
-		float lnpWinPercent = sim->getClassicSeatMajorPartyWinRate(seatIndex, project->parties().getPartyPtr(GraphParty)); // NEED TO CHANGE THIS
+		float lnpWinPercent = sim->getClassicSeatMajorPartyWinRate(seatIndex, GraphParty); // NEED TO CHANGE THIS
 		dc.DrawLabel(seat.seat->name, seatsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(seat.seat->incumbent->abbreviation + " (" + formatFloat(seat.seat->margin, 1) + ")", seatsBoxMarginRect, wxALIGN_CENTRE);
+		dc.DrawLabel(project->parties().view(seat.seat->incumbent).abbreviation + " (" + formatFloat(seat.seat->margin, 1) + ")", seatsBoxMarginRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(lnpWinPercent, 2), seatsBoxLnpWinRect, wxALIGN_CENTRE);
 		seatsBoxNameRect.Offset(0, SeatsBoxTextHeight);
 		seatsBoxMarginRect.Offset(0, SeatsBoxTextHeight);

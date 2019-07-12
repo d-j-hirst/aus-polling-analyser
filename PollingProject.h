@@ -66,8 +66,8 @@ public:
 	PartyCollection& parties() { return partyCollection; }
 	PartyCollection const& parties() const { return partyCollection; }
 
-	// If a party is removed, all the polls need to be adjusted to account for this.
-	void adjustPollsAfterPartyRemoval(int partyIndex);
+	// If a party is removed, various parts of the project need to be adjusted to account for this.
+	void adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
 	// Adds the pollster "pollster".
 	void addPollster(Pollster pollster);
@@ -346,11 +346,11 @@ public:
 
 	// Returns the party that this candidate ID refers to.
 	// Returns nullptr if candidate did not match any known party
-	Party const* getPartyByCandidate(int candidateId) const;
+	Party::Id getPartyByCandidate(int candidateId) const;
 
 	// Returns the party that this affiliation ID refers to.
 	// Returns nullptr if affiliation did not match any known party
-	Party const* getPartyByAffiliation(int affiliationId) const;
+	Party::Id getPartyByAffiliation(int affiliationId) const;
 
 	// Gets data for the candidate this id refers to
 	// Returns nullptr if the id does not match a known candidate
@@ -395,6 +395,12 @@ private:
 
 	// Removes all the projections from a particular model. Used when deleting a model.
 	void removeProjectionsFromModel(Model const* model);
+
+	// If a party is removed, various parts of the project need to be adjusted to deal with this
+	void adjustPollsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
+	void adjustSeatsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
+	void adjustCandidatesAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
+	void adjustAffiliationsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
 	// Makes adjustments after a file has been loaded.
 	void finalizeFileLoading();
@@ -461,7 +467,7 @@ private:
 	// Booth data from a download
 	std::unordered_map<int, Results::Booth> booths;
 
-	typedef std::unordered_map<int, Party const*> IdPartyMap;
+	typedef std::unordered_map<int, Party::Id> IdPartyMap;
 	typedef std::unordered_map<int, int> CandidateAffiliationMap;
 	typedef std::unordered_map<int, Results::Candidate> CandidateMap;
 	typedef std::unordered_map<int, Results::Affiliation> AffiliationMap;

@@ -148,8 +148,8 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 	switch (selectedColourMode) {
 	case ColourMode::TcpMargin:
 		{
-			Party const* winnerParty = project->getPartyByCandidate(winnerId);
-			wxColour winnerColour = wxColour(winnerParty->colour.r, winnerParty->colour.g, winnerParty->colour.b, 255);
+			Party const& winnerParty = project->parties().view(project->getPartyByCandidate(winnerId));
+			wxColour winnerColour = wxColour(winnerParty.colour.r, winnerParty.colour.g, winnerParty.colour.b, 255);
 			float tcpMargin = float(std::max(booth.newTcpVote[0], booth.newTcpVote[1])) / float(booth.totalNewTcpVotes()) - 0.5f;
 			float colourFactor = std::clamp(tcpMargin * 4.0f, 0.0f, 1.0f);
 			wxColour finalColour = mixColour(winnerColour, wxColour(255, 255, 255), colourFactor);
@@ -159,11 +159,11 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 		{
 			wxColour finalColour = wxColour(255, 255, 255);
 			if (booth.hasOldAndNewResults()) {
-				int swingToId = (booth.rawSwing(0) > 0.0f ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
-				Party const* swingToParty = project->getPartyByCandidate(swingToId);
+				int swingToId = (booth.rawSwing(0) > 0.0f ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);\
+				Party const& swingToParty = project->parties().view(project->getPartyByCandidate(swingToId));
 				float swingSize = abs(booth.rawSwing(0));
 				float colourFactor = std::clamp(swingSize * 6.0f, 0.0f, 1.0f);
-				wxColour partyColour = wxColour(swingToParty->colour.r, swingToParty->colour.g, swingToParty->colour.b, 255);
+				wxColour partyColour = wxColour(swingToParty.colour.r, swingToParty.colour.g, swingToParty.colour.b, 255);
 				finalColour = mixColour(partyColour, finalColour, colourFactor);
 			}
 			return finalColour;
@@ -173,10 +173,10 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 			wxColour finalColour = wxColour(255, 255, 255);
 			auto topPrimaryIt = std::max_element(booth.fpCandidates.begin(), booth.fpCandidates.end(),
 				[](Candidate const& a, Candidate const& b) {return a.fpVotes < b.fpVotes; });
-			Party const* topPrimaryParty = project->getPartyByCandidate(topPrimaryIt->candidateId);
+			Party const& topPrimaryParty = project->parties().view(project->getPartyByCandidate(topPrimaryIt->candidateId));
 			float primaryVoteProportion = float(topPrimaryIt->fpVotes) / float(booth.totalNewFpVotes());
 			float colourFactor = std::clamp((primaryVoteProportion - 0.2f) * 2.0f, 0.0f, 1.0f);
-			wxColour partyColour = wxColour(topPrimaryParty->colour.r, topPrimaryParty->colour.g, topPrimaryParty->colour.b, 255);
+			wxColour partyColour = wxColour(topPrimaryParty.colour.r, topPrimaryParty.colour.g, topPrimaryParty.colour.b, 255);
 			finalColour = mixColour(partyColour, finalColour, colourFactor);
 			return finalColour;
 		}
@@ -185,18 +185,19 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 		wxColour finalColour = wxColour(255, 255, 255);
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;
 		int partyFpVotes = 0;
-		auto selectedParty = project->parties().getPartyPtr(partyIndex);
+		auto selectedPartyId = project->parties().indexToId(partyIndex);
+		auto const& selectedParty = project->parties().view(selectedPartyId);
 		for (auto const& candidate : booth.fpCandidates) {
-			if (project->getPartyByCandidate(candidate.candidateId) == selectedParty) {
+			if (project->getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
 				partyFpVotes += candidate.fpVotes;
 			}
 		}
 		float primaryVoteProportion = float(partyFpVotes) / float(booth.totalNewFpVotes());
 		float colourFactor = std::clamp((primaryVoteProportion) * 1.4f, 0.0f, 1.0f);
 		if (partyIndex >= 2) {
-			colourFactor = std::clamp(std::sqrt(primaryVoteProportion) * selectedParty->boothColourMult, 0.0f, 1.0f);
+			colourFactor = std::clamp(std::sqrt(primaryVoteProportion) * selectedParty.boothColourMult, 0.0f, 1.0f);
 		}
-		wxColour partyColour = wxColour(selectedParty->colour.r, selectedParty->colour.g, selectedParty->colour.b, 255);
+		wxColour partyColour = wxColour(selectedParty.colour.r, selectedParty.colour.g, selectedParty.colour.b, 255);
 		finalColour = mixColour(partyColour, finalColour, colourFactor);
 		return finalColour;
 	}
@@ -208,22 +209,35 @@ bool MapFrame::decideCircleVisibilityFromBooth(Results::Booth const & booth)
 	if (booth.isPPVC() && !displayPpvcs) return false;
 	switch (selectedColourMode) {
 	case ColourMode::TcpMargin:
+	{
 		if (!booth.totalNewTcpVotes()) return false;
+		int winnerCandidateId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+		if (project->getPartyByCandidate(winnerCandidateId) == Party::InvalidId) return false;
 		break;
+	}
 	case ColourMode::TcpSwing:
+	{
 		if (!booth.hasOldAndNewResults()) return false;
+		int swingToCandidateId = (booth.rawSwing(0) > 0.0f ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
+		if (project->getPartyByCandidate(swingToCandidateId) == Party::InvalidId) return false;
 		break;
+	}
 	case ColourMode::TopPrimary:
+	{
 		if (!booth.totalNewFpVotes()) return false;
+		auto topPrimaryIt = std::max_element(booth.fpCandidates.begin(), booth.fpCandidates.end(),
+			[](Candidate const& a, Candidate const& b) {return a.fpVotes < b.fpVotes; });
+		if (project->getPartyByCandidate(topPrimaryIt->candidateId) == Party::InvalidId) return false;
 		break;
+	}
 	}
 	if (selectedColourMode >= ColourMode::SpecificPrimary && selectedColourMode <= ColourMode::SpecificPrimary + project->parties().count()) {
 		// At least one of the parties running in the seat must match the selected "party"
 		if (!booth.totalNewFpVotes()) return false;
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;
-		auto selectedParty = project->parties().getPartyPtr(partyIndex);
+		auto selectedPartyId = project->parties().indexToId(partyIndex);
 		for (auto const& candidate : booth.fpCandidates) {
-			if (project->getPartyByCandidate(candidate.candidateId) == selectedParty) {
+			if (project->getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
 				return true;
 			}
 		}
@@ -446,7 +460,7 @@ void MapFrame::refreshToolbar() {
 	colourModeStrings.push_back("Two-party preferred margin (not implemented)");
 	colourModeStrings.push_back("Two-party preferred swing (not implemented)");
 	for (auto party = project->parties().cbegin(); party != project->parties().cend(); ++party) {
-		colourModeStrings.push_back(party->name + "");
+		colourModeStrings.push_back(party->second.name + "");
 	}
 
 	selectedColourMode = 0;

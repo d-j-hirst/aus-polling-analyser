@@ -215,8 +215,8 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(seat.name));
-	data.push_back(wxVariant(seat.incumbent->name));
-	data.push_back(wxVariant(seat.challenger->name));
+	data.push_back(wxVariant(project->parties().view(seat.incumbent).name));
+	data.push_back(wxVariant(project->parties().view(seat.challenger).name));
 	data.push_back(wxVariant(seat.region->name));
 	data.push_back(wxVariant(formatFloat(seat.margin, 2)));
 	data.push_back(wxVariant(formatFloat(seat.localModifier, 2)));

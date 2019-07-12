@@ -190,6 +190,7 @@ void PollsFrame::updateInterface() {
 void PollsFrame::refreshData() {
 
 	pollData->DeleteAllItems();
+	// clearing the columns is necessary in the case that parties are added/removed
 	pollData->ClearColumns();
 
 	// *** Poll Data Table Columns *** //
@@ -208,9 +209,11 @@ void PollsFrame::refreshData() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// add columns for each party's primary votes
-	for (int i = 0; i < project->parties().count(); i++)
-		pollData->AppendTextColumn(project->parties().view(i).abbreviation, wxDATAVIEW_CELL_INERT, 40, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	for (int i = 0; i < project->parties().count(); i++) {
+		std::string abbreviation = project->parties().view(project->parties().indexToId(i)).abbreviation;
+		pollData->AppendTextColumn(abbreviation, wxDATAVIEW_CELL_INERT, 40, wxALIGN_LEFT,
+			wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	}
 
 	// add column for Others primary votes
 	pollData->AppendTextColumn("OTH", wxDATAVIEW_CELL_INERT, 40, wxALIGN_LEFT,

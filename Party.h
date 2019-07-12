@@ -6,6 +6,9 @@
 const int PA_MAX_PARTIES = 15;
 
 struct Party {
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	enum class CountAsParty : unsigned char {
 		None,
 		IsPartyOne,
@@ -43,7 +46,4 @@ struct Party {
 	bool countsAsMajor() const { return !(countAsParty == CountAsParty::None); }
 	bool countsAsOne() const { return countAsParty == CountAsParty::CountsAsPartyOne || countAsParty == CountAsParty::IsPartyOne; }
 	bool countsAsTwo() const { return countAsParty == CountAsParty::CountsAsPartyTwo || countAsParty == CountAsParty::IsPartyTwo; }
-	static bool oppositeMajors(Party const& party1, Party const& party2) {
-		return (party1.countsAsOne() && party2.countsAsTwo()) || (party1.countsAsTwo() && party2.countsAsOne());
-	}
 };

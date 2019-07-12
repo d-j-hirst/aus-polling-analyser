@@ -32,10 +32,10 @@ NonClassicFrame::NonClassicFrame(ResultsFrame * const parent, PollingProject con
 	int selectedPartyThree = 0;
 	int count = 0;
 	for (auto it = project->parties().cbegin(); it != project->parties().cend(); ++it, ++count) {
-		partyArray.push_back(it->name);
-		if (&*it == seat->livePartyOne) selectedPartyOne = count;
-		if (&*it == seat->livePartyTwo) selectedPartyTwo = count;
-		if (&*it == seat->livePartyThree) selectedPartyThree = count;
+		partyArray.push_back(it->second.name);
+		if (it->first == seat->livePartyOne) selectedPartyOne = count;
+		if (it->first == seat->livePartyTwo) selectedPartyTwo = count;
+		if (it->first == seat->livePartyThree) selectedPartyThree = count;
 	}
 
 	int currentHeight = 2;
@@ -126,9 +126,9 @@ void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 
 	if (seat) {
 		try {
-			Party const* partyOne = project->parties().getPartyPtr(partyOneComboBox->GetSelection());
-			Party const* partyTwo = project->parties().getPartyPtr(partyTwoComboBox->GetSelection());
-			Party const* partyThree = project->parties().getPartyPtr(partyThreeComboBox->GetSelection());
+			Party::Id partyOne = project->parties().indexToId(partyOneComboBox->GetSelection());
+			Party::Id partyTwo = project->parties().indexToId(partyTwoComboBox->GetSelection());
+			Party::Id partyThree = project->parties().indexToId(partyThreeComboBox->GetSelection());
 			float chanceTwo = std::stof(partyTwoProbTextCtrl->GetLineText(0).ToStdString());
 			float chanceThree = std::stof(partyThreeProbTextCtrl->GetLineText(0).ToStdString());
 			float chanceOne = 1.0f - chanceTwo - chanceThree;
@@ -159,9 +159,9 @@ void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 
 void NonClassicFrame::OnRemove(wxCommandEvent & WXUNUSED(event))
 {
-	seat->livePartyOne = nullptr;
-	seat->livePartyTwo = nullptr;
-	seat->livePartyThree = nullptr;
+	seat->livePartyOne = Party::InvalidId;
+	seat->livePartyTwo = Party::InvalidId;
+	seat->livePartyThree = Party::InvalidId;
 	seat->partyTwoProb = 0.0f;
 	seat->partyThreeProb = 0.0f;
 	Close();
