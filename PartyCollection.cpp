@@ -36,11 +36,14 @@ Party const& PartyCollection::view(Party::Id id) const {
 
 PartyCollection::Index PartyCollection::idToIndex(Party::Id id) const
 {
-	return std::distance(parties.begin(), parties.find(id));
+	auto foundIt = parties.find(id);
+	if (foundIt == parties.end()) return InvalidIndex;
+	return std::distance(parties.begin(), foundIt);
 }
 
 Party::Id PartyCollection::indexToId(Index index) const
 {
+	if (index >= count() || index < 0) return Party::InvalidId;
 	return std::next(parties.begin(), index)->first;
 }
 

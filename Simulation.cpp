@@ -293,9 +293,11 @@ void Simulation::run(PollingProject& project) {
 			else ++thisSeat->partyOthersWinRate;
 
 			int winnerIndex = project.parties().idToIndex(thisSeat->winner);
-			partyWins[winnerIndex]++;
-			int regionIndex = project.getRegionIndex(thisSeat->region);
-			++regionSeatCount[winnerIndex][regionIndex];
+			if (winnerIndex != PartyCollection::InvalidIndex) {
+				partyWins[winnerIndex]++;
+				int regionIndex = project.getRegionIndex(thisSeat->region);
+				++regionSeatCount[winnerIndex][regionIndex];
+			}
 		}
 
 		//Assign all the wins from coalition third-parties to the respective major party
@@ -596,9 +598,11 @@ void Simulation::determineSeatCachedBoothData(PollingProject const& project, Sea
 		seat.firstPartyPreferenceFlow = float(seatFirstPartyPreferences) / totalPreferences;
 		seat.preferenceFlowVariation = std::clamp(0.1f - totalPreferences / float(seat.latestResults->enrolment), 0.03f, 0.1f);
 
-		logger << seatFirstPartyPreferences << " " << seatSecondPartyPreferences << " " <<
-			seat.firstPartyPreferenceFlow << " " << seat.preferenceFlowVariation << " preference flow to " <<
-			project.parties().view(firstSeatParty).name << " vs " << project.parties().view(secondSeatParty).name << " - " << seat.name << "\n";
+		if (firstSeatParty != Party::InvalidId && secondSeatParty != Party::InvalidId) {
+			logger << seatFirstPartyPreferences << " " << seatSecondPartyPreferences << " " <<
+				seat.firstPartyPreferenceFlow << " " << seat.preferenceFlowVariation << " preference flow to " <<
+				project.parties().view(firstSeatParty).name << " vs " << project.parties().view(secondSeatParty).name << " - " << seat.name << "\n";
+		}
 	}
 
 	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
@@ -970,12 +974,14 @@ Simulation::SeatResult Simulation::calculateLiveResultFromFirstPreferences(Polli
 
 	for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
 		Candidate sourceCandidate = candidates[sourceIndex];
+		if (sourceCandidate.partyId == Party::InvalidId) continue;
 		Party const& sourceParty = project.parties().view(sourceCandidate.partyId);
 		candidates[sourceIndex].vote = 0;
 		std::vector<float> weights;
 		weights.resize(candidates.size(), 0);
 		for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
 			Candidate const& targetCandidate = candidates[targetIndex];
+			if (targetCandidate.partyId == Party::InvalidId) continue;
 			Party const& targetParty = project.parties().view(targetCandidate.partyId);
 			int ideologyDistance = float(std::abs(sourceParty.ideology - targetParty.ideology));
 			float consistencyBase = PreferenceConsistencyBase[sourceParty.consistency];

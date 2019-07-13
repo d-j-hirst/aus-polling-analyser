@@ -35,6 +35,7 @@ public:
 	// Should not be stored persistently as removal of a party will change the indices
 	// (use the PartyKey for that)
 	typedef int Index;
+	constexpr static Index InvalidIndex = -1;
 
 	constexpr static int MaxParties = 15;
 	constexpr static int NumMajorParties = 2;
