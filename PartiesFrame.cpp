@@ -133,21 +133,17 @@ void PartiesFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 }
 
 void PartiesFrame::OnNewParty(wxCommandEvent& WXUNUSED(event)) {
-	if (project->parties().count() >= 15) {
-
+	if (project->parties().canAdd() == PartyCollection::Result::TooManyParties) {
 		wxMessageDialog* message = new wxMessageDialog(this,
-			"Cannot have more than 15 parties.");
-
+			"Cannot have more than " + std::to_string(PartyCollection::MaxParties) + " parties.");
 		message->ShowModal();
 		return;
 	}
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PartiesFrame::newPartyCallback, this, _1);
 
-	// Create the new project frame (where initial settings for the new project are chosen).
 	EditPartyFrame *frame = new EditPartyFrame(true, callback);
-
-	// Show the frame.
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.
@@ -162,12 +158,10 @@ void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no party selected, just stop.
 	if (partyIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PartiesFrame::editPartyCallback, this, _1);
 
-	// Create the new project frame (where initial settings for the new project are chosen).
 	EditPartyFrame *frame = new EditPartyFrame(false, callback, project->parties().viewByIndex(partyIndex));
-
-	// Show the frame.
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.

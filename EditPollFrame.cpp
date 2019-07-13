@@ -96,7 +96,7 @@ EditPollFrame::EditPollFrame(bool isNewPoll, PollsFrame* const parent, PollingPr
 			partyString[i] = project->parties().view(i).name + " primary vote:";
 		}
 		else {
-			primaryString[i] = poll.getPrimaryString(15);
+			primaryString[i] = poll.getPrimaryString(PartyCollection::MaxParties);
 			partyString[i] = "Others primary vote:";
 		}
 
@@ -232,7 +232,7 @@ void EditPollFrame::updateTextPrimary(wxCommandEvent& event) {
 	int whichParty = event.GetId() - PA_EditPoll_TextBoxID_Primary;
 	
 	// if the party number is equal to the number of parties then this is for "others".
-	int partyPollIndex = (whichParty == project->parties().count() ? 15 : whichParty);
+	int partyPollIndex = (whichParty == project->parties().count() ? PartyCollection::MaxParties : whichParty);
 
 	// updates the preliminary weight data with the string from the event.
 	// This code effectively acts as a pseudo-validator

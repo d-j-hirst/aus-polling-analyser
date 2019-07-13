@@ -186,7 +186,7 @@ wxColour MapFrame::decideCircleColourFromBooth(Results::Booth const & booth)
 		int partyIndex = selectedColourMode - ColourMode::SpecificPrimary;
 		int partyFpVotes = 0;
 		auto selectedPartyId = project->parties().indexToId(partyIndex);
-		auto const& selectedParty = project->parties().view(selectedPartyId);
+		auto const& selectedParty = project->parties().viewByIndex(partyIndex);
 		for (auto const& candidate : booth.fpCandidates) {
 			if (project->getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
 				partyFpVotes += candidate.fpVotes;

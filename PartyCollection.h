@@ -6,6 +6,11 @@
 
 class PollingProject;
 
+class PartyLimitException : public std::runtime_error {
+public:
+	PartyLimitException() : std::runtime_error("") {}
+};
+
 class PartyCollection {
 public:
 	// Collection is a map between ID values and parties
@@ -21,12 +26,25 @@ public:
 	// (use the PartyKey for that)
 	typedef int Index;
 
+	constexpr static int MaxParties = 15;
+
 	PartyCollection(PollingProject& project);
 	
 	// Any post-processing of files that must be done after loading from the file
 	void finaliseFileLoading();
 
+	enum class Result {
+		Ok,
+		TooManyParties,
+		CantReplaceMainParty
+	};
+
+	// Checks if it is currently possible to add a party
+	// Returns Result::Ok if it's possible and Result::TooManyParties if there are too many parties
+	Result canAdd();
+
 	// Adds the party "party".
+	// Throws an exception if the number of parties is over the limit, check this beforehand using canAdd();
 	void add(Party party);
 
 	// Replaces the party with index "partyIndex" by "party".

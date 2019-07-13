@@ -80,7 +80,7 @@ void PollsFrame::addPollToPollData(Poll poll) {
 	data.push_back(wxVariant(poll.getCalc2ppString()));
 	for (int i = 0; i < project->parties().count(); i++)
 		data.push_back(wxVariant(poll.getPrimaryString(i)));
-	data.push_back(wxVariant(poll.getPrimaryString(15)));
+	data.push_back(wxVariant(poll.getPrimaryString(PartyCollection::MaxParties)));
 
 	pollData->AppendItem(data);
 }
@@ -107,7 +107,7 @@ void PollsFrame::replacePollInPollData(Poll poll) {
 	int i = 0;
 	for (; i < project->parties().count(); i++)
 		store->SetValueByRow(poll.getPrimaryString(i), pollIndex, PollColumn_Primary + i);
-	store->SetValueByRow(poll.getPrimaryString(15), pollIndex, PollColumn_Primary + i);
+	store->SetValueByRow(poll.getPrimaryString(PartyCollection::MaxParties), pollIndex, PollColumn_Primary + i);
 }
 
 void PollsFrame::removePoll() {
@@ -210,7 +210,7 @@ void PollsFrame::refreshData() {
 
 	// add columns for each party's primary votes
 	for (int i = 0; i < project->parties().count(); i++) {
-		std::string abbreviation = project->parties().view(project->parties().indexToId(i)).abbreviation;
+		std::string abbreviation = project->parties().viewByIndex(i).abbreviation;
 		pollData->AppendTextColumn(abbreviation, wxDATAVIEW_CELL_INERT, 40, wxALIGN_LEFT,
 			wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	}

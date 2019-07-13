@@ -300,7 +300,7 @@ void Simulation::run(PollingProject& project) {
 
 		//Assign all the wins from coalition third-parties to the respective major party
 		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
-			Party const& thisParty = project.parties().view(project.parties().indexToId(partyNum));
+			Party const& thisParty = project.parties().viewByIndex(partyNum);
 			if (thisParty.countAsParty == Party::CountAsParty::CountsAsPartyOne){
 				partyWins[0] += partyWins[partyNum];
 			}
@@ -313,7 +313,7 @@ void Simulation::run(PollingProject& project) {
 		//Get the number of seats supporting each major party in a minority government
 		std::array<int, 2> partySupport = { partyWins[0], partyWins[1] };
 		for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
-			Party const& thisParty = project.parties().view(project.parties().indexToId(partyNum));
+			Party const& thisParty = project.parties().viewByIndex(partyNum);
 			if (thisParty.supportsParty == Party::SupportsParty::One) {
 				partySupport[0] += partyWins[partyNum];
 			}

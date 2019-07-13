@@ -18,7 +18,7 @@ public:
 	float reported2pp;
 	float respondent2pp;
 	float calc2pp;
-	float primary[16]; // others is always index 15.
+	float primary[PartyCollection::MaxParties + 1]; // others is always the final index.
 	Poll(Pollster* pollster, wxDateTime date, float reported2pp, float respondent2pp, float calc2pp)
 		: pollster(pollster), date(date), reported2pp(reported2pp), respondent2pp(respondent2pp), calc2pp(calc2pp) {
 		resetPrimaries();
@@ -61,7 +61,7 @@ public:
 		return used2pp;
 	}
 
-	// use an argument of 15 to get the "Others" vote
+	// use an argument of PartyCollection::MaxParties to get the "Others" vote
 	std::string getPrimaryString(int partyIndex) const {
 		if (primary[partyIndex] >= 0) return formatFloat(primary[partyIndex], 1);
 		else return "";

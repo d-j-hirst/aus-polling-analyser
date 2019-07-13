@@ -289,7 +289,7 @@ void DisplayFrame::render(wxDC& dc) {
 	dc.SetFont(font13);
 	for (int partyIndex = 0; partyIndex < project->parties().count(); ++partyIndex) {
 		if (partyIndex >= int(sim->partyWinExpectation.size())) break;
-		dc.DrawLabel(project->parties().view(partyIndex).name, expBoxNameRect, wxALIGN_CENTRE);
+		dc.DrawLabel(project->parties().viewByIndex(partyIndex).name, expBoxNameRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(sim->partyWinExpectation[partyIndex], 2), expBoxDataRect, wxALIGN_CENTRE);
 		expBoxNameRect.Offset(0, ExpectationBoxTextHeight);
 		expBoxDataRect.Offset(0, ExpectationBoxTextHeight);

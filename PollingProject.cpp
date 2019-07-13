@@ -843,7 +843,7 @@ int PollingProject::save(std::string filename) {
 		for (int i = 0; i < partyCollection.count(); i++) {
 			os << "py" << (i<10 ? "0" : "") << i << "=" << it->primary[i] << "\n";
 		}
-		os << "py15=" << it->primary[15] << "\n";
+		os << "py15=" << it->primary[PartyCollection::MaxParties] << "\n";
 	}
 	os << "#Events" << "\n";
 	for (auto const& thisEvent : events) {
@@ -964,9 +964,9 @@ void PollingProject::recalculatePollCalc2PP(Poll& poll) const {
 		sum2PP += poll.primary[i] * partyCollection.viewByIndex(i).preferenceShare * (1.0f - partyCollection.viewByIndex(i).exhaustRate * 0.01f);
 		sumPrimaries += poll.primary[i] * (1.0f - partyCollection.viewByIndex(i).exhaustRate * 0.01f);
 	}
-	if (poll.primary[15] > 0) {
-		sum2PP += poll.primary[15] * othersPreferenceFlow * (1.0f - othersExhaustRate * 0.01f);
-		sumPrimaries += poll.primary[15] * (1.0f - othersExhaustRate * 0.01f);
+	if (poll.primary[PartyCollection::MaxParties] > 0) {
+		sum2PP += poll.primary[PartyCollection::MaxParties] * othersPreferenceFlow * (1.0f - othersExhaustRate * 0.01f);
+		sumPrimaries += poll.primary[PartyCollection::MaxParties] * (1.0f - othersExhaustRate * 0.01f);
 	}
 	poll.calc2pp = sum2PP / sumPrimaries + 0.14f; // the last 0.14f accounts for
 												  // leakage in Lib-Nat contests

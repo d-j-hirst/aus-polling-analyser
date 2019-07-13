@@ -3,8 +3,6 @@
 #include <string>
 #include <vector>
 
-const int PA_MAX_PARTIES = 15;
-
 struct Party {
 	typedef int Id;
 	constexpr static Id InvalidId = -1;

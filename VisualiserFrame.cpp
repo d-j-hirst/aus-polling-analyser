@@ -592,14 +592,14 @@ void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
 		dc.DrawText("Calculated 2PP: " + mouseOverPoll->getCalc2ppString(), currentPoint);
 		currentPoint += wxPoint(0, 20);
 	}
-	for (int i = 0; i < 15; ++i) {
+	for (int i = 0; i < PartyCollection::MaxParties; ++i) {
 		if (mouseOverPoll->primary[i] >= 0) {
-			dc.DrawText(project->parties().view(i).abbreviation + " primary: " + mouseOverPoll->getPrimaryString(i), currentPoint);
+			dc.DrawText(project->parties().viewByIndex(i).abbreviation + " primary: " + mouseOverPoll->getPrimaryString(i), currentPoint);
 			currentPoint += wxPoint(0, 20);
 		}
 	}
-	if (mouseOverPoll->primary[15] >= 0) {
-		dc.DrawText("Others primary: " + mouseOverPoll->getPrimaryString(15), currentPoint);
+	if (mouseOverPoll->primary[PartyCollection::MaxParties] >= 0) {
+		dc.DrawText("Others primary: " + mouseOverPoll->getPrimaryString(PartyCollection::MaxParties), currentPoint);
 		currentPoint += wxPoint(0, 20);
 	}
 }
