@@ -44,14 +44,25 @@ Party::Id PartyCollection::indexToId(Index index) const
 	return std::next(parties.begin(), index)->first;
 }
 
+PartyCollection::Result PartyCollection::canRemove(Party::Id id)
+{
+	if (id < NumMajorParties) return Result::CantRemoveMajorParty;
+	auto partyIt = parties.find(id);
+	if (partyIt == parties.end()) return Result::PartyDoesntExist;
+	return Result::Ok;
+}
+
 void PartyCollection::remove(Party::Id id) {
 	// A lot of party management is simplified by keeping the first two parties consistent,
 	// so we forbid removal of these parties to avoid messier code.
 	// If the user wants different top-two parties they can just edit them
 	// and having less than two parties doesn't make a lot of sense.
-	if (id < 2) return;
+	auto removeAllowed = canRemove(id);
+	if (removeAllowed == Result::CantRemoveMajorParty) throw RemoveMajorPartyException();
+	if (removeAllowed == Result::PartyDoesntExist) throw PartyDoesntExistException();
 	Index index = idToIndex(id);
-	parties.erase(parties.find(id));
+	auto partyIt = parties.find(id);
+	parties.erase(partyIt);
 	project.adjustAfterPartyRemoval(index, id);
 }
 

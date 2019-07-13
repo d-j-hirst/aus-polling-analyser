@@ -133,9 +133,18 @@ void PartiesFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 }
 
 void PartiesFrame::OnNewParty(wxCommandEvent& WXUNUSED(event)) {
-	if (project->parties().canAdd() == PartyCollection::Result::TooManyParties) {
+
+	auto canAdd = project->parties().canAdd();
+
+	if (canAdd == PartyCollection::Result::TooManyParties) {
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Cannot have more than " + std::to_string(PartyCollection::MaxParties) + " parties.");
+		message->ShowModal();
+		return;
+	}
+	else if (canAdd != PartyCollection::Result::Ok) {
+		wxMessageDialog* message = new wxMessageDialog(this,
+			"Cannot add party.");
 		message->ShowModal();
 		return;
 	}
@@ -148,7 +157,6 @@ void PartiesFrame::OnNewParty(wxCommandEvent& WXUNUSED(event)) {
 
 	// This is needed to avoid a memory leak.
 	delete frame;
-	return;
 }
 
 void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
@@ -166,7 +174,6 @@ void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
 
 	// This is needed to avoid a memory leak.
 	delete frame;
-	return;
 }
 
 void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
@@ -176,10 +183,17 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no party selected, just stop.
 	if (partyIndex == -1) return;
 
-	if (partyIndex < 2) {
+	auto canRemove = project->parties().canRemove(project->parties().indexToId(partyIndex));
+
+	if (canRemove == PartyCollection::Result::CantRemoveMajorParty) {
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Cannot remove the first two parties. Edit the party data instead.");
-		
+		message->ShowModal();
+		return;
+	}
+	else if (canRemove != PartyCollection::Result::Ok) {
+		wxMessageDialog* message = new wxMessageDialog(this,
+			"Cannot remove this party.");
 		message->ShowModal();
 		return;
 	}
@@ -200,15 +214,11 @@ void PartiesFrame::OnPartySettings(wxCommandEvent& WXUNUSED(event)) {
 
 	auto callback = std::bind(&PartiesFrame::partySettingsCallback, this, _1);
 
-	// Create the party settings frame (where initial settings for the new project are chosen).
 	PartySettingsFrame *frame = new PartySettingsFrame(partySettingsData, callback);
-
-	// Show the frame.
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.
 	delete frame;
-	return;
 }
 
 // updates the interface after a change in item selection.
@@ -244,14 +254,6 @@ void PartiesFrame::replaceParty(Party party) {
 }
 
 void PartiesFrame::removeParty() {
-	// Simultaneously add to the party data control and to the polling project.
-	if (project->parties().count() < 3) {
-		wxMessageDialog* message = new wxMessageDialog(this,
-			"Must always have at least 2 parties. Rename the existing parties if they are not the ones you want.");
-
-		message->ShowModal();
-		return;
-	}
 	project->parties().remove(project->parties().indexToId(partyData->GetSelectedRow()));
 
 	refreshDataTable();

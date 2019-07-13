@@ -11,6 +11,16 @@ public:
 	PartyLimitException() : std::runtime_error("") {}
 };
 
+class RemoveMajorPartyException : public std::runtime_error {
+public:
+	RemoveMajorPartyException() : std::runtime_error("") {}
+};
+
+class PartyDoesntExistException : public std::runtime_error {
+public:
+	PartyDoesntExistException() : std::runtime_error("") {}
+};
+
 class PartyCollection {
 public:
 	// Collection is a map between ID values and parties
@@ -27,6 +37,7 @@ public:
 	typedef int Index;
 
 	constexpr static int MaxParties = 15;
+	constexpr static int NumMajorParties = 2;
 
 	PartyCollection(PollingProject& project);
 	
@@ -36,7 +47,8 @@ public:
 	enum class Result {
 		Ok,
 		TooManyParties,
-		CantReplaceMainParty
+		CantRemoveMajorParty,
+		PartyDoesntExist,
 	};
 
 	// Checks if it is currently possible to add a party
@@ -48,13 +60,17 @@ public:
 	void add(Party party);
 
 	// Replaces the party with index "partyIndex" by "party".
-	void replace(Party::Id partyId, Party party);
+	void replace(Party::Id id, Party party);
+
+	// Checks if it is currently possible to add the given party
+	// Returns Result::Ok if it's possible and Result::TooManyParties if there are too many parties
+	Result canRemove(Party::Id id);
 
 	// Removes the party with index "partyIndex".
-	void remove(Party::Id partyId);
+	void remove(Party::Id id);
 
 	// Returns the party with index "partyIndex".
-	Party const& view(Party::Id partyId) const;
+	Party const& view(Party::Id id) const;
 
 	// Returns the party with index "partyIndex".
 	Party const& viewByIndex(Index partyIndex) const { return view(indexToId(partyIndex)); }
