@@ -131,6 +131,9 @@
     <ClCompile Include="TextInput.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
+    <ClCompile Include="FloatInput.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -346,6 +349,9 @@
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
     <ClInclude Include="TextInput.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="FloatInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>

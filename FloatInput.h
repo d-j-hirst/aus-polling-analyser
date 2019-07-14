@@ -1,5 +1,4 @@
 #pragma once
-
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
 
@@ -13,17 +12,22 @@
 #include "wx/wx.h"
 #endif
 
+
 // Handles both a text box for general text input and also a static text label that
 // describes what the input is for.
-class TextInput {
+class FloatInput {
 public:
-	typedef std::function<void(std::string)> TextChangeFunc;
+	typedef std::function<void(float)> TextChangeFunc;
+	typedef std::function<float(float)> FloatValidationFunc;
 
 	// public because the calling frame will want to know what height the control is
 	static constexpr int Height = 23;
 
-	TextInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, std::string inputText, wxPoint topLeft,
-		TextChangeFunc textChangeFunc = [](std::string) {return;}, int labelWidth = 150, int textInputWidth = 200);
+	static float DefaultValidator(float a) {return std::clamp(a, 0.0f, 100.0f); };
+
+	FloatInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, float inputFloat, wxPoint topLeft,
+		TextChangeFunc textChangeFunc = [](float) {return; }, FloatValidationFunc floatValidationFunc = DefaultValidator,
+		int labelWidth = 150, int textInputWidth = 200, int initialDecimalPlaces = 3);
 
 private:
 
@@ -31,7 +35,12 @@ private:
 	// the result of the GetString() method of "event".
 	void updateText(wxCommandEvent& event);
 
+	std::string lastText;
+
 	TextChangeFunc textChangeFunc;
+	FloatValidationFunc floatValidationFunc;
+
+	bool currentlyUpdating = false;
 
 	wxWindow* parent;
 	wxStaticText* staticText;

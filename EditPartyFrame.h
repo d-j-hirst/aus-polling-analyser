@@ -17,6 +17,7 @@
 #include <wx/valnum.h>
 #include <wx/clrpicker.h>
 
+#include "FloatInput.h"
 #include "PartiesFrame.h"
 #include "Party.h"
 #include "TextInput.h"
@@ -56,7 +57,7 @@ private:
 
 	// Calls upon the window to update the preliminary preference flow data based on
 	// the result of the GetFloat() method of "event".
-	void updateTextPreferenceFlow(wxCommandEvent& event);
+	void updateTextPreferenceFlow(float preferenceFlow);
 
 	// Calls upon the window to update the preliminary exhaust rate data based on
 	// the result of the GetFloat() method of "event".
@@ -98,6 +99,7 @@ private:
 	Party party;
 
 	std::unique_ptr<TextInput> nameTextInput;
+	std::unique_ptr<FloatInput> preferenceFlowInput;
 
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.

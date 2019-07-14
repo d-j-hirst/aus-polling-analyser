@@ -270,6 +270,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MapFrame.cpp" />
@@ -322,6 +323,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ElectionData.h" />
+    <ClInclude Include="FloatInput.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />

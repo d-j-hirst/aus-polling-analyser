@@ -40,15 +40,15 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 
 	int currentHeight = 2;
 
-	auto nameFunc = std::bind(&EditPartyFrame::updateTextName, this, _1);
-	nameTextInput.reset(new TextInput(this, PA_EditParty_TextBoxID_Name, "Name:", party.name, wxPoint(2, currentHeight), nameFunc));
+	auto nameCallback = std::bind(&EditPartyFrame::updateTextName, this, _1);
+	nameTextInput.reset(new TextInput(this, PA_EditParty_TextBoxID_Name, "Name:", party.name, wxPoint(2, currentHeight), nameCallback));
 
 	currentHeight += 27;
 
-	// Create the controls for the preference flow.
-	preferenceFlowStaticText = new wxStaticText(this, 0, "Preference Flow:", wxPoint(2, currentHeight), wxSize(150, 23));
-	preferenceFlowTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_PreferenceFlow, preferenceFlowString,
-		wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	auto preferenceFlowCallback = std::bind(&EditPartyFrame::updateTextPreferenceFlow, this, _1);
+	auto preferenceFlowValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	preferenceFlowInput.reset(new FloatInput(this, PA_EditParty_TextBoxID_PreferenceFlow, "Preferences to party 1:", party.preferenceShare,
+		wxPoint(2, currentHeight), preferenceFlowCallback, preferenceFlowValidator));
 
 	currentHeight += 27;
 
@@ -187,7 +187,6 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextPreferenceFlow, this, PA_EditParty_TextBoxID_PreferenceFlow);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextExhaustRate, this, PA_EditParty_TextBoxID_ExhaustRate);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextOfficialShortCodes, this, PA_EditParty_TextBoxID_OfficialShortCodes);
@@ -209,38 +208,11 @@ void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void EditPartyFrame::updateTextName(std::string name) {
-
-	// updates the preliminary project data with the string from the event.
 	party.name = name;
 }
 
-void EditPartyFrame::updateTextPreferenceFlow(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			party.preferenceShare = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < 0.0f) f = 0.0f;
-
-		party.preferenceShare = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastPreferenceFlow = str;
-	} catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		preferenceFlowTextCtrl->SetLabel(lastPreferenceFlow);
-	}
+void EditPartyFrame::updateTextPreferenceFlow(float preferenceFlow) {
+	party.preferenceShare = preferenceFlow;
 }
 
 void EditPartyFrame::updateTextExhaustRate(wxCommandEvent & event)

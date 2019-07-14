@@ -6,10 +6,10 @@ TextInput::TextInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelT
 	staticText = new wxStaticText(parent, 0, labelText, topLeft, wxSize(labelWidth, Height));
 	textCtrl = new wxTextCtrl(parent, textCtrlId, inputText, topLeft + wxSize(labelWidth, 0), wxSize(textInputWidth, Height));
 
-	parent->Bind(wxEVT_TEXT, &TextInput::updateTextName, this, textCtrl->GetId());
+	parent->Bind(wxEVT_TEXT, &TextInput::updateText, this, textCtrl->GetId());
 }
 
-void TextInput::updateTextName(wxCommandEvent & event)
+void TextInput::updateText(wxCommandEvent & event)
 {
 	textChangeFunc(std::string(event.GetString()));
 }
