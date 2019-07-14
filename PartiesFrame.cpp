@@ -152,7 +152,7 @@ void PartiesFrame::OnNewParty(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PartiesFrame::newPartyCallback, this, _1);
 
-	EditPartyFrame *frame = new EditPartyFrame(true, callback);
+	EditPartyFrame *frame = new EditPartyFrame(EditPartyFrame::Function::New, callback);
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.
@@ -169,7 +169,7 @@ void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PartiesFrame::editPartyCallback, this, _1);
 
-	EditPartyFrame *frame = new EditPartyFrame(false, callback, project->parties().viewByIndex(partyIndex));
+	EditPartyFrame *frame = new EditPartyFrame(EditPartyFrame::Function::Edit, callback, project->parties().viewByIndex(partyIndex));
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.
@@ -221,8 +221,8 @@ void PartiesFrame::OnPartySettings(wxCommandEvent& WXUNUSED(event)) {
 	delete frame;
 }
 
-// updates the interface after a change in item selection.
 void PartiesFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
+	// updates whether edit/remove buttons are enabled
 	updateInterface();
 }
 
@@ -234,7 +234,6 @@ void PartiesFrame::addParty(Party party) {
 }
 
 void PartiesFrame::addPartyToPartyData(Party party) {
-	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(party.name));
 	data.push_back(wxVariant(formatFloat(party.preferenceShare, 3)));

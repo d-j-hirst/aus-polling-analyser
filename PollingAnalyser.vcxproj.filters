@@ -125,7 +125,12 @@
     <ClCompile Include="Points.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="PartyCollection.cpp" />
+    <ClCompile Include="PartyCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
+    <ClCompile Include="TextInput.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -169,6 +174,9 @@
     </Filter>
     <Filter Include="Header Files\Project Sections">
       <UniqueIdentifier>{46ecfa32-7c58-4d03-bde3-fc9ddbec2518}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project Sections">
+      <UniqueIdentifier>{451e12ef-c0c8-45a7-9b99-3410d0a0385c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -336,6 +344,9 @@
     </ClInclude>
     <ClInclude Include="PartyCollection.h">
       <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="TextInput.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

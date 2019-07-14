@@ -19,6 +19,7 @@
 
 #include "PartiesFrame.h"
 #include "Party.h"
+#include "TextInput.h"
 
 class PartiesFrame;
 
@@ -32,10 +33,16 @@ class PartiesFrame;
 class EditPartyFrame : public wxDialog
 {
 public:
-	// isNewParty: true if this dialog is for creating a new party, false if it's for editing.
-	// parent: Parent frame for this (must be a PartiesFrame).
-	// party: Party data to be used if editing (has default values for creating a new party).
-	EditPartyFrame(bool isNewParty, std::function<void(Party)> callback,
+	enum class Function {
+		New,
+		Edit
+	};
+
+	typedef std::function<void(Party)> OkCallback;
+
+	// function: whether this is for a new party or editing an existing party
+	// callback: function to be called when this 
+	EditPartyFrame(Function function, OkCallback callback,
 		Party party = Party("Enter party name here", 50.0f, 0.0f, "Enter abbreviation here", Party::CountAsParty::None));
 
 private:
@@ -45,7 +52,7 @@ private:
 
 	// Calls upon the window to update the preliminary name data based on
 	// the result of the GetString() method of "event".
-	void updateTextName(wxCommandEvent& event);
+	void updateTextName(std::string name);
 
 	// Calls upon the window to update the preliminary preference flow data based on
 	// the result of the GetFloat() method of "event".
@@ -90,10 +97,10 @@ private:
 	// Data container for the preliminary settings for the party to be created.
 	Party party;
 
+	std::unique_ptr<TextInput> nameTextInput;
+
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* nameStaticText;
-	wxTextCtrl* nameTextCtrl;
 	wxStaticText* preferenceFlowStaticText;
 	wxTextCtrl* preferenceFlowTextCtrl;
 	wxStaticText* abbreviationStaticText;
@@ -117,9 +124,6 @@ private:
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	// Stores whether this dialog is for creating a new party (true) or editing an existing one (false).
-	bool isNewParty;
-
 	// Keeps the preference flow saved in case a text entry results in an invalid value.
 	std::string lastPreferenceFlow;
 
@@ -130,5 +134,5 @@ private:
 	std::string lastBoothColourMult;
 
 	// function to call back to once the user clicks OK.
-	std::function<void(Party)> callback;
+	OkCallback callback;
 };

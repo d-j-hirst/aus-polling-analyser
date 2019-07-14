@@ -3,6 +3,8 @@
 
 #include <regex>
 
+using namespace std::placeholders; // for function object parameter binding
+
 // IDs for the controls and the menu commands
 enum
 {
@@ -20,9 +22,9 @@ enum
 	PA_EditParty_ComboBoxID_SupportsParty,
 };
 
-EditPartyFrame::EditPartyFrame(bool isNewParty, std::function<void(Party)> callback, Party party)
-	: wxDialog(NULL, 0, (isNewParty ? "New Party" : "Edit Party"), wxDefaultPosition, wxSize(400, 400)),
-	isNewParty(isNewParty), party(party), callback(callback)
+EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party party)
+	: wxDialog(NULL, 0, (function == Function::New ? "New Party" : "Edit Party"), wxDefaultPosition, wxSize(400, 400)),
+	party(party), callback(callback)
 {
 	// Generate the string for the preference flow.
 	std::string preferenceFlowString = formatFloat(party.preferenceShare, 2);
@@ -38,9 +40,8 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, std::function<void(Party)> callb
 
 	int currentHeight = 2;
 
-	// Create the controls for the party name.
-	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight), wxSize(150, 23));
-	nameTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_Name, party.name, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	auto nameFunc = std::bind(&EditPartyFrame::updateTextName, this, _1);
+	nameTextInput.reset(new TextInput(this, PA_EditParty_TextBoxID_Name, "Name:", party.name, wxPoint(2, currentHeight), nameFunc));
 
 	currentHeight += 27;
 
@@ -186,7 +187,6 @@ EditPartyFrame::EditPartyFrame(bool isNewParty, std::function<void(Party)> callb
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextName, this, PA_EditParty_TextBoxID_Name);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextPreferenceFlow, this, PA_EditParty_TextBoxID_PreferenceFlow);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextExhaustRate, this, PA_EditParty_TextBoxID_ExhaustRate);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
@@ -208,10 +208,10 @@ void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 	Close();
 }
 
-void EditPartyFrame::updateTextName(wxCommandEvent& event) {
+void EditPartyFrame::updateTextName(std::string name) {
 
 	// updates the preliminary project data with the string from the event.
-	party.name = event.GetString();
+	party.name = name;
 }
 
 void EditPartyFrame::updateTextPreferenceFlow(wxCommandEvent& event) {

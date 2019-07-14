@@ -316,11 +316,13 @@
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
+    <ClCompile Include="TextInput.cpp" />
     <ClCompile Include="unzip.cpp" />
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ElectionData.h" />
+    <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="MapFrame.h" />
