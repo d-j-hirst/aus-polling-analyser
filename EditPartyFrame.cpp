@@ -100,21 +100,18 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	consistencyArray.push_back("High");
 	int currentConsistencySelection = party.consistency;
 
-	// Create the controls for the ideology combo box.
-	consistencyStaticText = new wxStaticText(this, 0, "Preference Consistency:", wxPoint(2, currentHeight), wxSize(198, 23));
-	consistencyComboBox = new wxComboBox(this, PA_EditParty_ComboBoxID_Consistency, consistencyArray[currentConsistencySelection],
-		wxPoint(200, currentHeight), wxSize(120, 23), consistencyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the poll's pollster, if any.
-	consistencyComboBox->SetSelection(currentConsistencySelection);
+	auto consistencyCallback = std::bind(&EditPartyFrame::updateConsistency, this, _1);
+	consistencyInput.reset(new ChoiceInput(this, PA_EditParty_ComboBoxID_Consistency, "Consistency:", consistencyArray, currentConsistencySelection,
+		wxPoint(2, currentHeight), consistencyCallback));
 
 	currentHeight += 27;
 
 	if (party.countAsParty != Party::CountAsParty::IsPartyOne && party.countAsParty != Party::CountAsParty::IsPartyTwo) {
 
-		// Create the controls for the party name abbreviation.
-		boothColourMultStaticText = new wxStaticText(this, 0, "Booth Colour Multiplier:", wxPoint(2, currentHeight), wxSize(150, 23));
-		boothColourMultTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_BoothColourMult, formatFloat(party.boothColourMult, 3), wxPoint(150, currentHeight - 2), wxSize(200, 23));
+		auto boothColourMultCallback = std::bind(&EditPartyFrame::updateBoothColourMult, this, _1);
+		auto boothColourMultValidator = [](float f) {return std::max(f, 0.0f); };
+		boothColourMultInput.reset(new FloatInput(this, PA_EditParty_TextBoxID_BoothColourMult, "Booth Colour Multiplier:", party.boothColourMult,
+			wxPoint(2, currentHeight), boothColourMultCallback, boothColourMultValidator));
 
 		currentHeight += 27;
 
@@ -128,19 +125,15 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 		countAsPartyArray.push_back("None");
 		countAsPartyArray.push_back("Counts As Party One");
 		countAsPartyArray.push_back("Counts As Party Two");
-		int currentSelection = 0;
+		int countAsPartySelection = 0;
 		switch (party.countAsParty) {
-		case Party::CountAsParty::CountsAsPartyOne: currentSelection = 1; break;
-		case Party::CountAsParty::CountsAsPartyTwo: currentSelection = 2; break;
+		case Party::CountAsParty::CountsAsPartyOne: countAsPartySelection = 1; break;
+		case Party::CountAsParty::CountsAsPartyTwo: countAsPartySelection = 2; break;
 		}
 
-		// Create the controls for the count-as-party combo box.
-		countAsPartyStaticText = new wxStaticText(this, 0, "Counts as party:", wxPoint(2, currentHeight), wxSize(198, 23));
-		countAsPartyComboBox = new wxComboBox(this, PA_EditParty_ComboBoxID_CountAsParty, countAsPartyArray[currentSelection],
-			wxPoint(200, currentHeight), wxSize(120, 23), countAsPartyArray, wxCB_READONLY);
-
-		// Sets the combo box selection to the poll's pollster, if any.
-		countAsPartyComboBox->SetSelection(currentSelection);
+		auto countAsPartyCallback = std::bind(&EditPartyFrame::updateCountAsParty, this, _1);
+		countAsPartyInput.reset(new ChoiceInput(this, PA_EditParty_ComboBoxID_CountAsParty, "Counts as party:", countAsPartyArray, countAsPartySelection,
+			wxPoint(2, currentHeight), countAsPartyCallback));
 
 		currentHeight += 27;
 
@@ -152,19 +145,15 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 		supportsPartyArray.push_back("None");
 		supportsPartyArray.push_back("Supports Party One");
 		supportsPartyArray.push_back("Supports Party Two");
-		currentSelection = 0;
+		int supportsPartySelection = 0;
 		switch (party.supportsParty) {
-		case Party::SupportsParty::One: currentSelection = 1; break;
-		case Party::SupportsParty::Two: currentSelection = 2; break;
+		case Party::SupportsParty::One: supportsPartySelection = 1; break;
+		case Party::SupportsParty::Two: supportsPartySelection = 2; break;
 		}
 
-		// Create the controls for the count-as-party combo box.
-		supportsPartyStaticText = new wxStaticText(this, 0, "Supports party:", wxPoint(2, currentHeight), wxSize(198, 23));
-		supportsPartyComboBox = new wxComboBox(this, PA_EditParty_ComboBoxID_SupportsParty, supportsPartyArray[currentSelection],
-			wxPoint(200, currentHeight), wxSize(120, 23), supportsPartyArray, wxCB_READONLY);
-
-		// Sets the combo box selection to the poll's pollster, if any.
-		supportsPartyComboBox->SetSelection(currentSelection);
+		auto supportsPartyCallback = std::bind(&EditPartyFrame::updateSupportsParty, this, _1);
+		supportsPartyInput.reset(new ChoiceInput(this, PA_EditParty_ComboBoxID_SupportsParty, "Supports party:", supportsPartyArray, supportsPartySelection,
+			wxPoint(2, currentHeight), supportsPartyCallback));
 
 		currentHeight += 27;
 	}
@@ -174,14 +163,11 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxConsistency, this, PA_EditParty_ComboBoxID_Consistency);
-	Bind(wxEVT_TEXT, &EditPartyFrame::updateBoothColourMult, this, PA_EditParty_TextBoxID_BoothColourMult);
-	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
-	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxSupportsParty, this, PA_EditParty_ComboBoxID_SupportsParty);
 	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, PA_EditParty_ButtonID_OK);
 }
 
-void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
+void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) 
+{
 	// Call the function that was passed when this frame was opened.
 	callback(party);
 
@@ -189,23 +175,28 @@ void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 	Close();
 }
 
-void EditPartyFrame::updateName(std::string name) {
+void EditPartyFrame::updateName(std::string name) 
+{
 	party.name = name;
 }
 
-void EditPartyFrame::updatePreferenceFlow(float preferenceFlow) {
+void EditPartyFrame::updatePreferenceFlow(float preferenceFlow) 
+{
 	party.preferenceShare = preferenceFlow;
 }
 
-void EditPartyFrame::updateExhaustRate(float exhaustRate) {
+void EditPartyFrame::updateExhaustRate(float exhaustRate) 
+{
 	party.exhaustRate = exhaustRate;
 }
 
-void EditPartyFrame::updateAbbreviation(std::string abbreviation) {
+void EditPartyFrame::updateAbbreviation(std::string abbreviation) 
+{
 	party.abbreviation = abbreviation;
 }
 
-void EditPartyFrame::updateShortCodes(std::string shortCodes) {
+void EditPartyFrame::updateShortCodes(std::string shortCodes) 
+{
 	// updates the party short codes data with the string from the event.
 	std::regex partyCodeRegex("([^,]+)(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?");
 	std::smatch matchResults;
@@ -231,55 +222,28 @@ void EditPartyFrame::updateIdeology(int ideology)
 	party.ideology = ideology;
 }
 
-void EditPartyFrame::updateComboBoxConsistency(wxCommandEvent& WXUNUSED(event))
+void EditPartyFrame::updateConsistency(int consistency)
 {
-	party.consistency = consistencyComboBox->GetCurrentSelection();
+	party.consistency = consistency;
 }
 
-void EditPartyFrame::updateBoothColourMult(wxCommandEvent & event)
+void EditPartyFrame::updateBoothColourMult(float boothColourMult)
 {
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			party.boothColourMult = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < 0.0f) f = 0.0f;
-
-		party.boothColourMult = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastBoothColourMult = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		boothColourMultTextCtrl->SetLabel(lastBoothColourMult);
-	}
+	party.boothColourMult = boothColourMult;
 }
 
-void EditPartyFrame::updateComboBoxCountAsParty(wxCommandEvent& WXUNUSED(event)) {
-
-	int selection = countAsPartyComboBox->GetCurrentSelection();
-	switch (selection) {
+void EditPartyFrame::updateCountAsParty(int countAsParty)
+{
+	switch (countAsParty) {
 	case 0: party.countAsParty = Party::CountAsParty::None; break;
 	case 1: party.countAsParty = Party::CountAsParty::CountsAsPartyOne; break;
 	case 2: party.countAsParty = Party::CountAsParty::CountsAsPartyTwo; break;
 	}
 }
 
-void EditPartyFrame::updateComboBoxSupportsParty(wxCommandEvent& WXUNUSED(event)) {
-
-	int selection = supportsPartyComboBox->GetCurrentSelection();
-	switch (selection) {
+void EditPartyFrame::updateSupportsParty(int supportsParty)
+{
+	switch (supportsParty) {
 	case 0: party.supportsParty = Party::SupportsParty::None; break;
 	case 1: party.supportsParty = Party::SupportsParty::One; break;
 	case 2: party.supportsParty = Party::SupportsParty::Two; break;

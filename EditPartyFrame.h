@@ -60,22 +60,10 @@ private:
 	void updateShortCodes(std::string shortCodes);
 	void updateColour(wxColour colour);
 	void updateIdeology(int ideology);
-
-	// Calls upon the window to update the "ideology" data based on
-	// the properties of the event.
-	void updateComboBoxConsistency(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary booth colour multiplier data based on
-	// the result of the GetString() method of "event".
-	void updateBoothColourMult(wxCommandEvent& event);
-
-	// Calls upon the window to update the "count-as-party" data based on
-	// the properties of the event.
-	void updateComboBoxCountAsParty(wxCommandEvent& event);
-
-	// Calls upon the window to update the "supports party" data based on
-	// the properties of the event.
-	void updateComboBoxSupportsParty(wxCommandEvent& event);
+	void updateConsistency(int consistency);
+	void updateBoothColourMult(float boothColourMult);
+	void updateCountAsParty(int countAsParty);
+	void updateSupportsParty(int supportsParty);
 
 	// Data container for the preliminary settings for the party to be created.
 	Party party;
@@ -87,20 +75,13 @@ private:
 	std::unique_ptr<TextInput> shortCodesInput;
 	std::unique_ptr<ColourInput> colourInput;
 	std::unique_ptr<ChoiceInput> ideologyInput;
+	std::unique_ptr<ChoiceInput> consistencyInput;
+	std::unique_ptr<FloatInput> boothColourMultInput;
+	std::unique_ptr<ChoiceInput> countAsPartyInput;
+	std::unique_ptr<ChoiceInput> supportsPartyInput;
 
-	wxStaticText* boothColourMultStaticText;
-	wxTextCtrl* boothColourMultTextCtrl;
-	wxStaticText* countAsPartyStaticText;
-	wxComboBox* countAsPartyComboBox;
-	wxStaticText* supportsPartyStaticText;
-	wxComboBox* supportsPartyComboBox;
-	wxStaticText* consistencyStaticText;
-	wxComboBox* consistencyComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
-
-	// Keeps the preference flow saved in case a text entry results in an invalid value.
-	std::string lastBoothColourMult;
 
 	// function to call back to once the user clicks OK.
 	OkCallback callback;
