@@ -1,5 +1,10 @@
 #include "EditPartyFrame.h"
+
+#include "ColourInput.h"
+#include "FloatInput.h"
 #include "General.h"
+#include "TextInput.h"
+
 
 #include <regex>
 
@@ -26,42 +31,30 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	: wxDialog(NULL, 0, (function == Function::New ? "New Party" : "Edit Party"), wxDefaultPosition, wxSize(400, 400)),
 	party(party), callback(callback)
 {
-	// Generate the string for the preference flow.
-	std::string preferenceFlowString = formatFloat(party.preferenceShare, 2);
-
-	// Store this string in case a text entry gives an error in the future.
-	lastPreferenceFlow = preferenceFlowString;
-
-	// Generate the string for the exhaust rate.
-	std::string exhaustRateString = formatFloat(party.exhaustRate, 2);
-
-	// Store this string in case a text entry gives an error in the future.
-	lastExhaustRate = exhaustRateString;
 
 	int currentHeight = 2;
 
-	auto nameCallback = std::bind(&EditPartyFrame::updateTextName, this, _1);
-	nameTextInput.reset(new TextInput(this, PA_EditParty_TextBoxID_Name, "Name:", party.name, wxPoint(2, currentHeight), nameCallback));
+	auto nameCallback = std::bind(&EditPartyFrame::updateName, this, _1);
+	nameInput.reset(new TextInput(this, PA_EditParty_TextBoxID_Name, "Name:", party.name, wxPoint(2, currentHeight), nameCallback));
 
 	currentHeight += 27;
 
-	auto preferenceFlowCallback = std::bind(&EditPartyFrame::updateTextPreferenceFlow, this, _1);
+	auto preferenceFlowCallback = std::bind(&EditPartyFrame::updatePreferenceFlow, this, _1);
 	auto preferenceFlowValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	preferenceFlowInput.reset(new FloatInput(this, PA_EditParty_TextBoxID_PreferenceFlow, "Preferences to party 1:", party.preferenceShare,
 		wxPoint(2, currentHeight), preferenceFlowCallback, preferenceFlowValidator));
 
 	currentHeight += 27;
 
-	// Create the controls for the exhaust rate.
-	exhaustRateStaticText = new wxStaticText(this, 0, "Exhaust Rate:", wxPoint(2, currentHeight), wxSize(150, 23));
-	exhaustRateTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_ExhaustRate, exhaustRateString,
-		wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	auto exhaustRateCallback = std::bind(&EditPartyFrame::updateExhaustRate, this, _1);
+	auto exhaustRateValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	exhaustRateInput.reset(new FloatInput(this, PA_EditParty_TextBoxID_ExhaustRate, "Exhaust Rate:", party.exhaustRate,
+		wxPoint(2, currentHeight), exhaustRateCallback, exhaustRateValidator));
 
 	currentHeight += 27;
 
-	// Create the controls for the party name abbreviation.
-	abbreviationStaticText = new wxStaticText(this, 0, "Abbreviation:", wxPoint(2, currentHeight), wxSize(150, 23));
-	abbreviationTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_Abbreviation, party.abbreviation, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	auto abbreviationCallback = std::bind(&EditPartyFrame::updateAbbreviation, this, _1);
+	abbreviationInput.reset(new TextInput(this, PA_EditParty_TextBoxID_Abbreviation, "Abbreviation:", party.abbreviation, wxPoint(2, currentHeight), abbreviationCallback));
 
 	currentHeight += 27;
 
@@ -73,17 +66,15 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 		}
 	}
 
-	// Create the controls for the party's official short codes
-	officialShortCodesStaticText = new wxStaticText(this, 0, "Official Short Codes:", wxPoint(2, currentHeight), wxSize(150, 23));
-	officialShortCodesTextCtrl = new wxTextCtrl(this, PA_EditParty_TextBoxID_OfficialShortCodes, shortCodes, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	auto shortCodesCallback = std::bind(&EditPartyFrame::updateShortCodes, this, _1);
+	shortCodesInput.reset(new TextInput(this, PA_EditParty_TextBoxID_OfficialShortCodes, "Official Short Codes:", shortCodes, wxPoint(2, currentHeight), shortCodesCallback));
 
 	currentHeight += 27;
 
 	wxColour currentColour(party.colour.r, party.colour.g, party.colour.b);
 
-	// Create the controls for the party's colour
-	colourPickerText = new wxStaticText(this, 0, "Colour:", wxPoint(2, currentHeight), wxSize(150, 23));
-	colourPicker = new wxColourPickerCtrl(this, PA_EditParty_ColourPickerID_Colour, currentColour, wxPoint(150, currentHeight - 2), wxSize(200, 23));
+	auto colourCallback = std::bind(&EditPartyFrame::updateColour, this, _1);
+	colourInput.reset(new ColourInput(this, PA_EditParty_ColourPickerID_Colour, "Colour:", currentColour, wxPoint(2, currentHeight), colourCallback));
 
 	currentHeight += 27;
 
@@ -187,10 +178,6 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextExhaustRate, this, PA_EditParty_TextBoxID_ExhaustRate);
-	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextAbbreviation, this, PA_EditParty_TextBoxID_Abbreviation);
-	Bind(wxEVT_TEXT, &EditPartyFrame::updateTextOfficialShortCodes, this, PA_EditParty_TextBoxID_OfficialShortCodes);
-	Bind(wxEVT_COLOURPICKER_CHANGED, &EditPartyFrame::updateColourPicker, this, PA_EditParty_ColourPickerID_Colour);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxIdeology, this, PA_EditParty_ComboBoxID_Ideology);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxConsistency, this, PA_EditParty_ComboBoxID_Consistency);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateBoothColourMult, this, PA_EditParty_TextBoxID_BoothColourMult);
@@ -207,55 +194,27 @@ void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 	Close();
 }
 
-void EditPartyFrame::updateTextName(std::string name) {
+void EditPartyFrame::updateName(std::string name) {
 	party.name = name;
 }
 
-void EditPartyFrame::updateTextPreferenceFlow(float preferenceFlow) {
+void EditPartyFrame::updatePreferenceFlow(float preferenceFlow) {
 	party.preferenceShare = preferenceFlow;
 }
 
-void EditPartyFrame::updateTextExhaustRate(wxCommandEvent & event)
-{
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			party.exhaustRate = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < 0.0f) f = 0.0f;
-
-		party.exhaustRate = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastExhaustRate = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		exhaustRateTextCtrl->SetLabel(lastExhaustRate);
-	}
+void EditPartyFrame::updateExhaustRate(float exhaustRate) {
+	party.exhaustRate = exhaustRate;
 }
 
-void EditPartyFrame::updateTextAbbreviation(wxCommandEvent& event) {
-	// updates the preliminary project data with the string from the event.
-	party.abbreviation = event.GetString();
+void EditPartyFrame::updateAbbreviation(std::string abbreviation) {
+	party.abbreviation = abbreviation;
 }
 
-void EditPartyFrame::updateTextOfficialShortCodes(wxCommandEvent& event) {
+void EditPartyFrame::updateShortCodes(std::string shortCodes) {
 	// updates the party short codes data with the string from the event.
-	std::string thisString = event.GetString();
 	std::regex partyCodeRegex("([^,]+)(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?");
 	std::smatch matchResults;
-	std::regex_match(thisString, matchResults, partyCodeRegex);
+	std::regex_match(shortCodes, matchResults, partyCodeRegex);
 	if (matchResults.size()) {
 		party.officialCodes.clear();
 		for (int matchIndex = 1; matchIndex < 56; matchIndex += 2) {
@@ -265,11 +224,11 @@ void EditPartyFrame::updateTextOfficialShortCodes(wxCommandEvent& event) {
 	}
 }
 
-void EditPartyFrame::updateColourPicker(wxColourPickerEvent& event)
+void EditPartyFrame::updateColour(wxColour colour)
 {
-	party.colour.r = event.GetColour().Red();
-	party.colour.g = event.GetColour().Green();
-	party.colour.b = event.GetColour().Blue();
+	party.colour.r = colour.Red();
+	party.colour.g = colour.Green();
+	party.colour.b = colour.Blue();
 }
 
 void EditPartyFrame::updateComboBoxIdeology(wxCommandEvent& WXUNUSED(event))

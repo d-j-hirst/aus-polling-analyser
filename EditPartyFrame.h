@@ -15,14 +15,14 @@
 
 #include <sstream>
 #include <wx/valnum.h>
-#include <wx/clrpicker.h>
 
-#include "FloatInput.h"
 #include "PartiesFrame.h"
 #include "Party.h"
 #include "TextInput.h"
 
-class PartiesFrame;
+class ColourInput;
+class FloatInput;
+class TextInput;
 
 // ----------------------------------------------------------------------------
 // constants
@@ -51,29 +51,13 @@ private:
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextName(std::string name);
-
-	// Calls upon the window to update the preliminary preference flow data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextPreferenceFlow(float preferenceFlow);
-
-	// Calls upon the window to update the preliminary exhaust rate data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextExhaustRate(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary abbreviation data based on
-	// the result of the GetString() method of "event".
-	void updateTextAbbreviation(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary abbreviation data based on
-	// the result of the GetString() method of "event".
-	void updateTextOfficialShortCodes(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary abbreviation data based on
-	// the result of the GetString() method of "event".
-	void updateColourPicker(wxColourPickerEvent& event);
+	// Callbacks for the controls to update the party data.
+	void updateName(std::string name);
+	void updatePreferenceFlow(float preferenceFlow);
+	void updateExhaustRate(float exhuastRate);
+	void updateAbbreviation(std::string abbreviation);
+	void updateShortCodes(std::string shortCodes);
+	void updateColour(wxColour colour);
 
 	// Calls upon the window to update the "ideology" data based on
 	// the properties of the event.
@@ -98,23 +82,15 @@ private:
 	// Data container for the preliminary settings for the party to be created.
 	Party party;
 
-	std::unique_ptr<TextInput> nameTextInput;
+	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<FloatInput> preferenceFlowInput;
+	std::unique_ptr<FloatInput> exhaustRateInput;
+	std::unique_ptr<TextInput> abbreviationInput;
+	std::unique_ptr<TextInput> shortCodesInput;
+	std::unique_ptr<ColourInput> colourInput;
 
-	// Control pointers that are really only here to shut up the
-	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* preferenceFlowStaticText;
-	wxTextCtrl* preferenceFlowTextCtrl;
-	wxStaticText* abbreviationStaticText;
-	wxTextCtrl* abbreviationTextCtrl;
-	wxStaticText* exhaustRateStaticText;
-	wxTextCtrl* exhaustRateTextCtrl;
-	wxStaticText* officialShortCodesStaticText;
-	wxTextCtrl* officialShortCodesTextCtrl;
 	wxStaticText* boothColourMultStaticText;
 	wxTextCtrl* boothColourMultTextCtrl;
-	wxStaticText* colourPickerText;
-	wxColourPickerCtrl* colourPicker;
 	wxStaticText* countAsPartyStaticText;
 	wxComboBox* countAsPartyComboBox;
 	wxStaticText* supportsPartyStaticText;
@@ -125,12 +101,6 @@ private:
 	wxComboBox* consistencyComboBox;
 	wxButton* okButton;
 	wxButton* cancelButton;
-
-	// Keeps the preference flow saved in case a text entry results in an invalid value.
-	std::string lastPreferenceFlow;
-
-	// Keeps the preference flow saved in case a text entry results in an invalid value.
-	std::string lastExhaustRate;
 
 	// Keeps the preference flow saved in case a text entry results in an invalid value.
 	std::string lastBoothColourMult;
