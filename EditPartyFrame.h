@@ -20,6 +20,7 @@
 #include "Party.h"
 #include "TextInput.h"
 
+class ChoiceInput;
 class ColourInput;
 class FloatInput;
 class TextInput;
@@ -58,10 +59,7 @@ private:
 	void updateAbbreviation(std::string abbreviation);
 	void updateShortCodes(std::string shortCodes);
 	void updateColour(wxColour colour);
-
-	// Calls upon the window to update the "ideology" data based on
-	// the properties of the event.
-	void updateComboBoxIdeology(wxCommandEvent& event);
+	void updateIdeology(int ideology);
 
 	// Calls upon the window to update the "ideology" data based on
 	// the properties of the event.
@@ -88,6 +86,7 @@ private:
 	std::unique_ptr<TextInput> abbreviationInput;
 	std::unique_ptr<TextInput> shortCodesInput;
 	std::unique_ptr<ColourInput> colourInput;
+	std::unique_ptr<ChoiceInput> ideologyInput;
 
 	wxStaticText* boothColourMultStaticText;
 	wxTextCtrl* boothColourMultTextCtrl;
@@ -95,8 +94,6 @@ private:
 	wxComboBox* countAsPartyComboBox;
 	wxStaticText* supportsPartyStaticText;
 	wxComboBox* supportsPartyComboBox;
-	wxStaticText* ideologyStaticText;
-	wxComboBox* ideologyComboBox;
 	wxStaticText* consistencyStaticText;
 	wxComboBox* consistencyComboBox;
 	wxButton* okButton;

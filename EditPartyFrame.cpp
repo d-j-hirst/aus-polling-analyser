@@ -1,10 +1,10 @@
 #include "EditPartyFrame.h"
 
+#include "ChoiceInput.h"
 #include "ColourInput.h"
 #include "FloatInput.h"
 #include "General.h"
 #include "TextInput.h"
-
 
 #include <regex>
 
@@ -87,13 +87,9 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	ideologyArray.push_back("Strong Right");
 	int currentIdeologySelection = party.ideology;
 
-	// Create the controls for the ideology combo box.
-	ideologyStaticText = new wxStaticText(this, 0, "Ideology:", wxPoint(2, currentHeight), wxSize(198, 23));
-	ideologyComboBox = new wxComboBox(this, PA_EditParty_ComboBoxID_Ideology, ideologyArray[currentIdeologySelection],
-		wxPoint(200, currentHeight), wxSize(120, 23), ideologyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the poll's pollster, if any.
-	ideologyComboBox->SetSelection(currentIdeologySelection);
+	auto ideologyCallback = std::bind(&EditPartyFrame::updateIdeology, this, _1);
+	ideologyInput.reset(new ChoiceInput(this, PA_EditParty_ComboBoxID_Ideology, "Ideology:", ideologyArray, currentIdeologySelection, 
+		wxPoint(2, currentHeight), ideologyCallback));
 
 	currentHeight += 27;
 
@@ -178,7 +174,6 @@ EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party par
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxIdeology, this, PA_EditParty_ComboBoxID_Ideology);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxConsistency, this, PA_EditParty_ComboBoxID_Consistency);
 	Bind(wxEVT_TEXT, &EditPartyFrame::updateBoothColourMult, this, PA_EditParty_TextBoxID_BoothColourMult);
 	Bind(wxEVT_COMBOBOX, &EditPartyFrame::updateComboBoxCountAsParty, this, PA_EditParty_ComboBoxID_CountAsParty);
@@ -231,9 +226,9 @@ void EditPartyFrame::updateColour(wxColour colour)
 	party.colour.b = colour.Blue();
 }
 
-void EditPartyFrame::updateComboBoxIdeology(wxCommandEvent& WXUNUSED(event))
+void EditPartyFrame::updateIdeology(int ideology)
 {
-	party.ideology = ideologyComboBox->GetCurrentSelection();
+	party.ideology = ideology;
 }
 
 void EditPartyFrame::updateComboBoxConsistency(wxCommandEvent& WXUNUSED(event))

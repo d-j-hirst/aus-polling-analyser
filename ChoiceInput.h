@@ -13,29 +13,27 @@
 #include "wx/wx.h"
 #endif
 
-#include <wx/clrpicker.h>
-
-// Handles both a colour picker for some colour input and also a static text label that
+// Handles both a combo box for a selection of choices and also a static text label that
 // describes what the input is for.
-class ColourInput {
+class ChoiceInput {
 public:
-	typedef std::function<void(wxColour)> ColourChangeFunc;
+	typedef std::function<void(int)> ChoiceChangeFunc;
 
 	// public because the calling frame will want to know what height the control is
 	static constexpr int Height = 23;
 
-	ColourInput(wxWindow* parent, wxWindowID colourCtrlId, std::string labelText, wxColour initialColour, wxPoint topLeft,
-		ColourChangeFunc colourChangeFunc = [](wxColour) {return; }, int labelWidth = 150, int textInputWidth = 200);
+	ChoiceInput(wxWindow* parent, wxWindowID choiceCtrlId, std::string labelText, wxArrayString choices, int initialChoice, wxPoint topLeft,
+		ChoiceChangeFunc choiceChangeFunc = [](int) {return; }, int labelWidth = 150, int textInputWidth = 200);
 
 private:
 
 	// Calls upon the window to update the preliminary name data based on
 	// the result of the GetString() method of "event".
-	void updateColour(wxColourPickerEvent& event);
+	void updateChoice(wxCommandEvent& event);
 
-	ColourChangeFunc colourChangeFunc;
+	ChoiceChangeFunc choiceChangeFunc;
 
 	wxWindow* parent;
 	wxStaticText* staticText;
-	wxColourPickerCtrl* colourCtrl;
+	wxComboBox* comboBox;
 };

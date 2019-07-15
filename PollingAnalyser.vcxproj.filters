@@ -137,6 +137,9 @@
     <ClCompile Include="ColourInput.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
+    <ClCompile Include="ChoiceInput.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -358,6 +361,9 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="ColourInput.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="ChoiceInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>
