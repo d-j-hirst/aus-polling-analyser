@@ -60,15 +60,14 @@ void EditPartyFrame::createControls(int& y)
 
 void EditPartyFrame::createNameInput(int& y)
 {
-	Party& thisParty = party;
-	auto nameCallback = [&thisParty](std::string s) -> void {thisParty.name = s; };
+	auto nameCallback = [this](std::string s) -> void {party.name = s; };
 	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", party.name, wxPoint(2, y), nameCallback));
 	y += nameInput->Height + ControlPadding;
 }
 
 void EditPartyFrame::createPreferenceFlowInput(int& y)
 {
-	auto preferenceFlowCallback = std::bind(&EditPartyFrame::updatePreferenceFlow, this, _1);
+	auto preferenceFlowCallback = [this](float f) -> void {party.preferenceShare = f; };
 	auto preferenceFlowValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	preferenceFlowInput.reset(new FloatInput(this, ControlId::PreferenceFlow, "Preferences to party 1:", party.preferenceShare,
 		wxPoint(2, y), preferenceFlowCallback, preferenceFlowValidator));
@@ -77,7 +76,7 @@ void EditPartyFrame::createPreferenceFlowInput(int& y)
 
 void EditPartyFrame::createExhaustRateInput(int& y)
 {
-	auto exhaustRateCallback = std::bind(&EditPartyFrame::updateExhaustRate, this, _1);
+	auto exhaustRateCallback = [this](float f) -> void {party.exhaustRate = f; };
 	auto exhaustRateValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	exhaustRateInput.reset(new FloatInput(this, ControlId::ExhaustRate, "Exhaust Rate:", party.exhaustRate,
 		wxPoint(2, y), exhaustRateCallback, exhaustRateValidator));
@@ -86,7 +85,7 @@ void EditPartyFrame::createExhaustRateInput(int& y)
 
 void EditPartyFrame::createAbbreviationInput(int& y)
 {
-	auto abbreviationCallback = std::bind(&EditPartyFrame::updateAbbreviation, this, _1);
+	auto abbreviationCallback = [this](std::string s) -> void {party.abbreviation = s; };
 	abbreviationInput.reset(new TextInput(this, ControlId::Abbreviation, "Abbreviation:", party.abbreviation, wxPoint(2, y), abbreviationCallback));
 	y += abbreviationInput->Height + ControlPadding;
 }
@@ -109,7 +108,7 @@ void EditPartyFrame::createShortCodesInput(int& y)
 void EditPartyFrame::createColourInput(int& y)
 {
 	wxColour currentColour(party.colour.r, party.colour.g, party.colour.b);
-	auto colourCallback = std::bind(&EditPartyFrame::updateColour, this, _1);
+	auto colourCallback = [this](wxColour c) -> void {party.colour = { c.Red(), c.Green(), c.Blue() }; };
 	colourInput.reset(new ColourInput(this, ControlId::Colour, "Colour:", currentColour, wxPoint(2, y), colourCallback));
 	y += colourInput->Height + ControlPadding;
 }
@@ -125,7 +124,7 @@ void EditPartyFrame::createIdeologyInput(int& y)
 	ideologyArray.push_back("Strong Right");
 	int currentIdeologySelection = party.ideology;
 
-	auto ideologyCallback = std::bind(&EditPartyFrame::updateIdeology, this, _1);
+	auto ideologyCallback = [this](int i) -> void {party.ideology = i; };
 	ideologyInput.reset(new ChoiceInput(this, ControlId::Ideology, "Ideology:", ideologyArray, currentIdeologySelection,
 		wxPoint(2, y), ideologyCallback));
 	y += ideologyInput->Height + ControlPadding;
@@ -140,7 +139,7 @@ void EditPartyFrame::createConsistencyInput(int& y)
 	consistencyArray.push_back("High");
 	int currentConsistencySelection = party.consistency;
 
-	auto consistencyCallback = std::bind(&EditPartyFrame::updateConsistency, this, _1);
+	auto consistencyCallback = [this](int i) -> void {party.consistency = i; };
 	consistencyInput.reset(new ChoiceInput(this, ControlId::Consistency, "Consistency:", consistencyArray, currentConsistencySelection,
 		wxPoint(2, y), consistencyCallback));
 	y += consistencyInput->Height + ControlPadding;
@@ -148,7 +147,7 @@ void EditPartyFrame::createConsistencyInput(int& y)
 
 void EditPartyFrame::createBoothColourMultInput(int& y)
 {
-	auto boothColourMultCallback = std::bind(&EditPartyFrame::updateBoothColourMult, this, _1);
+	auto boothColourMultCallback = [this](float f) -> void {party.boothColourMult = f; };
 	auto boothColourMultValidator = [](float f) {return std::max(f, 0.0f); };
 	boothColourMultInput.reset(new FloatInput(this, ControlId::BoothColourMult, "Booth Colour Multiplier:", party.boothColourMult,
 		wxPoint(2, y), boothColourMultCallback, boothColourMultValidator));
@@ -216,26 +215,6 @@ void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event))
 	Close();
 }
 
-void EditPartyFrame::updateName(std::string name) 
-{
-	party.name = name;
-}
-
-void EditPartyFrame::updatePreferenceFlow(float preferenceFlow) 
-{
-	party.preferenceShare = preferenceFlow;
-}
-
-void EditPartyFrame::updateExhaustRate(float exhaustRate) 
-{
-	party.exhaustRate = exhaustRate;
-}
-
-void EditPartyFrame::updateAbbreviation(std::string abbreviation) 
-{
-	party.abbreviation = abbreviation;
-}
-
 void EditPartyFrame::updateShortCodes(std::string shortCodes) 
 {
 	// updates the party short codes data with the string from the event.
@@ -250,29 +229,6 @@ void EditPartyFrame::updateShortCodes(std::string shortCodes)
 		}
 	}
 }
-
-void EditPartyFrame::updateColour(wxColour colour)
-{
-	party.colour.r = colour.Red();
-	party.colour.g = colour.Green();
-	party.colour.b = colour.Blue();
-}
-
-void EditPartyFrame::updateIdeology(int ideology)
-{
-	party.ideology = ideology;
-}
-
-void EditPartyFrame::updateConsistency(int consistency)
-{
-	party.consistency = consistency;
-}
-
-void EditPartyFrame::updateBoothColourMult(float boothColourMult)
-{
-	party.boothColourMult = boothColourMult;
-}
-
 void EditPartyFrame::updateCountAsParty(int countAsParty)
 {
 	switch (countAsParty) {

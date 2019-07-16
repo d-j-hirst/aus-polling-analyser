@@ -72,15 +72,7 @@ private:
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
 	// Callbacks for the controls to update the party data.
-	void updateName(std::string name);
-	void updatePreferenceFlow(float preferenceFlow);
-	void updateExhaustRate(float exhuastRate);
-	void updateAbbreviation(std::string abbreviation);
 	void updateShortCodes(std::string shortCodes);
-	void updateColour(wxColour colour);
-	void updateIdeology(int ideology);
-	void updateConsistency(int consistency);
-	void updateBoothColourMult(float boothColourMult);
 	void updateCountAsParty(int countAsParty);
 	void updateSupportsParty(int supportsParty);
 
