@@ -60,7 +60,8 @@ void EditPartyFrame::createControls(int& y)
 
 void EditPartyFrame::createNameInput(int& y)
 {
-	auto nameCallback = std::bind(&EditPartyFrame::updateName, this, _1);
+	Party& thisParty = party;
+	auto nameCallback = [&thisParty](std::string s) -> void {thisParty.name = s; };
 	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", party.name, wxPoint(2, y), nameCallback));
 	y += nameInput->Height + ControlPadding;
 }
