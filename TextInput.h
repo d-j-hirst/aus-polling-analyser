@@ -13,6 +13,8 @@
 #include "wx/wx.h"
 #endif
 
+#include "InputGeneral.h"
+
 // Handles both a text box for general text input and also a static text label that
 // describes what the input is for.
 class TextInput {
@@ -20,7 +22,7 @@ public:
 	typedef std::function<void(std::string)> TextChangeFunc;
 
 	// public because the calling frame will want to know what height the control is
-	static constexpr int Height = 23;
+	static constexpr int Height = InputControlHeight;
 
 	TextInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, std::string inputText, wxPoint topLeft,
 		TextChangeFunc textChangeFunc = [](std::string) {return;}, int labelWidth = 150, int textInputWidth = 200);

@@ -12,6 +12,7 @@
 #include "wx/wx.h"
 #endif
 
+#include "InputGeneral.h"
 
 // Handles both a text box for general text input and also a static text label that
 // describes what the input is for.
@@ -21,7 +22,7 @@ public:
 	typedef std::function<float(float)> FloatValidationFunc;
 
 	// public because the calling frame will want to know what height the control is
-	static constexpr int Height = 23;
+	static constexpr int Height = InputControlHeight;
 
 	static float DefaultValidator(float a) {return std::clamp(a, 0.0f, 100.0f); };
 

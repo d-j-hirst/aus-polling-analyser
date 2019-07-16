@@ -49,6 +49,25 @@ public:
 
 private:
 
+	void createControls(int& y);
+
+	// Each of these takes a value for the current y-position
+	void createNameInput(int& y);
+	void createPreferenceFlowInput(int& y);
+	void createExhaustRateInput(int& y);
+	void createAbbreviationInput(int& y);
+	void createShortCodesInput(int& y);
+	void createColourInput(int& y);
+	void createIdeologyInput(int& y);
+	void createConsistencyInput(int& y);
+	void createBoothColourMultInput(int& y);
+	void createCountAsPartyInput(int& y);
+	void createSupportsPartyInput(int& y);
+
+	void createOkCancelButtons(int& y);
+
+	void setFinalWindowHeight(int y);
+
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 

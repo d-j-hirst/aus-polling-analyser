@@ -13,6 +13,8 @@
 #include "wx/wx.h"
 #endif
 
+#include "InputGeneral.h"
+
 #include <wx/clrpicker.h>
 
 // Handles both a colour picker for some colour input and also a static text label that
@@ -22,7 +24,7 @@ public:
 	typedef std::function<void(wxColour)> ColourChangeFunc;
 
 	// public because the calling frame will want to know what height the control is
-	static constexpr int Height = 23;
+	static constexpr int Height = InputControlHeight;
 
 	ColourInput(wxWindow* parent, wxWindowID colourCtrlId, std::string labelText, wxColour initialColour, wxPoint topLeft,
 		ColourChangeFunc colourChangeFunc = [](wxColour) {return; }, int labelWidth = 150, int textInputWidth = 200);

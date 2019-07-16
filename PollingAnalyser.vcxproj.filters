@@ -366,6 +366,9 @@
     <ClInclude Include="ChoiceInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
+    <ClInclude Include="InputGeneral.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="bitmaps\plus.bmp" />

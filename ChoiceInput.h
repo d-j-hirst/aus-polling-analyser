@@ -13,6 +13,8 @@
 #include "wx/wx.h"
 #endif
 
+#include "InputGeneral.h"
+
 // Handles both a combo box for a selection of choices and also a static text label that
 // describes what the input is for.
 class ChoiceInput {
@@ -20,7 +22,7 @@ public:
 	typedef std::function<void(int)> ChoiceChangeFunc;
 
 	// public because the calling frame will want to know what height the control is
-	static constexpr int Height = 23;
+	static constexpr int Height = InputControlHeight;
 
 	ChoiceInput(wxWindow* parent, wxWindowID choiceCtrlId, std::string labelText, wxArrayString choices, int initialChoice, wxPoint topLeft,
 		ChoiceChangeFunc choiceChangeFunc = [](int) {return; }, int labelWidth = 150, int textInputWidth = 200);
