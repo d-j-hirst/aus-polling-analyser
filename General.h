@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 
 inline std::string formatFloat(float floatToFormat, int numDigits, bool addPlusToPositives = false) {
 	double floatTimesDigits = double(floatToFormat) * pow(10.0f, numDigits);
@@ -31,4 +32,15 @@ inline void transferFileToString(std::ifstream& file, std::string& string) {
 	string = std::string(size, ' ');
 	file.seekg(0);
 	file.read(&string[0], size);
+}
+
+inline std::vector<std::string> splitString(std::string s, std::string const& delimiter) {
+	std::vector<std::string> tokens;
+	size_t pos = 0;
+	while ((pos = s.find(delimiter)) != std::string::npos) {
+		tokens.emplace_back(s.substr(0, pos));
+		s.erase(0, pos + delimiter.length());
+	}
+	tokens.emplace_back(s);
+	return tokens;
 }

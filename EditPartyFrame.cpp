@@ -217,17 +217,7 @@ void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event))
 
 void EditPartyFrame::updateShortCodes(std::string shortCodes) 
 {
-	// updates the party short codes data with the string from the event.
-	std::regex partyCodeRegex("([^,]+)(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?(,([^,]+))?");
-	std::smatch matchResults;
-	std::regex_match(shortCodes, matchResults, partyCodeRegex);
-	if (matchResults.size()) {
-		party.officialCodes.clear();
-		for (int matchIndex = 1; matchIndex < 56; matchIndex += 2) {
-			if (!matchResults[matchIndex].matched) break;
-			party.officialCodes.push_back(matchResults[matchIndex].str());
-		}
-	}
+	party.officialCodes = splitString(shortCodes, ",");
 }
 void EditPartyFrame::updateCountAsParty(int countAsParty)
 {
