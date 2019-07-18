@@ -20,31 +20,6 @@
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 #include "Pollster.h"
-#include "EditPollsterFrame.h"
-
-class ProjectFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_PollstersFrame_Base = 250, // To avoid mixing events with other frames.
-	PA_PollstersFrame_FrameID,
-	PA_PollstersFrame_DataViewID,
-	PA_PollstersFrame_NewPollsterID,
-	PA_PollstersFrame_EditPollsterID,
-	PA_PollstersFrame_RemovePollsterID,
-};
-
-enum PollsterColumnsEnum {
-	PollsterColumn_Name,
-	PollsterColumn_Weight,
-	PollsterColumn_UseForCalibration,
-	PollsterColumn_IgnoreInitially,
-	PollsterColumn_NumColumns,
-};
 
 // *** PartiesFrame ***
 // Frame that allows the user to add/delete/modify political pollster data.
@@ -62,6 +37,17 @@ public:
 	void OnEditPollsterReady(Pollster& pollster);
 
 private:
+
+	// Creates the toolbar and its accompanying tools
+	void setupToolbar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	// refresh the (already existing) data table
+	void refreshDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));

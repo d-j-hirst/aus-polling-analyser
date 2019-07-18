@@ -48,7 +48,7 @@ private:
 	// Changes the relevant party settings in the project
 	void partySettingsCallback(PartySettingsData partySettingsData);
 
-	// Creates the tool bar and its icons (new project, open project, save project)
+	// Creates the tool bar and its icons
 	void setupToolBar();
 
 	// Create the data table from scratch

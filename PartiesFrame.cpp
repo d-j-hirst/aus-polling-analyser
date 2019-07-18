@@ -6,7 +6,6 @@
 
 using namespace std::placeholders; // for function object parameter binding
 
-// IDs for the controls and the menu commands
 enum ControlId {
 	Base = 200, // To avoid mixing events with other frames, each frame's IDs have a unique value.
 	Frame,
@@ -25,7 +24,6 @@ enum PartyColumn {
 	NumColumns,
 };
 
-// frame constructor
 PartiesFrame::PartiesFrame(ProjectFrame::Refresher refresher, PollingProject* project)
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Parties", wxPoint(0, 0), project),
 	refresher(refresher)

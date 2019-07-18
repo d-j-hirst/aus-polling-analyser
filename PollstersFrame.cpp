@@ -1,14 +1,38 @@
 #include "PollstersFrame.h"
+
+#include "EditPollsterFrame.h"
 #include "General.h"
 
-// frame constructor
+enum ControlId {
+	Base = 300, // To avoid mixing events with other frames, each frame's IDs have a unique value.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
+};
+
+enum Column {
+	Name,
+	Weight,
+	UseForCalibration,
+	IgnoreInitially,
+	NumColumns,
+};
+
 PollstersFrame::PollstersFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_PollstersFrame_FrameID, "Pollsters", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Pollsters", wxPoint(0, 0), project),
 	refresher(refresher)
 {
+	setupToolbar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
+	updateInterface();
+}
 
-	// *** Toolbar *** //
-
+void PollstersFrame::setupToolbar()
+{
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
 	wxBitmap toolBarBitmaps[3];
@@ -20,58 +44,57 @@ PollstersFrame::PollstersFrame(ProjectFrame::Refresher refresher, PollingProject
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_PollstersFrame_NewPollsterID, "New Polling House", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Polling House");
-	toolBar->AddTool(PA_PollstersFrame_EditPollsterID, "Edit Polling House", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Polling House");
-	toolBar->AddTool(PA_PollstersFrame_RemovePollsterID, "Remove Polling House", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Polling House");
+	toolBar->AddTool(ControlId::New, "New Polling House", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Polling House");
+	toolBar->AddTool(ControlId::Edit, "Edit Polling House", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Polling House");
+	toolBar->AddTool(ControlId::Remove, "Remove Polling House", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Polling House");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
 
-	// *** Pollster Data Table *** //
-
+void PollstersFrame::setupDataTable()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
-	// Create the pollster data control.
 	pollsterData = new wxDataViewListCtrl(dataPanel,
-		PA_PollstersFrame_DataViewID,
+		ControlId::DataView,
 		wxPoint(0, 0),
 		dataPanel->GetClientSize());
 
-	// *** Pollster Data Table Columns *** //
+	// Set widths of columns so that they're wide enough to fit the titles
+	pollsterData->AppendTextColumn("Polling House Name", wxDATAVIEW_CELL_INERT, 122);
+	pollsterData->AppendTextColumn("Weight", wxDATAVIEW_CELL_INERT, 55);
+	pollsterData->AppendTextColumn("Use For Calibration", wxDATAVIEW_CELL_INERT, 130);
+	pollsterData->AppendTextColumn("Ignore Initially", wxDATAVIEW_CELL_INERT, 115);
+}
 
-	// Add the data columns that show the properties of the pollsters.
-	pollsterData->AppendTextColumn("Polling House Name", wxDATAVIEW_CELL_INERT, 122); // wide enough to fit the title
-	pollsterData->AppendTextColumn("Weight", wxDATAVIEW_CELL_INERT, 55); // wide enough to fit the title
-	pollsterData->AppendTextColumn("Use For Calibration", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
-	pollsterData->AppendTextColumn("Ignore Initially", wxDATAVIEW_CELL_INERT, 115); // wide enough to fit the title
+void PollstersFrame::refreshDataTable()
+{
+	pollsterData->DeleteAllItems();
 
-	// Add the pollster data
 	for (int i = 0; i < project->getPollsterCount(); ++i) {
 		addPollsterToPollsterData(project->getPollster(i));
 	}
+}
 
-	updateInterface();
-
-	// *** Binding Events *** //
-
+void PollstersFrame::bindEventHandlers()
+{
 	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &PollstersFrame::OnResize, this, PA_PollstersFrame_FrameID);
+	Bind(wxEVT_SIZE, &PollstersFrame::OnResize, this, ControlId::Frame);
 
-	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &PollstersFrame::OnNewPollster, this, PA_PollstersFrame_NewPollsterID);
-	Bind(wxEVT_TOOL, &PollstersFrame::OnEditPollster, this, PA_PollstersFrame_EditPollsterID);
-	Bind(wxEVT_TOOL, &PollstersFrame::OnRemovePollster, this, PA_PollstersFrame_RemovePollsterID);
+	Bind(wxEVT_TOOL, &PollstersFrame::OnNewPollster, this, ControlId::New);
+	Bind(wxEVT_TOOL, &PollstersFrame::OnEditPollster, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &PollstersFrame::OnRemovePollster, this, ControlId::Remove);
 
-	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &PollstersFrame::OnSelectionChange, this, PA_PollstersFrame_DataViewID);
+	// Need to update whether buttons are enabled if the selection changes
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &PollstersFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
 void PollstersFrame::addPollster(Pollster pollster) {
-	// Simultaneously add to the pollster data control and to the polling project.
-	addPollsterToPollsterData(pollster);
 	project->addPollster(pollster);
+	refreshDataTable();
 
 	updateInterface();
 }
@@ -89,41 +112,23 @@ void PollstersFrame::addPollsterToPollsterData(Pollster pollster) {
 
 void PollstersFrame::replacePollster(Pollster pollster) {
 	int pollsterIndex = pollsterData->GetSelectedRow();
-	// Simultaneously replace data in the pollster data control and the polling project.
-	replacePollsterInPollsterData(pollster);
 	project->replacePollster(pollsterIndex, pollster);
+	refreshDataTable();
 
 	updateInterface();
-}
-
-void PollstersFrame::replacePollsterInPollsterData(Pollster pollster) {
-	int pollsterIndex = pollsterData->GetSelectedRow();
-	// There is no function to replace a row all at once, so we edit all cells individually.
-	wxDataViewListStore* store = pollsterData->GetStore();
-	store->SetValueByRow(pollster.name, pollsterIndex, PollsterColumn_Name);
-	store->SetValueByRow(formatFloat(pollster.weight, 4), pollsterIndex, PollsterColumn_Weight);
-	store->SetValueByRow((pollster.useForCalibration ? "Y" : "N"), pollsterIndex, PollsterColumn_UseForCalibration);
-	store->SetValueByRow((pollster.ignoreInitially ? "Y" : "N"), pollsterIndex, PollsterColumn_IgnoreInitially);
 }
 
 void PollstersFrame::removePollster() {
-	// Simultaneously add to the pollster data control and to the polling project.
 	if (project->getPollsterCount() < 2) return;
 	project->removePollster(pollsterData->GetSelectedRow());
-
-	// this line must come second, otherwise the argument for the line above will be wrong.
-	removePollsterFromPollsterData();
+	refreshDataTable();
 
 	updateInterface();
-}
-
-void PollstersFrame::removePollsterFromPollsterData() {
-	// Create a vector with all the pollster data.
-	pollsterData->DeleteItem(pollsterData->GetSelectedRow());
 }
 
 void PollstersFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 	// Set the pollster data table to the entire client size.
+	// The extra (0, 1) allows for slightly better alignment
 	pollsterData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
 }
 
@@ -197,6 +202,6 @@ void PollstersFrame::OnEditPollsterReady(Pollster& pollster) {
 
 void PollstersFrame::updateInterface() {
 	bool somethingSelected = (pollsterData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_PollstersFrame_EditPollsterID, somethingSelected);
-	toolBar->EnableTool(PA_PollstersFrame_RemovePollsterID, somethingSelected);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 }
