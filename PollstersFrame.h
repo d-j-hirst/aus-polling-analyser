@@ -38,6 +38,14 @@ public:
 
 private:
 
+	// For the new party dialog to callback once the user has clicked OK.
+	// Adds the new party to the project and updates the data panel.
+	void newPollsterCallback(Pollster pollster);
+
+	// For the edit party dialog to callback once the user has clicked OK.
+	// Replaces the existing party with the new party and updates the data panel
+	void editPollsterCallback(Pollster pollster);
+
 	// Creates the toolbar and its accompanying tools
 	void setupToolbar();
 

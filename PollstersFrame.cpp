@@ -3,6 +3,8 @@
 #include "EditPollsterFrame.h"
 #include "General.h"
 
+using namespace std::placeholders; // for function object parameter binding
+
 enum ControlId {
 	Base = 300, // To avoid mixing events with other frames, each frame's IDs have a unique value.
 	Frame,
@@ -29,6 +31,18 @@ PollstersFrame::PollstersFrame(ProjectFrame::Refresher refresher, PollingProject
 	refreshDataTable();
 	bindEventHandlers();
 	updateInterface();
+}
+
+void PollstersFrame::newPollsterCallback(Pollster pollster)
+{
+	addPollster(pollster);
+	refresher.refreshPollData();
+}
+
+void PollstersFrame::editPollsterCallback(Pollster pollster)
+{
+	replacePollster(pollster);
+	refresher.refreshPollData();
 }
 
 void PollstersFrame::setupToolbar()
@@ -128,16 +142,16 @@ void PollstersFrame::removePollster() {
 
 void PollstersFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 	// Set the pollster data table to the entire client size.
-	// The extra (0, 1) allows for slightly better alignment
+	// The extra (0, 1) allows for slightly better alignment.
 	pollsterData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
 }
 
 void PollstersFrame::OnNewPollster(wxCommandEvent& WXUNUSED(event)) {
 
-	// Create the new project frame (where initial settings for the new project are chosen).
-	EditPollsterFrame *frame = new EditPollsterFrame(true, this);
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&PollstersFrame::newPollsterCallback, this, _1);
 
-	// Show the frame.
+	EditPollsterFrame *frame = new EditPollsterFrame(EditPollsterFrame::Function::New, callback);
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.
@@ -152,10 +166,10 @@ void PollstersFrame::OnEditPollster(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no pollster selected, just stop.
 	if (pollsterIndex == -1) return;
 
-	// Create the new project frame (where initial settings for the new project are chosen).
-	EditPollsterFrame *frame = new EditPollsterFrame(false, this, project->getPollster(pollsterIndex));
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&PollstersFrame::editPollsterCallback, this, _1);
 
-	// Show the frame.
+	EditPollsterFrame *frame = new EditPollsterFrame(EditPollsterFrame::Function::Edit, callback, project->getPollster(pollsterIndex));
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.

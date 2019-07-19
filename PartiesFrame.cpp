@@ -1,7 +1,7 @@
 #include "PartiesFrame.h"
-#include "General.h"
 
 #include "EditPartyFrame.h"
+#include "General.h"
 #include "PartySettingsFrame.h"
 
 using namespace std::placeholders; // for function object parameter binding
@@ -127,6 +127,7 @@ void PartiesFrame::bindEventHandlers()
 
 void PartiesFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 	// Set the party data table to the entire client size.
+	// The extra (0, 1) allows for slightly better alignment.
 	partyData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
 }
 

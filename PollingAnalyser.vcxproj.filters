@@ -140,6 +140,9 @@
     <ClCompile Include="ChoiceInput.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
+    <ClCompile Include="CheckInput.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -367,6 +370,9 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="InputGeneral.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="CheckInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>

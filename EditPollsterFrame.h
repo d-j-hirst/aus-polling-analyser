@@ -13,29 +13,13 @@
 #include "wx/wx.h"
 #endif
 
-#include <sstream>
-#include <wx/valnum.h>
-#include <wx/clrpicker.h>
-
 #include "PollstersFrame.h"
 #include "Pollster.h"
 
-class PollstersFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum
-{
-	PA_EditPollster_ButtonID_OK,
-	PA_EditPollster_TextBoxID_Name,
-	PA_EditPollster_TextBoxID_Weight,
-	PA_EditPollster_ColourPickerID,
-	PA_EditPollster_UseForCalibrationID,
-	PA_EditPollster_IgnoreInitiallyID,
-};
+class CheckInput;
+class ColourInput;
+class FloatInput;
+class TextInput;
 
 // *** EditPollsterFrame ***
 // Frame that allows the user to edit an already-existing pollster
@@ -43,61 +27,48 @@ enum
 class EditPollsterFrame : public wxDialog
 {
 public:
+	enum class Function {
+		New,
+		Edit
+	};
+
+	typedef std::function<void(Pollster)> OkCallback;
+
 	// isNewPollster: true if this dialog is for creating a new pollster, false if it's for editing.
 	// parent: Parent frame for this (must be a PollstersFrame).
 	// pollster: Pollster data to be used if editing (has default values for creating a new pollster).
-	EditPollsterFrame(bool isNewPollster, PollstersFrame* const parent,
+	EditPollsterFrame(Function function, OkCallback callback,
 		Pollster pollster = Pollster("Enter pollster name here", 1.0f, 0, false, false));
+
+private:
+
+	void createControls(int& y);
+
+	// Each of these takes a value for the current y-position
+	void createNameInput(int& y);
+	void createWeightInput(int& y);
+	void createColourInput(int& y);
+	void createCalibrationInput(int& y);
+	void createIgnoreInitiallyInput(int& y);
+
+	void createOkCancelButtons(int& y);
+
+	void setFinalWindowHeight(int y);
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
-private:
-
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextName(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary weight data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextWeight(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary weight data based on
-	// the result of the GetFloat() method of "event".
-	void updateColour(wxColourPickerEvent& event);
-
-	// Calls upon the window to update the preliminary weight data based on
-	// the result of the GetFloat() method of "event".
-	void updateUseForCalibration(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary weight data based on
-	// the result of the GetFloat() method of "event".
-	void updateIgnoreInitially(wxCommandEvent& event);
-
 	// Data container for the preliminary settings for the pollster to be created.
 	Pollster pollster;
 
-	// Control pointers that are really only here to shut up the
-	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* nameStaticText;
-	wxTextCtrl* nameTextCtrl;
-	wxStaticText* weightStaticText;
-	wxTextCtrl* weightTextCtrl;
-	wxStaticText* colourStaticText;
-	wxColourPickerCtrl* colourColourPicker;
-	wxStaticText* calibrationStaticText;
-	wxCheckBox* calibrationCheckBox;
-	wxStaticText* ignoreInitiallyStaticText;
-	wxTextCtrl* ignoreInitiallyTextCtrl;
+	std::unique_ptr<TextInput> nameInput;
+	std::unique_ptr<FloatInput> weightInput;
+	std::unique_ptr<ColourInput> colourInput;
+	std::unique_ptr<CheckInput> calibrationInput;
+	std::unique_ptr<CheckInput> ignoreInitiallyInput;
+
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	// A pointer to the parent frame.
-	PollstersFrame* const parent;
-
-	// Stores whether this dialog is for creating a new pollster (true) or editing an existing one (false).
-	bool isNewPollster;
-
-	// Keeps the preference flow saved in case a text entry results in an invalid value.
-	std::string lastWeight;
+	OkCallback callback;
 };

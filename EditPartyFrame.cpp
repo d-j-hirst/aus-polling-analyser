@@ -6,8 +6,6 @@
 #include "General.h"
 #include "TextInput.h"
 
-#include <regex>
-
 using namespace std::placeholders; // for function object parameter binding
 
 constexpr int ControlPadding = 4;
@@ -16,7 +14,7 @@ constexpr int ControlPadding = 4;
 enum ControlId
 {
 	Base = 250, // To avoid mixing events with other frames, each frame's IDs have a unique value.
-	OkButton,
+	Ok,
 	Name,
 	PreferenceFlow,
 	ExhaustRate,
@@ -193,11 +191,11 @@ void EditPartyFrame::createSupportsPartyInput(int& y)
 void EditPartyFrame::createOkCancelButtons(int & y)
 {
 	// Create the OK and cancel buttons.
-	okButton = new wxButton(this, ControlId::OkButton, "OK", wxPoint(67, y), wxSize(100, TextInput::Height));
+	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, TextInput::Height));
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, y), wxSize(100, TextInput::Height));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, OkButton);
+	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, Ok);
 	y += TextInput::Height + ControlPadding;
 }
 
@@ -206,7 +204,7 @@ void EditPartyFrame::setFinalWindowHeight(int y)
 	SetClientSize(wxSize(GetClientSize().x, y));
 }
 
-void EditPartyFrame::OnOK(wxCommandEvent& WXUNUSED(event))
+void EditPartyFrame::OnOK(wxCommandEvent&)
 {
 	// Call the function that was passed when this frame was opened.
 	callback(party);

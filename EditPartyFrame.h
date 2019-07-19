@@ -13,10 +13,6 @@
 #include "wx/wx.h"
 #endif
 
-#include <sstream>
-#include <wx/valnum.h>
-
-#include "PartiesFrame.h"
 #include "Party.h"
 #include "TextInput.h"
 
