@@ -88,8 +88,8 @@ void PollstersFrame::refreshDataTable()
 {
 	pollsterData->DeleteAllItems();
 
-	for (int i = 0; i < project->getPollsterCount(); ++i) {
-		addPollsterToPollsterData(project->getPollster(i));
+	for (int i = 0; i < project->pollsters().count(); ++i) {
+		addPollsterToPollsterData(project->pollsters().viewByIndex(i));
 	}
 }
 
@@ -107,7 +107,7 @@ void PollstersFrame::bindEventHandlers()
 }
 
 void PollstersFrame::addPollster(Pollster pollster) {
-	project->addPollster(pollster);
+	project->pollsters().add(pollster);
 	refreshDataTable();
 
 	updateInterface();
@@ -125,16 +125,19 @@ void PollstersFrame::addPollsterToPollsterData(Pollster pollster) {
 }
 
 void PollstersFrame::replacePollster(Pollster pollster) {
-	int pollsterIndex = pollsterData->GetSelectedRow();
-	project->replacePollster(pollsterIndex, pollster);
+	PollsterCollection::Index pollsterIndex = pollsterData->GetSelectedRow();
+	Pollster::Id pollsterId = project->pollsters().indexToId(pollsterIndex);
+	project->pollsters().replace(pollsterId, pollster);
 	refreshDataTable();
 
 	updateInterface();
 }
 
 void PollstersFrame::removePollster() {
-	if (project->getPollsterCount() < 2) return;
-	project->removePollster(pollsterData->GetSelectedRow());
+	PollsterCollection::Index pollsterIndex = pollsterData->GetSelectedRow();
+	Pollster::Id pollsterId = project->pollsters().indexToId(pollsterIndex);
+	if (project->pollsters().canRemove(pollsterId) != PollsterCollection::Result::Ok) return;
+	project->pollsters().remove(pollsterId);
 	refreshDataTable();
 
 	updateInterface();
@@ -161,15 +164,16 @@ void PollstersFrame::OnNewPollster(wxCommandEvent& WXUNUSED(event)) {
 
 void PollstersFrame::OnEditPollster(wxCommandEvent& WXUNUSED(event)) {
 
-	int pollsterIndex = pollsterData->GetSelectedRow();
+	PollsterCollection::Index pollsterIndex = pollsterData->GetSelectedRow();
+	Pollster::Id pollsterId = project->pollsters().indexToId(pollsterIndex);
 
 	// If the button is somehow clicked when there is no pollster selected, just stop.
-	if (pollsterIndex == -1) return;
+	if (pollsterId == Pollster::InvalidId) return;
 
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PollstersFrame::editPollsterCallback, this, _1);
 
-	EditPollsterFrame *frame = new EditPollsterFrame(EditPollsterFrame::Function::Edit, callback, project->getPollster(pollsterIndex));
+	EditPollsterFrame *frame = new EditPollsterFrame(EditPollsterFrame::Function::Edit, callback, project->pollsters().view(pollsterId));
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.

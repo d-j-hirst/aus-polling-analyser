@@ -270,24 +270,25 @@ void ModelsFrame::runModel() {
 	Model* thisModel = project->getModelPtr(modelIndex);
 	wxDateTime earliestDate = project->MjdToDate(project->getEarliestPollDate());
 	wxDateTime latestDate = project->MjdToDate(project->getLatestPollDate());
-	int pollsterCount = project->getPollsterCount();
+	int pollsterCount = project->pollsters().count();
 	thisModel->initializeRun(earliestDate, latestDate, pollsterCount);
 
 	// placeholder, change this later!
 	// This sets the first three polls (old Newspoll, Nielsen and Galaxy)
 	// to be used for calibration, with combined house effect of 0.225 points to
 	// the ALP (taken from their results at the 2004-2013 elections).
-	for (int pollsterIndex = 0; pollsterIndex < project->getPollsterCount(); ++pollsterIndex) {
-		bool useForCalibration = project->getPollster(pollsterIndex).useForCalibration;
-		bool ignoreInitially = project->getPollster(pollsterIndex).ignoreInitially;
-		float weight = project->getPollster(pollsterIndex).weight;
-		thisModel->setPollsterData(pollsterIndex, useForCalibration, ignoreInitially, weight);
+	for (auto const& pollster : project->pollsters()) {
+		bool useForCalibration = pollster.second.useForCalibration;
+		bool ignoreInitially = pollster.second.ignoreInitially;
+		float weight = pollster.second.weight;
+		thisModel->setPollsterData(project->pollsters().idToIndex(pollster.first), useForCalibration, ignoreInitially, weight);
 	}
 
 	for (int i = 0; i < project->getPollCount(); ++i) {
 		Poll const* poll = project->getPollPtr(i);
-		if (poll->pollster->weight < 0.01f) continue;
-		thisModel->importPoll(poll->getBest2pp(), poll->date, project->getPollsterIndex(poll->pollster));
+		PollsterCollection::Index pollsterIndex =  project->pollsters().idToIndex(poll->pollster);
+		if (project->pollsters().view(poll->pollster).weight < 0.01f) continue;
+		thisModel->importPoll(poll->getBest2pp(), poll->date, pollsterIndex);
 	}
 	for (int i = 0; i < project->getEventCount(); ++i) {
 		Event const* event = project->getEventPtr(i);

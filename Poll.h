@@ -1,49 +1,55 @@
 #pragma once
 
-#undef max
-#undef min
+#include "Pollster.h"
+#include "Party.h" // needed for MAX_PARTIES constant
+#include "General.h"
+
+#include <wx/datetime.h>
 
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "Pollster.h"
-#include "Party.h" // needed for MAX_PARTIES constant
-#include "General.h"
-#include <wx/datetime.h>
 
 class Poll {
 public:
-	Pollster const* pollster;
+	Pollster::Id pollster;
 	wxDateTime date;
 	float reported2pp;
 	float respondent2pp;
 	float calc2pp;
 	float primary[PartyCollection::MaxParties + 1]; // others is always the final index.
-	Poll(Pollster* pollster, wxDateTime date, float reported2pp, float respondent2pp, float calc2pp)
+
+	Poll(Pollster::Id pollster, wxDateTime date, float reported2pp, float respondent2pp, float calc2pp)
 		: pollster(pollster), date(date), reported2pp(reported2pp), respondent2pp(respondent2pp), calc2pp(calc2pp) {
 		resetPrimaries();
 	}
-	Poll() : pollster(nullptr), date(wxDateTime(0.0)), reported2pp(50), respondent2pp(-1), calc2pp(-1) {
+
+	Poll() : pollster(Pollster::InvalidId), date(wxDateTime(0.0)), reported2pp(50), respondent2pp(-1), calc2pp(-1) {
 		resetPrimaries();
 	}
+
 	std::string removeTrailingZeroes(std::string str) const {
 		std::string newStr = str;
 		newStr.erase(newStr.find_last_not_of('0') + 1, std::string::npos); // remove all trailing zeroes
 		newStr.erase(newStr.find_last_not_of('.') + 1, std::string::npos); // remove the decimal point if it's in last place
 		return newStr;
 	}
+
 	std::string getReported2ppString() const {
 		if (reported2pp >= 0) return formatFloat(reported2pp, 1);
 		else return "";
 	}
+
 	std::string getRespondent2ppString() const {
 		if (respondent2pp >= 0) return formatFloat(respondent2pp, 1);
 		else return "";
 	}
+
 	std::string getCalc2ppString() const {
 		if (calc2pp >= 0) return formatFloat(calc2pp, 2);
 		else return "";
 	}
+
 	float getBest2pp() const {
 		// Note: because of differences in calculating previous-election preferences based on treatment
 		// of One Nation between Newspoll and others, 2pps are always calculated from primaries for now until

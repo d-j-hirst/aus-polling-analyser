@@ -14,18 +14,20 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 		name(newProjectData.projectName),
 		lastFileName(newProjectData.projectName + ".pol"),
 		valid(true),
-		partyCollection(*this)
+		partyCollection(*this),
+		pollsterCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
 	partyCollection.add(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
 
-	addPollster(Pollster("Default Pollster", 1.0f, 0, true, false));
+	pollsterCollection.add(Pollster("Default Pollster", 1.0f, 0, true, false));
 }
 
 PollingProject::PollingProject(std::string pathName) :
 		lastFileName(pathName.substr(pathName.rfind("\\")+1)),
-		partyCollection(*this)
+		partyCollection(*this),
+		pollsterCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -208,54 +210,9 @@ void PollingProject::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, 
 	adjustCandidatesAfterPartyRemoval(partyIndex, partyId);
 }
 
-void PollingProject::addPollster(Pollster pollster) {
-	pollsters.push_back(pollster);
-}
-
-void PollingProject::replacePollster(int pollsterIndex, Pollster pollster) {
-	auto it = pollsters.begin();
-	for (int i = 0; i < pollsterIndex; i++) it++;
-	*it = pollster;
-}
-
-Pollster PollingProject::getPollster(int pollsterIndex) const {
-	auto it = pollsters.begin();
-	for (int i = 0; i < pollsterIndex; i++) it++;
-	return *it;
-}
-
-Pollster const* PollingProject::getPollsterPtr(int pollsterIndex) const {
-	auto it = pollsters.begin();
-	for (int i = 0; i < pollsterIndex; i++) it++;
-	return &*it;
-}
-
-int PollingProject::getPollsterIndex(Pollster const* const pollsterPtr) {
-	int i = 0;
-	for (auto it = pollsters.begin(); it != pollsters.end(); it++) {
-		if (&*it == pollsterPtr) return i;
-		i++;
-	}
-	return -1;
-}
-
-void PollingProject::removePollster(int pollsterIndex) {
-	auto it = pollsters.begin();
-	for (int i = 0; i < pollsterIndex; i++) it++;
-	removePollsFromPollster(std::addressof(*it));
-	pollsters.erase(it);
-}
-
-int PollingProject::getPollsterCount() const {
-	return pollsters.size();
-}
-
-std::list<Pollster>::const_iterator PollingProject::getPollsterBegin() const {
-	return pollsters.begin();
-}
-
-std::list<Pollster>::const_iterator PollingProject::getPollsterEnd() const {
-	return pollsters.end();
+void PollingProject::adjustAfterPollsterRemoval(PollsterCollection::Index /*pollsterIndex*/, Party::Id pollsterId)
+{
+	removePollsFromPollster(pollsterId);
 }
 
 void PollingProject::addPoll(Poll poll) {
@@ -822,18 +779,19 @@ int PollingProject::save(std::string filename) {
 		os << "colb=" << thisParty.colour.b << "\n";
 	}
 	os << "#Pollsters" << "\n";
-	for (auto it = pollsters.begin(); it != pollsters.end(); ++it) {
+	for (auto const& pollsterPair : pollsterCollection) {
+		Pollster const& thisPollster = pollsterPair.second;
 		os << "@Pollster" << "\n";
-		os << "name=" << it->name << "\n";
-		os << "weig=" << it->weight << "\n";
-		os << "colr=" << it->colour << "\n";
-		os << "cali=" << int(it->useForCalibration) << "\n";
-		os << "igin=" << int(it->ignoreInitially) << "\n";
+		os << "name=" << thisPollster.name << "\n";
+		os << "weig=" << thisPollster.weight << "\n";
+		os << "colr=" << thisPollster.colour << "\n";
+		os << "cali=" << int(thisPollster.useForCalibration) << "\n";
+		os << "igin=" << int(thisPollster.ignoreInitially) << "\n";
 	}
 	os << "#Polls" << "\n";
 	for (auto it = polls.begin(); it != polls.end(); ++it) {
 		os << "@Poll" << "\n";
-		os << "poll=" << getPollsterIndex(it->pollster) << "\n";
+		os << "poll=" << pollsters().idToIndex(it->pollster) << "\n";
 		os << "year=" << it->date.GetYear() << "\n";
 		os << "mont=" << it->date.GetMonth() << "\n";
 		os << "day =" << it->date.GetDay() << "\n";
@@ -1058,7 +1016,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Pollsters) {
 		if (!line.compare("@Pollster")) {
-			pollsters.push_back(Pollster());
+			pollsterCollection.add(Pollster());
 			return true;
 		}
 	}
@@ -1182,27 +1140,25 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Pollsters) {
-		if (!pollsters.size()) return true; //prevent crash from mixed-up data.
-		auto it = pollsters.end();
-		it--;
+		if (!pollsterCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			pollsterCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("weig=")) {
-			it->weight = std::stof(line.substr(5));
+			pollsterCollection.back().weight = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("colr=")) {
-			it->colour = std::stof(line.substr(5));
+			pollsterCollection.back().colour = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cali=")) {
-			it->useForCalibration = std::stoi(line.substr(5)) != 0;
+			pollsterCollection.back().useForCalibration = std::stoi(line.substr(5)) != 0;
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("igin=")) {
-			it->ignoreInitially = std::stoi(line.substr(5)) != 0;
+			pollsterCollection.back().ignoreInitially = std::stoi(line.substr(5)) != 0;
 			return true;
 		}
 	}
@@ -1211,7 +1167,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		auto it = polls.end();
 		it--;
 		if (!line.substr(0, 5).compare("poll=")) {
-			it->pollster = getPollsterPtr(std::stoi(line.substr(5)));
+			it->pollster = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("year=")) {
@@ -1306,7 +1262,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 4).compare("$Day")) {
-			it->day.push_back(ModelTimePoint(getPollsterCount()));
+			it->day.push_back(ModelTimePoint(pollsterCollection.count()));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mtnd=")) {
@@ -1316,7 +1272,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 		else if (!line.substr(0, 2).compare("he") && !line.substr(4, 1).compare("=")) {
 			int pollsterIndex = std::stoi(line.substr(2, 2));
-			if (pollsterIndex < getPollsterCount()) {
+			if (pollsterIndex < pollsterCollection.count()) {
 				it->day.back().houseEffect[pollsterIndex] = std::stof(line.substr(5));
 			}
 		}
@@ -1550,7 +1506,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	return true;
 }
 
-void PollingProject::removePollsFromPollster(Pollster const* pollster) {
+void PollingProject::removePollsFromPollster(Pollster::Id pollster) {
 	for (int i = 0; i < getPollCount(); i++) {
 		Poll* poll = &polls[i];
 		if (poll->pollster == pollster) { removePoll(i); i--; }

@@ -81,16 +81,8 @@ private:
 	// does everything required to replace the currently selected pollster with "pollster".
 	void replacePollster(Pollster pollster);
 
-	// replaces the currently selected pollster with "pollster" in pollster data.
-	// Should not be used except within replacePollster.
-	void replacePollsterInPollsterData(Pollster pollster);
-
 	// does everything required to remove the currently selected pollster, if possible.
 	void removePollster();
-
-	// removes the currently selected pollster from pollster data.
-	// Should not be used except within removePollster.
-	void removePollsterFromPollsterData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

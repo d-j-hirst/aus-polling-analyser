@@ -16,9 +16,9 @@ EditPollFrame::EditPollFrame(bool isNewPoll, PollsFrame* const parent, PollingPr
 	wxArrayString pollsterArray;
 	int selectedPollster = 0;
 	int count = 0;
-	for (auto it = project->getPollsterBegin(); it != project->getPollsterEnd(); ++it, ++count) {
-		pollsterArray.push_back(it->name);
-		if (&*it == poll.pollster) selectedPollster = count;
+	for (auto it = project->pollsters().cbegin(); it != project->pollsters().cend(); ++it, ++count) {
+		pollsterArray.push_back(it->second.name);
+		if (it->first == poll.pollster) selectedPollster = count;
 	}
 
 	int currentHeight = 2;
@@ -33,7 +33,7 @@ EditPollFrame::EditPollFrame(bool isNewPoll, PollsFrame* const parent, PollingPr
 
 	// Sets the poll's pollster in case it didn't match any of the permitted ones.
 	// The "this->" is necessary as it avoids confusion with the constructor argument.
-	this->poll.pollster = project->getPollsterPtr(pollsterComboBox->GetCurrentSelection());
+	this->poll.pollster = project->pollsters().indexToId(pollsterComboBox->GetCurrentSelection());
 
 	currentHeight += 27;
 
@@ -164,7 +164,7 @@ void EditPollFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 void EditPollFrame::updateComboBoxPollster(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	poll.pollster = project->getPollsterPtr(pollsterComboBox->GetCurrentSelection());
+	poll.pollster = project->pollsters().indexToId(pollsterComboBox->GetCurrentSelection());
 }
 
 void EditPollFrame::updateTextReported2pp(wxCommandEvent& event) {

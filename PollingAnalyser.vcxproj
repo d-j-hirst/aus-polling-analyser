@@ -279,6 +279,7 @@
     <ClCompile Include="MapFrame.cpp" />
     <ClCompile Include="PartyCollection.cpp" />
     <ClCompile Include="Points.cpp" />
+    <ClCompile Include="PollsterCollection.cpp" />
     <ClCompile Include="PreloadDataRetriever.cpp" />
     <ClCompile Include="PreviousElectionDataRetriever.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
@@ -331,6 +332,7 @@
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="FloatInput.h" />
     <ClInclude Include="InputGeneral.h" />
+    <ClInclude Include="PollsterCollection.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />

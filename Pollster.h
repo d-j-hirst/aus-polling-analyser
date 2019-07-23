@@ -3,6 +3,9 @@
 #include <string>
 
 struct Pollster {
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	std::string name = "";
 	float weight = 1.0f;
 	unsigned long colour = 0;

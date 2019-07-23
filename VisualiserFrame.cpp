@@ -452,10 +452,10 @@ void VisualiserFrame::drawModel(Model const* model, wxDC& dc) {
 			dc.SetPen(wxPen(wxColour(0, 0, 0)));
 			dc.DrawLine(x, y, x2, y2);
 		}
-		for (int pollsterIndex = 0; pollsterIndex < project->getPollsterCount() && displayHouseEffects; ++pollsterIndex) {
+		for (int pollsterIndex = 0; pollsterIndex < project->pollsters().count() && displayHouseEffects; ++pollsterIndex) {
 			int y = getYFrom2PP(thisTimePoint->houseEffect[pollsterIndex] + 50.0f);
 			int y2 = getYFrom2PP(nextTimePoint->houseEffect[pollsterIndex] + 50.0f);
-			dc.SetPen(wxPen(project->getPollster(pollsterIndex).colour));
+			dc.SetPen(wxPen(project->pollsters().viewByIndex(pollsterIndex).colour));
 			dc.DrawLine(x, y, x2, y2);
 		}
 		thisTimePoint = nextTimePoint;
@@ -498,7 +498,7 @@ void VisualiserFrame::drawPollDots(wxDC& dc) {
 			dc.DrawCircle(x, y, 5);
 		}
 		// now draw the actual poll dot
-		setBrushAndPen(poll->pollster->colour, dc);
+		setBrushAndPen(project->pollsters().view(poll->pollster).colour, dc);
 		dc.DrawCircle(x, y, 3);
 	}
 }
@@ -576,7 +576,10 @@ void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
 	if (!mouseOverPoll) return;
 	wxPoint currentPoint = mouseOverPollRect.GetTopLeft() += wxPoint(3, 3);
 	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text
-	dc.DrawText(mouseOverPoll->pollster->name, currentPoint);
+	std::string pollsterName;
+	if (mouseOverPoll->pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(mouseOverPoll->pollster).name;
+	else pollsterName = "Invalid";
+	dc.DrawText(pollsterName, currentPoint);
 	currentPoint += wxPoint(0, 20);
 	dc.DrawText(mouseOverPoll->date.FormatISODate(), currentPoint);
 	currentPoint += wxPoint(0, 20);

@@ -12,7 +12,7 @@
 #include "Points.h"
 
 #include "PartyCollection.h"
-#include "Party.h"
+#include "PollsterCollection.h"
 #include "Pollster.h"
 #include "Poll.h"
 #include "Event.h"
@@ -69,32 +69,11 @@ public:
 	// If a party is removed, various parts of the project need to be adjusted to account for this.
 	void adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
-	// Adds the pollster "pollster".
-	void addPollster(Pollster pollster);
+	PollsterCollection& pollsters() { return pollsterCollection; }
+	PollsterCollection const& pollsters() const { return pollsterCollection; }
 
-	// Replaces the pollster with index "pollsterIndex" by "pollster".
-	void replacePollster(int pollsterIndex, Pollster pollster);
-
-	// Removes the pollster with index "pollsterIndex".
-	void removePollster(int pollsterIndex);
-
-	// Returns the pollster with index "pollsterIndex".
-	Pollster getPollster(int pollsterIndex) const;
-
-	// Returns a pointer to the pollster with index "pollsterIndex".
-	Pollster const* getPollsterPtr(int pollsterIndex) const;
-
-	// Gets the pollster index from a given pointer.
-	int getPollsterIndex(Pollster const* pollsterPtr);
-
-	// Returns the number of pollsters.
-	int getPollsterCount() const;
-
-	// Gets the begin iterator for the pollster list.
-	std::list<Pollster>::const_iterator getPollsterBegin() const;
-
-	// Gets the end iterator for the pollster list.
-	std::list<Pollster>::const_iterator getPollsterEnd() const;
+	// If a pollster is removed, various parts of the project need to be adjusted to account for this.
+	void adjustAfterPollsterRemoval(PollsterCollection::Index pollsterIndex, Party::Id pollsterId);
 
 	// Adds the poll "poll".
 	void addPoll(Poll poll);
@@ -391,7 +370,7 @@ private:
 	bool processFileLine(std::string line, FileOpeningState& fos);
 
 	// Removes all the polls from a particular pollster. Used when deleting a pollster.
-	void removePollsFromPollster(Pollster const* pollster);
+	void removePollsFromPollster(Pollster::Id pollster);
 
 	// Removes all the projections from a particular model. Used when deleting a model.
 	void removeProjectionsFromModel(Model const* model);
@@ -432,13 +411,8 @@ private:
 	// Defaults to "name.pol" if the project has not yet been saved at all.
 	std::string lastFileName;
 
-	// Vector containing the data for political parties.
 	PartyCollection partyCollection;
-
-	// List containing the data for pollsters.
-	// Polls have pointers to individual pollsters,
-	// so a list is used to avoid dangling pointers.
-	std::list<Pollster> pollsters;
+	PollsterCollection pollsterCollection;
 
 	// Vector containing the data for polls.
 	std::vector<Poll> polls;

@@ -51,7 +51,7 @@ public:
 	// project: The currently opened project.
 	// poll: Poll data to be used if editing (has default values for creating a new poll).
 	EditPollFrame(bool isNewPoll, PollsFrame* const parent, PollingProject const* project,
-		Poll poll = Poll(nullptr, wxDateTime::Now(), 50.0f, -1.0f, -1.0f));
+		Poll poll = Poll(Pollster::InvalidId, wxDateTime::Now(), 50.0f, -1.0f, -1.0f));
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));

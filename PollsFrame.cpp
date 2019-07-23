@@ -72,8 +72,10 @@ void PollsFrame::addPoll(Poll poll) {
 void PollsFrame::addPollToPollData(Poll poll) {
 	// Create a vector with all the poll data.
 	wxVector<wxVariant> data;
-	if (poll.pollster) data.push_back(wxVariant(poll.pollster->name));
-	else               data.push_back(wxVariant("invalid")); // in case something goes wrong and we end up with a null pointer.
+	std::string pollsterName;
+	if (poll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(poll.pollster).name;
+	else pollsterName = "Invalid";
+	data.push_back(wxVariant(pollsterName)); // in case something goes wrong and we end up with a null pointer.
 	data.push_back(wxVariant(poll.date.FormatISODate()));
 	data.push_back(wxVariant(poll.getReported2ppString()));
 	data.push_back(wxVariant(poll.getRespondent2ppString()));
@@ -96,9 +98,12 @@ void PollsFrame::replacePoll(Poll poll) {
 
 void PollsFrame::replacePollInPollData(Poll poll) {
 	int pollIndex = pollData->GetSelectedRow();
+	std::string pollsterName;
+	if (poll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(poll.pollster).name;
+	else pollsterName = "Invalid";
 	// There is no function to replace a row all at once, so we edit all cells individually.
 	wxDataViewListStore* store = pollData->GetStore();
-	if (poll.pollster) store->SetValueByRow(poll.pollster->name, pollIndex, PollColumn_Name);
+	if (poll.pollster) store->SetValueByRow(pollsterName, pollIndex, PollColumn_Name);
 	else               store->SetValueByRow("invalid", pollIndex, PollColumn_Name); // in case something goes wrong and we end up with a null pointer.
 	store->SetValueByRow(poll.date.FormatISODate(), pollIndex, PollColumn_Date);
 	store->SetValueByRow(poll.getReported2ppString(), pollIndex, PollColumn_Reported2pp);
