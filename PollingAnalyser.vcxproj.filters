@@ -146,6 +146,9 @@
     <ClCompile Include="PollsterCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="DatePickerInput.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -380,6 +383,9 @@
     </ClInclude>
     <ClInclude Include="PollsterCollection.h">
       <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="DatePickerInput.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

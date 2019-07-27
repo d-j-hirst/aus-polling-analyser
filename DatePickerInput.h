@@ -15,25 +15,28 @@
 
 #include "InputGeneral.h"
 
-// Handles both a combo box for a selection of choices and also a static text label that
+#include <wx/datectrl.h>
+#include <wx/dateevt.h>
+
+// Handles both a date picker and also a static text label that
 // describes what the input is for.
-class ChoiceInput {
+class DatePickerInput {
 public:
-	typedef std::function<void(int)> ChoiceChangeFunc;
+	typedef std::function<void(wxDateTime)> DatePickerChangeFunc;
 
 	// public because the calling frame will want to know what height the control is
 	static constexpr int Height = InputControlHeight;
 
-	ChoiceInput(wxWindow* parent, wxWindowID choiceCtrlId, std::string labelText, wxArrayString choices, int initialChoice, wxPoint topLeft,
-		ChoiceChangeFunc choiceChangeFunc = [](int) {return; }, int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth);
+	DatePickerInput(wxWindow* parent, wxWindowID datePickerCtrlId, std::string labelText, wxDateTime initialDate, wxPoint topLeft,
+		DatePickerChangeFunc datePickerChangeFunc = [](wxDateTime) {return; }, int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth);
 
 private:
 
-	void updateChoice(wxCommandEvent& event);
+	void updateDatePicker(wxDateEvent& event);
 
-	ChoiceChangeFunc choiceChangeFunc;
+	DatePickerChangeFunc datePickerChangeFunc;
 
 	wxWindow* parent;
 	wxStaticText* staticText;
-	wxComboBox* comboBox;
+	wxDatePickerCtrl* datePicker;
 };

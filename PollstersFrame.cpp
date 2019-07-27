@@ -210,14 +210,6 @@ void PollstersFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 	updateInterface();
 }
 
-void PollstersFrame::OnNewPollsterReady(Pollster& pollster) {
-	addPollster(pollster);
-}
-
-void PollstersFrame::OnEditPollsterReady(Pollster& pollster) {
-	replacePollster(pollster);
-}
-
 void PollstersFrame::updateInterface() {
 	bool somethingSelected = (pollsterData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);

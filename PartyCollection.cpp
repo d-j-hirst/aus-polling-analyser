@@ -77,3 +77,20 @@ bool PartyCollection::oppositeMajors(Party::Id id1, Party::Id id2) const
 {
 	return (view(id1).countsAsOne() && view(id2).countsAsTwo()) || (view(id1).countsAsTwo() && view(id2).countsAsOne());
 }
+
+void PartyCollection::recalculatePollCalc2PP(Poll& poll) const {
+	int npartyCollection = count();
+	float sum2PP = 0.0f;
+	float sumPrimaries = 0.0f;
+	for (int i = 0; i < npartyCollection; i++) {
+		if (poll.primary[i] < 0) continue;
+		sum2PP += poll.primary[i] * viewByIndex(i).preferenceShare * (1.0f - viewByIndex(i).exhaustRate * 0.01f);
+		sumPrimaries += poll.primary[i] * (1.0f - viewByIndex(i).exhaustRate * 0.01f);
+	}
+	if (poll.primary[PartyCollection::MaxParties] > 0) {
+		sum2PP += poll.primary[PartyCollection::MaxParties] * othersPreferenceFlow * (1.0f - othersExhaustRate * 0.01f);
+		sumPrimaries += poll.primary[PartyCollection::MaxParties] * (1.0f - othersExhaustRate * 0.01f);
+	}
+	poll.calc2pp = sum2PP / sumPrimaries + 0.14f; // the last 0.14f accounts for
+												  // leakage in Lib-Nat contests
+}

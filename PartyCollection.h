@@ -5,6 +5,7 @@
 #include <map>
 
 class PollingProject;
+class Poll;
 
 class PartyLimitException : public std::runtime_error {
 public:
@@ -96,14 +97,31 @@ public:
 	// Gets the end iterator for the pollster list.
 	PartyContainer::const_iterator cend() const { return parties.cend(); }
 
+	void setOthersPreferenceFlow(float in_othersPreferenceFlow) { othersPreferenceFlow = in_othersPreferenceFlow; }
+	float getOthersPreferenceFlow() { return othersPreferenceFlow; }
+
+	void setOthersExhaustRate(float in_othersExhaustRate) { othersExhaustRate = in_othersExhaustRate; }
+	float getOthersExhaustRate() { return othersExhaustRate; }
+
 	// returns true if the two parties given are opposite major parties,
 	// or parties that count as if they were those parties
 	bool oppositeMajors(Party::Id party1, Party::Id party2) const;
+
+	// recalculates the poll's estimated two-party-preferred based on primary votes.
+	// This function will directly edit the poll's data, but does not affect the
+	// project's state directly.
+	void recalculatePollCalc2PP(Poll& poll) const;
 	
 private:
 
 	// what the next ID for an item in the container will be
 	int nextId = 0;
+
+	// indicates the last-election preference flow from "Others" to the first listed major party.
+	float othersPreferenceFlow = 46.5f;
+
+	// indicates the last-election percentage of the "Others" vote that exhausted without reaching a major party.
+	float othersExhaustRate = 0.0f;
 
 	PartyContainer parties;
 

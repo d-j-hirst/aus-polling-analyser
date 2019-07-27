@@ -28,7 +28,7 @@ public:
 
 	FloatInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, float inputFloat, wxPoint topLeft,
 		TextChangeFunc textChangeFunc = [](float) {return; }, FloatValidationFunc floatValidationFunc = DefaultValidator,
-		int labelWidth = 150, int textInputWidth = 200, int initialDecimalPlaces = 3);
+		float nullValue = std::numeric_limits<float>::lowest(), int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth, int initialDecimalPlaces = 3);
 
 private:
 
@@ -42,6 +42,8 @@ private:
 	FloatValidationFunc floatValidationFunc;
 
 	bool currentlyUpdating = false;
+
+	float nullValue;
 
 	wxWindow* parent;
 

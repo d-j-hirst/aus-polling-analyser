@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-inline std::string formatFloat(float floatToFormat, int numDigits, bool addPlusToPositives = false) {
+inline std::string formatFloat(float floatToFormat, int numDigits, bool addPlusToPositives = false, float nullValue = std::numeric_limits<float>::lowest()) {
+	if (floatToFormat == nullValue) return "";
 	double floatTimesDigits = double(floatToFormat) * pow(10.0f, numDigits);
 	double rounded = round(floatTimesDigits) * pow(0.1f, numDigits);
 	std::stringstream ss;

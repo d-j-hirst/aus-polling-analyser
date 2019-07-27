@@ -25,7 +25,7 @@ public:
 	static constexpr int Height = InputControlHeight;
 
 	TextInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, std::string inputText, wxPoint topLeft,
-		TextChangeFunc textChangeFunc = [](std::string) {return;}, int labelWidth = 150, int textInputWidth = 200);
+		TextChangeFunc textChangeFunc = [](std::string) {return;}, int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth);
 
 private:
 

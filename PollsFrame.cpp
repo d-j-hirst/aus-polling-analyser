@@ -1,10 +1,32 @@
 #include "PollsFrame.h"
+
+#include "EditPollFrame.h"
 #include "General.h"
+
+using namespace std::placeholders; // for function object parameter binding
+
+enum ControlId {
+	Base = 300, // To avoid mixing events with other frames, each frame's IDs have a unique value.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
+};
 
 // frame constructor
 PollsFrame::PollsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_PollsFrame_FrameID, "Polls", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Polls", wxPoint(0, 0), project),
 	refresher(refresher)
+{
+	setupToolbar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
+	updateInterface();
+}
+
+void PollsFrame::setupToolbar()
 {
 	// *** Toolbar *** //
 
@@ -19,181 +41,29 @@ PollsFrame::PollsFrame(ProjectFrame::Refresher refresher, PollingProject* projec
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_PollsFrame_NewPollID, "New Poll", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Poll");
-	toolBar->AddTool(PA_PollsFrame_EditPollID, "Edit Poll", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Poll");
-	toolBar->AddTool(PA_PollsFrame_RemovePollID, "Remove Poll", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Poll");
+	toolBar->AddTool(ControlId::New, "New Poll", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Poll");
+	toolBar->AddTool(ControlId::Edit, "Edit Poll", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Poll");
+	toolBar->AddTool(ControlId::Remove, "Remove Poll", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Poll");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
 
-	// *** Poll Data Table *** //
-
+void PollsFrame::setupDataTable()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
 	// Create the poll data control.
 	pollData = new wxDataViewListCtrl(dataPanel,
-		PA_PollsFrame_DataViewID,
+		ControlId::DataView,
 		wxPoint(0, 0),
 		dataPanel->GetClientSize());
-
-	// *** Poll Data Table Columns *** //
-
-	refreshData();
-
-	// *** Binding Events *** //
-
-	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &PollsFrame::OnResize, this, PA_PollsFrame_FrameID);
-
-	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &PollsFrame::OnNewPoll, this, PA_PollsFrame_NewPollID);
-	Bind(wxEVT_TOOL, &PollsFrame::OnEditPoll, this, PA_PollsFrame_EditPollID);
-	Bind(wxEVT_TOOL, &PollsFrame::OnRemovePoll, this, PA_PollsFrame_RemovePollID);
-
-	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &PollsFrame::OnSelectionChange, this, PA_PollsFrame_DataViewID);
 }
 
-void PollsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
-	// Set the pollster data table to the entire client size of the data panel
-	pollData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
-}
-
-void PollsFrame::addPoll(Poll poll) {
-	// Simultaneously add to the poll data control and to the polling project.
-	addPollToPollData(poll);
-	project->addPoll(poll);
-
-	updateInterface();
-}
-
-void PollsFrame::addPollToPollData(Poll poll) {
-	// Create a vector with all the poll data.
-	wxVector<wxVariant> data;
-	std::string pollsterName;
-	if (poll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(poll.pollster).name;
-	else pollsterName = "Invalid";
-	data.push_back(wxVariant(pollsterName)); // in case something goes wrong and we end up with a null pointer.
-	data.push_back(wxVariant(poll.date.FormatISODate()));
-	data.push_back(wxVariant(poll.getReported2ppString()));
-	data.push_back(wxVariant(poll.getRespondent2ppString()));
-	data.push_back(wxVariant(poll.getCalc2ppString()));
-	for (int i = 0; i < project->parties().count(); i++)
-		data.push_back(wxVariant(poll.getPrimaryString(i)));
-	data.push_back(wxVariant(poll.getPrimaryString(PartyCollection::MaxParties)));
-
-	pollData->AppendItem(data);
-}
-
-void PollsFrame::replacePoll(Poll poll) {
-	int pollIndex = pollData->GetSelectedRow();
-	// Simultaneously replace data in the poll data control and the polling project.
-	replacePollInPollData(poll);
-	project->replacePoll(pollIndex, poll);
-
-	updateInterface();
-}
-
-void PollsFrame::replacePollInPollData(Poll poll) {
-	int pollIndex = pollData->GetSelectedRow();
-	std::string pollsterName;
-	if (poll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(poll.pollster).name;
-	else pollsterName = "Invalid";
-	// There is no function to replace a row all at once, so we edit all cells individually.
-	wxDataViewListStore* store = pollData->GetStore();
-	if (poll.pollster) store->SetValueByRow(pollsterName, pollIndex, PollColumn_Name);
-	else               store->SetValueByRow("invalid", pollIndex, PollColumn_Name); // in case something goes wrong and we end up with a null pointer.
-	store->SetValueByRow(poll.date.FormatISODate(), pollIndex, PollColumn_Date);
-	store->SetValueByRow(poll.getReported2ppString(), pollIndex, PollColumn_Reported2pp);
-	store->SetValueByRow(poll.getRespondent2ppString(), pollIndex, PollColumn_Respondent2pp);
-	store->SetValueByRow(poll.getCalc2ppString(), pollIndex, PollColumn_Calc2pp);
-	int i = 0;
-	for (; i < project->parties().count(); i++)
-		store->SetValueByRow(poll.getPrimaryString(i), pollIndex, PollColumn_Primary + i);
-	store->SetValueByRow(poll.getPrimaryString(PartyCollection::MaxParties), pollIndex, PollColumn_Primary + i);
-}
-
-void PollsFrame::removePoll() {
-	// Simultaneously add to the poll data control and to the polling project.
-	project->removePoll(pollData->GetSelectedRow());
-
-	// this line must come second, otherwise the argument for the line above will be wrong.
-	removePollFromPollData();
-
-	updateInterface();
-}
-
-void PollsFrame::removePollFromPollData() {
-	// Create a vector with all the poll data.
-	pollData->DeleteItem(pollData->GetSelectedRow());
-}
-
-void PollsFrame::OnNewPoll(wxCommandEvent& WXUNUSED(event)) {
-
-	// Create the new project frame (where initial settings for the new project are chosen).
-	EditPollFrame *frame = new EditPollFrame(true, this, project);
-
-	// Show the frame.
-	frame->ShowModal();
-
-	// This is needed to avoid a memory leak.
-	delete frame;
-	return;
-}
-
-void PollsFrame::OnEditPoll(wxCommandEvent& WXUNUSED(event)) {
-
-	int pollIndex = pollData->GetSelectedRow();
-
-	// If the button is somehow clicked when there is no poll selected, just stop.
-	if (pollIndex == -1) return;
-
-	// Create the new project frame (where initial settings for the new project are chosen).
-	EditPollFrame *frame = new EditPollFrame(false, this, project, project->getPoll(pollIndex));
-
-	// Show the frame.
-	frame->ShowModal();
-
-	// This is needed to avoid a memory leak.
-	delete frame;
-	return;
-}
-
-void PollsFrame::OnRemovePoll(wxCommandEvent& WXUNUSED(event)) {
-
-	int pollIndex = pollData->GetSelectedRow();
-
-	// If the button is somehow clicked when there is no poll selected, just stop.
-	if (pollIndex == -1) return;
-
-	removePoll();
-
-	return;
-}
-
-// updates the interface after a change in item selection.
-void PollsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
-	updateInterface();
-}
-
-void PollsFrame::OnNewPollReady(Poll& poll) {
-	addPoll(poll);
-}
-
-void PollsFrame::OnEditPollReady(Poll& poll) {
-	replacePoll(poll);
-}
-
-void PollsFrame::updateInterface() {
-	bool somethingSelected = (pollData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_PollsFrame_EditPollID, somethingSelected);
-	toolBar->EnableTool(PA_PollsFrame_RemovePollID, somethingSelected);
-}
-
-void PollsFrame::refreshData() {
-
+void PollsFrame::refreshDataTable()
+{
 	pollData->DeleteAllItems();
 	// clearing the columns is necessary in the case that parties are added/removed
 	pollData->ClearColumns();
@@ -228,6 +98,130 @@ void PollsFrame::refreshData() {
 	for (int i = 0; i < project->getPollCount(); ++i) {
 		addPollToPollData(project->getPoll(i));
 	}
+}
+
+void PollsFrame::bindEventHandlers()
+{
+	Bind(wxEVT_SIZE, &PollsFrame::OnResize, this, ControlId::Frame);
+
+	// Binding events for the toolbar items.
+	Bind(wxEVT_TOOL, &PollsFrame::OnNewPoll, this, ControlId::New);
+	Bind(wxEVT_TOOL, &PollsFrame::OnEditPoll, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &PollsFrame::OnRemovePoll, this, ControlId::Remove);
+
+	// Need to update the interface if the selection changes
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &PollsFrame::OnSelectionChange, this, ControlId::DataView);
+}
+
+
+void PollsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
+	// Set the pollster data table to the entire client size of the data panel
+	pollData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
+}
+
+void PollsFrame::addPoll(Poll poll) {
+	// Simultaneously add to the poll data control and to the polling project.
+	project->addPoll(poll);
+	refreshDataTable();
 
 	updateInterface();
+}
+
+void PollsFrame::addPollToPollData(Poll poll) {
+	// Create a vector with all the poll data.
+	wxVector<wxVariant> data;
+	std::string pollsterName;
+	if (poll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(poll.pollster).name;
+	else pollsterName = "Invalid";
+	data.push_back(wxVariant(pollsterName)); // in case something goes wrong and we end up with a null pointer.
+	data.push_back(wxVariant(poll.date.FormatISODate()));
+	data.push_back(wxVariant(poll.getReported2ppString()));
+	data.push_back(wxVariant(poll.getRespondent2ppString()));
+	data.push_back(wxVariant(poll.getCalc2ppString()));
+	for (int i = 0; i < project->parties().count(); i++)
+		data.push_back(wxVariant(poll.getPrimaryString(i)));
+	data.push_back(wxVariant(poll.getPrimaryString(PartyCollection::MaxParties)));
+
+	pollData->AppendItem(data);
+}
+
+void PollsFrame::replacePoll(Poll poll) {
+	int pollIndex = pollData->GetSelectedRow();
+	// Simultaneously replace data in the poll data control and the polling project.
+	project->replacePoll(pollIndex, poll);
+	refreshDataTable();
+
+	updateInterface();
+}
+
+void PollsFrame::removePoll() {
+	int pollIndex = pollData->GetSelectedRow();
+	// Simultaneously add to the poll data control and to the polling project.
+	project->removePoll(pollIndex);
+	refreshDataTable();
+
+	updateInterface();
+}
+
+void PollsFrame::OnNewPoll(wxCommandEvent& WXUNUSED(event)) {
+
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&PollsFrame::addPoll, this, _1);
+
+	// Create the new project frame (where initial settings for the new project are chosen).
+	EditPollFrame *frame = new EditPollFrame(EditPollFrame::Function::New, callback, project->parties(), project->pollsters());
+
+	// Show the frame.
+	frame->ShowModal();
+
+	// This is needed to avoid a memory leak.
+	delete frame;
+}
+
+void PollsFrame::OnEditPoll(wxCommandEvent& WXUNUSED(event)) {
+
+	int pollIndex = pollData->GetSelectedRow();
+
+	// If the button is somehow clicked when there is no poll selected, just stop.
+	if (pollIndex == -1) return;
+
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&PollsFrame::replacePoll, this, _1);
+
+	// Create the new project frame (where initial settings for the new project are chosen).
+	EditPollFrame *frame = new EditPollFrame(EditPollFrame::Function::Edit, callback, project->parties(),
+		project->pollsters(), project->getPoll(pollIndex));
+
+	// Show the frame.
+	frame->ShowModal();
+
+	// This is needed to avoid a memory leak.
+	delete frame;
+}
+
+void PollsFrame::OnRemovePoll(wxCommandEvent& WXUNUSED(event)) {
+
+	int pollIndex = pollData->GetSelectedRow();
+
+	// If the button is somehow clicked when there is no poll selected, just stop.
+	if (pollIndex == -1) return;
+
+	removePoll();
+
+	return;
+}
+
+// updates the interface after a change in item selection.
+void PollsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
+	updateInterface();
+}
+
+void PollsFrame::updateInterface() {
+	bool somethingSelected = (pollData->GetSelectedRow() != -1);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+}
+
+void PollsFrame::refreshData() {
+	refreshDataTable();
 }

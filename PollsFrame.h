@@ -20,24 +20,6 @@
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 #include "Poll.h"
-#include "EditPollFrame.h"
-
-class ProjectFrame;
-class GenericChildFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_PollsFrame_Base = 350, // To avoid mixing events with other frames.
-	PA_PollsFrame_FrameID,
-	PA_PollsFrame_DataViewID,
-	PA_PollsFrame_NewPollID,
-	PA_PollsFrame_EditPollID,
-	PA_PollsFrame_RemovePollID,
-};
 
 enum PollColumnsEnum {
 	PollColumn_Name,
@@ -69,6 +51,17 @@ public:
 
 private:
 
+	// Creates the toolbar and its accompanying tools
+	void setupToolbar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	// refresh the (already existing) data table
+	void refreshDataTable();
+
+	void bindEventHandlers();
+
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
 
@@ -93,16 +86,8 @@ private:
 	// does everything required to replace the currently selected poll with "poll".
 	void replacePoll(Poll poll);
 
-	// replaces the currently selected poll with "poll" in poll data.
-	// Should not be used except within replacePoll.
-	void replacePollInPollData(Poll poll);
-
 	// does everything required to remove the currently selected poll, if possible.
 	void removePoll();
-
-	// removes the currently selected poll from poll data.
-	// Should not be used except within removePoll.
-	void removePollFromPollData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

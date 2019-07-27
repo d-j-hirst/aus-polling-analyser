@@ -30,12 +30,6 @@ public:
 	// "project" is a pointer to the polling project object.
 	PollstersFrame(ProjectFrame::Refresher const refresher, PollingProject* project);
 
-	// Calls on the frame to create a new pollster based on "Pollster".
-	void OnNewPollsterReady(Pollster& pollster);
-
-	// Calls on the frame to edit the currently selected pollster based on "Pollster".
-	void OnEditPollsterReady(Pollster& pollster);
-
 private:
 
 	// For the new party dialog to callback once the user has clicked OK.

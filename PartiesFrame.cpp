@@ -48,8 +48,8 @@ void PartiesFrame::editPartyCallback(Party party)
 
 void PartiesFrame::partySettingsCallback(PartySettingsData partySettingsData)
 {
-	project->setOthersPreferenceFlow(partySettingsData.othersPreferenceFlow);
-	project->setOthersExhaustRate(partySettingsData.othersExhaustRate);
+	project->parties().setOthersPreferenceFlow(partySettingsData.othersPreferenceFlow);
+	project->parties().setOthersExhaustRate(partySettingsData.othersExhaustRate);
 	project->refreshCalc2PP();
 	refresher.refreshPollData();
 }
@@ -209,7 +209,7 @@ void PartiesFrame::OnRemoveParty(wxCommandEvent& WXUNUSED(event)) {
 
 void PartiesFrame::OnPartySettings(wxCommandEvent& WXUNUSED(event)) {
 
-	PartySettingsData partySettingsData = PartySettingsData(project->getOthersPreferenceFlow(), project->getOthersExhaustRate());
+	PartySettingsData partySettingsData = PartySettingsData(project->parties().getOthersPreferenceFlow(), project->parties().getOthersExhaustRate());
 
 	auto callback = std::bind(&PartiesFrame::partySettingsCallback, this, _1);
 

@@ -199,7 +199,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 void PollingProject::refreshCalc2PP() {
 	for (auto it = polls.begin(); it != polls.end(); it++)
-		recalculatePollCalc2PP(*it);
+		partyCollection.recalculatePollCalc2PP(*it);
 }
 
 void PollingProject::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId)
@@ -756,8 +756,8 @@ int PollingProject::save(std::string filename) {
 	if (!os) return 1;
 	os << "#Project" << "\n";
 	os << "name=" << name << "\n";
-	os << "opre=" << othersPreferenceFlow << "\n";
-	os << "oexh=" << othersExhaustRate << "\n";
+	os << "opre=" << parties().getOthersPreferenceFlow() << "\n";
+	os << "oexh=" << parties().getOthersExhaustRate() << "\n";
 	os << "#partyCollection" << "\n";
 	for (auto const& partyPair : partyCollection) {
 		Party const& thisParty = partyPair.second;
@@ -913,23 +913,6 @@ bool PollingProject::isValid() {
 	return valid;
 }
 
-void PollingProject::recalculatePollCalc2PP(Poll& poll) const {
-	int npartyCollection = partyCollection.count();
-	float sum2PP = 0.0f;
-	float sumPrimaries = 0.0f;
-	for (int i = 0; i < npartyCollection; i++) {
-		if (poll.primary[i] < 0) continue;
-		sum2PP += poll.primary[i] * partyCollection.viewByIndex(i).preferenceShare * (1.0f - partyCollection.viewByIndex(i).exhaustRate * 0.01f);
-		sumPrimaries += poll.primary[i] * (1.0f - partyCollection.viewByIndex(i).exhaustRate * 0.01f);
-	}
-	if (poll.primary[PartyCollection::MaxParties] > 0) {
-		sum2PP += poll.primary[PartyCollection::MaxParties] * othersPreferenceFlow * (1.0f - othersExhaustRate * 0.01f);
-		sumPrimaries += poll.primary[PartyCollection::MaxParties] * (1.0f - othersExhaustRate * 0.01f);
-	}
-	poll.calc2pp = sum2PP / sumPrimaries + 0.14f; // the last 0.14f accounts for
-												  // leakage in Lib-Nat contests
-}
-
 void PollingProject::invalidateProjectionsFromModel(Model const* model) {
 	for (auto& thisProjection : projections) {
 		if (thisProjection.baseModel == model) { thisProjection.lastUpdated = wxInvalidDateTime; }
@@ -1076,11 +1059,11 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		if (!line.substr(0, 5).compare("opre=")) {
-			othersPreferenceFlow = std::stof(line.substr(5));
+			parties().setOthersPreferenceFlow(std::stof(line.substr(5)));
 			return true;
 		}
 		if (!line.substr(0, 5).compare("oexh=")) {
-			othersExhaustRate = std::stof(line.substr(5));
+			parties().setOthersExhaustRate(std::stof(line.substr(5)));
 			return true;
 		}
 	}

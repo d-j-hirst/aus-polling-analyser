@@ -34,8 +34,6 @@ public:
 
 	typedef std::function<void(Pollster)> OkCallback;
 
-	// isNewPollster: true if this dialog is for creating a new pollster, false if it's for editing.
-	// parent: Parent frame for this (must be a PollstersFrame).
 	// pollster: Pollster data to be used if editing (has default values for creating a new pollster).
 	EditPollsterFrame(Function function, OkCallback callback,
 		Pollster pollster = Pollster("Enter pollster name here", 1.0f, 0, false, false));

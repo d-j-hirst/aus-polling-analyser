@@ -12,6 +12,8 @@
 
 class Poll {
 public:
+	constexpr static float NullValue = -1.0f;
+
 	Pollster::Id pollster;
 	wxDateTime date;
 	float reported2pp;
@@ -24,7 +26,7 @@ public:
 		resetPrimaries();
 	}
 
-	Poll() : pollster(Pollster::InvalidId), date(wxDateTime(0.0)), reported2pp(50), respondent2pp(-1), calc2pp(-1) {
+	Poll() : pollster(Pollster::InvalidId), date(wxDateTime(0.0)), reported2pp(50), respondent2pp(NullValue), calc2pp(NullValue) {
 		resetPrimaries();
 	}
 
@@ -73,6 +75,6 @@ public:
 		else return "";
 	}
 	void resetPrimaries() {
-		for (int i = 0; i < 16; i++) primary[i] = -1;
+		for (int i = 0; i <= PartyCollection::MaxParties; i++) primary[i] = NullValue;
 	}
 };

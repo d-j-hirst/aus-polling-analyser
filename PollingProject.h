@@ -54,12 +54,6 @@ public:
 	// Gets the name of the project.
 	std::string getLastFileName() { return lastFileName; }
 
-	void setOthersPreferenceFlow(float in_othersPreferenceFlow) { othersPreferenceFlow = in_othersPreferenceFlow; }
-	float getOthersPreferenceFlow() { return othersPreferenceFlow; }
-
-	void setOthersExhaustRate(float in_othersExhaustRate) { othersExhaustRate = in_othersExhaustRate; }
-	float getOthersExhaustRate() { return othersExhaustRate; }
-
 	// Refreshes the calculated 2PPs for all polls.
 	void refreshCalc2PP();
 
@@ -454,12 +448,6 @@ private:
 	static const Party invalidParty;
 
 	bool valid = false;
-
-	// indicates the last-election preference flow from "Others" to the first listed major party.
-	float othersPreferenceFlow = 46.5f;
-
-	// indicates the last-election preference flow from "Others" to the first listed major party.
-	float othersExhaustRate = 0.0f;
 
 	// indicates the start day currently shown in the visualiser.
 	int visStartDay = -1000000;

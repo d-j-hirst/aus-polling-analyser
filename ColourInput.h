@@ -27,7 +27,7 @@ public:
 	static constexpr int Height = InputControlHeight;
 
 	ColourInput(wxWindow* parent, wxWindowID colourCtrlId, std::string labelText, wxColour initialColour, wxPoint topLeft,
-		ColourChangeFunc colourChangeFunc = [](wxColour) {return; }, int labelWidth = 150, int textInputWidth = 200);
+		ColourChangeFunc colourChangeFunc = [](wxColour) {return; }, int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth);
 
 private:
 
