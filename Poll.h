@@ -12,13 +12,15 @@
 
 class Poll {
 public:
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
 	constexpr static float NullValue = -1.0f;
 
-	Pollster::Id pollster;
-	wxDateTime date;
-	float reported2pp;
-	float respondent2pp;
-	float calc2pp;
+	Pollster::Id pollster = Pollster::DefaultId;
+	wxDateTime date = wxDateTime::Now();
+	float reported2pp = 50.0f;
+	float respondent2pp = NullValue;
+	float calc2pp = NullValue;
 	float primary[PartyCollection::MaxParties + 1]; // others is always the final index.
 
 	Poll(Pollster::Id pollster, wxDateTime date, float reported2pp, float respondent2pp, float calc2pp)
@@ -26,7 +28,7 @@ public:
 		resetPrimaries();
 	}
 
-	Poll() : pollster(Pollster::InvalidId), date(wxDateTime(0.0)), reported2pp(50), respondent2pp(NullValue), calc2pp(NullValue) {
+	Poll() {
 		resetPrimaries();
 	}
 

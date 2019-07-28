@@ -201,8 +201,6 @@ void PollstersFrame::OnRemovePollster(wxCommandEvent& WXUNUSED(event)) {
 	removePollster();
 
 	refresher.refreshPollData();
-
-	return;
 }
 
 // updates the interface after a change in item selection.

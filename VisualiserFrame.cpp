@@ -25,8 +25,7 @@ const int PA_Poll_Select_Distance_Squared_Maximum = 16;
 // frame constructor
 VisualiserFrame::VisualiserFrame(ProjectFrame::Refresher refresher, PollingProject* project)
 	: GenericChildFrame(refresher.notebook(), PA_VisualiserFrame_FrameID, "Visualiser", wxPoint(333, 0), project),
-	refresher(refresher),
-	mouseOverPoll(nullptr)
+	refresher(refresher)
 {
 	refreshToolbar();
 
@@ -60,7 +59,7 @@ void VisualiserFrame::paint() {
 }
 
 void VisualiserFrame::resetMouseOver() {
-	mouseOverPoll = nullptr;
+	mouseOverPoll = Poll::InvalidId;
 }
 
 void VisualiserFrame::refreshData() {
@@ -191,7 +190,7 @@ void VisualiserFrame::render(wxDC& dc) {
 	if (displayPolls) {
 		drawPollDots(dc);
 
-		if (mouseOverPoll && mouseOverPoll->date.IsValid()) {
+		if (mouseOverPoll != Poll::InvalidId && project->polls().view(mouseOverPoll).date.IsValid()) {
 			determineMouseOverPollRect();
 			drawMouseOverPollRect(dc);
 			drawMouseOverPollText(dc);
@@ -200,7 +199,7 @@ void VisualiserFrame::render(wxDC& dc) {
 }
 
 void VisualiserFrame::getStartAndEndDays() {
-	if (project->getPollCount() > 1) {
+	if (project->polls().count() > 1) {
 
 		// this can be uncommented once the user has control over the visualiser, but for now we'll just show all polls
 		if (project->getVisStartDay() < -100000.0)
@@ -488,17 +487,16 @@ void VisualiserFrame::drawProjection(Projection const* projection, wxDC& dc) {
 }
 
 void VisualiserFrame::drawPollDots(wxDC& dc) {
-	for (int i = 0; i < project->getPollCount(); ++i) {
-		Poll const* poll = project->getPollPtr(i);
-		int x = getXFromDate(poll->date);
-		int y = getYFrom2PP(poll->getBest2pp());
+	for (auto const& poll : project->polls()) {
+		int x = getXFromDate(poll.second.date);
+		int y = getYFrom2PP(poll.second.getBest2pp());
 		// first draw the yellow outline for selected poll, if appropriate
-		if (poll == mouseOverPoll) {
+		if (poll.first == mouseOverPoll) {
 			setBrushAndPen(wxColourDatabase().Find("YELLOW"), dc);
 			dc.DrawCircle(x, y, 5);
 		}
 		// now draw the actual poll dot
-		setBrushAndPen(project->pollsters().view(poll->pollster).colour, dc);
+		setBrushAndPen(project->pollsters().view(poll.second.pollster).colour, dc);
 		dc.DrawCircle(x, y, 3);
 	}
 }
@@ -528,36 +526,35 @@ int VisualiserFrame::getYFrom2PP(float this2pp) {
 	return int((this2pp - 50.0f) * -15.0f + gv.horzAxis);
 }
 
-Poll const* VisualiserFrame::getPollFromMouse(wxPoint point) {
-	Poll const* bestPoll = nullptr;
-	if (!project->getPollCount()) return nullptr;
+Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {
+	Poll::Id bestPoll = Poll::InvalidId;
 	int closest = 10000000;
-	for (int i = 0; i < project->getPollCount(); ++i) {
-		Poll const* tempPoll = project->getPollPtr(i);
-		int xDist = abs(getXFromDate(tempPoll->date) - point.x);
-		int yDist = abs(getYFrom2PP(tempPoll->getBest2pp()) - point.y);
+	for (auto const& poll : project->polls()) {
+		int xDist = abs(getXFromDate(poll.second.date) - point.x);
+		int yDist = abs(getYFrom2PP(poll.second.getBest2pp()) - point.y);
 		int totalDist = xDist * xDist + yDist * yDist;
 		if (totalDist < closest && totalDist < PA_Poll_Select_Distance_Squared_Maximum) {
 			closest = totalDist;
-			bestPoll = tempPoll;
+			bestPoll = poll.first;
 		}
 	}
 	return bestPoll;
 }
 
 void VisualiserFrame::determineMouseOverPollRect() {
-	if (!mouseOverPoll) return;
+	if (mouseOverPoll == Poll::InvalidId) return;
+	auto const& thisPoll = project->polls().view(mouseOverPoll);
 	int nLines = 2;
-	if (mouseOverPoll->calc2pp >= 0) nLines++;
-	if (mouseOverPoll->respondent2pp >= 0) nLines++;
-	if (mouseOverPoll->reported2pp >= 0) nLines++;
+	if (thisPoll.calc2pp >= 0) nLines++;
+	if (thisPoll.respondent2pp >= 0) nLines++;
+	if (thisPoll.reported2pp >= 0) nLines++;
 	for (int i = 0; i < 16; ++i) {
-		if (mouseOverPoll->primary[i] >= 0) nLines++;
+		if (thisPoll.primary[i] >= 0) nLines++;
 	}
 	int height = nLines * 20 + 7;
 	int width = 200;
-	int left = getXFromDate(mouseOverPoll->date) - width;
-	int top = getYFrom2PP(mouseOverPoll->getBest2pp());
+	int left = getXFromDate(thisPoll.date) - width;
+	int top = getYFrom2PP(thisPoll.getBest2pp());
 	if (left < 0)
 		left += width + 10;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)
@@ -566,43 +563,44 @@ void VisualiserFrame::determineMouseOverPollRect() {
 }
 
 void VisualiserFrame::drawMouseOverPollRect(wxDC& dc) {
-	if (!mouseOverPoll) return;
+	if (mouseOverPoll == Poll::InvalidId) return;
 	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black border
 	dc.SetBrush(wxBrush(wxColour(255, 255, 255))); // white interior
 	dc.DrawRoundedRectangle(mouseOverPollRect, 3);
 }
 
 void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
-	if (!mouseOverPoll) return;
+	if (mouseOverPoll == Poll::InvalidId) return;
+	auto const& thisPoll = project->polls().view(mouseOverPoll);
 	wxPoint currentPoint = mouseOverPollRect.GetTopLeft() += wxPoint(3, 3);
 	dc.SetPen(wxPen(wxColour(0, 0, 0))); // black text
 	std::string pollsterName;
-	if (mouseOverPoll->pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(mouseOverPoll->pollster).name;
+	if (thisPoll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(thisPoll.pollster).name;
 	else pollsterName = "Invalid";
 	dc.DrawText(pollsterName, currentPoint);
 	currentPoint += wxPoint(0, 20);
-	dc.DrawText(mouseOverPoll->date.FormatISODate(), currentPoint);
+	dc.DrawText(thisPoll.date.FormatISODate(), currentPoint);
 	currentPoint += wxPoint(0, 20);
-	if (mouseOverPoll->reported2pp >= 0) {
-		dc.DrawText("Previous-Election 2PP: " + mouseOverPoll->getReported2ppString(), currentPoint);
+	if (thisPoll.reported2pp >= 0) {
+		dc.DrawText("Previous-Election 2PP: " + thisPoll.getReported2ppString(), currentPoint);
 		currentPoint += wxPoint(0, 20);
 	}
-	if (mouseOverPoll->respondent2pp >= 0) {
-		dc.DrawText("Respondent-allocated 2PP: " + mouseOverPoll->getRespondent2ppString(), currentPoint);
+	if (thisPoll.respondent2pp >= 0) {
+		dc.DrawText("Respondent-allocated 2PP: " + thisPoll.getRespondent2ppString(), currentPoint);
 		currentPoint += wxPoint(0, 20);
 	}
-	if (mouseOverPoll->calc2pp >= 0) {
-		dc.DrawText("Calculated 2PP: " + mouseOverPoll->getCalc2ppString(), currentPoint);
+	if (thisPoll.calc2pp >= 0) {
+		dc.DrawText("Calculated 2PP: " + thisPoll.getCalc2ppString(), currentPoint);
 		currentPoint += wxPoint(0, 20);
 	}
 	for (int i = 0; i < PartyCollection::MaxParties; ++i) {
-		if (mouseOverPoll->primary[i] >= 0) {
-			dc.DrawText(project->parties().viewByIndex(i).abbreviation + " primary: " + mouseOverPoll->getPrimaryString(i), currentPoint);
+		if (thisPoll.primary[i] >= 0) {
+			dc.DrawText(project->parties().viewByIndex(i).abbreviation + " primary: " + thisPoll.getPrimaryString(i), currentPoint);
 			currentPoint += wxPoint(0, 20);
 		}
 	}
-	if (mouseOverPoll->primary[PartyCollection::MaxParties] >= 0) {
-		dc.DrawText("Others primary: " + mouseOverPoll->getPrimaryString(PartyCollection::MaxParties), currentPoint);
+	if (thisPoll.primary[PartyCollection::MaxParties] >= 0) {
+		dc.DrawText("Others primary: " + thisPoll.getPrimaryString(PartyCollection::MaxParties), currentPoint);
 		currentPoint += wxPoint(0, 20);
 	}
 }

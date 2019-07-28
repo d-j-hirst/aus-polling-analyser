@@ -181,7 +181,7 @@ private:
 	wxDateTime getDateFromX(int x);
 
 	// gets the nearest poll to the given mouse coordinates.
-	Poll const* getPollFromMouse(wxPoint point);
+	Poll::Id getPollFromMouse(wxPoint point);
 
 	// determines the size of the box used to display poll information.
 	void determineMouseOverPollRect();
@@ -213,7 +213,7 @@ private:
 	wxPanel* dcPanel = nullptr;
 
 	// The poll that has the mouse over it.
-	Poll const* mouseOverPoll;
+	Poll::Id mouseOverPoll = Poll::InvalidId;
 
 	// The dimensions of the box used to display poll information.
 	wxRect mouseOverPollRect;

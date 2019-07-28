@@ -95,8 +95,8 @@ void PollsFrame::refreshDataTable()
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the poll data
-	for (int i = 0; i < project->getPollCount(); ++i) {
-		addPollToPollData(project->getPoll(i));
+	for (int i = 0; i < project->polls().count(); ++i) {
+		addPollToPollData(project->polls().viewByIndex(i));
 	}
 }
 
@@ -121,7 +121,7 @@ void PollsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void PollsFrame::addPoll(Poll poll) {
 	// Simultaneously add to the poll data control and to the polling project.
-	project->addPoll(poll);
+	project->polls().add(poll);
 	refreshDataTable();
 
 	updateInterface();
@@ -146,18 +146,20 @@ void PollsFrame::addPollToPollData(Poll poll) {
 }
 
 void PollsFrame::replacePoll(Poll poll) {
-	int pollIndex = pollData->GetSelectedRow();
+	PollCollection::Index pollIndex = pollData->GetSelectedRow();
+	Poll::Id pollId = project->polls().indexToId(pollIndex);
 	// Simultaneously replace data in the poll data control and the polling project.
-	project->replacePoll(pollIndex, poll);
+	project->polls().replace(pollId, poll);
 	refreshDataTable();
 
 	updateInterface();
 }
 
 void PollsFrame::removePoll() {
-	int pollIndex = pollData->GetSelectedRow();
+	PollCollection::Index pollIndex = pollData->GetSelectedRow();
+	Poll::Id pollId = project->polls().indexToId(pollIndex);
 	// Simultaneously add to the poll data control and to the polling project.
-	project->removePoll(pollIndex);
+	project->polls().remove(pollId);
 	refreshDataTable();
 
 	updateInterface();
@@ -190,7 +192,7 @@ void PollsFrame::OnEditPoll(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditPollFrame *frame = new EditPollFrame(EditPollFrame::Function::Edit, callback, project->parties(),
-		project->pollsters(), project->getPoll(pollIndex));
+		project->pollsters(), project->polls().viewByIndex(pollIndex));
 
 	// Show the frame.
 	frame->ShowModal();

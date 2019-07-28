@@ -13,8 +13,7 @@
 
 #include "PartyCollection.h"
 #include "PollsterCollection.h"
-#include "Pollster.h"
-#include "Poll.h"
+#include "PollCollection.h"
 #include "Event.h"
 #include "Model.h"
 #include "Projection.h"
@@ -69,23 +68,8 @@ public:
 	// If a pollster is removed, various parts of the project need to be adjusted to account for this.
 	void adjustAfterPollsterRemoval(PollsterCollection::Index pollsterIndex, Party::Id pollsterId);
 
-	// Adds the poll "poll".
-	void addPoll(Poll poll);
-
-	// Replaces the poll with index "pollIndex" by "poll".
-	void replacePoll(int pollIndex, Poll poll);
-
-	// Removes the poll with index "pollIndex".
-	void removePoll(int pollIndex);
-
-	// Returns the poll with index "pollIndex".
-	Poll getPoll(int pollIndex) const;
-
-	// Returns a pointer to the poll with index "pollIndex".
-	Poll const* getPollPtr(int pollIndex) const;
-
-	// Returns the number of polls.
-	int getPollCount() const;
+	PollCollection& polls() { return pollCollection; }
+	PollCollection const& polls() const { return pollCollection; }
 
 	// Returns the start day for the current visualiser view.
 	int getVisStartDay() const;
@@ -95,12 +79,6 @@ public:
 
 	// sets the start and end days for the current visualiser view.
 	void setVisualiserBounds(int startDay, int endDay);
-
-	// gets the date in MJD form of the earliest poll
-	int getEarliestPollDate() const;
-
-	// gets the date in MJD form of the most recent poll
-	int getLatestPollDate() const;
 
 	// gets the date in MJD form of the earliest thing recorded in the file
 	int getEarliestDate() const;
@@ -345,11 +323,6 @@ public:
 	// calling reset on the smart pointer.
 	bool isValid();
 
-	// recalculates the poll's estimated two-party-preferred based on primary votes.
-	// This function will directly edit the poll's data, but does not affect the
-	// project's state directly.
-	void recalculatePollCalc2PP(Poll& poll) const;
-
 	// Invalidates all the projections from a particular model. Used when editing a model.
 	void invalidateProjectionsFromModel(Model const* model);
 
@@ -363,14 +336,10 @@ private:
 	// Returns false if the end of the file is reached (marked by "#End").
 	bool processFileLine(std::string line, FileOpeningState& fos);
 
-	// Removes all the polls from a particular pollster. Used when deleting a pollster.
-	void removePollsFromPollster(Pollster::Id pollster);
-
 	// Removes all the projections from a particular model. Used when deleting a model.
 	void removeProjectionsFromModel(Model const* model);
 
 	// If a party is removed, various parts of the project need to be adjusted to deal with this
-	void adjustPollsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 	void adjustSeatsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 	void adjustCandidatesAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 	void adjustAffiliationsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
@@ -407,9 +376,7 @@ private:
 
 	PartyCollection partyCollection;
 	PollsterCollection pollsterCollection;
-
-	// Vector containing the data for polls.
-	std::vector<Poll> polls;
+	PollCollection pollCollection;
 
 	// Vector containing the data for events.
 	std::vector<Event> events;

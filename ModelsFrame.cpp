@@ -268,8 +268,8 @@ void ModelsFrame::extendModel() {
 void ModelsFrame::runModel() {
 	int modelIndex = modelData->GetSelectedRow();
 	Model* thisModel = project->getModelPtr(modelIndex);
-	wxDateTime earliestDate = project->MjdToDate(project->getEarliestPollDate());
-	wxDateTime latestDate = project->MjdToDate(project->getLatestPollDate());
+	wxDateTime earliestDate = project->MjdToDate(project->polls().getEarliestDate());
+	wxDateTime latestDate = project->MjdToDate(project->polls().getLatestDate());
 	int pollsterCount = project->pollsters().count();
 	thisModel->initializeRun(earliestDate, latestDate, pollsterCount);
 
@@ -284,11 +284,10 @@ void ModelsFrame::runModel() {
 		thisModel->setPollsterData(project->pollsters().idToIndex(pollster.first), useForCalibration, ignoreInitially, weight);
 	}
 
-	for (int i = 0; i < project->getPollCount(); ++i) {
-		Poll const* poll = project->getPollPtr(i);
-		PollsterCollection::Index pollsterIndex =  project->pollsters().idToIndex(poll->pollster);
-		if (project->pollsters().view(poll->pollster).weight < 0.01f) continue;
-		thisModel->importPoll(poll->getBest2pp(), poll->date, pollsterIndex);
+	for (auto const& poll : project->polls()) {
+		PollsterCollection::Index pollsterIndex =  project->pollsters().idToIndex(poll.second.pollster);
+		if (project->pollsters().view(poll.second.pollster).weight < 0.01f) continue;
+		thisModel->importPoll(poll.second.getBest2pp(), poll.second.date, pollsterIndex);
 	}
 	for (int i = 0; i < project->getEventCount(); ++i) {
 		Event const* event = project->getEventPtr(i);

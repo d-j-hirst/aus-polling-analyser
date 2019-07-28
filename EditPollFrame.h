@@ -41,7 +41,7 @@ public:
 	// project: The currently opened project.
 	// poll: Poll data to be used if editing (has default values for creating a new poll).
 	EditPollFrame(Function function, OkCallback callback, PartyCollection const& parties, PollsterCollection const& pollsters,
-		Poll poll = Poll(Pollster::InvalidId, wxDateTime::Now(), 50.0f, -1.0f, -1.0f));
+		Poll poll = Poll());
 
 private:
 
