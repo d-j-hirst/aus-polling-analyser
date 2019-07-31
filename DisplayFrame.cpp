@@ -63,7 +63,7 @@ const float TextBoxCornerRounding = 20.0f;
 // ----------------------------------------------------------------------------
 
 // square of the maximum distance from the mouse pointer to a poll point that will allow it to be selected.
-const int PA_Poll_Select_Distance_Squared_Maximum = 16;
+const int SelectDistanceSquaredMaximum = 16;
 
 // frame constructor
 DisplayFrame::DisplayFrame(ProjectFrame::Refresher refresher, PollingProject* project)

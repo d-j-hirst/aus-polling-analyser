@@ -156,8 +156,7 @@ ProjectFrame::Refresher ProjectFrame::createRefresher()
 void ProjectFrame::OnSwitch(wxBookCtrlEvent& event) {
 	int tabselected = event.GetSelection();
 	if (tabselected == Tab_Visualiser) {
-		visualiserFrame->resetMouseOver();
-		visualiserFrame->paint();
+		visualiserFrame->paint(true);
 	}
 	else if (tabselected == Tab_Map) {
 		mapFrame->resetMouseOver();

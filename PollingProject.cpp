@@ -217,20 +217,6 @@ void PollingProject::adjustAfterPollsterRemoval(PollsterCollection::Index /*poll
 	polls().removePollsFromPollster(pollsterId);
 }
 
-int PollingProject::getVisStartDay() const {
-	return visStartDay;
-}
-
-int PollingProject::getVisEndDay() const {
-	return visEndDay;
-}
-
-void PollingProject::setVisualiserBounds(int startDay, int endDay) {
-	startDay = std::max(getEarliestDate(), startDay);
-	endDay = std::min(getLatestDate(), endDay);
-	visStartDay = startDay; visEndDay = endDay;
-}
-
 int PollingProject::getEarliestDate() const {
 	int earliestDay = polls().getEarliestDate();
 	for (int i = 0; i < getModelCount(); ++i) {
@@ -963,6 +949,8 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	else if (fos.section == FileSection_Polls) {
 		if (!line.compare("@Poll")) {
 			pollCollection.add(Poll());
+			// Avoid issues with temporarily setting a date to 30th February and the like.
+			pollCollection.back().date.SetDay(1);
 			return true;
 		}
 	}
@@ -1105,10 +1093,12 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	else if (fos.section == FileSection_Polls) {
 		if (!pollCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("poll=")) {
+			if (pollCollection.count() == 54) logger << line;
 			pollCollection.back().pollster = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("year=")) {
+			if (pollCollection.count() == 54) logger << line;
 			pollCollection.back().date.SetYear(std::stoi(line.substr(5)));
 			return true;
 		}
@@ -1117,6 +1107,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("day =")) {
+			if (pollCollection.count() == 54) logger << line;
 			pollCollection.back().date.SetDay(std::stoi(line.substr(5)));
 			return true;
 		}
@@ -1483,8 +1474,6 @@ void PollingProject::finalizeFileLoading() {
 	}
 
 	partyCollection.finaliseFileLoading();
-
-	setVisualiserBounds(visStartDay, visEndDay);
 }
 
 void PollingProject::collectAffiliations(PreviousElectionDataRetriever const & dataRetriever)

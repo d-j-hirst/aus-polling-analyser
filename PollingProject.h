@@ -71,15 +71,6 @@ public:
 	PollCollection& polls() { return pollCollection; }
 	PollCollection const& polls() const { return pollCollection; }
 
-	// Returns the start day for the current visualiser view.
-	int getVisStartDay() const;
-
-	// Returns the end day for the current visualiser view.
-	int getVisEndDay() const;
-
-	// sets the start and end days for the current visualiser view.
-	void setVisualiserBounds(int startDay, int endDay);
-
 	// gets the date in MJD form of the earliest thing recorded in the file
 	int getEarliestDate() const;
 
@@ -415,10 +406,4 @@ private:
 	static const Party invalidParty;
 
 	bool valid = false;
-
-	// indicates the start day currently shown in the visualiser.
-	int visStartDay = -1000000;
-
-	// indicates the end day currently shown in the visualiser.
-	int visEndDay = 1000000;
 };

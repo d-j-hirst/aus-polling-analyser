@@ -24,37 +24,6 @@
 class ProjectFrame;
 class GenericChildFrame;
 
-enum AxisTickInterval {
-	AXISTICK_DAILY,
-	AXISTICK_TWO_DAY,
-	AXISTICK_FOUR_DAY,
-	AXISTICK_WEEKLY,
-	AXISTICK_FORTNIGHTLY,
-	AXISTICK_MONTHLY,
-	AXISTICK_BIMONTHLY,
-	AXISTICK_QUARTERLY,
-	AXISTICK_HALFYEARLY,
-	AXISTICK_YEARLY,
-	AXISTICK_TWO_YEAR,
-	AXISTICK_FIVE_YEAR,
-	AXISTICK_DECADE,
-	AXISTICK_NUM_AXIS_TICK_TYPES
-};
-
-struct GraphicsVariables {
-	float DCwidth; // width of the entire display area
-	float DCheight; // height of the entire display area
-
-	float graphMargin; // margin of the ends of the axes from the edge of the display area
-	float graphWidth; // width of the graph area (between axes)
-	float graphRight; // x-ordinate of the right-hand axis
-	float graphBottom; // y-ordinate of the bottom of the axes.
-	float graphTop; // y-ordinate of the top of the axes.
-	float horzAxis; // position of the horizontal axis
-	AxisTickInterval interval;
-	std::vector<wxDateTime> AxisTick;
-};
-
 // *** PartiesFrame ***
 // Frame that allows the user to add/delete/modify political poll data.
 class VisualiserFrame : public GenericChildFrame
@@ -65,15 +34,49 @@ public:
 	VisualiserFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
 	// paints immediately if needed.
-	void paint();
-
-	// removes any mouse-over information.
-	void resetMouseOver();
+	// If resetMouse is set to true then all mouseover data will be reset
+	// (needed if it's called while the user is focused on another page)
+	void paint(bool resetMouse = false);
 
 	// updates the data to take into account any changes, such as removed pollsters/parties.
 	void refreshData();
 
 private:
+
+	struct GraphicsVariables {
+
+		enum class AxisTickInterval {
+			Day,
+			TwoDay,
+			FourDay,
+			Week,
+			Fortnight,
+			Month,
+			TwoMonth,
+			Quarter,
+			HalfYear,
+			Year,
+			TwoYear,
+			FiveYear,
+			Decade,
+			Num
+		};
+
+		float DCwidth; // width of the entire display area
+		float DCheight; // height of the entire display area
+
+		float graphMargin; // margin of the ends of the axes from the edge of the display area
+		float graphWidth; // width of the graph area (between axes)
+		float graphRight; // x-ordinate of the right-hand axis
+		float graphBottom; // y-ordinate of the bottom of the axes.
+		float graphTop; // y-ordinate of the top of the axes.
+		float horzAxis; // position of the horizontal axis
+		AxisTickInterval interval;
+		std::vector<wxDateTime> AxisTick;
+	};
+
+	// removes any mouse-over information.
+	void resetMouseOver();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -108,6 +111,33 @@ private:
 	// Handles selection of the displayed projection
 	void OnProjectionSelection(wxCommandEvent& WXUNUSED(event));
 
+	// sets the start and end days for the current visualiser view.
+	void setVisualiserBounds(int startDay, int endDay);
+
+	// sets the starting point for panning the visualiser graph
+	void beginPan(int mouseX);
+
+	// moves the screen to the appropriate position for panning to this x-ordinate
+	void continuePan(int mouseX);
+
+	// stop the screen from panning until the mouse button is pressed down again
+	void endPan() { panStart = -1; }
+
+	// zoom by the given number of increments.
+	// Each increment represents a halving of the viewing timespan
+	// use negative numbers 
+	// x is the spot on screen to keep constant while zooming
+	void zoom(float factor, int x);
+
+	// updates the toolbar
+	void refreshToolbar();
+
+	// updates the panel upon which the visualiser will be displayed
+	void createDcPanel();
+
+	// bind event handlers to the tools and the DC panel
+	void bindEventHandlers();
+
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
@@ -118,7 +148,7 @@ private:
 	void getStartAndEndDays();
 
 	// defines the basic variables that represent the pixel limits of the graph.
-	void defineGraphLimits();
+	void determineGraphLimits();
 
 	// determines what interval will be used for axis ticks.
 	void determineAxisTickInterval();
@@ -127,7 +157,7 @@ private:
 	void determineFirstAxisTick();
 
 	// get all the other axis ticks stored in "gv".
-	void getAxisTicks();
+	void determineLaterAxisTicks();
 
 	// sets the week day of the given date to Monday.
 	void setWeekDayToMonday(wxDateTime& dt);
@@ -192,13 +222,16 @@ private:
 	// draws the text showing poll information.
 	void drawMouseOverPollText(wxDC& dc);
 
-	// updates the toolbar
-	void refreshToolbar();
-
-	// For handling horizontal scrolling of the visualiser
-	int dragStart = -1;
+	// For handling horizontal panning of the visualiser
+	int panStart = -1;
 	int originalStartDay = -1;
 	int originalEndDay = -1;
+
+	// indicates the start day currently shown in the visualiser.
+	int visStartDay = -1000000;
+
+	// indicates the end day currently shown in the visualiser.
+	int visEndDay = 1000000;
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
