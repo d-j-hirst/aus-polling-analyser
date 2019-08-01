@@ -59,7 +59,7 @@ ProjectFrame::ProjectFrame(ParentFrame* parent, NewProjectData newProjectData)
 
 // Refreshes the Polls frame data.
 void ProjectFrame::Refresher::refreshPollData() const {
-	if (projectFrame.pollsFrame) projectFrame.pollsFrame->refreshData();
+	if (projectFrame.pollsFrame) projectFrame.pollsFrame->refreshDataTable();
 }
 
 // Refreshes the Projections frame data.

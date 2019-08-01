@@ -223,7 +223,3 @@ void PollsFrame::updateInterface() {
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 }
-
-void PollsFrame::refreshData() {
-	refreshDataTable();
-}

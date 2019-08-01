@@ -13,13 +13,13 @@
 #include "wx/wx.h"
 #endif
 
-#include "wx/dataview.h"
-
-#include <memory>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "EditModelFrame.h"
+
+#include "wx/dataview.h"
+
+#include <memory>
 
 class ProjectFrame;
 class GenericChildFame;
@@ -43,10 +43,18 @@ public:
 	// Calls on the frame to edit the currently selected model based on "Model".
 	void OnEditModelReady(Model& model);
 
-	// updates the data to take into account any changes, such as removed pollsters/parties.
-	void refreshData();
+	// refresh the (already existing) data table
+	void refreshDataTable();
 
 private:
+
+	// Creates the toolbar and its accompanying tools
+	void setupToolbar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -78,25 +86,19 @@ private:
 	// does everything required to replace the currently selected model with "model".
 	void replaceModel(Model model);
 
-	// replaces the currently selected model with "model" in model data.
-	// Should not be used except within replaceModel.
-	void replaceModelInModelData(Model model);
-
 	// does everything required to remove the currently selected model, if possible.
 	void removeModel();
 
 	// extends the time length of the currently selected model to the latest poll.
 	void extendModel();
 
-	// removes the currently selected model from model data.
-	// Should not be used except within removeModel.
-	void removeModelFromModelData();
-
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
 	// does everything required to run the currently selected model, if possible.
 	void runModel();
+
+	void prepareModelForRun(Model& model);
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

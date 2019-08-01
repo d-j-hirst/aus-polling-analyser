@@ -21,16 +21,6 @@
 #include "ProjectFrame.h"
 #include "Poll.h"
 
-enum PollColumnsEnum {
-	PollColumn_Name,
-	PollColumn_Date,
-	PollColumn_Reported2pp,
-	PollColumn_Respondent2pp,
-	PollColumn_Calc2pp,
-	PollColumn_Primary,
-	PollColumn_NumColumns,
-};
-
 // *** PartiesFrame ***
 // Frame that allows the user to add/delete/modify political poll data.
 class PollsFrame : public GenericChildFrame
@@ -40,14 +30,8 @@ public:
 	// "project" is a pointer to the polling project object.
 	PollsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
-	// Calls on the frame to create a new poll based on "Poll".
-	void OnNewPollReady(Poll& poll);
-
-	// Calls on the frame to edit the currently selected poll based on "Poll".
-	void OnEditPollReady(Poll& poll);
-
 	// updates the data to take into account any changes, such as removed pollsters/parties.
-	void refreshData();
+	void refreshDataTable();
 
 private:
 
@@ -56,9 +40,6 @@ private:
 
 	// Create the data table from scratch
 	void setupDataTable();
-
-	// refresh the (already existing) data table
-	void refreshDataTable();
 
 	void bindEventHandlers();
 
