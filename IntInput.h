@@ -14,21 +14,21 @@
 
 #include "InputGeneral.h"
 
-// Handles both a text box for floating-point number input and also a static text label that
+// Handles both a text box for general integer number input and also a static text label that
 // describes what the input is for.
-class FloatInput {
+class IntInput {
 public:
-	typedef std::function<void(float)> TextChangeFunc;
-	typedef std::function<float(float)> FloatValidationFunc;
+	typedef std::function<void(int)> TextChangeFunc;
+	typedef std::function<float(int)> IntValidationFunc;
 
 	// public because the calling frame will want to know what height the control is
 	static constexpr int Height = InputControlHeight;
 
-	static float DefaultValidator(float a) {return std::clamp(a, 0.0f, 100.0f); };
+	static float DefaultValidator(int a) { return a; };
 
-	FloatInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, float inputFloat, wxPoint topLeft,
-		TextChangeFunc textChangeFunc = [](float) {return; }, FloatValidationFunc floatValidationFunc = DefaultValidator,
-		float nullValue = std::numeric_limits<float>::lowest(), int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth, int initialDecimalPlaces = 3);
+	IntInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, int inputInt, wxPoint topLeft,
+		TextChangeFunc textChangeFunc = [](int) {return; }, IntValidationFunc intValidationFunc = DefaultValidator,
+		int nullValue = std::numeric_limits<int>::lowest(), int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth, int initialDecimalPlaces = 3);
 
 private:
 
@@ -39,11 +39,11 @@ private:
 	std::string lastText;
 
 	TextChangeFunc textChangeFunc;
-	FloatValidationFunc floatValidationFunc;
+	IntValidationFunc intValidationFunc;
 
 	bool currentlyUpdating = false;
 
-	float nullValue;
+	int nullValue;
 
 	wxWindow* parent;
 

@@ -14,16 +14,11 @@
 #endif
 
 #include "Party.h"
-#include "TextInput.h"
 
 class ChoiceInput;
 class ColourInput;
 class FloatInput;
 class TextInput;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
 
 // *** EditPartyFrame ***
 // Frame that allows the user to edit an already-existing party

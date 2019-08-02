@@ -152,6 +152,9 @@
     <ClCompile Include="PollCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="IntInput.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -392,6 +395,9 @@
     </ClInclude>
     <ClInclude Include="PollCollection.h">
       <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="IntInput.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

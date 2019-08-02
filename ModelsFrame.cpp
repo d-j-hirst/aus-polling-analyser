@@ -2,6 +2,9 @@
 
 #include "EditModelFrame.h"
 #include "General.h"
+#include "Log.h"
+
+using namespace std::placeholders; // for function object parameter binding
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -71,8 +74,15 @@ void ModelsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void ModelsFrame::OnNewModel(wxCommandEvent& WXUNUSED(event)) {
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&ModelsFrame::addModel, this, _1);
+
+	Model model;
+	model.startDate = wxDateTime(mjdToJdn(double(project->getEarliestDate())));
+	model.endDate = wxDateTime(mjdToJdn(double(project->getLatestDate())));
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(true, this, project->generateBaseModel());
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::New, callback, model);
 
 	// Show the frame.
 	frame->ShowModal();
@@ -89,8 +99,11 @@ void ModelsFrame::OnEditModel(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (modelIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&ModelsFrame::replaceModel, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(false, this, project->getModel(modelIndex));
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, *project->getModelPtr(modelIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -145,15 +158,6 @@ void ModelsFrame::OnRunModel(wxCommandEvent& WXUNUSED(event)) {
 // updates the interface after a change in item selection.
 void ModelsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 	updateInterface();
-}
-
-void ModelsFrame::OnNewModelReady(Model& model) {
-	addModel(model);
-}
-
-void ModelsFrame::OnEditModelReady(Model& model) {
-	replaceModel(model);
-	refresher.refreshProjectionData();
 }
 
 void ModelsFrame::setupToolbar()

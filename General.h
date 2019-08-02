@@ -45,3 +45,8 @@ inline std::vector<std::string> splitString(std::string s, std::string const& de
 	tokens.emplace_back(s);
 	return tokens;
 }
+
+// Converts from a modified julian date number to a regular julian date number
+inline double mjdToJdn(double mjd) {
+	return mjd + 2400000.5;
+}
