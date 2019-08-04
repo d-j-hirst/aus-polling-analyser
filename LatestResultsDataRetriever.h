@@ -1,5 +1,7 @@
 #pragma once
 
+#include "General.h"
+
 #include "ElectionData.h"
 
 #include <array>

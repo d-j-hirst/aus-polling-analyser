@@ -85,7 +85,7 @@ void ProjectionsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void ProjectionsFrame::OnNewProjection(wxCommandEvent& WXUNUSED(event)) {
 
-	if (project->getModelCount() == 0) {
+	if (project->models().count() == 0) {
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Projections run from the endpoint of a polling model. There must be at least one model defined before creating a projection.");
 
@@ -219,7 +219,7 @@ void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(projection.name));
-	data.push_back(wxVariant(projection.baseModel->name));
+	data.push_back(wxVariant(project->models().view(projection.baseModel).name));
 	data.push_back(wxVariant(projection.getEndDateString()));
 	data.push_back(wxVariant(std::to_string(projection.numIterations)));
 	data.push_back(wxVariant(formatFloat(projection.leaderVoteLoss, 5)));
@@ -253,7 +253,7 @@ void ProjectionsFrame::removeProjectionFromProjectionData() {
 void ProjectionsFrame::runProjection() {
 	int projectionIndex = projectionData->GetSelectedRow();
 	Projection* thisProjection = project->getProjectionPtr(projectionIndex);
-	thisProjection->run();
+	thisProjection->run(project->models());
 
 	refreshData();
 }
@@ -262,7 +262,7 @@ void ProjectionsFrame::runProjection() {
 void ProjectionsFrame::setAsNowCast() {
 	int projectionIndex = projectionData->GetSelectedRow();
 	Projection* thisProjection = project->getProjectionPtr(projectionIndex);
-	thisProjection->setAsNowCast();
+	thisProjection->setAsNowCast(project->models());
 
 	refreshData();
 }

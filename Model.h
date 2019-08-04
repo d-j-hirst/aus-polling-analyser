@@ -53,8 +53,10 @@ struct ModelPollster {
 };
 
 class Model {
-
 public:
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	Model(std::string name, float trendTimeScoreMultiplier, float houseEffectTimeScoreMultiplier, wxDateTime startDate, wxDateTime endDate) :
 		name(name),
 		trendTimeScoreMultiplier(trendTimeScoreMultiplier),

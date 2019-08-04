@@ -11,9 +11,10 @@
 #include "NewProjectData.h"
 #include "Points.h"
 
+#include "ModelCollection.h"
 #include "PartyCollection.h"
-#include "PollsterCollection.h"
 #include "PollCollection.h"
+#include "PollsterCollection.h"
 #include "Event.h"
 #include "Model.h"
 #include "Projection.h"
@@ -66,7 +67,7 @@ public:
 	PollsterCollection const& pollsters() const { return pollsterCollection; }
 
 	// If a pollster is removed, various parts of the project need to be adjusted to account for this.
-	void adjustAfterPollsterRemoval(PollsterCollection::Index pollsterIndex, Party::Id pollsterId);
+	void adjustAfterPollsterRemoval(PollsterCollection::Index pollsterIndex, Pollster::Id pollsterId);
 
 	PollCollection& polls() { return pollCollection; }
 	PollCollection const& polls() const { return pollCollection; }
@@ -76,9 +77,6 @@ public:
 
 	// gets the date in MJD form of the latest thing recorded in the file
 	int getLatestDate() const;
-
-	// converts an MJD date to a wxDateTime date.
-	wxDateTime MjdToDate(int mjd) const;
 
 	// Adds the event "event".
 	void addEvent(Event event);
@@ -98,41 +96,11 @@ public:
 	// Returns the number of events.
 	int getEventCount() const;
 
-	// Adds the model "model".
-	void addModel(Model model);
+	ModelCollection& models() { return modelCollection; }
+	ModelCollection const& models() const { return modelCollection; }
 
-	// Replaces the model with index "modelIndex" by "model".
-	void replaceModel(int modelIndex, Model model);
-
-	// Removes the model with index "modelIndex".
-	void removeModel(int modelIndex);
-
-	// Extends the model with index "modelIndex" to the latest poll
-	void extendModel(int modelIndex);
-
-	// Returns the model with index "modelIndex".
-	Model getModel(int modelIndex) const;
-
-	// Returns a pointer to the model with index "modelIndex".
-	Model const* getModelPtr(int modelIndex) const;
-
-	// Returns a pointer to the model with index "modelIndex".
-	Model* getModelPtr(int modelIndex);
-
-	// Returns the number of models.
-	int getModelCount() const;
-
-	// Gets the model index from a given pointer.
-	int getModelIndex(Model const* modelPtr);
-
-	// generates a basic model with the standard start and end dates.
-	Model generateBaseModel() const;
-
-	// Gets the begin iterator for the model list.
-	std::list<Model>::const_iterator getModelBegin() const;
-
-	// Gets the end iterator for the model list.
-	std::list<Model>::const_iterator getModelEnd() const;
+	// If a pollster is removed, various parts of the project need to be adjusted to account for this.
+	void adjustAfterModelRemoval(ModelCollection::Index modelIndex, Model::Id modelId);
 
 	// Adds the projection "projection".
 	void addProjection(Projection projection);
@@ -315,7 +283,7 @@ public:
 	bool isValid();
 
 	// Invalidates all the projections from a particular model. Used when editing a model.
-	void invalidateProjectionsFromModel(Model const* model);
+	void invalidateProjectionsFromModel(Model::Id modelId);
 
 private:
 
@@ -328,7 +296,7 @@ private:
 	bool processFileLine(std::string line, FileOpeningState& fos);
 
 	// Removes all the projections from a particular model. Used when deleting a model.
-	void removeProjectionsFromModel(Model const* model);
+	void removeProjectionsFromModel(Model::Id modelId);
 
 	// If a party is removed, various parts of the project need to be adjusted to deal with this
 	void adjustSeatsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
@@ -368,12 +336,10 @@ private:
 	PartyCollection partyCollection;
 	PollsterCollection pollsterCollection;
 	PollCollection pollCollection;
+	ModelCollection modelCollection;
 
 	// Vector containing the data for events.
 	std::vector<Event> events;
-
-	// Vector containing the data for models.
-	std::list<Model> models;
 
 	// Vector containing the data for projections.
 	std::list<Projection> projections;

@@ -23,8 +23,7 @@ public:
 	// consistent display with pollster deletions etc. while making sure references
 	// from other components are preserved
 	// Map must be ordered to ensure order of pollsters is in order they are added.
-	typedef int PollsterKey;
-	typedef std::map<PollsterKey, Pollster> PollsterContainer;
+	typedef std::map<Pollster::Id, Pollster> PollsterContainer;
 
 	// Pollster index refers to the position of the pollster in the order of currently existing pollsters
 	// Should not be stored persistently as removal of a pollster will change the indices

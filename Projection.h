@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Model.h"
+
 #include <vector>
 #include <wx/datetime.h>
 
-class Model;
+class ModelCollection;
 
 class Projection {
 
@@ -25,13 +27,11 @@ public:
 		else return lastUpdated.FormatISODate().ToStdString();
 	}
 
-	double func_normsdist(double z) const;
-
-	void run();
+	void run(ModelCollection const& models);
 
 	void logRunStatistics();
 
-	void setAsNowCast();
+	void setAsNowCast(ModelCollection const& models);
 
 	// User-defined name.
 	std::string name = "";
@@ -50,7 +50,7 @@ public:
 	// Number of elections used to determine the initial uncertainty
 	int numElections = 2;
 
-	Model const* baseModel = nullptr;
+	Model::Id baseModel = Model::InvalidId;
 
 	std::vector<double> meanProjection;
 	std::vector<double> sdProjection;

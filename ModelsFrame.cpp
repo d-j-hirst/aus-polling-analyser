@@ -56,9 +56,9 @@ void ModelsFrame::refreshDataTable()
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the model data
-	if (project->getModelCount()) {
-		for (int i = 0; i < project->getModelCount(); ++i) {
-			addModelToModelData(project->getModel(i));
+	if (project->models().count()) {
+		for (int i = 0; i < project->models().count(); ++i) {
+			addModelToModelData(project->models().viewByIndex(i));
 		}
 	}
 
@@ -77,9 +77,7 @@ void ModelsFrame::OnNewModel(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&ModelsFrame::addModel, this, _1);
 
-	Model model;
-	model.startDate = wxDateTime(mjdToJdn(double(project->getEarliestDate())));
-	model.endDate = wxDateTime(mjdToJdn(double(project->getLatestDate())));
+	Model model = project->models().generateBasicModel();
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::New, callback, model);
@@ -103,7 +101,7 @@ void ModelsFrame::OnEditModel(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&ModelsFrame::replaceModel, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, *project->getModelPtr(modelIndex));
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, project->models().viewByIndex(modelIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -215,8 +213,7 @@ void ModelsFrame::bindEventHandlers()
 }
 
 void ModelsFrame::addModel(Model model) {
-	// Simultaneously add to the party data control and to the polling project.
-	project->addModel(model);
+	project->models().add(model);
 
 	refreshDataTable();
 
@@ -239,8 +236,7 @@ void ModelsFrame::addModelToModelData(Model model) {
 
 void ModelsFrame::replaceModel(Model model) {
 	int modelIndex = modelData->GetSelectedRow();
-	// Simultaneously replace data in the model data control and the polling project.
-	project->replaceModel(modelIndex, model);
+	project->models().replace(project->models().indexToId(modelIndex), model);
 
 	refreshDataTable();
 
@@ -248,8 +244,8 @@ void ModelsFrame::replaceModel(Model model) {
 }
 
 void ModelsFrame::removeModel() {
-	// Simultaneously add to the model data control and to the polling project.
-	project->removeModel(modelData->GetSelectedRow());
+	int modelIndex = modelData->GetSelectedRow();
+	project->models().remove(project->models().indexToId(modelIndex));
 
 	refreshDataTable();
 
@@ -257,25 +253,26 @@ void ModelsFrame::removeModel() {
 }
 
 void ModelsFrame::extendModel() {
-	// Simultaneously add to the model data control and to the polling project.
-	project->extendModel(modelData->GetSelectedRow());
+	int modelIndex = modelData->GetSelectedRow();
+	project->models().extend(project->models().indexToId(modelIndex));
 
 	refreshDataTable();
 }
 
 void ModelsFrame::runModel() {
-	int modelIndex = modelData->GetSelectedRow();
-	Model& thisModel = *project->getModelPtr(modelIndex);
+	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
+	Model::Id modelId = project->models().indexToId(modelIndex);
+	Model& thisModel = project->models().access(project->models().indexToId(modelIndex));
 	prepareModelForRun(thisModel);
 	thisModel.run();
 	refreshDataTable();
-	project->invalidateProjectionsFromModel(&thisModel);
+	project->invalidateProjectionsFromModel(modelId);
 }
 
 void ModelsFrame::prepareModelForRun(Model& model)
 {
-	wxDateTime earliestDate = project->MjdToDate(project->polls().getEarliestDate());
-	wxDateTime latestDate = project->MjdToDate(project->polls().getLatestDate());
+	wxDateTime earliestDate = mjdToDate(project->polls().getEarliestDate());
+	wxDateTime latestDate = mjdToDate(project->polls().getLatestDate());
 	int pollsterCount = project->pollsters().count();
 	model.initializeRun(earliestDate, latestDate, pollsterCount);
 

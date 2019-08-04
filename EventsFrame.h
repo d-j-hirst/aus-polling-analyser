@@ -20,31 +20,6 @@
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 #include "Event.h"
-#include "EditEventFrame.h"
-
-class ProjectFrame;
-class GenericChildFame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_EventsFrame_Base = 600, // To avoid mixing events with other frames.
-	PA_EventsFrame_FrameID,
-	PA_EventsFrame_DataViewID,
-	PA_EventsFrame_NewEventID,
-	PA_EventsFrame_EditEventID,
-	PA_EventsFrame_RemoveEventID,
-};
-
-enum EventColumnsEnum {
-	EventColumn_Name,
-	EventColumn_EventType,
-	EventColumn_EventDate,
-	EventColumn_2PP,
-};
 
 // *** EventsFrame ***
 // Frame that allows the user to create events that can be used to influence or annotate the polling model.
@@ -62,9 +37,17 @@ public:
 	void OnEditEventReady(Event& event);
 
 	// updates the data to take into account any changes, such as removed pollsters/parties.
-	void refreshData();
+	void refreshDataTable();
 
 private:
+
+	// Creates the toolbar and its accompanying tools
+	void setupToolbar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -90,16 +73,8 @@ private:
 	// does everything required to replace the currently selected event with "event".
 	void replaceEvent(Event event);
 
-	// replaces the currently selected event with "event" in event data.
-	// Should not be used except within replaceEvent.
-	void replaceEventInEventData(Event event);
-
 	// does everything required to remove the currently selected event, if possible.
 	void removeEvent();
-
-	// removes the currently selected model from event data.
-	// Should not be used except within removeEvent.
-	void removeEventFromEventData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
@@ -107,7 +82,7 @@ private:
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
 
-	// Panel containing poll data.
+	// Panel containing event data.
 	wxPanel* dataPanel = nullptr;
 
 	// Control containing event data.

@@ -29,8 +29,7 @@ public:
 	// consistent display with party deletions etc. while making sure references
 	// from other components are preserved
 	// Map must be ordered to ensure order of parties is in order they are added.
-	typedef int PartyKey;
-	typedef std::map<PartyKey, Party> PartyContainer;
+	typedef std::map<Party::Id, Party> PartyContainer;
 
 	// Party index refers to the position of the party in the order of currently existing parties
 	// Should not be stored persistently as removal of a party will change the indices

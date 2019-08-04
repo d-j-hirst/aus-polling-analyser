@@ -11,12 +11,13 @@
 const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
 
 PollingProject::PollingProject(NewProjectData& newProjectData) :
-		name(newProjectData.projectName),
-		lastFileName(newProjectData.projectName + ".pol"),
-		valid(true),
-		partyCollection(*this),
-		pollsterCollection(*this),
-		pollCollection(*this)
+	name(newProjectData.projectName),
+	lastFileName(newProjectData.projectName + ".pol"),
+	valid(true),
+	partyCollection(*this),
+	pollsterCollection(*this),
+	pollCollection(*this),
+	modelCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
@@ -26,10 +27,11 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 }
 
 PollingProject::PollingProject(std::string pathName) :
-		lastFileName(pathName.substr(pathName.rfind("\\")+1)),
-		partyCollection(*this),
-		pollsterCollection(*this),
-		pollCollection(*this)
+	lastFileName(pathName.substr(pathName.rfind("\\")+1)),
+	partyCollection(*this),
+	pollsterCollection(*this),
+	pollCollection(*this),
+	modelCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -219,8 +221,8 @@ void PollingProject::adjustAfterPollsterRemoval(PollsterCollection::Index /*poll
 
 int PollingProject::getEarliestDate() const {
 	int earliestDay = polls().getEarliestDate();
-	for (int i = 0; i < getModelCount(); ++i) {
-		int date = int(floor(getModel(i).endDate.GetModifiedJulianDayNumber()));
+	for (auto modelIt = models().cbegin(); modelIt != models().cend(); ++modelIt) {
+		int date = int(floor(modelIt->second.endDate.GetModifiedJulianDayNumber()));
 		if (date < earliestDay) earliestDay = date;
 	}
 	return earliestDay;
@@ -228,8 +230,8 @@ int PollingProject::getEarliestDate() const {
 
 int PollingProject::getLatestDate() const {
 	int latestDay = polls().getLatestDate();
-	for (int i = 0; i < getModelCount(); ++i) {
-		int date = int(floor(getModel(i).endDate.GetModifiedJulianDayNumber()));
+	for (auto modelIt = models().cbegin(); modelIt != models().cend(); ++modelIt) {
+		int date = int(floor(modelIt->second.endDate.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;
 	}
 	for (int i = 0; i < getProjectionCount(); ++i) {
@@ -237,21 +239,6 @@ int PollingProject::getLatestDate() const {
 		if (date > latestDay) latestDay = date;
 	}
 	return latestDay;
-}
-
-wxDateTime PollingProject::MjdToDate(int mjd) const {
-	if (mjd <= -1000000) return wxInvalidDateTime;
-	wxDateTime tempDate = wxDateTime(double(mjd) + 2400000.5);
-	tempDate.SetHour(18);
-	return tempDate;
-}
-
-// generates a basic model with the standard start and end dates.
-Model PollingProject::generateBaseModel() const {
-	Model tempModel = Model();
-	tempModel.startDate = MjdToDate(polls().getEarliestDate());
-	tempModel.endDate = MjdToDate(polls().getLatestDate());
-	return tempModel;
 }
 
 void PollingProject::addEvent(Event event) {
@@ -280,65 +267,9 @@ int PollingProject::getEventCount() const {
 	return events.size();
 }
 
-void PollingProject::addModel(Model model) {
-	models.push_back(model);
-}
-
-void PollingProject::replaceModel(int modelIndex, Model model) {
-	invalidateProjectionsFromModel(getModelPtr(modelIndex));
-	*getModelPtr(modelIndex) = model;
-}
-
-Model PollingProject::getModel(int modelIndex) const {
-	auto it = models.begin();
-	for (int i = 0; i < modelIndex; i++) it++;
-	return *it;
-}
-
-Model const* PollingProject::getModelPtr(int modelIndex) const {
-	auto it = models.begin();
-	for (int i = 0; i < modelIndex; i++) it++;
-	return &*it;
-}
-
-Model* PollingProject::getModelPtr(int modelIndex) {
-	auto it = models.begin();
-	for (int i = 0; i < modelIndex; i++) it++;
-	return &*it;
-}
-
-void PollingProject::removeModel(int modelIndex) {
-	auto it = models.begin();
-	for (int i = 0; i < modelIndex; i++) it++;
-	removeProjectionsFromModel(std::addressof(*it));
-	models.erase(it);
-}
-
-void PollingProject::extendModel(int modelIndex) {
-	int latestMjd = polls().getLatestDate();
-	if (latestMjd < getModelPtr(modelIndex)->endDate.GetMJD()) return;
-	getModelPtr(modelIndex)->endDate = MjdToDate(latestMjd);
-}
-
-int PollingProject::getModelCount() const {
-	return models.size();
-}
-
-std::list<Model>::const_iterator PollingProject::getModelBegin() const {
-	return models.begin();
-}
-
-std::list<Model>::const_iterator PollingProject::getModelEnd() const {
-	return models.end();
-}
-
-int PollingProject::getModelIndex(Model const* const modelPtr) {
-	int i = 0;
-	for (auto it = models.begin(); it != models.end(); it++) {
-		if (&*it == modelPtr) return i;
-		i++;
-	}
-	return -1;
+void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, Model::Id modelId)
+{
+	removeProjectionsFromModel(modelId);
 }
 
 void PollingProject::addProjection(Projection projection) {
@@ -755,7 +686,8 @@ int PollingProject::save(std::string filename) {
 		os << "vote=" << thisEvent.vote << "\n";
 	}
 	os << "#Models" << "\n";
-	for (auto const& thisModel : models) {
+	for (auto const& modelPair : modelCollection) {
+		Model const& thisModel = modelPair.second;
 		os << "@Model" << "\n";
 		os << "name=" << thisModel.name << "\n";
 		os << "iter=" << thisModel.numIterations << "\n";
@@ -780,7 +712,7 @@ int PollingProject::save(std::string filename) {
 		os << "@Projection" << "\n";
 		os << "name=" << thisProjection.name << "\n";
 		os << "iter=" << thisProjection.numIterations << "\n";
-		os << "base=" << getModelIndex(thisProjection.baseModel) << "\n";
+		os << "base=" << models().idToIndex(thisProjection.baseModel) << "\n";
 		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << "\n";
 		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << "\n";
 		os << "dlyc=" << thisProjection.dailyChange << "\n";
@@ -856,9 +788,9 @@ bool PollingProject::isValid() {
 	return valid;
 }
 
-void PollingProject::invalidateProjectionsFromModel(Model const* model) {
+void PollingProject::invalidateProjectionsFromModel(Model::Id modelId) {
 	for (auto& thisProjection : projections) {
-		if (thisProjection.baseModel == model) { thisProjection.lastUpdated = wxInvalidDateTime; }
+		if (thisProjection.baseModel == modelId) { thisProjection.lastUpdated = wxInvalidDateTime; }
 	}
 }
 
@@ -962,7 +894,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Models) {
 		if (!line.compare("@Model")) {
-			models.push_back(Model());
+			modelCollection.add(Model());
 			return true;
 		}
 	}
@@ -1151,58 +1083,56 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Models) {
-		if (!models.size()) return true; //prevent crash from mixed-up data.
-		auto it = models.end();
-		it--;
+		if (!modelCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			modelCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iter=")) {
-			it->numIterations = std::stoi(line.substr(5));
+			modelCollection.back().numIterations = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("trnd=")) {
-			it->trendTimeScoreMultiplier = std::stof(line.substr(5));
+			modelCollection.back().trendTimeScoreMultiplier = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("hsm =")) {
-			it->houseEffectTimeScoreMultiplier = std::stof(line.substr(5));
+			modelCollection.back().houseEffectTimeScoreMultiplier = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cfpb=")) {
-			it->calibrationFirstPartyBias = std::stof(line.substr(5));
+			modelCollection.back().calibrationFirstPartyBias = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("fstd=")) {
-			it->finalStandardDeviation = std::stof(line.substr(5));
+			modelCollection.back().finalStandardDeviation = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("strt=")) {
-			it->startDate = wxDateTime(std::stod(line.substr(5)));
+			modelCollection.back().startDate = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("end =")) {
-			it->endDate = wxDateTime(std::stod(line.substr(5)));
+			modelCollection.back().endDate = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("updt=")) {
-			it->lastUpdated = wxDateTime(std::stod(line.substr(5)));
+			modelCollection.back().lastUpdated = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 4).compare("$Day")) {
-			it->day.push_back(ModelTimePoint(pollsterCollection.count()));
+			modelCollection.back().day.push_back(ModelTimePoint(pollsterCollection.count()));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mtnd=")) {
-			if (!it->day.size()) return true;
-			it->day.back().trend2pp = std::stof(line.substr(5));
+			if (!modelCollection.back().day.size()) return true;
+			modelCollection.back().day.back().trend2pp = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 2).compare("he") && !line.substr(4, 1).compare("=")) {
 			int pollsterIndex = std::stoi(line.substr(2, 2));
 			if (pollsterIndex < pollsterCollection.count()) {
-				it->day.back().houseEffect[pollsterIndex] = std::stof(line.substr(5));
+				modelCollection.back().day.back().houseEffect[pollsterIndex] = std::stof(line.substr(5));
 			}
 		}
 	}
@@ -1219,7 +1149,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("base=")) {
-			it->baseModel = getModelPtr(std::stoi(line.substr(5)));
+			it->baseModel = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("end =")) {
@@ -1435,10 +1365,10 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	return true;
 }
 
-void PollingProject::removeProjectionsFromModel(Model const* model) {
+void PollingProject::removeProjectionsFromModel(Model::Id modelId) {
 	for (int i = 0; i < getProjectionCount(); i++) {
 		Projection* projection = getProjectionPtr(i);
-		if (projection->baseModel == model) { removeProjection(i); i--; }
+		if (projection->baseModel == modelId) { removeProjection(i); i--; }
 	}
 }
 
@@ -1469,8 +1399,8 @@ void PollingProject::adjustAffiliationsAfterPartyRemoval(PartyCollection::Index,
 
 void PollingProject::finalizeFileLoading() {
 	// sets the correct effective start/end dates
-	for (auto& model : models) {
-		model.updateEffectiveDates(MjdToDate(polls().getEarliestDate()), MjdToDate(polls().getLatestDate()));
+	for (auto& model : models()) {
+		model.second.updateEffectiveDates(mjdToDate(polls().getEarliestDate()), mjdToDate(polls().getLatestDate()));
 	}
 
 	partyCollection.finaliseFileLoading();

@@ -27,7 +27,7 @@ EditProjectionFrame::EditProjectionFrame(bool isNewProjection, ProjectionsFrame*
 	isNewProjection(isNewProjection), parent(parent), project(project), projection(projection)
 {
 	// If a model has not been specified it should default to the first.
-	if (this->projection.baseModel == nullptr) this->projection.baseModel = project->getModelPtr(0);
+	if (this->projection.baseModel == Model::InvalidId) this->projection.baseModel = project->models().indexToId(0);
 
 	// Generate the string for the number of iterations
 	std::string numIterationsString = std::to_string(projection.numIterations);
@@ -79,9 +79,9 @@ EditProjectionFrame::EditProjectionFrame(bool isNewProjection, ProjectionsFrame*
 	wxArrayString modelArray;
 	int selectedModel = 0;
 	int count = 0;
-	for (auto it = project->getModelBegin(); it != project->getModelEnd(); ++it, ++count) {
-		modelArray.push_back(it->name);
-		if (&*it == projection.baseModel) selectedModel = count;
+	for (auto modelIt = project->models().cbegin(); modelIt != project->models().cend(); ++modelIt) {
+		modelArray.push_back(modelIt->second.name);
+		if (modelIt->first == projection.baseModel) selectedModel = count;
 	}
 
 	// Create the controls for the model combo box.
@@ -180,7 +180,7 @@ void EditProjectionFrame::updateTextName(wxCommandEvent& event) {
 void EditProjectionFrame::updateComboBoxBaseModel(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	projection.baseModel = project->getModelPtr(modelComboBox->GetCurrentSelection());
+	projection.baseModel = project->models().indexToId(modelComboBox->GetCurrentSelection());
 }
 
 void EditProjectionFrame::updateTextNumIterations(wxCommandEvent& event) {

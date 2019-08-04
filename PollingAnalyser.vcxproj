@@ -104,7 +104,7 @@
       <WarningLevel>Level4</WarningLevel>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswu;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>CURL_STATICLIB;WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CURL_STATICLIB;WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswu\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswu\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\vc_mswu\PollingAnalyser\</ObjectFileName>
@@ -235,7 +235,7 @@
       <PollingAnalyserRebuild>true</PollingAnalyserRebuild>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswud;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.1.1\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>CURL_STATICLIB;WIN32;_DEBUG;__WXMSW__;_WINDOWS;NOPCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CURL_STATICLIB;WIN32;_DEBUG;__WXMSW__;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\vc_mswud\PollingAnalyser\</AssemblerListingLocation>
       <PrecompiledHeaderOutputFile>.\vc_mswud\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\vc_mswud\PollingAnalyser\</ObjectFileName>
@@ -279,6 +279,7 @@
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MapFrame.cpp" />
+    <ClCompile Include="ModelCollection.cpp" />
     <ClCompile Include="PartyCollection.cpp" />
     <ClCompile Include="Points.cpp" />
     <ClCompile Include="PollCollection.cpp" />
@@ -337,6 +338,7 @@
     <ClInclude Include="FloatInput.h" />
     <ClInclude Include="InputGeneral.h" />
     <ClInclude Include="IntInput.h" />
+    <ClInclude Include="ModelCollection.h" />
     <ClInclude Include="PollCollection.h" />
     <ClInclude Include="PollsterCollection.h" />
     <ClInclude Include="TextInput.h" />

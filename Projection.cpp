@@ -1,16 +1,19 @@
 #include "Projection.h"
 
-#include "Model.h"
 #include "Log.h"
+#include "Model.h"
+#include "ModelCollection.h"
 
-#include <random>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <random>
 
 #undef max
 
-void Projection::run() {
+void Projection::run(ModelCollection const& models) {
 	if (!endDate.IsValid()) return;
+
+	auto model = models.view(baseModel);
 
 	// Set up random variables
 	std::random_device rd;
@@ -20,15 +23,15 @@ void Projection::run() {
 	// t-distribution since we've estimated the SD from a random sample
 	std::student_t_distribution<double> initialDist(std::max(numElections - 1, 1));
 	// additional uncertainty from the state of the polling at the moment
-	float pollingStdDev = baseModel->finalStandardDeviation;
+	float pollingStdDev = model.finalStandardDeviation;
 	std::normal_distribution<double> pollingDist(0.0f, pollingStdDev);
 
 	std::vector<std::vector<double>> tempProjections;
-	int nDays = std::max(1, (endDate - baseModel->effEndDate).GetDays() + 1);
+	int nDays = std::max(1, (endDate - model.effEndDate).GetDays() + 1);
 	tempProjections.resize(numIterations);
 	meanProjection.resize(nDays);
 	sdProjection.resize(nDays);
-	double modelEndpoint = double(baseModel->day.back().trend2pp);
+	double modelEndpoint = double(model.day.back().trend2pp);
 	for (auto& projVec : tempProjections) {
 		projVec.resize(nDays);
 		double systematicVariation = initialDist(gen) * initialStdDev;
@@ -67,8 +70,7 @@ void Projection::logRunStatistics()
 	logger << "Final 2PP standard deviation: " << sdProjection.back() << "\n";
 }
 
-void Projection::setAsNowCast() {
-	if (baseModel != nullptr) {
-		endDate = baseModel->effEndDate + wxDateSpan(0, 0, 0, 1);
-	}
+void Projection::setAsNowCast(ModelCollection const& models) {
+	auto model = models.view(baseModel);
+	endDate = model.effEndDate + wxDateSpan(0, 0, 0, 1);
 }

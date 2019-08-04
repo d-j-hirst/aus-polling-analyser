@@ -1,63 +1,31 @@
 #include "EventsFrame.h"
+
+#include "EditEventFrame.h"
 #include "General.h"
+
+// ----------------------------------------------------------------------------
+// constants
+// ----------------------------------------------------------------------------
+
+// IDs for the controls and the menu commands
+enum ControlId {
+	Base = 600, // To avoid mixing events with other frames.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
+};
 
 // frame constructor
 EventsFrame::EventsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_EventsFrame_FrameID, "Events", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Events", wxPoint(0, 0), project),
 	refresher(refresher)
 {
-
-	// *** Toolbar *** //
-
-	// Load the relevant bitmaps for the toolbar icons.
-	wxLogNull something;
-	wxBitmap toolBarBitmaps[3];
-	toolBarBitmaps[0] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
-	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
-	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
-
-	// Initialize the toolbar.
-	toolBar = new wxToolBar(this, wxID_ANY);
-
-	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_EventsFrame_NewEventID, "New Event", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Event");
-	toolBar->AddTool(PA_EventsFrame_EditEventID, "Edit Event", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Event");
-	toolBar->AddTool(PA_EventsFrame_RemoveEventID, "Remove Event", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Event");
-
-	// Realize the toolbar, so that the tools display.
-	toolBar->Realize();
-
-	// *** Model Data Table *** //
-
-	int toolBarHeight = toolBar->GetSize().GetHeight();
-
-	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
-
-	// Create the model data control.
-	eventData = new wxDataViewListCtrl(dataPanel,
-		PA_EventsFrame_DataViewID,
-		wxPoint(0, 0),
-		dataPanel->GetClientSize());
-
-	// *** Party Data Table Columns *** //
-
-	refreshData();
-
-	// *** Binding Events *** //
-
-	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &EventsFrame::OnResize, this, PA_EventsFrame_FrameID);
-
-	// Need to record it if this frame is closed.
-	//Bind(wxEVT_CLOSE_WINDOW, &ModelsFrame::OnClose, this, PA_PartiesFrame_FrameID);
-
-	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &EventsFrame::OnNewEvent, this, PA_EventsFrame_NewEventID);
-	Bind(wxEVT_TOOL, &EventsFrame::OnEditEvent, this, PA_EventsFrame_EditEventID);
-	Bind(wxEVT_TOOL, &EventsFrame::OnRemoveEvent, this, PA_EventsFrame_RemoveEventID);
-
-	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &EventsFrame::OnSelectionChange, this, PA_EventsFrame_DataViewID);
+	setupToolbar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
 }
 
 void EventsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
@@ -121,7 +89,7 @@ void EventsFrame::OnEditEventReady(Event& event) {
 	replaceEvent(event);
 }
 
-void EventsFrame::refreshData() {
+void EventsFrame::refreshDataTable() {
 
 	eventData->DeleteAllItems();
 	eventData->ClearColumns();
@@ -148,10 +116,57 @@ void EventsFrame::refreshData() {
 	updateInterface();
 }
 
+void EventsFrame::setupToolbar()
+{
+	// Load the relevant bitmaps for the toolbar icons.
+	wxLogNull something;
+	wxBitmap toolBarBitmaps[3];
+	toolBarBitmaps[0] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
+
+	// Initialize the toolbar.
+	toolBar = new wxToolBar(this, wxID_ANY);
+
+	// Add the tools that will be used on the toolbar.
+	toolBar->AddTool(ControlId::New, "New Event", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Event");
+	toolBar->AddTool(ControlId::Edit, "Edit Event", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Event");
+	toolBar->AddTool(ControlId::Remove, "Remove Event", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Event");
+
+	// Realize the toolbar, so that the tools display.
+	toolBar->Realize();
+}
+
+void EventsFrame::setupDataTable()
+{
+	int toolBarHeight = toolBar->GetSize().GetHeight();
+
+	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
+
+	// Create the model data control.
+	eventData = new wxDataViewListCtrl(dataPanel,
+		ControlId::DataView,
+		wxPoint(0, 0),
+		dataPanel->GetClientSize());
+}
+
+void EventsFrame::bindEventHandlers()
+{
+	// Need to resize controls if this frame is resized.
+	Bind(wxEVT_SIZE, &EventsFrame::OnResize, this, ControlId::Frame);
+
+	// Binding events for the toolbar items.
+	Bind(wxEVT_TOOL, &EventsFrame::OnNewEvent, this, ControlId::New);
+	Bind(wxEVT_TOOL, &EventsFrame::OnEditEvent, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &EventsFrame::OnRemoveEvent, this, ControlId::Remove);
+
+	// Need to update the interface if the selection changes
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &EventsFrame::OnSelectionChange, this, ControlId::DataView);
+}
+
 void EventsFrame::addEvent(Event event) {
-	// Simultaneously add to the party data control and to the polling project.
-	addEventToEventData(event);
 	project->addEvent(event);
+	refreshDataTable();
 
 	updateInterface();
 }
@@ -169,39 +184,21 @@ void EventsFrame::addEventToEventData(Event event) {
 void EventsFrame::replaceEvent(Event event) {
 	int eventIndex = eventData->GetSelectedRow();
 	// Simultaneously replace data in the event data control and the polling project.
-	replaceEventInEventData(event);
 	project->replaceEvent(eventIndex, event);
+	refreshDataTable();
 
 	updateInterface();
-}
-
-void EventsFrame::replaceEventInEventData(Event event) {
-	int eventIndex = eventData->GetSelectedRow();
-	// There is no function to replace a row all at once, so we edit all cells individually.
-	wxDataViewListStore* store = eventData->GetStore();
-	store->SetValueByRow(event.name, eventIndex, EventColumn_Name);
-	store->SetValueByRow(event.getEventTypeString(), eventIndex, EventColumn_EventType);
-	store->SetValueByRow(event.getDateString(), eventIndex, EventColumn_EventDate);
-	store->SetValueByRow(event.getVoteString(), eventIndex, EventColumn_2PP);
 }
 
 void EventsFrame::removeEvent() {
-	// Simultaneously add to the event data control and to the polling project.
 	project->removeEvent(eventData->GetSelectedRow());
-
-	// this line must come second, otherwise the argument for the line above will be wrong.
-	removeEventFromEventData();
+	refreshDataTable();
 
 	updateInterface();
-}
-
-void EventsFrame::removeEventFromEventData() {
-	// Create a vector with all the event data.
-	eventData->DeleteItem(eventData->GetSelectedRow());
 }
 
 void EventsFrame::updateInterface() {
 	bool somethingSelected = (eventData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_EventsFrame_EditEventID, somethingSelected);
-	toolBar->EnableTool(PA_EventsFrame_RemoveEventID, somethingSelected);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 }

@@ -1,6 +1,4 @@
 #include "LatestResultsDataRetriever.h"
-
-#include "General.h"
 #include "Log.h"
 #include "RegexNavigation.h"
 

@@ -19,8 +19,7 @@ public:
 	// consistent display with poll deletions etc. while making sure references
 	// from other components are preserved
 	// Map must be ordered to ensure order of polls is in order they are added.
-	typedef int PollKey;
-	typedef std::map<PollKey, Poll> PollContainer;
+	typedef std::map<Poll::Id, Poll> PollContainer;
 
 	// Poll index refers to the position of the poll in the order of currently existing polls
 	// Should not be stored persistently as removal of a poll will change the indices

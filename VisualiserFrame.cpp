@@ -196,8 +196,8 @@ void VisualiserFrame::refreshToolbar() {
 
 	// Prepare the list of models
 	wxArrayString modelArray;
-	for (auto it = project->getModelBegin(); it != project->getModelEnd(); ++it) {
-		modelArray.push_back(it->name);
+	for (auto it = project->models().cbegin(); it != project->models().cend(); ++it) {
+		modelArray.push_back(it->second.name);
 	}
 	std::string modelBoxString;
 	if (selectedModel >= int(modelArray.size())) {
@@ -342,7 +342,7 @@ void VisualiserFrame::determineAxisTickInterval() {
 }
 
 void VisualiserFrame::determineFirstAxisTick() {
-	wxDateTime tickDate = project->MjdToDate(visStartDay);
+	wxDateTime tickDate = mjdToDate(visStartDay);
 	switch (gv.interval) {
 	case GraphicsVariables::AxisTickInterval::Week:
 	case GraphicsVariables::AxisTickInterval::Fortnight:
@@ -468,20 +468,20 @@ void VisualiserFrame::drawAxisTickLines(wxDC& dc) {
 
 void VisualiserFrame::drawModels(wxDC& dc) {
 	if (selectedModel != -1) {
-		Model const* model = project->getModelPtr(selectedModel);
-		if (model->lastUpdated.IsValid()) {
+		Model const& model = project->models().viewByIndex(selectedModel);
+		if (model.lastUpdated.IsValid()) {
 			drawModel(model, dc);
 		}
 	}
 }
 
-void VisualiserFrame::drawModel(Model const* model, wxDC& dc) {
+void VisualiserFrame::drawModel(Model const& model, wxDC& dc) {
 	if (!displayModels && !displayHouseEffects) return;
-	ModelTimePoint const* thisTimePoint = &model->day[0];
-	for (int i = 0; i < int(model->day.size()) - 1; ++i) {
-		ModelTimePoint const* nextTimePoint = &model->day[i + 1];
-		int x = getXFromDate(int(floor(model->effStartDate.GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(model->effStartDate.GetMJD())) + i + 1);
+	ModelTimePoint const* thisTimePoint = &model.day[0];
+	for (int i = 0; i < int(model.day.size()) - 1; ++i) {
+		ModelTimePoint const* nextTimePoint = &model.day[i + 1];
+		int x = getXFromDate(int(floor(model.effStartDate.GetMJD())) + i);
+		int x2 = getXFromDate(int(floor(model.effStartDate.GetMJD())) + i + 1);
 		if (displayModels) {
 			int y = getYFrom2PP(thisTimePoint->trend2pp);
 			int y2 = getYFrom2PP(nextTimePoint->trend2pp);
@@ -511,9 +511,10 @@ void VisualiserFrame::drawProjections(wxDC& dc) {
 void VisualiserFrame::drawProjection(Projection const* projection, wxDC& dc) {
 	constexpr int NumSigmaLevels = 2;
 	constexpr int SigmaBrightnessChange = 50;
+	Model const& model = project->models().view(projection->baseModel);
 	for (int i = 0; i < int(projection->meanProjection.size()) - 1; ++i) {
-		int x = getXFromDate(int(floor(projection->baseModel->effEndDate.GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(projection->baseModel->effEndDate.GetMJD())) + i + 1);
+		int x = getXFromDate(int(floor(model.effEndDate.GetMJD())) + i);
+		int x2 = getXFromDate(int(floor(model.effEndDate.GetMJD())) + i + 1);
 		for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
 			int y = getYFrom2PP(projection->meanProjection[i] + projection->sdProjection[i] * sigma);
 			int y2 = getYFrom2PP(projection->meanProjection[i + 1] + projection->sdProjection[i + 1] * sigma);
@@ -556,7 +557,7 @@ int VisualiserFrame::getXFromDate(int date) {
 wxDateTime VisualiserFrame::getDateFromX(int x) {
 	if (x < gv.graphMargin || x > gv.graphMargin + gv.graphWidth) return wxInvalidDateTime;
 	int dateNum = int((float(x) - gv.graphMargin) / gv.graphWidth * float(visEndDay - visStartDay)) + visStartDay;
-	wxDateTime date = project->MjdToDate(dateNum);
+	wxDateTime date = mjdToDate(dateNum);
 	return date;
 }
 

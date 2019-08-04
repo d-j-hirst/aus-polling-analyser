@@ -1,5 +1,18 @@
 #pragma once
 
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
+
+#ifdef __BORLANDC__
+#pragma hdrstop
+#endif
+
+// for all others, include the necessary headers (this file is usually all you
+// need because it includes almost all "standard" wxWidgets headers)
+#ifndef WX_PRECOMP
+#include "wx/wx.h"
+#endif
+
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -49,4 +62,12 @@ inline std::vector<std::string> splitString(std::string s, std::string const& de
 // Converts from a modified julian date number to a regular julian date number
 inline double mjdToJdn(double mjd) {
 	return mjd + 2400000.5;
+}
+
+// converts an MJD date to a wxDateTime date.
+inline wxDateTime mjdToDate(int mjd) {
+	if (mjd <= -1000000) return wxInvalidDateTime;
+	wxDateTime tempDate = wxDateTime(double(mjd) + 2400000.5);
+	tempDate.SetHour(18);
+	return tempDate;
 }
