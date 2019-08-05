@@ -13,7 +13,6 @@
 #include "wx/wx.h"
 #endif
 
-#include "PollstersFrame.h"
 #include "Pollster.h"
 
 class CheckInput;

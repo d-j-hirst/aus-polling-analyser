@@ -51,7 +51,7 @@ void EditPollsterFrame::createWeightInput(int& y)
 {
 	auto weightCallback = [this](float f) -> void {pollster.weight = f; };
 	auto weightValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
-	weightInput.reset(new FloatInput(this, ControlId::Weight, "Preferences to party 1:", pollster.weight,
+	weightInput.reset(new FloatInput(this, ControlId::Weight, "Weight:", pollster.weight,
 		wxPoint(2, y), weightCallback, weightValidator));
 	y += weightInput->Height + ControlPadding;
 }

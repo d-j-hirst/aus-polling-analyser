@@ -13,29 +13,12 @@
 #include "wx/wx.h"
 #endif
 
-#include <sstream>
-#include <wx/valnum.h>
-#include <wx/datectrl.h>
-#include <wx/dateevt.h>
-
-#include "EventsFrame.h"
 #include "Event.h"
 
-class EventsFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum
-{
-	PA_EditEvent_ButtonID_OK,
-	PA_EditEvent_TextBoxID_Name,
-	PA_EditEvent_ComboBoxID_EventType,
-	PA_EditEvent_DatePickerID_Date,
-	PA_EditEvent_TextBoxID_Vote,
-};
+class ChoiceInput;
+class DateInput;
+class FloatInput;
+class TextInput;
 
 // *** EditEventFrame ***
 // Frame that allows the user to edit an already-existing event
@@ -43,55 +26,43 @@ enum
 class EditEventFrame : public wxDialog
 {
 public:
-	// isNewEvent: true if this dialog is for creating a new event, false if it's for editing.
-	// parent: Parent frame for this (must be an EventsFrame).
-	// event: Event data to be used if editing (has default values for creating a new event).
-	EditEventFrame(bool isNewEvent, EventsFrame* const parent,
-		Event pollingEvent = Event());
+	enum class Function {
+		New,
+		Edit
+	};
 
-	// Calls upon the window to send its data to the parent frame and close.
-	void OnOK(wxCommandEvent& WXUNUSED(event));
+	typedef std::function<void(Event)> OkCallback;
+
+	// event: Event data to be used if editing (has default values for creating a new event).
+	EditEventFrame(Function function, OkCallback callback,
+		Event event = Event());
 
 private:
+	void createControls(int& y);
 
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextName(wxCommandEvent& event);
+	// Each of these takes a value for the current y-position
+	void createNameInput(int& y);
+	void createTypeInput(int& y);
+	void createDateInput(int& y);
+	void createVoteInput(int& y);
 
-	// Calls upon the window to update the event data based on
-	// the properties of the event.
-	void updateComboBoxEventType(wxCommandEvent& event);
+	void createOkCancelButtons(int& y);
 
-	// Calls upon the window to update the preliminary date data based on
-	// the result of the GetDate() method of "event".
-	void updateDatePicker(wxDateEvent& event);
+	void setFinalWindowHeight(int y);
 
-	// Calls upon the window to update the election vote based on
-	// the result of the GetFloat() method of "event".
-	void updateTextVote(wxCommandEvent& event);
+	// Calls upon the window to send its data to the parent frame and close.
+	void OnOK(wxCommandEvent&);
 
 	// Data container for the preliminary settings for the party to be created.
-	Event pollingEvent;
+	Event event;
 
-	// Control pointers that are really only here to shut up the
-	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* nameStaticText;
-	wxTextCtrl* nameTextCtrl;
-	wxStaticText* eventTypeStaticText;
-	wxComboBox* eventTypeComboBox;
-	wxStaticText* dateStaticText;
-	wxDatePickerCtrl* datePicker;
-	wxStaticText* voteStaticText;
-	wxTextCtrl* voteTextCtrl;
+	std::unique_ptr<TextInput> nameInput;
+	std::unique_ptr<ChoiceInput> typeInput;
+	std::unique_ptr<DateInput> dateInput;
+	std::unique_ptr<FloatInput> voteInput;
+
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	// A pointer to the parent frame.
-	EventsFrame* const parent;
-
-	// Stores whether this dialog is for creating a new party (true) or editing an existing one (false).
-	bool isNewEvent;
-
-	// Keeps the preference flow saved in case a text entry results in an invalid value.
-	std::string lastVote;
+	OkCallback callback;
 };

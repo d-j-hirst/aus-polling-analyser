@@ -1,8 +1,8 @@
-#include "DatePickerInput.h"
+#include "DateInput.h"
 
 #include "Log.h"
 
-DatePickerInput::DatePickerInput(wxWindow* parent, wxWindowID datePickerCtrlId, std::string labelText, wxDateTime initialDate, wxPoint topLeft,
+DateInput::DateInput(wxWindow* parent, wxWindowID datePickerCtrlId, std::string labelText, wxDateTime initialDate, wxPoint topLeft,
 	DatePickerChangeFunc datePickerChangeFunc, int labelWidth, int textInputWidth)
 	: datePickerChangeFunc(datePickerChangeFunc), parent(parent)
 {
@@ -13,10 +13,10 @@ DatePickerInput::DatePickerInput(wxWindow* parent, wxWindowID datePickerCtrlId, 
 											 // use wxDP_SPIN instead of wxDP_DROPDOWN);
 	datePicker->SetValue(initialDate);
 
-	parent->Bind(wxEVT_DATE_CHANGED, &DatePickerInput::updateDatePicker, this, datePicker->GetId());
+	parent->Bind(wxEVT_DATE_CHANGED, &DateInput::updateDatePicker, this, datePicker->GetId());
 }
 
-void DatePickerInput::updateDatePicker(wxDateEvent& event)
+void DateInput::updateDatePicker(wxDateEvent& event)
 {
 	datePickerChangeFunc(event.GetDate());
 }

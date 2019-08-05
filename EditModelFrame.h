@@ -15,7 +15,7 @@
 
 #include "Model.h"
 
-class DatePickerInput;
+class DateInput;
 class FloatInput;
 class IntInput;
 class TextInput;
@@ -66,8 +66,8 @@ private:
 	std::unique_ptr<FloatInput> voteTimeMultiplierInput;
 	std::unique_ptr<FloatInput> houseEffectTimeMultiplierInput;
 	std::unique_ptr<FloatInput> calibrationFirstPartyBiasInput;
-	std::unique_ptr<DatePickerInput> startDateInput;
-	std::unique_ptr<DatePickerInput> endDateInput;
+	std::unique_ptr<DateInput> startDateInput;
+	std::unique_ptr<DateInput> endDateInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

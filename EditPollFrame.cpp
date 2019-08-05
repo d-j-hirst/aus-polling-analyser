@@ -2,7 +2,7 @@
 #include "General.h"
 
 #include "ChoiceInput.h"
-#include "DatePickerInput.h"
+#include "DateInput.h"
 #include "FloatInput.h"
 
 constexpr int ControlPadding = 4;
@@ -58,7 +58,7 @@ void EditPollFrame::createPollsterInput(int & y)
 void EditPollFrame::createDateInput(int & y)
 {
 	auto dateCallback = [this](wxDateTime d) {poll.date = d; };
-	dateInput.reset(new DatePickerInput(this, ControlId::Date, "Pollster: ", poll.date,
+	dateInput.reset(new DateInput(this, ControlId::Date, "Date: ", poll.date,
 		wxPoint(2, y), dateCallback));
 	y += dateInput->Height + ControlPadding;
 }

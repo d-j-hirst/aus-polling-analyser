@@ -3,9 +3,7 @@
 #include "EditEventFrame.h"
 #include "General.h"
 
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
+using namespace std::placeholders; // for function object parameter binding
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -35,8 +33,11 @@ void EventsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void EventsFrame::OnNewEvent(wxCommandEvent& WXUNUSED(event)) {
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&EventsFrame::addEvent, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditEventFrame *frame = new EditEventFrame(true, this, Event());
+	EditEventFrame *frame = new EditEventFrame(EditEventFrame::Function::New, callback, Event());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -53,8 +54,11 @@ void EventsFrame::OnEditEvent(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (eventIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&EventsFrame::replaceEvent, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditEventFrame *frame = new EditEventFrame(false, this, project->getEvent(eventIndex));
+	EditEventFrame *frame = new EditEventFrame(EditEventFrame::Function::Edit, callback, project->getEvent(eventIndex));
 
 	// Show the frame.
 	frame->ShowModal();

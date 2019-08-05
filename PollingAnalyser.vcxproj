@@ -273,7 +273,7 @@
     <ClCompile Include="CheckInput.cpp" />
     <ClCompile Include="ChoiceInput.cpp" />
     <ClCompile Include="ColourInput.cpp" />
-    <ClCompile Include="DatePickerInput.cpp" />
+    <ClCompile Include="DateInput.cpp" />
     <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
@@ -333,7 +333,7 @@
     <ClInclude Include="CheckInput.h" />
     <ClInclude Include="ChoiceInput.h" />
     <ClInclude Include="ColourInput.h" />
-    <ClInclude Include="DatePickerInput.h" />
+    <ClInclude Include="DateInput.h" />
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="FloatInput.h" />
     <ClInclude Include="InputGeneral.h" />

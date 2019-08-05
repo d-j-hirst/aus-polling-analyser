@@ -1,6 +1,6 @@
 #include "EditModelFrame.h"
 
-#include "DatePickerInput.h"
+#include "DateInput.h"
 #include "General.h"
 #include "FloatInput.h"
 #include "IntInput.h"
@@ -92,7 +92,7 @@ void EditModelFrame::createStartDateInput(int & y)
 {
 	logger << model.startDate.FormatISODate() << "\n";
 	auto startDateCallback = [this](wxDateTime const& d) -> void {model.startDate = d; };
-	startDateInput.reset(new DatePickerInput(this, ControlId::StartDate, "Start Date: ", model.startDate,
+	startDateInput.reset(new DateInput(this, ControlId::StartDate, "Start Date: ", model.startDate,
 		wxPoint(2, y), startDateCallback));
 	y += startDateInput->Height + ControlPadding;
 }
@@ -100,7 +100,7 @@ void EditModelFrame::createStartDateInput(int & y)
 void EditModelFrame::createEndDateInput(int & y)
 {
 	auto endDateCallback = [this](wxDateTime const& d) -> void {model.endDate = d; };
-	endDateInput.reset(new DatePickerInput(this, ControlId::EndDate, "End Date: ", model.endDate,
+	endDateInput.reset(new DateInput(this, ControlId::EndDate, "End Date: ", model.endDate,
 		wxPoint(2, y), endDateCallback));
 	y += endDateInput->Height + ControlPadding;
 }
