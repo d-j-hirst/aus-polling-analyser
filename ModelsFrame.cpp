@@ -292,13 +292,12 @@ void ModelsFrame::prepareModelForRun(Model& model)
 		if (project->pollsters().view(poll.second.pollster).weight < 0.01f) continue;
 		model.importPoll(poll.second.getBest2pp(), poll.second.date, pollsterIndex);
 	}
-	for (int i = 0; i < project->getEventCount(); ++i) {
-		Event const* event = project->getEventPtr(i);
-		if (event->eventType == EventType_Election) {
-			model.importElection(event->vote, event->date);
+	for (auto const& event : project->events()) {
+		if (event.second.eventType == EventType_Election) {
+			model.importElection(event.second.vote, event.second.date);
 		}
-		else if (event->eventType == EventType_Discontinuity) {
-			model.importDiscontinuity(event->date);
+		else if (event.second.eventType == EventType_Discontinuity) {
+			model.importDiscontinuity(event.second.date);
 		}
 	}
 }

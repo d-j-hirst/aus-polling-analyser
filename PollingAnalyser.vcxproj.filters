@@ -158,6 +158,9 @@
     <ClCompile Include="DateInput.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
+    <ClCompile Include="EventCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -404,6 +407,9 @@
     </ClInclude>
     <ClInclude Include="DateInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="EventCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

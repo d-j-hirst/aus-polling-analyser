@@ -11,6 +11,7 @@
 #include "NewProjectData.h"
 #include "Points.h"
 
+#include "EventCollection.h"
 #include "ModelCollection.h"
 #include "PartyCollection.h"
 #include "PollCollection.h"
@@ -78,23 +79,8 @@ public:
 	// gets the date in MJD form of the latest thing recorded in the file
 	int getLatestDate() const;
 
-	// Adds the event "event".
-	void addEvent(Event event);
-
-	// Replaces the event with index "eventIndex" by "event".
-	void replaceEvent(int eventIndex, Event event);
-
-	// Removes the event with index "eventIndex".
-	void removeEvent(int eventIndex);
-
-	// Returns the event with index "eventIndex".
-	Event getEvent(int eventIndex) const;
-
-	// Returns a pointer to the event with index "eventIndex".
-	Event* getEventPtr(int eventIndex);
-
-	// Returns the number of events.
-	int getEventCount() const;
+	EventCollection& events() { return eventCollection; }
+	EventCollection const& events() const { return eventCollection; }
 
 	ModelCollection& models() { return modelCollection; }
 	ModelCollection const& models() const { return modelCollection; }
@@ -336,10 +322,8 @@ private:
 	PartyCollection partyCollection;
 	PollsterCollection pollsterCollection;
 	PollCollection pollCollection;
+	EventCollection eventCollection;
 	ModelCollection modelCollection;
-
-	// Vector containing the data for events.
-	std::vector<Event> events;
 
 	// Vector containing the data for projections.
 	std::list<Projection> projections;

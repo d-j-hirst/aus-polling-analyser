@@ -58,7 +58,7 @@ void EventsFrame::OnEditEvent(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&EventsFrame::replaceEvent, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditEventFrame *frame = new EditEventFrame(EditEventFrame::Function::Edit, callback, project->getEvent(eventIndex));
+	EditEventFrame *frame = new EditEventFrame(EditEventFrame::Function::Edit, callback, project->events().viewByIndex(eventIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -111,10 +111,8 @@ void EventsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the model data
-	if (project->getEventCount()) {
-		for (int i = 0; i < project->getEventCount(); ++i) {
-			addEventToEventData(project->getEvent(i));
-		}
+	for (auto const& eventPair : project->events()) {
+		addEventToEventData(eventPair.second);
 	}
 
 	updateInterface();
@@ -169,7 +167,7 @@ void EventsFrame::bindEventHandlers()
 }
 
 void EventsFrame::addEvent(Event event) {
-	project->addEvent(event);
+	project->events().add(event);
 	refreshDataTable();
 
 	updateInterface();
@@ -186,16 +184,18 @@ void EventsFrame::addEventToEventData(Event event) {
 }
 
 void EventsFrame::replaceEvent(Event event) {
-	int eventIndex = eventData->GetSelectedRow();
-	// Simultaneously replace data in the event data control and the polling project.
-	project->replaceEvent(eventIndex, event);
+	EventCollection::Index eventIndex = eventData->GetSelectedRow();
+	Event::Id eventId = project->events().indexToId(eventIndex);
+	project->events().replace(eventId, event);
 	refreshDataTable();
 
 	updateInterface();
 }
 
 void EventsFrame::removeEvent() {
-	project->removeEvent(eventData->GetSelectedRow());
+	EventCollection::Index eventIndex = eventData->GetSelectedRow();
+	Event::Id eventId = project->events().indexToId(eventIndex);
+	project->events().remove(eventId);
 	refreshDataTable();
 
 	updateInterface();

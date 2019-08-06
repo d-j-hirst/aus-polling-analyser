@@ -10,6 +10,9 @@ enum EventType {
 };
 
 struct Event {
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	std::string name = "Enter event name here";
 	EventType eventType = EventType_None;
 	wxDateTime date = wxDateTime::Now();

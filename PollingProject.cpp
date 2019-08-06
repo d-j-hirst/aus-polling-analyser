@@ -17,6 +17,7 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	partyCollection(*this),
 	pollsterCollection(*this),
 	pollCollection(*this),
+	eventCollection(*this),
 	modelCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
@@ -31,6 +32,7 @@ PollingProject::PollingProject(std::string pathName) :
 	partyCollection(*this),
 	pollsterCollection(*this),
 	pollCollection(*this),
+	eventCollection(*this),
 	modelCollection(*this)
 {
 	logger << lastFileName << "\n";
@@ -239,32 +241,6 @@ int PollingProject::getLatestDate() const {
 		if (date > latestDay) latestDay = date;
 	}
 	return latestDay;
-}
-
-void PollingProject::addEvent(Event event) {
-	events.push_back(event);
-}
-
-void PollingProject::replaceEvent(int eventIndex, Event event) {
-	events[eventIndex] = event;
-}
-
-Event PollingProject::getEvent(int eventIndex) const {
-	return events[eventIndex];
-}
-
-Event* PollingProject::getEventPtr(int eventIndex) {
-	return &events[eventIndex];
-}
-
-void PollingProject::removeEvent(int eventIndex) {
-	auto it = events.begin();
-	for (int i = 0; i < eventIndex; i++) it++;
-	events.erase(it);
-}
-
-int PollingProject::getEventCount() const {
-	return events.size();
 }
 
 void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, Model::Id modelId)
@@ -678,7 +654,8 @@ int PollingProject::save(std::string filename) {
 		os << "py15=" << thisPoll.primary[PartyCollection::MaxParties] << "\n";
 	}
 	os << "#Events" << "\n";
-	for (auto const& thisEvent : events) {
+	for (auto const& eventPair : eventCollection) {
+		Event const& thisEvent = eventPair.second;
 		os << "@Event" << "\n";
 		os << "name=" << thisEvent.name << "\n";
 		os << "type=" << thisEvent.eventType << "\n";
@@ -888,7 +865,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Events) {
 		if (!line.compare("@Event")) {
-			events.push_back(Event());
+			eventCollection.add(Event());
 			return true;
 		}
 	}
@@ -1062,23 +1039,21 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Events) {
-		if (!events.size()) return true; //prevent crash from mixed-up data.
-		auto it = events.end();
-		it--;
+		if (!eventCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			eventCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("type=")) {
-			it->eventType = EventType(std::stoi(line.substr(5)));
+			eventCollection.back().eventType = EventType(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("date=")) {
-			it->date = wxDateTime(std::stod(line.substr(5)));
+			eventCollection.back().date = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("vote=")) {
-			it->vote = std::stof(line.substr(5));
+			eventCollection.back().vote = std::stof(line.substr(5));
 			return true;
 		}
 	}
