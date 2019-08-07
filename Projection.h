@@ -39,7 +39,7 @@ public:
 	int numIterations = 5000;
 
 	// Proportion of the 2pp lead that is lost per day on average in this projection
-	float leaderVoteLoss = 0.001633f;
+	float leaderVoteDecay = 0.001633f;
 
 	// Standard deviation of the daily random movement
 	float dailyChange = 0.1695f;

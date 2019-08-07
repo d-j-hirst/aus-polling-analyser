@@ -694,7 +694,7 @@ int PollingProject::save(std::string filename) {
 		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << "\n";
 		os << "dlyc=" << thisProjection.dailyChange << "\n";
 		os << "inic=" << thisProjection.initialStdDev << "\n";
-		os << "vtls=" << thisProjection.leaderVoteLoss << "\n";
+		os << "vtls=" << thisProjection.leaderVoteDecay << "\n";
 		os << "nele=" << thisProjection.numElections << "\n";
 		for (int dayIndex = 0; dayIndex < int(thisProjection.meanProjection.size()); ++dayIndex) {
 			os << "mean=" << thisProjection.meanProjection[dayIndex] << "\n";
@@ -1144,7 +1144,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("vtls=")) {
-			it->leaderVoteLoss = std::stof(line.substr(5));
+			it->leaderVoteDecay = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("nele=")) {

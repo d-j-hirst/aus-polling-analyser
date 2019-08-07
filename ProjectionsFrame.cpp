@@ -1,26 +1,32 @@
 #include "ProjectionsFrame.h"
 #include "General.h"
 
-enum ProjectionColumnsEnum {
-	ProjectionColumn_Name,
-	ProjectionColumn_BaseModel,
-	ProjectionColumn_EndDate,
-	ProjectionColumn_NumIterations,
-	ProjectionColumn_VoteLoss,
-	ProjectionColumn_DailyChange,
-	ProjectionColumn_InitialChange,
-	ProjectionColumn_NumElections,
-	ProjectionColumn_LatestUpdate,
+using namespace std::placeholders; // for function object parameter binding
+
+enum ControlId {
+	Base = 600, // To avoid mixing events with other frames.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
+	Run,
+	NowCast,
 };
 
 // frame constructor
 ProjectionsFrame::ProjectionsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_ProjectionsFrame_FrameID, "Projections", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Projections", wxPoint(0, 0), project),
 	refresher(refresher)
 {
+	setupToolbar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
+}
 
-	// *** Toolbar *** //
-
+void ProjectionsFrame::setupToolbar()
+{
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
 	wxBitmap toolBarBitmaps[5];
@@ -34,48 +40,46 @@ ProjectionsFrame::ProjectionsFrame(ProjectFrame::Refresher refresher, PollingPro
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_ProjectionsFrame_NewProjectionID, "New Projection", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Projection");
-	toolBar->AddTool(PA_ProjectionsFrame_EditProjectionID, "Edit Projection", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Projection");
-	toolBar->AddTool(PA_ProjectionsFrame_RemoveProjectionID, "Remove Projection", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Projection");
-	toolBar->AddTool(PA_ProjectionsFrame_RunProjectionID, "Run Projection", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Projection");
-	toolBar->AddTool(PA_ProjectionsFrame_NowCastID, "Set as Now-Cast", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Set as Now-Cast");
+	toolBar->AddTool(ControlId::New, "New Projection", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Projection");
+	toolBar->AddTool(ControlId::Edit, "Edit Projection", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Projection");
+	toolBar->AddTool(ControlId::Remove, "Remove Projection", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Projection");
+	toolBar->AddTool(ControlId::Run, "Run Projection", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Projection");
+	toolBar->AddTool(ControlId::NowCast, "Set as Now-Cast", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Set as Now-Cast");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
 
-	// *** Projection Data Table *** //
-
+void ProjectionsFrame::setupDataTable()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
 	// Create the projection data control.
 	projectionData = new wxDataViewListCtrl(dataPanel,
-		PA_ProjectionsFrame_DataViewID,
+		ControlId::DataView,
 		wxPoint(0, 0),
 		dataPanel->GetClientSize());
+}
 
-	// *** Party Data Table Columns *** //
-
-	refreshData();
-
-	// *** Binding Events *** //
-
+void ProjectionsFrame::bindEventHandlers()
+{
 	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &ProjectionsFrame::OnResize, this, PA_ProjectionsFrame_FrameID);
+	Bind(wxEVT_SIZE, &ProjectionsFrame::OnResize, this, ControlId::Frame);
 
 	// Need to record it if this frame is closed.
 	//Bind(wxEVT_CLOSE_WINDOW, &ProjectionsFrame::OnClose, this, PA_PartiesFrame_FrameID);
 
 	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNewProjection, this, PA_ProjectionsFrame_NewProjectionID);
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnEditProjection, this, PA_ProjectionsFrame_EditProjectionID);
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRemoveProjection, this, PA_ProjectionsFrame_RemoveProjectionID);
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRunProjection, this, PA_ProjectionsFrame_RunProjectionID);
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNowCast, this, PA_ProjectionsFrame_NowCastID);
+	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNewProjection, this, ControlId::New);
+	Bind(wxEVT_TOOL, &ProjectionsFrame::OnEditProjection, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRemoveProjection, this, ControlId::Remove);
+	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRunProjection, this, ControlId::Run);
+	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNowCast, this, ControlId::NowCast);
 
 	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &ProjectionsFrame::OnSelectionChange, this, PA_ProjectionsFrame_DataViewID);
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &ProjectionsFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
 void ProjectionsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
@@ -93,8 +97,12 @@ void ProjectionsFrame::OnNewProjection(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&ProjectionsFrame::addProjection, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditProjectionFrame *frame = new EditProjectionFrame(true, this, project, Projection());
+	EditProjectionFrame *frame = new EditProjectionFrame(
+		EditProjectionFrame::Function::New, callback, project->models(), Projection());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -111,8 +119,12 @@ void ProjectionsFrame::OnEditProjection(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (projectionIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&ProjectionsFrame::replaceProjection, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditProjectionFrame *frame = new EditProjectionFrame(false, this, project, project->getProjection(projectionIndex));
+	EditProjectionFrame *frame = new EditProjectionFrame(
+		EditProjectionFrame::Function::Edit, callback, project->models(), project->getProjection(projectionIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -171,7 +183,7 @@ void ProjectionsFrame::OnEditProjectionReady(Projection& projection) {
 	replaceProjection(projection);
 }
 
-void ProjectionsFrame::refreshData() {
+void ProjectionsFrame::refreshDataTable() {
 
 	projectionData->DeleteAllItems();
 	projectionData->ClearColumns();
@@ -212,7 +224,7 @@ void ProjectionsFrame::addProjection(Projection projection) {
 	// Simultaneously add to the party data control and to the polling project.
 	project->addProjection(projection);
 
-	refreshData();
+	refreshDataTable();
 }
 
 void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
@@ -222,7 +234,7 @@ void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 	data.push_back(wxVariant(project->models().view(projection.baseModel).name));
 	data.push_back(wxVariant(projection.getEndDateString()));
 	data.push_back(wxVariant(std::to_string(projection.numIterations)));
-	data.push_back(wxVariant(formatFloat(projection.leaderVoteLoss, 5)));
+	data.push_back(wxVariant(formatFloat(projection.leaderVoteDecay, 5)));
 	data.push_back(wxVariant(formatFloat(projection.dailyChange, 4)));
 	data.push_back(wxVariant(formatFloat(projection.initialStdDev, 4)));
 	data.push_back(wxVariant(std::to_string(projection.numElections)));
@@ -235,19 +247,14 @@ void ProjectionsFrame::replaceProjection(Projection projection) {
 	// Simultaneously replace data in the projection data control and the polling project.
 	project->replaceProjection(projectionIndex, projection);
 
-	refreshData();
+	refreshDataTable();
 }
 
 void ProjectionsFrame::removeProjection() {
 	// Simultaneously add to the projection data control and to the polling project.
 	project->removeProjection(projectionData->GetSelectedRow());
 
-	refreshData();
-}
-
-void ProjectionsFrame::removeProjectionFromProjectionData() {
-	// Create a vector with all the projection data.
-	projectionData->DeleteItem(projectionData->GetSelectedRow());
+	refreshDataTable();
 }
 
 void ProjectionsFrame::runProjection() {
@@ -255,7 +262,7 @@ void ProjectionsFrame::runProjection() {
 	Projection* thisProjection = project->getProjectionPtr(projectionIndex);
 	thisProjection->run(project->models());
 
-	refreshData();
+	refreshDataTable();
 }
 
 // Sets the projection to be a "now-cast" (ends one day after the model ends)
@@ -264,12 +271,13 @@ void ProjectionsFrame::setAsNowCast() {
 	Projection* thisProjection = project->getProjectionPtr(projectionIndex);
 	thisProjection->setAsNowCast(project->models());
 
-	refreshData();
+	refreshDataTable();
 }
 
 void ProjectionsFrame::updateInterface() {
 	bool somethingSelected = (projectionData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_ProjectionsFrame_EditProjectionID, somethingSelected);
-	toolBar->EnableTool(PA_ProjectionsFrame_RemoveProjectionID, somethingSelected);
-	toolBar->EnableTool(PA_ProjectionsFrame_RunProjectionID, somethingSelected);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+	toolBar->EnableTool(ControlId::Run, somethingSelected);
+	toolBar->EnableTool(ControlId::NowCast, somethingSelected);
 }

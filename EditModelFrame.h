@@ -35,8 +35,7 @@ public:
 
 	// function: whether this is for a new party or editing an existing party
 	// callback: function to be called when this 
-	EditModelFrame(Function function, OkCallback callback,
-		Model model = Model());
+	EditModelFrame(Function function, OkCallback callback, Model model = Model());
 
 private:
 
@@ -58,7 +57,7 @@ private:
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
-	// Data container for the preliminary settings for the model to be created.
+	// Holds the preliminary settings for the model to be created.
 	Model model;
 
 	std::unique_ptr<TextInput> nameInput;

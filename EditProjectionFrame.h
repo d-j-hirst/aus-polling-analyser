@@ -13,15 +13,13 @@
 #include "wx/wx.h"
 #endif
 
-#include <sstream>
-#include <wx/valnum.h>
-#include <wx/datectrl.h>
-#include <wx/dateevt.h>
-
 #include "Projection.h"
 
-class ProjectionsFrame;
-class PollingProject;
+class ChoiceInput;
+class DateInput;
+class FloatInput;
+class IntInput;
+class TextInput;
 
 // *** EditProjectionFrame ***
 // Frame that allows the user to edit an already-existing projection
@@ -29,93 +27,56 @@ class PollingProject;
 class EditProjectionFrame : public wxDialog
 {
 public:
+	enum class Function {
+		New,
+		Edit
+	};
+
+	typedef std::function<void(Projection)> OkCallback;
+
 	// isNewProjection: true if this dialog is for creating a new projection, false if it's for editing.
 	// parent: Parent frame for this (must be a PartiesFrame).
 	// projection: Projection data to be used if editing (has default values for creating a new projection).
-	EditProjectionFrame(bool isNewProjection, ProjectionsFrame* parent,
-		PollingProject const* project, Projection projection = Projection());
-
-	// Calls upon the window to send its data to the parent frame and close.
-	void OnOK(wxCommandEvent& WXUNUSED(event));
+	EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection projection = Projection());
 
 private:
 
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextName(wxCommandEvent& event);
+	void createControls(int& y);
 
-	// Calls upon the window to update the base model data based on
-	// the properties of the event.
-	void updateComboBoxBaseModel(wxCommandEvent& event);
+	// Each of these takes a value for the current y-position
+	void createNameInput(int& y);
+	void createModelInput(int& y);
+	void createEndDateInput(int& y);
+	void createNumIterationsInput(int& y);
+	void createVoteLossInput(int& y);
+	void createDailyChangeInput(int& y);
+	void createInitialChangeInput(int& y);
+	void createNumElectionsInput(int& y);
 
-	// Calls upon the window to update the preliminary end date data based on
-	// the result of the GetDate() method of "event".
-	void updateEndDatePicker(wxDateEvent& event);
+	void createOkCancelButtons(int& y);
 
-	// Calls upon the window to update the preliminary number of iterations based on
-	// the result of the GetString() method of "event".
-	void updateTextNumIterations(wxCommandEvent& event);
+	void setFinalWindowHeight(int y);
 
-	// Calls upon the window to update the preliminary vote loss based on
-	// the result of the GetString() method of "event".
-	void updateTextVoteLoss(wxCommandEvent& event);
-
-	// Calls upon the window to update the daily change based on
-	// the result of the GetString() method of "event".
-	void updateTextDailyChange(wxCommandEvent& event);
-
-	// Calls upon the window to update the initial change based on
-	// the result of the GetString() method of "event".
-	void updateTextInitialChange(wxCommandEvent& event);
-
-	// Calls upon the window to update the initial change based on
-	// the result of the GetString() method of "event".
-	void updateTextNumElections(wxCommandEvent& event);
-
-	// Calls on the parent frame to initialize a new projection based on the
-	// data in "newProjectData".
-	void OnNewProjectionReady();
-
-	// Data container for the preliminary settings for the projection to be created.
+	// Calls upon the window to send its data to the parent frame and close.
+	void OnOK(wxCommandEvent& WXUNUSED(event));
+	
+	// Holds the preliminary settings for the projection to be created.
 	Projection projection;
 
-	// Polling project pointer. Only used for accessing model names
-	PollingProject const* project;
+	ModelCollection const& models;
 
-	// Control pointers that are really only here to shut up the
-	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* nameStaticText;
-	wxTextCtrl* nameTextCtrl;
-	wxStaticText* modelStaticText;
-	wxComboBox* modelComboBox;
-	wxStaticText* endDateStaticText;
-	wxDatePickerCtrl* endDatePicker;
-	wxStaticText* numIterationsStaticText;
-	wxTextCtrl* numIterationsTextCtrl;
-	wxStaticText* voteLossStaticText;
-	wxTextCtrl* voteLossTextCtrl;
-	wxStaticText* dailyChangeStaticText;
-	wxTextCtrl* dailyChangeTextCtrl;
-	wxStaticText* initialChangeStaticText;
-	wxTextCtrl* initialChangeTextCtrl;
-	wxStaticText* numElectionsStaticText;
-	wxTextCtrl* numElectionsTextCtrl;
+	std::unique_ptr<TextInput> nameInput;
+	std::unique_ptr<ChoiceInput> modelInput;
+	std::unique_ptr<DateInput> endDateInput;
+	std::unique_ptr<IntInput> numIterationsInput;
+	std::unique_ptr<FloatInput> voteLossInput;
+	std::unique_ptr<FloatInput> dailyChangeInput;
+	std::unique_ptr<FloatInput> initialChangeInput;
+	std::unique_ptr<IntInput> numElectionsInput;
+
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	std::string lastNumIterations;
-
-	std::string lastVoteLoss;
-
-	std::string lastDailyChange;
-
-	std::string lastInitialChange;
-
-	std::string lastNumElections;
-
-	// A pointer to the parent frame.
-	ProjectionsFrame* const parent;
-
-	// Stores whether this dialog is for creating a new projection (true) or editing an existing one (false).
-	bool isNewProjection;
+	// function to call back to once the user clicks OK.
+	OkCallback callback;
 };

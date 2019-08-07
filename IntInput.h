@@ -28,7 +28,7 @@ public:
 
 	IntInput(wxWindow* parent, wxWindowID textCtrlId, std::string labelText, int inputInt, wxPoint topLeft,
 		TextChangeFunc textChangeFunc = [](int) {return; }, IntValidationFunc intValidationFunc = DefaultValidator,
-		int nullValue = std::numeric_limits<int>::lowest(), int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth, int initialDecimalPlaces = 3);
+		int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth);
 
 private:
 
@@ -42,8 +42,6 @@ private:
 	IntValidationFunc intValidationFunc;
 
 	bool currentlyUpdating = false;
-
-	int nullValue;
 
 	wxWindow* parent;
 

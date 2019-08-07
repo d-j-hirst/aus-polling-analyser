@@ -64,7 +64,7 @@ void ProjectFrame::Refresher::refreshPollData() const {
 
 // Refreshes the Projections frame data.
 void ProjectFrame::Refresher::refreshProjectionData() const {
-	if (projectFrame.projectionsFrame) projectFrame.projectionsFrame->refreshData();
+	if (projectFrame.projectionsFrame) projectFrame.projectionsFrame->refreshDataTable();
 }
 
 // Refreshes the Seats frame data.

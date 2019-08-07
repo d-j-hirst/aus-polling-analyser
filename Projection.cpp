@@ -41,7 +41,7 @@ void Projection::run(ModelCollection const& models) {
 		projVec[0] = initialDistributionResult;
 		for (int day = 1; day < nDays; ++day) {
 			double randomVariance = (day > nDays - 30 ? campaignDist(gen) : nDist(gen));
-			double nextDayStatisticProjection = projVec[day - 1] - leaderVoteLoss * (projVec[day - 1] - 50) + randomVariance;
+			double nextDayStatisticProjection = projVec[day - 1] - leaderVoteDecay * (projVec[day - 1] - 50) + randomVariance;
 			nextDayStatisticProjection = std::clamp(nextDayStatisticProjection, 0.0, 100.0);
 			projVec[day] = nextDayStatisticProjection;
 		}

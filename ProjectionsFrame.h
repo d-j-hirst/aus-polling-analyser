@@ -24,22 +24,6 @@
 class ProjectFrame;
 class GenericChildFame;
 
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_ProjectionsFrame_Base = 600, // To avoid mixing events with other frames.
-	PA_ProjectionsFrame_FrameID,
-	PA_ProjectionsFrame_DataViewID,
-	PA_ProjectionsFrame_NewProjectionID,
-	PA_ProjectionsFrame_EditProjectionID,
-	PA_ProjectionsFrame_RemoveProjectionID,
-	PA_ProjectionsFrame_RunProjectionID,
-	PA_ProjectionsFrame_NowCastID,
-};
-
 // *** ProjectionsFrame ***
 // Frame that allows the user to create aggregated projections using the poll data.
 class ProjectionsFrame : public GenericChildFrame
@@ -56,9 +40,17 @@ public:
 	void OnEditProjectionReady(Projection& projection);
 
 	// updates the data to take into account any changes, such as removed pollsters/parties.
-	void refreshData();
+	void refreshDataTable();
 
 private:
+
+	// Creates the toolbar and its accompanying tools
+	void setupToolbar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -90,16 +82,8 @@ private:
 	// does everything required to replace the currently selected projection with "projection".
 	void replaceProjection(Projection projection);
 
-	// replaces the currently selected projection with "projection" in projection data.
-	// Should not be used except within replaceProjection.
-	void replaceProjectionInProjectionData(Projection projection);
-
 	// does everything required to remove the currently selected projection, if possible.
 	void removeProjection();
-
-	// removes the currently selected projection from projection data.
-	// Should not be used except within removeProjection.
-	void removeProjectionFromProjectionData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

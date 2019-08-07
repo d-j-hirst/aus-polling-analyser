@@ -37,12 +37,6 @@ public:
 	// "project" is a pointer to the polling project object.
 	ModelsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
-	// Calls on the frame to create a new model based on "Model".
-	void OnNewModelReady(Model& model);
-
-	// Calls on the frame to edit the currently selected model based on "Model".
-	void OnEditModelReady(Model& model);
-
 	// refresh the (already existing) data table
 	void refreshDataTable();
 
