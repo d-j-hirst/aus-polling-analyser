@@ -190,7 +190,7 @@ private:
 	void drawProjections(wxDC& dc);
 
 	// draws lines for the given projection.
-	void drawProjection(Projection const* projection, wxDC& dc);
+	void drawProjection(Projection const& projection, wxDC& dc);
 
 	// draws the dots of the graph showing poll results.
 	void drawPollDots(wxDC& dc);

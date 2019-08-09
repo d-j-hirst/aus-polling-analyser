@@ -124,7 +124,7 @@ void ProjectionsFrame::OnEditProjection(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditProjectionFrame *frame = new EditProjectionFrame(
-		EditProjectionFrame::Function::Edit, callback, project->models(), project->getProjection(projectionIndex));
+		EditProjectionFrame::Function::Edit, callback, project->models(), project->projections().viewByIndex(projectionIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -211,10 +211,8 @@ void ProjectionsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the projection data
-	if (project->getProjectionCount()) {
-		for (int i = 0; i < project->getProjectionCount(); ++i) {
-			addProjectionToProjectionData(project->getProjection(i));
-		}
+	for (auto projection : project->projections()) {
+		addProjectionToProjectionData(projection.second);
 	}
 
 	updateInterface();
@@ -222,7 +220,7 @@ void ProjectionsFrame::refreshDataTable() {
 
 void ProjectionsFrame::addProjection(Projection projection) {
 	// Simultaneously add to the party data control and to the polling project.
-	project->addProjection(projection);
+	project->projections().add(projection);
 
 	refreshDataTable();
 }
@@ -244,33 +242,30 @@ void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 
 void ProjectionsFrame::replaceProjection(Projection projection) {
 	int projectionIndex = projectionData->GetSelectedRow();
-	// Simultaneously replace data in the projection data control and the polling project.
-	project->replaceProjection(projectionIndex, projection);
-
+	int projectionId = project->projections().indexToId(projectionIndex);
+	project->projections().replace(projectionId, projection);
 	refreshDataTable();
 }
 
 void ProjectionsFrame::removeProjection() {
-	// Simultaneously add to the projection data control and to the polling project.
-	project->removeProjection(projectionData->GetSelectedRow());
-
+	int projectionIndex = projectionData->GetSelectedRow();
+	int projectionId = project->projections().indexToId(projectionIndex);
+	project->projections().remove(projectionId);
 	refreshDataTable();
 }
 
 void ProjectionsFrame::runProjection() {
 	int projectionIndex = projectionData->GetSelectedRow();
-	Projection* thisProjection = project->getProjectionPtr(projectionIndex);
-	thisProjection->run(project->models());
-
+	int projectionId = project->projections().indexToId(projectionIndex);
+	project->projections().run(projectionId);
 	refreshDataTable();
 }
 
 // Sets the projection to be a "now-cast" (ends one day after the model ends)
 void ProjectionsFrame::setAsNowCast() {
 	int projectionIndex = projectionData->GetSelectedRow();
-	Projection* thisProjection = project->getProjectionPtr(projectionIndex);
-	thisProjection->setAsNowCast(project->models());
-
+	int projectionId = project->projections().indexToId(projectionIndex);
+	project->projections().setAsNowCast(projectionId);
 	refreshDataTable();
 }
 

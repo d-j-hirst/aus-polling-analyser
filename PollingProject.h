@@ -16,6 +16,7 @@
 #include "PartyCollection.h"
 #include "PollCollection.h"
 #include "PollsterCollection.h"
+#include "ProjectionCollection.h"
 #include "Event.h"
 #include "Model.h"
 #include "Projection.h"
@@ -85,38 +86,14 @@ public:
 	ModelCollection& models() { return modelCollection; }
 	ModelCollection const& models() const { return modelCollection; }
 
-	// If a pollster is removed, various parts of the project need to be adjusted to account for this.
+	// If a model is removed, various parts of the project need to be adjusted to account for this.
 	void adjustAfterModelRemoval(ModelCollection::Index modelIndex, Model::Id modelId);
 
-	// Adds the projection "projection".
-	void addProjection(Projection projection);
+	ProjectionCollection& projections() { return projectionCollection; }
+	ProjectionCollection const& projections() const { return projectionCollection; }
 
-	// Replaces the projection with index "projectionIndex" by "projection".
-	void replaceProjection(int projectionIndex, Projection projection);
-
-	// Removes the projection with index "projectionIndex".
-	void removeProjection(int projectionIndex);
-
-	// Returns the projection with index "projectionIndex".
-	Projection getProjection(int projectionIndex) const;
-
-	// Returns a pointer to the projection with index "projectionIndex".
-	Projection* getProjectionPtr(int projectionIndex);
-
-	// Returns a pointer to the projection with index "projectionIndex".
-	Projection const* getProjectionPtr(int projectionIndex) const;
-
-	// Returns the number of projections.
-	int getProjectionCount() const;
-
-	// Gets the projection index from a given pointer.
-	int getProjectionIndex(Projection const* projectionPtr);
-
-	// Gets the begin iterator for the projection list.
-	std::list<Projection>::const_iterator getProjectionBegin() const;
-
-	// Gets the end iterator for the projection list.
-	std::list<Projection>::const_iterator getProjectionEnd() const;
+	// If a projection is removed, various parts of the project need to be adjusted to account for this.
+	void adjustAfterProjectionRemoval(ProjectionCollection::Index projectionIndex, Projection::Id projectionId);
 
 	// Adds the region "region".
 	void addRegion(Region region);
@@ -284,6 +261,9 @@ private:
 	// Removes all the projections from a particular model. Used when deleting a model.
 	void removeProjectionsFromModel(Model::Id modelId);
 
+	// Removes all the simulations from a particular projection. Used when deleting a projection.
+	void removeSimulationsFromProjection(Projection::Id projectionId);
+
 	// If a party is removed, various parts of the project need to be adjusted to deal with this
 	void adjustSeatsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 	void adjustCandidatesAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
@@ -324,9 +304,7 @@ private:
 	PollCollection pollCollection;
 	EventCollection eventCollection;
 	ModelCollection modelCollection;
-
-	// Vector containing the data for projections.
-	std::list<Projection> projections;
+	ProjectionCollection projectionCollection;
 
 	// Vector containing the data for regions.
 	std::list<Region> regions;

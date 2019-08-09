@@ -80,7 +80,7 @@ void SimulationsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void SimulationsFrame::OnNewSimulation(wxCommandEvent& WXUNUSED(event)) {
 
-	if (project->getProjectionCount() == 0) {
+	if (!project->projections().count()) {
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Simulations run from a projection of a polling model. There must be at least one model projection defined before creating a simulation.");
 
@@ -205,7 +205,7 @@ void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(simulation.name));
-	data.push_back(wxVariant(simulation.baseProjection->name));
+	data.push_back(wxVariant(project->projections().view(simulation.baseProjection).name));
 	data.push_back(wxVariant(std::to_string(simulation.numIterations)));
 	data.push_back(wxVariant(formatFloat(simulation.prevElection2pp, 2)));
 	data.push_back(wxVariant(formatFloat(simulation.stateSD, 3)));

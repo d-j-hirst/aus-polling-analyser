@@ -22,7 +22,7 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 	isNewSimulation(isNewSimulation), parent(parent), project(project), simulation(simulation)
 {
 	// If a model has not been specified it should default to the first.
-	if (this->simulation.baseProjection == nullptr) this->simulation.baseProjection = project->getProjectionPtr(0);
+	if (this->simulation.baseProjection == Projection::InvalidId) this->simulation.baseProjection = 0;
 
 	// Generate the string for the number of iterations
 	std::string numIterationsString = std::to_string(simulation.numIterations);
@@ -66,12 +66,10 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 	// Create the choices for the combo box.
 	// Also check if the poll's pollster matches any of the choices (otherwise it is set to the first).
 	wxArrayString projectionArray;
-	int selectedModel = 0;
-	int count = 0;
-	for (auto it = project->getProjectionBegin(); it != project->getProjectionEnd(); ++it, ++count) {
-		projectionArray.push_back(it->name);
-		if (&*it == simulation.baseProjection) selectedModel = count;
+	for (auto const& projection : project->projections()) {
+		projectionArray.push_back(projection.second.name);
 	}
+	ProjectionCollection::Index selectedProjection = project->projections().idToIndex(simulation.baseProjection);
 
 	// Create the controls for the model combo box.
 	projectionStaticText = new wxStaticText(this, 0, "Base projection:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
@@ -79,7 +77,7 @@ EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame*
 		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23), projectionArray, wxCB_READONLY);
 
 	// Sets the combo box selection to the simulations's base model.
-	projectionComboBox->SetSelection(selectedModel);
+	projectionComboBox->SetSelection(selectedProjection);
 
 	currentHeight += 27;
 
@@ -169,7 +167,7 @@ void EditSimulationFrame::updateTextName(wxCommandEvent& event) {
 void EditSimulationFrame::updateComboBoxBaseProjection(wxCommandEvent& WXUNUSED(event)) {
 
 	// updates the preliminary pollster pointer using the current selection.
-	simulation.baseProjection = project->getProjectionPtr(projectionComboBox->GetCurrentSelection());
+	simulation.baseProjection = project->projections().indexToId(projectionComboBox->GetCurrentSelection());
 }
 
 void EditSimulationFrame::updateTextNumIterations(wxCommandEvent& event) {

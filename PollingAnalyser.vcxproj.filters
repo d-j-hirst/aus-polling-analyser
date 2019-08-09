@@ -161,6 +161,9 @@
     <ClCompile Include="EventCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="ProjectionCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -409,6 +412,9 @@
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
     <ClInclude Include="EventCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="ProjectionCollection.h">
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>

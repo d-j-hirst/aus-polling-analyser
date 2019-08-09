@@ -8,8 +8,10 @@
 class ModelCollection;
 
 class Projection {
-
 public:
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	Projection(std::string name) :
 		name(name) 
 		{}

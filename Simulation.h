@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Party.h"
+#include "Projection.h"
 
 #include <wx/datetime.h>
 
@@ -45,7 +46,7 @@ public:
 
 	int numIterations = 10000;
 
-	Projection const* baseProjection = nullptr;
+	Projection::Id baseProjection = Projection::InvalidId;
 
 	float prevElection2pp = 50.0f;
 	float stateSD = 2.0f;

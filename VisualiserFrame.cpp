@@ -196,30 +196,32 @@ void VisualiserFrame::refreshToolbar() {
 
 	// Prepare the list of models
 	wxArrayString modelArray;
-	for (auto it = project->models().cbegin(); it != project->models().cend(); ++it) {
-		modelArray.push_back(it->second.name);
-	}
 	std::string modelBoxString;
-	if (selectedModel >= int(modelArray.size())) {
-		selectedModel = int(modelArray.size()) - 1;
-	}
-	if (selectedModel >= 0) {
-		modelBoxString = modelArray[selectedModel];
+	if (project->models().count()) {
+		for (auto it = project->models().cbegin(); it != project->models().cend(); ++it) {
+			modelArray.push_back(it->second.name);
+		}
+		if (selectedModel >= int(modelArray.size())) {
+			selectedModel = int(modelArray.size()) - 1;
+		}
+		if (selectedModel >= 0) {
+			modelBoxString = modelArray[selectedModel];
+		}
 	}
 
 	// Prepare the list of projections
 	wxArrayString projectionArray;
-	std::string projectionBoxString = "";
+	std::string projectionBoxString;
 
-	if (project->getProjectionCount()) {
-		for (auto it = project->getProjectionBegin(); it != project->getProjectionEnd(); ++it) {
-			projectionArray.push_back(it->name);
+	if (project->projections().count()) {
+		for (auto projection : project->projections()) {
+			projectionArray.push_back(projection.second.name);
 		}
 		if (selectedProjection >= int(projectionArray.size())) {
 			selectedProjection = int(projectionArray.size()) - 1;
 		}
-		if (selectedModel >= 0) {
-			projectionBoxString = projectionArray[selectedModel];
+		if (selectedProjection >= 0) {
+			projectionBoxString = projectionArray[selectedProjection];
 		}
 	}
 
@@ -501,23 +503,23 @@ void VisualiserFrame::drawModel(Model const& model, wxDC& dc) {
 
 void VisualiserFrame::drawProjections(wxDC& dc) {
 	if (selectedProjection != -1) {
-		Projection const* projection = project->getProjectionPtr(selectedProjection);
-		if (projection->lastUpdated.IsValid()) {
+		Projection const& projection = project->projections().viewByIndex(selectedProjection);
+		if (projection.lastUpdated.IsValid()) {
 			drawProjection(projection, dc);
 		}
 	}
 }
 
-void VisualiserFrame::drawProjection(Projection const* projection, wxDC& dc) {
+void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 	constexpr int NumSigmaLevels = 2;
 	constexpr int SigmaBrightnessChange = 50;
-	Model const& model = project->models().view(projection->baseModel);
-	for (int i = 0; i < int(projection->meanProjection.size()) - 1; ++i) {
+	Model const& model = project->models().view(projection.baseModel);
+	for (int i = 0; i < int(projection.meanProjection.size()) - 1; ++i) {
 		int x = getXFromDate(int(floor(model.effEndDate.GetMJD())) + i);
 		int x2 = getXFromDate(int(floor(model.effEndDate.GetMJD())) + i + 1);
 		for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
-			int y = getYFrom2PP(projection->meanProjection[i] + projection->sdProjection[i] * sigma);
-			int y2 = getYFrom2PP(projection->meanProjection[i + 1] + projection->sdProjection[i + 1] * sigma);
+			int y = getYFrom2PP(projection.meanProjection[i] + projection.sdProjection[i] * sigma);
+			int y2 = getYFrom2PP(projection.meanProjection[i + 1] + projection.sdProjection[i + 1] * sigma);
 			int greyLevel = (abs(sigma) + 1) * SigmaBrightnessChange;
 			dc.SetPen(wxPen(wxColour(greyLevel, greyLevel, greyLevel)));
 			dc.DrawLine(x, y, x2, y2);

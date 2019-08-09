@@ -18,7 +18,8 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	pollsterCollection(*this),
 	pollCollection(*this),
 	eventCollection(*this),
-	modelCollection(*this)
+	modelCollection(*this),
+	projectionCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
@@ -33,7 +34,8 @@ PollingProject::PollingProject(std::string pathName) :
 	pollsterCollection(*this),
 	pollCollection(*this),
 	eventCollection(*this),
-	modelCollection(*this)
+	modelCollection(*this),
+	projectionCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -236,8 +238,8 @@ int PollingProject::getLatestDate() const {
 		int date = int(floor(modelIt->second.endDate.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;
 	}
-	for (int i = 0; i < getProjectionCount(); ++i) {
-		int date = int(floor(getProjection(i).endDate.GetModifiedJulianDayNumber()));
+	for (auto projectionIt = projections().cbegin(); projectionIt != projections().cend(); ++projectionIt) {
+		int date = int(floor(projectionIt->second.endDate.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;
 	}
 	return latestDay;
@@ -248,57 +250,9 @@ void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, Model::Id m
 	removeProjectionsFromModel(modelId);
 }
 
-void PollingProject::addProjection(Projection projection) {
-	projections.push_back(projection);
-}
-
-void PollingProject::replaceProjection(int projectionIndex, Projection projection) {
-	*getProjectionPtr(projectionIndex) = projection;
-}
-
-Projection PollingProject::getProjection(int projectionIndex) const {
-	auto it = projections.begin();
-	for (int i = 0; i < projectionIndex; i++) it++;
-	return *it;
-}
-
-Projection* PollingProject::getProjectionPtr(int projectionIndex) {
-	auto it = projections.begin();
-	for (int i = 0; i < projectionIndex; i++) it++;
-	return &*it;
-}
-
-Projection const* PollingProject::getProjectionPtr(int projectionIndex) const {
-	auto it = projections.begin();
-	for (int i = 0; i < projectionIndex; i++) it++;
-	return &*it;
-}
-
-void PollingProject::removeProjection(int projectionIndex) {
-	auto it = projections.begin();
-	for (int i = 0; i < projectionIndex; i++) it++;
-	projections.erase(it);
-}
-
-int PollingProject::getProjectionCount() const {
-	return projections.size();
-}
-
-std::list<Projection>::const_iterator PollingProject::getProjectionBegin() const {
-	return projections.begin();
-}
-
-std::list<Projection>::const_iterator PollingProject::getProjectionEnd() const {
-	return projections.end();
-}
-
-int PollingProject::getProjectionIndex(Projection const* const projectionPtr) {
-	int i = 0;
-	for (auto it = projections.begin(); it != projections.end(); it++) {
-		if (&*it == projectionPtr) return i;
-		i++;
-	}
-	return -1;
+void PollingProject::adjustAfterProjectionRemoval(ProjectionCollection::Index, Projection::Id projectionId)
+{
+	removeSimulationsFromProjection(projectionId);
 }
 
 void PollingProject::addRegion(Region region) {
@@ -685,7 +639,8 @@ int PollingProject::save(std::string filename) {
 		}
 	}
 	os << "#Projections" << "\n";
-	for (auto const& thisProjection : projections) {
+	for (auto const& projectionPair : projectionCollection) {
+		Projection const& thisProjection = projectionPair.second;
 		os << "@Projection" << "\n";
 		os << "name=" << thisProjection.name << "\n";
 		os << "iter=" << thisProjection.numIterations << "\n";
@@ -740,7 +695,7 @@ int PollingProject::save(std::string filename) {
 		os << "@Simulation" << "\n";
 		os << "name=" << thisSimulation.name << "\n";
 		os << "iter=" << thisSimulation.numIterations << "\n";
-		os << "base=" << getProjectionIndex(thisSimulation.baseProjection) << "\n";
+		os << "base=" << projections().idToIndex(thisSimulation.baseProjection) << "\n";
 		os << "prev=" << thisSimulation.prevElection2pp << "\n";
 		os << "stsd=" << thisSimulation.stateSD << "\n";
 		os << "stde=" << thisSimulation.stateDecay << "\n";
@@ -766,8 +721,8 @@ bool PollingProject::isValid() {
 }
 
 void PollingProject::invalidateProjectionsFromModel(Model::Id modelId) {
-	for (auto& thisProjection : projections) {
-		if (thisProjection.baseModel == modelId) { thisProjection.lastUpdated = wxInvalidDateTime; }
+	for (auto& thisProjection : projections()) {
+		if (thisProjection.second.baseModel == modelId) { thisProjection.second.lastUpdated = wxInvalidDateTime; }
 	}
 }
 
@@ -877,7 +832,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Projections) {
 		if (!line.compare("@Projection")) {
-			projections.push_back(Projection());
+			projectionCollection.add(Projection());
 			return true;
 		}
 	}
@@ -1112,51 +1067,49 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Projections) {
-		if (!projections.size()) return true; //prevent crash from mixed-up data.
-		auto it = projections.end();
-		it--;
+		if (!projectionCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			projectionCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iter=")) {
-			it->numIterations = std::stoi(line.substr(5));
+			projectionCollection.back().numIterations = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("base=")) {
-			it->baseModel = std::stoi(line.substr(5));
+			projectionCollection.back().baseModel = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("end =")) {
-			it->endDate = wxDateTime(std::stod(line.substr(5)));
+			projectionCollection.back().endDate = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("updt=")) {
-			it->lastUpdated = wxDateTime(std::stod(line.substr(5)));
+			projectionCollection.back().lastUpdated = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("dlyc=")) {
-			it->dailyChange = std::stof(line.substr(5));
+			projectionCollection.back().dailyChange = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("inic=")) {
-			it->initialStdDev = std::stof(line.substr(5));
+			projectionCollection.back().initialStdDev = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("vtls=")) {
-			it->leaderVoteDecay = std::stof(line.substr(5));
+			projectionCollection.back().leaderVoteDecay = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("nele=")) {
-			it->numElections = std::stoi(line.substr(5));
+			projectionCollection.back().numElections = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mean=")) {
-			it->meanProjection.push_back(std::stod(line.substr(5)));
+			projectionCollection.back().meanProjection.push_back(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stdv=")) {
-			it->sdProjection.push_back(std::stod(line.substr(5)));
+			projectionCollection.back().sdProjection.push_back(std::stod(line.substr(5)));
 			return true;
 		}
 	}
@@ -1287,7 +1240,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("base=")) {
-			it->baseProjection = getProjectionPtr(std::stoi(line.substr(5)));
+			it->baseProjection = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("prev=")) {
@@ -1341,9 +1294,16 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 }
 
 void PollingProject::removeProjectionsFromModel(Model::Id modelId) {
-	for (int i = 0; i < getProjectionCount(); i++) {
-		Projection* projection = getProjectionPtr(i);
-		if (projection->baseModel == modelId) { removeProjection(i); i--; }
+	for (auto const& projection : projections()) {
+		if (projection.second.baseModel == modelId) projections().remove(projection.first);
+	}
+}
+
+void PollingProject::removeSimulationsFromProjection(Projection::Id projectionId)
+{
+	for (int i = 0; i < getSimulationCount(); i++) {
+		Simulation* simulation = getSimulationPtr(i);
+		if (simulation->baseProjection == projectionId) { removeSimulation(i); i--; }
 	}
 }
 
