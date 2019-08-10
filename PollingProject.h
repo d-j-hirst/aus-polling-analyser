@@ -269,6 +269,9 @@ private:
 	void adjustCandidatesAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 	void adjustAffiliationsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
+	// If a region is removed, seats pointing to it need to have their region reset to the default
+	void adjustSeatsAfterRegionRemoval(Region const* region);
+
 	// Makes adjustments after a file has been loaded.
 	void finalizeFileLoading();
 

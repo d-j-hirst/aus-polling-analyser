@@ -284,6 +284,7 @@ Region const* PollingProject::getRegionPtr(int regionIndex) const {
 void PollingProject::removeRegion(int regionIndex) {
 	auto it = regions.begin();
 	for (int i = 0; i < regionIndex; i++) it++;
+	adjustSeatsAfterRegionRemoval(&*it);
 	regions.erase(it);
 	calculateRegionSwingDeviations();
 }
@@ -1329,6 +1330,14 @@ void PollingProject::adjustAffiliationsAfterPartyRemoval(PartyCollection::Index,
 {
 	for (auto& affiliation : affiliationParties) {
 		if (affiliation.second == partyId) affiliation.second = -1;
+	}
+}
+
+void PollingProject::adjustSeatsAfterRegionRemoval(Region const * region)
+{
+	for (int i = 0; i < getSeatCount(); i++) {
+		Seat* seat = getSeatPtr(i);
+		if (seat->region == region) seat->region = &*regions.begin();
 	}
 }
 

@@ -13,30 +13,14 @@
 #include "wx/wx.h"
 #endif
 
-#include "wx/dataview.h"
-
-#include <memory>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "Region.h"
-#include "EditRegionFrame.h"
+
+#include "wx/dataview.h"
+#include "wx/bookctrl.h"
 
 class ProjectFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_RegionsFrame_Base = 250, // To avoid mixing events with other frames.
-	PA_RegionsFrame_FrameID,
-	PA_RegionsFrame_DataViewID,
-	PA_RegionsFrame_NewRegionID,
-	PA_RegionsFrame_EditRegionID,
-	PA_RegionsFrame_RemoveRegionID,
-};
 
 // *** PartiesFrame ***
 // Frame that allows the user to add/delete/modify political region data.
@@ -54,6 +38,17 @@ public:
 	void OnEditRegionReady(Region& region);
 
 private:
+
+	// Creates the tool bar and its icons
+	void setupToolBar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	// refresh the (already existing) data table
+	void refreshDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -79,19 +74,8 @@ private:
 	// does everything required to replace the currently selected region with "region".
 	void replaceRegion(Region region);
 
-	// replaces the currently selected region with "region" in region data.
-	// Should not be used except within replaceRegion.
-	void replaceRegionInRegionData(Region region);
-
 	// does everything required to remove the currently selected region, if possible.
 	void removeRegion();
-
-	// removes the currently selected region from region data.
-	// Should not be used except within removeRegion.
-	void removeRegionFromRegionData();
-
-	// refreshes the displayed data.
-	void refreshData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

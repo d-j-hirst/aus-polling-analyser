@@ -1,23 +1,40 @@
 #include "RegionsFrame.h"
+
+#include "EditRegionFrame.h"
 #include "General.h"
 
-enum RegionColumnsEnum {
-	RegionColumn_Name,
-	RegionColumn_LastElection2PP,
-	RegionColumn_Population,
-	RegionColumn_Sample2PP,
-	RegionColumn_SwingDeviation,
-	RegionColumn_AdditionalUncertainty,
+enum ControlId {
+	Base = 250, // To avoid mixing events with other frames.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
 };
 
 // frame constructor
 RegionsFrame::RegionsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_RegionsFrame_FrameID, "Regions", wxPoint(0, 218), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Regions", wxPoint(0, 218), project),
 	refresher(refresher)
 {
+	setupToolBar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
+	updateInterface();
 
-	// *** Toolbar *** //
+}
 
+void RegionsFrame::OnNewRegionReady(Region& region) {
+	addRegion(region);
+}
+
+void RegionsFrame::OnEditRegionReady(Region& region) {
+	replaceRegion(region);
+}
+
+void RegionsFrame::setupToolBar()
+{
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
 	wxBitmap toolBarBitmaps[3];
@@ -29,50 +46,63 @@ RegionsFrame::RegionsFrame(ProjectFrame::Refresher refresher, PollingProject* pr
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_RegionsFrame_NewRegionID, "New Region", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Region");
-	toolBar->AddTool(PA_RegionsFrame_EditRegionID, "Edit Region", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Region");
-	toolBar->AddTool(PA_RegionsFrame_RemoveRegionID, "Remove Region", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Region");
+	toolBar->AddTool(ControlId::New, "New Region", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Region");
+	toolBar->AddTool(ControlId::Edit, "Edit Region", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Region");
+	toolBar->AddTool(ControlId::Remove, "Remove Region", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Region");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
 
-	// *** Region Data Table *** //
-
+void RegionsFrame::setupDataTable()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
 	// Create the region data control.
 	regionData = new wxDataViewListCtrl(dataPanel,
-		PA_RegionsFrame_DataViewID,
+		ControlId::DataView,
 		wxDefaultPosition,
 		dataPanel->GetClientSize());
+}
 
-	// *** Region Data Table Columns *** //
+void RegionsFrame::refreshDataTable() {
+	regionData->DeleteAllItems();
+	regionData->ClearColumns();
 
-	refreshData();
+	regionData->AppendTextColumn("Region Name", wxDATAVIEW_CELL_INERT, 122); // wide enough to fit the title
+	regionData->AppendTextColumn("Population", wxDATAVIEW_CELL_INERT, 90); // wide enough to fit the title
+	regionData->AppendTextColumn("Previous Election 2PP", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
+	regionData->AppendTextColumn("Sample 2PP", wxDATAVIEW_CELL_INERT, 90); // wide enough to fit the title
+	regionData->AppendTextColumn("Swing Deviation", wxDATAVIEW_CELL_INERT, 120); // wide enough to fit the title
+	regionData->AppendTextColumn("Additional Uncertainty", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
 
-	updateInterface();
+	for (int i = 0; i < project->getRegionCount(); ++i) {
+		addRegionToRegionData(project->getRegion(i));
+	}
 
-	// *** Binding Events *** //
+}
 
+void RegionsFrame::bindEventHandlers()
+{
 	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &RegionsFrame::OnResize, this, PA_RegionsFrame_FrameID);
+	Bind(wxEVT_SIZE, &RegionsFrame::OnResize, this, ControlId::Frame);
 
 	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &RegionsFrame::OnNewRegion, this, PA_RegionsFrame_NewRegionID);
-	Bind(wxEVT_TOOL, &RegionsFrame::OnEditRegion, this, PA_RegionsFrame_EditRegionID);
-	Bind(wxEVT_TOOL, &RegionsFrame::OnRemoveRegion, this, PA_RegionsFrame_RemoveRegionID);
+	Bind(wxEVT_TOOL, &RegionsFrame::OnNewRegion, this, ControlId::New);
+	Bind(wxEVT_TOOL, &RegionsFrame::OnEditRegion, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &RegionsFrame::OnRemoveRegion, this, ControlId::Remove);
 
 	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &RegionsFrame::OnSelectionChange, this, PA_RegionsFrame_DataViewID);
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &RegionsFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
 void RegionsFrame::addRegion(Region region) {
 	// Simultaneously add to the region data control and to the polling project.
 	project->addRegion(region);
 
-	refreshData();
+	refreshDataTable();
 
 	updateInterface();
 }
@@ -95,7 +125,7 @@ void RegionsFrame::replaceRegion(Region region) {
 	// Simultaneously replace data in the region data control and the polling project.
 	project->replaceRegion(regionIndex, region);
 
-	refreshData();
+	refreshDataTable();
 
 	updateInterface();
 }
@@ -104,14 +134,9 @@ void RegionsFrame::removeRegion() {
 	// Simultaneously add to the region data control and to the polling project.
 	project->removeRegion(regionData->GetSelectedRow());
 
-	refreshData();
+	refreshDataTable();
 
 	updateInterface();
-}
-
-void RegionsFrame::removeRegionFromRegionData() {
-	// Create a vector with all the region data.
-	regionData->DeleteItem(regionData->GetSelectedRow());
 }
 
 void RegionsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
@@ -177,33 +202,8 @@ void RegionsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 	updateInterface();
 }
 
-void RegionsFrame::OnNewRegionReady(Region& region) {
-	addRegion(region);
-}
-
-void RegionsFrame::OnEditRegionReady(Region& region) {
-	replaceRegion(region);
-}
-
-void RegionsFrame::refreshData() {
-	regionData->DeleteAllItems();
-	regionData->ClearColumns();
-
-	regionData->AppendTextColumn("Region Name", wxDATAVIEW_CELL_INERT, 122); // wide enough to fit the title
-	regionData->AppendTextColumn("Population", wxDATAVIEW_CELL_INERT, 90); // wide enough to fit the title
-	regionData->AppendTextColumn("Previous Election 2PP", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
-	regionData->AppendTextColumn("Sample 2PP", wxDATAVIEW_CELL_INERT, 90); // wide enough to fit the title
-	regionData->AppendTextColumn("Swing Deviation", wxDATAVIEW_CELL_INERT, 120); // wide enough to fit the title
-	regionData->AppendTextColumn("Additional Uncertainty", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
-
-	for (int i = 0; i < project->getRegionCount(); ++i) {
-		addRegionToRegionData(project->getRegion(i));
-	}
-
-}
-
 void RegionsFrame::updateInterface() {
 	bool somethingSelected = (regionData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_RegionsFrame_EditRegionID, somethingSelected);
-	toolBar->EnableTool(PA_RegionsFrame_RemoveRegionID, somethingSelected);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 }
