@@ -193,6 +193,10 @@ void EditPartyFrame::createOkCancelButtons(int & y)
 	// Create the OK and cancel buttons.
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, TextInput::Height));
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, y), wxSize(100, TextInput::Height));
+
+	// Bind events to the functions that should be carried out by them.
+	Bind(wxEVT_BUTTON, &EditPartyFrame::OnOK, this, ControlId::Ok);
+	y += TextInput::Height + ControlPadding;
 }
 
 void EditPartyFrame::setFinalWindowHeight(int y)

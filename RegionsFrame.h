@@ -31,13 +31,15 @@ public:
 	// "project" is a pointer to the polling project object.
 	RegionsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
-	// Calls on the frame to create a new region based on "Region".
-	void OnNewRegionReady(Region& region);
-
-	// Calls on the frame to edit the currently selected region based on "Region".
-	void OnEditRegionReady(Region& region);
-
 private:
+
+	// For the new region dialog to callback once the user has clicked OK.
+	// Adds the new region to the project and updates the data panel.
+	void newRegionCallback(Region region);
+
+	// For the edit region dialog to callback once the user has clicked OK.
+	// Replaces the existing region with the new region and updates the data panel
+	void editRegionCallback(Region region);
 
 	// Creates the tool bar and its icons
 	void setupToolBar();

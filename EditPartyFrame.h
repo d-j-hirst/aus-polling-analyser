@@ -22,7 +22,7 @@ class TextInput;
 
 // *** EditPartyFrame ***
 // Frame that allows the user to edit an already-existing party
-// or create a new one if isNewParty is set to true.
+// or create a new one.
 class EditPartyFrame : public wxDialog
 {
 public:

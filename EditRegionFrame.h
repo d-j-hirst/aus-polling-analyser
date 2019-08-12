@@ -20,86 +20,58 @@
 #include "RegionsFrame.h"
 #include "Region.h"
 
-class RegionsFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum
-{
-	PA_EditRegion_ButtonID_OK,
-	PA_EditRegion_TextBoxID_Name,
-	PA_EditRegion_TextBoxID_Population,
-	PA_EditRegion_TextBoxID_LastElection2pp,
-	PA_EditRegion_TextBoxID_Sample2pp,
-	PA_EditRegion_TextBoxID_AdditionalUncertainty
-};
+class FloatInput;
+class IntInput;
+class TextInput;
 
 // *** EditRegionFrame ***
 // Frame that allows the user to edit an already-existing region
-// or create a new one if isNewRegion is set to true.
+// or create a new one.
 class EditRegionFrame : public wxDialog
 {
 public:
-	// isNewRegion: true if this dialog is for creating a new region, false if it's for editing.
-	// parent: Parent frame for this (must be a RegionsFrame).
-	// region: Region data to be used if editing (has default values for creating a new region).
-	EditRegionFrame(bool isNewRegion, RegionsFrame* const parent,
+	enum class Function {
+		New,
+		Edit
+	};
+
+	typedef std::function<void(Region)> OkCallback;
+
+	// function: whether this is for a new party or editing an existing party
+	// callback: function to be called when this 
+	EditRegionFrame(Function function, OkCallback callback,
 		Region region = Region("Enter region name here", 0 , 50.0f, 50.0f));
+
+private:
+
+	void createControls(int& y);
+
+	// Each of these takes a value for the current y-position
+	void createNameInput(int& y);
+	void createPopulationInput(int& y);
+	void createLastElection2ppInput(int& y);
+	void createSample2pp(int& y);
+	void createAdditionalUncertainty(int& y);
+
+	void createOkCancelButtons(int& y);
+
+	void setFinalWindowHeight(int y);
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
-private:
-
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextName(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary population data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextPopulation(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary last election 2pp data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextLastElection2pp(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary sample 2pp data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextSample2pp(wxCommandEvent& event);
-
-	// Calls upon the window to update the additional uncertainty data based on
-	// the result of the GetFloat() method of "event".
-	void updateTextAdditionalUncertainty(wxCommandEvent& event);
-
 	// Data container for the preliminary settings for the region to be created.
 	Region region;
 
-	// Control pointers that are really only here to shut up the
-	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* nameStaticText;
-	wxTextCtrl* nameTextCtrl;
-	wxStaticText* populationStaticText;
-	wxTextCtrl* populationTextCtrl;
-	wxStaticText* lastElection2ppStaticText;
-	wxTextCtrl* lastElection2ppTextCtrl;
-	wxStaticText* sample2ppStaticText;
-	wxTextCtrl* sample2ppTextCtrl;
-	wxStaticText* additionalUncertaintyStaticText;
-	wxTextCtrl* additionalUncertaintyTextCtrl;
+	std::unique_ptr<TextInput> nameInput;
+	std::unique_ptr<IntInput> populationInput;
+	std::unique_ptr<FloatInput> lastElection2ppInput;
+	std::unique_ptr<FloatInput> sample2ppInput;
+	std::unique_ptr<FloatInput> additionalUncertaintyInput;
+
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	// A pointer to the parent frame.
-	RegionsFrame* const parent;
-
-	// Stores whether this dialog is for creating a new region (true) or editing an existing one (false).
-	bool isNewRegion;
-
-	std::string lastPopulation;
-	std::string lastLastElection2pp;
-	std::string lastSample2pp;
-	std::string lastAdditionalUncertainty;
+	// function to call back to once the user clicks OK.
+	OkCallback callback;
 };

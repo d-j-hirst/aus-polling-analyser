@@ -3,6 +3,8 @@
 #include "EditRegionFrame.h"
 #include "General.h"
 
+using namespace std::placeholders; // for function object parameter binding
+
 enum ControlId {
 	Base = 250, // To avoid mixing events with other frames.
 	Frame,
@@ -22,15 +24,18 @@ RegionsFrame::RegionsFrame(ProjectFrame::Refresher refresher, PollingProject* pr
 	refreshDataTable();
 	bindEventHandlers();
 	updateInterface();
-
 }
 
-void RegionsFrame::OnNewRegionReady(Region& region) {
+void RegionsFrame::newRegionCallback(Region region)
+{
 	addRegion(region);
+	refresher.refreshSeatData();
 }
 
-void RegionsFrame::OnEditRegionReady(Region& region) {
+void RegionsFrame::editRegionCallback(Region region)
+{
 	replaceRegion(region);
+	refresher.refreshSeatData();
 }
 
 void RegionsFrame::setupToolBar()
@@ -135,6 +140,7 @@ void RegionsFrame::removeRegion() {
 	project->removeRegion(regionData->GetSelectedRow());
 
 	refreshDataTable();
+	refresher.refreshSeatData();
 
 	updateInterface();
 }
@@ -146,8 +152,10 @@ void RegionsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void RegionsFrame::OnNewRegion(wxCommandEvent& WXUNUSED(event)) {
 
-	// Create the new project frame (where initial settings for the new project are chosen).
-	EditRegionFrame *frame = new EditRegionFrame(true, this);
+	// This binding is needed to pass a member function as a callback for the EditRegionFrame
+	auto callback = std::bind(&RegionsFrame::newRegionCallback, this, _1);
+
+	EditRegionFrame *frame = new EditRegionFrame(EditRegionFrame::Function::New, callback);
 
 	// Show the frame.
 	frame->ShowModal();
@@ -164,8 +172,11 @@ void RegionsFrame::OnEditRegion(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no region selected, just stop.
 	if (regionIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&RegionsFrame::editRegionCallback, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditRegionFrame *frame = new EditRegionFrame(false, this, project->getRegion(regionIndex));
+	EditRegionFrame *frame = new EditRegionFrame(EditRegionFrame::Function::New, callback, project->getRegion(regionIndex));
 
 	// Show the frame.
 	frame->ShowModal();

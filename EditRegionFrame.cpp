@@ -1,214 +1,105 @@
 #include "EditRegionFrame.h"
+
+#include "FloatInput.h"
 #include "General.h"
+#include "IntInput.h"
+#include "TextInput.h"
 
-EditRegionFrame::EditRegionFrame(bool isNewRegion, RegionsFrame* const parent, Region region)
-	: wxDialog(NULL, 0, (isNewRegion ? "New Region" : "Edit Region")),
-	isNewRegion(isNewRegion), parent(parent), region(region)
+constexpr int ControlPadding = 4;
+
+enum ControlId
 {
-	std::string populationString = formatFloat(region.population, 0);
+	Ok,
+	Name,
+	Population,
+	LastElection2pp,
+	Sample2pp,
+	AdditionalUncertainty
+};
 
-	lastPopulation = populationString;
+EditRegionFrame::EditRegionFrame(Function function, OkCallback callback, Region region)
+	: wxDialog(NULL, 0, (function == Function::New ? "New Region" : "Edit Region")),
+	callback(callback), region(region)
+{
+	int currentY = ControlPadding;
+	createControls(currentY);
+	setFinalWindowHeight(currentY);
+}
 
-	std::string lastElection2ppString = formatFloat(region.lastElection2pp, 2);
+void EditRegionFrame::createControls(int & y)
+{
+	createNameInput(y);
+	createPopulationInput(y);
+	createLastElection2ppInput(y);
+	createSample2pp(y);
+	createAdditionalUncertainty(y);
 
-	lastLastElection2pp = lastElection2ppString;
+	createOkCancelButtons(y);
+}
 
-	std::string sample2ppString = formatFloat(region.sample2pp, 2);
+void EditRegionFrame::createNameInput(int & y)
+{
+	auto nameCallback = [this](std::string s) -> void {region.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", region.name, wxPoint(2, y), nameCallback));
+	y += nameInput->Height + ControlPadding;
+}
 
-	lastSample2pp = sample2ppString;
+void EditRegionFrame::createPopulationInput(int & y)
+{
+	auto populationCallback = [this](int i) -> void {region.population = i; };
+	auto populationValidator = [](int i) {return std::max(1, i); };
+	populationInput.reset(new IntInput(this, ControlId::Population, "Population:", region.population,
+		wxPoint(2, y), populationCallback, populationValidator));
+	y += populationInput->Height + ControlPadding;
+}
 
-	std::string additionalUncertaintyString = formatFloat(region.additionalUncertainty, 2);
+void EditRegionFrame::createLastElection2ppInput(int & y)
+{
+	auto lastElection2ppCallback = [this](float f) -> void {region.lastElection2pp = f; };
+	auto lastElection2ppValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	lastElection2ppInput.reset(new FloatInput(this, ControlId::LastElection2pp, "Last election 2pp vote:", region.lastElection2pp,
+		wxPoint(2, y), lastElection2ppCallback, lastElection2ppValidator));
+	y += lastElection2ppInput->Height + ControlPadding;
+}
 
-	lastAdditionalUncertainty = additionalUncertaintyString;
+void EditRegionFrame::createSample2pp(int & y)
+{
+	auto sample2ppCallback = [this](float f) -> void {region.sample2pp = f; };
+	auto sample2ppValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	sample2ppInput.reset(new FloatInput(this, ControlId::Sample2pp, "Polling average 2pp vote:", region.sample2pp,
+		wxPoint(2, y), sample2ppCallback, sample2ppValidator));
+	y += sample2ppInput->Height + ControlPadding;
+}
 
-	float currentHeight = 2;
+void EditRegionFrame::createAdditionalUncertainty(int & y)
+{
+	auto additionalUncertaintyCallback = [this](float f) -> void {region.additionalUncertainty = f; };
+	auto additionalUncertaintyValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	additionalUncertaintyInput.reset(new FloatInput(this, ControlId::AdditionalUncertainty, "Additional uncertainty:", region.additionalUncertainty,
+		wxPoint(2, y), additionalUncertaintyCallback, additionalUncertaintyValidator));
+	y += additionalUncertaintyInput->Height + ControlPadding;
+}
 
-	int const textBoxWidth = 150;
-
-	// Create the controls for the region name.
-	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight), wxSize(100, 23));
-	nameTextCtrl = new wxTextCtrl(this, PA_EditRegion_TextBoxID_Name, region.name, wxPoint(100, currentHeight - 2), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the region population.
-	populationStaticText = new wxStaticText(this, 0, "Population:", wxPoint(2, currentHeight), wxSize(100, 23));
-	populationTextCtrl = new wxTextCtrl(this, PA_EditRegion_TextBoxID_Population, populationString,
-		wxPoint(100, currentHeight - 2), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the region weight.
-	lastElection2ppStaticText = new wxStaticText(this, 0, "Last Election 2PP:", wxPoint(2, currentHeight), wxSize(100, 23));
-	lastElection2ppTextCtrl = new wxTextCtrl(this, PA_EditRegion_TextBoxID_LastElection2pp, lastElection2ppString,
-		wxPoint(100, currentHeight - 2), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the region weight.
-	sample2ppStaticText = new wxStaticText(this, 0, "Sample 2PP:", wxPoint(2, currentHeight), wxSize(100, 23));
-	sample2ppTextCtrl = new wxTextCtrl(this, PA_EditRegion_TextBoxID_Sample2pp, sample2ppString,
-		wxPoint(100, currentHeight - 2), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the region weight.
-	additionalUncertaintyStaticText = new wxStaticText(this, 0, "Additional Uncertainty:", wxPoint(2, currentHeight), wxSize(100, 23));
-	additionalUncertaintyTextCtrl = new wxTextCtrl(this, PA_EditRegion_TextBoxID_AdditionalUncertainty, additionalUncertaintyString,
-		wxPoint(100, currentHeight - 2), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
+void EditRegionFrame::createOkCancelButtons(int & y)
+{
 	// Create the OK and cancel buttons.
-	okButton = new wxButton(this, PA_EditRegion_ButtonID_OK, "OK", wxPoint(67, currentHeight), wxSize(100, 24));
-	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
+	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, TextInput::Height));
+	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, y), wxSize(100, TextInput::Height));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &EditRegionFrame::updateTextName, this, PA_EditRegion_TextBoxID_Name);
-	Bind(wxEVT_TEXT, &EditRegionFrame::updateTextPopulation, this, PA_EditRegion_TextBoxID_Population);
-	Bind(wxEVT_TEXT, &EditRegionFrame::updateTextLastElection2pp, this, PA_EditRegion_TextBoxID_LastElection2pp);
-	Bind(wxEVT_TEXT, &EditRegionFrame::updateTextSample2pp, this, PA_EditRegion_TextBoxID_Sample2pp);
-	Bind(wxEVT_TEXT, &EditRegionFrame::updateTextAdditionalUncertainty, this, PA_EditRegion_TextBoxID_AdditionalUncertainty);
-	Bind(wxEVT_BUTTON, &EditRegionFrame::OnOK, this, PA_EditRegion_ButtonID_OK);
+	Bind(wxEVT_BUTTON, &EditRegionFrame::OnOK, this, ControlId::Ok);
+	y += TextInput::Height + ControlPadding;
+}
+
+void EditRegionFrame::setFinalWindowHeight(int y)
+{
+	SetClientSize(wxSize(GetClientSize().x, y));
 }
 
 void EditRegionFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
-
-	if (isNewRegion) {
-		// Get the parent frame to add a new region
-		parent->OnNewRegionReady(region);
-	}
-	else {
-		// Get the parent frame to replace the old region with the current one
-		parent->OnEditRegionReady(region);
-	}
+	// Call the function that was passed when this frame was opened.
+	callback(region);
 
 	// Then close this dialog.
 	Close();
-}
-
-void EditRegionFrame::updateTextName(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	region.name = event.GetString();
-}
-
-void EditRegionFrame::updateTextPopulation(wxCommandEvent& event) {
-
-	// updates the preliminary weight data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			region.population = 0;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float i = std::stoi(str); // This may throw an error of the std::logic_error type.
-		if (i > 1000000000) i = 1000000000;
-		if (i < 0) i = 0;
-
-		region.population = i;
-
-		// save this valid string in case the next text entry gives an error.
-		lastPopulation = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		populationTextCtrl->SetLabel(lastPopulation);
-	}
-}
-
-void EditRegionFrame::updateTextLastElection2pp(wxCommandEvent& event) {
-
-	// updates the preliminary weight data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			region.lastElection2pp = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < 0.0f) f = 0.0f;
-
-		region.lastElection2pp = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastLastElection2pp = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		lastElection2ppTextCtrl->SetLabel(lastLastElection2pp);
-	}
-}
-
-void EditRegionFrame::updateTextSample2pp(wxCommandEvent& event) {
-
-	// updates the preliminary weight data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			region.sample2pp = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < 0.0f) f = 0.0f;
-
-		region.sample2pp = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastSample2pp = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		sample2ppTextCtrl->SetLabel(lastSample2pp);
-	}
-}
-
-void EditRegionFrame::updateTextAdditionalUncertainty(wxCommandEvent& event) {
-
-	// updates the preliminary weight data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			region.sample2pp = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < 0.0f) f = 0.0f;
-
-		region.additionalUncertainty = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastAdditionalUncertainty = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		additionalUncertaintyTextCtrl->SetLabel(lastAdditionalUncertainty);
-	}
 }
