@@ -13,9 +13,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "PollsFrame.h"
 #include "Poll.h"
-#include "PollsterCollection.h"
 
 class ChoiceInput;
 class DateInput;
@@ -25,7 +23,7 @@ class PollsterCollection;
 
 // *** EditPollFrame ***
 // Frame that allows the user to edit an already-existing poll
-// or create a new one if isNewPoll is set to true.
+// or create a new one
 class EditPollFrame : public wxDialog
 {
 public:

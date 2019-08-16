@@ -1,184 +1,192 @@
 #include "EditSeatFrame.h"
-#include "SeatsFrame.h"
-#include "PollingProject.h"
-#include "General.h"
 
-EditSeatFrame::EditSeatFrame(bool isNewSeat, SeatsFrame* const parent, PollingProject* project, Seat seat)
-	: wxDialog(NULL, 0, (isNewSeat ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 371)),
-	isNewSeat(isNewSeat), parent(parent), project(project), seat(seat)
+#include "ChoiceInput.h"
+#include "FloatInput.h"
+#include "General.h"
+#include "TextInput.h"
+
+constexpr int ControlPadding = 4;
+
+enum ControlId
 {
-	int partyCount = project->parties().count();
+	Base = 650, // To avoid mixing events with other frames.
+	Ok,
+	Name,
+	PreviousName,
+	Incumbent,
+	Challenger,
+	Challenger2,
+	Region,
+	Margin,
+	LocalModifier,
+	IncumbentOdds,
+	ChallengerOdds,
+	Challenger2Odds,
+};
+
+EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
+	RegionCollection const& regions, Seat seat)
+	: wxDialog(NULL, 0, (function == Function::New ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 371)),
+	callback(callback), parties(parties), regions(regions), seat(seat)
+{
+	validateSeatParties();
+	int currentY = ControlPadding;
+	createControls(currentY);
+	setFinalWindowHeight(currentY);
+}
+
+void EditSeatFrame::validateSeatParties()
+{
+	int partyCount = parties.count();
 	// If a model has not been specified it should default to the first.
 	if (this->seat.incumbent == Party::InvalidId) this->seat.incumbent = 0;
 	if (this->seat.challenger == Party::InvalidId) this->seat.challenger = std::min(1, partyCount - 1);
 	if (this->seat.challenger2 == Party::InvalidId) this->seat.challenger2 = partyCount - 1;
-	if (this->seat.region == nullptr) this->seat.region = project->getRegionPtr(0);
+	if (this->seat.region == Region::InvalidId) this->seat.region = regions.indexToId(0);
+}
 
-	// Generate the string for the seat's incumbent's margin
-	std::string marginString = formatFloat(seat.margin, 5);
+void EditSeatFrame::createControls(int & y)
+{
+	createNameInput(y);
+	createPreviousNameInput(y);
+	createIncumbentInput(y);
+	createChallengerInput(y);
+	createChallenger2Input(y);
+	createRegionInput(y);
+	createMarginInput(y);
+	createLocalModifierInput(y);
+	createIncumbentOddsInput(y);
+	createChallengerOddsInput(y);
+	createChallenger2OddsInput(y);
 
-	// Generate the string for the seat's incumbent's local modifier
-	std::string localModifierString = formatFloat(seat.localModifier, 5);
+	createOkCancelButtons(y);
+}
 
-	// Generate the string for the seat's incumbent's betting odds
-	std::string incumbentOddsString = formatFloat(seat.incumbentOdds, 5);
+void EditSeatFrame::createNameInput(int& y)
+{
+	auto nameCallback = [this](std::string s) -> void {seat.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", seat.name, wxPoint(2, y), nameCallback));
+	y += nameInput->Height + ControlPadding;
+}
 
-	// Generate the string for the seat's challengers's challenger odds
-	std::string challengerOddsString = formatFloat(seat.challengerOdds, 5);
+void EditSeatFrame::createPreviousNameInput(int & y)
+{
+	auto nameCallback = [this](std::string s) -> void {seat.previousName = s; };
+	previousNameInput.reset(new TextInput(this, ControlId::PreviousName, "Previous Name:", seat.previousName, wxPoint(2, y), nameCallback));
+	y += nameInput->Height + ControlPadding;
+}
 
-	// Generate the string for the seat's incumbent's second challenger odds
-	std::string challenger2OddsString = formatFloat(seat.challenger2Odds, 5);
+void EditSeatFrame::createIncumbentInput(int & y)
+{
+	int selectedIncumbent = parties.idToIndex(seat.incumbent);
 
-	// Store this string in case a text entry gives an error in the future.
-	lastMargin = marginString;
+	auto incumbentCallback = [this](int i) {seat.incumbent = parties.indexToId(i); };
+	incumbentInput.reset(new ChoiceInput(this, ControlId::Incumbent, "Incumbent: ", collectPartyStrings(),
+		selectedIncumbent, wxPoint(2, y), incumbentCallback));
+	y += incumbentInput->Height + ControlPadding;
+}
 
-	lastLocalModifier = localModifierString;
+void EditSeatFrame::createChallengerInput(int & y)
+{
+	int selectedChallenger = parties.idToIndex(seat.challenger);
 
-	lastIncumbentOdds = incumbentOddsString;
+	auto challengerCallback = [this](int i) {seat.challenger = parties.indexToId(i); };
+	challengerInput.reset(new ChoiceInput(this, ControlId::Challenger, "Challenger: ", collectPartyStrings(),
+		selectedChallenger, wxPoint(2, y), challengerCallback));
+	y += challengerInput->Height + ControlPadding;
+}
 
-	lastChallengerOdds = challengerOddsString;
+void EditSeatFrame::createChallenger2Input(int & y)
+{
+	int selectedChallenger2 = parties.idToIndex(seat.challenger2);
 
-	lastChallenger2Odds = challenger2OddsString;
+	auto challenger2Callback = [this](int i) {seat.challenger2 = parties.indexToId(i); };
+	challenger2Input.reset(new ChoiceInput(this, ControlId::Challenger2, "Challenger 2: ", collectPartyStrings(),
+		selectedChallenger2, wxPoint(2, y), challenger2Callback));
+	y += challenger2Input->Height + ControlPadding;
+}
 
-	const int labelYOffset = 5;
-
-	int currentHeight = 2;
-
-	int textBoxWidth = 150;
-	int labelWidth = 200;
-
-	// Create the controls for the seat name.
-	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	nameTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_Name, seat.name, wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the seat name.
-	previousNameStaticText = new wxStaticText(this, 0, "Previous Name:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	previousNameTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_PreviousName, seat.previousName, wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// *** Incumbent/Challenger Combo Box *** //
-
-	// Create the choices for the combo box.
-	// Also check if the seat's party matches any of the choices (otherwise it is set to the first).
-	wxArrayString partyArray;
-	int selectedIncumbent = 0;
-	int selectedChallenger = 0;
-	int selectedChallenger2 = 0;
-	int partyNum = 0;
-	for (auto it = project->parties().begin(); it != project->parties().end(); ++it, ++partyNum) {
-		partyArray.push_back(it->second.name);
-		if (it->first == seat.incumbent) selectedIncumbent = partyNum;
-		if (it->first == seat.challenger) selectedChallenger = partyNum;
-		if (it->first == seat.challenger2) selectedChallenger2 = partyNum;
-	}
-
-	// Create the controls for the model combo box.
-	incumbentStaticText = new wxStaticText(this, 0, "Incumbent:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	incumbentComboBox = new wxComboBox(this, PA_EditSeat_ComboBoxID_Incumbent, partyArray[0],
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23), partyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the seats's base model.
-	incumbentComboBox->SetSelection(selectedIncumbent);
-
-	currentHeight += 27;
-
-	// Create the controls for the model combo box.
-	challengerStaticText = new wxStaticText(this, 0, "Challenger:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	challengerComboBox = new wxComboBox(this, PA_EditSeat_ComboBoxID_Challenger, partyArray[0],
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23), partyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the seats's base model.
-	challengerComboBox->SetSelection(selectedChallenger);
-
-	currentHeight += 27;
-
-	// Create the controls for the model combo box.
-	challenger2StaticText = new wxStaticText(this, 0, "Challenger 2:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	challenger2ComboBox = new wxComboBox(this, PA_EditSeat_ComboBoxID_Challenger2, partyArray[0],
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23), partyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the seats's base model.
-	challenger2ComboBox->SetSelection(selectedChallenger2);
-
-	currentHeight += 27;
-
-	// *** Region Combo Box *** //
-
-	// Create the choices for the combo box.
-	// Also check if the seat's region matches any of the choices (otherwise it is set to the first).
+void EditSeatFrame::createRegionInput(int & y)
+{
 	wxArrayString regionArray;
-	int selectedRegion = 0;
-	int regionCount = 0;
-	for (auto it = project->getRegionBegin(); it != project->getRegionEnd(); ++it, ++regionCount) {
-		regionArray.push_back(it->name);
-		if (&*it == seat.region) selectedRegion = regionCount;
+	for (auto it = regions.cbegin(); it != regions.cend(); ++it) {
+		regionArray.push_back(it->second.name);
 	}
+	int selectedRegion = parties.idToIndex(seat.region);
 
-	// Create the controls for the region combo box.
-	regionStaticText = new wxStaticText(this, 0, "Region:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	regionComboBox = new wxComboBox(this, PA_EditSeat_ComboBoxID_Region, regionArray[0],
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23), regionArray, wxCB_READONLY);
+	auto regionCallback = [this](int i) {seat.region = parties.indexToId(i); };
+	regionInput.reset(new ChoiceInput(this, ControlId::Region, "Region: ", regionArray,
+		selectedRegion, wxPoint(2, y), regionCallback));
+	y += regionInput->Height + ControlPadding;
+}
 
-	// Sets the combo box selection to the seats's base model
-	regionComboBox->SetSelection(selectedRegion);
+void EditSeatFrame::createMarginInput(int & y)
+{
+	auto marginCallback = [this](float f) -> void {seat.margin = f; };
+	auto marginValidator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	marginInput.reset(new FloatInput(this, ControlId::Margin, "Margin:", seat.margin,
+		wxPoint(2, y), marginCallback, marginValidator));
+	y += marginInput->Height + ControlPadding;
+}
 
-	currentHeight += 27;
+void EditSeatFrame::createLocalModifierInput(int & y)
+{
+	auto localModifierCallback = [this](float f) -> void {seat.localModifier = f; };
+	auto localModifierValidator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	localModifierInput.reset(new FloatInput(this, ControlId::LocalModifier, "Local Modifier:", seat.localModifier,
+		wxPoint(2, y), localModifierCallback, localModifierValidator));
+	y += localModifierInput->Height + ControlPadding;
+}
 
-	// Create the controls for the seat margin
-	marginStaticText = new wxStaticText(this, 0, "Margin:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	marginTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_Margin, marginString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
+void EditSeatFrame::createIncumbentOddsInput(int & y)
+{
+	auto incumbentOddsCallback = [this](float f) -> void {seat.incumbentOdds = f; };
+	auto incumbentOddsValidator = [](float f) {return std::max(f, 1.0f); };
+	incumbentOddsInput.reset(new FloatInput(this, ControlId::IncumbentOdds, "Incumbent Odds:", seat.incumbentOdds,
+		wxPoint(2, y), incumbentOddsCallback, incumbentOddsValidator));
+	y += incumbentOddsInput->Height + ControlPadding;
+}
 
-	currentHeight += 27;
+void EditSeatFrame::createChallengerOddsInput(int & y)
+{
+	auto challengerOddsCallback = [this](float f) -> void {seat.challengerOdds = f; };
+	auto challengerOddsValidator = [](float f) {return std::max(f, 1.0f); };
+	challengerOddsInput.reset(new FloatInput(this, ControlId::ChallengerOdds, "Challenger Odds:", seat.challengerOdds,
+		wxPoint(2, y), challengerOddsCallback, challengerOddsValidator));
+	y += challengerOddsInput->Height + ControlPadding;
+}
 
-	// Create the controls for the seat local 2pp modifier
-	localModifierStaticText = new wxStaticText(this, 0, "Local Modifier:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	localModifierTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_LocalModifier, localModifierString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
+void EditSeatFrame::createChallenger2OddsInput(int & y)
+{
+	auto challenger2OddsCallback = [this](float f) -> void {seat.challenger2Odds = f; };
+	auto challenger2OddsValidator = [](float f) {return std::max(f, 1.0f); };
+	challenger2OddsInput.reset(new FloatInput(this, ControlId::Challenger2Odds, "Challenger 2 Odds:", seat.challenger2Odds,
+		wxPoint(2, y), challenger2OddsCallback, challenger2OddsValidator));
+	y += challenger2OddsInput->Height + ControlPadding;
+}
 
-	currentHeight += 27;
-
-	// Create the controls for the seat incumbent odds
-	incumbentOddsStaticText = new wxStaticText(this, 0, "Incumbent Odds:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	incumbentOddsTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_IncumbentOdds, incumbentOddsString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the seat challenger odds
-	challengerOddsStaticText = new wxStaticText(this, 0, "Challenger Odds:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	challengerOddsTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_ChallengerOdds, challengerOddsString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the seat second challenger odds
-	challengerOddsStaticText = new wxStaticText(this, 0, "Challenger 2 Odds:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	challenger2OddsTextCtrl = new wxTextCtrl(this, PA_EditSeat_TextBoxID_Challenger2Odds, challenger2OddsString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the OK and cancel buttons.
-	okButton = new wxButton(this, PA_EditSeat_ButtonID_OK, "OK", wxPoint(67, currentHeight), wxSize(100, 24));
-	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
+void EditSeatFrame::createOkCancelButtons(int & y)
+{
+	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
+	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, y), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextName, this, PA_EditSeat_TextBoxID_Name);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextPreviousName, this, PA_EditSeat_TextBoxID_PreviousName);
-	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxIncumbent, this, PA_EditSeat_ComboBoxID_Incumbent);
-	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxChallenger, this, PA_EditSeat_ComboBoxID_Challenger);
-	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxChallenger2, this, PA_EditSeat_ComboBoxID_Challenger2);
-	Bind(wxEVT_COMBOBOX, &EditSeatFrame::updateComboBoxRegion, this, PA_EditSeat_ComboBoxID_Region);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextMargin, this, PA_EditSeat_TextBoxID_Margin);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextLocalModifier, this, PA_EditSeat_TextBoxID_LocalModifier);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextIncumbentOdds, this, PA_EditSeat_TextBoxID_IncumbentOdds);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextChallengerOdds, this, PA_EditSeat_TextBoxID_ChallengerOdds);
-	Bind(wxEVT_TEXT, &EditSeatFrame::updateTextChallenger2Odds, this, PA_EditSeat_TextBoxID_Challenger2Odds);
-	Bind(wxEVT_BUTTON, &EditSeatFrame::OnOK, this, PA_EditSeat_ButtonID_OK);
+	Bind(wxEVT_BUTTON, &EditSeatFrame::OnOK, this, ControlId::Ok);
+	y += FloatInput::Height + ControlPadding;
+}
+
+void EditSeatFrame::setFinalWindowHeight(int y)
+{
+	SetClientSize(wxSize(GetClientSize().x, y));
+}
+
+wxArrayString EditSeatFrame::collectPartyStrings()
+{
+	wxArrayString partyArray;
+	for (auto it = parties.cbegin(); it != parties.cend(); ++it) {
+		partyArray.push_back(it->second.name);
+	}
+	return partyArray;
 }
 
 void EditSeatFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
@@ -191,201 +199,8 @@ void EditSeatFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	if (isNewSeat) {
-		// Get the parent frame to add a new seat
-		parent->OnNewSeatReady(seat);
-	}
-	else {
-		// Get the parent frame to replace the old seat with the current one
-		parent->OnEditSeatReady(seat);
-	}
+	callback(seat);
 
 	// Then close this dialog.
 	Close();
-}
-
-void EditSeatFrame::updateTextName(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	seat.name = event.GetString();
-}
-
-void EditSeatFrame::updateTextPreviousName(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	seat.previousName = event.GetString();
-}
-
-void EditSeatFrame::updateComboBoxIncumbent(wxCommandEvent& WXUNUSED(event)) {
-
-	// updates the preliminary pollster pointer using the current selection.
-	seat.incumbent = incumbentComboBox->GetCurrentSelection();
-}
-
-void EditSeatFrame::updateComboBoxChallenger(wxCommandEvent& WXUNUSED(event)) {
-
-	// updates the preliminary pollster pointer using the current selection.
-	seat.challenger = challengerComboBox->GetCurrentSelection();
-}
-
-void EditSeatFrame::updateComboBoxChallenger2(wxCommandEvent& WXUNUSED(event)) {
-
-	// updates the preliminary pollster pointer using the current selection.
-	seat.challenger2 = challenger2ComboBox->GetCurrentSelection();
-}
-
-void EditSeatFrame::updateComboBoxRegion(wxCommandEvent& WXUNUSED(event)) {
-
-	// updates the preliminary pollster pointer using the current selection.
-	seat.region = project->getRegionPtr(regionComboBox->GetCurrentSelection());
-}
-
-void EditSeatFrame::updateTextMargin(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			seat.margin = 0.0f;
-			return;
-		}
-
-		// convert to a float between 0 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f; // Can't have a margin greater than 100%
-		if (f < -100.0) f = -100.0; // Negative margin can occur for a redistributed seat.
-
-		seat.margin = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastMargin = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		marginTextCtrl->SetLabel(lastMargin);
-	}
-}
-
-void EditSeatFrame::updateTextLocalModifier(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			seat.localModifier = 0.0f;
-			return;
-		}
-
-		// convert to a float between -100 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < -100.0) f = -100.0;
-
-		seat.localModifier = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastLocalModifier = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		localModifierTextCtrl->SetLabel(lastLocalModifier);
-	}
-}
-
-void EditSeatFrame::updateTextIncumbentOdds(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			seat.incumbentOdds = 0.0f;
-			return;
-		}
-
-		// convert to a float between -100 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < -100.0) f = -100.0;
-
-		seat.incumbentOdds = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastIncumbentOdds = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		incumbentOddsTextCtrl->SetLabel(lastIncumbentOdds);
-	}
-}
-
-void EditSeatFrame::updateTextChallengerOdds(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			seat.challengerOdds = 0.0f;
-			return;
-		}
-
-		// convert to a float between -100 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < -100.0) f = -100.0;
-
-		seat.challengerOdds = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastChallengerOdds = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		challengerOddsTextCtrl->SetLabel(lastChallengerOdds);
-	}
-}
-
-void EditSeatFrame::updateTextChallenger2Odds(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			seat.challenger2Odds = 0.0f;
-			return;
-		}
-
-		// convert to a float between -100 and 100.
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f;
-		if (f < -100.0) f = -100.0;
-
-		seat.challenger2Odds = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastChallenger2Odds = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		challenger2OddsTextCtrl->SetLabel(lastChallenger2Odds);
-	}
 }

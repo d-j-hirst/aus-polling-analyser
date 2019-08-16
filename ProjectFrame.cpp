@@ -69,7 +69,7 @@ void ProjectFrame::Refresher::refreshProjectionData() const {
 
 // Refreshes the Seats frame data.
 void ProjectFrame::Refresher::refreshSeatData() const {
-	if (projectFrame.seatsFrame) projectFrame.seatsFrame->refreshData();
+	if (projectFrame.seatsFrame) projectFrame.seatsFrame->refreshDataTable();
 }
 
 // Refreshes the Visualiser frame data.

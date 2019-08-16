@@ -167,7 +167,7 @@ void PollsFrame::removePoll() {
 
 void PollsFrame::OnNewPoll(wxCommandEvent& WXUNUSED(event)) {
 
-	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	// This binding is needed to pass a member function as a callback for the editing frame
 	auto callback = std::bind(&PollsFrame::addPoll, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
@@ -187,7 +187,7 @@ void PollsFrame::OnEditPoll(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (pollIndex == -1) return;
 
-	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	// This binding is needed to pass a member function as a callback for the editing frame
 	auto callback = std::bind(&PollsFrame::replacePoll, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).

@@ -17,9 +17,6 @@
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 
-#include "wx/dataview.h"
-#include "wx/bookctrl.h"
-
 class ProjectFrame;
 
 // *** PartiesFrame ***

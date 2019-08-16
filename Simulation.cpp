@@ -28,13 +28,14 @@ void Simulation::run(PollingProject& project) {
 
 	gen.seed(rd());
 
-	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
-		thisRegion->localModifierAverage = 0.0f;
-		thisRegion->seatCount = 0;
+	for (auto& regionPair : project.regions()) {
+		Region& thisRegion = regionPair.second;
+		thisRegion.localModifierAverage = 0.0f;
+		thisRegion.seatCount = 0;
 
-		thisRegion->liveSwing = 0.0f;
-		thisRegion->livePercentCounted = 0.0f;
-		thisRegion->classicSeatCount = 0;
+		thisRegion.liveSwing = 0.0f;
+		thisRegion.livePercentCounted = 0.0f;
+		thisRegion.classicSeatCount = 0;
 	}
 
 	// Set up anything that needs to be prepared for seats
@@ -49,8 +50,9 @@ void Simulation::run(PollingProject& project) {
 		thisSeat->simulatedMarginAverage = 0;
 		thisSeat->latestResult = nullptr;
 		bool isPartyOne = (thisSeat->incumbent == 0);
-		thisSeat->region->localModifierAverage += thisSeat->localModifier * (isPartyOne ? 1.0f : -1.0f);
-		++thisSeat->region->seatCount;
+		Region& thisRegion = project.regions().access(thisSeat->region);
+		thisRegion.localModifierAverage += thisSeat->localModifier * (isPartyOne ? 1.0f : -1.0f);
+		++thisRegion.seatCount;
 		if (isLiveAutomatic()) determineSeatCachedBoothData(project, *thisSeat);
 	}
 
@@ -63,23 +65,26 @@ void Simulation::run(PollingProject& project) {
 	determinePreviousVoteEnrolmentRatios(project);
 
 	// Resize regional seat counts based on the counted number of seats for each region
-	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
-		thisRegion->partyLeading.clear();
-		thisRegion->partyWins.clear();
-		thisRegion->partyLeading.resize(project.parties().count());
-		thisRegion->partyWins.resize(project.parties().count(), std::vector<int>(thisRegion->seatCount + 1));
+	for (auto& regionPair : project.regions()) {
+		Region& thisRegion = regionPair.second;
+		thisRegion.partyLeading.clear();
+		thisRegion.partyWins.clear();
+		thisRegion.partyLeading.resize(project.parties().count());
+		thisRegion.partyWins.resize(project.parties().count(), std::vector<int>(thisRegion.seatCount + 1));
 	}
 
 	// Record how many seats each party leads in (notionally) in each region
 	for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
-		++thisSeat->region->partyLeading[project.parties().idToIndex(thisSeat->getLeadingParty())];
+		Region& thisRegion = project.regions().access(thisSeat->region);
+		++thisRegion.partyLeading[project.parties().idToIndex(thisSeat->getLeadingParty())];
 	}
 
 	// Some setup - calculating total population here since it's constant across all simulations
 	float totalPopulation = 0.0;
-	for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
-		totalPopulation += float(thisRegion->population);
-		thisRegion->localModifierAverage /= float(thisRegion->seatCount);
+	for (auto& regionPair : project.regions()) {
+		Region& thisRegion = regionPair.second;
+		totalPopulation += float(thisRegion.population);
+		thisRegion.localModifierAverage /= float(thisRegion.seatCount);
 	}
 
 	float liveOverallSwing = 0.0f; // swing to partyOne
@@ -94,15 +99,16 @@ void Simulation::run(PollingProject& project) {
 		for (auto thisSeat = project.getSeatBegin(); thisSeat != project.getSeatEnd(); ++thisSeat) {
 			if (!thisSeat->isClassic2pp(isLiveAutomatic())) continue;
 			++classicSeatCount;
-			++thisSeat->region->classicSeatCount;
+			Region& thisRegion = project.regions().access(thisSeat->region);
+			++thisRegion.classicSeatCount;
 			if (!thisSeat->latestResult) continue;
 			bool incIsOne = thisSeat->incumbent == 0;
 			float percentCounted = thisSeat->latestResult->getPercentCountedEstimate();
 			float weightedSwing = thisSeat->latestResult->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
 			liveOverallSwing += weightedSwing;
-			thisSeat->region->liveSwing += weightedSwing;
+			thisRegion.liveSwing += weightedSwing;
 			liveOverallPercent += percentCounted;
-			thisSeat->region->livePercentCounted += percentCounted;
+			thisRegion.livePercentCounted += percentCounted;
 			sampleRepresentativeness += std::min(2.0f, percentCounted) * 0.5f;
 			total2cpVotes += thisSeat->latestResults->total2cpVotes();
 			totalEnrolment += thisSeat->latestResults->enrolment;
@@ -112,10 +118,11 @@ void Simulation::run(PollingProject& project) {
 			liveOverallPercent /= classicSeatCount;
 			sampleRepresentativeness /= classicSeatCount;
 			sampleRepresentativeness = std::sqrt(sampleRepresentativeness);
-			for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
-				if (!thisRegion->livePercentCounted) continue;
-				thisRegion->liveSwing /= thisRegion->livePercentCounted;
-				thisRegion->livePercentCounted /= thisRegion->classicSeatCount;
+			for (auto& regionPair : project.regions()) {
+				Region& thisRegion = regionPair.second;
+				if (!thisRegion.livePercentCounted) continue;
+				thisRegion.liveSwing /= thisRegion.livePercentCounted;
+				thisRegion.livePercentCounted /= thisRegion.classicSeatCount;
 			}
 		}
 	}
@@ -139,7 +146,7 @@ void Simulation::run(PollingProject& project) {
 	for (currentIteration = 0; currentIteration < numIterations; ++currentIteration) {
 
 		// temporary for storing number of seat wins by each party in each region, 1st index = parties, 2nd index = regions
-		std::vector<std::vector<int>> regionSeatCount(project.parties().count(), std::vector<int>(project.getRegionCount()));
+		std::vector<std::vector<int>> regionSeatCount(project.parties().count(), std::vector<int>(project.regions().count()));
 
 		// First, randomly determine the national swing for this particular simulation
 		float simulationOverallSwing = std::normal_distribution<float>(pollOverallSwing, pollOverallStdDev)(gen);
@@ -160,38 +167,40 @@ void Simulation::run(PollingProject& project) {
 		// Add random variation to the state-by-state swings and calculate the implied national 2pp
 		// May be some minor floating-point errors here but they won't matter in the scheme of things
 		float tempOverallSwing = 0.0f;
-		for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
+		for (auto& regionPair : project.regions()) {
+			Region& thisRegion = regionPair.second;
 			// Calculate mean of the region's swing after accounting for decay to the mean over time.
 			float regionMeanSwing = pollOverallSwing + 
-				thisRegion->swingDeviation * pow(1.0f - stateDecay, thisProjection.meanProjection.size());
+				thisRegion.swingDeviation * pow(1.0f - stateDecay, thisProjection.meanProjection.size());
 			// Add random noise to the region's swing level
-			float swingSD = this->stateSD + thisRegion->additionalUncertainty;
+			float swingSD = this->stateSD + thisRegion.additionalUncertainty;
 			if (swingSD > 0) {
-				thisRegion->simulationSwing =
-					std::normal_distribution<float>(regionMeanSwing, this->stateSD + thisRegion->additionalUncertainty)(gen);
+				thisRegion.simulationSwing =
+					std::normal_distribution<float>(regionMeanSwing, this->stateSD + thisRegion.additionalUncertainty)(gen);
 			}
 			else {
-				thisRegion->simulationSwing = regionMeanSwing;
+				thisRegion.simulationSwing = regionMeanSwing;
 			}
 
-			if (isLive() && thisRegion->livePercentCounted) {
-				float liveSwing = thisRegion->liveSwing;
-				float liveStdDev = stdDevSingleSeat(thisRegion->livePercentCounted);
+			if (isLive() && thisRegion.livePercentCounted) {
+				float liveSwing = thisRegion.liveSwing;
+				float liveStdDev = stdDevSingleSeat(thisRegion.livePercentCounted);
 				liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 				float priorWeight = 0.5f;
 				float liveWeight = 1.0f / (liveStdDev * liveStdDev);
 				priorWeight, liveWeight;
-				thisRegion->simulationSwing = (thisRegion->simulationSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+				thisRegion.simulationSwing = (thisRegion.simulationSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 			}
 
-			tempOverallSwing += thisRegion->simulationSwing * thisRegion->population;
+			tempOverallSwing += thisRegion.simulationSwing * thisRegion.population;
 		}
 		tempOverallSwing /= totalPopulation;
 
 		// Adjust regional swings to keep the implied overall 2pp the same as that actually projected
 		float regionSwingAdjustment = simulationOverallSwing - tempOverallSwing;
-		for (auto thisRegion = project.getRegionBegin(); thisRegion != project.getRegionEnd(); ++thisRegion) {
-			thisRegion->simulationSwing += regionSwingAdjustment;
+		for (auto& regionPair : project.regions()) {
+			Region& thisRegion = regionPair.second;
+			thisRegion.simulationSwing += regionSwingAdjustment;
 		}
 
 		partyOneSwing += double(simulationOverallSwing);
@@ -205,13 +214,14 @@ void Simulation::run(PollingProject& project) {
 			bool isClassic2CP = thisSeat->isClassic2pp(isLive());
 
 			if (isClassic2CP) {
+				Region const& thisRegion = project.regions().access(thisSeat->region);
 				bool incIsOne = thisSeat->incumbent == 0; // stores whether the incumbent is Party One
 				// Add or subtract the simulation regional deviation depending on which party is incumbent
-				float newMargin = thisSeat->margin + thisSeat->region->simulationSwing * (incIsOne ? 1.0f : -1.0f);
+				float newMargin = thisSeat->margin + thisRegion.simulationSwing * (incIsOne ? 1.0f : -1.0f);
 				// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
 				newMargin += thisSeat->localModifier;
 				// Remove the average local modifier across the region
-				newMargin -= thisSeat->region->localModifierAverage * (incIsOne ? 1.0f : -1.0f);
+				newMargin -= thisRegion.localModifierAverage * (incIsOne ? 1.0f : -1.0f);
 				// Add random noise to the new margin of this seat
 				newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 				// Now work out the margin of the seat from actual results if live
@@ -297,7 +307,7 @@ void Simulation::run(PollingProject& project) {
 			int winnerIndex = project.parties().idToIndex(thisSeat->winner);
 			if (winnerIndex != PartyCollection::InvalidIndex) {
 				partyWins[winnerIndex]++;
-				int regionIndex = project.getRegionIndex(thisSeat->region);
+				int regionIndex = project.regions().idToIndex(thisSeat->region);
 				++regionSeatCount[winnerIndex][regionIndex];
 			}
 		}
@@ -339,8 +349,9 @@ void Simulation::run(PollingProject& project) {
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			++partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
 			if (partyIndex > 1) othersWins += partyWins[partyIndex];
-			for (int regionIndex = 0; regionIndex < project.getRegionCount(); ++regionIndex) {
-				++project.getRegionPtr(regionIndex)->partyWins[partyIndex][regionSeatCount[partyIndex][regionIndex]];
+			for (auto& regionPair : project.regions()) {
+				Region& thisRegion = regionPair.second;
+				++thisRegion.partyWins[partyIndex][regionSeatCount[partyIndex][project.regions().idToIndex(regionPair.first)]];
 			}
 		}
 		++othersWinFrequency[othersWins];
@@ -377,10 +388,11 @@ void Simulation::run(PollingProject& project) {
 		partyWinExpectation[partyIndex] = float(totalSeats) / float(numIterations);
 	}
 
-	regionPartyWinExpectation.resize(project.getRegionCount(), std::vector<float>(project.parties().count(), 0.0f));
+	regionPartyWinExpectation.resize(project.regions().count(), std::vector<float>(project.parties().count(), 0.0f));
 
-	for (int regionIndex = 0; regionIndex < project.getRegionCount(); ++regionIndex) {
-		Region thisRegion = project.getRegion(regionIndex);
+	for (auto& regionPair : project.regions()) {
+		Region& thisRegion = regionPair.second;
+		int regionIndex = project.regions().idToIndex(regionPair.first);
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			int totalSeats = 0;
 			for (int seatNum = 1; seatNum < int(thisRegion.partyWins[partyIndex].size()); ++seatNum) {

@@ -85,8 +85,9 @@ void ResultsFrame::refreshData()
 				" Others " + formatFloat(simulation->getOthersWinExpectation(), 2) +
 				"   Count progress: " + formatFloat(simulation->get2cpPercentCounted() * 100.0f, 2) + "%\n" +
 				party1 + " swing by region: ";
-			for (auto region = project->getRegionBegin(); region != project->getRegionEnd(); ++region) {
-				summaryString += region->name + " " + formatFloat(region->liveSwing, 2) + " ";
+			for (auto const& regionPair : project->regions()) {
+				Region const& thisRegion = regionPair.second;
+				summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
 			}
 			summaryText->SetLabel(summaryString);
 		}

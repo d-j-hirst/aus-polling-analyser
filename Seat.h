@@ -2,12 +2,11 @@
 
 #include "ElectionData.h"
 #include "Party.h"
+#include "Region.h"
 
 #include <exception>
 #include <optional>
 
-struct Region;
-struct Party;
 class Result;
 
 class Seat {
@@ -31,7 +30,7 @@ public:
 	Party::Id incumbent = Party::InvalidId;
 	Party::Id challenger = Party::InvalidId;
 	Party::Id challenger2 = Party::InvalidId;
-	Region* region = nullptr;
+	Region::Id region = Region::InvalidId;
 	Result const* latestResult = nullptr; // used as a temporary in simulations for storing the latest live result
 
 	// Official seat ID from the electoral commission

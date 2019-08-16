@@ -13,17 +13,11 @@
 #include "wx/wx.h"
 #endif
 
-#include "wx/dataview.h"
-
-#include <memory>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "Seat.h"
-#include "EditSeatFrame.h"
 
 class ProjectFrame;
-class GenericChildFame;
 
 // ----------------------------------------------------------------------------
 // constants
@@ -46,9 +40,17 @@ public:
 	void OnEditSeatReady(Seat& seat);
 
 	// updates the data to take into account any changes.
-	void refreshData();
+	void refreshDataTable();
 
 private:
+
+	// Creates the tool bar and its icons
+	void setupToolBar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);

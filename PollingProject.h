@@ -17,6 +17,7 @@
 #include "PollCollection.h"
 #include "PollsterCollection.h"
 #include "ProjectionCollection.h"
+#include "RegionCollection.h"
 #include "Event.h"
 #include "Model.h"
 #include "Projection.h"
@@ -95,44 +96,11 @@ public:
 	// If a projection is removed, various parts of the project need to be adjusted to account for this.
 	void adjustAfterProjectionRemoval(ProjectionCollection::Index projectionIndex, Projection::Id projectionId);
 
-	// Adds the region "region".
-	void addRegion(Region region);
+	RegionCollection& regions() { return regionCollection; }
+	RegionCollection const& regions() const { return regionCollection; }
 
-	// Replaces the region with index "regionIndex" by "region".
-	void replaceRegion(int regionIndex, Region region);
-
-	// Removes the region with index "regionIndex".
-	void removeRegion(int regionIndex);
-
-	// Returns the region with index "regionIndex".
-	Region getRegion(int regionIndex) const;
-
-	// Returns a pointer to the region with index "regionIndex".
-	Region* getRegionPtr(int regionIndex);
-
-	// Returns a pointer to the region with index "regionIndex".
-	Region const* getRegionPtr(int regionIndex) const;
-
-	// Returns the number of regions.
-	int getRegionCount() const;
-
-	// Gets the region index from a given pointer.
-	int getRegionIndex(Region const* regionPtr);
-
-	// Calculates the regional swing deviations from the national swings.
-	void calculateRegionSwingDeviations();
-
-	// Gets the begin iterator for the region list.
-	std::list<Region>::iterator getRegionBegin();
-
-	// Gets the end iterator for the region list.
-	std::list<Region>::iterator getRegionEnd();
-
-	// Gets the begin iterator for the region list.
-	std::list<Region>::const_iterator getRegionBegin() const;
-
-	// Gets the end iterator for the region list.
-	std::list<Region>::const_iterator getRegionEnd() const;
+	// If a region is removed, various parts of the project need to be adjusted to account for this.
+	void adjustAfterRegionRemoval(RegionCollection::Index regionIndex, Region::Id regionId);
 
 	// Adds the seat "seat".
 	void addSeat(Seat seat);
@@ -270,7 +238,7 @@ private:
 	void adjustAffiliationsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
 	// If a region is removed, seats pointing to it need to have their region reset to the default
-	void adjustSeatsAfterRegionRemoval(Region const* region);
+	void adjustSeatsAfterRegionRemoval(RegionCollection::Index regionIndex, Party::Id regionId);
 
 	// Makes adjustments after a file has been loaded.
 	void finalizeFileLoading();
@@ -308,9 +276,7 @@ private:
 	EventCollection eventCollection;
 	ModelCollection modelCollection;
 	ProjectionCollection projectionCollection;
-
-	// Vector containing the data for regions.
-	std::list<Region> regions;
+	RegionCollection regionCollection;
 
 	// Vector containing the data for seats.
 	std::list<Seat> seats;

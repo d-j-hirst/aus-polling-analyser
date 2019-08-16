@@ -83,8 +83,8 @@ void RegionsFrame::refreshDataTable() {
 	regionData->AppendTextColumn("Swing Deviation", wxDATAVIEW_CELL_INERT, 120); // wide enough to fit the title
 	regionData->AppendTextColumn("Additional Uncertainty", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
 
-	for (int i = 0; i < project->getRegionCount(); ++i) {
-		addRegionToRegionData(project->getRegion(i));
+	for (auto const& regionPair : project->regions()) {
+		addRegionToRegionData(regionPair.second);
 	}
 
 }
@@ -105,7 +105,7 @@ void RegionsFrame::bindEventHandlers()
 
 void RegionsFrame::addRegion(Region region) {
 	// Simultaneously add to the region data control and to the polling project.
-	project->addRegion(region);
+	project->regions().add(region);
 
 	refreshDataTable();
 
@@ -126,22 +126,20 @@ void RegionsFrame::addRegionToRegionData(Region region) {
 }
 
 void RegionsFrame::replaceRegion(Region region) {
-	int regionIndex = regionData->GetSelectedRow();
-	// Simultaneously replace data in the region data control and the polling project.
-	project->replaceRegion(regionIndex, region);
-
+	RegionCollection::Index regionIndex = regionData->GetSelectedRow();
+	Region::Id regionId = project->regions().indexToId(regionIndex);
+	project->regions().replace(regionId, region);
 	refreshDataTable();
-
+	refresher.refreshSeatData();
 	updateInterface();
 }
 
 void RegionsFrame::removeRegion() {
-	// Simultaneously add to the region data control and to the polling project.
-	project->removeRegion(regionData->GetSelectedRow());
-
+	RegionCollection::Index regionIndex = regionData->GetSelectedRow();
+	Region::Id regionId = project->regions().indexToId(regionIndex);
+	project->regions().remove(regionId);
 	refreshDataTable();
 	refresher.refreshSeatData();
-
 	updateInterface();
 }
 
@@ -176,7 +174,7 @@ void RegionsFrame::OnEditRegion(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&RegionsFrame::editRegionCallback, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditRegionFrame *frame = new EditRegionFrame(EditRegionFrame::Function::New, callback, project->getRegion(regionIndex));
+	EditRegionFrame *frame = new EditRegionFrame(EditRegionFrame::Function::New, callback, project->regions().viewByIndex(regionIndex));
 
 	// Show the frame.
 	frame->ShowModal();

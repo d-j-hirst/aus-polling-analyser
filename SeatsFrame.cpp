@@ -1,39 +1,76 @@
 #include "SeatsFrame.h"
-#include "General.h"
 
-enum SeatColumnsEnum {
-	SeatColumn_Name,
-	SeatColumn_Incumbent,
-	SeatColumn_Challenger,
-	SeatColumn_Region,
-	SeatColumn_Margin,
-	SeatColumn_LocalModifier,
-	SeatColumn_IncumbentOdds,
-	SeatColumn_ChallengerOdds,
-	SeatColumn_ProjectedMargin,
-	SeatColumn_WinPercent,
-	SeatColumn_TippingPoint,
-};
+#include "EditSeatFrame.h"
+#include "EditSimulationFrame.h"
+#include "General.h"
+#include "Log.h"
+#include "NonClassicFrame.h"
+
+using namespace std::placeholders; // for function object parameter binding
 
 // IDs for the controls and the menu commands
-enum {
-	PA_SeatsFrame_Base = 600, // To avoid mixing events with other frames.
-	PA_SeatsFrame_FrameID,
-	PA_SeatsFrame_DataViewID,
-	PA_SeatsFrame_NewSeatID,
-	PA_SeatsFrame_EditSeatID,
-	PA_SeatsFrame_RemoveSeatID,
-	PA_SeatsFrame_SeatResultsID,
+enum ControlId {
+	Base = 600, // To avoid mixing events with other frames.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
+	ShowResults,
 };
 
 // frame constructor
 SeatsFrame::SeatsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_SeatsFrame_FrameID, "Seats", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Seats", wxPoint(0, 0), project),
 	refresher(refresher)
 {
+	setupToolBar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
+}
 
-	// *** Toolbar *** //
+void SeatsFrame::refreshDataTable() {
 
+	seatData->DeleteAllItems();
+	seatData->ClearColumns();
+
+	// *** Seat Data Table Columns *** //
+
+	// Add the data columns that show the properties of the seats.
+	seatData->AppendTextColumn("Seat Name", wxDATAVIEW_CELL_INERT, 120, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Incumbent", wxDATAVIEW_CELL_INERT, 75, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Challenger", wxDATAVIEW_CELL_INERT, 75, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Region", wxDATAVIEW_CELL_INERT, 60, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Margin", wxDATAVIEW_CELL_INERT, 55, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Local Inc. Modifier", wxDATAVIEW_CELL_INERT, 115, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Inc. Odds", wxDATAVIEW_CELL_INERT, 65, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Ch. Odds", wxDATAVIEW_CELL_INERT, 65, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Inc. Win %", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Tipping Point %", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+	seatData->AppendTextColumn("Sim. Margin", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
+		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
+
+	// Add the seat data
+	for (int i = 0; i < project->getSeatCount(); ++i) {
+		addSeatToSeatData(project->getSeat(i));
+	}
+
+	updateInterface();
+}
+
+void SeatsFrame::setupToolBar()
+{
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
 	wxBitmap toolBarBitmaps[4];
@@ -46,43 +83,41 @@ SeatsFrame::SeatsFrame(ProjectFrame::Refresher refresher, PollingProject* projec
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_SeatsFrame_NewSeatID, "New Seat", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Seat");
-	toolBar->AddTool(PA_SeatsFrame_EditSeatID, "Edit Seat", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Seat");
-	toolBar->AddTool(PA_SeatsFrame_RemoveSeatID, "Remove Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Seat");
-	toolBar->AddTool(PA_SeatsFrame_SeatResultsID, "Seat Results", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Seat Results");
+	toolBar->AddTool(ControlId::New, "New Seat", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Seat");
+	toolBar->AddTool(ControlId::Edit, "Edit Seat", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Seat");
+	toolBar->AddTool(ControlId::Remove, "Remove Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Seat");
+	toolBar->AddTool(ControlId::ShowResults, "Seat Results", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Seat Results");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
 
-	// *** Seat Data Table *** //
-
+void SeatsFrame::setupDataTable()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
 	// Create the seat data control.
 	seatData = new wxDataViewListCtrl(dataPanel,
-		PA_SeatsFrame_DataViewID,
+		ControlId::DataView,
 		wxPoint(0, 0),
 		dataPanel->GetClientSize());
+}
 
-	// *** Party Data Table Columns *** //
-
-	refreshData();
-
-	// *** Binding Events *** //
-
+void SeatsFrame::bindEventHandlers()
+{
 	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &SeatsFrame::OnResize, this, PA_SeatsFrame_FrameID);
+	Bind(wxEVT_SIZE, &SeatsFrame::OnResize, this, ControlId::Frame);
 
 	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &SeatsFrame::OnNewSeat, this, PA_SeatsFrame_NewSeatID);
-	Bind(wxEVT_TOOL, &SeatsFrame::OnEditSeat, this, PA_SeatsFrame_EditSeatID);
-	Bind(wxEVT_TOOL, &SeatsFrame::OnRemoveSeat, this, PA_SeatsFrame_RemoveSeatID);
-	Bind(wxEVT_TOOL, &SeatsFrame::OnSeatResults, this, PA_SeatsFrame_SeatResultsID);
+	Bind(wxEVT_TOOL, &SeatsFrame::OnNewSeat, this, ControlId::New);
+	Bind(wxEVT_TOOL, &SeatsFrame::OnEditSeat, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &SeatsFrame::OnRemoveSeat, this, ControlId::Remove);
+	Bind(wxEVT_TOOL, &SeatsFrame::OnSeatResults, this, ControlId::ShowResults);
 
 	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SeatsFrame::OnSelectionChange, this, PA_SeatsFrame_DataViewID);
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SeatsFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
 void SeatsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
@@ -92,7 +127,7 @@ void SeatsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
 
 void SeatsFrame::OnNewSeat(wxCommandEvent& WXUNUSED(event)) {
 
-	if (project->getRegionCount() == 0) {
+	if (!project->regions().count()) {
 		wxMessageDialog* message = new wxMessageDialog(this,
 			"Seats are defined as belonging to a particular region. Please define one region before creating a seat.");
 
@@ -100,8 +135,11 @@ void SeatsFrame::OnNewSeat(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
+	// This binding is needed to pass a member function as a callback for the editing frame
+	auto callback = std::bind(&SeatsFrame::addSeat, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditSeatFrame *frame = new EditSeatFrame(true, this, project, Seat());
+	EditSeatFrame *frame = new EditSeatFrame(EditSeatFrame::Function::Edit, callback, project->parties(), project->regions());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -118,8 +156,11 @@ void SeatsFrame::OnEditSeat(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (seatIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the editing frame
+	auto callback = std::bind(&SeatsFrame::replaceSeat, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditSeatFrame *frame = new EditSeatFrame(false, this, project, project->getSeat(seatIndex));
+	EditSeatFrame *frame = new EditSeatFrame(EditSeatFrame::Function::Edit, callback, project->parties(), project->regions(), project->getSeat(seatIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -165,50 +206,11 @@ void SeatsFrame::OnEditSeatReady(Seat& seat) {
 	replaceSeat(seat);
 }
 
-void SeatsFrame::refreshData() {
-
-	seatData->DeleteAllItems();
-	seatData->ClearColumns();
-
-	// *** Seat Data Table Columns *** //
-
-	// Add the data columns that show the properties of the seats.
-	seatData->AppendTextColumn("Seat Name", wxDATAVIEW_CELL_INERT, 120, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Incumbent", wxDATAVIEW_CELL_INERT, 75, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Challenger", wxDATAVIEW_CELL_INERT, 75, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Region", wxDATAVIEW_CELL_INERT, 60, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Margin", wxDATAVIEW_CELL_INERT, 55, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Local Inc. Modifier", wxDATAVIEW_CELL_INERT, 115, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Inc. Odds", wxDATAVIEW_CELL_INERT, 65, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Ch. Odds", wxDATAVIEW_CELL_INERT, 65, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Inc. Win %", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Tipping Point %", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Sim. Margin", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-
-	// Add the seat data
-	for (int i = 0; i < project->getSeatCount(); ++i) {
-		addSeatToSeatData(project->getSeat(i));
-	}
-
-	updateInterface();
-}
-
 void SeatsFrame::addSeat(Seat seat) {
 	// Simultaneously add to the party data control and to the polling project.
 	project->addSeat(seat);
 
-	refreshData();
+	refreshDataTable();
 }
 
 void SeatsFrame::addSeatToSeatData(Seat seat) {
@@ -217,7 +219,7 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	data.push_back(wxVariant(seat.name));
 	data.push_back(wxVariant(project->parties().view(seat.incumbent).name));
 	data.push_back(wxVariant(project->parties().view(seat.challenger).name));
-	data.push_back(wxVariant(seat.region->name));
+	data.push_back(wxVariant(project->regions().view(seat.region).name));
 	data.push_back(wxVariant(formatFloat(seat.margin, 2)));
 	data.push_back(wxVariant(formatFloat(seat.localModifier, 2)));
 	data.push_back(wxVariant(formatFloat(seat.incumbentOdds, 3)));
@@ -234,14 +236,14 @@ void SeatsFrame::replaceSeat(Seat seat) {
 	// Simultaneously replace data in the seat data control and the polling project.
 	project->replaceSeat(seatIndex, seat);
 
-	refreshData();
+	refreshDataTable();
 }
 
 void SeatsFrame::removeSeat() {
 	// Simultaneously add to the seat data control and to the polling project.
 	project->removeSeat(seatData->GetSelectedRow());
 
-	refreshData();
+	refreshDataTable();
 }
 
 void SeatsFrame::showSeatResults()
@@ -266,10 +268,6 @@ void SeatsFrame::showSeatResults()
 		" (" + formatFloat(results->postalVotePercent(), 2) + "%)\n";
 	wxMessageBox(summaryString);
 	std::string tcpString = "";
-	logger << results->leadingCandidate().affiliationId << "\n";
-	logger << results->trailingCandidate().affiliationId << "\n";
-	logger << results->leadingCandidate().candidateId << "\n";
-	logger << results->trailingCandidate().candidateId << "\n";
 	tcpString += project->getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " + 
 		project->getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
 	tcpString += "Total votes: " + std::to_string(results->leadingCandidate().totalVotes()) + " (" +
@@ -332,6 +330,7 @@ void SeatsFrame::showSeatResults()
 
 void SeatsFrame::updateInterface() {
 	bool somethingSelected = (seatData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_SeatsFrame_EditSeatID, somethingSelected);
-	toolBar->EnableTool(PA_SeatsFrame_RemoveSeatID, somethingSelected);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+	toolBar->EnableTool(ControlId::ShowResults, somethingSelected);
 }

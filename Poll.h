@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Pollster.h"
-#include "Party.h" // needed for MAX_PARTIES constant
+#include "PartyCollection.h"
 #include "General.h"
 
 #include <wx/datetime.h>

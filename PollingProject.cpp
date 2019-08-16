@@ -19,7 +19,8 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	pollCollection(*this),
 	eventCollection(*this),
 	modelCollection(*this),
-	projectionCollection(*this)
+	projectionCollection(*this),
+	regionCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
@@ -35,7 +36,8 @@ PollingProject::PollingProject(std::string pathName) :
 	pollCollection(*this),
 	eventCollection(*this),
 	modelCollection(*this),
-	projectionCollection(*this)
+	projectionCollection(*this),
+	regionCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -255,83 +257,9 @@ void PollingProject::adjustAfterProjectionRemoval(ProjectionCollection::Index, P
 	removeSimulationsFromProjection(projectionId);
 }
 
-void PollingProject::addRegion(Region region) {
-	regions.push_back(region);
-	calculateRegionSwingDeviations();
-}
-
-void PollingProject::replaceRegion(int regionIndex, Region region) {
-	*getRegionPtr(regionIndex) = region;
-	calculateRegionSwingDeviations();
-}
-
-Region PollingProject::getRegion(int regionIndex) const {
-	return *getRegionPtr(regionIndex);
-}
-
-Region* PollingProject::getRegionPtr(int regionIndex) {
-	auto it = regions.begin();
-	for (int i = 0; i < regionIndex; i++) it++;
-	return &*it;
-}
-
-Region const* PollingProject::getRegionPtr(int regionIndex) const {
-	auto it = regions.begin();
-	for (int i = 0; i < regionIndex; i++) it++;
-	return &*it;
-}
-
-void PollingProject::removeRegion(int regionIndex) {
-	auto it = regions.begin();
-	for (int i = 0; i < regionIndex; i++) it++;
-	adjustSeatsAfterRegionRemoval(&*it);
-	regions.erase(it);
-	calculateRegionSwingDeviations();
-}
-
-int PollingProject::getRegionCount() const {
-	return regions.size();
-}
-
-int PollingProject::getRegionIndex(Region const* const regionPtr) {
-	int i = 0;
-	for (auto it = regions.begin(); it != regions.end(); it++) {
-		if (&*it == regionPtr) return i;
-		i++;
-	}
-	return -1;
-}
-
-std::list<Region>::iterator PollingProject::getRegionBegin() {
-	return regions.begin();
-}
-
-std::list<Region>::iterator PollingProject::getRegionEnd() {
-	return regions.end();
-}
-
-std::list<Region>::const_iterator PollingProject::getRegionBegin() const {
-	return regions.begin();
-}
-
-std::list<Region>::const_iterator PollingProject::getRegionEnd() const {
-	return regions.end();
-}
-
-void PollingProject::calculateRegionSwingDeviations() {
-	int totalPopulation = 0;
-	float total2pp = 0.0f;
-	float totalOld2pp = 0.0f;
-	for (Region const& thisRegion : regions) {
-		totalPopulation += thisRegion.population;
-		total2pp += float(thisRegion.population) * thisRegion.sample2pp;
-		totalOld2pp += float(thisRegion.population) * thisRegion.lastElection2pp;
-	}
-	total2pp /= float(totalPopulation);
-	totalOld2pp /= float(totalPopulation);
-	for (Region& thisRegion : regions) {
-		thisRegion.swingDeviation = (thisRegion.sample2pp - thisRegion.lastElection2pp) - (total2pp - totalOld2pp);
-	}
+void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionIndex, Region::Id regionId)
+{
+	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
 void PollingProject::addSeat(Seat seat) {
@@ -658,7 +586,8 @@ int PollingProject::save(std::string filename) {
 		}
 	}
 	os << "#Regions" << "\n";
-	for (auto const& thisRegion : regions) {
+	for (auto const& regionPair : regionCollection) {
+		Region const& thisRegion = regionPair.second;
 		os << "@Region" << "\n";
 		os << "name=" << thisRegion.name << "\n";
 		os << "popn=" << thisRegion.population << "\n";
@@ -675,7 +604,7 @@ int PollingProject::save(std::string filename) {
 		os << "incu=" << partyCollection.idToIndex(thisSeat.incumbent) << "\n";
 		os << "chal=" << partyCollection.idToIndex(thisSeat.challenger) << "\n";
 		os << "cha2=" << partyCollection.idToIndex(thisSeat.challenger2) << "\n";
-		os << "regn=" << getRegionIndex(thisSeat.region) << "\n";
+		os << "regn=" << regions().idToIndex(thisSeat.region) << "\n";
 		os << "marg=" << thisSeat.margin << "\n";
 		os << "lmod=" << thisSeat.localModifier << "\n";
 		os << "iodd=" << thisSeat.incumbentOdds << "\n";
@@ -839,7 +768,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Regions) {
 		if (!line.compare("@Region")) {
-			regions.push_back(Region());
+			regionCollection.add(Region());
 			return true;
 		}
 	}
@@ -1115,31 +1044,29 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Regions) {
-		if (!regions.size()) return true; //prevent crash from mixed-up data.
-		auto it = regions.end();
-		it--;
+		if (!regionCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			regionCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("popn=")) {
-			it->population = std::stoi(line.substr(5));
+			regionCollection.back().population = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lele=")) {
-			it->lastElection2pp = std::stof(line.substr(5));
+			regionCollection.back().lastElection2pp = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("samp=")) {
-			it->sample2pp = std::stof(line.substr(5));
+			regionCollection.back().sample2pp = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("swng=")) {
-			it->swingDeviation = std::stof(line.substr(5));
+			regionCollection.back().swingDeviation = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("addu=")) {
-			it->additionalUncertainty = std::stof(line.substr(5));
+			regionCollection.back().additionalUncertainty = std::stof(line.substr(5));
 			return true;
 		}
 	}
@@ -1168,7 +1095,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("regn=")) {
-			it->region = getRegionPtr(std::stoi(line.substr(5)));
+			it->region = regions().indexToId(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("marg=")) {
@@ -1333,11 +1260,11 @@ void PollingProject::adjustAffiliationsAfterPartyRemoval(PartyCollection::Index,
 	}
 }
 
-void PollingProject::adjustSeatsAfterRegionRemoval(Region const * region)
+void PollingProject::adjustSeatsAfterRegionRemoval(RegionCollection::Index, Party::Id regionId)
 {
 	for (int i = 0; i < getSeatCount(); i++) {
 		Seat* seat = getSeatPtr(i);
-		if (seat->region == region) seat->region = &*regions.begin();
+		if (seat->region == regionId) seat->region = regions().indexToId(0);
 	}
 }
 

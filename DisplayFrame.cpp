@@ -318,20 +318,21 @@ void DisplayFrame::render(wxDC& dc) {
 	dc.DrawLabel("LNP", statesBoxLNPRect, wxALIGN_CENTRE);
 	dc.DrawLabel("Others", statesBoxOtherRect, wxALIGN_CENTRE);
 	dc.SetFont(font13);
-	for (int regionIndex = 0; regionIndex < project->getRegionCount(); ++regionIndex) {
+	for (auto const& regionPair : project->regions()) {
+		Region const& thisRegion = regionPair.second;
+		int regionIndex = project->regions().idToIndex(regionPair.first);
 		if (regionIndex >= int(sim->regionPartyWinExpectation.size())) break;
-		Region const* thisRegion = project->getRegionPtr(regionIndex);
 		float alpSeats = sim->regionPartyWinExpectation[regionIndex][0];
 		float lnpSeats = sim->regionPartyWinExpectation[regionIndex][1];
 		float othSeats = sim->getOthersWinExpectation(regionIndex);
-		float alpChange = alpSeats - thisRegion->partyLeading[0];
-		float lnpChange = lnpSeats - thisRegion->partyLeading[1];
-		float othChange = othSeats - thisRegion->getOthersLeading();
+		float alpChange = alpSeats - thisRegion.partyLeading[0];
+		float lnpChange = lnpSeats - thisRegion.partyLeading[1];
+		float othChange = othSeats - thisRegion.getOthersLeading();
 		statesBoxNameRect.Offset(0, StatesBoxTextHeight);
 		statesBoxALPRect.Offset(0, StatesBoxTextHeight);
 		statesBoxLNPRect.Offset(0, StatesBoxTextHeight);
 		statesBoxOtherRect.Offset(0, StatesBoxTextHeight);
-		dc.DrawLabel(thisRegion->name, statesBoxNameRect, wxALIGN_CENTRE);
+		dc.DrawLabel(thisRegion.name, statesBoxNameRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(alpSeats, 2) + " " + (alpChange >= 0 ? "+" : "") + formatFloat(alpChange, 2),
 			statesBoxALPRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(lnpSeats, 2) + " " + (lnpChange >= 0 ? "+" : "") + formatFloat(lnpChange, 2),

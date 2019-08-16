@@ -303,6 +303,7 @@
     <ClCompile Include="GenericChildFrame.cpp" />
     <ClCompile Include="NonClassicFrame.cpp" />
     <ClCompile Include="ProjectionCollection.cpp" />
+    <ClCompile Include="RegionCollection.cpp" />
     <ClCompile Include="ResultsDownloader.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -345,6 +346,7 @@
     <ClInclude Include="PollCollection.h" />
     <ClInclude Include="PollsterCollection.h" />
     <ClInclude Include="ProjectionCollection.h" />
+    <ClInclude Include="RegionCollection.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />

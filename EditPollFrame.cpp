@@ -1,13 +1,14 @@
 #include "EditPollFrame.h"
-#include "General.h"
 
 #include "ChoiceInput.h"
 #include "DateInput.h"
 #include "FloatInput.h"
+#include "General.h"
+#include "PartyCollection.h"
+#include "PollsterCollection.h"
 
 constexpr int ControlPadding = 4;
 
-// IDs for the controls and the menu commands
 enum ControlId
 {
 	Ok,

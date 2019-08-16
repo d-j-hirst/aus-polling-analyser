@@ -164,6 +164,9 @@
     <ClCompile Include="ProjectionCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="RegionCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -415,6 +418,9 @@
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
     <ClInclude Include="ProjectionCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="RegionCollection.h">
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>
