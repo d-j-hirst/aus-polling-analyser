@@ -20,7 +20,8 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	eventCollection(*this),
 	modelCollection(*this),
 	projectionCollection(*this),
-	regionCollection(*this)
+	regionCollection(*this),
+	seatCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
@@ -37,7 +38,8 @@ PollingProject::PollingProject(std::string pathName) :
 	eventCollection(*this),
 	modelCollection(*this),
 	projectionCollection(*this),
-	regionCollection(*this)
+	regionCollection(*this),
+	seatCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -48,11 +50,12 @@ void PollingProject::incorporatePreviousElectionResults(PreviousElectionDataRetr
 	int seatMatchCount = 0;
 	for (auto seatIt = dataRetriever.beginSeats(); seatIt != dataRetriever.endSeats(); ++seatIt) {
 		auto seatData = seatIt->second;
-		auto matchedSeat = std::find_if(seats.begin(), seats.end(), 
-			[seatData](Seat const& seat) { return seat.name == seatData.name || seat.previousName ==seatData.name; });
-		if (matchedSeat != seats.end()) {
-			matchedSeat->officialId = seatData.officialId;
-			matchedSeat->previousResults = seatData;
+		auto seatMatchFunc = [seatData](SeatCollection::SeatContainer::value_type const& seat)
+			{ return seat.second.name == seatData.name || seat.second.previousName == seatData.name; };
+		auto matchedSeat = std::find_if(seats().begin(), seats().end(), seatMatchFunc);
+		if (matchedSeat != seats().end()) {
+			matchedSeat->second.officialId = seatData.officialId;
+			matchedSeat->second.previousResults = seatData;
 			++seatMatchCount;
 		}
 		else {
@@ -152,26 +155,29 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		}
 	}
 
-	for (auto seat = dataRetriever.beginSeats(); seat != dataRetriever.endSeats(); ++seat) {
-		auto matchingSeat = std::find_if(seats.begin(), seats.end(), [&](Seat thisSeat)
-		{return thisSeat.name == seat->second.name; });
-		matchingSeat->latestResults = seat->second;
-		for (auto& candidate : matchingSeat->latestResults->finalCandidates) {
+	for (auto retrievedSeat = dataRetriever.beginSeats(); retrievedSeat != dataRetriever.endSeats(); ++retrievedSeat) {
+		auto seatData = retrievedSeat->second;
+		auto seatMatchFunc = [seatData](SeatCollection::SeatContainer::value_type const& seat)
+		{ return seat.second.name == seatData.name || seat.second.previousName == seatData.name; };
+		auto matchingSeatPair = std::find_if(seats().begin(), seats().end(), seatMatchFunc);
+		Seat& matchingSeat = matchingSeatPair->second;
+		matchingSeat.latestResults = retrievedSeat->second;
+		for (auto& candidate : matchingSeat.latestResults->finalCandidates) {
 			candidate.affiliationId = candidateAffiliations[candidate.candidateId];
 		}
-		for (auto& candidate : matchingSeat->latestResults->fpCandidates) {
+		for (auto& candidate : matchingSeat.latestResults->fpCandidates) {
 			candidate.affiliationId = candidateAffiliations[candidate.candidateId];
 		}
 		// *** need something here to check if two-candidate preferred is not recorded because of seat maverick status
-		if (matchingSeat->latestResults->total2cpVotes() && matchingSeat->latestResults->classic2pp) {
-			Party::Id partyOne = candidateParties[matchingSeat->latestResults->finalCandidates[0].candidateId];
-			Party::Id partyTwo = candidateParties[matchingSeat->latestResults->finalCandidates[1].candidateId];
-			if (!parties().oppositeMajors(partyOne, partyTwo)) matchingSeat->latestResults->classic2pp = false;
+		if (matchingSeat.latestResults->total2cpVotes() && matchingSeat.latestResults->classic2pp) {
+			Party::Id partyOne = candidateParties[matchingSeat.latestResults->finalCandidates[0].candidateId];
+			Party::Id partyTwo = candidateParties[matchingSeat.latestResults->finalCandidates[1].candidateId];
+			if (!parties().oppositeMajors(partyOne, partyTwo)) matchingSeat.latestResults->classic2pp = false;
 		}
-		if (matchingSeat->previousResults.has_value() && matchingSeat->previousResults->total2cpVotes() && matchingSeat->previousResults->classic2pp) {
-			Party::Id partyOne = affiliationParties[matchingSeat->previousResults->finalCandidates[0].affiliationId];
-			Party::Id partyTwo = affiliationParties[matchingSeat->previousResults->finalCandidates[1].affiliationId];
-			if (!parties().oppositeMajors(partyOne, partyTwo)) matchingSeat->previousResults->classic2pp = false;
+		if (matchingSeat.previousResults.has_value() && matchingSeat.previousResults->total2cpVotes() && matchingSeat.previousResults->classic2pp) {
+			Party::Id partyOne = affiliationParties[matchingSeat.previousResults->finalCandidates[0].affiliationId];
+			Party::Id partyTwo = affiliationParties[matchingSeat.previousResults->finalCandidates[1].affiliationId];
+			if (!parties().oppositeMajors(partyOne, partyTwo)) matchingSeat.previousResults->classic2pp = false;
 		}
 	}
 
@@ -179,14 +185,15 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 
 	updateLatestResultsForSeats(); // only overwrite different results
 	wxDateTime dateTime = wxDateTime::Now();
-	for (auto& seat : seats) {
+	for (auto& seatPair : seats()) {
+		Seat& seat = seatPair.second;
 		float percentCounted2cp = calculate2cpPercentComplete(seat);
 		if (!percentCounted2cp) {
 			if (seat.isClassic2pp(true)) continue;
 			float percentCountedFp = calculateFpPercentComplete(seat);
 			if (!percentCountedFp) continue;
 			Result thisResult;
-			thisResult.seat = &seat;
+			thisResult.seat = seatPair.first;
 			thisResult.percentCounted = percentCountedFp;
 			thisResult.updateTime = dateTime;
 			if (!seat.latestResult || seat.latestResult->percentCounted != percentCountedFp) {
@@ -196,7 +203,7 @@ void PollingProject::incorporateLatestResults(LatestResultsDataRetriever const& 
 		}
 		float incumbentSwing = calculateSwingToIncumbent(seat);
 		Result thisResult;
-		thisResult.seat = &seat;
+		thisResult.seat = seatPair.first;
 		thisResult.incumbentSwing = incumbentSwing;
 		thisResult.percentCounted = percentCounted2cp;
 		thisResult.updateTime = dateTime;
@@ -260,63 +267,6 @@ void PollingProject::adjustAfterProjectionRemoval(ProjectionCollection::Index, P
 void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionIndex, Region::Id regionId)
 {
 	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
-}
-
-void PollingProject::addSeat(Seat seat) {
-	seats.push_back(seat);
-}
-
-void PollingProject::replaceSeat(int seatIndex, Seat seat) {
-	*getSeatPtr(seatIndex) = seat;
-}
-
-Seat PollingProject::getSeat(int seatIndex) const {
-	auto it = seats.begin();
-	for (int i = 0; i < seatIndex; i++) it++;
-	return *it;
-}
-
-Seat* PollingProject::getSeatPtr(int seatIndex) {
-	if (seatIndex < 0) return nullptr;
-	auto it = seats.begin();
-	for (int i = 0; i < seatIndex; i++) it++;
-	return &*it;
-}
-
-void PollingProject::removeSeat(int seatIndex) {
-	auto it = seats.begin();
-	for (int i = 0; i < seatIndex; i++) it++;
-	seats.erase(it);
-}
-
-int PollingProject::getSeatCount() const {
-	return seats.size();
-}
-
-int PollingProject::getSeatIndex(Seat const* seatPtr)
-{
-	int i = 0;
-	for (auto it = seats.begin(); it != seats.end(); ++it) {
-		if (&*it == seatPtr) return i;
-		i++;
-	}
-	return -1;
-}
-
-std::list<Seat>::iterator PollingProject::getSeatBegin() {
-	return seats.begin();
-}
-
-std::list<Seat>::iterator PollingProject::getSeatEnd() {
-	return seats.end();
-}
-
-Seat * PollingProject::getSeatPtrByName(std::string seatName)
-{
-	auto seatIt = std::find_if(seats.begin(), seats.end(),
-		[seatName](Seat const& s) {return s.name == seatName; });
-	if (seatIt != seats.end()) return &*seatIt;
-	return nullptr;
 }
 
 void PollingProject::addSimulation(Simulation simulation) {
@@ -477,8 +427,9 @@ int PollingProject::getCandidateAffiliationId(int candidateId) const
 
 void PollingProject::updateLatestResultsForSeats() {
 	for (auto& thisResult : results) {
-		if (!thisResult.seat->latestResult) thisResult.seat->latestResult = &thisResult;
-		else if (thisResult.seat->latestResult->updateTime < thisResult.updateTime) thisResult.seat->latestResult = &thisResult;
+		auto& latestResult = seats().access(thisResult.seat).latestResult;
+		if (!latestResult) latestResult = &thisResult;
+		else if (latestResult->updateTime < thisResult.updateTime) latestResult = &thisResult;
 	}
 }
 
@@ -597,7 +548,8 @@ int PollingProject::save(std::string filename) {
 		os << "addu=" << thisRegion.additionalUncertainty << "\n";
 	}
 	os << "#Seats" << "\n";
-	for (auto const& thisSeat : seats) {
+	for (auto const& seatPair : seatCollection) {
+		Seat const& thisSeat = seatPair.second;
 		os << "@Seat" << "\n";
 		os << "name=" << thisSeat.name << "\n";
 		os << "pvnm=" << thisSeat.previousName << "\n";
@@ -634,7 +586,7 @@ int PollingProject::save(std::string filename) {
 	os << "#Results" << "\n";
 	for (auto const& thisResult : results) {
 		os << "@Result" << "\n";
-		os << "seat=" << getSeatIndex(thisResult.seat) << "\n";
+		os << "seat=" << seats().idToIndex(thisResult.seat) << "\n";
 		os << "swng=" << thisResult.incumbentSwing << "\n";
 		os << "cnt =" << thisResult.percentCounted << "\n";
 		os << "btin=" << thisResult.boothsIn << "\n";
@@ -774,7 +726,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Seats) {
 		if (!line.compare("@Seat")) {
-			seats.push_back(Seat());
+			seatCollection.add(Seat());
 			return true;
 		}
 	}
@@ -1071,87 +1023,85 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Seats) {
-		if (!seats.size()) return true; //prevent crash from mixed-up data.
-		auto it = seats.end();
-		it--;
+		if (!seatCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			seatCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("pvnm=")) {
-			it->previousName = line.substr(5);
+			seatCollection.back().previousName = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("incu=")) {
-			it->incumbent = std::stoi(line.substr(5));
+			seatCollection.back().incumbent = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("chal=")) {
-			it->challenger = std::stoi(line.substr(5));
+			seatCollection.back().challenger = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cha2=")) {
-			it->challenger2 = std::stoi(line.substr(5));
+			seatCollection.back().challenger2 = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("regn=")) {
-			it->region = regions().indexToId(std::stoi(line.substr(5)));
+			seatCollection.back().region = regions().indexToId(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("marg=")) {
-			it->margin = std::stof(line.substr(5));
+			seatCollection.back().margin = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lmod=")) {
-			it->localModifier = std::stof(line.substr(5));
+			seatCollection.back().localModifier = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iodd=")) {
-			it->incumbentOdds = std::stof(line.substr(5));
+			seatCollection.back().incumbentOdds = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("codd=")) {
-			it->challengerOdds = std::stof(line.substr(5));
+			seatCollection.back().challengerOdds = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("c2od=")) {
-			it->challenger2Odds = std::stof(line.substr(5));
+			seatCollection.back().challenger2Odds = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("winp=")) {
-			it->incumbentWinPercent = std::stof(line.substr(5));
+			seatCollection.back().incumbentWinPercent = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("tipp=")) {
-			it->tippingPointPercent = std::stof(line.substr(5));
+			seatCollection.back().tippingPointPercent = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("sma =")) {
-			it->simulatedMarginAverage = std::stof(line.substr(5));
+			seatCollection.back().simulatedMarginAverage = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp1 =")) {
-			it->livePartyOne = std::stoi(line.substr(5));
+			seatCollection.back().livePartyOne = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp2 =")) {
-			it->livePartyTwo = std::stoi(line.substr(5));
+			seatCollection.back().livePartyTwo = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp3 =")) {
-			it->livePartyThree = std::stoi(line.substr(5));
+			seatCollection.back().livePartyThree = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("p2pr=")) {
-			it->partyTwoProb = std::stof(line.substr(5));
+			seatCollection.back().partyTwoProb = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("p3pr=")) {
-			it->partyThreeProb = std::stof(line.substr(5));
+			seatCollection.back().partyThreeProb = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("over=")) {
-			it->overrideBettingOdds = std::stoi(line.substr(5)) != 0;
+			seatCollection.back().overrideBettingOdds = std::stoi(line.substr(5)) != 0;
 			return true;
 		}
 	}
@@ -1193,7 +1143,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		auto it = results.end();
 		it--;
 		if (!line.substr(0, 5).compare("seat=")) {
-			it->seat = getSeatPtr(std::stoi(line.substr(5)));
+			it->seat = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("swng=")) {
@@ -1236,11 +1186,11 @@ void PollingProject::removeSimulationsFromProjection(Projection::Id projectionId
 }
 
 void PollingProject::adjustSeatsAfterPartyRemoval(PartyCollection::Index, Party::Id partyId) {
-	for (int i = 0; i < getSeatCount(); i++) {
-		Seat* seat = getSeatPtr(i);
-		if (seat->incumbent == partyId) seat->incumbent = (seat->challenger ? 0 : 1);
-		if (seat->challenger == partyId) seat->challenger = (seat->incumbent ? 0 : 1);
-		if (seat->challenger2 == partyId) seat->challenger2 = 0;
+	for (auto& seatPair : seats()) {
+		Seat& seat = seatPair.second;
+		if (seat.incumbent == partyId) seat.incumbent = (seat.challenger ? 0 : 1);
+		if (seat.challenger == partyId) seat.challenger = (seat.incumbent ? 0 : 1);
+		if (seat.challenger2 == partyId) seat.challenger2 = 0;
 	}
 }
 
@@ -1262,9 +1212,9 @@ void PollingProject::adjustAffiliationsAfterPartyRemoval(PartyCollection::Index,
 
 void PollingProject::adjustSeatsAfterRegionRemoval(RegionCollection::Index, Party::Id regionId)
 {
-	for (int i = 0; i < getSeatCount(); i++) {
-		Seat* seat = getSeatPtr(i);
-		if (seat->region == regionId) seat->region = regions().indexToId(0);
+	for (auto& seatPair : seats()) {
+		Seat& seat = seatPair.second;
+		if (seat.region == regionId) seat.region = regions().indexToId(0);
 	}
 }
 

@@ -149,51 +149,55 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 {
 	std::string enteredName = seatNameTextCtrl->GetLineText(0);
-	auto seat = project->getSeatPtrByName(enteredName);
-	if (!seat) {
+	try {
+		auto [seatId, seat] = project->seats().accessByName(enteredName);
+		if ((!seat.isClassic2pp(true) || seat.challenger2Odds < 8.0f) &&
+			!seat.livePartyOne && !seat.overrideBettingOdds) {
+			int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
+				"Should this be overridden so that the seat is indeed counted as being classic for the remained of this election? "
+				" (You can always make it non-classic again by using the \"Non-classic\" tool.)", "Seat currently non-classic", wxYES_NO);
+			if (result == wxYES) {
+				seat.overrideBettingOdds = true;
+			}
+		}
+		double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
+		double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
+		long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
+		long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
+		if (percentCounted < 0.001) percentCounted = 0.0;
+		Result result = Result(seatId, swing, percentCounted, boothsIn, totalBooths);
+
+		project->addResult(result);
+
+		refreshData();
+	}
+	catch (SeatDoesntExistException) {
 		wxMessageBox("No seat found matching this name!");
 		return;
 	}
-	if ((!seat->isClassic2pp(true) || seat->challenger2Odds < 8.0f) &&
-			!seat->livePartyOne && !seat->overrideBettingOdds) {
-		int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
-			"Should this be overridden so that the seat is indeed counted as being classic for the remained of this election? "
-			" (You can always make it non-classic again by using the \"Non-classic\" tool.)", "Seat currently non-classic", wxYES_NO);
-		if (result == wxYES) {
-			seat->overrideBettingOdds = true;
-		}
-	}
-	double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
-	double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
-	long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
-	long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
-	if (percentCounted < 0.001) percentCounted = 0.0;
-	Result result = Result(seat, swing, percentCounted, boothsIn, totalBooths);
-
-	project->addResult(result);
-
-	refreshData();
 }
 
 void ResultsFrame::OnNonClassic(wxCommandEvent & WXUNUSED(even))
 {
 	std::string enteredName = seatNameTextCtrl->GetLineText(0);
-	auto seat = project->getSeatPtrByName(enteredName);
-	if (!seat) {
+	try {
+		auto [seatId, seat] = project->seats().accessByName(enteredName);
+
+		// Create the new project frame (where initial settings for the new project are chosen).
+		NonClassicFrame *frame = new NonClassicFrame(this, project, &seat);
+
+		// Show the frame.
+		frame->ShowModal();
+
+		// This is needed to avoid a memory leak.
+		delete frame;
+
+		refreshData();
+	}
+	catch (SeatDoesntExistException) {
 		wxMessageBox("No seat found matching this name!");
 		return;
 	}
-
-	// Create the new project frame (where initial settings for the new project are chosen).
-	NonClassicFrame *frame = new NonClassicFrame(this, project, seat);
-
-	// Show the frame.
-	frame->ShowModal();
-
-	// This is needed to avoid a memory leak.
-	delete frame;
-
-	refreshData();
 }
 
 void ResultsFrame::OnFilterSelection(wxCommandEvent& WXUNUSED(event))
@@ -206,25 +210,26 @@ void ResultsFrame::addResultToResultData(Result result)
 {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
+	auto seat = project->seats().viewByIndex(result.seat);
 	
 	Party::Colour swingPartyColour = (result.incumbentSwing > 0.0f ? 
-		project->parties().view(result.seat->incumbent).colour : project->parties().view(result.seat->challenger).colour);
+		project->parties().view(seat.incumbent).colour : project->parties().view(seat.challenger).colour);
 	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };
 	float incSw = std::min(1.0f, float(abs(result.incumbentSwing)) * 0.08f);
 	wxColour swingColour = wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
 	float percentCounted = result.getPercentCountedEstimate();
 	wxColour percentCountedColour = wxColour(255 - std::min(255, int(result.percentCounted * 2.55f)), 255, 255 - std::min(255, int(result.percentCounted * 2.55f)));
-	float projectedSwing = result.seat->simulatedMarginAverage - result.seat->margin;
-	std::string projectedMarginString = formatFloat(result.seat->simulatedMarginAverage, 2) + " (" +
+	float projectedSwing = seat.simulatedMarginAverage - seat.margin;
+	std::string projectedMarginString = formatFloat(seat.simulatedMarginAverage, 2) + " (" +
 		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
-	float margin = abs(result.seat->simulatedMarginAverage);
-	float marginSignificance = (margin ? 1.0f / (1.0f + abs(result.seat->simulatedMarginAverage)) : 0.0f);
+	float margin = abs(seat.simulatedMarginAverage);
+	float marginSignificance = (margin ? 1.0f / (1.0f + abs(seat.simulatedMarginAverage)) : 0.0f);
 	wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
-	float p1 = result.seat->partyOneWinRate;
-	float p2 = result.seat->partyTwoWinRate;
-	float p3 = result.seat->partyOthersWinRate;
-	float leaderProb = std::max(result.seat->partyOneWinRate * 100.0f,
-		std::max(result.seat->partyTwoWinRate * 100.0f, result.seat->partyOthersWinRate * 100.0f));
+	float p1 = seat.partyOneWinRate;
+	float p2 = seat.partyTwoWinRate;
+	float p3 = seat.partyOthersWinRate;
+	float leaderProb = std::max(seat.partyOneWinRate * 100.0f,
+		std::max(seat.partyTwoWinRate * 100.0f, seat.partyOthersWinRate * 100.0f));
 	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
 	std::string leadingPartyName = (thisParty != Party::InvalidId ? project->parties().view(thisParty).abbreviation : "OTH");
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
@@ -240,7 +245,7 @@ void ResultsFrame::addResultToResultData(Result result)
 
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
-	resultsData->SetCellValue(row, 0, result.seat->name);
+	resultsData->SetCellValue(row, 0, seat.name);
 	resultsData->SetCellValue(row, 1, formatFloat(result.incumbentSwing, 1));
 	resultsData->SetCellBackgroundColour(row, 1, swingColour);
 	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
@@ -248,9 +253,9 @@ void ResultsFrame::addResultToResultData(Result result)
 	resultsData->SetCellValue(row, 3, result.updateTime.FormatISOTime());
 	resultsData->SetCellValue(row, 4, projectedMarginString);
 	resultsData->SetCellBackgroundColour(row, 4, projectedMarginColour);
-	resultsData->SetCellValue(row, 5, formatFloat(result.seat->partyOneWinRate * 100.0f, 2));
-	resultsData->SetCellValue(row, 6, formatFloat(result.seat->partyTwoWinRate * 100.0f, 2));
-	resultsData->SetCellValue(row, 7, formatFloat(result.seat->partyOthersWinRate * 100.0f, 2));
+	resultsData->SetCellValue(row, 5, formatFloat(seat.partyOneWinRate * 100.0f, 2));
+	resultsData->SetCellValue(row, 6, formatFloat(seat.partyTwoWinRate * 100.0f, 2));
+	resultsData->SetCellValue(row, 7, formatFloat(seat.partyOthersWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 8, statusString);
 	resultsData->SetCellBackgroundColour(row, 8, resultColour);
 	resultsData->Refresh();
@@ -271,8 +276,8 @@ void ResultsFrame::refreshToolbar()
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	wxArrayString seatNames;
-	for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
-		seatNames.Add(seat->name);
+	for (auto const& [key, seat] : project->seats()) {
+		seatNames.Add(seat.name);
 	}
 
 	auto seatNameStaticText = new wxStaticText(toolBar, wxID_ANY, "Seat name:");
@@ -326,15 +331,16 @@ void ResultsFrame::refreshToolbar()
 bool ResultsFrame::resultPassesFilter(Result const& thisResult)
 {
 	if (filter == Filter::AllResults) return true;
-	if (thisResult.seat->latestResult->updateTime != thisResult.updateTime) return false;
+	Seat const& seat = project->seats().view(thisResult.seat);
+	if (seat.latestResult->updateTime != thisResult.updateTime) return false;
 	if (filter == Filter::LatestResults) return true;
 
 	float significance = 0.0f;
-	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(thisResult.seat->margin))));
-	if (thisResult.seat->simulatedMarginAverage) {
-		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(thisResult.seat->simulatedMarginAverage)))));
+	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(seat.margin))));
+	if (seat.simulatedMarginAverage) {
+		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(seat.simulatedMarginAverage)))));
 	}
-	if (thisResult.seat->simulatedMarginAverage < 0.0f) significance += 5.0f; // automatically treat seats changing hands as significant
+	if (seat.simulatedMarginAverage < 0.0f) significance += 5.0f; // automatically treat seats changing hands as significant
 
 	if (filter == Filter::SignificantResults) return significance > 1.5f;
 	if (filter == Filter::KeyResults) return significance > 5.0f;

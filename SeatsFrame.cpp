@@ -62,8 +62,8 @@ void SeatsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the seat data
-	for (int i = 0; i < project->getSeatCount(); ++i) {
-		addSeatToSeatData(project->getSeat(i));
+	for (int i = 0; i < project->seats().count(); ++i) {
+		addSeatToSeatData(project->seats().viewByIndex(i));
 	}
 
 	updateInterface();
@@ -160,7 +160,7 @@ void SeatsFrame::OnEditSeat(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&SeatsFrame::replaceSeat, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditSeatFrame *frame = new EditSeatFrame(EditSeatFrame::Function::Edit, callback, project->parties(), project->regions(), project->getSeat(seatIndex));
+	EditSeatFrame *frame = new EditSeatFrame(EditSeatFrame::Function::Edit, callback, project->parties(), project->regions(), project->seats().viewByIndex(seatIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -208,7 +208,7 @@ void SeatsFrame::OnEditSeatReady(Seat& seat) {
 
 void SeatsFrame::addSeat(Seat seat) {
 	// Simultaneously add to the party data control and to the polling project.
-	project->addSeat(seat);
+	project->seats().add(seat);
 
 	refreshDataTable();
 }
@@ -233,22 +233,23 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 
 void SeatsFrame::replaceSeat(Seat seat) {
 	int seatIndex = seatData->GetSelectedRow();
-	// Simultaneously replace data in the seat data control and the polling project.
-	project->replaceSeat(seatIndex, seat);
+	Seat::Id seatId = project->seats().indexToId(seatIndex);
+	project->seats().replace(seatId, seat);
 
 	refreshDataTable();
 }
 
 void SeatsFrame::removeSeat() {
-	// Simultaneously add to the seat data control and to the polling project.
-	project->removeSeat(seatData->GetSelectedRow());
+	int seatIndex = seatData->GetSelectedRow();
+	Seat::Id seatId = project->seats().indexToId(seatIndex);
+	project->seats().remove(seatId);
 
 	refreshDataTable();
 }
 
 void SeatsFrame::showSeatResults()
 {
-	auto results = project->getSeat(seatData->GetSelectedRow()).latestResults;
+	auto results = project->seats().viewByIndex(seatData->GetSelectedRow()).latestResults;
 	if (!results) {
 		wxMessageBox("No previous election results for this seat!\n");
 		return;

@@ -408,12 +408,12 @@ void MapFrame::render(wxDC& dc) {
 
 	dc.SetPen(wxPen(wxColour(0, 0, 0), 1));
 	if (selectedSeat <= 0) {
-		for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
-			drawBoothsForSeat(*seat, dc);
+		for (auto const& [key, seat] : project->seats()) {
+			drawBoothsForSeat(seat, dc);
 		}
 	}
 	else {
-		drawBoothsForSeat(project->getSeat(selectedSeat - 1), dc);
+		drawBoothsForSeat(project->seats().viewByIndex(selectedSeat - 1), dc);
 	}
 
 	drawBoothDetails(dc);
@@ -443,8 +443,8 @@ void MapFrame::refreshToolbar() {
 	// Set the selected seat to be the first seat
 	wxArrayString seatStrings;
 	seatStrings.push_back("None");
-	for (auto it = project->getSeatBegin(); it != project->getSeatEnd(); ++it) {
-		seatStrings.push_back(it->name);
+	for (auto const& [key, seat] : project->seats()) {
+		seatStrings.push_back(seat.name);
 	}
 	std::string comboBoxString;
 	selectedSeat = 0;
@@ -487,11 +487,11 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 	int seatIndex = 0;
 	float smallestDistance = std::numeric_limits<float>::max();
 	int bestBooth = -1;
-	for (auto seat = project->getSeatBegin(); seat != project->getSeatEnd(); ++seat) {
+	for (auto const& [key, seat] : project->seats()) {
 		++seatIndex; // need this to be increased even if the seat isn't checked so that it'll be correct when we get to the selected seat
 		if (selectedSeat > 0 && selectedSeat != seatIndex) continue;
-		if (!seat->latestResults) return;
-		for (int boothId : seat->latestResults->booths) {
+		if (!seat.latestResults) return;
+		for (int boothId : seat.latestResults->booths) {
 			auto const& booth = project->getBooth(boothId);
 			if (!booth.totalNewTcpVotes()) continue;
 			Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));

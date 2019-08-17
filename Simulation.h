@@ -2,6 +2,7 @@
 
 #include "Party.h"
 #include "Projection.h"
+#include "Seat.h"
 
 #include <wx/datetime.h>
 
@@ -17,12 +18,6 @@ class Projection;
 class PollingProject;
 class Seat;
 struct Party;
-
-struct ClassicSeat {
-	ClassicSeat(Seat* seat, int seatIndex) : seat(seat), seatIndex(seatIndex) {}
-	Seat* seat;
-	int seatIndex;
-};
 
 class Simulation {
 
@@ -68,7 +63,7 @@ public:
 
 	Mode live = Mode::Projection;
 
-	std::vector<ClassicSeat> classicSeatList;
+	std::vector<Seat::Id> classicSeatIds;
 
 	std::vector<float> partyWinExpectation;
 
@@ -81,7 +76,7 @@ public:
 
 	std::vector<float> incumbentWinPercent;
 
-	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const;
+	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex, PollingProject& project) const;
 
 	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 	std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds;
@@ -153,7 +148,7 @@ public:
 
 	float get2cpPercentCounted() const { return total2cpPercentCounted; }
 
-	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed);
+	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project);
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;

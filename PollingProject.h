@@ -18,6 +18,7 @@
 #include "PollsterCollection.h"
 #include "ProjectionCollection.h"
 #include "RegionCollection.h"
+#include "SeatCollection.h"
 #include "Event.h"
 #include "Model.h"
 #include "Projection.h"
@@ -27,7 +28,6 @@
 #include "Result.h"
 
 const int PA_MaxPollsters = 100;
-
 
 class LatestResultsDataRetriever;
 class PreloadDataRetriever;
@@ -102,35 +102,8 @@ public:
 	// If a region is removed, various parts of the project need to be adjusted to account for this.
 	void adjustAfterRegionRemoval(RegionCollection::Index regionIndex, Region::Id regionId);
 
-	// Adds the seat "seat".
-	void addSeat(Seat seat);
-
-	// Replaces the seat with index "seatIndex" by "seat".
-	void replaceSeat(int seatIndex, Seat seat);
-
-	// Removes the seat with index "seatIndex".
-	void removeSeat(int seatIndex);
-
-	// Returns the seat with index "seatIndex".
-	Seat getSeat(int seatIndex) const;
-
-	// Returns a pointer to the seat with index "seatIndex".
-	Seat* getSeatPtr(int seatIndex);
-
-	// Returns the number of seats.
-	int getSeatCount() const;
-
-	// Gets the region index from a given pointer.
-	int getSeatIndex(Seat const* seatPtr);
-
-	// Gets the begin iterator for the seat list.
-	std::list<Seat>::iterator getSeatBegin();
-
-	// Gets the end iterator for the seat list.
-	std::list<Seat>::iterator getSeatEnd();
-
-	// Gets a pointer to the first seat found with this name. Returns null if no seat matches.
-	Seat* getSeatPtrByName(std::string name);
+	SeatCollection& seats() { return seatCollection; }
+	SeatCollection const& seats() const { return seatCollection; }
 
 	// Adds the simulation "simulation".
 	void addSimulation(Simulation simulation);
@@ -277,9 +250,7 @@ private:
 	ModelCollection modelCollection;
 	ProjectionCollection projectionCollection;
 	RegionCollection regionCollection;
-
-	// Vector containing the data for seats.
-	std::list<Seat> seats;
+	SeatCollection seatCollection;
 
 	// Vector containing the data for simulations.
 	std::list<Simulation> simulations;

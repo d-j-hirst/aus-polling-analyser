@@ -325,6 +325,7 @@
     <ClCompile Include="Projection.cpp" />
     <ClCompile Include="ProjectionsFrame.cpp" />
     <ClCompile Include="RegionsFrame.cpp" />
+    <ClCompile Include="SeatCollection.cpp" />
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
@@ -347,6 +348,7 @@
     <ClInclude Include="PollsterCollection.h" />
     <ClInclude Include="ProjectionCollection.h" />
     <ClInclude Include="RegionCollection.h" />
+    <ClInclude Include="SeatCollection.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />

@@ -12,6 +12,8 @@ class Result;
 class Seat {
 
 public:
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
 
 	struct PartiesNotSetException : public std::runtime_error {
 		PartiesNotSetException() : std::runtime_error("") {}
