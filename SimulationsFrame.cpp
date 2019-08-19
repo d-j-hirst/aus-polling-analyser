@@ -1,24 +1,29 @@
 #include "SimulationsFrame.h"
 #include "General.h"
 
-enum SimulationColumnsEnum {
-	SimulationColumn_Name,
-	SimulationColumn_BaseProjection,
-	SimulationColumn_NumIterations,
-	SimulationColumn_PrevElection2pp,
-	SimulationColumn_StateSD,
-	SimulationColumn_StateDecay,
-	SimulationColumn_LatestUpdate,
+enum ControlId {
+	Base = 600, // To avoid mixing events with other frames.
+	Frame,
+	DataView,
+	New,
+	Edit,
+	Remove,
+	Run,
 };
 
 // frame constructor
 SimulationsFrame::SimulationsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_SimulationsFrame_FrameID, "Simulations", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Simulations", wxPoint(0, 0), project),
 	refresher(refresher)
 {
+	setupToolbar();
+	setupDataTable();
+	refreshDataTable();
+	bindEventHandlers();
+}
 
-	// *** Toolbar *** //
-
+void SimulationsFrame::setupToolbar()
+{
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
 	wxBitmap toolBarBitmaps[4];
@@ -31,46 +36,44 @@ SimulationsFrame::SimulationsFrame(ProjectFrame::Refresher refresher, PollingPro
 	toolBar = new wxToolBar(this, wxID_ANY);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_SimulationsFrame_NewSimulationID, "New Simulation", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Simulation");
-	toolBar->AddTool(PA_SimulationsFrame_EditSimulationID, "Edit Simulation", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Simulation");
-	toolBar->AddTool(PA_SimulationsFrame_RemoveSimulationID, "Remove Simulation", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Simulation");
-	toolBar->AddTool(PA_SimulationsFrame_RunSimulationID, "Run Simulation", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Simulation");
+	toolBar->AddTool(ControlId::New, "New Simulation", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Simulation");
+	toolBar->AddTool(ControlId::Edit , "Edit Simulation", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Simulation");
+	toolBar->AddTool(ControlId::Remove, "Remove Simulation", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Simulation");
+	toolBar->AddTool(ControlId::Run, "Run Simulation", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Simulation");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
 
-	// *** Simulation Data Table *** //
-
+void SimulationsFrame::setupDataTable()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), GetClientSize() - wxSize(0, toolBarHeight));
 
 	// Create the simulation data control.
 	simulationData = new wxDataViewListCtrl(dataPanel,
-		PA_SimulationsFrame_DataViewID,
+		ControlId::DataView,
 		wxPoint(0, 0),
 		dataPanel->GetClientSize());
+}
 
-	// *** Party Data Table Columns *** //
-
-	refreshData();
-
-	// *** Binding Events *** //
-
+void SimulationsFrame::bindEventHandlers()
+{
 	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &SimulationsFrame::OnResize, this, PA_SimulationsFrame_FrameID);
+	Bind(wxEVT_SIZE, &SimulationsFrame::OnResize, this, ControlId::Frame);
 
 	// Need to record it if this frame is closed.
 	//Bind(wxEVT_CLOSE_WINDOW, &SimulationsFrame::OnClose, this, PA_PartiesFrame_FrameID);
 
 	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &SimulationsFrame::OnNewSimulation, this, PA_SimulationsFrame_NewSimulationID);
-	Bind(wxEVT_TOOL, &SimulationsFrame::OnEditSimulation, this, PA_SimulationsFrame_EditSimulationID);
-	Bind(wxEVT_TOOL, &SimulationsFrame::OnRemoveSimulation, this, PA_SimulationsFrame_RemoveSimulationID);
-	Bind(wxEVT_TOOL, &SimulationsFrame::OnRunSimulation, this, PA_SimulationsFrame_RunSimulationID);
+	Bind(wxEVT_TOOL, &SimulationsFrame::OnNewSimulation, this, ControlId::New);
+	Bind(wxEVT_TOOL, &SimulationsFrame::OnEditSimulation, this, ControlId::Edit);
+	Bind(wxEVT_TOOL, &SimulationsFrame::OnRemoveSimulation, this, ControlId::Remove);
+	Bind(wxEVT_TOOL, &SimulationsFrame::OnRunSimulation, this, ControlId::Run);
 
 	// Need to update the interface if the selection changes
-	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SimulationsFrame::OnSelectionChange, this, PA_SimulationsFrame_DataViewID);
+	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SimulationsFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
 void SimulationsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
@@ -156,7 +159,7 @@ void SimulationsFrame::OnEditSimulationReady(Simulation& simulation) {
 	replaceSimulation(simulation);
 }
 
-void SimulationsFrame::refreshData() {
+void SimulationsFrame::refreshDataTable() {
 
 	simulationData->DeleteAllItems();
 	simulationData->ClearColumns();
@@ -193,7 +196,7 @@ void SimulationsFrame::addSimulation(Simulation simulation) {
 	// Simultaneously add to the party data control and to the polling project.
 	project->addSimulation(simulation);
 
-	refreshData();
+	refreshDataTable();
 
 	updateInterface();
 
@@ -219,7 +222,7 @@ void SimulationsFrame::replaceSimulation(Simulation simulation) {
 	// Simultaneously replace data in the simulation data control and the polling project.
 	project->replaceSimulation(simulationIndex, simulation);
 
-	refreshData();
+	refreshDataTable();
 
 	updateInterface();
 
@@ -231,7 +234,7 @@ void SimulationsFrame::removeSimulation() {
 	// Simultaneously add to the simulation data control and to the polling project.
 	project->removeSimulation(simulationData->GetSelectedRow());
 
-	refreshData();
+	refreshDataTable();
 
 	updateInterface();
 
@@ -239,22 +242,17 @@ void SimulationsFrame::removeSimulation() {
 	refresher.refreshMap();
 }
 
-void SimulationsFrame::removeSimulationFromSimulationData() {
-	// Create a vector with all the simulation data.
-	simulationData->DeleteItem(simulationData->GetSelectedRow());
-}
-
 void SimulationsFrame::runSimulation() {
 	int simulationIndex = simulationData->GetSelectedRow();
 	Simulation* thisSimulation = project->getSimulationPtr(simulationIndex);
 	thisSimulation->run(*project);
-	refreshData();
+	refreshDataTable();
 	simulationData->Refresh();
 }
 
 void SimulationsFrame::updateInterface() {
 	bool somethingSelected = (simulationData->GetSelectedRow() != -1);
-	toolBar->EnableTool(PA_SimulationsFrame_EditSimulationID, somethingSelected);
-	toolBar->EnableTool(PA_SimulationsFrame_RemoveSimulationID, somethingSelected);
-	toolBar->EnableTool(PA_SimulationsFrame_RunSimulationID, somethingSelected);
+	toolBar->EnableTool(ControlId::Edit, somethingSelected);
+	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+	toolBar->EnableTool(ControlId::Run, somethingSelected);
 }

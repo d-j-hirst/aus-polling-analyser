@@ -24,21 +24,6 @@
 class ProjectFrame;
 class GenericChildFame;
 
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// IDs for the controls and the menu commands
-enum {
-	PA_SimulationsFrame_Base = 600, // To avoid mixing events with other frames.
-	PA_SimulationsFrame_FrameID,
-	PA_SimulationsFrame_DataViewID,
-	PA_SimulationsFrame_NewSimulationID,
-	PA_SimulationsFrame_EditSimulationID,
-	PA_SimulationsFrame_RemoveSimulationID,
-	PA_SimulationsFrame_RunSimulationID,
-};
-
 // *** SimulationsFrame ***
 // Frame that allows the user to create aggregated simulations using the poll data.
 class SimulationsFrame : public GenericChildFrame
@@ -55,9 +40,17 @@ public:
 	void OnEditSimulationReady(Simulation& simulation);
 
 	// updates the data to take into account any changes, such as removed pollsters/parties.
-	void refreshData();
+	void refreshDataTable();
 
 private:
+
+	// Creates the toolbar and its accompanying tools
+	void setupToolbar();
+
+	// Create the data table from scratch
+	void setupDataTable();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
@@ -88,10 +81,6 @@ private:
 
 	// does everything required to remove the currently selected simulation, if possible.
 	void removeSimulation();
-
-	// removes the currently selected simulation from simulation data.
-	// Should not be used except within removeSimulation.
-	void removeSimulationFromSimulationData();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

@@ -175,14 +175,6 @@ void ProjectionsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 	updateInterface();
 }
 
-void ProjectionsFrame::OnNewProjectionReady(Projection& projection) {
-	addProjection(projection);
-}
-
-void ProjectionsFrame::OnEditProjectionReady(Projection& projection) {
-	replaceProjection(projection);
-}
-
 void ProjectionsFrame::refreshDataTable() {
 
 	projectionData->DeleteAllItems();

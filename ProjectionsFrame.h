@@ -33,12 +33,6 @@ public:
 	// "project" is a pointer to the polling project object.
 	ProjectionsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
-	// Calls on the frame to create a new projection based on "Projection".
-	void OnNewProjectionReady(Projection& projection);
-
-	// Calls on the frame to edit the currently selected projection based on "Projection".
-	void OnEditProjectionReady(Projection& projection);
-
 	// updates the data to take into account any changes, such as removed pollsters/parties.
 	void refreshDataTable();
 
