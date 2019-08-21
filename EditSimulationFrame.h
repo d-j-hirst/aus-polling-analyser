@@ -13,15 +13,13 @@
 #include "wx/wx.h"
 #endif
 
-#include <sstream>
-#include <wx/valnum.h>
-#include <wx/datectrl.h>
-#include <wx/dateevt.h>
-
 #include "Simulation.h"
 
-class SimulationsFrame;
-class PollingProject;
+class ChoiceInput;
+class FloatInput;
+class IntInput;
+class ProjectionCollection;
+class TextInput;
 
 // ----------------------------------------------------------------------------
 // constants
@@ -33,82 +31,55 @@ class PollingProject;
 class EditSimulationFrame : public wxDialog
 {
 public:
-	// isNewSimulation: true if this dialog is for creating a new simulation, false if it's for editing.
-	// parent: Parent frame for this (must be a PartiesFrame).
-	// simulation: Simulation data to be used if editing (has default values for creating a new simulation).
-	EditSimulationFrame(bool isNewSimulation, SimulationsFrame* parent,
-		PollingProject const* project, Simulation simulation = Simulation());
+	enum class Function {
+		New,
+		Edit
+	};
+
+	typedef std::function<void(Simulation)> OkCallback;
+
+	// function: whether this is for a new projection or editing an existing projection
+	// callback: function to be called when the OK button is pressed
+	EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation simulation = Simulation());
+
+private:
+
+	void createControls(int& y);
+
+	// Each of these takes a value for the current y-position
+	void createNameInput(int& y);
+	void createProjectionInput(int& y);
+	void createNumIterationsInput(int& y);
+	void createPrevElection2ppInput(int& y);
+	void createStateSDInput(int& y);
+	void createStateDecayInput(int& y);
+	void createLiveInput(int& y);
+
+	void createOkCancelButtons(int& y);
+
+	void setFinalWindowHeight(int y);
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
-private:
-
-	// Calls upon the window to update the preliminary name data based on
-	// the result of the GetString() method of "event".
-	void updateTextName(wxCommandEvent& event);
-
-	// Calls upon the window to update the base projection data based on
-	// the properties of the event.
-	void updateComboBoxBaseProjection(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary number of iterations based on
-	// the result of the GetString() method of "event".
-	void updateTextNumIterations(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary last-election 2pp vote based on
-	// the result of the GetString() method of "event".
-	void updateTextPrevElection2pp(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary state vote standard deviation based on
-	// the result of the GetString() method of "event".
-	void updateTextStateSD(wxCommandEvent& event);
-
-	// Calls upon the window to update the preliminary state vote decay based on
-	// the result of the GetString() method of "event".
-	void updateTextStateDecay(wxCommandEvent& event);
-
-	// Calls upon the window to update whether the simulation is "live" or not
-	// the result of the isChecked() method of "event".
-	void updateLive(wxCommandEvent& event);
-
-	// Calls on the parent frame to initialize a new simulation based on the
-	// data in "newProjectData".
-	void OnNewSimulationReady();
-
 	// Data container for the preliminary settings for the simulation to be created.
 	Simulation simulation;
 
-	// Polling project pointer. Only used for accessing model names
-	PollingProject const* project;
+	ProjectionCollection const& projections;
 
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* nameStaticText;
-	wxTextCtrl* nameTextCtrl;
-	wxStaticText* projectionStaticText;
-	wxComboBox* projectionComboBox;
-	wxStaticText* numIterationsStaticText;
-	wxTextCtrl* numIterationsTextCtrl;
-	wxStaticText* prevElection2ppStaticText;
-	wxTextCtrl* prevElection2ppTextCtrl;
-	wxStaticText* stateSDStaticText;
-	wxTextCtrl* stateSDTextCtrl;
-	wxStaticText* stateDecayStaticText;
-	wxTextCtrl* stateDecayTextCtrl;
-	wxStaticText* liveStaticText;
-	wxComboBox* liveComboBox;
+	std::unique_ptr<TextInput> nameInput;
+	std::unique_ptr<ChoiceInput> projectionInput;
+	std::unique_ptr<IntInput> numIterationsInput;
+	std::unique_ptr<FloatInput> prevElection2ppInput;
+	std::unique_ptr<FloatInput> stateSDInput;
+	std::unique_ptr<FloatInput> stateDecayInput;
+	std::unique_ptr<ChoiceInput> liveInput;
+
 	wxButton* okButton;
 	wxButton* cancelButton;
 
-	std::string lastNumIterations;
-	std::string lastPrevElection2pp;
-	std::string lastStateSD;
-	std::string lastStateDecay;
-
-	// A pointer to the parent frame.
-	SimulationsFrame* const parent;
-
-	// Stores whether this dialog is for creating a new simulation (true) or editing an existing one (false).
-	bool isNewSimulation;
+	// function to call back to once the user clicks OK.
+	OkCallback callback;
 };

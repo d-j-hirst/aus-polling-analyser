@@ -33,8 +33,8 @@ public:
 
 	typedef std::function<void(Model)> OkCallback;
 
-	// function: whether this is for a new party or editing an existing party
-	// callback: function to be called when this 
+	// function: whether this is for a new model or editing an existing model
+	// callback: function to be called when the OK button is pressed
 	EditModelFrame(Function function, OkCallback callback, Model model = Model());
 
 private:

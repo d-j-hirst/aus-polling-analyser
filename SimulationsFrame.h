@@ -33,12 +33,6 @@ public:
 	// "project" is a pointer to the polling project object.
 	SimulationsFrame(ProjectFrame::Refresher refresher, PollingProject* project);
 
-	// Calls on the frame to create a new simulation based on "Simulation".
-	void OnNewSimulationReady(Simulation& simulation);
-
-	// Calls on the frame to edit the currently selected simulation based on "Simulation".
-	void OnEditSimulationReady(Simulation& simulation);
-
 	// updates the data to take into account any changes, such as removed pollsters/parties.
 	void refreshDataTable();
 

@@ -1,296 +1,147 @@
 #include "EditSimulationFrame.h"
-#include "SimulationsFrame.h"
-#include "PollingProject.h"
-#include "General.h"
 
-// IDs for the controls and the menu commands
-enum
+#include "ChoiceInput.h"
+#include "DateInput.h"
+#include "General.h"
+#include "FloatInput.h"
+#include "IntInput.h"
+#include "Log.h"
+#include "ProjectionCollection.h"
+#include "TextInput.h"
+
+constexpr int ControlPadding = 4;
+
+enum ControlId
 {
-	PA_EditSimulation_Base = 650, // To avoid mixing events with other frames.
-	PA_EditSimulation_ButtonID_OK,
-	PA_EditSimulation_TextBoxID_Name,
-	PA_EditSimulation_ComboBoxID_BaseProjection,
-	PA_EditSimulation_TextBoxID_NumIterations,
-	PA_EditSimulation_TextBoxID_PrevElection2pp,
-	PA_EditSimulation_TextBoxID_StateSD,
-	PA_EditSimulation_TextBoxID_StateDecay,
-	PA_EditSimulation_ComboBoxID_Live,
+	Base = 650, // To avoid mixing events with other frames.
+	Ok,
+	Name,
+	BaseProjection,
+	NumIterations,
+	PrevElection2pp,
+	StateSD,
+	StateDecay,
+	Live,
 };
 
-EditSimulationFrame::EditSimulationFrame(bool isNewSimulation, SimulationsFrame* const parent, PollingProject const* project, Simulation simulation)
-	: wxDialog(NULL, 0, (isNewSimulation ? "New Simulation" : "Edit Simulation"), wxDefaultPosition, wxSize(375, 260)),
-	isNewSimulation(isNewSimulation), parent(parent), project(project), simulation(simulation)
+EditSimulationFrame::EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation simulation)
+	: wxDialog(NULL, 0, (function == Function::New ? "New Simulation" : "Edit Simulation"), wxDefaultPosition, wxSize(375, 260)),
+	callback(callback), projections(projections), simulation(simulation)
 {
 	// If a model has not been specified it should default to the first.
-	if (this->simulation.baseProjection == Projection::InvalidId) this->simulation.baseProjection = 0;
+	if (this->simulation.baseProjection == Projection::InvalidId) this->simulation.baseProjection = projections.indexToId(0);
 
-	// Generate the string for the number of iterations
-	std::string numIterationsString = std::to_string(simulation.numIterations);
+	int currentY = ControlPadding;
+	createControls(currentY);
+	setFinalWindowHeight(currentY);
+}
 
-	// Store this string in case a text entry gives an error in the future.
-	lastNumIterations = numIterationsString;
+void EditSimulationFrame::createControls(int & y)
+{
+	createNameInput(y);
+	createProjectionInput(y);
+	createNumIterationsInput(y);
+	createPrevElection2ppInput(y);
+	createStateSDInput(y);
+	createStateDecayInput(y);
+	createLiveInput(y);
 
-	// Generate the string for the previous election 2pp
-	std::string prevElection2ppString = std::to_string(simulation.prevElection2pp);
+	createOkCancelButtons(y);
+}
 
-	// Store this string in case a text entry gives an error in the future.
-	lastPrevElection2pp = prevElection2ppString;
+void EditSimulationFrame::createNameInput(int & y)
+{
+	auto nameCallback = [this](std::string s) -> void {simulation.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", simulation.name, wxPoint(2, y), nameCallback));
+	y += nameInput->Height + ControlPadding;
+}
 
-	// Generate the string for the state vote standard deviation
-	std::string stateSDString = std::to_string(simulation.stateSD);
-
-	// Store this string in case a text entry gives an error in the future.
-	lastStateSD = stateSDString;
-
-	// Generate the string for the state vote daily decay
-	std::string stateDecayString = std::to_string(simulation.stateDecay);
-
-	// Store this string in case a text entry gives an error in the future.
-	lastStateDecay = stateDecayString;
-
-	const int labelYOffset = 5;
-
-	int currentHeight = 2;
-
-	int textBoxWidth = 150;
-	int labelWidth = 200;
-
-	// Create the controls for the simulation name.
-	nameStaticText = new wxStaticText(this, 0, "Name:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	nameTextCtrl = new wxTextCtrl(this, PA_EditSimulation_TextBoxID_Name, simulation.name, wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// *** Projection Combo Box *** //
-
-	// Create the choices for the combo box.
-	// Also check if the poll's pollster matches any of the choices (otherwise it is set to the first).
+void EditSimulationFrame::createProjectionInput(int & y)
+{
 	wxArrayString projectionArray;
-	for (auto const& projection : project->projections()) {
-		projectionArray.push_back(projection.second.name);
+	int selectedProjection = 0;
+	int count = 0;
+	for (auto projectionIt = projections.cbegin(); projectionIt != projections.cend(); ++projectionIt, ++count) {
+		projectionArray.push_back(projectionIt->second.name);
+		if (projectionIt->first == simulation.baseProjection) selectedProjection = count;
 	}
-	ProjectionCollection::Index selectedProjection = project->projections().idToIndex(simulation.baseProjection);
 
-	// Create the controls for the model combo box.
-	projectionStaticText = new wxStaticText(this, 0, "Base projection:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	projectionComboBox = new wxComboBox(this, PA_EditSimulation_ComboBoxID_BaseProjection, projectionArray[0],
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23), projectionArray, wxCB_READONLY);
+	auto projectionCallback = [this](int i) {simulation.baseProjection = projections.indexToId(i); };
+	projectionInput.reset(new ChoiceInput(this, ControlId::BaseProjection, "Base projection: ", projectionArray, selectedProjection,
+		wxPoint(2, y), projectionCallback));
+	y += projectionInput->Height + ControlPadding;
+}
 
-	// Sets the combo box selection to the simulations's base model.
-	projectionComboBox->SetSelection(selectedProjection);
+void EditSimulationFrame::createNumIterationsInput(int & y)
+{
+	auto numIterationsCallback = [this](int i) -> void {simulation.numIterations = i; };
+	auto numIterationsValidator = [](int i) {return std::max(1, i); };
+	numIterationsInput.reset(new IntInput(this, ControlId::NumIterations, "Number of Iterations:", simulation.numIterations,
+		wxPoint(2, y), numIterationsCallback, numIterationsValidator));
+	y += numIterationsInput->Height + ControlPadding;
+}
 
-	currentHeight += 27;
+void EditSimulationFrame::createPrevElection2ppInput(int & y)
+{
+	auto prevElection2ppCallback = [this](float f) -> void {simulation.prevElection2pp = f; };
+	auto prevElection2ppValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	prevElection2ppInput.reset(new FloatInput(this, ControlId::PrevElection2pp, "Previous election 2pp:", simulation.prevElection2pp,
+		wxPoint(2, y), prevElection2ppCallback, prevElection2ppValidator));
+	y += prevElection2ppInput->Height + ControlPadding;
+}
 
-	// Create the controls for the simulation number of iterations
-	numIterationsStaticText = new wxStaticText(this, 0, "Number of Iterations:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	numIterationsTextCtrl = new wxTextCtrl(this, PA_EditSimulation_TextBoxID_NumIterations, numIterationsString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
+void EditSimulationFrame::createStateSDInput(int & y)
+{
+	auto stateSDCallback = [this](float f) -> void {simulation.stateSD = f; };
+	auto stateSDValidator = [](float f) {return std::max(f, 0.0f); };
+	stateSDInput.reset(new FloatInput(this, ControlId::StateSD, "State standard deviation:", simulation.stateSD,
+		wxPoint(2, y), stateSDCallback, stateSDValidator));
+	y += stateSDInput->Height + ControlPadding;
+}
 
-	currentHeight += 27;
+void EditSimulationFrame::createStateDecayInput(int & y)
+{
+	auto stateDecayCallback = [this](float f) -> void {simulation.stateDecay = f; };
+	auto stateDecayValidator = [](float f) {return std::clamp(f, 0.0f, 1.0f); };
+	stateDecayInput.reset(new FloatInput(this, ControlId::StateDecay, "State daily vote decay:", simulation.stateDecay,
+		wxPoint(2, y), stateDecayCallback, stateDecayValidator));
+	y += stateDecayInput->Height + ControlPadding;
+}
 
-	// Create the controls for the simulation previous election 2pp
-	prevElection2ppStaticText = new wxStaticText(this, 0, "Previous election 2pp:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	prevElection2ppTextCtrl = new wxTextCtrl(this, PA_EditSimulation_TextBoxID_PrevElection2pp, prevElection2ppString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the simulation state vote standard deviation
-	stateSDStaticText = new wxStaticText(this, 0, "State standard deviation:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	stateSDTextCtrl = new wxTextCtrl(this, PA_EditSimulation_TextBoxID_StateSD, stateSDString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the simulation state vote daily decay
-	stateDecayStaticText = new wxStaticText(this, 0, "State daily vote decay:", wxPoint(2, currentHeight + labelYOffset), wxSize(labelWidth, 23));
-	stateDecayTextCtrl = new wxTextCtrl(this, PA_EditSimulation_TextBoxID_StateDecay, stateDecayString,
-		wxPoint(labelWidth, currentHeight), wxSize(textBoxWidth, 23));
-
-	currentHeight += 27;
-
-	// Live status combo box
+void EditSimulationFrame::createLiveInput(int & y)
+{
 	wxArrayString liveArray;
 	liveArray.push_back("Projection only");
 	liveArray.push_back("Manual input");
 	liveArray.push_back("Automatic downloading");
-	int currentLiveSelection = int(simulation.live);
 
-	// Create the controls for choosing whether this simulation is "live"
-	liveStaticText = new wxStaticText(this, 0, "Live status:", wxPoint(2, currentHeight), wxSize(100, 23));
-	liveComboBox = new wxComboBox(this, PA_EditSimulation_ComboBoxID_Live, liveArray[currentLiveSelection], 
-		wxPoint(190, currentHeight - 2), wxSize(200, 23), liveArray, wxCB_READONLY);
+	auto liveCallback = [this](int i) {simulation.live = Simulation::Mode(i); };
+	liveInput.reset(new ChoiceInput(this, ControlId::Live, "Live status:", liveArray, int(simulation.live),
+		wxPoint(2, y), liveCallback));
+	y += liveInput->Height + ControlPadding;
+}
 
-	liveComboBox->SetSelection(currentLiveSelection);
-
-	currentHeight += 27;
-
+void EditSimulationFrame::createOkCancelButtons(int & y)
+{
 	// Create the OK and cancel buttons.
-	okButton = new wxButton(this, PA_EditSimulation_ButtonID_OK, "OK", wxPoint(67, currentHeight), wxSize(100, 24));
-	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, currentHeight), wxSize(100, 24));
+	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
+	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(233, y), wxSize(100, 24));
 
 	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextName, this, PA_EditSimulation_TextBoxID_Name);
-	Bind(wxEVT_COMBOBOX, &EditSimulationFrame::updateComboBoxBaseProjection, this, PA_EditSimulation_ComboBoxID_BaseProjection);
-	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextNumIterations, this, PA_EditSimulation_TextBoxID_NumIterations);
-	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextPrevElection2pp, this, PA_EditSimulation_TextBoxID_PrevElection2pp);
-	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextStateSD, this, PA_EditSimulation_TextBoxID_StateSD);
-	Bind(wxEVT_TEXT, &EditSimulationFrame::updateTextStateDecay, this, PA_EditSimulation_TextBoxID_StateDecay);
-	Bind(wxEVT_COMBOBOX, &EditSimulationFrame::updateLive, this, PA_EditSimulation_ComboBoxID_Live);
-	Bind(wxEVT_BUTTON, &EditSimulationFrame::OnOK, this, PA_EditSimulation_ButtonID_OK);
+	Bind(wxEVT_BUTTON, &EditSimulationFrame::OnOK, this, Ok);
+	y += TextInput::Height + ControlPadding;
 }
 
-void EditSimulationFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
+void EditSimulationFrame::setFinalWindowHeight(int y)
+{
+	SetClientSize(wxSize(GetClientSize().x, y));
+}
 
-	// If this is set to true the simulation has not yet been updated.
+void EditSimulationFrame::OnOK(wxCommandEvent& WXUNUSED(event))
+{
+	// If this is set to true the projection has not yet been updated.
 	simulation.lastUpdated = wxInvalidDateTime;
-
-	if (isNewSimulation) {
-		// Get the parent frame to add a new simulation
-		parent->OnNewSimulationReady(simulation);
-	}
-	else {
-		// Get the parent frame to replace the old simulation with the current one
-		parent->OnEditSimulationReady(simulation);
-	}
-
+	callback(simulation);
 	// Then close this dialog.
 	Close();
-}
-
-void EditSimulationFrame::updateTextName(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	simulation.name = event.GetString();
-}
-
-void EditSimulationFrame::updateComboBoxBaseProjection(wxCommandEvent& WXUNUSED(event)) {
-
-	// updates the preliminary pollster pointer using the current selection.
-	simulation.baseProjection = project->projections().indexToId(projectionComboBox->GetCurrentSelection());
-}
-
-void EditSimulationFrame::updateTextNumIterations(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			simulation.numIterations = 0;
-			return;
-		}
-
-		// convert to an int
-		int i = std::stoi(str); // This may throw an error of the std::logic_error type.
-		if (i > 9999999) i = 9999999; // Some kind of maximum to avoid being ridiculous
-		if (i < 0) i = 0;
-
-		simulation.numIterations = i;
-
-		// save this valid string in case the next text entry gives an error.
-		lastNumIterations = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		numIterationsTextCtrl->SetLabel(lastNumIterations);
-	}
-}
-
-void EditSimulationFrame::updateTextPrevElection2pp(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			simulation.prevElection2pp = 0.0f;
-			return;
-		}
-
-		// convert to an int
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 100.0f) f = 100.0f; // Some kind of maximum to avoid being ridiculous
-		if (f < 0.0f) f = 0.0f;
-
-		simulation.prevElection2pp = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastPrevElection2pp = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		prevElection2ppTextCtrl->SetLabel(lastPrevElection2pp);
-	}
-}
-
-void EditSimulationFrame::updateTextStateSD(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			simulation.stateSD = 0.0f;
-			return;
-		}
-
-		// convert to an int
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 10.0f) f = 10.0f; // Some kind of maximum to avoid being ridiculous
-		if (f < 0.0f) f = 0.0f;
-
-		simulation.stateSD = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastStateSD = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		stateSDTextCtrl->SetLabel(lastStateSD);
-	}
-}
-
-void EditSimulationFrame::updateTextStateDecay(wxCommandEvent& event) {
-
-	// updates the preliminary project data with the string from the event.
-	// This code effectively acts as a pseudo-validator
-	// (can't get the standard one to work properly with pre-initialized values)
-	try {
-		std::string str = event.GetString().ToStdString();
-
-		// An empty string can be interpreted as zero, so it's ok.
-		if (str.empty()) {
-			simulation.stateDecay = 0.0f;
-			return;
-		}
-
-		// convert to an int
-		float f = std::stof(str); // This may throw an error of the std::logic_error type.
-		if (f > 10.0f) f = 10.0f; // Some kind of maximum to avoid being ridiculous
-		if (f < 0.0f) f = 0.0f;
-
-		simulation.stateDecay = f;
-
-		// save this valid string in case the next text entry gives an error.
-		lastStateDecay = str;
-	}
-	catch (std::logic_error err) {
-		// Set the text to the last valid string.
-		stateDecayTextCtrl->SetLabel(lastStateDecay);
-	}
-}
-
-void EditSimulationFrame::updateLive(wxCommandEvent & event)
-{
-	simulation.live = Simulation::Mode(event.GetSelection());
 }

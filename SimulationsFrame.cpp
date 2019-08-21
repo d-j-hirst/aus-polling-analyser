@@ -1,6 +1,8 @@
 #include "SimulationsFrame.h"
 #include "General.h"
 
+using namespace std::placeholders; // for function object parameter binding
+
 enum ControlId {
 	Base = 600, // To avoid mixing events with other frames.
 	Frame,
@@ -91,8 +93,12 @@ void SimulationsFrame::OnNewSimulation(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&SimulationsFrame::addSimulation, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditSimulationFrame *frame = new EditSimulationFrame(true, this, project, Simulation());
+	EditSimulationFrame *frame = new EditSimulationFrame(
+		EditSimulationFrame::Function::New, callback, project->projections(), Simulation());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -109,8 +115,12 @@ void SimulationsFrame::OnEditSimulation(wxCommandEvent& WXUNUSED(event)) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (simulationIndex == -1) return;
 
+	// This binding is needed to pass a member function as a callback for the EditPartyFrame
+	auto callback = std::bind(&SimulationsFrame::replaceSimulation, this, _1);
+
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditSimulationFrame *frame = new EditSimulationFrame(false, this, project, project->getSimulation(simulationIndex));
+	EditSimulationFrame *frame = new EditSimulationFrame(
+		EditSimulationFrame::Function::Edit, callback, project->projections(), project->getSimulation(simulationIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -149,14 +159,6 @@ void SimulationsFrame::OnRunSimulation(wxCommandEvent& WXUNUSED(event)) {
 // updates the interface after a change in item selection.
 void SimulationsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 	updateInterface();
-}
-
-void SimulationsFrame::OnNewSimulationReady(Simulation& simulation) {
-	addSimulation(simulation);
-}
-
-void SimulationsFrame::OnEditSimulationReady(Simulation& simulation) {
-	replaceSimulation(simulation);
 }
 
 void SimulationsFrame::refreshDataTable() {

@@ -19,6 +19,7 @@ class ChoiceInput;
 class DateInput;
 class FloatInput;
 class IntInput;
+class ModelCollection;
 class TextInput;
 
 // *** EditProjectionFrame ***
@@ -34,9 +35,8 @@ public:
 
 	typedef std::function<void(Projection)> OkCallback;
 
-	// isNewProjection: true if this dialog is for creating a new projection, false if it's for editing.
-	// parent: Parent frame for this (must be a PartiesFrame).
-	// projection: Projection data to be used if editing (has default values for creating a new projection).
+	// function: whether this is for a new projection or editing an existing projection
+	// callback: function to be called when the OK button is pressed
 	EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection projection = Projection());
 
 private:
