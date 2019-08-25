@@ -19,6 +19,7 @@
 #include "ProjectionCollection.h"
 #include "RegionCollection.h"
 #include "SeatCollection.h"
+#include "SimulationCollection.h"
 #include "Event.h"
 #include "Model.h"
 #include "Projection.h"
@@ -105,32 +106,8 @@ public:
 	SeatCollection& seats() { return seatCollection; }
 	SeatCollection const& seats() const { return seatCollection; }
 
-	// Adds the simulation "simulation".
-	void addSimulation(Simulation simulation);
-
-	// Replaces the simulation with index "simulationIndex" by "simulation".
-	void replaceSimulation(int simulationIndex, Simulation simulation);
-
-	// Removes the simulation with index "simulationIndex".
-	void removeSimulation(int simulationIndex);
-
-	// Returns the simulation with index "simulationIndex".
-	Simulation getSimulation(int simulationIndex) const;
-
-	// Returns a pointer to the simulation with index "simulationIndex".
-	Simulation* getSimulationPtr(int simulationIndex);
-
-	// Returns a pointer to the simulation with index "simulationIndex".
-	Simulation const* getSimulationPtr(int simulationIndex) const;
-
-	// Returns the number of simulations.
-	int getSimulationCount() const;
-
-	// Gets the begin iterator for the simulation list.
-	std::list<Simulation>::const_iterator getSimulationBegin() const;
-
-	// Gets the end iterator for the simulation list.
-	std::list<Simulation>::const_iterator getSimulationEnd() const;
+	SimulationCollection& simulations() { return simulationCollection; }
+	SimulationCollection const& simulations() const { return simulationCollection; }
 
 	// Adds a result to the front of the results list
 	void addResult(Result result);
@@ -251,9 +228,7 @@ private:
 	ProjectionCollection projectionCollection;
 	RegionCollection regionCollection;
 	SeatCollection seatCollection;
-
-	// Vector containing the data for simulations.
-	std::list<Simulation> simulations;
+	SimulationCollection simulationCollection;
 
 	// Live election results
 	std::list<Result> results;

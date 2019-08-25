@@ -144,11 +144,11 @@ void DisplayFrame::render(wxDC& dc) {
 
 	clearDC(dc);
 
-	if (!project->getSimulationCount()) return;
+	if (selectedSimulation < 0 || selectedSimulation >= project->simulations().count()) return;
 
-	Simulation* sim = project->getSimulationPtr(selectedSimulation);
+	Simulation const& sim = project->simulations().viewByIndex(selectedSimulation);
 
-	if (!sim->lastUpdated.IsValid()) return;
+	if (!sim.lastUpdated.IsValid()) return;
 
 	defineGraphLimits();
 	wxFont font8 = wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
@@ -216,27 +216,27 @@ void DisplayFrame::render(wxDC& dc) {
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(sim->partyOneMajorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(sim.partyOneMajorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
 	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(sim->partyOneMinorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(sim.partyOneMinorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
 	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(sim->hungPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(sim.hungPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
 	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(sim->partyTwoMinorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(sim.partyTwoMinorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
 	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(sim->partyTwoMajorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(sim.partyTwoMajorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
 
 	// Sum of leads
 	wxRect probPartyOneRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
@@ -252,7 +252,7 @@ void DisplayFrame::render(wxDC& dc) {
 	setBrushAndPen(*wxBLACK, dc);
 	dc.DrawLabel("ALP win:", probPartyOneAnnotationRect, wxALIGN_CENTRE);
 	dc.SetFont(font18);
-	dc.DrawLabel(formatFloat(sim->getPartyOneWinPercent(), 2) + "%", probPartyOneNumberRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(sim.getPartyOneWinPercent(), 2) + "%", probPartyOneNumberRect, wxALIGN_CENTRE);
 	dc.SetFont(font13);
 	// Second party
 	wxRect probPartyTwoRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
@@ -268,7 +268,7 @@ void DisplayFrame::render(wxDC& dc) {
 	setBrushAndPen(*wxBLACK, dc);
 	dc.DrawLabel("LNP win:", probPartyTwoAnnotationRect, wxALIGN_CENTRE);
 	dc.SetFont(font18);
-	dc.DrawLabel(formatFloat(100 - sim->getPartyOneWinPercent(), 2) + "%", probPartyTwoNumberRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(100 - sim.getPartyOneWinPercent(), 2) + "%", probPartyTwoNumberRect, wxALIGN_CENTRE);
 	dc.SetFont(font13);
 
 	// Expectation box
@@ -288,9 +288,9 @@ void DisplayFrame::render(wxDC& dc) {
 		ExpectationBoxWidth - expBoxNameRect.GetWidth(), ExpectationBoxTextHeight);
 	dc.SetFont(font13);
 	for (int partyIndex = 0; partyIndex < project->parties().count(); ++partyIndex) {
-		if (partyIndex >= int(sim->partyWinExpectation.size())) break;
+		if (partyIndex >= int(sim.partyWinExpectation.size())) break;
 		dc.DrawLabel(project->parties().viewByIndex(partyIndex).name, expBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(formatFloat(sim->partyWinExpectation[partyIndex], 2), expBoxDataRect, wxALIGN_CENTRE);
+		dc.DrawLabel(formatFloat(sim.partyWinExpectation[partyIndex], 2), expBoxDataRect, wxALIGN_CENTRE);
 		expBoxNameRect.Offset(0, ExpectationBoxTextHeight);
 		expBoxDataRect.Offset(0, ExpectationBoxTextHeight);
 	}
@@ -321,10 +321,10 @@ void DisplayFrame::render(wxDC& dc) {
 	for (auto const& regionPair : project->regions()) {
 		Region const& thisRegion = regionPair.second;
 		int regionIndex = project->regions().idToIndex(regionPair.first);
-		if (regionIndex >= int(sim->regionPartyWinExpectation.size())) break;
-		float alpSeats = sim->regionPartyWinExpectation[regionIndex][0];
-		float lnpSeats = sim->regionPartyWinExpectation[regionIndex][1];
-		float othSeats = sim->getOthersWinExpectation(regionIndex);
+		if (regionIndex >= int(sim.regionPartyWinExpectation.size())) break;
+		float alpSeats = sim.regionPartyWinExpectation[regionIndex][0];
+		float lnpSeats = sim.regionPartyWinExpectation[regionIndex][1];
+		float othSeats = sim.getOthersWinExpectation(regionIndex);
 		float alpChange = alpSeats - thisRegion.partyLeading[0];
 		float lnpChange = lnpSeats - thisRegion.partyLeading[1];
 		float othChange = othSeats - thisRegion.getOthersLeading();
@@ -367,37 +367,37 @@ void DisplayFrame::render(wxDC& dc) {
 	dc.DrawLabel("95%", boundsBox95Rect, wxALIGN_CENTRE);
 	dc.DrawLabel("99%", boundsBox99Rect, wxALIGN_CENTRE);
 	dc.SetFont(font13);
-	if (sim->lastUpdated.IsValid()) {
+	if (sim.lastUpdated.IsValid()) {
 		boundsBoxNameRect.Offset(0, BoundsBoxTextHeight);
 		boundsBox50Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
 		dc.DrawLabel(project->parties().view(0).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[3]) + "-" + to_string(sim->partyOneProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[2]) + "-" + to_string(sim->partyOneProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[1]) + "-" + to_string(sim->partyOneProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyOneProbabilityBounds[0]) + "-" + to_string(sim->partyOneProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyOneProbabilityBounds[3]) + "-" + to_string(sim.partyOneProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyOneProbabilityBounds[2]) + "-" + to_string(sim.partyOneProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyOneProbabilityBounds[1]) + "-" + to_string(sim.partyOneProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyOneProbabilityBounds[0]) + "-" + to_string(sim.partyOneProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
 		boundsBoxNameRect.Offset(0, BoundsBoxTextHeight);
 		boundsBox50Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
 		dc.DrawLabel(project->parties().view(1).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[3]) + "-" + to_string(sim->partyTwoProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[2]) + "-" + to_string(sim->partyTwoProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[1]) + "-" + to_string(sim->partyTwoProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->partyTwoProbabilityBounds[0]) + "-" + to_string(sim->partyTwoProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyTwoProbabilityBounds[3]) + "-" + to_string(sim.partyTwoProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyTwoProbabilityBounds[2]) + "-" + to_string(sim.partyTwoProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyTwoProbabilityBounds[1]) + "-" + to_string(sim.partyTwoProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.partyTwoProbabilityBounds[0]) + "-" + to_string(sim.partyTwoProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
 		boundsBoxNameRect.Offset(0, BoundsBoxTextHeight);
 		boundsBox50Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
 		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
 		dc.DrawLabel("Others", boundsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->othersProbabilityBounds[3]) + "-" + to_string(sim->othersProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->othersProbabilityBounds[2]) + "-" + to_string(sim->othersProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->othersProbabilityBounds[1]) + "-" + to_string(sim->othersProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(sim->othersProbabilityBounds[0]) + "-" + to_string(sim->othersProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.othersProbabilityBounds[3]) + "-" + to_string(sim.othersProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.othersProbabilityBounds[2]) + "-" + to_string(sim.othersProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.othersProbabilityBounds[1]) + "-" + to_string(sim.othersProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
+		dc.DrawLabel(to_string(sim.othersProbabilityBounds[0]) + "-" + to_string(sim.othersProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
 	}
 
 	float GraphBoxTop = ProbabilityBoxMargin + ExpectationBoxTop + ExpectationBoxHeight;
@@ -413,11 +413,11 @@ void DisplayFrame::render(wxDC& dc) {
 	wxPoint axisLeftPoint = wxPoint(axisLeft, axisY);
 	wxPoint axisRightPoint = wxPoint(axisRight, axisY);
 	setBrushAndPen(*wxBLACK, dc);
-	if (sim->lastUpdated.IsValid()) {
-		int lowestSeatFrequency = sim->getMinimumSeatFrequency(GraphParty);
-		int highestSeatFrequency = sim->getMaximumSeatFrequency(GraphParty);
+	if (sim.lastUpdated.IsValid()) {
+		int lowestSeatFrequency = sim.getMinimumSeatFrequency(GraphParty);
+		int highestSeatFrequency = sim.getMaximumSeatFrequency(GraphParty);
 		int seatRange = highestSeatFrequency - lowestSeatFrequency;
-		int modalSeatFrequency = sim->getModalSeatFrequencyCount(GraphParty);
+		int modalSeatFrequency = sim.getModalSeatFrequencyCount(GraphParty);
 		if (seatRange > 0) {
 			int seatColumnWidth = int(floor(axisLength)) / seatRange;
 			float columnRange = float(seatColumnWidth * seatRange); // if all columns have the same width then the total width of all columns
@@ -434,7 +434,7 @@ void DisplayFrame::render(wxDC& dc) {
 			const float GraphMaxColumnHeight = GraphBoxHeight - GraphAxisOffset - GraphTopSpace;
 			setBrushAndPen(*wxBLUE, dc);
 			for (int seatNum = lowestSeatFrequency; seatNum <= highestSeatFrequency; ++seatNum) {
-				float proportionOfMax = float(sim->partySeatWinFrequency[1][seatNum]) / float(modalSeatFrequency) * 0.9999f;
+				float proportionOfMax = float(sim.partySeatWinFrequency[1][seatNum]) / float(modalSeatFrequency) * 0.9999f;
 				float columnHeight = std::ceil(proportionOfMax * GraphMaxColumnHeight);
 				float columnTop = axisY - columnHeight;
 				float columnWidth = float(seatColumnWidth);
@@ -466,14 +466,14 @@ void DisplayFrame::render(wxDC& dc) {
 	wxRect seatsBoxLnpWinRect = wxRect(seatsBoxMarginRect.GetRight(), seatsBoxTitleRect.GetBottom(),
 		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
 	int seatsFittingInBox = int((SeatsBoxHeight - SeatsBoxTitleHeight) / SeatsBoxTextHeight);
-	int closeSeat = sim->findBestSeatDisplayCenter(GraphParty, seatsFittingInBox, *project);
-	int firstSeat = std::max(std::min(closeSeat - seatsFittingInBox / 2, int(sim->classicSeatIds.size()) - seatsFittingInBox), 0);
+	int closeSeat = sim.findBestSeatDisplayCenter(GraphParty, seatsFittingInBox, *project);
+	int firstSeat = std::max(std::min(closeSeat - seatsFittingInBox / 2, int(sim.classicSeatIds.size()) - seatsFittingInBox), 0);
 	dc.SetFont(font8);
-	for (int seatIndex = firstSeat; seatIndex < firstSeat + seatsFittingInBox && seatIndex < int(sim->classicSeatIds.size()); ++seatIndex) {
-		Seat::Id seatId = sim->classicSeatIds[seatIndex];
+	for (int seatIndex = firstSeat; seatIndex < firstSeat + seatsFittingInBox && seatIndex < int(sim.classicSeatIds.size()); ++seatIndex) {
+		Seat::Id seatId = sim.classicSeatIds[seatIndex];
 		if (!project->seats().exists(seatId)) continue;
 		Seat const& seat = project->seats().view(seatId);
-		float lnpWinPercent = sim->getClassicSeatMajorPartyWinRate(seatIndex, GraphParty, *project); // NEED TO CHANGE THIS
+		float lnpWinPercent = sim.getClassicSeatMajorPartyWinRate(seatIndex, GraphParty, *project); // NEED TO CHANGE THIS
 		dc.DrawLabel(seat.name, seatsBoxNameRect, wxALIGN_CENTRE);
 		dc.DrawLabel(project->parties().view(seat.incumbent).abbreviation + " (" + formatFloat(seat.margin, 1) + ")", seatsBoxMarginRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(lnpWinPercent, 2), seatsBoxLnpWinRect, wxALIGN_CENTRE);
@@ -509,9 +509,8 @@ void DisplayFrame::refreshToolbar() {
 	// Create the choices for the combo box.
 	// Set the selected simulation to be the first simulation
 	wxArrayString simulationArray;
-	int count = 0;
-	for (auto it = project->getSimulationBegin(); it != project->getSimulationEnd(); ++it, ++count) {
-		simulationArray.push_back(it->name);
+	for (auto const& [key, simulation] : project->simulations()) {
+		simulationArray.push_back(simulation.name);
 	}
 	std::string comboBoxString;
 	if (selectedSimulation >= int(simulationArray.size())) {

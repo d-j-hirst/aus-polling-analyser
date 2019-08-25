@@ -120,7 +120,7 @@ void SimulationsFrame::OnEditSimulation(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditSimulationFrame *frame = new EditSimulationFrame(
-		EditSimulationFrame::Function::Edit, callback, project->projections(), project->getSimulation(simulationIndex));
+		EditSimulationFrame::Function::Edit, callback, project->projections(), project->simulations().viewByIndex(simulationIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -185,10 +185,8 @@ void SimulationsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the simulation data
-	if (project->getSimulationCount()) {
-		for (int i = 0; i < project->getSimulationCount(); ++i) {
-			addSimulationToSimulationData(project->getSimulation(i));
-		}
+	for (auto const& [key, simulation] : project->simulations()) {
+		addSimulationToSimulationData(simulation);
 	}
 
 	updateInterface();
@@ -196,7 +194,7 @@ void SimulationsFrame::refreshDataTable() {
 
 void SimulationsFrame::addSimulation(Simulation simulation) {
 	// Simultaneously add to the party data control and to the polling project.
-	project->addSimulation(simulation);
+	project->simulations().add(simulation);
 
 	refreshDataTable();
 
@@ -222,7 +220,7 @@ void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 void SimulationsFrame::replaceSimulation(Simulation simulation) {
 	int simulationIndex = simulationData->GetSelectedRow();
 	// Simultaneously replace data in the simulation data control and the polling project.
-	project->replaceSimulation(simulationIndex, simulation);
+	project->simulations().replace(simulationIndex, simulation);
 
 	refreshDataTable();
 
@@ -234,7 +232,7 @@ void SimulationsFrame::replaceSimulation(Simulation simulation) {
 
 void SimulationsFrame::removeSimulation() {
 	// Simultaneously add to the simulation data control and to the polling project.
-	project->removeSimulation(simulationData->GetSelectedRow());
+	project->simulations().remove(simulationData->GetSelectedRow());
 
 	refreshDataTable();
 
@@ -246,8 +244,8 @@ void SimulationsFrame::removeSimulation() {
 
 void SimulationsFrame::runSimulation() {
 	int simulationIndex = simulationData->GetSelectedRow();
-	Simulation* thisSimulation = project->getSimulationPtr(simulationIndex);
-	thisSimulation->run(*project);
+	Simulation::Id simulationId = project->simulations().indexToId(simulationIndex);
+	project->simulations().run(simulationId);
 	refreshDataTable();
 	simulationData->Refresh();
 }

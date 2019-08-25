@@ -328,6 +328,7 @@
     <ClCompile Include="SeatCollection.cpp" />
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
+    <ClCompile Include="SimulationCollection.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
     <ClCompile Include="TextInput.cpp" />
     <ClCompile Include="unzip.cpp" />
@@ -349,6 +350,7 @@
     <ClInclude Include="ProjectionCollection.h" />
     <ClInclude Include="RegionCollection.h" />
     <ClInclude Include="SeatCollection.h" />
+    <ClInclude Include="SimulationCollection.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
     <ClInclude Include="Log.h" />

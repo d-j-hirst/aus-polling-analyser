@@ -22,6 +22,9 @@ struct Party;
 class Simulation {
 
 public:
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	Simulation(std::string name) :
 		name(name)
 	{}
@@ -148,7 +151,7 @@ public:
 
 	float get2cpPercentCounted() const { return total2cpPercentCounted; }
 
-	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project);
+	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project) const;
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;

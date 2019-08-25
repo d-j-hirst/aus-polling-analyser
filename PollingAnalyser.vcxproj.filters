@@ -170,6 +170,9 @@
     <ClCompile Include="SeatCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="SimulationCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -427,6 +430,9 @@
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
     <ClInclude Include="SeatCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationCollection.h">
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>

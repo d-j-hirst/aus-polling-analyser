@@ -74,22 +74,23 @@ ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* pr
 
 void ResultsFrame::refreshData()
 {
-	for (auto simulation = project->getSimulationBegin(); simulation != project->getSimulationEnd(); ++simulation) {
-		if (simulation->isLive() && simulation->isValid()) {
+	for (auto const& [key, simulation] : project->simulations()) {
+		if (simulation.isLive() && simulation.isValid()) {
 			std::string party1 = project->parties().view(0).abbreviation;
 			std::string party2 = project->parties().view(1).abbreviation;
-			std::string summaryString = party1 + " win chance: " + formatFloat(simulation->getPartyOneWinPercent(), 2) +
-				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation->getPartyOne2pp()), 2) +
-				"   Seats: " + party1 + " " + formatFloat(simulation->partyWinExpectation[0], 2) + " " +
-				party2 + " " + formatFloat(simulation->partyWinExpectation[1], 2) +
-				" Others " + formatFloat(simulation->getOthersWinExpectation(), 2) +
-				"   Count progress: " + formatFloat(simulation->get2cpPercentCounted() * 100.0f, 2) + "%\n" +
+			std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyOneWinPercent(), 2) +
+				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
+				"   Seats: " + party1 + " " + formatFloat(simulation.partyWinExpectation[0], 2) + " " +
+				party2 + " " + formatFloat(simulation.partyWinExpectation[1], 2) +
+				" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
+				"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
 				party1 + " swing by region: ";
 			for (auto const& regionPair : project->regions()) {
 				Region const& thisRegion = regionPair.second;
 				summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
 			}
 			summaryText->SetLabel(summaryString);
+			break;
 		}
 	}
 
@@ -136,9 +137,8 @@ void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 
 void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 {
-	for (int i = 0; i < project->getSimulationCount(); ++i) {
-		Simulation* simulation = project->getSimulationPtr(i);
-		if (simulation->isLive()) simulation->run(*project);
+	for (auto& [key, simulation] : project->simulations()) {
+		if (simulation.isLive()) simulation.run(*project);
 	}
 
 	refreshData();

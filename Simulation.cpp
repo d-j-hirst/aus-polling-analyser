@@ -461,7 +461,7 @@ float Simulation::getClassicSeatMajorPartyWinRate(int classicSeatIndex, int part
 		100.0f - incumbentWinPercent[classicSeatIds[classicSeatIndex]]);
 }
 
-int Simulation::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project) {
+int Simulation::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project) const {
 	// aim here is to find the range of seats with the greatest difference between most and least likely for "partySorted" to wion
 	float bestProbRange = 50.0f;
 	int bestCenter = int(classicSeatIds.size()) / 2;

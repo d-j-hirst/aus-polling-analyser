@@ -21,7 +21,8 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	modelCollection(*this),
 	projectionCollection(*this),
 	regionCollection(*this),
-	seatCollection(*this)
+	seatCollection(*this),
+	simulationCollection(*this)
 {
 	// The project must always have at least two partyCollection, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
@@ -39,7 +40,8 @@ PollingProject::PollingProject(std::string pathName) :
 	modelCollection(*this),
 	projectionCollection(*this),
 	regionCollection(*this),
-	seatCollection(*this)
+	seatCollection(*this),
+	simulationCollection(*this)
 {
 	logger << lastFileName << "\n";
 	open(pathName);
@@ -269,50 +271,6 @@ void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionInde
 	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
-void PollingProject::addSimulation(Simulation simulation) {
-	simulations.push_back(simulation);
-}
-
-void PollingProject::replaceSimulation(int simulationIndex, Simulation simulation) {
-	*getSimulationPtr(simulationIndex) = simulation;
-}
-
-Simulation PollingProject::getSimulation(int simulationIndex) const {
-	auto it = simulations.begin();
-	for (int i = 0; i < simulationIndex; i++) it++;
-	return *it;
-}
-
-Simulation* PollingProject::getSimulationPtr(int simulationIndex) {
-	auto it = simulations.begin();
-	for (int i = 0; i < simulationIndex; i++) it++;
-	return &*it;
-}
-
-Simulation const* PollingProject::getSimulationPtr(int simulationIndex) const {
-	auto it = simulations.begin();
-	for (int i = 0; i < simulationIndex; i++) it++;
-	return &*it;
-}
-
-void PollingProject::removeSimulation(int simulationIndex) {
-	auto it = simulations.begin();
-	for (int i = 0; i < simulationIndex; i++) it++;
-	simulations.erase(it);
-}
-
-int PollingProject::getSimulationCount() const {
-	return simulations.size();
-}
-
-std::list<Simulation>::const_iterator PollingProject::getSimulationBegin() const {
-	return simulations.begin();
-}
-
-std::list<Simulation>::const_iterator PollingProject::getSimulationEnd() const {
-	return simulations.end();
-}
-
 void PollingProject::addResult(Result result)
 {
 	results.push_front(result);
@@ -441,9 +399,8 @@ int PollingProject::save(std::string filename) {
 	os << "name=" << name << "\n";
 	os << "opre=" << parties().getOthersPreferenceFlow() << "\n";
 	os << "oexh=" << parties().getOthersExhaustRate() << "\n";
-	os << "#partyCollection" << "\n";
-	for (auto const& partyPair : partyCollection) {
-		Party const& thisParty = partyPair.second;
+	os << "#Parties" << "\n";
+	for (auto const& [key, thisParty] : partyCollection) {
 		os << "@Party" << "\n";
 		os << "name=" << thisParty.name << "\n";
 		os << "pref=" << thisParty.preferenceShare << "\n";
@@ -462,8 +419,7 @@ int PollingProject::save(std::string filename) {
 		os << "colb=" << thisParty.colour.b << "\n";
 	}
 	os << "#Pollsters" << "\n";
-	for (auto const& pollsterPair : pollsterCollection) {
-		Pollster const& thisPollster = pollsterPair.second;
+	for (auto const& [key, thisPollster]: pollsterCollection) {
 		os << "@Pollster" << "\n";
 		os << "name=" << thisPollster.name << "\n";
 		os << "weig=" << thisPollster.weight << "\n";
@@ -472,8 +428,7 @@ int PollingProject::save(std::string filename) {
 		os << "igin=" << int(thisPollster.ignoreInitially) << "\n";
 	}
 	os << "#Polls" << "\n";
-	for (auto const& pollPair : pollCollection) {
-		Poll const& thisPoll = pollPair.second;
+	for (auto const& [key, thisPoll] : pollCollection) {
 		os << "@Poll" << "\n";
 		os << "poll=" << pollsters().idToIndex(thisPoll.pollster) << "\n";
 		os << "year=" << thisPoll.date.GetYear() << "\n";
@@ -488,8 +443,7 @@ int PollingProject::save(std::string filename) {
 		os << "py15=" << thisPoll.primary[PartyCollection::MaxParties] << "\n";
 	}
 	os << "#Events" << "\n";
-	for (auto const& eventPair : eventCollection) {
-		Event const& thisEvent = eventPair.second;
+	for (auto const& [key, thisEvent]: eventCollection) {
 		os << "@Event" << "\n";
 		os << "name=" << thisEvent.name << "\n";
 		os << "type=" << thisEvent.eventType << "\n";
@@ -497,8 +451,7 @@ int PollingProject::save(std::string filename) {
 		os << "vote=" << thisEvent.vote << "\n";
 	}
 	os << "#Models" << "\n";
-	for (auto const& modelPair : modelCollection) {
-		Model const& thisModel = modelPair.second;
+	for (auto const& [key, thisModel] : modelCollection) {
 		os << "@Model" << "\n";
 		os << "name=" << thisModel.name << "\n";
 		os << "iter=" << thisModel.numIterations << "\n";
@@ -519,8 +472,7 @@ int PollingProject::save(std::string filename) {
 		}
 	}
 	os << "#Projections" << "\n";
-	for (auto const& projectionPair : projectionCollection) {
-		Projection const& thisProjection = projectionPair.second;
+	for (auto const& [key, thisProjection] : projectionCollection) {
 		os << "@Projection" << "\n";
 		os << "name=" << thisProjection.name << "\n";
 		os << "iter=" << thisProjection.numIterations << "\n";
@@ -537,8 +489,7 @@ int PollingProject::save(std::string filename) {
 		}
 	}
 	os << "#Regions" << "\n";
-	for (auto const& regionPair : regionCollection) {
-		Region const& thisRegion = regionPair.second;
+	for (auto const& [key, thisRegion] : regionCollection) {
 		os << "@Region" << "\n";
 		os << "name=" << thisRegion.name << "\n";
 		os << "popn=" << thisRegion.population << "\n";
@@ -548,8 +499,7 @@ int PollingProject::save(std::string filename) {
 		os << "addu=" << thisRegion.additionalUncertainty << "\n";
 	}
 	os << "#Seats" << "\n";
-	for (auto const& seatPair : seatCollection) {
-		Seat const& thisSeat = seatPair.second;
+	for (auto const& [key, thisSeat] : seatCollection) {
 		os << "@Seat" << "\n";
 		os << "name=" << thisSeat.name << "\n";
 		os << "pvnm=" << thisSeat.previousName << "\n";
@@ -573,7 +523,7 @@ int PollingProject::save(std::string filename) {
 		os << "over=" << int(thisSeat.overrideBettingOdds) << "\n";
 	}
 	os << "#Simulations" << "\n";
-	for (auto const& thisSimulation : simulations) {
+	for (auto const& [key, thisSimulation] : simulationCollection) {
 		os << "@Simulation" << "\n";
 		os << "name=" << thisSimulation.name << "\n";
 		os << "iter=" << thisSimulation.numIterations << "\n";
@@ -732,7 +682,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Simulations) {
 		if (!line.compare("@Simulation")) {
-			simulations.push_back(Simulation());
+			simulationCollection.add(Simulation());
 			return true;
 		}
 	}
@@ -1106,35 +1056,33 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Simulations) {
-		if (!simulations.size()) return true; //prevent crash from mixed-up data.
-		auto it = simulations.end();
-		it--;
+		if (!simulationCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			it->name = line.substr(5);
+			simulationCollection.back().name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iter=")) {
-			it->numIterations = std::stoi(line.substr(5));
+			simulationCollection.back().numIterations = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("base=")) {
-			it->baseProjection = std::stoi(line.substr(5));
+			simulationCollection.back().baseProjection = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("prev=")) {
-			it->prevElection2pp = std::stof(line.substr(5));
+			simulationCollection.back().prevElection2pp = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stsd=")) {
-			it->stateSD = std::stof(line.substr(5));
+			simulationCollection.back().stateSD = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stde=")) {
-			it->stateDecay = std::stof(line.substr(5));
+			simulationCollection.back().stateDecay = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("live=")) {
-			it->live = Simulation::Mode(std::stoi(line.substr(5)));
+			simulationCollection.back().live = Simulation::Mode(std::stoi(line.substr(5)));
 			return true;
 		}
 	}
@@ -1179,9 +1127,12 @@ void PollingProject::removeProjectionsFromModel(Model::Id modelId) {
 
 void PollingProject::removeSimulationsFromProjection(Projection::Id projectionId)
 {
-	for (int i = 0; i < getSimulationCount(); i++) {
-		Simulation* simulation = getSimulationPtr(i);
-		if (simulation->baseProjection == projectionId) { removeSimulation(i); i--; }
+	for (int i = 0; i < simulations().count(); i++) {
+		Simulation const& simulation = simulations().viewByIndex(i);
+		if (simulation.baseProjection == projectionId) { 
+			simulations().remove(simulations().indexToId(i));
+			i--;
+		}
 	}
 }
 
