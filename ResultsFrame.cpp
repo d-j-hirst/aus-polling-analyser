@@ -62,7 +62,6 @@ void ResultsFrame::createDataTable()
 
 void ResultsFrame::bindEventHandlers()
 {
-
 	// Need to resize controls if this frame is resized.
 	Bind(wxEVT_SIZE, &ResultsFrame::OnResize, this, ControlId::Frame);
 
@@ -95,23 +94,11 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	std::string enteredName = seatNameTextCtrl->GetLineText(0);
 	try {
 		auto [seatId, seat] = project->seats().accessByName(enteredName);
-		if ((!seat.isClassic2pp(true) || seat.challenger2Odds < 8.0f) &&
-			!seat.livePartyOne && !seat.overrideBettingOdds) {
-			int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
-				"Should this be overridden so that the seat is indeed counted as being classic for the remained of this election? "
-				" (You can always make it non-classic again by using the \"Non-classic\" tool.)", "Seat currently non-classic", wxYES_NO);
-			if (result == wxYES) {
-				seat.overrideBettingOdds = true;
-			}
-		}
-		double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
-		double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
-		long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
-		long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
-		if (percentCounted < 0.001) percentCounted = 0.0;
-		Result result = Result(seatId, swing, percentCounted, boothsIn, totalBooths);
 
-		project->addResult(result);
+		// If appropriate, pops up a dialog box to ask user if they want to override the non-classic status
+		confirmOverrideNonClassicStatus(seat);
+
+		addEnteredResult(seatId);
 
 		refreshData();
 	}
@@ -253,19 +240,7 @@ void ResultsFrame::refreshSummaryBar()
 {
 	for (auto const&[key, simulation] : project->simulations()) {
 		if (simulation.isLive() && simulation.isValid()) {
-			std::string party1 = project->parties().view(0).abbreviation;
-			std::string party2 = project->parties().view(1).abbreviation;
-			std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyOneWinPercent(), 2) +
-				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
-				"   Seats: " + party1 + " " + formatFloat(simulation.partyWinExpectation[0], 2) + " " +
-				party2 + " " + formatFloat(simulation.partyWinExpectation[1], 2) +
-				" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
-				"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
-				party1 + " swing by region: ";
-			for (auto const& regionPair : project->regions()) {
-				Region const& thisRegion = regionPair.second;
-				summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
-			}
+			std::string summaryString = decideSummaryString(simulation);
 			summaryText->SetLabel(summaryString);
 			break;
 		}
@@ -276,35 +251,9 @@ void ResultsFrame::refreshTable()
 {
 	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
 
-	if (!resultsData->GetNumberCols()) {
-		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
-		resultsData->SetColLabelValue(0, "Seat Name");
-		resultsData->SetColLabelValue(1, "Swing");
-		resultsData->SetColLabelValue(2, "Count %");
-		resultsData->SetColLabelValue(3, "Updated");
-		resultsData->SetColLabelValue(4, "Proj. Margin");
-		resultsData->SetColLabelValue(5, "ALP prob.");
-		resultsData->SetColLabelValue(6, "LNP prob.");
-		resultsData->SetColLabelValue(7, "Other prob.");
-		resultsData->SetColLabelValue(8, "Status");
-		resultsData->SetColSize(0, 100);
-		resultsData->SetColSize(1, 40);
-		resultsData->SetColSize(2, 60);
-		resultsData->SetColSize(3, 60);
-		resultsData->SetColSize(4, 85);
-		resultsData->SetColSize(5, 70);
-		resultsData->SetColSize(6, 70);
-		resultsData->SetColSize(7, 70);
-		resultsData->SetColSize(8, 150);
-		resultsData->SetRowLabelSize(0);
-	}
+	resetTableColumns();
 
-	if (resultsData->GetNumberRows()) resultsData->DeleteRows(0, resultsData->GetNumberRows());
-
-	for (int i = 0; i < project->getResultCount(); ++i) {
-		Result thisResult = project->getResult(i);
-		if (resultPassesFilter(thisResult)) addResultToResultData(thisResult);
-	}
+	addTableData();
 
 	resultsData->EndBatch(); // refresh grid data on screen
 }
@@ -416,4 +365,85 @@ wxColour ResultsFrame::decideStatusColour(Result const & thisResult)
 		int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.g : 128) * (1.0f - lightnessFactor)),
 		int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.b : 128) * (1.0f - lightnessFactor)));
 	return statusColour;
+}
+
+void ResultsFrame::confirmOverrideNonClassicStatus(Seat & seat)
+{
+	if ((!seat.isClassic2pp(true) || seat.challenger2Odds < 8.0f) &&
+		!seat.livePartyOne && !seat.overrideBettingOdds) {
+		int result = wxMessageBox("This seat is currently using betting odds as it is considered to be non-classic. "
+			"Should this be overridden so that the seat is indeed counted as being classic for the remained of this election? "
+			" (You can always make it non-classic again by using the \"Non-classic\" tool.)", "Seat currently non-classic", wxYES_NO);
+		if (result == wxYES) {
+			seat.overrideBettingOdds = true;
+		}
+	}
+}
+
+void ResultsFrame::addEnteredResult(Seat::Id seatId)
+{
+	// wxWidgets requires these roundabout ways of getting values from the text boxes
+	double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
+	double percentCounted; percentCountedTextCtrl->GetLineText(0).ToDouble(&percentCounted);
+	long boothsIn; currentBoothCountTextCtrl->GetLineText(0).ToLong(&boothsIn);
+	long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
+
+	if (percentCounted < 0.001) percentCounted = 0.0;
+	Result result = Result(seatId, swing, percentCounted, boothsIn, totalBooths);
+
+	project->addResult(result);
+}
+
+std::string ResultsFrame::decideSummaryString(Simulation const & simulation)
+{
+	std::string party1 = project->parties().view(0).abbreviation;
+	std::string party2 = project->parties().view(1).abbreviation;
+	std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyOneWinPercent(), 2) +
+		"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
+		"   Seats: " + party1 + " " + formatFloat(simulation.partyWinExpectation[0], 2) + " " +
+		party2 + " " + formatFloat(simulation.partyWinExpectation[1], 2) +
+		" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
+		"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
+		party1 + " swing by region: ";
+	for (auto const& regionPair : project->regions()) {
+		Region const& thisRegion = regionPair.second;
+		summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
+	}
+	return summaryString;
+}
+
+void ResultsFrame::resetTableColumns()
+{
+	if (!resultsData->GetNumberCols()) {
+		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
+		resultsData->SetColLabelValue(0, "Seat Name");
+		resultsData->SetColLabelValue(1, "Swing");
+		resultsData->SetColLabelValue(2, "Count %");
+		resultsData->SetColLabelValue(3, "Updated");
+		resultsData->SetColLabelValue(4, "Proj. Margin");
+		resultsData->SetColLabelValue(5, "ALP prob.");
+		resultsData->SetColLabelValue(6, "LNP prob.");
+		resultsData->SetColLabelValue(7, "Other prob.");
+		resultsData->SetColLabelValue(8, "Status");
+		resultsData->SetColSize(0, 100);
+		resultsData->SetColSize(1, 40);
+		resultsData->SetColSize(2, 60);
+		resultsData->SetColSize(3, 60);
+		resultsData->SetColSize(4, 85);
+		resultsData->SetColSize(5, 70);
+		resultsData->SetColSize(6, 70);
+		resultsData->SetColSize(7, 70);
+		resultsData->SetColSize(8, 150);
+		resultsData->SetRowLabelSize(0);
+	}
+
+	if (resultsData->GetNumberRows()) resultsData->DeleteRows(0, resultsData->GetNumberRows());
+}
+
+void ResultsFrame::addTableData()
+{
+	for (int i = 0; i < project->getResultCount(); ++i) {
+		Result thisResult = project->getResult(i);
+		if (resultPassesFilter(thisResult)) addResultToResultData(thisResult);
+	}
 }

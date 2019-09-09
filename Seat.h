@@ -125,7 +125,7 @@ public:
 		}
 		// Even if there are some first-preference results consistent with a classic 2cp
 		// we can still manually override this if we judge otherwise
-		if (live && livePartyOne) return false;
+		if (live && livePartyOne != Party::InvalidId) return false;
 		// At this point, we have no 2cp results, and maybe some regular fp results,
 		// and might not even be running live results yet,
 		// so just go by the incumbent/challenger pairs recorded pre-election.

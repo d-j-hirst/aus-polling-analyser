@@ -101,6 +101,16 @@ private:
 
 	wxColour decideStatusColour(Result const& thisResult);
 
+	void confirmOverrideNonClassicStatus(Seat& seat);
+
+	void addEnteredResult(Seat::Id seatId);
+
+	std::string decideSummaryString(Simulation const& simulation);
+
+	void resetTableColumns();
+
+	void addTableData();
+
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
 
