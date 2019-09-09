@@ -13,14 +13,11 @@
 #include "wx/wx.h"
 #endif
 
-#include "wx/dcbuffer.h"
-
 #include <memory>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 
-class ProjectFrame;
 class GenericChildFrame;
 
 // *** DisplayFrame ***
@@ -34,9 +31,6 @@ public:
 
 	// paints immediately if needed.
 	void paint();
-
-	// removes any mouse-over information.
-	void resetMouseOver();
 
 	// updates the data to take into account any changes, such as removed pollsters/parties.
 	void refreshData();
@@ -62,8 +56,7 @@ private:
 	// Handles the movement of the mouse in the display frame.
 	void OnMouseMove(wxMouseEvent& event);
 
-	// Handles the movement of the mouse in the display frame.
-	void OnMouseDown(wxMouseEvent& event);
+	void bindEventHandlers();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
@@ -71,17 +64,41 @@ private:
 	// function that carries out rendering the poll display.
 	void render(wxDC& dc);
 
+	void drawBackground(wxDC& dc) const;
+
+	void drawProbabilityBox(wxDC& dc) const;
+
+	void drawSumOfLeads(wxDC& dc) const;
+
+	void drawExpectationsBox(wxDC& dc) const;
+
+	void drawStatesBox(wxDC& dc) const;
+
+	void drawBoundsBox(wxDC& dc) const;
+
+	void drawGraphBox(wxDC& dc) const;
+
+	void drawSeatsBox(wxDC& dc) const;
+
 	// defines the basic variables that represent the pixel limits of the graph.
 	void defineGraphLimits();
 
 	// clears the drawing area.
-	void clearDC(wxDC& dc);
+	void clearDC(wxDC& dc) const;
 
 	// sets the brush and pen to a particular colour.
-	void setBrushAndPen(wxColour currentColour, wxDC& dc);
+	void setBrushAndPen(wxColour currentColour, wxDC& dc) const;
 
 	// updates the toolbar
 	void refreshToolbar();
+
+	float backgroundHeight() const;
+
+	float probabilityBoxTop() const;
+
+	float expectationBoxTop() const;
+
+	Simulation const& simulation() const;
 
 	wxComboBox* selectSimulationComboBox = nullptr;
 

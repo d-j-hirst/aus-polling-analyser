@@ -44,6 +44,12 @@ private:
 		KeyResults
 	};
 
+	void createSummaryBar();
+
+	void createDataTable();
+
+	void bindEventHandlers();
+
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);
 
@@ -69,8 +75,31 @@ private:
 	// updates the toolbar
 	void refreshToolbar();
 
+	void refreshSummaryBar();
+
+	void refreshTable();
+
 	// checks whether thisResult passes the current filter
 	bool resultPassesFilter(Result const& thisResult);
+
+	// Gets the backgroundcolour for the cell showing this result's swing
+	wxColour decideSwingColour(Result const& thisResult);
+
+	wxColour decidePercentCountedColour(Result const& thisResult);
+
+	std::string decideProjectedMarginString(Result const& thisResult);
+
+	wxColour decideProjectedMarginColour(Result const& thisResult);
+
+	std::string decideLeadingPartyName(Result const& thisResult);
+
+	float decideLeaderProbability(Result const& thisResult);
+
+	std::string decideLikelihoodString(Result const& thisResult);
+
+	std::string decideStatusString(Result const& thisResult);
+
+	wxColour decideStatusColour(Result const& thisResult);
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

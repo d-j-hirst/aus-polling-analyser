@@ -111,7 +111,7 @@ void DownloadFrame::collectPreloadData(bool skipPrompt)
 	case Preset::Federal2010: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Preload/aec-mediafeed-Detailed-Preload-15508-20100817220132.zip"; break;
 	case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Preload/aec-mediafeed-Detailed-Preload-17496-20130903105057.zip"; break;
 	case Preset::Federal2016: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip"; break;
-	case Preset::Federal2019: defaultUrl = "ftp://mediafeed.aec.gov.au/24310/Detailed/Preload/aec-mediafeed-Detailed-Preload-24310-20190517164959.zip"; break;
+	case Preset::Federal2019: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Preload/aec-mediafeed-Detailed-Preload-24310-20190517164959.zip"; break;
 	}
 
 	std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
@@ -134,7 +134,7 @@ void DownloadFrame::collectCustomBoothData(bool skipPrompt)
 {
 	// Commenting out this for now since we don't want to waste everyone's data
 	// downloading and re-downloading the same data
-	std::string defaultUrl = "ftp://mediafeed.aec.gov.au/24310/Detailed/Light/aec-mediafeed-Detailed-Light-24310-20190624103135.zip";
+	std::string defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Light/aec-mediafeed-Detailed-Light-24310-20190624103135.zip";
 	std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
 	if (userUrl.empty()) return;
 	ResultsDownloader resultsDownloader;
@@ -154,7 +154,7 @@ void DownloadFrame::collectLatestBoothData(bool skipPrompt)
 	case Preset::Federal2010: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Light/"; break;
 	case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Light/"; break;
 	case Preset::Federal2016: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/"; break;
-	case Preset::Federal2019: defaultUrl = "ftp://mediafeed.aec.gov.au/24310/Detailed/Light/"; break;
+	case Preset::Federal2019: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Light/"; break;
 	}
 	std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
 	if (userUrl.empty()) return;

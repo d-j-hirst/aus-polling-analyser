@@ -7,126 +7,70 @@
 
 #include <wx/valnum.h>
 
-
 // IDs for the controls and the menu commands
-enum {
-	PA_ResultsFrame_Base = 700, // To avoid mixing events with other frames.
-	PA_ResultsFrame_FrameID,
-	PA_ResultsFrame_SummaryTextID,
-	PA_ResultsFrame_DataViewID,
-	PA_ResultsFrame_RunLiveSimulationsID,
-	PA_ResultsFrame_SeatNameID,
-	PA_ResultsFrame_SwingID,
-	PA_ResultsFrame_PercentCountedID,
-	PA_ResultsFrame_CurrentBoothCountID,
-	PA_ResultsFrame_TotalBoothCountID,
-	PA_ResultsFrame_AddResultID,
-	PA_ResultsFrame_NonClassicID,
-	PA_ResultsFrame_FilterID
+enum ControlId {
+	Base = 700, // To avoid mixing events with other frames.
+	Frame,
+	SummaryText,
+	DataView,
+	RunLiveSimulations,
+	SeatName,
+	Swing,
+	PercentCounted,
+	CurrentBoothCount,
+	TotalBoothCount,
+	AddResult,
+	NonClassic,
+	Filter
 };
 
 // frame constructor
 ResultsFrame::ResultsFrame(ProjectFrame::Refresher refresher, PollingProject* project)
-	: GenericChildFrame(refresher.notebook(), PA_ResultsFrame_FrameID, "Results", wxPoint(0, 0), project),
+	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Results", wxPoint(0, 0), project),
 	refresher(refresher)
 {
-	wxLogNull something;
-
-	// *** Toolbar *** //
-
-	// Load the relevant bitmaps for the toolbar icons.
-
 	refreshToolbar();
+	createSummaryBar();
+	createDataTable();
+	refreshData();
+	bindEventHandlers();
+}
 
-	// *** Model Data Table *** //
+void ResultsFrame::refreshData()
+{
+	refreshSummaryBar();
+	refreshTable();
+}
 
+void ResultsFrame::createSummaryBar()
+{
 	int toolBarHeight = toolBar->GetSize().GetHeight();
 
 	constexpr int SummaryPanelHeight = 40;
 	summaryPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight), wxSize(GetClientSize().GetX(), SummaryPanelHeight));
 
-	summaryText = new wxStaticText(summaryPanel, PA_ResultsFrame_SummaryTextID, "", wxPoint(0, 0), summaryPanel->GetClientSize());
+	summaryText = new wxStaticText(summaryPanel, ControlId::SummaryText, "", wxPoint(0, 0), summaryPanel->GetClientSize());
 	summaryText->SetBackgroundColour(wxColour(237, 237, 237));
 
 	dataPanel = new wxPanel(this, wxID_ANY, wxPoint(0, toolBarHeight + SummaryPanelHeight), GetClientSize() - wxSize(0, toolBarHeight + SummaryPanelHeight));
-
-	// Create the model data control.
-	resultsData = new wxGrid(dataPanel, PA_ResultsFrame_DataViewID, wxPoint(0, 0), dataPanel->GetClientSize());
-
-	// *** Party Data Table Columns *** //
-
-	refreshData();
-
-	// *** Binding Events *** //
-
-	// Need to resize controls if this frame is resized.
-	Bind(wxEVT_SIZE, &ResultsFrame::OnResize, this, PA_ResultsFrame_FrameID);
-
-	// Need to record it if this frame is closed.
-	//Bind(wxEVT_CLOSE_WINDOW, &ModelsFrame::OnClose, this, PA_PartiesFrame_FrameID);
-
-	// Binding events for the toolbar items.
-	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, PA_ResultsFrame_RunLiveSimulationsID);
-	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, PA_ResultsFrame_AddResultID);
-	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, PA_ResultsFrame_NonClassicID);
-	Bind(wxEVT_COMBOBOX, &ResultsFrame::OnFilterSelection, this, PA_ResultsFrame_FilterID);
 }
 
-void ResultsFrame::refreshData()
+void ResultsFrame::createDataTable()
 {
-	for (auto const& [key, simulation] : project->simulations()) {
-		if (simulation.isLive() && simulation.isValid()) {
-			std::string party1 = project->parties().view(0).abbreviation;
-			std::string party2 = project->parties().view(1).abbreviation;
-			std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyOneWinPercent(), 2) +
-				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
-				"   Seats: " + party1 + " " + formatFloat(simulation.partyWinExpectation[0], 2) + " " +
-				party2 + " " + formatFloat(simulation.partyWinExpectation[1], 2) +
-				" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
-				"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
-				party1 + " swing by region: ";
-			for (auto const& regionPair : project->regions()) {
-				Region const& thisRegion = regionPair.second;
-				summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
-			}
-			summaryText->SetLabel(summaryString);
-			break;
-		}
-	}
+	resultsData = new wxGrid(dataPanel, ControlId::DataView, wxPoint(0, 0), dataPanel->GetClientSize());
+}
 
-	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
+void ResultsFrame::bindEventHandlers()
+{
 
-	if (!resultsData->GetNumberCols()) {
-		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
-		resultsData->SetColLabelValue(0, "Seat Name");
-		resultsData->SetColLabelValue(1, "Swing");
-		resultsData->SetColLabelValue(2, "Count %");
-		resultsData->SetColLabelValue(3, "Updated");
-		resultsData->SetColLabelValue(4, "Proj. Margin");
-		resultsData->SetColLabelValue(5, "ALP prob.");
-		resultsData->SetColLabelValue(6, "LNP prob.");
-		resultsData->SetColLabelValue(7, "Other prob.");
-		resultsData->SetColLabelValue(8, "Status");
-		resultsData->SetColSize(0, 100);
-		resultsData->SetColSize(1, 40);
-		resultsData->SetColSize(2, 60);
-		resultsData->SetColSize(3, 60);
-		resultsData->SetColSize(4, 85);
-		resultsData->SetColSize(5, 70);
-		resultsData->SetColSize(6, 70);
-		resultsData->SetColSize(7, 70);
-		resultsData->SetColSize(8, 150);
-		resultsData->SetRowLabelSize(0);
-	}
+	// Need to resize controls if this frame is resized.
+	Bind(wxEVT_SIZE, &ResultsFrame::OnResize, this, ControlId::Frame);
 
-	if (resultsData->GetNumberRows()) resultsData->DeleteRows(0, resultsData->GetNumberRows());
-
-	for (int i = 0; i < project->getResultCount(); ++i) {
-		Result thisResult = project->getResult(i);
-		if (resultPassesFilter(thisResult)) addResultToResultData(thisResult);
-	}
-
-	resultsData->EndBatch(); // refresh grid data on screen
+	// Binding events for the toolbar items.
+	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, ControlId::RunLiveSimulations);
+	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, ControlId::AddResult);
+	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, ControlId::NonClassic);
+	Bind(wxEVT_COMBOBOX, &ResultsFrame::OnFilterSelection, this, ControlId::Filter);
 }
 
 void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
@@ -211,37 +155,13 @@ void ResultsFrame::addResultToResultData(Result result)
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	auto seat = project->seats().viewByIndex(result.seat);
-	
-	Party::Colour swingPartyColour = (result.incumbentSwing > 0.0f ? 
-		project->parties().view(seat.incumbent).colour : project->parties().view(seat.challenger).colour);
-	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };
-	float incSw = std::min(1.0f, float(abs(result.incumbentSwing)) * 0.08f);
-	wxColour swingColour = wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
+	wxColour swingColour = decideSwingColour(result);
 	float percentCounted = result.getPercentCountedEstimate();
-	wxColour percentCountedColour = wxColour(255 - std::min(255, int(result.percentCounted * 2.55f)), 255, 255 - std::min(255, int(result.percentCounted * 2.55f)));
-	float projectedSwing = seat.simulatedMarginAverage - seat.margin;
-	std::string projectedMarginString = formatFloat(seat.simulatedMarginAverage, 2) + " (" +
-		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
-	float margin = abs(seat.simulatedMarginAverage);
-	float marginSignificance = (margin ? 1.0f / (1.0f + abs(seat.simulatedMarginAverage)) : 0.0f);
-	wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
-	float p1 = seat.partyOneWinRate;
-	float p2 = seat.partyTwoWinRate;
-	float p3 = seat.partyOthersWinRate;
-	float leaderProb = std::max(seat.partyOneWinRate * 100.0f,
-		std::max(seat.partyTwoWinRate * 100.0f, seat.partyOthersWinRate * 100.0f));
-	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
-	std::string leadingPartyName = (thisParty != Party::InvalidId ? project->parties().view(thisParty).abbreviation : "OTH");
-	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
-		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));
-	std::string likelihoodString = (likelihoodRating == 0 ? "Slight Lean" : (likelihoodRating == 1 ? "Lean" :
-		(likelihoodRating == 2 ? "Likely" : (likelihoodRating == 3 ? "Very Likely" : (
-		(likelihoodRating == 4 ? "Solid" :  "Safe"))))));
-	std::string statusString = likelihoodString + " (" + formatFloat(leaderProb, 2) + ") " + leadingPartyName;
-	float lightnessFactor = (float(5 - likelihoodRating) * 0.2f) * 0.8f;
-	wxColour resultColour = wxColour(int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.r : 128) * (1.0f - lightnessFactor)),
-		int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.g : 128) * (1.0f - lightnessFactor)),
-		int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.b : 128) * (1.0f - lightnessFactor)));
+	wxColour percentCountedColour = decidePercentCountedColour(result);
+	std::string projectedMarginString = decideProjectedMarginString(result);
+	wxColour projectedMarginColour = decideProjectedMarginColour(result);
+	std::string statusString = decideStatusString(result);
+	wxColour statusColour = decideStatusColour(result);
 
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
@@ -257,7 +177,7 @@ void ResultsFrame::addResultToResultData(Result result)
 	resultsData->SetCellValue(row, 6, formatFloat(seat.partyTwoWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 7, formatFloat(seat.partyOthersWinRate * 100.0f, 2));
 	resultsData->SetCellValue(row, 8, statusString);
-	resultsData->SetCellBackgroundColour(row, 8, resultColour);
+	resultsData->SetCellBackgroundColour(row, 8, statusColour);
 	resultsData->Refresh();
 }
 
@@ -267,6 +187,7 @@ void ResultsFrame::updateInterface()
 
 void ResultsFrame::refreshToolbar()
 {
+	wxLogNull something;
 	wxBitmap toolBarBitmaps[3];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
@@ -281,33 +202,33 @@ void ResultsFrame::refreshToolbar()
 	}
 
 	auto seatNameStaticText = new wxStaticText(toolBar, wxID_ANY, "Seat name:");
-	seatNameTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_SeatNameID, "", wxPoint(0, 0), wxSize(110, 22));
+	seatNameTextCtrl = new wxTextCtrl(toolBar, ControlId::SeatName, "", wxPoint(0, 0), wxSize(110, 22));
 	seatNameTextCtrl->AutoComplete(seatNames);
 
 	auto fpValidator = wxFloatingPointValidator<double>();
 	fpValidator.SetPrecision(2);
 
 	auto swingStaticText = new wxStaticText(toolBar, wxID_ANY, "Swing:");
-	swingTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_SwingID, "", wxPoint(0, 0), wxSize(45, 22), 0, fpValidator);
+	swingTextCtrl = new wxTextCtrl(toolBar, ControlId::Swing, "", wxPoint(0, 0), wxSize(45, 22), 0, fpValidator);
 
 	auto percentCountedStaticText = new wxStaticText(toolBar, wxID_ANY, "% counted:");
-	percentCountedTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_PercentCountedID, "", wxPoint(0, 0), wxSize(37, 22), 0, fpValidator);
+	percentCountedTextCtrl = new wxTextCtrl(toolBar, ControlId::PercentCounted, "", wxPoint(0, 0), wxSize(37, 22), 0, fpValidator);
 
 	auto currentBoothCountStaticText = new wxStaticText(toolBar, wxID_ANY, "Booths in:");
-	currentBoothCountTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_CurrentBoothCountID, "", wxPoint(0, 0), wxSize(25, 22), 0, wxIntegerValidator<int>());
+	currentBoothCountTextCtrl = new wxTextCtrl(toolBar, ControlId::CurrentBoothCount, "", wxPoint(0, 0), wxSize(25, 22), 0, wxIntegerValidator<int>());
 
 	auto totalBoothCountStaticText = new wxStaticText(toolBar, wxID_ANY, "Booths total:");
-	totalBoothCountTextCtrl = new wxTextCtrl(toolBar, PA_ResultsFrame_TotalBoothCountID, "", wxPoint(0, 0), wxSize(25, 22), 0, wxIntegerValidator<int>());
+	totalBoothCountTextCtrl = new wxTextCtrl(toolBar, ControlId::TotalBoothCount, "", wxPoint(0, 0), wxSize(25, 22), 0, wxIntegerValidator<int>());
 
 	wxArrayString choices;
 	choices.push_back("Show All Results");
 	choices.push_back("Show Latest Results");
 	choices.push_back("Show Significant Results");
 	choices.push_back("Show Key Results");
-	filterComboBox = new wxComboBox(toolBar, PA_ResultsFrame_FilterID, "Show All Results", wxPoint(0, 0), wxSize(160, 22), choices);
+	filterComboBox = new wxComboBox(toolBar, ControlId::Filter, "Show All Results", wxPoint(0, 0), wxSize(160, 22), choices);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddTool(PA_ResultsFrame_RunLiveSimulationsID, "Run Model", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Run Live Simulations");
+	toolBar->AddTool(ControlId::RunLiveSimulations, "Run Model", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Run Live Simulations");
 	toolBar->AddSeparator();
 	toolBar->AddControl(seatNameStaticText);
 	toolBar->AddControl(seatNameTextCtrl);
@@ -320,12 +241,72 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddControl(totalBoothCountStaticText);
 	toolBar->AddControl(totalBoothCountTextCtrl);
 	toolBar->AddSeparator();
-	toolBar->AddTool(PA_ResultsFrame_AddResultID, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
-	toolBar->AddTool(PA_ResultsFrame_NonClassicID, "Non-Classic Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Non-Classic Seat");
+	toolBar->AddTool(ControlId::AddResult, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
+	toolBar->AddTool(ControlId::NonClassic, "Non-Classic Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Non-Classic Seat");
 	toolBar->AddControl(filterComboBox);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
+
+void ResultsFrame::refreshSummaryBar()
+{
+	for (auto const&[key, simulation] : project->simulations()) {
+		if (simulation.isLive() && simulation.isValid()) {
+			std::string party1 = project->parties().view(0).abbreviation;
+			std::string party2 = project->parties().view(1).abbreviation;
+			std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyOneWinPercent(), 2) +
+				"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
+				"   Seats: " + party1 + " " + formatFloat(simulation.partyWinExpectation[0], 2) + " " +
+				party2 + " " + formatFloat(simulation.partyWinExpectation[1], 2) +
+				" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
+				"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
+				party1 + " swing by region: ";
+			for (auto const& regionPair : project->regions()) {
+				Region const& thisRegion = regionPair.second;
+				summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
+			}
+			summaryText->SetLabel(summaryString);
+			break;
+		}
+	}
+}
+
+void ResultsFrame::refreshTable()
+{
+	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
+
+	if (!resultsData->GetNumberCols()) {
+		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
+		resultsData->SetColLabelValue(0, "Seat Name");
+		resultsData->SetColLabelValue(1, "Swing");
+		resultsData->SetColLabelValue(2, "Count %");
+		resultsData->SetColLabelValue(3, "Updated");
+		resultsData->SetColLabelValue(4, "Proj. Margin");
+		resultsData->SetColLabelValue(5, "ALP prob.");
+		resultsData->SetColLabelValue(6, "LNP prob.");
+		resultsData->SetColLabelValue(7, "Other prob.");
+		resultsData->SetColLabelValue(8, "Status");
+		resultsData->SetColSize(0, 100);
+		resultsData->SetColSize(1, 40);
+		resultsData->SetColSize(2, 60);
+		resultsData->SetColSize(3, 60);
+		resultsData->SetColSize(4, 85);
+		resultsData->SetColSize(5, 70);
+		resultsData->SetColSize(6, 70);
+		resultsData->SetColSize(7, 70);
+		resultsData->SetColSize(8, 150);
+		resultsData->SetRowLabelSize(0);
+	}
+
+	if (resultsData->GetNumberRows()) resultsData->DeleteRows(0, resultsData->GetNumberRows());
+
+	for (int i = 0; i < project->getResultCount(); ++i) {
+		Result thisResult = project->getResult(i);
+		if (resultPassesFilter(thisResult)) addResultToResultData(thisResult);
+	}
+
+	resultsData->EndBatch(); // refresh grid data on screen
 }
 
 bool ResultsFrame::resultPassesFilter(Result const& thisResult)
@@ -347,4 +328,92 @@ bool ResultsFrame::resultPassesFilter(Result const& thisResult)
 
 	// replace later
 	return true;
+}
+
+wxColour ResultsFrame::decideSwingColour(Result const & thisResult)
+{
+	auto const& seat = project->seats().viewByIndex(thisResult.seat);
+	Party::Colour swingPartyColour = (thisResult.incumbentSwing > 0.0f ?
+		project->parties().view(seat.incumbent).colour : project->parties().view(seat.challenger).colour);
+	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };
+	float incSw = std::min(1.0f, float(abs(thisResult.incumbentSwing)) * 0.08f);
+	return wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
+}
+
+wxColour ResultsFrame::decidePercentCountedColour(Result const & thisResult)
+{
+	float percentCounted = thisResult.getPercentCountedEstimate();
+	return wxColour(255 - std::min(255, int(percentCounted * 2.55f)), 255, 255 - std::min(255, int(percentCounted * 2.55f)));
+}
+
+std::string ResultsFrame::decideProjectedMarginString(Result const & thisResult)
+{
+	auto const& seat = project->seats().viewByIndex(thisResult.seat);
+	float projectedSwing = seat.simulatedMarginAverage - seat.margin;
+	return formatFloat(seat.simulatedMarginAverage, 2) + " (" +
+		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
+}
+
+wxColour ResultsFrame::decideProjectedMarginColour(Result const & thisResult)
+{
+	auto const& seat = project->seats().viewByIndex(thisResult.seat);
+	float margin = abs(seat.simulatedMarginAverage);
+	float marginSignificance = (margin ? 1.0f / (1.0f + abs(seat.simulatedMarginAverage)) : 0.0f);
+	wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
+	return projectedMarginColour;
+}
+
+std::string ResultsFrame::decideLeadingPartyName(Result const & thisResult)
+{
+	auto const& seat = project->seats().viewByIndex(thisResult.seat);
+	float p1 = seat.partyOneWinRate;
+	float p2 = seat.partyTwoWinRate;
+	float p3 = seat.partyOthersWinRate;
+	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
+	std::string leadingPartyName = (thisParty != Party::InvalidId ? project->parties().view(thisParty).abbreviation : "OTH");
+	return leadingPartyName;
+}
+
+float ResultsFrame::decideLeaderProbability(Result const & thisResult)
+{
+	auto const& seat = project->seats().viewByIndex(thisResult.seat);
+	float leaderProb = std::max(seat.partyOneWinRate * 100.0f,
+		std::max(seat.partyTwoWinRate * 100.0f, seat.partyOthersWinRate * 100.0f));
+	return leaderProb;
+}
+
+std::string ResultsFrame::decideLikelihoodString(Result const & thisResult)
+{
+	float leaderProb = decideLeaderProbability(thisResult);
+	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
+		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));
+	std::string likelihoodString = (likelihoodRating == 0 ? "Slight Lean" : (likelihoodRating == 1 ? "Lean" :
+		(likelihoodRating == 2 ? "Likely" : (likelihoodRating == 3 ? "Very Likely" : (
+		(likelihoodRating == 4 ? "Solid" : "Safe"))))));
+	return likelihoodString;
+}
+
+std::string ResultsFrame::decideStatusString(Result const & thisResult)
+{
+	return decideLikelihoodString(thisResult) + " (" +
+		formatFloat(decideLeaderProbability(thisResult), 2) + "%) " + 
+		decideLeadingPartyName(thisResult);
+}
+
+wxColour ResultsFrame::decideStatusColour(Result const & thisResult)
+{
+	auto const& seat = project->seats().viewByIndex(thisResult.seat);
+	float p1 = seat.partyOneWinRate;
+	float p2 = seat.partyTwoWinRate;
+	float p3 = seat.partyOthersWinRate;
+	float leaderProb = std::max(seat.partyOneWinRate * 100.0f,
+		std::max(seat.partyTwoWinRate * 100.0f, seat.partyOthersWinRate * 100.0f));
+	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
+	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
+		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));
+	float lightnessFactor = (float(5 - likelihoodRating) * 0.2f) * 0.8f;
+	wxColour statusColour = wxColour(int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.r : 128) * (1.0f - lightnessFactor)),
+		int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.g : 128) * (1.0f - lightnessFactor)),
+		int(255.0f * lightnessFactor + float(thisParty != Party::InvalidId ? project->parties().view(thisParty).colour.b : 128) * (1.0f - lightnessFactor)));
+	return statusColour;
 }
