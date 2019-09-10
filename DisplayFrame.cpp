@@ -150,13 +150,10 @@ void DisplayFrame::render(wxDC& dc) {
 	if (!simulation().lastUpdated.IsValid()) return;
 
 	defineGraphLimits();
-	dc.SetFont(font13);
 
 	drawBackground(dc);
 
 	drawProbabilityBox(dc);
-
-	drawSumOfLeads(dc);
 
 	drawExpectationsBox(dc);
 
@@ -181,115 +178,107 @@ void DisplayFrame::drawBackground(wxDC& dc) const
 
 void DisplayFrame::drawProbabilityBox(wxDC& dc) const
 {
-	// Probability Box
+	drawProbabilityBoxBackground(dc);
+	drawProbabilityBoxLabels(dc);
+	drawProbabilityBoxData(dc);
+	drawSumOfLeads(dc);
+}
+
+wxColour DisplayFrame::lightenedPartyColour(Party::Id partyId) const
+{
+	auto col = project->parties().view(partyId).colour;
+	col = { col.r / 2 + 128, col.g / 2 + 128, col.b / 2 + 128 };
+	return wxColour(col.r, col.g, col.b);
+}
+
+void DisplayFrame::drawProbabilityBoxBackground(wxDC & dc) const
+{
+	// top half of probability box is lightened version of party 0's colour
 	wxRect redRect = wxRect(ProbabilityBoxMargin, probabilityBoxTop(), ProbabilityBoxWidth, ProbabilityBoxHeight);
-	const wxColour probBoxRed = wxColour(255, 180, 170); // light red
-	setBrushAndPen(probBoxRed, dc);
+	setBrushAndPen(lightenedPartyColour(0), dc);
 	dc.DrawRoundedRectangle(redRect, CornerRounding);
+	// bottom half of probability box is lightened version of party 1's colour
+	// needs to be a rounded rectangle for the bottom corners
 	wxRect blueRect = wxRect(ProbabilityBoxMargin, probabilityBoxTop() + ProbabilityBoxHeight * 0.5f,
 		ProbabilityBoxWidth, ProbabilityBoxHeight * 0.5f);
-	const wxColour probBoxBlue = wxColour(170, 170, 255); // light blue
-	setBrushAndPen(probBoxBlue, dc);
+	setBrushAndPen(lightenedPartyColour(1), dc);
 	dc.DrawRoundedRectangle(blueRect, CornerRounding);
+	// this covers the upper rounded corners so the boundary between the two halves is a straight line
 	wxRect blueCoverRect = wxRect(ProbabilityBoxMargin, probabilityBoxTop() + ProbabilityBoxHeight * 0.5f,
 		ProbabilityBoxWidth, CornerRounding);
 	dc.DrawRectangle(blueCoverRect);
+}
 
-	// Probability Box Text Rectangles
+void DisplayFrame::drawProbabilityBoxLabels(wxDC & dc) const
+{
 	wxRect probTextRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding, probabilityBoxTop() + ProbabilityBoxPadding,
 		ProbabilityBoxTextWidth, ProbabilityBoxTextHeight);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probTextRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("ALP majority", probTextRect, wxALIGN_CENTRE);
-	probTextRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probTextRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("ALP minority", probTextRect, wxALIGN_CENTRE);
-	probTextRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probTextRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("Hung", probTextRect, wxALIGN_CENTRE);
-	probTextRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probTextRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("LNP minority", probTextRect, wxALIGN_CENTRE);
-	probTextRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probTextRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("LNP majority", probTextRect, wxALIGN_CENTRE);
+	wxPoint offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 
-	// Probability Box Data Rectangles
+	drawProbabilityBoxText(dc, probTextRect, project->parties().view(0).abbreviation + " majority", offset);
+	drawProbabilityBoxText(dc, probTextRect, project->parties().view(0).abbreviation + " minority", offset);
+	drawProbabilityBoxText(dc, probTextRect, "Hung", offset);
+	drawProbabilityBoxText(dc, probTextRect, project->parties().view(1).abbreviation + " minority", offset);
+	drawProbabilityBoxText(dc, probTextRect, project->parties().view(1).abbreviation + " majority", offset);
+}
+
+void DisplayFrame::drawProbabilityBoxData(wxDC & dc) const
+{
 	wxRect probDataRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 2 + ProbabilityBoxTextWidth,
 		probabilityBoxTop() + ProbabilityBoxPadding,
 		ProbabilityBoxDataWidth, ProbabilityBoxTextHeight);
+	wxPoint offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
+
+	drawProbabilityBoxText(dc, probDataRect, formatFloat(simulation().partyOneMajorityPercent, 2) + "%", offset);
+	drawProbabilityBoxText(dc, probDataRect, formatFloat(simulation().partyOneMinorityPercent, 2) + "%", offset);
+	drawProbabilityBoxText(dc, probDataRect, formatFloat(simulation().hungPercent, 2) + "%", offset);
+	drawProbabilityBoxText(dc, probDataRect, formatFloat(simulation().partyTwoMinorityPercent, 2) + "%", offset);
+	drawProbabilityBoxText(dc, probDataRect, formatFloat(simulation().partyTwoMajorityPercent, 2) + "%", offset);
+}
+
+void DisplayFrame::drawProbabilityBoxText(wxDC& dc, wxRect& rect, std::string const& text, wxPoint subsequentOffset) const
+{
+	dc.SetFont(font13);
 	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
+	dc.DrawRoundedRectangle(rect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(simulation().partyOneMajorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
-	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(simulation().partyOneMinorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
-	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(simulation().hungPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
-	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(simulation().partyTwoMinorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
-	probDataRect.Offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probDataRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel(formatFloat(simulation().partyTwoMajorityPercent, 2) + "%", probDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(text, rect, wxALIGN_CENTRE);
+	rect.Offset(subsequentOffset);
 }
 
 void DisplayFrame::drawSumOfLeads(wxDC& dc) const
 {
-	wxRect probPartyOneRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
+	wxRect probPartyRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
 		probabilityBoxTop() + ProbabilityBoxHeight * 0.5f - ProbabilityBoxSumHeight - ProbabilityBoxTextPadding,
 		ProbabilityBoxSumWidth, ProbabilityBoxSumHeight);
-	wxRect probPartyOneAnnotationRect = probPartyOneRect;
-	probPartyOneAnnotationRect.SetBottom(probPartyOneAnnotationRect.GetTop() + 20);
-	wxRect probPartyOneNumberRect = probPartyOneRect;
-	probPartyOneNumberRect.SetTop(probPartyOneNumberRect.GetTop() + 20);
-	probPartyOneNumberRect.SetBottom(probPartyOneRect.GetBottom());
+	std::string partyOneAnnotation = project->parties().view(0).abbreviation + " wins:";
+	std::string partyOneData = formatFloat(simulation().getPartyOneWinPercent(), 2) + "%";
+	drawSumOfLeadsText(dc, probPartyRect, partyOneAnnotation, partyOneData);
+	probPartyRect.Offset(0, ProbabilityBoxSumHeight + ProbabilityBoxTextPadding * 2);
+	std::string partyTwoAnnotation = project->parties().view(1).abbreviation + " wins:";
+	std::string partyTwoData = formatFloat(simulation().getPartyTwoWinPercent(), 2) + "%";
+	drawSumOfLeadsText(dc, probPartyRect, partyTwoAnnotation, partyTwoData);
+}
+
+void DisplayFrame::drawSumOfLeadsText(wxDC & dc, wxRect & outerRect, std::string const & annotationText, std::string const & dataText) const
+{
+	wxRect annotationRect = outerRect;
+	annotationRect.SetBottom(annotationRect.GetTop() + 20);
+	wxRect dataRect = outerRect;
+	dataRect.SetTop(dataRect.GetTop() + 20);
+	dataRect.SetBottom(outerRect.GetBottom());
 	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probPartyOneRect, TextBoxCornerRounding);
+	dc.DrawRoundedRectangle(outerRect, TextBoxCornerRounding);
 	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("ALP win:", probPartyOneAnnotationRect, wxALIGN_CENTRE);
-	dc.SetFont(font18);
-	dc.DrawLabel(formatFloat(simulation().getPartyOneWinPercent(), 2) + "%", probPartyOneNumberRect, wxALIGN_CENTRE);
 	dc.SetFont(font13);
-	// Second party
-	wxRect probPartyTwoRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
-		probabilityBoxTop() + ProbabilityBoxHeight * 0.5f + ProbabilityBoxTextPadding,
-		ProbabilityBoxSumWidth, ProbabilityBoxSumHeight);
-	wxRect probPartyTwoAnnotationRect = probPartyTwoRect;
-	probPartyTwoAnnotationRect.SetBottom(probPartyTwoAnnotationRect.GetTop() + 20);
-	wxRect probPartyTwoNumberRect = probPartyTwoRect;
-	probPartyTwoNumberRect.SetTop(probPartyTwoNumberRect.GetTop() + 20);
-	probPartyTwoNumberRect.SetBottom(probPartyTwoRect.GetBottom());
-	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(probPartyTwoRect, TextBoxCornerRounding);
-	setBrushAndPen(*wxBLACK, dc);
-	dc.DrawLabel("LNP win:", probPartyTwoAnnotationRect, wxALIGN_CENTRE);
+	dc.DrawLabel(annotationText, annotationRect, wxALIGN_CENTRE);
 	dc.SetFont(font18);
-	dc.DrawLabel(formatFloat(100 - simulation().getPartyOneWinPercent(), 2) + "%", probPartyTwoNumberRect, wxALIGN_CENTRE);
-	dc.SetFont(font13);
+	dc.DrawLabel(dataText, dataRect, wxALIGN_CENTRE);
 }
 
 void DisplayFrame::drawExpectationsBox(wxDC& dc) const
 {
+	dc.SetFont(font13);
 	wxRect expBoxRect = wxRect(ExpectationBoxLeft, expectationBoxTop(), ExpectationBoxWidth, ExpectationBoxHeight);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(expBoxRect, TextBoxCornerRounding);

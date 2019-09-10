@@ -68,7 +68,19 @@ private:
 
 	void drawProbabilityBox(wxDC& dc) const;
 
+	wxColour lightenedPartyColour(Party::Id partyId) const;
+
+	void drawProbabilityBoxBackground(wxDC& dc) const;
+
+	void drawProbabilityBoxLabels(wxDC& dc) const;
+
+	void drawProbabilityBoxData(wxDC& dc) const;
+
+	void drawProbabilityBoxText(wxDC& dc, wxRect& rect, std::string const& text, wxPoint subsequentOffset) const;
+
 	void drawSumOfLeads(wxDC& dc) const;
+
+	void drawSumOfLeadsText(wxDC& dc, wxRect& outerRect, std::string const& annotationText, std::string const& dataText) const;
 
 	void drawExpectationsBox(wxDC& dc) const;
 
