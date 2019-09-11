@@ -92,7 +92,17 @@ private:
 
 	void drawExpectationsBoxRow(wxDC& dc, wxRect& nameRect, PartyCollection::Index partyIndex) const;
 
-	void drawStatesBox(wxDC& dc) const;
+	void drawRegionsBox(wxDC& dc) const;
+
+	void drawRegionsBoxBackground(wxDC& dc) const;
+
+	void drawRegionsBoxTitle(wxDC& dc) const;
+
+	void drawRegionsBoxRows(wxDC& dc) const;
+
+	void drawRegionsBoxRowTitles(wxDC& dc) const;
+
+	void drawRegionsBoxRowList(wxDC& dc) const;
 
 	void drawBoundsBox(wxDC& dc) const;
 

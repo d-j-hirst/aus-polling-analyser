@@ -36,26 +36,26 @@ constexpr float ExpectationBoxHeight = 200.0f;
 constexpr float ExpectationBoxTitleHeight = 30.0f;
 constexpr float ExpectationBoxTextHeight = 24.0f;
 
-constexpr float StatesBoxLeft = ProbabilityBoxLeft + ProbabilityBoxWidth + ProbabilityBoxMargin;
-constexpr float StatesBoxWidth = 400.0f;
-constexpr float StatesBoxHeight = 250.0f;
-constexpr float StatesBoxTitleHeight = 30.0f;
-constexpr float StatesBoxTextHeight = 24.0f;
+constexpr float RegionsBoxLeft = ProbabilityBoxLeft + ProbabilityBoxWidth + ProbabilityBoxMargin;
+constexpr float RegionsBoxWidth = 400.0f;
+constexpr float RegionsBoxHeight = 250.0f;
+constexpr float RegionsBoxTitleHeight = 30.0f;
+constexpr float RegionsBoxTextHeight = 24.0f;
 
-constexpr float BoundsBoxLeft = StatesBoxLeft;
-constexpr float BoundsBoxWidth = StatesBoxWidth;
+constexpr float BoundsBoxLeft = RegionsBoxLeft;
+constexpr float BoundsBoxWidth = RegionsBoxWidth;
 constexpr float BoundsBoxHeight = 130.0f;
 constexpr float BoundsBoxTitleHeight = 30.0f;
 constexpr float BoundsBoxTextHeight = 24.0f;
 
 constexpr float GraphBoxLeft = ProbabilityBoxLeft;
-constexpr float GraphBoxWidth = ProbabilityBoxWidth + ProbabilityBoxMargin + StatesBoxWidth;
+constexpr float GraphBoxWidth = ProbabilityBoxWidth + ProbabilityBoxMargin + RegionsBoxWidth;
 constexpr float GraphAxisOffset = 20.0f;
 constexpr float GraphAxisLabelWidth = 50.0f;
 constexpr float GraphTopSpace = 10.0f;
 constexpr int GraphAxisLabelInterval = 5;
 
-constexpr float SeatsBoxLeft = StatesBoxLeft + StatesBoxWidth + ProbabilityBoxMargin;
+constexpr float SeatsBoxLeft = RegionsBoxLeft + RegionsBoxWidth + ProbabilityBoxMargin;
 constexpr float SeatsBoxTitleHeight = 30.0f;
 constexpr float SeatsBoxTextHeight = 11.0f;
 
@@ -156,7 +156,7 @@ void DisplayFrame::render(wxDC& dc) {
 
 	drawExpectationsBox(dc);
 
-	drawStatesBox(dc);
+	drawRegionsBox(dc);
 
 	drawBoundsBox(dc);
 
@@ -319,52 +319,77 @@ void DisplayFrame::drawExpectationsBoxRow(wxDC& dc, wxRect& nameRect, PartyColle
 	nameRect.Offset(0, rowSize);
 }
 
-void DisplayFrame::drawStatesBox(wxDC& dc) const
+void DisplayFrame::drawRegionsBox(wxDC& dc) const
 {
-	float StatesBoxTop = dv.displayTop + ProbabilityBoxMargin;
-	wxRect statesBoxRect = wxRect(StatesBoxLeft, StatesBoxTop, StatesBoxWidth, StatesBoxHeight);
+	drawRegionsBoxBackground(dc);
+	drawRegionsBoxTitle(dc);
+	drawRegionsBoxRows(dc);
+}
+
+void DisplayFrame::drawRegionsBoxBackground(wxDC& dc) const
+{
+	wxRect boxRect = wxRect(RegionsBoxLeft, dv.displayTop + ProbabilityBoxMargin, RegionsBoxWidth, RegionsBoxHeight);
 	setBrushAndPen(*wxWHITE, dc);
-	dc.DrawRoundedRectangle(statesBoxRect, CornerRounding);
-	wxRect statesBoxTitleRect = statesBoxRect;
-	statesBoxTitleRect.SetBottom(StatesBoxTop + StatesBoxTitleHeight);
+	dc.DrawRoundedRectangle(boxRect, CornerRounding);
+}
+
+void DisplayFrame::drawRegionsBoxTitle(wxDC& dc) const
+{
+	wxRect titleRect = wxRect(RegionsBoxLeft, dv.displayTop + ProbabilityBoxMargin, RegionsBoxWidth, RegionsBoxTitleHeight);
 	setBrushAndPen(*wxBLACK, dc);
 	dc.SetFont(font(15));
-	dc.DrawLabel("State-by-state breakdown", statesBoxTitleRect, wxALIGN_CENTRE);
+	dc.DrawLabel("Regional breakdown", titleRect, wxALIGN_CENTRE);
+}
 
-	wxRect statesBoxNameRect = wxRect(StatesBoxLeft, statesBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.25f, StatesBoxTextHeight);
-	wxRect statesBoxALPRect = wxRect(statesBoxNameRect.GetRight(), statesBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.25f, StatesBoxTextHeight);
-	wxRect statesBoxLNPRect = wxRect(statesBoxALPRect.GetRight(), statesBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.25f, StatesBoxTextHeight);
-	wxRect statesBoxOtherRect = wxRect(statesBoxLNPRect.GetRight(), statesBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.25f, StatesBoxTextHeight);
-	dc.DrawLabel("State", statesBoxNameRect, wxALIGN_CENTRE);
-	dc.DrawLabel("ALP", statesBoxALPRect, wxALIGN_CENTRE);
-	dc.DrawLabel("LNP", statesBoxLNPRect, wxALIGN_CENTRE);
-	dc.DrawLabel("Others", statesBoxOtherRect, wxALIGN_CENTRE);
-	dc.SetFont(font(13));
+void DisplayFrame::drawRegionsBoxRows(wxDC& dc) const
+{
+	drawRegionsBoxRowTitles(dc);
+	drawRegionsBoxRowList(dc);
+}
+
+void DisplayFrame::drawRegionsBoxRowTitles(wxDC& dc) const
+{
+	int regionsBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
+	int offset = int(RegionsBoxWidth * 0.25f);
+	wxRect regionsBoxRect = wxRect(RegionsBoxLeft, regionsBoxRowTop,
+		RegionsBoxWidth * 0.25f, RegionsBoxTextHeight);
+	dc.DrawLabel("Region", regionsBoxRect, wxALIGN_CENTRE);
+	regionsBoxRect.Offset(offset, 0);
+	dc.DrawLabel(project->parties().view(0).abbreviation, regionsBoxRect, wxALIGN_CENTRE);
+	regionsBoxRect.Offset(offset, 0);
+	dc.DrawLabel(project->parties().view(1).abbreviation, regionsBoxRect, wxALIGN_CENTRE);
+	regionsBoxRect.Offset(offset, 0);
+	dc.DrawLabel("Others", regionsBoxRect, wxALIGN_CENTRE);
+}
+
+void DisplayFrame::drawRegionsBoxRowList(wxDC& dc) const
+{
+	int statesBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
+	int horzOffset = int(RegionsBoxWidth * 0.25f);
+	//int numRegions = simulation().regionPartyWinExpectation.size();
+	int vertOffset = std::min(RegionsBoxTextHeight, 
+		(RegionsBoxHeight - RegionsBoxTitleHeight) / (simulation().regionPartyWinExpectation.size() + 1));
+	wxRect rowNameRect = wxRect(RegionsBoxLeft, statesBoxRowTop,
+		RegionsBoxWidth * 0.25f, RegionsBoxTextHeight);
+	dc.SetFont(font(std::min(13, vertOffset / 2 + 3)));
 	for (auto const& regionPair : project->regions()) {
+		rowNameRect.Offset(0, vertOffset); // if we don't do this first it'll overlap with the titles
 		Region const& thisRegion = regionPair.second;
 		int regionIndex = project->regions().idToIndex(regionPair.first);
 		if (regionIndex >= int(simulation().regionPartyWinExpectation.size())) break;
-		float alpSeats = simulation().regionPartyWinExpectation[regionIndex][0];
-		float lnpSeats = simulation().regionPartyWinExpectation[regionIndex][1];
-		float othSeats = simulation().getOthersWinExpectation(regionIndex);
-		float alpChange = alpSeats - thisRegion.partyLeading[0];
-		float lnpChange = lnpSeats - thisRegion.partyLeading[1];
-		float othChange = othSeats - thisRegion.getOthersLeading();
-		statesBoxNameRect.Offset(0, StatesBoxTextHeight);
-		statesBoxALPRect.Offset(0, StatesBoxTextHeight);
-		statesBoxLNPRect.Offset(0, StatesBoxTextHeight);
-		statesBoxOtherRect.Offset(0, StatesBoxTextHeight);
-		dc.DrawLabel(thisRegion.name, statesBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(formatFloat(alpSeats, 2) + " " + (alpChange >= 0 ? "+" : "") + formatFloat(alpChange, 2),
-			statesBoxALPRect, wxALIGN_CENTRE);
-		dc.DrawLabel(formatFloat(lnpSeats, 2) + " " + (lnpChange >= 0 ? "+" : "") + formatFloat(lnpChange, 2),
-			statesBoxLNPRect, wxALIGN_CENTRE);
-		dc.DrawLabel(formatFloat(othSeats, 2) + " " + (othChange >= 0 ? "+" : "") + formatFloat(othChange, 2),
-			statesBoxOtherRect, wxALIGN_CENTRE);
+		float seats[3] = { simulation().regionPartyWinExpectation[regionIndex][0] ,
+			simulation().regionPartyWinExpectation[regionIndex][1] ,
+			simulation().getOthersWinExpectation(regionIndex) };
+		float change[3] = { seats[0] - thisRegion.partyLeading[0] ,
+			seats[1] - thisRegion.partyLeading[1],
+			seats[2] - thisRegion.getOthersLeading() };
+		wxRect elementRect = rowNameRect;
+		dc.DrawLabel(thisRegion.name, elementRect, wxALIGN_CENTRE);
+		for (int group = 0; group < 3; ++group) {
+			elementRect.Offset(horzOffset, 0);
+			dc.DrawLabel(formatFloat(seats[group], 2) + " " + formatFloat(change[group], 2, true),
+				elementRect, wxALIGN_CENTRE);
+		}
 	}
 }
 
@@ -372,7 +397,7 @@ void DisplayFrame::drawBoundsBox(wxDC & dc) const
 {
 	using std::to_string;
 	float StatesBoxTop = dv.displayTop + ProbabilityBoxMargin;
-	float BoundsBoxTop = ProbabilityBoxMargin + StatesBoxTop + StatesBoxHeight;
+	float BoundsBoxTop = ProbabilityBoxMargin + StatesBoxTop + RegionsBoxHeight;
 	wxRect boundsBoxRect = wxRect(BoundsBoxLeft, BoundsBoxTop, BoundsBoxWidth, BoundsBoxHeight);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(boundsBoxRect, CornerRounding);
@@ -383,15 +408,15 @@ void DisplayFrame::drawBoundsBox(wxDC & dc) const
 	dc.DrawLabel("Probability intervals", boundsBoxTitleRect, wxALIGN_CENTRE);
 
 	wxRect boundsBoxNameRect = wxRect(BoundsBoxLeft, boundsBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.2f, BoundsBoxTextHeight);
+		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
 	wxRect boundsBox50Rect = wxRect(boundsBoxNameRect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.2f, BoundsBoxTextHeight);
+		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
 	wxRect boundsBox80Rect = wxRect(boundsBox50Rect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.2f, BoundsBoxTextHeight);
+		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
 	wxRect boundsBox95Rect = wxRect(boundsBox80Rect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.2f, BoundsBoxTextHeight);
+		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
 	wxRect boundsBox99Rect = wxRect(boundsBox95Rect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		StatesBoxWidth * 0.2f, BoundsBoxTextHeight);
+		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
 	dc.DrawLabel("Party", boundsBoxNameRect, wxALIGN_CENTRE);
 	dc.DrawLabel("50%", boundsBox50Rect, wxALIGN_CENTRE);
 	dc.DrawLabel("80%", boundsBox80Rect, wxALIGN_CENTRE);
