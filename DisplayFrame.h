@@ -104,7 +104,17 @@ private:
 
 	void drawRegionsBoxRowList(wxDC& dc) const;
 
+	void drawRegionsBoxRowListItem(wxDC& dc, Region const& thisRegion, RegionCollection::Index regionIndex, wxRect rowNameRect) const;
+
 	void drawBoundsBox(wxDC& dc) const;
+
+	void drawBoundsBoxBackground(wxDC& dc) const;
+
+	void drawBoundsBoxTitle(wxDC& dc) const;
+
+	void drawBoundsBoxColumnHeadings(wxDC& dc) const;
+
+	void drawBoundsBoxItems(wxDC& dc) const;
 
 	void drawGraphBox(wxDC& dc) const;
 

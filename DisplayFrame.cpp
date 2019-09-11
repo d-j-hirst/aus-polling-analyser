@@ -365,100 +365,106 @@ void DisplayFrame::drawRegionsBoxRowTitles(wxDC& dc) const
 void DisplayFrame::drawRegionsBoxRowList(wxDC& dc) const
 {
 	int statesBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
-	int horzOffset = int(RegionsBoxWidth * 0.25f);
 	//int numRegions = simulation().regionPartyWinExpectation.size();
 	int vertOffset = std::min(RegionsBoxTextHeight, 
 		(RegionsBoxHeight - RegionsBoxTitleHeight) / (simulation().regionPartyWinExpectation.size() + 1));
 	wxRect rowNameRect = wxRect(RegionsBoxLeft, statesBoxRowTop,
 		RegionsBoxWidth * 0.25f, RegionsBoxTextHeight);
 	dc.SetFont(font(std::min(13, vertOffset / 2 + 3)));
-	for (auto const& regionPair : project->regions()) {
+	for (auto const& [key, thisRegion] : project->regions()) {
 		rowNameRect.Offset(0, vertOffset); // if we don't do this first it'll overlap with the titles
-		Region const& thisRegion = regionPair.second;
-		int regionIndex = project->regions().idToIndex(regionPair.first);
+		int regionIndex = project->regions().idToIndex(key);
 		if (regionIndex >= int(simulation().regionPartyWinExpectation.size())) break;
-		float seats[3] = { simulation().regionPartyWinExpectation[regionIndex][0] ,
-			simulation().regionPartyWinExpectation[regionIndex][1] ,
-			simulation().getOthersWinExpectation(regionIndex) };
-		float change[3] = { seats[0] - thisRegion.partyLeading[0] ,
-			seats[1] - thisRegion.partyLeading[1],
-			seats[2] - thisRegion.getOthersLeading() };
-		wxRect elementRect = rowNameRect;
-		dc.DrawLabel(thisRegion.name, elementRect, wxALIGN_CENTRE);
-		for (int group = 0; group < 3; ++group) {
-			elementRect.Offset(horzOffset, 0);
-			dc.DrawLabel(formatFloat(seats[group], 2) + " " + formatFloat(change[group], 2, true),
-				elementRect, wxALIGN_CENTRE);
-		}
+		drawRegionsBoxRowListItem(dc, thisRegion, regionIndex, rowNameRect);
+	}
+}
+
+void DisplayFrame::drawRegionsBoxRowListItem(wxDC & dc, Region const & thisRegion, RegionCollection::Index regionIndex, wxRect rowNameRect) const
+{
+	int horzOffset = int(RegionsBoxWidth * 0.25f);
+	float seats[3] = { simulation().regionPartyWinExpectation[regionIndex][0] ,
+		simulation().regionPartyWinExpectation[regionIndex][1] ,
+		simulation().getOthersWinExpectation(regionIndex) };
+	float change[3] = { seats[0] - thisRegion.partyLeading[0] ,
+		seats[1] - thisRegion.partyLeading[1],
+		seats[2] - thisRegion.getOthersLeading() };
+	wxRect elementRect = rowNameRect;
+	dc.DrawLabel(thisRegion.name, elementRect, wxALIGN_CENTRE);
+	for (int group = 0; group < 3; ++group) {
+		elementRect.Offset(horzOffset, 0);
+		dc.DrawLabel(formatFloat(seats[group], 2) + " " + formatFloat(change[group], 2, true),
+			elementRect, wxALIGN_CENTRE);
 	}
 }
 
 void DisplayFrame::drawBoundsBox(wxDC & dc) const
 {
-	using std::to_string;
-	float StatesBoxTop = dv.displayTop + ProbabilityBoxMargin;
-	float BoundsBoxTop = ProbabilityBoxMargin + StatesBoxTop + RegionsBoxHeight;
+	drawBoundsBoxBackground(dc);
+	drawBoundsBoxTitle(dc);
+	drawBoundsBoxColumnHeadings(dc);
+	drawBoundsBoxItems(dc);
+}
+
+void DisplayFrame::drawBoundsBoxBackground(wxDC & dc) const
+{
+	float BoundsBoxTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight;
 	wxRect boundsBoxRect = wxRect(BoundsBoxLeft, BoundsBoxTop, BoundsBoxWidth, BoundsBoxHeight);
 	setBrushAndPen(*wxWHITE, dc);
 	dc.DrawRoundedRectangle(boundsBoxRect, CornerRounding);
-	wxRect boundsBoxTitleRect = boundsBoxRect;
-	boundsBoxTitleRect.SetBottom(BoundsBoxTop + BoundsBoxTitleHeight);
+}
+
+void DisplayFrame::drawBoundsBoxTitle(wxDC & dc) const
+{
+	float BoundsBoxTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight;
+	wxRect boundsBoxTitleRect = wxRect(BoundsBoxLeft, BoundsBoxTop, BoundsBoxWidth, BoundsBoxTitleHeight);
 	setBrushAndPen(*wxBLACK, dc);
 	dc.SetFont(font(15));
 	dc.DrawLabel("Probability intervals", boundsBoxTitleRect, wxALIGN_CENTRE);
+}
 
-	wxRect boundsBoxNameRect = wxRect(BoundsBoxLeft, boundsBoxTitleRect.GetBottom(),
+void DisplayFrame::drawBoundsBoxColumnHeadings(wxDC & dc) const
+{
+	float boundsHeadingTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight + BoundsBoxTitleHeight;
+	float horzOffset = RegionsBoxWidth * 0.2f;
+	dc.SetFont(font(15));
+	std::array<std::string, 5> headingLabels = { "Party", "50%", "80%", "95%", "99%" };
+	wxRect boundsBoxBaseRect = wxRect(BoundsBoxLeft, boundsHeadingTop,
 		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
-	wxRect boundsBox50Rect = wxRect(boundsBoxNameRect.GetRight(), boundsBoxTitleRect.GetBottom(),
+	wxRect boundsBoxHeadingRect = boundsBoxBaseRect;
+	for (int headingIndex = 0; headingIndex < 5; ++headingIndex) {
+		dc.DrawLabel(headingLabels[headingIndex], boundsBoxHeadingRect, wxALIGN_CENTRE);
+		boundsBoxHeadingRect.Offset(horzOffset, 0);
+	}
+}
+
+void DisplayFrame::drawBoundsBoxItems(wxDC & dc) const
+{
+	float boundsHeadingTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight + BoundsBoxTitleHeight;
+	float horzOffset = RegionsBoxWidth * 0.2f;
+	wxRect boundsBoxBaseRect = wxRect(BoundsBoxLeft, boundsHeadingTop,
 		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
-	wxRect boundsBox80Rect = wxRect(boundsBox50Rect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
-	wxRect boundsBox95Rect = wxRect(boundsBox80Rect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
-	wxRect boundsBox99Rect = wxRect(boundsBox95Rect.GetRight(), boundsBoxTitleRect.GetBottom(),
-		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
-	dc.DrawLabel("Party", boundsBoxNameRect, wxALIGN_CENTRE);
-	dc.DrawLabel("50%", boundsBox50Rect, wxALIGN_CENTRE);
-	dc.DrawLabel("80%", boundsBox80Rect, wxALIGN_CENTRE);
-	dc.DrawLabel("95%", boundsBox95Rect, wxALIGN_CENTRE);
-	dc.DrawLabel("99%", boundsBox99Rect, wxALIGN_CENTRE);
-	dc.SetFont(font(13));
 	if (simulation().lastUpdated.IsValid()) {
-		boundsBoxNameRect.Offset(0, BoundsBoxTextHeight);
-		boundsBox50Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
-		dc.DrawLabel(project->parties().view(0).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyOneProbabilityBounds[3]) + "-" + to_string(simulation().partyOneProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyOneProbabilityBounds[2]) + "-" + to_string(simulation().partyOneProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyOneProbabilityBounds[1]) + "-" + to_string(simulation().partyOneProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyOneProbabilityBounds[0]) + "-" + to_string(simulation().partyOneProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
-		boundsBoxNameRect.Offset(0, BoundsBoxTextHeight);
-		boundsBox50Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
-		dc.DrawLabel(project->parties().view(1).abbreviation, boundsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyTwoProbabilityBounds[3]) + "-" + to_string(simulation().partyTwoProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyTwoProbabilityBounds[2]) + "-" + to_string(simulation().partyTwoProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyTwoProbabilityBounds[1]) + "-" + to_string(simulation().partyTwoProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().partyTwoProbabilityBounds[0]) + "-" + to_string(simulation().partyTwoProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
-		boundsBoxNameRect.Offset(0, BoundsBoxTextHeight);
-		boundsBox50Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox80Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox95Rect.Offset(0, BoundsBoxTextHeight);
-		boundsBox99Rect.Offset(0, BoundsBoxTextHeight);
-		dc.DrawLabel("Others", boundsBoxNameRect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().othersProbabilityBounds[3]) + "-" + to_string(simulation().othersProbabilityBounds[4]), boundsBox50Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().othersProbabilityBounds[2]) + "-" + to_string(simulation().othersProbabilityBounds[5]), boundsBox80Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().othersProbabilityBounds[1]) + "-" + to_string(simulation().othersProbabilityBounds[6]), boundsBox95Rect, wxALIGN_CENTRE);
-		dc.DrawLabel(to_string(simulation().othersProbabilityBounds[0]) + "-" + to_string(simulation().othersProbabilityBounds[7]), boundsBox99Rect, wxALIGN_CENTRE);
+		dc.SetFont(font(13));
+		std::array<std::string, 3> groupNames = { project->parties().view(0).abbreviation, project->parties().view(1).abbreviation, "Others" };
+		for (int group = 0; group < 3; ++group) {
+			boundsBoxBaseRect.Offset(0, BoundsBoxTextHeight);
+			wxRect boundsBoxItemRect = boundsBoxBaseRect;
+			dc.DrawLabel(groupNames[group], boundsBoxItemRect, wxALIGN_CENTRE);
+			auto const& boundsToUse = (group == 0 ? simulation().partyOneProbabilityBounds :
+				(group == 1 ? simulation().partyTwoProbabilityBounds : simulation().othersProbabilityBounds));
+			for (int boundsType = 0; boundsType < 4; ++boundsType) {
+				boundsBoxItemRect.Offset(horzOffset, 0);
+				std::string itemText = std::to_string(boundsToUse[3 - boundsType])
+					+ "-" + std::to_string(boundsToUse[4 + boundsType]);
+				dc.DrawLabel(itemText, boundsBoxItemRect, wxALIGN_CENTRE);
+			}
+		}
 	}
 }
 
 void DisplayFrame::drawGraphBox(wxDC & dc) const
 {
+	dc.SetFont(font(13));
 	float BackgroundHeight = dv.DCheight - dv.displayTop;
 	float GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
 	float GraphBoxHeight = BackgroundHeight - GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
