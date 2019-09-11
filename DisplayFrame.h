@@ -84,6 +84,14 @@ private:
 
 	void drawExpectationsBox(wxDC& dc) const;
 
+	void drawExpectationsBoxBackground(wxDC& dc) const;
+
+	void drawExpectationsBoxTitle(wxDC& dc) const;
+
+	void drawExpectationsBoxRows(wxDC& dc) const;
+
+	void drawExpectationsBoxRow(wxDC& dc, wxRect& nameRect, PartyCollection::Index partyIndex) const;
+
 	void drawStatesBox(wxDC& dc) const;
 
 	void drawBoundsBox(wxDC& dc) const;
