@@ -274,6 +274,7 @@
     <ClCompile Include="ChoiceInput.cpp" />
     <ClCompile Include="ColourInput.cpp" />
     <ClCompile Include="DateInput.cpp" />
+    <ClCompile Include="DisplayFrameRenderer.cpp" />
     <ClCompile Include="EventCollection.cpp" />
     <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="IntInput.cpp" />
@@ -339,6 +340,7 @@
     <ClInclude Include="ChoiceInput.h" />
     <ClInclude Include="ColourInput.h" />
     <ClInclude Include="DateInput.h" />
+    <ClInclude Include="DisplayFrameRenderer.h" />
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="EventCollection.h" />
     <ClInclude Include="FloatInput.h" />

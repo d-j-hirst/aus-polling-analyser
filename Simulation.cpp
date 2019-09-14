@@ -454,14 +454,14 @@ void Simulation::run(PollingProject& project) {
 	lastUpdated = wxDateTime::Now();
 }
 
-float Simulation::getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex, PollingProject& project) const {
+float Simulation::getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex, PollingProject const& project) const {
 	Seat const& seat = project.seats().view(classicSeatIds[classicSeatIndex]);
 	return (seat.incumbent == partyIndex ?
 		incumbentWinPercent[classicSeatIds[classicSeatIndex]] :
 		100.0f - incumbentWinPercent[classicSeatIds[classicSeatIndex]]);
 }
 
-int Simulation::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project) const {
+int Simulation::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject const& project) const {
 	// aim here is to find the range of seats with the greatest difference between most and least likely for "partySorted" to wion
 	float bestProbRange = 50.0f;
 	int bestCenter = int(classicSeatIds.size()) / 2;

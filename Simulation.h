@@ -79,7 +79,7 @@ public:
 
 	std::vector<float> incumbentWinPercent;
 
-	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex, PollingProject& project) const;
+	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex, PollingProject const& project) const;
 
 	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 	std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds;
@@ -151,7 +151,7 @@ public:
 
 	float get2cpPercentCounted() const { return total2cpPercentCounted; }
 
-	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject& project) const;
+	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject const& project) const;
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;

@@ -58,7 +58,7 @@ public:
 	Seat& access(Seat::Id id);
 
 	// Returns true if a seat with the given ID is present and false otherwise.
-	bool exists(Seat::Id id);
+	bool exists(Seat::Id id) const;
 
 	// Returns the seat with index "seatIndex".
 	Seat const& view(Seat::Id id) const;
@@ -84,6 +84,12 @@ public:
 
 	// Gets the end iterator for the seat list.
 	SeatContainer::iterator end() { return seats.end(); }
+
+	// Gets the begin iterator for the seat list.
+	SeatContainer::const_iterator begin() const { return seats.begin(); }
+
+	// Gets the end iterator for the seat list.
+	SeatContainer::const_iterator end() const { return seats.end(); }
 
 	// Gets the begin iterator for the seat list.
 	SeatContainer::const_iterator cbegin() const { return seats.cbegin(); }

@@ -82,6 +82,12 @@ public:
 	RegionContainer::iterator end() { return regions.end(); }
 
 	// Gets the begin iterator for the region list.
+	RegionContainer::const_iterator begin() const { return regions.begin(); }
+
+	// Gets the end iterator for the region list.
+	RegionContainer::const_iterator end() const { return regions.end(); }
+
+	// Gets the begin iterator for the region list.
 	RegionContainer::const_iterator cbegin() const { return regions.cbegin(); }
 
 	// Gets the end iterator for the region list.

@@ -37,13 +37,6 @@ public:
 
 private:
 
-	struct DisplayVariables {
-		float DCwidth;
-		float DCheight;
-		float displayTop;
-		float displayBottom;
-	};
-
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
 
@@ -61,95 +54,18 @@ private:
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
-	// function that carries out rendering the poll display.
-	void render(wxDC& dc);
-
-	void drawBackground(wxDC& dc) const;
-
-	void drawProbabilityBox(wxDC& dc) const;
-
-	wxColour lightenedPartyColour(Party::Id partyId) const;
-
-	void drawProbabilityBoxBackground(wxDC& dc) const;
-
-	void drawProbabilityBoxLabels(wxDC& dc) const;
-
-	void drawProbabilityBoxData(wxDC& dc) const;
-
-	void drawProbabilityBoxText(wxDC& dc, wxRect& rect, std::string const& text, wxPoint subsequentOffset) const;
-
-	void drawSumOfLeads(wxDC& dc) const;
-
-	void drawSumOfLeadsText(wxDC& dc, wxRect& outerRect, std::string const& annotationText, std::string const& dataText) const;
-
-	void drawExpectationsBox(wxDC& dc) const;
-
-	void drawExpectationsBoxBackground(wxDC& dc) const;
-
-	void drawExpectationsBoxTitle(wxDC& dc) const;
-
-	void drawExpectationsBoxRows(wxDC& dc) const;
-
-	void drawExpectationsBoxRow(wxDC& dc, wxRect& nameRect, PartyCollection::Index partyIndex) const;
-
-	void drawRegionsBox(wxDC& dc) const;
-
-	void drawRegionsBoxBackground(wxDC& dc) const;
-
-	void drawRegionsBoxTitle(wxDC& dc) const;
-
-	void drawRegionsBoxRows(wxDC& dc) const;
-
-	void drawRegionsBoxRowTitles(wxDC& dc) const;
-
-	void drawRegionsBoxRowList(wxDC& dc) const;
-
-	void drawRegionsBoxRowListItem(wxDC& dc, Region const& thisRegion, RegionCollection::Index regionIndex, wxRect rowNameRect) const;
-
-	void drawBoundsBox(wxDC& dc) const;
-
-	void drawBoundsBoxBackground(wxDC& dc) const;
-
-	void drawBoundsBoxTitle(wxDC& dc) const;
-
-	void drawBoundsBoxColumnHeadings(wxDC& dc) const;
-
-	void drawBoundsBoxItems(wxDC& dc) const;
-
-	void drawGraphBox(wxDC& dc) const;
-
-	void drawSeatsBox(wxDC& dc) const;
-
-	// defines the basic variables that represent the pixel limits of the graph.
-	void defineGraphLimits();
-
-	// clears the drawing area.
-	void clearDC(wxDC& dc) const;
-
-	// sets the brush and pen to a particular colour.
-	void setBrushAndPen(wxColour currentColour, wxDC& dc) const;
-
 	// updates the toolbar
 	void refreshToolbar();
 
-	float backgroundHeight() const;
-
-	float probabilityBoxTop() const;
-
-	float expectationBoxTop() const;
-
-	Simulation const& simulation() const;
+	// function that carries out rendering the poll display.
+	void render(wxDC& dc);
 
 	wxComboBox* selectSimulationComboBox = nullptr;
 
 	wxPanel* dcPanel = nullptr;
 
-	DisplayVariables dv;
-
 	int selectedSimulation = -1;
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
-
-	bool displayPolls = true;
 };

@@ -27,7 +27,7 @@ Seat & SeatCollection::access(Seat::Id id)
 	return seats.at(id);
 }
 
-bool SeatCollection::exists(Seat::Id id)
+bool SeatCollection::exists(Seat::Id id) const
 {
 	return seats.find(id) != seats.end();
 }
