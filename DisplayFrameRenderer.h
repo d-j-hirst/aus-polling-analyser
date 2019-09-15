@@ -33,6 +33,20 @@ private:
 		float displayBottom;
 	};
 
+	struct GraphVariables {
+		int lowestSeatFrequency;
+		int highestSeatFrequency;
+		int seatRange;
+		float GraphBoxHeight;
+		float GraphBoxTop;
+		float axisY;
+		float axisLeft;
+		float axisRight;
+		float axisMidpoint;
+		float axisLength;
+		int seatColumnWidth;
+	};
+
 	void drawBackground() const;
 
 	void drawProbabilityBox() const;
@@ -87,15 +101,23 @@ private:
 
 	void drawGraphBox() const;
 
-	void drawGraphBoxBackground() const;
+	GraphVariables calculateGraphVariables() const;
 
-	void drawGraphAxisLabels() const;
+	void drawGraphBoxBackground(GraphVariables const& gv) const;
 
-	void drawGraphColumns() const;
+	void drawGraphAxisLabels(GraphVariables const& gv) const;
 
-	void drawGraphAxis() const;
+	void drawGraphColumns(GraphVariables const& gv) const;
+
+	void drawGraphAxis(GraphVariables const& gv) const;
 
 	void drawSeatsBox() const;
+
+	void drawSeatsBoxBackground() const;
+
+	void drawSeatsBoxTitle() const;
+
+	void drawSeatsList() const;
 
 	// defines the basic variables that represent the pixel limits of the graph.
 	void defineGraphLimits();

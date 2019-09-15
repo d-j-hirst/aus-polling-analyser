@@ -389,120 +389,124 @@ void DisplayFrameRenderer::drawBoundsBoxItems() const
 void DisplayFrameRenderer::drawGraphBox() const
 {
 	dc.SetFont(font(13));
-	drawGraphBoxBackground();
+	GraphVariables gv = calculateGraphVariables();
+	drawGraphBoxBackground(gv);
 	if (simulation.lastUpdated.IsValid()) {
 		int lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
 		int highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
 		int seatRange = highestSeatFrequency - lowestSeatFrequency;
 		if (seatRange > 0) {
-			drawGraphAxisLabels();
-			drawGraphColumns();
-			drawGraphAxis();
+			drawGraphAxisLabels(gv);
+			drawGraphColumns(gv);
+			drawGraphAxis(gv);
 		}
 	}
 }
 
-void DisplayFrameRenderer::drawGraphBoxBackground() const
+DisplayFrameRenderer::GraphVariables DisplayFrameRenderer::calculateGraphVariables() const
 {
+	GraphVariables gv;
+	gv.lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
+	gv.highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
+	gv.seatRange = gv.highestSeatFrequency - gv.lowestSeatFrequency;
 	float BackgroundHeight = dv.DCheight - dv.displayTop;
-	float GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
-	float GraphBoxHeight = BackgroundHeight - GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
-	wxRect graphBoxRect = wxRect(GraphBoxLeft, GraphBoxTop, GraphBoxWidth, GraphBoxHeight);
+	gv.GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
+	gv.GraphBoxHeight = BackgroundHeight - gv.GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
+	gv.axisY = gv.GraphBoxTop + gv.GraphBoxHeight - GraphAxisOffset;
+	gv.axisLeft = GraphBoxLeft + GraphAxisOffset;
+	gv.axisRight = GraphBoxLeft + GraphBoxWidth - GraphAxisOffset;
+	gv.axisMidpoint = (gv.axisLeft + gv.axisRight) * 0.5f;
+	gv.axisLength = gv.axisRight - gv.axisLeft;
+	gv.seatColumnWidth = int(floor(gv.axisLength)) / gv.seatRange;
+	return gv;
+}
+
+void DisplayFrameRenderer::drawGraphBoxBackground(GraphVariables const& gv) const
+{
+	wxRect graphBoxRect = wxRect(GraphBoxLeft, gv.GraphBoxTop, GraphBoxWidth, gv.GraphBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(graphBoxRect, CornerRounding);
 }
 
-void DisplayFrameRenderer::drawGraphAxisLabels() const
+void DisplayFrameRenderer::drawGraphAxisLabels(GraphVariables const& gv) const
 {
-	int lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
-	int highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
-	int seatRange = highestSeatFrequency - lowestSeatFrequency;
-	float BackgroundHeight = dv.DCheight - dv.displayTop;
-	float GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
-	float GraphBoxHeight = BackgroundHeight - GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
-	float axisY = GraphBoxTop + GraphBoxHeight - GraphAxisOffset;
-	float axisLeft = GraphBoxLeft + GraphAxisOffset;
-	float axisRight = GraphBoxLeft + GraphBoxWidth - GraphAxisOffset;
-	float axisMidpoint = (axisLeft + axisRight) * 0.5f;
-	float axisLength = axisRight - axisLeft;
-	int seatColumnWidth = int(floor(axisLength)) / seatRange;
-	float columnRange = float(seatColumnWidth * seatRange); // if all columns have the same width then the total width of all columns
+	float columnRange = float(gv.seatColumnWidth * gv.seatRange); // if all columns have the same width then the total width of all columns
 															// will usually be somewhat smaller than the actual width of the graph
-	float columnStart = axisMidpoint - columnRange * 0.5f;
-	int lowestAxisLabel = ((lowestSeatFrequency + GraphAxisLabelInterval - 1) / GraphAxisLabelInterval) * GraphAxisLabelInterval;
-	float axisLabelStart = columnStart + float(seatColumnWidth * (lowestAxisLabel - lowestSeatFrequency));
-	wxRect axisLabelRect = wxRect(axisLabelStart - GraphAxisLabelWidth * 0.5f, axisY,
+	float columnStart = gv.axisMidpoint - columnRange * 0.5f;
+	int lowestAxisLabel = ((gv.lowestSeatFrequency + GraphAxisLabelInterval - 1) / GraphAxisLabelInterval) * GraphAxisLabelInterval;
+	float axisLabelStart = columnStart + float(gv.seatColumnWidth * (lowestAxisLabel - gv.lowestSeatFrequency));
+	wxRect axisLabelRect = wxRect(axisLabelStart - GraphAxisLabelWidth * 0.5f, gv.axisY,
 		GraphAxisLabelWidth, GraphAxisOffset);
 	setBrushAndPen(*wxBLACK);
-	for (int axisLabelNumber = lowestAxisLabel; axisLabelNumber <= highestSeatFrequency; axisLabelNumber += GraphAxisLabelInterval) {
+	for (int axisLabelNumber = lowestAxisLabel; axisLabelNumber <= gv.highestSeatFrequency; axisLabelNumber += GraphAxisLabelInterval) {
 		dc.DrawLabel(std::to_string(axisLabelNumber), axisLabelRect, wxALIGN_CENTRE);
-		axisLabelRect.Offset(float(seatColumnWidth * GraphAxisLabelInterval), 0);
+		axisLabelRect.Offset(float(gv.seatColumnWidth * GraphAxisLabelInterval), 0);
 	}
 }
 
-void DisplayFrameRenderer::drawGraphColumns() const
+void DisplayFrameRenderer::drawGraphColumns(GraphVariables const& gv) const
 {
-	int lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
-	int highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
-	int seatRange = highestSeatFrequency - lowestSeatFrequency;
-	float BackgroundHeight = dv.DCheight - dv.displayTop;
-	float GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
-	float GraphBoxHeight = BackgroundHeight - GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
-	float axisY = GraphBoxTop + GraphBoxHeight - GraphAxisOffset;
-	float axisLeft = GraphBoxLeft + GraphAxisOffset;
-	float axisRight = GraphBoxLeft + GraphBoxWidth - GraphAxisOffset;
-	float axisMidpoint = (axisLeft + axisRight) * 0.5f;
-	float axisLength = axisRight - axisLeft;
 	setBrushAndPen(*wxBLACK);
 	int modalSeatFrequency = simulation.getModalSeatFrequencyCount(GraphParty);
-	int seatColumnWidth = int(floor(axisLength)) / seatRange;
-	float columnRange = float(seatColumnWidth * seatRange); // if all columns have the same width then the total width of all columns
+	float columnRange = float(gv.seatColumnWidth * gv.seatRange); // if all columns have the same width then the total width of all columns
 															// will usually be somewhat smaller than the actual width of the graph
-	float columnStart = axisMidpoint - columnRange * 0.5f;
-	const float GraphMaxColumnHeight = GraphBoxHeight - GraphAxisOffset - GraphTopSpace;
+	float columnStart = gv.axisMidpoint - columnRange * 0.5f;
+	const float GraphMaxColumnHeight = gv.GraphBoxHeight - GraphAxisOffset - GraphTopSpace;
 	setBrushAndPen(*wxBLUE);
-	for (int seatNum = lowestSeatFrequency; seatNum <= highestSeatFrequency; ++seatNum) {
+	for (int seatNum = gv.lowestSeatFrequency; seatNum <= gv.highestSeatFrequency; ++seatNum) {
 		float proportionOfMax = float(simulation.partySeatWinFrequency[1][seatNum]) / float(modalSeatFrequency) * 0.9999f;
 		float columnHeight = std::ceil(proportionOfMax * GraphMaxColumnHeight);
-		float columnTop = axisY - columnHeight;
-		float columnWidth = float(seatColumnWidth);
-		float columnLeft = columnStart - columnWidth * 0.5f + float(seatColumnWidth) * float(seatNum - lowestSeatFrequency);
+		float columnTop = gv.axisY - columnHeight;
+		float columnWidth = float(gv.seatColumnWidth);
+		float columnLeft = columnStart - columnWidth * 0.5f + float(gv.seatColumnWidth) * float(seatNum - gv.lowestSeatFrequency);
 		wxRect graphColumnRect = wxRect(columnLeft, columnTop, columnWidth, columnHeight);
 		dc.DrawRectangle(graphColumnRect);
 	}
 }
 
-void DisplayFrameRenderer::drawGraphAxis() const
+void DisplayFrameRenderer::drawGraphAxis(GraphVariables const& gv) const
 {
-	float BackgroundHeight = dv.DCheight - dv.displayTop;
-	float GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
-	float GraphBoxHeight = BackgroundHeight - GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
-	float axisY = GraphBoxTop + GraphBoxHeight - GraphAxisOffset;
-	float axisLeft = GraphBoxLeft + GraphAxisOffset;
-	float axisRight = GraphBoxLeft + GraphBoxWidth - GraphAxisOffset;
-	wxPoint axisLeftPoint = wxPoint(axisLeft, axisY);
-	wxPoint axisRightPoint = wxPoint(axisRight, axisY);
+	wxPoint axisLeftPoint = wxPoint(gv.axisLeft, gv.axisY);
+	wxPoint axisRightPoint = wxPoint(gv.axisRight, gv.axisY);
 	setBrushAndPen(*wxBLACK);
 	dc.DrawLine(axisLeftPoint, axisRightPoint);
 }
 
 void DisplayFrameRenderer::drawSeatsBox() const
 {
+	drawSeatsBoxBackground();
+	drawSeatsBoxTitle();
+	drawSeatsList();
+}
+
+void DisplayFrameRenderer::drawSeatsBoxBackground() const
+{
 	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - ProbabilityBoxMargin;
 	float SeatsBoxHeight = backgroundHeight() - ProbabilityBoxMargin * 2.0f;
 	wxRect seatsBoxRect = wxRect(SeatsBoxLeft, probabilityBoxTop(), SeatsBoxWidth, SeatsBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(seatsBoxRect, CornerRounding);
-	wxRect seatsBoxTitleRect = seatsBoxRect;
-	seatsBoxTitleRect.SetBottom(probabilityBoxTop() + SeatsBoxTitleHeight);
+}
+
+void DisplayFrameRenderer::drawSeatsBoxTitle() const
+{
+	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - ProbabilityBoxMargin;
+	wxRect titleRect = wxRect(SeatsBoxLeft, probabilityBoxTop(), SeatsBoxWidth, SeatsBoxTitleHeight);
 	setBrushAndPen(*wxBLACK);
 	dc.SetFont(font(15));
-	dc.DrawLabel("Close Seats", seatsBoxTitleRect, wxALIGN_CENTRE);
-	wxRect seatsBoxNameRect = wxRect(SeatsBoxLeft, seatsBoxTitleRect.GetBottom(),
+	dc.DrawLabel("Close Seats", titleRect, wxALIGN_CENTRE);
+}
+
+void DisplayFrameRenderer::drawSeatsList() const
+{
+	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - ProbabilityBoxMargin;
+	float SeatsBoxHeight = backgroundHeight() - ProbabilityBoxMargin * 2.0f;
+	float seatsListTop = probabilityBoxTop() + SeatsBoxTitleHeight;
+	wxRect seatsBoxNameRect = wxRect(SeatsBoxLeft, seatsListTop,
 		SeatsBoxWidth * 0.4f, SeatsBoxTextHeight);
-	wxRect seatsBoxMarginRect = wxRect(seatsBoxNameRect.GetRight(), seatsBoxTitleRect.GetBottom(),
+	wxRect seatsBoxMarginRect = wxRect(seatsBoxNameRect.GetRight(), seatsListTop,
 		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
-	wxRect seatsBoxLnpWinRect = wxRect(seatsBoxMarginRect.GetRight(), seatsBoxTitleRect.GetBottom(),
+	wxRect seatsBoxLnpWinRect = wxRect(seatsBoxMarginRect.GetRight(), seatsListTop,
 		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
 	int seatsFittingInBox = int((SeatsBoxHeight - SeatsBoxTitleHeight) / SeatsBoxTextHeight);
 	int closeSeat = simulation.findBestSeatDisplayCenter(GraphParty, seatsFittingInBox, project);
