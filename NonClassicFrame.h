@@ -13,20 +13,9 @@
 #include "wx/wx.h"
 #endif
 
-#include <sstream>
-#include <wx/valnum.h>
-#include <wx/datectrl.h>
-#include <wx/dateevt.h>
-
-#include "ResultsFrame.h"
-#include "Poll.h"
-#include "PollingProject.h"
-
-class PollsFrame;
-
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
+class ChoiceInput;
+class FloatInput;
+class PartyCollection;
 
 class Seat;
 
@@ -40,53 +29,49 @@ public:
 	// parent: Parent frame for this (must be a PollsFrame).
 	// project: The currently opened project.
 	// poll: Poll data to be used if editing (has default values for creating a new poll).
-	NonClassicFrame(ResultsFrame* const parent, PollingProject const* project, Seat* seat);
+	NonClassicFrame(PartyCollection const& parties, Seat& seat);
 
 	// Calls upon the window to send its data to the parent frame and close.
-	void OnOK(wxCommandEvent& WXUNUSED(event));
+	void OnOK(wxCommandEvent&);
 
 	// Removes the non-classic results from this seat
-	void OnRemove(wxCommandEvent& WXUNUSED(event));
+	void OnRemove(wxCommandEvent&);
 
 private:
 
+	void createControls(int& y);
+
+	void createPartyOneInput(int& y);
+	void createPartyTwoInput(int& y);
+	void createPartyThreeInput(int& y);
+	void createPartyOneProbText(int& y);
+	void createPartyTwoProbInput(int& y);
+	void createPartyThreeProbInput(int& y);
+
+	void createButtons(int& y);
+
+	void setFinalWindowHeight(int y);
+
 	// Calls upon the window to update the preliminary reported 2pp data based on
 	// the current value in the two alternative party text boxes
-	void updateTextEitherParty(wxCommandEvent& event);
+	void updatePartyOneProbText();
 
-	// Polling project pointer.
-	PollingProject const* project;
+	wxArrayString collectPartyStrings();
+
+	PartyCollection const& parties;
+	Seat& seat;
 
 	// Control pointers that are really only here to shut up the
 	// compiler about unused variables in the constructor - no harm done.
-	wxStaticText* partyOneStaticText;
-	wxComboBox* partyOneComboBox;
-	wxStaticText* partyTwoStaticText;
-	wxComboBox* partyTwoComboBox;
-	wxStaticText* partyThreeStaticText;
-	wxComboBox* partyThreeComboBox;
-	wxStaticText* partyOneProbStaticTextLabel;
-	wxStaticText* partyOneProbStaticText;
-	wxStaticText* partyTwoProbStaticText;
-	wxTextCtrl* partyTwoProbTextCtrl;
-	wxStaticText* partyThreeProbStaticText;
-	wxTextCtrl* partyThreeProbTextCtrl;
+	std::unique_ptr<ChoiceInput> partyOneInput;
+	std::unique_ptr<ChoiceInput> partyTwoInput;
+	std::unique_ptr<ChoiceInput> partyThreeInput;
+	wxStaticText* partyOneProbLabel;
+	wxStaticText* partyOneProbValue;
+	std::unique_ptr<FloatInput> partyTwoProbInput;
+	std::unique_ptr<FloatInput> partyThreeProbInput;
 
 	wxButton* okButton;
 	wxButton* removeButton;
 	wxButton* cancelButton;
-
-	Seat* seat;
-
-	// A pointer to the parent frame.
-	ResultsFrame* const parent;
-
-	// Keeps the reported 2pp saved in case a text entry results in an invalid value.
-	//std::string lastReported2pp;
-
-	// Keeps the respondent 2pp saved in case a text entry results in an invalid value.
-	//std::string lastRespondent2pp;
-
-	// Keeps the calculated 2pp saved in case a text entry results in an invalid value.
-	//std::string lastCalc2pp;
 };

@@ -44,8 +44,7 @@ void EditPollFrame::createControls(int & y)
 void EditPollFrame::createPollsterInput(int & y)
 {
 	wxArrayString pollsterArray;
-	int count = 0;
-	for (auto it = pollsters.cbegin(); it != pollsters.cend(); ++it, ++count) {
+	for (auto it = pollsters.cbegin(); it != pollsters.cend(); ++it) {
 		pollsterArray.push_back(it->second.name);
 	}
 	int selectedPollster = pollsters.idToIndex(poll.pollster);

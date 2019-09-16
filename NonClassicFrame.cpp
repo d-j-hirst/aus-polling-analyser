@@ -1,168 +1,187 @@
 #include "NonClassicFrame.h"
 
+#include "ChoiceInput.h"
+#include "FloatInput.h"
+#include "General.h"
+#include "PartyCollection.h"
 #include "Seat.h"
 
+constexpr int ControlPadding = 4;
+
 // IDs for the controls and the menu commands
-enum
+enum ControlId
 {
-	PA_NonClassic_ButtonID_OK,
-	PA_NonClassic_ButtonID_Remove,
-	PA_NonClassic_ComboBoxID_PartyOne,
-	PA_NonClassic_ComboBoxID_PartyTwo,
-	PA_NonClassic_ComboBoxID_PartyThree,
-	PA_NonClassic_StaticTextID_PartyOneProb,
-	PA_NonClassic_TextBoxID_PartyTwoProb,
-	PA_NonClassic_TextBoxID_PartyThreeProb
+	Ok,
+	Remove,
+	PartyOne,
+	PartyTwo,
+	PartyThree,
+	PartyOneProb,
+	PartyTwoProb,
+	PartyThreeProb
 };
 
-NonClassicFrame::NonClassicFrame(ResultsFrame * const parent, PollingProject const * project, Seat* seat)
-	: parent(parent), project(project), seat(seat),
-	wxDialog(NULL, 0, "Non-Classic Seat Results", wxDefaultPosition, wxSize(340, 157))
+NonClassicFrame::NonClassicFrame(PartyCollection const& parties, Seat& seat)
+	: wxDialog(NULL, 0, "Non-classic seat"),
+	parties(parties), seat(seat)
 {
-	const int labelYOffset = 5;
-	const int windowYOffset = 38;
-
-	// *** NonClassicFrame Combo Box *** //
-
-	// Create the choices for the combo boxes.
-	// Also check if the poll's pollster matches any of the choices (otherwise it is set to the first).
-	wxArrayString partyArray;
-	int selectedPartyOne = 0;
-	int selectedPartyTwo = 1;
-	int selectedPartyThree = 0;
-	int count = 0;
-	for (auto it = project->parties().cbegin(); it != project->parties().cend(); ++it, ++count) {
-		partyArray.push_back(it->second.name);
-		if (it->first == seat->livePartyOne) selectedPartyOne = count;
-		if (it->first == seat->livePartyTwo) selectedPartyTwo = count;
-		if (it->first == seat->livePartyThree) selectedPartyThree = count;
-	}
-
-	int currentHeight = 2;
-
-	// Create the controls for the party 1 combo box.
-	partyOneStaticText = new wxStaticText(this, 0, "Party One:", wxPoint(2, currentHeight + labelYOffset), wxSize(198, 23));
-	partyOneComboBox = new wxComboBox(this, PA_NonClassic_ComboBoxID_PartyOne, partyArray[selectedPartyOne],
-		wxPoint(200, currentHeight), wxSize(120, 23), partyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the poll's pollster, if any.
-	partyOneComboBox->SetSelection(selectedPartyOne);
-
-	currentHeight += 27;
-
-	// Create the controls for the party 2 combo box.
-	partyTwoStaticText = new wxStaticText(this, 0, "Party Two:", wxPoint(2, currentHeight + labelYOffset), wxSize(198, 23));
-	partyTwoComboBox = new wxComboBox(this, PA_NonClassic_ComboBoxID_PartyTwo, partyArray[selectedPartyTwo],
-		wxPoint(200, currentHeight), wxSize(120, 23), partyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the poll's pollster, if any.
-	partyTwoComboBox->SetSelection(selectedPartyTwo);
-
-	currentHeight += 27;
-
-	// Create the controls for the party 1 combo box.
-	partyThreeStaticText = new wxStaticText(this, 0, "Party Three:", wxPoint(2, currentHeight + labelYOffset), wxSize(198, 23));
-	partyThreeComboBox = new wxComboBox(this, PA_NonClassic_ComboBoxID_PartyThree, partyArray[selectedPartyThree],
-		wxPoint(200, currentHeight), wxSize(120, 23), partyArray, wxCB_READONLY);
-
-	// Sets the combo box selection to the poll's pollster, if any.
-	partyThreeComboBox->SetSelection(selectedPartyThree);
-
-	currentHeight += 27;
-
-	// Create the controls for the party 1 combo box.
-	partyOneProbStaticTextLabel = new wxStaticText(this, 0, "Party One Prob:", wxPoint(2, currentHeight + labelYOffset), wxSize(198, 23));
-	partyOneProbStaticText = new wxStaticText(this, PA_NonClassic_StaticTextID_PartyOneProb, formatFloat(seat->partyOneProb(), 2),
-		wxPoint(200, currentHeight), wxSize(120, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the party 1 combo box.
-	partyTwoProbStaticText = new wxStaticText(this, 0, "Party Two Prob:", wxPoint(2, currentHeight + labelYOffset), wxSize(198, 23));
-	partyTwoProbTextCtrl = new wxTextCtrl(this, PA_NonClassic_TextBoxID_PartyTwoProb, formatFloat(seat->partyTwoProb, 2),
-		wxPoint(200, currentHeight), wxSize(120, 23));
-
-	currentHeight += 27;
-
-	// Create the controls for the party 1 combo box.
-	partyThreeProbStaticText = new wxStaticText(this, 0, "Party Three Prob:", wxPoint(2, currentHeight + labelYOffset), wxSize(198, 23));
-	partyThreeProbTextCtrl = new wxTextCtrl(this, PA_NonClassic_TextBoxID_PartyThreeProb, formatFloat(seat->partyThreeProb, 2),
-		wxPoint(200, currentHeight), wxSize(120, 23));
-
-	currentHeight += 27;
-
-	// *** OK and cancel buttons *** //
-
-	// Create the OK and cancel buttons.
-	okButton = new wxButton(this, PA_NonClassic_ButtonID_OK, "OK", wxPoint(50, currentHeight), wxSize(60, 24));
-	removeButton = new wxButton(this, PA_NonClassic_ButtonID_Remove, "Remove", wxPoint(115, currentHeight), wxSize(60, 24));
-	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(180, currentHeight), wxSize(60, 24));
-
-	currentHeight += 27;
-
-	SetSize(wxSize(340, currentHeight + windowYOffset));
-
-	// Bind events to the functions that should be carried out by them.
-	Bind(wxEVT_TEXT, &NonClassicFrame::updateTextEitherParty, this, PA_NonClassic_TextBoxID_PartyTwoProb);
-	Bind(wxEVT_TEXT, &NonClassicFrame::updateTextEitherParty, this, PA_NonClassic_TextBoxID_PartyThreeProb);
-	Bind(wxEVT_BUTTON, &NonClassicFrame::OnOK, this, PA_NonClassic_ButtonID_OK);
-	Bind(wxEVT_BUTTON, &NonClassicFrame::OnRemove, this, PA_NonClassic_ButtonID_Remove);
+	int currentY = ControlPadding;
+	createControls(currentY);
+	setFinalWindowHeight(currentY);
 }
 
-void NonClassicFrame::updateTextEitherParty(wxCommandEvent& WXUNUSED(event))
+void NonClassicFrame::createControls(int & y)
+{
+	createPartyOneInput(y);
+	createPartyTwoInput(y);
+	createPartyThreeInput(y);
+	createPartyOneProbText(y);
+	createPartyTwoProbInput(y);
+	createPartyThreeProbInput(y);
+
+	createButtons(y);
+}
+
+void NonClassicFrame::createPartyOneInput(int & y)
+{
+	int selectedParty = parties.idToIndex(seat.livePartyOne);
+
+	// No callback on this, as we only use the input later
+	partyOneInput.reset(new ChoiceInput(this, ControlId::PartyOne, "Party One:",
+		collectPartyStrings(), selectedParty, wxPoint(2, y)));
+	y += partyOneInput->Height + ControlPadding;
+}
+
+void NonClassicFrame::createPartyTwoInput(int & y)
+{
+	int selectedParty = parties.idToIndex(seat.livePartyTwo);
+
+	// No callback on this, as we only use the input later
+	partyTwoInput.reset(new ChoiceInput(this, ControlId::PartyTwo, "Party Two:",
+		collectPartyStrings(), selectedParty, wxPoint(2, y)));
+	y += partyTwoInput->Height + ControlPadding;
+}
+
+void NonClassicFrame::createPartyThreeInput(int & y)
+{
+	int selectedParty = parties.idToIndex(seat.livePartyThree);
+
+	// No callback on this, as we only use the input later
+	partyThreeInput.reset(new ChoiceInput(this, ControlId::PartyThree, "Party Three:",
+		collectPartyStrings(), selectedParty, wxPoint(2, y)));
+	y += partyThreeInput->Height + ControlPadding;
+}
+
+void NonClassicFrame::createPartyOneProbText(int & y)
+{
+	// *** need to replace this with a proper class for handling a double label.
+
+	// Create the controls for the estimated 2pp. This can't be edited by the user.
+	partyOneProbLabel = new wxStaticText(this, 0, "Party One Prob:", wxPoint(2, y + ControlPadding), wxSize(198, 23));
+	partyOneProbValue = new wxStaticText(this, ControlId::PartyOneProb, formatFloat(seat.partyOneProb(), 3),
+		wxPoint(200, y + ControlPadding), wxSize(120, 23));
+
+	y += 27;
+}
+
+void NonClassicFrame::createPartyTwoProbInput(int & y)
+{
+	// No callback effects on this, as we only use the input later
+	auto thisCallback = [this](float) -> void {updatePartyOneProbText(); };
+	auto thisValidator = [](float f) {return std::clamp(f, 0.0f, 1.0f); };
+	partyTwoProbInput.reset(new FloatInput(this, ControlId::PartyTwoProb, "Party Two Prob:", seat.partyTwoProb,
+		wxPoint(2, y), thisCallback, thisValidator));
+	y += partyTwoProbInput->Height + ControlPadding;
+}
+
+void NonClassicFrame::createPartyThreeProbInput(int & y)
+{
+	// No callback effects on this, as we only use the input later
+	auto thisCallback = [this](float) -> void {updatePartyOneProbText(); };
+	auto thisValidator = [](float f) {return std::clamp(f, 0.0f, 1.0f); };
+	partyThreeProbInput.reset(new FloatInput(this, ControlId::PartyThreeProb, "Party Three Prob:", seat.partyThreeProb,
+		wxPoint(2, y), thisCallback, thisValidator));
+	y += partyTwoProbInput->Height + ControlPadding;
+}
+
+void NonClassicFrame::createButtons(int & y)
+{
+	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(50, y), wxSize(60, 24));
+	removeButton = new wxButton(this, ControlId::Remove, "Remove", wxPoint(115, y), wxSize(60, 24));
+	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(180, y), wxSize(60, 24));
+
+	Bind(wxEVT_BUTTON, &NonClassicFrame::OnOK, this, ControlId::Ok);
+	Bind(wxEVT_BUTTON, &NonClassicFrame::OnRemove, this, ControlId::Remove);
+
+	y += 27;
+}
+
+void NonClassicFrame::setFinalWindowHeight(int y)
+{
+	SetClientSize(wxSize(GetClientSize().x, y));
+}
+
+void NonClassicFrame::updatePartyOneProbText()
 {
 	try {
-		float partyTwoProb = std::stof(partyTwoProbTextCtrl->GetLineText(0).ToStdString());
-		float partyThreeProb = std::stof(partyThreeProbTextCtrl->GetLineText(0).ToStdString());
+		float partyTwoProb = partyTwoProbInput->getValue();
+		float partyThreeProb = partyThreeProbInput->getValue();
 		float partyOneProb = 1.0f - partyTwoProb - partyThreeProb;
-		partyOneProbStaticText->SetLabel(std::to_string(partyOneProb));
+		partyOneProbValue->SetLabel(formatFloat(partyOneProb, 3));
 	}
 	catch (std::invalid_argument) {
 		// just do nothing, one of the text boxes doesn't have a valid number in it
 	}
 }
 
-void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
-
-	if (seat) {
-		try {
-			Party::Id partyOne = project->parties().indexToId(partyOneComboBox->GetSelection());
-			Party::Id partyTwo = project->parties().indexToId(partyTwoComboBox->GetSelection());
-			Party::Id partyThree = project->parties().indexToId(partyThreeComboBox->GetSelection());
-			float chanceTwo = std::stof(partyTwoProbTextCtrl->GetLineText(0).ToStdString());
-			float chanceThree = std::stof(partyThreeProbTextCtrl->GetLineText(0).ToStdString());
-			float chanceOne = 1.0f - chanceTwo - chanceThree;
-			if (std::min({ chanceOne, chanceTwo, chanceThree }) < 0.0f) {
-				wxMessageBox("Invalid party chance: must be from 0 to 1");
-				return;
-			}
-			if ((chanceTwo && partyTwo == partyOne)
-				|| (chanceThree && (partyThree == partyOne || partyThree == partyTwo))) {
-				wxMessageBox("Invalid parties chosen: All parties with non-zero chance must be different");
-				return;
-			}
-			seat->livePartyOne = partyOne;
-			seat->livePartyTwo = partyTwo;
-			seat->livePartyThree = partyThree;
-			seat->partyTwoProb = chanceTwo;
-			seat->partyThreeProb = chanceThree;
-		}
-		catch (std::invalid_argument) {
-			wxMessageBox("One or more text boxes does not contain a valid numeric value");
+void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event))
+{
+	try {
+		Party::Id partyOne = parties.indexToId(partyOneInput->getSelection());
+		Party::Id partyTwo = parties.indexToId(partyTwoInput->getSelection());
+		Party::Id partyThree = parties.indexToId(partyThreeInput->getSelection());
+		float chanceTwo = partyTwoProbInput->getValue();
+		float chanceThree = partyThreeProbInput->getValue();
+		float chanceOne = 1.0f - chanceTwo - chanceThree;
+		if (std::min({ chanceOne, chanceTwo, chanceThree }) < 0.0f) {
+			wxMessageBox("Invalid party chance: must be from 0 to 1");
 			return;
 		}
+		if ((chanceTwo && partyTwo == partyOne)
+			|| (chanceThree && (partyThree == partyOne || partyThree == partyTwo))) {
+			wxMessageBox("Invalid parties chosen: All parties with non-zero chance must be different");
+			return;
+		}
+		seat.livePartyOne = partyOne;
+		seat.livePartyTwo = partyTwo;
+		seat.livePartyThree = partyThree;
+		seat.partyTwoProb = chanceTwo;
+		seat.partyThreeProb = chanceThree;
+	}
+	catch (std::invalid_argument) {
+		wxMessageBox("One or more text boxes does not contain a valid numeric value");
+		return;
 	}
 
 	// Then close this dialog.
 	Close();
 }
 
-void NonClassicFrame::OnRemove(wxCommandEvent & WXUNUSED(event))
+void NonClassicFrame::OnRemove(wxCommandEvent&)
 {
-	seat->livePartyOne = Party::InvalidId;
-	seat->livePartyTwo = Party::InvalidId;
-	seat->livePartyThree = Party::InvalidId;
-	seat->partyTwoProb = 0.0f;
-	seat->partyThreeProb = 0.0f;
+	seat.livePartyOne = Party::InvalidId;
+	seat.livePartyTwo = Party::InvalidId;
+	seat.livePartyThree = Party::InvalidId;
+	seat.partyTwoProb = 0.0f;
+	seat.partyThreeProb = 0.0f;
 	Close();
+}
+
+wxArrayString NonClassicFrame::collectPartyStrings()
+{
+	wxArrayString partyArray;
+	for (auto it = parties.cbegin(); it != parties.cend(); ++it) {
+		partyArray.push_back(it->second.name);
+	}
+	return partyArray;
 }

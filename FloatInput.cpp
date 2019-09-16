@@ -14,6 +14,21 @@ FloatInput::FloatInput(wxWindow* parent, wxWindowID textCtrlId, std::string labe
 	parent->Bind(wxEVT_TEXT, &FloatInput::updateText, this, textCtrl->GetId());
 }
 
+float FloatInput::getValue() const
+{
+	std::string str = textCtrl->GetValue();
+	if (str.empty()) {
+		if (nullValue == std::numeric_limits<float>::lowest()) return 0.0f;
+		return nullValue;
+	}
+	else if (str == "-") {
+		return 0.0f;
+	}
+	else {
+		return std::stof(str);
+	}
+}
+
 void FloatInput::updateText(wxCommandEvent & event)
 {
 	if (currentlyUpdating) return;
@@ -28,6 +43,7 @@ void FloatInput::updateText(wxCommandEvent & event)
 		// An empty string can be interpreted as zero or the preset null value, so it's ok.
 		if (str.empty()) {
 			value = nullValue;
+			if (nullValue == std::numeric_limits<float>::lowest()) value = 0.0f;
 		}
 		else if (str == "-") {
 			value = 0.0f;

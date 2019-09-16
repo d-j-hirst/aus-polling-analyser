@@ -30,6 +30,8 @@ public:
 		TextChangeFunc textChangeFunc = [](float) {return; }, FloatValidationFunc floatValidationFunc = DefaultValidator,
 		float nullValue = std::numeric_limits<float>::lowest(), int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth, int initialDecimalPlaces = 3);
 
+	float getValue() const;
+
 private:
 
 	// Calls upon the window to update the preliminary name data based on

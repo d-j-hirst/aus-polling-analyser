@@ -27,6 +27,8 @@ public:
 	ChoiceInput(wxWindow* parent, wxWindowID choiceCtrlId, std::string labelText, wxArrayString choices, int initialChoice, wxPoint topLeft,
 		ChoiceChangeFunc choiceChangeFunc = [](int) {return; }, int labelWidth = DefaultLabelWidth, int textInputWidth = DefaultInputWidth);
 
+	int getSelection() const;
+
 private:
 
 	void updateChoice(wxCommandEvent& event);

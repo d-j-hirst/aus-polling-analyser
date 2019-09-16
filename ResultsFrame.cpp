@@ -115,7 +115,7 @@ void ResultsFrame::OnNonClassic(wxCommandEvent & WXUNUSED(even))
 		auto [seatId, seat] = project->seats().accessByName(enteredName);
 
 		// Create the new project frame (where initial settings for the new project are chosen).
-		NonClassicFrame *frame = new NonClassicFrame(this, project, &seat);
+		NonClassicFrame *frame = new NonClassicFrame(project->parties(), seat);
 
 		// Show the frame.
 		frame->ShowModal();
@@ -139,7 +139,6 @@ void ResultsFrame::OnFilterSelection(wxCommandEvent& WXUNUSED(event))
 
 void ResultsFrame::addResultToResultData(Result result)
 {
-	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	auto seat = project->seats().viewByIndex(result.seat);
 	wxColour swingColour = decideSwingColour(result);

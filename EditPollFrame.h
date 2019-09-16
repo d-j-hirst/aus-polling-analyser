@@ -67,8 +67,6 @@ private:
 	PartyCollection const& parties;
 	PollsterCollection const& pollsters;
 
-	// Control pointers that are really only here to shut up the
-	// compiler about unused variables in the constructor - no harm done.
 	std::unique_ptr<ChoiceInput> pollsterInput;
 	std::unique_ptr<DateInput> dateInput;
 	std::unique_ptr<FloatInput> reported2ppInput;
