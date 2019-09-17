@@ -14,23 +14,18 @@
 #include "wx/wx.h"
 #endif
 
-#include "wx/dataview.h"
-
-#include <memory>
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
-#include "EditSimulationFrame.h"
+
+#include "wx/dataview.h"
+
+#include <memory>
 
 class ProjectFrame;
-class GenericChildFame;
 
-// ----------------------------------------------------------------------------
-// constants
-// ----------------------------------------------------------------------------
-
-// *** SimulationsFrame ***
-// Frame that allows the user to create aggregated simulations using the poll data.
+// *** DownloadFrame ***
+// Frame that allows the user to download results from the electoral commission
 class DownloadFrame : public GenericChildFrame
 {
 public:
@@ -46,6 +41,11 @@ private:
 		Federal2016,
 		Federal2019
 	};
+
+	// Creates the tool bar and its icons
+	void setupToolbar();
+
+	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);
@@ -66,8 +66,6 @@ private:
 	void collectLatestBoothData(bool skipPrompt = false);
 
 	void collectCompleteData(bool skipPrompt = false);
-
-	void refreshToolbar();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

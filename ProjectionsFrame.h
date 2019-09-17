@@ -22,7 +22,6 @@
 #include "EditProjectionFrame.h"
 
 class ProjectFrame;
-class GenericChildFame;
 
 // *** ProjectionsFrame ***
 // Frame that allows the user to create aggregated projections using the poll data.

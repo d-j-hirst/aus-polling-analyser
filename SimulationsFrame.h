@@ -22,7 +22,6 @@
 #include "EditSimulationFrame.h"
 
 class ProjectFrame;
-class GenericChildFame;
 
 // *** SimulationsFrame ***
 // Frame that allows the user to create aggregated simulations using the poll data.

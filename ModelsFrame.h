@@ -22,7 +22,6 @@
 #include <memory>
 
 class ProjectFrame;
-class GenericChildFame;
 
 // ----------------------------------------------------------------------------
 // constants
