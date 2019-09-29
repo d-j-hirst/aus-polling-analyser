@@ -462,7 +462,7 @@ int PollingProject::save(std::string filename) {
 		os << "strt=" << thisModel.startDate.GetJulianDayNumber() << "\n";
 		os << "end =" << thisModel.endDate.GetJulianDayNumber() << "\n";
 		os << "updt=" << thisModel.lastUpdated.GetJulianDayNumber() << "\n";
-		for (auto const& thisDay : thisModel.day) {
+		for (auto const& thisDay : thisModel) {
 			os << "$Day" << "\n";
 			os << "mtnd=" << thisDay.trend2pp << "\n";
 			for (int pollsterIndex = 0; pollsterIndex < int(thisDay.houseEffect.size()); ++pollsterIndex) {
@@ -883,18 +883,18 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 4).compare("$Day")) {
-			modelCollection.back().day.push_back(ModelTimePoint(pollsterCollection.count()));
+			modelCollection.back().addDay(pollsterCollection.count());
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mtnd=")) {
-			if (!modelCollection.back().day.size()) return true;
-			modelCollection.back().day.back().trend2pp = std::stof(line.substr(5));
+			if (!modelCollection.back().numDays()) return true;
+			modelCollection.back().accessLastDay().trend2pp = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 2).compare("he") && !line.substr(4, 1).compare("=")) {
 			int pollsterIndex = std::stoi(line.substr(2, 2));
 			if (pollsterIndex < pollsterCollection.count()) {
-				modelCollection.back().day.back().houseEffect[pollsterIndex] = std::stof(line.substr(5));
+				modelCollection.back().accessLastDay().houseEffect[pollsterIndex] = std::stof(line.substr(5));
 			}
 		}
 	}

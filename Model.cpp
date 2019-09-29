@@ -5,13 +5,26 @@
 
 #include "Log.h"
 
-constexpr int NumIterationsFreedHouseEffects = 50;
-constexpr float PollAccuracyFloorZeroPolls = 1.0f;
-constexpr float PollAccuracyFloorPerPoll = 0.05f;
-constexpr float PollAccuracyFloorLimit = 0.4f;
-constexpr float PollScoreMultipler = 10.0f;
+std::string Model::getStartDateString() const
+{
+	if (!startDate.IsValid()) return "";
+	else return startDate.FormatISODate().ToStdString();
+}
+
+std::string Model::getEndDateString() const
+{
+	if (!endDate.IsValid()) return "";
+	else return endDate.FormatISODate().ToStdString();
+}
+
+std::string Model::getLastUpdatedString() const
+{
+	if (!lastUpdated.IsValid()) return "";
+	else return lastUpdated.FormatISODate().ToStdString();
+}
 
 void Model::updateEffectiveDates(wxDateTime earliestPoll, wxDateTime latestPoll) {
+	// If the start or end dates have not been set, then default to running the model from first to last polls
 	if (!startDate.IsValid()) effStartDate = earliestPoll;
 	else effStartDate = startDate;
 	if (!endDate.IsValid()) effEndDate = latestPoll;
@@ -28,9 +41,6 @@ void Model::initializeRun(wxDateTime earliestPoll, wxDateTime latestPoll, int nP
 	int numDays = int(endMJD) - int(startMJD) + 1;
 	day.resize(numDays, ModelTimePoint(pollsterCount));
 	pollster.resize(nPollsters);
-	for (int pollsterIndex = 0; pollsterIndex < nPollsters; ++pollsterIndex) {
-		pollster[pollsterIndex].index = pollsterIndex;
-	}
 }
 
 void Model::run()
@@ -41,12 +51,6 @@ void Model::run()
 	determineFinalStandardDeviation();
 	logRunStatistics();
 	finalizeRun();
-}
-
-// sets the calibrated pollsters' combined bias to the
-// first listed party (ALP by default).
-void Model::setCalibrationFirstPartyBias(float bias) {
-	calibrationFirstPartyBias = bias;
 }
 
 void Model::importPoll(float poll2pp, wxDateTime pollDate, int pollsterIndex) {
@@ -179,6 +183,7 @@ void Model::doModelIterations() {
 	for (iteration = 0; iteration < numIterations; iteration++) {
 		calculateOverallHouseEffects();
 		calibrateOverallHouseEffects();
+		constexpr int NumIterationsFreedHouseEffects = 50;
 		if (iteration > NumIterationsFreedHouseEffects) {
 			debiasDailyHouseEffects();
 		}
@@ -274,11 +279,12 @@ void Model::debiasDailyHouseEffects() {
 	}
 
 	// work out how much this value deviates from the calibrated overall house effect.
-	for (ModelPollster& thisPollster : pollster) {
-		if (localHouseEffectDenom[thisPollster.index])
-			localHouseEffectBias[thisPollster.index] = localHouseEffectSum[thisPollster.index] / localHouseEffectDenom[thisPollster.index] - thisPollster.houseEffect;
+	for (int pollsterIndex = 0; pollsterIndex < int(pollster.size()); ++pollsterIndex) {
+		ModelPollster& thisPollster = pollster[pollsterIndex];
+		if (localHouseEffectDenom[pollsterIndex])
+			localHouseEffectBias[pollsterIndex] = localHouseEffectSum[pollsterIndex] / localHouseEffectDenom[pollsterIndex] - thisPollster.houseEffect;
 		else
-			localHouseEffectBias[thisPollster.index] = day[0].houseEffect[thisPollster.index] - thisPollster.houseEffect;
+			localHouseEffectBias[pollsterIndex] = day[0].houseEffect[pollsterIndex] - thisPollster.houseEffect;
 	}
 
 	// adjust all the daily house effect values appropriately.
@@ -292,8 +298,9 @@ void Model::debiasDailyHouseEffects() {
 void Model::setUniformDailyHouseEffects() {
 	// adjust all the daily house effect values appropriately.
 	for (ModelTimePoint& thisDay : day) {
-		for (ModelPollster& thisPollster : pollster) {
-			thisDay.houseEffect[thisPollster.index] = thisPollster.houseEffect;
+		for (int pollsterIndex = 0; pollsterIndex < int(pollster.size()); ++pollsterIndex) {
+			ModelPollster& thisPollster = pollster[pollsterIndex];
+			thisDay.houseEffect[pollsterIndex] = thisPollster.houseEffect;
 		}
 	}
 }
@@ -301,14 +308,15 @@ void Model::setUniformDailyHouseEffects() {
 void Model::calibrateDailyHouseEffects() {
 	for (ModelTimePoint& thisDay : day) {
 		float houseEffectsCalibrationSum = 0; // sum of house effects of calibrated pollsters
-		for (ModelPollster& thisPollster : pollster) {
+		for (int pollsterIndex = 0; pollsterIndex < int(pollster.size()); ++pollsterIndex) {
+			ModelPollster& thisPollster = pollster[pollsterIndex];
 			if (thisPollster.useForCalibration) {
-				houseEffectsCalibrationSum += thisDay.houseEffect[thisPollster.index];
+				houseEffectsCalibrationSum += thisDay.houseEffect[pollsterIndex];
 			}
 		}
 		float houseEffectsCalibrationAdjustment = calibrationFirstPartyBias - houseEffectsCalibrationSum / pollsterCalibrationCount;
-		for (ModelPollster& thisPollster : pollster) {
-			thisDay.houseEffect[thisPollster.index] += houseEffectsCalibrationAdjustment;
+		for (int pollsterIndex = 0; pollsterIndex < int(pollster.size()); ++pollsterIndex) {
+			thisDay.houseEffect[pollsterIndex] += houseEffectsCalibrationAdjustment;
 		}
 
 	}
@@ -317,8 +325,7 @@ void Model::calibrateDailyHouseEffects() {
 void Model::recalculateEffectiveDaily2pps() {
 	for (ModelTimePoint& thisDay : day) {
 		for (SmallPoll& thisPoll : thisDay.polls) {
-			ModelPollster& thisPollster = pollster[thisPoll.pollster];
-			float houseEffect = thisDay.houseEffect[thisPollster.index];
+			float houseEffect = thisDay.houseEffect[thisPoll.pollster];
 			thisPoll.eff2pp = thisPoll.raw2pp - houseEffect;
 		}
 	}
@@ -337,6 +344,9 @@ void Model::calculatePollsterAccuracy() {
 				}
 			}
 		}
+		constexpr float PollAccuracyFloorZeroPolls = 1.0f;
+		constexpr float PollAccuracyFloorPerPoll = 0.05f;
+		constexpr float PollAccuracyFloorLimit = 0.4f;
 		float accuracyFloor = std::max(PollAccuracyFloorLimit, PollAccuracyFloorZeroPolls - PollAccuracyFloorPerPoll * numPolls);
 		pollster[pollsterIndex].accuracy = std::max(accuracyFloor, std::sqrt(totalErrorSquared / float(std::max(1.0f, numPolls - 1))));
 	}
@@ -411,6 +421,7 @@ float Model::calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, 
 
 	float pollScoreIncrease = 1.0f / (calculatePollLikelihood(timePoint, pollIndex, usetrend2pp) + 0.001f) - 1.0f;
 
+	constexpr float PollScoreMultipler = 10.0f;
 	pollScoreIncrease *= PollScoreMultipler;
 
 	pollScoreIncrease *= thisPollster.weight;
@@ -563,20 +574,6 @@ void Model::adjustDailyValues() {
 			thisDay.houseEffect[pollsterIndex] = thisDay.nextHouseEffect[pollsterIndex];
 		}
 	}
-}
-
-float Model::getRecentTrendScore() const
-{
-	float totalTrend = 0.0f;
-	int pollCount = 0;
-	int dayCount = 0;
-	for (auto thisDay = day.rbegin(); thisDay != day.rend(); ++thisDay) {
-		totalTrend += thisDay->trendScore;
-		pollCount += thisDay->polls.size();
-		++dayCount;
-		if (pollCount >= 5 && dayCount >= 30) break;
-	}
-	return totalTrend;
 }
 
 void Model::determineFinalStandardDeviation()

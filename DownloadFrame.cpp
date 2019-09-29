@@ -160,6 +160,7 @@ void DownloadFrame::collectCustomBoothData(bool skipPrompt)
 		resultsDownloader.loadZippedFile(userUrl, LatestResultsDataRetriever::UnzippedFileName);
 		if (!skipPrompt) wxMessageBox("Downloaded latest data from: " + userUrl);
 	}
+
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);
@@ -189,6 +190,7 @@ void DownloadFrame::collectLatestBoothData(bool skipPrompt)
 		if (!skipPrompt) wxMessageBox("Downloaded latest data from: " + latestUrl.substr(0, 50) + "\n" + latestUrl.substr(50));
 		logger << "Downloaded latest data from: " << latestUrl << "\n";
 	}
+
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
 	project->incorporateLatestResults(latestResultsDataRetriever);

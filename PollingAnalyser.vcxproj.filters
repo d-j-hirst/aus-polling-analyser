@@ -173,7 +173,9 @@
     <ClCompile Include="SimulationCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
-    <ClCompile Include="DisplayFrameRenderer.cpp" />
+    <ClCompile Include="DisplayFrameRenderer.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

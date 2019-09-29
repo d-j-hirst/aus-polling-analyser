@@ -38,13 +38,9 @@ VisualiserFrame::VisualiserFrame(ProjectFrame::Refresher refresher, PollingProje
 	refresher(refresher)
 {
 	refreshToolbar();
-	
 	createDcPanel();
-
 	bindEventHandlers();
-
 	Layout();
-
 	paint();
 }
 
@@ -479,9 +475,9 @@ void VisualiserFrame::drawModels(wxDC& dc) {
 
 void VisualiserFrame::drawModel(Model const& model, wxDC& dc) {
 	if (!displayModels && !displayHouseEffects) return;
-	ModelTimePoint const* thisTimePoint = &model.day[0];
-	for (int i = 0; i < int(model.day.size()) - 1; ++i) {
-		ModelTimePoint const* nextTimePoint = &model.day[i + 1];
+	auto thisTimePoint = model.begin();
+	for (int i = 0; i < model.numDays() - 1; ++i) {
+		auto nextTimePoint = std::next(thisTimePoint);
 		int x = getXFromDate(int(floor(model.effStartDate.GetMJD())) + i);
 		int x2 = getXFromDate(int(floor(model.effStartDate.GetMJD())) + i + 1);
 		if (displayModels) {

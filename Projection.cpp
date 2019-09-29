@@ -31,7 +31,7 @@ void Projection::run(ModelCollection const& models) {
 	tempProjections.resize(numIterations);
 	meanProjection.resize(nDays);
 	sdProjection.resize(nDays);
-	double modelEndpoint = double(model.day.back().trend2pp);
+	double modelEndpoint = double(model.accessLastDay().trend2pp);
 	for (auto& projVec : tempProjections) {
 		projVec.resize(nDays);
 		double systematicVariation = initialDist(gen) * initialStdDev;
