@@ -64,17 +64,10 @@ public:
 
 	Event& back() { return std::prev(events.end())->second; }
 
-	// Gets the begin iterator for the pollster list.
 	EventContainer::iterator begin() { return events.begin(); }
-
-	// Gets the end iterator for the pollster list.
 	EventContainer::iterator end() { return events.end(); }
-
-	// Gets the begin iterator for the pollster list.
-	EventContainer::const_iterator cbegin() const { return events.cbegin(); }
-
-	// Gets the end iterator for the pollster list.
-	EventContainer::const_iterator cend() const { return events.cend(); }
+	EventContainer::const_iterator begin() const { return events.begin(); }
+	EventContainer::const_iterator end() const { return events.end(); }
 
 private:
 

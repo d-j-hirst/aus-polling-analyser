@@ -6,6 +6,10 @@
 const float DefaultVoteTimeScoreMultiplier = 8.0f;
 const float DefaultHouseEffectTimeScoreMultiplier = 28.0f;
 
+class PollsterCollection;
+class PollCollection;
+class EventCollection;
+
 struct SmallPoll {
 	int pollster;
 	float raw2pp; // Raw two-party preferred; this is the score from the poll
@@ -72,31 +76,12 @@ public:
 
 	std::string getLastUpdatedString() const;
 
-	void run();
+	void run(PollsterCollection const& pollsters, PollCollection const& polls, EventCollection const& events);
 
 	// The following functions and fields are used when setting up the model to be run,
 	// when creating and editing the model's settings, and when saving and loading the model
 	// to file. The fields could be made private using a fancier access system but given the
 	// limited scope of the project this was judged to not be worth the effort.
-
-	// sets up the run with earliest and latest dates
-	void updateEffectiveDates(wxDateTime earliestPoll, wxDateTime latestPoll);
-
-	// Sets up the run with earliest and latest dates
-	// also gets the latest pollster count.
-	void initializeRun(wxDateTime earliestPoll, wxDateTime latestPoll, int nPollsters);
-
-	// adds a poll to the model's database using the given values.
-	void importPoll(float poll2pp, wxDateTime pollDate, int pollsterIndex);
-
-	// adds an election to the model's database using the given values.
-	void importElection(float election2pp, wxDateTime electionDate);
-
-	// adds an discontinuity (from this day to the day after) to the model's database using the given values.
-	void importDiscontinuity(wxDateTime electionDate);
-
-	// imports pollster-relevant data.
-	void setPollsterData(int pollsterIndex, bool useForCalibration, bool ignoreInitially, float weight);
 
 	auto begin() const { return day.begin(); }
 	auto end() const { return day.end(); }
@@ -145,23 +130,62 @@ public:
 
 private:
 
+	// Sets up the run with earliest and latest dates
+	// also gets the latest pollster count
+	// This needs to be set up first to allow the import of polls and even data
+	// because the importing relies on the 
+	void initializeRun(PollsterCollection const& pollsters, PollCollection const& polls);
+
+	// sets up the run with earliest and latest dates
+	void updateEffectiveDates(PollCollection const& polls);
+
+	void importPollsters(PollsterCollection const& pollsters);
+
+	void importPolls(PollsterCollection const& pollsters, PollCollection const& polls);
+
+	void importEvents(EventCollection const& events);
+
+	// adds a poll to the model's database using the given values.
+	void importPoll(float poll2pp, wxDateTime pollDate, int pollsterIndex);
+
+	// adds an election to the model's database using the given values.
+	void importElection(float election2pp, wxDateTime electionDate);
+
+	// adds an discontinuity (from this day to the day after) to the model's database using the given values.
+	void importDiscontinuity(wxDateTime electionDate);
+
 	// Called once the model has been run, this determines the final standard deviation
 	// to be used in projections (in addition to the base deviation).
 	// This value is higher when there are fewer or dispersed polls and lower when there
 	// are many, mutually confirming polls
 	void determineFinalStandardDeviation();
 
+	// Determines the combined evidence factor of polls near the end of the distribution
+	float determineFinalPollingEvidenceFactor();
+
 	// Outputs the most important run statistics to the log file.
 	void logRunStatistics();
 
-	// finalizes the run (update this description later).
+	// finalizes the run, including setting the "last updated" value to the present time.
 	void finalizeRun();
 
-	// adds a poll to the model's database using the given values.
+	// Sets the initial path for the model based on raw poll data
 	void setInitialPath();
+
+	// Set the initial 2pp for days with polling or elections
+	void setInitialPolling2pp();
+
+	// Interpolate between 2pp for days that don't have polling
+	void interpolateInitialPolling2pp();
 
 	// Sets the initial guess for house effects
 	void setInitialHouseEffectPath();
+
+	// Set the initial house effect for days with polling or elections
+	void setInitialHouseEffectFromPolls(int pollsterIndex);
+
+	// Set the initial house effect for days with polling or elections
+	void interpolateInitialHouseEffects(int pollsterIndex);
 
 	// goes through the model iterations that successively adjust the implied 2pp values.
 	void doModelIterations();
@@ -243,9 +267,8 @@ private:
 	std::vector<ModelTimePoint> day;
 
 	// vector of pollster data
-	std::vector<ModelPollster> pollster;
+	std::vector<ModelPollster> pollsterCache;
 
-	int pollsterCount = 0;
 	int pollsterCalibrationCount = 0;
 
 	int iteration = 0;

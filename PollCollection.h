@@ -69,8 +69,14 @@ public:
 	// gets the date in MJD form of the earliest poll
 	int getEarliestDate() const;
 
+	// gets the date in MJD form of the earliest poll after (or at the same time as) the given date
+	int getEarliestDateFrom(wxDateTime const& dateAfter) const;
+
 	// gets the date in MJD form of the most recent poll
 	int getLatestDate() const;
+
+	// gets the date in MJD form of the latest poll before (or at the same time as) the given date
+	int getLatestDateUpTo(wxDateTime const& dateBefore) const;
 
 	// Removes all the polls from a particular pollster. Used when deleting a pollster.
 	void removePollsFromPollster(Pollster::Id pollster);
@@ -80,17 +86,10 @@ public:
 
 	Poll& back() { return std::prev(polls.end())->second; }
 
-	// Gets the begin iterator for the poll list.
 	PollContainer::iterator begin() { return polls.begin(); }
-
-	// Gets the end iterator for the poll list.
 	PollContainer::iterator end() { return polls.end(); }
-
-	// Gets the begin iterator for the poll list.
-	PollContainer::const_iterator cbegin() const { return polls.cbegin(); }
-
-	// Gets the end iterator for the poll list.
-	PollContainer::const_iterator cend() const { return polls.cend(); }
+	PollContainer::const_iterator begin() const { return polls.begin(); }
+	PollContainer::const_iterator end() const { return polls.end(); }
 
 private:
 

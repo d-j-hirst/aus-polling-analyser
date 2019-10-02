@@ -263,43 +263,9 @@ void ModelsFrame::runModel() {
 	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
 	Model::Id modelId = project->models().indexToId(modelIndex);
 	Model& thisModel = project->models().access(project->models().indexToId(modelIndex));
-	prepareModelForRun(thisModel);
-	thisModel.run();
+	thisModel.run(project->pollsters(), project->polls(), project->events());
 	refreshDataTable();
 	project->invalidateProjectionsFromModel(modelId);
-}
-
-void ModelsFrame::prepareModelForRun(Model& model)
-{
-	wxDateTime earliestDate = mjdToDate(project->polls().getEarliestDate());
-	wxDateTime latestDate = mjdToDate(project->polls().getLatestDate());
-	int pollsterCount = project->pollsters().count();
-	model.initializeRun(earliestDate, latestDate, pollsterCount);
-
-	// placeholder, change this later!
-	// This sets the first three polls (old Newspoll, Nielsen and Galaxy)
-	// to be used for calibration, with combined house effect of 0.225 points to
-	// the ALP (taken from their results at the 2004-2013 elections).
-	for (auto const& pollster : project->pollsters()) {
-		bool useForCalibration = pollster.second.useForCalibration;
-		bool ignoreInitially = pollster.second.ignoreInitially;
-		float weight = pollster.second.weight;
-		model.setPollsterData(project->pollsters().idToIndex(pollster.first), useForCalibration, ignoreInitially, weight);
-	}
-
-	for (auto const& poll : project->polls()) {
-		PollsterCollection::Index pollsterIndex = project->pollsters().idToIndex(poll.second.pollster);
-		if (project->pollsters().view(poll.second.pollster).weight < 0.01f) continue;
-		model.importPoll(poll.second.getBest2pp(), poll.second.date, pollsterIndex);
-	}
-	for (auto const& event : project->events()) {
-		if (event.second.eventType == EventType_Election) {
-			model.importElection(event.second.vote, event.second.date);
-		}
-		else if (event.second.eventType == EventType_Discontinuity) {
-			model.importDiscontinuity(event.second.date);
-		}
-	}
 }
 
 void ModelsFrame::updateInterface() {

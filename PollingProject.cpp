@@ -236,19 +236,11 @@ void PollingProject::adjustAfterPollsterRemoval(PollsterCollection::Index /*poll
 
 int PollingProject::getEarliestDate() const {
 	int earliestDay = polls().getEarliestDate();
-	for (auto modelIt = models().cbegin(); modelIt != models().cend(); ++modelIt) {
-		int date = int(floor(modelIt->second.endDate.GetModifiedJulianDayNumber()));
-		if (date < earliestDay) earliestDay = date;
-	}
 	return earliestDay;
 }
 
 int PollingProject::getLatestDate() const {
 	int latestDay = polls().getLatestDate();
-	for (auto modelIt = models().cbegin(); modelIt != models().cend(); ++modelIt) {
-		int date = int(floor(modelIt->second.endDate.GetModifiedJulianDayNumber()));
-		if (date > latestDay) latestDay = date;
-	}
 	for (auto projectionIt = projections().cbegin(); projectionIt != projections().cend(); ++projectionIt) {
 		int date = int(floor(projectionIt->second.endDate.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;
@@ -1170,11 +1162,6 @@ void PollingProject::adjustSeatsAfterRegionRemoval(RegionCollection::Index, Part
 }
 
 void PollingProject::finalizeFileLoading() {
-	// sets the correct effective start/end dates
-	for (auto& model : models()) {
-		model.second.updateEffectiveDates(mjdToDate(polls().getEarliestDate()), mjdToDate(polls().getLatestDate()));
-	}
-
 	partyCollection.finaliseFileLoading();
 }
 

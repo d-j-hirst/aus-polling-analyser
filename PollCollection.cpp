@@ -64,9 +64,20 @@ int PollCollection::count() const {
 int PollCollection::getEarliestDate() const {
 	if (!count()) return -100000000;
 	int earliestDay = 1000000000;
-	for (auto const& poll : polls) {
-		int date = int(floor(poll.second.date.GetModifiedJulianDayNumber()));
+	for (auto const&[key, poll] : polls) {
+		int date = int(floor(poll.date.GetModifiedJulianDayNumber()));
 		if (date < earliestDay) earliestDay = date;
+	}
+	return earliestDay;
+}
+
+int PollCollection::getEarliestDateFrom(wxDateTime const& dateAfter) const {
+	if (!count()) return -100000000;
+	int earliestDay = 1000000000;
+	int afterThis = dateAfter.GetModifiedJulianDayNumber();
+	for (auto const& [key, poll] : polls) {
+		int date = int(floor(poll.date.GetModifiedJulianDayNumber()));
+		if (date < earliestDay && date >= afterThis) earliestDay = date;
 	}
 	return earliestDay;
 }
@@ -74,9 +85,21 @@ int PollCollection::getEarliestDate() const {
 int PollCollection::getLatestDate() const {
 	if (!count()) return -100000000;
 	int latestDay = -1000000000;
-	for (auto const& poll : polls) {
-		int date = int(floor(poll.second.date.GetModifiedJulianDayNumber()));
+	for (auto const& [key, poll] : polls) {
+		int date = int(floor(poll.date.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;
+	}
+	return latestDay;
+}
+
+int PollCollection::getLatestDateUpTo(wxDateTime const & dateBefore) const
+{
+	if (!count()) return -100000000;
+	int latestDay = -1000000000;
+	int beforeThis = dateBefore.GetModifiedJulianDayNumber();
+	for (auto const& [key, poll] : polls) {
+		int date = int(floor(poll.date.GetModifiedJulianDayNumber()));
+		if (date > latestDay && date <= beforeThis) latestDay = date;
 	}
 	return latestDay;
 }

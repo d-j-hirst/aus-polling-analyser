@@ -72,17 +72,10 @@ public:
 
 	Pollster& back() { return std::prev(pollsters.end())->second; }
 
-	// Gets the begin iterator for the pollster list.
 	PollsterContainer::iterator begin() { return pollsters.begin(); }
-
-	// Gets the end iterator for the pollster list.
 	PollsterContainer::iterator end() { return pollsters.end(); }
-
-	// Gets the begin iterator for the pollster list.
-	PollsterContainer::const_iterator cbegin() const { return pollsters.cbegin(); }
-
-	// Gets the end iterator for the pollster list.
-	PollsterContainer::const_iterator cend() const { return pollsters.cend(); }
+	PollsterContainer::const_iterator begin() const { return pollsters.begin(); }
+	PollsterContainer::const_iterator end() const { return pollsters.end(); }
 
 private:
 
