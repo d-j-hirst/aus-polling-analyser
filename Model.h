@@ -10,50 +10,8 @@ class PollsterCollection;
 class PollCollection;
 class EventCollection;
 
-struct SmallPoll {
-	int pollster;
-	float raw2pp; // Raw two-party preferred; this is the score from the poll
-	float eff2pp; // Effective two-party preferred; this is adjusted for house effects
-	SmallPoll(int pollster, float raw2pp) : pollster(pollster), raw2pp(raw2pp), eff2pp(raw2pp) {}
-};
 
-struct ModelTimePoint {
-	ModelTimePoint(int pollsterCount)  { 
-		houseEffect.resize(pollsterCount, 0); 
-		houseEffectScore.resize(pollsterCount, 0);
-		nextHouseEffect.resize(pollsterCount, 0);
-	}
-	constexpr static float DefaultTrend2pp = 50.0f;
-	void reset() {
-		trend2pp = DefaultTrend2pp;
-		nextTrend2pp = 0.0f;
-		trendScore = 0.0f;
-		std::fill(houseEffect.begin(), houseEffect.end(), 0.0f);
-		std::fill(nextHouseEffect.begin(), nextHouseEffect.end(), 0.0f);
-		std::fill(houseEffectScore.begin(), houseEffectScore.end(), 0.0f);
-	}
-	std::vector<SmallPoll> polls; // any polls on this day
-	float trend2pp = DefaultTrend2pp; // the 2pp that the model thinks is actually occurring on this day
-	std::vector<float> houseEffect;
-	float nextTrend2pp = 0.0f;
-	std::vector<float> nextHouseEffect;
-	float trendScore = 0.0f; // the model tries to minimize this value
-	std::vector<float> houseEffectScore; // the model tries to minimize this value
-	float election = -1.0f;
-	bool discontinuity = false;
-};
 
-struct ModelPollster {
-	void reset() {
-		houseEffect = 0.0f;
-		accuracy = 1.0f;
-	}
-	float houseEffect = 0.0f;
-	float weight = 1.0f;
-	bool useForCalibration = false;
-	bool ignoreInitially = false;
-	float accuracy = 1.0f; // RMSE (after house effect adjustment) of the difference of this poll to the model
-};
 
 class Model {
 public:
@@ -129,6 +87,50 @@ public:
 	float finalStandardDeviation = 0.0f;
 
 private:
+	struct CachedPollster {
+		void reset() {
+			houseEffect = 0.0f;
+			accuracy = 1.0f;
+		}
+		float houseEffect = 0.0f;
+		float weight = 1.0f;
+		bool useForCalibration = false;
+		bool ignoreInitially = false;
+		float accuracy = 1.0f; // RMSE (after house effect adjustment) of the difference of this poll to the model
+	};
+
+	struct CachedPoll {
+		int pollster;
+		float raw2pp; // Raw two-party preferred; this is the score from the poll
+		float eff2pp; // Effective two-party preferred; this is adjusted for house effects
+		CachedPoll(int pollster, float raw2pp) : pollster(pollster), raw2pp(raw2pp), eff2pp(raw2pp) {}
+	};
+
+	struct TimePoint {
+		TimePoint(int pollsterCount) {
+			houseEffect.resize(pollsterCount, 0);
+			houseEffectScore.resize(pollsterCount, 0);
+			nextHouseEffect.resize(pollsterCount, 0);
+		}
+		constexpr static float DefaultTrend2pp = 50.0f;
+		void reset() {
+			trend2pp = DefaultTrend2pp;
+			nextTrend2pp = 0.0f;
+			trendScore = 0.0f;
+			std::fill(houseEffect.begin(), houseEffect.end(), 0.0f);
+			std::fill(nextHouseEffect.begin(), nextHouseEffect.end(), 0.0f);
+			std::fill(houseEffectScore.begin(), houseEffectScore.end(), 0.0f);
+		}
+		std::vector<CachedPoll> polls; // any polls on this day
+		float trend2pp = DefaultTrend2pp; // the 2pp that the model thinks is actually occurring on this day
+		std::vector<float> houseEffect;
+		float nextTrend2pp = 0.0f;
+		std::vector<float> nextHouseEffect;
+		float trendScore = 0.0f; // the model tries to minimize this value
+		std::vector<float> houseEffectScore; // the model tries to minimize this value
+		float election = -1.0f;
+		bool discontinuity = false;
+	};
 
 	// Sets up the run with earliest and latest dates
 	// also gets the latest pollster count
@@ -220,35 +222,35 @@ private:
 	// calculates the error scores for this day's trend in the model
 	// from the differences between this day's trend and the surrounding days
 	// and also any polls on this day.
-	float calculateTrendScore(ModelTimePoint const* thisDay, int dayIndex, float usetrend2pp = -1.0f) const;
+	float calculateTrendScore(TimePoint const* thisDay, int dayIndex, float usetrend2pp = -1.0f) const;
 
 	// calculates the error scores for this day's house effect for pollster pollsterIndex in the model
 	// from the differences between this day's trend and the surrounding days
 	// and also any polls on this day.
-	float calculateHouseEffectScore(ModelTimePoint const* thisDay, int dayIndex, int pollsterIndex, float useHouseEffect = -1000.0f) const;
+	float calculateHouseEffectScore(TimePoint const* thisDay, int dayIndex, int pollsterIndex, float useHouseEffect = -1000.0f) const;
 
 	// calculates the error scores for the time point's poll with index "pollIndex".
 	// if usetrend2pp is given (and positive/zero), then substitutes it for the current trend 2pp.
-	float calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp = -1.0f) const;
+	float calculatePollScore(TimePoint const* timePoint, int pollIndex, float usetrend2pp = -1.0f) const;
 
 	// calculates the probability of the trend 2pp being further than this distance from the poll
-	float calculatePollLikelihood(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp = -1.0f) const;
+	float calculatePollLikelihood(TimePoint const* timePoint, int pollIndex, float usetrend2pp = -1.0f) const;
 
 	// calculates the error scores for the time point's poll with index "pollIndex".
 	// if usetrend2pp is given (and positive/zero), then substitutes it for the current trend 2pp.
-	float calculateHouseEffectPollScore(ModelTimePoint const* timePoint, int pollIndex, int pollsterIndex, float useHouseEffect = -1000.0f) const;
+	float calculateHouseEffectPollScore(TimePoint const* timePoint, int pollIndex, int pollsterIndex, float useHouseEffect = -1000.0f) const;
 
 	// calculates the error scores for the time point "timePoint"
 	// in relation with the neighbouring time point "otherTimePoint".
 	// Can tolerate nullptr for "otherTimePoint", and will give a return value of 0.0f.
 	// if usetrend2pp is given (and positive/zero), then substitutes it for the current trend 2pp.
-	float calculateTimeScore(ModelTimePoint const* timePoint, ModelTimePoint const* otherTimePoint, float usetrend2pp = -1.0f) const;
+	float calculateTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, float usetrend2pp = -1.0f) const;
 
 	// calculates the error scores for the time point "timePoint"
 	// in relation with the neighbouring time point "otherTimePoint".
 	// Can tolerate nullptr for "otherTimePoint", and will give a return value of 0.0f.
 	// if useHouseEffect is given (and positive/zero), then substitutes it for the current house effect.
-	float calculateHouseEffectTimeScore(ModelTimePoint const* timePoint, ModelTimePoint const* otherTimePoint, int pollsterIndex, float useHouseEffect = -1000.0f) const;
+	float calculateHouseEffectTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, int pollsterIndex, float useHouseEffect = -1000.0f) const;
 
 	// adjusts the daily trend scores to the lowest possible error score.
 	void calculateDailyTrendAdjustments();
@@ -264,10 +266,10 @@ private:
 	static double Model::normsinv(double p);
 
 	// vector of time points
-	std::vector<ModelTimePoint> day;
+	std::vector<TimePoint> day;
 
 	// vector of pollster data
-	std::vector<ModelPollster> pollsterCache;
+	std::vector<CachedPollster> pollsterCache;
 
 	int pollsterCalibrationCount = 0;
 

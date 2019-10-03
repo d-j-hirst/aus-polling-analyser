@@ -51,7 +51,7 @@ void Model::initializeRun(PollsterCollection const& pollsters, PollCollection co
 	double endMJD = effEndDate.GetMJD();
 	int numDays = int(endMJD) - int(startMJD) + 1;
 	if (numDays <= 0) return;
-	day.resize(numDays, ModelTimePoint(pollsters.count()));
+	day.resize(numDays, TimePoint(pollsters.count()));
 	pollsterCache.resize(pollsters.count());
 }
 
@@ -97,7 +97,7 @@ void Model::importEvents(EventCollection const& events)
 void Model::importPoll(float poll2pp, wxDateTime pollDate, int pollsterIndex) {
 	int timeIndex = int(pollDate.GetMJD()) - int(effStartDate.GetMJD());
 	if (timeIndex >= 0 && timeIndex < int(day.size()) && poll2pp > 0.1f) {
-		day[timeIndex].polls.push_back(SmallPoll(pollsterIndex, poll2pp));
+		day[timeIndex].polls.push_back(CachedPoll(pollsterIndex, poll2pp));
 	}
 }
 
@@ -136,7 +136,7 @@ float Model::determineFinalPollingEvidenceFactor()
 		// diversity in the pollsters producing polls
 		for (std::size_t pollIndex = 0; pollIndex < thisDay->polls.size(); ++pollIndex) {
 			float basePollLikelihood = calculatePollLikelihood(&*thisDay, pollIndex);
-			ModelPollster const& thisPollster = pollsterCache[thisDay->polls[pollIndex].pollster];
+			CachedPollster const& thisPollster = pollsterCache[thisDay->polls[pollIndex].pollster];
 			basePollLikelihood /= thisPollster.accuracy;
 			float timeBasedExponentialDecay = pow(2.0f, -float(daysBeforeFinal) / daysHalfLife);
 			totalEvidence += pow(basePollLikelihood, 0.5f) * timeBasedExponentialDecay;
@@ -175,7 +175,7 @@ void Model::setInitialPath() {
 void Model::setInitialPolling2pp()
 {
 	for (int dayIndex = 0; dayIndex < int(day.size()); ++dayIndex) {
-		ModelTimePoint& timePoint = day[dayIndex];
+		TimePoint& timePoint = day[dayIndex];
 		float total2pp = 0.0f;
 		float totalWeight = 0.0f;
 		if (timePoint.election > 0.00001f) {
@@ -184,7 +184,7 @@ void Model::setInitialPolling2pp()
 		}
 		else {
 			for (int pollIndex = 0; pollIndex < int(timePoint.polls.size()); ++pollIndex) {
-				SmallPoll const* poll = &timePoint.polls[pollIndex];
+				CachedPoll const* poll = &timePoint.polls[pollIndex];
 				if (pollsterCache[poll->pollster].ignoreInitially) continue;
 				total2pp += poll->raw2pp;
 				totalWeight += 1.0f;
@@ -208,14 +208,14 @@ void Model::interpolateInitialPolling2pp()
 	int prevPollIndex = 0;
 	float prevPoll2pp = Invalid2pp;
 	for (int dayIndex = 0; dayIndex < int(day.size()); ++dayIndex) {
-		ModelTimePoint& timePoint = day[dayIndex];
+		TimePoint& timePoint = day[dayIndex];
 		float thisDay2pp = timePoint.trend2pp;
 		if (thisDay2pp != Invalid2pp) {
 			if (prevPoll2pp == Invalid2pp) prevPoll2pp = thisDay2pp;
 			if (dayIndex - prevPollIndex > 1) {
 				int dayRangeLength = dayIndex - prevPollIndex;
 				for (int dayRangeIndex = prevPollIndex + 1; dayRangeIndex < dayIndex; ++dayRangeIndex) {
-					ModelTimePoint& rangeTimePoint = day[dayRangeIndex];
+					TimePoint& rangeTimePoint = day[dayRangeIndex];
 					rangeTimePoint.trend2pp = prevPoll2pp * (dayIndex - dayRangeIndex) / dayRangeLength +
 						thisDay2pp * (dayRangeIndex - prevPollIndex) / dayRangeLength;
 				}
@@ -237,14 +237,14 @@ void Model::setInitialHouseEffectFromPolls(int pollsterIndex)
 {
 	int prevPollIndex = 0;
 	for (int dayIndex = 0; dayIndex < int(day.size()); ++dayIndex) {
-		ModelTimePoint& timePoint = day[dayIndex];
+		TimePoint& timePoint = day[dayIndex];
 		// If there's an election just set it to the vote for the election
 		timePoint.houseEffect[pollsterIndex] = Invalid2pp;
 		if (!timePoint.polls.size() && dayIndex != int(day.size()) - 1) continue;
 		float totalHouseEffect = 0.0f;
 		float totalWeight = 0.0f;
 		for (int pollIndex = 0; pollIndex < int(timePoint.polls.size()); ++pollIndex) {
-			SmallPoll const* poll = &timePoint.polls[pollIndex];
+			CachedPoll const* poll = &timePoint.polls[pollIndex];
 			if (poll->pollster != pollsterIndex) continue;
 			if (pollsterCache[poll->pollster].ignoreInitially) continue;
 			totalHouseEffect += poll->raw2pp - day[dayIndex].trend2pp;
@@ -269,14 +269,14 @@ void Model::interpolateInitialHouseEffects(int pollsterIndex)
 	int prevPollIndex = 0;
 	float prevPollHouseEffect = Invalid2pp;
 	for (int dayIndex = 0; dayIndex < int(day.size()); ++dayIndex) {
-		ModelTimePoint& timePoint = day[dayIndex];
+		TimePoint& timePoint = day[dayIndex];
 		float thisDayHouseEffect = timePoint.houseEffect[pollsterIndex];
 		if (thisDayHouseEffect != Invalid2pp) {
 			if (prevPollHouseEffect == Invalid2pp) prevPollHouseEffect = thisDayHouseEffect;
 			if (dayIndex - prevPollIndex > 1) {
 				int dayRangeLength = dayIndex - prevPollIndex;
 				for (int dayRangeIndex = prevPollIndex + 1; dayRangeIndex < dayIndex; ++dayRangeIndex) {
-					ModelTimePoint& rangeTimePoint = day[dayRangeIndex];
+					TimePoint& rangeTimePoint = day[dayRangeIndex];
 					rangeTimePoint.houseEffect[pollsterIndex] = prevPollHouseEffect * (dayIndex - dayRangeIndex) / dayRangeLength +
 						thisDayHouseEffect * (dayRangeIndex - prevPollIndex) / dayRangeLength;
 				}
@@ -298,8 +298,7 @@ void Model::doModelIterations() {
 		else if (iteration == NumIterationsFreedHouseEffects) {
 			setInitialHouseEffectPath();
 		}
-		else
-		{
+		else {
 			setUniformDailyHouseEffects();
 		}
 		calibrateDailyHouseEffects();
@@ -323,7 +322,7 @@ void Model::calculateOverallHouseEffects() {
 	// go through each poll and use the difference between it and the trend
 	// to add to the numerator/denominator of the relevant pollster's house effect
 	for (int dayIndex = 0; dayIndex < int(day.size()); ++dayIndex) {
-		ModelTimePoint* thisDay = &day[dayIndex];
+		TimePoint* thisDay = &day[dayIndex];
 		int nPolls = int(thisDay->polls.size());
 		if (nPolls) {
 			for (int pollIndex = 0; pollIndex < nPolls; ++pollIndex) {
@@ -350,8 +349,7 @@ void Model::calibrateOverallHouseEffects() {
 	pollsterCalibrationCount = 0;
 
 	// Go through all calibrating pollsters and add their house effects.
-	for (ModelPollster& thisPollster : pollsterCache) {
-
+	for (CachedPollster& thisPollster : pollsterCache) {
 		// only use pollsters that have been marked for used with calibration.
 		if (!thisPollster.useForCalibration) continue;
 
@@ -363,40 +361,45 @@ void Model::calibrateOverallHouseEffects() {
 	float houseEffectsAdjust = houseEffectsSum / float(pollsterCalibrationCount) - calibrationFirstPartyBias;
 
 	// Go through all pollsters and adjust their house effects accordingly.
-	for (ModelPollster& thisPollster : pollsterCache) {
+	for (CachedPollster& thisPollster : pollsterCache) {
 		thisPollster.houseEffect -= houseEffectsAdjust;
 	}
 }
 
-// Uses the calibration procedure to adjust the recorded house effects.
 void Model::debiasDailyHouseEffects() {
+	// Uses the calibration procedure to adjust the recorded house effects.
+	// The average house effect is summed across all time points
+	// and compared to the overall house effect in terms of polls vs. model
+	// (previously calculated)
+
 	std::vector<float> localHouseEffectSum;
 	std::vector<float> localHouseEffectDenom;
 	std::vector<float> localHouseEffectBias;
-	localHouseEffectSum.resize(pollsterCache.size(), 0);
-	localHouseEffectDenom.resize(pollsterCache.size(), 0);
-	localHouseEffectBias.resize(pollsterCache.size());
+	localHouseEffectSum.resize(pollsterCache.size(), 0.0f);
+	localHouseEffectDenom.resize(pollsterCache.size(), 0.0f);
+	localHouseEffectBias.resize(pollsterCache.size(), 0.0f);
 
 	// calculate the total house effect across all days for each pollster.
-	for (ModelTimePoint& thisDay : day) {
-		for (SmallPoll& thisPoll : thisDay.polls) {
-			int thisPollsterIndex = thisPoll.pollster;
-			localHouseEffectSum[thisPollsterIndex] += thisDay.houseEffect[thisPollsterIndex];
-			localHouseEffectDenom[thisPollsterIndex]++;
+	for (TimePoint const& thisDay : day) {
+		for (CachedPoll const& thisPoll : thisDay.polls) {
+			localHouseEffectSum[thisPoll.pollster] += thisDay.houseEffect[thisPoll.pollster];
+			localHouseEffectDenom[thisPoll.pollster]++;
 		}
 	}
 
 	// work out how much this value deviates from the calibrated overall house effect.
 	for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
-		ModelPollster& thisPollster = pollsterCache[pollsterIndex];
-		if (localHouseEffectDenom[pollsterIndex])
+		CachedPollster const& thisPollster = pollsterCache[pollsterIndex];
+		if (localHouseEffectDenom[pollsterIndex]) {
 			localHouseEffectBias[pollsterIndex] = localHouseEffectSum[pollsterIndex] / localHouseEffectDenom[pollsterIndex] - thisPollster.houseEffect;
-		else
+		}
+		else {
 			localHouseEffectBias[pollsterIndex] = day[0].houseEffect[pollsterIndex] - thisPollster.houseEffect;
+		}
 	}
 
 	// adjust all the daily house effect values appropriately.
-	for (ModelTimePoint& thisDay : day) {
+	for (TimePoint& thisDay : day) {
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
 			thisDay.houseEffect[pollsterIndex] -= localHouseEffectBias[pollsterIndex];
 		}
@@ -404,20 +407,21 @@ void Model::debiasDailyHouseEffects() {
 }
 
 void Model::setUniformDailyHouseEffects() {
-	// adjust all the daily house effect values appropriately.
-	for (ModelTimePoint& thisDay : day) {
+	// Used for the first few iterations - here we just want an uniform average estimate
+	// of the house effects
+	for (TimePoint& thisDay : day) {
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
-			ModelPollster& thisPollster = pollsterCache[pollsterIndex];
+			CachedPollster& thisPollster = pollsterCache[pollsterIndex];
 			thisDay.houseEffect[pollsterIndex] = thisPollster.houseEffect;
 		}
 	}
 }
 
 void Model::calibrateDailyHouseEffects() {
-	for (ModelTimePoint& thisDay : day) {
+	for (TimePoint& thisDay : day) {
 		float houseEffectsCalibrationSum = 0; // sum of house effects of calibrated pollsters
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
-			ModelPollster& thisPollster = pollsterCache[pollsterIndex];
+			CachedPollster& thisPollster = pollsterCache[pollsterIndex];
 			if (thisPollster.useForCalibration) {
 				houseEffectsCalibrationSum += thisDay.houseEffect[pollsterIndex];
 			}
@@ -431,8 +435,8 @@ void Model::calibrateDailyHouseEffects() {
 }
 
 void Model::recalculateEffectiveDaily2pps() {
-	for (ModelTimePoint& thisDay : day) {
-		for (SmallPoll& thisPoll : thisDay.polls) {
+	for (TimePoint& thisDay : day) {
+		for (CachedPoll& thisPoll : thisDay.polls) {
 			float houseEffect = thisDay.houseEffect[thisPoll.pollster];
 			thisPoll.eff2pp = thisPoll.raw2pp - houseEffect;
 		}
@@ -440,29 +444,31 @@ void Model::recalculateEffectiveDaily2pps() {
 }
 
 void Model::calculatePollsterAccuracy() {
-	for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
-		float totalErrorSquared = 0.0f;
-		float numPolls = 0.0f;
-		for (ModelTimePoint& thisDay : day) {
-			for (SmallPoll& thisPoll : thisDay.polls) {
-				if (thisPoll.pollster == pollsterIndex) {
-					float error = thisPoll.raw2pp - pollsterCache[pollsterIndex].houseEffect - thisDay.trend2pp;
-					totalErrorSquared += error * error;
-					++numPolls;
-				}
-			}
+	std::vector<float> totalErrorSquared;
+	std::vector<float> numPolls;
+	totalErrorSquared.resize(pollsterCache.size());
+	numPolls.resize(pollsterCache.size());
+	for (TimePoint& thisDay : day) {
+		for (CachedPoll const& thisPoll : thisDay.polls) {
+			float error = thisPoll.raw2pp - pollsterCache[thisPoll.pollster].houseEffect - thisDay.trend2pp;
+			totalErrorSquared[thisPoll.pollster] += error * error;
+			++numPolls[thisPoll.pollster];
 		}
+	}
+	for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
 		constexpr float PollAccuracyFloorZeroPolls = 1.0f;
 		constexpr float PollAccuracyFloorPerPoll = 0.05f;
 		constexpr float PollAccuracyFloorLimit = 0.4f;
-		float accuracyFloor = std::max(PollAccuracyFloorLimit, PollAccuracyFloorZeroPolls - PollAccuracyFloorPerPoll * numPolls);
-		pollsterCache[pollsterIndex].accuracy = std::max(accuracyFloor, std::sqrt(totalErrorSquared / float(std::max(1.0f, numPolls - 1))));
+		float accuracyFloor = std::max(PollAccuracyFloorLimit, 
+			PollAccuracyFloorZeroPolls - PollAccuracyFloorPerPoll * numPolls[pollsterIndex]);
+		pollsterCache[pollsterIndex].accuracy = std::max(accuracyFloor, 
+			std::sqrt(totalErrorSquared[pollsterIndex] / float(std::max(1.0f, numPolls[pollsterIndex] - 1))));
 	}
 }
 
 void Model::calculateDailyErrorScores() {
 	for (int i = 0; i < int(day.size()); ++i) {
-		ModelTimePoint* thisDay = &day[i];
+		TimePoint* thisDay = &day[i];
 		thisDay->trendScore = calculateTrendScore(thisDay, i);
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
 			thisDay->houseEffectScore[pollsterIndex] = calculateHouseEffectScore(thisDay, i, pollsterIndex);
@@ -470,14 +476,14 @@ void Model::calculateDailyErrorScores() {
 	}
 }
 
-float Model::calculateTrendScore(ModelTimePoint const* thisDay, int dayIndex, float usetrend2pp) const {
+float Model::calculateTrendScore(TimePoint const* thisDay, int dayIndex, float usetrend2pp) const {
 
 	// set the trend score to zero
 	float tempTrendScore = 0;
 
 	// get previous and next days using (fast) pointer arithmetic
-	ModelTimePoint const* prevDay = (dayIndex > 0 ? thisDay - 1 : nullptr);
-	ModelTimePoint const* nextDay = (dayIndex + 1 < int(day.size()) ? thisDay + 1 : nullptr);
+	TimePoint const* prevDay = (dayIndex > 0 ? thisDay - 1 : nullptr);
+	TimePoint const* nextDay = (dayIndex + 1 < int(day.size()) ? thisDay + 1 : nullptr);
 
 	// get number of polls
 	int numPolls = thisDay->polls.size();
@@ -496,14 +502,14 @@ float Model::calculateTrendScore(ModelTimePoint const* thisDay, int dayIndex, fl
 	return tempTrendScore;
 }
 
-float Model::calculateHouseEffectScore(ModelTimePoint const* thisDay, int dayIndex, int pollsterIndex, float useHouseEffect) const {
+float Model::calculateHouseEffectScore(TimePoint const* thisDay, int dayIndex, int pollsterIndex, float useHouseEffect) const {
 
 	// set the trend score to zero
 	float tempTrendScore = 0;
 
 	// get previous and next days using (fast) pointer arithmetic
-	ModelTimePoint const* prevDay = (dayIndex > 0 ? thisDay - 1 : nullptr);
-	ModelTimePoint const* nextDay = (dayIndex + 1 < int(day.size()) ? thisDay + 1 : nullptr);
+	TimePoint const* prevDay = (dayIndex > 0 ? thisDay - 1 : nullptr);
+	TimePoint const* nextDay = (dayIndex + 1 < int(day.size()) ? thisDay + 1 : nullptr);
 
 	// get number of polls
 	int numPolls = thisDay->polls.size();
@@ -524,8 +530,8 @@ float Model::calculateHouseEffectScore(ModelTimePoint const* thisDay, int dayInd
 	return tempTrendScore;
 }
 
-float Model::calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp) const {
-	ModelPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
+float Model::calculatePollScore(TimePoint const* timePoint, int pollIndex, float usetrend2pp) const {
+	CachedPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
 
 	float pollScoreIncrease = 1.0f / (calculatePollLikelihood(timePoint, pollIndex, usetrend2pp) + 0.001f) - 1.0f;
 
@@ -537,13 +543,13 @@ float Model::calculatePollScore(ModelTimePoint const* timePoint, int pollIndex, 
 	return pollScoreIncrease;
 }
 
-float Model::calculatePollLikelihood(ModelTimePoint const* timePoint, int pollIndex, float usetrend2pp) const
+float Model::calculatePollLikelihood(TimePoint const* timePoint, int pollIndex, float usetrend2pp) const
 {
 
 	// if we haven't been given a proper alternative 2pp, just use the actual trend 2pp.
 	if (usetrend2pp < 0.0f) usetrend2pp = timePoint->trend2pp;
 
-	ModelPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
+	CachedPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
 
 	// work out the difference between the house effect-adjusted poll and the trend 2pp.
 	float pollDiff = usetrend2pp - timePoint->polls[pollIndex].eff2pp;
@@ -555,14 +561,14 @@ float Model::calculatePollLikelihood(ModelTimePoint const* timePoint, int pollIn
 	return 1.0f - abs((0.5f - float(func_normsdist(pollDeviation))) * 2.0f);
 }
 
-float Model::calculateHouseEffectPollScore(ModelTimePoint const* timePoint, int pollIndex, int pollsterIndex, float useHouseEffect) const {
+float Model::calculateHouseEffectPollScore(TimePoint const* timePoint, int pollIndex, int pollsterIndex, float useHouseEffect) const {
 
 	// if we haven't been given a proper alternative 2pp, just use the actual trend 2pp.
 	float usetrend2pp = timePoint->trend2pp;
 
 	if (useHouseEffect < -100.0f) useHouseEffect = timePoint->houseEffect[pollsterIndex];
 
-	ModelPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
+	CachedPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
 
 	// work out the difference between the house effect-adjusted poll and the trend 2pp.
 	float pollDiff = usetrend2pp - timePoint->polls[pollIndex].raw2pp + useHouseEffect;
@@ -579,14 +585,14 @@ float Model::calculateHouseEffectPollScore(ModelTimePoint const* timePoint, int 
 	return pollScoreIncrease;
 }
 
-float Model::calculateTimeScore(ModelTimePoint const* timePoint, ModelTimePoint const* otherTimePoint, float usetrend2pp) const {
+float Model::calculateTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, float usetrend2pp) const {
 	if (!otherTimePoint) return 0.0f;
 	if (usetrend2pp < 0.0f) usetrend2pp = timePoint->trend2pp;
 	float temp = (trendTimeScoreMultiplier * abs(usetrend2pp - otherTimePoint->trend2pp));
 	return abs(temp * temp * temp);
 }
 
-float Model::calculateHouseEffectTimeScore(ModelTimePoint const* timePoint, ModelTimePoint const* otherTimePoint, int pollsterIndex, float useHouseEffect) const {
+float Model::calculateHouseEffectTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, int pollsterIndex, float useHouseEffect) const {
 	if (!otherTimePoint) return 0.0f;
 	if (useHouseEffect < -100.0f) useHouseEffect = timePoint->houseEffect[pollsterIndex];
 	float temp = (houseEffectTimeScoreMultiplier * abs(useHouseEffect - otherTimePoint->houseEffect[pollsterIndex]));
@@ -597,13 +603,13 @@ float Model::calculateHouseEffectTimeScore(ModelTimePoint const* timePoint, Mode
 void Model::calculateDailyTrendAdjustments() {
 	int lastResult = int(day.size()) - 1;
 	for (int i = 0; i <= lastResult; ++i) {
-		ModelTimePoint* thisDay = &day[i];
+		TimePoint* thisDay = &day[i];
 		if (thisDay->election > 0.00001f) {
 			thisDay->nextTrend2pp = thisDay->trend2pp;
 			continue;
 		}
-		ModelTimePoint* prevDay = (i > 0 ? thisDay - 1 : nullptr);
-		ModelTimePoint* nextDay = (i < lastResult ? thisDay + 1 : nullptr);
+		TimePoint* prevDay = (i > 0 ? thisDay - 1 : nullptr);
+		TimePoint* nextDay = (i < lastResult ? thisDay + 1 : nullptr);
 		float origTrend2pp = thisDay->trend2pp;
 
 		// the scores to be compared combine those for this day and the neighbouring days (if they exist).
@@ -641,9 +647,9 @@ void Model::calculateDailyHouseEffectAdjustments() {
 	int lastResult = int(day.size()) - 1;
 	for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
 		for (int i = 0; i < lastResult + 1; ++i) {
-			ModelTimePoint* thisDay = &day[i];
-			ModelTimePoint* prevDay = (i > 0 ? thisDay - 1 : nullptr);
-			ModelTimePoint* nextDay = (i < lastResult ? thisDay + 1 : nullptr);
+			TimePoint* thisDay = &day[i];
+			TimePoint* prevDay = (i > 0 ? thisDay - 1 : nullptr);
+			TimePoint* nextDay = (i < lastResult ? thisDay + 1 : nullptr);
 			float origHouseEffect = thisDay->houseEffect[pollsterIndex];
 
 			// the scores to be compared combine those for this day and the neighbouring days (if they exist).
@@ -676,7 +682,7 @@ void Model::calculateDailyHouseEffectAdjustments() {
 }
 
 void Model::adjustDailyValues() {
-	for (ModelTimePoint& thisDay : day) {
+	for (TimePoint& thisDay : day) {
 		thisDay.trend2pp = thisDay.nextTrend2pp;
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
 			thisDay.houseEffect[pollsterIndex] = thisDay.nextHouseEffect[pollsterIndex];
