@@ -469,14 +469,16 @@ void Model::calculatePollsterAccuracy() {
 void Model::calculateDailyErrorScores() {
 	for (int i = 0; i < int(day.size()); ++i) {
 		TimePoint* thisDay = &day[i];
-		thisDay->trendScore = calculateTrendScore(thisDay, i);
+		thisDay->trendScore = calculateTrendScore(i);
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
-			thisDay->houseEffectScore[pollsterIndex] = calculateHouseEffectScore(thisDay, i, pollsterIndex);
+			thisDay->houseEffectScore[pollsterIndex] = calculateHouseEffectScore(i, pollsterIndex);
 		}
 	}
 }
 
-float Model::calculateTrendScore(TimePoint const* thisDay, int dayIndex, float usetrend2pp) const {
+float Model::calculateTrendScore(int dayIndex, float usetrend2pp) const {
+
+	TimePoint const* thisDay = &day[dayIndex];
 
 	// set the trend score to zero
 	float tempTrendScore = 0;
@@ -502,7 +504,8 @@ float Model::calculateTrendScore(TimePoint const* thisDay, int dayIndex, float u
 	return tempTrendScore;
 }
 
-float Model::calculateHouseEffectScore(TimePoint const* thisDay, int dayIndex, int pollsterIndex, float useHouseEffect) const {
+float Model::calculateHouseEffectScore(int dayIndex, int pollsterIndex, float useHouseEffect) const {
+	TimePoint const* thisDay = &day[dayIndex];
 
 	// set the trend score to zero
 	float tempTrendScore = 0;
@@ -625,9 +628,9 @@ void Model::calculateDailyTrendAdjustments() {
 
 				// set the new trend2pp to be adjusted by an increment
 				thisDay->trend2pp = origTrend2pp + signedChangeMod;
-				float newScore = calculateTrendScore(thisDay, i);
-				if (prevDay) newScore += calculateTrendScore(prevDay, i - 1);
-				if (nextDay) newScore += calculateTrendScore(nextDay, i + 1);
+				float newScore = calculateTrendScore(i);
+				if (prevDay) newScore += calculateTrendScore(i - 1);
+				if (nextDay) newScore += calculateTrendScore(i + 1);
 				if (newScore < bestScore) {
 					bestScore = newScore;
 					bestChangeMod = signedChangeMod;
@@ -664,9 +667,9 @@ void Model::calculateDailyHouseEffectAdjustments() {
 
 					// set the new trend2pp to be adjusted by an increment
 					thisDay->houseEffect[pollsterIndex] = origHouseEffect + signedChangeMod;
-					float newScore = calculateHouseEffectScore(thisDay, i, pollsterIndex);
-					if (prevDay) newScore += calculateHouseEffectScore(prevDay, i - 1, pollsterIndex);
-					if (nextDay) newScore += calculateHouseEffectScore(nextDay, i + 1, pollsterIndex);
+					float newScore = calculateHouseEffectScore(i, pollsterIndex);
+					if (prevDay) newScore += calculateHouseEffectScore(i - 1, pollsterIndex);
+					if (nextDay) newScore += calculateHouseEffectScore(i + 1, pollsterIndex);
 					if (newScore < bestScore) {
 						bestScore = newScore;
 						bestChangeMod = signedChangeMod;

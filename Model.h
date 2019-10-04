@@ -126,6 +126,8 @@ private:
 		std::vector<float> houseEffect;
 		float nextTrend2pp = 0.0f;
 		std::vector<float> nextHouseEffect;
+		// These "scores" roughly represent the un-likelihood of the trend scores
+		// 
 		float trendScore = 0.0f; // the model tries to minimize this value
 		std::vector<float> houseEffectScore; // the model tries to minimize this value
 		float election = -1.0f;
@@ -222,12 +224,12 @@ private:
 	// calculates the error scores for this day's trend in the model
 	// from the differences between this day's trend and the surrounding days
 	// and also any polls on this day.
-	float calculateTrendScore(TimePoint const* thisDay, int dayIndex, float usetrend2pp = -1.0f) const;
+	float calculateTrendScore(int dayIndex, float usetrend2pp = -1.0f) const;
 
 	// calculates the error scores for this day's house effect for pollster pollsterIndex in the model
 	// from the differences between this day's trend and the surrounding days
 	// and also any polls on this day.
-	float calculateHouseEffectScore(TimePoint const* thisDay, int dayIndex, int pollsterIndex, float useHouseEffect = -1000.0f) const;
+	float calculateHouseEffectScore(int dayIndex, int pollsterIndex, float useHouseEffect = -1000.0f) const;
 
 	// calculates the error scores for the time point's poll with index "pollIndex".
 	// if usetrend2pp is given (and positive/zero), then substitutes it for the current trend 2pp.
