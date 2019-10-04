@@ -263,9 +263,9 @@ private:
 	// adjusts the daily values (trend and house effects) in accordance with the above functions
 	void adjustDailyValues();
 
-	static double func_normsdist(double z);
+	static double normalDistribution(double z);
 
-	static double Model::normsinv(double p);
+	static double Model::inverseNormalDistribution(double p);
 
 	// vector of time points
 	std::vector<TimePoint> day;

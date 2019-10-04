@@ -11,6 +11,8 @@
 
 constexpr float Invalid2pp = std::numeric_limits<float>::lowest();
 
+constexpr float PollZScoreCap = 3.0f;
+
 std::string Model::getStartDateString() const
 {
 	if (!startDate.IsValid()) return "";
@@ -477,27 +479,24 @@ void Model::calculateDailyErrorScores() {
 }
 
 float Model::calculateTrendScore(int dayIndex, float usetrend2pp) const {
-
 	TimePoint const* thisDay = &day[dayIndex];
 
-	// set the trend score to zero
 	float tempTrendScore = 0;
 
 	// get previous and next days using (fast) pointer arithmetic
 	TimePoint const* prevDay = (dayIndex > 0 ? thisDay - 1 : nullptr);
 	TimePoint const* nextDay = (dayIndex + 1 < int(day.size()) ? thisDay + 1 : nullptr);
 
-	// get number of polls
 	int numPolls = thisDay->polls.size();
 
-	// if we have polls, add their poll-scores to the trend score.
+	// Add the poll scores (score is higher for polls further from the trend)
 	if (numPolls) {
 		for (int pollIndex = 0; pollIndex < numPolls; ++pollIndex) {
 			tempTrendScore += calculatePollScore(thisDay, pollIndex, usetrend2pp);
 		}
 	}
 
-	// add the time-scores to the trend score.
+	// Add the time scores (score is higher for more rapid movement in the trends)
 	if (prevDay && !prevDay->discontinuity) tempTrendScore += calculateTimeScore(thisDay, prevDay, usetrend2pp);
 	if (thisDay && !thisDay->discontinuity) tempTrendScore += calculateTimeScore(thisDay, nextDay, usetrend2pp);
 
@@ -507,17 +506,15 @@ float Model::calculateTrendScore(int dayIndex, float usetrend2pp) const {
 float Model::calculateHouseEffectScore(int dayIndex, int pollsterIndex, float useHouseEffect) const {
 	TimePoint const* thisDay = &day[dayIndex];
 
-	// set the trend score to zero
 	float tempTrendScore = 0;
 
 	// get previous and next days using (fast) pointer arithmetic
 	TimePoint const* prevDay = (dayIndex > 0 ? thisDay - 1 : nullptr);
 	TimePoint const* nextDay = (dayIndex + 1 < int(day.size()) ? thisDay + 1 : nullptr);
 
-	// get number of polls
 	int numPolls = thisDay->polls.size();
 
-	// if we have polls, add their poll-scores to the trend score.
+	// Add the poll scores (score is higher for polls further from the trend)
 	if (numPolls) {
 		for (int pollIndex = 0; pollIndex < numPolls; ++pollIndex) {
 			if (thisDay->polls[pollIndex].pollster == pollsterIndex) {
@@ -526,7 +523,7 @@ float Model::calculateHouseEffectScore(int dayIndex, int pollsterIndex, float us
 		}
 	}
 
-	// add the time-scores to the trend score.
+	// Add the time scores (score is higher for more rapid movement in the trends)
 	tempTrendScore += calculateHouseEffectTimeScore(thisDay, prevDay, pollsterIndex, useHouseEffect);
 	tempTrendScore += calculateHouseEffectTimeScore(thisDay, nextDay, pollsterIndex, useHouseEffect);
 
@@ -535,20 +532,16 @@ float Model::calculateHouseEffectScore(int dayIndex, int pollsterIndex, float us
 
 float Model::calculatePollScore(TimePoint const* timePoint, int pollIndex, float usetrend2pp) const {
 	CachedPollster const& thisPollster = pollsterCache[timePoint->polls[pollIndex].pollster];
-
+	// Extra 0.001f added means there's a ceiling to the score than any individual poll can have
 	float pollScoreIncrease = 1.0f / (calculatePollLikelihood(timePoint, pollIndex, usetrend2pp) + 0.001f) - 1.0f;
-
 	constexpr float PollScoreMultipler = 10.0f;
 	pollScoreIncrease *= PollScoreMultipler;
-
 	pollScoreIncrease *= thisPollster.weight;
-
 	return pollScoreIncrease;
 }
 
 float Model::calculatePollLikelihood(TimePoint const* timePoint, int pollIndex, float usetrend2pp) const
 {
-
 	// if we haven't been given a proper alternative 2pp, just use the actual trend 2pp.
 	if (usetrend2pp < 0.0f) usetrend2pp = timePoint->trend2pp;
 
@@ -559,13 +552,12 @@ float Model::calculatePollLikelihood(TimePoint const* timePoint, int pollIndex, 
 
 	// normalized z-score for this difference between this pollster and the trend line
 	// capping this ensures outliers don't have too much of an influence on things
-	float pollDeviation = std::min(std::max(pollDiff / thisPollster.accuracy, -3.0f), 3.0f);
+	float pollDeviation = std::min(std::max(pollDiff / thisPollster.accuracy, -PollZScoreCap), PollZScoreCap);
 
-	return 1.0f - abs((0.5f - float(func_normsdist(pollDeviation))) * 2.0f);
+	return 1.0f - abs((0.5f - float(normalDistribution(pollDeviation))) * 2.0f);
 }
 
 float Model::calculateHouseEffectPollScore(TimePoint const* timePoint, int pollIndex, int pollsterIndex, float useHouseEffect) const {
-
 	// if we haven't been given a proper alternative 2pp, just use the actual trend 2pp.
 	float usetrend2pp = timePoint->trend2pp;
 
@@ -577,11 +569,13 @@ float Model::calculateHouseEffectPollScore(TimePoint const* timePoint, int pollI
 	float pollDiff = usetrend2pp - timePoint->polls[pollIndex].raw2pp + useHouseEffect;
 
 	// normalized z-score for this difference between this pollster and the trend line
-	float pollDeviation = std::min(std::max(pollDiff / thisPollster.accuracy, -3.0f), 3.0f);
+	// capping this ensures outliers don't have too much of an influence on things
+	float pollDeviation = std::min(std::max(pollDiff / thisPollster.accuracy, -PollZScoreCap), PollZScoreCap);
 
 	const float HouseEffectPollScoreMultipler = 3.0f;
 
-	float pollScoreIncrease = 1.0f / (1.0f - abs((0.5f - float(func_normsdist(pollDeviation))) * 2.0f) + 0.01f) - 1.0f;
+	// Extra 0.01f added means there's a ceiling to the score than any individual poll can have
+	float pollScoreIncrease = 1.0f / (1.0f - abs((0.5f - float(normalDistribution(pollDeviation))) * 2.0f) + 0.01f) - 1.0f;
 
 	pollScoreIncrease *= HouseEffectPollScoreMultipler;
 
@@ -592,14 +586,14 @@ float Model::calculateTimeScore(TimePoint const* timePoint, TimePoint const* oth
 	if (!otherTimePoint) return 0.0f;
 	if (usetrend2pp < 0.0f) usetrend2pp = timePoint->trend2pp;
 	float temp = (trendTimeScoreMultiplier * abs(usetrend2pp - otherTimePoint->trend2pp));
-	return abs(temp * temp * temp);
+	return abs(temp * temp * temp); // done this way to ensure most efficient computation
 }
 
 float Model::calculateHouseEffectTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, int pollsterIndex, float useHouseEffect) const {
 	if (!otherTimePoint) return 0.0f;
 	if (useHouseEffect < -100.0f) useHouseEffect = timePoint->houseEffect[pollsterIndex];
 	float temp = (houseEffectTimeScoreMultiplier * abs(useHouseEffect - otherTimePoint->houseEffect[pollsterIndex]));
-	return abs(temp * temp * temp);
+	return abs(temp * temp * temp); // done this way to ensure most efficient computation
 }
 
 // adjusts the daily trend scores to the lowest possible error score.
@@ -613,6 +607,10 @@ void Model::calculateDailyTrendAdjustments() {
 		}
 		TimePoint* prevDay = (i > 0 ? thisDay - 1 : nullptr);
 		TimePoint* nextDay = (i < lastResult ? thisDay + 1 : nullptr);
+
+		// Will be changing around the trend 2pp for this day
+		// in order to find the best value for the next model iteration,
+		// so keep a record here so that it can be reset once done
 		float origTrend2pp = thisDay->trend2pp;
 
 		// the scores to be compared combine those for this day and the neighbouring days (if they exist).
@@ -638,7 +636,6 @@ void Model::calculateDailyTrendAdjustments() {
 			}
 		}
 
-		// make sure these values are the ones we want.
 		thisDay->nextTrend2pp = origTrend2pp + bestChangeMod * 0.5f; // Factor of 0.5 prevents permanent oscillations
 																	 // from neighbouring time-points swapping places
 		thisDay->trend2pp = origTrend2pp;
@@ -653,6 +650,10 @@ void Model::calculateDailyHouseEffectAdjustments() {
 			TimePoint* thisDay = &day[i];
 			TimePoint* prevDay = (i > 0 ? thisDay - 1 : nullptr);
 			TimePoint* nextDay = (i < lastResult ? thisDay + 1 : nullptr);
+
+			// Will be changing around the house effect for this day
+			// in order to find the best value for the next model iteration,
+			// so keep a record here so that it can be reset once done
 			float origHouseEffect = thisDay->houseEffect[pollsterIndex];
 
 			// the scores to be compared combine those for this day and the neighbouring days (if they exist).
@@ -693,7 +694,7 @@ void Model::adjustDailyValues() {
 	}
 }
 
-double Model::func_normsdist(double z) {
+double Model::normalDistribution(double z) {
 	//******************************************************************
 	//*  Adapted from http://lib.stat.cmu.edu/apstat/66
 	//******************************************************************
@@ -755,7 +756,7 @@ double Model::func_normsdist(double z) {
 // Use when we know the probability (from a poll-score difference, perhaps)
 // and want to find the standard deviation
 // adapted from https://github.com/rozgo/UE4-DynamicalSystems/blob/master/Source/DynamicalSystems/Private/SignalGenerator.cpp
-double Model::normsinv(double p)
+double Model::inverseNormalDistribution(double p)
 {
 
 	// Coefficients in rational approximations
