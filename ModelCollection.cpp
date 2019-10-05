@@ -65,8 +65,8 @@ void ModelCollection::extend(Model::Id id)
 	if (modelIt == models.end()) throw ModelDoesntExistException();
 	Model& model = modelIt->second;
 	int latestMjd = project.polls().getLatestDate();
-	if (latestMjd < model.endDate.GetMJD()) return;
-	model.endDate = mjdToDate(latestMjd);
+	wxDateTime latestDate = mjdToDate(latestMjd);
+	model.extendToDate(latestDate);
 }
 
 Model& ModelCollection::access(Model::Id id)
@@ -78,10 +78,22 @@ int ModelCollection::count() const {
 	return models.size();
 }
 
+void ModelCollection::startLoadingModel()
+{
+	loadingModel.emplace(generateBasicModelSaveData());
+}
+
+void ModelCollection::finaliseLoadedModel()
+{
+	if (!loadingModel.has_value()) return;
+	add(Model(loadingModel.value()));
+	loadingModel.reset();
+}
+
 // generates a basic model with the standard start and end dates.
-Model ModelCollection::generateBasicModel() const {
-	Model tempModel = Model();
-	tempModel.startDate = mjdToDate(project.polls().getEarliestDate());
-	tempModel.endDate = mjdToDate(project.polls().getLatestDate());
-	return tempModel;
+Model::SaveData ModelCollection::generateBasicModelSaveData() const {
+	Model::SaveData saveData;
+	saveData.settings.startDate = mjdToDate(project.polls().getEarliestDate());
+	saveData.settings.endDate = mjdToDate(project.polls().getLatestDate());
+	return saveData;
 }

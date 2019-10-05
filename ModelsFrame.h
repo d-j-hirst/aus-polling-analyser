@@ -71,13 +71,13 @@ private:
 	void OnSelectionChange(wxDataViewEvent& event);
 
 	// does everything required to add the model "model".
-	void addModel(Model model);
+	void addModel(Model::Settings modelSettings);
 
 	// adds "model" to model data. Should not be used except within addModel.
 	void addModelToModelData(Model model);
 
 	// does everything required to replace the currently selected model with "model".
-	void replaceModel(Model model);
+	void replaceModel(Model::Settings modelSettings);
 
 	// does everything required to remove the currently selected model, if possible.
 	void removeModel();
@@ -90,8 +90,6 @@ private:
 
 	// does everything required to run the currently selected model, if possible.
 	void runModel();
-
-	void prepareModelForRun(Model& model);
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

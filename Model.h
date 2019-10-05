@@ -19,14 +19,51 @@ public:
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
 
-	Model(std::string name, float trendTimeScoreMultiplier, float houseEffectTimeScoreMultiplier, wxDateTime startDate, wxDateTime endDate) :
-		name(name),
-		trendTimeScoreMultiplier(trendTimeScoreMultiplier),
-		houseEffectTimeScoreMultiplier(houseEffectTimeScoreMultiplier),
-		startDate(startDate),
-		endDate(endDate){}
+	struct Settings {
+		// User-defined name.
+		std::string name = "";
+
+		// This is effectively a smoothing factor for the 2pp vote aggregate.
+		float trendTimeScoreMultiplier = DefaultVoteTimeScoreMultiplier;
+
+		// This is effectively a smoothing factor for the 2pp vote aggregate.
+		float houseEffectTimeScoreMultiplier = DefaultHouseEffectTimeScoreMultiplier;
+
+		// the number of iterations the model goes through to smooth the trend 2pp.
+		int numIterations = 1000;
+
+		// If set to wxInvalidDateTime then it will start from the earliest data possible.
+		wxDateTime startDate = wxInvalidDateTime;
+
+		// If set to wxInvalidDateTime then it will end at the latest data possible.
+		wxDateTime endDate = wxInvalidDateTime;
+
+		// For calibration purposes, the bias to the first party amongst pollsters used for calibration.
+		float calibrationFirstPartyBias = 0.0f;
+	};
+
+	struct SaveData {
+		Settings settings;
+
+		// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
+		wxDateTime lastUpdated = wxInvalidDateTime;
+
+		// final standard deviation of the trend 2pp. Used to determine, in part,
+		// the initial error for projections using this model
+		float finalStandardDeviation = 0.0f;
+
+		std::vector<float> trend;
+	};
 
 	Model() {}
+
+	Model(Settings settings) : settings(settings) {}
+
+	Model(SaveData saveData);
+
+	void replaceSettings(Settings newSettings);
+
+	Settings const& getSettings() const;
 
 	std::string getStartDateString() const;
 
@@ -36,55 +73,18 @@ public:
 
 	void run(PollsterCollection const& pollsters, PollCollection const& polls, EventCollection const& events);
 
-	// The following functions and fields are used when setting up the model to be run,
-	// when creating and editing the model's settings, and when saving and loading the model
-	// to file. The fields could be made private using a fancier access system but given the
-	// limited scope of the project this was judged to not be worth the effort.
-
 	auto begin() const { return day.begin(); }
 	auto end() const { return day.end(); }
 
 	int numDays() const { return int(day.size()); }
 
-	// Used for adding days to the model when loading the file from disk.
-	void addDay(int numPollsters) { day.emplace_back(numPollsters); }
-	auto& accessLastDay() { return day.back(); }
+	wxDateTime getEffectiveStartDate() const { return effStartDate; }
+	wxDateTime getEffectiveEndDate() const { return effEndDate; }
+	wxDateTime getLastUpdatedTime() const { return lastUpdated; }
 
-	// User-defined name.
-	std::string name = "";
+	float getFinalStandardDeviation() const { return finalStandardDeviation; }
 
-	// This is effectively a smoothing factor for the 2pp vote aggregate.
-	float trendTimeScoreMultiplier = DefaultVoteTimeScoreMultiplier;
-
-	// This is effectively a smoothing factor for the 2pp vote aggregate.
-	float houseEffectTimeScoreMultiplier = DefaultHouseEffectTimeScoreMultiplier;
-
-	// the number of iterations the model goes through to smooth the trend 2pp.
-	int numIterations = 1000;
-
-	// If set to wxInvalidDateTime then it will start from the earliest data possible.
-	wxDateTime startDate = wxInvalidDateTime;
-
-	// If set to wxInvalidDateTime then it will end at the latest data possible.
-	wxDateTime endDate = wxInvalidDateTime;
-
-	// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
-	wxDateTime lastUpdated = wxInvalidDateTime;
-
-	// The effective start day that is being used for the current run.
-	// May be different to startDate if that is invalid
-	wxDateTime effStartDate = wxInvalidDateTime;
-
-	// The effective end day that is being used for the current run.
-	// May be different to endDate if that is invalid
-	wxDateTime effEndDate = wxInvalidDateTime;
-
-	// For calibration purposes, the bias to the first party amongst pollsters used for calibration.
-	float calibrationFirstPartyBias = 0.0f;
-
-	// final standard deviation of the trend 2pp. Used to determine, in part,
-	// the initial error for projections using this model
-	float finalStandardDeviation = 0.0f;
+	void extendToDate(wxDateTime date);
 
 private:
 	struct CachedPollster {
@@ -273,7 +273,24 @@ private:
 	// vector of pollster data
 	std::vector<CachedPollster> pollsterCache;
 
+	// The effective start day that is being used for the current run.
+	// May be different to startDate if that is invalid
+	wxDateTime effStartDate = wxInvalidDateTime;
+
+	// The effective end day that is being used for the current run.
+	// May be different to endDate if that is invalid
+	wxDateTime effEndDate = wxInvalidDateTime;
+
 	int pollsterCalibrationCount = 0;
 
 	int iteration = 0;
+
+	Settings settings;
+
+	// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
+	wxDateTime lastUpdated = wxInvalidDateTime;
+
+	// final standard deviation of the trend 2pp. Used to determine, in part,
+	// the initial error for projections using this model
+	float finalStandardDeviation = 0.0f;
 };

@@ -445,22 +445,18 @@ int PollingProject::save(std::string filename) {
 	os << "#Models" << "\n";
 	for (auto const& [key, thisModel] : modelCollection) {
 		os << "@Model" << "\n";
-		os << "name=" << thisModel.name << "\n";
-		os << "iter=" << thisModel.numIterations << "\n";
-		os << "trnd=" << thisModel.trendTimeScoreMultiplier << "\n";
-		os << "hsm =" << thisModel.houseEffectTimeScoreMultiplier << "\n";
-		os << "cfpb=" << thisModel.calibrationFirstPartyBias << "\n";
-		os << "fstd=" << thisModel.finalStandardDeviation << "\n";
-		os << "strt=" << thisModel.startDate.GetJulianDayNumber() << "\n";
-		os << "end =" << thisModel.endDate.GetJulianDayNumber() << "\n";
-		os << "updt=" << thisModel.lastUpdated.GetJulianDayNumber() << "\n";
+		os << "name=" << thisModel.getSettings().name << "\n";
+		os << "iter=" << thisModel.getSettings().numIterations << "\n";
+		os << "trnd=" << thisModel.getSettings().trendTimeScoreMultiplier << "\n";
+		os << "hsm =" << thisModel.getSettings().houseEffectTimeScoreMultiplier << "\n";
+		os << "cfpb=" << thisModel.getSettings().calibrationFirstPartyBias << "\n";
+		os << "fstd=" << thisModel.getFinalStandardDeviation() << "\n";
+		os << "strt=" << thisModel.getSettings().startDate.GetJulianDayNumber() << "\n";
+		os << "end =" << thisModel.getSettings().endDate.GetJulianDayNumber() << "\n";
+		os << "updt=" << thisModel.getLastUpdatedTime().GetJulianDayNumber() << "\n";
 		for (auto const& thisDay : thisModel) {
 			os << "$Day" << "\n";
 			os << "mtnd=" << thisDay.trend2pp << "\n";
-			for (int pollsterIndex = 0; pollsterIndex < int(thisDay.houseEffect.size()); ++pollsterIndex) {
-				os << "he" << pollsterIndex << (pollsterIndex < 10 ? " " : "") << "=" <<
-					thisDay.houseEffect[pollsterIndex] << "\n";
-			}
 		}
 	}
 	os << "#Projections" << "\n";
@@ -650,12 +646,14 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Models) {
 		if (!line.compare("@Model")) {
-			modelCollection.add(Model());
+			modelCollection.finaliseLoadedModel();
+			modelCollection.startLoadingModel();
 			return true;
 		}
 	}
 	else if (fos.section == FileSection_Projections) {
 		if (!line.compare("@Projection")) {
+			modelCollection.finaliseLoadedModel();
 			projectionCollection.add(Projection());
 			return true;
 		}
@@ -837,57 +835,51 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Models) {
-		if (!modelCollection.count()) return true; //prevent crash from mixed-up data.
+		if (!modelCollection.loadingModel.has_value()) return true;
 		if (!line.substr(0, 5).compare("name=")) {
-			modelCollection.back().name = line.substr(5);
+			modelCollection.loadingModel->settings.name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iter=")) {
-			modelCollection.back().numIterations = std::stoi(line.substr(5));
+			modelCollection.loadingModel->settings.numIterations = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("trnd=")) {
-			modelCollection.back().trendTimeScoreMultiplier = std::stof(line.substr(5));
+			modelCollection.loadingModel->settings.trendTimeScoreMultiplier = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("hsm =")) {
-			modelCollection.back().houseEffectTimeScoreMultiplier = std::stof(line.substr(5));
+			modelCollection.loadingModel->settings.houseEffectTimeScoreMultiplier = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("cfpb=")) {
-			modelCollection.back().calibrationFirstPartyBias = std::stof(line.substr(5));
+			modelCollection.loadingModel->settings.calibrationFirstPartyBias = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("fstd=")) {
-			modelCollection.back().finalStandardDeviation = std::stof(line.substr(5));
+			modelCollection.loadingModel->finalStandardDeviation = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("strt=")) {
-			modelCollection.back().startDate = wxDateTime(std::stod(line.substr(5)));
+			modelCollection.loadingModel->settings.startDate = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("end =")) {
-			modelCollection.back().endDate = wxDateTime(std::stod(line.substr(5)));
+			modelCollection.loadingModel->settings.endDate = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("updt=")) {
-			modelCollection.back().lastUpdated = wxDateTime(std::stod(line.substr(5)));
+			modelCollection.loadingModel->lastUpdated = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 4).compare("$Day")) {
-			modelCollection.back().addDay(pollsterCollection.count());
+			modelCollection.loadingModel->trend.push_back(50.0f);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mtnd=")) {
-			if (!modelCollection.back().numDays()) return true;
-			modelCollection.back().accessLastDay().trend2pp = std::stof(line.substr(5));
+			if (!modelCollection.loadingModel->trend.size()) return true;
+			modelCollection.loadingModel->trend.back() = std::stof(line.substr(5));
 			return true;
-		}
-		else if (!line.substr(0, 2).compare("he") && !line.substr(4, 1).compare("=")) {
-			int pollsterIndex = std::stoi(line.substr(2, 2));
-			if (pollsterIndex < pollsterCollection.count()) {
-				modelCollection.back().accessLastDay().houseEffect[pollsterIndex] = std::stof(line.substr(5));
-			}
 		}
 	}
 	else if (fos.section == FileSection_Projections) {

@@ -23,15 +23,15 @@ void Projection::run(ModelCollection const& models) {
 	// t-distribution since we've estimated the SD from a random sample
 	std::student_t_distribution<double> initialDist(std::max(numElections - 1, 1));
 	// additional uncertainty from the state of the polling at the moment
-	float pollingStdDev = model.finalStandardDeviation;
+	float pollingStdDev = model.getFinalStandardDeviation();
 	std::normal_distribution<double> pollingDist(0.0f, pollingStdDev);
 
 	std::vector<std::vector<double>> tempProjections;
-	int nDays = std::max(1, (endDate - model.effEndDate).GetDays() + 1);
+	int nDays = std::max(1, (endDate - model.getEffectiveEndDate()).GetDays() + 1);
 	tempProjections.resize(numIterations);
 	meanProjection.resize(nDays);
 	sdProjection.resize(nDays);
-	double modelEndpoint = double(model.accessLastDay().trend2pp);
+	double modelEndpoint = double(std::prev(model.end())->trend2pp);
 	for (auto& projVec : tempProjections) {
 		projVec.resize(nDays);
 		double systematicVariation = initialDist(gen) * initialStdDev;
@@ -72,5 +72,5 @@ void Projection::logRunStatistics()
 
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(baseModel);
-	endDate = model.effEndDate + wxDateSpan(0, 0, 0, 1);
+	endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
 }

@@ -83,8 +83,8 @@ void RegionsFrame::refreshDataTable() {
 	regionData->AppendTextColumn("Swing Deviation", wxDATAVIEW_CELL_INERT, 120); // wide enough to fit the title
 	regionData->AppendTextColumn("Additional Uncertainty", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
 
-	for (auto const& regionPair : project->regions()) {
-		addRegionToRegionData(regionPair.second);
+	for (auto const& [key, region] : project->regions()) {
+		addRegionToRegionData(region);
 	}
 
 }

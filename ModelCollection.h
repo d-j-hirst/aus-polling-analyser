@@ -3,6 +3,7 @@
 #include "Model.h"
 
 #include <map>
+#include <optional>
 
 class PollingProject;
 
@@ -67,23 +68,20 @@ public:
 	// Returns the number of models.
 	int count() const;
 
-	Model generateBasicModel() const;
 
-	Model& back() { return std::prev(models.end())->second; }
+	std::optional<Model::SaveData> loadingModel;
 
-	// Gets the begin iterator for the pollster list.
+	void startLoadingModel();
+
+	void finaliseLoadedModel();
+
 	ModelContainer::iterator begin() { return models.begin(); }
-
-	// Gets the end iterator for the pollster list.
 	ModelContainer::iterator end() { return models.end(); }
-
-	// Gets the begin iterator for the pollster list.
-	ModelContainer::const_iterator cbegin() const { return models.cbegin(); }
-
-	// Gets the end iterator for the pollster list.
-	ModelContainer::const_iterator cend() const { return models.cend(); }
+	ModelContainer::const_iterator begin() const { return models.begin(); }
+	ModelContainer::const_iterator end() const { return models.end(); }
 
 private:
+	Model::SaveData generateBasicModelSaveData() const;
 
 	// what the next ID for an item in the container will be
 	int nextId = 0;

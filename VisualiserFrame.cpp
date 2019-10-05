@@ -194,8 +194,8 @@ void VisualiserFrame::refreshToolbar() {
 	wxArrayString modelArray;
 	std::string modelBoxString;
 	if (project->models().count()) {
-		for (auto it = project->models().cbegin(); it != project->models().cend(); ++it) {
-			modelArray.push_back(it->second.name);
+		for (auto const& [key, model] : project->models()) {
+			modelArray.push_back(model.getSettings().name);
 		}
 		if (selectedModel >= int(modelArray.size())) {
 			selectedModel = int(modelArray.size()) - 1;
@@ -467,7 +467,7 @@ void VisualiserFrame::drawAxisTickLines(wxDC& dc) {
 void VisualiserFrame::drawModels(wxDC& dc) {
 	if (selectedModel != -1) {
 		Model const& model = project->models().viewByIndex(selectedModel);
-		if (model.lastUpdated.IsValid()) {
+		if (model.getLastUpdatedTime().IsValid()) {
 			drawModel(model, dc);
 		}
 	}
@@ -478,8 +478,8 @@ void VisualiserFrame::drawModel(Model const& model, wxDC& dc) {
 	auto thisTimePoint = model.begin();
 	for (int i = 0; i < model.numDays() - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
-		int x = getXFromDate(int(floor(model.effStartDate.GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(model.effStartDate.GetMJD())) + i + 1);
+		int x = getXFromDate(int(floor(model.getEffectiveStartDate().GetMJD())) + i);
+		int x2 = getXFromDate(int(floor(model.getEffectiveStartDate().GetMJD())) + i + 1);
 		if (displayModels) {
 			int y = getYFrom2PP(thisTimePoint->trend2pp);
 			int y2 = getYFrom2PP(nextTimePoint->trend2pp);
@@ -511,8 +511,8 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 	constexpr int SigmaBrightnessChange = 50;
 	Model const& model = project->models().view(projection.baseModel);
 	for (int i = 0; i < int(projection.meanProjection.size()) - 1; ++i) {
-		int x = getXFromDate(int(floor(model.effEndDate.GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(model.effEndDate.GetMJD())) + i + 1);
+		int x = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i);
+		int x2 = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i + 1);
 		for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
 			int y = getYFrom2PP(projection.meanProjection[i] + projection.sdProjection[i] * sigma);
 			int y2 = getYFrom2PP(projection.meanProjection[i + 1] + projection.sdProjection[i + 1] * sigma);

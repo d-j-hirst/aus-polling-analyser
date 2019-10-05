@@ -77,10 +77,10 @@ void ModelsFrame::OnNewModel(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&ModelsFrame::addModel, this, _1);
 
-	Model model = project->models().generateBasicModel();
+	Model::Settings modelSettings;
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::New, callback, model);
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::New, callback, modelSettings);
 
 	// Show the frame.
 	frame->ShowModal();
@@ -101,7 +101,7 @@ void ModelsFrame::OnEditModel(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&ModelsFrame::replaceModel, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, project->models().viewByIndex(modelIndex));
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, project->models().viewByIndex(modelIndex).getSettings());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -212,8 +212,8 @@ void ModelsFrame::bindEventHandlers()
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &ModelsFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
-void ModelsFrame::addModel(Model model) {
-	project->models().add(model);
+void ModelsFrame::addModel(Model::Settings modelSettings) {
+	project->models().add(Model(modelSettings));
 
 	refreshDataTable();
 
@@ -223,20 +223,20 @@ void ModelsFrame::addModel(Model model) {
 void ModelsFrame::addModelToModelData(Model model) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
-	data.push_back(wxVariant(model.name));
-	data.push_back(wxVariant(std::to_string(model.numIterations)));
-	data.push_back(wxVariant(formatFloat(model.trendTimeScoreMultiplier, 2)));
-	data.push_back(wxVariant(formatFloat(model.houseEffectTimeScoreMultiplier, 2)));
-	data.push_back(wxVariant(formatFloat(model.calibrationFirstPartyBias, 3)));
+	data.push_back(wxVariant(model.getSettings().name));
+	data.push_back(wxVariant(std::to_string(model.getSettings().numIterations)));
+	data.push_back(wxVariant(formatFloat(model.getSettings().trendTimeScoreMultiplier, 2)));
+	data.push_back(wxVariant(formatFloat(model.getSettings().houseEffectTimeScoreMultiplier, 2)));
+	data.push_back(wxVariant(formatFloat(model.getSettings().calibrationFirstPartyBias, 3)));
 	data.push_back(wxVariant(model.getStartDateString()));
 	data.push_back(wxVariant(model.getEndDateString()));
 	data.push_back(wxVariant(model.getLastUpdatedString()));
 	modelData->AppendItem(data);
 }
 
-void ModelsFrame::replaceModel(Model model) {
+void ModelsFrame::replaceModel(Model::Settings modelSettings) {
 	int modelIndex = modelData->GetSelectedRow();
-	project->models().replace(project->models().indexToId(modelIndex), model);
+	project->models().access(project->models().indexToId(modelIndex)).replaceSettings(modelSettings);
 
 	refreshDataTable();
 

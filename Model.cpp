@@ -13,16 +13,37 @@ constexpr float Invalid2pp = std::numeric_limits<float>::lowest();
 
 constexpr float PollZScoreCap = 3.0f;
 
+Model::Model(SaveData saveData)
+	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
+	finalStandardDeviation(saveData.finalStandardDeviation)
+{
+	for (auto trendPoint : saveData.trend) {
+		day.push_back(TimePoint(0)); // pollster count is reset when model is run anyway, so leave it at zero
+		day.back() = trendPoint;
+	}
+}
+
+void Model::replaceSettings(Settings newSettings)
+{
+	settings = newSettings;
+	lastUpdated = wxDateTime::Now();
+}
+
+Model::Settings const & Model::getSettings() const
+{
+	return settings;
+}
+
 std::string Model::getStartDateString() const
 {
-	if (!startDate.IsValid()) return "";
-	else return startDate.FormatISODate().ToStdString();
+	if (!settings.startDate.IsValid()) return "";
+	else return settings.startDate.FormatISODate().ToStdString();
 }
 
 std::string Model::getEndDateString() const
 {
-	if (!endDate.IsValid()) return "";
-	else return endDate.FormatISODate().ToStdString();
+	if (!settings.endDate.IsValid()) return "";
+	else return settings.endDate.FormatISODate().ToStdString();
 }
 
 std::string Model::getLastUpdatedString() const
@@ -45,6 +66,12 @@ void Model::run(PollsterCollection const& pollsters, PollCollection const& polls
 	finalizeRun();
 }
 
+void Model::extendToDate(wxDateTime date)
+{
+	if (date < settings.endDate) return;
+	settings.endDate = date;
+}
+
 void Model::initializeRun(PollsterCollection const& pollsters, PollCollection const& polls) {
 	updateEffectiveDates(polls);
 	day.clear();
@@ -59,10 +86,10 @@ void Model::initializeRun(PollsterCollection const& pollsters, PollCollection co
 
 void Model::updateEffectiveDates(PollCollection const& polls) {
 	// If the start or end dates have not been set, then default to running the model from first to last polls
-	if (!startDate.IsValid()) startDate = mjdToDate(polls.getEarliestDate());
-	if (!endDate.IsValid()) endDate = mjdToDate(polls.getLatestDate());
-	effStartDate = mjdToDate(polls.getEarliestDateFrom(startDate));
-	effEndDate = mjdToDate(polls.getLatestDateUpTo(endDate));
+	if (!settings.startDate.IsValid()) settings.startDate = mjdToDate(polls.getEarliestDate());
+	if (!settings.endDate.IsValid()) settings.endDate = mjdToDate(polls.getLatestDate());
+	effStartDate = mjdToDate(polls.getEarliestDateFrom(settings.startDate));
+	effEndDate = mjdToDate(polls.getLatestDateUpTo(settings.endDate));
 }
 
 void Model::importPollsters(PollsterCollection const& pollsters)
@@ -130,7 +157,7 @@ float Model::determineFinalPollingEvidenceFactor()
 {
 	float totalEvidence = 0.0f;
 	int daysBeforeFinal = 0;
-	float daysHalfLife = this->trendTimeScoreMultiplier * 2;
+	float daysHalfLife = settings.trendTimeScoreMultiplier * 2;
 	for (auto thisDay = day.rbegin(); thisDay != day.rend(); ++thisDay) {
 		// Generally, the more polls there are and the more consistent they are, the more confidence
 		// we should have in the final result
@@ -290,7 +317,7 @@ void Model::interpolateInitialHouseEffects(int pollsterIndex)
 }
 
 void Model::doModelIterations() {
-	for (iteration = 0; iteration < numIterations; iteration++) {
+	for (iteration = 0; iteration < settings.numIterations; iteration++) {
 		calculateOverallHouseEffects();
 		calibrateOverallHouseEffects();
 		constexpr int NumIterationsFreedHouseEffects = 50;
@@ -360,7 +387,7 @@ void Model::calibrateOverallHouseEffects() {
 	}
 
 	// work out how much to adjust the house effects by.
-	float houseEffectsAdjust = houseEffectsSum / float(pollsterCalibrationCount) - calibrationFirstPartyBias;
+	float houseEffectsAdjust = houseEffectsSum / float(pollsterCalibrationCount) - settings.calibrationFirstPartyBias;
 
 	// Go through all pollsters and adjust their house effects accordingly.
 	for (CachedPollster& thisPollster : pollsterCache) {
@@ -428,7 +455,7 @@ void Model::calibrateDailyHouseEffects() {
 				houseEffectsCalibrationSum += thisDay.houseEffect[pollsterIndex];
 			}
 		}
-		float houseEffectsCalibrationAdjustment = calibrationFirstPartyBias - houseEffectsCalibrationSum / pollsterCalibrationCount;
+		float houseEffectsCalibrationAdjustment = settings.calibrationFirstPartyBias - houseEffectsCalibrationSum / pollsterCalibrationCount;
 		for (int pollsterIndex = 0; pollsterIndex < int(pollsterCache.size()); ++pollsterIndex) {
 			thisDay.houseEffect[pollsterIndex] += houseEffectsCalibrationAdjustment;
 		}
@@ -585,14 +612,14 @@ float Model::calculateHouseEffectPollScore(TimePoint const* timePoint, int pollI
 float Model::calculateTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, float usetrend2pp) const {
 	if (!otherTimePoint) return 0.0f;
 	if (usetrend2pp < 0.0f) usetrend2pp = timePoint->trend2pp;
-	float temp = (trendTimeScoreMultiplier * abs(usetrend2pp - otherTimePoint->trend2pp));
+	float temp = (settings.trendTimeScoreMultiplier * abs(usetrend2pp - otherTimePoint->trend2pp));
 	return abs(temp * temp * temp); // done this way to ensure most efficient computation
 }
 
 float Model::calculateHouseEffectTimeScore(TimePoint const* timePoint, TimePoint const* otherTimePoint, int pollsterIndex, float useHouseEffect) const {
 	if (!otherTimePoint) return 0.0f;
 	if (useHouseEffect < -100.0f) useHouseEffect = timePoint->houseEffect[pollsterIndex];
-	float temp = (houseEffectTimeScoreMultiplier * abs(useHouseEffect - otherTimePoint->houseEffect[pollsterIndex]));
+	float temp = (settings.houseEffectTimeScoreMultiplier * abs(useHouseEffect - otherTimePoint->houseEffect[pollsterIndex]));
 	return abs(temp * temp * temp); // done this way to ensure most efficient computation
 }
 

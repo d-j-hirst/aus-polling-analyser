@@ -221,7 +221,7 @@ void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(projection.name));
-	data.push_back(wxVariant(project->models().view(projection.baseModel).name));
+	data.push_back(wxVariant(project->models().view(projection.baseModel).getSettings().name));
 	data.push_back(wxVariant(projection.getEndDateString()));
 	data.push_back(wxVariant(std::to_string(projection.numIterations)));
 	data.push_back(wxVariant(formatFloat(projection.leaderVoteDecay, 5)));

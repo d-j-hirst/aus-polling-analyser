@@ -64,9 +64,10 @@ void EditProjectionFrame::createModelInput(int & y)
 	wxArrayString modelArray;
 	int selectedModel = 0;
 	int count = 0;
-	for (auto modelIt = models.cbegin(); modelIt != models.cend(); ++modelIt, ++count) {
-		modelArray.push_back(modelIt->second.name);
-		if (modelIt->first == projection.baseModel) selectedModel = count;
+	for (auto const& [key, model] : models) {
+		modelArray.push_back(model.getSettings().name);
+		if (key == projection.baseModel) selectedModel = count;
+		++count;
 	}
 
 	auto modelCallback = [this](int i) {projection.baseModel = models.indexToId(i); };

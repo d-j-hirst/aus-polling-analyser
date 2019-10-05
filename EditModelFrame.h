@@ -31,11 +31,11 @@ public:
 		Edit
 	};
 
-	typedef std::function<void(Model)> OkCallback;
+	typedef std::function<void(Model::Settings)> OkCallback;
 
 	// function: whether this is for a new model or editing an existing model
 	// callback: function to be called when the OK button is pressed
-	EditModelFrame(Function function, OkCallback callback, Model model = Model());
+	EditModelFrame(Function function, OkCallback callback, Model::Settings modelSettings = Model::Settings());
 
 private:
 
@@ -58,7 +58,7 @@ private:
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
 	// Holds the preliminary settings for the model to be created.
-	Model model;
+	Model::Settings modelSettings;
 
 	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<IntInput> numIterationsInput;
