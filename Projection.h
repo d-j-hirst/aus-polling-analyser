@@ -12,6 +12,11 @@ public:
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
 
+	struct ProjectionDay {
+		double mean;
+		double sd;
+	};
+
 	struct Settings {
 		// User-defined name.
 		std::string name = "";
@@ -41,10 +46,7 @@ public:
 		// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
 		wxDateTime lastUpdated = wxInvalidDateTime;
 
-		std::vector<double> meanProjection;
-		std::vector<double> sdProjection;
-
-		std::vector<float> trend;
+		std::vector<ProjectionDay> projection;
 	};
 
 	Projection()
@@ -79,16 +81,23 @@ public:
 
 	void invalidate() { lastUpdated = wxInvalidDateTime; }
 
-	double getMeanProjection(int index) const { return meanProjection[index]; }
-	double getSdProjection(int index) const { return sdProjection[index]; }
+	double getMeanProjection(int index) const { return projection[index].mean; }
+	double getSdProjection(int index) const { return projection[index].sd; }
 
-	int getProjectionLength() const { return int(meanProjection.size()); }
+	int getProjectionLength() const { return int(projection.size()); }
 
 private:
+
+	typedef std::vector<float> InternalProjection;
+	typedef std::vector<InternalProjection> InternalProjections;
+
+	void runInternalProjections(InternalProjections& internalProjections, Model const& model);
+
+	void combineInternalProjections(InternalProjections& internalProjections, Model const& model);
+
 	Settings settings;
 
-	std::vector<double> meanProjection;
-	std::vector<double> sdProjection;
+	std::vector<ProjectionDay> projection;
 
 	// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;

@@ -12,7 +12,7 @@
 
 Projection::Projection(SaveData saveData)
 	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
-	meanProjection(saveData.meanProjection), sdProjection(saveData.sdProjection)
+	projection(saveData.projection)
 {}
 
 void Projection::replaceSettings(Settings newSettings)
@@ -23,9 +23,32 @@ void Projection::replaceSettings(Settings newSettings)
 
 void Projection::run(ModelCollection const& models) {
 	if (!settings.endDate.IsValid()) return;
+	auto const& model = models.view(settings.baseModel);
 
+	InternalProjections internalProjections;
+	runInternalProjections(internalProjections, model);
+	combineInternalProjections(internalProjections, model);
+
+	logRunStatistics();
+	lastUpdated = wxDateTime::Now();
+}
+
+
+void Projection::logRunStatistics()
+{
+	logger << "--------------------------------\n";
+	logger << "Projection completed.\n";
+	logger << "Final 2PP mean value: " << projection.back().mean << "\n";
+	logger << "Final 2PP standard deviation: " << projection.back().sd << "\n";
+}
+
+void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
+	settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
+}
 
+void Projection::runInternalProjections(InternalProjections& internalProjections, Model const& model)
+{
 	// Set up random variables
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -36,14 +59,11 @@ void Projection::run(ModelCollection const& models) {
 	// additional uncertainty from the state of the polling at the moment
 	float pollingStdDev = model.getFinalStandardDeviation();
 	std::normal_distribution<double> pollingDist(0.0f, pollingStdDev);
-
-	std::vector<std::vector<double>> tempProjections;
 	int nDays = std::max(1, (settings.endDate - model.getEffectiveEndDate()).GetDays() + 1);
-	tempProjections.resize(settings.numIterations);
-	meanProjection.resize(nDays);
-	sdProjection.resize(nDays);
+	internalProjections.resize(settings.numIterations);
+	projection.resize(nDays);
 	double modelEndpoint = double(std::prev(model.end())->trend2pp);
-	for (auto& projVec : tempProjections) {
+	for (auto& projVec : internalProjections) {
 		projVec.resize(nDays);
 		double systematicVariation = initialDist(gen) * settings.initialStdDev;
 		double samplingVariation = pollingDist(gen) * 2;
@@ -57,31 +77,21 @@ void Projection::run(ModelCollection const& models) {
 			projVec[day] = nextDayStatisticProjection;
 		}
 	}
-	for (int day = 0; day < nDays; ++day) {
-		for (auto& projVec : tempProjections) {
-			meanProjection[day] += projVec[day];
-		}
-		meanProjection[day] /= double(settings.numIterations);
-		for (auto& projVec : tempProjections) {
-			sdProjection[day] += std::pow(projVec[day] - meanProjection[day], 2);
-		}
-		sdProjection[day] = std::sqrt(sdProjection[day] / double(settings.numIterations));
-	}
-
-	logRunStatistics();
-	lastUpdated = wxDateTime::Now();
 }
 
-
-void Projection::logRunStatistics()
+void Projection::combineInternalProjections(InternalProjections & internalProjections, Model const& model)
 {
-	logger << "--------------------------------\n";
-	logger << "Projection completed.\n";
-	logger << "Final 2PP mean value: " << meanProjection.back() << "\n";
-	logger << "Final 2PP standard deviation: " << sdProjection.back() << "\n";
-}
-
-void Projection::setAsNowCast(ModelCollection const& models) {
-	auto model = models.view(settings.baseModel);
-	settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
+	int nDays = std::max(1, (settings.endDate - model.getEffectiveEndDate()).GetDays() + 1);
+	for (int day = 0; day < nDays; ++day) {
+		double projectionSum = 0;
+		for (auto& projVec : internalProjections) {
+			projectionSum += projVec[day];
+		}
+		projection[day].mean = projectionSum / double(settings.numIterations);
+		double deviationSquaredSum = 0;
+		for (auto& projVec : internalProjections) {
+			deviationSquaredSum += std::pow(projVec[day] - projection[day].mean, 2);
+		}
+		projection[day].sd = std::sqrt(deviationSquaredSum / double(settings.numIterations));
+	}
 }

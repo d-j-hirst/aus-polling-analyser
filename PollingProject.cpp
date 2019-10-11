@@ -923,11 +923,13 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mean=")) {
-			projectionCollection.loadingProjection->meanProjection.push_back(std::stod(line.substr(5)));
+			double mean = std::stod(line.substr(5));
+			projectionCollection.loadingProjection->projection.push_back({ mean, 0 });
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stdv=")) {
-			projectionCollection.loadingProjection->sdProjection.push_back(std::stod(line.substr(5)));
+			double sd = std::stod(line.substr(5));
+			projectionCollection.loadingProjection->projection.back().sd = sd;
 			return true;
 		}
 	}
