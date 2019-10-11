@@ -33,11 +33,11 @@ public:
 		Edit
 	};
 
-	typedef std::function<void(Projection)> OkCallback;
+	typedef std::function<void(Projection::Settings)> OkCallback;
 
 	// function: whether this is for a new projection or editing an existing projection
 	// callback: function to be called when the OK button is pressed
-	EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection projection = Projection());
+	EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection::Settings projectionSettings);
 
 private:
 
@@ -61,7 +61,7 @@ private:
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 	
 	// Holds the preliminary settings for the projection to be created.
-	Projection projection;
+	Projection::Settings projectionSettings;
 
 	ModelCollection const& models;
 

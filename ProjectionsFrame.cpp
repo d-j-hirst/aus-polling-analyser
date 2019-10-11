@@ -102,7 +102,7 @@ void ProjectionsFrame::OnNewProjection(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditProjectionFrame *frame = new EditProjectionFrame(
-		EditProjectionFrame::Function::New, callback, project->models(), Projection());
+		EditProjectionFrame::Function::New, callback, project->models(), Projection::Settings());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -124,7 +124,7 @@ void ProjectionsFrame::OnEditProjection(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditProjectionFrame *frame = new EditProjectionFrame(
-		EditProjectionFrame::Function::Edit, callback, project->models(), project->projections().viewByIndex(projectionIndex));
+		EditProjectionFrame::Function::Edit, callback, project->models(), project->projections().viewByIndex(projectionIndex).getSettings());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -210,9 +210,9 @@ void ProjectionsFrame::refreshDataTable() {
 	updateInterface();
 }
 
-void ProjectionsFrame::addProjection(Projection projection) {
+void ProjectionsFrame::addProjection(Projection::Settings projectionSettings) {
 	// Simultaneously add to the party data control and to the polling project.
-	project->projections().add(projection);
+	project->projections().add(Projection(projectionSettings));
 
 	refreshDataTable();
 }
@@ -220,22 +220,22 @@ void ProjectionsFrame::addProjection(Projection projection) {
 void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
-	data.push_back(wxVariant(projection.name));
-	data.push_back(wxVariant(project->models().view(projection.baseModel).getSettings().name));
+	data.push_back(wxVariant(projection.getSettings().name));
+	data.push_back(wxVariant(project->models().view(projection.getSettings().baseModel).getSettings().name));
 	data.push_back(wxVariant(projection.getEndDateString()));
-	data.push_back(wxVariant(std::to_string(projection.numIterations)));
-	data.push_back(wxVariant(formatFloat(projection.leaderVoteDecay, 5)));
-	data.push_back(wxVariant(formatFloat(projection.dailyChange, 4)));
-	data.push_back(wxVariant(formatFloat(projection.initialStdDev, 4)));
-	data.push_back(wxVariant(std::to_string(projection.numElections)));
+	data.push_back(wxVariant(std::to_string(projection.getSettings().numIterations)));
+	data.push_back(wxVariant(formatFloat(projection.getSettings().leaderVoteDecay, 5)));
+	data.push_back(wxVariant(formatFloat(projection.getSettings().dailyChange, 4)));
+	data.push_back(wxVariant(formatFloat(projection.getSettings().initialStdDev, 4)));
+	data.push_back(wxVariant(std::to_string(projection.getSettings().numElections)));
 	data.push_back(wxVariant(projection.getLastUpdatedString()));
 	projectionData->AppendItem(data);
 }
 
-void ProjectionsFrame::replaceProjection(Projection projection) {
+void ProjectionsFrame::replaceProjection(Projection::Settings projectionSettings) {
 	int projectionIndex = projectionData->GetSelectedRow();
 	int projectionId = project->projections().indexToId(projectionIndex);
-	project->projections().replace(projectionId, projection);
+	project->projections().replace(projectionId, Projection(projectionSettings));
 	refreshDataTable();
 }
 

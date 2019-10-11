@@ -210,8 +210,8 @@ void VisualiserFrame::refreshToolbar() {
 	std::string projectionBoxString;
 
 	if (project->projections().count()) {
-		for (auto projection : project->projections()) {
-			projectionArray.push_back(projection.second.name);
+		for (auto const& [key, projection] : project->projections()) {
+			projectionArray.push_back(projection.getSettings().name);
 		}
 		if (selectedProjection >= int(projectionArray.size())) {
 			selectedProjection = int(projectionArray.size()) - 1;
@@ -467,7 +467,7 @@ void VisualiserFrame::drawAxisTickLines(wxDC& dc) {
 void VisualiserFrame::drawModels(wxDC& dc) {
 	if (selectedModel != -1) {
 		Model const& model = project->models().viewByIndex(selectedModel);
-		if (model.getLastUpdatedTime().IsValid()) {
+		if (model.getLastUpdatedDate().IsValid()) {
 			drawModel(model, dc);
 		}
 	}
@@ -500,7 +500,7 @@ void VisualiserFrame::drawModel(Model const& model, wxDC& dc) {
 void VisualiserFrame::drawProjections(wxDC& dc) {
 	if (selectedProjection != -1) {
 		Projection const& projection = project->projections().viewByIndex(selectedProjection);
-		if (projection.lastUpdated.IsValid()) {
+		if (projection.getLastUpdatedDate().IsValid()) {
 			drawProjection(projection, dc);
 		}
 	}
@@ -509,13 +509,13 @@ void VisualiserFrame::drawProjections(wxDC& dc) {
 void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 	constexpr int NumSigmaLevels = 2;
 	constexpr int SigmaBrightnessChange = 50;
-	Model const& model = project->models().view(projection.baseModel);
-	for (int i = 0; i < int(projection.meanProjection.size()) - 1; ++i) {
+	Model const& model = project->models().view(projection.getSettings().baseModel);
+	for (int i = 0; i < projection.getProjectionLength() - 1; ++i) {
 		int x = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i);
 		int x2 = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i + 1);
 		for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
-			int y = getYFrom2PP(projection.meanProjection[i] + projection.sdProjection[i] * sigma);
-			int y2 = getYFrom2PP(projection.meanProjection[i + 1] + projection.sdProjection[i + 1] * sigma);
+			int y = getYFrom2PP(projection.getMeanProjection(i) + projection.getSdProjection(i) * sigma);
+			int y2 = getYFrom2PP(projection.getMeanProjection(i + 1) + projection.getSdProjection(i + 1) * sigma);
 			int greyLevel = (abs(sigma) + 1) * SigmaBrightnessChange;
 			dc.SetPen(wxPen(wxColour(greyLevel, greyLevel, greyLevel)));
 			dc.DrawLine(x, y, x2, y2);

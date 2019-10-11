@@ -208,7 +208,7 @@ void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(simulation.name));
-	data.push_back(wxVariant(project->projections().view(simulation.baseProjection).name));
+	data.push_back(wxVariant(project->projections().view(simulation.baseProjection).getSettings().name));
 	data.push_back(wxVariant(std::to_string(simulation.numIterations)));
 	data.push_back(wxVariant(formatFloat(simulation.prevElection2pp, 2)));
 	data.push_back(wxVariant(formatFloat(simulation.stateSD, 3)));

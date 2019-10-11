@@ -26,12 +26,12 @@ enum ControlId
 	NumElections,
 };
 
-EditProjectionFrame::EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection projection)
+EditProjectionFrame::EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection::Settings projectionSettings)
 	: wxDialog(NULL, 0, (function == Function::New ? "New Projection" : "Edit Projection"), wxDefaultPosition, wxSize(375, 287)),
-	callback(callback), models(models), projection(projection)
+	callback(callback), models(models), projectionSettings(projectionSettings)
 {
 	// If a model has not been specified it should default to the first.
-	if (this->projection.baseModel == Model::InvalidId) this->projection.baseModel = models.indexToId(0);
+	if (this->projectionSettings.baseModel == Model::InvalidId) this->projectionSettings.baseModel = models.indexToId(0);
 
 	int currentY = ControlPadding;
 	createControls(currentY);
@@ -54,8 +54,8 @@ void EditProjectionFrame::createControls(int & y)
 
 void EditProjectionFrame::createNameInput(int & y)
 {
-	auto nameCallback = [this](std::string s) -> void {projection.name = s; };
-	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", projection.name, wxPoint(2, y), nameCallback));
+	auto nameCallback = [this](std::string s) -> void {projectionSettings.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", projectionSettings.name, wxPoint(2, y), nameCallback));
 	y += nameInput->Height + ControlPadding;
 }
 
@@ -66,11 +66,11 @@ void EditProjectionFrame::createModelInput(int & y)
 	int count = 0;
 	for (auto const& [key, model] : models) {
 		modelArray.push_back(model.getSettings().name);
-		if (key == projection.baseModel) selectedModel = count;
+		if (key == projectionSettings.baseModel) selectedModel = count;
 		++count;
 	}
 
-	auto modelCallback = [this](int i) {projection.baseModel = models.indexToId(i); };
+	auto modelCallback = [this](int i) {projectionSettings.baseModel = models.indexToId(i); };
 	modelInput.reset(new ChoiceInput(this, ControlId::BaseModel, "Base model: ", modelArray, selectedModel,
 		wxPoint(2, y), modelCallback));
 	y += modelInput->Height + ControlPadding;
@@ -78,53 +78,53 @@ void EditProjectionFrame::createModelInput(int & y)
 
 void EditProjectionFrame::createEndDateInput(int & y)
 {
-	auto endDateCallback = [this](wxDateTime const& d) -> void {projection.endDate = d; };
-	endDateInput.reset(new DateInput(this, ControlId::EndDate, "End Date: ", projection.endDate,
+	auto endDateCallback = [this](wxDateTime const& d) -> void {projectionSettings.endDate = d; };
+	endDateInput.reset(new DateInput(this, ControlId::EndDate, "End Date: ", projectionSettings.endDate,
 		wxPoint(2, y), endDateCallback));
 	y += endDateInput->Height + ControlPadding;
 }
 
 void EditProjectionFrame::createNumIterationsInput(int & y)
 {
-	auto numIterationsCallback = [this](int i) -> void {projection.numIterations = i; };
+	auto numIterationsCallback = [this](int i) -> void {projectionSettings.numIterations = i; };
 	auto numIterationsValidator = [](int i) {return std::max(1, i); };
-	numIterationsInput.reset(new IntInput(this, ControlId::NumIterations, "Number of Iterations:", projection.numIterations,
+	numIterationsInput.reset(new IntInput(this, ControlId::NumIterations, "Number of Iterations:", projectionSettings.numIterations,
 		wxPoint(2, y), numIterationsCallback, numIterationsValidator));
 	y += numIterationsInput->Height + ControlPadding;
 }
 
 void EditProjectionFrame::createVoteLossInput(int & y)
 {
-	auto voteLossCallback = [this](float f) -> void {projection.leaderVoteDecay = f; };
+	auto voteLossCallback = [this](float f) -> void {projectionSettings.leaderVoteDecay = f; };
 	auto voteLossValidator = [](float f) {return std::clamp(f, 0.0f, 1.0f); };
-	voteLossInput.reset(new FloatInput(this, ControlId::VoteLoss, "Leading party vote decay:", projection.leaderVoteDecay,
+	voteLossInput.reset(new FloatInput(this, ControlId::VoteLoss, "Leading party vote decay:", projectionSettings.leaderVoteDecay,
 		wxPoint(2, y), voteLossCallback, voteLossValidator));
 	y += voteLossInput->Height + ControlPadding;
 }
 
 void EditProjectionFrame::createDailyChangeInput(int & y)
 {
-	auto dailyChangeCallback = [this](float f) -> void {projection.dailyChange = f; };
+	auto dailyChangeCallback = [this](float f) -> void {projectionSettings.dailyChange = f; };
 	auto dailyChangeValidator = [](float f) {return std::max(f, 0.0f); };
-	dailyChangeInput.reset(new FloatInput(this, ControlId::DailyChange, "SD of daily vote change:", projection.dailyChange,
+	dailyChangeInput.reset(new FloatInput(this, ControlId::DailyChange, "SD of daily vote change:", projectionSettings.dailyChange,
 		wxPoint(2, y), dailyChangeCallback, dailyChangeValidator));
 	y += dailyChangeInput->Height + ControlPadding;
 }
 
 void EditProjectionFrame::createInitialChangeInput(int & y)
 {
-	auto initialChangeCallback = [this](float f) -> void {projection.initialStdDev = f; };
+	auto initialChangeCallback = [this](float f) -> void {projectionSettings.initialStdDev = f; };
 	auto initialChangeValidator = [](float f) {return std::max(f, 0.0f); };
-	initialChangeInput.reset(new FloatInput(this, ControlId::InitialChange, "SD of initial vote change:", projection.initialStdDev,
+	initialChangeInput.reset(new FloatInput(this, ControlId::InitialChange, "SD of initial vote change:", projectionSettings.initialStdDev,
 		wxPoint(2, y), initialChangeCallback, initialChangeValidator));
 	y += initialChangeInput->Height + ControlPadding;
 }
 
 void EditProjectionFrame::createNumElectionsInput(int & y)
 {
-	auto numElectionsCallback = [this](int i) -> void {projection.numElections = i; };
+	auto numElectionsCallback = [this](int i) -> void {projectionSettings.numElections = i; };
 	auto numElectionsValidator = [](int i) {return std::max(1, i); };
-	numElectionsInput.reset(new IntInput(this, ControlId::NumElections, "Number of Elections:", projection.numElections,
+	numElectionsInput.reset(new IntInput(this, ControlId::NumElections, "Number of Elections:", projectionSettings.numElections,
 		wxPoint(2, y), numElectionsCallback, numElectionsValidator));
 	y += numElectionsInput->Height + ControlPadding;
 }
@@ -147,9 +147,7 @@ void EditProjectionFrame::setFinalWindowHeight(int y)
 
 void EditProjectionFrame::OnOK(wxCommandEvent& WXUNUSED(event))\
 {
-	// If this is set to true the projection has not yet been updated.
-	projection.lastUpdated = wxInvalidDateTime;
-	callback(projection);
+	callback(projectionSettings);
 	// Then close this dialog.
 	Close();
 }

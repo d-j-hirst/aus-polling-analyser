@@ -241,8 +241,8 @@ int PollingProject::getEarliestDate() const {
 
 int PollingProject::getLatestDate() const {
 	int latestDay = polls().getLatestDate();
-	for (auto projectionIt = projections().cbegin(); projectionIt != projections().cend(); ++projectionIt) {
-		int date = int(floor(projectionIt->second.endDate.GetModifiedJulianDayNumber()));
+	for (auto const& [key, projection] : projections()) {
+		int date = int(floor(projection.getSettings().endDate.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;
 	}
 	return latestDay;
@@ -453,7 +453,7 @@ int PollingProject::save(std::string filename) {
 		os << "fstd=" << thisModel.getFinalStandardDeviation() << "\n";
 		os << "strt=" << thisModel.getSettings().startDate.GetJulianDayNumber() << "\n";
 		os << "end =" << thisModel.getSettings().endDate.GetJulianDayNumber() << "\n";
-		os << "updt=" << thisModel.getLastUpdatedTime().GetJulianDayNumber() << "\n";
+		os << "updt=" << thisModel.getLastUpdatedDate().GetJulianDayNumber() << "\n";
 		for (auto const& thisDay : thisModel) {
 			os << "$Day" << "\n";
 			os << "mtnd=" << thisDay.trend2pp << "\n";
@@ -462,18 +462,18 @@ int PollingProject::save(std::string filename) {
 	os << "#Projections" << "\n";
 	for (auto const& [key, thisProjection] : projectionCollection) {
 		os << "@Projection" << "\n";
-		os << "name=" << thisProjection.name << "\n";
-		os << "iter=" << thisProjection.numIterations << "\n";
-		os << "base=" << models().idToIndex(thisProjection.baseModel) << "\n";
-		os << "end =" << thisProjection.endDate.GetJulianDayNumber() << "\n";
-		os << "updt=" << thisProjection.lastUpdated.GetJulianDayNumber() << "\n";
-		os << "dlyc=" << thisProjection.dailyChange << "\n";
-		os << "inic=" << thisProjection.initialStdDev << "\n";
-		os << "vtls=" << thisProjection.leaderVoteDecay << "\n";
-		os << "nele=" << thisProjection.numElections << "\n";
-		for (int dayIndex = 0; dayIndex < int(thisProjection.meanProjection.size()); ++dayIndex) {
-			os << "mean=" << thisProjection.meanProjection[dayIndex] << "\n";
-			os << "stdv=" << thisProjection.sdProjection[dayIndex] << "\n";
+		os << "name=" << thisProjection.getSettings().name << "\n";
+		os << "iter=" << thisProjection.getSettings().numIterations << "\n";
+		os << "base=" << models().idToIndex(thisProjection.getSettings().baseModel) << "\n";
+		os << "end =" << thisProjection.getSettings().endDate.GetJulianDayNumber() << "\n";
+		os << "updt=" << thisProjection.getLastUpdatedDate().GetJulianDayNumber() << "\n";
+		os << "dlyc=" << thisProjection.getSettings().dailyChange << "\n";
+		os << "inic=" << thisProjection.getSettings().initialStdDev << "\n";
+		os << "vtls=" << thisProjection.getSettings().leaderVoteDecay << "\n";
+		os << "nele=" << thisProjection.getSettings().numElections << "\n";
+		for (int dayIndex = 0; dayIndex < int(thisProjection.getProjectionLength()); ++dayIndex) {
+			os << "mean=" << thisProjection.getMeanProjection(dayIndex) << "\n";
+			os << "stdv=" << thisProjection.getSdProjection(dayIndex) << "\n";
 		}
 	}
 	os << "#Regions" << "\n";
@@ -541,8 +541,8 @@ bool PollingProject::isValid() {
 }
 
 void PollingProject::invalidateProjectionsFromModel(Model::Id modelId) {
-	for (auto& thisProjection : projections()) {
-		if (thisProjection.second.baseModel == modelId) { thisProjection.second.lastUpdated = wxInvalidDateTime; }
+	for (auto& [key, projection] : projections()) {
+		if (projection.getSettings().baseModel == modelId) projection.invalidate();
 	}
 }
 
@@ -594,10 +594,12 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		return true;
 	}
 	else if (!line.compare("#Projections")) {
+		modelCollection.finaliseLoadedModel();
 		fos.section = FileSection_Projections;
 		return true;
 	}
 	else if (!line.compare("#Regions")) {
+		projectionCollection.finaliseLoadedProjection();
 		fos.section = FileSection_Regions;
 		return true;
 	}
@@ -653,8 +655,8 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Projections) {
 		if (!line.compare("@Projection")) {
-			modelCollection.finaliseLoadedModel();
-			projectionCollection.add(Projection());
+			projectionCollection.finaliseLoadedProjection();
+			projectionCollection.startLoadingProjection();
 			return true;
 		}
 	}
@@ -883,49 +885,49 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Projections) {
-		if (!projectionCollection.count()) return true; //prevent crash from mixed-up data.
+		if (!projectionCollection.loadingProjection.has_value()) return true;
 		if (!line.substr(0, 5).compare("name=")) {
-			projectionCollection.back().name = line.substr(5);
+			projectionCollection.loadingProjection->settings.name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iter=")) {
-			projectionCollection.back().numIterations = std::stoi(line.substr(5));
+			projectionCollection.loadingProjection->settings.numIterations = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("base=")) {
-			projectionCollection.back().baseModel = std::stoi(line.substr(5));
+			projectionCollection.loadingProjection->settings.baseModel = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("end =")) {
-			projectionCollection.back().endDate = wxDateTime(std::stod(line.substr(5)));
+			projectionCollection.loadingProjection->settings.endDate = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("updt=")) {
-			projectionCollection.back().lastUpdated = wxDateTime(std::stod(line.substr(5)));
+			projectionCollection.loadingProjection->lastUpdated = wxDateTime(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("dlyc=")) {
-			projectionCollection.back().dailyChange = std::stof(line.substr(5));
+			projectionCollection.loadingProjection->settings.dailyChange = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("inic=")) {
-			projectionCollection.back().initialStdDev = std::stof(line.substr(5));
+			projectionCollection.loadingProjection->settings.initialStdDev = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("vtls=")) {
-			projectionCollection.back().leaderVoteDecay = std::stof(line.substr(5));
+			projectionCollection.loadingProjection->settings.leaderVoteDecay = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("nele=")) {
-			projectionCollection.back().numElections = std::stoi(line.substr(5));
+			projectionCollection.loadingProjection->settings.numElections = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mean=")) {
-			projectionCollection.back().meanProjection.push_back(std::stod(line.substr(5)));
+			projectionCollection.loadingProjection->meanProjection.push_back(std::stod(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stdv=")) {
-			projectionCollection.back().sdProjection.push_back(std::stod(line.substr(5)));
+			projectionCollection.loadingProjection->sdProjection.push_back(std::stod(line.substr(5)));
 			return true;
 		}
 	}
@@ -1104,8 +1106,8 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 }
 
 void PollingProject::removeProjectionsFromModel(Model::Id modelId) {
-	for (auto const& projection : projections()) {
-		if (projection.second.baseModel == modelId) projections().remove(projection.first);
+	for (auto const& [key, projection] : projections()) {
+		if (projection.getSettings().baseModel == modelId) projections().remove(key);
 	}
 }
 

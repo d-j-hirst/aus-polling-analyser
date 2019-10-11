@@ -61,9 +61,10 @@ void EditSimulationFrame::createProjectionInput(int & y)
 	wxArrayString projectionArray;
 	int selectedProjection = 0;
 	int count = 0;
-	for (auto projectionIt = projections.cbegin(); projectionIt != projections.cend(); ++projectionIt, ++count) {
-		projectionArray.push_back(projectionIt->second.name);
-		if (projectionIt->first == simulation.baseProjection) selectedProjection = count;
+	for (auto const& [key, projection] : projections) {
+		projectionArray.push_back(projection.getSettings().name);
+		if (key == simulation.baseProjection) selectedProjection = count;
+		++count;
 	}
 
 	auto projectionCallback = [this](int i) {simulation.baseProjection = projections.indexToId(i); };

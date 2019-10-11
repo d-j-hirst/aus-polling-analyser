@@ -24,7 +24,7 @@ void Simulation::run(PollingProject& project) {
 
 	Projection const& thisProjection = project.projections().view(baseProjection);
 
-	if (int(thisProjection.meanProjection.size()) == 0) return;
+	if (int(thisProjection.getProjectionLength()) == 0) return;
 
 	gen.seed(rd());
 
@@ -141,8 +141,9 @@ void Simulation::run(PollingProject& project) {
 	othersWinFrequency.resize(project.seats().count() + 1);
 	partyOneSwing = 0.0;
 
-	float pollOverallSwing = thisProjection.meanProjection.back() - prevElection2pp;
-	float pollOverallStdDev = thisProjection.sdProjection.back();
+	int projectionSize = thisProjection.getProjectionLength();
+	float pollOverallSwing = thisProjection.getMeanProjection(projectionSize) - prevElection2pp;
+	float pollOverallStdDev = thisProjection.getSdProjection(projectionSize);
 	for (currentIteration = 0; currentIteration < numIterations; ++currentIteration) {
 
 		// temporary for storing number of seat wins by each party in each region, 1st index = parties, 2nd index = regions
@@ -171,7 +172,7 @@ void Simulation::run(PollingProject& project) {
 			Region& thisRegion = regionPair.second;
 			// Calculate mean of the region's swing after accounting for decay to the mean over time.
 			float regionMeanSwing = pollOverallSwing + 
-				thisRegion.swingDeviation * pow(1.0f - stateDecay, thisProjection.meanProjection.size());
+				thisRegion.swingDeviation * pow(1.0f - stateDecay, thisProjection.getProjectionLength());
 			// Add random noise to the region's swing level
 			float swingSD = this->stateSD + thisRegion.additionalUncertainty;
 			if (swingSD > 0) {

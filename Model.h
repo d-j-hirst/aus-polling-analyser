@@ -80,7 +80,7 @@ public:
 
 	wxDateTime getEffectiveStartDate() const { return effStartDate; }
 	wxDateTime getEffectiveEndDate() const { return effEndDate; }
-	wxDateTime getLastUpdatedTime() const { return lastUpdated; }
+	wxDateTime getLastUpdatedDate() const { return lastUpdated; }
 
 	float getFinalStandardDeviation() const { return finalStandardDeviation; }
 

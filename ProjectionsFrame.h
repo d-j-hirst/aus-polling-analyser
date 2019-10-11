@@ -67,13 +67,13 @@ private:
 	void OnSelectionChange(wxDataViewEvent& event);
 
 	// does everything required to add the projection "projection".
-	void addProjection(Projection projection);
+	void addProjection(Projection::Settings projection);
 
 	// adds "projection" to projection data. Should not be used except within addProjection.
 	void addProjectionToProjectionData(Projection projection);
 
 	// does everything required to replace the currently selected projection with "projection".
-	void replaceProjection(Projection projection);
+	void replaceProjection(Projection::Settings projection);
 
 	// does everything required to remove the currently selected projection, if possible.
 	void removeProjection();

@@ -83,3 +83,15 @@ Projection& ProjectionCollection::access(Projection::Id id)
 int ProjectionCollection::count() const {
 	return projections.size();
 }
+
+void ProjectionCollection::startLoadingProjection()
+{
+	loadingProjection.emplace(Projection::SaveData());
+}
+
+void ProjectionCollection::finaliseLoadedProjection()
+{
+	if (!loadingProjection.has_value()) return;
+	add(Projection(loadingProjection.value()));
+	loadingProjection.reset();
+}

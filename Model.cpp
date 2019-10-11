@@ -26,7 +26,7 @@ Model::Model(SaveData saveData)
 void Model::replaceSettings(Settings newSettings)
 {
 	settings = newSettings;
-	lastUpdated = wxDateTime::Now();
+	lastUpdated = wxInvalidDateTime;
 }
 
 Model::Settings const & Model::getSettings() const

@@ -3,6 +3,7 @@
 #include "Projection.h"
 
 #include <map>
+#include <optional>
 
 class PollingProject;
 
@@ -69,7 +70,9 @@ public:
 	// Returns the number of projections.
 	int count() const;
 
-	Projection& back() { return std::prev(projections.end())->second; }
+	void startLoadingProjection();
+
+	void finaliseLoadedProjection();
 
 	// Gets the begin iterator for the pollster list.
 	ProjectionContainer::iterator begin() { return projections.begin(); }
@@ -84,6 +87,8 @@ public:
 
 	// Gets the end iterator for the pollster list.
 	ProjectionContainer::const_iterator cend() const { return projections.cend(); }
+
+	std::optional<Projection::SaveData> loadingProjection;
 
 private:
 

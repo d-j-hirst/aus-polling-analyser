@@ -68,9 +68,6 @@ public:
 	// Returns the number of models.
 	int count() const;
 
-
-	std::optional<Model::SaveData> loadingModel;
-
 	void startLoadingModel();
 
 	void finaliseLoadedModel();
@@ -79,6 +76,8 @@ public:
 	ModelContainer::iterator end() { return models.end(); }
 	ModelContainer::const_iterator begin() const { return models.begin(); }
 	ModelContainer::const_iterator end() const { return models.end(); }
+
+	std::optional<Model::SaveData> loadingModel;
 
 private:
 	Model::SaveData generateBasicModelSaveData() const;
