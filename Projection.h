@@ -37,7 +37,7 @@ public:
 		// Number of elections used to determine the initial uncertainty
 		int numElections = 2;
 
-		wxDateTime endDate = wxInvalidDateTime;
+		wxDateTime endDate = wxDateTime::Now();
 	};
 
 	struct SaveData {

@@ -98,7 +98,7 @@ void SimulationsFrame::OnNewSimulation(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditSimulationFrame *frame = new EditSimulationFrame(
-		EditSimulationFrame::Function::New, callback, project->projections(), Simulation());
+		EditSimulationFrame::Function::New, callback, project->projections(), Simulation::Settings());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -120,7 +120,7 @@ void SimulationsFrame::OnEditSimulation(wxCommandEvent& WXUNUSED(event)) {
 
 	// Create the new project frame (where initial settings for the new project are chosen).
 	EditSimulationFrame *frame = new EditSimulationFrame(
-		EditSimulationFrame::Function::Edit, callback, project->projections(), project->simulations().viewByIndex(simulationIndex));
+		EditSimulationFrame::Function::Edit, callback, project->projections(), project->simulations().viewByIndex(simulationIndex).getSettings());
 
 	// Show the frame.
 	frame->ShowModal();
@@ -192,9 +192,9 @@ void SimulationsFrame::refreshDataTable() {
 	updateInterface();
 }
 
-void SimulationsFrame::addSimulation(Simulation simulation) {
+void SimulationsFrame::addSimulation(Simulation::Settings settings) {
 	// Simultaneously add to the party data control and to the polling project.
-	project->simulations().add(simulation);
+	project->simulations().add(Simulation(settings));
 
 	refreshDataTable();
 
@@ -207,20 +207,20 @@ void SimulationsFrame::addSimulation(Simulation simulation) {
 void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
-	data.push_back(wxVariant(simulation.name));
-	data.push_back(wxVariant(project->projections().view(simulation.baseProjection).getSettings().name));
-	data.push_back(wxVariant(std::to_string(simulation.numIterations)));
-	data.push_back(wxVariant(formatFloat(simulation.prevElection2pp, 2)));
-	data.push_back(wxVariant(formatFloat(simulation.stateSD, 3)));
-	data.push_back(wxVariant(formatFloat(simulation.stateDecay, 5)));
+	data.push_back(wxVariant(simulation.getSettings().name));
+	data.push_back(wxVariant(project->projections().view(simulation.getSettings().baseProjection).getSettings().name));
+	data.push_back(wxVariant(std::to_string(simulation.getSettings().numIterations)));
+	data.push_back(wxVariant(formatFloat(simulation.getSettings().prevElection2pp, 2)));
+	data.push_back(wxVariant(formatFloat(simulation.getSettings().stateSD, 3)));
+	data.push_back(wxVariant(formatFloat(simulation.getSettings().stateDecay, 5)));
 	data.push_back(wxVariant(simulation.getLastUpdatedString()));
 	simulationData->AppendItem(data);
 }
 
-void SimulationsFrame::replaceSimulation(Simulation simulation) {
+void SimulationsFrame::replaceSimulation(Simulation::Settings settings) {
 	int simulationIndex = simulationData->GetSelectedRow();
 	// Simultaneously replace data in the simulation data control and the polling project.
-	project->simulations().replace(simulationIndex, simulation);
+	project->simulations().replace(simulationIndex, Simulation(settings));
 
 	refreshDataTable();
 

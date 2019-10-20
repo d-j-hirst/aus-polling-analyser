@@ -73,3 +73,16 @@ Simulation& SimulationCollection::access(Simulation::Id id)
 int SimulationCollection::count() const {
 	return simulations.size();
 }
+
+
+void SimulationCollection::startLoadingSimulation()
+{
+	loadingSimulation.emplace(Simulation::Settings());
+}
+
+void SimulationCollection::finaliseLoadedSimulation()
+{
+	if (!loadingSimulation.has_value()) return;
+	add(Simulation(loadingSimulation.value()));
+	loadingSimulation.reset();
+}

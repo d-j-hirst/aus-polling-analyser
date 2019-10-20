@@ -97,7 +97,7 @@ void DisplayFrame::refreshToolbar() {
 	// Set the selected simulation to be the first simulation
 	wxArrayString simulationArray;
 	for (auto const&[key, simulation] : project->simulations()) {
-		simulationArray.push_back(simulation.name);
+		simulationArray.push_back(simulation.getSettings().name);
 	}
 	std::string comboBoxString;
 	if (selectedSimulation >= int(simulationArray.size())) {
@@ -124,7 +124,7 @@ void DisplayFrame::render(wxDC& dc)
 
 	Simulation const& simulation = project->simulations().view(project->simulations().indexToId(selectedSimulation));
 
-	if (!simulation.lastUpdated.IsValid()) return;
+	if (!simulation.isValid()) return;
 
 	DisplayFrameRenderer renderer(*project, dc, simulation, dcPanel->GetClientSize());
 

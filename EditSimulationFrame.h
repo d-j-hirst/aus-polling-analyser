@@ -36,11 +36,11 @@ public:
 		Edit
 	};
 
-	typedef std::function<void(Simulation)> OkCallback;
+	typedef std::function<void(Simulation::Settings)> OkCallback;
 
 	// function: whether this is for a new projection or editing an existing projection
 	// callback: function to be called when the OK button is pressed
-	EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation simulation = Simulation());
+	EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings settings = Simulation::Settings());
 
 private:
 
@@ -63,7 +63,7 @@ private:
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
 	// Data container for the preliminary settings for the simulation to be created.
-	Simulation simulation;
+	Simulation::Settings simulationSettings;
 
 	ProjectionCollection const& projections;
 
