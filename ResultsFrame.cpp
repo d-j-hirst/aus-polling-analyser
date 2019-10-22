@@ -397,10 +397,10 @@ std::string ResultsFrame::decideSummaryString(Simulation const & simulation)
 {
 	std::string party1 = project->parties().view(0).abbreviation;
 	std::string party2 = project->parties().view(1).abbreviation;
-	std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyOneWinPercent(), 2) +
+	std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyWinPercent(Simulation::MajorParty::One), 2) +
 		"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
-		"   Seats: " + party1 + " " + formatFloat(simulation.partyWinExpectation[0], 2) + " " +
-		party2 + " " + formatFloat(simulation.partyWinExpectation[1], 2) +
+		"   Seats: " + party1 + " " + formatFloat(simulation.getPartyWinExpectation(0), 2) + " " +
+		party2 + " " + formatFloat(simulation.getPartyWinExpectation(1), 2) +
 		" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
 		"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
 		party1 + " swing by region: ";

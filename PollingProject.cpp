@@ -513,13 +513,13 @@ int PollingProject::save(std::string filename) {
 	os << "#Simulations" << "\n";
 	for (auto const& [key, thisSimulation] : simulationCollection) {
 		os << "@Simulation" << "\n";
-		os << "name=" << thisSimulation.name << "\n";
-		os << "iter=" << thisSimulation.numIterations << "\n";
-		os << "base=" << projections().idToIndex(thisSimulation.baseProjection) << "\n";
-		os << "prev=" << thisSimulation.prevElection2pp << "\n";
-		os << "stsd=" << thisSimulation.stateSD << "\n";
-		os << "stde=" << thisSimulation.stateDecay << "\n";
-		os << "live=" << int(thisSimulation.live) << "\n";
+		os << "name=" << thisSimulation.getSettings().name << "\n";
+		os << "iter=" << thisSimulation.getSettings().numIterations << "\n";
+		os << "base=" << projections().idToIndex(thisSimulation.getSettings().baseProjection) << "\n";
+		os << "prev=" << thisSimulation.getSettings().prevElection2pp << "\n";
+		os << "stsd=" << thisSimulation.getSettings().stateSD << "\n";
+		os << "stde=" << thisSimulation.getSettings().stateDecay << "\n";
+		os << "live=" << int(thisSimulation.getSettings().live) << "\n";
 	}
 	os << "#Results" << "\n";
 	for (auto const& thisResult : results) {
@@ -612,6 +612,7 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		return true;
 	}
 	else if (!line.compare("#Results")) {
+		simulationCollection.finaliseLoadedSimulation();
 		fos.section = FileSection_Results;
 		return true;
 	}
@@ -674,7 +675,8 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Simulations) {
 		if (!line.compare("@Simulation")) {
-			simulationCollection.add(Simulation());
+			simulationCollection.finaliseLoadedSimulation();
+			simulationCollection.startLoadingSimulation();
 			return true;
 		}
 	}
@@ -1044,33 +1046,33 @@ bool PollingProject::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Simulations) {
-		if (!simulationCollection.count()) return true; //prevent crash from mixed-up data.
+		if (!simulationCollection.loadingSimulation.has_value()) return true;
 		if (!line.substr(0, 5).compare("name=")) {
-			simulationCollection.back().name = line.substr(5);
+			simulationCollection.loadingSimulation->name = line.substr(5);
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("iter=")) {
-			simulationCollection.back().numIterations = std::stoi(line.substr(5));
+			simulationCollection.loadingSimulation->numIterations = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("base=")) {
-			simulationCollection.back().baseProjection = std::stoi(line.substr(5));
+			simulationCollection.loadingSimulation->baseProjection = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("prev=")) {
-			simulationCollection.back().prevElection2pp = std::stof(line.substr(5));
+			simulationCollection.loadingSimulation->prevElection2pp = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stsd=")) {
-			simulationCollection.back().stateSD = std::stof(line.substr(5));
+			simulationCollection.loadingSimulation->stateSD = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("stde=")) {
-			simulationCollection.back().stateDecay = std::stof(line.substr(5));
+			simulationCollection.loadingSimulation->stateDecay = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("live=")) {
-			simulationCollection.back().live = Simulation::Mode(std::stoi(line.substr(5)));
+			simulationCollection.loadingSimulation->live = Simulation::Settings::Mode(std::stoi(line.substr(5)));
 			return true;
 		}
 	}
@@ -1117,7 +1119,7 @@ void PollingProject::removeSimulationsFromProjection(Projection::Id projectionId
 {
 	for (int i = 0; i < simulations().count(); i++) {
 		Simulation const& simulation = simulations().viewByIndex(i);
-		if (simulation.baseProjection == projectionId) { 
+		if (simulation.getSettings().baseProjection == projectionId) {
 			simulations().remove(simulations().indexToId(i));
 			i--;
 		}
