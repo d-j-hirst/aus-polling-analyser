@@ -52,6 +52,8 @@ public:
 
 	void run(Simulation::Id id);
 
+	void setAsNowCast(Simulation::Id id);
+
 	// Returns access to the simulation with the given id
 	Simulation& access(Simulation::Id id);
 
@@ -67,9 +69,7 @@ public:
 	// Returns the number of simulations.
 	int count() const;
 
-	void startLoadingSimulation();
-
-	void finaliseLoadedSimulation();
+	Simulation& back() { return std::prev(simulations.end())->second; }
 
 	// Gets the begin iterator for the pollster list.
 	SimulationContainer::iterator begin() { return simulations.begin(); }
@@ -84,8 +84,6 @@ public:
 
 	// Gets the end iterator for the pollster list.
 	SimulationContainer::const_iterator cend() const { return simulations.cend(); }
-
-	std::optional<Simulation::Settings> loadingSimulation;
 
 private:
 

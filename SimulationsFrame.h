@@ -64,13 +64,13 @@ private:
 	void OnSelectionChange(wxDataViewEvent& event);
 
 	// does everything required to add the simulation "simulation".
-	void addSimulation(Simulation::Settings settings);
+	void addSimulation(Simulation simulation);
 
 	// adds "simulation" to simulation data. Should not be used except within addSimulation.
 	void addSimulationToSimulationData(Simulation simulation);
 
 	// does everything required to replace the currently selected simulation with "simulation".
-	void replaceSimulation(Simulation::Settings settings);
+	void replaceSimulation(Simulation simulation);
 
 	// does everything required to remove the currently selected simulation, if possible.
 	void removeSimulation();

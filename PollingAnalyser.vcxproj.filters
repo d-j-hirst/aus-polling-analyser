@@ -176,7 +176,6 @@
     <ClCompile Include="DisplayFrameRenderer.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
-    <ClCompile Include="SimulationRun.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -441,9 +440,6 @@
     </ClInclude>
     <ClInclude Include="DisplayFrameRenderer.h">
       <Filter>Header Files\Tabbed Frames</Filter>
-    </ClInclude>
-    <ClInclude Include="SimulationRun.h">
-      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

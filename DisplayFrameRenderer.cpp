@@ -152,13 +152,11 @@ void DisplayFrameRenderer::drawProbabilityBoxData() const
 		ProbabilityBoxDataWidth, ProbabilityBoxTextHeight);
 	wxPoint offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 
-	using Mp = Simulation::MajorParty;
-
-	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMajorityPercent(Mp::One), 2) + "%", offset);
-	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMinorityPercent(Mp::One), 2) + "%", offset);
-	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getHungPercent(), 2) + "%", offset);
-	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMajorityPercent(Mp::Two), 2) + "%", offset);
-	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMinorityPercent(Mp::Two), 2) + "%", offset);
+	drawProbabilityBoxText(probDataRect, formatFloat(simulation.partyOneMajorityPercent, 2) + "%", offset);
+	drawProbabilityBoxText(probDataRect, formatFloat(simulation.partyOneMinorityPercent, 2) + "%", offset);
+	drawProbabilityBoxText(probDataRect, formatFloat(simulation.hungPercent, 2) + "%", offset);
+	drawProbabilityBoxText(probDataRect, formatFloat(simulation.partyTwoMinorityPercent, 2) + "%", offset);
+	drawProbabilityBoxText(probDataRect, formatFloat(simulation.partyTwoMajorityPercent, 2) + "%", offset);
 }
 
 void DisplayFrameRenderer::drawProbabilityBoxText(wxRect& rect, std::string const& text, wxPoint subsequentOffset) const
@@ -173,16 +171,15 @@ void DisplayFrameRenderer::drawProbabilityBoxText(wxRect& rect, std::string cons
 
 void DisplayFrameRenderer::drawSumOfLeads() const
 {
-	using Mp = Simulation::MajorParty;
 	wxRect probPartyRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
 		probabilityBoxTop() + ProbabilityBoxHeight * 0.5f - ProbabilityBoxSumHeight - ProbabilityBoxTextPadding,
 		ProbabilityBoxSumWidth, ProbabilityBoxSumHeight);
 	std::string partyOneAnnotation = project.parties().view(0).abbreviation + " wins:";
-	std::string partyOneData = formatFloat(simulation.getPartyWinPercent(Mp::One), 2) + "%";
+	std::string partyOneData = formatFloat(simulation.getPartyOneWinPercent(), 2) + "%";
 	drawSumOfLeadsText(probPartyRect, partyOneAnnotation, partyOneData);
 	probPartyRect.Offset(0, ProbabilityBoxSumHeight + ProbabilityBoxTextPadding * 2);
 	std::string partyTwoAnnotation = project.parties().view(1).abbreviation + " wins:";
-	std::string partyTwoData = formatFloat(simulation.getPartyWinPercent(Mp::Two), 2) + "%";
+	std::string partyTwoData = formatFloat(simulation.getPartyTwoWinPercent(), 2) + "%";
 	drawSumOfLeadsText(probPartyRect, partyTwoAnnotation, partyTwoData);
 }
 
@@ -226,14 +223,10 @@ void DisplayFrameRenderer::drawExpectationsBoxTitle() const
 
 void DisplayFrameRenderer::drawExpectationsBoxRows() const
 {
-	int rowSize = std::min(22, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.internalPartyCount()));
+	int rowSize = std::min(22, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.partyWinExpectation.size()));
 	wxRect expBoxNameRect = wxRect(ExpectationBoxLeft, expectationBoxTop() + ExpectationBoxTitleHeight,
 		ExpectationBoxWidth * 0.7f, rowSize);
 	dc.SetFont(font(rowSize - 8));
-
-	// don't want to try drawing individual parties if the project's parties and the simulated parties don't match
-	if (simulation.internalPartyCount() != project.parties().count()) return;
-
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 		drawExpectationsBoxRow(expBoxNameRect, partyIndex);
 	}
@@ -241,12 +234,12 @@ void DisplayFrameRenderer::drawExpectationsBoxRows() const
 
 void DisplayFrameRenderer::drawExpectationsBoxRow(wxRect& nameRect, PartyCollection::Index partyIndex) const
 {
-	int rowSize = std::min(21, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.internalPartyCount()));
+	int rowSize = std::min(21, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.partyWinExpectation.size()));
 	wxRect expBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(),
 		ExpectationBoxWidth - nameRect.GetWidth(), rowSize);
-	if (partyIndex >= int(simulation.internalPartyCount())) return;
+	if (partyIndex >= int(simulation.partyWinExpectation.size())) return;
 	dc.DrawLabel(project.parties().viewByIndex(partyIndex).name, nameRect, wxALIGN_CENTRE);
-	dc.DrawLabel(formatFloat(simulation.getPartyWinExpectation(partyIndex), 2), expBoxDataRect, wxALIGN_CENTRE);
+	dc.DrawLabel(formatFloat(simulation.partyWinExpectation[partyIndex], 2), expBoxDataRect, wxALIGN_CENTRE);
 	nameRect.Offset(0, rowSize);
 }
 
@@ -295,18 +288,17 @@ void DisplayFrameRenderer::drawRegionsBoxRowTitles() const
 
 void DisplayFrameRenderer::drawRegionsBoxRowList() const
 {
-	int regionsBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
+	int statesBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
 	//int numRegions = simulation.regionPartyWinExpectation.size();
 	int vertOffset = std::min(RegionsBoxTextHeight,
-		(RegionsBoxHeight - RegionsBoxTitleHeight) / (simulation.internalRegionCount() + 1));
-	wxRect rowNameRect = wxRect(RegionsBoxLeft, regionsBoxRowTop,
+		(RegionsBoxHeight - RegionsBoxTitleHeight) / (simulation.regionPartyWinExpectation.size() + 1));
+	wxRect rowNameRect = wxRect(RegionsBoxLeft, statesBoxRowTop,
 		RegionsBoxWidth * 0.25f, RegionsBoxTextHeight);
 	dc.SetFont(font(std::min(13, vertOffset / 2 + 3)));
-	if (simulation.internalRegionCount() != project.regions().count()) return;
 	for (auto const&[key, thisRegion] : project.regions()) {
 		rowNameRect.Offset(0, vertOffset); // if we don't do this first it'll overlap with the titles
 		int regionIndex = project.regions().idToIndex(key);
-		if (regionIndex >= simulation.internalRegionCount()) break;
+		if (regionIndex >= int(simulation.regionPartyWinExpectation.size())) break;
 		drawRegionsBoxRowListItem(thisRegion, regionIndex, rowNameRect);
 	}
 }
@@ -314,9 +306,9 @@ void DisplayFrameRenderer::drawRegionsBoxRowList() const
 void DisplayFrameRenderer::drawRegionsBoxRowListItem(Region const & thisRegion, RegionCollection::Index regionIndex, wxRect rowNameRect) const
 {
 	int horzOffset = int(RegionsBoxWidth * 0.25f);
-	float seats[3] = { simulation.getRegionPartyWinExpectation(regionIndex, 0) ,
-		simulation.getRegionPartyWinExpectation(regionIndex, 1) ,
-		simulation.getRegionOthersWinExpectation(regionIndex) };
+	float seats[3] = { simulation.regionPartyWinExpectation[regionIndex][0] ,
+		simulation.regionPartyWinExpectation[regionIndex][1] ,
+		simulation.getOthersWinExpectation(regionIndex) };
 	float change[3] = { seats[0] - thisRegion.partyLeading[0] ,
 		seats[1] - thisRegion.partyLeading[1],
 		seats[2] - thisRegion.getOthersLeading() };
@@ -375,18 +367,19 @@ void DisplayFrameRenderer::drawBoundsBoxItems() const
 	float horzOffset = RegionsBoxWidth * 0.2f;
 	wxRect boundsBoxBaseRect = wxRect(BoundsBoxLeft, boundsHeadingTop,
 		RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
-	if (simulation.isValid()) {
+	if (simulation.lastUpdated.IsValid()) {
 		dc.SetFont(font(13));
 		std::array<std::string, 3> groupNames = { project.parties().view(0).abbreviation, project.parties().view(1).abbreviation, "Others" };
 		for (int group = 0; group < 3; ++group) {
 			boundsBoxBaseRect.Offset(0, BoundsBoxTextHeight);
 			wxRect boundsBoxItemRect = boundsBoxBaseRect;
 			dc.DrawLabel(groupNames[group], boundsBoxItemRect, wxALIGN_CENTRE);
+			auto const& boundsToUse = (group == 0 ? simulation.partyOneProbabilityBounds :
+				(group == 1 ? simulation.partyTwoProbabilityBounds : simulation.othersProbabilityBounds));
 			for (int boundsType = 0; boundsType < 4; ++boundsType) {
 				boundsBoxItemRect.Offset(horzOffset, 0);
-				using Mp = Simulation::MajorParty;
-				std::string itemText = std::to_string(simulation.getProbabilityBound(3 - boundsType, Mp(group)))
-					+ "-" + std::to_string(simulation.getProbabilityBound(4 + boundsType, Mp(group)));
+				std::string itemText = std::to_string(boundsToUse[3 - boundsType])
+					+ "-" + std::to_string(boundsToUse[4 + boundsType]);
 				dc.DrawLabel(itemText, boundsBoxItemRect, wxALIGN_CENTRE);
 			}
 		}
@@ -398,7 +391,7 @@ void DisplayFrameRenderer::drawGraphBox() const
 	dc.SetFont(font(13));
 	GraphVariables gv = calculateGraphVariables();
 	drawGraphBoxBackground(gv);
-	if (simulation.isValid()) {
+	if (simulation.lastUpdated.IsValid()) {
 		int lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
 		int highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
 		int seatRange = highestSeatFrequency - lowestSeatFrequency;
@@ -461,7 +454,7 @@ void DisplayFrameRenderer::drawGraphColumns(GraphVariables const& gv) const
 	const float GraphMaxColumnHeight = gv.GraphBoxHeight - GraphAxisOffset - GraphTopSpace;
 	setBrushAndPen(*wxBLUE);
 	for (int seatNum = gv.lowestSeatFrequency; seatNum <= gv.highestSeatFrequency; ++seatNum) {
-		float proportionOfMax = float(simulation.getPartySeatWinFrequency(1, seatNum)) / float(modalSeatFrequency) * 0.9999f;
+		float proportionOfMax = float(simulation.partySeatWinFrequency[1][seatNum]) / float(modalSeatFrequency) * 0.9999f;
 		float columnHeight = std::ceil(proportionOfMax * GraphMaxColumnHeight);
 		float columnTop = gv.axisY - columnHeight;
 		float columnWidth = float(gv.seatColumnWidth);
@@ -517,10 +510,10 @@ void DisplayFrameRenderer::drawSeatsList() const
 		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
 	int seatsFittingInBox = int((SeatsBoxHeight - SeatsBoxTitleHeight) / SeatsBoxTextHeight);
 	int closeSeat = simulation.findBestSeatDisplayCenter(GraphParty, seatsFittingInBox, project);
-	int firstSeat = std::max(std::min(closeSeat - seatsFittingInBox / 2, int(simulation.classicSeatCount()) - seatsFittingInBox), 0);
+	int firstSeat = std::max(std::min(closeSeat - seatsFittingInBox / 2, int(simulation.classicSeatIds.size()) - seatsFittingInBox), 0);
 	dc.SetFont(font(8));
-	for (int seatIndex = firstSeat; seatIndex < firstSeat + seatsFittingInBox && seatIndex < int(simulation.classicSeatCount()); ++seatIndex) {
-		Seat::Id seatId = simulation.classicSeatId(seatIndex);
+	for (int seatIndex = firstSeat; seatIndex < firstSeat + seatsFittingInBox && seatIndex < int(simulation.classicSeatIds.size()); ++seatIndex) {
+		Seat::Id seatId = simulation.classicSeatIds[seatIndex];
 		if (!project.seats().exists(seatId)) continue;
 		Seat const& seat = project.seats().view(seatId);
 		float lnpWinPercent = simulation.getClassicSeatMajorPartyWinRate(seatIndex, GraphParty, project); // NEED TO CHANGE THIS
