@@ -59,6 +59,14 @@ void ModelCollection::remove(Model::Id id) {
 	project.adjustAfterModelRemoval(index, id);
 }
 
+void ModelCollection::run(Model::Id id)
+{
+	auto modelIt = models.find(id);
+	if (modelIt == models.end()) throw ModelDoesntExistException();
+	Model& projection = modelIt->second;
+	projection.run(project.pollsters(), project.polls(), project.events());
+}
+
 void ModelCollection::extend(Model::Id id)
 {
 	auto modelIt = models.find(id);

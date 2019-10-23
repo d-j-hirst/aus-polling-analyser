@@ -5,16 +5,17 @@
 class PollingProject;
 class RegionCollection;
 class Seat;
+class SeatCollection;
 class Simulation;
 
 class SimulationRun {
 public:
-	SimulationRun(Simulation& simulation) : sim(simulation) {}
+	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
 
-	SimulationRun(SimulationRun const& otherRun) : sim(otherRun.sim) {}
-	SimulationRun operator=(SimulationRun const& otherRun) { return SimulationRun(otherRun.sim); }
+	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim) {}
+	SimulationRun operator=(SimulationRun const& otherRun) { return SimulationRun(otherRun.project, otherRun.sim); }
 
-	void run(PollingProject& project);
+	void run();
 private:
 
 	struct OddsInfo {
@@ -29,31 +30,37 @@ private:
 		float significance = 0.0f;
 	};
 
-	void resetRegionOutput(RegionCollection& regions);
+	void resetRegionSpecificOutput();
+
+	void resetSeatSpecificOutput();
+
+	void resetPpvcBiasAggregates();
 
 	void determinePpvcBias();
 
-	void determinePreviousVoteEnrolmentRatios(PollingProject& project);
+	void determinePreviousVoteEnrolmentRatios();
 
-	void determineSeatCachedBoothData(PollingProject const& project, Seat& seat);
+	void determineSeatCachedBoothData(Seat& seat);
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
-	SeatResult calculateLiveResultClassic2CP(PollingProject const& project, Seat const& seat, float priorMargin);
+	SeatResult calculateLiveResultClassic2CP(Seat const& seat, float priorMargin);
 
-	SeatResult calculateLiveResultNonClassic2CP(PollingProject const& project, Seat const& seat);
+	SeatResult calculateLiveResultNonClassic2CP(Seat const& seat);
 
-	SeatResult calculateLiveResultFromFirstPreferences(PollingProject const& project, Seat const& seat);
+	SeatResult calculateLiveResultFromFirstPreferences(Seat const& seat);
 
 	Party::Id simulateWinnerFromBettingOdds(Seat const& thisSeat);
 
-	bool seatPartiesMatchBetweenElections(PollingProject const & project, Seat const& seat);
+	bool seatPartiesMatchBetweenElections(Seat const& seat);
 
 	// determines enrolment change and also returns 
 	// estimatedTotalOrdinaryVotes representing an estimate of the total ordinary vote count
 	float determineEnrolmentChange(Seat const & seat, int* estimatedTotalOrdinaryVotes);
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
+
+	PollingProject& project;
 
 	Simulation& sim;
 

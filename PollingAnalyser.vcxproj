@@ -304,6 +304,7 @@
     <ClCompile Include="GenericChildFrame.cpp" />
     <ClCompile Include="NonClassicFrame.cpp" />
     <ClCompile Include="ProjectionCollection.cpp" />
+    <ClCompile Include="QuickTest.cpp" />
     <ClCompile Include="RegionCollection.cpp" />
     <ClCompile Include="ResultsDownloader.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
@@ -351,6 +352,7 @@
     <ClInclude Include="PollCollection.h" />
     <ClInclude Include="PollsterCollection.h" />
     <ClInclude Include="ProjectionCollection.h" />
+    <ClInclude Include="QuickTest.h" />
     <ClInclude Include="RegionCollection.h" />
     <ClInclude Include="SeatCollection.h" />
     <ClInclude Include="SimulationCollection.h" />

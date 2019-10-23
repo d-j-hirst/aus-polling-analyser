@@ -48,8 +48,11 @@ public:
 	// Returns Result::Ok if it's possible and Result::ModelDoesntExist if that model doesn't exist
 	Result canRemove(Model::Id id);
 
-	// Removes the model with index "modelIndex".
+	// Removes the model with the given id.
 	void remove(Model::Id id);
+
+	// Runs the model with the given id.
+	void run(Model::Id id);
 
 	void extend(Model::Id id);
 

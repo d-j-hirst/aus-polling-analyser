@@ -15,8 +15,8 @@
 
 void Simulation::run(PollingProject & project)
 {
-	latestRun.emplace(*this);
-	latestRun->run(project);
+	latestRun.emplace(project, *this);
+	latestRun->run();
 }
 
 void Simulation::replaceSettings(Simulation::Settings newSettings)

@@ -65,6 +65,9 @@ public:
 	Simulation(Settings settings) : settings(settings)
 	{}
 
+	Simulation(Simulation const& other) : settings(other.settings) {}
+	Simulation operator=(Simulation const& other) { return Simulation(other.settings); }
+
 	void run(PollingProject& project);
 
 	Settings const& getSettings() const { return settings; }
@@ -87,7 +90,7 @@ public:
 	float getPartyWinExpectation(int partyIndex) const;
 
 	float getOthersWinExpectation() const;
-	
+
 	float getRegionPartyWinExpectation(int regionIndex, int partyIndex) const;
 
 	float getRegionOthersWinExpectation(int regionIndex) const;
@@ -107,7 +110,7 @@ public:
 	float getPartyWinPercent(MajorParty whichParty) const;
 
 	int getMinimumSeatFrequency(int partyIndex) const;
-	
+
 	int getMaximumSeatFrequency(int partyIndex) const;
 
 	int getModalSeatFrequencyCount(int partyIndex) const;
@@ -125,7 +128,7 @@ public:
 private:
 
 	friend class SimulationRun;
-	
+
 	Settings settings;
 
 	std::array<float, 2> majorityPercent = { 0.0f, 0.0f };
@@ -137,7 +140,7 @@ private:
 	std::vector<Seat::Id> classicSeatIds;
 
 	std::vector<float> partyWinExpectation;
-	
+
 	// region, then party
 	std::vector<std::vector<float>> regionPartyWinExpectation;
 
