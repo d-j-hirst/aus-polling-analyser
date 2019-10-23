@@ -26,17 +26,12 @@ void SimulationRun::run() {
 
 	resetSeatSpecificOutput();
 
+	accumulateRegionStaticInfo();
+
 	resetPpvcBiasAggregates();
 
-	// The following process will also create the Ppvs Bias aggregates
-	// from which Ppvc bias will be calculated
-	for (auto&[key, seat] : project.seats()) {
-		bool isPartyOne = (seat.incumbent == 0);
-		Region& thisRegion = project.regions().access(seat.region);
-		thisRegion.localModifierAverage += seat.localModifier * (isPartyOne ? 1.0f : -1.0f);
-		++thisRegion.seatCount;
-		if (sim.isLiveAutomatic()) determineSeatCachedBoothData(seat);
-	}
+	// This will also accumulate the PPVC bias aggregates
+	cacheBoothData();
 
 	determinePpvcBias();
 
@@ -46,31 +41,11 @@ void SimulationRun::run() {
 
 	determinePreviousVoteEnrolmentRatios();
 
-	// Resize regional seat counts based on the counted number of seats for each region
-	for (auto& regionPair : project.regions()) {
-		Region& thisRegion = regionPair.second;
-		thisRegion.partyLeading.clear();
-		thisRegion.partyWins.clear();
-		thisRegion.partyLeading.resize(project.parties().count());
-		thisRegion.partyWins.resize(project.parties().count(), std::vector<int>(thisRegion.seatCount + 1));
-	}
+	resizeRegionSeatCountOutputs();
 
-	// Record how many seats each party leads in (notionally) in each region
-	for (auto&[key, seat] : project.seats()) {
-		bool isPartyOne = (seat.incumbent == 0);
-		Region& thisRegion = project.regions().access(seat.region);
-		thisRegion.localModifierAverage += seat.localModifier * (isPartyOne ? 1.0f : -1.0f);
-		++thisRegion.seatCount;
-		++thisRegion.partyLeading[project.parties().idToIndex(seat.getLeadingParty())];
-	}
+	countInitialRegionSeatLeads();
 
-	// Some setup - calculating total population here since it's constant across all simulations
-	float totalPopulation = 0.0;
-	for (auto& regionPair : project.regions()) {
-		Region& thisRegion = regionPair.second;
-		totalPopulation += float(thisRegion.population);
-		thisRegion.localModifierAverage /= float(thisRegion.seatCount);
-	}
+	calculateTotalPopulation();
 
 	float liveOverallSwing = 0.0f; // swing to partyOne
 	float liveOverallPercent = 0.0f;
@@ -464,12 +439,32 @@ void SimulationRun::resetSeatSpecificOutput()
 	}
 }
 
+void SimulationRun::accumulateRegionStaticInfo()
+{
+	for (auto& [key, seat] : project.seats()) {
+		bool isPartyOne = (seat.incumbent == 0);
+		Region& thisRegion = project.regions().access(seat.region);
+		thisRegion.localModifierAverage += seat.localModifier * (isPartyOne ? 1.0f : -1.0f);
+		++thisRegion.seatCount;
+	}
+	for (auto& [key, region] : project.regions()) {
+		region.localModifierAverage /= float(region.seatCount);
+	}
+}
+
 void SimulationRun::resetPpvcBiasAggregates()
 {
 	// Set up anything that needs to be prepared for seats
 	ppvcBiasNumerator = 0.0f;
 	ppvcBiasDenominator = 0.0f;
 	totalOldPpvcVotes = 0;
+}
+
+void SimulationRun::cacheBoothData()
+{
+	for (auto&[key, seat] : project.seats()) {
+		if (sim.isLiveAutomatic()) determineSeatCachedBoothData(seat);
+	}
 }
 
 void SimulationRun::determinePpvcBias()
@@ -505,6 +500,34 @@ void SimulationRun::determinePreviousVoteEnrolmentRatios()
 	if (!voteDenominator) return;
 	previousOrdinaryVoteEnrolmentRatio = float(ordinaryVoteNumerator) / float(voteDenominator);
 	previousDeclarationVoteEnrolmentRatio = float(declarationVoteNumerator) / float(voteDenominator);
+}
+
+void SimulationRun::resizeRegionSeatCountOutputs()
+{
+	// Resize regional seat counts based on the counted number of seats for each region
+	for (auto& [key, region] : project.regions()) {
+		region.partyLeading.clear();
+		region.partyWins.clear();
+		region.partyLeading.resize(project.parties().count());
+		region.partyWins.resize(project.parties().count(), std::vector<int>(region.seatCount + 1));
+	}
+}
+
+void SimulationRun::countInitialRegionSeatLeads()
+{
+	for (auto&[key, seat] : project.seats()) {
+		Region& thisRegion = project.regions().access(seat.region);
+		++thisRegion.partyLeading[project.parties().idToIndex(seat.getLeadingParty())];
+	}
+}
+
+void SimulationRun::calculateTotalPopulation()
+{
+	// Some setup - calculating total population here since it's constant across all simulations
+	totalPopulation = 0.0;
+	for (auto&[key, region] : project.regions()) {
+		totalPopulation += float(region.population);
+	}
 }
 
 void SimulationRun::determineSeatCachedBoothData(Seat& seat)

@@ -34,11 +34,21 @@ private:
 
 	void resetSeatSpecificOutput();
 
+	void accumulateRegionStaticInfo();
+
 	void resetPpvcBiasAggregates();
+
+	void cacheBoothData();
 
 	void determinePpvcBias();
 
 	void determinePreviousVoteEnrolmentRatios();
+
+	void resizeRegionSeatCountOutputs();
+
+	void countInitialRegionSeatLeads();
+
+	void calculateTotalPopulation();
 
 	void determineSeatCachedBoothData(Seat& seat);
 
@@ -72,6 +82,8 @@ private:
 	float ppvcBiasObserved = 0.0f;
 	float ppvcBiasConfidence = 0.0f;
 	int totalOldPpvcVotes = 0;
+
+	float totalPopulation = 0.0f;
 
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
