@@ -129,6 +129,8 @@ private:
 
 	friend class SimulationRun;
 
+	friend class SimulationPreparation;
+
 	Settings settings;
 
 	std::array<float, 2> majorityPercent = { 0.0f, 0.0f };

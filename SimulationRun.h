@@ -2,6 +2,8 @@
 
 #include "Party.h"
 
+#include <array>
+
 class PollingProject;
 class RegionCollection;
 class Seat;
@@ -10,6 +12,8 @@ class Simulation;
 
 class SimulationRun {
 public:
+	friend class SimulationPreparation;
+
 	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
 
 	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim) {}
@@ -30,27 +34,32 @@ private:
 		float significance = 0.0f;
 	};
 
-	void resetRegionSpecificOutput();
 
-	void resetSeatSpecificOutput();
+	// simulation functions
+	void runIterations();
+	void initialiseIterationSpecificCounts();
+	void determineIterationOverallSwing();
+	void determineIterationPpvcBias();
+	void determineIterationRegionalSwings();
+	void correctRegionalSwings(float tempOverallSwing);
+	void determineSeatResult(Seat& seat);
+	void determineClassicSeatResult(Seat& seat);
+	void adjustClassicSeatResultForBettingOdds(Seat& seat, SeatResult result);
+	void determineNonClassicSeatResult(Seat& seat);
+	void recordSeatResult(Seat& seat);
+	void assignCountAsPartyWins();
+	void assignSupportsPartyWins();
+	void classifyMajorityResult();
+	void addPartySeatWinCounts();
 
-	void accumulateRegionStaticInfo();
-
-	void resetPpvcBiasAggregates();
-
-	void cacheBoothData();
-
-	void determinePpvcBias();
-
-	void determinePreviousVoteEnrolmentRatios();
-
-	void resizeRegionSeatCountOutputs();
-
-	void countInitialRegionSeatLeads();
-
-	void calculateTotalPopulation();
-
-	void determineSeatCachedBoothData(Seat& seat);
+	// statistic calculations
+	void calculateIndividualSeatStatistics();
+	void calculateWholeResultStatistics();
+	void calculatePartyWinExpectations();
+	void calculateRegionPartyWinExpectations();
+	void recordProbabilityBands();
+	void createClassicSeatsList();
+	void calculateStatistics();
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
@@ -87,4 +96,27 @@ private:
 
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
+
+	float liveOverallSwing = 0.0f; // swing to partyOne
+	float liveOverallPercent = 0.0f;
+	float classicSeatCount = 0.0f;
+	// A bunch of votes from one seat is less likely to be representative than from a wide variety of seats,
+	// so this factor is introduced to avoid a small number of seats from having undue influence early in the count
+	float sampleRepresentativeness = 0.0f;
+	int total2cpVotes = 0;
+	int totalEnrolment = 0;
+
+	std::array<int, 2> partyMajority;
+	std::array<int, 2> partyMinority;
+	int hungParliament;
+
+	float pollOverallSwing;
+	float pollOverallStdDev;
+
+	// iteration-specific variables
+	std::vector<std::vector<int>> regionSeatCount;
+	std::vector<int> partyWins;
+	float iterationOverallSwing;
+
+	std::array<int, 2> partySupport;
 };

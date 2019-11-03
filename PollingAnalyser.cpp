@@ -19,7 +19,7 @@
 #include "QuickTest.h"
 
 // Switch true/false depending on whether we want to run the actual program or just a quick test of the mechanics
-constexpr bool DoQuickTest = true;
+constexpr bool DoQuickTest = false;
 
 // This is wxWidgets's way of creating a new app: this class MyApp derives from
 // the wxWidgets class wxApp; we then run the macro IMPLEMENT_APP below that

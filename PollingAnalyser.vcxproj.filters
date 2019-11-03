@@ -182,6 +182,7 @@
     <ClCompile Include="QuickTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SimulationPreparation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -452,6 +453,9 @@
     </ClInclude>
     <ClInclude Include="QuickTest.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationPreparation.h">
+      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

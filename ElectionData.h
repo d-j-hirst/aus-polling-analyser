@@ -26,6 +26,11 @@ namespace Results {
 		bool hasOldResults() const { return tcpVote[0] + tcpVote[1]; }
 		bool hasNewResults() const { return newResultsZero || (newTcpVote[0] + newTcpVote[1]); }
 		bool hasOldAndNewResults() const { return hasOldResults() && hasNewResults(); }
+		bool hasValidPreferenceData() const {
+			// sometimes Fp and Tcp votes for a booth are not properly synchronised, this makes sure they're about the same
+			return hasNewResults() && totalNewFpVotes() &&
+				abs(totalNewTcpVotes() - totalNewFpVotes()) < std::min(10, totalNewTcpVotes() / 50 - 1);
+		}
 		int totalOldTcpVotes() const { return tcpVote[0] + tcpVote[1]; }
 		int totalNewTcpVotes() const { return newTcpVote[0] + newTcpVote[1]; }
 		int totalOldFpVotes() const { return std::accumulate(oldFpCandidates.begin(), oldFpCandidates.end(), 0, [](int val, Candidate c) {return val + c.fpVotes; }); }

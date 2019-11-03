@@ -331,6 +331,7 @@
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
     <ClCompile Include="SimulationCollection.cpp" />
+    <ClCompile Include="SimulationPreparation.cpp" />
     <ClCompile Include="SimulationRun.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
     <ClCompile Include="TextInput.cpp" />
@@ -356,6 +357,7 @@
     <ClInclude Include="RegionCollection.h" />
     <ClInclude Include="SeatCollection.h" />
     <ClInclude Include="SimulationCollection.h" />
+    <ClInclude Include="SimulationPreparation.h" />
     <ClInclude Include="SimulationRun.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />
