@@ -84,13 +84,13 @@
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
     <ClCompile Include="Model.cpp">
-      <Filter>Source Files\Data Objects</Filter>
+      <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="Simulation.cpp">
-      <Filter>Source Files\Data Objects</Filter>
+      <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="Projection.cpp">
-      <Filter>Source Files\Data Objects</Filter>
+      <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="NonClassicFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
@@ -177,7 +177,7 @@
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
     <ClCompile Include="SimulationRun.cpp">
-      <Filter>Source Files\Data Objects</Filter>
+      <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="QuickTest.cpp">
       <Filter>Source Files</Filter>
@@ -206,9 +206,6 @@
     <Filter Include="Source Files\Tabbed Frames">
       <UniqueIdentifier>{db23d37b-d55b-42ad-9bdd-a18c9bc05011}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Data Objects">
-      <UniqueIdentifier>{0d62a468-e7fa-468c-9517-e43acae4634b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Zip stuff">
       <UniqueIdentifier>{0568daec-01ef-4a02-8c98-395bd81c5731}</UniqueIdentifier>
     </Filter>
@@ -229,6 +226,12 @@
     </Filter>
     <Filter Include="Source Files\Project Sections">
       <UniqueIdentifier>{451e12ef-c0c8-45a7-9b99-3410d0a0385c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Process Objects">
+      <UniqueIdentifier>{e7035529-7ea5-432c-b822-30623a3625fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Process Objects">
+      <UniqueIdentifier>{0d62a468-e7fa-468c-9517-e43acae4634b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -289,9 +292,6 @@
     <ClInclude Include="Event.h">
       <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
-    <ClInclude Include="Model.h">
-      <Filter>Header Files\Data Objects</Filter>
-    </ClInclude>
     <ClInclude Include="NewProjectFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
@@ -306,9 +306,6 @@
     </ClInclude>
     <ClInclude Include="ProjectionsFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
-    </ClInclude>
-    <ClInclude Include="Projection.h">
-      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
     <ClInclude Include="EditProjectionFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
@@ -333,9 +330,6 @@
     </ClInclude>
     <ClInclude Include="SimulationsFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
-    </ClInclude>
-    <ClInclude Include="Simulation.h">
-      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
     <ClInclude Include="EditSimulationFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
@@ -448,14 +442,23 @@
     <ClInclude Include="DisplayFrameRenderer.h">
       <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
-    <ClInclude Include="SimulationRun.h">
-      <Filter>Header Files\Data Objects</Filter>
-    </ClInclude>
     <ClInclude Include="QuickTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Projection.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Simulation.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
     <ClInclude Include="SimulationPreparation.h">
-      <Filter>Header Files\Data Objects</Filter>
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationRun.h">
+      <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
