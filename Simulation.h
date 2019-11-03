@@ -129,7 +129,9 @@ private:
 
 	friend class SimulationRun;
 
+	friend class SimulationCompletion;
 	friend class SimulationPreparation;
+	friend class SimulationIteration;
 
 	Settings settings;
 

@@ -182,7 +182,13 @@
     <ClCompile Include="QuickTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimulationPreparation.cpp" />
+    <ClCompile Include="SimulationPreparation.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="SimulationIteration.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="SimulationCompletion.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -458,6 +464,12 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="SimulationRun.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationIteration.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationCompletion.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
   </ItemGroup>
