@@ -2,7 +2,11 @@
 
 #include "Party.h"
 
+#include <array>
+#include <numeric>
+
 class PollingProject;
+struct Region;
 class Seat;
 class Simulation;
 class SimulationRun;
@@ -26,13 +30,31 @@ private:
 		float topTwoChance = 1.0f;
 	};
 
+	struct BoothAccumulation {
+		enum MysteryBoothType {
+			Standard,
+			Ppvc,
+			Team
+		};
+		typedef std::array<int, 2> TcpTally;
+		typedef std::array<int, MysteryBoothType::Team + 1> MysteryBoothCounts;
+		MysteryBoothCounts mysteryBoothCounts = { 0, 0, 0 };
+		TcpTally tcpTally = { 0, 0 };
+
+		bool hasMysteryBooths() { return std::accumulate(mysteryBoothCounts.begin(), mysteryBoothCounts.end(), 0); }
+	};
+
+
 	void initialiseIterationSpecificCounts();
 	void determineIterationOverallSwing();
 	void determineIterationPpvcBias();
 	void determineIterationRegionalSwings();
+	void determineBaseRegionalSwing(Region& thisRegion);
+	void modifyLiveRegionalSwing(Region& thisRegion);
 	void correctRegionalSwings(float tempOverallSwing);
 	void determineSeatResult(Seat& seat);
 	void determineClassicSeatResult(Seat& seat);
+	void adjustClassicSeatResultFor3rdPlaceIndependent(Seat& seat);
 	void adjustClassicSeatResultForBettingOdds(Seat& seat, SeatResult result);
 	void determineNonClassicSeatResult(Seat& seat);
 	void recordSeatResult(Seat& seat);
@@ -44,6 +66,8 @@ private:
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
 	SeatResult calculateLiveResultClassic2CP(Seat const& seat, float priorMargin);
+	float calculateSeatRemainingSwing(Seat const& seat, float priorMargin);
+	BoothAccumulation sumClassic2cpBoothVotes(Seat const& seat, float priorMargin);
 
 	SeatResult calculateLiveResultNonClassic2CP(Seat const& seat);
 
