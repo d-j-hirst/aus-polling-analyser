@@ -18,6 +18,8 @@ public:
 	void runIteration();
 private:
 
+	typedef std::array<int, 2> TcpTally;
+
 	struct SeatResult {
 		Party::Id winner = Party::InvalidId;
 		Party::Id runnerUp = Party::InvalidId;
@@ -36,7 +38,6 @@ private:
 			Ppvc,
 			Team
 		};
-		typedef std::array<int, 2> TcpTally;
 		typedef std::array<int, MysteryBoothType::Team + 1> MysteryBoothCounts;
 		MysteryBoothCounts mysteryBoothCounts = { 0, 0, 0 };
 		TcpTally tcpTally = { 0, 0 };
@@ -65,13 +66,35 @@ private:
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
-	SeatResult calculateLiveResultClassic2CP(Seat const& seat, float priorMargin);
+	SeatResult calculateResultMatched2cp(Seat const& seat, float priorMargin);
+	SeatResult calculateLiveAutomaticResultMatched2cp(Seat const& seat, float priorMargin);
+	SeatResult calculateLiveManualResultMatched2cp(Seat const& seat, float priorMargin);
 	float calculateSeatRemainingSwing(Seat const& seat, float priorMargin);
-	BoothAccumulation sumClassic2cpBoothVotes(Seat const& seat, float priorMargin);
+	BoothAccumulation sumMatched2cpBoothVotes(Seat const& seat, float priorMargin);
+	void estimateMysteryBoothVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes);
+	// Resturns an estimate of the total votes in this seat
+	int estimateDeclarationVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes, float enrolmentChange);
+	int estimateDeclarationVotesUsingPreviousResults(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes, float enrolmentChange);
+	int estimateDeclarationVotesWithoutPreviousResults(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes);
+	float estimateDeclarationVoteProportionalChange(Seat const& seat, int estimatedTotalVotes, int estimatedTotalOrdinaryVotes);
+	float calculateOrdinaryVoteSwing(Seat const& seat, BoothAccumulation const& boothResults);
+	TcpTally estimateAbsentVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange);
+	TcpTally estimateProvisionalVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange);
+	TcpTally estimatePrepollVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange);
+	TcpTally estimatePostalVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange);
 
 	SeatResult calculateLiveResultNonClassic2CP(Seat const& seat);
+	SeatResult calculateResultUnmatched2cp(Seat const& seat);
+	TcpTally sumUnmatched2cpBoothVotes(Seat const& seat);
+	int estimateTotalVotes(Seat const& seat);
+	void modifyUnmatchedTallyForRemainingVotes(Seat const& seat, TcpTally& tcpTally, int estimatedTotalVotes);
+	
+	struct SeatCandidate { int vote; Party::Id partyId; float weight; };
+	typedef std::vector<SeatCandidate> SeatCandidates;
 
 	SeatResult calculateLiveResultFromFirstPreferences(Seat const& seat);
+	SeatCandidates collectSeatCandidates(Seat const& seat);
+	void projectSeatCandidates(Seat const& seat, SeatCandidates& candidates, int estimatedTotalVotes);
 
 	Party::Id simulateWinnerFromBettingOdds(Seat const& thisSeat);
 
