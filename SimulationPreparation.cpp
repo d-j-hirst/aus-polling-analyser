@@ -259,7 +259,7 @@ std::pair<int, int> SimulationPreparation::aggregateVoteData(Seat& seat)
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
 	if (!firstCandidateId || !secondCandidateId) return { 0, 0 }; // maverick results mean we shouldn't try to estimate 2cp swings
-	Party::Id firstSeatParty = project.getPartyByCandidate(firstCandidateId);
+	Party::Id firstSeatParty = project.results().getPartyByCandidate(firstCandidateId);
 	seat.tcpTally[0] = 0;
 	seat.tcpTally[1] = 0;
 	int newComparisonVotes = 0;
@@ -268,8 +268,8 @@ std::pair<int, int> SimulationPreparation::aggregateVoteData(Seat& seat)
 	int seatSecondPartyPreferences = 0;
 
 	for (auto boothId : seat.latestResults->booths) {
-		Results::Booth const& booth = project.getBooth(boothId);
-		Party::Id firstBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
+		Results::Booth const& booth = project.results().getBooth(boothId);
+		Party::Id firstBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
 		bool isInSeatOrder = firstBoothParty == firstSeatParty;
 		if (booth.hasNewResults()) {
 			seat.tcpTally[0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
@@ -317,8 +317,8 @@ void SimulationPreparation::calculatePreferenceFlows(Seat & seat, SeatPartyPrefe
 	if (!seat.latestResults.has_value()) return;
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
-	Party::Id firstSeatParty = project.getPartyByCandidate(firstCandidateId);
-	Party::Id secondSeatParty = project.getPartyByCandidate(secondCandidateId);
+	Party::Id firstSeatParty = project.results().getPartyByCandidate(firstCandidateId);
+	Party::Id secondSeatParty = project.results().getPartyByCandidate(secondCandidateId);
 	if (seatPartyPreferences.first + seatPartyPreferences.second) {
 		float totalPreferences = float(seatPartyPreferences.first + seatPartyPreferences.second);
 		seat.firstPartyPreferenceFlow = float(seatPartyPreferences.first) / totalPreferences;
@@ -341,9 +341,9 @@ void SimulationPreparation::accumulatePpvcBiasMeasures(Seat& seat) {
 	float ppvcSwingDenominator = 0.0f; // total number of votes in counted PPVC booths
 
 	for (auto boothId : seat.latestResults->booths) {
-		Results::Booth const& booth = project.getBooth(boothId);
-		Party::Id firstBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[0]);
-		Party::Id secondBoothParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
+		Results::Booth const& booth = project.results().getBooth(boothId);
+		Party::Id firstBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
+		Party::Id secondBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[1]);
 		bool isPpvc = booth.isPPVC();
 		if (booth.hasOldResults()) {
 			if (isPpvc) run.totalOldPpvcVotes += booth.totalOldTcpVotes();

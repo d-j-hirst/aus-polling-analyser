@@ -121,7 +121,7 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 
 	PreviousElectionDataRetriever previousElevationDataRetriever;
 	previousElevationDataRetriever.collectData();
-	project->incorporatePreviousElectionResults(previousElevationDataRetriever);
+	project->results().incorporatePreviousElectionResults(previousElevationDataRetriever);
 }
 
 void DownloadFrame::collectPreloadData(bool skipPrompt)
@@ -147,7 +147,7 @@ void DownloadFrame::collectPreloadData(bool skipPrompt)
 
 	PreloadDataRetriever preloadDataRetriever;
 	preloadDataRetriever.collectData();
-	project->incorporatePreloadData(preloadDataRetriever);
+	project->results().incorporatePreloadData(preloadDataRetriever);
 }
 
 void DownloadFrame::collectCustomBoothData(bool skipPrompt)
@@ -163,7 +163,7 @@ void DownloadFrame::collectCustomBoothData(bool skipPrompt)
 
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
-	project->incorporateLatestResults(latestResultsDataRetriever);
+	project->results().incorporateLatestResults(latestResultsDataRetriever);
 	refresher.refreshResults();
 	refresher.refreshMap();
 }
@@ -193,7 +193,7 @@ void DownloadFrame::collectLatestBoothData(bool skipPrompt)
 
 	LatestResultsDataRetriever latestResultsDataRetriever;
 	latestResultsDataRetriever.collectData();
-	project->incorporateLatestResults(latestResultsDataRetriever);
+	project->results().incorporateLatestResults(latestResultsDataRetriever);
 	refresher.refreshResults();
 	refresher.refreshMap();
 }

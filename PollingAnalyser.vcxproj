@@ -306,6 +306,7 @@
     <ClCompile Include="ProjectionCollection.cpp" />
     <ClCompile Include="QuickTest.cpp" />
     <ClCompile Include="RegionCollection.cpp" />
+    <ClCompile Include="ResultCoordinator.cpp" />
     <ClCompile Include="ResultsDownloader.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -357,6 +358,7 @@
     <ClInclude Include="ProjectionCollection.h" />
     <ClInclude Include="QuickTest.h" />
     <ClInclude Include="RegionCollection.h" />
+    <ClInclude Include="ResultCoordinator.h" />
     <ClInclude Include="SeatCollection.h" />
     <ClInclude Include="SimulationCollection.h" />
     <ClInclude Include="SimulationCompletion.h" />

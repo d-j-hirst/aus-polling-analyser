@@ -94,7 +94,9 @@ private:
 
 	SeatResult calculateLiveResultFromFirstPreferences(Seat const& seat);
 	SeatCandidates collectSeatCandidates(Seat const& seat);
-	void projectSeatCandidates(Seat const& seat, SeatCandidates& candidates, int estimatedTotalVotes);
+	void projectSeatCandidatePrimaries(Seat const& seat, SeatCandidates& candidates, int estimatedTotalVotes);
+	void distributePreferences(SeatCandidates& candidates);
+	SeatResult determineResultFromDistribution(Seat const& seat, SeatCandidates& candidates, int estimatedTotalVotes);
 
 	Party::Id simulateWinnerFromBettingOdds(Seat const& thisSeat);
 

@@ -215,7 +215,7 @@ wxColour MapFrame::decideBoothCircleColour(Results::Booth const & booth) const
 wxColour MapFrame::decideBoothTcpMarginColour(Results::Booth const & booth) const
 {
 	int winnerId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
-	Party const& winnerParty = project->parties().view(project->getPartyByCandidate(winnerId));
+	Party const& winnerParty = project->parties().view(project->results().getPartyByCandidate(winnerId));
 	wxColour winnerColour = wxColour(winnerParty.colour.r, winnerParty.colour.g, winnerParty.colour.b, 255);
 	float tcpMargin = float(std::max(booth.newTcpVote[0], booth.newTcpVote[1])) / float(booth.totalNewTcpVotes()) - 0.5f;
 	float colourFactor = std::clamp(tcpMargin * 4.0f, 0.0f, 1.0f);
@@ -228,7 +228,7 @@ wxColour MapFrame::decideBoothTcpSwingColour(Results::Booth const & booth) const
 	wxColour finalColour = wxColour(255, 255, 255);
 	if (booth.hasOldAndNewResults()) {
 		int swingToId = (booth.rawSwing(0) > 0.0f ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
-		Party const& swingToParty = project->parties().view(project->getPartyByCandidate(swingToId));
+		Party const& swingToParty = project->parties().view(project->results().getPartyByCandidate(swingToId));
 		float swingSize = abs(booth.rawSwing(0));
 		float colourFactor = std::clamp(swingSize * 6.0f, 0.0f, 1.0f);
 		wxColour partyColour = wxColour(swingToParty.colour.r, swingToParty.colour.g, swingToParty.colour.b, 255);
@@ -242,7 +242,7 @@ wxColour MapFrame::decideBoothTopPrimaryColour(Results::Booth const & booth) con
 	wxColour finalColour = wxColour(255, 255, 255);
 	auto topPrimaryIt = std::max_element(booth.fpCandidates.begin(), booth.fpCandidates.end(),
 		[](Candidate const& a, Candidate const& b) {return a.fpVotes < b.fpVotes; });
-	Party const& topPrimaryParty = project->parties().view(project->getPartyByCandidate(topPrimaryIt->candidateId));
+	Party const& topPrimaryParty = project->parties().view(project->results().getPartyByCandidate(topPrimaryIt->candidateId));
 	float primaryVoteProportion = float(topPrimaryIt->fpVotes) / float(booth.totalNewFpVotes());
 	float colourFactor = std::clamp((primaryVoteProportion - 0.2f) * 2.0f, 0.0f, 1.0f);
 	wxColour partyColour = wxColour(topPrimaryParty.colour.r, topPrimaryParty.colour.g, topPrimaryParty.colour.b, 255);
@@ -258,7 +258,7 @@ wxColour MapFrame::decideBoothSpecificPrimaryColour(Results::Booth const & booth
 	auto selectedPartyId = project->parties().indexToId(partyIndex);
 	auto const& selectedParty = project->parties().viewByIndex(partyIndex);
 	for (auto const& candidate : booth.fpCandidates) {
-		if (project->getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
+		if (project->results().getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
 			partyFpVotes += candidate.fpVotes;
 		}
 	}
@@ -293,7 +293,7 @@ bool MapFrame::decideBoothTcpMarginVisibility(Results::Booth const & booth) cons
 {
 	if (!booth.totalNewTcpVotes()) return false;
 	int winnerCandidateId = (booth.newTcpVote[0] > booth.newTcpVote[1] ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
-	if (project->getPartyByCandidate(winnerCandidateId) == Party::InvalidId) return false;
+	if (project->results().getPartyByCandidate(winnerCandidateId) == Party::InvalidId) return false;
 	return true;
 }
 
@@ -301,7 +301,7 @@ bool MapFrame::decideBoothTcpSwingVisibility(Results::Booth const & booth) const
 {
 	if (!booth.hasOldAndNewResults()) return false;
 	int swingToCandidateId = (booth.rawSwing(0) > 0.0f ? booth.tcpCandidateId[0] : booth.tcpCandidateId[1]);
-	if (project->getPartyByCandidate(swingToCandidateId) == Party::InvalidId) return false;
+	if (project->results().getPartyByCandidate(swingToCandidateId) == Party::InvalidId) return false;
 	return true;
 }
 
@@ -310,7 +310,7 @@ bool MapFrame::decideBoothTopPrimaryVisibility(Results::Booth const & booth) con
 	if (!booth.totalNewFpVotes()) return false;
 	auto topPrimaryIt = std::max_element(booth.fpCandidates.begin(), booth.fpCandidates.end(),
 		[](Candidate const& a, Candidate const& b) {return a.fpVotes < b.fpVotes; });
-	if (project->getPartyByCandidate(topPrimaryIt->candidateId) == Party::InvalidId) return false;
+	if (project->results().getPartyByCandidate(topPrimaryIt->candidateId) == Party::InvalidId) return false;
 	return true;
 }
 
@@ -320,7 +320,7 @@ bool MapFrame::decideBoothSpecificPrimaryVisibility(Results::Booth const & booth
 	if (!booth.totalNewFpVotes()) return false;
 	auto selectedPartyId = project->parties().indexToId(partyIndex);
 	for (auto const& candidate : booth.fpCandidates) {
-		if (project->getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
+		if (project->results().getPartyByCandidate(candidate.candidateId) == selectedPartyId) {
 			return true;
 		}
 	}
@@ -331,7 +331,7 @@ void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 {
 	if (!seat.latestResults) return;
 	for (int boothId : seat.latestResults->booths) {
-		auto const& booth = project->getBooth(boothId);
+		auto const& booth = project->results().getBooth(boothId);
 		if (!decideBoothCircleVisibility(booth)) continue;
 		Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 		int circleSize = calculateBoothCircleSize(booth);
@@ -343,15 +343,15 @@ void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 
 Point2Df MapFrame::getMinWorldCoords()
 {
-	auto currentLatitudeRange = project->boothLatitudeRange();
-	auto currentLongitudeRange = project->boothLongitudeRange();
+	auto currentLatitudeRange = project->results().boothLatitudeRange();
+	auto currentLongitudeRange = project->results().boothLongitudeRange();
 	return { currentLongitudeRange.x - 1.0f, currentLatitudeRange.x - 1.0f };
 }
 
 Point2Df MapFrame::getMaxWorldCoords()
 {
-	auto currentLatitudeRange = project->boothLatitudeRange();
-	auto currentLongitudeRange = project->boothLongitudeRange();
+	auto currentLatitudeRange = project->results().boothLatitudeRange();
+	auto currentLongitudeRange = project->results().boothLongitudeRange();
 	return { currentLongitudeRange.y + 1.0f, currentLatitudeRange.y + 1.0f };
 }
 
@@ -478,7 +478,7 @@ void MapFrame::render(wxDC& dc) {
 
 	clearDC(dc);
 
-	if (project->boothLatitudeRange().isZero()) return;
+	if (project->results().boothLatitudeRange().isZero()) return;
 
 	defineGraphLimits();
 
@@ -540,7 +540,7 @@ void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 		if (selectedSeat > 0 && selectedSeat != seatIndex) continue;
 		if (!seat.latestResults) return;
 		for (int boothId : seat.latestResults->booths) {
-			auto const& booth = project->getBooth(boothId);
+			auto const& booth = project->results().getBooth(boothId);
 			if (!booth.totalNewTcpVotes()) continue;
 			Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 			float thisDistance = mousePosF.distance(mapCoords);
@@ -578,9 +578,9 @@ std::string MapFrame::leadingCandidateText(Results::Booth const & booth) const
 	std::string returnString;
 	bool firstCandidateLeading = booth.newTcpVote[0] > booth.newTcpVote[1];
 	int leadingCandidate = (firstCandidateLeading ? 0 : 1);
-	returnString += project->getCandidateById(booth.tcpCandidateId[leadingCandidate])->name;
+	returnString += project->results().getCandidateById(booth.tcpCandidateId[leadingCandidate])->name;
 	returnString += " (";
-	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[leadingCandidate]))->shortCode;
+	returnString += project->results().getAffiliationById(project->results().getCandidateAffiliationId(booth.tcpCandidateId[leadingCandidate]))->shortCode;
 	returnString += "): ";
 	returnString += std::to_string(booth.newTcpVote[leadingCandidate]);
 	returnString += " - ";
@@ -602,9 +602,9 @@ std::string MapFrame::trailingCandidateText(Results::Booth const & booth) const
 	bool firstCandidateLeading = booth.newTcpVote[0] > booth.newTcpVote[1];
 	int trailingCandidate = (firstCandidateLeading ? 1 : 0);
 
-	returnString += project->getCandidateById(booth.tcpCandidateId[trailingCandidate])->name;
+	returnString += project->results().getCandidateById(booth.tcpCandidateId[trailingCandidate])->name;
 	returnString += " (";
-	returnString += project->getAffiliationById(project->getCandidateAffiliationId(booth.tcpCandidateId[trailingCandidate]))->shortCode;
+	returnString += project->results().getAffiliationById(project->results().getCandidateAffiliationId(booth.tcpCandidateId[trailingCandidate]))->shortCode;
 	returnString += "): ";
 	returnString += std::to_string(booth.newTcpVote[trailingCandidate]);
 	returnString += " - ";
@@ -629,9 +629,9 @@ std::string MapFrame::decideFpText(Results::Booth const & booth) const
 		std::sort(sortedCandidates.begin(), sortedCandidates.end(), [](Candidate c1, Candidate c2) {return c1.fpVotes > c2.fpVotes; });
 		for (auto const& candidate : sortedCandidates) {
 			returnString += "\n";
-			returnString += project->getCandidateById(candidate.candidateId)->name;
+			returnString += project->results().getCandidateById(candidate.candidateId)->name;
 			returnString += " (";
-			returnString += project->getAffiliationById(project->getCandidateAffiliationId(candidate.candidateId))->shortCode;
+			returnString += project->results().getAffiliationById(project->results().getCandidateAffiliationId(candidate.candidateId))->shortCode;
 			returnString += "): ";
 			returnString += std::to_string(candidate.fpVotes);
 			returnString += " - ";
@@ -642,20 +642,20 @@ std::string MapFrame::decideFpText(Results::Booth const & booth) const
 			int matchedPartyVotes = 0;
 
 			for (auto const& oldCandidate : booth.oldFpCandidates) {
-				bool matchedParty = project->getPartyByCandidate(oldCandidate.candidateId) ==
-					project->getPartyByCandidate(candidate.candidateId);
-				bool matchedCandidate = project->getCandidateById(oldCandidate.candidateId)->name ==
-					project->getCandidateById(candidate.candidateId)->name;
+				bool matchedParty = project->results().getPartyByCandidate(oldCandidate.candidateId) ==
+					project->results().getPartyByCandidate(candidate.candidateId);
+				bool matchedCandidate = project->results().getCandidateById(oldCandidate.candidateId)->name ==
+					project->results().getCandidateById(candidate.candidateId)->name;
 				// Matching to "independent party" or "invalid party" is not actually a match
-				if (project->getCandidateAffiliationId(oldCandidate.candidateId) <= 0) {
+				if (project->results().getCandidateAffiliationId(oldCandidate.candidateId) <= 0) {
 					matchedParty = false;
 				}
 				// If we match the party, but not the exact affiliation, and another candidate DOES match the exact affiliation
 				// then this is no longer a match
 				if (matchedParty) {
-					if (project->getCandidateAffiliationId(oldCandidate.candidateId) != project->getCandidateAffiliationId(candidate.candidateId)) {
+					if (project->results().getCandidateAffiliationId(oldCandidate.candidateId) != project->results().getCandidateAffiliationId(candidate.candidateId)) {
 						for (auto const& otherCandidate : sortedCandidates) {
-							if (project->getCandidateAffiliationId(oldCandidate.candidateId) == project->getCandidateAffiliationId(otherCandidate.candidateId)) {
+							if (project->results().getCandidateAffiliationId(oldCandidate.candidateId) == project->results().getCandidateAffiliationId(otherCandidate.candidateId)) {
 								matchedParty = false;
 								break;
 							}
@@ -721,7 +721,7 @@ void MapFrame::drawBoothDetails(wxDC& dc) const
 {
 	if (mouseoverBooth == -1) return;
 	dc.SetFont(TooltipFont);
-	auto const& booth = project->getBooth(mouseoverBooth);
+	auto const& booth = project->results().getBooth(mouseoverBooth);
 	Point2Df screenPos = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
 	Point2Di tooltipSize = calculateTooltipSize(dc, booth);
 	Point2Di tooltipPos = calculateTooltipPosition(Point2Di(screenPos), tooltipSize);

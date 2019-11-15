@@ -269,8 +269,8 @@ void SeatsFrame::showSeatResults()
 		" (" + formatFloat(results->postalVotePercent(), 2) + "%)\n";
 	wxMessageBox(summaryString);
 	std::string tcpString = "";
-	tcpString += project->getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " + 
-		project->getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
+	tcpString += project->results().getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " + 
+		project->results().getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
 	tcpString += "Total votes: " + std::to_string(results->leadingCandidate().totalVotes()) + " (" +
 		formatFloat(float(results->leadingCandidate().totalVotes()) / float(results->total2cpVotes()) * 100.0f, 2) + "%), " +
 		std::to_string(results->trailingCandidate().totalVotes()) + " (" +
@@ -302,11 +302,11 @@ void SeatsFrame::showSeatResults()
 		formatFloat(float(results->trailingCandidate().postalVotes) / float(results->postalVotes()) * 100.0f, 2) + "%)\n";
 	wxMessageBox(tcpString);
 	std::string boothString = "Booth results: ";
-	boothString += project->getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " + 
-		project->getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
+	boothString += project->results().getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " +
+		project->results().getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
 	int numBooths = 0;
 	for (int boothId : results->booths) {
-		auto boothResults = project->getBooth(boothId);
+		auto boothResults = project->results().getBooth(boothId);
 		boothString += boothResults.name + ": " + std::to_string(boothResults.tcpVote[0]) +
 			" (" + formatFloat(boothResults.percentVote(0), 2) + "%) vs. " +
 			std::to_string(boothResults.tcpVote[1]) +
@@ -316,16 +316,16 @@ void SeatsFrame::showSeatResults()
 			wxMessageBox(boothString);
 			numBooths = 0;
 			boothString = "Booth results: ";
-			boothString += project->getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " +
-				project->getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
+			boothString += project->results().getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " +
+				project->results().getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
 		}
 	}
 	if (numBooths) {
 		wxMessageBox(boothString);
 		numBooths = 0;
 		boothString = "Booth results: ";
-		boothString += project->getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " +
-			project->getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
+		boothString += project->results().getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " +
+			project->results().getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
 	}
 }
 

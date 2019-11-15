@@ -188,7 +188,12 @@
     <ClCompile Include="SimulationIteration.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
-    <ClCompile Include="SimulationCompletion.cpp" />
+    <ClCompile Include="SimulationCompletion.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="ResultCoordinator.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -471,6 +476,9 @@
     </ClInclude>
     <ClInclude Include="SimulationCompletion.h">
       <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="ResultCoordinator.h">
+      <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
