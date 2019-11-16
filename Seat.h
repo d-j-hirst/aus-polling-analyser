@@ -7,7 +7,7 @@
 #include <exception>
 #include <optional>
 
-class Result;
+class Outcome;
 
 class Seat {
 
@@ -33,7 +33,7 @@ public:
 	Party::Id challenger = Party::InvalidId;
 	Party::Id challenger2 = Party::InvalidId;
 	Region::Id region = Region::InvalidId;
-	Result const* latestResult = nullptr; // used as a temporary in simulations for storing the latest live result
+	Outcome const* outcome = nullptr; // used as a temporary in simulations for storing the latest live result
 
 	// Official seat ID from the electoral commission
 	int officialId = -1;

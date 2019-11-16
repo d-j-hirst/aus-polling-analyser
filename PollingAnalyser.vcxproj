@@ -303,6 +303,7 @@
     <ClCompile Include="General.cpp" />
     <ClCompile Include="GenericChildFrame.cpp" />
     <ClCompile Include="NonClassicFrame.cpp" />
+    <ClCompile Include="ProjectFiler.cpp" />
     <ClCompile Include="ProjectionCollection.cpp" />
     <ClCompile Include="QuickTest.cpp" />
     <ClCompile Include="RegionCollection.cpp" />
@@ -355,6 +356,7 @@
     <ClInclude Include="ModelCollection.h" />
     <ClInclude Include="PollCollection.h" />
     <ClInclude Include="PollsterCollection.h" />
+    <ClInclude Include="ProjectFiler.h" />
     <ClInclude Include="ProjectionCollection.h" />
     <ClInclude Include="QuickTest.h" />
     <ClInclude Include="RegionCollection.h" />

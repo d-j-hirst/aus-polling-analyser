@@ -33,7 +33,7 @@ void SimulationPreparation::prepareForIterations()
 
 	// this stores the manually input results for seats so that they're ready for the simulations
 	// to use them if set to "Live Manual"
-	run.project.updateLatestResultsForSeats();
+	run.project.updateOutcomesForSeats();
 
 	determinePreviousVoteEnrolmentRatios();
 
@@ -69,7 +69,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 		seat.partyTwoWinRate = 0.0f;
 		seat.partyOthersWinRate = 0.0f;
 		seat.simulatedMarginAverage = 0;
-		seat.latestResult = nullptr;
+		seat.outcome = nullptr;
 	}
 }
 
@@ -194,10 +194,10 @@ void SimulationPreparation::updateLiveAggregateForSeat(Seat & seat)
 	++run.classicSeatCount;
 	Region& thisRegion = project.regions().access(seat.region);
 	++thisRegion.classicSeatCount;
-	if (!seat.latestResult) return;
+	if (!seat.outcome) return;
 	bool incIsOne = seat.incumbent == 0;
-	float percentCounted = seat.latestResult->getPercentCountedEstimate();
-	float weightedSwing = seat.latestResult->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
+	float percentCounted = seat.outcome->getPercentCountedEstimate();
+	float weightedSwing = seat.outcome->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
 	run.liveOverallSwing += weightedSwing;
 	thisRegion.liveSwing += weightedSwing;
 	run.liveOverallPercent += percentCounted;

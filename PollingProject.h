@@ -39,6 +39,7 @@ class PreviousElectionDataRetriever;
 // Does not "know" about the UI at all.
 class PollingProject {
 public:
+	friend class ProjectFiler;
 
 	// Initializes the polling project using the project data
 	// selected on the New Project screen.
@@ -50,7 +51,7 @@ public:
 	// Gets the name of the project.
 	std::string getName() { return name; }
 
-	// Gets the name of the project.
+	// Gets the file name that the project was last saved under.
 	std::string getLastFileName() { return lastFileName; }
 
 	// Refreshes the calculated 2PPs for all polls.
@@ -108,23 +109,23 @@ public:
 	ResultCoordinator const& results() const { return resultCoordinator; }
 
 	// Adds a result to the front of the results list
-	void addResult(Result result);
+	void addOutcome(Outcome result);
 
 	// Returns the result with index "resultIndex".
-	Result getResult(int resultIndex) const;
+	Outcome getOutcome(int resultIndex) const;
 
 	// Returns the number of results.
-	int getResultCount() const;
+	int getOutcomeCount() const;
 
 	// Gets the begin iterator for the simulation list.
-	std::list<Result>::iterator getResultBegin();
+	std::list<Outcome>::iterator getOutcomeBegin();
 
 	// Gets the end iterator for the simulation list.
-	std::list<Result>::iterator getResultEnd();
+	std::list<Outcome>::iterator getOutcomeEnd();
 
 	// Each seat has a pointer to the latest live result (if any)
 	// This updates these pointers to point to the most recent results.
-	void updateLatestResultsForSeats();
+	void updateOutcomesForSeats();
 
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
@@ -143,10 +144,6 @@ private:
 	// Opens the project saved at the given filename.
 	// Returns 0 if successful, and 1 if opening failed.
 	void open(std::string filename);
-
-	// Opens the project saved at the given filename.
-	// Returns false if the end of the file is reached (marked by "#End").
-	bool processFileLine(std::string line, FileOpeningState& fos);
 
 	// Removes all the projections from a particular model. Used when deleting a model.
 	void removeProjectionsFromModel(Model::Id modelId);
@@ -182,7 +179,7 @@ private:
 	ResultCoordinator resultCoordinator;
 
 	// Live election results
-	std::list<Result> resultList;
+	std::list<Outcome> outcomes;
 
 	static const Party invalidParty;
 

@@ -150,7 +150,7 @@ void ResultCoordinator::incorporateLatestResults(LatestResultsDataRetriever cons
 
 	// Code below stores information
 
-	project.updateLatestResultsForSeats(); // only overwrite different results
+	project.updateOutcomesForSeats(); // only overwrite different results
 	wxDateTime dateTime = wxDateTime::Now();
 	for (auto& seatPair : project.seats()) {
 		Seat& seat = seatPair.second;
@@ -159,26 +159,26 @@ void ResultCoordinator::incorporateLatestResults(LatestResultsDataRetriever cons
 			if (seat.isClassic2pp(true)) continue;
 			float percentCountedFp = calculateFpPercentComplete(seat);
 			if (!percentCountedFp) continue;
-			Result thisResult;
+			Outcome thisResult;
 			thisResult.seat = seatPair.first;
 			thisResult.percentCounted = percentCountedFp;
 			thisResult.updateTime = dateTime;
-			if (!seat.latestResult || seat.latestResult->percentCounted != percentCountedFp) {
-				project.addResult(thisResult);
+			if (!seat.outcome || seat.outcome->percentCounted != percentCountedFp) {
+				project.addOutcome(thisResult);
 			}
 			continue;
 		}
 		float incumbentSwing = calculateSwingToIncumbent(seat);
-		Result thisResult;
+		Outcome thisResult;
 		thisResult.seat = seatPair.first;
 		thisResult.incumbentSwing = incumbentSwing;
 		thisResult.percentCounted = percentCounted2cp;
 		thisResult.updateTime = dateTime;
-		if (!seat.latestResult || seat.latestResult->percentCounted != percentCounted2cp) {
-			project.addResult(thisResult);
+		if (!seat.outcome || seat.outcome->percentCounted != percentCounted2cp) {
+			project.addOutcome(thisResult);
 		}
 	}
-	project.updateLatestResultsForSeats(); // only overwrite different results
+	project.updateOutcomesForSeats(); // only overwrite different results
 }
 
 Results::Booth const& ResultCoordinator::getBooth(int boothId) const

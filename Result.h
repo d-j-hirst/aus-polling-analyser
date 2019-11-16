@@ -8,10 +8,10 @@
 
 class Seat;
 
-class Result {
+class Outcome {
 public:
-	Result() {}
-	Result(Seat::Id seat, double incumbentSwing, double percentCounted, std::size_t boothsIn, std::size_t totalBooths)
+	Outcome() {}
+	Outcome(Seat::Id seat, double incumbentSwing, double percentCounted, std::size_t boothsIn, std::size_t totalBooths)
 		: seat(seat), incumbentSwing(incumbentSwing), percentCounted(percentCounted), boothsIn(boothsIn), totalBooths(totalBooths),
 		updateTime(wxDateTime::Now()) {}
 	Seat::Id seat;

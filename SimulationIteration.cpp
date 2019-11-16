@@ -330,7 +330,7 @@ SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(S
 	if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
 		return calculateLiveAutomaticResultMatched2cp(seat, priorMargin);
 	}
-	else if (sim.isLive() && seat.latestResult && seat.latestResult->getPercentCountedEstimate()) {
+	else if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) {
 		return calculateLiveManualResultMatched2cp(seat, priorMargin);
 	}
 	else {
@@ -384,15 +384,15 @@ SimulationIteration::SeatResult SimulationIteration::calculateLiveAutomaticResul
 
 SimulationIteration::SeatResult SimulationIteration::calculateLiveManualResultMatched2cp(Seat const& seat, float priorMargin)
 {
-	float liveMargin = seat.latestResult->incumbentSwing + seat.margin;
-	float liveStdDev = stdDevSingleSeat(seat.latestResult->getPercentCountedEstimate());
+	float liveMargin = seat.outcome->incumbentSwing + seat.margin;
+	float liveStdDev = stdDevSingleSeat(seat.outcome->getPercentCountedEstimate());
 	liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 	float priorWeight = 0.5f;
 	float liveWeight = 6.0f / (liveStdDev * liveStdDev);
 	float newMargin = (priorMargin * priorWeight + liveMargin * liveWeight) / (priorWeight + liveWeight);
 	Party::Id winner = (newMargin >= 0.0f ? seat.incumbent : seat.challenger);
 	Party::Id runnerUp = (newMargin >= 0.0f ? seat.challenger : seat.incumbent);
-	float significance = std::clamp(float(seat.latestResult->percentCounted) * 0.2f, 0.0f, 1.0f);
+	float significance = std::clamp(float(seat.outcome->percentCounted) * 0.2f, 0.0f, 1.0f);
 	return { winner, runnerUp, abs(newMargin), significance };
 }
 
@@ -401,8 +401,8 @@ float SimulationIteration::calculateSeatRemainingSwing(Seat const& seat, float p
 	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 	bool incumbentFirst = firstParty == seat.incumbent;
 
-	float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.latestResult->incumbentSwing;
-	float liveStdDev = stdDevSingleSeat(seat.latestResult->getPercentCountedEstimate());
+	float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.outcome->incumbentSwing;
+	float liveStdDev = stdDevSingleSeat(seat.outcome->getPercentCountedEstimate());
 	liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 	float priorWeight = 0.5f;
 	float liveWeight = 6.0f / (liveStdDev * liveStdDev);

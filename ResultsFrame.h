@@ -67,7 +67,7 @@ private:
 	void OnFilterSelection(wxCommandEvent& event);
 
 	// adds "result" to result data.
-	void addResultToResultData(Result result);
+	void addResultToResultData(Outcome result);
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
@@ -80,26 +80,26 @@ private:
 	void refreshTable();
 
 	// checks whether thisResult passes the current filter
-	bool resultPassesFilter(Result const& thisResult);
+	bool resultPassesFilter(Outcome const& thisResult);
 
 	// Gets the backgroundcolour for the cell showing this result's swing
-	wxColour decideSwingColour(Result const& thisResult);
+	wxColour decideSwingColour(Outcome const& thisResult);
 
-	wxColour decidePercentCountedColour(Result const& thisResult);
+	wxColour decidePercentCountedColour(Outcome const& thisResult);
 
-	std::string decideProjectedMarginString(Result const& thisResult);
+	std::string decideProjectedMarginString(Outcome const& thisResult);
 
-	wxColour decideProjectedMarginColour(Result const& thisResult);
+	wxColour decideProjectedMarginColour(Outcome const& thisResult);
 
-	std::string decideLeadingPartyName(Result const& thisResult);
+	std::string decideLeadingPartyName(Outcome const& thisResult);
 
-	float decideLeaderProbability(Result const& thisResult);
+	float decideLeaderProbability(Outcome const& thisResult);
 
-	std::string decideLikelihoodString(Result const& thisResult);
+	std::string decideLikelihoodString(Outcome const& thisResult);
 
-	std::string decideStatusString(Result const& thisResult);
+	std::string decideStatusString(Outcome const& thisResult);
 
-	wxColour decideStatusColour(Result const& thisResult);
+	wxColour decideStatusColour(Outcome const& thisResult);
 
 	void confirmOverrideNonClassicStatus(Seat& seat);
 
