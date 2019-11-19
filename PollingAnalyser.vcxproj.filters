@@ -195,6 +195,7 @@
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
     <ClCompile Include="ProjectFiler.cpp" />
+    <ClCompile Include="OutcomeCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -352,9 +353,6 @@
     <ClInclude Include="ResultsFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
-    <ClInclude Include="Result.h">
-      <Filter>Header Files\Data Objects</Filter>
-    </ClInclude>
     <ClInclude Include="NonClassicFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
@@ -483,6 +481,12 @@
     </ClInclude>
     <ClInclude Include="ProjectFiler.h">
       <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="OutcomeCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="Outcome.h">
+      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

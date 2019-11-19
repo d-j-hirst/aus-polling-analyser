@@ -282,6 +282,7 @@
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MapFrame.cpp" />
     <ClCompile Include="ModelCollection.cpp" />
+    <ClCompile Include="OutcomeCollection.cpp" />
     <ClCompile Include="PartyCollection.cpp" />
     <ClCompile Include="Points.cpp" />
     <ClCompile Include="PollCollection.cpp" />
@@ -354,6 +355,7 @@
     <ClInclude Include="InputGeneral.h" />
     <ClInclude Include="IntInput.h" />
     <ClInclude Include="ModelCollection.h" />
+    <ClInclude Include="OutcomeCollection.h" />
     <ClInclude Include="PollCollection.h" />
     <ClInclude Include="PollsterCollection.h" />
     <ClInclude Include="ProjectFiler.h" />
@@ -394,7 +396,7 @@
     <ClInclude Include="FileOpeningState.h" />
     <ClInclude Include="General.h" />
     <ClInclude Include="GenericChildFrame.h" />
-    <ClInclude Include="Result.h" />
+    <ClInclude Include="Outcome.h" />
     <ClInclude Include="NonClassicFrame.h" />
     <ClInclude Include="ResultsFrame.h" />
     <ClInclude Include="Model.h" />

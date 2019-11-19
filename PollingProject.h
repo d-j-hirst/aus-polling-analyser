@@ -13,6 +13,7 @@
 
 #include "EventCollection.h"
 #include "ModelCollection.h"
+#include "OutcomeCollection.h"
 #include "PartyCollection.h"
 #include "PollCollection.h"
 #include "PollsterCollection.h"
@@ -27,7 +28,7 @@
 #include "Region.h"
 #include "Seat.h"
 #include "Simulation.h"
-#include "Result.h"
+#include "Outcome.h"
 
 const int PA_MaxPollsters = 100;
 
@@ -108,20 +109,8 @@ public:
 	ResultCoordinator& results() { return resultCoordinator; }
 	ResultCoordinator const& results() const { return resultCoordinator; }
 
-	// Adds a result to the front of the results list
-	void addOutcome(Outcome result);
-
-	// Returns the result with index "resultIndex".
-	Outcome getOutcome(int resultIndex) const;
-
-	// Returns the number of results.
-	int getOutcomeCount() const;
-
-	// Gets the begin iterator for the simulation list.
-	std::list<Outcome>::iterator getOutcomeBegin();
-
-	// Gets the end iterator for the simulation list.
-	std::list<Outcome>::iterator getOutcomeEnd();
+	OutcomeCollection& outcomes() { return outcomeCollection; }
+	OutcomeCollection const& outcomes() const { return outcomeCollection; }
 
 	// Each seat has a pointer to the latest live result (if any)
 	// This updates these pointers to point to the most recent results.
@@ -177,9 +166,7 @@ private:
 	SeatCollection seatCollection;
 	SimulationCollection simulationCollection;
 	ResultCoordinator resultCoordinator;
-
-	// Live election results
-	std::list<Outcome> outcomes;
+	OutcomeCollection outcomeCollection;
 
 	static const Party invalidParty;
 

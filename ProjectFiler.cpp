@@ -148,14 +148,14 @@ int ProjectFiler::save(std::string filename) {
 		os << "live=" << int(thisSimulation.getSettings().live) << "\n";
 	}
 	os << "#Results" << "\n";
-	for (auto const& thisResult : project.outcomes) {
+	for (auto const& thisOutcome : project.outcomes()) {
 		os << "@Result" << "\n";
-		os << "seat=" << project.seats().idToIndex(thisResult.seat) << "\n";
-		os << "swng=" << thisResult.incumbentSwing << "\n";
-		os << "cnt =" << thisResult.percentCounted << "\n";
-		os << "btin=" << thisResult.boothsIn << "\n";
-		os << "btto=" << thisResult.totalBooths << "\n";
-		os << "updt=" << thisResult.updateTime.GetJulianDayNumber() << "\n";
+		os << "seat=" << project.seats().idToIndex(thisOutcome.seat) << "\n";
+		os << "swng=" << thisOutcome.incumbentSwing << "\n";
+		os << "cnt =" << thisOutcome.percentCounted << "\n";
+		os << "btin=" << thisOutcome.boothsIn << "\n";
+		os << "btto=" << thisOutcome.totalBooths << "\n";
+		os << "updt=" << thisOutcome.updateTime.GetJulianDayNumber() << "\n";
 	}
 	os << "#End";
 	os.close();
@@ -176,8 +176,6 @@ void ProjectFiler::open(std::string filename) {
 	}
 
 	is.close();
-
-	project.outcomes.clear(); // *** remove!
 
 	project.finalizeFileLoading();
 }
@@ -298,7 +296,7 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Results) {
 		if (!line.compare("@Result")) {
-			project.outcomes.push_back(Outcome());
+			project.outcomes().add(Outcome());
 			return true;
 		}
 	}
@@ -693,8 +691,8 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Results) {
-		if (!project.outcomes.size()) return true; //prevent crash from mixed-up data.
-		auto it = project.outcomes.end();
+		if (!project.outcomes().count()) return true; //prevent crash from mixed-up data.
+		auto it = project.outcomes().end();
 		it--;
 		if (!line.substr(0, 5).compare("seat=")) {
 			it->seat = std::stoi(line.substr(5));

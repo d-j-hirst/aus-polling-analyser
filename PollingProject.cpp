@@ -98,38 +98,11 @@ void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionInde
 	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
-void PollingProject::addOutcome(Outcome outcome)
-{
-	outcomes.push_front(outcome);
-}
-
-Outcome PollingProject::getOutcome(int outcomeIndex) const
-{
-	auto it = outcomes.begin();
-	std::advance(it, outcomeIndex);
-	return *it;
-}
-
-int PollingProject::getOutcomeCount() const
-{
-	return outcomes.size();
-}
-
-std::list<Outcome>::iterator PollingProject::getOutcomeBegin()
-{
-	return outcomes.begin();
-}
-
-std::list<Outcome>::iterator PollingProject::getOutcomeEnd()
-{
-	return outcomes.end();
-}
-
 void PollingProject::updateOutcomesForSeats() {
-	for (auto& thisOutcome : outcomes) {
-		auto& seatOutcome = seats().access(thisOutcome.seat).outcome;
-		if (!seatOutcome) seatOutcome = &thisOutcome;
-		else if (seatOutcome->updateTime < thisOutcome.updateTime) seatOutcome = &thisOutcome;
+	for (auto& outcome : outcomeCollection) {
+		auto& seatOutcome = seats().access(outcome.seat).outcome;
+		if (!seatOutcome) seatOutcome = &outcome;
+		else if (seatOutcome->updateTime < outcome.updateTime) seatOutcome = &outcome;
 	}
 }
 

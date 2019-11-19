@@ -98,7 +98,7 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 		// If appropriate, pops up a dialog box to ask user if they want to override the non-classic status
 		confirmOverrideNonClassicStatus(seat);
 
-		addEnteredResult(seatId);
+		addEnteredOutcome(seatId);
 
 		refreshData();
 	}
@@ -379,7 +379,7 @@ void ResultsFrame::confirmOverrideNonClassicStatus(Seat & seat)
 	}
 }
 
-void ResultsFrame::addEnteredResult(Seat::Id seatId)
+void ResultsFrame::addEnteredOutcome(Seat::Id seatId)
 {
 	// wxWidgets requires these roundabout ways of getting values from the text boxes
 	double swing; swingTextCtrl->GetLineText(0).ToDouble(&swing);
@@ -388,9 +388,9 @@ void ResultsFrame::addEnteredResult(Seat::Id seatId)
 	long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
 
 	if (percentCounted < 0.001) percentCounted = 0.0;
-	Outcome result = Outcome(seatId, swing, percentCounted, boothsIn, totalBooths);
+	Outcome outcome = Outcome(seatId, swing, percentCounted, boothsIn, totalBooths);
 
-	project->addOutcome(result);
+	project->outcomes().add(outcome);
 }
 
 std::string ResultsFrame::decideSummaryString(Simulation const & simulation)
@@ -441,8 +441,8 @@ void ResultsFrame::resetTableColumns()
 
 void ResultsFrame::addTableData()
 {
-	for (int i = 0; i < project->getOutcomeCount(); ++i) {
-		Outcome thisResult = project->getOutcome(i);
+	for (int i = 0; i < project->outcomes().count(); ++i) {
+		Outcome thisResult = project->outcomes().get(i);
 		if (resultPassesFilter(thisResult)) addResultToResultData(thisResult);
 	}
 }

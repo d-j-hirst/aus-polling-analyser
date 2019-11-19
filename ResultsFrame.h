@@ -103,7 +103,7 @@ private:
 
 	void confirmOverrideNonClassicStatus(Seat& seat);
 
-	void addEnteredResult(Seat::Id seatId);
+	void addEnteredOutcome(Seat::Id seatId);
 
 	std::string decideSummaryString(Simulation const& simulation);
 

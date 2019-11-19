@@ -396,23 +396,23 @@ void ResultCoordinator::updateOutcomesFromLatestResults()
 			if (seat.isClassic2pp(true)) continue;
 			float percentCountedFp = calculateFpPercentComplete(seat);
 			if (!percentCountedFp) continue;
-			Outcome thisResult;
-			thisResult.seat = seatPair.first;
-			thisResult.percentCounted = percentCountedFp;
-			thisResult.updateTime = dateTime;
+			Outcome thisOutcome;
+			thisOutcome.seat = seatPair.first;
+			thisOutcome.percentCounted = percentCountedFp;
+			thisOutcome.updateTime = dateTime;
 			if (!seat.outcome || seat.outcome->percentCounted != percentCountedFp) {
-				project.addOutcome(thisResult);
+				project.outcomes().add(thisOutcome);
 			}
 			continue;
 		}
 		float incumbentSwing = calculateSwingToIncumbent(seat);
-		Outcome thisResult;
-		thisResult.seat = seatPair.first;
-		thisResult.incumbentSwing = incumbentSwing;
-		thisResult.percentCounted = percentCounted2cp;
-		thisResult.updateTime = dateTime;
+		Outcome thisOutcome;
+		thisOutcome.seat = seatPair.first;
+		thisOutcome.incumbentSwing = incumbentSwing;
+		thisOutcome.percentCounted = percentCounted2cp;
+		thisOutcome.updateTime = dateTime;
 		if (!seat.outcome || seat.outcome->percentCounted != percentCounted2cp) {
-			project.addOutcome(thisResult);
+			project.outcomes().add(thisOutcome);
 		}
 	}
 	project.updateOutcomesForSeats(); // only overwrite different results
