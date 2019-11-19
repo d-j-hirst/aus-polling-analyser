@@ -418,7 +418,7 @@ void ResultCoordinator::updateOutcomesFromLatestResults()
 	project.updateOutcomesForSeats(); // only overwrite different results
 }
 
-Seat& ResultCoordinator::findMatchingSeat(Results::Seat seatData)
+Seat & ResultCoordinator::findMatchingSeat(Results::Seat seatData)
 {
 	auto seatMatchFunc = [seatData](SeatCollection::SeatContainer::value_type const& seat)
 	{ return seat.second.name == seatData.name || seat.second.previousName == seatData.name; };

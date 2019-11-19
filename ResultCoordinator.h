@@ -52,17 +52,6 @@ public:
 	void adjustCandidatesAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 	void adjustAffiliationsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
-	// Creates the map between what affiliation numbers and the parties in the project that those
-	// affiliation numbers correspond to.
-	void collectAffiliations(PreviousElectionDataRetriever const& dataRetriever);
-
-	// Creates the map between candidates and parties that they belong to.
-	void collectCandidatesFromPreload(PreloadDataRetriever const& dataRetriever);
-
-	// Adds booth information from preload data to the project. Necessary because some booths may not have
-	// existed prior to this election.
-	void collectBoothsFromPreload(PreloadDataRetriever const& dataRetriever);
-
 	// Assuming there is live results data added for this seat, calculates the swing to the incumbent here.
 	float calculateSwingToIncumbent(Seat const& seat);
 
@@ -86,5 +75,26 @@ public:
 	AffiliationMap affiliations;
 
 private:
-	PollingProject & project;
+	// Returns number of seats matched
+	void matchPreviousElectionSeatsWithProjectSeats(PreviousElectionDataRetriever const& dataRetriever);
+	void collectPreviousElectionBoothsAndCandidates(PreviousElectionDataRetriever const& dataRetriever);
+	// Creates the map between what affiliation numbers and the parties in the project that those
+	// affiliation numbers correspond to.
+	void collectPreviousElectionAffiliations(PreviousElectionDataRetriever const& dataRetriever);
+	void relateCandidatesAndAffiliations(PreviousElectionDataRetriever const& dataRetriever);
+
+	// Creates the map between candidates and parties that they belong to.
+	void collectCandidatesFromPreload(PreloadDataRetriever const& dataRetriever);
+
+	// Adds booth information from preload data to the project. Necessary because some booths may not have
+	// existed prior to this election.
+	void collectBoothsFromPreload(PreloadDataRetriever const& dataRetriever);
+
+	void matchBoothsFromLatestResults(LatestResultsDataRetriever const& dataRetriever);
+	void matchSeatsFromLatestResults(LatestResultsDataRetriever const& dataRetriever);
+	void updateOutcomesFromLatestResults();
+
+	Seat& findMatchingSeat(Results::Seat seatData);
+
+	PollingProject& project;
 };
