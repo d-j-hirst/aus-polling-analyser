@@ -2,19 +2,13 @@
 
 #include <fstream>
 #include <string>
-#include <string_view>
 #include <vector>
-
-constexpr int RandomVariable = 3;
 
 class Logger {
 public:
 	Logger();
 
 	void clear();
-
-	// Message should not include newline characters etc.
-	void logTimeStamp(std::string message);
 
 	template<typename T>
 	Logger& operator<<(const T& obj);
@@ -27,7 +21,6 @@ public:
 	Logger& operator<<(const int8_t& obj);
 private:
 	void resetLog();
-	void resetTimer();
 
 	std::ofstream fileStream_;
 };
