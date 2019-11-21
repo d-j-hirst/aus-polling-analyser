@@ -2,7 +2,6 @@
 
 #include "General.h"
 #include "Log.h"
-#include "RegexNavigation.h"
 
 #include <fstream>
 
@@ -113,76 +112,10 @@ void PreviousElectionDataRetriever::collectData()
 		std::string::const_iterator searchIt = xmlString.begin();
 		do {
 			Results::Seat seatData;
-			seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
-			seatData.name = extractSeatName(xmlString, searchIt);
-			seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
-			seekToFp(xmlString, searchIt);
-			if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
-				do {
-					Results::Seat::Candidate candidateData;
-					Results::Candidate candidate;
-					bool independent = candidateIsIndependent(xmlString, searchIt);
-					candidateData.candidateId = extractCandidateId(xmlString, searchIt);
-					candidate.name = extractCandidateName(xmlString, searchIt);
-					int affiliationId = 0;
-					if (!independent && comesBefore(xmlString, "Affiliation", "</Candidate>", searchIt)) {
-						affiliationId = extractAffiliationId(xmlString, searchIt);
-						affiliations.insert({ affiliationId , {extractAffiliationShortCode(xmlString, searchIt) } });
-					}
-					candidate.affiliationId = affiliationId;
-					candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
-					candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
-					candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
-					candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
-					candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
-					seatData.oldFpCandidates.push_back(candidateData);
-					candidates.insert({ candidateData.candidateId, candidate });
-				} while (moreFpData(xmlString, searchIt));
-				std::sort(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
-					[](Results::Seat::Candidate lhs, Results::Seat::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
-			}
-			seekToTcp(xmlString, searchIt);
-			for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
-				Results::Seat::Candidate candidateData;
-				bool independent = candidateIsIndependent(xmlString, searchIt);
-				candidateData.candidateId = extractCandidateId(xmlString, searchIt);
-				if (!independent) {
-					candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
-					affiliations.insert({ candidateData.affiliationId , {extractAffiliationShortCode(xmlString, searchIt)} });
-				}
-				candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
-				candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
-				candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
-				candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
-				candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
-				seatData.finalCandidates[candidateNum] = (candidateData);
-			}
-			seekToBooths(xmlString, searchIt);
-			do {
-				Results::Booth boothData;
-				boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
-				boothData.name = extractBoothName(xmlString, searchIt);
-				seekToFp(xmlString, searchIt);
-				while (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
-					Results::Booth::Candidate candidate;
-					candidate.candidateId = extractCandidateId(xmlString, searchIt);
-					auto matchedCandidate = std::find_if(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
-						[&candidate](Results::Seat::Candidate const& c) {return c.candidateId == candidate.candidateId; });
-					if (matchedCandidate != seatData.oldFpCandidates.end()) candidate.affiliationId = matchedCandidate->affiliationId;
-					candidate.fpVotes = extractBoothVotes(xmlString, searchIt);
-					boothData.oldFpCandidates.push_back(candidate);
-				}
-				seekToTcp(xmlString, searchIt);
-				boothData.tcpVote[0] = extractBoothVotes(xmlString, searchIt);
-				boothData.tcpVote[1] = extractBoothVotes(xmlString, searchIt);
-				boothData.tcpAffiliationId[0] = seatData.finalCandidates[0].affiliationId;
-				boothData.tcpAffiliationId[1] = seatData.finalCandidates[1].affiliationId;
-				seatData.booths.push_back(boothData.officialId);
-				auto newBooth = boothMap.insert({ boothData.officialId, boothData });
-				if (!newBooth.second) {
-					logger << boothData.officialId << " - Duplicate booth detected!\n";
-				}
-			} while (moreBoothData(xmlString, searchIt));
+			extractGeneralSeatInfo(xmlString, searchIt, seatData);
+			extractFpResults(xmlString, searchIt, seatData);
+			extractTcpResults(xmlString, searchIt, seatData);
+			extractBoothResults(xmlString, searchIt, seatData);
 			auto newSeat = seatMap.insert({ seatData.officialId, seatData });
 			if (!newSeat.second) {
 				logger << seatData.officialId << " - Duplicate seat detected!\n"; // this shouldn't happen
@@ -193,5 +126,106 @@ void PreviousElectionDataRetriever::collectData()
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";
+	}
+}
+
+void PreviousElectionDataRetriever::extractGeneralSeatInfo(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)
+{
+	seatData.officialId = extractSeatOfficialId(xmlString, searchIt);
+	seatData.name = extractSeatName(xmlString, searchIt);
+	seatData.enrolment = extractSeatEnrolment(xmlString, searchIt);
+}
+
+void PreviousElectionDataRetriever::extractFpResults(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)
+{
+	seekToFp(xmlString, searchIt);
+	if (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
+		do {
+			extractFpCandidate(xmlString, searchIt, seatData);
+		} while (moreFpData(xmlString, searchIt));
+		std::sort(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
+			[](Results::Seat::Candidate lhs, Results::Seat::Candidate rhs) {return lhs.totalVotes() > rhs.totalVotes(); });
+	}
+}
+
+void PreviousElectionDataRetriever::extractFpCandidate(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)
+{
+	Results::Seat::Candidate candidateData;
+	Results::Candidate candidate;
+	bool independent = candidateIsIndependent(xmlString, searchIt);
+	candidateData.candidateId = extractCandidateId(xmlString, searchIt);
+	candidate.name = extractCandidateName(xmlString, searchIt);
+	int affiliationId = 0;
+	if (!independent && comesBefore(xmlString, "Affiliation", "</Candidate>", searchIt)) {
+		affiliationId = extractAffiliationId(xmlString, searchIt);
+		affiliations.insert({ affiliationId ,{ extractAffiliationShortCode(xmlString, searchIt) } });
+	}
+	candidate.affiliationId = affiliationId;
+	candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
+	candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
+	candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
+	candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
+	candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
+	seatData.oldFpCandidates.push_back(candidateData);
+	candidates.insert({ candidateData.candidateId, candidate });
+}
+
+void PreviousElectionDataRetriever::extractTcpResults(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)
+{
+	seekToTcp(xmlString, searchIt);
+	for (size_t candidateNum = 0; candidateNum < 2; ++candidateNum) {
+		extractTcpCandidate(xmlString, searchIt, seatData, candidateNum);
+	}
+}
+
+void PreviousElectionDataRetriever::extractTcpCandidate(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData, int candidateNum)
+{
+	Results::Seat::Candidate candidateData;
+	bool independent = candidateIsIndependent(xmlString, searchIt);
+	candidateData.candidateId = extractCandidateId(xmlString, searchIt);
+	if (!independent) {
+		candidateData.affiliationId = extractAffiliationId(xmlString, searchIt);
+		affiliations.insert({ candidateData.affiliationId ,{ extractAffiliationShortCode(xmlString, searchIt) } });
+	}
+	candidateData.ordinaryVotes = extractOrdinaryVotes(xmlString, searchIt);
+	candidateData.absentVotes = extractAbsentVotes(xmlString, searchIt);
+	candidateData.provisionalVotes = extractProvisionalVotes(xmlString, searchIt);
+	candidateData.prepollVotes = extractPrepollVotes(xmlString, searchIt);
+	candidateData.postalVotes = extractPostalVotes(xmlString, searchIt);
+	seatData.finalCandidates[candidateNum] = (candidateData);
+}
+
+void PreviousElectionDataRetriever::extractBoothResults(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)
+{
+	seekToBooths(xmlString, searchIt);
+	do {
+		extractBooth(xmlString, searchIt, seatData);
+	} while (moreBoothData(xmlString, searchIt));
+}
+
+void PreviousElectionDataRetriever::extractBooth(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)
+{
+	Results::Booth boothData;
+	boothData.officialId = extractBoothOfficialId(xmlString, searchIt);
+	boothData.name = extractBoothName(xmlString, searchIt);
+	seekToFp(xmlString, searchIt);
+	while (comesBefore(xmlString, "<Candidate>", "TwoCandidatePreferred", searchIt)) {
+		Results::Booth::Candidate candidate;
+		candidate.candidateId = extractCandidateId(xmlString, searchIt);
+		auto matchedCandidate = std::find_if(seatData.oldFpCandidates.begin(), seatData.oldFpCandidates.end(),
+			[&candidate](Results::Seat::Candidate const& c) {return c.candidateId == candidate.candidateId; });
+		if (matchedCandidate != seatData.oldFpCandidates.end()) candidate.affiliationId = matchedCandidate->affiliationId;
+		candidate.fpVotes = extractBoothVotes(xmlString, searchIt);
+		boothData.oldFpCandidates.push_back(candidate);
+	}
+	seekToTcp(xmlString, searchIt);
+	boothData.tcpVote[0] = extractBoothVotes(xmlString, searchIt);
+	boothData.tcpVote[1] = extractBoothVotes(xmlString, searchIt);
+	boothData.tcpAffiliationId[0] = seatData.finalCandidates[0].affiliationId;
+	boothData.tcpAffiliationId[1] = seatData.finalCandidates[1].affiliationId;
+	seatData.booths.push_back(boothData.officialId);
+	auto newBooth = boothMap.insert({ boothData.officialId, boothData });
+	if (!newBooth.second) {
+		logger << boothData.officialId << " - Duplicate booth detected!\n";
 	}
 }

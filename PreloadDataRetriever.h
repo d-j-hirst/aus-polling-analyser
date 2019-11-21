@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ElectionData.h"
+#include "RegexNavigation.h"
 
 #include <array>
 #include <unordered_map>
@@ -39,6 +40,13 @@ public:
 
 	typedef std::vector<std::vector<int>> BoothDistribution;
 private:
+
+	void collectCandidates();
+	void collectBooths();
+
+	void extractCandidates(std::string const& xmlString, SearchIterator& searchIt);
+
+	void extractBooths(std::string const& xmlString, SearchIterator& searchIt);
 
 	CandidateMap candidates;
 	BoothMap booths;

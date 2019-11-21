@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ElectionData.h"
+#include "RegexNavigation.h"
 
 #include <array>
 #include <unordered_map>
@@ -31,6 +32,16 @@ public:
 	CandidateMap::const_iterator endCandidates() const { return candidates.cend(); }
 
 private:
+	void extractGeneralSeatInfo(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData);
+
+	void extractFpResults(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData);
+	void extractFpCandidate(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData);
+
+	void extractTcpResults(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData);
+	void extractTcpCandidate(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData, int candidateNum);
+
+	void extractBoothResults(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData);
+	void extractBooth(std::string const& xmlString, SearchIterator& searchIt, Results::Seat& seatData);
 
 	// Map between AEC's seat ID and data for that seat
 	Results::SeatMap seatMap;

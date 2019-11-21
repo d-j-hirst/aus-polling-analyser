@@ -2,7 +2,6 @@
 
 #include "General.h"
 #include "Log.h"
-#include "RegexNavigation.h"
 
 #include <fstream>
 
@@ -77,57 +76,75 @@ inline bool moreBoothData(std::string const& xmlString, SearchIterator const& se
 
 void PreloadDataRetriever::collectData()
 {
+	collectCandidates();
+	collectBooths();
+}
+
+void PreloadDataRetriever::collectCandidates()
+{
 	std::ifstream candidatesFile(UnzippedCandidatesFileName);
 	std::string xmlString;
 	transferFileToString(candidatesFile, xmlString);
 
 	try {
-		std::string::const_iterator searchIt = xmlString.begin();
-		do {
-			seekToFirstPreferences(xmlString, searchIt);
-			do {
-				Results::Candidate candidate;
-				bool independent = candidateIsIndependent(xmlString, searchIt);
-				int candidateId = extractCandidateId(xmlString, searchIt);
-				candidate.name = extractCandidateName(xmlString, searchIt);
-				int affiliationId = 0;
-				if (!independent && comesBefore(xmlString, "<Affiliation", "</Candidate>", searchIt)) {
-					affiliationId = extractAffiliationId(xmlString, searchIt);
-					affiliations.insert({ affiliationId , {extractAffiliationShortCode(xmlString, searchIt) } });
-				}
-				candidate.affiliationId = affiliationId;
-				candidates.insert({ candidateId, candidate });
-				if (!moreCandidateData(xmlString, searchIt)) break;
-				seekToNextCandidate(xmlString, searchIt);
-			} while (true);
-
-		} while (moreSeatData(xmlString, searchIt));
-
+		SearchIterator searchIt = xmlString.begin();
+		extractCandidates(xmlString, searchIt);
 		logger << "Preload (candidates) download complete!\n";
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";
 	}
+}
 
+void PreloadDataRetriever::collectBooths()
+{
 	std::ifstream boothsFile(UnzippedBoothsFileName);
-	xmlString.clear();
+	std::string xmlString;
 	transferFileToString(boothsFile, xmlString);
 
 	try {
-		std::string::const_iterator searchIt = xmlString.begin();
-		do {
-			Results::Booth boothData;
-			boothData.coords.latitude = extractPollingPlaceLatitude(xmlString, searchIt);
-			boothData.coords.longitude = extractPollingPlaceLongitude(xmlString, searchIt);
-			boothData.officialId = extractPollingPlaceId(xmlString, searchIt);
-			boothData.name = extractPollingPlaceName(xmlString, searchIt);
-
-			booths.insert({ boothData.officialId, boothData });
-		} while (moreBoothData(xmlString, searchIt));
+		SearchIterator searchIt = xmlString.begin();
+		extractBooths(xmlString, searchIt);
 
 		logger << "Preload (booths) download complete!" << "\n";
 	}
 	catch (const std::regex_error& e) {
 		logger << "regex_error caught: " << e.what() << "\n";
 	}
+}
+
+void PreloadDataRetriever::extractCandidates(std::string const & xmlString, SearchIterator & searchIt)
+{
+	do {
+		seekToFirstPreferences(xmlString, searchIt);
+		do {
+			Results::Candidate candidate;
+			bool independent = candidateIsIndependent(xmlString, searchIt);
+			int candidateId = extractCandidateId(xmlString, searchIt);
+			candidate.name = extractCandidateName(xmlString, searchIt);
+			int affiliationId = 0;
+			if (!independent && comesBefore(xmlString, "<Affiliation", "</Candidate>", searchIt)) {
+				affiliationId = extractAffiliationId(xmlString, searchIt);
+				affiliations.insert({ affiliationId ,{ extractAffiliationShortCode(xmlString, searchIt) } });
+			}
+			candidate.affiliationId = affiliationId;
+			candidates.insert({ candidateId, candidate });
+			if (!moreCandidateData(xmlString, searchIt)) break;
+			seekToNextCandidate(xmlString, searchIt);
+		} while (true);
+
+	} while (moreSeatData(xmlString, searchIt));
+}
+
+void PreloadDataRetriever::extractBooths(std::string const & xmlString, SearchIterator & searchIt)
+{
+	do {
+		Results::Booth boothData;
+		boothData.coords.latitude = extractPollingPlaceLatitude(xmlString, searchIt);
+		boothData.coords.longitude = extractPollingPlaceLongitude(xmlString, searchIt);
+		boothData.officialId = extractPollingPlaceId(xmlString, searchIt);
+		boothData.name = extractPollingPlaceName(xmlString, searchIt);
+
+		booths.insert({ boothData.officialId, boothData });
+	} while (moreBoothData(xmlString, searchIt));
 }
