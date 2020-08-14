@@ -104,6 +104,7 @@ void ParentFrame::OnOpen(wxCommandEvent& WXUNUSED(event))
 	}
 	catch (LoadProjectFailedException) {
 		notebook.reset();
+		notebookPanel.reset();
 	}
 
 	// update the interface (so that the save tool is enabled, for instance).

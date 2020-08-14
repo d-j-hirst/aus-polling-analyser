@@ -1,8 +1,10 @@
 #include "ProjectFiler.h"
 
 #include "PollingProject.h"
+#include "SaveIO.h"
 
 #include <fstream>
+#include <regex>
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -10,6 +12,10 @@ ProjectFiler::ProjectFiler(PollingProject & project)
 }
 
 int ProjectFiler::save(std::string filename) {
+	std::smatch filename_match;
+	if (std::regex_match(filename, filename_match, std::basic_regex(".+\\.pol2"))) {
+		return saveDetailed(filename);
+	}
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
 	os << std::setprecision(12);
 	if (!os) return 1;
@@ -163,9 +169,16 @@ int ProjectFiler::save(std::string filename) {
 }
 
 void ProjectFiler::open(std::string filename) {
-	project.valid = true;
+	project.valid = false;
+	std::smatch filename_match;
+	if (std::regex_match(filename, filename_match, std::basic_regex(".+\\.pol2"))) {
+		openDetailed(filename);
+		return;
+	}
+
 	std::ifstream is = std::ifstream(filename);
 	if (!is) { project.valid = false; return; }
+	project.valid = true;
 
 	FileOpeningState fos;
 
@@ -178,6 +191,22 @@ void ProjectFiler::open(std::string filename) {
 	is.close();
 
 	project.finalizeFileLoading();
+}
+
+int ProjectFiler::saveDetailed(std::string filename)
+{
+	SaveFileOutput saveOutput(filename);
+	int input = 1;
+	saveOutput << input;
+	return 1;
+}
+
+int ProjectFiler::openDetailed(std::string filename)
+{
+	SaveFileInput saveInput(filename);
+	int output;
+	saveInput >> output;
+	return 1;
 }
 
 bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
@@ -397,7 +426,6 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 	else if (fos.section == FileSection_Polls) {
 		if (!project.pollCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("poll=")) {
-			if (project.pollCollection.count() == 54) logger << line;
 			project.pollCollection.back().pollster = std::stoi(line.substr(5));
 			return true;
 		}

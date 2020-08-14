@@ -6,8 +6,8 @@
 #include "PreviousElectionDataRetriever.h"
 #include "ProjectFiler.h"
 
-#include <iomanip>
 #include <algorithm>
+#include <iomanip>
 
 const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
 
@@ -111,7 +111,6 @@ int PollingProject::save(std::string filename)
 	ProjectFiler projectFiler(*this);
 	return projectFiler.save(filename);
 }
-
 
 bool PollingProject::isValid() {
 	return valid;

@@ -201,15 +201,12 @@ void ProjectFrame::saveUnderFilename(std::string const& pathName)
 
 void ProjectFrame::cancelConstructionFromFile()
 {
-	project.reset(); // effectively, close the project if opening fails.
 	wxMessageDialog* message = new wxMessageDialog(
 		this,
 		"Could not open file.",
 		"Save Error",
 		wxOK | wxCENTRE | wxICON_ERROR);
 	message->ShowModal();
-
-	Destroy();
 
 	throw LoadProjectFailedException();
 }
