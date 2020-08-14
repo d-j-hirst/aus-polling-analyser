@@ -330,6 +330,7 @@
     <ClCompile Include="Projection.cpp" />
     <ClCompile Include="ProjectionsFrame.cpp" />
     <ClCompile Include="RegionsFrame.cpp" />
+    <ClCompile Include="SaveIO.cpp" />
     <ClCompile Include="SeatCollection.cpp" />
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
@@ -363,6 +364,7 @@
     <ClInclude Include="QuickTest.h" />
     <ClInclude Include="RegionCollection.h" />
     <ClInclude Include="ResultCoordinator.h" />
+    <ClInclude Include="SaveIO.h" />
     <ClInclude Include="SeatCollection.h" />
     <ClInclude Include="SimulationCollection.h" />
     <ClInclude Include="SimulationCompletion.h" />

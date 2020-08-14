@@ -231,7 +231,7 @@ std::string ParentFrame::receiveOpenProjectPathnameFromUser()
 		"Open Project",
 		"",
 		"",
-		"Polling Analysis files (*.pol)|*.pol",
+		"Polling Analysis files (*.pol)|*.pol|Detailed Polling Analysis files (*.pol2)|*.pol2",
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 	if (openFileDialog->ShowModal() == wxID_CANCEL)
