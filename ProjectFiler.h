@@ -19,6 +19,10 @@ public:
 	void open(std::string filename);
 private:
 
+	// Returns true if the filename should be opened or saved in a detailed (binary) format,
+	// and false if it should be saved in classic (text) format.
+	static bool isDetailedFormat(std::string filename);
+
 	// Save this project with the detailed format, which stores
 	// much more information in a compressed binary format.
 	// Returns 0 if successful, and 1 if saving failed.

@@ -12,8 +12,7 @@ ProjectFiler::ProjectFiler(PollingProject & project)
 }
 
 int ProjectFiler::save(std::string filename) {
-	std::smatch filename_match;
-	if (std::regex_match(filename, filename_match, std::basic_regex(".+\\.pol2"))) {
+	if (isDetailedFormat(filename)) {
 		return saveDetailed(filename);
 	}
 	std::ofstream os = std::ofstream(filename, std::ios_base::trunc);
@@ -170,8 +169,7 @@ int ProjectFiler::save(std::string filename) {
 
 void ProjectFiler::open(std::string filename) {
 	project.valid = false;
-	std::smatch filename_match;
-	if (std::regex_match(filename, filename_match, std::basic_regex(".+\\.pol2"))) {
+	if (isDetailedFormat(filename)) {
 		openDetailed(filename);
 		return;
 	}
@@ -191,6 +189,12 @@ void ProjectFiler::open(std::string filename) {
 	is.close();
 
 	project.finalizeFileLoading();
+}
+
+bool ProjectFiler::isDetailedFormat(std::string filename)
+{
+	std::smatch filename_match;
+	return std::regex_match(filename, filename_match, std::basic_regex(".+\\.pol2"));
 }
 
 int ProjectFiler::saveDetailed(std::string filename)
@@ -430,7 +434,6 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("year=")) {
-			if (project.pollCollection.count() == 54) logger << line;
 			project.pollCollection.back().date.SetYear(std::stoi(line.substr(5)));
 			return true;
 		}
@@ -439,7 +442,6 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("day =")) {
-			if (project.pollCollection.count() == 54) logger << line;
 			project.pollCollection.back().date.SetDay(std::stoi(line.substr(5)));
 			return true;
 		}
