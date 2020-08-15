@@ -201,6 +201,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 {
 	SaveFileOutput saveOutput(filename);
 	saveOutput << project.name;
+	saveOutput << project.parties().getOthersPreferenceFlow();
 	return 1;
 }
 
@@ -208,7 +209,8 @@ int ProjectFiler::openDetailed(std::string filename)
 {
 	SaveFileInput saveInput(filename);
 	saveInput >> project.name;
-	logger << project.name;
+	project.parties().setOthersPreferenceFlow(saveInput.extract<float>());
+	logger << project.parties().getOthersPreferenceFlow();
 	return 1;
 }
 

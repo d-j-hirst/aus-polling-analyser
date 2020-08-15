@@ -46,6 +46,13 @@ public:
 
 	friend SaveFileInput& operator>>(SaveFileInput& stream, std::string& itemToRead);
 
+	template <typename T>
+	T extract() {
+		T temp;
+		*this >> temp;
+		return temp;
+	}
+
 private:
 	std::ifstream loadStream_;
 };
