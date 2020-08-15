@@ -18,6 +18,11 @@ public:
 
 	friend SaveFileOutput& operator<<(SaveFileOutput& stream, std::string itemToAdd);
 
+	template<typename T, typename U>
+	void outputAsType(U const& output) {
+		*this << static_cast<T>(output);
+	}
+
 private:
 	std::ofstream saveStream_;
 };

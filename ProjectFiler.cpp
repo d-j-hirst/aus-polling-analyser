@@ -6,6 +6,8 @@
 #include <fstream>
 #include <regex>
 
+constexpr int VersionNum = 1;
+
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
 {
@@ -200,17 +202,63 @@ bool ProjectFiler::isDetailedFormat(std::string filename)
 int ProjectFiler::saveDetailed(std::string filename)
 {
 	SaveFileOutput saveOutput(filename);
+	saveOutput << VersionNum;
 	saveOutput << project.name;
 	saveOutput << project.parties().getOthersPreferenceFlow();
+	saveOutput << project.parties().getOthersExhaustRate();
+	saveOutput.outputAsType<int32_t>(project.partyCollection.count());
+	for (auto const& [key, thisParty] : project.partyCollection) {
+		saveOutput << thisParty.name;
+		saveOutput << thisParty.preferenceShare;
+		saveOutput << thisParty.exhaustRate;
+		saveOutput << thisParty.abbreviation;
+		saveOutput.outputAsType<int32_t>(thisParty.countAsParty);
+		saveOutput.outputAsType<int32_t>(thisParty.supportsParty);
+		saveOutput << thisParty.boothColourMult;
+		saveOutput.outputAsType<int32_t>(thisParty.ideology);
+		saveOutput.outputAsType<int32_t>(thisParty.consistency);
+		saveOutput.outputAsType<uint64_t>(thisParty.officialCodes.size());
+		for (std::string officialCode : thisParty.officialCodes) {
+			saveOutput << officialCode;
+		}
+		saveOutput.outputAsType<int32_t>(thisParty.colour.r);
+		saveOutput.outputAsType<int32_t>(thisParty.colour.g);
+		saveOutput.outputAsType<int32_t>(thisParty.colour.b);
+	}
 	return 1;
 }
 
 int ProjectFiler::openDetailed(std::string filename)
 {
 	SaveFileInput saveInput(filename);
+	const int versionNum = saveInput.extract<int>();
 	saveInput >> project.name;
 	project.parties().setOthersPreferenceFlow(saveInput.extract<float>());
-	logger << project.parties().getOthersPreferenceFlow();
+	project.parties().setOthersExhaustRate(saveInput.extract<float>());
+	auto partyCount = saveInput.extract<int32_t>();
+	for (int partyIndex = 0; partyIndex < partyCount; ++partyIndex) {
+		Party thisParty;
+		saveInput >> thisParty.name;
+		saveInput >> thisParty.preferenceShare;
+		saveInput >> thisParty.exhaustRate;
+		saveInput >> thisParty.abbreviation;
+		thisParty.countAsParty = Party::CountAsParty(saveInput.extract<int32_t>());
+		thisParty.supportsParty = Party::SupportsParty(saveInput.extract<int32_t>());
+		saveInput >> thisParty.boothColourMult;
+		thisParty.ideology = saveInput.extract<int32_t>();
+		thisParty.consistency = saveInput.extract<int32_t>();
+		auto officialCodeCount = saveInput.extract<uint64_t>();
+		for (int officialCodeIndex = 0; officialCodeIndex < officialCodeCount; ++officialCodeIndex) {
+			thisParty.officialCodes.push_back(saveInput.extract<std::string>());
+		}
+		thisParty.colour.r = saveInput.extract<int32_t>();
+		thisParty.colour.g = saveInput.extract<int32_t>();
+		thisParty.colour.b = saveInput.extract<int32_t>();
+		project.partyCollection.add(thisParty);
+	}
+	for (auto const& [key, thisParty] : project.partyCollection) {
+		logger << thisParty.textReport();
+	}
 	return 1;
 }
 

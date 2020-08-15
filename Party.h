@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include <vector>
 
 struct Party {
@@ -44,4 +45,43 @@ struct Party {
 	bool countsAsMajor() const { return !(countAsParty == CountAsParty::None); }
 	bool countsAsOne() const { return countAsParty == CountAsParty::CountsAsPartyOne || countAsParty == CountAsParty::IsPartyOne; }
 	bool countsAsTwo() const { return countAsParty == CountAsParty::CountsAsPartyTwo || countAsParty == CountAsParty::IsPartyTwo; }
+
+	std::string countsAsPartyString() const {
+		switch (countAsParty) {
+		case CountAsParty::CountsAsPartyOne: return "Counts as Party One";
+		case CountAsParty::CountsAsPartyTwo: return "Counts as Party Two";
+		case CountAsParty::IsPartyOne: return "Is Party One";
+		case CountAsParty::IsPartyTwo: return "Is Party Two";
+		default: return "None";
+		}
+	}
+
+	std::string supportsPartyString() const {
+		switch (supportsParty) {
+		case SupportsParty::One: return "Supports Party One";
+		case SupportsParty::Two: return "Supports Party Two";
+		default: return "None";
+		}
+	}
+
+	std::string textReport() const {
+		std::stringstream report;
+		report << "Reporting Party: \n";
+		report << " Name: " << name << "\n";
+		report << " Preference Share: " << preferenceShare << "\n";
+		report << " Exhaust Rate: " << exhaustRate << "\n";
+		report << " Abbreviation: " << abbreviation << "\n";
+		report << " Counts As Party: " << countsAsPartyString() << "\n";
+		report << " Preference Share: " << supportsPartyString() << "\n";
+		report << " Booth Colour Multiplier: " << boothColourMult << "\n";
+		report << " Ideology: " << ideology << "\n";
+		report << " Consistency: " << consistency << "\n";
+		report << " Official Codes:";
+		for (std::string officialCode : officialCodes) {
+			report << " " << officialCode;
+		}
+		report << "\n";
+		report << " Colour: " << colour.r << ", " << colour.g << ", " << colour.b << "\n";
+		return report.str();
+	}
 };
