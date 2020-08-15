@@ -200,16 +200,15 @@ bool ProjectFiler::isDetailedFormat(std::string filename)
 int ProjectFiler::saveDetailed(std::string filename)
 {
 	SaveFileOutput saveOutput(filename);
-	int input = 1;
-	saveOutput << input;
+	saveOutput << project.name;
 	return 1;
 }
 
 int ProjectFiler::openDetailed(std::string filename)
 {
 	SaveFileInput saveInput(filename);
-	int output;
-	saveInput >> output;
+	saveInput >> project.name;
+	logger << project.name;
 	return 1;
 }
 
