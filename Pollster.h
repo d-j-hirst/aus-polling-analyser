@@ -28,6 +28,5 @@ struct Pollster {
 		report << " Use for calibration: " << useForCalibration << "\n";
 		report << " Ignore initially: " << ignoreInitially << "\n";
 		return report.str();
-
 	}
 };

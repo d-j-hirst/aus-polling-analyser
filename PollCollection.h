@@ -6,6 +6,7 @@
 #include <map>
 
 class PollingProject;
+class PollsterCollection;
 
 class PollDoesntExistException : public std::runtime_error {
 public:
@@ -83,6 +84,8 @@ public:
 
 	// If a party is removed, polls need to be adjusted to deal with this
 	void adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
+
+	void logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const;
 
 	Poll& back() { return std::prev(polls.end())->second; }
 

@@ -206,6 +206,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveOutput << project.name;
 	saveParties(saveOutput);
 	savePollsters(saveOutput);
+	savePolls(saveOutput);
 	return 1;
 }
 
@@ -216,9 +217,11 @@ int ProjectFiler::openDetailed(std::string filename)
 	saveInput >> project.name;
 	loadParties(saveInput, versionNum);
 	loadPollsters(saveInput, versionNum);
+	loadPolls(saveInput, versionNum);
 
 	project.parties().logAll();
 	project.pollsters().logAll();
+	project.polls().logAll(project.parties(), project.pollsters());
 	return 1;
 }
 
@@ -297,6 +300,44 @@ void ProjectFiler::loadPollsters(SaveFileInput& saveInput, [[maybe_unused]] int 
 		saveInput >> thisPollster.useForCalibration;
 		saveInput >> thisPollster.ignoreInitially;
 		project.pollsterCollection.add(thisPollster);
+	}
+}
+
+void ProjectFiler::savePolls(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.pollCollection.count());
+	for (auto const& [key, thisPoll] : project.pollCollection) {
+		saveOutput.outputAsType<int32_t>(project.pollsters().idToIndex(thisPoll.pollster));
+		saveOutput.outputAsType<int32_t>(thisPoll.date.GetYear());
+		saveOutput.outputAsType<int32_t>(thisPoll.date.GetMonth());
+		saveOutput.outputAsType<int32_t>(thisPoll.date.GetDay());
+		saveOutput << thisPoll.reported2pp;
+		saveOutput << thisPoll.respondent2pp;
+		saveOutput << thisPoll.calc2pp;
+		saveOutput.outputAsType<uint32_t>(thisPoll.primary.size());
+		for (auto primary : thisPoll.primary) {
+			saveOutput << primary;
+		}
+	}
+}
+
+void ProjectFiler::loadPolls(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	auto pollCount = saveInput.extract<int32_t>();
+	for (int pollIndex = 0; pollIndex < pollCount; ++pollIndex) {
+		Poll thisPoll;
+		thisPoll.pollster = saveInput.extract<int32_t>();
+		thisPoll.date.SetYear(saveInput.extract<int32_t>());
+		thisPoll.date.SetMonth(wxDateTime::Month(saveInput.extract<int32_t>()));
+		thisPoll.date.SetDay(saveInput.extract<int32_t>());
+		saveInput >> thisPoll.reported2pp;
+		saveInput >> thisPoll.respondent2pp;
+		saveInput >> thisPoll.calc2pp;
+		size_t numPrimaries = saveInput.extract<uint32_t>();
+		for (size_t partyIndex = 0; partyIndex < numPrimaries; ++partyIndex) {
+			saveInput >> thisPoll.primary[partyIndex];
+		}
+		project.pollCollection.add(thisPoll);
 	}
 }
 

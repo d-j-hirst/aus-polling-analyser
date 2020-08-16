@@ -43,6 +43,10 @@ private:
 
 	void loadPollsters(SaveFileInput& saveInput, int versionNum);
 
+	void savePolls(SaveFileOutput& saveOutput);
+
+	void loadPolls(SaveFileInput& saveInput, int versionNum);
+
 	// Opens the project saved at the given filename.
 	// Returns false if the end of the file is reached (marked by "#End").
 	bool processFileLine(std::string line, FileOpeningState& fos);

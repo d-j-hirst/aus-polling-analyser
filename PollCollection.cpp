@@ -123,3 +123,10 @@ void PollCollection::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, 
 		poll.second.primary[project.parties().count()] = -1;
 	}
 }
+
+void PollCollection::logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const
+{
+	for (auto const& [key, thisPoll] : polls) {
+		logger << thisPoll.textReport(parties, pollsters);
+	}
+}

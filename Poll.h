@@ -2,13 +2,15 @@
 
 #include "Pollster.h"
 #include "PartyCollection.h"
+#include "PollsterCollection.h"
 #include "General.h"
 
 #include <wx/datetime.h>
 
+#include <algorithm>
+#include <array>
 #include <vector>
 #include <string>
-#include <algorithm>
 
 class Poll {
 public:
@@ -21,7 +23,7 @@ public:
 	float reported2pp = 50.0f;
 	float respondent2pp = NullValue;
 	float calc2pp = NullValue;
-	float primary[PartyCollection::MaxParties + 1]; // others is always the final index.
+	std::array<float, PartyCollection::MaxParties + 1> primary; // others is always the final index.
 
 	Poll(Pollster::Id pollster, wxDateTime date, float reported2pp, float respondent2pp, float calc2pp)
 		: pollster(pollster), date(date), reported2pp(reported2pp), respondent2pp(respondent2pp), calc2pp(calc2pp) {
@@ -76,7 +78,26 @@ public:
 		if (primary[partyIndex] >= 0) return formatFloat(primary[partyIndex], 1);
 		else return "";
 	}
+
 	void resetPrimaries() {
 		for (int i = 0; i <= PartyCollection::MaxParties; i++) primary[i] = NullValue;
+	}
+
+	std::string textReport(PartyCollection const& parties, PollsterCollection const& pollsters) const {
+		std::stringstream report;
+		report << std::boolalpha;
+		report << "Reporting Poll: \n";
+		report << " Pollster: " << pollsters.view(pollster).name << "\n";
+		report << " Date: " << date.FormatDate() << "\n";
+		report << " Reported 2pp: " << reported2pp << "\n";
+		report << " Respondent 2pp: " << respondent2pp << "\n";
+		report << " Calculated 2pp: " << calc2pp << "\n";
+		report << " Primaries: \n";
+		for (int partyIndex = 0; partyIndex < std::min(parties.count(), int(primary.size()) - 1); ++partyIndex) {
+			report << "  " << parties.viewByIndex(partyIndex).name
+				<< ": " << primary[partyIndex] << "\n";
+		}
+		report << "  Others: " << primary.back() << "\n";
+		return report.str();
 	}
 };
