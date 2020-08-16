@@ -110,6 +110,8 @@ public:
 	// This function will directly edit the poll's data, but does not affect the
 	// project's state directly.
 	void recalculatePollCalc2PP(Poll& poll) const;
+
+	void logAll() const;
 	
 private:
 

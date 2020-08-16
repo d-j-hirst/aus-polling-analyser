@@ -10,7 +10,7 @@ PartyCollection::PartyCollection(PollingProject & project)
 }
 
 void PartyCollection::finaliseFileLoading() {
-	// Set the two major partyCollection, in case this file comes from a version in which "count-as-party" data was not recorded
+	// Set the two major parties, in case this file comes from a version in which "count-as-party" data was not recorded
 	parties[0].countAsParty = Party::CountAsParty::IsPartyOne;
 	parties[0].supportsParty = Party::SupportsParty::One;
 	parties[1].countAsParty = Party::CountAsParty::IsPartyTwo;
@@ -93,4 +93,11 @@ void PartyCollection::recalculatePollCalc2PP(Poll& poll) const {
 	}
 	poll.calc2pp = sum2PP / sumPrimaries + 0.14f; // the last 0.14f accounts for
 												  // leakage in Lib-Nat contests
+}
+
+void PartyCollection::logAll() const
+{
+	for (auto const& [key, thisParty] : parties) {
+		logger << thisParty.textReport();
+	}
 }

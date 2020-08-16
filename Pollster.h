@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 
 struct Pollster {
 	typedef int Id;
@@ -16,4 +17,17 @@ struct Pollster {
 		: name(name), weight(weight), colour(colour), useForCalibration(useForCalibration),
 		ignoreInitially(ignoreInitially) {}
 	Pollster() {}
+
+	std::string textReport() const {
+		std::stringstream report;
+		report << std::boolalpha;
+		report << "Reporting Pollster: \n";
+		report << " Name: " << name << "\n";
+		report << " Weight: " << weight << "\n";
+		report << " Colour: " << colour << "\n";
+		report << " Use for calibration: " << useForCalibration << "\n";
+		report << " Ignore initially: " << ignoreInitially << "\n";
+		return report.str();
+
+	}
 };

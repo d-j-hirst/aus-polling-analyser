@@ -63,3 +63,10 @@ void PollsterCollection::remove(Pollster::Id id) {
 int PollsterCollection::count() const {
 	return pollsters.size();
 }
+
+void PollsterCollection::logAll() const
+{
+	for (auto const& [key, thisPollster] : pollsters) {
+		logger << thisPollster.textReport();
+	}
+}

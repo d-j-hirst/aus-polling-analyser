@@ -70,6 +70,8 @@ public:
 	// Returns the number of pollsters.
 	int count() const;
 
+	void logAll() const;
+
 	Pollster& back() { return std::prev(pollsters.end())->second; }
 
 	PollsterContainer::iterator begin() { return pollsters.begin(); }

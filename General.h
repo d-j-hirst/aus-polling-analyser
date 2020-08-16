@@ -71,3 +71,9 @@ inline wxDateTime mjdToDate(int mjd) {
 	tempDate.SetHour(18);
 	return tempDate;
 }
+
+inline std::string boolToStr(bool b) {
+	std::ostringstream ss;
+	ss << std::boolalpha << b;
+	return ss.str();
+}

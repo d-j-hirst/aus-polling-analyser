@@ -202,7 +202,10 @@ bool ProjectFiler::isDetailedFormat(std::string filename)
 int ProjectFiler::saveDetailed(std::string filename)
 {
 	SaveFileOutput saveOutput(filename);
+	saveOutput << VersionNum;
+	saveOutput << project.name;
 	saveParties(saveOutput);
+	savePollsters(saveOutput);
 	return 1;
 }
 
@@ -210,14 +213,17 @@ int ProjectFiler::openDetailed(std::string filename)
 {
 	SaveFileInput saveInput(filename);
 	const int versionNum = saveInput.extract<int>();
+	saveInput >> project.name;
 	loadParties(saveInput, versionNum);
+	loadPollsters(saveInput, versionNum);
+
+	project.parties().logAll();
+	project.pollsters().logAll();
 	return 1;
 }
 
 void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 {
-	saveOutput << VersionNum;
-	saveOutput << project.name;
 	saveOutput << project.parties().getOthersPreferenceFlow();
 	saveOutput << project.parties().getOthersExhaustRate();
 	saveOutput.outputAsType<int32_t>(project.partyCollection.count());
@@ -243,7 +249,6 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 
 void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
 {
-	saveInput >> project.name;
 	project.parties().setOthersPreferenceFlow(saveInput.extract<float>());
 	project.parties().setOthersExhaustRate(saveInput.extract<float>());
 	auto partyCount = saveInput.extract<int32_t>();
@@ -267,8 +272,31 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int ve
 		thisParty.colour.b = saveInput.extract<int32_t>();
 		project.partyCollection.add(thisParty);
 	}
-	for (auto const& [key, thisParty] : project.partyCollection) {
-		logger << thisParty.textReport();
+}
+
+void ProjectFiler::savePollsters(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.pollsterCollection.count());
+	for (auto const& [key, thisPollster] : project.pollsterCollection) {
+		saveOutput << thisPollster.name;
+		saveOutput << thisPollster.weight;
+		saveOutput.outputAsType<uint64_t>(thisPollster.colour);
+		saveOutput << thisPollster.useForCalibration;
+		saveOutput << thisPollster.ignoreInitially;
+	}
+}
+
+void ProjectFiler::loadPollsters(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	auto pollsterCount = saveInput.extract<int32_t>();
+	for (int pollsterIndex = 0; pollsterIndex < pollsterCount; ++pollsterIndex) {
+		Pollster thisPollster;
+		saveInput >> thisPollster.name;
+		saveInput >> thisPollster.weight;
+		thisPollster.colour = saveInput.extract<uint64_t>();
+		saveInput >> thisPollster.useForCalibration;
+		saveInput >> thisPollster.ignoreInitially;
+		project.pollsterCollection.add(thisPollster);
 	}
 }
 
