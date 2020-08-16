@@ -202,6 +202,20 @@ bool ProjectFiler::isDetailedFormat(std::string filename)
 int ProjectFiler::saveDetailed(std::string filename)
 {
 	SaveFileOutput saveOutput(filename);
+	saveParties(saveOutput);
+	return 1;
+}
+
+int ProjectFiler::openDetailed(std::string filename)
+{
+	SaveFileInput saveInput(filename);
+	const int versionNum = saveInput.extract<int>();
+	loadParties(saveInput, versionNum);
+	return 1;
+}
+
+void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
+{
 	saveOutput << VersionNum;
 	saveOutput << project.name;
 	saveOutput << project.parties().getOthersPreferenceFlow();
@@ -225,13 +239,10 @@ int ProjectFiler::saveDetailed(std::string filename)
 		saveOutput.outputAsType<int32_t>(thisParty.colour.g);
 		saveOutput.outputAsType<int32_t>(thisParty.colour.b);
 	}
-	return 1;
 }
 
-int ProjectFiler::openDetailed(std::string filename)
+void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
 {
-	SaveFileInput saveInput(filename);
-	const int versionNum = saveInput.extract<int>();
 	saveInput >> project.name;
 	project.parties().setOthersPreferenceFlow(saveInput.extract<float>());
 	project.parties().setOthersExhaustRate(saveInput.extract<float>());
@@ -259,7 +270,6 @@ int ProjectFiler::openDetailed(std::string filename)
 	for (auto const& [key, thisParty] : project.partyCollection) {
 		logger << thisParty.textReport();
 	}
-	return 1;
 }
 
 bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {

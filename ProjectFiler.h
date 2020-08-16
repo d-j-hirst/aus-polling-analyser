@@ -5,6 +5,8 @@
 #include <string>
 
 class PollingProject;
+class SaveFileInput;
+class SaveFileOutput;
 
 class ProjectFiler {
 public:
@@ -32,6 +34,10 @@ private:
 	// much more information in a compressed binary format.
 	// Returns 0 if successful, and 1 if opening failed.
 	int openDetailed(std::string filename);
+
+	void saveParties(SaveFileOutput& saveOutput);
+
+	void loadParties(SaveFileInput& saveInput, int versionNum);
 
 	// Opens the project saved at the given filename.
 	// Returns false if the end of the file is reached (marked by "#End").
