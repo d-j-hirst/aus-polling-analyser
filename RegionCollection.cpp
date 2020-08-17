@@ -72,6 +72,13 @@ int RegionCollection::count() const {
 	return regions.size();
 }
 
+void RegionCollection::logAll() const
+{
+	for (auto const& [key, thisRegion] : regions) {
+		logger << thisRegion.textReport();
+	}
+}
+
 void RegionCollection::calculateSwingDeviations()
 {
 	int totalPopulation = 0;

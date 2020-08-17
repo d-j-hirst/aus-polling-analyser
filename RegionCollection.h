@@ -73,6 +73,8 @@ public:
 	// Returns the number of regions.
 	int count() const;
 
+	void logAll() const;
+
 	Region& back() { return std::prev(regions.end())->second; }
 
 	// Gets the begin iterator for the region list.

@@ -210,6 +210,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveEvents(saveOutput);
 	saveModels(saveOutput);
 	saveProjections(saveOutput);
+	saveRegions(saveOutput);
 	return 1;
 }
 
@@ -224,6 +225,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	loadEvents(saveInput, versionNum);
 	loadModels(saveInput, versionNum);
 	loadProjections(saveInput, versionNum);
+	loadRegions(saveInput, versionNum);
 
 	project.parties().logAll();
 	project.pollsters().logAll();
@@ -231,6 +233,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	project.events().logAll();
 	project.models().logAll();
 	project.projections().logAll(project.models());
+	project.regions().logAll();
 	return 1;
 }
 
@@ -459,6 +462,34 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] in
 			thisProjection.projection.push_back(thisDay);
 		}
 		project.projectionCollection.add(Projection(thisProjection));
+	}
+}
+
+void ProjectFiler::saveRegions(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.regionCollection.count());
+	for (auto const& [key, thisRegion] : project.regionCollection) {
+		saveOutput << thisRegion.name;
+		saveOutput.outputAsType<int32_t>(thisRegion.population);
+		saveOutput << thisRegion.lastElection2pp;
+		saveOutput << thisRegion.sample2pp;
+		saveOutput << thisRegion.swingDeviation;
+		saveOutput << thisRegion.additionalUncertainty;
+	}
+}
+
+void ProjectFiler::loadRegions(SaveFileInput& saveInput,  [[maybe_unused]] int versionNum)
+{
+	auto regionCount = saveInput.extract<int32_t>();
+	for (int regionIndex = 0; regionIndex < regionCount; ++regionIndex) {
+		Region thisRegion;
+		saveInput >> thisRegion.name;
+		thisRegion.population = saveInput.extract<int32_t>();
+		saveInput >> thisRegion.lastElection2pp;
+		saveInput >> thisRegion.sample2pp;
+		saveInput >> thisRegion.swingDeviation;
+		saveInput >> thisRegion.additionalUncertainty;
+		project.regionCollection.add(thisRegion);
 	}
 }
 

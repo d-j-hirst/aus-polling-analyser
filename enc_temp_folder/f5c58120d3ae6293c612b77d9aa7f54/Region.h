@@ -36,7 +36,7 @@ struct Region {
 
 	std::string textReport() const {
 		std::stringstream report;
-		report << "Reporting Region: \n";
+		report << "Reporting Party: \n";
 		report << " Name: " << name << "\n";
 		report << " Population: " << population << "\n";
 		report << " Last election 2pp: " << lastElection2pp << "\n";
