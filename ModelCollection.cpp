@@ -98,6 +98,13 @@ void ModelCollection::finaliseLoadedModel()
 	loadingModel.reset();
 }
 
+void ModelCollection::logAll() const
+{
+	for (auto const& [key, thisModel] : models) {
+		logger << thisModel.textReport();
+	}
+}
+
 // generates a basic model with the standard start and end dates.
 Model::SaveData ModelCollection::generateBasicModelSaveData() const {
 	Model::SaveData saveData;

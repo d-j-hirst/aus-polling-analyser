@@ -86,6 +86,8 @@ public:
 
 	int getProjectionLength() const { return int(projection.size()); }
 
+	std::string textReport(ModelCollection const& models) const;
+
 private:
 
 	typedef std::vector<float> InternalProjection;

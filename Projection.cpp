@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <sstream>
 
 #undef max
 
@@ -45,6 +46,22 @@ void Projection::logRunStatistics()
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
 	settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
+}
+
+std::string Projection::textReport(ModelCollection const& models) const
+{
+	std::stringstream report;
+	report << "Reporting Projection: \n";
+	report << " Name: " << settings.name << "\n";
+	report << " Number of iterations: " << settings.numIterations << "\n";
+	report << " Base model: " << models.view(settings.baseModel).getSettings().name << "\n";
+	report << " End Date: " << getEndDateString() << "\n";
+	report << " Last Updated: " << getLastUpdatedString() << "\n";
+	report << " Daily Change: " << settings.dailyChange << "\n";
+	report << " Initial Standard Deviation: " << settings.initialStdDev << "\n";
+	report << " Leader Vote Decay: " << settings.leaderVoteDecay << "\n";
+	report << " Number of Previous Elections: " << settings.numElections << "\n";
+	return report.str();
 }
 
 void Projection::runInternalProjections(InternalProjections& internalProjections, Model const& model)

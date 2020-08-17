@@ -86,6 +86,8 @@ public:
 
 	void extendToDate(wxDateTime date);
 
+	std::string textReport() const;
+
 private:
 	struct CachedPollster {
 		void reset() {

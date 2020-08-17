@@ -62,6 +62,8 @@ public:
 	// Returns the number of events.
 	int count() const;
 
+	void logAll() const;
+
 	Event& back() { return std::prev(events.end())->second; }
 
 	EventContainer::iterator begin() { return events.begin(); }

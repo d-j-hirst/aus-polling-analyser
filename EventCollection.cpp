@@ -60,3 +60,10 @@ void EventCollection::remove(Event::Id id) {
 int EventCollection::count() const {
 	return events.size();
 }
+
+void EventCollection::logAll() const
+{
+	for (auto const& [key, thisEvent] : events) {
+		logger << thisEvent.textReport();
+	}
+}

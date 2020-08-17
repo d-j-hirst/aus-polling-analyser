@@ -207,6 +207,9 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveParties(saveOutput);
 	savePollsters(saveOutput);
 	savePolls(saveOutput);
+	saveEvents(saveOutput);
+	saveModels(saveOutput);
+	saveProjections(saveOutput);
 	return 1;
 }
 
@@ -218,10 +221,16 @@ int ProjectFiler::openDetailed(std::string filename)
 	loadParties(saveInput, versionNum);
 	loadPollsters(saveInput, versionNum);
 	loadPolls(saveInput, versionNum);
+	loadEvents(saveInput, versionNum);
+	loadModels(saveInput, versionNum);
+	loadProjections(saveInput, versionNum);
 
 	project.parties().logAll();
 	project.pollsters().logAll();
 	project.polls().logAll(project.parties(), project.pollsters());
+	project.events().logAll();
+	project.models().logAll();
+	project.projections().logAll(project.models());
 	return 1;
 }
 
@@ -338,6 +347,118 @@ void ProjectFiler::loadPolls(SaveFileInput& saveInput, [[maybe_unused]] int vers
 			saveInput >> thisPoll.primary[partyIndex];
 		}
 		project.pollCollection.add(thisPoll);
+	}
+}
+
+void ProjectFiler::saveEvents(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.eventCollection.count());
+	for (auto const& [key, thisEvent] : project.eventCollection) {
+		saveOutput << thisEvent.name;
+		saveOutput.outputAsType<int32_t>(thisEvent.eventType);
+		saveOutput << thisEvent.date.GetJulianDayNumber();
+		saveOutput << thisEvent.vote;
+	}
+}
+
+void ProjectFiler::loadEvents(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	auto eventCount = saveInput.extract<int32_t>();
+	for (int eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
+		Event thisEvent;
+		saveInput >> thisEvent.name;
+		thisEvent.eventType = EventType(saveInput.extract<int32_t>());
+		thisEvent.date = wxDateTime(saveInput.extract<double>());
+		saveInput >> thisEvent.vote;
+		project.eventCollection.add(thisEvent);
+	}
+}
+
+void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.modelCollection.count());
+	for (auto const& [key, thisModel] : project.modelCollection) {
+		saveOutput << thisModel.getSettings().name;
+		saveOutput.outputAsType<int32_t>(thisModel.getSettings().numIterations);
+		saveOutput << thisModel.getSettings().trendTimeScoreMultiplier;
+		saveOutput << thisModel.getSettings().houseEffectTimeScoreMultiplier;
+		saveOutput << thisModel.getSettings().calibrationFirstPartyBias;
+		saveOutput << thisModel.getFinalStandardDeviation();
+		saveOutput << thisModel.getSettings().startDate.GetJulianDayNumber();
+		saveOutput << thisModel.getSettings().endDate.GetJulianDayNumber();
+		saveOutput << thisModel.getLastUpdatedDate().GetJulianDayNumber();
+		saveOutput.outputAsType<int32_t>(thisModel.numDays());
+		for (auto const& thisDay : thisModel) {
+			saveOutput << thisDay.trend2pp;
+		}
+	}
+}
+
+void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	auto modelCount = saveInput.extract<int32_t>();
+	for (int modelIndex = 0; modelIndex < modelCount; ++modelIndex) {
+		Model::SaveData thisModel;
+		saveInput >> thisModel.settings.name;
+		thisModel.settings.numIterations = saveInput.extract<int32_t>();
+		saveInput >> thisModel.settings.trendTimeScoreMultiplier;
+		saveInput >> thisModel.settings.houseEffectTimeScoreMultiplier;
+		saveInput >> thisModel.settings.calibrationFirstPartyBias;
+		saveInput >> thisModel.finalStandardDeviation;
+		thisModel.settings.startDate = wxDateTime(saveInput.extract<double>());
+		thisModel.settings.endDate = wxDateTime(saveInput.extract<double>());
+		thisModel.lastUpdated = wxDateTime(saveInput.extract<double>());
+		auto dayCount = saveInput.extract<int32_t>();
+		for (int day = 0; day < dayCount; ++day) {
+			thisModel.trend.push_back(saveInput.extract<float>());
+		}
+		project.modelCollection.add(Model(thisModel));
+	}
+}
+
+void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.projectionCollection.count());
+	for (auto const& [key, thisProjection] : project.projectionCollection) {
+		saveOutput << thisProjection.getSettings().name;
+		saveOutput.outputAsType<int32_t>(thisProjection.getSettings().numIterations);
+		saveOutput.outputAsType<int32_t>(project.models().idToIndex(thisProjection.getSettings().baseModel));
+		saveOutput << thisProjection.getSettings().endDate.GetJulianDayNumber();
+		saveOutput << thisProjection.getLastUpdatedDate().GetJulianDayNumber();
+		saveOutput << thisProjection.getSettings().dailyChange;
+		saveOutput << thisProjection.getSettings().initialStdDev;
+		saveOutput << thisProjection.getSettings().leaderVoteDecay;
+		saveOutput.outputAsType<int32_t>(thisProjection.getSettings().numElections);
+		saveOutput.outputAsType<int32_t>(thisProjection.getProjectionLength());
+		for (int dayIndex = 0; dayIndex < int(thisProjection.getProjectionLength()); ++dayIndex) {
+			saveOutput << thisProjection.getMeanProjection(dayIndex);
+			saveOutput << thisProjection.getSdProjection(dayIndex);
+		}
+	}
+}
+
+void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	int projectionCount = saveInput.extract<int32_t>();
+	for (int projectionIndex = 0; projectionIndex < projectionCount; ++projectionIndex) {
+		Projection::SaveData thisProjection;
+		saveInput >> thisProjection.settings.name;
+		thisProjection.settings.numIterations = saveInput.extract<int32_t>();
+		thisProjection.settings.baseModel = saveInput.extract<int32_t>();
+		thisProjection.settings.endDate = wxDateTime(saveInput.extract<double>());
+		thisProjection.lastUpdated = wxDateTime(saveInput.extract<double>());
+		saveInput >> thisProjection.settings.dailyChange;
+		saveInput >> thisProjection.settings.initialStdDev;
+		saveInput >> thisProjection.settings.leaderVoteDecay;
+		thisProjection.settings.numElections = saveInput.extract<int32_t>();
+		auto projLength = saveInput.extract<int32_t>();
+		for (int dayIndex = 0; dayIndex < projLength; ++dayIndex) {
+			Projection::ProjectionDay thisDay;
+			saveInput >> thisDay.mean;
+			saveInput >> thisDay.sd;
+			thisProjection.projection.push_back(thisDay);
+		}
+		project.projectionCollection.add(Projection(thisProjection));
 	}
 }
 

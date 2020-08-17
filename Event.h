@@ -36,4 +36,14 @@ struct Event {
 		if (eventType == EventType_Election) return formatFloat(vote, 2);
 		return "";
 	}
+
+	std::string textReport() const {
+		std::stringstream report;
+		report << "Reporting Event: \n";
+		report << " Name: " << name << "\n";
+		report << " Event Type: " << getEventTypeString() << "\n";
+		report << " Date: " << getDateString() << "\n";
+		report << " Vote: " << getVoteString() << "\n";
+		return report.str();
+	}
 };

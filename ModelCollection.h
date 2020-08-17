@@ -75,6 +75,8 @@ public:
 
 	void finaliseLoadedModel();
 
+	void logAll() const;
+
 	ModelContainer::iterator begin() { return models.begin(); }
 	ModelContainer::iterator end() { return models.end(); }
 	ModelContainer::const_iterator begin() const { return models.begin(); }

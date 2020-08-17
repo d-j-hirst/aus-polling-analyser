@@ -72,6 +72,22 @@ void Model::extendToDate(wxDateTime date)
 	settings.endDate = date;
 }
 
+std::string Model::textReport() const
+{
+	std::stringstream report;
+	report << "Reporting Model: \n";
+	report << " Name: " << settings.name << "\n";
+	report << " Number of Iterations: " << settings.numIterations << "\n";
+	report << " Trend Time Score Multiplier: " << settings.trendTimeScoreMultiplier << "\n";
+	report << " House Effect Time Score Multiplier: " << settings.houseEffectTimeScoreMultiplier << "\n";
+	report << " Calibration First Party Bias: " << settings.calibrationFirstPartyBias << "\n";
+	report << " Final Standard Deviation: " << getFinalStandardDeviation() << "\n";
+	report << " Start Date: " << getStartDateString() << "\n";
+	report << " End Date: " << getEndDateString() << "\n";
+	report << " Last Updated: " << getLastUpdatedString() << "\n";
+	return report.str();
+}
+
 void Model::initializeRun(PollsterCollection const& pollsters, PollCollection const& polls) {
 	updateEffectiveDates(polls);
 	day.clear();

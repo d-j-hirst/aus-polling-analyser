@@ -47,6 +47,18 @@ private:
 
 	void loadPolls(SaveFileInput& saveInput, int versionNum);
 
+	void saveEvents(SaveFileOutput& saveOutput);
+
+	void loadEvents(SaveFileInput& saveInput, int versionNum);
+
+	void saveModels(SaveFileOutput& saveOutput);
+
+	void loadModels(SaveFileInput& saveInput, int versionNum);
+
+	void saveProjections(SaveFileOutput& saveOutput);
+
+	void loadProjections(SaveFileInput& saveInput, int versionNum);
+
 	// Opens the project saved at the given filename.
 	// Returns false if the end of the file is reached (marked by "#End").
 	bool processFileLine(std::string line, FileOpeningState& fos);

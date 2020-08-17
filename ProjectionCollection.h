@@ -6,6 +6,7 @@
 #include <optional>
 
 class PollingProject;
+class ModelCollection;
 
 class ProjectionDoesntExistException : public std::runtime_error {
 public:
@@ -73,6 +74,8 @@ public:
 	void startLoadingProjection();
 
 	void finaliseLoadedProjection();
+
+	void logAll(ModelCollection const& models) const;
 
 	// Gets the begin iterator for the pollster list.
 	ProjectionContainer::iterator begin() { return projections.begin(); }

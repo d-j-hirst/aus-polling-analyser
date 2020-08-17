@@ -5,6 +5,8 @@
 
 #include <exception>
 
+class ModelCollection;
+
 ProjectionCollection::ProjectionCollection(PollingProject & project)
 	: project(project)
 {
@@ -94,4 +96,11 @@ void ProjectionCollection::finaliseLoadedProjection()
 	if (!loadingProjection.has_value()) return;
 	add(Projection(loadingProjection.value()));
 	loadingProjection.reset();
+}
+
+void ProjectionCollection::logAll(ModelCollection const& models) const
+{
+	for (auto const& [key, thisProjection] : projections) {
+		logger << thisProjection.textReport(models);
+	}
 }

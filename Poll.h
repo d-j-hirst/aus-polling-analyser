@@ -89,13 +89,13 @@ public:
 		report << "Reporting Poll: \n";
 		report << " Pollster: " << pollsters.view(pollster).name << "\n";
 		report << " Date: " << date.FormatDate() << "\n";
-		report << " Reported 2pp: " << reported2pp << "\n";
-		report << " Respondent 2pp: " << respondent2pp << "\n";
-		report << " Calculated 2pp: " << calc2pp << "\n";
+		report << " Reported 2pp: " << getReported2ppString() << "\n";
+		report << " Respondent 2pp: " << getRespondent2ppString() << "\n";
+		report << " Calculated 2pp: " << getCalc2ppString() << "\n";
 		report << " Primaries: \n";
 		for (int partyIndex = 0; partyIndex < std::min(parties.count(), int(primary.size()) - 1); ++partyIndex) {
 			report << "  " << parties.viewByIndex(partyIndex).name
-				<< ": " << primary[partyIndex] << "\n";
+				<< ": " << getPrimaryString(partyIndex) << "\n";
 		}
 		report << "  Others: " << primary.back() << "\n";
 		return report.str();
