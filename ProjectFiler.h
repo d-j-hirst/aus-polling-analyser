@@ -71,6 +71,10 @@ private:
 
 	void loadSimulations(SaveFileInput& saveInput, int versionNum);
 
+	void saveOutcomes(SaveFileOutput& saveOutput);
+
+	void loadOutcomes(SaveFileInput& saveInput, int versionNum);
+
 	// Opens the project saved at the given filename.
 	// Returns false if the end of the file is reached (marked by "#End").
 	bool processFileLine(std::string line, FileOpeningState& fos);

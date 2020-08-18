@@ -213,6 +213,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveRegions(saveOutput);
 	saveSeats(saveOutput);
 	saveSimulations(saveOutput);
+	saveOutcomes(saveOutput);
 	return 1;
 }
 
@@ -230,6 +231,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	loadRegions(saveInput, versionNum);
 	loadSeats(saveInput, versionNum);
 	loadSimulations(saveInput, versionNum);
+	loadOutcomes(saveInput, versionNum);
 
 	project.parties().logAll();
 	project.pollsters().logAll();
@@ -240,6 +242,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	project.regions().logAll();
 	project.seats().logAll(project.parties(), project.regions());
 	project.simulations().logAll(project.projections());
+	project.outcomes().logAll(project.seats());
 	return 1;
 }
 
@@ -582,6 +585,34 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 		saveInput >> thisSimulation.stateDecay;
 		thisSimulation.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
 		project.simulationCollection.add(Simulation(thisSimulation));
+	}
+}
+
+void ProjectFiler::saveOutcomes(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.outcomeCollection.count());
+	for (auto const& thisOutcome : project.outcomeCollection) {
+		saveOutput.outputAsType<int32_t>(project.seats().idToIndex(thisOutcome.seat));
+		saveOutput << thisOutcome.incumbentSwing;
+		saveOutput << thisOutcome.percentCounted;
+		saveOutput.outputAsType<int32_t>(thisOutcome.boothsIn);
+		saveOutput.outputAsType<int32_t>(thisOutcome.totalBooths);
+		saveOutput << thisOutcome.updateTime.GetJulianDayNumber();
+	}
+}
+
+void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	int outcomeCount = saveInput.extract<int32_t>();
+	for (int outcomeIndex = 0; outcomeIndex < outcomeCount; ++outcomeIndex) {
+		Outcome thisOutcome;
+		thisOutcome.seat = saveInput.extract<int32_t>();
+		saveInput >> thisOutcome.incumbentSwing;
+		saveInput >> thisOutcome.percentCounted;
+		thisOutcome.boothsIn = saveInput.extract<int32_t>();
+		thisOutcome.totalBooths = saveInput.extract<int32_t>();
+		thisOutcome.updateTime = wxDateTime(saveInput.extract<double>());
+		project.outcomeCollection.add(thisOutcome);
 	}
 }
 

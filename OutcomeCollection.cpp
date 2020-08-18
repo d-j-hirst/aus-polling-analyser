@@ -1,5 +1,7 @@
 #include "OutcomeCollection.h"
 
+#include "Log.h"
+
 void OutcomeCollection::add(Outcome outcome)
 {
 	outcomes.push_front(outcome);
@@ -25,4 +27,11 @@ std::list<Outcome>::iterator OutcomeCollection::begin()
 std::list<Outcome>::iterator OutcomeCollection::end()
 {
 	return outcomes.end();
+}
+
+void OutcomeCollection::logAll(SeatCollection const& seats) const
+{
+	for (auto const& thisOutcome : outcomes) {
+		logger << thisOutcome.textReport(seats);
+	}
 }

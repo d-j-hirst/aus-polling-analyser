@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Seat.h"
+#include "SeatCollection.h"
 
 #include <wx/datetime.h>
 
@@ -20,7 +21,23 @@ public:
 	int boothsIn = 0;
 	int totalBooths = 0;
 	wxDateTime updateTime;
-	std::array<int, 2> twoCandidatePreferred; // 0 = "incumbent", 1 = other candidate
+
+	std::string getUpdateTimeString() const {
+		if (!updateTime.IsValid()) return "";
+		else return updateTime.FormatISODate().ToStdString();
+	}
+
+	std::string textReport(SeatCollection const& seats) const {
+		std::stringstream report;
+		report << "Reporting Outcome: \n";
+		report << " Seat: " << seats.view(seat).name << "\n";
+		report << " Incumbent Swing: " << incumbentSwing << "\n";
+		report << " Percent Counted: " << percentCounted << "\n";
+		report << " Booths In: " << boothsIn << "\n";
+		report << " Total Booths: " << totalBooths << "\n";
+		report << " Update Time: " << getUpdateTimeString() << "\n";
+		return report.str();
+	}
 
 	float getPercentCountedEstimate() const { 
 		if (percentCounted) {
