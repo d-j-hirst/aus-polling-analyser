@@ -94,7 +94,7 @@ void ModelCollection::startLoadingModel()
 void ModelCollection::finaliseLoadedModel()
 {
 	if (!loadingModel.has_value()) return;
-	add(Model(loadingModel.value()));
+	add(Model(loadingModel.value(), project.polls()));
 	loadingModel.reset();
 }
 

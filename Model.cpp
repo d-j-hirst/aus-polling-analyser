@@ -13,14 +13,15 @@ constexpr float Invalid2pp = std::numeric_limits<float>::lowest();
 
 constexpr float PollZScoreCap = 3.0f;
 
-Model::Model(SaveData saveData)
+Model::Model(SaveData saveData, PollCollection const& polls)
 	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
 	finalStandardDeviation(saveData.finalStandardDeviation)
 {
 	for (auto trendPoint : saveData.trend) {
 		day.push_back(TimePoint(0)); // pollster count is reset when model is run anyway, so leave it at zero
-		day.back() = trendPoint;
+		day.back().trend2pp = trendPoint;
 	}
+	updateEffectiveDates(polls);
 }
 
 void Model::replaceSettings(Settings newSettings)

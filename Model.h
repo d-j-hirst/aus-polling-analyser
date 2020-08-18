@@ -59,7 +59,7 @@ public:
 
 	Model(Settings settings) : settings(settings) {}
 
-	Model(SaveData saveData);
+	Model(SaveData saveData, PollCollection const& polls);
 
 	void replaceSettings(Settings newSettings);
 

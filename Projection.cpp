@@ -14,7 +14,8 @@
 Projection::Projection(SaveData saveData)
 	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
 	projection(saveData.projection)
-{}
+{
+}
 
 void Projection::replaceSettings(Settings newSettings)
 {

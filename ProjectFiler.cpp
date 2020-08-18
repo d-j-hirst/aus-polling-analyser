@@ -173,6 +173,7 @@ void ProjectFiler::open(std::string filename) {
 	project.valid = false;
 	if (isDetailedFormat(filename)) {
 		openDetailed(filename);
+		project.valid = true;
 		return;
 	}
 
@@ -214,7 +215,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveSeats(saveOutput);
 	saveSimulations(saveOutput);
 	saveOutcomes(saveOutput);
-	return 1;
+	return 0;
 }
 
 int ProjectFiler::openDetailed(std::string filename)
@@ -243,7 +244,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	project.seats().logAll(project.parties(), project.regions());
 	project.simulations().logAll(project.projections());
 	project.outcomes().logAll(project.seats());
-	return 1;
+	return 0;
 }
 
 void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
@@ -424,7 +425,7 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 		for (int day = 0; day < dayCount; ++day) {
 			thisModel.trend.push_back(saveInput.extract<float>());
 		}
-		project.modelCollection.add(Model(thisModel));
+		project.modelCollection.add(Model(thisModel, project.polls()));
 	}
 }
 
