@@ -80,6 +80,13 @@ int SeatCollection::count() const {
 	return seats.size();
 }
 
+void SeatCollection::logAll(PartyCollection const& parties, RegionCollection const& regions) const
+{
+	for (auto const& [key, thisSeat] : seats) {
+		logger << thisSeat.textReport(parties, regions);
+	}
+}
+
 void SeatCollection::adjustAfterPartyRemoval(PartyCollection::Index, Party::Id partyId) {
 	for (auto& seat : seats) {
 		// Ensures that the incumbent and challenger are never set to the same party

@@ -5,6 +5,7 @@
 #include <map>
 
 class PollingProject;
+class ProjectionCollection;
 
 class SimulationDoesntExistException : public std::runtime_error {
 public:
@@ -70,6 +71,8 @@ public:
 	void startLoadingSimulation();
 
 	void finaliseLoadedSimulation();
+
+	void logAll(ProjectionCollection const& projections) const;
 
 	// Gets the begin iterator for the pollster list.
 	SimulationContainer::iterator begin() { return simulations.begin(); }

@@ -31,6 +31,16 @@ std::string Simulation::getLastUpdatedString() const
 	else return lastUpdated.FormatISODate().ToStdString();
 }
 
+std::string Simulation::getLiveString() const
+{
+	switch (settings.live) {
+	case Settings::Mode::LiveAutomatic: return "Live Automatic";
+	case Settings::Mode::LiveManual: return "Live Manual";
+	case Settings::Mode::Projection: return "Projection Only";
+	default: return "Invalid Mode";
+	}
+}
+
 float Simulation::getPartyMajorityPercent(MajorParty whichParty) const
 {
 	return majorityPercent[whichParty];
@@ -179,4 +189,18 @@ int Simulation::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDis
 		}
 	}
 	return bestCenter;
+}
+
+std::string Simulation::textReport(ProjectionCollection const& projections) const
+{
+	std::stringstream report;
+	report << "Reporting Model: \n";
+	report << " Name: " << settings.name << "\n";
+	report << " Number of Iterations: " << settings.numIterations << "\n";
+	report << " Base Projection: " << projections.view(settings.baseProjection).getSettings().name << "\n";
+	report << " Previous Election 2pp: " << settings.prevElection2pp << "\n";
+	report << " State Standard Deviation (Base): " << settings.stateSD << "\n";
+	report << " State Deviation Decay (per day): " << settings.stateDecay << "\n";
+	report << " Live Status: " << getLiveString() << "\n";
+	return report.str();
 }

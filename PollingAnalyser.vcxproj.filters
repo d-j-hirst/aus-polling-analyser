@@ -38,9 +38,6 @@
     <ClCompile Include="PartiesFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
-    <ClCompile Include="PartySettingsFrame.cpp">
-      <Filter>Source Files\Dialog Boxes</Filter>
-    </ClCompile>
     <ClCompile Include="PollingProject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -194,10 +191,15 @@
     <ClCompile Include="ResultCoordinator.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
-    <ClCompile Include="ProjectFiler.cpp" />
     <ClCompile Include="OutcomeCollection.cpp" />
     <ClCompile Include="SaveIO.cpp">
       <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="ProjectFiler.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
+    <ClCompile Include="PartySettingsFrame.cpp">
+      <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

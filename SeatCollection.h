@@ -5,7 +5,9 @@
 
 #include <map>
 
+class PartyCollection;
 class PollingProject;
+class RegionCollection;
 
 class SeatDoesntExistException : public std::runtime_error {
 public:
@@ -73,6 +75,8 @@ public:
 
 	// Returns the number of seats.
 	int count() const;
+
+	void logAll(PartyCollection const& parties, RegionCollection const& regions) const;
 
 	// If a party is removed, seats need to be adjusted to deal with this
 	void adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);

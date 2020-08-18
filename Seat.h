@@ -2,7 +2,9 @@
 
 #include "ElectionData.h"
 #include "Party.h"
+#include "PartyCollection.h"
 #include "Region.h"
+#include "RegionCollection.h"
 
 #include <exception>
 #include <optional>
@@ -134,5 +136,31 @@ public:
 
 	float getMajorPartyWinRate(Party::Id thisParty) const {
 		return (incumbent == thisParty ? incumbentWinPercent : 100.0f - incumbentWinPercent);
+	}
+
+	std::string textReport(PartyCollection const& parties, RegionCollection const& regions) const {
+		std::stringstream report;
+		report << "Reporting Seat: \n";
+		report << " Name: " << name << "\n";
+		report << " Previous Name: " << previousName << "\n";
+		report << " Incumbent Party: " << parties.view(incumbent).name << "\n";
+		report << " Challenger Party: " << parties.view(challenger).name << "\n";
+		if (challenger2 != Party::InvalidId) report << " Challenger Party 2: " << parties.view(challenger2).name << "\n";
+		report << " Last election 2pp: " << regions.view(region).name << "\n";
+		report << " Margin: " << margin << "\n";
+		report << " Local Modifier: " << localModifier << "\n";
+		report << " Incumbent Betting Odds: " << incumbentOdds << "\n";
+		report << " Challenger Betting Odds: " << challengerOdds << "\n";
+		report << " Challenger 2 Betting Odds: " << challenger2Odds << "\n";
+		report << " Incumbent Win %: " << incumbentWinPercent << "\n";
+		report << " Tipping Point %: " << tippingPointPercent << "\n";
+		report << " Simulated Margin Average: " << simulatedMarginAverage << "\n";
+		if (livePartyOne != Party::InvalidId) report << " Live Party One: " << parties.view(livePartyOne).name << "\n";
+		if (livePartyTwo != Party::InvalidId) report << " Live Party Two: " << parties.view(livePartyTwo).name << "\n";
+		if (livePartyThree != Party::InvalidId) report << " Live Party Three: " << parties.view(livePartyThree).name << "\n";
+		report << " Party Two Prob: " << partyTwoProb << "\n";
+		report << " Party Three Prob: " << partyThreeProb << "\n";
+		report << " Override Betting Odds: " << overrideBettingOdds << "\n";
+		return report.str();
 	}
 };

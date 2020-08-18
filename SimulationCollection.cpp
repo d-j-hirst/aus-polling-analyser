@@ -86,3 +86,10 @@ void SimulationCollection::finaliseLoadedSimulation()
 	add(Simulation(loadingSimulation.value()));
 	loadingSimulation.reset();
 }
+
+void SimulationCollection::logAll(ProjectionCollection const& projections) const
+{
+	for (auto const& [key, thisSimulation] : simulations) {
+		logger << thisSimulation.textReport(projections);
+	}
+}

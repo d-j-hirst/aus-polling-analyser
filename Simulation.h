@@ -16,6 +16,7 @@
 const int NumProbabilityBoundIndices = 8;
 
 class Projection;
+class ProjectionCollection;
 class PollingProject;
 class RegionCollection;
 class Seat;
@@ -76,6 +77,8 @@ public:
 
 	std::string getLastUpdatedString() const;
 
+	std::string getLiveString() const;
+
 	float getPartyMajorityPercent(MajorParty whichParty) const;
 	float getPartyMinorityPercent(MajorParty whichParty) const;
 	float getHungPercent() const;
@@ -118,6 +121,8 @@ public:
 	double getPartyOne2pp() const;
 
 	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject const& project) const;
+
+	std::string textReport(ProjectionCollection const& projections) const;
 
 	bool isLiveAutomatic() const { return settings.live == Settings::Mode::LiveAutomatic; }
 	bool isLiveManual() const { return settings.live == Settings::Mode::LiveManual; }

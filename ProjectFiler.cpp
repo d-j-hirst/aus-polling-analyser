@@ -211,6 +211,8 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveModels(saveOutput);
 	saveProjections(saveOutput);
 	saveRegions(saveOutput);
+	saveSeats(saveOutput);
+	saveSimulations(saveOutput);
 	return 1;
 }
 
@@ -226,6 +228,8 @@ int ProjectFiler::openDetailed(std::string filename)
 	loadModels(saveInput, versionNum);
 	loadProjections(saveInput, versionNum);
 	loadRegions(saveInput, versionNum);
+	loadSeats(saveInput, versionNum);
+	loadSimulations(saveInput, versionNum);
 
 	project.parties().logAll();
 	project.pollsters().logAll();
@@ -234,6 +238,8 @@ int ProjectFiler::openDetailed(std::string filename)
 	project.models().logAll();
 	project.projections().logAll(project.models());
 	project.regions().logAll();
+	project.seats().logAll(project.parties(), project.regions());
+	project.simulations().logAll(project.projections());
 	return 1;
 }
 
@@ -490,6 +496,92 @@ void ProjectFiler::loadRegions(SaveFileInput& saveInput,  [[maybe_unused]] int v
 		saveInput >> thisRegion.swingDeviation;
 		saveInput >> thisRegion.additionalUncertainty;
 		project.regionCollection.add(thisRegion);
+	}
+}
+
+void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.seatCollection.count());
+	for (auto const& [key, thisSeat] : project.seatCollection) {
+		saveOutput << thisSeat.name;
+		saveOutput << thisSeat.previousName;
+		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.incumbent));
+		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger));
+		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger2));
+		saveOutput.outputAsType<int32_t>(project.regions().idToIndex(thisSeat.region));
+		saveOutput << thisSeat.margin;
+		saveOutput << thisSeat.localModifier;
+		saveOutput << thisSeat.incumbentOdds;
+		saveOutput << thisSeat.challengerOdds;
+		saveOutput << thisSeat.challenger2Odds;
+		saveOutput << thisSeat.incumbentWinPercent;
+		saveOutput << thisSeat.tippingPointPercent;
+		saveOutput << thisSeat.simulatedMarginAverage;
+		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyOne));
+		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyTwo));
+		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyThree));
+		saveOutput << thisSeat.partyTwoProb;
+		saveOutput << thisSeat.partyThreeProb;
+		saveOutput << thisSeat.overrideBettingOdds;
+	}
+}
+
+void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	auto seatCount = saveInput.extract<int32_t>();
+	for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
+		Seat thisSeat;
+		saveInput >> thisSeat.name;
+		saveInput >> thisSeat.previousName;
+		thisSeat.incumbent = saveInput.extract<int32_t>();
+		thisSeat.challenger = saveInput.extract<int32_t>();
+		thisSeat.challenger2 = saveInput.extract<int32_t>();
+		thisSeat.region = saveInput.extract<int32_t>();
+		saveInput >> thisSeat.margin;
+		saveInput >> thisSeat.localModifier;
+		saveInput >> thisSeat.incumbentOdds;
+		saveInput >> thisSeat.challengerOdds;
+		saveInput >> thisSeat.challenger2Odds;
+		saveInput >> thisSeat.incumbentWinPercent;
+		saveInput >> thisSeat.tippingPointPercent;
+		saveInput >> thisSeat.simulatedMarginAverage;
+		thisSeat.livePartyOne = saveInput.extract<int32_t>();
+		thisSeat.livePartyTwo = saveInput.extract<int32_t>();
+		thisSeat.livePartyThree = saveInput.extract<int32_t>();
+		saveInput >> thisSeat.partyTwoProb;
+		saveInput >> thisSeat.partyThreeProb;
+		saveInput >> thisSeat.overrideBettingOdds;
+		project.seatCollection.add(thisSeat);
+	}
+}
+
+void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.simulationCollection.count());
+	for (auto const& [key, thisSimulation] : project.simulationCollection) {
+		saveOutput << thisSimulation.getSettings().name;
+		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().numIterations);
+		saveOutput.outputAsType<int32_t>(project.projections().idToIndex(thisSimulation.getSettings().baseProjection));
+		saveOutput << thisSimulation.getSettings().prevElection2pp;
+		saveOutput << thisSimulation.getSettings().stateSD;
+		saveOutput << thisSimulation.getSettings().stateDecay;
+		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
+	}
+}
+
+void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	int simulationCount = saveInput.extract<int32_t>();
+	for (int simulationIndex = 0; simulationIndex < simulationCount; ++simulationIndex) {
+		Simulation::Settings thisSimulation;
+		saveInput >> thisSimulation.name;
+		thisSimulation.numIterations = saveInput.extract<int32_t>();
+		thisSimulation.baseProjection = Projection::Id(saveInput.extract<int32_t>());
+		saveInput >> thisSimulation.prevElection2pp;
+		saveInput >> thisSimulation.stateSD;
+		saveInput >> thisSimulation.stateDecay;
+		thisSimulation.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
+		project.simulationCollection.add(Simulation(thisSimulation));
 	}
 }
 

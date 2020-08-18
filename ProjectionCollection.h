@@ -4,6 +4,7 @@
 
 #include <map>
 #include <optional>
+#include <stdexcept>
 
 class PollingProject;
 class ModelCollection;
