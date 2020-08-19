@@ -133,8 +133,41 @@ void PreviousElectionDataRetriever::collectData()
 
 	tinyxml2::XMLDocument doc;
 	doc.LoadFile(UnzippedFileName.c_str());
-	std::string firstElementName = doc.FirstChildElement()->Name();
-	logger << "First element name: " << firstElementName << "\n";
+	auto contests = doc.FirstChildElement("MediaFeed")->FirstChildElement("Results")->FirstChildElement("Election")
+		->FirstChildElement("House")->FirstChildElement("Contests");
+	auto currentContest = contests->FirstChildElement("Contest");
+	do {
+		auto districtElement = currentContest->FirstChildElement("PollingDistrictIdentifier");
+		auto districtId = districtElement->FindAttribute("Id")->IntValue();
+		auto districtName = districtElement->FirstChildElement("Name")->GetText();
+		auto enrolment = currentContest->FirstChildElement("Enrolment")->IntText();
+		logger << "Contest name: " << districtName << "  Id: " << districtId << "  Enrolment: " << enrolment << "\n";
+		auto currentCandidate = currentContest->FirstChildElement("FirstPreferences")->FirstChildElement("Candidate");
+		do {
+			auto isIndependent = (currentCandidate->FindAttribute("Independent") != nullptr || 
+				currentCandidate->FindAttribute("NoAffiliation") != nullptr);
+			auto candidateIdElement = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
+			auto candidateName = candidateIdElement->FirstChildElement("eml:CandidateName")->GetText();
+			auto candidateId = candidateIdElement->FindAttribute("Id")->IntValue();
+			auto votes = currentCandidate->FirstChildElement("Votes")->IntText();
+			int affiliationId = 0;
+			std::string affiliationName = "";
+			std::string affiliationShortCode = "";
+			if (!isIndependent) {
+				auto affiliationElement = currentCandidate->FirstChildElement("eml:AffiliationIdentifier");
+				affiliationName = affiliationElement->FirstChildElement("eml:RegisteredName")->GetText();
+				affiliationId = affiliationElement->FindAttribute("Id")->IntValue();
+				affiliationShortCode = affiliationElement->FindAttribute("ShortCode")->Value();
+			}
+			// *** Next: get fp votes by vote type (ordinary, postal, etc.)
+			logger << " Candidate: " << candidateName << "  Id: " << candidateId;
+			if (isIndependent) logger << " - Independent - ";
+			else logger << " - " << affiliationName << " (" << affiliationShortCode << ", " << affiliationId << ") - ";
+			logger << "Votes: " << votes << "\n";
+			currentCandidate = currentCandidate->NextSiblingElement("Candidate");
+		} while (currentCandidate);
+		currentContest = currentContest->NextSiblingElement("Contest");
+	} while (currentContest);
 }
 
 void PreviousElectionDataRetriever::extractGeneralSeatInfo(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)

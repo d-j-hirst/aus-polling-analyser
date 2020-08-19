@@ -91,8 +91,9 @@
     <OutDir>.\vc_mswud\</OutDir>
     <IntDir>.\vc_mswud\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
