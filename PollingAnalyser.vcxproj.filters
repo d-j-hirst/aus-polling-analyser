@@ -201,6 +201,9 @@
     <ClCompile Include="PartySettingsFrame.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -494,6 +497,9 @@
       <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
     <ClInclude Include="SaveIO.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
   </ItemGroup>

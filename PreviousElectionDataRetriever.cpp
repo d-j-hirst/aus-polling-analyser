@@ -3,6 +3,8 @@
 #include "General.h"
 #include "Log.h"
 
+#include "tinyxml2.h"
+
 #include <fstream>
 
 const std::string PreviousElectionDataRetriever::UnzippedFileName = "downloads/previous_results.xml";
@@ -108,25 +110,31 @@ void PreviousElectionDataRetriever::collectData()
 	std::string xmlString;
 	transferFileToString(file, xmlString);
 
-	try {
-		std::string::const_iterator searchIt = xmlString.begin();
-		do {
-			Results::Seat seatData;
-			extractGeneralSeatInfo(xmlString, searchIt, seatData);
-			extractFpResults(xmlString, searchIt, seatData);
-			extractTcpResults(xmlString, searchIt, seatData);
-			extractBoothResults(xmlString, searchIt, seatData);
-			auto newSeat = seatMap.insert({ seatData.officialId, seatData });
-			if (!newSeat.second) {
-				logger << seatData.officialId << " - Duplicate seat detected!\n"; // this shouldn't happen
-			}
-		} while (moreSeatData(xmlString, searchIt));
-		affiliations.insert({ 0, {"IND"} });
-		logger << "Previous election download complete!\n";
-	}
-	catch (const std::regex_error& e) {
-		logger << "regex_error caught: " << e.what() << "\n";
-	}
+	//try {
+	//	std::string::const_iterator searchIt = xmlString.begin();
+	//	do {
+	//		Results::Seat seatData;
+	//		extractGeneralSeatInfo(xmlString, searchIt, seatData);
+	//		extractFpResults(xmlString, searchIt, seatData);
+	//		extractTcpResults(xmlString, searchIt, seatData);
+	//		extractBoothResults(xmlString, searchIt, seatData);
+	//		auto newSeat = seatMap.insert({ seatData.officialId, seatData });
+	//		if (!newSeat.second) {
+	//			logger << seatData.officialId << " - Duplicate seat detected!\n"; // this shouldn't happen
+	//		}
+	//	} while (moreSeatData(xmlString, searchIt));
+	//	affiliations.insert({ 0, {"IND"} });
+	//	logger << "Previous election download complete!\n";
+	//}
+	//catch (const std::regex_error& e) {
+	//	logger << "regex_error caught: " << e.what() << "\n";
+	//}
+	file.close();
+
+	tinyxml2::XMLDocument doc;
+	doc.LoadFile(UnzippedFileName.c_str());
+	std::string firstElementName = doc.FirstChildElement()->Name();
+	logger << "First element name: " << firstElementName << "\n";
 }
 
 void PreviousElectionDataRetriever::extractGeneralSeatInfo(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)

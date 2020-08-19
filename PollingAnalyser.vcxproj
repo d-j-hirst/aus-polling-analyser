@@ -73,8 +73,9 @@
     <OutDir>.\vc_mswu\</OutDir>
     <IntDir>.\vc_mswu\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <SourcePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
     <OutDir>.\vc_mswuddll\</OutDir>
@@ -271,6 +272,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp" />
     <ClCompile Include="CheckInput.cpp" />
     <ClCompile Include="ChoiceInput.cpp" />
     <ClCompile Include="ColourInput.cpp" />
@@ -346,6 +348,7 @@
     <ClCompile Include="VisualiserFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h" />
     <ClInclude Include="CheckInput.h" />
     <ClInclude Include="ChoiceInput.h" />
     <ClInclude Include="ColourInput.h" />
