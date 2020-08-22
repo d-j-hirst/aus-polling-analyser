@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <unordered_map>
 #include <numeric>
 #include <unordered_map>
 #include <vector>
@@ -97,4 +98,59 @@ namespace Results {
 
 	typedef std::unordered_map<int, Booth> BoothMap;
 	typedef std::unordered_map<int, Seat> SeatMap;
+}
+
+namespace Results2 {
+	struct Affiliation {
+		int id;
+		std::string name;
+		std::string shortCode;
+	};
+
+	struct Candidate {
+		int id;
+		std::string name;
+		int affiliation; // -1 for independent
+	};
+
+	struct Booth {
+		enum class Type {
+			Normal,
+			Ppvc,
+			Remote,
+			Prison,
+			Hospital,
+			Invalid
+		};
+		int id;
+		std::string name;
+		Type type;
+		std::unordered_map<int, int> fpVotes; // map candidate id -> vote count
+		std::unordered_map<int, int> tcpVotes; // map candidate id -> vote count
+	};
+
+	struct Seat {
+		int id;
+		std::string name;
+		int enrolment;
+		std::vector<int> booths;
+		std::unordered_map<int, int> ordinaryVotesFp; // map candidate id -> vote count
+		std::unordered_map<int, int> absentVotesFp; // map candidate id -> vote count
+		std::unordered_map<int, int> provisionalVotesFp; // map candidate id -> vote count
+		std::unordered_map<int, int> prepollVotesFp; // map candidate id -> vote count
+		std::unordered_map<int, int> postalVotesFp; // map candidate id -> vote count
+		std::unordered_map<int, int> ordinaryVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int, int> absentVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int, int> provisionalVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int, int> prepollVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int, int> postalVotes2cp; // map candidate id -> vote count
+	};
+
+	struct Election {
+		std::string name;
+		std::unordered_map<int, Affiliation> affiliations; // map affiliation id -> affiliation info
+		std::unordered_map<int, Candidate> candidates; // map candidate id -> candidate info
+		std::unordered_map<int, Booth> booths; // map booth id -> booth info
+		std::unordered_map<int, Seat> seats; // map seat id -> seat info
+	};
 }

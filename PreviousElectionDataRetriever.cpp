@@ -239,8 +239,11 @@ void PreviousElectionDataRetriever::collectData()
 		do {
 			auto pollingPlaceIdentifier = currentPollingPlace->FirstChildElement("PollingPlaceIdentifier");
 			auto pollingPlaceName = pollingPlaceIdentifier->FindAttribute("Name")->Value();
+			auto pollingPlaceClass = pollingPlaceIdentifier->FindAttribute("Classification");
+			std::string pollingPlaceClassString = (pollingPlaceClass ? pollingPlaceClass->Value() : "");
 			auto pollingPlaceId = pollingPlaceIdentifier->FindAttribute("Id")->IntValue();
-			logger << " Polling place: " << pollingPlaceName << ", " << pollingPlaceId << "\n";
+			logger << " Polling place: " << pollingPlaceName << ", " << pollingPlaceId
+				<< (pollingPlaceClass ? " (" + pollingPlaceClassString + ")" : "") <<  "\n";
 			logger << "  First preferences:\n";
 			currentCandidate = currentPollingPlace->FirstChildElement("FirstPreferences")->FirstChildElement("Candidate");
 			do {
