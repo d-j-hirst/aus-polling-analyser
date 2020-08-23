@@ -137,17 +137,22 @@ void PreviousElectionDataRetriever::collectData()
 	std::map<int, std::string> affiliationCode;
 	affiliationCode[-1] = "IND";
 
+	Results2::Election election;
+
 	tinyxml2::XMLDocument doc;
 	doc.LoadFile(UnzippedFileName.c_str());
+	auto eventIdentifier = doc.FirstChildElement("MediaFeed")->FirstChildElement("Results")->FirstChildElement("eml:EventIdentifier");
+	election.name = eventIdentifier->FirstChildElement("eml:EventName")->GetText();
+	election.id = eventIdentifier->FindAttribute("Id")->IntValue();
 	auto contests = doc.FirstChildElement("MediaFeed")->FirstChildElement("Results")->FirstChildElement("Election")
 		->FirstChildElement("House")->FirstChildElement("Contests");
 	auto currentContest = contests->FirstChildElement("Contest");
 	do {
+		Results2::Seat thisSeat;
 		auto districtElement = currentContest->FirstChildElement("PollingDistrictIdentifier");
-		auto districtId = districtElement->FindAttribute("Id")->IntValue();
-		auto districtName = districtElement->FirstChildElement("Name")->GetText();
-		auto enrolment = currentContest->FirstChildElement("Enrolment")->IntText();
-		logger << "Contest name: " << districtName << "  Id: " << districtId << "  Enrolment: " << enrolment << "\n";
+		thisSeat.id = districtElement->FindAttribute("Id")->IntValue();
+		thisSeat.name = districtElement->FirstChildElement("Name")->GetText();
+		thisSeat.enrolment = currentContest->FirstChildElement("Enrolment")->IntText();
 		logger << " First preferences:\n";
 		auto currentCandidate = currentContest->FirstChildElement("FirstPreferences")->FirstChildElement("Candidate");
 		do {
@@ -157,17 +162,28 @@ void PreviousElectionDataRetriever::collectData()
 			auto candidateName = candidateIdElement->FirstChildElement("eml:CandidateName")->GetText();
 			auto candidateId = candidateIdElement->FindAttribute("Id")->IntValue();
 			candidateIdToName[candidateId] = candidateName;
-			auto votes = currentCandidate->FirstChildElement("Votes")->IntText();
-			int affiliationId = 0;
-			std::string affiliationName = "";
-			std::string affiliationShortCode = "";
+			int affiliationId = -1;
 			if (!isIndependent) {
 				auto affiliationElement = currentCandidate->FirstChildElement("eml:AffiliationIdentifier");
-				affiliationName = affiliationElement->FirstChildElement("eml:RegisteredName")->GetText();
+				std::string affiliationName = affiliationElement->FirstChildElement("eml:RegisteredName")->GetText();
 				affiliationId = affiliationElement->FindAttribute("Id")->IntValue();
-				affiliationShortCode = affiliationElement->FindAttribute("ShortCode")->Value();
+				std::string affiliationShortCode = affiliationElement->FindAttribute("ShortCode")->Value();
 				candidateToAffiliation[candidateId] = affiliationId;
 				affiliationCode[affiliationId] = affiliationShortCode;
+				if (!election.parties.count(affiliationId)) {
+					Results2::Party thisParty;
+					thisParty.id = affiliationId;
+					thisParty.name = affiliationName;
+					thisParty.shortCode = affiliationShortCode;
+					election.parties[affiliationId] = thisParty;
+				}
+			}
+			if (!election.candidates.count(candidateId)) {
+				Results2::Candidate thisCandidate;
+				thisCandidate.id = candidateId;
+				thisCandidate.name = candidateName;
+				thisCandidate.party = affiliationId;
+				election.candidates[candidateId] = thisCandidate;
 			}
 			auto currentVoteType = currentCandidate->FirstChildElement("VotesByType")->FirstChildElement("Votes");
 			int ordinaryVotes = 0;
@@ -185,32 +201,18 @@ void PreviousElectionDataRetriever::collectData()
 				else if (voteType == "Postal") postalVotes = thisVoteCount;
 				currentVoteType = currentVoteType->NextSiblingElement("Votes");
 			} while (currentVoteType);
-			logger << "  Candidate: " << candidateName << "  Id: " << candidateId;
-			if (isIndependent) logger << " - Independent - ";
-			else logger << " - " << affiliationName << " (" << affiliationShortCode << ", " << affiliationId << ") - ";
-			logger << "Votes: " << votes << "\n";
-			logger << "   (Ordinary: " << ordinaryVotes << "  Absent: " << absentVotes << "  Provisional: " <<
-				provisionalVotes << "  Prepoll: " << prepollVotes << "  Postal: " << postalVotes << ")\n";
+			thisSeat.ordinaryVotesFp[candidateId] = ordinaryVotes;
+			thisSeat.absentVotesFp[candidateId] = absentVotes;
+			thisSeat.provisionalVotesFp[candidateId] = provisionalVotes;
+			thisSeat.prepollVotesFp[candidateId] = prepollVotes;
+			thisSeat.postalVotesFp[candidateId] = postalVotes;
 			currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 		} while (currentCandidate);
 		currentCandidate = currentContest->FirstChildElement("TwoCandidatePreferred")->FirstChildElement("Candidate");
 		logger << " Two candidate preferred:\n";
 		do {
-			auto isIndependent = (currentCandidate->FindAttribute("Independent") != nullptr ||
-				currentCandidate->FindAttribute("NoAffiliation") != nullptr);
 			auto candidateIdElement = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
-			auto candidateName = candidateIdElement->FirstChildElement("eml:CandidateName")->GetText();
 			auto candidateId = candidateIdElement->FindAttribute("Id")->IntValue();
-			auto votes = currentCandidate->FirstChildElement("Votes")->IntText();
-			int affiliationId = 0;
-			std::string affiliationName = "";
-			std::string affiliationShortCode = "";
-			if (!isIndependent) {
-				auto affiliationElement = currentCandidate->FirstChildElement("eml:AffiliationIdentifier");
-				affiliationName = affiliationElement->FirstChildElement("eml:RegisteredName")->GetText();
-				affiliationId = affiliationElement->FindAttribute("Id")->IntValue();
-				affiliationShortCode = affiliationElement->FindAttribute("ShortCode")->Value();
-			}
 			auto currentVoteType = currentCandidate->FirstChildElement("VotesByType")->FirstChildElement("Votes");
 			int ordinaryVotes = 0;
 			int absentVotes = 0;
@@ -227,48 +229,51 @@ void PreviousElectionDataRetriever::collectData()
 				else if (voteType == "Postal") postalVotes = thisVoteCount;
 				currentVoteType = currentVoteType->NextSiblingElement("Votes");
 			} while (currentVoteType);
-			logger << "  Candidate: " << candidateName << "  Id: " << candidateId;
-			if (isIndependent) logger << " - Independent - ";
-			else logger << " - " << affiliationName << " (" << affiliationShortCode << ", " << affiliationId << ") - ";
-			logger << "Votes: " << votes << "\n";
-			logger << "   (Ordinary: " << ordinaryVotes << "  Absent: " << absentVotes << "  Provisional: " <<
-				provisionalVotes << "  Prepoll: " << prepollVotes << "  Postal: " << postalVotes << ")\n";
+			thisSeat.ordinaryVotes2cp[candidateId] = ordinaryVotes;
+			thisSeat.absentVotes2cp[candidateId] = absentVotes;
+			thisSeat.provisionalVotes2cp[candidateId] = provisionalVotes;
+			thisSeat.prepollVotes2cp[candidateId] = prepollVotes;
+			thisSeat.postalVotes2cp[candidateId] = postalVotes;
 			currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 		} while (currentCandidate);
 		auto currentPollingPlace = currentContest->FirstChildElement("PollingPlaces")->FirstChildElement("PollingPlace");
 		do {
+			Results2::Booth thisBooth;
 			auto pollingPlaceIdentifier = currentPollingPlace->FirstChildElement("PollingPlaceIdentifier");
 			auto pollingPlaceName = pollingPlaceIdentifier->FindAttribute("Name")->Value();
 			auto pollingPlaceClass = pollingPlaceIdentifier->FindAttribute("Classification");
 			std::string pollingPlaceClassString = (pollingPlaceClass ? pollingPlaceClass->Value() : "");
 			auto pollingPlaceId = pollingPlaceIdentifier->FindAttribute("Id")->IntValue();
-			logger << " Polling place: " << pollingPlaceName << ", " << pollingPlaceId
-				<< (pollingPlaceClass ? " (" + pollingPlaceClassString + ")" : "") <<  "\n";
-			logger << "  First preferences:\n";
+			thisBooth.id = pollingPlaceId;
+			thisBooth.name = pollingPlaceName;
+			if (pollingPlaceClassString == "PrePollVotingCentre") thisBooth.type = Results2::Booth::Type::Ppvc;
+			else if (pollingPlaceClassString == "SpecialHospital") thisBooth.type = Results2::Booth::Type::Hospital;
+			else if (pollingPlaceClassString == "RemoteMobile") thisBooth.type = Results2::Booth::Type::Remote;
+			else if (pollingPlaceClassString == "PrisonMobile") thisBooth.type = Results2::Booth::Type::Prison;
 			currentCandidate = currentPollingPlace->FirstChildElement("FirstPreferences")->FirstChildElement("Candidate");
 			do {
 				auto candidateIdElement = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 				auto candidateId = candidateIdElement->FindAttribute("Id")->IntValue();
 				auto votes = currentCandidate->FirstChildElement("Votes")->IntText();
-				logger << "   " << candidateIdToName[candidateId] << " (" <<
-					affiliationCode[candidateToAffiliation[candidateId]] << ")  Votes: " << votes << "\n";
+				thisBooth.votesFp[candidateId] = votes;
 				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 			} while (currentCandidate);
-			logger << "  Two candidate preferred:\n";
 			currentCandidate = currentPollingPlace->FirstChildElement("TwoCandidatePreferred")->FirstChildElement("Candidate");
 			do {
 				auto candidateIdElement = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 				auto candidateId = candidateIdElement->FindAttribute("Id")->IntValue();
 				auto votes = currentCandidate->FirstChildElement("Votes")->IntText();
-				logger << "   " << candidateIdToName[candidateId] << " (" <<
-					affiliationCode[candidateToAffiliation[candidateId]] << ")  Votes: " << votes << "\n";
+				thisBooth.votes2cp[candidateId] = votes;
 				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 			} while (currentCandidate);
+			election.booths[pollingPlaceId] = thisBooth;
+			thisSeat.booths.push_back(pollingPlaceId);
 			currentPollingPlace = currentPollingPlace->NextSiblingElement("PollingPlace");
 		} while (currentPollingPlace);
-
+		election.seats[thisSeat.id] = thisSeat;
 		currentContest = currentContest->NextSiblingElement("Contest");
 	} while (currentContest);
+	election;
 }
 
 void PreviousElectionDataRetriever::extractGeneralSeatInfo(std::string const & xmlString, SearchIterator & searchIt, Results::Seat & seatData)

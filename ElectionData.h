@@ -101,7 +101,7 @@ namespace Results {
 }
 
 namespace Results2 {
-	struct Affiliation {
+	struct Party {
 		int id;
 		std::string name;
 		std::string shortCode;
@@ -110,7 +110,7 @@ namespace Results2 {
 	struct Candidate {
 		int id;
 		std::string name;
-		int affiliation; // -1 for independent
+		int party; // -1 for independent
 	};
 
 	struct Booth {
@@ -125,8 +125,8 @@ namespace Results2 {
 		int id;
 		std::string name;
 		Type type;
-		std::unordered_map<int, int> fpVotes; // map candidate id -> vote count
-		std::unordered_map<int, int> tcpVotes; // map candidate id -> vote count
+		std::unordered_map<int, int> votesFp; // map candidate id -> vote count
+		std::unordered_map<int, int> votes2cp; // map candidate id -> vote count
 	};
 
 	struct Seat {
@@ -148,7 +148,8 @@ namespace Results2 {
 
 	struct Election {
 		std::string name;
-		std::unordered_map<int, Affiliation> affiliations; // map affiliation id -> affiliation info
+		int id;
+		std::unordered_map<int, Party> parties; // map affiliation id -> affiliation info
 		std::unordered_map<int, Candidate> candidates; // map candidate id -> candidate info
 		std::unordered_map<int, Booth> booths; // map booth id -> booth info
 		std::unordered_map<int, Seat> seats; // map seat id -> seat info
