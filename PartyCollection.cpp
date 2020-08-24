@@ -16,10 +16,12 @@ void PartyCollection::finaliseFileLoading() {
 	parties[1].countAsParty = Party::CountAsParty::IsPartyTwo;
 	parties[1].supportsParty = Party::SupportsParty::Two;
 }
+
 PartyCollection::Result PartyCollection::canAdd()
 {
 	return (count() >= MaxParties ? Result::TooManyParties : Result::Ok);
 }
+
 void PartyCollection::add(Party party) {
 	if (canAdd() != Result::Ok) throw PartyLimitException();
 	parties.insert({ nextId, party });

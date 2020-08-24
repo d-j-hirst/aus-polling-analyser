@@ -24,6 +24,7 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	regionCollection(*this),
 	seatCollection(*this),
 	simulationCollection(*this),
+	electionCollection(*this),
 	resultCoordinator(*this)
 {
 	// The project must always have at least two parties, no matter what. This initializes them with default values.
@@ -44,6 +45,7 @@ PollingProject::PollingProject(std::string pathName) :
 	regionCollection(*this),
 	seatCollection(*this),
 	simulationCollection(*this),
+	electionCollection(*this),
 	resultCoordinator(*this)
 {
 	logger << "Loading project from: " << lastFileName << "\n";

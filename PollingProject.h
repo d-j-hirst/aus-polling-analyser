@@ -11,6 +11,7 @@
 #include "NewProjectData.h"
 #include "Points.h"
 
+#include "ElectionCollection.h"
 #include "EventCollection.h"
 #include "ModelCollection.h"
 #include "OutcomeCollection.h"
@@ -112,6 +113,9 @@ public:
 	OutcomeCollection& outcomes() { return outcomeCollection; }
 	OutcomeCollection const& outcomes() const { return outcomeCollection; }
 
+	ElectionCollection& elections() { return electionCollection; }
+	ElectionCollection const& elections() const { return electionCollection; }
+
 	// Each seat has a pointer to the latest live result (if any)
 	// This updates these pointers to point to the most recent results.
 	void updateOutcomesForSeats();
@@ -167,6 +171,7 @@ private:
 	SimulationCollection simulationCollection;
 	ResultCoordinator resultCoordinator;
 	OutcomeCollection outcomeCollection;
+	ElectionCollection electionCollection;
 
 	static const Party invalidParty;
 

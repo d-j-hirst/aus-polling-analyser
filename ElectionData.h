@@ -147,6 +147,7 @@ namespace Results2 {
 	};
 
 	struct Election {
+		typedef int32_t Id;
 		std::string name;
 		int id;
 		std::unordered_map<int, Party> parties; // map affiliation id -> affiliation info

@@ -119,9 +119,8 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 		if (!skipPrompt) wxMessageBox("Downloaded historic data from: " + userUrl);
 	}
 
-	PreviousElectionDataRetriever previousElevationDataRetriever;
-	previousElevationDataRetriever.collectData();
-	project->results().incorporatePreviousElectionResults(previousElevationDataRetriever);
+	auto const& election = project->elections().add(PreviousElectionDataRetriever().collectData());
+	logger << "Added election: " << election.name << "\n";
 }
 
 void DownloadFrame::collectPreloadData(bool skipPrompt)

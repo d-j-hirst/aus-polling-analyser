@@ -204,6 +204,7 @@
     <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="ElectionCollection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -501,6 +502,9 @@
     </ClInclude>
     <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="ElectionCollection.h">
+      <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

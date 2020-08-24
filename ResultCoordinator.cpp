@@ -196,68 +196,72 @@ float ResultCoordinator::calculateFpPercentComplete(Seat const & seat)
 
 void ResultCoordinator::matchPreviousElectionSeatsWithProjectSeats(PreviousElectionDataRetriever const& dataRetriever)
 {
-	int seatMatchCount = 0;
-	for (auto seatIt = dataRetriever.beginSeats(); seatIt != dataRetriever.endSeats(); ++seatIt) {
-		auto seatData = seatIt->second;
-		auto seatMatchFunc = [seatData](SeatCollection::SeatContainer::value_type const& seat)
-		{ return seat.second.name == seatData.name || seat.second.previousName == seatData.name; };
-		auto matchedSeat = std::find_if(project.seats().begin(), project.seats().end(), seatMatchFunc);
-		if (matchedSeat != project.seats().end()) {
-			matchedSeat->second.officialId = seatData.officialId;
-			matchedSeat->second.previousResults = seatData;
-			++seatMatchCount;
-		}
-		else {
-			logger << "Note - No seat match found for " << seatData.name << ".\n";
-			logger << "If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.\n";
-			logger << "Also check that the existing seat data download link is correct and hasn't been set to skip the download.\n";
-		}
-	}
-	logger << seatMatchCount << " seats matched.\n";
+	dataRetriever;
+	//int seatMatchCount = 0;
+	//for (auto seatIt = dataRetriever.beginSeats(); seatIt != dataRetriever.endSeats(); ++seatIt) {
+	//	auto seatData = seatIt->second;
+	//	auto seatMatchFunc = [seatData](SeatCollection::SeatContainer::value_type const& seat)
+	//	{ return seat.second.name == seatData.name || seat.second.previousName == seatData.name; };
+	//	auto matchedSeat = std::find_if(project.seats().begin(), project.seats().end(), seatMatchFunc);
+	//	if (matchedSeat != project.seats().end()) {
+	//		matchedSeat->second.officialId = seatData.officialId;
+	//		matchedSeat->second.previousResults = seatData;
+	//		++seatMatchCount;
+	//	}
+	//	else {
+	//		logger << "Note - No seat match found for " << seatData.name << ".\n";
+	//		logger << "If this seat was abolished then this is ok, otherwise check the spelling of the existing seat data.\n";
+	//		logger << "Also check that the existing seat data download link is correct and hasn't been set to skip the download.\n";
+	//	}
+	//}
+	//logger << seatMatchCount << " seats matched.\n";
 }
 
 void ResultCoordinator::collectPreviousElectionBoothsAndCandidates(PreviousElectionDataRetriever const & dataRetriever)
 {
-	std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
-	std::copy(dataRetriever.beginCandidates(), dataRetriever.endCandidates(), std::inserter(candidates, candidates.end()));
+	dataRetriever;
+	//std::copy(dataRetriever.beginBooths(), dataRetriever.endBooths(), std::inserter(booths, booths.end()));
+	//std::copy(dataRetriever.beginCandidates(), dataRetriever.endCandidates(), std::inserter(candidates, candidates.end()));
 }
 
 void ResultCoordinator::collectPreviousElectionAffiliations(PreviousElectionDataRetriever const & dataRetriever)
 {
-	affiliationParties.insert({ -1, Party::InvalidId });
-	affiliations.insert({ -1,{ "Invalid" } });
-	for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
-		affiliations.insert({ affiliationIt->first, affiliationIt->second });
-		// Don't bother doing any string comparisons if this affiliation is already recorded
-		if (affiliationParties.find(affiliationIt->first) == affiliationParties.end()) {
-			for (auto const& party : project.parties()) {
-				for (auto partyCode : party.second.officialCodes) {
-					if (affiliationIt->second.shortCode == partyCode) {
-						affiliationParties.insert({ affiliationIt->first, party.first });
-					}
-				}
-			}
-		}
-	}
+	dataRetriever;
+	//affiliationParties.insert({ -1, Party::InvalidId });
+	//affiliations.insert({ -1,{ "Invalid" } });
+	//for (auto affiliationIt = dataRetriever.beginAffiliations(); affiliationIt != dataRetriever.endAffiliations(); ++affiliationIt) {
+	//	affiliations.insert({ affiliationIt->first, affiliationIt->second });
+	//	// Don't bother doing any string comparisons if this affiliation is already recorded
+	//	if (affiliationParties.find(affiliationIt->first) == affiliationParties.end()) {
+	//		for (auto const& party : project.parties()) {
+	//			for (auto partyCode : party.second.officialCodes) {
+	//				if (affiliationIt->second.shortCode == partyCode) {
+	//					affiliationParties.insert({ affiliationIt->first, party.first });
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 void ResultCoordinator::relateCandidatesAndAffiliations(PreviousElectionDataRetriever const & dataRetriever)
 {
-	candidateParties.insert({ -1, Party::InvalidId });
-	for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
-		candidates.insert(*candidateIt);
-		int affiliationId = candidateIt->second.affiliationId;
-		auto affiliationIt = affiliationParties.find(affiliationId);
-		if (affiliationIt != affiliationParties.end()) {
-			candidateParties.insert({ candidateIt->first, affiliationIt->second });
-			candidateAffiliations.insert({ candidateIt->first, affiliationId });
-		}
-		else {
-			// treat unknown party as independent
-			candidateParties.insert({ candidateIt->first, affiliationParties[0] });
-			candidateAffiliations.insert({ candidateIt->first, -1 });
-		}
-	}
+	dataRetriever;
+	//candidateParties.insert({ -1, Party::InvalidId });
+	//for (auto candidateIt = dataRetriever.beginCandidates(); candidateIt != dataRetriever.endCandidates(); ++candidateIt) {
+	//	candidates.insert(*candidateIt);
+	//	int affiliationId = candidateIt->second.affiliationId;
+	//	auto affiliationIt = affiliationParties.find(affiliationId);
+	//	if (affiliationIt != affiliationParties.end()) {
+	//		candidateParties.insert({ candidateIt->first, affiliationIt->second });
+	//		candidateAffiliations.insert({ candidateIt->first, affiliationId });
+	//	}
+	//	else {
+	//		// treat unknown party as independent
+	//		candidateParties.insert({ candidateIt->first, affiliationParties[0] });
+	//		candidateAffiliations.insert({ candidateIt->first, -1 });
+	//	}
+	//}
 }
 
 void ResultCoordinator::collectCandidatesFromPreload(PreloadDataRetriever const & dataRetriever)
