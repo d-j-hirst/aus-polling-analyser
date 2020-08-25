@@ -215,6 +215,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 	saveSeats(saveOutput);
 	saveSimulations(saveOutput);
 	saveOutcomes(saveOutput);
+	saveElections(saveOutput);
 	return 0;
 }
 
@@ -233,6 +234,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	loadSeats(saveInput, versionNum);
 	loadSimulations(saveInput, versionNum);
 	loadOutcomes(saveInput, versionNum);
+	loadElections(saveInput, versionNum);
 
 	project.parties().logAll();
 	project.pollsters().logAll();
@@ -244,6 +246,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	project.seats().logAll(project.parties(), project.regions());
 	project.simulations().logAll(project.projections());
 	project.outcomes().logAll(project.seats());
+	project.elections().logAll();
 	return 0;
 }
 
@@ -614,6 +617,108 @@ void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int v
 		thisOutcome.totalBooths = saveInput.extract<int32_t>();
 		thisOutcome.updateTime = wxDateTime(saveInput.extract<double>());
 		project.outcomeCollection.add(thisOutcome);
+	}
+}
+
+void ProjectFiler::saveElections(SaveFileOutput& saveOutput)
+{
+	saveOutput.outputAsType<int32_t>(project.electionCollection.count());
+	for (auto const& [electionKey, thisElection] : project.electionCollection) {
+		saveOutput << thisElection.id; // this is the same as the key
+		saveOutput << thisElection.name;
+		saveOutput.outputAsType<int32_t>(thisElection.parties.size());
+		for (auto const& [key, thisParty] : thisElection.parties) {
+			saveOutput << thisParty.id;
+			saveOutput << thisParty.name;
+			saveOutput << thisParty.shortCode;
+		}
+		saveOutput.outputAsType<int32_t>(thisElection.candidates.size());
+		for (auto const& [key, thisCandidate] : thisElection.candidates) {
+			saveOutput << thisCandidate.id;
+			saveOutput << thisCandidate.name;
+			saveOutput << thisCandidate.party;
+		}
+		saveOutput.outputAsType<int32_t>(thisElection.booths.size());
+		for (auto const& [key, thisBooth] : thisElection.booths) {
+			saveOutput << thisBooth.id;
+			saveOutput << thisBooth.name;
+			saveOutput << thisBooth.type;
+			saveOutput << thisBooth.votesFp;
+			saveOutput << thisBooth.votes2cp;
+		}
+		saveOutput.outputAsType<int32_t>(thisElection.seats.size());
+		for (auto const& [key, thisSeat] : thisElection.seats) {
+			saveOutput.outputAsType<int32_t>(thisSeat.id);
+			saveOutput << thisSeat.name;
+			saveOutput.outputAsType<int32_t>(thisSeat.enrolment);
+			saveOutput << thisSeat.booths;
+			saveOutput << thisSeat.ordinaryVotesFp;
+			saveOutput << thisSeat.absentVotesFp;
+			saveOutput << thisSeat.provisionalVotesFp;
+			saveOutput << thisSeat.prepollVotesFp;
+			saveOutput << thisSeat.postalVotesFp;
+			saveOutput << thisSeat.ordinaryVotes2cp;
+			saveOutput << thisSeat.absentVotes2cp;
+			saveOutput << thisSeat.provisionalVotes2cp;
+			saveOutput << thisSeat.prepollVotes2cp;
+			saveOutput << thisSeat.postalVotes2cp;
+		}
+	}
+}
+
+void ProjectFiler::loadElections(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	auto electionCount = saveInput.extract<int32_t>();
+	for (int electionIndex = 0; electionIndex < electionCount; ++electionIndex) {
+		Results2::Election thisElection;
+		saveInput >> thisElection.id; // this is the same as the key
+		saveInput >> thisElection.name;
+		auto partyCount = saveInput.extract<int32_t>();
+		for (int partyIndex = 0; partyIndex < partyCount; ++partyIndex) {
+			Results2::Party thisParty;
+			saveInput >> thisParty.id;
+			saveInput >> thisParty.name;
+			saveInput >> thisParty.shortCode;
+			thisElection.parties[thisParty.id] = thisParty;
+		}
+		auto candidateCount = saveInput.extract<int32_t>();
+		for (int candidateIndex = 0; candidateIndex < candidateCount; ++candidateIndex) {
+			Results2::Candidate thisCandidate;
+			saveInput >> thisCandidate.id;
+			saveInput >> thisCandidate.name;
+			saveInput >> thisCandidate.party;
+			thisElection.candidates[thisCandidate.id] = thisCandidate;
+		}
+		auto boothCount = saveInput.extract<int32_t>();
+		for (int boothIndex = 0; boothIndex < boothCount; ++boothIndex) {
+			Results2::Booth thisBooth;
+			saveInput >> thisBooth.id;
+			saveInput >> thisBooth.name;
+			saveInput >> thisBooth.type;
+			saveInput >> thisBooth.votesFp;
+			saveInput >> thisBooth.votes2cp;
+			thisElection.booths[thisBooth.id] = thisBooth;
+		}
+		auto seatCount = saveInput.extract<int32_t>();
+		for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
+			Results2::Seat thisSeat;
+			thisSeat.id = saveInput.extract<int32_t>();
+			saveInput >> thisSeat.name;
+			thisSeat.enrolment = saveInput.extract<int32_t>();
+			saveInput >> thisSeat.booths;
+			saveInput >> thisSeat.ordinaryVotesFp;
+			saveInput >> thisSeat.absentVotesFp;
+			saveInput >> thisSeat.provisionalVotesFp;
+			saveInput >> thisSeat.prepollVotesFp;
+			saveInput >> thisSeat.postalVotesFp;
+			saveInput >> thisSeat.ordinaryVotes2cp;
+			saveInput >> thisSeat.absentVotes2cp;
+			saveInput >> thisSeat.provisionalVotes2cp;
+			saveInput >> thisSeat.prepollVotes2cp;
+			saveInput >> thisSeat.postalVotes2cp;
+			thisElection.seats[thisSeat.id] = thisSeat;
+		}
+		project.electionCollection.add(thisElection);
 	}
 }
 

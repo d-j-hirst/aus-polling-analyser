@@ -1,5 +1,7 @@
 #include "ElectionCollection.h"
 
+#include "Log.h"
+
 ElectionCollection::ElectionCollection(PollingProject& project)
 	: project(project)
 {
@@ -15,4 +17,9 @@ Results2::Election const& ElectionCollection::view(Results2::Election::Id id) co
 
 int ElectionCollection::count() const {
 	return elections.size();
+}
+
+void ElectionCollection::logAll() const
+{
+	logger << "Placeholder for logging the election collection\n";
 }

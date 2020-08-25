@@ -102,15 +102,15 @@ namespace Results {
 
 namespace Results2 {
 	struct Party {
-		int id;
+		int32_t id;
 		std::string name;
 		std::string shortCode;
 	};
 
 	struct Candidate {
-		int id;
+		int32_t id;
 		std::string name;
-		int party; // -1 for independent
+		int32_t party; // -1 for independent
 	};
 
 	struct Booth {
@@ -122,37 +122,37 @@ namespace Results2 {
 			Hospital,
 			Invalid
 		};
-		int id;
+		int32_t id;
 		std::string name;
 		Type type;
-		std::unordered_map<int, int> votesFp; // map candidate id -> vote count
-		std::unordered_map<int, int> votes2cp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> votesFp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> votes2cp; // map candidate id -> vote count
 	};
 
 	struct Seat {
-		int id;
+		int32_t id;
 		std::string name;
-		int enrolment;
-		std::vector<int> booths;
-		std::unordered_map<int, int> ordinaryVotesFp; // map candidate id -> vote count
-		std::unordered_map<int, int> absentVotesFp; // map candidate id -> vote count
-		std::unordered_map<int, int> provisionalVotesFp; // map candidate id -> vote count
-		std::unordered_map<int, int> prepollVotesFp; // map candidate id -> vote count
-		std::unordered_map<int, int> postalVotesFp; // map candidate id -> vote count
-		std::unordered_map<int, int> ordinaryVotes2cp; // map candidate id -> vote count
-		std::unordered_map<int, int> absentVotes2cp; // map candidate id -> vote count
-		std::unordered_map<int, int> provisionalVotes2cp; // map candidate id -> vote count
-		std::unordered_map<int, int> prepollVotes2cp; // map candidate id -> vote count
-		std::unordered_map<int, int> postalVotes2cp; // map candidate id -> vote count
+		int32_t enrolment;
+		std::vector<int32_t> booths;
+		std::unordered_map<int32_t, int32_t> ordinaryVotesFp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> absentVotesFp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> provisionalVotesFp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> prepollVotesFp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> postalVotesFp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> ordinaryVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> absentVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> provisionalVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> prepollVotes2cp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> postalVotes2cp; // map candidate id -> vote count
 	};
 
 	struct Election {
 		typedef int32_t Id;
 		std::string name;
-		int id;
-		std::unordered_map<int, Party> parties; // map affiliation id -> affiliation info
-		std::unordered_map<int, Candidate> candidates; // map candidate id -> candidate info
-		std::unordered_map<int, Booth> booths; // map booth id -> booth info
-		std::unordered_map<int, Seat> seats; // map seat id -> seat info
+		int32_t id;
+		std::unordered_map<int32_t, Party> parties; // map affiliation id -> affiliation info
+		std::unordered_map<int32_t, Candidate> candidates; // map candidate id -> candidate info
+		std::unordered_map<int32_t, Booth> booths; // map booth id -> booth info
+		std::unordered_map<int32_t, Seat> seats; // map seat id -> seat info
 	};
 }
