@@ -130,7 +130,7 @@ void ProjectFrame::saveAs() {
 		"Save Project As",
 		wxEmptyString,
 		project->getLastFileName(),
-		"Polling Analysis files (*.pol)|*.pol|Detailed Polling Analysis files (*.pol2)|*.pol2",
+		"Detailed Polling Analysis files (*.pol2)|*.pol2|Polling Analysis files (*.pol)|*.pol",
 		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
 	if (saveFileDialog->ShowModal() == wxID_CANCEL)
