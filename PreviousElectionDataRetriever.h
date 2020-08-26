@@ -3,6 +3,8 @@
 #include "ElectionData.h"
 #include "RegexNavigation.h"
 
+#include "tinyxml2.h"
+
 #include <array>
 #include <unordered_map>
 #include <vector>
