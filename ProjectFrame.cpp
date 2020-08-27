@@ -13,6 +13,7 @@
 #include "DisplayFrame.h"
 #include "ResultsFrame.h"
 #include "DownloadFrame.h"
+#include "AnalysisFrame.h"
 #include "MapFrame.h"
 
 enum TabsEnum {
@@ -29,6 +30,7 @@ enum TabsEnum {
 	Tab_Display,
 	Tab_Results,
 	Tab_Downloads,
+	Tab_Adanysis,
 	Tab_Map
 };
 
@@ -87,6 +89,11 @@ void ProjectFrame::Refresher::refreshResults() const {
 	if (projectFrame.resultsFrame) projectFrame.resultsFrame->refreshData();
 }
 
+// Refreshes the Display frame data.
+void ProjectFrame::Refresher::refreshAnalysis() const {
+	if (projectFrame.analysisFrame) projectFrame.analysisFrame->refreshData();
+}
+
 // Refreshes the Map frame data.
 void ProjectFrame::Refresher::refreshMap() const {
 	if (projectFrame.mapFrame) projectFrame.mapFrame->refreshData();
@@ -142,7 +149,7 @@ void ProjectFrame::saveAs() {
 
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.
 ProjectFrame::ProjectFrame(ParentFrame* parent, int WXUNUSED(dummyInt))
-	: wxNotebook(parent->accessNotebookPanel(), wxID_ANY)
+	: parent(parent), wxNotebook(parent->accessNotebookPanel(), wxID_ANY)
 {
 	SetSize(parent->GetClientSize());
 	Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &ProjectFrame::OnSwitch, this, this->GetId());
@@ -178,6 +185,7 @@ void ProjectFrame::setupPages() {
 	createPage<DisplayFrame>(displayFrame);
 	createPage<ResultsFrame>(resultsFrame);
 	createPage<DownloadFrame>(downloadFrame);
+	createPage<AnalysisFrame>(analysisFrame);
 	createPage<MapFrame>(mapFrame);
 }
 

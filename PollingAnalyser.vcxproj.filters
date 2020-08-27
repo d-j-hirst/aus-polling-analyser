@@ -205,6 +205,9 @@
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
     <ClCompile Include="ElectionCollection.cpp" />
+    <ClCompile Include="AnalysisFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -505,6 +508,9 @@
     </ClInclude>
     <ClInclude Include="ElectionCollection.h">
       <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="AnalysisFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

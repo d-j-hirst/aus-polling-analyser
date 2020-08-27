@@ -38,6 +38,7 @@ class SimulationsFrame;
 class DisplayFrame;
 class ResultsFrame;
 class DownloadFrame;
+class AnalysisFrame;
 class MapFrame;
 
 class LoadProjectFailedException : public std::runtime_error {
@@ -66,6 +67,7 @@ public:
 		void refreshSeatData() const;
 		void refreshDisplay() const;
 		void refreshResults() const;
+		void refreshAnalysis() const;
 		void refreshMap() const;
 		// Gives a reference to the underlying notebook so that this
 		// can be used to construct children of the ProjectFrame
@@ -157,6 +159,9 @@ private:
 
 	// points to the download frame (if it exists).
 	DownloadFrame* downloadFrame = nullptr;
+
+	// points to the analysis frame (if it exists).
+	AnalysisFrame* analysisFrame = nullptr;
 
 	// points to the map frame (if it exists).
 	MapFrame* mapFrame = nullptr;

@@ -51,6 +51,9 @@ public:
 	// Returns the election with index "electionIndex".
 	Results2::Election const& view(Results2::Election::Id id) const;
 
+	// Returns the election with index "electionIndex".
+	Results2::Election const& viewByIndex(int index) const;
+
 	// Returns the number of elections.
 	int count() const;
 

@@ -15,6 +15,11 @@ Results2::Election const& ElectionCollection::view(Results2::Election::Id id) co
 	return elections.at(id);
 }
 
+Results2::Election const& ElectionCollection::viewByIndex(int index) const
+{
+	return std::next(elections.begin(), index)->second;
+}
+
 int ElectionCollection::count() const {
 	return elections.size();
 }
