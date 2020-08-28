@@ -69,6 +69,8 @@ private:
 
 	wxComboBox* selectAnalysisComboBox = nullptr;
 
+	wxButton* analyseButton = nullptr;
+
 	wxPanel* dcPanel = nullptr;
 
 	int selectedElection = -1;

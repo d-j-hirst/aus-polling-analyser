@@ -108,7 +108,6 @@ void AnalysisFrame::refreshToolbar() {
 	selectElectionComboBox = new wxComboBox(toolBar, ControlId::SelectElection, comboBoxString, wxPoint(0, 0), wxSize(150, 30), electionArray);
 
 	// Add the tools that will be used on the toolbar.
-	toolBar->AddControl(selectElectionComboBox);
 
 	wxArrayString analysisArray;
 	analysisArray.push_back("Party Analysis");
@@ -118,8 +117,12 @@ void AnalysisFrame::refreshToolbar() {
 
 	selectAnalysisComboBox = new wxComboBox(toolBar, ControlId::SelectAnalysis, comboBoxString, wxPoint(0, 0), wxSize(150, 30), analysisArray);
 
+	analyseButton = new wxButton(toolBar, ControlId::SelectAnalysis, "Analyse", wxPoint(0, 0), wxSize(90, 24));
+
 	// Add the tools that will be used on the toolbar.
+	toolBar->AddControl(selectElectionComboBox);
 	toolBar->AddControl(selectAnalysisComboBox);
+	toolBar->AddControl(analyseButton);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
