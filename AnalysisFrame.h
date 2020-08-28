@@ -37,6 +37,11 @@ public:
 
 private:
 
+	enum class AnalysisType {
+		Party_Analysis,
+		Invalid
+	};
+
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& WXUNUSED(event));
 
@@ -62,9 +67,12 @@ private:
 
 	wxComboBox* selectElectionComboBox = nullptr;
 
+	wxComboBox* selectAnalysisComboBox = nullptr;
+
 	wxPanel* dcPanel = nullptr;
 
 	int selectedElection = -1;
+	int selectedAnalysis = -1;
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

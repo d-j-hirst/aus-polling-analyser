@@ -12,7 +12,8 @@ enum ControlId {
 	Base = 450, // To avoid mixing events with other frames.
 	Frame,
 	DcPanel,
-	SelectSimulation
+	SelectElection,
+	SelectAnalysis,
 };
 
 // frame constructor
@@ -66,7 +67,7 @@ void AnalysisFrame::bindEventHandlers()
 	// Need to resize controls if this frame is resized.
 	//Bind(wxEVT_SIZE, &AnalysisFrame::OnResize, this, PA_AnalysisFrame_FrameID);
 
-	Bind(wxEVT_COMBOBOX, &AnalysisFrame::OnSimulationSelection, this, ControlId::SelectSimulation);
+	Bind(wxEVT_COMBOBOX, &AnalysisFrame::OnSimulationSelection, this, ControlId::SelectElection);
 	dcPanel->Bind(wxEVT_MOTION, &AnalysisFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &AnalysisFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -104,10 +105,21 @@ void AnalysisFrame::refreshToolbar() {
 		comboBoxString = electionArray[selectedElection];
 	}
 
-	selectElectionComboBox = new wxComboBox(toolBar, ControlId::SelectSimulation, comboBoxString, wxPoint(0, 0), wxSize(150, 30), electionArray);
+	selectElectionComboBox = new wxComboBox(toolBar, ControlId::SelectElection, comboBoxString, wxPoint(0, 0), wxSize(150, 30), electionArray);
 
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddControl(selectElectionComboBox);
+
+	wxArrayString analysisArray;
+	analysisArray.push_back("Party Analysis");
+	if (selectedAnalysis >= 0) {
+		comboBoxString = electionArray[selectedAnalysis];
+	}
+
+	selectAnalysisComboBox = new wxComboBox(toolBar, ControlId::SelectAnalysis, comboBoxString, wxPoint(0, 0), wxSize(150, 30), analysisArray);
+
+	// Add the tools that will be used on the toolbar.
+	toolBar->AddControl(selectAnalysisComboBox);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
