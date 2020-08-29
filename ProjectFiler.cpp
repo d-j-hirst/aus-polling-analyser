@@ -352,6 +352,7 @@ void ProjectFiler::loadPolls(SaveFileInput& saveInput, [[maybe_unused]] int vers
 	for (int pollIndex = 0; pollIndex < pollCount; ++pollIndex) {
 		Poll thisPoll;
 		thisPoll.pollster = saveInput.extract<int32_t>();
+		thisPoll.date.SetDay(1); // prevent issue with following commands resulting in an invalid date
 		thisPoll.date.SetYear(saveInput.extract<int32_t>());
 		thisPoll.date.SetMonth(wxDateTime::Month(saveInput.extract<int32_t>()));
 		thisPoll.date.SetDay(saveInput.extract<int32_t>());

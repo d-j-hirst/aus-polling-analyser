@@ -43,10 +43,16 @@ private:
 	};
 
 	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnResize(wxSizeEvent& WXUNUSED(event));
+	void OnResize(wxSizeEvent& event);
 
 	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnSimulationSelection(wxCommandEvent& WXUNUSED(event));
+	void OnElectionSelection(wxCommandEvent& event);
+
+	// Adjusts controls so that they fill the frame space when it is resized.
+	void OnAnalysisSelection(wxCommandEvent& event);
+
+	// Adjusts controls so that they fill the frame space when it is resized.
+	void OnAnalyse(wxCommandEvent& event);
 
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);

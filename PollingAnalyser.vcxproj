@@ -280,6 +280,7 @@
     <ClCompile Include="ColourInput.cpp" />
     <ClCompile Include="DateInput.cpp" />
     <ClCompile Include="DisplayFrameRenderer.cpp" />
+    <ClCompile Include="ElectionAnalyser.cpp" />
     <ClCompile Include="ElectionCollection.cpp" />
     <ClCompile Include="EventCollection.cpp" />
     <ClCompile Include="FloatInput.cpp" />
@@ -289,6 +290,7 @@
     <ClCompile Include="MapFrame.cpp" />
     <ClCompile Include="ModelCollection.cpp" />
     <ClCompile Include="OutcomeCollection.cpp" />
+    <ClCompile Include="PartiesAnalyser.cpp" />
     <ClCompile Include="PartyCollection.cpp" />
     <ClCompile Include="Points.cpp" />
     <ClCompile Include="PollCollection.cpp" />
@@ -358,10 +360,12 @@
     <ClInclude Include="ColourInput.h" />
     <ClInclude Include="DateInput.h" />
     <ClInclude Include="DisplayFrameRenderer.h" />
+    <ClInclude Include="ElectionAnalyser.h" />
     <ClInclude Include="ElectionCollection.h" />
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="EventCollection.h" />
     <ClInclude Include="FloatInput.h" />
+    <ClInclude Include="PartiesAnalyser.h" />
     <ClInclude Include="InputGeneral.h" />
     <ClInclude Include="IntInput.h" />
     <ClInclude Include="ModelCollection.h" />

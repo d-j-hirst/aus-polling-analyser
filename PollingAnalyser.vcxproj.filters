@@ -208,6 +208,12 @@
     <ClCompile Include="AnalysisFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
+    <ClCompile Include="ElectionAnalyser.cpp">
+      <Filter>Source Files\Process Objects\Election Analyser</Filter>
+    </ClCompile>
+    <ClCompile Include="PartiesAnalyser.cpp">
+      <Filter>Source Files\Process Objects\Election Analyser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -257,6 +263,12 @@
     </Filter>
     <Filter Include="Source Files\Process Objects">
       <UniqueIdentifier>{0d62a468-e7fa-468c-9517-e43acae4634b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Process Objects\Election Analysis">
+      <UniqueIdentifier>{99678728-9804-482e-876f-daf7a10bae11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Process Objects\Election Analyser">
+      <UniqueIdentifier>{55417993-f94d-4d34-a1e9-84ad57661aa2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -511,6 +523,12 @@
     </ClInclude>
     <ClInclude Include="AnalysisFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
+    </ClInclude>
+    <ClInclude Include="ElectionAnalyser.h">
+      <Filter>Header Files\Process Objects\Election Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="PartiesAnalyser.h">
+      <Filter>Header Files\Process Objects\Election Analysis</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
