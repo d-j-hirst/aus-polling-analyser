@@ -11,6 +11,10 @@ ElectionAnalyser::ElectionAnalyser(ElectionCollection const& elections)
 void ElectionAnalyser::run(Type type, int electionFocus)
 {
 	if (type == Type::Parties) {
-		PartiesAnalyser(elections).run(electionFocus);
+		auto result = PartiesAnalyser(elections).run(electionFocus);
+		logger << "Party analysis results:\n";
+		for (auto const& [key, party] : result.parties) {
+			logger << " " << party.name << " (" <<party.shortCode << ", " << key << ") - " << party.candidateCount << " candidates\n";
+		}
 	}
 }

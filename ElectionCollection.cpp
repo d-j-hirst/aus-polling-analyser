@@ -8,7 +8,7 @@ ElectionCollection::ElectionCollection(PollingProject& project)
 }
 
 Results2::Election const& ElectionCollection::add(Results2::Election election) {
-	return elections.insert({ election.id, election }).first->second;
+	return elections.insert_or_assign(election.id, election).first->second;
 }
 
 Results2::Election const& ElectionCollection::view(Results2::Election::Id id) const {

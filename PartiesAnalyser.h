@@ -1,11 +1,19 @@
 #pragma once
 
+#include <unordered_map>
+
 class ElectionCollection;
 
 class PartiesAnalyser {
 public:
-	class Output {
+	struct Output {
+		struct PartyInfo {
+			std::string name;
+			std::string shortCode;
+			int candidateCount;
+		};
 
+		std::unordered_map<int, PartyInfo> parties;
 	};
 
 	PartiesAnalyser(ElectionCollection const& elections);

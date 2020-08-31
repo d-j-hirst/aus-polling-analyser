@@ -10,6 +10,15 @@ PartiesAnalyser::PartiesAnalyser(ElectionCollection const& elections)
 
 PartiesAnalyser::Output PartiesAnalyser::run(int electionFocus)
 {
-	logger << "Running party analysis for election: " << elections.viewByIndex(electionFocus).name << "\n";
-	return PartiesAnalyser::Output();
+	PartiesAnalyser::Output output;
+	Results2::Election const& thisElection = elections.viewByIndex(electionFocus);
+	for (auto const& [key, party] : thisElection.parties) {
+		auto& thisParty = output.parties.insert({ party.id, Output::PartyInfo() }).first->second;
+		thisParty.name = party.name;
+		thisParty.shortCode = party.shortCode;
+	}
+	for (auto const& [key, candidate] : thisElection.candidates) {
+		output.parties[candidate.party].candidateCount++;
+	}
+	return output;
 }
