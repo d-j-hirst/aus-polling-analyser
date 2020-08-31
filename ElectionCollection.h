@@ -26,27 +26,16 @@ public:
 class ElectionCollection {
 public:
 	// Collection is a map between ID values and elections
-	// IDs are not preserved between sessions, and are used to ensure
-	// consistent display with election deletions etc. while making sure references
-	// from other components are preserved
+	// Unlike other parts of the project, IDs here ARE preserved between sessions
+	// since they are the IDs officially used by the electoral commission.
 	// Map must be ordered to ensure order of elections is in order they are added.
 	typedef std::map<Results2::Election::Id, Results2::Election> ElectionContainer;
 
 	ElectionCollection(PollingProject& project);
 
-	enum class Result {
-		Ok,
-		TooManyElections,
-		CantRemoveMajorElection,
-		ElectionDoesntExist,
-	};
-
 	// Adds the election "election".
 	// If an election with the same id already exists
 	Results2::Election const& add(Results2::Election election);
-
-	// Removes the election with index "electionIndex".
-	void remove(Results2::Election::Id id);
 
 	// Returns the election with index "electionIndex".
 	Results2::Election const& view(Results2::Election::Id id) const;
