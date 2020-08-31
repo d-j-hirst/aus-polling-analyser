@@ -149,10 +149,12 @@ namespace Results2 {
 	struct Election {
 		typedef int32_t Id;
 		std::string name;
-		int32_t id;
+		int32_t id = 0;
 		std::unordered_map<int32_t, Party> parties; // map affiliation id -> affiliation info
 		std::unordered_map<int32_t, Candidate> candidates; // map candidate id -> candidate info
 		std::unordered_map<int32_t, Booth> booths; // map booth id -> booth info
 		std::unordered_map<int32_t, Seat> seats; // map seat id -> seat info
+
+		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
 	};
 }
