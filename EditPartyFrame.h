@@ -18,6 +18,7 @@
 class ChoiceInput;
 class ColourInput;
 class FloatInput;
+class PartyCollection;
 class TextInput;
 
 // *** EditPartyFrame ***
@@ -35,7 +36,7 @@ public:
 
 	// function: whether this is for a new party or editing an existing party
 	// callback: function to be called when this 
-	EditPartyFrame(Function function, OkCallback callback,
+	EditPartyFrame(Function function, OkCallback callback, PartyCollection const& parties,
 		Party party = Party("Enter party name here", 50.0f, 0.0f, "Enter abbreviation here", Party::CountAsParty::None));
 
 private:
@@ -52,8 +53,8 @@ private:
 	void createIdeologyInput(int& y);
 	void createConsistencyInput(int& y);
 	void createBoothColourMultInput(int& y);
-	void createCountAsPartyInput(int& y);
-	void createSupportsPartyInput(int& y);
+	void createRelationInput(int& y);
+	void createRelationTypeInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -64,11 +65,13 @@ private:
 
 	// Callbacks for the controls to update the party data.
 	void updateShortCodes(std::string shortCodes);
-	void updateCountAsParty(int countAsParty);
-	void updateSupportsParty(int supportsParty);
+	void updateRelation(int countAsParty);
+	void updateRelationType(int supportsParty);
 
 	// Data container for the preliminary settings for the party to be created.
 	Party party;
+
+	PartyCollection const& parties;
 
 	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<FloatInput> preferenceFlowInput;
@@ -79,8 +82,8 @@ private:
 	std::unique_ptr<ChoiceInput> ideologyInput;
 	std::unique_ptr<ChoiceInput> consistencyInput;
 	std::unique_ptr<FloatInput> boothColourMultInput;
-	std::unique_ptr<ChoiceInput> countAsPartyInput;
-	std::unique_ptr<ChoiceInput> supportsPartyInput;
+	std::unique_ptr<ChoiceInput> relationInput;
+	std::unique_ptr<ChoiceInput> relationTypeInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

@@ -4,6 +4,7 @@
 #include "ColourInput.h"
 #include "FloatInput.h"
 #include "General.h"
+#include "PartyCollection.h"
 #include "TextInput.h"
 
 using namespace std::placeholders; // for function object parameter binding
@@ -24,13 +25,13 @@ enum ControlId
 	Ideology,
 	Consistency,
 	BoothColourMult,
-	CountAsParty,
-	SupportsParty,
+	Relation,
+	RelationType,
 };
 
-EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, Party party)
+EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, PartyCollection const& parties, Party party)
 	: wxDialog(NULL, 0, (function == Function::New ? "New Party" : "Edit Party"), wxDefaultPosition, wxSize(400, 400)),
-	party(party), callback(callback)
+	parties(parties), party(party), callback(callback)
 {
 	int currentY = ControlPadding;
 	createControls(currentY);
@@ -48,10 +49,10 @@ void EditPartyFrame::createControls(int& y)
 	createIdeologyInput(y);
 	createConsistencyInput(y);
 
-	if (party.countAsParty != Party::CountAsParty::IsPartyOne && party.countAsParty != Party::CountAsParty::IsPartyTwo) {
+	if (party.relationType != Party::RelationType::IsMajor) {
 		createBoothColourMultInput(y);
-		createCountAsPartyInput(y);
-		createSupportsPartyInput(y);
+		createRelationInput(y);
+		createRelationTypeInput(y);
 	}
 	createOkCancelButtons(y);
 }
@@ -152,40 +153,32 @@ void EditPartyFrame::createBoothColourMultInput(int& y)
 	y += boothColourMultInput->Height + ControlPadding;
 }
 
-void EditPartyFrame::createCountAsPartyInput(int& y)
+void EditPartyFrame::createRelationInput(int& y)
 {
-	wxArrayString countAsPartyArray;
-	countAsPartyArray.push_back("None");
-	countAsPartyArray.push_back("Counts As Party One");
-	countAsPartyArray.push_back("Counts As Party Two");
-	int countAsPartySelection = 0;
-	switch (party.countAsParty) {
-	case Party::CountAsParty::CountsAsPartyOne: countAsPartySelection = 1; break;
-	case Party::CountAsParty::CountsAsPartyTwo: countAsPartySelection = 2; break;
+	wxArrayString relationArray;
+	for (auto const& [key, otherParty] : parties) {
+		relationArray.Add(otherParty.name);
 	}
 
-	auto countAsPartyCallback = std::bind(&EditPartyFrame::updateCountAsParty, this, _1);
-	countAsPartyInput.reset(new ChoiceInput(this, ControlId::CountAsParty, "Counts as party:", countAsPartyArray, countAsPartySelection,
-		wxPoint(2, y), countAsPartyCallback));
-	y += countAsPartyInput->Height + ControlPadding;
+	auto relationCallback = std::bind(&EditPartyFrame::updateRelation, this, _1);
+	relationInput.reset(new ChoiceInput(this, ControlId::Relation, "Related party:", relationArray, parties.idToIndex(party.relationTarget),
+		wxPoint(2, y), relationCallback));
+	y += relationInput->Height + ControlPadding;
 }
 
-void EditPartyFrame::createSupportsPartyInput(int& y)
+void EditPartyFrame::createRelationTypeInput(int& y)
 {
-	wxArrayString supportsPartyArray;
-	supportsPartyArray.push_back("None");
-	supportsPartyArray.push_back("Supports Party One");
-	supportsPartyArray.push_back("Supports Party Two");
-	int supportsPartySelection = 0;
-	switch (party.supportsParty) {
-	case Party::SupportsParty::One: supportsPartySelection = 1; break;
-	case Party::SupportsParty::Two: supportsPartySelection = 2; break;
-	}
+	wxArrayString relationTypeArray;
+	relationTypeArray.push_back("None");
+	relationTypeArray.push_back("Supports related party");
+	relationTypeArray.push_back("In coalition with related party");
+	relationTypeArray.push_back("Is part of related party");
+	int relationTypeSelection = static_cast<int>(party.relationType);
 
-	auto supportsPartyCallback = std::bind(&EditPartyFrame::updateSupportsParty, this, _1);
-	supportsPartyInput.reset(new ChoiceInput(this, ControlId::SupportsParty, "Supports party:", supportsPartyArray, supportsPartySelection,
-		wxPoint(2, y), supportsPartyCallback));
-	y += supportsPartyInput->Height + ControlPadding;
+	auto relationTypeCallback = std::bind(&EditPartyFrame::updateRelationType, this, _1);
+	relationTypeInput.reset(new ChoiceInput(this, ControlId::RelationType, "Relation type:", relationTypeArray, relationTypeSelection,
+		wxPoint(2, y), relationTypeCallback));
+	y += relationTypeInput->Height + ControlPadding;
 }
 
 void EditPartyFrame::createOkCancelButtons(int & y)
@@ -217,20 +210,12 @@ void EditPartyFrame::updateShortCodes(std::string shortCodes)
 {
 	party.officialCodes = splitString(shortCodes, ",");
 }
-void EditPartyFrame::updateCountAsParty(int countAsParty)
+void EditPartyFrame::updateRelation(int relation)
 {
-	switch (countAsParty) {
-	case 0: party.countAsParty = Party::CountAsParty::None; break;
-	case 1: party.countAsParty = Party::CountAsParty::CountsAsPartyOne; break;
-	case 2: party.countAsParty = Party::CountAsParty::CountsAsPartyTwo; break;
-	}
+	party.relationTarget = relation;
 }
 
-void EditPartyFrame::updateSupportsParty(int supportsParty)
+void EditPartyFrame::updateRelationType(int relationType)
 {
-	switch (supportsParty) {
-	case 0: party.supportsParty = Party::SupportsParty::None; break;
-	case 1: party.supportsParty = Party::SupportsParty::One; break;
-	case 2: party.supportsParty = Party::SupportsParty::Two; break;
-	}
+	party.relationType = Party::RelationType(relationType);
 }

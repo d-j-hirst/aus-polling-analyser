@@ -91,6 +91,12 @@ public:
 	PartyContainer::iterator end() { return parties.end(); }
 
 	// Gets the begin iterator for the pollster list.
+	PartyContainer::const_iterator begin() const { return parties.begin(); }
+
+	// Gets the end iterator for the pollster list.
+	PartyContainer::const_iterator end() const { return parties.end(); }
+
+	// Gets the begin iterator for the pollster list.
 	PartyContainer::const_iterator cbegin() const { return parties.cbegin(); }
 
 	// Gets the end iterator for the pollster list.

@@ -36,7 +36,8 @@ public:
 
 	// isNewPoll: true if this dialog is for creating a new poll, false if it's for editing.
 	// parent: Parent frame for this (must be a PollsFrame).
-	// project: The currently opened project.
+	// parties: Collection of parties in the current project.
+	// pollsters: Collection of pollsters in the current project.
 	// poll: Poll data to be used if editing (has default values for creating a new poll).
 	EditPollFrame(Function function, OkCallback callback, PartyCollection const& parties, PollsterCollection const& pollsters,
 		Poll poll = Poll());

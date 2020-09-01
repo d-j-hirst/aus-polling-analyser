@@ -22,6 +22,14 @@ struct Party {
 		Two
 	};
 
+	enum class RelationType : unsigned char {
+		None,
+		Supports,
+		Coalition,
+		IsPartOf,
+		IsMajor
+	};
+
 	struct Colour {
 		int r;
 		int g;
@@ -40,6 +48,8 @@ struct Party {
 	SupportsParty supportsParty = SupportsParty::None;
 	int ideology = 2; // 0 = strong left, 4 = strong right
 	int consistency = 1; // 0 = weak flow, 1 = normal flow, 2 = tight flow
+	RelationType relationType = RelationType::None;
+	Id relationTarget = -1;
 	Colour colour = { 255, 255, 255 };
 	float boothColourMult = 1.6f;
 	bool countsAsMajor() const { return !(countAsParty == CountAsParty::None); }
