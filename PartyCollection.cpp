@@ -15,6 +15,10 @@ void PartyCollection::finaliseFileLoading() {
 	parties[0].supportsParty = Party::SupportsParty::One;
 	parties[1].countAsParty = Party::CountAsParty::IsPartyTwo;
 	parties[1].supportsParty = Party::SupportsParty::Two;
+	parties[0].relationType = Party::RelationType::IsMajor;
+	parties[1].relationType = Party::RelationType::IsMajor;
+	parties[0].relationTarget = -1;
+	parties[1].relationTarget = -1;
 }
 
 PartyCollection::Result PartyCollection::canAdd()

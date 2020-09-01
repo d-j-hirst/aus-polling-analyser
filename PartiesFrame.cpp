@@ -151,7 +151,7 @@ void PartiesFrame::OnNewParty(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PartiesFrame::newPartyCallback, this, _1);
 
-	EditPartyFrame *frame = new EditPartyFrame(EditPartyFrame::Function::New, callback);
+	EditPartyFrame *frame = new EditPartyFrame(EditPartyFrame::Function::New, callback, project->parties());
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.
@@ -168,7 +168,7 @@ void PartiesFrame::OnEditParty(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&PartiesFrame::editPartyCallback, this, _1);
 
-	EditPartyFrame *frame = new EditPartyFrame(EditPartyFrame::Function::Edit, callback, project->parties().viewByIndex(partyIndex));
+	EditPartyFrame *frame = new EditPartyFrame(EditPartyFrame::Function::Edit, callback, project->parties(), project->parties().viewByIndex(partyIndex));
 	frame->ShowModal();
 
 	// This is needed to avoid a memory leak.

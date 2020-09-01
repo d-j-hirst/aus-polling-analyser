@@ -56,20 +56,16 @@ struct Party {
 	bool countsAsOne() const { return countAsParty == CountAsParty::CountsAsPartyOne || countAsParty == CountAsParty::IsPartyOne; }
 	bool countsAsTwo() const { return countAsParty == CountAsParty::CountsAsPartyTwo || countAsParty == CountAsParty::IsPartyTwo; }
 
-	std::string countsAsPartyString() const {
-		switch (countAsParty) {
-		case CountAsParty::CountsAsPartyOne: return "Counts as Party One";
-		case CountAsParty::CountsAsPartyTwo: return "Counts as Party Two";
-		case CountAsParty::IsPartyOne: return "Is Party One";
-		case CountAsParty::IsPartyTwo: return "Is Party Two";
-		default: return "None";
-		}
+	std::string relationString() const {
+		return std::to_string(relationTarget);
 	}
 
-	std::string supportsPartyString() const {
-		switch (supportsParty) {
-		case SupportsParty::One: return "Supports Party One";
-		case SupportsParty::Two: return "Supports Party Two";
+	std::string relationTypeString() const {
+		switch (relationType) {
+		case RelationType::IsMajor: return "Is major party";
+		case RelationType::IsPartOf: return "Is part of";
+		case RelationType::Coalition: return "Is in coalition with";
+		case RelationType::Supports: return "Supports";
 		default: return "None";
 		}
 	}
@@ -81,8 +77,8 @@ struct Party {
 		report << " Preference Share: " << preferenceShare << "\n";
 		report << " Exhaust Rate: " << exhaustRate << "\n";
 		report << " Abbreviation: " << abbreviation << "\n";
-		report << " Counts As Party: " << countsAsPartyString() << "\n";
-		report << " Preference Share: " << supportsPartyString() << "\n";
+		report << " Relation to Party: " << relationString() << "\n";
+		report << " Relation Type: " << relationTypeString() << "\n";
 		report << " Booth Colour Multiplier: " << boothColourMult << "\n";
 		report << " Ideology: " << ideology << "\n";
 		report << " Consistency: " << consistency << "\n";

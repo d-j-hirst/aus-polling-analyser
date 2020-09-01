@@ -173,6 +173,7 @@ void ProjectFiler::open(std::string filename) {
 	project.valid = false;
 	if (isDetailedFormat(filename)) {
 		openDetailed(filename);
+		project.finalizeFileLoading();
 		project.valid = true;
 		return;
 	}
@@ -260,8 +261,8 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 		saveOutput << thisParty.preferenceShare;
 		saveOutput << thisParty.exhaustRate;
 		saveOutput << thisParty.abbreviation;
-		saveOutput.outputAsType<int32_t>(thisParty.countAsParty);
-		saveOutput.outputAsType<int32_t>(thisParty.supportsParty);
+		saveOutput.outputAsType<int32_t>(thisParty.relationTarget);
+		saveOutput.outputAsType<int32_t>(thisParty.relationType);
 		saveOutput << thisParty.boothColourMult;
 		saveOutput.outputAsType<int32_t>(thisParty.ideology);
 		saveOutput.outputAsType<int32_t>(thisParty.consistency);
@@ -286,8 +287,8 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int ve
 		saveInput >> thisParty.preferenceShare;
 		saveInput >> thisParty.exhaustRate;
 		saveInput >> thisParty.abbreviation;
-		thisParty.countAsParty = Party::CountAsParty(saveInput.extract<int32_t>());
-		thisParty.supportsParty = Party::SupportsParty(saveInput.extract<int32_t>());
+		thisParty.relationTarget = saveInput.extract<int32_t>();
+		thisParty.relationType = Party::RelationType(saveInput.extract<int32_t>());
 		saveInput >> thisParty.boothColourMult;
 		thisParty.ideology = saveInput.extract<int32_t>();
 		thisParty.consistency = saveInput.extract<int32_t>();
