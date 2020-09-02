@@ -3,6 +3,8 @@
 #include "ElectionCollection.h"
 #include "Log.h"
 
+#include <sstream>
+
 PartiesAnalyser::PartiesAnalyser(ElectionCollection const& elections)
 	: elections(elections)
 {
@@ -21,4 +23,14 @@ PartiesAnalyser::Output PartiesAnalyser::run(int electionFocus)
 		output.parties[candidate.party].candidateCount++;
 	}
 	return output;
+}
+
+std::string PartiesAnalyser::getTextOutput(Output data)
+{
+	std::stringstream output;
+	output << "Party analysis results:\n";
+	for (auto const& [key, party] : data.parties) {
+		output << " " << party.name << " (" << party.shortCode << ", " << key << ") - " << party.candidateCount << " candidates\n";
+	}
+	return output.str();
 }

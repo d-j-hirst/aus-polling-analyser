@@ -48,7 +48,7 @@ constexpr float SeatsBoxTextHeight = 11.0f;
 constexpr float CornerRounding = 30.0f;
 constexpr float TextBoxCornerRounding = 20.0f;
 
-wxFont font(int fontSize) {
+inline wxFont font(int fontSize) {
 	return wxFont(fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
 }
 

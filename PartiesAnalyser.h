@@ -19,6 +19,8 @@ public:
 	PartiesAnalyser(ElectionCollection const& elections);
 
 	Output run(int electionFocus);
+
+	static std::string getTextOutput(Output data);
 private:
 	ElectionCollection const& elections;
 };

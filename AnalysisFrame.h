@@ -19,6 +19,7 @@
 #include "ProjectFrame.h"
 
 class GenericChildFrame;
+class ElectionAnalyser;
 
 // *** AnalysisFrame ***
 // Frame that displays analysis from past and present elections
@@ -60,6 +61,10 @@ private:
 	// Handles the movement of the mouse in the display frame.
 	void OnMouseMove(wxMouseEvent& event);
 
+	void OnTextDown(wxCommandEvent&);
+
+	void OnTextUp(wxCommandEvent&);
+
 	void bindEventHandlers();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
@@ -79,8 +84,11 @@ private:
 
 	wxPanel* dcPanel = nullptr;
 
+	std::unique_ptr<ElectionAnalyser> analyser;
+
 	int selectedElection = -1;
 	int selectedAnalysis = -1;
+	wxPoint textOffset = { 0, 0 };
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

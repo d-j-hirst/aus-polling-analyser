@@ -1,12 +1,14 @@
 #include "AnalysisFrame.h"
 
-// #include "AnalysisFrameRenderer.h"
+#include "AnalysisFrameRenderer.h"
 #include "ElectionAnalyser.h"
 #include "General.h"
 
 #include "wx/dcbuffer.h"
 
 #include <algorithm>
+
+const int TextVerticalMovement = 400;
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -16,6 +18,8 @@ enum ControlId {
 	SelectElection,
 	SelectAnalysis,
 	Analyse,
+	TextUp,
+	TextDown,
 };
 
 // frame constructor
@@ -23,10 +27,6 @@ AnalysisFrame::AnalysisFrame(ProjectFrame::Refresher refresher, PollingProject* 
 	: GenericChildFrame(refresher.notebook(), ControlId::Frame, "Analysis", wxPoint(333, 0), project),
 	refresher(refresher)
 {
-	// *** Toolbar *** //
-
-	// Load the relevant bitmaps for the toolbar icons.
-	wxLogNull something;
 
 	refreshToolbar();
 
@@ -75,12 +75,26 @@ void AnalysisFrame::OnAnalyse(wxCommandEvent&)
 		wxMessageBox("Please select an election to analyse.");
 		return;
 	}
-	ElectionAnalyser analyser(project->elections());
-	analyser.run(ElectionAnalyser::Type::Parties, selectedElection);
+	analyser = std::make_unique<ElectionAnalyser>(project->elections());
+	analyser->run(ElectionAnalyser::Type::Parties, selectedElection);
+	paint();
 }
 
 // Handles the movement of the mouse in the display frame.
 void AnalysisFrame::OnMouseMove(wxMouseEvent&) {
+	paint();
+}
+
+void AnalysisFrame::OnTextDown(wxCommandEvent&)
+{
+	textOffset.y -= TextVerticalMovement;
+	paint();
+}
+
+void AnalysisFrame::OnTextUp(wxCommandEvent&)
+{
+	textOffset.y += TextVerticalMovement;
+	textOffset.y = std::min(textOffset.y, 0);
 	paint();
 }
 
@@ -92,6 +106,8 @@ void AnalysisFrame::bindEventHandlers()
 	Bind(wxEVT_COMBOBOX, &AnalysisFrame::OnElectionSelection, this, ControlId::SelectElection);
 	Bind(wxEVT_COMBOBOX, &AnalysisFrame::OnAnalysisSelection, this, ControlId::SelectAnalysis);
 	Bind(wxEVT_BUTTON, &AnalysisFrame::OnAnalyse, this, ControlId::Analyse);
+	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextDown, this, ControlId::TextDown);
+	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextUp, this, ControlId::TextUp);
 	dcPanel->Bind(wxEVT_MOTION, &AnalysisFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &AnalysisFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -109,6 +125,12 @@ void AnalysisFrame::updateInterface() {
 void AnalysisFrame::refreshToolbar() {
 
 	if (toolBar) toolBar->Destroy();
+
+	// Load the relevant bitmaps for the toolbar icons.
+	wxLogNull something;
+	wxBitmap toolBarBitmaps[2];
+	toolBarBitmaps[0] = wxBitmap("bitmaps\\up_arrow.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[1] = wxBitmap("bitmaps\\down_arrow.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -138,6 +160,7 @@ void AnalysisFrame::refreshToolbar() {
 	if (selectedAnalysis >= 0) {
 		comboBoxString = electionArray[selectedAnalysis];
 	}
+	else comboBoxString = "";
 
 	selectAnalysisComboBox = new wxComboBox(toolBar, ControlId::SelectAnalysis, comboBoxString, wxPoint(0, 0), wxSize(150, 30), analysisArray);
 
@@ -148,21 +171,22 @@ void AnalysisFrame::refreshToolbar() {
 	toolBar->AddControl(selectAnalysisComboBox);
 	toolBar->AddControl(analyseButton);
 
+	toolBar->AddTool(ControlId::TextUp, "Text Up", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Text Up");
+	toolBar->AddTool(ControlId::TextDown, "Text Down", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Text Down");
+
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
 }
 
 void AnalysisFrame::render(wxDC& dc)
 {
-	dc;
-
-	//AnalysisFrameRenderer::clearDC(dc);
+	AnalysisFrameRenderer::clearDC(dc);
 
 	if (selectedElection < 0 || selectedElection >= project->elections().count()) return;
 
-	//Results2::Election const& election = project->elections().viewByIndex(selectedElection);
+	if (!analyser) return;
 
-	//AnalysisFrameRenderer renderer(*project, dc, simulation, dcPanel->GetClientSize());
+	AnalysisFrameRenderer renderer(*project, dc, *analyser, dcPanel->GetClientSize(), textOffset);
 
-	//renderer.render();
+	renderer.render();
 }

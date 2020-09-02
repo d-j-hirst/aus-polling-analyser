@@ -214,6 +214,9 @@
     <ClCompile Include="PartiesAnalyser.cpp">
       <Filter>Source Files\Process Objects\Election Analyser</Filter>
     </ClCompile>
+    <ClCompile Include="AnalysisFrameRenderer.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -529,6 +532,9 @@
     </ClInclude>
     <ClInclude Include="PartiesAnalyser.h">
       <Filter>Header Files\Process Objects\Election Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="AnalysisFrameRenderer.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -274,6 +274,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AnalysisFrame.cpp" />
+    <ClCompile Include="AnalysisFrameRenderer.cpp" />
     <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp" />
     <ClCompile Include="CheckInput.cpp" />
     <ClCompile Include="ChoiceInput.cpp" />
@@ -354,6 +355,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnalysisFrame.h" />
+    <ClInclude Include="AnalysisFrameRenderer.h" />
     <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h" />
     <ClInclude Include="CheckInput.h" />
     <ClInclude Include="ChoiceInput.h" />

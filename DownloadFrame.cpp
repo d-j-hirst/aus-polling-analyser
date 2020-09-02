@@ -78,6 +78,7 @@ void DownloadFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 void DownloadFrame::OnGetHistoricBoothData(wxCommandEvent& WXUNUSED(event))
 {
 	collectHistoricBoothData(false);
+	refresher.refreshAnalysis();
 }
 
 void DownloadFrame::OnGetPreloadData(wxCommandEvent& WXUNUSED(event))
