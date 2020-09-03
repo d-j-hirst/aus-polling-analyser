@@ -124,7 +124,7 @@ namespace Results2 {
 		};
 		int32_t id;
 		std::string name;
-		Type type;
+		Type type = Type::Normal;
 		std::unordered_map<int32_t, int32_t> votesFp; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> votes2cp; // map candidate id -> vote count
 	};

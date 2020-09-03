@@ -20,7 +20,7 @@ public:
 
 	Output run(int electionFocus);
 
-	static std::string getTextOutput(Output data);
+	static std::string getTextOutput(Output const& data);
 private:
 	ElectionCollection const& elections;
 };

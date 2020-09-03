@@ -25,7 +25,7 @@ PartiesAnalyser::Output PartiesAnalyser::run(int electionFocus)
 	return output;
 }
 
-std::string PartiesAnalyser::getTextOutput(Output data)
+std::string PartiesAnalyser::getTextOutput(Output const& data)
 {
 	std::stringstream output;
 	output << "Party analysis results:\n";

@@ -76,7 +76,12 @@ void AnalysisFrame::OnAnalyse(wxCommandEvent&)
 		return;
 	}
 	analyser = std::make_unique<ElectionAnalyser>(project->elections());
-	analyser->run(ElectionAnalyser::Type::Parties, selectedElection);
+	if (selectedAnalysis == 0) {
+		analyser->run(ElectionAnalyser::Type::Parties, selectedElection);
+	}
+	else if (selectedAnalysis == 1) {
+		analyser->run(ElectionAnalyser::Type::Swing, selectedElection);
+	}
 	paint();
 }
 
@@ -157,6 +162,7 @@ void AnalysisFrame::refreshToolbar() {
 
 	wxArrayString analysisArray;
 	analysisArray.push_back("Party Analysis");
+	analysisArray.push_back("Swing Analysis");
 	if (selectedAnalysis >= 0) {
 		comboBoxString = electionArray[selectedAnalysis];
 	}

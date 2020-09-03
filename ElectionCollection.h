@@ -55,6 +55,12 @@ public:
 	ElectionContainer::iterator end() { return elections.end(); }
 
 	// Gets the begin iterator for the pollster list.
+	ElectionContainer::const_iterator begin() const { return elections.begin(); }
+
+	// Gets the end iterator for the pollster list.
+	ElectionContainer::const_iterator end() const { return elections.end(); }
+
+	// Gets the begin iterator for the pollster list.
 	ElectionContainer::const_iterator cbegin() const { return elections.cbegin(); }
 
 	// Gets the end iterator for the pollster list.
