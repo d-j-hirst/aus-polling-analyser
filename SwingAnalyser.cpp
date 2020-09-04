@@ -56,6 +56,15 @@ SwingAnalyser::Output SwingAnalyser::run()
 			}
 		}
 	}
+	for (auto& [key, booth] : output.booths) {
+		for (auto firstElection = booth.elections.begin(); firstElection != booth.elections.end(); ++firstElection) {
+			auto secondElection = std::next(firstElection);
+			if (secondElection == booth.elections.end()) break;
+			if (firstElection->second.alp2cp && secondElection->second.alp2cp) {
+				secondElection->second.alpSwing = secondElection->second.alp2cp.value() - firstElection->second.alp2cp.value();
+			}
+		}
+	}
 	return output;
 }
 
@@ -68,7 +77,13 @@ std::string SwingAnalyser::getTextOutput(Output const& data)
 		bool firstElement = true;
 		for (auto electionIt : booth.elections) {
 			output << (firstElement ? "" : ", ") << data.electionNames.at(electionIt.first);
-			if (electionIt.second.alp2cp) output << " (ALP 2cp " << electionIt.second.alp2cp * 100.0f << "%)";
+			if (electionIt.second.alp2cp) {
+				output << " (ALP 2cp " << electionIt.second.alp2cp.value() * 100.0f << "%";
+				if (electionIt.second.alpSwing) {
+					output << ", " << electionIt.second.alpSwing.value() * 100.0f << "%";
+				}
+				output << ")";
+			}
 			firstElement = false;
 		}
 		output << "\n";

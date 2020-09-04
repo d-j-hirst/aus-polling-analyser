@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <unordered_map>
 
 class ElectionCollection;
@@ -9,7 +10,8 @@ public:
 	struct Output {
 		struct BoothSwingData {
 			struct SingleElection {
-				float alp2cp;
+				std::optional<float> alp2cp;
+				std::optional<float> alpSwing;
 			};
 			std::string boothName;
 			std::string seatName;
