@@ -85,6 +85,9 @@ void AnalysisFrame::OnAnalyse(wxCommandEvent&)
 	else if (selectedAnalysis == 1) {
 		analyser->run(ElectionAnalyser::Type::Swing, selectedElection);
 	}
+	else if (selectedAnalysis == 2) {
+		analyser->run(ElectionAnalyser::Type::Cluster, selectedElection);
+	}
 	paint();
 }
 
@@ -183,6 +186,7 @@ void AnalysisFrame::refreshToolbar() {
 	wxArrayString analysisArray;
 	analysisArray.push_back("Party Analysis");
 	analysisArray.push_back("Swing Analysis");
+	analysisArray.push_back("Cluster Analysis");
 	if (selectedAnalysis >= 0) {
 		comboBoxString = electionArray[selectedAnalysis];
 	}

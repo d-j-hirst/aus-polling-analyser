@@ -38,11 +38,6 @@ public:
 
 private:
 
-	enum class AnalysisType {
-		Party_Analysis,
-		Invalid
-	};
-
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent& event);
 

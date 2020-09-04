@@ -1,4 +1,4 @@
-#include "SwingAnalyser.h"
+#include "ClusterAnalyser.h"
 
 #include "ElectionCollection.h"
 #include "ElectionData.h"
@@ -7,8 +7,8 @@
 #include <sstream>
 #include <unordered_map>
 
-SwingAnalyser::SwingAnalyser(ElectionCollection const& elections)
-	: elections (elections)
+ClusterAnalyser::ClusterAnalyser(ElectionCollection const& elections)
+	: elections(elections)
 {
 }
 
@@ -24,7 +24,7 @@ inline int32_t findVote2cp(Results2::Election const& election, Results2::Booth c
 	return votes;
 }
 
-SwingAnalyser::Output SwingAnalyser::run()
+ClusterAnalyser::Output ClusterAnalyser::run()
 {
 	Output output;
 	for (auto const& [electionKey, election] : elections) {
@@ -62,7 +62,7 @@ SwingAnalyser::Output SwingAnalyser::run()
 		for (auto firstElection = booth.elections.begin(); firstElection != booth.elections.end(); ++firstElection) {
 			auto secondElection = std::next(firstElection);
 			if (secondElection == booth.elections.end()) break;
-			auto generalFirstElection = std::find_if(elections.begin(), elections.end(), 
+			auto generalFirstElection = std::find_if(elections.begin(), elections.end(),
 				[&](decltype(*elections.begin()) generalElection) {return generalElection.first == firstElection->first; });
 			if (generalFirstElection == elections.end()) continue;
 			auto generalSecondElection = std::next(generalFirstElection);
@@ -80,7 +80,7 @@ inline std::string getFirstWord(std::string const& entire) {
 	return std::string(entire.begin(), entire.begin() + entire.find(" "));
 }
 
-std::string SwingAnalyser::getTextOutput(Output const& data)
+std::string ClusterAnalyser::getTextOutput(Output const& data)
 {
 	std::stringstream output;
 	output << "Swing analysis results:\n";

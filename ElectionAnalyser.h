@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ClusterAnalyser.h"
 #include "PartiesAnalyser.h"
 #include "SwingAnalyser.h"
 
@@ -11,7 +12,8 @@ class ElectionAnalyser {
 public:
 	enum class Type {
 		Parties,
-		Swing
+		Swing,
+		Cluster
 	};
 
 	ElectionAnalyser(ElectionCollection const& elections);
@@ -22,6 +24,7 @@ public:
 private:
 	PartiesAnalyser::Output lastPartiesOutput;
 	SwingAnalyser::Output lastSwingOutput;
+	ClusterAnalyser::Output lastClusterOutput;
 
 	std::string lastOutputString;
 

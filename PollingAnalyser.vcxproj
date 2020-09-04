@@ -278,6 +278,7 @@
     <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp" />
     <ClCompile Include="CheckInput.cpp" />
     <ClCompile Include="ChoiceInput.cpp" />
+    <ClCompile Include="ClusterAnalyser.cpp" />
     <ClCompile Include="ColourInput.cpp" />
     <ClCompile Include="DateInput.cpp" />
     <ClCompile Include="DisplayFrameRenderer.cpp" />
@@ -360,6 +361,7 @@
     <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h" />
     <ClInclude Include="CheckInput.h" />
     <ClInclude Include="ChoiceInput.h" />
+    <ClInclude Include="ClusterAnalyser.h" />
     <ClInclude Include="ColourInput.h" />
     <ClInclude Include="DateInput.h" />
     <ClInclude Include="DisplayFrameRenderer.h" />

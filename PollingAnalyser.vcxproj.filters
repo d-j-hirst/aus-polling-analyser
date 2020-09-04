@@ -218,6 +218,9 @@
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
     <ClCompile Include="SwingAnalyser.cpp" />
+    <ClCompile Include="ClusterAnalyser.cpp">
+      <Filter>Source Files\Process Objects\Election Analyser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -538,6 +541,9 @@
       <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
     <ClInclude Include="SwingAnalyser.h">
+      <Filter>Header Files\Process Objects\Election Analysis</Filter>
+    </ClInclude>
+    <ClInclude Include="ClusterAnalyser.h">
       <Filter>Header Files\Process Objects\Election Analysis</Filter>
     </ClInclude>
   </ItemGroup>

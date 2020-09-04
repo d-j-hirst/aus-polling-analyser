@@ -11,13 +11,18 @@ ElectionAnalyser::ElectionAnalyser(ElectionCollection const& elections)
 
 void ElectionAnalyser::run(Type type, int electionFocus)
 {
-	if (type == Type::Parties) {
+	switch (type) {
+	case Type::Parties:
 		lastPartiesOutput = PartiesAnalyser(elections).run(electionFocus);
 		lastOutputString = PartiesAnalyser::getTextOutput(lastPartiesOutput);
-	}
-	else if (type == Type::Swing) {
+	case Type::Swing:
 		lastSwingOutput = SwingAnalyser(elections).run();
 		lastOutputString = SwingAnalyser::getTextOutput(lastSwingOutput);
+		break;
+	case Type::Cluster:
+		lastClusterOutput = ClusterAnalyser(elections).run();
+		lastOutputString = ClusterAnalyser::getTextOutput(lastClusterOutput);
+		break;
 	}
 }
 
