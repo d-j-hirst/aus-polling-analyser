@@ -39,7 +39,8 @@ private:
 		Federal2010,
 		Federal2013,
 		Federal2016,
-		Federal2019
+		Federal2019,
+		Federal2022
 	};
 
 	// Creates the tool bar and its icons

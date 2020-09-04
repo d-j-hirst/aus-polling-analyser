@@ -9,6 +9,7 @@
 #include <algorithm>
 
 const int TextVerticalMovement = 400;
+const int TextHorizontalMovement = 600;
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -20,6 +21,8 @@ enum ControlId {
 	Analyse,
 	TextUp,
 	TextDown,
+	TextRight,
+	TextLeft
 };
 
 // frame constructor
@@ -103,6 +106,19 @@ void AnalysisFrame::OnTextUp(wxCommandEvent&)
 	paint();
 }
 
+void AnalysisFrame::OnTextRight(wxCommandEvent&)
+{
+	textOffset.x -= TextHorizontalMovement;
+	paint();
+}
+
+void AnalysisFrame::OnTextLeft(wxCommandEvent&)
+{
+	textOffset.x += TextHorizontalMovement;
+	textOffset.x = std::min(textOffset.x, 0);
+	paint();
+}
+
 void AnalysisFrame::bindEventHandlers()
 {
 	// Need to resize controls if this frame is resized.
@@ -113,6 +129,8 @@ void AnalysisFrame::bindEventHandlers()
 	Bind(wxEVT_BUTTON, &AnalysisFrame::OnAnalyse, this, ControlId::Analyse);
 	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextDown, this, ControlId::TextDown);
 	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextUp, this, ControlId::TextUp);
+	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextRight, this, ControlId::TextRight);
+	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextLeft, this, ControlId::TextLeft);
 	dcPanel->Bind(wxEVT_MOTION, &AnalysisFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &AnalysisFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -133,9 +151,11 @@ void AnalysisFrame::refreshToolbar() {
 
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[2];
+	wxBitmap toolBarBitmaps[4];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\up_arrow.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\down_arrow.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[2] = wxBitmap("bitmaps\\left_arrow.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[3] = wxBitmap("bitmaps\\right_arrow.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -179,6 +199,8 @@ void AnalysisFrame::refreshToolbar() {
 
 	toolBar->AddTool(ControlId::TextUp, "Text Up", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Text Up");
 	toolBar->AddTool(ControlId::TextDown, "Text Down", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Text Down");
+	toolBar->AddTool(ControlId::TextLeft, "Text Left", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Text Left");
+	toolBar->AddTool(ControlId::TextRight, "Text Right", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Text Right");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();

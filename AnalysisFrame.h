@@ -65,6 +65,10 @@ private:
 
 	void OnTextUp(wxCommandEvent&);
 
+	void OnTextRight(wxCommandEvent&);
+
+	void OnTextLeft(wxCommandEvent&);
+
 	void bindEventHandlers();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.

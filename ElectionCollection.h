@@ -28,7 +28,7 @@ public:
 	// Collection is a map between ID values and elections
 	// Unlike other parts of the project, IDs here ARE preserved between sessions
 	// since they are the IDs officially used by the electoral commission.
-	// Map must be ordered to ensure order of elections is in order they are added.
+	// Map must be ordered to ensure order of elections is in chronological order
 	typedef std::map<Results2::Election::Id, Results2::Election> ElectionContainer;
 
 	ElectionCollection(PollingProject& project);

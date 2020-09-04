@@ -40,6 +40,7 @@ void DownloadFrame::setupToolbar()
 	presetNames.Add("2013 federal election");
 	presetNames.Add("2016 federal election");
 	presetNames.Add("2019 federal election");
+	presetNames.Add("2022 federal election");
 
 	int presetSelection = Preset::Federal2019;
 	auto presetText = new wxStaticText(toolBar, wxID_ANY, "Set URLs for:");
@@ -110,6 +111,7 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 		case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-15508-20101022115746.zip"; break;
 		case Preset::Federal2016: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-17496-20140516155658.zip"; break;
 		case Preset::Federal2019: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-20499-20170511174118.zip"; break;
+		case Preset::Federal2022: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-24310-20190729153147.zip"; break;
 		}
 
 		std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
@@ -133,6 +135,7 @@ void DownloadFrame::collectPreloadData(bool skipPrompt)
 		case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Preload/aec-mediafeed-Detailed-Preload-17496-20130903105057.zip"; break;
 		case Preset::Federal2016: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Preload/aec-mediafeed-Detailed-Preload-20499-20160629114751.zip"; break;
 		case Preset::Federal2019: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Preload/aec-mediafeed-Detailed-Preload-24310-20190517164959.zip"; break;
+		case Preset::Federal2022: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Preload/aec-mediafeed-Detailed-Preload-24310-20190517164959.zip"; break;
 		}
 
 		std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
@@ -177,6 +180,7 @@ void DownloadFrame::collectLatestBoothData(bool skipPrompt)
 		case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Light/"; break;
 		case Preset::Federal2016: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Light/"; break;
 		case Preset::Federal2019: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Light/"; break;
+		case Preset::Federal2022: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Light/"; break;
 		}
 		std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
 		if (userUrl.empty()) return;

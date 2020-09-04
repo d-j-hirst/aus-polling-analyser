@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <optional>
 #include <unordered_map>
 
@@ -15,7 +16,7 @@ public:
 			};
 			std::string boothName;
 			std::string seatName;
-			std::unordered_map<int, SingleElection> elections;
+			std::map<int, SingleElection> elections;
 		};
 
 		std::unordered_map<int, BoothSwingData> booths;
