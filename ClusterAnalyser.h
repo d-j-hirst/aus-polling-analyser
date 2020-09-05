@@ -16,13 +16,12 @@ public:
 			};
 			std::string boothName;
 			std::string seatName;
+			float similarityScore;
 			std::map<int, SingleElection> elections;
 		};
 
 		std::unordered_map<int, BoothSwingData> booths;
 		std::unordered_map<int, std::string> electionNames;
-
-		std::unordered_map<int, float> similarityScores;
 	};
 
 	ClusterAnalyser(ElectionCollection const& elections);

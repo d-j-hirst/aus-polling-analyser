@@ -36,6 +36,8 @@ void DownloadFrame::setupToolbar()
 	toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_TEXT | wxTB_NOICONS);
 
 	wxArrayString presetNames;
+	presetNames.Add("2004 federal election");
+	presetNames.Add("2007 federal election");
 	presetNames.Add("2010 federal election");
 	presetNames.Add("2013 federal election");
 	presetNames.Add("2016 federal election");
@@ -107,6 +109,7 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 	if (!SkipDownloads) {
 		std::string defaultUrl;
 		switch (presetComboBox->GetSelection()) {
+		case Preset::Federal2007: defaultUrl = "f a downloads/2004 tcp.csv"; break;
 		case Preset::Federal2010: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/13745/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-13745-20080903130113.zip"; break;
 		case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-15508-20101022115746.zip"; break;
 		case Preset::Federal2016: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/17496/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-17496-20140516155658.zip"; break;
@@ -117,13 +120,29 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 		std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl));
 		if (userUrl.empty()) return;
 
-		ResultsDownloader resultsDownloader;
-		resultsDownloader.loadZippedFile(userUrl, PreviousElectionDataRetriever::UnzippedFileName);
-		if (!skipPrompt) wxMessageBox("Downloaded historic data from: " + userUrl);
+		std::string specialCode = userUrl.substr(0, userUrl.find(" "));
+		if (specialCode == "f") {
+			logger << "File code found!\n";
+			userUrl = userUrl.substr(2);
+			std::string format = userUrl.substr(0, userUrl.find(" "));
+			if (format == "a") {
+				logger << "2004 format specified!\n";
+				userUrl = userUrl.substr(2);
+				if (!skipPrompt) wxMessageBox("Getting historic data from: " + userUrl);
+				auto const& election = project->elections().add(PreviousElectionDataRetriever().load2004Tcp(userUrl));
+				logger << "Added election: " << election.name << "\n";
+			}
+		}
+		else {
+
+			ResultsDownloader resultsDownloader;
+			resultsDownloader.loadZippedFile(userUrl, PreviousElectionDataRetriever::UnzippedFileName);
+			if (!skipPrompt) wxMessageBox("Downloaded historic data from: " + userUrl);
+			auto const& election = project->elections().add(PreviousElectionDataRetriever().collectData());
+			logger << "Added election: " << election.name << "\n";
+		}
 	}
 
-	auto const& election = project->elections().add(PreviousElectionDataRetriever().collectData());
-	logger << "Added election: " << election.name << "\n";
 }
 
 void DownloadFrame::collectPreloadData(bool skipPrompt)

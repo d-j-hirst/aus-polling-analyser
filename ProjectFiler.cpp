@@ -237,17 +237,17 @@ int ProjectFiler::openDetailed(std::string filename)
 	loadOutcomes(saveInput, versionNum);
 	loadElections(saveInput, versionNum);
 
-	project.parties().logAll();
-	project.pollsters().logAll();
-	project.polls().logAll(project.parties(), project.pollsters());
-	project.events().logAll();
-	project.models().logAll();
-	project.projections().logAll(project.models());
-	project.regions().logAll();
-	project.seats().logAll(project.parties(), project.regions());
-	project.simulations().logAll(project.projections());
-	project.outcomes().logAll(project.seats());
-	project.elections().logAll();
+	//project.parties().logAll();
+	//project.pollsters().logAll();
+	//project.polls().logAll(project.parties(), project.pollsters());
+	//project.events().logAll();
+	//project.models().logAll();
+	//project.projections().logAll(project.models());
+	//project.regions().logAll();
+	//project.seats().logAll(project.parties(), project.regions());
+	//project.simulations().logAll(project.projections());
+	//project.outcomes().logAll(project.seats());
+	//project.elections().logAll();
 	return 0;
 }
 

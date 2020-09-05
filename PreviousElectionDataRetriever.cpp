@@ -125,14 +125,12 @@ void loadSeat(Results2::Election& election, tinyxml2::XMLElement* currentContest
 	thisSeat.id = districtElement->FindAttribute("Id")->IntValue();
 	thisSeat.name = districtElement->FirstChildElement("Name")->GetText();
 	thisSeat.enrolment = currentContest->FirstChildElement("Enrolment")->IntText();
-	logger << " First preferences:\n";
 	auto currentCandidate = currentContest->FirstChildElement("FirstPreferences")->FirstChildElement("Candidate");
 	do {
 		loadFirstPreferencesForSeat(election, thisSeat, currentCandidate);
 		currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 	} while (currentCandidate);
 	currentCandidate = currentContest->FirstChildElement("TwoCandidatePreferred")->FirstChildElement("Candidate");
-	logger << " Two candidate preferred:\n";
 	do {
 		load2cpForSeat(thisSeat, currentCandidate);
 		currentCandidate = currentCandidate->NextSiblingElement("Candidate");
@@ -192,5 +190,76 @@ Results2::Election PreviousElectionDataRetriever::collectData()
 		currentContest = currentContest->NextSiblingElement("Contest");
 	} while (currentContest);
 	consolidateParties(election);
+	return election;
+}
+
+Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filename)
+{
+	logger << "Loading results from " << filename << " using 2004 format\n";
+	Results2::Election election;
+	election.name = "2004 Federal Election";
+	std::ifstream file(filename);
+	std::string firstLine; std::string secondLine;
+	std::getline(file, firstLine);
+	std::getline(file, secondLine);
+	logger << firstLine << "\n";
+	auto splitFirstLine = splitString(firstLine, " ");
+	auto electionWord = std::find(splitFirstLine.begin(), splitFirstLine.end(), "Election");
+	if (electionWord != splitFirstLine.end()) ++electionWord;
+	election.name = std::accumulate(splitFirstLine.begin(), electionWord, std::string(),
+		[](std::string existing, std::string addition) {return existing + addition + " "; });
+	election.name = election.name.substr(0, election.name.size() - 1); // remove trailing space
+
+	std::unordered_map<std::string, int> partyCodeToId;
+	partyCodeToId.insert({ "IND", -1 });
+	int partyIndex = 0;
+	do {
+		std::string candidateLine;
+		std::getline(file, candidateLine);
+		if (!file) break;
+		auto splitCandidateLine = splitString(candidateLine, ",");
+		int seatId = std::stoi(splitCandidateLine[1]);
+		std::string seatName = splitCandidateLine[2];
+		int boothId = std::stoi(splitCandidateLine[3]);
+		std::string boothName = splitCandidateLine[4];
+		int candidateId = std::stoi(splitCandidateLine[5]);
+		std::string candidateName = splitCandidateLine[6] + ", " + splitCandidateLine[7];
+		std::string partyCode = splitCandidateLine[10];
+		int votes = std::stoi(splitCandidateLine[12]);
+		if (!election.seats.count(seatId)) {
+			Results2::Seat seat;
+			seat.id = seatId;
+			seat.name = seatName;
+			election.seats.insert({ seatId, seat });
+		}
+		auto& seat = election.seats.find(seatId)->second;
+		if (!election.booths.count(boothId)) {
+			Results2::Booth booth;
+			booth.id = boothId;
+			booth.name = boothName;
+			election.booths.insert({ boothId, booth });
+		}
+		if (!std::count(seat.booths.begin(), seat.booths.end(), boothId)) seat.booths.push_back(boothId);
+		auto& booth = election.booths.find(boothId)->second;
+		booth.votes2cp.insert({ candidateId, votes });
+		if (!partyCodeToId.count(partyCode)) {
+			partyCodeToId[partyCode] = partyIndex;
+			Results2::Party party;
+			party.id = partyCodeToId[partyCode];
+			party.shortCode = partyCode;
+			election.parties.insert({ party.id, party });
+			partyIndex++;
+		}
+		if (!election.seats.count(candidateId)) {
+			Results2::Candidate candidate;
+			candidate.id = candidateId;
+			candidate.name = candidateName;
+			candidate.party = partyCodeToId[partyCode];
+			election.candidates.insert({ candidateId, candidate });
+		}
+	} while (true);
+
+	consolidateParties(election);
+	logger << "Election name: " << election.name << "\n";
 	return election;
 }
