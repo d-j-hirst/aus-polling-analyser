@@ -36,6 +36,8 @@ void DownloadFrame::setupToolbar()
 	toolBar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_TEXT | wxTB_NOICONS);
 
 	wxArrayString presetNames;
+	presetNames.Add("1998 federal election");
+	presetNames.Add("2001 federal election");
 	presetNames.Add("2004 federal election");
 	presetNames.Add("2007 federal election");
 	presetNames.Add("2010 federal election");
@@ -109,6 +111,9 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 	if (!SkipDownloads) {
 		std::string defaultUrl;
 		switch (presetComboBox->GetSelection()) {
+		case Preset::Federal1998: defaultUrl = "f b downloads/1996 tcp.txt"; break;
+		case Preset::Federal2001: defaultUrl = "f b downloads/1998 tcp.txt"; break;
+		case Preset::Federal2004: defaultUrl = "f b downloads/2001 tcp.txt"; break;
 		case Preset::Federal2007: defaultUrl = "f a downloads/2004 tcp.csv"; break;
 		case Preset::Federal2010: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/13745/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-13745-20080903130113.zip"; break;
 		case Preset::Federal2013: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/15508/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-15508-20101022115746.zip"; break;
@@ -122,14 +127,20 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 
 		std::string specialCode = userUrl.substr(0, userUrl.find(" "));
 		if (specialCode == "f") {
-			logger << "File code found!\n";
 			userUrl = userUrl.substr(2);
 			std::string format = userUrl.substr(0, userUrl.find(" "));
 			if (format == "a") {
-				logger << "2004 format specified!\n";
 				userUrl = userUrl.substr(2);
 				if (!skipPrompt) wxMessageBox("Getting historic data from: " + userUrl);
 				auto const& election = project->elections().add(PreviousElectionDataRetriever().load2004Tcp(userUrl));
+				logger << "Added election: " << election.name << "\n";
+			}
+			else if (format == "b") {
+				userUrl = userUrl.substr(2);
+				if (!skipPrompt) wxMessageBox("Getting historic data from: " + userUrl);
+				// Since the election files don't include the booth and seat ids, need some kind of template to load them from.
+				auto templateElection = PreviousElectionDataRetriever().load2004Tcp("downloads/2004 tcp.csv");
+				auto const& election = project->elections().add(PreviousElectionDataRetriever().loadPre2004Tcp(templateElection, userUrl));
 				logger << "Added election: " << election.name << "\n";
 			}
 		}

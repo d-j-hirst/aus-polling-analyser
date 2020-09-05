@@ -36,6 +36,9 @@ public:
 private:
 
 	enum Preset {
+		Federal1998,
+		Federal2001,
+		Federal2004,
 		Federal2007,
 		Federal2010,
 		Federal2013,

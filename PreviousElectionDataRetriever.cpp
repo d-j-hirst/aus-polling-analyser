@@ -197,7 +197,6 @@ Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filena
 {
 	logger << "Loading results from " << filename << " using 2004 format\n";
 	Results2::Election election;
-	election.name = "2004 Federal Election";
 	std::ifstream file(filename);
 	std::string firstLine; std::string secondLine;
 	std::getline(file, firstLine);
@@ -209,6 +208,8 @@ Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filena
 	election.name = std::accumulate(splitFirstLine.begin(), electionWord, std::string(),
 		[](std::string existing, std::string addition) {return existing + addition + " "; });
 	election.name = election.name.substr(0, election.name.size() - 1); // remove trailing space
+	int year = std::stoi(filename.substr(filename.find("/") + 1, 4));
+	election.id = year;
 
 	std::unordered_map<std::string, int> partyCodeToId;
 	partyCodeToId.insert({ "IND", -1 });
@@ -260,6 +261,86 @@ Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filena
 	} while (true);
 
 	consolidateParties(election);
+	logger << "Election name: " << election.name << "\n";
+	return election;
+}
+
+Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Election const& templateElection, std::string filename)
+{
+	logger << "Loading results from " << filename << " using pre-2004 format\n";
+	Results2::Election election;
+	std::ifstream file(filename);
+	int year = std::stoi(filename.substr(filename.find("/") + 1, 4));
+	election.id = year;
+	election.name = std::to_string(year) + " Federal Election";
+	std::string firstLine;
+	std::getline(file, firstLine); // skip first line
+
+	std::unordered_map<std::string, int> seatNameToId;
+	std::unordered_map<std::string, int> boothNameToId;
+	for (auto const& seat : templateElection.seats) {
+		seatNameToId.insert({ seat.second.name, seat.second.id });
+	}
+	for (auto const& booth : templateElection.booths) {
+		boothNameToId.insert({ booth.second.name, booth.second.id });
+	}
+	Results2::Party alp;
+	alp.shortCode = "ALP";
+	alp.id = 1;
+	Results2::Party lp;
+	lp.shortCode = "LP";
+	lp.id = 2;
+	election.parties.insert({ 1, alp });
+	election.parties.insert({ 2, lp });
+	int seatIndex = -1;
+	int boothIndex = -1;
+	int candidateIndex = 0;
+	do {
+		std::string candidateLine;
+		std::getline(file, candidateLine);
+		if (!file) break;
+		auto splitCandidateLine = splitString(candidateLine, ";");
+		std::string seatName = splitCandidateLine[0];
+		std::string boothName = splitCandidateLine[1];
+		int alpVotes = std::stoi(splitCandidateLine[2]);
+		int lpVotes = std::stoi(splitCandidateLine[5]);
+		int seatId = (seatNameToId.count(seatName) ? seatNameToId[seatName] : seatIndex--);
+		int boothId = (boothNameToId.count(boothName) ? boothNameToId[boothName] : boothIndex--);
+		if (!election.seats.count(seatId)) {
+			Results2::Seat seat;
+			seat.id = seatId;
+			seat.name = seatName;
+			election.seats.insert({ seatId, seat });
+			seatNameToId[seatName] = seatId;
+		}
+		auto& seat = election.seats.find(seatId)->second;
+		if (!election.booths.count(boothId)) {
+			Results2::Booth booth;
+			booth.id = boothId;
+			booth.name = boothName;
+			election.booths.insert({ boothId, booth });
+			boothNameToId[boothName] = seatId;
+		}
+		Results2::Booth booth;
+		booth.id = boothId;
+		booth.name = boothName;
+		election.booths.insert({ boothId, booth });
+		if (!std::count(seat.booths.begin(), seat.booths.end(), boothId)) seat.booths.push_back(boothId);
+		auto& thisBooth = election.booths.find(boothId)->second;
+		Results2::Candidate alpCandidate;
+		alpCandidate.id = candidateIndex;
+		alpCandidate.party = 1;
+		election.candidates.insert({ candidateIndex, alpCandidate });
+		thisBooth.votes2cp.insert({ candidateIndex, alpVotes });
+		++candidateIndex;
+		Results2::Candidate lpCandidate;
+		lpCandidate.id = candidateIndex;
+		lpCandidate.party = 2;
+		election.candidates.insert({ candidateIndex, lpCandidate });
+		thisBooth.votes2cp.insert({ candidateIndex, lpVotes });
+		++candidateIndex;
+	} while (true);
+
 	logger << "Election name: " << election.name << "\n";
 	return election;
 }

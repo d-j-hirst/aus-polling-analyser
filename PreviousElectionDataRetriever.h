@@ -18,7 +18,9 @@ public:
 	// Make sure this has been downloaded by ResultsDownloader first.
 	Results2::Election collectData();
 
-	Results2::Election load2004Tcp(std::string file);
+	Results2::Election load2004Tcp(std::string filename);
+
+	Results2::Election loadPre2004Tcp(Results2::Election const& templateElection, std::string filename);
 
 private:
 };
