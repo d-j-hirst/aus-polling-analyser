@@ -217,8 +217,10 @@
     <ClCompile Include="AnalysisFrameRenderer.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
-    <ClCompile Include="SwingAnalyser.cpp" />
     <ClCompile Include="ClusterAnalyser.cpp">
+      <Filter>Source Files\Process Objects\Election Analyser</Filter>
+    </ClCompile>
+    <ClCompile Include="SwingAnalyser.cpp">
       <Filter>Source Files\Process Objects\Election Analyser</Filter>
     </ClCompile>
   </ItemGroup>

@@ -11,10 +11,9 @@ class ClusterAnalyser {
 public:
 	struct Output {
 		struct SingleElection {
-			std::optional<float> alp2cp;
+			std::optional<float> alp2cp; // only for booths
 			std::optional<float> alpSwing;
-			std::optional<int> alpVotes;
-			std::optional<int> lpVotes;
+			std::optional<int> swingVotes; // only for clusters
 		};
 
 		struct BoothSwingData {
@@ -31,6 +30,9 @@ public:
 			int secondBoothId = -1;
 			int secondBoothVotes = 0;
 			int totalVotes = 0;
+			int totalBooths = 0;
+			std::pair<int, int> children = { -1, -1 };
+			int parent = -1;
 			std::map<int, ClusterAnalyser::Output::SingleElection> elections;
 		};
 
@@ -44,9 +46,11 @@ public:
 	Output run();
 
 	static std::string getTextOutput(Output const& data);
+
+	static std::string clusterName(Output::Cluster const& cluster, Output const& data);
 private:
 
-	ClusterAnalyser::Output::Cluster mergeClusters(ClusterAnalyser::Output::Cluster const& cluster1, ClusterAnalyser::Output::Cluster const& cluster2);
+	ClusterAnalyser::Output::Cluster mergeClusters(Output::Cluster const& cluster1, Output::Cluster const& cluster2);
 
 	ElectionCollection const& elections;
 };

@@ -26,7 +26,12 @@ void AnalysisFrameRenderer::setBrushAndPen(wxColour currentColour) const {
 
 void AnalysisFrameRenderer::render() {
 	drawBackground();
-	drawText();
+	if (electionAnalyser.hasClusterAnalysis()) {
+		drawClusters();
+	}
+	else {
+		drawText();
+	}
 	// do stuff
 }
 
@@ -39,6 +44,16 @@ void AnalysisFrameRenderer::drawText() const
 	std::string text = electionAnalyser.textOutput();
 	wxRect rect = wxRect(textOffset.x, textOffset.y, 4000, 4000);
 	dc.DrawLabel(text, rect, wxALIGN_LEFT);
+}
+
+void AnalysisFrameRenderer::drawClusters() const {
+	if (electionAnalyser.clusterOutput().clusters.size()) {
+		auto const& data = electionAnalyser.clusterOutput();
+		int primaryCluster = int(data.clusters.size() - 1);
+		std::string name = ClusterAnalyser::clusterName(data.clusters[primaryCluster], data);
+		wxRect rect = wxRect(textOffset.x, textOffset.y, 4000, 4000);
+		dc.DrawLabel(name, rect, wxALIGN_LEFT);
+	}
 }
 
 float AnalysisFrameRenderer::backgroundHeight() const

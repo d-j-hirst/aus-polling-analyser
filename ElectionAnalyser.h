@@ -21,12 +21,18 @@ public:
 	void run(Type type, int electionFocus);
 
 	std::string textOutput() const;
+
+	bool hasClusterAnalysis() const { return hasClusterAnalysis_; }
+
+	ClusterAnalyser::Output const& clusterOutput() const;
 private:
 	PartiesAnalyser::Output lastPartiesOutput;
 	SwingAnalyser::Output lastSwingOutput;
 	ClusterAnalyser::Output lastClusterOutput;
 
 	std::string lastOutputString;
+
+	bool hasClusterAnalysis_ = false;
 
 	ElectionCollection const& elections;
 };

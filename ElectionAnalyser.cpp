@@ -11,6 +11,7 @@ ElectionAnalyser::ElectionAnalyser(ElectionCollection const& elections)
 
 void ElectionAnalyser::run(Type type, int electionFocus)
 {
+	hasClusterAnalysis_ = false;
 	switch (type) {
 	case Type::Parties:
 		lastPartiesOutput = PartiesAnalyser(elections).run(electionFocus);
@@ -22,6 +23,7 @@ void ElectionAnalyser::run(Type type, int electionFocus)
 	case Type::Cluster:
 		lastClusterOutput = ClusterAnalyser(elections).run();
 		lastOutputString = ClusterAnalyser::getTextOutput(lastClusterOutput);
+		hasClusterAnalysis_ = true;
 		break;
 	}
 }
@@ -29,4 +31,9 @@ void ElectionAnalyser::run(Type type, int electionFocus)
 std::string ElectionAnalyser::textOutput() const
 {	
 	return lastOutputString;
+}
+
+ClusterAnalyser::Output const& ElectionAnalyser::clusterOutput() const
+{
+	return lastClusterOutput;
 }

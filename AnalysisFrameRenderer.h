@@ -40,7 +40,9 @@ private:
 
 	void drawBackground() const;
 
-	void drawText() const;
+	void drawText() const; 
+	
+	void drawClusters() const;
 
 	float backgroundHeight() const;
 

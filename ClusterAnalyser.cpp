@@ -45,10 +45,11 @@ inline float getSimilarityScore(ClusterAnalyser::Output::Cluster const& cluster1
 		squaredErrorSum += std::pow(cluster1e.second.alpSwing.value() - booth2e->second.alpSwing.value(), 2);
 		matchedElectionCount++;
 	}
-	if (matchedElectionCount <= 1.0f) return 0.0f;
+	constexpr float SubtractMatchedElection = 0.9f;
+	if (matchedElectionCount <= SubtractMatchedElection) return 0.0f;
 	constexpr float DummyBoothError = 0.001f; // in order to prevent booth comparisons with few election comparisons from dominating,
 										   // add a moderate-sized dummy election to help indicate which booth comparisons are most resilient to future errors
-	float similarityScore = (matchedElectionCount - 1.0f) / std::sqrt(squaredErrorSum + DummyBoothError);
+	float similarityScore = (matchedElectionCount - SubtractMatchedElection) / std::sqrt(squaredErrorSum + DummyBoothError);
 	return similarityScore;
 }
 
@@ -79,6 +80,7 @@ ClusterAnalyser::Output::Cluster ClusterAnalyser::mergeClusters(ClusterAnalyser:
 		}
 	}
 	newCluster.totalVotes = cluster1.totalVotes + cluster2.totalVotes;
+	newCluster.totalBooths = cluster1.totalBooths + cluster2.totalBooths;
 	std::unordered_set<int> allElections;
 	for (auto const& [electionKey, election] : cluster1.elections) {
 		allElections.insert(electionKey);
@@ -87,39 +89,38 @@ ClusterAnalyser::Output::Cluster ClusterAnalyser::mergeClusters(ClusterAnalyser:
 		allElections.insert(electionKey);
 	}
 	for (auto electionKey : allElections) {
+		int cluster1SwingVotes = 0;
+		int cluster2SwingVotes = 0;
+		if (cluster1.elections.count(electionKey)) cluster1SwingVotes = cluster1.elections.at(electionKey).swingVotes.value_or(0);
+		if (cluster2.elections.count(electionKey)) cluster2SwingVotes = cluster2.elections.at(electionKey).swingVotes.value_or(0);
+		if (!cluster1SwingVotes && !cluster2SwingVotes) continue;
+		float cluster1Proportion = float(cluster1SwingVotes) / float(cluster1SwingVotes + cluster2SwingVotes);
 		auto& election = newCluster.elections[electionKey];
-		int alpVotes = 0;
-		int lpVotes = 0;
-		if (cluster1.elections.count(electionKey)) {
-			alpVotes = cluster1.elections.at(electionKey).alpVotes.value_or(0);
-			lpVotes = cluster1.elections.at(electionKey).lpVotes.value_or(0);
+		election.swingVotes = cluster1SwingVotes + cluster2SwingVotes;
+		election.alpSwing = 0.0f;
+		if (cluster1SwingVotes) {
+			election.alpSwing.value() += cluster1.elections.at(electionKey).alpSwing.value() * cluster1Proportion;
 		}
-		if (cluster2.elections.count(electionKey)) {
-			alpVotes += cluster2.elections.at(electionKey).alpVotes.value_or(0);
-			lpVotes += cluster2.elections.at(electionKey).lpVotes.value_or(0);
-		}
-		if (alpVotes && lpVotes) {
-			float alpProportion = (alpVotes && lpVotes ? float(alpVotes) / float(alpVotes + lpVotes) : 0.0f);
-			election.alp2cp = alpProportion;
-			election.alpVotes = alpVotes;
-			election.lpVotes = lpVotes;
-		}
-	}
-	for (auto firstElection = newCluster.elections.begin(); firstElection != newCluster.elections.end(); ++firstElection) {
-		auto secondElection = std::next(firstElection);
-		if (secondElection == newCluster.elections.end()) break;
-		auto generalFirstElection = std::find_if(elections.begin(), elections.end(),
-			[&](decltype(*elections.begin()) generalElection) {return generalElection.first == firstElection->first; });
-		if (generalFirstElection == elections.end()) continue;
-		auto generalSecondElection = std::next(generalFirstElection);
-		if (generalSecondElection == elections.end()) continue;
-		if (generalSecondElection->first != secondElection->first) continue;
-		if (firstElection->second.alp2cp && secondElection->second.alp2cp) {
-			secondElection->second.alpSwing = secondElection->second.alp2cp.value() - firstElection->second.alp2cp.value();
+		if (cluster2SwingVotes) {
+			election.alpSwing.value() += cluster2.elections.at(electionKey).alpSwing.value() * (1.0f - cluster1Proportion);
 		}
 	}
 
 	return newCluster;
+}
+
+std::string ClusterAnalyser::clusterName(ClusterAnalyser::Output::Cluster const& cluster, ClusterAnalyser::Output const& data) {
+	std::string clusterName = "";
+	auto const& correspondingFirstBooth = data.booths.at(cluster.firstBoothId);
+	clusterName = correspondingFirstBooth.boothName + " (" + correspondingFirstBooth.seatName + ")";
+	if (cluster.secondBoothId >= 0) {
+		auto const& correspondingSecondBooth = data.booths.at(cluster.secondBoothId);
+		clusterName += " + " + correspondingSecondBooth.boothName + " (" + correspondingSecondBooth.seatName + ")";
+	}
+	if (cluster.totalBooths > 2) {
+		clusterName += " + " + std::to_string(cluster.totalBooths - 2) + " others";
+	}
+	return clusterName;
 }
 
 ClusterAnalyser::Output ClusterAnalyser::run()
@@ -150,8 +151,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			if (alpVotes && lpVotes) {
 				float alpProportion = (alpVotes && lpVotes ? float(alpVotes) / float(alpVotes + lpVotes) : 0.0f);
 				newVal.first->second.alp2cp = alpProportion;
-				newVal.first->second.alpVotes = alpVotes;
-				newVal.first->second.lpVotes = lpVotes;
+				newVal.first->second.swingVotes = alpVotes + lpVotes;
 				outputBooth.maxBoothVotes = std::max(outputBooth.maxBoothVotes, alpVotes + lpVotes);
 			}
 		}
@@ -162,9 +162,15 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		}
 	}
 	for (auto& [key, booth] : output.booths) {
+		booth.elections.begin()->second.swingVotes.reset();
 		for (auto firstElection = booth.elections.begin(); firstElection != booth.elections.end(); ++firstElection) {
 			auto secondElection = std::next(firstElection);
 			if (secondElection == booth.elections.end()) break;
+
+			// get the number of votes recorded so it can be used if there is indeed a valid swing here
+			int swingVotes = secondElection->second.swingVotes.value_or(0);
+			secondElection->second.swingVotes.reset();
+
 			auto generalFirstElection = std::find_if(elections.begin(), elections.end(),
 				[&](decltype(*elections.begin()) generalElection) {return generalElection.first == firstElection->first; });
 			if (generalFirstElection == elections.end()) continue;
@@ -173,6 +179,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			if (generalSecondElection->first != secondElection->first) continue;
 			if (firstElection->second.alp2cp && secondElection->second.alp2cp) {
 				secondElection->second.alpSwing = secondElection->second.alp2cp.value() - firstElection->second.alp2cp.value();
+				secondElection->second.swingVotes = swingVotes;
 			}
 		}
 	}
@@ -187,6 +194,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		thisCluster.firstBoothId = boothId;
 		thisCluster.firstBoothVotes = relatedBooth.maxBoothVotes;
 		thisCluster.totalVotes = relatedBooth.maxBoothVotes;
+		thisCluster.totalBooths = 1;
 		thisCluster.elections = relatedBooth.elections;
 		output.clusters.push_back(thisCluster);
 	}
@@ -201,18 +209,33 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		}
 	}
 
-	Output::Cluster mergedCluster;
-	auto const& mergedPairing = orderedPairings.top();
-	mergedCluster = mergeClusters(output.clusters[mergedPairing.clusters.first], output.clusters[mergedPairing.clusters.second]);
-	output.clusters.push_back(mergedCluster);
+	std::unordered_set<int> usedClusters;
+
 
 	do {
-		auto const& topPairing = orderedPairings.top();
-		logger << output.booths[output.clusters[topPairing.clusters.first].firstBoothId].boothName;
-		logger << ", ";
-		logger << output.booths[output.clusters[topPairing.clusters.second].firstBoothId].boothName;
-		logger << ": " << topPairing.similarity << "\n";
+		auto topPairing = orderedPairings.top();
 		orderedPairings.pop();
+		if (usedClusters.count(topPairing.clusters.first) || usedClusters.count(topPairing.clusters.second)) continue;
+		Output::Cluster mergedCluster = mergeClusters(output.clusters[topPairing.clusters.first], output.clusters[topPairing.clusters.second]);
+		mergedCluster.children = { topPairing.clusters.first , topPairing.clusters.second };
+		output.clusters.push_back(mergedCluster);
+		output.clusters[topPairing.clusters.first].parent = int(output.clusters.size()) - 1;
+		output.clusters[topPairing.clusters.second].parent = int(output.clusters.size()) - 1;
+		usedClusters.insert(topPairing.clusters.first);
+		usedClusters.insert(topPairing.clusters.second);
+		// generate new pairings between this new cluster and existing ones
+		// loop deliberately avoids the last cluster to avoid self-pairing
+		for (int otherClusterId = 0; otherClusterId < int(output.clusters.size()) - 1; ++otherClusterId) {
+			if (usedClusters.count(otherClusterId)) continue;
+			Pairing pairing;
+			pairing.clusters = { int(output.clusters.size()) - 1, otherClusterId };
+			pairing.similarity = getSimilarityScore(output.clusters.back(), output.clusters[otherClusterId]);
+			orderedPairings.push(pairing);
+		}
+		logger << clusterName(output.clusters[topPairing.clusters.first], output);
+		logger << ", ";
+		logger << clusterName(output.clusters[topPairing.clusters.second], output);
+		logger << ": " << topPairing.similarity << "\n";
 	} while (orderedPairings.size());
 	return output;
 }
@@ -233,27 +256,17 @@ std::string ClusterAnalyser::getTextOutput(Output const& data)
 	std::stringstream output;
 	output << "Cluster analysis results:\n";
 	for (auto const& cluster : data.clusters) {
-		std::string clusterName = "";
-		auto const& correspondingFirstBooth = data.booths.at(cluster.firstBoothId);
-		clusterName = correspondingFirstBooth.boothName + " (" + correspondingFirstBooth.seatName + ")";
-		if (cluster.secondBoothId >= 0) {
-			auto const& correspondingSecondBooth = data.booths.at(cluster.secondBoothId);
-			clusterName += " + " + correspondingSecondBooth.boothName + " (" + correspondingSecondBooth.seatName + ")";
-		}
-		output << clusterName;
+		output << clusterName(cluster, data);
 		output << ": ";
 		output << "Total votes: " << cluster.totalVotes << ", ";
 		bool firstElement = true;
 		for (auto electionIt : cluster.elections) {
 			output << (firstElement ? "" : ", ") << getFirstWord(data.electionNames.at(electionIt.first));
-			if (electionIt.second.alp2cp && electionIt.second.alp2cp.value()) {
-				output << " (ALP 2cp " << electionIt.second.alp2cp.value() * 100.0f << "%";
-				output << "(";
-				if (electionIt.second.alpSwing) {
-					output << ", " << (electionIt.second.alpSwing.value() >= 0 ? "+" : "");
-					output << electionIt.second.alpSwing.value() * 100.0f << "%";
-				}
-				output << ")";
+			if (electionIt.second.alpSwing) {
+				output << ": ALP swing ";
+				output << (electionIt.second.alpSwing.value() >= 0 ? "+" : "");
+				output << electionIt.second.alpSwing.value() * 100.0f << "%";
+				output << " from " << electionIt.second.swingVotes.value() << " votes";
 			}
 			firstElement = false;
 		}
