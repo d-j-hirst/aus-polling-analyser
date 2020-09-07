@@ -38,7 +38,7 @@ public:
 
 		std::unordered_map<int, BoothSwingData> booths;
 		std::vector<Cluster> clusters;
-		std::unordered_map<int, std::string> electionNames;
+		std::map<int, std::string> electionNames;
 	};
 
 	ClusterAnalyser(ElectionCollection const& elections);

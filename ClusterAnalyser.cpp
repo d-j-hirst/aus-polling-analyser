@@ -191,9 +191,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		output.booths.erase(boothKey);
 	}
 
-	auto mentoneBooth = output.booths.find(4150);
-
-	auto isaacsSeat = std::prev(elections.end())->second.seats.find(219);
+	auto isaacsSeat = std::prev(elections.end())->second.seats.find(213);
 	for (auto boothId : isaacsSeat->second.booths) {
 		auto boothIt = output.booths.find(boothId);
 		if (boothIt == output.booths.end()) continue;

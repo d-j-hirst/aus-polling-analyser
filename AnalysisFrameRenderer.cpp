@@ -2,6 +2,8 @@
 
 #include "ElectionAnalyser.h"
 
+static int debugConnectionsToShow = 0;
+
 inline wxFont font(int fontSize) {
 	return wxFont(fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
 }
@@ -48,11 +50,81 @@ void AnalysisFrameRenderer::drawText() const
 
 void AnalysisFrameRenderer::drawClusters() const {
 	if (electionAnalyser.clusterOutput().clusters.size()) {
+		dc.SetPen(wxPen(wxColour(0, 0, 0)));
 		auto const& data = electionAnalyser.clusterOutput();
 		int primaryCluster = int(data.clusters.size() - 1);
-		std::string name = ClusterAnalyser::clusterName(data.clusters[primaryCluster], data);
-		wxRect rect = wxRect(textOffset.x, textOffset.y, 4000, 4000);
-		dc.DrawLabel(name, rect, wxALIGN_LEFT);
+		int currentCluster = primaryCluster;
+		while (data.clusters[currentCluster].children.first >= 0) {
+			currentCluster = data.clusters[currentCluster].children.first;
+		}
+		constexpr int ClusterHeight = 18;
+		int clusterNum = 0;
+		constexpr int ClusterLabelWidth = 300.0f;
+		std::map<int, int> clusterOrder;
+		while (true) {
+			int electionNum = 0;
+			auto const& clusterData = data.clusters[currentCluster];
+			for (auto const [electionKey, electionName] : data.electionNames) {
+				if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alpSwing) {
+					constexpr float SwingColorSaturation = 0.1f;
+					float colorFactor = (clusterData.elections.at(electionKey).alpSwing.value() + SwingColorSaturation)
+						/ (SwingColorSaturation * 2.0f);
+					int red = std::clamp(int(colorFactor * 512.0f), 0, 255);
+					int green = std::clamp(int(256.0f - abs(colorFactor - 0.5f) * 512.0f), 0, 255);
+					int blue = std::clamp(int(512.0f - colorFactor * 512.0f), 0, 255);
+					dc.SetBrush(wxBrush(wxColour(red, green, blue)));
+				}
+				else {
+					dc.SetBrush(wxBrush(wxColour(128, 128, 128)));
+				}
+				dc.DrawRectangle(wxRect(textOffset.x + electionNum * ClusterHeight, 
+					textOffset.y + clusterNum * ClusterHeight, ClusterHeight, ClusterHeight));
+				++electionNum;
+			}
+			wxRect nameRect = wxRect(textOffset.x + electionNum * ClusterHeight, 
+				textOffset.y + clusterNum * ClusterHeight, ClusterLabelWidth, ClusterHeight);
+			dc.DrawLabel(ClusterAnalyser::clusterName(clusterData, data), nameRect, wxALIGN_LEFT);
+			clusterOrder[currentCluster] = clusterNum;
+			while (data.clusters[currentCluster].parent >= 0 &&
+				currentCluster == data.clusters[data.clusters[currentCluster].parent].children.second) {
+				currentCluster = data.clusters[currentCluster].parent;
+			}
+			if (data.clusters[currentCluster].parent == -1) break;
+			currentCluster = data.clusters[data.clusters[currentCluster].parent].children.second;
+			while (data.clusters[currentCluster].children.first >= 0) {
+				currentCluster = data.clusters[currentCluster].children.first;
+			}
+			++clusterNum;
+		}
+		constexpr int ConnectionWidth = 18;
+		std::map<int, wxPoint> clusterPosition;
+		int baseClusterX = ClusterLabelWidth + ClusterHeight * int(data.electionNames.size());
+		// these will be in order of cluster generation
+		for (int thisCluster = 0; thisCluster < int(data.clusters.size()); ++thisCluster) {
+			if (data.clusters[thisCluster].children.first == -1) {
+				clusterPosition[thisCluster].x = baseClusterX;
+				clusterPosition[thisCluster].y = clusterOrder[thisCluster] * ClusterHeight + ClusterHeight / 2;
+			}
+			else {
+				clusterPosition[thisCluster].x = std::max(clusterPosition[data.clusters[thisCluster].children.first].x,
+					clusterPosition[data.clusters[thisCluster].children.second].x) + ConnectionWidth;
+				clusterPosition[thisCluster].y = (clusterPosition[data.clusters[thisCluster].children.first].y +
+					clusterPosition[data.clusters[thisCluster].children.second].y) / 2;
+			}
+		}
+		for (int thisCluster = 0; thisCluster < int(data.clusters.size()); ++thisCluster) {
+			if (data.clusters[thisCluster].children.first != -1) {
+				wxPoint parent = clusterPosition[thisCluster];
+				wxPoint child1 = clusterPosition[data.clusters[thisCluster].children.first];
+				wxPoint child2 = clusterPosition[data.clusters[thisCluster].children.second];
+				if (parent.x == child1.x || parent.x == child2.x) {
+					logger << "some equal x values";
+				}
+				dc.DrawLine(textOffset + child1, textOffset + wxPoint(parent.x, child1.y));
+				dc.DrawLine(textOffset + child2, textOffset + wxPoint(parent.x, child2.y));
+				dc.DrawLine(textOffset + wxPoint(parent.x, child1.y), textOffset + wxPoint(parent.x, child2.y));
+			}
+		}
 	}
 }
 
