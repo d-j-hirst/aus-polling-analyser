@@ -161,7 +161,9 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			}
 		}
 	}
+	std::unordered_set<int> boothsToErase;
 	for (auto& [key, booth] : output.booths) {
+		bool hasSwing = false;
 		booth.elections.begin()->second.swingVotes.reset();
 		for (auto firstElection = booth.elections.begin(); firstElection != booth.elections.end(); ++firstElection) {
 			auto secondElection = std::next(firstElection);
@@ -180,14 +182,21 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			if (firstElection->second.alp2cp && secondElection->second.alp2cp) {
 				secondElection->second.alpSwing = secondElection->second.alp2cp.value() - firstElection->second.alp2cp.value();
 				secondElection->second.swingVotes = swingVotes;
+				hasSwing = true;
 			}
 		}
+		if (!hasSwing) boothsToErase.insert(key);
+	}
+	for (auto boothKey : boothsToErase) {
+		output.booths.erase(boothKey);
 	}
 
 	auto mentoneBooth = output.booths.find(4150);
 
 	auto isaacsSeat = std::prev(elections.end())->second.seats.find(219);
 	for (auto boothId : isaacsSeat->second.booths) {
+		auto boothIt = output.booths.find(boothId);
+		if (boothIt == output.booths.end()) continue;
 		auto& relatedBooth = output.booths.find(boothId)->second;
 		logger << output.booths.find(boothId)->second.boothName << "\n";
 		Output::Cluster thisCluster;
