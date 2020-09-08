@@ -63,15 +63,18 @@ void AnalysisFrameRenderer::drawClusters() const {
 		std::map<int, int> clusterOrder;
 		while (true) {
 			int electionNum = 0;
+			bool draw = textOffset.y + clusterNum * ClusterHeight > -100 && textOffset.y + clusterNum * ClusterHeight < 2000;
 			auto const& clusterData = data.clusters[currentCluster];
 			for (auto const [electionKey, electionName] : data.electionNames) {
+				if (!draw) break; // avoid even attempting to draw elements for offscreen
 				//if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).greenFp) {
-				if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alpSwing) {
+				if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alp2cp) {
+				//if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alpSwing) {
 					constexpr float SwingColorSaturation = 0.1f;
-					float colorFactor = (clusterData.elections.at(electionKey).alpSwing.value() + SwingColorSaturation)
-						/ (SwingColorSaturation * 2.0f);
-					//float colorFactor = (clusterData.elections.at(electionKey).alp2cp.value() - 0.2f)
-					//	/ (0.6f);
+					//float colorFactor = (clusterData.elections.at(electionKey).alpSwing.value() + SwingColorSaturation)
+					//	/ (SwingColorSaturation * 2.0f);
+					float colorFactor = (clusterData.elections.at(electionKey).alp2cp.value() - 0.2f)
+						/ (0.6f);
 					int red = std::clamp(int(colorFactor * 512.0f), 0, 255);
 					int green = std::clamp(int(256.0f - abs(colorFactor - 0.5f) * 512.0f), 0, 255);
 					int blue = std::clamp(int(512.0f - colorFactor * 512.0f), 0, 255);
@@ -93,7 +96,7 @@ void AnalysisFrameRenderer::drawClusters() const {
 			}
 			wxRect nameRect = wxRect(textOffset.x + electionNum * ClusterHeight, 
 				textOffset.y + clusterNum * ClusterHeight, ClusterLabelWidth, ClusterHeight);
-			dc.DrawLabel(ClusterAnalyser::clusterName(clusterData, data), nameRect, wxALIGN_LEFT);
+			if (draw) dc.DrawLabel(ClusterAnalyser::clusterName(clusterData, data), nameRect, wxALIGN_LEFT);
 			clusterOrder[currentCluster] = clusterNum;
 			while (data.clusters[currentCluster].parent >= 0 &&
 				currentCluster == data.clusters[data.clusters[currentCluster].parent].children.second) {
@@ -124,15 +127,13 @@ void AnalysisFrameRenderer::drawClusters() const {
 		}
 		for (int thisCluster = 0; thisCluster < int(data.clusters.size()); ++thisCluster) {
 			if (data.clusters[thisCluster].children.first != -1) {
-				float colorFactor = data.clusters[thisCluster].similarity * 0.007f;
+				float colorFactor = data.clusters[thisCluster].similarity * 0.004f;
 				int colorVal = std::clamp(int(255.0f - colorFactor * 255.0f), 0, 255);
 				dc.SetPen(wxPen(wxColour(colorVal, colorVal, colorVal)));
 				wxPoint parent = clusterPosition[thisCluster];
 				wxPoint child1 = clusterPosition[data.clusters[thisCluster].children.first];
 				wxPoint child2 = clusterPosition[data.clusters[thisCluster].children.second];
-				if (parent.x == child1.x || parent.x == child2.x) {
-					logger << "some equal x values";
-				}
+				if (child2.y + textOffset.y < -100 || child1.y + textOffset.y > 2000) continue; // avoid even attempting to draw elements for offscreen
 				dc.DrawLine(textOffset + child1, textOffset + wxPoint(parent.x, child1.y));
 				dc.DrawLine(textOffset + child2, textOffset + wxPoint(parent.x, child2.y));
 				dc.DrawLine(textOffset + wxPoint(parent.x, child1.y), textOffset + wxPoint(parent.x, child2.y));

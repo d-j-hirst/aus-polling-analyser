@@ -11,7 +11,7 @@
 
 struct Pairing {
 	float similarity;
-	std::pair<int, int> clusters;
+	std::pair<unsigned short, unsigned short> clusters;
 };
 
 bool operator<(Pairing const& lhs, Pairing const& rhs) {
@@ -203,7 +203,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 	}
 	std::unordered_set<int> boothsToErase;
 	for (auto& [key, booth] : output.booths) {
-		bool hasSwing = false;
+		int swingElections = 0;
 		booth.elections.begin()->second.swingVotes.reset();
 		for (auto firstElection = booth.elections.begin(); firstElection != booth.elections.end(); ++firstElection) {
 			auto secondElection = std::next(firstElection);
@@ -218,23 +218,17 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			if (firstElection->second.alp2cp && secondElection->second.alp2cp) {
 				secondElection->second.alpSwing = secondElection->second.alp2cp.value() - firstElection->second.alp2cp.value();
 				secondElection->second.swingVotes = secondElection->second.votes2cp;
-				hasSwing = true;
+				swingElections++;
 			}
 		}
-		if (!hasSwing) boothsToErase.insert(key);
+		if (swingElections <= 1) boothsToErase.insert(key);
 	}
 	for (auto boothKey : boothsToErase) {
 		output.booths.erase(boothKey);
 	}
 
 	std::vector<int> seats;
-	for (int seat = 197; seat <= 234; ++seat) seats.push_back(seat);
-	seats.push_back(320); // Cooper
-	seats.push_back(321); // Fraser
-	seats.push_back(309); // Gorton
-	seats.push_back(322); // Macnamara
-	seats.push_back(323); // Monash
-	seats.push_back(324); // Nicholls
+	for (int seat = 101; seat <= 400; ++seat) seats.push_back(seat);
 	std::unordered_set<int> boothsToUse;
 	for (auto seat : seats) {
 		if (!std::prev(elections.end())->second.seats.count(seat)) continue;
@@ -260,14 +254,13 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 	for (int firstClusterId = 0; firstClusterId < int(output.clusters.size()) - 1; ++firstClusterId) {
 		for (auto secondClusterId = firstClusterId + 1; secondClusterId < int(output.clusters.size()); ++secondClusterId) {
 			Pairing pairing;
-			pairing.clusters = { firstClusterId, secondClusterId };
+			pairing.clusters = { unsigned short(firstClusterId), unsigned short(secondClusterId) };
 			pairing.similarity = getSimilarityScore(output.clusters[firstClusterId], output.clusters[secondClusterId]);
 			orderedPairings.push(pairing);
 		}
 	}
 
 	std::unordered_set<int> usedClusters;
-
 
 	do {
 		auto topPairing = orderedPairings.top();
@@ -286,14 +279,11 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		for (int otherClusterId = 0; otherClusterId < int(output.clusters.size()) - 1; ++otherClusterId) {
 			if (usedClusters.count(otherClusterId)) continue;
 			Pairing pairing;
-			pairing.clusters = { int(output.clusters.size()) - 1, otherClusterId };
+			pairing.clusters = { unsigned short(output.clusters.size() - 1), unsigned short(otherClusterId) };
 			pairing.similarity = getSimilarityScore(output.clusters.back(), output.clusters[otherClusterId]);
 			orderedPairings.push(pairing);
 		}
-		logger << clusterName(output.clusters[topPairing.clusters.first], output);
-		logger << ", ";
-		logger << clusterName(output.clusters[topPairing.clusters.second], output);
-		logger << ": " << topPairing.similarity << "\n";
+		logger << orderedPairings.size() << "\n";
 	} while (orderedPairings.size());
 	return output;
 }
