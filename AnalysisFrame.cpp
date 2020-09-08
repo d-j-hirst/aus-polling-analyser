@@ -8,8 +8,8 @@
 
 #include <algorithm>
 
-const int TextVerticalMovement = 400;
-const int TextHorizontalMovement = 600;
+const int TextVerticalMovement = 100;
+const int TextHorizontalMovement = 100;
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -122,6 +122,17 @@ void AnalysisFrame::OnTextLeft(wxCommandEvent&)
 	paint();
 }
 
+void AnalysisFrame::OnScrollWheel(wxMouseEvent& event)
+{
+	wxCommandEvent nullEvent = wxCommandEvent();
+	if (event.GetWheelRotation() < 0) {
+		OnTextDown(nullEvent);
+	}
+	else if (event.GetWheelRotation() > 0) {
+		OnTextUp(nullEvent);
+	}
+}
+
 void AnalysisFrame::bindEventHandlers()
 {
 	// Need to resize controls if this frame is resized.
@@ -136,6 +147,7 @@ void AnalysisFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextLeft, this, ControlId::TextLeft);
 	dcPanel->Bind(wxEVT_MOTION, &AnalysisFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &AnalysisFrame::OnPaint, this, ControlId::DcPanel);
+	dcPanel->Bind(wxEVT_MOUSEWHEEL, &AnalysisFrame::OnScrollWheel, this, ControlId::DcPanel);
 }
 
 void AnalysisFrame::OnPaint(wxPaintEvent& WXUNUSED(event))

@@ -65,13 +65,23 @@ void AnalysisFrameRenderer::drawClusters() const {
 			int electionNum = 0;
 			auto const& clusterData = data.clusters[currentCluster];
 			for (auto const [electionKey, electionName] : data.electionNames) {
+				//if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).greenFp) {
 				if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alpSwing) {
 					constexpr float SwingColorSaturation = 0.1f;
 					float colorFactor = (clusterData.elections.at(electionKey).alpSwing.value() + SwingColorSaturation)
 						/ (SwingColorSaturation * 2.0f);
+					//float colorFactor = (clusterData.elections.at(electionKey).alp2cp.value() - 0.2f)
+					//	/ (0.6f);
 					int red = std::clamp(int(colorFactor * 512.0f), 0, 255);
 					int green = std::clamp(int(256.0f - abs(colorFactor - 0.5f) * 512.0f), 0, 255);
 					int blue = std::clamp(int(512.0f - colorFactor * 512.0f), 0, 255);
+
+					//float colorFactor = (clusterData.elections.at(electionKey).greenFp.value())
+					//	/ (0.3f);					
+					//int red = std::clamp(int(255.0f - colorFactor * 255.0f), 0, 255);
+					//int green = 255;
+					//int blue = std::clamp(int(255.0f - colorFactor * 255.0f), 0, 255);
+
 					dc.SetBrush(wxBrush(wxColour(red, green, blue)));
 				}
 				else {
@@ -96,7 +106,7 @@ void AnalysisFrameRenderer::drawClusters() const {
 			}
 			++clusterNum;
 		}
-		constexpr int ConnectionWidth = 18;
+		constexpr int ConnectionWidth = 6;
 		std::map<int, wxPoint> clusterPosition;
 		int baseClusterX = ClusterLabelWidth + ClusterHeight * int(data.electionNames.size());
 		// these will be in order of cluster generation
@@ -114,6 +124,9 @@ void AnalysisFrameRenderer::drawClusters() const {
 		}
 		for (int thisCluster = 0; thisCluster < int(data.clusters.size()); ++thisCluster) {
 			if (data.clusters[thisCluster].children.first != -1) {
+				float colorFactor = data.clusters[thisCluster].similarity * 0.007f;
+				int colorVal = std::clamp(int(255.0f - colorFactor * 255.0f), 0, 255);
+				dc.SetPen(wxPen(wxColour(colorVal, colorVal, colorVal)));
 				wxPoint parent = clusterPosition[thisCluster];
 				wxPoint child1 = clusterPosition[data.clusters[thisCluster].children.first];
 				wxPoint child2 = clusterPosition[data.clusters[thisCluster].children.second];

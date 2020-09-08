@@ -64,6 +64,8 @@ private:
 
 	void OnTextLeft(wxCommandEvent&);
 
+	void OnScrollWheel(wxMouseEvent&);
+
 	void bindEventHandlers();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.

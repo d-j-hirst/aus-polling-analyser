@@ -14,6 +14,8 @@ public:
 			std::optional<float> alp2cp; // only for booths
 			std::optional<float> alpSwing;
 			std::optional<int> swingVotes; // only for clusters
+			std::optional<int> votes2cp;
+			std::optional<float> greenFp;
 		};
 
 		struct BoothSwingData {
@@ -33,6 +35,7 @@ public:
 			int totalBooths = 0;
 			std::pair<int, int> children = { -1, -1 };
 			int parent = -1;
+			float similarity = 0.0f;
 			std::map<int, ClusterAnalyser::Output::SingleElection> elections;
 		};
 
