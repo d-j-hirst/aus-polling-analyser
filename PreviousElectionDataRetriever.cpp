@@ -265,6 +265,18 @@ Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filena
 	return election;
 }
 
+struct BoothAndSeat { std::string boothName; std::string seatName; };
+struct BoothSeatComp {
+	bool operator()(BoothAndSeat const& lhs, BoothAndSeat const& rhs) const {
+		if (lhs.boothName < rhs.boothName) return true;
+		if (lhs.boothName > rhs.boothName) return false;
+		if (lhs.seatName < rhs.seatName) return true;
+		if (lhs.seatName > rhs.seatName) return false;
+		return false;
+	};
+
+};
+
 Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Election const& templateElection, std::string filename)
 {
 	logger << "Loading results from " << filename << " using pre-2004 format\n";
@@ -277,12 +289,22 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 	std::getline(file, firstLine); // skip first line
 
 	std::unordered_map<std::string, int> seatNameToId;
-	std::unordered_map<std::string, int> boothNameToId;
-	for (auto const& seat : templateElection.seats) {
-		seatNameToId.insert({ seat.second.name, seat.second.id });
-	}
-	for (auto const& booth : templateElection.booths) {
-		boothNameToId.insert({ booth.second.name, booth.second.id });
+	std::map<BoothAndSeat, int, BoothSeatComp> boothNameToId;
+	std::map<std::string, int> uniqueBoothNames; // stores booth id if unique and -1 if not
+	for (auto const& [key, seat] : templateElection.seats) {
+		seatNameToId.insert({ seat.name, seat.id });
+		for (auto const& booth : seat.booths) {
+			if (templateElection.booths.count(booth)) {
+				std::string boothName = templateElection.booths.at(booth).name;
+				boothNameToId.insert({ {boothName, seat.name}, booth });
+				if (!uniqueBoothNames.count(boothName)) {
+					uniqueBoothNames.insert({ boothName, booth });
+				}
+				else {
+					uniqueBoothNames[boothName] = -1;
+				}
+			}
+		}
 	}
 	Results2::Party alp;
 	alp.shortCode = "ALP";
@@ -305,7 +327,10 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 		int alpVotes = std::stoi(splitCandidateLine[2]);
 		int lpVotes = std::stoi(splitCandidateLine[5]);
 		int seatId = (seatNameToId.count(seatName) ? seatNameToId[seatName] : seatIndex--);
-		int boothId = (boothNameToId.count(boothName) ? boothNameToId[boothName] : boothIndex--);
+		int boothId = -100000000;
+		if (boothNameToId.count({ boothName, seatName })) boothId = boothNameToId.at({ boothName, seatName });
+		else if (uniqueBoothNames.count(boothName) && uniqueBoothNames.at(boothName) != -1) boothId = uniqueBoothNames.at(boothName);
+		else boothId = boothIndex--;
 		if (!election.seats.count(seatId)) {
 			Results2::Seat seat;
 			seat.id = seatId;
@@ -319,7 +344,7 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 			booth.id = boothId;
 			booth.name = boothName;
 			election.booths.insert({ boothId, booth });
-			boothNameToId[boothName] = seatId;
+			boothNameToId[{ boothName, seatName }] = boothId;
 		}
 		Results2::Booth booth;
 		booth.id = boothId;

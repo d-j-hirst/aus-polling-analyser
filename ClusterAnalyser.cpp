@@ -221,7 +221,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 				swingElections++;
 			}
 		}
-		if (swingElections <= 1) boothsToErase.insert(key);
+		if (swingElections <= 2) boothsToErase.insert(key);
 	}
 	for (auto boothKey : boothsToErase) {
 		output.booths.erase(boothKey);
@@ -261,6 +261,10 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 	}
 
 	std::unordered_set<int> usedClusters;
+
+	// *** To-do:
+	// check numbers for some early elections
+	// add CLP to count as liberal party
 
 	do {
 		auto topPairing = orderedPairings.top();
