@@ -111,9 +111,17 @@ ClusterAnalyser::Output::Cluster ClusterAnalyser::mergeClusters(ClusterAnalyser:
 	}
 	for (auto electionKey : allElections) {
 		auto& election = newCluster.elections[electionKey];
-		if (!cluster1.elections.count(electionKey) || !cluster2.elections.count(electionKey)) continue;
+		if (!cluster1.elections.count(electionKey) && !cluster2.elections.count(electionKey)) continue;
+		if (!cluster1.elections.count(electionKey)) {
+			election = cluster2.elections.at(electionKey);
+			continue;
+		}
+		if (!cluster2.elections.count(electionKey)) {
+			election = cluster1.elections.at(electionKey);
+			continue;
+		}
 		auto const& election1 = cluster1.elections.at(electionKey);
-		auto const& election2 = cluster1.elections.at(electionKey);
+		auto const& election2 = cluster2.elections.at(electionKey);
 
 		int cluster1Votes2cp = election1.votes2cp.value_or(0);
 		int cluster2Votes2cp = election2.votes2cp.value_or(0);
