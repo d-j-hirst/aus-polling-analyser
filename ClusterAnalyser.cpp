@@ -18,6 +18,8 @@ bool operator<(Pairing const& lhs, Pairing const& rhs) {
 	return lhs.similarity < rhs.similarity;
 }
 
+std::priority_queue<Pairing, std::deque<Pairing>> orderedPairings;
+
 ClusterAnalyser::ClusterAnalyser(ElectionCollection const& elections)
 	: elections(elections)
 {
@@ -221,7 +223,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 				swingElections++;
 			}
 		}
-		if (swingElections <= 2) boothsToErase.insert(key);
+		if (swingElections <= 1) boothsToErase.insert(key);
 	}
 	for (auto boothKey : boothsToErase) {
 		output.booths.erase(boothKey);
@@ -250,7 +252,6 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		output.clusters.push_back(thisCluster);
 	}
 
-	std::priority_queue<Pairing> orderedPairings;
 	for (int firstClusterId = 0; firstClusterId < int(output.clusters.size()) - 1; ++firstClusterId) {
 		for (auto secondClusterId = firstClusterId + 1; secondClusterId < int(output.clusters.size()); ++secondClusterId) {
 			Pairing pairing;

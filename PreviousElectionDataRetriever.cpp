@@ -281,13 +281,36 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 {
 	logger << "Loading results from " << filename << " using pre-2004 format\n";
 	Results2::Election election;
+
+	// This section looks for duplicate booth names in the file, which are later used to
+	// avoid matching the wrong booths if there are two with the same name in different seats
+	std::ifstream firstRead(filename);
+	std::string firstLine;
+	std::getline(firstRead, firstLine); // skip first line
+	std::map<std::string, int> fileUniqueBoothNames; // stores booth id if unique and -1 if not
+	do {
+		std::string candidateLine;
+		std::getline(firstRead, candidateLine);
+		if (!firstRead) break;
+		auto splitCandidateLine = splitString(candidateLine, ";");
+		std::string boothName = splitCandidateLine[1];
+		if (!fileUniqueBoothNames.count(boothName)) {
+			fileUniqueBoothNames.insert({ boothName, 1 });
+		}
+		else {
+			fileUniqueBoothNames[boothName] = -1;
+		}
+	} while (true);
+
 	std::ifstream file(filename);
 	int year = std::stoi(filename.substr(filename.find("/") + 1, 4));
 	election.id = year;
 	election.name = std::to_string(year) + " Federal Election";
-	std::string firstLine;
 	std::getline(file, firstLine); // skip first line
 
+	// Now go through the previous election data and look for duplicate booths
+	// We only want to match booths that either have a unique name in both elections,
+	// or which also have their seat matched.
 	std::unordered_map<std::string, int> seatNameToId;
 	std::map<BoothAndSeat, int, BoothSeatComp> boothNameToId;
 	std::map<std::string, int> uniqueBoothNames; // stores booth id if unique and -1 if not
@@ -303,6 +326,7 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 				else {
 					uniqueBoothNames[boothName] = -1;
 				}
+				if (fileUniqueBoothNames[boothName] == -1) uniqueBoothNames[boothName] = -1;
 			}
 		}
 	}
@@ -344,7 +368,7 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 			booth.id = boothId;
 			booth.name = boothName;
 			election.booths.insert({ boothId, booth });
-			boothNameToId[{ boothName, seatName }] = boothId;
+			uniqueBoothNames[boothName] = -1;
 		}
 		Results2::Booth booth;
 		booth.id = boothId;
