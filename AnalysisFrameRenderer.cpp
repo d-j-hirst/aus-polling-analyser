@@ -4,6 +4,7 @@
 
 static int debugConnectionsToShow = 0;
 constexpr int ClusterHeight = 18;
+constexpr int SecondaryElectionWidth = 4;
 
 inline wxFont font(int fontSize) {
 	return wxFont(fontSize, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Segoe UI");
@@ -18,7 +19,7 @@ AnalysisFrameRenderer::AnalysisFrameRenderer(PollingProject const& project, wxDC
 
 void AnalysisFrameRenderer::clearDC(wxDC& dc)
 {
-	dc.SetBackground(wxBrush(wxColour(70, 255, 255)));
+	dc.SetBackground(wxBrush(wxColour(70, 220, 175)));
 	dc.Clear();
 }
 
@@ -49,13 +50,13 @@ void AnalysisFrameRenderer::drawText() const
 	dc.DrawLabel(text, rect, wxALIGN_LEFT);
 }
 
-void drawCluster(wxDC& dc, ClusterAnalyser::Output const& data, ClusterAnalyser::Output::Cluster const& clusterData, wxPoint position) {
+void drawCluster(wxDC& dc, ClusterAnalyser::Output const& data, ClusterAnalyser::Output::Cluster const& clusterData, wxPoint position, int boxWidth) {
 	int electionNum = 0;
 	for (auto const [electionKey, electionName] : data.electionNames) {
 		//if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).greenFp) {
 		if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alp2cp) {
-			//if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alpSwing) {
-			constexpr float SwingColorSaturation = 0.1f;
+		//if (clusterData.elections.count(electionKey) && clusterData.elections.at(electionKey).alpSwing) {
+			//constexpr float SwingColorSaturation = 0.1f;
 			//float colorFactor = (clusterData.elections.at(electionKey).alpSwing.value() + SwingColorSaturation)
 			//	/ (SwingColorSaturation * 2.0f);
 			float colorFactor = (clusterData.elections.at(electionKey).alp2cp.value() - 0.2f)
@@ -75,8 +76,8 @@ void drawCluster(wxDC& dc, ClusterAnalyser::Output const& data, ClusterAnalyser:
 		else {
 			dc.SetBrush(wxBrush(wxColour(128, 128, 128)));
 		}
-		dc.DrawRectangle(wxRect(position.x + electionNum * ClusterHeight,
-			position.y, ClusterHeight, ClusterHeight));
+		dc.DrawRectangle(wxRect(position.x + electionNum * boxWidth,
+			position.y, boxWidth + 1, ClusterHeight));
 		++electionNum;
 	}
 }
@@ -94,11 +95,12 @@ void AnalysisFrameRenderer::drawClusters() const {
 		constexpr int ClusterLabelWidth = 300.0f;
 		std::map<int, int> clusterOrder;
 		int electionBoxWidth = data.electionNames.size() * ClusterHeight;
+		int electionBoxWidthSecondary = data.electionNames.size() * SecondaryElectionWidth;
 		while (true) {
 			bool draw = textOffset.y + clusterNum * ClusterHeight > -100 && textOffset.y + clusterNum * ClusterHeight < 2000;
 			auto const& clusterData = data.clusters[currentCluster];
 			wxPoint position = textOffset + wxPoint(0, clusterNum * ClusterHeight);
-			if (draw) drawCluster(dc, data, clusterData, position);
+			if (draw) drawCluster(dc, data, clusterData, position, ClusterHeight);
 			wxRect nameRect = wxRect(textOffset.x + electionBoxWidth,
 				textOffset.y + clusterNum * ClusterHeight, ClusterLabelWidth, ClusterHeight);
 			if (draw) dc.DrawLabel(ClusterAnalyser::clusterName(clusterData, data), nameRect, wxALIGN_LEFT);
@@ -131,7 +133,7 @@ void AnalysisFrameRenderer::drawClusters() const {
 			}
 			else {
 				clusterPosition[thisCluster].x = std::max(clusterPosition[data.clusters[thisCluster].children.first].x,
-					clusterPosition[data.clusters[thisCluster].children.second].x) + ConnectionWidth + electionBoxWidth;
+					clusterPosition[data.clusters[thisCluster].children.second].x) + ConnectionWidth + electionBoxWidthSecondary;
 				clusterPosition[thisCluster].y = (clusterPosition[data.clusters[thisCluster].children.first].y +
 					clusterPosition[data.clusters[thisCluster].children.second].y) / 2;
 			}
@@ -147,12 +149,12 @@ void AnalysisFrameRenderer::drawClusters() const {
 				auto const& clusterData = data.clusters[thisCluster];
 				wxPoint position = parent + textOffset + wxPoint(0, -ClusterHeight / 2);
 				dc.SetPen(wxPen(wxColour(0, 0, 0)));
-				drawCluster(dc, data, clusterData, position);
-				float colorFactor = data.clusters[thisCluster].similarity * 0.004f;
-				int colorVal = std::clamp(int(255.0f - colorFactor * 255.0f), 0, 255);
-				dc.SetPen(wxPen(wxColour(colorVal, colorVal, colorVal)));
-				wxPoint clusterOffset1 = wxPoint(noClusterInfo1 ? 0 : electionBoxWidth, 0);
-				wxPoint clusterOffset2 = wxPoint(noClusterInfo2 ? 0 : electionBoxWidth, 0);
+				drawCluster(dc, data, clusterData, position, SecondaryElectionWidth);
+				float colorFactor = data.clusters[thisCluster].similarity * 0.008f;
+				int colorVal = std::clamp(int(colorFactor * 255.0f), 0, 255);
+				dc.SetPen(wxPen(wxColour(colorVal, 0, 0)));
+				wxPoint clusterOffset1 = wxPoint(noClusterInfo1 ? 0 : electionBoxWidthSecondary, 0);
+				wxPoint clusterOffset2 = wxPoint(noClusterInfo2 ? 0 : electionBoxWidthSecondary, 0);
 				dc.DrawLine(textOffset + child1 + clusterOffset1, textOffset + wxPoint(parent.x, child1.y));
 				dc.DrawLine(textOffset + child2 + clusterOffset2, textOffset + wxPoint(parent.x, child2.y));
 				dc.DrawLine(textOffset + wxPoint(parent.x, child1.y), textOffset + wxPoint(parent.x, child2.y));

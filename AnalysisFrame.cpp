@@ -141,6 +141,7 @@ void AnalysisFrame::bindEventHandlers()
 	Bind(wxEVT_COMBOBOX, &AnalysisFrame::OnElectionSelection, this, ControlId::SelectElection);
 	Bind(wxEVT_COMBOBOX, &AnalysisFrame::OnAnalysisSelection, this, ControlId::SelectAnalysis);
 	Bind(wxEVT_BUTTON, &AnalysisFrame::OnAnalyse, this, ControlId::Analyse);
+	Bind(wxEVT_BUTTON, &AnalysisFrame::OnAnalyse, this, ControlId::Analyse);
 	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextDown, this, ControlId::TextDown);
 	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextUp, this, ControlId::TextUp);
 	Bind(wxEVT_TOOL, &AnalysisFrame::OnTextRight, this, ControlId::TextRight);

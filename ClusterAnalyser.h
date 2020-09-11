@@ -16,6 +16,7 @@ public:
 			std::optional<int> swingVotes; // only for clusters
 			std::optional<int> votes2cp;
 			std::optional<float> greenFp;
+			std::optional<float> othersFp;
 		};
 
 		struct BoothSwingData {

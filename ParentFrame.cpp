@@ -43,7 +43,7 @@ enum class Tool
 // ----------------------------------------------------------------------------
 
 ParentFrame::ParentFrame(const wxString& title)
-	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(1024, 720)),
+	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(1600, 900)),
 	notebookPanel(nullptr), notebook(nullptr)
 {
 	setIcon();
