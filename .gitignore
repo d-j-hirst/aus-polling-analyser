@@ -290,3 +290,7 @@ __pycache__/
 /vc_mswud/PollingAnalyser/PollingAnalyser.tlog/CL.command.1.tlog
 /maps/maps_backup.txt
 /z.pol2
+/python/Outputs
+/python/Intermediate
+/python/Charts prototypes.xlsx
+/python/stan-cache

@@ -4,6 +4,8 @@
 #include "General.h"
 #include "Log.h"
 
+#include <fstream>
+
 using namespace std::placeholders; // for function object parameter binding
 
 // IDs for the controls and the menu commands
@@ -255,17 +257,39 @@ void ModelsFrame::removeModel() {
 void ModelsFrame::extendModel() {
 	int modelIndex = modelData->GetSelectedRow();
 	project->models().extend(project->models().indexToId(modelIndex));
-
 	refreshDataTable();
 }
 
 void ModelsFrame::runModel() {
-	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
-	Model::Id modelId = project->models().indexToId(modelIndex);
-	Model& thisModel = project->models().access(project->models().indexToId(modelIndex));
-	thisModel.run(project->pollsters(), project->polls(), project->events());
-	refreshDataTable();
-	project->invalidateProjectionsFromModel(modelId);
+	std::string filename = "python/Outputs/fp_trend_2019fed_L_NP FP.csv";
+	auto file = std::ifstream(filename);
+	std::string line;
+	std::getline(file, line); // first line is just a legend, skip it
+	std::getline(file, line);
+	auto dateVals = splitString(line,",");
+	wxDateTime startDate(std::stoi(dateVals[0]), 
+		wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
+	wxMessageBox(startDate.FormatISODate());
+	std::getline(file, line); // next line is just a legend, skip it
+	std::vector<float> trend;
+	do {
+		std::getline(file, line);
+		if (!file) break;
+		auto trendVals = splitString(line, ",");
+		int day = std::stoi(trendVals[0]);
+		trend.resize(day + 1);
+		float value = std::stof(trendVals[5]);
+		trend[day] = value;
+	} while (true);
+
+	wxMessageBox("Loaded model output from " + filename);
+
+	//ModelCollection::Index modelIndex = modelData->GetSelectedRow();
+	//Model::Id modelId = project->models().indexToId(modelIndex);
+	//Model& thisModel = project->models().access(project->models().indexToId(modelIndex));
+	//thisModel.run(project->pollsters(), project->polls(), project->events());
+	//refreshDataTable();
+	//project->invalidateProjectionsFromModel(modelId);
 }
 
 void ModelsFrame::updateInterface() {

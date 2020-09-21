@@ -130,6 +130,8 @@ ClusterAnalyser::Output::Cluster ClusterAnalyser::mergeClusters(ClusterAnalyser:
 	for (auto const& [electionKey, election] : cluster2.elections) {
 		allElections.insert(electionKey);
 	}
+	std::map<int, float> election1swing;
+	std::map<int, float> election2swing;
 	for (auto electionKey : allElections) {
 		auto& election = newCluster.elections[electionKey];
 		if (!cluster1.elections.count(electionKey) && !cluster2.elections.count(electionKey)) continue;
@@ -167,7 +169,12 @@ ClusterAnalyser::Output::Cluster ClusterAnalyser::mergeClusters(ClusterAnalyser:
 		election.swingVotes = cluster1SwingVotes + cluster2SwingVotes;
 		election.alpSwing = election1.alpSwing.value_or(0.0f) * cluster1ProportionSwing +
 			election2.alpSwing.value_or(0.0f) * (1.0f - cluster1ProportionSwing);
+
+		election1swing[electionKey] = election1.alpSwing.value_or(0.0f);
+		election2swing[electionKey] = election2.alpSwing.value_or(0.0f);
 	}
+
+	newCluster.regression = calculateOrthogonalRegression(election1swing, election2swing);
 
 	return newCluster;
 }
@@ -317,6 +324,8 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 		}
 		logger << "\n";
 		Output::Cluster mergedCluster = mergeClusters(output.clusters[topPairing.clusters.first], output.clusters[topPairing.clusters.second]);
+
+		logger << "Regression values: " << mergedCluster.regression.report() << "\n";
 		mergedCluster.children = { topPairing.clusters.first , topPairing.clusters.second };
 		mergedCluster.similarity = topPairing.similarity;
 		output.clusters.push_back(mergedCluster);

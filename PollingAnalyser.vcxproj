@@ -73,8 +73,8 @@
     <OutDir>.\vc_mswu\</OutDir>
     <IntDir>.\vc_mswu\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);E:\Anaconda\include</IncludePath>
+    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;E:\Anaconda\libs</LibraryPath>
     <SourcePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
@@ -91,8 +91,8 @@
     <OutDir>.\vc_mswud\</OutDir>
     <IntDir>.\vc_mswud\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;E:\Anaconda\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;E:\Anaconda\libs;$(LibraryPath)</LibraryPath>
     <SourcePath>C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -114,7 +114,7 @@
       <AdditionalOptions> /opt:ref /opt:icf /EHsc</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>5054</DisableSpecificWarnings>
+      <DisableSpecificWarnings>5054;4005</DisableSpecificWarnings>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -138,7 +138,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswu\PollingAnalyser.exe</OutputFile>
       <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcurl_a.lib;wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl_a.lib;wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;python38.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
@@ -246,6 +246,7 @@
       <AdditionalOptions> /EHsc </AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>5054;4005</DisableSpecificWarnings>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -269,7 +270,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>vc_mswud\PollingAnalyser.exe</OutputFile>
       <AdditionalLibraryDirectories>C:\wxWidgets-3.1.1\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcurl_a.lib;wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl_a.lib;wxmsw31ud_core.lib;wxbase31ud.lib;wxtiffd.lib;wxjpegd.lib;wxpngd.lib;wxzlibd.lib;wxregexud.lib;wxexpatd.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31ud_adv.lib;python38.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -370,6 +371,7 @@
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="EventCollection.h" />
     <ClInclude Include="FloatInput.h" />
+    <ClInclude Include="OrthogonalRegression.h" />
     <ClInclude Include="PartiesAnalyser.h" />
     <ClInclude Include="InputGeneral.h" />
     <ClInclude Include="IntInput.h" />

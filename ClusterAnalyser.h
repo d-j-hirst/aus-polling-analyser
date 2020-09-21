@@ -1,5 +1,7 @@
 #pragma once
 
+#include "OrthogonalRegression.h"
+
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -37,6 +39,7 @@ public:
 			std::pair<int, int> children = { -1, -1 };
 			int parent = -1;
 			float similarity = 0.0f;
+			OrthogonalRegression regression;
 			std::map<int, ClusterAnalyser::Output::SingleElection> elections;
 		};
 
