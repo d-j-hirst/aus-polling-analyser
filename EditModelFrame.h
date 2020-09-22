@@ -13,7 +13,7 @@
 #include "wx/wx.h"
 #endif
 
-#include "Model.h"
+#include "StanModel.h"
 
 class DateInput;
 class FloatInput;
@@ -31,11 +31,11 @@ public:
 		Edit
 	};
 
-	typedef std::function<void(Model::Settings)> OkCallback;
+	typedef std::function<void(StanModel)> OkCallback;
 
 	// function: whether this is for a new model or editing an existing model
 	// callback: function to be called when the OK button is pressed
-	EditModelFrame(Function function, OkCallback callback, Model::Settings modelSettings = Model::Settings());
+	EditModelFrame(Function function, OkCallback callback, StanModel model = StanModel(""));
 
 private:
 
@@ -43,12 +43,8 @@ private:
 
 	// Each of these takes a value for the current y-position
 	void createNameInput(int& y);
-	void createNumIterationsInput(int& y);
-	void createVoteTimeMultiplierInput(int& y);
-	void createHouseEffectTimeMultiplierInput(int& y);
-	void createCalibrationFirstPartyBiasInput(int& y);
-	void createStartDateInput(int& y);
-	void createEndDateInput(int& y);
+	void createTermCodeInput(int& y);
+	void createPartyCodesInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -58,15 +54,11 @@ private:
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
 	// Holds the preliminary settings for the model to be created.
-	Model::Settings modelSettings;
+	StanModel model;
 
 	std::unique_ptr<TextInput> nameInput;
-	std::unique_ptr<IntInput> numIterationsInput;
-	std::unique_ptr<FloatInput> voteTimeMultiplierInput;
-	std::unique_ptr<FloatInput> houseEffectTimeMultiplierInput;
-	std::unique_ptr<FloatInput> calibrationFirstPartyBiasInput;
-	std::unique_ptr<DateInput> startDateInput;
-	std::unique_ptr<DateInput> endDateInput;
+	std::unique_ptr<TextInput> termCodeInput;
+	std::unique_ptr<TextInput> partyCodesInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

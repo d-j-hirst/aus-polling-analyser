@@ -71,13 +71,13 @@ private:
 	void OnSelectionChange(wxDataViewEvent& event);
 
 	// does everything required to add the model "model".
-	void addModel(Model::Settings modelSettings);
+	void addModel(StanModel model);
 
 	// adds "model" to model data. Should not be used except within addModel.
-	void addModelToModelData(Model model);
+	void addModelToModelData(StanModel model);
 
 	// does everything required to replace the currently selected model with "model".
-	void replaceModel(Model::Settings modelSettings);
+	void replaceModel(StanModel model);
 
 	// does everything required to remove the currently selected model, if possible.
 	void removeModel();

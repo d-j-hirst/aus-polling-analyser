@@ -65,7 +65,7 @@ void EditProjectionFrame::createModelInput(int & y)
 	int selectedModel = 0;
 	int count = 0;
 	for (auto const& [key, model] : models) {
-		modelArray.push_back(model.getSettings().name);
+		modelArray.push_back(model.getName());
 		if (key == projectionSettings.baseModel) selectedModel = count;
 		++count;
 	}

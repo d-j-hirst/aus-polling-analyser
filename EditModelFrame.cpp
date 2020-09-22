@@ -15,17 +15,13 @@ enum ControlId
 	Base = 550, // To avoid mixing events with other frames.
 	Ok,
 	Name,
-	NumIterations,
-	VoteTimeMultiplier,
-	HouseEffectTimeMultiplier,
-	CalibrationFirstPartyBias,
-	StartDate,
-	EndDate,
+	TermCode,
+	PartyCodes
 };
 
-EditModelFrame::EditModelFrame(Function function, OkCallback callback, Model::Settings modelSettings)
+EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
 	: wxDialog(NULL, 0, (function == Function::New ? "New Model" : "Edit Model")),
-	modelSettings(modelSettings), callback(callback)
+	model(model), callback(callback)
 {
 	int currentY = ControlPadding;
 	createControls(currentY);
@@ -35,75 +31,33 @@ EditModelFrame::EditModelFrame(Function function, OkCallback callback, Model::Se
 void EditModelFrame::createControls(int & y)
 {
 	createNameInput(y);
-	createNumIterationsInput(y);
-	createVoteTimeMultiplierInput(y);
-	createHouseEffectTimeMultiplierInput(y);
-	createCalibrationFirstPartyBiasInput(y);
-	createStartDateInput(y);
-	createEndDateInput(y);
+	createTermCodeInput(y);
+	createPartyCodesInput(y);
 
 	createOkCancelButtons(y);
 }
 
-void EditModelFrame::createNameInput(int & y)
+void EditModelFrame::createNameInput(int& y)
 {
-	auto nameCallback = [this](std::string s) -> void {modelSettings.name = s; };
-	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", modelSettings.name, wxPoint(2, y), nameCallback));
+	auto nameCallback = [this](std::string s) -> void {model.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", model.name, wxPoint(2, y), nameCallback));
 	y += nameInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createNumIterationsInput(int & y)
+void EditModelFrame::createTermCodeInput(int& y)
 {
-	auto numIterationsCallback = [this](int i) -> void {modelSettings.numIterations = i; };
-	auto numIterationsValidator = [](int i) {return std::max(1, i); };
-	numIterationsInput.reset(new IntInput(this, ControlId::NumIterations, "Number of Iterations:", modelSettings.numIterations,
-		wxPoint(2, y), numIterationsCallback, numIterationsValidator));
-	y += numIterationsInput->Height + ControlPadding;
+	auto termCodeCallback = [this](std::string s) -> void {model.termCode = s; };
+	termCodeInput.reset(new TextInput(this, ControlId::TermCode, "Term Code:", model.termCode, wxPoint(2, y), termCodeCallback));
+	y += termCodeInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createVoteTimeMultiplierInput(int & y)
+void EditModelFrame::createPartyCodesInput(int& y)
 {
-	auto voteTimeMultiplierCallback = [this](float f) -> void {modelSettings.trendTimeScoreMultiplier = f; };
-	auto voteTimeMultiplierValidator = [](float f) {return std::max(0.001f, f); };
-	voteTimeMultiplierInput.reset(new FloatInput(this, ControlId::VoteTimeMultiplier, "Vote Time-Multiplier:", modelSettings.trendTimeScoreMultiplier,
-		wxPoint(2, y), voteTimeMultiplierCallback, voteTimeMultiplierValidator));
-	y += voteTimeMultiplierInput->Height + ControlPadding;
+	auto partyCodesCallback = [this](std::string s) -> void {model.partyCodes = s; };
+	partyCodesInput.reset(new TextInput(this, ControlId::PartyCodes, "Party Codes:", model.partyCodes, wxPoint(2, y), partyCodesCallback));
+	y += partyCodesInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createHouseEffectTimeMultiplierInput(int & y)
-{
-	auto houseEffectTimeMultiplierCallback = [this](float f) -> void {modelSettings.houseEffectTimeScoreMultiplier = f; };
-	auto houseEffectTimeMultiplierValidator = [](float f) {return std::max(0.001f, f); };
-	houseEffectTimeMultiplierInput.reset(new FloatInput(this, ControlId::HouseEffectTimeMultiplier, "House Effect Time-Multiplier:", modelSettings.houseEffectTimeScoreMultiplier,
-		wxPoint(2, y), houseEffectTimeMultiplierCallback, houseEffectTimeMultiplierValidator));
-	y += houseEffectTimeMultiplierInput->Height + ControlPadding;
-}
-
-void EditModelFrame::createCalibrationFirstPartyBiasInput(int & y)
-{
-	auto calibrationFirstPartyBiasCallback = [this](float f) -> void {modelSettings.calibrationFirstPartyBias = f; };
-	auto calibrationFirstPartyBiasValidator = [](float f) {return std::clamp(f, -100.0f, 100.0f); };
-	calibrationFirstPartyBiasInput.reset(new FloatInput(this, ControlId::CalibrationFirstPartyBias, "First Party Calibration: ", modelSettings.calibrationFirstPartyBias,
-		wxPoint(2, y), calibrationFirstPartyBiasCallback, calibrationFirstPartyBiasValidator));
-	y += houseEffectTimeMultiplierInput->Height + ControlPadding;
-}
-
-void EditModelFrame::createStartDateInput(int & y)
-{
-	logger << modelSettings.startDate.FormatISODate() << "\n";
-	auto startDateCallback = [this](wxDateTime const& d) -> void {modelSettings.startDate = d; };
-	startDateInput.reset(new DateInput(this, ControlId::StartDate, "Start Date: ", modelSettings.startDate,
-		wxPoint(2, y), startDateCallback));
-	y += startDateInput->Height + ControlPadding;
-}
-
-void EditModelFrame::createEndDateInput(int & y)
-{
-	auto endDateCallback = [this](wxDateTime const& d) -> void {modelSettings.endDate = d; };
-	endDateInput.reset(new DateInput(this, ControlId::EndDate, "End Date: ", modelSettings.endDate,
-		wxPoint(2, y), endDateCallback));
-	y += endDateInput->Height + ControlPadding;
-}
 
 void EditModelFrame::createOkCancelButtons(int & y)
 {
@@ -122,6 +76,6 @@ void EditModelFrame::setFinalWindowHeight(int y)
 }
 
 void EditModelFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
-	callback(modelSettings);
+	callback(model);
 	Close();
 }

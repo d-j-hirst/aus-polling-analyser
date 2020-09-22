@@ -195,7 +195,7 @@ void VisualiserFrame::refreshToolbar() {
 	std::string modelBoxString;
 	if (project->models().count()) {
 		for (auto const& [key, model] : project->models()) {
-			modelArray.push_back(model.getSettings().name);
+			modelArray.push_back(model.getName());
 		}
 		if (selectedModel >= int(modelArray.size())) {
 			selectedModel = int(modelArray.size()) - 1;
@@ -465,34 +465,36 @@ void VisualiserFrame::drawAxisTickLines(wxDC& dc) {
 }
 
 void VisualiserFrame::drawModels(wxDC& dc) {
+	dc;
 	if (selectedModel != -1) {
-		Model const& model = project->models().viewByIndex(selectedModel);
+		StanModel const& model = project->models().viewByIndex(selectedModel);
 		if (model.getLastUpdatedDate().IsValid()) {
 			drawModel(model, dc);
 		}
 	}
 }
 
-void VisualiserFrame::drawModel(Model const& model, wxDC& dc) {
+void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 	if (!displayModels && !displayHouseEffects) return;
-	auto thisTimePoint = model.begin();
-	for (int i = 0; i < model.numDays() - 1; ++i) {
+	auto series = model.viewSeries("L_NP");
+	auto thisTimePoint = series.timePoint.begin();
+	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
-		int x = getXFromDate(int(floor(model.getEffectiveStartDate().GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(model.getEffectiveStartDate().GetMJD())) + i + 1);
+		int x = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i);
+		int x2 = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i + 1);
 		if (displayModels) {
-			int y = getYFrom2PP(thisTimePoint->trend2pp);
-			int y2 = getYFrom2PP(nextTimePoint->trend2pp);
+			int y = getYFrom2PP((*thisTimePoint).values[StanModel::Spread::Size / 2]);
+			int y2 = getYFrom2PP((*nextTimePoint).values[StanModel::Spread::Size / 2]);
 			dc.SetPen(wxPen(ModelColour));
 			dc.DrawLine(x, y, x2, y2);
 		}
-		for (int pollsterIndex = 0; pollsterIndex < project->pollsters().count() && displayHouseEffects; ++pollsterIndex) {
-			// House effects are increased by 50 so they are easily displayed at the same scale as the models themselves
-			int y = getYFrom2PP(thisTimePoint->houseEffect[pollsterIndex] + 50.0f);
-			int y2 = getYFrom2PP(nextTimePoint->houseEffect[pollsterIndex] + 50.0f);
-			dc.SetPen(wxPen(project->pollsters().viewByIndex(pollsterIndex).colour));
-			dc.DrawLine(x, y, x2, y2);
-		}
+		//for (int pollsterIndex = 0; pollsterIndex < project->pollsters().count() && displayHouseEffects; ++pollsterIndex) {
+		//	// House effects are increased by 50 so they are easily displayed at the same scale as the models themselves
+		//	int y = getYFrom2PP(thisTimePoint->houseEffect[pollsterIndex] + 50.0f);
+		//	int y2 = getYFrom2PP(nextTimePoint->houseEffect[pollsterIndex] + 50.0f);
+		//	dc.SetPen(wxPen(project->pollsters().viewByIndex(pollsterIndex).colour));
+		//	dc.DrawLine(x, y, x2, y2);
+		//}
 		thisTimePoint = nextTimePoint;
 	}
 }
@@ -507,20 +509,22 @@ void VisualiserFrame::drawProjections(wxDC& dc) {
 }
 
 void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
-	constexpr int NumSigmaLevels = 2;
-	constexpr int SigmaBrightnessChange = 50;
-	Model const& model = project->models().view(projection.getSettings().baseModel);
-	for (int i = 0; i < projection.getProjectionLength() - 1; ++i) {
-		int x = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i + 1);
-		for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
-			int y = getYFrom2PP(projection.getMeanProjection(i) + projection.getSdProjection(i) * sigma);
-			int y2 = getYFrom2PP(projection.getMeanProjection(i + 1) + projection.getSdProjection(i + 1) * sigma);
-			int greyLevel = (abs(sigma) + 1) * SigmaBrightnessChange;
-			dc.SetPen(wxPen(wxColour(greyLevel, greyLevel, greyLevel)));
-			dc.DrawLine(x, y, x2, y2);
-		}
-	}
+	dc;
+	projection;
+	//constexpr int NumSigmaLevels = 2;
+	//constexpr int SigmaBrightnessChange = 50;
+	//Model const& model = project->models().view(projection.getSettings().baseModel);
+	//for (int i = 0; i < projection.getProjectionLength() - 1; ++i) {
+	//	int x = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i);
+	//	int x2 = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i + 1);
+	//	for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
+	//		int y = getYFrom2PP(projection.getMeanProjection(i) + projection.getSdProjection(i) * sigma);
+	//		int y2 = getYFrom2PP(projection.getMeanProjection(i + 1) + projection.getSdProjection(i + 1) * sigma);
+	//		int greyLevel = (abs(sigma) + 1) * SigmaBrightnessChange;
+	//		dc.SetPen(wxPen(wxColour(greyLevel, greyLevel, greyLevel)));
+	//		dc.DrawLine(x, y, x2, y2);
+	//	}
+	//}
 }
 
 void VisualiserFrame::drawPollDots(wxDC& dc) {

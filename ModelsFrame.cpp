@@ -42,19 +42,7 @@ void ModelsFrame::refreshDataTable()
 	// Add the data columns that show the properties of the models.
 	modelData->AppendTextColumn("Model Name", wxDATAVIEW_CELL_INERT, 160, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("Number of Iterations", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("Vote Smoothing", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("House Effect Smoothing", wxDATAVIEW_CELL_INERT, 150, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("First-Party Calibration Bias", wxDATAVIEW_CELL_INERT, 160, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("Start Date", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("Finish Date", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	modelData->AppendTextColumn("Latest Update", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
+	modelData->AppendTextColumn("Party Codes", wxDATAVIEW_CELL_INERT, 400, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the model data
@@ -79,10 +67,10 @@ void ModelsFrame::OnNewModel(wxCommandEvent& WXUNUSED(event)) {
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&ModelsFrame::addModel, this, _1);
 
-	Model::Settings modelSettings;
+	StanModel model;
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::New, callback, modelSettings);
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::New, callback, model);
 
 	// Show the frame.
 	frame->ShowModal();
@@ -103,7 +91,7 @@ void ModelsFrame::OnEditModel(wxCommandEvent& WXUNUSED(event)) {
 	auto callback = std::bind(&ModelsFrame::replaceModel, this, _1);
 
 	// Create the new project frame (where initial settings for the new project are chosen).
-	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, project->models().viewByIndex(modelIndex).getSettings());
+	EditModelFrame *frame = new EditModelFrame(EditModelFrame::Function::Edit, callback, project->models().viewByIndex(modelIndex));
 
 	// Show the frame.
 	frame->ShowModal();
@@ -214,31 +202,25 @@ void ModelsFrame::bindEventHandlers()
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &ModelsFrame::OnSelectionChange, this, ControlId::DataView);
 }
 
-void ModelsFrame::addModel(Model::Settings modelSettings) {
-	project->models().add(Model(modelSettings));
+void ModelsFrame::addModel(StanModel model) {
+	project->models().add(model);
 
 	refreshDataTable();
 
 	refresher.refreshVisualiser();
 }
 
-void ModelsFrame::addModelToModelData(Model model) {
+void ModelsFrame::addModelToModelData(StanModel model) {
 	// Create a vector with all the party data.
 	wxVector<wxVariant> data;
-	data.push_back(wxVariant(model.getSettings().name));
-	data.push_back(wxVariant(std::to_string(model.getSettings().numIterations)));
-	data.push_back(wxVariant(formatFloat(model.getSettings().trendTimeScoreMultiplier, 2)));
-	data.push_back(wxVariant(formatFloat(model.getSettings().houseEffectTimeScoreMultiplier, 2)));
-	data.push_back(wxVariant(formatFloat(model.getSettings().calibrationFirstPartyBias, 3)));
-	data.push_back(wxVariant(model.getStartDateString()));
-	data.push_back(wxVariant(model.getEndDateString()));
-	data.push_back(wxVariant(model.getLastUpdatedString()));
+	data.push_back(wxVariant(model.getName()));
+	data.push_back(wxVariant(model.getPartyCodes()));
 	modelData->AppendItem(data);
 }
 
-void ModelsFrame::replaceModel(Model::Settings modelSettings) {
+void ModelsFrame::replaceModel(StanModel model) {
 	int modelIndex = modelData->GetSelectedRow();
-	project->models().access(project->models().indexToId(modelIndex)).replaceSettings(modelSettings);
+	project->models().access(project->models().indexToId(modelIndex)) = model;
 
 	refreshDataTable();
 
@@ -261,35 +243,12 @@ void ModelsFrame::extendModel() {
 }
 
 void ModelsFrame::runModel() {
-	std::string filename = "python/Outputs/fp_trend_2019fed_L_NP FP.csv";
-	auto file = std::ifstream(filename);
-	std::string line;
-	std::getline(file, line); // first line is just a legend, skip it
-	std::getline(file, line);
-	auto dateVals = splitString(line,",");
-	wxDateTime startDate(std::stoi(dateVals[0]), 
-		wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
-	wxMessageBox(startDate.FormatISODate());
-	std::getline(file, line); // next line is just a legend, skip it
-	std::vector<float> trend;
-	do {
-		std::getline(file, line);
-		if (!file) break;
-		auto trendVals = splitString(line, ",");
-		int day = std::stoi(trendVals[0]);
-		trend.resize(day + 1);
-		float value = std::stof(trendVals[5]);
-		trend[day] = value;
-	} while (true);
-
-	wxMessageBox("Loaded model output from " + filename);
-
-	//ModelCollection::Index modelIndex = modelData->GetSelectedRow();
-	//Model::Id modelId = project->models().indexToId(modelIndex);
-	//Model& thisModel = project->models().access(project->models().indexToId(modelIndex));
-	//thisModel.run(project->pollsters(), project->polls(), project->events());
+	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
+	Model::Id modelId = project->models().indexToId(modelIndex);
+	StanModel& thisModel = project->models().access(modelId);
+	thisModel.loadData();
 	//refreshDataTable();
-	//project->invalidateProjectionsFromModel(modelId);
+	project->invalidateProjectionsFromModel(modelId);
 }
 
 void ModelsFrame::updateInterface() {

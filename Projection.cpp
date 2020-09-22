@@ -24,14 +24,15 @@ void Projection::replaceSettings(Settings newSettings)
 }
 
 void Projection::run(ModelCollection const& models) {
+	models;
 	if (!settings.endDate.IsValid()) return;
-	auto const& model = models.view(settings.baseModel);
+	//auto const& model = models.view(settings.baseModel);
 
-	InternalProjections internalProjections;
-	runInternalProjections(internalProjections, model);
-	combineInternalProjections(internalProjections, model);
+	//InternalProjections internalProjections;
+	//runInternalProjections(internalProjections, model);
+	//combineInternalProjections(internalProjections, model);
 
-	logRunStatistics();
+	//logRunStatistics();
 	lastUpdated = wxDateTime::Now();
 }
 
@@ -46,7 +47,7 @@ void Projection::logRunStatistics()
 
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
-	settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
+	//settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
 }
 
 std::string Projection::textReport(ModelCollection const& models) const
@@ -55,7 +56,7 @@ std::string Projection::textReport(ModelCollection const& models) const
 	report << "Reporting Projection: \n";
 	report << " Name: " << settings.name << "\n";
 	report << " Number of iterations: " << settings.numIterations << "\n";
-	report << " Base model: " << models.view(settings.baseModel).getSettings().name << "\n";
+	report << " Base model: " << models.view(settings.baseModel).getName() << "\n";
 	report << " End Date: " << getEndDateString() << "\n";
 	report << " Last Updated: " << getLastUpdatedString() << "\n";
 	report << " Daily Change: " << settings.dailyChange << "\n";

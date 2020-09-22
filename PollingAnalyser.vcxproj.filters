@@ -191,7 +191,6 @@
     <ClCompile Include="ResultCoordinator.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
-    <ClCompile Include="OutcomeCollection.cpp" />
     <ClCompile Include="SaveIO.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
@@ -204,7 +203,6 @@
     <ClCompile Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="ElectionCollection.cpp" />
     <ClCompile Include="AnalysisFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
@@ -222,6 +220,15 @@
     </ClCompile>
     <ClCompile Include="SwingAnalyser.cpp">
       <Filter>Source Files\Process Objects\Election Analyser</Filter>
+    </ClCompile>
+    <ClCompile Include="StanModel.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="ElectionCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
+    <ClCompile Include="OutcomeCollection.cpp">
+      <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -550,6 +557,9 @@
     </ClInclude>
     <ClInclude Include="OrthogonalRegression.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="StanModel.h">
+      <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

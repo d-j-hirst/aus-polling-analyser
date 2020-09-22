@@ -351,6 +351,7 @@
     <ClCompile Include="SimulationPreparation.cpp" />
     <ClCompile Include="SimulationRun.cpp" />
     <ClCompile Include="SimulationsFrame.cpp" />
+    <ClCompile Include="StanModel.cpp" />
     <ClCompile Include="SwingAnalyser.cpp" />
     <ClCompile Include="TextInput.cpp" />
     <ClCompile Include="unzip.cpp" />
@@ -391,6 +392,7 @@
     <ClInclude Include="SimulationIteration.h" />
     <ClInclude Include="SimulationPreparation.h" />
     <ClInclude Include="SimulationRun.h" />
+    <ClInclude Include="StanModel.h" />
     <ClInclude Include="SwingAnalyser.h" />
     <ClInclude Include="TextInput.h" />
     <ClInclude Include="LatestResultsDataRetriever.h" />

@@ -163,14 +163,22 @@ def main():
         print('Stan Finished ...')
         import pystan.diagnostics as psd
         print(psd.check_hmc_diagnostics(fit))
-            
-        output_probs = (0.005,0.025,0.1,0.25,0.5,0.75,0.9,0.975,0.995)
+        
+        probs_list = [];
+        probs_list.append(0.001);
+        for i in range(1, 100):
+            probs_list.append(i * 0.01)
+        probs_list.append(0.999)
+        output_probs = tuple(probs_list)
         summary = fit.summary(probs=output_probs)['summary']
         print('Got Summary ...')
         trend_file = open(output_trend, 'w')
         trend_file.write('Start date day,Month,Year\n')
         trend_file.write(start.strftime('%d,%m,%Y\n'))
-        trend_file.write('Day,Party,0.5%,2.5%,10%,25%,50%,75%,90%,97.5%,99.5%\n')
+        trend_file.write('Day,Party')
+        for prob in output_probs:
+            trend_file.write(',' + str(round(prob * 100)) + "%")
+        trend_file.write('\n')
         # need to get past the centered values and house effects
         # this is where the actual FP trend starts
         offset = n_days.n + n_houses * 2
@@ -207,7 +215,10 @@ def main():
         print('Saved polls file at ' + output_polls)
         
         house_effects_file = open(output_house_effects, 'w')
-        house_effects_file.write('House,Party,0.5%,2.5%,10%,25%,50%,75%,90%,97.5%,99.5%\n')
+        house_effects_file.write('House,Party')
+        for prob in output_probs:
+            house_effects_file.write(',' + str(round(prob * 100)) + "%")
+        house_effects_file.write('\n')
         offset = n_days.n
         for house_index in range(0, n_houses):
             house_effects_file.write(houses[house_index])

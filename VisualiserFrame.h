@@ -184,7 +184,7 @@ private:
 	void drawModels(wxDC& dc);
 
 	// draws lines for the given polling model.
-	void drawModel(Model const& model, wxDC& dc);
+	void drawModel(StanModel const& model, wxDC& dc);
 
 	// draws lines for the vote projections.
 	void drawProjections(wxDC& dc);

@@ -6,7 +6,8 @@
 #include <fstream>
 #include <regex>
 
-constexpr int VersionNum = 1;
+// Version 2: Rework models
+constexpr int VersionNum = 2;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -78,19 +79,20 @@ int ProjectFiler::save(std::string filename) {
 	os << "#Models" << "\n";
 	for (auto const&[key, thisModel] : project.modelCollection) {
 		os << "@Model" << "\n";
-		os << "name=" << thisModel.getSettings().name << "\n";
-		os << "iter=" << thisModel.getSettings().numIterations << "\n";
-		os << "trnd=" << thisModel.getSettings().trendTimeScoreMultiplier << "\n";
-		os << "hsm =" << thisModel.getSettings().houseEffectTimeScoreMultiplier << "\n";
-		os << "cfpb=" << thisModel.getSettings().calibrationFirstPartyBias << "\n";
-		os << "fstd=" << thisModel.getFinalStandardDeviation() << "\n";
-		os << "strt=" << thisModel.getSettings().startDate.GetJulianDayNumber() << "\n";
-		os << "end =" << thisModel.getSettings().endDate.GetJulianDayNumber() << "\n";
-		os << "updt=" << thisModel.getLastUpdatedDate().GetJulianDayNumber() << "\n";
-		for (auto const& thisDay : thisModel) {
-			os << "$Day" << "\n";
-			os << "mtnd=" << thisDay.trend2pp << "\n";
-		}
+		os << "name=" << thisModel.getName();
+		//os << "name=" << thisModel.getSettings().name << "\n";
+		//os << "iter=" << thisModel.getSettings().numIterations << "\n";
+		//os << "trnd=" << thisModel.getSettings().trendTimeScoreMultiplier << "\n";
+		//os << "hsm =" << thisModel.getSettings().houseEffectTimeScoreMultiplier << "\n";
+		//os << "cfpb=" << thisModel.getSettings().calibrationFirstPartyBias << "\n";
+		//os << "fstd=" << thisModel.getFinalStandardDeviation() << "\n";
+		//os << "strt=" << thisModel.getSettings().startDate.GetJulianDayNumber() << "\n";
+		//os << "end =" << thisModel.getSettings().endDate.GetJulianDayNumber() << "\n";
+		//os << "updt=" << thisModel.getLastUpdatedDate().GetJulianDayNumber() << "\n";
+		//for (auto const& thisDay : thisModel) {
+		//	os << "$Day" << "\n";
+		//	os << "mtnd=" << thisDay.trend2pp << "\n";
+		//}
 	}
 	os << "#Projections" << "\n";
 	for (auto const&[key, thisProjection] : project.projectionCollection) {
@@ -396,19 +398,7 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 {
 	saveOutput.outputAsType<int32_t>(project.modelCollection.count());
 	for (auto const& [key, thisModel] : project.modelCollection) {
-		saveOutput << thisModel.getSettings().name;
-		saveOutput.outputAsType<int32_t>(thisModel.getSettings().numIterations);
-		saveOutput << thisModel.getSettings().trendTimeScoreMultiplier;
-		saveOutput << thisModel.getSettings().houseEffectTimeScoreMultiplier;
-		saveOutput << thisModel.getSettings().calibrationFirstPartyBias;
-		saveOutput << thisModel.getFinalStandardDeviation();
-		saveOutput << thisModel.getSettings().startDate.GetJulianDayNumber();
-		saveOutput << thisModel.getSettings().endDate.GetJulianDayNumber();
-		saveOutput << thisModel.getLastUpdatedDate().GetJulianDayNumber();
-		saveOutput.outputAsType<int32_t>(thisModel.numDays());
-		for (auto const& thisDay : thisModel) {
-			saveOutput << thisDay.trend2pp;
-		}
+		saveOutput << thisModel.getName();
 	}
 }
 
@@ -416,21 +406,19 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 {
 	auto modelCount = saveInput.extract<int32_t>();
 	for (int modelIndex = 0; modelIndex < modelCount; ++modelIndex) {
-		Model::SaveData thisModel;
-		saveInput >> thisModel.settings.name;
-		thisModel.settings.numIterations = saveInput.extract<int32_t>();
-		saveInput >> thisModel.settings.trendTimeScoreMultiplier;
-		saveInput >> thisModel.settings.houseEffectTimeScoreMultiplier;
-		saveInput >> thisModel.settings.calibrationFirstPartyBias;
-		saveInput >> thisModel.finalStandardDeviation;
-		thisModel.settings.startDate = wxDateTime(saveInput.extract<double>());
-		thisModel.settings.endDate = wxDateTime(saveInput.extract<double>());
-		thisModel.lastUpdated = wxDateTime(saveInput.extract<double>());
-		auto dayCount = saveInput.extract<int32_t>();
-		for (int day = 0; day < dayCount; ++day) {
-			thisModel.trend.push_back(saveInput.extract<float>());
+		StanModel thisModel;
+		saveInput >> thisModel.name;
+		// Handle legacy model settings not used any more
+		if (versionNum <= 1) {
+			saveInput.extract<int32_t>();
+			for (int i = 0; i < 4; ++i) saveInput.extract<float>();
+			for (int i = 0; i < 3; ++i) saveInput.extract<double>();
+			auto dayCount = saveInput.extract<int32_t>();
+			for (int day = 0; day < dayCount; ++day) {
+				saveInput.extract<float>();
+			}
 		}
-		project.modelCollection.add(Model(thisModel, project.polls()));
+		project.modelCollection.add(thisModel);
 	}
 }
 
@@ -752,7 +740,6 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 		return true;
 	}
 	else if (!line.compare("#Projections")) {
-		project.modelCollection.finaliseLoadedModel();
 		fos.section = FileSection_Projections;
 		return true;
 	}
@@ -807,8 +794,7 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 	}
 	else if (fos.section == FileSection_Models) {
 		if (!line.compare("@Model")) {
-			project.modelCollection.finaliseLoadedModel();
-			project.modelCollection.startLoadingModel();
+			project.modelCollection.add(StanModel());
 			return true;
 		}
 	}
@@ -994,50 +980,9 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 		}
 	}
 	else if (fos.section == FileSection_Models) {
-		if (!project.modelCollection.loadingModel.has_value()) return true;
+	if (!project.modelCollection.count()) return true; //prevent crash from mixed-up data.
 		if (!line.substr(0, 5).compare("name=")) {
-			project.modelCollection.loadingModel->settings.name = line.substr(5);
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("iter=")) {
-			project.modelCollection.loadingModel->settings.numIterations = std::stoi(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("trnd=")) {
-			project.modelCollection.loadingModel->settings.trendTimeScoreMultiplier = std::stof(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("hsm =")) {
-			project.modelCollection.loadingModel->settings.houseEffectTimeScoreMultiplier = std::stof(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("cfpb=")) {
-			project.modelCollection.loadingModel->settings.calibrationFirstPartyBias = std::stof(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("fstd=")) {
-			project.modelCollection.loadingModel->finalStandardDeviation = std::stof(line.substr(5));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("strt=")) {
-			project.modelCollection.loadingModel->settings.startDate = wxDateTime(std::stod(line.substr(5)));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("end =")) {
-			project.modelCollection.loadingModel->settings.endDate = wxDateTime(std::stod(line.substr(5)));
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("updt=")) {
-			project.modelCollection.loadingModel->lastUpdated = wxDateTime(std::stod(line.substr(5)));
-			return true;
-		}
-		else if (!line.substr(0, 4).compare("$Day")) {
-			project.modelCollection.loadingModel->trend.push_back(50.0f);
-			return true;
-		}
-		else if (!line.substr(0, 5).compare("mtnd=")) {
-			if (!project.modelCollection.loadingModel->trend.size()) return true;
-			project.modelCollection.loadingModel->trend.back() = std::stof(line.substr(5));
+			project.modelCollection.back().name = line.substr(5);
 			return true;
 		}
 	}

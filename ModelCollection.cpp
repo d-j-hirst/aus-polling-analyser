@@ -13,16 +13,16 @@ ModelCollection::ModelCollection(PollingProject & project)
 void ModelCollection::finaliseFileLoading() {
 }
 
-void ModelCollection::add(Model model) {
+void ModelCollection::add(StanModel model) {
 	models.insert({ nextId, model });
 	++nextId;
 }
 
-void ModelCollection::replace(Model::Id id, Model model) {
+void ModelCollection::replace(Id id, StanModel model) {
 	models[id] = model;
 }
 
-Model const& ModelCollection::view(Model::Id id) const {
+StanModel const& ModelCollection::view(ModelCollection::Id id) const {
 	return models.at(id);
 }
 
@@ -33,9 +33,9 @@ ModelCollection::Index ModelCollection::idToIndex(Model::Id id) const
 	return std::distance(models.begin(), foundIt);
 }
 
-Model::Id ModelCollection::indexToId(Index index) const
+ModelCollection::Id ModelCollection::indexToId(Index index) const
 {
-	if (index >= count() || index < 0) return Model::InvalidId;
+	if (index >= count() || index < 0) return InvalidId;
 	return std::next(models.begin(), index)->first;
 }
 
@@ -63,21 +63,20 @@ void ModelCollection::run(Model::Id id)
 {
 	auto modelIt = models.find(id);
 	if (modelIt == models.end()) throw ModelDoesntExistException();
-	Model& projection = modelIt->second;
-	projection.run(project.pollsters(), project.polls(), project.events());
+	// StanModel& model = modelIt->second;
 }
 
 void ModelCollection::extend(Model::Id id)
 {
 	auto modelIt = models.find(id);
 	if (modelIt == models.end()) throw ModelDoesntExistException();
-	Model& model = modelIt->second;
-	int latestMjd = project.polls().getLatestDate();
-	wxDateTime latestDate = mjdToDate(latestMjd);
-	model.extendToDate(latestDate);
+	//StanModel& model = modelIt->second;
+	//int latestMjd = project.polls().getLatestDate();
+	//wxDateTime latestDate = mjdToDate(latestMjd);
+	//model.extendToDate(latestDate);
 }
 
-Model& ModelCollection::access(Model::Id id)
+StanModel& ModelCollection::access(Model::Id id)
 {
 	return models.at(id);
 }
@@ -86,29 +85,9 @@ int ModelCollection::count() const {
 	return models.size();
 }
 
-void ModelCollection::startLoadingModel()
-{
-	loadingModel.emplace(generateBasicModelSaveData());
-}
-
-void ModelCollection::finaliseLoadedModel()
-{
-	if (!loadingModel.has_value()) return;
-	add(Model(loadingModel.value(), project.polls()));
-	loadingModel.reset();
-}
-
 void ModelCollection::logAll() const
 {
 	for (auto const& [key, thisModel] : models) {
-		logger << thisModel.textReport();
+		// logger << thisModel.textReport();
 	}
-}
-
-// generates a basic model with the standard start and end dates.
-Model::SaveData ModelCollection::generateBasicModelSaveData() const {
-	Model::SaveData saveData;
-	saveData.settings.startDate = mjdToDate(project.polls().getEarliestDate());
-	saveData.settings.endDate = mjdToDate(project.polls().getLatestDate());
-	return saveData;
 }
