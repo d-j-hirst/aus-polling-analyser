@@ -17,7 +17,7 @@ from stan_cache import stan_cache
 print('Python version: {}'.format(sys.version))
 print('pystan version: {}'.format(pystan.__version__))
 
-parties = ['L_NP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP']
+parties = ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP']
 n_parties = len(parties)
 
 desired_election = '2019fed'

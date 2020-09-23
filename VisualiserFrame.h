@@ -106,10 +106,13 @@ private:
 	void OnToggleProjections(wxCommandEvent& event);
 
 	// Handles selection of the displayed model
-	void OnModelSelection(wxCommandEvent& WXUNUSED(event));
+	void OnModelSelection(wxCommandEvent& event);
 
 	// Handles selection of the displayed projection
-	void OnProjectionSelection(wxCommandEvent& WXUNUSED(event));
+	void OnProjectionSelection(wxCommandEvent& event);
+
+	// Handles selection of the displayed party
+	void OnPartySelection(wxCommandEvent& event);
 
 	// sets the start and end days for the current visualiser view.
 	void setVisualiserBounds(int startDay, int endDay);
@@ -242,6 +245,9 @@ private:
 	// Combo box used to select the displayed projection
 	wxComboBox* selectProjectionComboBox = nullptr;
 
+	// Combo box used to select the in-focus party
+	wxComboBox* selectPartyComboBox = nullptr;
+
 	// Panel containing poll data.
 	wxPanel* dcPanel = nullptr;
 
@@ -256,6 +262,7 @@ private:
 
 	int selectedModel = -1;
 	int selectedProjection = -1;
+	int selectedParty = -1;
 
 	bool displayPolls = true;
 	bool displayModels = true;

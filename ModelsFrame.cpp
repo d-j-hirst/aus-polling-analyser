@@ -247,7 +247,8 @@ void ModelsFrame::runModel() {
 	Model::Id modelId = project->models().indexToId(modelIndex);
 	StanModel& thisModel = project->models().access(modelId);
 	thisModel.loadData();
-	//refreshDataTable();
+	refreshDataTable();
+	refresher.refreshVisualiser();
 	project->invalidateProjectionsFromModel(modelId);
 }
 

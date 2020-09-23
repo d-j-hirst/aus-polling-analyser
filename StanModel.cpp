@@ -14,6 +14,7 @@ void StanModel::loadData()
 	auto partyCodeVec = splitString(partyCodes, ",");
 	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
 		wxMessageBox("No party codes found!");
+		return;
 	}
 	for (auto partyCode : partyCodeVec) {
 		auto& series = partySupport[partyCode];
@@ -51,9 +52,25 @@ void StanModel::loadData()
 	wxMessageBox("Finished loading models");
 }
 
+int StanModel::seriesCount()
+{
+	return int(partySupport.size());
+}
+
 StanModel::Series const& StanModel::viewSeries(std::string partyCode) const
 {
 	return partySupport.at(partyCode);
+}
+
+StanModel::Series const& StanModel::viewSeriesByIndex(int index) const
+{
+
+	return std::next(partySupport.begin(), index)->second;
+}
+
+std::string StanModel::partyCodeByIndex(int index) const
+{
+	return std::next(partySupport.begin(), index)->first;
 }
 
 StanModel::Series& StanModel::addSeries(std::string partyCode)

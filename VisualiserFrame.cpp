@@ -15,6 +15,7 @@ enum ControlId {
 	ToggleProjections,
 	SelectModel,
 	SelectProjection,
+	SelectParty,
 };
 
 // maximum distance from the mouse pointer to a poll point that will allow it to be selected.
@@ -28,6 +29,19 @@ const wxColour PollSelectionColour = wxColour(255, 255, 0);
 const wxColour PollInfoBorderColour = wxColour(0, 0, 0);
 const wxColour PollInfoBackgroundColour = wxColour(255, 255, 255);
 const wxColour PollInfoTextColour = wxColour(0, 0, 0);
+
+struct ModelRange {
+	int lowerPercentile;
+	int upperPercentile;
+	float colourStrength;
+};
+
+constexpr std::array<ModelRange, 4> ModelRanges = {{
+	{1, 99, 0.25f},
+	{5, 95, 0.4f},
+	{10, 90, 0.55f},
+	{25, 75, 0.7f}
+}};
 
 constexpr int PollInfoPadding = 3;
 constexpr int PollInfoLineHeight = 20;
@@ -121,13 +135,20 @@ void VisualiserFrame::OnToggleProjections(wxCommandEvent& event) {
 	paint();
 }
 
-void VisualiserFrame::OnModelSelection(wxCommandEvent& WXUNUSED(event)) {
+void VisualiserFrame::OnModelSelection(wxCommandEvent&) {
 	selectedModel = selectModelComboBox->GetCurrentSelection();
+	refreshToolbar();
 	paint();
 }
 
-void VisualiserFrame::OnProjectionSelection(wxCommandEvent& WXUNUSED(event)) {
+void VisualiserFrame::OnProjectionSelection(wxCommandEvent&) {
 	selectedProjection = selectProjectionComboBox->GetCurrentSelection();
+	paint();
+}
+
+void VisualiserFrame::OnPartySelection(wxCommandEvent&)
+{
+	selectedParty = selectPartyComboBox->GetCurrentSelection();
 	paint();
 }
 
@@ -221,9 +242,26 @@ void VisualiserFrame::refreshToolbar() {
 		}
 	}
 
+	wxArrayString partyArray;
+	std::string partyBoxString;
+
+	// Prepare the list of parties being described by this model
+	if (selectedModel >= 0 && selectedModel < project->models().count()) {
+		auto thisModel = project->models().viewByIndex(selectedModel);
+		for (int partyIndex = 0; partyIndex < thisModel.seriesCount(); ++partyIndex) {
+			std::string thisPartyString = thisModel.partyCodeByIndex(partyIndex);
+			if (selectedParty == partyIndex) {
+				partyBoxString = thisPartyString;
+			}
+			partyArray.push_back(thisPartyString);
+		}
+	}
+
 	selectModelComboBox = new wxComboBox(toolBar, ControlId::SelectModel, modelBoxString, wxPoint(0, 0), wxSize(150, 30), modelArray);
 
 	selectProjectionComboBox = new wxComboBox(toolBar, ControlId::SelectProjection, projectionBoxString, wxPoint(0, 0), wxSize(150, 30), projectionArray);
+
+	selectPartyComboBox = new wxComboBox(toolBar, ControlId::SelectParty, partyBoxString, wxPoint(0, 0), wxSize(150, 30), partyArray);
 
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddTool(ControlId::TogglePolls, "Toggle Poll Display", toolBarBitmaps[0], wxNullBitmap, wxITEM_CHECK, "Toggle Poll Display");
@@ -234,6 +272,8 @@ void VisualiserFrame::refreshToolbar() {
 	toolBar->AddSeparator();
 	toolBar->AddTool(ControlId::ToggleProjections, "Toggle Projection Display", toolBarBitmaps[3], wxNullBitmap, wxITEM_CHECK, "Toggle Projection Display");
 	toolBar->AddControl(selectProjectionComboBox);
+	toolBar->AddSeparator();
+	toolBar->AddControl(selectPartyComboBox);
 	toolBar->ToggleTool(ControlId::TogglePolls, displayPolls);
 	toolBar->ToggleTool(ControlId::ToggleModels, displayModels);
 	toolBar->ToggleTool(ControlId::ToggleHouseEffects, displayHouseEffects);
@@ -265,6 +305,7 @@ void VisualiserFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &VisualiserFrame::OnToggleProjections, this, ControlId::ToggleProjections);
 	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnModelSelection, this, ControlId::SelectModel);
 	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnProjectionSelection, this, ControlId::SelectProjection);
+	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnPartySelection, this, ControlId::SelectParty);
 }
 
 void VisualiserFrame::updateInterface() {
@@ -476,13 +517,36 @@ void VisualiserFrame::drawModels(wxDC& dc) {
 
 void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 	if (!displayModels && !displayHouseEffects) return;
-	auto series = model.viewSeries("L_NP");
+	if (selectedModel >= project->models().count()) return;
+	auto thisModel = project->models().viewByIndex(selectedModel);
+	if (selectedParty < 0) return;
+	auto series = model.viewSeriesByIndex(selectedParty);
 	auto thisTimePoint = series.timePoint.begin();
 	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
 		int x = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i);
 		int x2 = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i + 1);
 		if (displayModels) {
+			for (auto range : ModelRanges) {
+				int y_tl = getYFrom2PP((*thisTimePoint).values[range.upperPercentile]);
+				int y_tr = getYFrom2PP((*nextTimePoint).values[range.upperPercentile]);
+				int y_bl = getYFrom2PP((*thisTimePoint).values[range.lowerPercentile]);
+				int y_br = getYFrom2PP((*nextTimePoint).values[range.lowerPercentile]);
+				dc.SetPen(*wxTRANSPARENT_PEN);
+				int colourVal = 255 - int(range.colourStrength * 255.0f);
+				dc.SetBrush(wxColour(colourVal, colourVal, colourVal));
+				wxPointList pointList;
+				std::unique_ptr<wxPoint> p_tl = std::make_unique<wxPoint>(x, y_tl);
+				std::unique_ptr<wxPoint> p_tr = std::make_unique<wxPoint>(x2, y_tr);
+				std::unique_ptr<wxPoint> p_br = std::make_unique<wxPoint>(x2, y_br);
+				std::unique_ptr<wxPoint> p_bl = std::make_unique<wxPoint>(x, y_bl);
+				pointList.Append(p_tl.get());
+				pointList.Append(p_tr.get());
+				pointList.Append(p_br.get());
+				pointList.Append(p_bl.get());
+				dc.DrawPolygon(&pointList);
+			}
+
 			int y = getYFrom2PP((*thisTimePoint).values[StanModel::Spread::Size / 2]);
 			int y2 = getYFrom2PP((*nextTimePoint).values[StanModel::Spread::Size / 2]);
 			dc.SetPen(wxPen(ModelColour));

@@ -38,8 +38,14 @@ public:
 
 	void loadData();
 
+	int seriesCount();
+
 	// Views data for a series in the model corresponding to the given party
 	Series const& viewSeries(std::string partyCode) const;
+
+	Series const& viewSeriesByIndex(int index) const;
+
+	std::string partyCodeByIndex(int index) const;
 private:
 
 	// Adds a series to the model for the given party name and returns a reference to it
