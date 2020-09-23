@@ -330,7 +330,9 @@ void VisualiserFrame::render(wxDC& dc) {
 
 	gv = GraphicsVariables();
 
+	determineSelectedPartyIndex();
 	determineGraphLimits();
+	determineGraphVerticalScale();
 	determineAxisTickInterval();
 	determineFirstAxisTick();
 	determineLaterAxisTicks();
@@ -348,6 +350,31 @@ void VisualiserFrame::render(wxDC& dc) {
 			determineMouseOverPollRect();
 			drawMouseOverPollRect(dc);
 			drawMouseOverPollText(dc);
+		}
+	}
+}
+
+void VisualiserFrame::determineSelectedPartyIndex()
+{
+	selectedPartyIndex = -1;
+	if (selectedModel >= 0 && selectedModel < project->models().count()) {
+		StanModel const& model = project->models().viewByIndex(selectedModel);
+		if (selectedParty >= 0 && selectedParty < int(model.getPartyCodes().size())) {
+			std::string code = model.partyCodeByIndex(selectedParty);
+			if (code == "OTH") {
+				selectedPartyIndex = PartyCollection::MaxParties;
+			}
+			else {
+				for (int thisPartyIndex = 0; thisPartyIndex < project->parties().count(); ++thisPartyIndex) {
+					Party const& party = project->parties().viewByIndex(thisPartyIndex);
+					if (std::find(party.officialCodes.begin(), party.officialCodes.end(), code)
+						!= party.officialCodes.end())
+					{
+						selectedPartyIndex = thisPartyIndex;
+						break;
+					}
+				}
+			}
 		}
 	}
 }
@@ -370,6 +397,27 @@ void VisualiserFrame::determineGraphLimits() {
 	gv.graphTop = gv.graphMargin;
 	gv.horzAxis = (gv.graphBottom + gv.graphTop) * 0.5f;
 
+}
+
+void VisualiserFrame::determineGraphVerticalScale()
+{
+	gv.minVote = 100.0f;
+	gv.maxVote = 0.0f;
+	for (auto const& [id, poll] : project->polls()) {
+		int dateInt = dateToIntMjd(poll.date);
+		if (dateInt >= visStartDay && dateInt <= visEndDay) {
+			float val;
+			if (selectedPartyIndex >= 0) {
+				val = poll.primary[selectedPartyIndex];
+			}
+			else {
+				val = poll.calc2pp;
+			}
+			if (val < 0.0f) continue;
+			gv.minVote = std::min(gv.minVote, val);
+			gv.maxVote = std::max(gv.maxVote, val);
+		}
+	}
 }
 
 void VisualiserFrame::determineAxisTickInterval() {
@@ -601,35 +649,14 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 }
 
 void VisualiserFrame::drawPollDots(wxDC& dc) {
-	int partyIndex = -1;
-	if (selectedModel >= 0 && selectedModel < project->models().count()) {
-		StanModel const& model = project->models().viewByIndex(selectedModel);
-		if (selectedParty >= 0 && selectedParty < int(model.getPartyCodes().size())) {
-			std::string code = model.partyCodeByIndex(selectedParty);
-			if (code == "OTH") {
-				partyIndex = PartyCollection::MaxParties;
-			}
-			else {
-				for (int thisPartyIndex = 0; thisPartyIndex < project->parties().count(); ++thisPartyIndex) {
-					Party const& party = project->parties().viewByIndex(thisPartyIndex);
-					if (std::find(party.officialCodes.begin(), party.officialCodes.end(), code)
-						!= party.officialCodes.end())
-					{
-						partyIndex = thisPartyIndex;
-						break;
-					}
-				}
-			}
-		}
-	}
 	for (auto const& poll : project->polls()) {
 		int x = getXFromDate(poll.second.date);
 		int vote;
-		if (partyIndex == -1) {
+		if (selectedPartyIndex == -1) {
 			vote = poll.second.getBest2pp();
 		}
 		else {
-			vote = poll.second.primary[partyIndex];
+			vote = poll.second.primary[selectedPartyIndex];
 		}
 		int y = getYFromVote(vote);
 		// first draw the yellow outline for selected poll, if appropriate
@@ -649,7 +676,7 @@ void VisualiserFrame::setBrushAndPen(wxColour currentColour, wxDC& dc) {
 }
 
 int VisualiserFrame::getXFromDate(wxDateTime const& date) {
-	int dateNum = int(floor(date.GetModifiedJulianDayNumber()));
+	int dateNum = dateToIntMjd(date);
 	return int(float(dateNum - visStartDay) / float(visEndDay - visStartDay) * gv.graphWidth + gv.graphMargin);
 }
 
@@ -664,8 +691,9 @@ wxDateTime VisualiserFrame::getDateFromX(int x) {
 	return date;
 }
 
-int VisualiserFrame::getYFromVote(float this2pp) {
-	return int((this2pp - 50.0f) * -15.0f + gv.horzAxis);
+int VisualiserFrame::getYFromVote(float thisVote) {
+	return int((gv.maxVote - thisVote) / (gv.maxVote - gv.minVote) 
+		* (gv.graphBottom - gv.graphTop) + gv.graphTop);
 }
 
 Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {

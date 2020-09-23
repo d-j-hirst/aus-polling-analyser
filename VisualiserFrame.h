@@ -71,6 +71,9 @@ private:
 		float graphBottom; // y-ordinate of the bottom of the axes.
 		float graphTop; // y-ordinate of the top of the axes.
 		float horzAxis; // position of the horizontal axis
+
+		float minVote;
+		float maxVote;
 		AxisTickInterval interval;
 		std::vector<wxDateTime> AxisTick;
 	};
@@ -150,11 +153,18 @@ private:
 	// function that carries out rendering the poll visualiser.
 	void render(wxDC& dc);
 
+	// Determine which party index the current model is displaying for primary votes
+	// (-1 for ALP TPP)
+	void determineSelectedPartyIndex();
+
 	// gets the start and end days for the graph.
 	void getStartAndEndDays();
 
 	// defines the basic variables that represent the pixel limits of the graph.
 	void determineGraphLimits();
+
+	// determine graph vertical scale - should just exceed the data on-screen
+	void determineGraphVerticalScale();
 
 	// determines what interval will be used for axis ticks.
 	void determineAxisTickInterval();
@@ -266,6 +276,7 @@ private:
 	int selectedModel = -1;
 	int selectedProjection = -1;
 	int selectedParty = -1;
+	int selectedPartyIndex = -1;
 
 	bool displayPolls = true;
 	bool displayModels = true;

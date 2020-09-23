@@ -72,6 +72,10 @@ inline wxDateTime mjdToDate(int mjd) {
 	return tempDate;
 }
 
+inline int dateToIntMjd(wxDateTime date) {
+	return int(floor(date.GetModifiedJulianDayNumber()));
+}
+
 inline std::string boolToStr(bool b) {
 	std::ostringstream ss;
 	ss << std::boolalpha << b;
