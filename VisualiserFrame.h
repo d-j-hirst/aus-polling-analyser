@@ -133,7 +133,10 @@ private:
 	void zoom(float factor, int x);
 
 	// updates the toolbar
-	void refreshToolbar();
+	void refreshToolbar(); 
+	
+	// updates the party choice to match the parties run under the selected model
+	void refreshPartyChoice();
 
 	// updates the panel upon which the visualiser will be displayed
 	void createDcPanel();
@@ -208,7 +211,7 @@ private:
 	int getXFromDate(int date);
 
 	// gets the Y ordinate from a given two-party-preferred vote.
-	int getYFrom2PP(float this2pp);
+	int getYFromVote(float this2pp);
 
 	// gets the date from a given X ordinate.
 	wxDateTime getDateFromX(int x);

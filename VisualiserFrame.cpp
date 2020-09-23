@@ -137,7 +137,7 @@ void VisualiserFrame::OnToggleProjections(wxCommandEvent& event) {
 
 void VisualiserFrame::OnModelSelection(wxCommandEvent&) {
 	selectedModel = selectModelComboBox->GetCurrentSelection();
-	refreshToolbar();
+	refreshPartyChoice();
 	paint();
 }
 
@@ -196,6 +196,28 @@ void VisualiserFrame::zoom(float factor, int x)
 	setVisualiserBounds(focusDate - int(newViewLength * normX), focusDate + int(newViewLength * (1.0f - normX)));
 }
 
+void VisualiserFrame::refreshPartyChoice() {
+	wxArrayString partyArray;
+	std::string partyBoxString;
+
+	// Prepare the list of parties being described by this model
+	if (selectedModel >= 0 && selectedModel < project->models().count()) {
+		auto thisModel = project->models().viewByIndex(selectedModel);
+		for (int partyIndex = 0; partyIndex < thisModel.seriesCount(); ++partyIndex) {
+			std::string thisPartyString = thisModel.partyCodeByIndex(partyIndex);
+			if (selectedParty == partyIndex) {
+				partyBoxString = thisPartyString;
+			}
+			partyArray.push_back(thisPartyString);
+		}
+	}
+
+	selectPartyComboBox->Clear();
+	selectPartyComboBox->Append(partyArray);
+	selectPartyComboBox->SetValue(partyBoxString);
+	toolBar->Realize();
+}
+
 void VisualiserFrame::refreshToolbar() {
 
 	if (toolBar) toolBar->Destroy();
@@ -242,26 +264,13 @@ void VisualiserFrame::refreshToolbar() {
 		}
 	}
 
-	wxArrayString partyArray;
-	std::string partyBoxString;
-
-	// Prepare the list of parties being described by this model
-	if (selectedModel >= 0 && selectedModel < project->models().count()) {
-		auto thisModel = project->models().viewByIndex(selectedModel);
-		for (int partyIndex = 0; partyIndex < thisModel.seriesCount(); ++partyIndex) {
-			std::string thisPartyString = thisModel.partyCodeByIndex(partyIndex);
-			if (selectedParty == partyIndex) {
-				partyBoxString = thisPartyString;
-			}
-			partyArray.push_back(thisPartyString);
-		}
-	}
-
 	selectModelComboBox = new wxComboBox(toolBar, ControlId::SelectModel, modelBoxString, wxPoint(0, 0), wxSize(150, 30), modelArray);
 
 	selectProjectionComboBox = new wxComboBox(toolBar, ControlId::SelectProjection, projectionBoxString, wxPoint(0, 0), wxSize(150, 30), projectionArray);
 
-	selectPartyComboBox = new wxComboBox(toolBar, ControlId::SelectParty, partyBoxString, wxPoint(0, 0), wxSize(150, 30), partyArray);
+	selectPartyComboBox = new wxComboBox(toolBar, ControlId::SelectParty, "", wxPoint(0, 0), wxSize(150, 30), wxArrayString());
+
+	refreshPartyChoice();
 
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddTool(ControlId::TogglePolls, "Toggle Poll Display", toolBarBitmaps[0], wxNullBitmap, wxITEM_CHECK, "Toggle Poll Display");
@@ -528,10 +537,10 @@ void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 		int x2 = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i + 1);
 		if (displayModels) {
 			for (auto range : ModelRanges) {
-				int y_tl = getYFrom2PP((*thisTimePoint).values[range.upperPercentile]);
-				int y_tr = getYFrom2PP((*nextTimePoint).values[range.upperPercentile]);
-				int y_bl = getYFrom2PP((*thisTimePoint).values[range.lowerPercentile]);
-				int y_br = getYFrom2PP((*nextTimePoint).values[range.lowerPercentile]);
+				int y_tl = getYFromVote((*thisTimePoint).values[range.upperPercentile]);
+				int y_tr = getYFromVote((*nextTimePoint).values[range.upperPercentile]);
+				int y_bl = getYFromVote((*thisTimePoint).values[range.lowerPercentile]);
+				int y_br = getYFromVote((*nextTimePoint).values[range.lowerPercentile]);
 				dc.SetPen(*wxTRANSPARENT_PEN);
 				int colourVal = 255 - int(range.colourStrength * 255.0f);
 				dc.SetBrush(wxColour(colourVal, colourVal, colourVal));
@@ -547,15 +556,15 @@ void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 				dc.DrawPolygon(&pointList);
 			}
 
-			int y = getYFrom2PP((*thisTimePoint).values[StanModel::Spread::Size / 2]);
-			int y2 = getYFrom2PP((*nextTimePoint).values[StanModel::Spread::Size / 2]);
+			int y = getYFromVote((*thisTimePoint).values[StanModel::Spread::Size / 2]);
+			int y2 = getYFromVote((*nextTimePoint).values[StanModel::Spread::Size / 2]);
 			dc.SetPen(wxPen(ModelColour));
 			dc.DrawLine(x, y, x2, y2);
 		}
 		//for (int pollsterIndex = 0; pollsterIndex < project->pollsters().count() && displayHouseEffects; ++pollsterIndex) {
 		//	// House effects are increased by 50 so they are easily displayed at the same scale as the models themselves
-		//	int y = getYFrom2PP(thisTimePoint->houseEffect[pollsterIndex] + 50.0f);
-		//	int y2 = getYFrom2PP(nextTimePoint->houseEffect[pollsterIndex] + 50.0f);
+		//	int y = getYFromVote(thisTimePoint->houseEffect[pollsterIndex] + 50.0f);
+		//	int y2 = getYFromVote(nextTimePoint->houseEffect[pollsterIndex] + 50.0f);
 		//	dc.SetPen(wxPen(project->pollsters().viewByIndex(pollsterIndex).colour));
 		//	dc.DrawLine(x, y, x2, y2);
 		//}
@@ -582,8 +591,8 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 	//	int x = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i);
 	//	int x2 = getXFromDate(int(floor(model.getEffectiveEndDate().GetMJD())) + i + 1);
 	//	for (int sigma = -NumSigmaLevels; sigma <= NumSigmaLevels; ++sigma) {
-	//		int y = getYFrom2PP(projection.getMeanProjection(i) + projection.getSdProjection(i) * sigma);
-	//		int y2 = getYFrom2PP(projection.getMeanProjection(i + 1) + projection.getSdProjection(i + 1) * sigma);
+	//		int y = getYFromVote(projection.getMeanProjection(i) + projection.getSdProjection(i) * sigma);
+	//		int y2 = getYFromVote(projection.getMeanProjection(i + 1) + projection.getSdProjection(i + 1) * sigma);
 	//		int greyLevel = (abs(sigma) + 1) * SigmaBrightnessChange;
 	//		dc.SetPen(wxPen(wxColour(greyLevel, greyLevel, greyLevel)));
 	//		dc.DrawLine(x, y, x2, y2);
@@ -592,9 +601,37 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 }
 
 void VisualiserFrame::drawPollDots(wxDC& dc) {
+	int partyIndex = -1;
+	if (selectedModel >= 0 && selectedModel < project->models().count()) {
+		StanModel const& model = project->models().viewByIndex(selectedModel);
+		if (selectedParty >= 0 && selectedParty < int(model.getPartyCodes().size())) {
+			std::string code = model.partyCodeByIndex(selectedParty);
+			if (code == "OTH") {
+				partyIndex = PartyCollection::MaxParties;
+			}
+			else {
+				for (int thisPartyIndex = 0; thisPartyIndex < project->parties().count(); ++thisPartyIndex) {
+					Party const& party = project->parties().viewByIndex(thisPartyIndex);
+					if (std::find(party.officialCodes.begin(), party.officialCodes.end(), code)
+						!= party.officialCodes.end())
+					{
+						partyIndex = thisPartyIndex;
+						break;
+					}
+				}
+			}
+		}
+	}
 	for (auto const& poll : project->polls()) {
 		int x = getXFromDate(poll.second.date);
-		int y = getYFrom2PP(poll.second.getBest2pp());
+		int vote;
+		if (partyIndex == -1) {
+			vote = poll.second.getBest2pp();
+		}
+		else {
+			vote = poll.second.primary[partyIndex];
+		}
+		int y = getYFromVote(vote);
 		// first draw the yellow outline for selected poll, if appropriate
 		if (poll.first == mouseOverPoll) {
 			setBrushAndPen(PollSelectionColour, dc);
@@ -627,7 +664,7 @@ wxDateTime VisualiserFrame::getDateFromX(int x) {
 	return date;
 }
 
-int VisualiserFrame::getYFrom2PP(float this2pp) {
+int VisualiserFrame::getYFromVote(float this2pp) {
 	return int((this2pp - 50.0f) * -15.0f + gv.horzAxis);
 }
 
@@ -636,7 +673,7 @@ Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {
 	int closest = 10000000;
 	for (auto const& poll : project->polls()) {
 		int xDist = abs(getXFromDate(poll.second.date) - point.x);
-		int yDist = abs(getYFrom2PP(poll.second.getBest2pp()) - point.y);
+		int yDist = abs(getYFromVote(poll.second.getBest2pp()) - point.y);
 		int totalDist = xDist * xDist + yDist * yDist;
 		if (totalDist < closest && totalDist < SelectMousePollDistanceSquared) {
 			closest = totalDist;
@@ -663,7 +700,7 @@ void VisualiserFrame::determineMouseOverPollRect() {
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
 	int left = getXFromDate(thisPoll.date) - width;
-	int top = getYFrom2PP(thisPoll.getBest2pp());
+	int top = getYFromVote(thisPoll.getBest2pp());
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)
