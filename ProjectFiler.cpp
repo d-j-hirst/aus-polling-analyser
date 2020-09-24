@@ -7,7 +7,8 @@
 #include <regex>
 
 // Version 2: Rework models
-constexpr int VersionNum = 2;
+// Version 3: Add new model seconds & data
+constexpr int VersionNum = 3;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -398,7 +399,22 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 {
 	saveOutput.outputAsType<int32_t>(project.modelCollection.count());
 	for (auto const& [key, thisModel] : project.modelCollection) {
-		saveOutput << thisModel.getName();
+		saveOutput << thisModel.name;
+		saveOutput << thisModel.termCode;
+		saveOutput << thisModel.partyCodes;
+		saveOutput << thisModel.startDate.GetJulianDayNumber();
+		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
+		saveOutput.outputAsType<uint32_t>(thisModel.partySupport.size());
+		for (auto [seriesKey, series] : thisModel.partySupport) {
+			saveOutput << seriesKey;
+			saveOutput.outputAsType<int32_t>(series.timePoint.size());
+			for (auto day : series.timePoint) {
+				saveOutput.outputAsType<int32_t>(day.values.size());
+				for (auto spreadVal : day.values) {
+					saveOutput << spreadVal;
+				}
+			}
+		}
 	}
 }
 
@@ -416,6 +432,30 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			auto dayCount = saveInput.extract<int32_t>();
 			for (int day = 0; day < dayCount; ++day) {
 				saveInput.extract<float>();
+			}
+		}
+		if (versionNum >= 3) {
+			saveInput >> thisModel.termCode;
+			saveInput >> thisModel.partyCodes;
+			thisModel.startDate = wxDateTime(saveInput.extract<double>());
+			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());
+			size_t numSeries = saveInput.extract<uint32_t>();
+			for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {
+				StanModel::Series thisSeries;
+				std::string seriesKey = saveInput.extract<std::string>();
+				size_t numTimePoints = saveInput.extract<uint32_t>();
+				for (size_t timePointIndex = 0; timePointIndex < numTimePoints; ++timePointIndex) {
+					StanModel::Spread spread;
+					size_t numValues = saveInput.extract<uint32_t>();
+					for (size_t valueIndex = 0; valueIndex < numValues; ++valueIndex) {
+						float spreadVal = saveInput.extract<float>();
+						if (valueIndex < StanModel::Spread::Size) {
+							spread.values[valueIndex] = spreadVal;
+						}
+					}
+					thisSeries.timePoint.push_back(spread);
+				}
+				thisModel.partySupport.insert({ seriesKey, thisSeries });
 			}
 		}
 		project.modelCollection.add(thisModel);
