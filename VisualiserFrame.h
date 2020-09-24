@@ -223,6 +223,9 @@ private:
 	// gets the Y ordinate from a given two-party-preferred vote.
 	int getYFromVote(float this2pp);
 
+	// get the vote that should be used for timeline display according to current settings
+	float getVoteFromPoll(Poll const& poll);
+
 	// gets the date from a given X ordinate.
 	wxDateTime getDateFromX(int x);
 

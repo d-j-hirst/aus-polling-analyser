@@ -359,7 +359,7 @@ void VisualiserFrame::determineSelectedPartyIndex()
 	selectedPartyIndex = -1;
 	if (selectedModel >= 0 && selectedModel < project->models().count()) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		if (selectedParty >= 0 && selectedParty < int(model.getPartyCodes().size())) {
+		if (selectedParty >= 0 && selectedParty < model.seriesCount()) {
 			std::string code = model.partyCodeByIndex(selectedParty);
 			if (code == "OTH") {
 				selectedPartyIndex = PartyCollection::MaxParties;
@@ -386,7 +386,6 @@ void VisualiserFrame::getStartAndEndDays() {
 }
 
 void VisualiserFrame::determineGraphLimits() {
-
 	gv.DCwidth = dcPanel->GetClientSize().GetWidth();
 	gv.DCheight = dcPanel->GetClientSize().GetHeight();
 
@@ -396,7 +395,6 @@ void VisualiserFrame::determineGraphLimits() {
 	gv.graphBottom = gv.DCheight - gv.graphMargin;
 	gv.graphTop = gv.graphMargin;
 	gv.horzAxis = (gv.graphBottom + gv.graphTop) * 0.5f;
-
 }
 
 void VisualiserFrame::determineGraphVerticalScale()
@@ -416,6 +414,26 @@ void VisualiserFrame::determineGraphVerticalScale()
 			if (val < 0.0f) continue;
 			gv.minVote = std::min(gv.minVote, val);
 			gv.maxVote = std::max(gv.maxVote, val);
+		}
+	}
+
+	if (displayModels && selectedModel >= 0 && selectedModel < project->models().count()) {
+		StanModel const& model = project->models().viewByIndex(selectedModel);
+		if (model.getLastUpdatedDate().IsValid()) {
+			auto thisModel = project->models().viewByIndex(selectedModel);
+			if (selectedParty >= 0) {
+				auto series = model.viewSeriesByIndex(selectedParty);
+				auto thisTimePoint = series.timePoint.begin();
+				int modelStartDay = dateToIntMjd(model.getStartDate());
+				for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+					if (modelStartDay + i >= visStartDay && modelStartDay + i <= visEndDay) {
+						float lowRange = series.timePoint[i].values[ModelRanges[0].lowerPercentile];
+						float highRange = series.timePoint[i].values[ModelRanges[0].upperPercentile];
+						gv.minVote = std::min(gv.minVote, lowRange);
+						gv.maxVote = std::max(gv.maxVote, highRange);
+					}
+				}
+			}
 		}
 	}
 }
@@ -649,23 +667,18 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 }
 
 void VisualiserFrame::drawPollDots(wxDC& dc) {
-	for (auto const& poll : project->polls()) {
-		int x = getXFromDate(poll.second.date);
-		int vote;
-		if (selectedPartyIndex == -1) {
-			vote = poll.second.getBest2pp();
-		}
-		else {
-			vote = poll.second.primary[selectedPartyIndex];
-		}
+	for (auto const& [id, poll] : project->polls()) {
+		float vote = getVoteFromPoll(poll);
+		if (vote < 0.0f) continue;
+		int x = getXFromDate(poll.date);
 		int y = getYFromVote(vote);
 		// first draw the yellow outline for selected poll, if appropriate
-		if (poll.first == mouseOverPoll) {
+		if (id == mouseOverPoll) {
 			setBrushAndPen(PollSelectionColour, dc);
 			dc.DrawCircle(x, y, 5);
 		}
 		// now draw the actual poll dot
-		setBrushAndPen(project->pollsters().view(poll.second.pollster).colour, dc);
+		setBrushAndPen(project->pollsters().view(poll.pollster).colour, dc);
 		dc.DrawCircle(x, y, 3);
 	}
 }
@@ -696,16 +709,26 @@ int VisualiserFrame::getYFromVote(float thisVote) {
 		* (gv.graphBottom - gv.graphTop) + gv.graphTop);
 }
 
+float VisualiserFrame::getVoteFromPoll(Poll const& poll)
+{
+	if (selectedPartyIndex == -1) {
+		return poll.getBest2pp();
+	}
+	else {
+		return poll.primary[selectedPartyIndex];
+	}
+}
+
 Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {
 	Poll::Id bestPoll = Poll::InvalidId;
 	int closest = 10000000;
-	for (auto const& poll : project->polls()) {
-		int xDist = abs(getXFromDate(poll.second.date) - point.x);
-		int yDist = abs(getYFromVote(poll.second.getBest2pp()) - point.y);
+	for (auto const& [id, poll] : project->polls()) {
+		int xDist = abs(getXFromDate(poll.date) - point.x);
+		int yDist = abs(getYFromVote(getVoteFromPoll(poll)) - point.y);
 		int totalDist = xDist * xDist + yDist * yDist;
 		if (totalDist < closest && totalDist < SelectMousePollDistanceSquared) {
 			closest = totalDist;
-			bestPoll = poll.first;
+			bestPoll = id;
 		}
 	}
 	return bestPoll;
@@ -728,7 +751,7 @@ void VisualiserFrame::determineMouseOverPollRect() {
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
 	int left = getXFromDate(thisPoll.date) - width;
-	int top = getYFromVote(thisPoll.getBest2pp());
+	int top = getYFromVote(getVoteFromPoll(thisPoll));
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)

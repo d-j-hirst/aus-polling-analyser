@@ -38,7 +38,7 @@ public:
 
 	void loadData();
 
-	int seriesCount();
+	int seriesCount() const;
 
 	// Views data for a series in the model corresponding to the given party
 	Series const& viewSeries(std::string partyCode) const;

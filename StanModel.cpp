@@ -25,6 +25,7 @@ void StanModel::loadData()
 			wxMessageBox("Could not load file: " + filename);
 			continue;
 		}
+		series.timePoint.clear();
 		std::string line;
 		std::getline(file, line); // first line is just a legend, skip it
 		std::getline(file, line);
@@ -35,7 +36,6 @@ void StanModel::loadData()
 			wxMessageBox(startDate.FormatISODate());
 		}
 		std::getline(file, line); // this line is just a legend, skip it
-		std::vector<float> trend;
 		do {
 			std::getline(file, line);
 			if (!file) break;
@@ -52,7 +52,7 @@ void StanModel::loadData()
 	wxMessageBox("Finished loading models");
 }
 
-int StanModel::seriesCount()
+int StanModel::seriesCount() const
 {
 	return int(partySupport.size());
 }
