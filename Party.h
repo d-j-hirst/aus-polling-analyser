@@ -48,6 +48,7 @@ struct Party {
 	SupportsParty supportsParty = SupportsParty::None;
 	int ideology = 2; // 0 = strong left, 4 = strong right
 	int consistency = 1; // 0 = weak flow, 1 = normal flow, 2 = tight flow
+	bool includeInOthers = false;
 	RelationType relationType = RelationType::None;
 	Id relationTarget = -1;
 	Colour colour = { 255, 255, 255 };

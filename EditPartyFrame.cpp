@@ -1,5 +1,6 @@
 #include "EditPartyFrame.h"
 
+#include "CheckInput.h"
 #include "ChoiceInput.h"
 #include "ColourInput.h"
 #include "FloatInput.h"
@@ -27,6 +28,7 @@ enum ControlId
 	BoothColourMult,
 	Relation,
 	RelationType,
+	IncludeInOthers
 };
 
 EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, PartyCollection const& parties, Party party)
@@ -53,6 +55,7 @@ void EditPartyFrame::createControls(int& y)
 		createBoothColourMultInput(y);
 		createRelationInput(y);
 		createRelationTypeInput(y);
+		createIncludeInOthersInput(y);
 	}
 	createOkCancelButtons(y);
 }
@@ -179,6 +182,14 @@ void EditPartyFrame::createRelationTypeInput(int& y)
 	relationTypeInput.reset(new ChoiceInput(this, ControlId::RelationType, "Relation type:", relationTypeArray, relationTypeSelection,
 		wxPoint(2, y), relationTypeCallback));
 	y += relationTypeInput->Height + ControlPadding;
+}
+
+void EditPartyFrame::createIncludeInOthersInput(int& y)
+{
+	auto includeInOthersCallback = [this](int i) -> void {party.includeInOthers = (i != 0); };
+	includeInOthersInput.reset(new CheckInput(this, ControlId::IncludeInOthers, "Include in \"others:\"", party.includeInOthers,
+		wxPoint(2, y), includeInOthersCallback));
+	y += includeInOthersInput->Height + ControlPadding;
 }
 
 void EditPartyFrame::createOkCancelButtons(int & y)

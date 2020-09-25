@@ -714,6 +714,15 @@ float VisualiserFrame::getVoteFromPoll(Poll const& poll)
 	if (selectedPartyIndex == -1) {
 		return poll.getBest2pp();
 	}
+	else if (selectedPartyIndex == PartyCollection::MaxParties) {
+		float sumOfOthers = poll.primary[PartyCollection::MaxParties];
+		for (int partyIndex = 0; partyIndex < project->parties().count(); ++partyIndex) {
+			if (project->parties().viewByIndex(partyIndex).includeInOthers) {
+				sumOfOthers += poll.primary[partyIndex];
+			}
+		}
+		return sumOfOthers;
+	}
 	else {
 		return poll.primary[selectedPartyIndex];
 	}

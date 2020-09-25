@@ -15,6 +15,7 @@
 
 #include "Party.h"
 
+class CheckInput;
 class ChoiceInput;
 class ColourInput;
 class FloatInput;
@@ -55,6 +56,7 @@ private:
 	void createBoothColourMultInput(int& y);
 	void createRelationInput(int& y);
 	void createRelationTypeInput(int& y);
+	void createIncludeInOthersInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -84,6 +86,7 @@ private:
 	std::unique_ptr<FloatInput> boothColourMultInput;
 	std::unique_ptr<ChoiceInput> relationInput;
 	std::unique_ptr<ChoiceInput> relationTypeInput;
+	std::unique_ptr<CheckInput> includeInOthersInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

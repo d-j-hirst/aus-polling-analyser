@@ -8,7 +8,8 @@
 
 // Version 2: Rework models
 // Version 3: Add new model seconds & data
-constexpr int VersionNum = 3;
+// Version 4: "Include in others" party option
+constexpr int VersionNum = 4;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -276,6 +277,7 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(thisParty.colour.r);
 		saveOutput.outputAsType<int32_t>(thisParty.colour.g);
 		saveOutput.outputAsType<int32_t>(thisParty.colour.b);
+		saveOutput << thisParty.includeInOthers;
 	}
 }
 
@@ -302,6 +304,9 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int ve
 		thisParty.colour.r = saveInput.extract<int32_t>();
 		thisParty.colour.g = saveInput.extract<int32_t>();
 		thisParty.colour.b = saveInput.extract<int32_t>();
+		if (versionNum >= 4) {
+			saveInput >> thisParty.includeInOthers;
+		}
 		project.partyCollection.add(thisParty);
 	}
 }
