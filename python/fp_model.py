@@ -85,7 +85,7 @@ def main():
         # treat later Newspoll as a seperate series 
         # [Because newspoll changed its preference allocation methodology]
         df['Firm'] = df['Firm'].where((df['MidDate'] < 
-            pd.Period('2017-12-01', freq='D')) |
+            pd.Period('2015-06-20', freq='D')) |
             (df['Firm'] != 'Newspoll'), other='Newspoll2')
         
         # manipulate polling data ... 
