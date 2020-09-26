@@ -17,14 +17,8 @@ data {
     //exclude final n parties from the sum-to-zero constraint for houseEffects
     int<lower=0> n_exclude;
     
-    // period of discontinuity and subsequent increased volatility event
-    // uncomment if actually used
-    //int<lower=1,upper=n_days> discontinuity; // start with a discontinuity
-    //int<lower=1,upper=n_days> stability; // end - stability restored
-    
     // day-to-day change
     real<lower=0> sigma;
-    real<lower=0> sigma_volatile;
 }
 
 transformed data {
@@ -59,17 +53,11 @@ transformed parameters {
         mean(pHouseEffects[1:n_include]);
 }
 
-model{
+model {
     // -- house effects model
     pHouseEffects ~ normal(0, 8.0); // weakly informative PRIOR
     
-    // -- temporal model - with a discontinuity followed by increased volatility
-    //centre_track[1, p] ~ normal(center, 15); // weakly informative PRIOR
-    //centre_track[2:(discontinuity-1), p] ~ 
-    //    normal(centre_track[1:(discontinuity-2), p], sigma);
-    //centre_track[discontinuity, p] ~ normal(center, 15); // weakly informative PRIOR
-    //centre_track[(discontinuity+1):stability, p] ~ 
-    //    normal(centre_track[discontinuity:(stability-1), p], sigma_volatile);
+    //centre_track[1] ~ normal(50, 50); // weakly informative PRIOR
     centre_track[2:n_days] ~ 
         normal(centre_track[1:(n_days-1)], sigma);
 

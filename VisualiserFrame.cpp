@@ -404,13 +404,7 @@ void VisualiserFrame::determineGraphVerticalScale()
 	for (auto const& [id, poll] : project->polls()) {
 		int dateInt = dateToIntMjd(poll.date);
 		if (dateInt >= visStartDay && dateInt <= visEndDay) {
-			float val;
-			if (selectedPartyIndex >= 0) {
-				val = poll.primary[selectedPartyIndex];
-			}
-			else {
-				val = poll.calc2pp;
-			}
+			float val = getVoteFromPoll(poll);
 			if (val < 0.0f) continue;
 			gv.minVote = std::min(gv.minVote, val);
 			gv.maxVote = std::max(gv.maxVote, val);
@@ -717,7 +711,7 @@ float VisualiserFrame::getVoteFromPoll(Poll const& poll)
 	else if (selectedPartyIndex == PartyCollection::MaxParties) {
 		float sumOfOthers = poll.primary[PartyCollection::MaxParties];
 		for (int partyIndex = 0; partyIndex < project->parties().count(); ++partyIndex) {
-			if (project->parties().viewByIndex(partyIndex).includeInOthers) {
+			if (poll.primary[partyIndex] >= 0 && project->parties().viewByIndex(partyIndex).includeInOthers) {
 				sumOfOthers += poll.primary[partyIndex];
 			}
 		}

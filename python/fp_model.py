@@ -51,8 +51,8 @@ def main():
         # --- key inputs to model
         sampleSize = 1000 # treat all polls as being of this size
         pseudoSampleSigma = np.sqrt((50 * 50) / sampleSize) 
-        chains = 5
-        iterations = 2000
+        chains = 4
+        iterations = 1000
         # Note: half of the iterations will be warm-up
         
         # --- collect the model data
@@ -145,8 +145,7 @@ def main():
                 'n_exclude': n_exclude,
                 
                 # let's set the day-to-day smoothing 
-                'sigma': 0.15,
-                'sigma_volatile': 0.4,
+                'sigma': 0.3
         }
         
         # encode the STAN model in C++ 
@@ -157,7 +156,7 @@ def main():
                           chains=chains,
                           verbose=True,
                           refresh=10,
-                          control={'max_treedepth':13})
+                          control={'max_treedepth':15})
         
         # --- check diagnostics
         print('Stan Finished ...')
@@ -214,6 +213,14 @@ def main():
         polls_file.close()
         print('Saved polls file at ' + output_polls)
         
+        probs_list = []
+        
+        probs_list.append(0.001)
+        for i in range(1, 10):
+            probs_list.append(i * 0.1)
+        probs_list.append(0.999)
+        output_probs = tuple(probs_list)
+        summary = fit.summary(probs=output_probs)['summary']
         house_effects_file = open(output_house_effects, 'w')
         house_effects_file.write('House,Party')
         for prob in output_probs:
