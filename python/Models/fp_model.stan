@@ -83,7 +83,7 @@ model {
             real dist_mean = transformed_vote[poll_day[poll]] + houseEffects[house[poll]];
             real dist_sigma = pseudoSampleSigma;
             
-            obs ~ normal(dist_mean, dist_sigma);
+            obs ~ double_exponential(dist_mean, dist_sigma);
         }
     }
 }

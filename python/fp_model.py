@@ -67,8 +67,8 @@ def main():
         # --- key inputs to model
         sample_size = 1000 # treat all polls as being of this size
         pseudo_sample_sigma = np.sqrt((50 * 50) / sample_size) 
-        chains = 4
-        iterations = 2000
+        chains = 8
+        iterations = 4000
         # Note: half of the iterations will be warm-up
         
         # --- collect the model data
@@ -170,7 +170,7 @@ def main():
                 'poll_qual_adj': df['poll_qual_adj'].values,
                 'n_exclude': n_exclude,
                 
-                'dailySigma': 0.2
+                'dailySigma': 0.15
         }
         
         # encode the STAN model in C++ 
