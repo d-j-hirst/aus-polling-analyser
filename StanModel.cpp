@@ -16,6 +16,7 @@ void StanModel::loadData()
 		wxMessageBox("No party codes found!");
 		return;
 	}
+	startDate = wxInvalidDateTime;
 	for (auto partyCode : partyCodeVec) {
 		auto& series = partySupport[partyCode];
 		std::string filename = "python/Outputs/fp_trend_"
@@ -46,7 +47,7 @@ void StanModel::loadData()
 					= std::stof(trendVals[percentile + 2]);
 			}
 		} while (true);
-		wxMessageBox("Loaded model output from " + filename);
+		//wxMessageBox("Loaded model output from " + filename);
 	}
 	lastUpdatedDate = wxDateTime::Now();
 	wxMessageBox("Finished loading models");

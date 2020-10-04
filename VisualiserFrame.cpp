@@ -575,7 +575,6 @@ void VisualiserFrame::drawAxisTickLines(wxDC& dc) {
 }
 
 void VisualiserFrame::drawModels(wxDC& dc) {
-	dc;
 	if (selectedModel != -1) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
 		if (model.getLastUpdatedDate().IsValid()) {
