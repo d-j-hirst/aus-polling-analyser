@@ -1,104 +1,96 @@
 // STAN: Primary Vote Intention Model
 
-functions {
-
-    real clamp(real x, real minVal, real maxVal) {
-        return min([max([x, minVal]), maxVal]);
-    }
-    
-    real truncationFactor() {
-        return 5.0;
-    }
-
-    real logit_transform(real x) {
-        return log(((x + truncationFactor()) / (100.0 + 2.0 * truncationFactor())) / (1.0 - (x + truncationFactor()) / (100.0 + 2.0 * truncationFactor()))) * (25.0 + 0.5 * truncationFactor()) + 50.0;
-    }
-    
-    real logistic_transform(real x) {
-        real trans = (100.0 + truncationFactor() * 2.0) / (1.0 + exp(-(1.0 / (25 + truncationFactor() * 0.5)) * (x - 50.0))) - truncationFactor();
-        return clamp(trans, 0.0, 100.0);
-    }
-}
-
 data {
     // data size
-    int<lower=1> n_polls;
-    int<lower=1> n_days;
-    int<lower=1> n_houses;
+    int<lower=1> pollCount;
+    int<lower=1> dayCount;
+    int<lower=1> houseCount;
+    int<lower=0> discontinuityCount;
     real<lower=0> pseudoSampleSigma;
     real<lower=0, upper=100> priorResult;
     
     // poll data
-    real<lower=0, upper=100> obs_y[n_polls]; // poll data
-    int<lower=0, upper=1> missing_y[n_polls]; // 1 is data is missing otherwise zero
-    int<lower=1,upper=n_houses> house[n_polls]; // polling house
-    int<lower=1,upper=n_days> poll_day[n_polls]; // day on which polling occurred
-    vector<lower=0> [n_polls] poll_qual_adj; // poll quality adjustment
+    real<lower=0, upper=100> pollObservations[pollCount]; // poll data
+    int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
+    int<lower=1, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
+    int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
+    int<lower=1, upper=dayCount> discontinuities[discontinuityCount]; // day of all discontinuities in term
+    vector<lower=0> [pollCount] pollQualityAdjustment; // poll quality adjustment
+    
 
     //exclude final n parties from the sum-to-zero constraint for houseEffects
-    int<lower=0> n_exclude;
+    int<lower=0> excludeCount;
     
     // day-to-day change
     real<lower=0> dailySigma;
 }
 
 transformed data {
-    int<lower=1> n_include = (n_houses - n_exclude);
-    vector[n_polls] sigma_adj;
-    vector[n_polls] transformed_obs_y;
-    real transformedPriorResult = priorResult;
-    
-    for (poll in 1:n_polls) {
-        // transform via the logit function
-        transformed_obs_y[poll] = obs_y[poll];
+    int<lower=1> includeCount = (houseCount - excludeCount);
+    real adjustedPriorResult = priorResult;
+    if (priorResult < 0.5) {
+        adjustedPriorResult = log(priorResult * 2.0) + 0.5;
     }
 }
 
 parameters {
-    vector[n_days] transformed_vote;
-    vector[n_houses] pHouseEffects;
+    vector[dayCount] preliminaryVoteShare;
+    vector[houseCount] pHouseEffects;
 }
 
 transformed parameters {
-    vector[n_houses] houseEffects;
-    houseEffects[1:n_houses] = pHouseEffects[1:n_houses] - 
-        mean(pHouseEffects[1:n_include]);
+    vector[houseCount] houseEffects;
+    // ensure that house effects sum to zero (apart from excluded houses)
+    houseEffects[1:houseCount] = pHouseEffects[1:houseCount] - 
+        mean(pHouseEffects[1:includeCount]);
 }
 
 model {
-    // -- house effects model
-    pHouseEffects ~ normal(0.0, 3.0); // weakly informative PRIOR
+    // weakly informative priors
+    pHouseEffects ~ normal(0.0, 3.0);
+    // high-kurtosis prior distribution to allow for chance of sudden change if the numbers demonstrate it
+    preliminaryVoteShare[1:dayCount] ~ double_exponential(adjustedPriorResult, 20.0);
     
-    transformed_vote[1:n_days] ~ normal(transformedPriorResult, 50.0); // weakly informative PRIOR
-    for (day in 1:n_days-1) {
-        transformed_vote[day + 1] ~ 
-            normal(transformed_vote[day], dailySigma);
+    // day-to-day change sampling, excluding discontinuities
+    for (day in 1:dayCount-1) {
+        int isDisc = 0;
+        for (discontinuity in discontinuities) {
+            if (discontinuity == day) {
+                isDisc = 1;
+            }
+        }
+        if (isDisc == 0) {
+            preliminaryVoteShare[day + 1] ~ 
+                normal(preliminaryVoteShare[day], dailySigma);
+        }
     }
 
-    // -- observational model
-    for (poll in 1:n_polls) {
-        if (!missing_y[poll]) {
+    // poll observations
+    for (poll in 1:pollCount) {
+        if (!missingObservations[poll]) {
             
-            real obs = transformed_obs_y[poll];
-            real dist_mean = transformed_vote[poll_day[poll]] + houseEffects[house[poll]];
-            real dist_sigma = pseudoSampleSigma;
+            real obs = pollObservations[poll];
+            real distMean = preliminaryVoteShare[pollDay[poll]] + houseEffects[pollHouse[poll]];
+            real distSigma = pseudoSampleSigma;
             
-            obs ~ double_exponential(dist_mean, dist_sigma);
+            // political events have frequent outliers, use the inbuilt distribution
+            // with highest kurtosis
+            obs ~ double_exponential(distMean, distSigma);
         }
     }
 }
 
 generated quantities {
-    vector[n_days]  hidden_vote_share;
+    vector[dayCount] adjustedVoteShare;
     
-    // un-transform back to actual vote share via the logistic function
-    for (day in 1:n_days) {
-        if (transformed_vote[day] < 0.5) {
-            hidden_vote_share[day] = 0.5 * exp(transformed_vote[day]-0.5);
-        } else if (transformed_vote[day] > 99.5) {
-            hidden_vote_share[day] = 100.0 - 0.5 * exp(99.5 - transformed_vote[day]);
+    // modifiy values near to or beyond edge cases so that they're still valid vote shares
+    for (day in 1:dayCount) {
+        if (preliminaryVoteShare[day] < 0.5) {
+            adjustedVoteShare[day] = 0.5 * exp(preliminaryVoteShare[day]-0.5);
+        } else if (preliminaryVoteShare[day] > 99.5) {
+            adjustedVoteShare[day] = 100.0 - 0.5 * exp(99.5 - preliminaryVoteShare[day]);
         } else {
-            hidden_vote_share[day] = transformed_vote[day];
+            adjustedVoteShare[day] = preliminaryVoteShare[day];
         }
     }
     

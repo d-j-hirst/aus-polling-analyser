@@ -19,14 +19,36 @@ def main():
     print('Python version: {}'.format(sys.version))
     print('pystan version: {}'.format(pystan.__version__))
     
-    desired_election = '2016fed'
+    config = open('config.txt', 'r')
+    lines = config.readlines()
+    config.close()
+    
+    desired_election = lines[0]
+    
+    # N.B. The "Others" (OTH) "party" values include votes for UAP and ONP, so these
+    # are effectively counted twice. The reason for this is that many polls do 
+    # not report separate UAP/ONP figures, so they are aggregated from the polls that do,
+    # count them together with the other "others" under OTH, and then (in the main program)
+    # subtract the UAP and ONP from the OTH value to get the true non-UAP/ONP others value
     
     parties = {
+        '2022fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
         '2019fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
-        '2016fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP']
+        '2016fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
+        '2013fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
+        '2010fed': ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
+        '2007fed': ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
+        '2004fed': ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP']
     }
     
     prior_results = {
+             ('2022fed', 'LNP FP'): 41.44,
+             ('2022fed', 'ALP FP'): 33.34,
+             ('2022fed', 'GRN FP'): 10.4,
+             ('2022fed', 'ONP FP'): 3.08,
+             ('2022fed', 'UAP FP'): 3.43,
+             ('2022fed', 'OTH FP'): 14.82,
+             
              ('2019fed', 'LNP FP'): 42.04,
              ('2019fed', 'ALP FP'): 34.73,
              ('2019fed', 'GRN FP'): 10.23,
@@ -36,8 +58,31 @@ def main():
              ('2016fed', 'ALP FP'): 33.38,
              ('2016fed', 'GRN FP'): 8.65,
              ('2016fed', 'UAP FP'): 5.49,
-             ('2016fed', 'OTH FP'): 12.42
+             ('2016fed', 'OTH FP'): 12.42,
+             
+             ('2013fed', 'LNP FP'): 43.66,
+             ('2013fed', 'ALP FP'): 37.99,
+             ('2013fed', 'GRN FP'): 11.76,
+             ('2013fed', 'OTH FP'): 6.63,
+             
+             ('2010fed', 'LNP FP'): 42.09,
+             ('2010fed', 'ALP FP'): 43.38,
+             ('2010fed', 'GRN FP'): 7.79,
+             ('2010fed', 'OTH FP'): 6.73,
+             
+             ('2007fed', 'LNP FP'): 46.71,
+             ('2007fed', 'ALP FP'): 37.63,
+             ('2007fed', 'GRN FP'): 7.19,
+             ('2007fed', 'OTH FP'): 8.47,
+             
+             ('2004fed', 'LNP FP'): 42.92,
+             ('2004fed', 'ALP FP'): 37.84,
+             ('2004fed', 'GRN FP'): 4.96,
+             ('2004fed', 'OTH FP'): 14.28
         }
+    
+    discontinuities = ['2005-01-28', '2006-12-04', '2008-09-16', '2009-12-01',
+                       '2010-06-24', '2013-06-26', '2015-09-14', '2018-08-24']
     
     for party in parties[desired_election]:
         election_cycles = {
@@ -106,7 +151,7 @@ def main():
         if (desired_election, party) in prior_results:
             prior_result = prior_results[(desired_election, party)]
         else:
-            prior_result = 1.0
+            prior_result = 0.1
         
         # manipulate polling data ... 
         missing = df[party].apply(lambda x: 1 if np.isnan(x) else 0)
@@ -143,6 +188,14 @@ def main():
         for i in df.index:
             df.loc[i,'Day'] = df.loc[i,'Day'].n + 1
         
+        discontinuities_filtered = [(pd.to_datetime(date).to_period('D') - start).n + 1 
+                           for date in discontinuities]
+        
+        discontinuities_filtered = [date for date in discontinuities_filtered if date >= 0 and date < n_days]
+        
+        if not discontinuities_filtered:
+            discontinuities_filtered.append(-1)
+        
         # quality adjustment for polls
         df['poll_qual_adj'] = 0.0
         #df['poll_qual_adj'] = pd.Series(2.0, index=df.index
@@ -157,20 +210,22 @@ def main():
             f.close()
         
         data = {
-                'n_days': n_days,
-                'n_polls': n_polls,
-                'n_houses': n_houses,
+                'dayCount': n_days,
+                'pollCount': n_polls,
+                'houseCount': n_houses,
+                'discontinuityCount': len(discontinuities_filtered),
                 'pseudoSampleSigma': pseudo_sample_sigma,
                 'priorResult': prior_result,
             
-                'obs_y': y.values, 
-                'missing_y': missing.values, 
-                'poll_day': df['Day'].values.tolist(),
-                'house': df['House'].values.tolist(), 
-                'poll_qual_adj': df['poll_qual_adj'].values,
-                'n_exclude': n_exclude,
+                'pollObservations': y.values, 
+                'missingObservations': missing.values, 
+                'pollHouse': df['House'].values.tolist(), 
+                'pollDay': df['Day'].values.tolist(),
+                'discontinuities': discontinuities_filtered,
+                'pollQualityAdjustment': df['poll_qual_adj'].values,
+                'excludeCount': n_exclude,
                 
-                'dailySigma': 0.15
+                'dailySigma': 0.3
         }
         
         # encode the STAN model in C++ 

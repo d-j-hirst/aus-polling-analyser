@@ -43,6 +43,10 @@ constexpr std::array<ModelRange, 4> ModelRanges = {{
 	{25, 75, 0.7f}
 }};
 
+constexpr int MedianPercentile = 50;
+
+constexpr int ModelMouseoverYTolerance = 50;
+
 constexpr int PollInfoPadding = 3;
 constexpr int PollInfoLineHeight = 20;
 
@@ -70,7 +74,7 @@ void VisualiserFrame::refreshData() {
 }
 
 void VisualiserFrame::resetMouseOver() {
-	mouseOverPoll = Poll::InvalidId;
+	mouseoverPoll = Poll::InvalidId;
 }
 
 void VisualiserFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
@@ -92,7 +96,8 @@ void VisualiserFrame::OnMouseMove(wxMouseEvent& event) {
 	else {
 		endPan();
 	}
-	mouseOverPoll = getPollFromMouse(event.GetPosition());
+	mouseoverPoll = getPollFromMouse(event.GetPosition());
+	mouseoverTimepoint = getModelTimePointFromMouse(event.GetPosition());
 	paint();
 }
 
@@ -107,7 +112,7 @@ void VisualiserFrame::OnMouseDown(wxMouseEvent& event) {
 void VisualiserFrame::OnMouseWheel(wxMouseEvent& event) {
 	if (panStart != -1) return; // don't zoom while dragging
 	zoom(float(event.GetWheelRotation()) / float(event.GetWheelDelta()), event.GetX());
-	mouseOverPoll = getPollFromMouse(event.GetPosition());
+	mouseoverPoll = getPollFromMouse(event.GetPosition());
 	paint();
 }
 
@@ -346,10 +351,15 @@ void VisualiserFrame::render(wxDC& dc) {
 	if (displayPolls) {
 		drawPollDots(dc);
 
-		if (mouseOverPoll != Poll::InvalidId && project->polls().view(mouseOverPoll).date.IsValid()) {
-			determineMouseOverPollRect();
-			drawMouseOverPollRect(dc);
-			drawMouseOverPollText(dc);
+		if (mouseoverPoll != Poll::InvalidId && project->polls().view(mouseoverPoll).date.IsValid()) {
+			determineLabelRect();
+			drawMouseoverLabelRect(dc);
+			drawMouseoverPollText(dc);
+		}
+		else if (mouseoverTimepoint != -1) {
+			determineLabelRect();
+			drawMouseoverLabelRect(dc);
+			drawMouseoverModelText(dc);
 		}
 	}
 }
@@ -666,7 +676,7 @@ void VisualiserFrame::drawPollDots(wxDC& dc) {
 		int x = getXFromDate(poll.date);
 		int y = getYFromVote(vote);
 		// first draw the yellow outline for selected poll, if appropriate
-		if (id == mouseOverPoll) {
+		if (id == mouseoverPoll) {
 			setBrushAndPen(PollSelectionColour, dc);
 			dc.DrawCircle(x, y, 5);
 		}
@@ -736,13 +746,39 @@ Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {
 	return bestPoll;
 }
 
-void VisualiserFrame::determineMouseOverPollRect() {
+int VisualiserFrame::getModelTimePointFromMouse(wxPoint point)
+{
+	if (selectedModel != -1 && selectedParty != -1) {
+		StanModel const& model = project->models().viewByIndex(selectedModel);
+		auto const& series = model.viewSeriesByIndex(selectedParty);
+		int xLeft = getXFromDate(int(floor(model.getStartDate().GetMJD())));
+		int xRight = getXFromDate(int(floor(model.getStartDate().GetMJD())) + int(series.timePoint.size()));
+		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
+		int timePoint = int(std::floor(proportion * float(series.timePoint.size())));
+		if (timePoint < 0) return -1;
+		if (timePoint >= int(series.timePoint.size())) return -1;
+		int expectedY = getYFromVote(series.timePoint[timePoint].values[MedianPercentile]);
+		if (std::abs(expectedY - point.y) > ModelMouseoverYTolerance) return -1;
+		return timePoint;
+	}
+	return -1;
+}
+
+void VisualiserFrame::determineLabelRect() {
+	if (mouseoverPoll != Poll::InvalidId) {
+		determineLabelRectFromPoll();
+	} else if (mouseoverTimepoint > 0) {
+		determineLabelRectFromModel();
+	}
+}
+
+void VisualiserFrame::determineLabelRectFromPoll()
+{
 	constexpr int MinimumLines = 2;
 	constexpr int VerticalPaddingTotal = PollInfoPadding * 2 - 1;
 	constexpr int DefaultWidth = 200;
 	constexpr int MousePointerHorzSpacing = 10;
-	if (mouseOverPoll == Poll::InvalidId) return;
-	auto const& thisPoll = project->polls().view(mouseOverPoll);
+	auto const& thisPoll = project->polls().view(mouseoverPoll);
 	int nLines = MinimumLines;
 	if (thisPoll.calc2pp >= 0) nLines++;
 	if (thisPoll.respondent2pp >= 0) nLines++;
@@ -758,20 +794,39 @@ void VisualiserFrame::determineMouseOverPollRect() {
 		left += width + MousePointerHorzSpacing;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)
 		top = gv.graphBottom + gv.graphMargin - height;
-	mouseOverPollRect = wxRect(left, top, width, height);
+	mouseOverLabelRect = wxRect(left, top, width, height);
 }
 
-void VisualiserFrame::drawMouseOverPollRect(wxDC& dc) {
-	if (mouseOverPoll == Poll::InvalidId) return;
+void VisualiserFrame::determineLabelRectFromModel()
+{
+	constexpr int MinimumLines = 2;
+	constexpr int VerticalPaddingTotal = PollInfoPadding * 2 - 1;
+	constexpr int DefaultWidth = 200;
+	constexpr int MousePointerHorzSpacing = 10;
+	auto const& thisModel = project->models().view(selectedModel);
+	int nLines = ModelRanges.size() * 2 + 2;
+	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
+	int width = DefaultWidth;
+	int left = getXFromDate(int(floor(thisModel.getStartDate().GetMJD())) + mouseoverTimepoint) - width;
+	int top = getYFromVote(thisModel.viewSeriesByIndex(selectedParty).timePoint[mouseoverTimepoint].values[50]);
+	if (left < 0)
+		left += width + MousePointerHorzSpacing;
+	if ((top + height) > gv.graphBottom + gv.graphMargin)
+		top = gv.graphBottom + gv.graphMargin - height;
+	mouseOverLabelRect = wxRect(left, top, width, height);
+}
+
+void VisualiserFrame::drawMouseoverLabelRect(wxDC& dc) {
+	if (mouseoverPoll == Poll::InvalidId && mouseoverTimepoint == -1) return;
 	dc.SetPen(wxPen(PollInfoBorderColour)); // black border
 	dc.SetBrush(wxBrush(PollInfoBackgroundColour)); // white interior
-	dc.DrawRoundedRectangle(mouseOverPollRect, PollInfoPadding);
+	dc.DrawRoundedRectangle(mouseOverLabelRect, PollInfoPadding);
 }
 
-void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
-	if (mouseOverPoll == Poll::InvalidId) return;
-	auto const& thisPoll = project->polls().view(mouseOverPoll);
-	wxPoint currentPoint = mouseOverPollRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
+void VisualiserFrame::drawMouseoverPollText(wxDC& dc) {
+	if (mouseoverPoll == Poll::InvalidId) return;
+	auto const& thisPoll = project->polls().view(mouseoverPoll);
+	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
 	std::string pollsterName;
 	if (thisPoll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(thisPoll.pollster).name;
@@ -802,6 +857,32 @@ void VisualiserFrame::drawMouseOverPollText(wxDC& dc) {
 		dc.DrawText("Others primary: " + thisPoll.getPrimaryString(PartyCollection::MaxParties), currentPoint);
 		currentPoint += wxPoint(0, PollInfoLineHeight);
 	}
+}
+
+void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
+{
+	if (selectedModel == -1 || selectedParty == -1 || mouseoverTimepoint == -1) return;
+	auto const& thisModel = project->models().viewByIndex(selectedModel);
+	auto const& thisSpread = thisModel.viewSeriesByIndex(selectedParty)
+		.timePoint[mouseoverTimepoint];
+	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
+	dc.SetPen(wxPen(PollInfoTextColour)); // black text
+	dc.DrawText(thisModel.getStartDate().Add(wxDateSpan(0, 0, 0, mouseoverTimepoint)).FormatISODate(), currentPoint);
+	currentPoint += wxPoint(0, PollInfoLineHeight);
+	for (auto it = ModelRanges.begin(); it != ModelRanges.end(); ++it) {
+		std::string lowerText = std::to_string(it->lowerPercentile) + "%: " + std::to_string(thisSpread.values[it->lowerPercentile]);
+		dc.DrawText(lowerText, currentPoint);
+		currentPoint += wxPoint(0, PollInfoLineHeight);
+	}
+	std::string meanText = "50%: " + std::to_string(thisSpread.values[MedianPercentile]);
+	dc.DrawText(meanText, currentPoint);
+	currentPoint += wxPoint(0, PollInfoLineHeight);
+	for (auto it = ModelRanges.rbegin(); it != ModelRanges.rend(); ++it) {
+		std::string upperText = std::to_string(it->upperPercentile) + "%: " + std::to_string(thisSpread.values[it->upperPercentile]);
+		dc.DrawText(upperText, currentPoint);
+		currentPoint += wxPoint(0, PollInfoLineHeight);
+	}
+
 }
 
 void VisualiserFrame::OnPaint(wxPaintEvent& WXUNUSED(evt))

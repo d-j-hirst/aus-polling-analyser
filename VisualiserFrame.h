@@ -232,14 +232,24 @@ private:
 	// gets the nearest poll to the given mouse coordinates.
 	Poll::Id getPollFromMouse(wxPoint point);
 
+	// gets the nearest model time point to the given mouse coordinates.
+	int getModelTimePointFromMouse(wxPoint point);
+
 	// determines the size of the box used to display poll information.
-	void determineMouseOverPollRect();
+	void determineLabelRect();
+
+	void determineLabelRectFromPoll();
+
+	void determineLabelRectFromModel();
 
 	// draws the rectangle in which poll information is displayed.
-	void drawMouseOverPollRect(wxDC& dc);
+	void drawMouseoverLabelRect(wxDC& dc);
 
 	// draws the text showing poll information.
-	void drawMouseOverPollText(wxDC& dc);
+	void drawMouseoverPollText(wxDC& dc);
+
+	// draws the text showing model information at the spot pointed to
+	void drawMouseoverModelText(wxDC& dc);
 
 	// For handling horizontal panning of the visualiser
 	int panStart = -1;
@@ -268,10 +278,14 @@ private:
 	wxPanel* dcPanel = nullptr;
 
 	// The poll that has the mouse over it.
-	Poll::Id mouseOverPoll = Poll::InvalidId;
+	Poll::Id mouseoverPoll = Poll::InvalidId;
+
+	// Model time point that the model is mousing over (if any)
+	// Use -1 if the mouse is not over model 
+	int mouseoverTimepoint = -1;
 
 	// The dimensions of the box used to display poll information.
-	wxRect mouseOverPollRect;
+	wxRect mouseOverLabelRect;
 
 	// Graphics variables, updated every time painting occurs.
 	GraphicsVariables gv;
