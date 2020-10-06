@@ -44,9 +44,9 @@ parameters {
 
 transformed parameters {
     vector[houseCount] houseEffects;
+    real houseMean = mean(pHouseEffects[1:includeCount]);
     // ensure that house effects sum to zero (apart from excluded houses)
-    houseEffects[1:houseCount] = pHouseEffects[1:houseCount] - 
-        mean(pHouseEffects[1:includeCount]);
+    houseEffects[1:houseCount] = pHouseEffects[1:houseCount] - houseMean;
 }
 
 model {
@@ -89,12 +89,13 @@ generated quantities {
     
     // modifiy values near to or beyond edge cases so that they're still valid vote shares
     for (day in 1:dayCount) {
-        if (preliminaryVoteShare[day] < 0.5) {
-            adjustedVoteShare[day] = 0.5 * exp(preliminaryVoteShare[day]-0.5);
-        } else if (preliminaryVoteShare[day] > 99.5) {
-            adjustedVoteShare[day] = 100.0 - 0.5 * exp(99.5 - preliminaryVoteShare[day]);
+        real debiasedVoteShare = preliminaryVoteShare[day] - houseMean;
+        if (debiasedVoteShare < 0.5) {
+            adjustedVoteShare[day] = 0.5 * exp(debiasedVoteShare-0.5);
+        } else if (debiasedVoteShare > 99.5) {
+            adjustedVoteShare[day] = 100.0 - 0.5 * exp(99.5 - debiasedVoteShare);
         } else {
-            adjustedVoteShare[day] = preliminaryVoteShare[day];
+            adjustedVoteShare[day] = debiasedVoteShare;
         }
     }
     

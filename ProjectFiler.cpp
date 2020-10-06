@@ -81,7 +81,7 @@ int ProjectFiler::save(std::string filename) {
 	os << "#Models" << "\n";
 	for (auto const&[key, thisModel] : project.modelCollection) {
 		os << "@Model" << "\n";
-		os << "name=" << thisModel.getName();
+		os << "name=" << thisModel.getName() << "\n";
 		//os << "name=" << thisModel.getSettings().name << "\n";
 		//os << "iter=" << thisModel.getSettings().numIterations << "\n";
 		//os << "trnd=" << thisModel.getSettings().trendTimeScoreMultiplier << "\n";

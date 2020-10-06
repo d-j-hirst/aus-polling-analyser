@@ -14089,7 +14089,8 @@ date=2457279.83333
 vote=50
 #Models
 @Model
-name=Standard Model#Projections
+name=Standard Model
+#Projections
 #Regions
 #Seats
 #Simulations

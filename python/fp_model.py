@@ -264,7 +264,7 @@ def main():
         trend_file.write('\n')
         # need to get past the centered values and house effects
         # this is where the actual FP trend starts
-        offset = n_days + n_houses * 2
+        offset = n_days + n_houses * 2 + 1
         for summaryDay in range(0, n_days):
             table_index = summaryDay + offset
             trend_file.write(str(summaryDay) + ",")
