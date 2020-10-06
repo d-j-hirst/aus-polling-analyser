@@ -193,10 +193,12 @@ def main():
         
         discontinuities_filtered = [date for date in discontinuities_filtered if date >= 0 and date < n_days]
         
+        # 
         if not discontinuities_filtered:
-            discontinuities_filtered.append(-1)
+            discontinuities_filtered.append(0)
         
         # quality adjustment for polls
+        # currently commented out as we don't have any particular opinions about qualities of particular polls
         df['poll_qual_adj'] = 0.0
         #df['poll_qual_adj'] = pd.Series(2.0, index=df.index
         #    ).where(df['Firm'].str.contains('Ipsos|YouGov|Roy Morgan|ANU'),

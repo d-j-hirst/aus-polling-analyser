@@ -733,11 +733,12 @@ float VisualiserFrame::getVoteFromPoll(Poll const& poll)
 
 Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {
 	Poll::Id bestPoll = Poll::InvalidId;
-	int closest = 10000000;
+	long long closest = 10000000;
 	for (auto const& [id, poll] : project->polls()) {
-		int xDist = abs(getXFromDate(poll.date) - point.x);
-		int yDist = abs(getYFromVote(getVoteFromPoll(poll)) - point.y);
-		int totalDist = xDist * xDist + yDist * yDist;
+		// Normal ints would cause these calculations to overflow if used here
+		int64_t xDist = (abs(getXFromDate(poll.date) - point.x));
+		int64_t yDist = (abs(getYFromVote(getVoteFromPoll(poll)) - point.y));
+		int64_t totalDist = xDist * xDist + yDist * yDist;
 		if (totalDist < closest && totalDist < SelectMousePollDistanceSquared) {
 			closest = totalDist;
 			bestPoll = id;

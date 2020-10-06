@@ -14,7 +14,11 @@ data {
     int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
     int<lower=1, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
     int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
-    int<lower=1, upper=dayCount> discontinuities[discontinuityCount]; // day of all discontinuities in term
+    
+    // day of all discontinuities in term
+    // dummy value of 0 is used to indicate no discontinuities since Stan doesn't like zero-size arrays
+    int<lower=0, upper=dayCount> discontinuities[discontinuityCount]; 
+    
     vector<lower=0> [pollCount] pollQualityAdjustment; // poll quality adjustment
     
 
