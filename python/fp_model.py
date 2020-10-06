@@ -163,13 +163,13 @@ def main():
         # last in the list
         houses = df['Firm'].unique().tolist()
         houseCounts = df['Firm'].value_counts()
-        exclusions = set(['ANU', 'YouGov', 'Lonergan', 'AMR'])
+        exclusions = set(['ANU', 'YouGov', 'Lonergan', 'AMR', 'F2F Morgan'])
         for h in houses:
             if houseCounts[h] < 5:
                 exclusions.add(h)
         # Note: we are excluding some houses
         # from the sum to zero constraint because 
-        # they have unusual poll results compared 
+        # they have unusual or infrequent poll results compared 
         # with other pollsters
         remove_exclusions = []
         for e in exclusions:
