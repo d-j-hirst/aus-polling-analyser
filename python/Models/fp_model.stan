@@ -42,18 +42,13 @@ parameters {
     vector[houseCount] pHouseEffects;
 }
 
-transformed parameters {
-    vector[houseCount] houseEffects;
-    real houseMean = mean(pHouseEffects[1:includeCount]);
-    // ensure that house effects sum to zero (apart from excluded houses)
-    houseEffects[1:houseCount] = pHouseEffects[1:houseCount] - houseMean;
-}
-
 model {
-    // weakly informative priors
-    pHouseEffects ~ normal(0.0, 3.0);
+    // weakly informative prior for house effects
+    pHouseEffects ~ normal(0.0, 5.0);
+    // keep sum of house effects constrained to zero, or near enough
+    sum(pHouseEffects[1:includeCount]) ~ normal(0.0, 0.001);
     // high-kurtosis prior distribution to allow for chance of sudden change if the numbers demonstrate it
-    preliminaryVoteShare[1:dayCount] ~ double_exponential(adjustedPriorResult, 20.0);
+    preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, 40.0);
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {
@@ -64,6 +59,8 @@ model {
             }
         }
         if (isDisc == 0) {
+            // political events have frequent outliers, use the inbuilt distribution
+            // with highest kurtosis
             preliminaryVoteShare[day + 1] ~ 
                 normal(preliminaryVoteShare[day], dailySigma);
         }
@@ -74,12 +71,10 @@ model {
         if (!missingObservations[poll]) {
             
             real obs = pollObservations[poll];
-            real distMean = preliminaryVoteShare[pollDay[poll]] + houseEffects[pollHouse[poll]];
-            real distSigma = pseudoSampleSigma;
+            real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
+            real distSigma = pseudoSampleSigma + pollQualityAdjustment[poll];
             
-            // political events have frequent outliers, use the inbuilt distribution
-            // with highest kurtosis
-            obs ~ double_exponential(distMean, distSigma);
+            obs ~ normal(distMean, distSigma);
         }
     }
 }
@@ -89,13 +84,13 @@ generated quantities {
     
     // modifiy values near to or beyond edge cases so that they're still valid vote shares
     for (day in 1:dayCount) {
-        real debiasedVoteShare = preliminaryVoteShare[day] - houseMean;
-        if (debiasedVoteShare < 0.5) {
-            adjustedVoteShare[day] = 0.5 * exp(debiasedVoteShare-0.5);
-        } else if (debiasedVoteShare > 99.5) {
-            adjustedVoteShare[day] = 100.0 - 0.5 * exp(99.5 - debiasedVoteShare);
+        real share = preliminaryVoteShare[day];
+        if (share < 0.5) {
+            adjustedVoteShare[day] = 0.5 * exp(share-0.5);
+        } else if (share > 99.5) {
+            adjustedVoteShare[day] = 100.0 - 0.5 * exp(99.5 - share);
         } else {
-            adjustedVoteShare[day] = debiasedVoteShare;
+            adjustedVoteShare[day] = share;
         }
     }
     

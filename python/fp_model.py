@@ -11,6 +11,7 @@ def main():
     import numpy as np
     import pandas as pd
     import pystan
+    from time import perf_counter
     
     sys.path.append( './bin' )
     from stan_cache import stan_cache
@@ -33,7 +34,8 @@ def main():
     
     parties = {
         '2022fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
-        '2019fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
+        #'2019fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
+        '2019fed': ['ONP FP', 'UAP FP'],
         '2016fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
         '2013fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
         '2010fed': ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
@@ -113,7 +115,7 @@ def main():
         sample_size = 1000 # treat all polls as being of this size
         pseudo_sample_sigma = np.sqrt((50 * 50) / sample_size) 
         chains = 8
-        iterations = 4000
+        iterations = 400
         # Note: half of the iterations will be warm-up
         
         # --- collect the model data
@@ -151,7 +153,7 @@ def main():
         if (desired_election, party) in prior_results:
             prior_result = prior_results[(desired_election, party)]
         else:
-            prior_result = 0.1
+            prior_result = 0.25
         
         # manipulate polling data ... 
         missing = df[party].apply(lambda x: 1 if np.isnan(x) else 0)
@@ -227,24 +229,26 @@ def main():
                 'pollQualityAdjustment': df['poll_qual_adj'].values,
                 'excludeCount': n_exclude,
                 
-                'dailySigma': 0.3
+                'dailySigma': 0.2
         }
         
         # encode the STAN model in C++ 
         sm = stan_cache(model_code=model)
         
         print('Beginning sampling ...')
-            
+        
+        start_time = perf_counter()
         fit = sm.sampling(data=data,
                           iter=iterations, 
                           chains=chains,
-                          verbose=True,
-                          refresh=10,
-                          control={'max_treedepth':15,
+                          control={'max_treedepth':16,
                                    'adapt_delta':0.8})
+        finish_time = perf_counter()
         
-        # --- check diagnostics
+        print('Time elapsed: ' + format(finish_time - start_time, '.2f') + ' seconds')
         print('Stan Finished ...')
+        
+        #--- check diagnostics
         import pystan.diagnostics as psd
         print(psd.check_hmc_diagnostics(fit))
         
@@ -264,7 +268,7 @@ def main():
         trend_file.write('\n')
         # need to get past the centered values and house effects
         # this is where the actual FP trend starts
-        offset = n_days + n_houses * 2 + 1
+        offset = n_days + n_houses
         for summaryDay in range(0, n_days):
             table_index = summaryDay + offset
             trend_file.write(str(summaryDay) + ",")
