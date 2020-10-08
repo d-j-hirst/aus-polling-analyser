@@ -6,11 +6,11 @@ data {
     int<lower=1> dayCount;
     int<lower=1> houseCount;
     int<lower=0> discontinuityCount;
-    real<lower=0> pseudoSampleSigma;
-    real<lower=0, upper=100> priorResult;
+    real<lower=0.0> pseudoSampleSigma;
+    real<lower=0.0, upper=100.0> priorResult;
     
     // poll data
-    real<lower=0, upper=100> pollObservations[pollCount]; // poll data
+    real<lower=0.0, upper=100.0> pollObservations[pollCount]; // poll data
     int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
     int<lower=1, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
     int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
@@ -19,19 +19,32 @@ data {
     // dummy value of 0 is used to indicate no discontinuities since Stan doesn't like zero-size arrays
     int<lower=0, upper=dayCount> discontinuities[discontinuityCount]; 
     
-    vector<lower=0> [pollCount] pollQualityAdjustment; // poll quality adjustment
+    vector<lower=0>[pollCount] pollQualityAdjustment; // poll quality adjustment
     
 
     //exclude final n parties from the sum-to-zero constraint for houseEffects
     int<lower=0> excludeCount;
     
     // day-to-day change
-    real<lower=0> dailySigma;
+    real<lower=0.0> dailySigma;
 }
 
 transformed data {
-    int<lower=1> includeCount = (houseCount - excludeCount);
     real adjustedPriorResult = priorResult;
+    int<lower=1> includeCount = (houseCount - excludeCount);
+    int<lower=0> housePollCount[includeCount] = rep_array(0, includeCount);
+    vector<lower=0.0, upper=1.0>[includeCount] houseWeight;
+    real totalHouseWeight;
+    for (poll in 1:pollCount) {
+        if (pollHouse[poll] <= includeCount) {
+            housePollCount[pollHouse[poll]] = housePollCount[pollHouse[poll]] + 1;
+        }
+    }
+    for (house in 1:includeCount) {
+        houseWeight[house] = min([1.0, housePollCount[house] * 0.2]);
+    }
+    totalHouseWeight = sum(houseWeight);
+    houseWeight = houseWeight / totalHouseWeight;
     if (priorResult < 0.5) {
         adjustedPriorResult = log(priorResult * 2.0) + 0.5;
     }
@@ -46,7 +59,7 @@ model {
     // weakly informative prior for house effects
     pHouseEffects ~ normal(0.0, 5.0);
     // keep sum of house effects constrained to zero, or near enough
-    sum(pHouseEffects[1:includeCount]) ~ normal(0.0, 0.001);
+    sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, 0.001);
     // high-kurtosis prior distribution to allow for chance of sudden change if the numbers demonstrate it
     preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, 40.0);
     

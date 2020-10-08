@@ -34,8 +34,7 @@ def main():
     
     parties = {
         '2022fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
-        #'2019fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
-        '2019fed': ['ONP FP', 'UAP FP'],
+        '2019fed': ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
         '2016fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
         '2013fed': ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
         '2010fed': ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
@@ -114,8 +113,8 @@ def main():
         # --- key inputs to model
         sample_size = 1000 # treat all polls as being of this size
         pseudo_sample_sigma = np.sqrt((50 * 50) / sample_size) 
-        chains = 8
-        iterations = 400
+        chains = 6
+        iterations = 2000
         # Note: half of the iterations will be warm-up
         
         # --- collect the model data
@@ -167,7 +166,7 @@ def main():
         houseCounts = df['Firm'].value_counts()
         exclusions = set(['ANU', 'YouGov', 'Lonergan', 'AMR', 'F2F Morgan'])
         for h in houses:
-            if houseCounts[h] < 5:
+            if houseCounts[h] < 1:
                 exclusions.add(h)
         # Note: we are excluding some houses
         # from the sum to zero constraint because 
@@ -235,7 +234,7 @@ def main():
         # encode the STAN model in C++ 
         sm = stan_cache(model_code=model)
         
-        print('Beginning sampling ...')
+        print('Beginning sampling for ' + party + ' ...')
         
         start_time = perf_counter()
         fit = sm.sampling(data=data,
