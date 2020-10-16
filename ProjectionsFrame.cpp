@@ -10,7 +10,7 @@ enum ControlId {
 	New,
 	Edit,
 	Remove,
-	Run,
+	CollectData,
 	NowCast,
 };
 
@@ -43,7 +43,7 @@ void ProjectionsFrame::setupToolbar()
 	toolBar->AddTool(ControlId::New, "New Projection", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Projection");
 	toolBar->AddTool(ControlId::Edit, "Edit Projection", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Projection");
 	toolBar->AddTool(ControlId::Remove, "Remove Projection", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Projection");
-	toolBar->AddTool(ControlId::Run, "Run Projection", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Projection");
+	toolBar->AddTool(ControlId::CollectData, "Run Projection", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Projection");
 	toolBar->AddTool(ControlId::NowCast, "Set as Now-Cast", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Set as Now-Cast");
 
 	// Realize the toolbar, so that the tools display.
@@ -75,7 +75,7 @@ void ProjectionsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNewProjection, this, ControlId::New);
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnEditProjection, this, ControlId::Edit);
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRemoveProjection, this, ControlId::Remove);
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRunProjection, this, ControlId::Run);
+	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRunProjection, this, ControlId::CollectData);
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNowCast, this, ControlId::NowCast);
 
 	// Need to update the interface if the selection changes
@@ -265,6 +265,6 @@ void ProjectionsFrame::updateInterface() {
 	bool somethingSelected = (projectionData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
-	toolBar->EnableTool(ControlId::Run, somethingSelected);
+	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
 	toolBar->EnableTool(ControlId::NowCast, somethingSelected);
 }

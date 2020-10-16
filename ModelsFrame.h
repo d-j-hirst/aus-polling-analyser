@@ -50,25 +50,25 @@ private:
 	void bindEventHandlers();
 
 	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnResize(wxSizeEvent& WXUNUSED(event));
+	void OnResize(wxSizeEvent&);
 
 	// Opens the dialog that allows the user to define settings for a new model.
-	void OnNewModel(wxCommandEvent& WXUNUSED(event));
+	void OnNewModel(wxCommandEvent&);
 
 	// Opens the dialog that allows the user to edit an existing model.
-	void OnEditModel(wxCommandEvent& WXUNUSED(event));
+	void OnEditModel(wxCommandEvent&);
 
 	// Opens the dialog that allows the user to remove an existing model.
-	void OnRemoveModel(wxCommandEvent& WXUNUSED(event));
+	void OnRemoveModel(wxCommandEvent&);
 
 	// Runs the selected model.
-	void OnRunModel(wxCommandEvent& WXUNUSED(event));
+	void OnCollectData(wxCommandEvent&);
 
 	// Runs the selected model.
-	void OnExtendModel(wxCommandEvent& WXUNUSED(event));
+	void OnShowResult(wxCommandEvent&);
 
 	// updates the interface after a change in item selection.
-	void OnSelectionChange(wxDataViewEvent& event);
+	void OnSelectionChange(wxDataViewEvent&);
 
 	// does everything required to add the model "model".
 	void addModel(StanModel model);
@@ -83,13 +83,13 @@ private:
 	void removeModel();
 
 	// extends the time length of the currently selected model to the latest poll.
-	void extendModel();
+	void displayResults();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();
 
 	// does everything required to run the currently selected model, if possible.
-	void runModel();
+	void collectData();
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

@@ -25,8 +25,12 @@ data {
     //exclude final n parties from the sum-to-zero constraint for houseEffects
     int<lower=0> excludeCount;
     
-    // day-to-day change
+    int<lower=1> electionDay;
+    
+    // day-to-day change, higher in a campaign and especially in the final two weeks
     real<lower=0.0> dailySigma;
+    real<lower=0.0> campaignSigma;
+    real<lower=0.0> finalSigma;
 }
 
 transformed data {
@@ -56,8 +60,9 @@ parameters {
 }
 
 model {
-    // weakly informative prior for house effects
-    pHouseEffects ~ normal(0.0, 5.0);
+    // using this distribution encourages house effects not to be too large but
+    // doesn't penalise too heavily if a large house effect is really called for
+    pHouseEffects ~ double_exponential(0.0, 1.0);
     // keep sum of house effects constrained to zero, or near enough
     sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, 0.001);
     // high-kurtosis prior distribution to allow for chance of sudden change if the numbers demonstrate it
@@ -72,10 +77,18 @@ model {
             }
         }
         if (isDisc == 0) {
+            // increased volatility during campaign
+            real effectiveSigma = dailySigma;
+            if (day >= electionDay - 14) { // maximum volatility two weeks before result
+                effectiveSigma = finalSigma;
+            }
+            else if (day >= electionDay - 42) { // heightened volatility six weeks before result
+                effectiveSigma = campaignSigma;
+            }
             // political events have frequent outliers, use the inbuilt distribution
             // with highest kurtosis
             preliminaryVoteShare[day + 1] ~ 
-                normal(preliminaryVoteShare[day], dailySigma);
+                normal(preliminaryVoteShare[day], effectiveSigma);
         }
     }
 

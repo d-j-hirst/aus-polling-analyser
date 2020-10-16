@@ -3028,7 +3028,8 @@ date=2457772.79167
 vote=50
 #Models
 @Model
-name=Standard Model#Projections
+name=Standard Model
+#Projections
 @Projection
 name=2019 Election Projection
 iter=99999

@@ -111,6 +111,7 @@ void PollingProject::updateOutcomesForSeats() {
 int PollingProject::save(std::string filename)
 {
 	ProjectFiler projectFiler(*this);
+	lastFileName = filename;
 	return projectFiler.save(filename);
 }
 

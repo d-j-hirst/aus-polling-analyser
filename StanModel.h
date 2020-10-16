@@ -40,6 +40,8 @@ public:
 
 	int seriesCount() const;
 
+	std::string getTextReport() const;
+
 	// Views data for a series in the model corresponding to the given party
 	Series const& viewSeries(std::string partyCode) const;
 

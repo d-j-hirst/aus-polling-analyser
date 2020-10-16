@@ -3,6 +3,7 @@
 #include "General.h"
 
 #include <fstream>
+#include <sstream>
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes)
 	: name(name), termCode(termCode), partyCodes(partyCodes)
@@ -17,6 +18,7 @@ void StanModel::loadData()
 		return;
 	}
 	startDate = wxInvalidDateTime;
+	partySupport.clear();
 	for (auto partyCode : partyCodeVec) {
 		auto& series = partySupport[partyCode];
 		std::string filename = "python/Outputs/fp_trend_"
@@ -56,6 +58,20 @@ void StanModel::loadData()
 int StanModel::seriesCount() const
 {
 	return int(partySupport.size());
+}
+
+std::string StanModel::getTextReport() const
+{
+	std::stringstream ss;
+	for (auto [key, series] : this->partySupport) {
+		ss << key << "\n";
+		ss << "1%: " << series.timePoint.back().values[1] << "\n";
+		ss << "10%: " << series.timePoint.back().values[10] << "\n";
+		ss << "50%: " << series.timePoint.back().values[50] << "\n";
+		ss << "90%: " << series.timePoint.back().values[90] << "\n";
+		ss << "99%: " << series.timePoint.back().values[99] << "\n";
+	}
+	return ss.str();
 }
 
 StanModel::Series const& StanModel::viewSeries(std::string partyCode) const

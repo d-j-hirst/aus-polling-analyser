@@ -10,7 +10,7 @@ enum ControlId {
 	New,
 	Edit,
 	Remove,
-	Run,
+	CollectData,
 };
 
 // frame constructor
@@ -41,7 +41,7 @@ void SimulationsFrame::setupToolbar()
 	toolBar->AddTool(ControlId::New, "New Simulation", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Simulation");
 	toolBar->AddTool(ControlId::Edit , "Edit Simulation", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Simulation");
 	toolBar->AddTool(ControlId::Remove, "Remove Simulation", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Simulation");
-	toolBar->AddTool(ControlId::Run, "Run Simulation", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Simulation");
+	toolBar->AddTool(ControlId::CollectData, "Run Simulation", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Simulation");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -72,7 +72,7 @@ void SimulationsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &SimulationsFrame::OnNewSimulation, this, ControlId::New);
 	Bind(wxEVT_TOOL, &SimulationsFrame::OnEditSimulation, this, ControlId::Edit);
 	Bind(wxEVT_TOOL, &SimulationsFrame::OnRemoveSimulation, this, ControlId::Remove);
-	Bind(wxEVT_TOOL, &SimulationsFrame::OnRunSimulation, this, ControlId::Run);
+	Bind(wxEVT_TOOL, &SimulationsFrame::OnRunSimulation, this, ControlId::CollectData);
 
 	// Need to update the interface if the selection changes
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SimulationsFrame::OnSelectionChange, this, ControlId::DataView);
@@ -254,5 +254,5 @@ void SimulationsFrame::updateInterface() {
 	bool somethingSelected = (simulationData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
-	toolBar->EnableTool(ControlId::Run, somethingSelected);
+	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
 }

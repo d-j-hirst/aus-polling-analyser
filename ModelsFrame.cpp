@@ -16,8 +16,8 @@ enum ControlId {
 	New,
 	Edit,
 	Remove,
-	Run,
-	Extend,
+	CollectData,
+	DisplayResults,
 };
 
 // frame constructor
@@ -57,12 +57,12 @@ void ModelsFrame::refreshDataTable()
 	updateInterface();
 }
 
-void ModelsFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
+void ModelsFrame::OnResize(wxSizeEvent&) {
 	// Set the model data table to the entire client size.
 	modelData->SetSize(dataPanel->GetClientSize() + wxSize(0, 1));
 }
 
-void ModelsFrame::OnNewModel(wxCommandEvent& WXUNUSED(event)) {
+void ModelsFrame::OnNewModel(wxCommandEvent&) {
 
 	// This binding is needed to pass a member function as a callback for the EditPartyFrame
 	auto callback = std::bind(&ModelsFrame::addModel, this, _1);
@@ -80,7 +80,7 @@ void ModelsFrame::OnNewModel(wxCommandEvent& WXUNUSED(event)) {
 	return;
 }
 
-void ModelsFrame::OnEditModel(wxCommandEvent& WXUNUSED(event)) {
+void ModelsFrame::OnEditModel(wxCommandEvent&) {
 
 	int modelIndex = modelData->GetSelectedRow();
 
@@ -101,7 +101,7 @@ void ModelsFrame::OnEditModel(wxCommandEvent& WXUNUSED(event)) {
 	return;
 }
 
-void ModelsFrame::OnRemoveModel(wxCommandEvent& WXUNUSED(event)) {
+void ModelsFrame::OnRemoveModel(wxCommandEvent&) {
 
 	int modelIndex = modelData->GetSelectedRow();
 
@@ -115,28 +115,28 @@ void ModelsFrame::OnRemoveModel(wxCommandEvent& WXUNUSED(event)) {
 	return;
 }
 
-void ModelsFrame::OnExtendModel(wxCommandEvent& WXUNUSED(event)) {
+void ModelsFrame::OnCollectData(wxCommandEvent&) {
 
 	int modelIndex = modelData->GetSelectedRow();
 
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (modelIndex == -1) return;
 
-	extendModel();
+	collectData();
 
 	refresher.refreshProjectionData();
 
 	return;
 }
 
-void ModelsFrame::OnRunModel(wxCommandEvent& WXUNUSED(event)) {
+void ModelsFrame::OnShowResult(wxCommandEvent&) {
 
 	int modelIndex = modelData->GetSelectedRow();
 
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (modelIndex == -1) return;
 
-	runModel();
+	displayResults();
 
 	refresher.refreshProjectionData();
 
@@ -144,7 +144,7 @@ void ModelsFrame::OnRunModel(wxCommandEvent& WXUNUSED(event)) {
 }
 
 // updates the interface after a change in item selection.
-void ModelsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
+void ModelsFrame::OnSelectionChange(wxDataViewEvent&) {
 	updateInterface();
 }
 
@@ -163,8 +163,8 @@ void ModelsFrame::setupToolbar()
 	toolBar->AddTool(ControlId::New, "New Model", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Model");
 	toolBar->AddTool(ControlId::Edit, "Edit Model", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Model");
 	toolBar->AddTool(ControlId::Remove, "Remove Model", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Model");
-	toolBar->AddTool(ControlId::Run, "Run Model", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Model");
-	toolBar->AddTool(ControlId::Extend, "Extend model to latest poll", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Extend model to latest poll");
+	toolBar->AddTool(ControlId::CollectData, "Run Model", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Model");
+	toolBar->AddTool(ControlId::DisplayResults, "Extend model to latest poll", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Extend model to latest poll");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -195,8 +195,8 @@ void ModelsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ModelsFrame::OnNewModel, this, ControlId::New);
 	Bind(wxEVT_TOOL, &ModelsFrame::OnEditModel, this, ControlId::Edit);
 	Bind(wxEVT_TOOL, &ModelsFrame::OnRemoveModel, this, ControlId::Remove);
-	Bind(wxEVT_TOOL, &ModelsFrame::OnRunModel, this, ControlId::Run);
-	Bind(wxEVT_TOOL, &ModelsFrame::OnExtendModel, this, ControlId::Extend);
+	Bind(wxEVT_TOOL, &ModelsFrame::OnCollectData, this, ControlId::CollectData);
+	Bind(wxEVT_TOOL, &ModelsFrame::OnShowResult, this, ControlId::DisplayResults);
 
 	// Need to update the interface if the selection changes
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &ModelsFrame::OnSelectionChange, this, ControlId::DataView);
@@ -236,13 +236,13 @@ void ModelsFrame::removeModel() {
 	refresher.refreshVisualiser();
 }
 
-void ModelsFrame::extendModel() {
+void ModelsFrame::displayResults() {
 	int modelIndex = modelData->GetSelectedRow();
-	project->models().extend(project->models().indexToId(modelIndex));
-	refreshDataTable();
+	std::string resultsText = project->models().access(project->models().indexToId(modelIndex)).getTextReport();
+	wxMessageBox(resultsText);
 }
 
-void ModelsFrame::runModel() {
+void ModelsFrame::collectData() {
 	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
 	Model::Id modelId = project->models().indexToId(modelIndex);
 	StanModel& thisModel = project->models().access(modelId);
@@ -256,6 +256,6 @@ void ModelsFrame::updateInterface() {
 	bool somethingSelected = (modelData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
-	toolBar->EnableTool(ControlId::Run, somethingSelected);
-	toolBar->EnableTool(ControlId::Extend, somethingSelected);
+	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
+	toolBar->EnableTool(ControlId::DisplayResults, somethingSelected);
 }
