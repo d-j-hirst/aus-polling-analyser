@@ -45,6 +45,7 @@ private:
 	void createNameInput(int& y);
 	void createTermCodeInput(int& y);
 	void createPartyCodesInput(int& y);
+	void createMeanAdjustmentsInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -59,6 +60,7 @@ private:
 	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<TextInput> termCodeInput;
 	std::unique_ptr<TextInput> partyCodesInput;
+	std::unique_ptr<TextInput> meanAdjustmentsInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

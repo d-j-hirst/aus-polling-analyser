@@ -5,7 +5,9 @@
 #include <fstream>
 #include <sstream>
 
-StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes)
+StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
+	std::string meanAdjustments, std::string stdevAdjustments)
+	
 	: name(name), termCode(termCode), partyCodes(partyCodes)
 {
 }

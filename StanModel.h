@@ -24,7 +24,10 @@ public:
 
 	typedef std::map<std::string, Series> PartySupport;
 
-	StanModel(std::string name = "", std::string termCode = "", std::string partyCodes = "");
+	typedef std::map<std::string, float> SupportAdjustments;
+
+	StanModel(std::string name = "", std::string termCode = "", std::string partyCodes = "",
+		std::string meanAdjustments = "", std::string stdevAdjustments = "");
 
 	std::string getName() const { return name; }
 
@@ -54,6 +57,8 @@ private:
 	Series& addSeries(std::string partyCode);
 
 	PartySupport partySupport;
+	std::string meanAdjustments;
+	std::string stdevAdjustments;
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;

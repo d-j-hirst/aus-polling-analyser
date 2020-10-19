@@ -81,3 +81,13 @@ inline std::string boolToStr(bool b) {
 	ss << std::boolalpha << b;
 	return ss.str();
 }
+
+template<class InputFirstIt, class InputSecondIt, class OutputIt, class BinaryOperation>
+OutputIt transform_combine(InputFirstIt first1, InputFirstIt last1, InputSecondIt first2, OutputIt d_first,
+	BinaryOperation binary_op)
+{
+	while (first1 != last1) {
+		*d_first++ = binary_op(*first1++, *first2++);
+	}
+	return d_first;
+}

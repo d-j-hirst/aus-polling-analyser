@@ -16,7 +16,8 @@ enum ControlId
 	Ok,
 	Name,
 	TermCode,
-	PartyCodes
+	PartyCodes,
+	MeanAdjustments
 };
 
 EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
@@ -33,6 +34,7 @@ void EditModelFrame::createControls(int & y)
 	createNameInput(y);
 	createTermCodeInput(y);
 	createPartyCodesInput(y);
+	createMeanAdjustmentsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -56,6 +58,13 @@ void EditModelFrame::createPartyCodesInput(int& y)
 	auto partyCodesCallback = [this](std::string s) -> void {model.partyCodes = s; };
 	partyCodesInput.reset(new TextInput(this, ControlId::PartyCodes, "Party Codes:", model.partyCodes, wxPoint(2, y), partyCodesCallback));
 	y += partyCodesInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createMeanAdjustmentsInput(int& y)
+{
+	auto meanAdjustmentsCallback = [this](std::string s) -> void {model.meanAdjustments = s; };
+	meanAdjustmentsInput.reset(new TextInput(this, ControlId::PartyCodes, "Party Codes:", model.meanAdjustments, wxPoint(2, y), meanAdjustmentsCallback));
+	y += meanAdjustmentsInput->Height + ControlPadding;
 }
 
 
