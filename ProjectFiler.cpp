@@ -9,7 +9,8 @@
 // Version 2: Rework models
 // Version 3: Add new model seconds & data
 // Version 4: "Include in others" party option
-constexpr int VersionNum = 4;
+// Version 5: Mean/deviation adjustments
+constexpr int VersionNum = 5;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -407,10 +408,22 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.name;
 		saveOutput << thisModel.termCode;
 		saveOutput << thisModel.partyCodes;
+		saveOutput << thisModel.meanAdjustments;
+		saveOutput << thisModel.deviationAdjustments;
 		saveOutput << thisModel.startDate.GetJulianDayNumber();
 		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
 		saveOutput.outputAsType<uint32_t>(thisModel.partySupport.size());
 		for (auto [seriesKey, series] : thisModel.partySupport) {
+			saveOutput << seriesKey;
+			saveOutput.outputAsType<int32_t>(series.timePoint.size());
+			for (auto day : series.timePoint) {
+				saveOutput.outputAsType<int32_t>(day.values.size());
+				for (auto spreadVal : day.values) {
+					saveOutput << spreadVal;
+				}
+			}
+		}
+		for (auto [seriesKey, series] : thisModel.adjustedSupport) {
 			saveOutput << seriesKey;
 			saveOutput.outputAsType<int32_t>(series.timePoint.size());
 			for (auto day : series.timePoint) {
@@ -442,6 +455,10 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 		if (versionNum >= 3) {
 			saveInput >> thisModel.termCode;
 			saveInput >> thisModel.partyCodes;
+			if (versionNum >= 5) {
+				saveInput >> thisModel.meanAdjustments;
+				saveInput >> thisModel.deviationAdjustments;
+			}
 			thisModel.startDate = wxDateTime(saveInput.extract<double>());
 			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());
 			size_t numSeries = saveInput.extract<uint32_t>();
@@ -461,6 +478,25 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 					thisSeries.timePoint.push_back(spread);
 				}
 				thisModel.partySupport.insert({ seriesKey, thisSeries });
+			}
+			if (versionNum >= 5) {
+				for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {
+					StanModel::Series thisSeries;
+					std::string seriesKey = saveInput.extract<std::string>();
+					size_t numTimePoints = saveInput.extract<uint32_t>();
+					for (size_t timePointIndex = 0; timePointIndex < numTimePoints; ++timePointIndex) {
+						StanModel::Spread spread;
+						size_t numValues = saveInput.extract<uint32_t>();
+						for (size_t valueIndex = 0; valueIndex < numValues; ++valueIndex) {
+							float spreadVal = saveInput.extract<float>();
+							if (valueIndex < StanModel::Spread::Size) {
+								spread.values[valueIndex] = spreadVal;
+							}
+						}
+						thisSeries.timePoint.push_back(spread);
+					}
+					thisModel.adjustedSupport.insert({ seriesKey, thisSeries });
+				}
 			}
 		}
 		project.modelCollection.add(thisModel);
