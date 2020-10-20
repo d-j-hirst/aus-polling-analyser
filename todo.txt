@@ -1,0 +1,19 @@
+Polling Analyser to-do:
+-Party support adjustments
+ -Message box for adjusted trend data (similar to present one for raw model outputs)
+ -Save and load user-given mean/deviation adjustments and also the adjusted model outputs
+ -Option to display in trend visualiser
+ -Function to sample the state of a given time point (normalised so all parties hit 100%), and test how well those samples match the adjusted values
+-Model adjustment
+ -Experiment with additional model parameter to have a volatility effect for each house (in addition to mean)
+ -If successful re-run models to account for this, while working on further features
+-TPP estimates
+ -Ability to enter estimates for expected preference flow + variability in edit model dialog
+ -Have this be used to create a TPP estimate display series (for visual display only; the simulated value will be done separately)
+-Projections
+ -Overhaul to take a sample from the last day of the adjusted party support then project that to election in similar manner to before (i.e. random walk with some mean reversion)
+ -Method to take a sample from a given time point in the projection
+-Simulation
+ -Take samples from the end of the projection and then generate random variability in preferences that align with the ancestral StanModel settings for each iteration.
+  This can then be directly integrated into the simulations which will otherwise run as before for non-live or live-manual simulations
+ 

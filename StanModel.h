@@ -14,7 +14,7 @@ public:
 	friend class ProjectFiler;
 
 	struct Spread {
-		constexpr static size_t Size = 101;
+		constexpr static size_t Size = 101; // must be odd so that there is a single median value
 		std::array<float, Size> values;
 	};
 
@@ -39,7 +39,7 @@ public:
 
 	wxDateTime getLastUpdatedDate() const { return lastUpdatedDate; }
 
-	void loadData();
+	void loadData(std::function<void(std::string)> feedback = [](std::string) {});
 
 	int seriesCount() const;
 
@@ -53,12 +53,15 @@ public:
 	std::string partyCodeByIndex(int index) const;
 private:
 
+	void updateAdjustedData(std::function<void(std::string)> feedback);
+
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
 
 	PartySupport partySupport;
+	PartySupport adjustedSupport;
 	std::string meanAdjustments;
-	std::string stdevAdjustments;
+	std::string deviationAdjustments;
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;

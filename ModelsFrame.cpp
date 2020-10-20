@@ -238,15 +238,16 @@ void ModelsFrame::removeModel() {
 
 void ModelsFrame::displayResults() {
 	int modelIndex = modelData->GetSelectedRow();
-	std::string resultsText = project->models().access(project->models().indexToId(modelIndex)).getTextReport();
-	wxMessageBox(resultsText);
+	std::string resultsTexts = project->models().access(project->models().indexToId(modelIndex)).getTextReport();
+	auto splitText = splitString(resultsTexts, ";");
+	for (auto const& text : splitText) wxMessageBox(text);
 }
 
 void ModelsFrame::collectData() {
 	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
 	Model::Id modelId = project->models().indexToId(modelIndex);
 	StanModel& thisModel = project->models().access(modelId);
-	thisModel.loadData();
+	thisModel.loadData([](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
 	refresher.refreshVisualiser();
 	project->invalidateProjectionsFromModel(modelId);

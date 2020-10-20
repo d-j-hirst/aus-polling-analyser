@@ -17,7 +17,8 @@ enum ControlId
 	Name,
 	TermCode,
 	PartyCodes,
-	MeanAdjustments
+	MeanAdjustments,
+	DeviationAdjustments
 };
 
 EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
@@ -35,6 +36,7 @@ void EditModelFrame::createControls(int & y)
 	createTermCodeInput(y);
 	createPartyCodesInput(y);
 	createMeanAdjustmentsInput(y);
+	createDeviationAdjustmentsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -63,8 +65,17 @@ void EditModelFrame::createPartyCodesInput(int& y)
 void EditModelFrame::createMeanAdjustmentsInput(int& y)
 {
 	auto meanAdjustmentsCallback = [this](std::string s) -> void {model.meanAdjustments = s; };
-	meanAdjustmentsInput.reset(new TextInput(this, ControlId::PartyCodes, "Party Codes:", model.meanAdjustments, wxPoint(2, y), meanAdjustmentsCallback));
+	meanAdjustmentsInput.reset(new TextInput(this, ControlId::MeanAdjustments, "Mean Adjustments:", 
+		model.meanAdjustments, wxPoint(2, y), meanAdjustmentsCallback));
 	y += meanAdjustmentsInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createDeviationAdjustmentsInput(int& y)
+{
+	auto deviationAdjustmentsCallback = [this](std::string s) -> void {model.deviationAdjustments = s; };
+	deviationAdjustmentsInput.reset(new TextInput(this, ControlId::DeviationAdjustments, "Deviation Adjustments:", 
+		model.deviationAdjustments, wxPoint(2, y), deviationAdjustmentsCallback));
+	y += deviationAdjustmentsInput->Height + ControlPadding;
 }
 
 
