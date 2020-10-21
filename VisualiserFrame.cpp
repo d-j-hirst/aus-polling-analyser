@@ -16,6 +16,7 @@ enum ControlId {
 	SelectModel,
 	SelectProjection,
 	SelectParty,
+	ModelDisplayMode,
 };
 
 // maximum distance from the mouse pointer to a poll point that will allow it to be selected.
@@ -157,6 +158,12 @@ void VisualiserFrame::OnPartySelection(wxCommandEvent&)
 	paint();
 }
 
+void VisualiserFrame::OnModelDisplayMode(wxCommandEvent&)
+{
+	modelDisplayMode = ModelDisplayMode(modelDisplayModeComboBox->GetCurrentSelection());
+	paint();
+}
+
 void VisualiserFrame::setVisualiserBounds(int startDay, int endDay) {
 	startDay = std::max(project->getEarliestDate(), startDay);
 	endDay = std::min(project->getLatestDate(), endDay);
@@ -269,11 +276,18 @@ void VisualiserFrame::refreshToolbar() {
 		}
 	}
 
+	wxArrayString modelDisplayModeArray;
+	modelDisplayModeArray.push_back("Raw Trend");
+	modelDisplayModeArray.push_back("Adjusted Trend");
+	std::string modelDisplayModeString = modelDisplayModeArray[int(modelDisplayMode)];
+
 	selectModelComboBox = new wxComboBox(toolBar, ControlId::SelectModel, modelBoxString, wxPoint(0, 0), wxSize(150, 30), modelArray);
 
 	selectProjectionComboBox = new wxComboBox(toolBar, ControlId::SelectProjection, projectionBoxString, wxPoint(0, 0), wxSize(150, 30), projectionArray);
 
 	selectPartyComboBox = new wxComboBox(toolBar, ControlId::SelectParty, "", wxPoint(0, 0), wxSize(150, 30), wxArrayString());
+
+	modelDisplayModeComboBox = new wxComboBox(toolBar, ControlId::ModelDisplayMode, modelDisplayModeString, wxPoint(0, 0), wxSize(150, 30), modelDisplayModeArray);
 
 	refreshPartyChoice();
 
@@ -288,6 +302,7 @@ void VisualiserFrame::refreshToolbar() {
 	toolBar->AddControl(selectProjectionComboBox);
 	toolBar->AddSeparator();
 	toolBar->AddControl(selectPartyComboBox);
+	toolBar->AddControl(modelDisplayModeComboBox);
 	toolBar->ToggleTool(ControlId::TogglePolls, displayPolls);
 	toolBar->ToggleTool(ControlId::ToggleModels, displayModels);
 	toolBar->ToggleTool(ControlId::ToggleHouseEffects, displayHouseEffects);
@@ -320,6 +335,7 @@ void VisualiserFrame::bindEventHandlers()
 	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnModelSelection, this, ControlId::SelectModel);
 	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnProjectionSelection, this, ControlId::SelectProjection);
 	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnPartySelection, this, ControlId::SelectParty);
+	Bind(wxEVT_COMBOBOX, &VisualiserFrame::OnModelDisplayMode, this, ControlId::ModelDisplayMode);
 }
 
 void VisualiserFrame::updateInterface() {
@@ -426,7 +442,9 @@ void VisualiserFrame::determineGraphVerticalScale()
 		if (model.getLastUpdatedDate().IsValid()) {
 			auto thisModel = project->models().viewByIndex(selectedModel);
 			if (selectedParty >= 0) {
-				auto series = model.viewSeriesByIndex(selectedParty);
+				auto series = (modelDisplayMode == ModelDisplayMode::Raw
+					? model.viewRawSeriesByIndex(selectedParty)
+					: model.viewAdjustedSeriesByIndex(selectedParty));
 				auto thisTimePoint = series.timePoint.begin();
 				int modelStartDay = dateToIntMjd(model.getStartDate());
 				for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
@@ -598,7 +616,9 @@ void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 	if (selectedModel >= project->models().count()) return;
 	auto thisModel = project->models().viewByIndex(selectedModel);
 	if (selectedParty < 0) return;
-	auto series = model.viewSeriesByIndex(selectedParty);
+	auto series = (modelDisplayMode == ModelDisplayMode::Raw
+		? model.viewRawSeriesByIndex(selectedParty)
+		: model.viewAdjustedSeriesByIndex(selectedParty));
 	auto thisTimePoint = series.timePoint.begin();
 	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
@@ -751,7 +771,9 @@ int VisualiserFrame::getModelTimePointFromMouse(wxPoint point)
 {
 	if (selectedModel != -1 && selectedParty != -1) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		auto const& series = model.viewSeriesByIndex(selectedParty);
+		auto const& series = (modelDisplayMode == ModelDisplayMode::Raw
+			? model.viewRawSeriesByIndex(selectedParty)
+			: model.viewAdjustedSeriesByIndex(selectedParty));
 		int xLeft = getXFromDate(int(floor(model.getStartDate().GetMJD())));
 		int xRight = getXFromDate(int(floor(model.getStartDate().GetMJD())) + int(series.timePoint.size()));
 		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
@@ -808,8 +830,11 @@ void VisualiserFrame::determineLabelRectFromModel()
 	int nLines = ModelRanges.size() * 2 + 2;
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
+	auto const& series = (modelDisplayMode == ModelDisplayMode::Raw
+		? thisModel.viewRawSeriesByIndex(selectedParty)
+		: thisModel.viewAdjustedSeriesByIndex(selectedParty));
 	int left = getXFromDate(int(floor(thisModel.getStartDate().GetMJD())) + mouseoverTimepoint) - width;
-	int top = getYFromVote(thisModel.viewSeriesByIndex(selectedParty).timePoint[mouseoverTimepoint].values[50]);
+	int top = getYFromVote(series.timePoint[mouseoverTimepoint].values[50]);
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)
@@ -864,8 +889,10 @@ void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
 {
 	if (selectedModel == -1 || selectedParty == -1 || mouseoverTimepoint == -1) return;
 	auto const& thisModel = project->models().viewByIndex(selectedModel);
-	auto const& thisSpread = thisModel.viewSeriesByIndex(selectedParty)
-		.timePoint[mouseoverTimepoint];
+	auto const& thisSeries = (modelDisplayMode == ModelDisplayMode::Raw
+		? thisModel.viewRawSeriesByIndex(selectedParty)
+		: thisModel.viewAdjustedSeriesByIndex(selectedParty));
+	auto const& thisSpread = thisSeries.timePoint[mouseoverTimepoint];
 	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
 	dc.DrawText(thisModel.getStartDate().Add(wxDateSpan(0, 0, 0, mouseoverTimepoint)).FormatISODate(), currentPoint);

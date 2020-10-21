@@ -65,7 +65,8 @@ model {
     pHouseEffects ~ double_exponential(0.0, 1.0);
     // keep sum of house effects constrained to zero, or near enough
     sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, 0.001);
-    // high-kurtosis prior distribution to allow for chance of sudden change if the numbers demonstrate it
+    // very broad prior distribution, this shouldn't affect the model much unless
+    // there is absolutey no data nearby
     preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, 40.0);
     
     // day-to-day change sampling, excluding discontinuities
@@ -85,8 +86,6 @@ model {
             else if (day >= electionDay - 42) { // heightened volatility six weeks before result
                 effectiveSigma = campaignSigma;
             }
-            // political events have frequent outliers, use the inbuilt distribution
-            // with highest kurtosis
             preliminaryVoteShare[day + 1] ~ 
                 normal(preliminaryVoteShare[day], effectiveSigma);
         }

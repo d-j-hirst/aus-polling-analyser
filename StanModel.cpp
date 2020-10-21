@@ -90,15 +90,26 @@ std::string StanModel::getTextReport() const
 	return ss.str();
 }
 
-StanModel::Series const& StanModel::viewSeries(std::string partyCode) const
+StanModel::Series const& StanModel::viewRawSeries(std::string partyCode) const
 {
 	return partySupport.at(partyCode);
 }
 
-StanModel::Series const& StanModel::viewSeriesByIndex(int index) const
+StanModel::Series const& StanModel::viewRawSeriesByIndex(int index) const
 {
 
 	return std::next(partySupport.begin(), index)->second;
+}
+
+StanModel::Series const& StanModel::viewAdjustedSeries(std::string partyCode) const
+{
+	return adjustedSupport.at(partyCode);
+}
+
+StanModel::Series const& StanModel::viewAdjustedSeriesByIndex(int index) const
+{
+
+	return std::next(adjustedSupport.begin(), index)->second;
 }
 
 std::string StanModel::partyCodeByIndex(int index) const

@@ -78,6 +78,11 @@ private:
 		std::vector<wxDateTime> AxisTick;
 	};
 
+	enum class ModelDisplayMode {
+		Raw,
+		Adjusted
+	};
+
 	// removes any mouse-over information.
 	void resetMouseOver();
 
@@ -116,6 +121,9 @@ private:
 
 	// Handles selection of the displayed party
 	void OnPartySelection(wxCommandEvent& event);
+
+	// Handles selection of the displayed party
+	void OnModelDisplayMode(wxCommandEvent& event);
 
 	// sets the start and end days for the current visualiser view.
 	void setVisualiserBounds(int startDay, int endDay);
@@ -274,6 +282,9 @@ private:
 	// Combo box used to select the in-focus party
 	wxComboBox* selectPartyComboBox = nullptr;
 
+	// Combo box used to select the in-focus party
+	wxComboBox* modelDisplayModeComboBox = nullptr;
+
 	// Panel containing poll data.
 	wxPanel* dcPanel = nullptr;
 
@@ -289,6 +300,8 @@ private:
 
 	// Graphics variables, updated every time painting occurs.
 	GraphicsVariables gv;
+
+	ModelDisplayMode modelDisplayMode = ModelDisplayMode::Raw;
 
 	int selectedModel = -1;
 	int selectedProjection = -1;

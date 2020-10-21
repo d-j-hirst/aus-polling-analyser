@@ -536,6 +536,7 @@ def main():
                 for col in range(3,3+len(output_probs)):
                     house_effects_file.write(',' + str(summary[table_index][col]))
                 house_effects_file.write('\n')
+            
             house_effects_file.close()
             print('Saved house effects file at ' + output_house_effects)
 

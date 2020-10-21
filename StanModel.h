@@ -46,9 +46,13 @@ public:
 	std::string getTextReport() const;
 
 	// Views data for a series in the model corresponding to the given party
-	Series const& viewSeries(std::string partyCode) const;
+	Series const& viewRawSeries(std::string partyCode) const;
 
-	Series const& viewSeriesByIndex(int index) const;
+	Series const& viewRawSeriesByIndex(int index) const;
+
+	Series const& viewAdjustedSeries(std::string partyCode) const;
+
+	Series const& viewAdjustedSeriesByIndex(int index) const;
 
 	std::string partyCodeByIndex(int index) const;
 private:
