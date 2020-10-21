@@ -259,6 +259,8 @@ private:
 	// draws the text showing model information at the spot pointed to
 	void drawMouseoverModelText(wxDC& dc);
 
+	StanModel::Series const& viewSeriesFromModel(StanModel const& model);
+
 	// For handling horizontal panning of the visualiser
 	int panStart = -1;
 	int originalStartDay = -1;

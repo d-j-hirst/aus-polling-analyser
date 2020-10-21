@@ -412,8 +412,8 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.deviationAdjustments;
 		saveOutput << thisModel.startDate.GetJulianDayNumber();
 		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
-		saveOutput.outputAsType<uint32_t>(thisModel.partySupport.size());
-		for (auto [seriesKey, series] : thisModel.partySupport) {
+		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
+		for (auto [seriesKey, series] : thisModel.rawSupport) {
 			saveOutput << seriesKey;
 			saveOutput.outputAsType<int32_t>(series.timePoint.size());
 			for (auto day : series.timePoint) {
@@ -477,7 +477,7 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 					}
 					thisSeries.timePoint.push_back(spread);
 				}
-				thisModel.partySupport.insert({ seriesKey, thisSeries });
+				thisModel.rawSupport.insert({ seriesKey, thisSeries });
 			}
 			if (versionNum >= 5) {
 				for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {

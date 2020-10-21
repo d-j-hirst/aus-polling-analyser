@@ -215,7 +215,7 @@ void VisualiserFrame::refreshPartyChoice() {
 	// Prepare the list of parties being described by this model
 	if (selectedModel >= 0 && selectedModel < project->models().count()) {
 		auto thisModel = project->models().viewByIndex(selectedModel);
-		for (int partyIndex = 0; partyIndex < thisModel.seriesCount(); ++partyIndex) {
+		for (int partyIndex = 0; partyIndex < thisModel.rawSeriesCount(); ++partyIndex) {
 			std::string thisPartyString = thisModel.partyCodeByIndex(partyIndex);
 			if (selectedParty == partyIndex) {
 				partyBoxString = thisPartyString;
@@ -385,7 +385,7 @@ void VisualiserFrame::determineSelectedPartyIndex()
 	selectedPartyIndex = -1;
 	if (selectedModel >= 0 && selectedModel < project->models().count()) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		if (selectedParty >= 0 && selectedParty < model.seriesCount()) {
+		if (selectedParty >= 0 && selectedParty < model.rawSeriesCount()) {
 			std::string code = model.partyCodeByIndex(selectedParty);
 			if (code == "OTH") {
 				selectedPartyIndex = PartyCollection::MaxParties;
@@ -442,9 +442,7 @@ void VisualiserFrame::determineGraphVerticalScale()
 		if (model.getLastUpdatedDate().IsValid()) {
 			auto thisModel = project->models().viewByIndex(selectedModel);
 			if (selectedParty >= 0) {
-				auto series = (modelDisplayMode == ModelDisplayMode::Raw
-					? model.viewRawSeriesByIndex(selectedParty)
-					: model.viewAdjustedSeriesByIndex(selectedParty));
+				auto series = viewSeriesFromModel(thisModel);
 				auto thisTimePoint = series.timePoint.begin();
 				int modelStartDay = dateToIntMjd(model.getStartDate());
 				for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
@@ -616,9 +614,7 @@ void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 	if (selectedModel >= project->models().count()) return;
 	auto thisModel = project->models().viewByIndex(selectedModel);
 	if (selectedParty < 0) return;
-	auto series = (modelDisplayMode == ModelDisplayMode::Raw
-		? model.viewRawSeriesByIndex(selectedParty)
-		: model.viewAdjustedSeriesByIndex(selectedParty));
+	auto series = viewSeriesFromModel(thisModel);
 	auto thisTimePoint = series.timePoint.begin();
 	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
@@ -771,9 +767,7 @@ int VisualiserFrame::getModelTimePointFromMouse(wxPoint point)
 {
 	if (selectedModel != -1 && selectedParty != -1) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		auto const& series = (modelDisplayMode == ModelDisplayMode::Raw
-			? model.viewRawSeriesByIndex(selectedParty)
-			: model.viewAdjustedSeriesByIndex(selectedParty));
+		auto const& series = viewSeriesFromModel(model);
 		int xLeft = getXFromDate(int(floor(model.getStartDate().GetMJD())));
 		int xRight = getXFromDate(int(floor(model.getStartDate().GetMJD())) + int(series.timePoint.size()));
 		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
@@ -830,9 +824,7 @@ void VisualiserFrame::determineLabelRectFromModel()
 	int nLines = ModelRanges.size() * 2 + 2;
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
-	auto const& series = (modelDisplayMode == ModelDisplayMode::Raw
-		? thisModel.viewRawSeriesByIndex(selectedParty)
-		: thisModel.viewAdjustedSeriesByIndex(selectedParty));
+	auto const& series = viewSeriesFromModel(thisModel);
 	int left = getXFromDate(int(floor(thisModel.getStartDate().GetMJD())) + mouseoverTimepoint) - width;
 	int top = getYFromVote(series.timePoint[mouseoverTimepoint].values[50]);
 	if (left < 0)
@@ -889,9 +881,7 @@ void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
 {
 	if (selectedModel == -1 || selectedParty == -1 || mouseoverTimepoint == -1) return;
 	auto const& thisModel = project->models().viewByIndex(selectedModel);
-	auto const& thisSeries = (modelDisplayMode == ModelDisplayMode::Raw
-		? thisModel.viewRawSeriesByIndex(selectedParty)
-		: thisModel.viewAdjustedSeriesByIndex(selectedParty));
+	auto const& thisSeries = viewSeriesFromModel(thisModel);
 	auto const& thisSpread = thisSeries.timePoint[mouseoverTimepoint];
 	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
@@ -911,6 +901,17 @@ void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
 		currentPoint += wxPoint(0, PollInfoLineHeight);
 	}
 
+}
+
+StanModel::Series const& VisualiserFrame::viewSeriesFromModel(StanModel const& model)
+{
+	if (modelDisplayMode == ModelDisplayMode::Adjusted) {
+		// default to raw series if the adjusted series haven'y been generated
+		if (model.adjustedSeriesCount() > selectedParty) {
+			return model.viewAdjustedSeriesByIndex(selectedParty);
+		}
+	}
+	return model.viewRawSeriesByIndex(selectedParty);
 }
 
 void VisualiserFrame::OnPaint(wxPaintEvent& WXUNUSED(evt))

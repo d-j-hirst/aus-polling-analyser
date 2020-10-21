@@ -22,9 +22,9 @@ void StanModel::loadData(std::function<void(std::string)> feedback)
 		return;
 	}
 	startDate = wxInvalidDateTime;
-	partySupport.clear();
+	rawSupport.clear();
 	for (auto partyCode : partyCodeVec) {
-		auto& series = partySupport[partyCode];
+		auto& series = rawSupport[partyCode];
 		std::string filename = "python/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
 		auto file = std::ifstream(filename);
@@ -60,16 +60,21 @@ void StanModel::loadData(std::function<void(std::string)> feedback)
 	feedback("Finished loading models");
 }
 
-int StanModel::seriesCount() const
+int StanModel::rawSeriesCount() const
 {
-	return int(partySupport.size());
+	return int(rawSupport.size());
+}
+
+int StanModel::adjustedSeriesCount() const
+{
+	return int(adjustedSupport.size());
 }
 
 std::string StanModel::getTextReport() const
 {
 	std::stringstream ss;
 	ss << "Raw party support, assuming only sampling error:\n";
-	for (auto [key, series] : this->partySupport) {
+	for (auto [key, series] : this->rawSupport) {
 		ss << key << "\n";
 		ss << "1%: " << series.timePoint.back().values[1] << "\n";
 		ss << "10%: " << series.timePoint.back().values[10] << "\n";
@@ -92,13 +97,13 @@ std::string StanModel::getTextReport() const
 
 StanModel::Series const& StanModel::viewRawSeries(std::string partyCode) const
 {
-	return partySupport.at(partyCode);
+	return rawSupport.at(partyCode);
 }
 
 StanModel::Series const& StanModel::viewRawSeriesByIndex(int index) const
 {
 
-	return std::next(partySupport.begin(), index)->second;
+	return std::next(rawSupport.begin(), index)->second;
 }
 
 StanModel::Series const& StanModel::viewAdjustedSeries(std::string partyCode) const
@@ -108,13 +113,12 @@ StanModel::Series const& StanModel::viewAdjustedSeries(std::string partyCode) co
 
 StanModel::Series const& StanModel::viewAdjustedSeriesByIndex(int index) const
 {
-
 	return std::next(adjustedSupport.begin(), index)->second;
 }
 
 std::string StanModel::partyCodeByIndex(int index) const
 {
-	return std::next(partySupport.begin(), index)->first;
+	return std::next(rawSupport.begin(), index)->first;
 }
 
 void StanModel::updateAdjustedData(std::function<void(std::string)> feedback)
@@ -131,8 +135,8 @@ void StanModel::updateAdjustedData(std::function<void(std::string)> feedback)
 
 	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 		std::string partyName = partyCodeVec[partyIndex];
-		if (partySupport.count(partyName)) {
-			adjustedSupport[partyName] = partySupport[partyName];
+		if (rawSupport.count(partyName)) {
+			adjustedSupport[partyName] = rawSupport[partyName];
 			float adjustMean = 0.0f;
 			float adjustDeviation = 1.0f;
 			try {
@@ -167,5 +171,5 @@ void StanModel::updateAdjustedData(std::function<void(std::string)> feedback)
 
 StanModel::Series& StanModel::addSeries(std::string partyCode)
 {
-	return partySupport.insert({ partyCode, Series() }).first->second;
+	return rawSupport.insert({ partyCode, Series() }).first->second;
 }

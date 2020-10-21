@@ -41,7 +41,9 @@ public:
 
 	void loadData(std::function<void(std::string)> feedback = [](std::string) {});
 
-	int seriesCount() const;
+	int rawSeriesCount() const;
+
+	int adjustedSeriesCount() const;
 
 	std::string getTextReport() const;
 
@@ -62,7 +64,7 @@ private:
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
 
-	PartySupport partySupport;
+	PartySupport rawSupport;
 	PartySupport adjustedSupport;
 	std::string meanAdjustments;
 	std::string deviationAdjustments;
