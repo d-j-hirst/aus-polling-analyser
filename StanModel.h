@@ -1,7 +1,10 @@
 #pragma once
 
+#include "RandomGenerator.h"
+
 #include <array>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -26,6 +29,12 @@ public:
 
 	typedef std::map<std::string, float> SupportAdjustments;
 
+	typedef std::map<std::string, float> SupportSample;
+
+	// Used for telling the model which parties are "major" -
+	// for the purpose of 
+	typedef std::set<std::string> MajorPartyCodes;
+
 	StanModel(std::string name = "", std::string termCode = "", std::string partyCodes = "",
 		std::string meanAdjustments = "", std::string stdevAdjustments = "");
 
@@ -45,7 +54,7 @@ public:
 
 	int adjustedSeriesCount() const;
 
-	std::string getTextReport() const;
+	std::string getTextReport(MajorPartyCodes majorCodes) const;
 
 	// Views data for a series in the model corresponding to the given party
 	Series const& viewRawSeries(std::string partyCode) const;
@@ -56,6 +65,10 @@ public:
 
 	Series const& viewAdjustedSeriesByIndex(int index) const;
 
+	// Invalid date/time (default) gives
+	SupportSample generateSupportSample(MajorPartyCodes majorCodes = { "ALP","LNP","LIB","NAT","GRN","OTH" },
+		wxDateTime date = wxInvalidDateTime) const;
+
 	std::string partyCodeByIndex(int index) const;
 private:
 
@@ -63,6 +76,8 @@ private:
 
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
+
+	static RandomGenerator rng;
 
 	PartySupport rawSupport;
 	PartySupport adjustedSupport;

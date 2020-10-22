@@ -12,7 +12,6 @@
 #undef min
 #undef max
 
-
 void Simulation::run(PollingProject & project)
 {
 	latestRun.emplace(project, *this);

@@ -4,8 +4,11 @@
 
 #include <fstream>
 #include <sstream>
+#include <numeric>
 
 constexpr float OneSigma = 0.6827f;
+
+RandomGenerator StanModel::rng = RandomGenerator();
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
 	std::string meanAdjustments, std::string deviationAdjustments)
@@ -70,7 +73,7 @@ int StanModel::adjustedSeriesCount() const
 	return int(adjustedSupport.size());
 }
 
-std::string StanModel::getTextReport() const
+std::string StanModel::getTextReport(MajorPartyCodes majorCodes) const
 {
 	std::stringstream ss;
 	ss << "Raw party support, assuming only sampling error:\n";
@@ -91,6 +94,12 @@ std::string StanModel::getTextReport() const
 		ss << "50%: " << series.timePoint.back().values[50] << "\n";
 		ss << "90%: " << series.timePoint.back().values[90] << "\n";
 		ss << "99%: " << series.timePoint.back().values[99] << "\n";
+	}
+	ss << ";";
+	ss << "Vote share sample:\n";
+	auto sample = generateSupportSample(majorCodes);
+	for (auto [key, vote] : sample) {
+		ss << key << ": " << vote << "\n";
 	}
 	return ss.str();
 }
@@ -114,6 +123,37 @@ StanModel::Series const& StanModel::viewAdjustedSeries(std::string partyCode) co
 StanModel::Series const& StanModel::viewAdjustedSeriesByIndex(int index) const
 {
 	return std::next(adjustedSupport.begin(), index)->second;
+}
+
+StanModel::SupportSample StanModel::generateSupportSample(MajorPartyCodes majorCodes, wxDateTime date) const
+{
+	if (!adjustedSupport.size()) return SupportSample();
+	int seriesLength = adjustedSupport.begin()->second.timePoint.size();
+	if (!seriesLength) return SupportSample();
+	int dayOffset = adjustedSupport.begin()->second.timePoint.size() - 1;
+	if (date.IsValid()) dayOffset = std::min(dayOffset, (date - startDate).GetDays());
+	if (dayOffset < 0) dayOffset = 0;
+	SupportSample sample;
+	for (auto [key, support] : adjustedSupport) {
+		float uniform = rng.uniform(0.0, 1.0);
+		int lowerBucket = int(floor(uniform * float(Spread::Size - 1)));
+		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
+		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
+		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1];
+		float sampledVote = upperVote * upperMix + lowerVote * (1.0f - upperMix);
+		sample.insert({ key, sampledVote });
+	}
+	float sampleSum = 0.0f;
+	for (auto code : majorCodes) {
+		if (sample.count(code)) {
+			sampleSum += sample[code];
+		}
+	}
+	float sampleAdjust = 100.0f / sampleSum;
+	for (auto& vote : sample) {
+		vote.second *= sampleAdjust;
+	}
+	return sample;
 }
 
 std::string StanModel::partyCodeByIndex(int index) const

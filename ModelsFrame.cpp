@@ -238,7 +238,9 @@ void ModelsFrame::removeModel() {
 
 void ModelsFrame::displayResults() {
 	int modelIndex = modelData->GetSelectedRow();
-	std::string resultsTexts = project->models().access(project->models().indexToId(modelIndex)).getTextReport();
+	// should really 
+	StanModel::MajorPartyCodes codes = { "ALP","LNP","LIB","NAT","GRN","OTH" };
+	std::string resultsTexts = project->models().access(project->models().indexToId(modelIndex)).getTextReport(codes);
 	auto splitText = splitString(resultsTexts, ";");
 	for (auto const& text : splitText) wxMessageBox(text);
 }

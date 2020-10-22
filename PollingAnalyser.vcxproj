@@ -318,6 +318,7 @@
     <ClCompile Include="ProjectFiler.cpp" />
     <ClCompile Include="ProjectionCollection.cpp" />
     <ClCompile Include="QuickTest.cpp" />
+    <ClCompile Include="RandomGenerator.cpp" />
     <ClCompile Include="RegionCollection.cpp" />
     <ClCompile Include="ResultCoordinator.cpp" />
     <ClCompile Include="ResultsDownloader.cpp" />
@@ -383,6 +384,7 @@
     <ClInclude Include="ProjectFiler.h" />
     <ClInclude Include="ProjectionCollection.h" />
     <ClInclude Include="QuickTest.h" />
+    <ClInclude Include="RandomGenerator.h" />
     <ClInclude Include="RegionCollection.h" />
     <ClInclude Include="ResultCoordinator.h" />
     <ClInclude Include="SaveIO.h" />

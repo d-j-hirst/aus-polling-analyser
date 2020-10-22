@@ -1,6 +1,5 @@
 Polling Analyser to-do:
 -Party support adjustments
- -Option to display in trend visualiser
  -Function to sample the state of a given time point (normalised so all parties hit 100%), and test how well those samples match the adjusted values
 -TPP estimates
  -Ability to enter estimates for expected preference flow + variability in edit model dialog
