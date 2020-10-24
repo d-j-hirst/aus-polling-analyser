@@ -240,7 +240,7 @@ void ModelsFrame::displayResults() {
 	int modelIndex = modelData->GetSelectedRow();
 	// should really 
 	StanModel::MajorPartyCodes codes = { "ALP","LNP","LIB","NAT","GRN","OTH" };
-	std::string resultsTexts = project->models().access(project->models().indexToId(modelIndex)).getTextReport(codes);
+	std::string resultsTexts = project->models().access(project->models().indexToId(modelIndex)).getTextReport();
 	auto splitText = splitString(resultsTexts, ";");
 	for (auto const& text : splitText) wxMessageBox(text);
 }

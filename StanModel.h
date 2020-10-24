@@ -54,7 +54,7 @@ public:
 
 	int adjustedSeriesCount() const;
 
-	std::string getTextReport(MajorPartyCodes majorCodes) const;
+	std::string getTextReport() const;
 
 	// Views data for a series in the model corresponding to the given party
 	Series const& viewRawSeries(std::string partyCode) const;
@@ -66,10 +66,11 @@ public:
 	Series const& viewAdjustedSeriesByIndex(int index) const;
 
 	// Invalid date/time (default) gives
-	SupportSample generateSupportSample(MajorPartyCodes majorCodes = { "ALP","LNP","LIB","NAT","GRN","OTH" },
-		wxDateTime date = wxInvalidDateTime) const;
+	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
 	std::string partyCodeByIndex(int index) const;
+
+	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
 	void updateAdjustedData(std::function<void(std::string)> feedback);
@@ -79,13 +80,15 @@ private:
 
 	static RandomGenerator rng;
 
+	static MajorPartyCodes majorPartyCodes;
+
 	PartySupport rawSupport;
 	PartySupport adjustedSupport;
-	std::string meanAdjustments;
-	std::string deviationAdjustments;
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;
+	std::string meanAdjustments;
+	std::string deviationAdjustments;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 };

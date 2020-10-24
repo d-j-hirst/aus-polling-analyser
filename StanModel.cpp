@@ -8,7 +8,12 @@
 
 constexpr float OneSigma = 0.6827f;
 
+constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
+
 RandomGenerator StanModel::rng = RandomGenerator();
+
+StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
+	{ "ALP", "LNP", "LIB", "NAT", "GRN", "OTH", "OTHx" };
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
 	std::string meanAdjustments, std::string deviationAdjustments)
@@ -73,7 +78,7 @@ int StanModel::adjustedSeriesCount() const
 	return int(adjustedSupport.size());
 }
 
-std::string StanModel::getTextReport(MajorPartyCodes majorCodes) const
+std::string StanModel::getTextReport() const
 {
 	std::stringstream ss;
 	ss << "Raw party support, assuming only sampling error:\n";
@@ -97,7 +102,7 @@ std::string StanModel::getTextReport(MajorPartyCodes majorCodes) const
 	}
 	ss << ";";
 	ss << "Vote share sample:\n";
-	auto sample = generateSupportSample(majorCodes);
+	auto sample = generateSupportSample();
 	for (auto [key, vote] : sample) {
 		ss << key << ": " << vote << "\n";
 	}
@@ -125,7 +130,7 @@ StanModel::Series const& StanModel::viewAdjustedSeriesByIndex(int index) const
 	return std::next(adjustedSupport.begin(), index)->second;
 }
 
-StanModel::SupportSample StanModel::generateSupportSample(MajorPartyCodes majorCodes, wxDateTime date) const
+StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date) const
 {
 	if (!adjustedSupport.size()) return SupportSample();
 	int seriesLength = adjustedSupport.begin()->second.timePoint.size();
@@ -135,6 +140,7 @@ StanModel::SupportSample StanModel::generateSupportSample(MajorPartyCodes majorC
 	if (dayOffset < 0) dayOffset = 0;
 	SupportSample sample;
 	for (auto [key, support] : adjustedSupport) {
+		if (key == "OTH") continue; // only include the "OTHx" unnamed 
 		float uniform = rng.uniform(0.0, 1.0);
 		int lowerBucket = int(floor(uniform * float(Spread::Size - 1)));
 		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
@@ -143,12 +149,8 @@ StanModel::SupportSample StanModel::generateSupportSample(MajorPartyCodes majorC
 		float sampledVote = upperVote * upperMix + lowerVote * (1.0f - upperMix);
 		sample.insert({ key, sampledVote });
 	}
-	float sampleSum = 0.0f;
-	for (auto code : majorCodes) {
-		if (sample.count(code)) {
-			sampleSum += sample[code];
-		}
-	}
+	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
+		[](float a, decltype(sample)::value_type b) {return a + b.second; });
 	float sampleAdjust = 100.0f / sampleSum;
 	for (auto& vote : sample) {
 		vote.second *= sampleAdjust;
@@ -195,7 +197,7 @@ void StanModel::updateAdjustedData(std::function<void(std::string)> feedback)
 				}
 				// Adjust transformed party support values by a set amount
 				// and also according to its distance from the mean
-				float meanValue = timePoint.values[timePoint.Size / 2];
+				float meanValue = timePoint.values[MedianSpreadValue];
 				for (auto& value : timePoint.values) {
 					float deviation = (value - meanValue);
 					value = meanValue + adjustMean + deviation * adjustDeviation;
@@ -203,6 +205,22 @@ void StanModel::updateAdjustedData(std::function<void(std::string)> feedback)
 				// Transform back into a regular vote share
 				for (auto& value : timePoint.values) {
 					value = detransformVoteShare(value);
+				}
+			}
+		}
+	}
+
+	// Create a series for estimated others, excluding
+	if (adjustedSupport.count("OTH")) {
+		adjustedSupport["OTHx"] = adjustedSupport["OTH"];
+		for (auto const& [key, series] : adjustedSupport) {
+			if (key != "OTH" && key != "OTHx" && !majorPartyCodes.count(key)) {
+				for (int time = 0; time < int(series.timePoint.size()); ++time) {
+					float partyMedian = series.timePoint[time].values[MedianSpreadValue];
+					for (float& value : adjustedSupport["OTHx"].timePoint[time].values) {
+						// Should remain with at least a small, ascending sequence
+						value = std::max(value - partyMedian, 0.1f + value * 0.01f);
+					}
 				}
 			}
 		}

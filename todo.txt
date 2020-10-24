@@ -1,6 +1,4 @@
 Polling Analyser to-do:
--Party support adjustments
- -Function to sample the state of a given time point (normalised so all parties hit 100%), and test how well those samples match the adjusted values
 -TPP estimates
  -Ability to enter estimates for expected preference flow + variability in edit model dialog
  -Have this be used to create a TPP estimate display series (for visual display only; the simulated value will be done separately)
