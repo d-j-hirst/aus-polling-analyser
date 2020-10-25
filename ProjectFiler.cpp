@@ -10,6 +10,7 @@
 // Version 3: Add new model seconds & data
 // Version 4: "Include in others" party option
 // Version 5: Mean/deviation adjustments
+// Version 6: Preference flow, tpp series, timepoint expectations
 constexpr int VersionNum = 5;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
@@ -401,6 +402,17 @@ void ProjectFiler::loadEvents(SaveFileInput& saveInput, [[maybe_unused]] int ver
 	}
 }
 
+void saveSeries(SaveFileOutput& saveOutput, StanModel::Series const& series)
+{
+	saveOutput.outputAsType<int32_t>(series.timePoint.size());
+	for (auto day : series.timePoint) {
+		saveOutput.outputAsType<int32_t>(day.values.size());
+		for (auto spreadVal : day.values) {
+			saveOutput << spreadVal;
+		}
+	}
+}
+
 void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 {
 	saveOutput.outputAsType<int32_t>(project.modelCollection.count());
@@ -415,25 +427,32 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
 		for (auto [seriesKey, series] : thisModel.rawSupport) {
 			saveOutput << seriesKey;
-			saveOutput.outputAsType<int32_t>(series.timePoint.size());
-			for (auto day : series.timePoint) {
-				saveOutput.outputAsType<int32_t>(day.values.size());
-				for (auto spreadVal : day.values) {
-					saveOutput << spreadVal;
-				}
-			}
+			saveSeries(saveOutput, series);
 		}
+		saveOutput.outputAsType<uint32_t>(thisModel.adjustedSupport.size());
 		for (auto [seriesKey, series] : thisModel.adjustedSupport) {
 			saveOutput << seriesKey;
-			saveOutput.outputAsType<int32_t>(series.timePoint.size());
-			for (auto day : series.timePoint) {
-				saveOutput.outputAsType<int32_t>(day.values.size());
-				for (auto spreadVal : day.values) {
-					saveOutput << spreadVal;
-				}
-			}
+			saveSeries(saveOutput, series);
 		}
 	}
+}
+
+StanModel::Series loadSeries(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	StanModel::Series thisSeries;
+	size_t numTimePoints = saveInput.extract<uint32_t>();
+	for (size_t timePointIndex = 0; timePointIndex < numTimePoints; ++timePointIndex) {
+		StanModel::Spread spread;
+		size_t numValues = saveInput.extract<uint32_t>();
+		for (size_t valueIndex = 0; valueIndex < numValues; ++valueIndex) {
+			float spreadVal = saveInput.extract<float>();
+			if (valueIndex < StanModel::Spread::Size) {
+				spread.values[valueIndex] = spreadVal;
+			}
+		}
+		thisSeries.timePoint.push_back(spread);
+	}
+	return thisSeries;
 }
 
 void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
@@ -463,38 +482,15 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());
 			size_t numSeries = saveInput.extract<uint32_t>();
 			for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {
-				StanModel::Series thisSeries;
 				std::string seriesKey = saveInput.extract<std::string>();
-				size_t numTimePoints = saveInput.extract<uint32_t>();
-				for (size_t timePointIndex = 0; timePointIndex < numTimePoints; ++timePointIndex) {
-					StanModel::Spread spread;
-					size_t numValues = saveInput.extract<uint32_t>();
-					for (size_t valueIndex = 0; valueIndex < numValues; ++valueIndex) {
-						float spreadVal = saveInput.extract<float>();
-						if (valueIndex < StanModel::Spread::Size) {
-							spread.values[valueIndex] = spreadVal;
-						}
-					}
-					thisSeries.timePoint.push_back(spread);
-				}
+				auto thisSeries = loadSeries(saveInput, versionNum);
 				thisModel.rawSupport.insert({ seriesKey, thisSeries });
 			}
 			if (versionNum >= 5) {
+				numSeries = saveInput.extract<uint32_t>();
 				for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {
-					StanModel::Series thisSeries;
 					std::string seriesKey = saveInput.extract<std::string>();
-					size_t numTimePoints = saveInput.extract<uint32_t>();
-					for (size_t timePointIndex = 0; timePointIndex < numTimePoints; ++timePointIndex) {
-						StanModel::Spread spread;
-						size_t numValues = saveInput.extract<uint32_t>();
-						for (size_t valueIndex = 0; valueIndex < numValues; ++valueIndex) {
-							float spreadVal = saveInput.extract<float>();
-							if (valueIndex < StanModel::Spread::Size) {
-								spread.values[valueIndex] = spreadVal;
-							}
-						}
-						thisSeries.timePoint.push_back(spread);
-					}
+					auto thisSeries = loadSeries(saveInput, versionNum);
 					thisModel.adjustedSupport.insert({ seriesKey, thisSeries });
 				}
 			}

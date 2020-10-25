@@ -216,11 +216,14 @@ void VisualiserFrame::refreshPartyChoice() {
 	if (selectedModel >= 0 && selectedModel < project->models().count()) {
 		auto thisModel = project->models().viewByIndex(selectedModel);
 		for (int partyIndex = 0; partyIndex < thisModel.rawSeriesCount(); ++partyIndex) {
-			std::string thisPartyString = thisModel.partyCodeByIndex(partyIndex);
+			std::string thisPartyString = thisModel.rawPartyCodeByIndex(partyIndex);
 			if (selectedParty == partyIndex) {
 				partyBoxString = thisPartyString;
 			}
 			partyArray.push_back(thisPartyString);
+		}
+		if (thisModel.viewTPPSeries().timePoint.size()) {
+			partyArray.push_back(project->parties().begin()->second.abbreviation + "TPP");
 		}
 	}
 
@@ -386,7 +389,7 @@ void VisualiserFrame::determineSelectedPartyIndex()
 	if (selectedModel >= 0 && selectedModel < project->models().count()) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
 		if (selectedParty >= 0 && selectedParty < model.rawSeriesCount()) {
-			std::string code = model.partyCodeByIndex(selectedParty);
+			std::string code = model.rawPartyCodeByIndex(selectedParty);
 			if (code == "OTH") {
 				selectedPartyIndex = PartyCollection::MaxParties;
 			}
@@ -730,7 +733,7 @@ int VisualiserFrame::getYFromVote(float thisVote) {
 
 float VisualiserFrame::getVoteFromPoll(Poll const& poll)
 {
-	if (selectedPartyIndex == -1) {
+	if (selectedPartyIndex == -1 || selectedPartyIndex > PartyCollection::MaxParties) {
 		return poll.getBest2pp();
 	}
 	else if (selectedPartyIndex == PartyCollection::MaxParties) {
@@ -905,13 +908,19 @@ void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
 
 StanModel::Series const& VisualiserFrame::viewSeriesFromModel(StanModel const& model)
 {
-	if (modelDisplayMode == ModelDisplayMode::Adjusted) {
+	if (modelDisplayMode == ModelDisplayMode::Adjusted && model.adjustedSeriesCount()) {
 		// default to raw series if the adjusted series haven'y been generated
-		if (model.adjustedSeriesCount() > selectedParty) {
+		if (selectedParty < model.adjustedSeriesCount() - 1) {
 			return model.viewAdjustedSeriesByIndex(selectedParty);
 		}
+		else {
+			return model.viewTPPSeries();
+		}
 	}
-	return model.viewRawSeriesByIndex(selectedParty);
+	if (model.rawSeriesCount() > selectedParty) {
+		return model.viewRawSeriesByIndex(selectedParty);
+	}
+	return model.viewTPPSeries();
 }
 
 void VisualiserFrame::OnPaint(wxPaintEvent& WXUNUSED(evt))

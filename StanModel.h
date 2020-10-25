@@ -68,15 +68,20 @@ public:
 
 	Series const& viewAdjustedSeriesByIndex(int index) const;
 
-	// Invalid date/time (default) gives
+	Series const& viewTPPSeries() const;
+
+	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime, bool includeTpp = false) const;
 
-	std::string partyCodeByIndex(int index) const;
+	std::string rawPartyCodeByIndex(int index) const;
 
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
 	void updateAdjustedData(FeedbackFunc feedback);
+
+	// Ensure that adjusted support for minor parties does not exceed the total aggregate values
+	void limitMinorParties(FeedbackFunc feedback);
 
 	void generateTppSeries(FeedbackFunc feedback);
 

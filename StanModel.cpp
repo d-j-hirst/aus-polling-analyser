@@ -11,10 +11,13 @@ constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
 
+const std::string OthersCode = "OTH";
+const std::string ExclusiveOthersCode = "xOTH";
+
 RandomGenerator StanModel::rng = RandomGenerator();
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
-	{ "ALP", "LNP", "LIB", "NAT", "GRN", "OTH", "OTHx" };
+	{ "ALP", "LNP", "LIB", "NAT", "GRN", OthersCode, ExclusiveOthersCode };
 
 void calculateExpectation(StanModel::Spread& spread) {
 	float sum = std::accumulate(spread.values.begin(), spread.values.end(), 0.0f,
@@ -68,7 +71,7 @@ void StanModel::loadData(FeedbackFunc feedback)
 			}
 		} while (true);
 	}
-	// *** create series with adjustments
+	limitMinorParties(feedback);
 	updateAdjustedData(feedback);
 	generateTppSeries(feedback);
 	updateValidationData(feedback);
@@ -160,6 +163,11 @@ StanModel::Series const& StanModel::viewAdjustedSeriesByIndex(int index) const
 	return std::next(adjustedSupport.begin(), index)->second;
 }
 
+StanModel::Series const& StanModel::viewTPPSeries() const
+{
+	return tppSupport;
+}
+
 StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date, bool includeTpp) const
 {
 	if (!adjustedSupport.size()) return SupportSample();
@@ -170,7 +178,7 @@ StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date, bool 
 	if (dayOffset < 0) dayOffset = 0;
 	SupportSample sample;
 	for (auto [key, support] : adjustedSupport) {
-		if (key == "OTH") continue; // only include the "OTHx" unnamed 
+		if (key == OthersCode) continue; // only include the "xOTH" unnamed 
 		float uniform = rng.uniform(0.0, 1.0);
 		int lowerBucket = int(floor(uniform * float(Spread::Size - 1)));
 		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
@@ -189,7 +197,7 @@ StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date, bool 
 	return sample;
 }
 
-std::string StanModel::partyCodeByIndex(int index) const
+std::string StanModel::rawPartyCodeByIndex(int index) const
 {
 	return std::next(rawSupport.begin(), index)->first;
 }
@@ -242,14 +250,14 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 		}
 	}
 
-	// Create a series for estimated others, excluding
-	if (adjustedSupport.count("OTH")) {
-		adjustedSupport["OTHx"] = adjustedSupport["OTH"];
+	// Create a series for estimated others, excluding "others" parties that have their own series
+	if (adjustedSupport.count(OthersCode)) {
+		adjustedSupport[ExclusiveOthersCode] = adjustedSupport[OthersCode];
 		for (auto const& [key, series] : adjustedSupport) {
-			if (key != "OTH" && key != "OTHx" && !majorPartyCodes.count(key)) {
+			if (key != OthersCode && key != ExclusiveOthersCode && !majorPartyCodes.count(key)) {
 				for (int time = 0; time < int(series.timePoint.size()); ++time) {
 					float partyMedian = series.timePoint[time].values[MedianSpreadValue];
-					for (float& value : adjustedSupport["OTHx"].timePoint[time].values) {
+					for (float& value : adjustedSupport[ExclusiveOthersCode].timePoint[time].values) {
 						// Should remain with at least a small, ascending sequence
 						value = std::max(value - partyMedian, 0.1f + value * 0.01f);
 					}
@@ -258,6 +266,8 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 		}
 	}
 
+	limitMinorParties(feedback);
+
 	for (auto& [key, party] : adjustedSupport) {
 		for (auto& time : party.timePoint) {
 			calculateExpectation(time);
@@ -265,9 +275,24 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 	}
 }
 
+void StanModel::limitMinorParties(FeedbackFunc feedback)
+{
+	for (auto& [key, series] : adjustedSupport) {
+		if (!majorPartyCodes.count(key)) {
+			for (int time = 0; time < int(series.timePoint.size()); ++time) {
+				for (int value = 0; value < Spread::Size; ++value) {
+					series.timePoint[time].values[value] = std::min(
+						series.timePoint[time].values[value],
+						adjustedSupport[OthersCode].timePoint[time].values[value]);
+				}
+			}
+		}
+	}
+}
+
 void StanModel::generateTppSeries(FeedbackFunc feedback)
 {
-	constexpr int NumIterations = 1000;
+	constexpr static int NumIterations = 5000;
 	tppSupport = Series(); // do this first as it should not be left with previous data
 	auto preferenceFlowVec = splitString(preferenceFlow, ",");
 	auto partyCodeVec = splitString(partyCodes, ",");
@@ -285,7 +310,7 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 		std::string partyName = partyCodeVec[partyIndex];
 		if (adjustedSupport.count(partyName)) {
-			if (partyName == "OTH") partyName = "OTHx";
+			if (partyName == OthersCode) partyName = ExclusiveOthersCode;
 			try {
 				preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
 			}
@@ -297,29 +322,45 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	}
 
 	tppSupport.timePoint.resize(timeCount);
-	for (int time = 0; time < timeCount; ++time) {
-		wxDateTime thisDate = startDate;
-		thisDate.Add(wxDateSpan(0, 0, 0, time));
-		std::array<float, NumIterations> samples;
-		for (int iteration = 0; iteration < NumIterations; ++iteration) {
-			auto fpSample = generateSupportSample(thisDate);
-			float tpp = 0.0f;
-			for (auto [key, support] : fpSample) {
-				if (!preferenceFlowMap.count(key)) {
-					feedback("Warning: Invalid preference flow for party " + key + ", aborting two-party-preferred series generation");
-					tppSupport = Series();
-					return;
+	//// Set up calculation function
+	typedef std::pair<int, int> Bounds;
+	auto determineTpp = [&](Bounds b) {
+		for (int time = b.first; time < b.second; ++time) {
+			wxDateTime thisDate = startDate;
+			thisDate.Add(wxDateSpan(0, 0, 0, time));
+			std::array<float, NumIterations> samples;
+			for (int iteration = 0; iteration < NumIterations; ++iteration) {
+				auto fpSample = generateSupportSample(thisDate);
+				float tpp = 0.0f;
+				for (auto [key, support] : fpSample) {
+					if (!preferenceFlowMap.count(key)) {
+						feedback("Warning: Invalid preference flow for party " + key + ", aborting two-party-preferred series generation");
+						tppSupport = Series();
+						return;
+					}
+					tpp += support * preferenceFlowMap[key];
 				}
-				tpp += support * preferenceFlowMap[key];
+				samples[iteration] = tpp;
 			}
-			samples[iteration] = tpp;
+			std::sort(samples.begin(), samples.end());
+			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
+				tppSupport.timePoint[time].values[percentile] = samples[sampleIndex];
+			}
+			calculateExpectation(tppSupport.timePoint[time]);
 		}
-		std::sort(samples.begin(), samples.end());
-		for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-			int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
-			tppSupport.timePoint[time].values[percentile] = samples[sampleIndex];
-		}
-		calculateExpectation(tppSupport.timePoint[time]);
+	};
+
+	// Perform multi-threaded validation for each time point
+	constexpr int NumThreads = 8;
+	const int TimePointsPerThread = timeCount / NumThreads + 1;
+	std::array<std::thread, NumThreads> threadArray;
+	for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
+		Bounds bounds = { threadIndex * TimePointsPerThread, std::min((threadIndex + 1) * TimePointsPerThread, timeCount) };
+		threadArray[threadIndex] = std::thread([&, bounds]() {determineTpp(bounds); });
+	}
+	for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
+		threadArray[threadIndex].join();
 	}
 }
 
