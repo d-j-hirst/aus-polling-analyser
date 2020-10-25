@@ -18,7 +18,8 @@ enum ControlId
 	TermCode,
 	PartyCodes,
 	MeanAdjustments,
-	DeviationAdjustments
+	DeviationAdjustments,
+	PreferenceFlow
 };
 
 EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
@@ -37,7 +38,7 @@ void EditModelFrame::createControls(int & y)
 	createPartyCodesInput(y);
 	createMeanAdjustmentsInput(y);
 	createDeviationAdjustmentsInput(y);
-
+	createPreferenceFlowInput(y);
 	createOkCancelButtons(y);
 }
 
@@ -76,6 +77,14 @@ void EditModelFrame::createDeviationAdjustmentsInput(int& y)
 	deviationAdjustmentsInput.reset(new TextInput(this, ControlId::DeviationAdjustments, "Deviation Adjustments:", 
 		model.deviationAdjustments, wxPoint(2, y), deviationAdjustmentsCallback));
 	y += deviationAdjustmentsInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createPreferenceFlowInput(int& y)
+{
+	auto preferenceFlowCallback = [this](std::string s) -> void {model.preferenceFlow = s; };
+	preferenceFlowInput.reset(new TextInput(this, ControlId::PreferenceFlow, "Preference Flow (%):",
+		model.preferenceFlow, wxPoint(2, y), preferenceFlowCallback));
+	y += preferenceFlowInput->Height + ControlPadding;
 }
 
 

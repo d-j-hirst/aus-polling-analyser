@@ -19,6 +19,7 @@ public:
 	struct Spread {
 		constexpr static size_t Size = 101; // must be odd so that there is a single median value
 		std::array<float, Size> values;
+		float expectation;
 	};
 
 	struct Series {
@@ -27,9 +28,11 @@ public:
 
 	typedef std::map<std::string, Series> PartySupport;
 
-	typedef std::map<std::string, float> SupportAdjustments;
+	typedef std::map<std::string, std::vector<float>> SupportAdjustments;
 
 	typedef std::map<std::string, float> SupportSample;
+
+	typedef std::function<void(std::string)> FeedbackFunc;
 
 	// Used for telling the model which parties are "major" -
 	// for the purpose of 
@@ -48,7 +51,7 @@ public:
 
 	wxDateTime getLastUpdatedDate() const { return lastUpdatedDate; }
 
-	void loadData(std::function<void(std::string)> feedback = [](std::string) {});
+	void loadData(FeedbackFunc feedback = [](std::string) {});
 
 	int rawSeriesCount() const;
 
@@ -66,14 +69,18 @@ public:
 	Series const& viewAdjustedSeriesByIndex(int index) const;
 
 	// Invalid date/time (default) gives
-	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
+	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime, bool includeTpp = false) const;
 
 	std::string partyCodeByIndex(int index) const;
 
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
-	void updateAdjustedData(std::function<void(std::string)> feedback);
+	void updateAdjustedData(FeedbackFunc feedback);
+
+	void generateTppSeries(FeedbackFunc feedback);
+
+	void updateValidationData(FeedbackFunc feedback);
 
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
@@ -84,11 +91,15 @@ private:
 
 	PartySupport rawSupport;
 	PartySupport adjustedSupport;
+	Series tppSupport; // For whatever party is first in the user-defined party list
+	PartySupport validationSupport;
+	SupportAdjustments supportAdjustments; // presently unused
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;
 	std::string meanAdjustments;
 	std::string deviationAdjustments;
+	std::string preferenceFlow;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 };

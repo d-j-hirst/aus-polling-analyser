@@ -47,6 +47,7 @@ private:
 	void createPartyCodesInput(int& y);
 	void createMeanAdjustmentsInput(int& y);
 	void createDeviationAdjustmentsInput(int& y);
+	void createPreferenceFlowInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -63,6 +64,7 @@ private:
 	std::unique_ptr<TextInput> partyCodesInput;
 	std::unique_ptr<TextInput> meanAdjustmentsInput;
 	std::unique_ptr<TextInput> deviationAdjustmentsInput;
+	std::unique_ptr<TextInput> preferenceFlowInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;
