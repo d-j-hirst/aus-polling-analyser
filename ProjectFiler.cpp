@@ -11,7 +11,7 @@
 // Version 4: "Include in others" party option
 // Version 5: Mean/deviation adjustments
 // Version 6: Preference flow, tpp series, timepoint expectations
-constexpr int VersionNum = 5;
+constexpr int VersionNum = 6;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -410,6 +410,7 @@ void saveSeries(SaveFileOutput& saveOutput, StanModel::Series const& series)
 		for (auto spreadVal : day.values) {
 			saveOutput << spreadVal;
 		}
+		saveOutput << day.expectation;
 	}
 }
 
@@ -422,6 +423,7 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.partyCodes;
 		saveOutput << thisModel.meanAdjustments;
 		saveOutput << thisModel.deviationAdjustments;
+		saveOutput << thisModel.preferenceFlow;
 		saveOutput << thisModel.startDate.GetJulianDayNumber();
 		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
 		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
@@ -434,6 +436,7 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 			saveOutput << seriesKey;
 			saveSeries(saveOutput, series);
 		}
+		saveSeries(saveOutput, thisModel.tppSupport);
 	}
 }
 
@@ -449,6 +452,9 @@ StanModel::Series loadSeries(SaveFileInput& saveInput, [[maybe_unused]] int vers
 			if (valueIndex < StanModel::Spread::Size) {
 				spread.values[valueIndex] = spreadVal;
 			}
+		}
+		if (versionNum >= 6) {
+			saveInput >> spread.expectation;
 		}
 		thisSeries.timePoint.push_back(spread);
 	}
@@ -478,6 +484,9 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 				saveInput >> thisModel.meanAdjustments;
 				saveInput >> thisModel.deviationAdjustments;
 			}
+			if (versionNum >= 6) {
+				saveInput >> thisModel.preferenceFlow;
+			}
 			thisModel.startDate = wxDateTime(saveInput.extract<double>());
 			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());
 			size_t numSeries = saveInput.extract<uint32_t>();
@@ -493,6 +502,9 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 					auto thisSeries = loadSeries(saveInput, versionNum);
 					thisModel.adjustedSupport.insert({ seriesKey, thisSeries });
 				}
+			}
+			if (versionNum >= 6) {
+				thisModel.tppSupport = loadSeries(saveInput, versionNum);
 			}
 		}
 		project.modelCollection.add(thisModel);
