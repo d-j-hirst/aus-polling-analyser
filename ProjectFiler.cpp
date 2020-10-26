@@ -11,7 +11,8 @@
 // Version 4: "Include in others" party option
 // Version 5: Mean/deviation adjustments
 // Version 6: Preference flow, tpp series, timepoint expectations
-constexpr int VersionNum = 6;
+// Version 7: Preference deviations/samples
+constexpr int VersionNum = 7;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -424,6 +425,8 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.meanAdjustments;
 		saveOutput << thisModel.deviationAdjustments;
 		saveOutput << thisModel.preferenceFlow;
+		saveOutput << thisModel.preferenceDeviation;
+		saveOutput << thisModel.preferenceSamples;
 		saveOutput << thisModel.startDate.GetJulianDayNumber();
 		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
 		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
@@ -486,6 +489,10 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			}
 			if (versionNum >= 6) {
 				saveInput >> thisModel.preferenceFlow;
+			}
+			if (versionNum >= 7) {
+				saveInput >> thisModel.preferenceDeviation;
+				saveInput >> thisModel.preferenceSamples;
 			}
 			thisModel.startDate = wxDateTime(saveInput.extract<double>());
 			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());

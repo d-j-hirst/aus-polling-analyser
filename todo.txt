@@ -1,7 +1,6 @@
 Polling Analyser to-do:
 -TPP estimates
- -Ability to enter estimates for expected preference flow + variability in edit model dialog
- -Have this be used to create a TPP estimate display series (for visual display only; the simulated value will be done separately)
+ -Add variability input and effects for TPP trend calculation
 -Projections
  -Overhaul to take a sample from the last day of the adjusted party support then project that to election in similar manner to before (i.e. random walk with some mean reversion)
  -Method to take a sample from a given time point in the projection

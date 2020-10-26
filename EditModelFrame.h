@@ -48,6 +48,8 @@ private:
 	void createMeanAdjustmentsInput(int& y);
 	void createDeviationAdjustmentsInput(int& y);
 	void createPreferenceFlowInput(int& y);
+	void createPreferenceDeviationInput(int& y);
+	void createPreferenceSamplesInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -65,6 +67,8 @@ private:
 	std::unique_ptr<TextInput> meanAdjustmentsInput;
 	std::unique_ptr<TextInput> deviationAdjustmentsInput;
 	std::unique_ptr<TextInput> preferenceFlowInput;
+	std::unique_ptr<TextInput> preferenceDeviationInput;
+	std::unique_ptr<TextInput> preferenceSamplesInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

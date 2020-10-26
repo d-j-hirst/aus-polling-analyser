@@ -19,7 +19,9 @@ enum ControlId
 	PartyCodes,
 	MeanAdjustments,
 	DeviationAdjustments,
-	PreferenceFlow
+	PreferenceFlow,
+	PreferenceDeviation,
+	PreferenceSamples
 };
 
 EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
@@ -39,6 +41,8 @@ void EditModelFrame::createControls(int & y)
 	createMeanAdjustmentsInput(y);
 	createDeviationAdjustmentsInput(y);
 	createPreferenceFlowInput(y);
+	createPreferenceDeviationInput(y);
+	createPreferenceSamplesInput(y);
 	createOkCancelButtons(y);
 }
 
@@ -85,6 +89,22 @@ void EditModelFrame::createPreferenceFlowInput(int& y)
 	preferenceFlowInput.reset(new TextInput(this, ControlId::PreferenceFlow, "Preference Flow (%):",
 		model.preferenceFlow, wxPoint(2, y), preferenceFlowCallback));
 	y += preferenceFlowInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createPreferenceDeviationInput(int& y)
+{
+	auto preferenceDeviationCallback = [this](std::string s) -> void {model.preferenceDeviation = s; };
+	preferenceDeviationInput.reset(new TextInput(this, ControlId::PreferenceDeviation, "Preference Deviation (%):",
+		model.preferenceDeviation, wxPoint(2, y), preferenceDeviationCallback));
+	y += preferenceDeviationInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createPreferenceSamplesInput(int& y)
+{
+	auto preferenceSamplesCallback = [this](std::string s) -> void {model.preferenceSamples = s; };
+	preferenceSamplesInput.reset(new TextInput(this, ControlId::PreferenceSamples, "Preference Samples:",
+		model.preferenceSamples, wxPoint(2, y), preferenceSamplesCallback));
+	y += preferenceSamplesInput->Height + ControlPadding;
 }
 
 

@@ -295,8 +295,12 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	constexpr static int NumIterations = 5000;
 	tppSupport = Series(); // do this first as it should not be left with previous data
 	auto preferenceFlowVec = splitString(preferenceFlow, ",");
+	auto preferenceDeviationVec = splitString(preferenceDeviation, ",");
+	auto preferenceSamplesVec = splitString(preferenceSamples, ",");
 	auto partyCodeVec = splitString(partyCodes, ",");
-	bool validSizes = preferenceFlowVec.size() == partyCodeVec.size();
+	bool validSizes = preferenceFlowVec.size() == partyCodeVec.size()
+		&& preferenceDeviationVec.size() == partyCodeVec.size()
+		&& preferenceSamplesVec.size() == partyCodeVec.size();
 	if (!validSizes) {
 		feedback("Warning: ");
 		return;
@@ -307,12 +311,16 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	}
 	const int timeCount = adjustedSupport.begin()->second.timePoint.size();
 	std::map<std::string, float> preferenceFlowMap;
+	std::map<std::string, float> preferenceDeviationMap;
+	std::map<std::string, int> preferenceSamplesMap;
 	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 		std::string partyName = partyCodeVec[partyIndex];
 		if (adjustedSupport.count(partyName)) {
 			if (partyName == OthersCode) partyName = ExclusiveOthersCode;
 			try {
 				preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
+				preferenceDeviationMap[partyName] = std::clamp(std::stof(preferenceDeviationVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
+				preferenceSamplesMap[partyName] = std::max(std::stoi(preferenceSamplesVec[partyIndex]), 0);
 			}
 			catch (std::invalid_argument) {
 				feedback("Warning: Invalid preference flow for party " + partyName + ", aborting two-party-preferred series generation");
@@ -322,7 +330,7 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	}
 
 	tppSupport.timePoint.resize(timeCount);
-	//// Set up calculation function
+	// Set up calculation function
 	typedef std::pair<int, int> Bounds;
 	auto determineTpp = [&](Bounds b) {
 		for (int time = b.first; time < b.second; ++time) {
@@ -333,12 +341,19 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 				auto fpSample = generateSupportSample(thisDate);
 				float tpp = 0.0f;
 				for (auto [key, support] : fpSample) {
-					if (!preferenceFlowMap.count(key)) {
+					if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) {
 						feedback("Warning: Invalid preference flow for party " + key + ", aborting two-party-preferred series generation");
 						tppSupport = Series();
 						return;
 					}
-					tpp += support * preferenceFlowMap[key];
+					float flow = preferenceFlowMap[key];
+					float deviation = preferenceDeviationMap[key];
+					int historicalSamples = preferenceSamplesMap[key];
+					float randomisedFlow = (historicalSamples >= 2 
+						? rng.t_dist(historicalSamples - 1, flow, deviation)
+						: flow);
+					randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+					tpp += support * randomisedFlow;
 				}
 				samples[iteration] = tpp;
 			}

@@ -105,6 +105,8 @@ private:
 	std::string meanAdjustments;
 	std::string deviationAdjustments;
 	std::string preferenceFlow;
+	std::string preferenceDeviation;
+	std::string preferenceSamples;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 };
