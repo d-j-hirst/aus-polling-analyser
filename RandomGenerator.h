@@ -5,7 +5,7 @@
 class RandomGenerator {
 public:
 	RandomGenerator() {
-		gen.seed(rd());
+		randomise();
 	}
 
 	template<typename T,
@@ -25,6 +25,10 @@ public:
 		T t_dist(U df, T mean = T(0.0), T sd = T(1.0)) {
 		return std::student_t_distribution<T>(df)(gen) * sd + mean;
 	}
+
+	void randomise() { gen.seed(rd()); }
+
+	void setSeed(int seed) { gen.seed(seed); }
 
 private:
 	static std::random_device rd;
