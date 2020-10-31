@@ -53,7 +53,7 @@ public:
 	// Removes the projection with index "projectionIndex".
 	void remove(Projection::Id id);
 
-	void run(Projection::Id id);
+	void run(Projection::Id id, Projection::FeedbackFunc feedback = [](std::string) {});
 
 	void setAsNowCast(Projection::Id id);
 

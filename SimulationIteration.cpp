@@ -51,7 +51,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	run.partyWins = std::vector<int>(project.parties().count());
 
 	// First, randomly determine the national swing for this particular simulation
-	run.iterationOverallSwing = std::normal_distribution<float>(run.pollOverallSwing, run.pollOverallStdDev)(gen);
+	run.iterationOverallSwing = project.projections().view(sim.settings.baseProjection).generateTppSample() - sim.settings.prevElection2pp;
 }
 
 void SimulationIteration::determineIterationOverallSwing()
@@ -275,11 +275,11 @@ void SimulationIteration::assignSupportsPartyWins()
 	run.partySupport = { run.partyWins[0], run.partyWins[1] };
 	for (int partyNum = 2; partyNum < int(run.partyWins.size()); ++partyNum) {
 		Party const& thisParty = project.parties().viewByIndex(partyNum);
-		if (thisParty.supportsParty == Party::SupportsParty::One) {
-			run.partySupport[0] += run.partyWins[partyNum];
+		if (thisParty.relationType == Party::RelationType::IsPartOf && thisParty.relationTarget < 2) {
+			run.partyWins[thisParty.relationTarget] += run.partyWins[partyNum];
 		}
-		else if (thisParty.supportsParty == Party::SupportsParty::Two) {
-			run.partySupport[1] += run.partyWins[partyNum];
+		if (thisParty.relationType == Party::RelationType::Supports && thisParty.relationTarget < 2) {
+			run.partySupport[thisParty.relationTarget] += run.partyWins[partyNum];
 		}
 	}
 }

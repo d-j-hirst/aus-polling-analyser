@@ -31,7 +31,7 @@ EditProjectionFrame::EditProjectionFrame(Function function, OkCallback callback,
 	callback(callback), models(models), projectionSettings(projectionSettings)
 {
 	// If a model has not been specified it should default to the first.
-	if (this->projectionSettings.baseModel == Model::InvalidId) this->projectionSettings.baseModel = models.indexToId(0);
+	if (this->projectionSettings.baseModel == ModelCollection::InvalidId) this->projectionSettings.baseModel = models.indexToId(0);
 
 	int currentY = ControlPadding;
 	createControls(currentY);
@@ -44,10 +44,6 @@ void EditProjectionFrame::createControls(int & y)
 	createModelInput(y);
 	createEndDateInput(y);
 	createNumIterationsInput(y);
-	createVoteLossInput(y);
-	createDailyChangeInput(y);
-	createInitialChangeInput(y);
-	createNumElectionsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -91,42 +87,6 @@ void EditProjectionFrame::createNumIterationsInput(int & y)
 	numIterationsInput.reset(new IntInput(this, ControlId::NumIterations, "Number of Iterations:", projectionSettings.numIterations,
 		wxPoint(2, y), numIterationsCallback, numIterationsValidator));
 	y += numIterationsInput->Height + ControlPadding;
-}
-
-void EditProjectionFrame::createVoteLossInput(int & y)
-{
-	auto voteLossCallback = [this](float f) -> void {projectionSettings.leaderVoteDecay = f; };
-	auto voteLossValidator = [](float f) {return std::clamp(f, 0.0f, 1.0f); };
-	voteLossInput.reset(new FloatInput(this, ControlId::VoteLoss, "Leading party vote decay:", projectionSettings.leaderVoteDecay,
-		wxPoint(2, y), voteLossCallback, voteLossValidator));
-	y += voteLossInput->Height + ControlPadding;
-}
-
-void EditProjectionFrame::createDailyChangeInput(int & y)
-{
-	auto dailyChangeCallback = [this](float f) -> void {projectionSettings.dailyChange = f; };
-	auto dailyChangeValidator = [](float f) {return std::max(f, 0.0f); };
-	dailyChangeInput.reset(new FloatInput(this, ControlId::DailyChange, "SD of daily vote change:", projectionSettings.dailyChange,
-		wxPoint(2, y), dailyChangeCallback, dailyChangeValidator));
-	y += dailyChangeInput->Height + ControlPadding;
-}
-
-void EditProjectionFrame::createInitialChangeInput(int & y)
-{
-	auto initialChangeCallback = [this](float f) -> void {projectionSettings.initialStdDev = f; };
-	auto initialChangeValidator = [](float f) {return std::max(f, 0.0f); };
-	initialChangeInput.reset(new FloatInput(this, ControlId::InitialChange, "SD of initial vote change:", projectionSettings.initialStdDev,
-		wxPoint(2, y), initialChangeCallback, initialChangeValidator));
-	y += initialChangeInput->Height + ControlPadding;
-}
-
-void EditProjectionFrame::createNumElectionsInput(int & y)
-{
-	auto numElectionsCallback = [this](int i) -> void {projectionSettings.numElections = i; };
-	auto numElectionsValidator = [](int i) {return std::max(1, i); };
-	numElectionsInput.reset(new IntInput(this, ControlId::NumElections, "Number of Elections:", projectionSettings.numElections,
-		wxPoint(2, y), numElectionsCallback, numElectionsValidator));
-	y += numElectionsInput->Height + ControlPadding;
 }
 
 void EditProjectionFrame::createOkCancelButtons(int & y)

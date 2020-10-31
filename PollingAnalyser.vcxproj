@@ -374,6 +374,7 @@
     <ClInclude Include="EventCollection.h" />
     <ClInclude Include="FloatInput.h" />
     <ClInclude Include="OrthogonalRegression.h" />
+    <ClInclude Include="OthersCodes.h" />
     <ClInclude Include="PartiesAnalyser.h" />
     <ClInclude Include="InputGeneral.h" />
     <ClInclude Include="IntInput.h" />

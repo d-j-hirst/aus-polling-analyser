@@ -191,14 +191,6 @@ void ProjectionsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	projectionData->AppendTextColumn("# Iterations", wxDATAVIEW_CELL_INERT, 72, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	projectionData->AppendTextColumn("Leader Vote Loss", wxDATAVIEW_CELL_INERT, 105, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	projectionData->AppendTextColumn("Daily Vote Change", wxDATAVIEW_CELL_INERT, 110, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	projectionData->AppendTextColumn("Initial Vote Change", wxDATAVIEW_CELL_INERT, 115, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	projectionData->AppendTextColumn("# Previous Elections", wxDATAVIEW_CELL_INERT, 120, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	projectionData->AppendTextColumn("Latest Update", wxDATAVIEW_CELL_INERT, 120, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
@@ -224,10 +216,6 @@ void ProjectionsFrame::addProjectionToProjectionData(Projection projection) {
 	data.push_back(wxVariant(project->models().view(projection.getSettings().baseModel).getName()));
 	data.push_back(wxVariant(projection.getEndDateString()));
 	data.push_back(wxVariant(std::to_string(projection.getSettings().numIterations)));
-	data.push_back(wxVariant(formatFloat(projection.getSettings().leaderVoteDecay, 5)));
-	data.push_back(wxVariant(formatFloat(projection.getSettings().dailyChange, 4)));
-	data.push_back(wxVariant(formatFloat(projection.getSettings().initialStdDev, 4)));
-	data.push_back(wxVariant(std::to_string(projection.getSettings().numElections)));
 	data.push_back(wxVariant(projection.getLastUpdatedString()));
 	projectionData->AppendItem(data);
 }
@@ -249,7 +237,7 @@ void ProjectionsFrame::removeProjection() {
 void ProjectionsFrame::runProjection() {
 	int projectionIndex = projectionData->GetSelectedRow();
 	int projectionId = project->projections().indexToId(projectionIndex);
-	project->projections().run(projectionId);
+	project->projections().run(projectionId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
 }
 

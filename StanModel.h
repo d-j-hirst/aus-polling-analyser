@@ -15,8 +15,10 @@ public:
 	friend class ModelCollection;
 	friend class EditModelFrame;
 	friend class ProjectFiler;
+	friend class Projection;
 
 	struct Spread {
+		void calculateExpectation();
 		constexpr static size_t Size = 101; // must be odd so that there is a single median value
 		std::array<float, Size> values;
 		float expectation;
@@ -27,8 +29,6 @@ public:
 	};
 
 	typedef std::map<std::string, Series> PartySupport;
-
-	typedef std::map<std::string, std::vector<float>> SupportAdjustments;
 
 	typedef std::map<std::string, float> SupportSample;
 
@@ -98,7 +98,6 @@ private:
 	PartySupport adjustedSupport;
 	Series tppSupport; // For whatever party is first in the user-defined party list
 	PartySupport validationSupport;
-	SupportAdjustments supportAdjustments; // presently unused
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;

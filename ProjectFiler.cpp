@@ -12,6 +12,7 @@
 // Version 5: Mean/deviation adjustments
 // Version 6: Preference flow, tpp series, timepoint expectations
 // Version 7: Preference deviations/samples
+// Version 8: Don't save old projection settings
 constexpr int VersionNum = 7;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
@@ -107,10 +108,6 @@ int ProjectFiler::save(std::string filename) {
 		os << "base=" << project.models().idToIndex(thisProjection.getSettings().baseModel) << "\n";
 		os << "end =" << thisProjection.getSettings().endDate.GetJulianDayNumber() << "\n";
 		os << "updt=" << thisProjection.getLastUpdatedDate().GetJulianDayNumber() << "\n";
-		os << "dlyc=" << thisProjection.getSettings().dailyChange << "\n";
-		os << "inic=" << thisProjection.getSettings().initialStdDev << "\n";
-		os << "vtls=" << thisProjection.getSettings().leaderVoteDecay << "\n";
-		os << "nele=" << thisProjection.getSettings().numElections << "\n";
 		for (int dayIndex = 0; dayIndex < int(thisProjection.getProjectionLength()); ++dayIndex) {
 			os << "mean=" << thisProjection.getMeanProjection(dayIndex) << "\n";
 			os << "stdv=" << thisProjection.getSdProjection(dayIndex) << "\n";
@@ -527,10 +524,6 @@ void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.models().idToIndex(thisProjection.getSettings().baseModel));
 		saveOutput << thisProjection.getSettings().endDate.GetJulianDayNumber();
 		saveOutput << thisProjection.getLastUpdatedDate().GetJulianDayNumber();
-		saveOutput << thisProjection.getSettings().dailyChange;
-		saveOutput << thisProjection.getSettings().initialStdDev;
-		saveOutput << thisProjection.getSettings().leaderVoteDecay;
-		saveOutput.outputAsType<int32_t>(thisProjection.getSettings().numElections);
 		saveOutput.outputAsType<int32_t>(thisProjection.getProjectionLength());
 		for (int dayIndex = 0; dayIndex < int(thisProjection.getProjectionLength()); ++dayIndex) {
 			saveOutput << thisProjection.getMeanProjection(dayIndex);
@@ -549,10 +542,10 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] in
 		thisProjection.settings.baseModel = saveInput.extract<int32_t>();
 		thisProjection.settings.endDate = wxDateTime(saveInput.extract<double>());
 		thisProjection.lastUpdated = wxDateTime(saveInput.extract<double>());
-		saveInput >> thisProjection.settings.dailyChange;
-		saveInput >> thisProjection.settings.initialStdDev;
-		saveInput >> thisProjection.settings.leaderVoteDecay;
-		thisProjection.settings.numElections = saveInput.extract<int32_t>();
+		if (versionNum <= 7) { // some legacy data no longer needed
+			for (int i = 0; i < 3; ++i) saveInput.extract<float>();
+			saveInput.extract<int32_t>();
+		}
 		auto projLength = saveInput.extract<int32_t>();
 		for (int dayIndex = 0; dayIndex < projLength; ++dayIndex) {
 			Projection::ProjectionDay thisDay;
@@ -1105,19 +1098,15 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("dlyc=")) {
-			project.projectionCollection.loadingProjection->settings.dailyChange = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("inic=")) {
-			project.projectionCollection.loadingProjection->settings.initialStdDev = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("vtls=")) {
-			project.projectionCollection.loadingProjection->settings.leaderVoteDecay = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("nele=")) {
-			project.projectionCollection.loadingProjection->settings.numElections = std::stoi(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("mean=")) {

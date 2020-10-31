@@ -157,8 +157,8 @@ void DisplayFrameRenderer::drawProbabilityBoxData() const
 	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMajorityPercent(Mp::One), 2) + "%", offset);
 	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMinorityPercent(Mp::One), 2) + "%", offset);
 	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getHungPercent(), 2) + "%", offset);
-	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMajorityPercent(Mp::Two), 2) + "%", offset);
 	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMinorityPercent(Mp::Two), 2) + "%", offset);
+	drawProbabilityBoxText(probDataRect, formatFloat(simulation.getPartyMajorityPercent(Mp::Two), 2) + "%", offset);
 }
 
 void DisplayFrameRenderer::drawProbabilityBoxText(wxRect& rect, std::string const& text, wxPoint subsequentOffset) const

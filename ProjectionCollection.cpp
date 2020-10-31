@@ -5,6 +5,8 @@
 
 #include <exception>
 
+RandomGenerator Projection::rng = RandomGenerator();
+
 class ModelCollection;
 
 ProjectionCollection::ProjectionCollection(PollingProject & project)
@@ -61,12 +63,12 @@ void ProjectionCollection::remove(Projection::Id id) {
 	project.adjustAfterProjectionRemoval(index, id);
 }
 
-void ProjectionCollection::run(Projection::Id id)
+void ProjectionCollection::run(Projection::Id id, Projection::FeedbackFunc feedback)
 {
 	auto projectionIt = projections.find(id);
 	if (projectionIt == projections.end()) throw ProjectionDoesntExistException();
 	Projection& projection = projectionIt->second;
-	projection.run(project.models());
+	projection.run(project.models(), feedback);
 }
 
 void ProjectionCollection::setAsNowCast(Projection::Id id)

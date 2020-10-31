@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Model.h"
+#include "ModelCollection.h"
+#include "RandomGenerator.h"
+#include "StanModel.h"
 
 #include <vector>
 #include <wx/datetime.h>
@@ -10,6 +12,9 @@ class ModelCollection;
 class Projection {
 public:
 	typedef int Id;
+
+	typedef std::function<void(std::string)> FeedbackFunc;
+
 	constexpr static Id InvalidId = -1;
 
 	struct ProjectionDay {
@@ -21,21 +26,9 @@ public:
 		// User-defined name.
 		std::string name = "";
 
-		Model::Id baseModel = Model::InvalidId;
+		ModelCollection::Id baseModel = ModelCollection::InvalidId;
 
 		int numIterations = 5000;
-
-		// Proportion of the 2pp lead that is lost per day on average in this projection
-		float leaderVoteDecay = 0.001633f;
-
-		// Standard deviation of the daily random movement
-		float dailyChange = 0.1695f;
-
-		// Standard deviation of the initial uncertainty from the last model time point
-		float initialStdDev = 1.041161f;
-
-		// Number of elections used to determine the initial uncertainty
-		int numElections = 2;
 
 		wxDateTime endDate = wxDateTime::Now();
 	};
@@ -69,7 +62,7 @@ public:
 		else return lastUpdated.FormatISODate().ToStdString();
 	}
 
-	void run(ModelCollection const& models);
+	void run(ModelCollection const& models, FeedbackFunc feedback = [](std::string) {});
 
 	void logRunStatistics();
 
@@ -86,18 +79,42 @@ public:
 
 	int getProjectionLength() const { return int(projection.size()); }
 
+	// Invalid date/time (default) gives the latest time point
+	StanModel::SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
+
+	float generateTppSample(wxDateTime date = wxInvalidDateTime) const;
+
 	std::string textReport(ModelCollection const& models) const;
 
 private:
+	StanModel const& getBaseModel(ModelCollection const& models) const;
 
-	typedef std::vector<float> InternalProjection;
-	typedef std::vector<InternalProjection> InternalProjections;
+	bool createCachedPreferenceFlow(FeedbackFunc feedback);
 
-	void runInternalProjections(InternalProjections& internalProjections, Model const& model);
+	float calculateTppFromSample(StanModel::SupportSample const& sample, FeedbackFunc feedback = [](std::string) {}) const;
 
-	void combineInternalProjections(InternalProjections& internalProjections, Model const& model);
+	void generateTppSeries(FeedbackFunc feedback);
+
+	StanModel::PartySupport projectedSupport;
+	StanModel::Series tppSupport; // For whatever party is first in the user-defined party list
+
+	std::string partyCodes;
+	std::string preferenceFlow;
+	std::string preferenceDeviation;
+	std::string preferenceSamples;
+
+	bool cachedPreferenceFlow = false;
+	std::vector<std::string> partyCodeVec;
+	std::map<std::string, float> preferenceFlowMap;
+	std::map<std::string, float> preferenceDeviationMap;
+	std::map<std::string, int> preferenceSamplesMap;
+
+	static RandomGenerator rng;
 
 	Settings settings;
+
+	// Set when the projection is run
+	wxDateTime startDate = wxInvalidDateTime;
 
 	std::vector<ProjectionDay> projection;
 

@@ -48,10 +48,6 @@ private:
 	void createModelInput(int& y);
 	void createEndDateInput(int& y);
 	void createNumIterationsInput(int& y);
-	void createVoteLossInput(int& y);
-	void createDailyChangeInput(int& y);
-	void createInitialChangeInput(int& y);
-	void createNumElectionsInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -69,10 +65,6 @@ private:
 	std::unique_ptr<ChoiceInput> modelInput;
 	std::unique_ptr<DateInput> endDateInput;
 	std::unique_ptr<IntInput> numIterationsInput;
-	std::unique_ptr<FloatInput> voteLossInput;
-	std::unique_ptr<FloatInput> dailyChangeInput;
-	std::unique_ptr<FloatInput> initialChangeInput;
-	std::unique_ptr<IntInput> numElectionsInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

@@ -1,6 +1,7 @@
 #include "StanModel.h"
 
 #include "General.h"
+#include "OthersCodes.h"
 
 #include <fstream>
 #include <future>
@@ -11,19 +12,10 @@ constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
 
-const std::string OthersCode = "OTH";
-const std::string ExclusiveOthersCode = "xOTH";
-
 RandomGenerator StanModel::rng = RandomGenerator();
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
 	{ "ALP", "LNP", "LIB", "NAT", "GRN", OthersCode, ExclusiveOthersCode };
-
-void calculateExpectation(StanModel::Spread& spread) {
-	float sum = std::accumulate(spread.values.begin(), spread.values.end(), 0.0f,
-		[](float a, float b) {return a + b; });
-	spread.expectation = sum / float(spread.values.size());
-}
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
 	std::string meanAdjustments, std::string deviationAdjustments)
@@ -270,7 +262,7 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 
 	for (auto& [key, party] : adjustedSupport) {
 		for (auto& time : party.timePoint) {
-			calculateExpectation(time);
+			time.calculateExpectation();
 		}
 	}
 }
@@ -362,7 +354,7 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
 				tppSupport.timePoint[time].values[percentile] = samples[sampleIndex];
 			}
-			calculateExpectation(tppSupport.timePoint[time]);
+			tppSupport.timePoint[time].calculateExpectation();
 		}
 	};
 
@@ -456,4 +448,11 @@ void StanModel::updateValidationData(FeedbackFunc feedback)
 StanModel::Series& StanModel::addSeries(std::string partyCode)
 {
 	return rawSupport.insert({ partyCode, Series() }).first->second;
+}
+
+void StanModel::Spread::calculateExpectation()
+{
+	float sum = std::accumulate(values.begin(), values.end(), 0.0f,
+		[](float a, float b) {return a + b; });
+	expectation = sum / float(values.size());
 }
