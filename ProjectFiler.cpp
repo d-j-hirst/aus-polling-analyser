@@ -13,7 +13,8 @@
 // Version 6: Preference flow, tpp series, timepoint expectations
 // Version 7: Preference deviations/samples
 // Version 8: Don't save old projection settings
-constexpr int VersionNum = 7;
+// Version 9: Don't save obsolete projection means/stdevs
+constexpr int VersionNum = 9;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -524,11 +525,6 @@ void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.models().idToIndex(thisProjection.getSettings().baseModel));
 		saveOutput << thisProjection.getSettings().endDate.GetJulianDayNumber();
 		saveOutput << thisProjection.getLastUpdatedDate().GetJulianDayNumber();
-		saveOutput.outputAsType<int32_t>(thisProjection.getProjectionLength());
-		for (int dayIndex = 0; dayIndex < int(thisProjection.getProjectionLength()); ++dayIndex) {
-			saveOutput << thisProjection.getMeanProjection(dayIndex);
-			saveOutput << thisProjection.getSdProjection(dayIndex);
-		}
 	}
 }
 
@@ -546,12 +542,14 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] in
 			for (int i = 0; i < 3; ++i) saveInput.extract<float>();
 			saveInput.extract<int32_t>();
 		}
-		auto projLength = saveInput.extract<int32_t>();
-		for (int dayIndex = 0; dayIndex < projLength; ++dayIndex) {
-			Projection::ProjectionDay thisDay;
-			saveInput >> thisDay.mean;
-			saveInput >> thisDay.sd;
-			thisProjection.projection.push_back(thisDay);
+		if (versionNum <= 8) {
+			auto projLength = saveInput.extract<int32_t>();
+			for (int dayIndex = 0; dayIndex < projLength; ++dayIndex) {
+				Projection::ProjectionDay thisDay;
+				saveInput >> thisDay.mean;
+				saveInput >> thisDay.sd;
+				thisProjection.projection.push_back(thisDay);
+			}
 		}
 		project.projectionCollection.add(Projection(thisProjection));
 	}

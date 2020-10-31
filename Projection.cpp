@@ -38,7 +38,8 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	preferenceDeviation = model.preferenceDeviation;
 	preferenceSamples = model.preferenceSamples;
 	StanModel::SupportSample z;
-	const StanModel::SupportSample historicalVote = { {"ALP", 37.49f}, {"LNP", 43.83f}, {"GRN", 8.43f}, {"ONP", 1.245f}, {"UAP", 0.915f}, {"xOTH", 6.862f} };
+	// Temporarily hard coded for QLD State Election 2020
+	const StanModel::SupportSample historicalVote = { {"ALP", 39.29f}, {"LNP", 39.94f}, {"GRN", 8.18f}, {"ONP", 3.435f}, {"KAP", 5.26f}, {"xOTH", 5.665f} };
 	std::map<std::string, std::vector<std::vector<float>>> recordedSamples;
 	int totalDays = (settings.endDate - startDate).GetDays();
 	logger << settings.endDate.FormatISODate() << "\n";
@@ -46,8 +47,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	logger << model.getStartDate().FormatISODate() << "\n";
 	logger << model.adjustedSupport.begin()->second.timePoint.size() + 1 << "\n";
 	logger << totalDays << "\n";
-	int numIterations = 1000;
-	for (int iteration = 0; iteration < numIterations; ++iteration) {
+	for (int iteration = 0; iteration < this->settings.numIterations; ++iteration) {
 		StanModel::SupportSample originalSample = model.generateSupportSample();
 		for (auto [key, vote] : originalSample) {
 			z[key] = rng.normal(0.0f, 1.0f);

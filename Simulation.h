@@ -67,7 +67,7 @@ public:
 	{}
 
 	Simulation(Simulation const& other) : settings(other.settings) {}
-	Simulation operator=(Simulation const& other) { return Simulation(other.settings); }
+	Simulation& operator=(Simulation const& other) { if (this != &other) settings = other.settings; return *this; }
 
 	void run(PollingProject& project);
 

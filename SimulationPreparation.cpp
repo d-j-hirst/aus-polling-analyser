@@ -235,10 +235,10 @@ void SimulationPreparation::resetResultCounts()
 
 void SimulationPreparation::loadInitialStateFromProjection()
 {
-	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
-	int projectionSize = thisProjection.getProjectionLength();
-	run.pollOverallSwing = thisProjection.getMeanProjection(projectionSize - 1) - sim.settings.prevElection2pp;
-	run.pollOverallStdDev = thisProjection.getSdProjection(projectionSize - 1);
+	//Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
+	//int projectionSize = thisProjection.getProjectionLength();
+	//run.pollOverallSwing = thisProjection.getMeanProjection(projectionSize - 1) - sim.settings.prevElection2pp;
+	//run.pollOverallStdDev = thisProjection.getSdProjection(projectionSize - 1);
 }
 
 

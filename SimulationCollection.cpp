@@ -20,6 +20,8 @@ void SimulationCollection::add(Simulation simulation) {
 
 void SimulationCollection::replace(Simulation::Id id, Simulation simulation) {
 	simulations[id] = simulation;
+	logger << simulation.getSettings().name;
+	logger << simulations[id].getSettings().name;
 }
 
 Simulation const& SimulationCollection::view(Simulation::Id id) const {
