@@ -245,7 +245,7 @@ void SimulationsFrame::removeSimulation() {
 void SimulationsFrame::runSimulation() {
 	int simulationIndex = simulationData->GetSelectedRow();
 	Simulation::Id simulationId = project->simulations().indexToId(simulationIndex);
-	project->simulations().run(simulationId);
+	project->simulations().run(simulationId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
 	simulationData->Refresh();
 }

@@ -59,7 +59,7 @@ void SimulationCollection::remove(Simulation::Id id) {
 	simulations.erase(simulationIt);
 }
 
-void SimulationCollection::run(Simulation::Id id)
+void SimulationCollection::run(Simulation::Id id, SimulationRun::FeedbackFunc feedback)
 {
 	auto simulationIt = simulations.find(id);
 	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();

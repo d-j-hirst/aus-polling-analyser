@@ -12,10 +12,10 @@
 #undef min
 #undef max
 
-void Simulation::run(PollingProject & project)
+void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedback)
 {
 	latestRun.emplace(project, *this);
-	latestRun->run();
+	latestRun->run(feedback);
 }
 
 void Simulation::replaceSettings(Simulation::Settings newSettings)

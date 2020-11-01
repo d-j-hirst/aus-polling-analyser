@@ -50,7 +50,7 @@ struct Party {
 	int consistency = 1; // 0 = weak flow, 1 = normal flow, 2 = tight flow
 	bool includeInOthers = false;
 	RelationType relationType = RelationType::None;
-	Id relationTarget = -1;
+	Id relationTarget = 0;
 	Colour colour = { 255, 255, 255 };
 	float boothColourMult = 1.6f;
 	bool countsAsMajor() const { return !(countAsParty == CountAsParty::None); }

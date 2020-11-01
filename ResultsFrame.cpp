@@ -81,7 +81,7 @@ void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
 void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 {
 	for (auto& [key, simulation] : project->simulations()) {
-		if (simulation.isLive()) simulation.run(*project);
+		if (simulation.isLive()) simulation.run(*project, [](std::string s) {wxMessageBox(s); });
 	}
 
 	refreshData();
@@ -402,7 +402,7 @@ std::string ResultsFrame::decideSummaryString(Simulation const & simulation)
 		"   Seats: " + party1 + " " + formatFloat(simulation.getPartyWinExpectation(0), 2) + " " +
 		party2 + " " + formatFloat(simulation.getPartyWinExpectation(1), 2) +
 		" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
-		"   Count progress: " + formatFloat(simulation.get2cpPercentCounted() * 100.0f, 2) + "%\n" +
+		"   Count progress: " + formatFloat(simulation.get2cpPercentCounted(), 2) + "%\n" +
 		party1 + " swing by region: ";
 	for (auto const& regionPair : project->regions()) {
 		Region const& thisRegion = regionPair.second;

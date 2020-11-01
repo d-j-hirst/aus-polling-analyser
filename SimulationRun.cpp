@@ -13,11 +13,14 @@ static std::mt19937 gen;
 
 using Mp = Simulation::MajorParty;
 
-void SimulationRun::run() {
+void SimulationRun::run(FeedbackFunc feedback) {
 
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 
-	if (int(thisProjection.getProjectionLength()) == 0) return;
+	if (int(thisProjection.getProjectionLength()) == 0) {
+		feedback("Base projection has not yet been run. Run the simulation's base projection before running the simulation itself.");
+		return;
+	}
 
 	SimulationPreparation preparations(project, sim, *this);
 	preparations.prepareForIterations();

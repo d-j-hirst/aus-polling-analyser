@@ -293,7 +293,9 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int ve
 		saveInput >> thisParty.preferenceShare;
 		saveInput >> thisParty.exhaustRate;
 		saveInput >> thisParty.abbreviation;
-		thisParty.relationTarget = saveInput.extract<int32_t>();
+		// Some legacy files may have a value of -1 which will cause problems for the simulation
+		// and edit-party function, so make sure it's brought up to zero.
+		thisParty.relationTarget = std::max(0, saveInput.extract<int32_t>());
 		thisParty.relationType = Party::RelationType(saveInput.extract<int32_t>());
 		saveInput >> thisParty.boothColourMult;
 		thisParty.ideology = saveInput.extract<int32_t>();

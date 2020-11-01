@@ -69,7 +69,7 @@ public:
 	Simulation(Simulation const& other) : settings(other.settings) {}
 	Simulation& operator=(Simulation const& other) { if (this != &other) settings = other.settings; return *this; }
 
-	void run(PollingProject& project);
+	void run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 
 	Settings const& getSettings() const { return settings; }
 
@@ -128,7 +128,7 @@ public:
 	bool isLiveManual() const { return settings.live == Settings::Mode::LiveManual; }
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
 
-	float get2cpPercentCounted() const { return total2cpPercentCounted; }
+	float get2cpPercentCounted() const { return total2cpPercentCounted;  }
 
 private:
 

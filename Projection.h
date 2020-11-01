@@ -77,7 +77,7 @@ public:
 	double getMeanProjection(int index) const { return projection[index].mean; }
 	double getSdProjection(int index) const { return projection[index].sd; }
 
-	int getProjectionLength() const { return int(projectedSupport.begin()->second.timePoint.size()); }
+	int getProjectionLength() const { if (!projectedSupport.size()) return 0; return int(projectedSupport.begin()->second.timePoint.size()); }
 
 	// Invalid date/time (default) gives the latest time point
 	StanModel::SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;

@@ -3,6 +3,8 @@
 #include "Party.h"
 
 #include <array>
+#include <functional>
+#include <string>
 
 class PollingProject;
 class RegionCollection;
@@ -16,12 +18,14 @@ public:
 	friend class SimulationIteration;
 	friend class SimulationCompletion;
 
+	typedef std::function<void(std::string)> FeedbackFunc;
+
 	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
 
 	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim) {}
 	SimulationRun operator=(SimulationRun const& otherRun) { return SimulationRun(otherRun.project, otherRun.sim); }
 
-	void run();
+	void run(FeedbackFunc feedback = [](std::string) {});
 private:
 
 	PollingProject& project;

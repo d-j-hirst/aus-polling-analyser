@@ -185,7 +185,15 @@ void SimulationPreparation::calculateLiveAggregates()
 		}
 	}
 
-	sim.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f);
+	if (sim.isLiveAutomatic()) {
+		sim.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f) * 100.0f;
+	}
+	else if (sim.isLiveManual()) {
+		sim.total2cpPercentCounted = run.liveOverallPercent;
+	}
+	else {
+		sim.total2cpPercentCounted = 0.0f;
+	}
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(Seat & seat)
