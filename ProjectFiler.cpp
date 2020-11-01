@@ -14,7 +14,8 @@
 // Version 7: Preference deviations/samples
 // Version 8: Don't save old projection settings
 // Version 9: Don't save obsolete projection means/stdevs
-constexpr int VersionNum = 9;
+// Version 10: Save new projection series
+constexpr int VersionNum = 10;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -527,6 +528,12 @@ void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.models().idToIndex(thisProjection.getSettings().baseModel));
 		saveOutput << thisProjection.getSettings().endDate.GetJulianDayNumber();
 		saveOutput << thisProjection.getLastUpdatedDate().GetJulianDayNumber();
+		saveOutput.outputAsType<uint32_t>(thisProjection.projectedSupport.size());
+		for (auto [seriesKey, series] : thisProjection.projectedSupport) {
+			saveOutput << seriesKey;
+			saveSeries(saveOutput, series);
+		}
+		saveSeries(saveOutput, thisProjection.tppSupport);
 	}
 }
 
@@ -534,7 +541,7 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] in
 {
 	int projectionCount = saveInput.extract<int32_t>();
 	for (int projectionIndex = 0; projectionIndex < projectionCount; ++projectionIndex) {
-		Projection::SaveData thisProjection;
+		Projection thisProjection;
 		saveInput >> thisProjection.settings.name;
 		thisProjection.settings.numIterations = saveInput.extract<int32_t>();
 		thisProjection.settings.baseModel = saveInput.extract<int32_t>();
@@ -553,7 +560,23 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] in
 				thisProjection.projection.push_back(thisDay);
 			}
 		}
-		project.projectionCollection.add(Projection(thisProjection));
+		if (versionNum >= 10) {
+			size_t numSeries = saveInput.extract<uint32_t>();
+			for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {
+				std::string seriesKey = saveInput.extract<std::string>();
+				auto thisSeries = loadSeries(saveInput, versionNum);
+				thisProjection.projectedSupport.insert({ seriesKey, thisSeries });
+			}
+			thisProjection.tppSupport = loadSeries(saveInput, versionNum);
+		}
+		
+		auto const& baseModel = project.models().view(thisProjection.settings.baseModel);
+		thisProjection.partyCodes = baseModel.partyCodes;
+		thisProjection.preferenceFlow = baseModel.preferenceFlow;
+		thisProjection.preferenceDeviation = baseModel.preferenceDeviation;
+		thisProjection.preferenceSamples = baseModel.preferenceSamples;
+		thisProjection.createCachedPreferenceFlow();
+		project.projectionCollection.add(thisProjection);
 	}
 }
 

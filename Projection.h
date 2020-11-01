@@ -11,6 +11,8 @@ class ModelCollection;
 
 class Projection {
 public:
+	friend class ProjectFiler;
+
 	typedef int Id;
 
 	typedef std::function<void(std::string)> FeedbackFunc;
@@ -89,7 +91,7 @@ public:
 private:
 	StanModel const& getBaseModel(ModelCollection const& models) const;
 
-	bool createCachedPreferenceFlow(FeedbackFunc feedback);
+	bool createCachedPreferenceFlow(FeedbackFunc feedback = [](std::string) {});
 
 	float calculateTppFromSample(StanModel::SupportSample const& sample, FeedbackFunc feedback = [](std::string) {}) const;
 
