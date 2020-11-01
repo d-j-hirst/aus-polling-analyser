@@ -697,6 +697,8 @@ void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int v
 		thisOutcome.updateTime = wxDateTime(saveInput.extract<double>());
 		project.outcomeCollection.add(thisOutcome);
 	}
+	// Make sure that seats have correct references to the latest outcomes
+	project.updateOutcomesForSeats();
 }
 
 void ProjectFiler::saveElections(SaveFileOutput& saveOutput)

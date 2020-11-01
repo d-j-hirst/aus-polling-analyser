@@ -65,12 +65,6 @@ void SimulationIteration::determineIterationOverallSwing()
 	}
 
 	// this will be used to determine the estimated 2pp swing (for live results) later
-	static int iterationCounter = 0;
-	++iterationCounter;
-	logger << iterationCounter << "  ";
-	logger << run.iterationOverallSwing << "  ";
-	logger << sim.partyOneSwing / double(iterationCounter);
-	logger << "\n";
 	sim.partyOneSwing += double(run.iterationOverallSwing);
 }
 
