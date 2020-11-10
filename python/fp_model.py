@@ -27,7 +27,7 @@ def main():
     # subtract the UAP and ONP from the OTH value to get the true non-UAP/ONP others value
     
     parties = {
-        ('2022','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
+        ('2022','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'OTH FP'],
         ('2019','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'ONP FP', 'UAP FP', 'OTH FP'],
         ('2016','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],
         ('2013','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'UAP FP', 'OTH FP'],

@@ -42,38 +42,44 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	const StanModel::SupportSample historicalVote = { {"ALP", 39.29f}, {"LNP", 39.94f}, {"GRN", 8.18f}, {"ONP", 3.435f}, {"KAP", 5.26f}, {"xOTH", 5.665f} };
 	std::map<std::string, std::vector<std::vector<float>>> recordedSamples;
 	int totalDays = (settings.endDate - startDate).GetDays();
-	logger << settings.endDate.FormatISODate() << "\n";
-	logger << startDate.FormatISODate() << "\n";
-	logger << model.getStartDate().FormatISODate() << "\n";
-	logger << model.adjustedSupport.begin()->second.timePoint.size() + 1 << "\n";
-	logger << totalDays << "\n";
 	for (int iteration = 0; iteration < this->settings.numIterations; ++iteration) {
 		StanModel::SupportSample originalSample = model.generateSupportSample();
 		for (auto [key, vote] : originalSample) {
-			z[key] = rng.normal(0.0f, 1.0f);
+			// Empirical study shows this distribution is the best for TPP votes
+			// Further investigation required for primaries, especially for minor parties
+			z[key] = rng.t_dist(25, 0.0f, 1.0f);
 			recordedSamples[key].resize(totalDays);
 		}
 		for (int days = 1; days <= totalDays; ++days) {
 			StanModel::SupportSample nextSample;
 			float logDays = std::log(float(days));
-			constexpr float pollWeightA = -0.0129f;
-			constexpr float pollWeightB = 0.0152f;
-			constexpr float pollWeightC = 0.96f;
-			float pollWeight = pollWeightA * logDays * logDays + pollWeightB * logDays + pollWeightC;
+			constexpr float Max = 0.94f;
+			constexpr float Asymptote = 8.3f;
+			constexpr float Scale = 0.97f;
+			logDays = std::min(logDays, Asymptote - 0.1f);
+			float pollWeight = std::max(0.0f, Max + 1.0f / (Asymptote * Scale)
+				- 1.0f / ((Asymptote - logDays) * 0.97f));
 			constexpr float StdevLogDaysGradient = 0.3808f;
 			constexpr float StdevLogDaysIntercept = 1.5386f;
-			float voteStdev = StdevLogDaysGradient * logDays + StdevLogDaysIntercept;
+			float deviationFactor = 1.0f - std::pow(pollWeight / Max, 10.0f);
+			float voteStdev = (StdevLogDaysGradient * logDays + StdevLogDaysIntercept) * deviationFactor;
 			float totalVote = 0.0f;
 			for (auto const& [key, vote] : originalSample) {
 				float historicalVoteT = transformVoteShare(historicalVote.at(key));
 				float polledVoteT = transformVoteShare(vote);
 				float meanProjectedVoteT = polledVoteT * pollWeight + historicalVoteT * (1.0f - pollWeight);
-				float projectedVoteT = meanProjectedVoteT + z[key] * voteStdev;
+				float meanProjectedVote = detransformVoteShare(meanProjectedVoteT);
+				// 4.0f threshold here prevents minor parties from catapulting to very high votes shares off a very low mean
+				float projectedVoteT = meanProjectedVoteT + z[key] * voteStdev * logitDeriv(std::max(4.0f, meanProjectedVote));
+				if (days == 1 || days == 10 || days == 100 || days == 1000) {
+					logger << days << "days: " << meanProjectedVoteT << ", " << voteStdev << ", " << projectedVoteT << "\n";
+				}
 				float projectedVote = detransformVoteShare(projectedVoteT);
 				nextSample[key] = projectedVote;
 				totalVote += projectedVote;
 			}
 			for (auto& [key, vote] : nextSample) {
+				vote *= 100.0f;
 				vote /= totalVote;
 			}
 			for (auto const& [key, vote] : nextSample) {
@@ -112,7 +118,6 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	std::string report = textReport(models);
 	auto reportMessages = splitString(report, ";");
 	for (auto message : reportMessages) feedback(message);
-	for (int i = 0; i < 1000; ++i) logger << generateTppSample() << "\n";
 	lastUpdated = wxDateTime::Now();
 }
 
@@ -128,6 +133,11 @@ void Projection::logRunStatistics()
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
 	//settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
+}
+
+StanModel::Series const& Projection::viewPrimarySeriesByIndex(int index) const
+{
+	return std::next(projectedSupport.begin(), index)->second;
 }
 
 StanModel::SupportSample Projection::generateSupportSample(wxDateTime date) const
@@ -161,6 +171,16 @@ StanModel::SupportSample Projection::generateSupportSample(wxDateTime date) cons
 float Projection::generateTppSample(wxDateTime date) const
 {
 	return calculateTppFromSample(generateSupportSample(date));
+}
+
+int Projection::getPartyIndexFromCode(std::string code) const
+{
+	int index = 0;
+	for (auto const& [key, series] : projectedSupport) {
+		if (code == key) return index;
+		++index;
+	}
+	return -1;
 }
 
 std::string Projection::textReport(ModelCollection const& models) const
@@ -249,7 +269,7 @@ float Projection::calculateTppFromSample(StanModel::SupportSample const& sample,
 
 void Projection::generateTppSeries(FeedbackFunc feedback)
 {
-	constexpr static int NumIterations = 5000;
+	constexpr static int NumIterations = 4000;
 	tppSupport = StanModel::Series(); // do this first as it should not be left with previous data
 
 	const int timeCount = projectedSupport.begin()->second.timePoint.size();

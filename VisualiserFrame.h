@@ -243,12 +243,17 @@ private:
 	// gets the nearest model time point to the given mouse coordinates.
 	int getModelTimePointFromMouse(wxPoint point);
 
+	// gets the nearest projection time point to the given mouse coordinates.
+	int getProjectionTimePointFromMouse(wxPoint point);
+
 	// determines the size of the box used to display poll information.
 	void determineLabelRect();
 
 	void determineLabelRectFromPoll();
 
 	void determineLabelRectFromModel();
+
+	void determineLabelRectFromProjection();
 
 	// draws the rectangle in which poll information is displayed.
 	void drawMouseoverLabelRect(wxDC& dc);
@@ -259,7 +264,14 @@ private:
 	// draws the text showing model information at the spot pointed to
 	void drawMouseoverModelText(wxDC& dc);
 
+	// draws the text showing model information at the spot pointed to
+	void drawMouseoverProjectionText(wxDC& dc);
+
 	StanModel::Series const& viewSeriesFromModel(StanModel const& model);
+
+	StanModel::Series const& viewSeriesFromProjection(Projection const& projection);
+
+	wxDateTime getProjectionStartDate(Projection const& projection);
 
 	// For handling horizontal panning of the visualiser
 	int panStart = -1;
@@ -293,9 +305,13 @@ private:
 	// The poll that has the mouse over it.
 	Poll::Id mouseoverPoll = Poll::InvalidId;
 
-	// Model time point that the model is mousing over (if any)
+	// Model time point that is being moused over (if any)
 	// Use -1 if the mouse is not over model 
-	int mouseoverTimepoint = -1;
+	int modelMouseoverTimepoint = -1;
+
+	// Projection time point that is being moused over (if any)
+	// Use -1 if the mouse is not over projection
+	int projectionMouseoverTimepoint = -1;
 
 	// The dimensions of the box used to display poll information.
 	wxRect mouseOverLabelRect;
@@ -303,12 +319,13 @@ private:
 	// Graphics variables, updated every time painting occurs.
 	GraphicsVariables gv;
 
-	ModelDisplayMode modelDisplayMode = ModelDisplayMode::Raw;
+	ModelDisplayMode modelDisplayMode = ModelDisplayMode::Adjusted;
 
 	int selectedModel = -1;
 	int selectedProjection = -1;
 	int selectedParty = -1;
 	int selectedPartyIndex = -1;
+	int projectionPartyIndex = -1;
 
 	bool displayPolls = true;
 	bool displayModels = true;

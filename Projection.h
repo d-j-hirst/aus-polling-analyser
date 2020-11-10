@@ -81,10 +81,18 @@ public:
 
 	int getProjectionLength() const { if (!projectedSupport.size()) return 0; return int(projectedSupport.begin()->second.timePoint.size()); }
 
+	int primarySeriesCount() const { return projectedSupport.size(); }
+
+	StanModel::Series const& viewPrimarySeriesByIndex(int index) const;
+
+	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
+
 	// Invalid date/time (default) gives the latest time point
 	StanModel::SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
 	float generateTppSample(wxDateTime date = wxInvalidDateTime) const;
+
+	int getPartyIndexFromCode(std::string code) const;
 
 	std::string textReport(ModelCollection const& models) const;
 

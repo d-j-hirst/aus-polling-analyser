@@ -49,6 +49,10 @@ public:
 
 	wxDateTime getStartDate() const { return startDate; }
 
+	// Return the date of this model's last modelled day
+	// (NOT one past the end)
+	wxDateTime getEndDate() const;
+
 	wxDateTime getLastUpdatedDate() const { return lastUpdatedDate; }
 
 	void loadData(FeedbackFunc feedback = [](std::string) {});

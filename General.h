@@ -102,3 +102,8 @@ inline float transformVoteShare(float voteShare) {
 inline float detransformVoteShare(float transformedVoteShare) {
 	return 100.0f / (1.0f + std::exp(-0.04f * (transformedVoteShare - 50.0f)));
 }
+
+// Take a transformed vote share
+inline float logitDeriv(float startingPoint) {
+	return 25.0f / startingPoint + 0.25f / (1.0f - 0.01f * startingPoint);
+}

@@ -1,6 +1,7 @@
 #include "StanModel.h"
 
 #include "General.h"
+#include "Log.h"
 #include "OthersCodes.h"
 
 #include <fstream>
@@ -22,6 +23,12 @@ StanModel::StanModel(std::string name, std::string termCode, std::string partyCo
 	
 	: name(name), termCode(termCode), partyCodes(partyCodes)
 {
+}
+
+wxDateTime StanModel::getEndDate() const
+{
+	if (!adjustedSeriesCount()) return startDate;
+	return startDate + wxDateSpan(0, 0, 0, adjustedSupport.begin()->second.timePoint.size() - 1);
 }
 
 void StanModel::loadData(FeedbackFunc feedback)
