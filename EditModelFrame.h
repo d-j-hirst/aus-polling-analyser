@@ -45,8 +45,8 @@ private:
 	void createNameInput(int& y);
 	void createTermCodeInput(int& y);
 	void createPartyCodesInput(int& y);
-	void createMeanAdjustmentsInput(int& y);
-	void createDeviationAdjustmentsInput(int& y);
+	void createDebiasInterceptInput(int& y);
+	void createDebiasSlopeInput(int& y);
 	void createPreferenceFlowInput(int& y);
 	void createPreferenceDeviationInput(int& y);
 	void createPreferenceSamplesInput(int& y);
@@ -64,8 +64,8 @@ private:
 	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<TextInput> termCodeInput;
 	std::unique_ptr<TextInput> partyCodesInput;
-	std::unique_ptr<TextInput> meanAdjustmentsInput;
-	std::unique_ptr<TextInput> deviationAdjustmentsInput;
+	std::unique_ptr<TextInput> debiasInterceptInput;
+	std::unique_ptr<TextInput> debiasSlopeInput;
 	std::unique_ptr<TextInput> preferenceFlowInput;
 	std::unique_ptr<TextInput> preferenceDeviationInput;
 	std::unique_ptr<TextInput> preferenceSamplesInput;

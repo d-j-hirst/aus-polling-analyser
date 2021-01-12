@@ -1,10 +1,24 @@
 Polling Analyser to-do:
--TPP estimates
- -Add variability input and effects for TPP trend calculation
--Projections
- -Overhaul to take a sample from the last day of the adjusted party support then project that to election in similar manner to before (i.e. random walk with some mean reversion)
- -Method to take a sample from a given time point in the projection
--Simulation
- -Take samples from the end of the projection and then generate random variability in preferences that align with the ancestral StanModel settings for each iteration.
-  This can then be directly integrated into the simulations which will otherwise run as before for non-live or live-manual simulations
- 
+-Add model parameters for projection, since the model now has to do "in-house projection" to estimate the present state anyway
+ -Two parameters for poll de-biasing (1a, 1b): intercept and slope (for fit of poll bias vs. log-days)
+ -Three parameters for poll history mixing (2a, 2b, 2c): maximum poll weight, log-days for zero poll weight ("poll information horizon"), hyperbola sharpness
+ -Two parameters for poll standard deviation adjustment (3a, 3b): gradient and intercept
+ -Historical value (4): some average of historical election results to combine the poll result with
+-Create algorithm for generating an adjusted sample from a raw sample given a certain number of days, as follows:
+ -Convert number of days to log-days
+ -Transform raw poll number
+ -De-bias poll average estimate according to (1a, 1b) by calculating the trend estimate of the bias and then subtracting that from the raw value
+ -Mix this debiased poll average with historical value using (2a, 2b, 2c) according to the formula found in the Excel sheet.
+ -For adjusting for variation in systemic bias, some more calculations are required:
+  -Approximate sampling error as normal with SD of "a", and systemic error as normal with SD of "y"
+  -Then combined standard deviation "c" is given by c = sqrt(a^2 + b^2)
+  -Then assume effective sample size of 3000 for final election polls. This gives a standard deviation of 0.008333 for "a" (via 0.25/sqrt(samplesize), adjust later)
+  -We also know the combined standard deviation "c", given by the line defined by parameters (3a, 3b) (gradient-transform this before use)
+  -So by rearranging the formula above, we end up with a = sqrt(c^2 - b^2) (All standard deviations are by definition positive)
+  -Then add systemic error to the mixed poll average with mean 0 and standard deviation a.
+ -Untransform values
+ -Normalise so that all sampled values add to 100
+-Observations of these samples for the minimum number of days (2) are used to create the adjusted sample spread.
+ -Note that this is not subsequently used in calculations
+-Similarly, observations of these samples with varying numbers of days are used to create the forward projection.
+-Finally, observations of these samples are used to create the range of scenarios for the simulation (rather than being taken from the projection as was formerly the case)

@@ -204,8 +204,8 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 void StanModel::updateAdjustedData(FeedbackFunc feedback)
 {
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
-	auto meanAdjustmentsVec = splitString(meanAdjustments, ",");
-	auto deviationAdjustmentsVec = splitString(deviationAdjustments, ",");
+	auto meanAdjustmentsVec = splitString(debiasIntercept, ",");
+	auto deviationAdjustmentsVec = splitString(debiasSlope, ",");
 	auto partyCodeVec = splitString(partyCodes, ",");
 	bool validSizes = meanAdjustmentsVec.size() == partyCodeVec.size() &&
 		(deviationAdjustmentsVec.size() == partyCodeVec.size());
@@ -213,6 +213,17 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 		feedback("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase");
 		return;
 	}
+
+	// *** This needs to be reworked from scratch. Use the spread from the raw model,
+	//     convert to transformed space via logistic transform
+	//	   adjust it for mean bias (according to this object's parameters, and after adjusting for logit-deriv),
+	//     then mix it with (transformed) historical results according to this objects' parameters
+	//     then sample from this spread to form a new spread with additional variance from systemic bias
+	//     Finally, take samples from spreads from each party and normalize to keep the sum of party results at zero,
+	//     keep the resultant spread for display purposes
+	//     This logic should be kept in a separate function that takes
+	//     the desired starting support date and number of days to project as parameters,
+	//     so that it can be used for projections seamlessly with best-guess current estimates.
 
 	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 		std::string partyName = partyCodeVec[partyIndex];

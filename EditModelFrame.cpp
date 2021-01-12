@@ -38,8 +38,8 @@ void EditModelFrame::createControls(int & y)
 	createNameInput(y);
 	createTermCodeInput(y);
 	createPartyCodesInput(y);
-	createMeanAdjustmentsInput(y);
-	createDeviationAdjustmentsInput(y);
+	createDebiasInterceptInput(y);
+	createDebiasSlopeInput(y);
 	createPreferenceFlowInput(y);
 	createPreferenceDeviationInput(y);
 	createPreferenceSamplesInput(y);
@@ -67,20 +67,20 @@ void EditModelFrame::createPartyCodesInput(int& y)
 	y += partyCodesInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createMeanAdjustmentsInput(int& y)
+void EditModelFrame::createDebiasInterceptInput(int& y)
 {
-	auto meanAdjustmentsCallback = [this](std::string s) -> void {model.meanAdjustments = s; };
-	meanAdjustmentsInput.reset(new TextInput(this, ControlId::MeanAdjustments, "Mean Adjustments:", 
-		model.meanAdjustments, wxPoint(2, y), meanAdjustmentsCallback));
-	y += meanAdjustmentsInput->Height + ControlPadding;
+	auto debiasInterceptCallback = [this](std::string s) -> void {model.debiasIntercept = s; };
+	debiasInterceptInput.reset(new TextInput(this, ControlId::MeanAdjustments, "Debias Intercept:", 
+		model.debiasIntercept, wxPoint(2, y), debiasInterceptCallback));
+	y += debiasInterceptInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createDeviationAdjustmentsInput(int& y)
+void EditModelFrame::createDebiasSlopeInput(int& y)
 {
-	auto deviationAdjustmentsCallback = [this](std::string s) -> void {model.deviationAdjustments = s; };
-	deviationAdjustmentsInput.reset(new TextInput(this, ControlId::DeviationAdjustments, "Deviation Adjustments:", 
-		model.deviationAdjustments, wxPoint(2, y), deviationAdjustmentsCallback));
-	y += deviationAdjustmentsInput->Height + ControlPadding;
+	auto debiasSlopeCallback = [this](std::string s) -> void {model.debiasSlope = s; };
+	debiasSlopeInput.reset(new TextInput(this, ControlId::DeviationAdjustments, "Debias Slope:", 
+		model.debiasSlope, wxPoint(2, y), debiasSlopeCallback));
+	y += debiasSlopeInput->Height + ControlPadding;
 }
 
 void EditModelFrame::createPreferenceFlowInput(int& y)

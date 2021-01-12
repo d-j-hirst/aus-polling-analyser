@@ -15,7 +15,8 @@
 // Version 8: Don't save old projection settings
 // Version 9: Don't save obsolete projection means/stdevs
 // Version 10: Save new projection series
-constexpr int VersionNum = 10;
+// Version 11: Save additional model parameters
+constexpr int VersionNum = 11;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -423,11 +424,17 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.name;
 		saveOutput << thisModel.termCode;
 		saveOutput << thisModel.partyCodes;
-		saveOutput << thisModel.meanAdjustments;
-		saveOutput << thisModel.deviationAdjustments;
+		saveOutput << thisModel.debiasIntercept;
+		saveOutput << thisModel.debiasSlope;
 		saveOutput << thisModel.preferenceFlow;
 		saveOutput << thisModel.preferenceDeviation;
 		saveOutput << thisModel.preferenceSamples;
+		saveOutput << thisModel.mixMaxPollWeight;
+		saveOutput << thisModel.mixInformationHorizon;
+		saveOutput << thisModel.mixHyperbolaSharpness;
+		saveOutput << thisModel.deviationSlope;
+		saveOutput << thisModel.deviationIntercept;
+		saveOutput << thisModel.historicalAverage;
 		saveOutput << thisModel.startDate.GetJulianDayNumber();
 		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
 		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
@@ -485,8 +492,8 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			saveInput >> thisModel.termCode;
 			saveInput >> thisModel.partyCodes;
 			if (versionNum >= 5) {
-				saveInput >> thisModel.meanAdjustments;
-				saveInput >> thisModel.deviationAdjustments;
+				saveInput >> thisModel.debiasIntercept;
+				saveInput >> thisModel.debiasSlope;
 			}
 			if (versionNum >= 6) {
 				saveInput >> thisModel.preferenceFlow;
@@ -494,6 +501,14 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			if (versionNum >= 7) {
 				saveInput >> thisModel.preferenceDeviation;
 				saveInput >> thisModel.preferenceSamples;
+			}
+			if (versionNum >= 11) {
+				saveInput >> thisModel.mixMaxPollWeight;
+				saveInput >> thisModel.mixInformationHorizon;
+				saveInput >> thisModel.mixHyperbolaSharpness;
+				saveInput >> thisModel.deviationSlope;
+				saveInput >> thisModel.deviationIntercept;
+				saveInput >> thisModel.historicalAverage;
 			}
 			thisModel.startDate = wxDateTime(saveInput.extract<double>());
 			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());
