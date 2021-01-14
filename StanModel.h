@@ -34,6 +34,8 @@ public:
 
 	typedef std::function<void(std::string)> FeedbackFunc;
 
+	typedef Series const* SeriesOutput;
+
 	// Used for telling the model which parties are "major" -
 	// for the purpose of 
 	typedef std::set<std::string> MajorPartyCodes;
@@ -64,23 +66,28 @@ public:
 	std::string getTextReport() const;
 
 	// Views data for a series in the model corresponding to the given party
-	Series const& viewRawSeries(std::string partyCode) const;
+	SeriesOutput viewRawSeries(std::string partyCode) const;
 
-	Series const& viewRawSeriesByIndex(int index) const;
+	SeriesOutput viewRawSeriesByIndex(int index) const;
 
-	Series const& viewAdjustedSeries(std::string partyCode) const;
+	SeriesOutput viewAdjustedSeries(std::string partyCode) const;
 
-	Series const& viewAdjustedSeriesByIndex(int index) const;
+	SeriesOutput viewAdjustedSeriesByIndex(int index) const;
 
 	Series const& viewTPPSeries() const;
 
 	// Invalid date/time (default) gives the most recent time point
-	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime, bool includeTpp = false) const;
+	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
 	std::string rawPartyCodeByIndex(int index) const;
 
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
+
+	// Invalid date/time (default) gives the most recent time point
+	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
+
+	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample) const;
 
 	void updateAdjustedData(FeedbackFunc feedback);
 

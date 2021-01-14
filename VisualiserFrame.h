@@ -267,9 +267,11 @@ private:
 	// draws the text showing model information at the spot pointed to
 	void drawMouseoverProjectionText(wxDC& dc);
 
-	StanModel::Series const& viewSeriesFromModel(StanModel const& model);
+	// Returns null pointer if no matching series can be found
+	StanModel::SeriesOutput viewSeriesFromModel(StanModel const& model) const;
 
-	StanModel::Series const& viewSeriesFromProjection(Projection const& projection);
+	// Returns null pointer if no matching series can be found
+	StanModel::SeriesOutput viewSeriesFromProjection(Projection const& projection) const;
 
 	wxDateTime getProjectionStartDate(Projection const& projection);
 
@@ -323,9 +325,9 @@ private:
 
 	int selectedModel = -1;
 	int selectedProjection = -1;
-	int selectedParty = -1;
-	int selectedPartyIndex = -1;
-	int projectionPartyIndex = -1;
+	int selectedParty = -1; // selected party according to the order in the dropdown box
+	int selectedPartyIndex = -1; // selected party according to the order of parties in the file
+	std::vector<std::string> partyOrder;
 
 	bool displayPolls = true;
 	bool displayModels = true;

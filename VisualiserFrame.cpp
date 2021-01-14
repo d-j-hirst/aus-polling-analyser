@@ -211,7 +211,6 @@ void VisualiserFrame::zoom(float factor, int x)
 }
 
 void VisualiserFrame::refreshPartyChoice() {
-	wxArrayString partyArray;
 	std::string partyBoxString;
 
 	// Prepare the list of parties being described by this model
@@ -222,15 +221,19 @@ void VisualiserFrame::refreshPartyChoice() {
 			if (selectedParty == partyIndex) {
 				partyBoxString = thisPartyString;
 			}
-			partyArray.push_back(thisPartyString);
+			partyOrder.push_back(thisPartyString);
 		}
 		if (thisModel.viewTPPSeries().timePoint.size()) {
-			partyArray.push_back(project->parties().begin()->second.abbreviation + "TPP");
+			partyOrder.push_back(project->parties().begin()->second.abbreviation + "TPP");
 		}
 	}
 
+	wxArrayString arrayString;
+	std::transform(partyOrder.begin(), partyOrder.end(), std::back_inserter(arrayString),
+		[](std::string s) {return wxString(s); });
+
 	selectPartyComboBox->Clear();
-	selectPartyComboBox->Append(partyArray);
+	selectPartyComboBox->Append(arrayString);
 	selectPartyComboBox->SetValue(partyBoxString);
 	toolBar->Realize();
 }
@@ -393,29 +396,19 @@ void VisualiserFrame::render(wxDC& dc) {
 void VisualiserFrame::determineSelectedPartyIndex()
 {
 	selectedPartyIndex = -1;
-	if (selectedModel >= 0 && selectedModel < project->models().count()) {
-		StanModel const& model = project->models().viewByIndex(selectedModel);
-		if (selectedParty >= 0 && selectedParty < model.rawSeriesCount()) {
-			std::string code = model.rawPartyCodeByIndex(selectedParty);
-			if (code == OthersCode) {
-				selectedPartyIndex = PartyCollection::MaxParties;
-			}
-			else {
-				for (int thisPartyIndex = 0; thisPartyIndex < project->parties().count(); ++thisPartyIndex) {
-					Party const& party = project->parties().viewByIndex(thisPartyIndex);
-					if (std::find(party.officialCodes.begin(), party.officialCodes.end(), code)
-						!= party.officialCodes.end())
-					{
-						selectedPartyIndex = thisPartyIndex;
-						break;
-					}
-				}
-			}
-			if (selectedProjection >= 0 && selectedProjection < project->projections().count()) {
-				std::string projCode = code;
-				if (projCode == OthersCode) projCode = ExclusiveOthersCode;
-				Projection const& projection = project->projections().viewByIndex(selectedProjection);
-				projectionPartyIndex = projection.getPartyIndexFromCode(code);
+	if (selectedParty < 0 || selectedParty >= int(partyOrder.size())) return;
+	std::string code = partyOrder[selectedParty];
+	if (code == OthersCode) {
+		selectedPartyIndex = PartyCollection::MaxParties;
+	}
+	else {
+		for (int thisPartyIndex = 0; thisPartyIndex < project->parties().count(); ++thisPartyIndex) {
+			Party const& party = project->parties().viewByIndex(thisPartyIndex);
+			if (std::find(party.officialCodes.begin(), party.officialCodes.end(), code)
+				!= party.officialCodes.end())
+			{
+				selectedPartyIndex = thisPartyIndex;
+				break;
 			}
 		}
 	}
@@ -459,14 +452,16 @@ void VisualiserFrame::determineGraphVerticalScale()
 			auto thisModel = project->models().viewByIndex(selectedModel);
 			if (selectedParty >= 0) {
 				auto series = viewSeriesFromModel(thisModel);
-				auto thisTimePoint = series.timePoint.begin();
-				int modelStartDay = dateToIntMjd(model.getStartDate());
-				for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
-					if (modelStartDay + i >= visStartDay && modelStartDay + i <= visEndDay) {
-						float lowRange = series.timePoint[i].values[SpreadRanges[0].lowerPercentile];
-						float highRange = series.timePoint[i].values[SpreadRanges[0].upperPercentile];
-						gv.minVote = std::min(gv.minVote, lowRange);
-						gv.maxVote = std::max(gv.maxVote, highRange);
+				if (series) {
+					auto thisTimePoint = series->timePoint.begin();
+					int modelStartDay = dateToIntMjd(model.getStartDate());
+					for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
+						if (modelStartDay + i >= visStartDay && modelStartDay + i <= visEndDay) {
+							float lowRange = series->timePoint[i].values[SpreadRanges[0].lowerPercentile];
+							float highRange = series->timePoint[i].values[SpreadRanges[0].upperPercentile];
+							gv.minVote = std::min(gv.minVote, lowRange);
+							gv.maxVote = std::max(gv.maxVote, highRange);
+						}
 					}
 				}
 			}
@@ -479,14 +474,16 @@ void VisualiserFrame::determineGraphVerticalScale()
 			auto thisProjection = project->projections().viewByIndex(selectedProjection);
 			if (selectedParty >= 0) {
 				auto series = viewSeriesFromProjection(thisProjection);
-				auto thisTimePoint = series.timePoint.begin();
-				int projectionStartDay = dateToIntMjd(getProjectionStartDate(thisProjection));
-				for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
-					if (projectionStartDay + i >= visStartDay && projectionStartDay + i <= visEndDay) {
-						float lowRange = series.timePoint[i].values[SpreadRanges[0].lowerPercentile];
-						float highRange = series.timePoint[i].values[SpreadRanges[0].upperPercentile];
-						gv.minVote = std::min(gv.minVote, lowRange);
-						gv.maxVote = std::max(gv.maxVote, highRange);
+				if (series) {
+					auto thisTimePoint = series->timePoint.begin();
+					int projectionStartDay = dateToIntMjd(getProjectionStartDate(thisProjection));
+					for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
+						if (projectionStartDay + i >= visStartDay && projectionStartDay + i <= visEndDay) {
+							float lowRange = series->timePoint[i].values[SpreadRanges[0].lowerPercentile];
+							float highRange = series->timePoint[i].values[SpreadRanges[0].upperPercentile];
+							gv.minVote = std::min(gv.minVote, lowRange);
+							gv.maxVote = std::max(gv.maxVote, highRange);
+						}
 					}
 				}
 			}
@@ -647,12 +644,11 @@ void VisualiserFrame::drawModels(wxDC& dc) {
 
 void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 	if (!displayModels && !displayHouseEffects) return;
-	if (selectedModel >= project->models().count()) return;
-	auto thisModel = project->models().viewByIndex(selectedModel);
 	if (selectedParty < 0) return;
-	auto series = viewSeriesFromModel(thisModel);
-	auto thisTimePoint = series.timePoint.begin();
-	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+	auto series = viewSeriesFromModel(model);
+	if (!series) return;
+	auto thisTimePoint = series->timePoint.begin();
+	for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
 		int x = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i);
 		int x2 = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i + 1);
@@ -700,9 +696,10 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 		constexpr int NumSigmaLevels = 2;
 		constexpr int SigmaBrightnessChange = 50;
 		auto series = viewSeriesFromProjection(projection);
+		if (!series) return;
 		int projStartDay = int(floor(getProjectionStartDate(projection).GetMJD()));
-		auto thisTimePoint = series.timePoint.begin();
-		for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+		auto thisTimePoint = series->timePoint.begin();
+		for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
 			auto nextTimePoint = std::next(thisTimePoint);
 			int x = getXFromDate(projStartDay + i);
 			int x2 = getXFromDate(projStartDay + i + 1);
@@ -817,14 +814,15 @@ int VisualiserFrame::getModelTimePointFromMouse(wxPoint point)
 {
 	if (selectedModel != -1 && selectedParty != -1) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		auto const& series = viewSeriesFromModel(model);
+		auto series = viewSeriesFromModel(model);
+		if (!series) return -1;
 		int xLeft = getXFromDate(int(floor(model.getStartDate().GetMJD())));
-		int xRight = getXFromDate(int(floor(model.getStartDate().GetMJD())) + int(series.timePoint.size()));
+		int xRight = getXFromDate(int(floor(model.getStartDate().GetMJD())) + int(series->timePoint.size()));
 		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
-		int timePoint = int(std::floor(proportion * float(series.timePoint.size())));
+		int timePoint = int(std::floor(proportion * float(series->timePoint.size())));
 		if (timePoint < 0) return -1;
-		if (timePoint >= int(series.timePoint.size())) return -1;
-		int expectedY = getYFromVote(series.timePoint[timePoint].values[MedianPercentile]);
+		if (timePoint >= int(series->timePoint.size())) return -1;
+		int expectedY = getYFromVote(series->timePoint[timePoint].values[MedianPercentile]);
 		if (std::abs(expectedY - point.y) > ModelMouseoverYTolerance) return -1;
 		return timePoint;
 	}
@@ -836,13 +834,14 @@ int VisualiserFrame::getProjectionTimePointFromMouse(wxPoint point)
 	if (selectedProjection != -1 && selectedParty != -1) {
 		Projection const& projection = project->projections().viewByIndex(selectedProjection);
 		auto const& series = viewSeriesFromProjection(projection);
+		if (!series) return -1;
 		int xLeft = getXFromDate(int(floor(getProjectionStartDate(projection).GetMJD())));
-		int xRight = getXFromDate(int(floor(getProjectionStartDate(projection).GetMJD())) + int(series.timePoint.size()));
+		int xRight = getXFromDate(int(floor(getProjectionStartDate(projection).GetMJD())) + int(series->timePoint.size()));
 		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
-		int timePoint = int(std::floor(proportion * float(series.timePoint.size())));
+		int timePoint = int(std::floor(proportion * float(series->timePoint.size())));
 		if (timePoint < 0) return -1;
-		if (timePoint >= int(series.timePoint.size())) return -1;
-		int expectedY = getYFromVote(series.timePoint[timePoint].values[MedianPercentile]);
+		if (timePoint >= int(series->timePoint.size())) return -1;
+		int expectedY = getYFromVote(series->timePoint[timePoint].values[MedianPercentile]);
 		if (std::abs(expectedY - point.y) > ModelMouseoverYTolerance) return -1;
 		return timePoint;
 	}
@@ -897,8 +896,9 @@ void VisualiserFrame::determineLabelRectFromModel()
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
 	auto const& series = viewSeriesFromModel(thisModel);
+	if (!series) return;
 	int left = getXFromDate(int(floor(thisModel.getStartDate().GetMJD())) + modelMouseoverTimepoint) - width;
-	int top = getYFromVote(series.timePoint[modelMouseoverTimepoint].values[50]);
+	int top = getYFromVote(series->timePoint[modelMouseoverTimepoint].values[50]);
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)
@@ -917,8 +917,9 @@ void VisualiserFrame::determineLabelRectFromProjection()
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
 	auto const& series = viewSeriesFromProjection(thisProjection);
+	if (!series) return;
 	int left = getXFromDate(int(floor(getProjectionStartDate(thisProjection).GetMJD())) + projectionMouseoverTimepoint) - width;
-	int top = getYFromVote(series.timePoint[projectionMouseoverTimepoint].values[50]);
+	int top = getYFromVote(series->timePoint[projectionMouseoverTimepoint].values[50]);
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
 	if ((top + height) > gv.graphBottom + gv.graphMargin)
@@ -974,7 +975,8 @@ void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
 	if (selectedModel == -1 || selectedParty == -1 || modelMouseoverTimepoint == -1) return;
 	auto const& thisModel = project->models().viewByIndex(selectedModel);
 	auto const& thisSeries = viewSeriesFromModel(thisModel);
-	auto const& thisSpread = thisSeries.timePoint[modelMouseoverTimepoint];
+	if (!thisSeries) return;
+	auto const& thisSpread = thisSeries->timePoint[modelMouseoverTimepoint];
 	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
 	dc.DrawText(thisModel.getStartDate().Add(wxDateSpan(0, 0, 0, modelMouseoverTimepoint)).FormatISODate(), currentPoint);
@@ -1000,7 +1002,8 @@ void VisualiserFrame::drawMouseoverProjectionText(wxDC& dc)
 	if (selectedProjection == -1 || selectedParty == -1 || projectionMouseoverTimepoint == -1) return;
 	auto const& thisProjection = project->projections().viewByIndex(selectedProjection);
 	auto const& thisSeries = viewSeriesFromProjection(thisProjection);
-	auto const& thisSpread = thisSeries.timePoint[projectionMouseoverTimepoint];
+	if (!thisSeries) return;
+	auto const& thisSpread = thisSeries->timePoint[projectionMouseoverTimepoint];
 	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
 	dc.DrawText(getProjectionStartDate(thisProjection).Add(wxDateSpan(0, 0, 0, projectionMouseoverTimepoint)).FormatISODate(), currentPoint);
@@ -1021,32 +1024,35 @@ void VisualiserFrame::drawMouseoverProjectionText(wxDC& dc)
 
 }
 
-StanModel::Series const& VisualiserFrame::viewSeriesFromModel(StanModel const& model)
+StanModel::SeriesOutput VisualiserFrame::viewSeriesFromModel(StanModel const& model) const
 {
-	if (modelDisplayMode == ModelDisplayMode::Adjusted && model.adjustedSeriesCount()) {
+	if (selectedParty < 0) return nullptr;
+	std::string partyCode = partyOrder[selectedParty];
+	if (modelDisplayMode == ModelDisplayMode::Adjusted) {
 		// default to raw series if the adjusted series haven'y been generated
-		if (selectedParty < model.adjustedSeriesCount() - 1) {
-			return model.viewAdjustedSeriesByIndex(selectedParty);
+		if (selectedParty < int(partyOrder.size()) - 1) {
+			return model.viewAdjustedSeries(partyCode);
 		}
-		else {
-			return model.viewTPPSeries();
+		else if (selectedParty == int(partyOrder.size() - 1)) {
+			return &model.viewTPPSeries();
 		}
 	}
-	if (model.rawSeriesCount() > selectedParty) {
-		return model.viewRawSeriesByIndex(selectedParty);
+	else if (modelDisplayMode == ModelDisplayMode::Raw) {
+		return model.viewRawSeries(partyCode);
 	}
-	return model.viewTPPSeries();
+	return nullptr;
 }
 
-StanModel::Series const& VisualiserFrame::viewSeriesFromProjection(Projection const& projection)
+StanModel::SeriesOutput VisualiserFrame::viewSeriesFromProjection(Projection const& projection) const
 {
-	// default to raw series if the adjusted series haven'y been generated
-	if (projectionPartyIndex < projection.primarySeriesCount() && projectionPartyIndex >= 0) {
-		return projection.viewPrimarySeriesByIndex(selectedParty);
+	std::string partyCode = partyOrder[selectedParty];
+	if (selectedParty < int(partyOrder.size() - 1)) {
+		return projection.viewPrimarySeries(partyCode);
 	}
-	else {
-		return projection.viewTPPSeries();
+	else if (selectedParty == int(partyOrder.size() - 1)) {
+		return &projection.viewTPPSeries();
 	}
+	return nullptr;
 }
 
 wxDateTime VisualiserFrame::getProjectionStartDate(Projection const& projection)

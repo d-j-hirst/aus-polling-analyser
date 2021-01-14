@@ -135,9 +135,16 @@ void Projection::setAsNowCast(ModelCollection const& models) {
 	//settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
 }
 
-StanModel::Series const& Projection::viewPrimarySeriesByIndex(int index) const
+StanModel::SeriesOutput Projection::viewPrimarySeries(std::string partyCode) const
 {
-	return std::next(projectedSupport.begin(), index)->second;
+	if (!projectedSupport.count(partyCode)) return StanModel::SeriesOutput();
+	return &projectedSupport.at(partyCode);
+}
+
+StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
+{
+	if (index < 0 || index >= int(projectedSupport.size())) return StanModel::SeriesOutput();
+	return &std::next(projectedSupport.begin(), index)->second;
 }
 
 StanModel::SupportSample Projection::generateSupportSample(wxDateTime date) const

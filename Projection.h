@@ -83,7 +83,9 @@ public:
 
 	int primarySeriesCount() const { return projectedSupport.size(); }
 
-	StanModel::Series const& viewPrimarySeriesByIndex(int index) const;
+	StanModel::SeriesOutput viewPrimarySeries(std::string code) const;
+
+	StanModel::SeriesOutput viewPrimarySeriesByIndex(int index) const;
 
 	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
 

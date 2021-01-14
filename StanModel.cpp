@@ -70,10 +70,9 @@ void StanModel::loadData(FeedbackFunc feedback)
 			}
 		} while (true);
 	}
-	limitMinorParties(feedback);
 	updateAdjustedData(feedback);
-	generateTppSeries(feedback);
-	updateValidationData(feedback);
+	//generateTppSeries(feedback);
+	//updateValidationData(feedback);
 
 	lastUpdatedDate = wxDateTime::Now();
 	feedback("Finished loading models");
@@ -141,25 +140,28 @@ std::string StanModel::getTextReport() const
 	return ss.str();
 }
 
-StanModel::Series const& StanModel::viewRawSeries(std::string partyCode) const
+StanModel::SeriesOutput StanModel::viewRawSeries(std::string partyCode) const
 {
-	return rawSupport.at(partyCode);
+	if (!rawSupport.count(partyCode)) return nullptr;
+	return &rawSupport.at(partyCode);
 }
 
-StanModel::Series const& StanModel::viewRawSeriesByIndex(int index) const
+StanModel::SeriesOutput StanModel::viewRawSeriesByIndex(int index) const
 {
-
-	return std::next(rawSupport.begin(), index)->second;
+	if (index < 0 || index >= int(rawSupport.size())) return nullptr;
+	return &std::next(rawSupport.begin(), index)->second;
 }
 
-StanModel::Series const& StanModel::viewAdjustedSeries(std::string partyCode) const
+StanModel::SeriesOutput StanModel::viewAdjustedSeries(std::string partyCode) const
 {
-	return adjustedSupport.at(partyCode);
+	if (!adjustedSupport.count(partyCode)) return nullptr;
+	return &adjustedSupport.at(partyCode);
 }
 
-StanModel::Series const& StanModel::viewAdjustedSeriesByIndex(int index) const
+StanModel::SeriesOutput StanModel::viewAdjustedSeriesByIndex(int index) const
 {
-	return std::next(adjustedSupport.begin(), index)->second;
+	if (index < 0 || index >= int(adjustedSupport.size())) return nullptr;
+	return &std::next(adjustedSupport.begin(), index)->second;
 }
 
 StanModel::Series const& StanModel::viewTPPSeries() const
@@ -167,7 +169,7 @@ StanModel::Series const& StanModel::viewTPPSeries() const
 	return tppSupport;
 }
 
-StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date, bool includeTpp) const
+StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date) const
 {
 	if (!adjustedSupport.size()) return SupportSample();
 	int seriesLength = adjustedSupport.begin()->second.timePoint.size();
@@ -177,7 +179,7 @@ StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date, bool 
 	if (dayOffset < 0) dayOffset = 0;
 	SupportSample sample;
 	for (auto [key, support] : adjustedSupport) {
-		if (key == OthersCode) continue; // only include the "xOTH" unnamed 
+		//if (key == OthersCode) continue; // only include the "xOTH" unnamed 
 		float uniform = rng.uniform(0.0, 1.0);
 		int lowerBucket = int(floor(uniform * float(Spread::Size - 1)));
 		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
@@ -192,7 +194,6 @@ StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date, bool 
 	for (auto& vote : sample) {
 		vote.second *= sampleAdjust;
 	}
-	includeTpp; // do something with this later
 	return sample;
 }
 
@@ -201,87 +202,108 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 	return std::next(rawSupport.begin(), index)->first;
 }
 
+StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const
+{
+	if (!rawSupport.size()) return SupportSample();
+	int seriesLength = rawSupport.begin()->second.timePoint.size();
+	if (!seriesLength) return SupportSample();
+	int dayOffset = rawSupport.begin()->second.timePoint.size() - 1;
+	if (date.IsValid()) dayOffset = std::min(dayOffset, (date - startDate).GetDays());
+	if (dayOffset < 0) dayOffset = 0;
+	SupportSample sample;
+	for (auto [key, support] : rawSupport) {
+		float uniform = rng.uniform(0.0, 1.0);
+		int lowerBucket = int(floor(uniform * float(Spread::Size - 1)));
+		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
+		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
+		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1];
+		float sampledVote = upperVote * upperMix + lowerVote * (1.0f - upperMix);
+		sample.insert({ key, sampledVote });
+	}
+	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
+		[](float a, decltype(sample)::value_type b) {return a + b.second; });
+	float sampleAdjust = 100.0f / sampleSum;
+	for (auto& vote : sample) {
+		vote.second *= sampleAdjust;
+	}
+	return sample;
+}
+
+StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample) const
+{
+	return rawSupportSample;
+}
+
 void StanModel::updateAdjustedData(FeedbackFunc feedback)
 {
+	constexpr static int NumIterations = 5000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
-	auto meanAdjustmentsVec = splitString(debiasIntercept, ",");
-	auto deviationAdjustmentsVec = splitString(debiasSlope, ",");
-	auto partyCodeVec = splitString(partyCodes, ",");
-	bool validSizes = meanAdjustmentsVec.size() == partyCodeVec.size() &&
-		(deviationAdjustmentsVec.size() == partyCodeVec.size());
-	if (!validSizes) {
-		feedback("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase");
-		return;
-	}
+	try {
+		auto meanAdjustmentsVec = splitStringF(debiasIntercept, ",");
+		auto deviationAdjustmentsVec = splitStringF(debiasSlope, ",");
+		auto partyCodeVec = splitString(partyCodes, ",");
+		bool validSizes = meanAdjustmentsVec.size() == partyCodeVec.size() &&
+			(deviationAdjustmentsVec.size() == partyCodeVec.size());
+		if (!validSizes) throw std::invalid_argument("");
 
-	// *** This needs to be reworked from scratch. Use the spread from the raw model,
-	//     convert to transformed space via logistic transform
-	//	   adjust it for mean bias (according to this object's parameters, and after adjusting for logit-deriv),
-	//     then mix it with (transformed) historical results according to this objects' parameters
-	//     then sample from this spread to form a new spread with additional variance from systemic bias
-	//     Finally, take samples from spreads from each party and normalize to keep the sum of party results at zero,
-	//     keep the resultant spread for display purposes
-	//     This logic should be kept in a separate function that takes
-	//     the desired starting support date and number of days to project as parameters,
-	//     so that it can be used for projections seamlessly with best-guess current estimates.
-
-	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
-		std::string partyName = partyCodeVec[partyIndex];
-		if (rawSupport.count(partyName)) {
-			adjustedSupport[partyName] = rawSupport[partyName];
-			float adjustMean = 0.0f;
-			float adjustDeviation = 1.0f;
-			try {
-				adjustMean = std::stof(meanAdjustmentsVec[partyIndex]);
-				adjustDeviation = std::stof(deviationAdjustmentsVec[partyIndex]);
-			}
-			catch (std::invalid_argument) {
-				feedback("Warning: Invalid mean or deviation value for party " + partyName + ", aborting adjustment phase");
-				adjustedSupport.clear();
-				return;
-			}
-			for (auto& timePoint : adjustedSupport[partyName].timePoint) {
-				// Transform party support values
-				for (auto& value : timePoint.values) {
-					value = transformVoteShare(value);
-				}
-				// Adjust transformed party support values by a set amount
-				// and also according to its distance from the mean
-				float meanValue = timePoint.values[MedianSpreadValue];
-				for (auto& value : timePoint.values) {
-					float deviation = (value - meanValue);
-					value = meanValue + adjustMean + deviation * adjustDeviation;
-				}
-				// Transform back into a regular vote share
-				for (auto& value : timePoint.values) {
-					value = detransformVoteShare(value);
-				}
-			}
+		int seriesLength = rawSupport.begin()->second.timePoint.size();
+		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
+			std::string partyName = partyCodeVec[partyIndex];
+			adjustedSupport[partyName] = Series();
+			adjustedSupport[partyName].timePoint.resize(seriesLength);
 		}
-	}
 
-	// Create a series for estimated others, excluding "others" parties that have their own series
-	if (adjustedSupport.count(OthersCode)) {
-		adjustedSupport[ExclusiveOthersCode] = adjustedSupport[OthersCode];
-		for (auto const& [key, series] : adjustedSupport) {
-			if (key != OthersCode && key != ExclusiveOthersCode && !majorPartyCodes.count(key)) {
-				for (int time = 0; time < int(series.timePoint.size()); ++time) {
-					float partyMedian = series.timePoint[time].values[MedianSpreadValue];
-					for (float& value : adjustedSupport[ExclusiveOthersCode].timePoint[time].values) {
-						// Should remain with at least a small, ascending sequence
-						value = std::max(value - partyMedian, 0.1f + value * 0.01f);
+		for (int time = 0; time < seriesLength; ++time) {
+			wxDateTime thisDate = startDate;
+			thisDate.Add(wxDateSpan(0, 0, 0, time));
+			std::vector<std::array<float, NumIterations>> samples(partyCodeVec.size());
+			for (int iteration = 0; iteration < NumIterations; ++iteration) {
+				auto sample = generateRawSupportSample(thisDate);
+				for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
+					std::string partyName = partyCodeVec[partyIndex];
+					auto adjustedSample = adjustRawSupportSample(sample);
+					if (adjustedSample.count(partyName)) {
+						samples[partyIndex][iteration] = adjustedSample[partyName];
 					}
 				}
 			}
+			for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
+				std::string partyName = partyCodeVec[partyIndex];
+				std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
+				for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+					int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
+					adjustedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
+				}
+			}
+		}
+
+		// Create a series for estimated others, excluding "others" parties that have their own series
+		if (adjustedSupport.count(OthersCode)) {
+			adjustedSupport[ExclusiveOthersCode] = adjustedSupport[OthersCode];
+			//for (auto const& [key, series] : adjustedSupport) {
+			//	if (key != OthersCode && key != ExclusiveOthersCode && !majorPartyCodes.count(key)) {
+			//		for (int time = 0; time < int(series.timePoint.size()); ++time) {
+			//			float partyMedian = series.timePoint[time].values[MedianSpreadValue];
+			//			for (float& value : adjustedSupport[ExclusiveOthersCode].timePoint[time].values) {
+			//				// Should remain with at least a small, ascending sequence
+			//				value = std::max(value - partyMedian, 0.1f + value * 0.01f);
+			//			}
+			//		}
+			//	}
+			//}
+		}
+
+		//limitMinorParties(feedback);
+
+		for (auto& [key, party] : adjustedSupport) {
+			for (auto& time : party.timePoint) {
+				time.calculateExpectation();
+			}
 		}
 	}
-
-	limitMinorParties(feedback);
-
-	for (auto& [key, party] : adjustedSupport) {
-		for (auto& time : party.timePoint) {
-			time.calculateExpectation();
-		}
+	catch (std::invalid_argument) {
+		feedback("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase");
+		return;
 	}
 }
 
