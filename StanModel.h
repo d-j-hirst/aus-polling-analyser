@@ -87,6 +87,8 @@ private:
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
+	void generateUnnamedOthersSeries();
+
 	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample) const;
 
 	void updateAdjustedData(FeedbackFunc feedback);

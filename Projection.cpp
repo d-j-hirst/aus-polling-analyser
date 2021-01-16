@@ -222,7 +222,7 @@ bool Projection::createCachedPreferenceFlow(FeedbackFunc feedback)
 		auto preferenceDeviationVec = splitString(preferenceDeviation, ",");
 		auto preferenceSamplesVec = splitString(preferenceSamples, ",");
 		partyCodeVec = splitString(partyCodes, ",");
-		for (auto& partyCode : partyCodeVec) if (partyCode == OthersCode) partyCode = ExclusiveOthersCode;
+		for (auto& partyCode : partyCodeVec) if (partyCode == OthersCode) partyCode = UnnamedOthersCode;
 		bool validSizes = preferenceFlowVec.size() == partyCodeVec.size()
 			&& preferenceDeviationVec.size() == partyCodeVec.size()
 			&& preferenceSamplesVec.size() == partyCodeVec.size();
@@ -241,7 +241,7 @@ bool Projection::createCachedPreferenceFlow(FeedbackFunc feedback)
 		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 			std::string partyName = partyCodeVec[partyIndex];
 			if (projectedSupport.count(partyName)) {
-				if (partyName == OthersCode) partyName = ExclusiveOthersCode;
+				if (partyName == OthersCode) partyName = UnnamedOthersCode;
 				try {
 					preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
 					preferenceDeviationMap[partyName] = std::clamp(std::stof(preferenceDeviationVec[partyIndex]), 0.0f, 100.0f) * 0.01f;

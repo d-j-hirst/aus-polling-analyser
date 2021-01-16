@@ -1,4 +1,4 @@
 #pragma once
 
 const std::string OthersCode = "OTH";
-const std::string ExclusiveOthersCode = "xOTH";
+const std::string UnnamedOthersCode = "xOTH";

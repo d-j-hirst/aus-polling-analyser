@@ -16,7 +16,7 @@ constexpr bool DoValidations = false;
 RandomGenerator StanModel::rng = RandomGenerator();
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
-	{ "ALP", "LNP", "LIB", "NAT", "GRN", OthersCode, ExclusiveOthersCode };
+	{ "ALP", "LNP", "LIB", "NAT", "GRN", OthersCode, UnnamedOthersCode };
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
 	std::string meanAdjustments, std::string deviationAdjustments)
@@ -42,6 +42,7 @@ void StanModel::loadData(FeedbackFunc feedback)
 	rawSupport.clear();
 	for (auto partyCode : partyCodeVec) {
 		auto& series = rawSupport[partyCode];
+		if (partyCode == UnnamedOthersCode) continue; // calculate this later
 		std::string filename = "python/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
 		auto file = std::ifstream(filename);
@@ -70,6 +71,7 @@ void StanModel::loadData(FeedbackFunc feedback)
 			}
 		} while (true);
 	}
+	generateUnnamedOthersSeries();
 	updateAdjustedData(feedback);
 	//generateTppSeries(feedback);
 	//updateValidationData(feedback);
@@ -220,13 +222,37 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 		float sampledVote = upperVote * upperMix + lowerVote * (1.0f - upperMix);
 		sample.insert({ key, sampledVote });
 	}
+
 	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
-		[](float a, decltype(sample)::value_type b) {return a + b.second; });
+		[](float a, decltype(sample)::value_type b) {return (b.first == OthersCode ? a : a + b.second); });
 	float sampleAdjust = 100.0f / sampleSum;
 	for (auto& vote : sample) {
 		vote.second *= sampleAdjust;
 	}
 	return sample;
+}
+
+void StanModel::generateUnnamedOthersSeries()
+{
+	if (rawSupport.count(OthersCode) && rawSupport.count(UnnamedOthersCode)) {
+		for (int time = 0; time < int(rawSupport[OthersCode].timePoint.size()); ++time) {
+			float namedMinorTotal = 0.0f;
+			for (auto const& [code, series] : rawSupport) {
+				if (code != UnnamedOthersCode && code != OthersCode && !majorPartyCodes.count(code)) {
+					namedMinorTotal += series.timePoint[time].values[MedianSpreadValue];
+				}
+			}
+			float othersMedian = rawSupport[OthersCode].timePoint[time].values[MedianSpreadValue];
+			const float UnnamedMinorsBase = 3.0f;
+			othersMedian = std::max(othersMedian, namedMinorTotal + UnnamedMinorsBase);
+			float proportion = 1.0f - namedMinorTotal / othersMedian;
+			Spread spread;
+			for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
+				spread.values[percentile] = rawSupport[OthersCode].timePoint[time].values[percentile] * proportion;
+			}
+			rawSupport[UnnamedOthersCode].timePoint.push_back(spread);
+		}
+	}
 }
 
 StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample) const
@@ -277,22 +303,6 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			}
 		}
 
-		// Create a series for estimated others, excluding "others" parties that have their own series
-		if (adjustedSupport.count(OthersCode)) {
-			adjustedSupport[ExclusiveOthersCode] = adjustedSupport[OthersCode];
-			//for (auto const& [key, series] : adjustedSupport) {
-			//	if (key != OthersCode && key != ExclusiveOthersCode && !majorPartyCodes.count(key)) {
-			//		for (int time = 0; time < int(series.timePoint.size()); ++time) {
-			//			float partyMedian = series.timePoint[time].values[MedianSpreadValue];
-			//			for (float& value : adjustedSupport[ExclusiveOthersCode].timePoint[time].values) {
-			//				// Should remain with at least a small, ascending sequence
-			//				value = std::max(value - partyMedian, 0.1f + value * 0.01f);
-			//			}
-			//		}
-			//	}
-			//}
-		}
-
 		//limitMinorParties(feedback);
 
 		for (auto& [key, party] : adjustedSupport) {
@@ -301,6 +311,7 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			}
 		}
 	}
+
 	catch (std::invalid_argument) {
 		feedback("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase");
 		return;
@@ -348,7 +359,7 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 		std::string partyName = partyCodeVec[partyIndex];
 		if (adjustedSupport.count(partyName)) {
-			if (partyName == OthersCode) partyName = ExclusiveOthersCode;
+			if (partyName == OthersCode) partyName = UnnamedOthersCode;
 			try {
 				preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
 				preferenceDeviationMap[partyName] = std::clamp(std::stof(preferenceDeviationVec[partyIndex]), 0.0f, 100.0f) * 0.01f;

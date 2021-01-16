@@ -214,6 +214,7 @@ void VisualiserFrame::refreshPartyChoice() {
 	std::string partyBoxString;
 
 	// Prepare the list of parties being described by this model
+	partyOrder.clear();
 	if (selectedModel >= 0 && selectedModel < project->models().count()) {
 		auto thisModel = project->models().viewByIndex(selectedModel);
 		for (int partyIndex = 0; partyIndex < thisModel.rawSeriesCount(); ++partyIndex) {
