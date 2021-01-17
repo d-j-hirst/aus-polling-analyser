@@ -16,7 +16,7 @@ constexpr bool DoValidations = false;
 RandomGenerator StanModel::rng = RandomGenerator();
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
-	{ "ALP", "LNP", "LIB", "NAT", "GRN", OthersCode, UnnamedOthersCode };
+	{ "ALP", "LNP", "LIB", "NAT", "GRN" };
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
 	std::string meanAdjustments, std::string deviationAdjustments)
@@ -229,6 +229,9 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	for (auto& vote : sample) {
 		vote.second *= sampleAdjust;
 	}
+
+	updateOthersValue(sample);
+
 	return sample;
 }
 
@@ -285,9 +288,10 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			std::vector<std::array<float, NumIterations>> samples(partyCodeVec.size());
 			for (int iteration = 0; iteration < NumIterations; ++iteration) {
 				auto sample = generateRawSupportSample(thisDate);
+				auto adjustedSample = adjustRawSupportSample(sample);
+				updateOthersValue(sample);
 				for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 					std::string partyName = partyCodeVec[partyIndex];
-					auto adjustedSample = adjustRawSupportSample(sample);
 					if (adjustedSample.count(partyName)) {
 						samples[partyIndex][iteration] = adjustedSample[partyName];
 					}
@@ -303,8 +307,6 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			}
 		}
 
-		//limitMinorParties(feedback);
-
 		for (auto& [key, party] : adjustedSupport) {
 			for (auto& time : party.timePoint) {
 				time.calculateExpectation();
@@ -315,21 +317,6 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 	catch (std::invalid_argument) {
 		feedback("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase");
 		return;
-	}
-}
-
-void StanModel::limitMinorParties(FeedbackFunc feedback)
-{
-	for (auto& [key, series] : adjustedSupport) {
-		if (!majorPartyCodes.count(key)) {
-			for (int time = 0; time < int(series.timePoint.size()); ++time) {
-				for (int value = 0; value < Spread::Size; ++value) {
-					series.timePoint[time].values[value] = std::min(
-						series.timePoint[time].values[value],
-						adjustedSupport[OthersCode].timePoint[time].values[value]);
-				}
-			}
-		}
 	}
 }
 
@@ -434,7 +421,7 @@ void StanModel::updateValidationData(FeedbackFunc feedback)
 
 	//validationSupport.clear();
 	//for (auto const& [key, series] : adjustedSupport) {
-	//	if (key != "OTH") {
+	//	if (key != OthersCode) {
 	//		validationSupport.insert({ key, Series() });
 	//		validationSupport[key].timePoint.resize(timeCount);
 	//	}
@@ -506,4 +493,13 @@ void StanModel::Spread::calculateExpectation()
 	float sum = std::accumulate(values.begin(), values.end(), 0.0f,
 		[](float a, float b) {return a + b; });
 	expectation = sum / float(values.size());
+}
+
+void StanModel::updateOthersValue(StanModel::SupportSample& sample) {
+	// make sure "others" is actually equal to sum of non-major parties
+	float otherSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
+		[](float a, StanModel::SupportSample::value_type b) {
+			return (b.first == OthersCode || majorPartyCodes.count(b.first) ? a : a + b.second);
+		});
+	sample[OthersCode] = otherSum;
 }

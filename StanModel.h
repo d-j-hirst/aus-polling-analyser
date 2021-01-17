@@ -103,6 +103,8 @@ private:
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
 
+	static void updateOthersValue(StanModel::SupportSample& sample);
+
 	static RandomGenerator rng;
 
 	static MajorPartyCodes majorPartyCodes;
