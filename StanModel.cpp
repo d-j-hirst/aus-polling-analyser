@@ -33,7 +33,7 @@ wxDateTime StanModel::getEndDate() const
 
 void StanModel::loadData(FeedbackFunc feedback)
 {
-	auto partyCodeVec = splitString(partyCodes, ",");
+	partyCodeVec = splitString(partyCodes, ",");
 	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
 		feedback("No party codes found!");
 		return;
@@ -223,12 +223,7 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 		sample.insert({ key, sampledVote });
 	}
 
-	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
-		[](float a, decltype(sample)::value_type b) {return (b.first == OthersCode ? a : a + b.second); });
-	float sampleAdjust = 100.0f / sampleSum;
-	for (auto& vote : sample) {
-		vote.second *= sampleAdjust;
-	}
+	normaliseSample(sample);
 
 	updateOthersValue(sample);
 
@@ -258,9 +253,18 @@ void StanModel::generateUnnamedOthersSeries()
 	}
 }
 
-StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample) const
+StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample, int days) const
 {
-	return rawSupportSample;
+	constexpr int MinDays = 2;
+	float logDays = std::log(float(std::max(days, MinDays)));
+	auto sample = rawSupportSample;
+	for (auto& [key, support] : sample) {
+		float supportChange = debiasInterceptMap.at(key) + debiasSlopeMap.at(key) * logDays;
+		support += supportChange;
+	}
+	normaliseSample(sample);
+	updateOthersValue(sample);
+	return sample;
 }
 
 void StanModel::updateAdjustedData(FeedbackFunc feedback)
@@ -268,12 +272,7 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 	constexpr static int NumIterations = 5000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
 	try {
-		auto meanAdjustmentsVec = splitStringF(debiasIntercept, ",");
-		auto deviationAdjustmentsVec = splitStringF(debiasSlope, ",");
-		auto partyCodeVec = splitString(partyCodes, ",");
-		bool validSizes = meanAdjustmentsVec.size() == partyCodeVec.size() &&
-			(deviationAdjustmentsVec.size() == partyCodeVec.size());
-		if (!validSizes) throw std::invalid_argument("");
+		generateParameterMaps();
 
 		int seriesLength = rawSupport.begin()->second.timePoint.size();
 		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
@@ -289,7 +288,6 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			for (int iteration = 0; iteration < NumIterations; ++iteration) {
 				auto sample = generateRawSupportSample(thisDate);
 				auto adjustedSample = adjustRawSupportSample(sample);
-				updateOthersValue(sample);
 				for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 					std::string partyName = partyCodeVec[partyIndex];
 					if (adjustedSample.count(partyName)) {
@@ -314,8 +312,9 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 		}
 	}
 
-	catch (std::invalid_argument) {
-		feedback("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase");
+	catch (std::logic_error& e) {
+		feedback(std::string("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase\n") + 
+			"Specific information: " + e.what());
 		return;
 	}
 }
@@ -327,7 +326,6 @@ void StanModel::generateTppSeries(FeedbackFunc feedback)
 	auto preferenceFlowVec = splitString(preferenceFlow, ",");
 	auto preferenceDeviationVec = splitString(preferenceDeviation, ",");
 	auto preferenceSamplesVec = splitString(preferenceSamples, ",");
-	auto partyCodeVec = splitString(partyCodes, ",");
 	bool validSizes = preferenceFlowVec.size() == partyCodeVec.size()
 		&& preferenceDeviationVec.size() == partyCodeVec.size()
 		&& preferenceSamplesVec.size() == partyCodeVec.size();
@@ -502,4 +500,34 @@ void StanModel::updateOthersValue(StanModel::SupportSample& sample) {
 			return (b.first == OthersCode || majorPartyCodes.count(b.first) ? a : a + b.second);
 		});
 	sample[OthersCode] = otherSum;
+}
+
+void StanModel::normaliseSample(StanModel::SupportSample& sample)
+{
+	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
+		[](float a, StanModel::SupportSample::value_type b) {
+			return (b.first == OthersCode ? a : a + b.second); }
+		);
+	float sampleAdjust = 100.0f / sampleSum;
+	for (auto& vote : sample) {
+		vote.second *= sampleAdjust;
+	}
+}
+
+void StanModel::generateParameterMaps()
+{
+	// partyCodeVec is already created by loadData
+	if (!partyCodeVec.size()) throw std::logic_error("No party codes in this model!");
+	auto debiasInterceptVec = splitStringF(debiasIntercept, ",");
+	auto debiasSlopeVec = splitStringF(debiasSlope, ",");
+	bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
+		(debiasSlopeVec.size() == partyCodeVec.size());
+	if (!validSizes) throw std::logic_error("Party codes and parameter lines do not match!");
+
+	debiasInterceptMap.clear();
+	debiasSlopeMap.clear();
+	for (int index = 0; index < int(partyCodeVec.size()); ++index) {
+		debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
+		debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
+	}
 }

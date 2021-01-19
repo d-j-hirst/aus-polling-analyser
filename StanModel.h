@@ -28,9 +28,13 @@ public:
 		std::vector<StanModel::Spread> timePoint;
 	};
 
+	typedef std::vector<std::string> PartyCodes;
+
 	typedef std::map<std::string, Series> PartySupport;
 
 	typedef std::map<std::string, float> SupportSample;
+
+	typedef std::map<std::string, float> PartyParameters;
 
 	typedef std::function<void(std::string)> FeedbackFunc;
 
@@ -89,7 +93,7 @@ private:
 
 	void generateUnnamedOthersSeries();
 
-	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample) const;
+	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0) const;
 
 	void updateAdjustedData(FeedbackFunc feedback);
 
@@ -104,6 +108,10 @@ private:
 	Series& addSeries(std::string partyCode);
 
 	static void updateOthersValue(StanModel::SupportSample& sample);
+
+	static void normaliseSample(StanModel::SupportSample& sample);
+
+	void generateParameterMaps();
 
 	static RandomGenerator rng;
 
@@ -129,4 +137,9 @@ private:
 	std::string historicalAverage;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
+
+	// temporary/cached map between parties and parameters
+	PartyCodes partyCodeVec;
+	PartyParameters debiasSlopeMap;
+	PartyParameters debiasInterceptMap;
 };
