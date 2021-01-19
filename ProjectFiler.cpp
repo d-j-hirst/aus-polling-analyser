@@ -429,9 +429,9 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.preferenceFlow;
 		saveOutput << thisModel.preferenceDeviation;
 		saveOutput << thisModel.preferenceSamples;
-		saveOutput << thisModel.mixMaxPollWeight;
-		saveOutput << thisModel.mixInformationHorizon;
-		saveOutput << thisModel.mixHyperbolaSharpness;
+		saveOutput << thisModel.maxPollWeight;
+		saveOutput << thisModel.informationHorizon;
+		saveOutput << thisModel.hyperbolaSharpness;
 		saveOutput << thisModel.deviationSlope;
 		saveOutput << thisModel.deviationIntercept;
 		saveOutput << thisModel.historicalAverage;
@@ -503,9 +503,9 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 				saveInput >> thisModel.preferenceSamples;
 			}
 			if (versionNum >= 11) {
-				saveInput >> thisModel.mixMaxPollWeight;
-				saveInput >> thisModel.mixInformationHorizon;
-				saveInput >> thisModel.mixHyperbolaSharpness;
+				saveInput >> thisModel.maxPollWeight;
+				saveInput >> thisModel.informationHorizon;
+				saveInput >> thisModel.hyperbolaSharpness;
 				saveInput >> thisModel.deviationSlope;
 				saveInput >> thisModel.deviationIntercept;
 				saveInput >> thisModel.historicalAverage;

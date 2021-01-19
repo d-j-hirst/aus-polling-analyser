@@ -21,7 +21,11 @@ enum ControlId
 	DeviationAdjustments,
 	PreferenceFlow,
 	PreferenceDeviation,
-	PreferenceSamples
+	PreferenceSamples,
+	MaxPollWeight,
+	InformationHorizon,
+	HyperbolaSharpness,
+	HistoricalAverage
 };
 
 EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
@@ -38,11 +42,9 @@ void EditModelFrame::createControls(int & y)
 	createNameInput(y);
 	createTermCodeInput(y);
 	createPartyCodesInput(y);
-	createDebiasInterceptInput(y);
-	createDebiasSlopeInput(y);
-	createPreferenceFlowInput(y);
-	createPreferenceDeviationInput(y);
-	createPreferenceSamplesInput(y);
+	createDebiasInputs(y);
+	createPreferenceInputs(y);
+	createMixingInputs(y);
 	createOkCancelButtons(y);
 }
 
@@ -67,44 +69,58 @@ void EditModelFrame::createPartyCodesInput(int& y)
 	y += partyCodesInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createDebiasInterceptInput(int& y)
+void EditModelFrame::createDebiasInputs(int& y)
 {
 	auto debiasInterceptCallback = [this](std::string s) -> void {model.debiasIntercept = s; };
 	debiasInterceptInput.reset(new TextInput(this, ControlId::MeanAdjustments, "Debias Intercept:", 
 		model.debiasIntercept, wxPoint(2, y), debiasInterceptCallback));
 	y += debiasInterceptInput->Height + ControlPadding;
-}
 
-void EditModelFrame::createDebiasSlopeInput(int& y)
-{
 	auto debiasSlopeCallback = [this](std::string s) -> void {model.debiasSlope = s; };
-	debiasSlopeInput.reset(new TextInput(this, ControlId::DeviationAdjustments, "Debias Slope:", 
+	debiasSlopeInput.reset(new TextInput(this, ControlId::DeviationAdjustments, "Debias Slope:",
 		model.debiasSlope, wxPoint(2, y), debiasSlopeCallback));
 	y += debiasSlopeInput->Height + ControlPadding;
 }
 
-void EditModelFrame::createPreferenceFlowInput(int& y)
+void EditModelFrame::createPreferenceInputs(int& y)
 {
 	auto preferenceFlowCallback = [this](std::string s) -> void {model.preferenceFlow = s; };
 	preferenceFlowInput.reset(new TextInput(this, ControlId::PreferenceFlow, "Preference Flow (%):",
 		model.preferenceFlow, wxPoint(2, y), preferenceFlowCallback));
 	y += preferenceFlowInput->Height + ControlPadding;
-}
-
-void EditModelFrame::createPreferenceDeviationInput(int& y)
-{
+	
 	auto preferenceDeviationCallback = [this](std::string s) -> void {model.preferenceDeviation = s; };
 	preferenceDeviationInput.reset(new TextInput(this, ControlId::PreferenceDeviation, "Preference Deviation (%):",
 		model.preferenceDeviation, wxPoint(2, y), preferenceDeviationCallback));
 	y += preferenceDeviationInput->Height + ControlPadding;
-}
 
-void EditModelFrame::createPreferenceSamplesInput(int& y)
-{
 	auto preferenceSamplesCallback = [this](std::string s) -> void {model.preferenceSamples = s; };
 	preferenceSamplesInput.reset(new TextInput(this, ControlId::PreferenceSamples, "Preference Samples:",
 		model.preferenceSamples, wxPoint(2, y), preferenceSamplesCallback));
 	y += preferenceSamplesInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createMixingInputs(int& y)
+{
+	auto maxPollWeightCallback = [this](std::string s) -> void {model.maxPollWeight = s; };
+	maxPollWeightInput.reset(new TextInput(this, ControlId::MaxPollWeight, "Maximum Poll Weight:",
+		model.maxPollWeight, wxPoint(2, y), maxPollWeightCallback));
+	y += maxPollWeightInput->Height + ControlPadding;
+
+	auto informationHorizonCallback = [this](std::string s) -> void {model.informationHorizon = s; };
+	informationHorizonInput.reset(new TextInput(this, ControlId::InformationHorizon, "Information Horizon:",
+		model.informationHorizon, wxPoint(2, y), informationHorizonCallback));
+	y += informationHorizonInput->Height + ControlPadding;
+
+	auto hyperbolaSharpnessCallback = [this](std::string s) -> void {model.hyperbolaSharpness = s; };
+	hyperbolaSharpnessInput.reset(new TextInput(this, ControlId::HyperbolaSharpness, "Hyperbola Sharpness:",
+		model.hyperbolaSharpness, wxPoint(2, y), hyperbolaSharpnessCallback));
+	y += hyperbolaSharpnessInput->Height + ControlPadding;
+
+	auto historicalAverageCallback = [this](std::string s) -> void {model.historicalAverage = s; };
+	historicalAverageInput.reset(new TextInput(this, ControlId::HistoricalAverage, "Historical Average:",
+		model.historicalAverage, wxPoint(2, y), historicalAverageCallback));
+	y += historicalAverageInput->Height + ControlPadding;
 }
 
 

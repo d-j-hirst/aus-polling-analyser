@@ -45,11 +45,9 @@ private:
 	void createNameInput(int& y);
 	void createTermCodeInput(int& y);
 	void createPartyCodesInput(int& y);
-	void createDebiasInterceptInput(int& y);
-	void createDebiasSlopeInput(int& y);
-	void createPreferenceFlowInput(int& y);
-	void createPreferenceDeviationInput(int& y);
-	void createPreferenceSamplesInput(int& y);
+	void createDebiasInputs(int& y);
+	void createPreferenceInputs(int& y);
+	void createMixingInputs(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -69,6 +67,10 @@ private:
 	std::unique_ptr<TextInput> preferenceFlowInput;
 	std::unique_ptr<TextInput> preferenceDeviationInput;
 	std::unique_ptr<TextInput> preferenceSamplesInput;
+	std::unique_ptr<TextInput> maxPollWeightInput;
+	std::unique_ptr<TextInput> informationHorizonInput;
+	std::unique_ptr<TextInput> hyperbolaSharpnessInput;
+	std::unique_ptr<TextInput> historicalAverageInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

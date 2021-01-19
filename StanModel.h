@@ -129,12 +129,12 @@ private:
 	std::string preferenceFlow;
 	std::string preferenceDeviation;
 	std::string preferenceSamples;
-	std::string mixMaxPollWeight;
-	std::string mixInformationHorizon;
-	std::string mixHyperbolaSharpness;
+	std::string maxPollWeight;
+	std::string informationHorizon;
+	std::string hyperbolaSharpness;
+	std::string historicalAverage;
 	std::string deviationSlope;
 	std::string deviationIntercept;
-	std::string historicalAverage;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 
