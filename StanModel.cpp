@@ -258,9 +258,13 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	constexpr int MinDays = 2;
 	float logDays = std::log(float(std::max(days, MinDays)));
 	auto sample = rawSupportSample;
-	for (auto& [key, support] : sample) {
-		float supportChange = debiasInterceptMap.at(key) + debiasSlopeMap.at(key) * logDays;
-		support += supportChange;
+	for (auto& [key, voteShare] : sample) {
+		float transformed = transformVoteShare(voteShare);
+		float debiasChange = debiasInterceptMap.at(key) + debiasSlopeMap.at(key) * logDays;
+		float transformedDebiasChange = debiasChange * limitedLogitDeriv(voteShare);
+		transformed -= transformedDebiasChange;
+		float newVoteShare = detransformVoteShare(transformed);
+		voteShare = newVoteShare;
 	}
 	normaliseSample(sample);
 	updateOthersValue(sample);

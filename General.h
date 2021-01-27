@@ -117,3 +117,9 @@ inline float detransformVoteShare(float transformedVoteShare) {
 inline float logitDeriv(float startingPoint) {
 	return 25.0f / startingPoint + 0.25f / (1.0f - 0.01f * startingPoint);
 }
+
+constexpr float DefaultLogitDerivLimit = 4.0f;
+
+inline float limitedLogitDeriv(float startingPoint, float limit = DefaultLogitDerivLimit) {
+	return std::clamp(logitDeriv(startingPoint), 0.0f, limit);
+}
