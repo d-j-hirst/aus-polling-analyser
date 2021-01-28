@@ -142,4 +142,8 @@ private:
 	PartyCodes partyCodeVec;
 	PartyParameters debiasSlopeMap;
 	PartyParameters debiasInterceptMap;
+	PartyParameters maxPollWeightMap;
+	PartyParameters informationHorizonMap;
+	PartyParameters hyperbolaSharpnessMap;
+	PartyParameters historicalAverageMap;
 };

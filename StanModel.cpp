@@ -260,9 +260,26 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	auto sample = rawSupportSample;
 	for (auto& [key, voteShare] : sample) {
 		float transformed = transformVoteShare(voteShare);
-		float debiasChange = debiasInterceptMap.at(key) + debiasSlopeMap.at(key) * logDays;
+
+		// Remove bias
+		float intercept = debiasInterceptMap.at(key);
+		float slope = debiasSlopeMap.at(key);
+		float debiasChange = intercept + slope * logDays;
 		float transformedDebiasChange = debiasChange * limitedLogitDeriv(voteShare);
 		transformed -= transformedDebiasChange;
+
+		// Mix with historical value
+		float thisMaxPollWeight = maxPollWeightMap.at(key);
+		float thisInformationHorizon = informationHorizonMap.at(key);
+		float thisHyperbolaSharpness = hyperbolaSharpnessMap.at(key);
+		float thisHistorical = historicalAverageMap.at(key);
+		constexpr float HistoricalVoteMin = 0.2f;
+		constexpr float HistoricalVoteMax = 99.8f;
+		float historicalTransformed = transformVoteShare(std::clamp(thisHistorical, HistoricalVoteMin, HistoricalVoteMax));
+		float pollWeight = std::max(0.0f, (thisMaxPollWeight + 1.0f / (thisInformationHorizon * thisHyperbolaSharpness)) -
+			1.0f / ((thisInformationHorizon - logDays) * thisHyperbolaSharpness));
+		transformed = transformed * pollWeight + historicalTransformed * (1.0f - pollWeight);
+
 		float newVoteShare = detransformVoteShare(transformed);
 		voteShare = newVoteShare;
 	}
@@ -524,14 +541,26 @@ void StanModel::generateParameterMaps()
 	if (!partyCodeVec.size()) throw std::logic_error("No party codes in this model!");
 	auto debiasInterceptVec = splitStringF(debiasIntercept, ",");
 	auto debiasSlopeVec = splitStringF(debiasSlope, ",");
+	auto maxPollWeightVec = splitStringF(maxPollWeight, ",");
+	auto informationHorizonVec = splitStringF(informationHorizon, ",");
+	auto hyperbolaSharpnessVec = splitStringF(hyperbolaSharpness, ",");
+	auto historicalAverageVec = splitStringF(historicalAverage, ",");
 	bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
 		(debiasSlopeVec.size() == partyCodeVec.size());
 	if (!validSizes) throw std::logic_error("Party codes and parameter lines do not match!");
 
 	debiasInterceptMap.clear();
 	debiasSlopeMap.clear();
+	maxPollWeightMap.clear();
+	informationHorizonMap.clear();
+	hyperbolaSharpnessMap.clear();
+	historicalAverageMap.clear();
 	for (int index = 0; index < int(partyCodeVec.size()); ++index) {
 		debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
 		debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
+		maxPollWeightMap.insert({ partyCodeVec[index], maxPollWeightVec[index] });
+		informationHorizonMap.insert({ partyCodeVec[index], informationHorizonVec[index] });
+		hyperbolaSharpnessMap.insert({ partyCodeVec[index], hyperbolaSharpnessVec[index] });
+		historicalAverageMap.insert({ partyCodeVec[index], historicalAverageVec[index] });
 	}
 }
