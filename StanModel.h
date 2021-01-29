@@ -146,4 +146,6 @@ private:
 	PartyParameters informationHorizonMap;
 	PartyParameters hyperbolaSharpnessMap;
 	PartyParameters historicalAverageMap;
+	PartyParameters deviationSlopeMap;
+	PartyParameters deviationInterceptMap;
 };

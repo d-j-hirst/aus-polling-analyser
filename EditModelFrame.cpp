@@ -25,7 +25,9 @@ enum ControlId
 	MaxPollWeight,
 	InformationHorizon,
 	HyperbolaSharpness,
-	HistoricalAverage
+	HistoricalAverage,
+	DeviationSlope,
+	DeviationIntercept
 };
 
 EditModelFrame::EditModelFrame(Function function, OkCallback callback, StanModel model)
@@ -45,6 +47,7 @@ void EditModelFrame::createControls(int & y)
 	createDebiasInputs(y);
 	createPreferenceInputs(y);
 	createMixingInputs(y);
+	createDeviationInputs(y);
 	createOkCancelButtons(y);
 }
 
@@ -121,6 +124,20 @@ void EditModelFrame::createMixingInputs(int& y)
 	historicalAverageInput.reset(new TextInput(this, ControlId::HistoricalAverage, "Historical Average:",
 		model.historicalAverage, wxPoint(2, y), historicalAverageCallback));
 	y += historicalAverageInput->Height + ControlPadding;
+}
+
+void EditModelFrame::createDeviationInputs(int& y)
+{
+
+	auto deviationSlopeCallback = [this](std::string s) -> void {model.deviationSlope = s; };
+	deviationSlopeInput.reset(new TextInput(this, ControlId::DeviationSlope, "Deviation Slope:",
+		model.deviationSlope, wxPoint(2, y), deviationSlopeCallback));
+	y += deviationSlopeInput->Height + ControlPadding;
+
+	auto deviationInterceptCallback = [this](std::string s) -> void {model.deviationIntercept = s; };
+	deviationInterceptInput.reset(new TextInput(this, ControlId::DeviationIntercept, "Deviation Intercept:",
+		model.deviationIntercept, wxPoint(2, y), deviationInterceptCallback));
+	y += deviationInterceptInput->Height + ControlPadding;
 }
 
 

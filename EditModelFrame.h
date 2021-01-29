@@ -48,6 +48,7 @@ private:
 	void createDebiasInputs(int& y);
 	void createPreferenceInputs(int& y);
 	void createMixingInputs(int& y);
+	void createDeviationInputs(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -71,6 +72,8 @@ private:
 	std::unique_ptr<TextInput> informationHorizonInput;
 	std::unique_ptr<TextInput> hyperbolaSharpnessInput;
 	std::unique_ptr<TextInput> historicalAverageInput;
+	std::unique_ptr<TextInput> deviationSlopeInput;
+	std::unique_ptr<TextInput> deviationInterceptInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

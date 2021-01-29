@@ -261,7 +261,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	for (auto& [key, voteShare] : sample) {
 		float transformed = transformVoteShare(voteShare);
 
-		// Remove bias
+		// Remove long-term systemic bias
 		float intercept = debiasInterceptMap.at(key);
 		float slope = debiasSlopeMap.at(key);
 		float debiasChange = intercept + slope * logDays;
@@ -279,6 +279,16 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		float pollWeight = std::max(0.0f, (thisMaxPollWeight + 1.0f / (thisInformationHorizon * thisHyperbolaSharpness)) -
 			1.0f / ((thisInformationHorizon - logDays) * thisHyperbolaSharpness));
 		transformed = transformed * pollWeight + historicalTransformed * (1.0f - pollWeight);
+
+		// Adjust for variable systemic error
+		constexpr float HistoricSampleDeviation = 0.008333f; // effective sample size
+		float thisDeviationSlope = deviationSlopeMap.at(key);
+		float thisDeviationIntercept = deviationInterceptMap.at(key);
+		float combinedDeviation = thisDeviationIntercept + thisDeviationSlope * logDays;
+		float systemicDeviation = std::sqrt(std::max(0.0f, combinedDeviation * combinedDeviation - HistoricSampleDeviation * HistoricSampleDeviation));
+		float normalVal = rng.normal(0.0f, systemicDeviation);
+		float transformedNormalVal = normalVal * limitedLogitDeriv(voteShare);
+		transformed += transformedNormalVal;
 
 		float newVoteShare = detransformVoteShare(transformed);
 		voteShare = newVoteShare;
@@ -545,8 +555,16 @@ void StanModel::generateParameterMaps()
 	auto informationHorizonVec = splitStringF(informationHorizon, ",");
 	auto hyperbolaSharpnessVec = splitStringF(hyperbolaSharpness, ",");
 	auto historicalAverageVec = splitStringF(historicalAverage, ",");
+	auto deviationSlopeVec = splitStringF(deviationSlope, ",");
+	auto deviationInterceptVec = splitStringF(deviationIntercept, ",");
 	bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
-		(debiasSlopeVec.size() == partyCodeVec.size());
+		debiasSlopeVec.size() == partyCodeVec.size() &&
+		maxPollWeightVec.size() == partyCodeVec.size() &&
+		informationHorizonVec.size() == partyCodeVec.size() &&
+		hyperbolaSharpnessVec.size() == partyCodeVec.size() &&
+		historicalAverageVec.size() == partyCodeVec.size() &&
+		deviationSlopeVec.size() == partyCodeVec.size() &&
+		deviationInterceptVec.size() == partyCodeVec.size();
 	if (!validSizes) throw std::logic_error("Party codes and parameter lines do not match!");
 
 	debiasInterceptMap.clear();
@@ -555,6 +573,8 @@ void StanModel::generateParameterMaps()
 	informationHorizonMap.clear();
 	hyperbolaSharpnessMap.clear();
 	historicalAverageMap.clear();
+	deviationSlopeMap.clear();
+	deviationInterceptMap.clear();
 	for (int index = 0; index < int(partyCodeVec.size()); ++index) {
 		debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
 		debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
@@ -562,5 +582,7 @@ void StanModel::generateParameterMaps()
 		informationHorizonMap.insert({ partyCodeVec[index], informationHorizonVec[index] });
 		hyperbolaSharpnessMap.insert({ partyCodeVec[index], hyperbolaSharpnessVec[index] });
 		historicalAverageMap.insert({ partyCodeVec[index], historicalAverageVec[index] });
+		deviationSlopeMap.insert({ partyCodeVec[index], deviationSlopeVec[index] });
+		deviationInterceptMap.insert({ partyCodeVec[index], deviationInterceptVec[index] });
 	}
 }

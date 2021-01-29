@@ -14,7 +14,7 @@ Polling Analyser to-do:
   -Then combined standard deviation "c" is given by c = sqrt(a^2 + b^2)
   -Then assume effective sample size of 3000 for final election polls. This gives a standard deviation of 0.008333 for "a" (via 0.25/sqrt(samplesize), adjust later)
   -We also know the combined standard deviation "c", given by the line defined by parameters (3a, 3b) (gradient-transform this before use)
-  -So by rearranging the formula above, we end up with a = sqrt(c^2 - b^2) (All standard deviations are by definition positive)
+  -So by rearranging the formula above, we end up with b = sqrt(c^2 - a^2) (All standard deviations are by definition positive)
   -Then add systemic error to the mixed poll average with mean 0 and standard deviation a.
  -Untransform values
  -Normalise so that all sampled values add to 100
