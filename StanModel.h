@@ -111,6 +111,8 @@ private:
 
 	static void normaliseSample(StanModel::SupportSample& sample);
 
+	void generateTppForSample(StanModel::SupportSample& sample) const;
+
 	void generateParameterMaps();
 
 	static RandomGenerator rng;
@@ -148,4 +150,7 @@ private:
 	PartyParameters historicalAverageMap;
 	PartyParameters deviationSlopeMap;
 	PartyParameters deviationInterceptMap;
+	PartyParameters preferenceFlowMap;
+	PartyParameters preferenceDeviationMap;
+	PartyParameters preferenceSamplesMap;
 };

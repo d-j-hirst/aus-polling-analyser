@@ -295,6 +295,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	}
 	normaliseSample(sample);
 	updateOthersValue(sample);
+	generateTppForSample(sample);
 	return sample;
 }
 
@@ -311,11 +312,13 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			adjustedSupport[partyName] = Series();
 			adjustedSupport[partyName].timePoint.resize(seriesLength);
 		}
+		tppSupport.timePoint.resize(seriesLength);
 
 		for (int time = 0; time < seriesLength; ++time) {
 			wxDateTime thisDate = startDate;
 			thisDate.Add(wxDateSpan(0, 0, 0, time));
 			std::vector<std::array<float, NumIterations>> samples(partyCodeVec.size());
+			std::array<float, NumIterations> tppSamples;
 			for (int iteration = 0; iteration < NumIterations; ++iteration) {
 				auto sample = generateRawSupportSample(thisDate);
 				auto adjustedSample = adjustRawSupportSample(sample);
@@ -324,7 +327,11 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 					if (adjustedSample.count(partyName)) {
 						samples[partyIndex][iteration] = adjustedSample[partyName];
 					}
+					if (adjustedSample.count(TppCode)) {
+						tppSamples[iteration] = adjustedSample[TppCode];
+					}
 				}
+
 			}
 			for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 				std::string partyName = partyCodeVec[partyIndex];
@@ -333,6 +340,11 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 					int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
 					adjustedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
 				}
+			}
+			std::sort(tppSamples.begin(), tppSamples.end());
+			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
+				tppSupport.timePoint[time].values[percentile] = tppSamples[sampleIndex];
 			}
 		}
 
@@ -352,90 +364,90 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 
 void StanModel::generateTppSeries(FeedbackFunc feedback)
 {
-	constexpr static int NumIterations = 5000;
-	tppSupport = Series(); // do this first as it should not be left with previous data
-	auto preferenceFlowVec = splitString(preferenceFlow, ",");
-	auto preferenceDeviationVec = splitString(preferenceDeviation, ",");
-	auto preferenceSamplesVec = splitString(preferenceSamples, ",");
-	bool validSizes = preferenceFlowVec.size() == partyCodeVec.size()
-		&& preferenceDeviationVec.size() == partyCodeVec.size()
-		&& preferenceSamplesVec.size() == partyCodeVec.size();
-	if (!validSizes) {
-		feedback("Warning: ");
-		return;
-	}
-	if (!adjustedSupport.size()) {
-		feedback("Warning: Mean and/or deviation adjustments not valid, skipping two-party-preferred series generation");
-		return;
-	}
-	const int timeCount = adjustedSupport.begin()->second.timePoint.size();
-	std::map<std::string, float> preferenceFlowMap;
-	std::map<std::string, float> preferenceDeviationMap;
-	std::map<std::string, int> preferenceSamplesMap;
-	for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
-		std::string partyName = partyCodeVec[partyIndex];
-		if (adjustedSupport.count(partyName)) {
-			if (partyName == OthersCode) partyName = UnnamedOthersCode;
-			try {
-				preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
-				preferenceDeviationMap[partyName] = std::clamp(std::stof(preferenceDeviationVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
-				preferenceSamplesMap[partyName] = std::max(std::stoi(preferenceSamplesVec[partyIndex]), 0);
-			}
-			catch (std::invalid_argument) {
-				feedback("Warning: Invalid preference flow for party " + partyName + ", aborting two-party-preferred series generation");
-				return;
-			}
-		}
-	}
+	//constexpr static int NumIterations = 5000;
+	//tppSupport = Series(); // do this first as it should not be left with previous data
+	//auto preferenceFlowVec = splitString(preferenceFlow, ",");
+	//auto preferenceDeviationVec = splitString(preferenceDeviation, ",");
+	//auto preferenceSamplesVec = splitString(preferenceSamples, ",");
+	//bool validSizes = preferenceFlowVec.size() == partyCodeVec.size()
+	//	&& preferenceDeviationVec.size() == partyCodeVec.size()
+	//	&& preferenceSamplesVec.size() == partyCodeVec.size();
+	//if (!validSizes) {
+	//	feedback("Warning: ");
+	//	return;
+	//}
+	//if (!adjustedSupport.size()) {
+	//	feedback("Warning: Mean and/or deviation adjustments not valid, skipping two-party-preferred series generation");
+	//	return;
+	//}
+	//const int timeCount = adjustedSupport.begin()->second.timePoint.size();
+	//std::map<std::string, float> preferenceFlowMap;
+	//std::map<std::string, float> preferenceDeviationMap;
+	//std::map<std::string, int> preferenceSamplesMap;
+	//for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
+	//	std::string partyName = partyCodeVec[partyIndex];
+	//	if (adjustedSupport.count(partyName)) {
+	//		if (partyName == OthersCode) partyName = UnnamedOthersCode;
+	//		try {
+	//			preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
+	//			preferenceDeviationMap[partyName] = std::clamp(std::stof(preferenceDeviationVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
+	//			preferenceSamplesMap[partyName] = std::max(std::stoi(preferenceSamplesVec[partyIndex]), 0);
+	//		}
+	//		catch (std::invalid_argument) {
+	//			feedback("Warning: Invalid preference flow for party " + partyName + ", aborting two-party-preferred series generation");
+	//			return;
+	//		}
+	//	}
+	//}
 
-	tppSupport.timePoint.resize(timeCount);
-	// Set up calculation function
-	typedef std::pair<int, int> Bounds;
-	auto determineTpp = [&](Bounds b) {
-		for (int time = b.first; time < b.second; ++time) {
-			wxDateTime thisDate = startDate;
-			thisDate.Add(wxDateSpan(0, 0, 0, time));
-			std::array<float, NumIterations> samples;
-			for (int iteration = 0; iteration < NumIterations; ++iteration) {
-				auto fpSample = generateSupportSample(thisDate);
-				float tpp = 0.0f;
-				for (auto [key, support] : fpSample) {
-					if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) {
-						feedback("Warning: Invalid preference flow for party " + key + ", aborting two-party-preferred series generation");
-						tppSupport = Series();
-						return;
-					}
-					float flow = preferenceFlowMap[key];
-					float deviation = preferenceDeviationMap[key];
-					int historicalSamples = preferenceSamplesMap[key];
-					float randomisedFlow = (historicalSamples >= 2 
-						? rng.t_dist(historicalSamples - 1, flow, deviation)
-						: flow);
-					randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
-					tpp += support * randomisedFlow;
-				}
-				samples[iteration] = tpp;
-			}
-			std::sort(samples.begin(), samples.end());
-			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
-				tppSupport.timePoint[time].values[percentile] = samples[sampleIndex];
-			}
-			tppSupport.timePoint[time].calculateExpectation();
-		}
-	};
+	//tppSupport.timePoint.resize(timeCount);
+	//// Set up calculation function
+	//typedef std::pair<int, int> Bounds;
+	//auto determineTpp = [&](Bounds b) {
+	//	for (int time = b.first; time < b.second; ++time) {
+	//		wxDateTime thisDate = startDate;
+	//		thisDate.Add(wxDateSpan(0, 0, 0, time));
+	//		std::array<float, NumIterations> samples;
+	//		for (int iteration = 0; iteration < NumIterations; ++iteration) {
+	//			auto fpSample = generateSupportSample(thisDate);
+	//			float tpp = 0.0f;
+	//			for (auto [key, support] : fpSample) {
+	//				if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) {
+	//					feedback("Warning: Invalid preference flow for party " + key + ", aborting two-party-preferred series generation");
+	//					tppSupport = Series();
+	//					return;
+	//				}
+	//				float flow = preferenceFlowMap[key];
+	//				float deviation = preferenceDeviationMap[key];
+	//				int historicalSamples = preferenceSamplesMap[key];
+	//				float randomisedFlow = (historicalSamples >= 2 
+	//					? rng.t_dist(historicalSamples - 1, flow, deviation)
+	//					: flow);
+	//				randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+	//				tpp += support * randomisedFlow;
+	//			}
+	//			samples[iteration] = tpp;
+	//		}
+	//		std::sort(samples.begin(), samples.end());
+	//		for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+	//			int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
+	//			tppSupport.timePoint[time].values[percentile] = samples[sampleIndex];
+	//		}
+	//		tppSupport.timePoint[time].calculateExpectation();
+	//	}
+	//};
 
-	// Perform multi-threaded validation for each time point
-	constexpr int NumThreads = 8;
-	const int TimePointsPerThread = timeCount / NumThreads + 1;
-	std::array<std::thread, NumThreads> threadArray;
-	for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
-		Bounds bounds = { threadIndex * TimePointsPerThread, std::min((threadIndex + 1) * TimePointsPerThread, timeCount) };
-		threadArray[threadIndex] = std::thread([&, bounds]() {determineTpp(bounds); });
-	}
-	for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
-		threadArray[threadIndex].join();
-	}
+	//// Perform multi-threaded validation for each time point
+	//constexpr int NumThreads = 8;
+	//const int TimePointsPerThread = timeCount / NumThreads + 1;
+	//std::array<std::thread, NumThreads> threadArray;
+	//for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
+	//	Bounds bounds = { threadIndex * TimePointsPerThread, std::min((threadIndex + 1) * TimePointsPerThread, timeCount) };
+	//	threadArray[threadIndex] = std::thread([&, bounds]() {determineTpp(bounds); });
+	//}
+	//for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
+	//	threadArray[threadIndex].join();
+	//}
 }
 
 void StanModel::updateValidationData(FeedbackFunc feedback)
@@ -537,12 +549,33 @@ void StanModel::normaliseSample(StanModel::SupportSample& sample)
 {
 	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
 		[](float a, StanModel::SupportSample::value_type b) {
-			return (b.first == OthersCode ? a : a + b.second); }
+			return (b.first == OthersCode || b.first == TppCode ? a : a + b.second); }
 		);
 	float sampleAdjust = 100.0f / sampleSum;
 	for (auto& vote : sample) {
 		vote.second *= sampleAdjust;
 	}
+}
+
+void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
+{
+	float tpp = 0.0f;
+	for (auto [key, support] : sample) {
+		if (key == OthersCode) continue;
+		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) {
+			tpp = 0.0f;
+			break;
+		}
+		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
+		float deviation = preferenceDeviationMap.at(key) * 0.01f;
+		float historicalSamples = preferenceSamplesMap.at(key);
+		float randomisedFlow = (historicalSamples >= 2
+			? rng.t_dist(int(std::floor(historicalSamples)) - 1, flow, deviation)
+			: flow);
+		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+		tpp += support * randomisedFlow;
+	}
+	sample.insert({ TppCode, tpp });
 }
 
 void StanModel::generateParameterMaps()
@@ -557,6 +590,9 @@ void StanModel::generateParameterMaps()
 	auto historicalAverageVec = splitStringF(historicalAverage, ",");
 	auto deviationSlopeVec = splitStringF(deviationSlope, ",");
 	auto deviationInterceptVec = splitStringF(deviationIntercept, ",");
+	auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
+	auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
+	auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
 	bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
 		debiasSlopeVec.size() == partyCodeVec.size() &&
 		maxPollWeightVec.size() == partyCodeVec.size() &&
@@ -564,7 +600,10 @@ void StanModel::generateParameterMaps()
 		hyperbolaSharpnessVec.size() == partyCodeVec.size() &&
 		historicalAverageVec.size() == partyCodeVec.size() &&
 		deviationSlopeVec.size() == partyCodeVec.size() &&
-		deviationInterceptVec.size() == partyCodeVec.size();
+		deviationInterceptVec.size() == partyCodeVec.size() &&
+		preferenceFlowVec.size() == partyCodeVec.size() &&
+		preferenceDeviationVec.size() == partyCodeVec.size() &&
+		preferenceSamplesVec.size() == partyCodeVec.size();
 	if (!validSizes) throw std::logic_error("Party codes and parameter lines do not match!");
 
 	debiasInterceptMap.clear();
@@ -575,6 +614,9 @@ void StanModel::generateParameterMaps()
 	historicalAverageMap.clear();
 	deviationSlopeMap.clear();
 	deviationInterceptMap.clear();
+	preferenceFlowMap.clear();
+	preferenceDeviationMap.clear();
+	preferenceSamplesMap.clear();
 	for (int index = 0; index < int(partyCodeVec.size()); ++index) {
 		debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
 		debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
@@ -584,5 +626,8 @@ void StanModel::generateParameterMaps()
 		historicalAverageMap.insert({ partyCodeVec[index], historicalAverageVec[index] });
 		deviationSlopeMap.insert({ partyCodeVec[index], deviationSlopeVec[index] });
 		deviationInterceptMap.insert({ partyCodeVec[index], deviationInterceptVec[index] });
+		preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
+		preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
+		preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
 	}
 }
