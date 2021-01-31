@@ -28,12 +28,12 @@ StanModel::StanModel(std::string name, std::string termCode, std::string partyCo
 wxDateTime StanModel::getEndDate() const
 {
 	if (!adjustedSeriesCount()) return startDate;
-	return startDate + wxDateSpan(0, 0, 0, adjustedSupport.begin()->second.timePoint.size() - 1);
+	return startDate + wxDateSpan::Days(adjustedSupport.begin()->second.timePoint.size() - 1);
 }
 
 void StanModel::loadData(FeedbackFunc feedback)
 {
-	partyCodeVec = splitString(partyCodes, ",");
+	generateParameterMaps();
 	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
 		feedback("No party codes found!");
 		return;
@@ -581,6 +581,7 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 void StanModel::generateParameterMaps()
 {
 	// partyCodeVec is already created by loadData
+	partyCodeVec = splitString(partyCodes, ",");
 	if (!partyCodeVec.size()) throw std::logic_error("No party codes in this model!");
 	auto debiasInterceptVec = splitStringF(debiasIntercept, ",");
 	auto debiasSlopeVec = splitStringF(debiasSlope, ",");

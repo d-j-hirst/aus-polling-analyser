@@ -693,43 +693,43 @@ void VisualiserFrame::drawProjections(wxDC& dc) {
 }
 
 void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
-	if (displayProjections) {
-		constexpr int NumSigmaLevels = 2;
-		constexpr int SigmaBrightnessChange = 50;
-		auto series = viewSeriesFromProjection(projection);
-		if (!series) return;
-		int projStartDay = int(floor(getProjectionStartDate(projection).GetMJD()));
-		auto thisTimePoint = series->timePoint.begin();
-		for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
-			auto nextTimePoint = std::next(thisTimePoint);
-			int x = getXFromDate(projStartDay + i);
-			int x2 = getXFromDate(projStartDay + i + 1);
-			for (auto range : SpreadRanges) {
-				int y_tl = getYFromVote((*thisTimePoint).values[range.upperPercentile]);
-				int y_tr = getYFromVote((*nextTimePoint).values[range.upperPercentile]);
-				int y_bl = getYFromVote((*thisTimePoint).values[range.lowerPercentile]);
-				int y_br = getYFromVote((*nextTimePoint).values[range.lowerPercentile]);
-				dc.SetPen(*wxTRANSPARENT_PEN);
-				int colourVal = 255 - int(range.colourStrength * 255.0f);
-				dc.SetBrush(wxColour(colourVal, colourVal, colourVal));
-				wxPointList pointList;
-				std::unique_ptr<wxPoint> p_tl = std::make_unique<wxPoint>(x, y_tl);
-				std::unique_ptr<wxPoint> p_tr = std::make_unique<wxPoint>(x2, y_tr);
-				std::unique_ptr<wxPoint> p_br = std::make_unique<wxPoint>(x2, y_br);
-				std::unique_ptr<wxPoint> p_bl = std::make_unique<wxPoint>(x, y_bl);
-				pointList.Append(p_tl.get());
-				pointList.Append(p_tr.get());
-				pointList.Append(p_br.get());
-				pointList.Append(p_bl.get());
-				dc.DrawPolygon(&pointList);
-			}
-
-			int y = getYFromVote((*thisTimePoint).values[StanModel::Spread::Size / 2]);
-			int y2 = getYFromVote((*nextTimePoint).values[StanModel::Spread::Size / 2]);
-			dc.SetPen(wxPen(ModelColour));
-			dc.DrawLine(x, y, x2, y2);
-			thisTimePoint = nextTimePoint;
+	if (!displayProjections) return;
+	if (selectedParty < 0) return;
+	constexpr int NumSigmaLevels = 2;
+	constexpr int SigmaBrightnessChange = 50;
+	auto series = viewSeriesFromProjection(projection);
+	if (!series) return;
+	int projStartDay = int(floor(getProjectionStartDate(projection).GetMJD()));
+	auto thisTimePoint = series->timePoint.begin();
+	for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
+		auto nextTimePoint = std::next(thisTimePoint);
+		int x = getXFromDate(projStartDay + i);
+		int x2 = getXFromDate(projStartDay + i + 1);
+		for (auto range : SpreadRanges) {
+			int y_tl = getYFromVote((*thisTimePoint).values[range.upperPercentile]);
+			int y_tr = getYFromVote((*nextTimePoint).values[range.upperPercentile]);
+			int y_bl = getYFromVote((*thisTimePoint).values[range.lowerPercentile]);
+			int y_br = getYFromVote((*nextTimePoint).values[range.lowerPercentile]);
+			dc.SetPen(*wxTRANSPARENT_PEN);
+			int colourVal = 255 - int(range.colourStrength * 255.0f);
+			dc.SetBrush(wxColour(colourVal, colourVal, colourVal));
+			wxPointList pointList;
+			std::unique_ptr<wxPoint> p_tl = std::make_unique<wxPoint>(x, y_tl);
+			std::unique_ptr<wxPoint> p_tr = std::make_unique<wxPoint>(x2, y_tr);
+			std::unique_ptr<wxPoint> p_br = std::make_unique<wxPoint>(x2, y_br);
+			std::unique_ptr<wxPoint> p_bl = std::make_unique<wxPoint>(x, y_bl);
+			pointList.Append(p_tl.get());
+			pointList.Append(p_tr.get());
+			pointList.Append(p_br.get());
+			pointList.Append(p_bl.get());
+			dc.DrawPolygon(&pointList);
 		}
+
+		int y = getYFromVote((*thisTimePoint).values[StanModel::Spread::Size / 2]);
+		int y2 = getYFromVote((*nextTimePoint).values[StanModel::Spread::Size / 2]);
+		dc.SetPen(wxPen(ModelColour));
+		dc.DrawLine(x, y, x2, y2);
+		thisTimePoint = nextTimePoint;
 	}
 }
 

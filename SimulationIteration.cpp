@@ -50,7 +50,8 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	run.partyWins = std::vector<int>(project.parties().count());
 
 	// First, randomly determine the national swing for this particular simulation
-	run.iterationOverallSwing = project.projections().view(sim.settings.baseProjection).generateTppSample() - sim.settings.prevElection2pp;
+	//run.iterationOverallSwing = project.projections().view(sim.settings.baseProjection).generateTppSample() - sim.settings.prevElection2pp;
+	run.iterationOverallSwing = 0.0f; //replace with a value 
 }
 
 void SimulationIteration::determineIterationOverallSwing()

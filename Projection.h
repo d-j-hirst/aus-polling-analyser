@@ -92,8 +92,6 @@ public:
 	// Invalid date/time (default) gives the latest time point
 	StanModel::SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
-	float generateTppSample(wxDateTime date = wxInvalidDateTime) const;
-
 	int getPartyIndexFromCode(std::string code) const;
 
 	std::string textReport(ModelCollection const& models) const;
@@ -101,25 +99,8 @@ public:
 private:
 	StanModel const& getBaseModel(ModelCollection const& models) const;
 
-	bool createCachedPreferenceFlow(FeedbackFunc feedback = [](std::string) {});
-
-	float calculateTppFromSample(StanModel::SupportSample const& sample, FeedbackFunc feedback = [](std::string) {}) const;
-
-	void generateTppSeries(FeedbackFunc feedback);
-
 	StanModel::PartySupport projectedSupport;
 	StanModel::Series tppSupport; // For whatever party is first in the user-defined party list
-
-	std::string partyCodes;
-	std::string preferenceFlow;
-	std::string preferenceDeviation;
-	std::string preferenceSamples;
-
-	bool cachedPreferenceFlow = false;
-	std::vector<std::string> partyCodeVec;
-	std::map<std::string, float> preferenceFlowMap;
-	std::map<std::string, float> preferenceDeviationMap;
-	std::map<std::string, int> preferenceSamplesMap;
 
 	static RandomGenerator rng;
 

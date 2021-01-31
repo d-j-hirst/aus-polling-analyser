@@ -32,75 +32,64 @@ void Projection::replaceSettings(Settings newSettings)
 void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	if (!settings.endDate.IsValid()) return;
 	auto const& model = getBaseModel(models);
-	startDate = model.getStartDate() + wxDateSpan(0, 0, 0, model.adjustedSupport.begin()->second.timePoint.size());
-	partyCodes = model.partyCodes;
-	preferenceFlow = model.preferenceFlow;
-	preferenceDeviation = model.preferenceDeviation;
-	preferenceSamples = model.preferenceSamples;
-	StanModel::SupportSample z;
-	// Temporarily hard coded for QLD State Election 2020
-	const StanModel::SupportSample historicalVote = { {"ALP", 39.29f}, {"LNP", 39.94f}, {"GRN", 8.18f}, {"ONP", 3.435f}, {"KAP", 5.26f}, {"xOTH", 5.665f} };
-	std::map<std::string, std::vector<std::vector<float>>> recordedSamples;
-	int totalDays = (settings.endDate - startDate).GetDays();
-	for (int iteration = 0; iteration < this->settings.numIterations; ++iteration) {
-		StanModel::SupportSample originalSample = model.generateSupportSample();
-		for (auto [key, vote] : originalSample) {
-			// Empirical study shows this distribution is the best for TPP votes
-			// Further investigation required for primaries, especially for minor parties
-			z[key] = rng.t_dist(25, 0.0f, 1.0f);
-			recordedSamples[key].resize(totalDays);
+	startDate = model.getEndDate() + wxDateSpan::Days(1);
+	constexpr static int NumIterations = 5000;
+	projectedSupport.clear(); // do this first as it should not be left with previous data
+	try {
+		int seriesLength = (settings.endDate - startDate).GetDays();
+		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
+			std::string partyName = model.partyCodeVec[partyIndex];
+			projectedSupport[partyName] = StanModel::Series();
+			projectedSupport[partyName].timePoint.resize(seriesLength);
 		}
-		for (int days = 1; days <= totalDays; ++days) {
-			StanModel::SupportSample nextSample;
-			float logDays = std::log(float(days));
-			constexpr float Max = 0.94f;
-			constexpr float Asymptote = 8.3f;
-			constexpr float Scale = 0.97f;
-			logDays = std::min(logDays, Asymptote - 0.1f);
-			float pollWeight = std::max(0.0f, Max + 1.0f / (Asymptote * Scale)
-				- 1.0f / ((Asymptote - logDays) * 0.97f));
-			constexpr float StdevLogDaysGradient = 0.3808f;
-			constexpr float StdevLogDaysIntercept = 1.5386f;
-			float deviationFactor = 1.0f - std::pow(pollWeight / Max, 10.0f);
-			float voteStdev = (StdevLogDaysGradient * logDays + StdevLogDaysIntercept) * deviationFactor;
-			float totalVote = 0.0f;
-			for (auto const& [key, vote] : originalSample) {
-				float historicalVoteT = transformVoteShare(historicalVote.at(key));
-				float polledVoteT = transformVoteShare(vote);
-				float meanProjectedVoteT = polledVoteT * pollWeight + historicalVoteT * (1.0f - pollWeight);
-				float meanProjectedVote = detransformVoteShare(meanProjectedVoteT);
-				// 4.0f threshold here prevents minor parties from catapulting to very high votes shares off a very low mean
-				float projectedVoteT = meanProjectedVoteT + z[key] * voteStdev * logitDeriv(std::max(4.0f, meanProjectedVote));
-				if (days == 1 || days == 10 || days == 100 || days == 1000) {
-					logger << days << "days: " << meanProjectedVoteT << ", " << voteStdev << ", " << projectedVoteT << "\n";
+		tppSupport.timePoint.resize(seriesLength);
+
+		for (int time = 0; time < seriesLength; ++time) {
+			wxDateTime thisDate = startDate;
+			thisDate.Add(wxDateSpan(0, 0, 0, time));
+			std::vector<std::array<float, NumIterations>> samples(model.partyCodeVec.size());
+			std::array<float, NumIterations> tppSamples;
+			for (int iteration = 0; iteration < NumIterations; ++iteration) {
+				auto sample = model.generateRawSupportSample();
+				int daysAhead = (startDate + wxDateSpan::Days(time) - model.getEndDate()).GetDays();
+				auto adjustedSample = model.adjustRawSupportSample(sample, daysAhead);
+				for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
+					std::string partyName = model.partyCodeVec[partyIndex];
+					if (adjustedSample.count(partyName)) {
+						samples[partyIndex][iteration] = adjustedSample[partyName];
+					}
+					if (adjustedSample.count(TppCode)) {
+						tppSamples[iteration] = adjustedSample[TppCode];
+					}
 				}
-				float projectedVote = detransformVoteShare(projectedVoteT);
-				nextSample[key] = projectedVote;
-				totalVote += projectedVote;
+
 			}
-			for (auto& [key, vote] : nextSample) {
-				vote *= 100.0f;
-				vote /= totalVote;
+			for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
+				std::string partyName = model.partyCodeVec[partyIndex];
+				std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
+				for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
+					int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(StanModel::Spread::Size));
+					projectedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
+				}
 			}
-			for (auto const& [key, vote] : nextSample) {
-				recordedSamples[key][days - 1].push_back(nextSample[key]);
+			std::sort(tppSamples.begin(), tppSamples.end());
+			for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
+				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(StanModel::Spread::Size));
+				tppSupport.timePoint[time].values[percentile] = tppSamples[sampleIndex];
+			}
+		}
+
+		for (auto& [key, party] : projectedSupport) {
+			for (auto& time : party.timePoint) {
+				time.calculateExpectation();
 			}
 		}
 	}
-	projectedSupport.clear();
-	for (auto& [key, samples] : recordedSamples) {
-		projectedSupport.insert({ key, StanModel::Series() });
-		projectedSupport[key].timePoint.resize(samples.size());
-		std::stringstream ss;
-		ss << key << " - party\n";
-		for (int timeCount = 0; timeCount < int(samples.size()); ++timeCount) {
-			auto& samplesDay = samples[timeCount];
-			std::sort(samplesDay.begin(), samplesDay.end());
-			for (int spreadVal = 0; spreadVal < StanModel::Spread::Size; ++spreadVal) {
-				projectedSupport[key].timePoint[timeCount].values[spreadVal] =
-					samplesDay[std::min(samplesDay.size() - 1, samplesDay.size() * spreadVal / (StanModel::Spread::Size - 1))];
-			}
-		}
+
+	catch (std::logic_error & e) {
+		feedback(std::string("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase\n") +
+			"Specific information: " + e.what());
+		return;
 	}
 
 	for (auto& [key, support] : projectedSupport) {
@@ -113,8 +102,6 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 		}
 	}
 
-	bool success = createCachedPreferenceFlow(feedback);
-	if (success) generateTppSeries(feedback);
 	std::string report = textReport(models);
 	auto reportMessages = splitString(report, ";");
 	for (auto message : reportMessages) feedback(message);
@@ -175,11 +162,6 @@ StanModel::SupportSample Projection::generateSupportSample(wxDateTime date) cons
 	return sample;
 }
 
-float Projection::generateTppSample(wxDateTime date) const
-{
-	return calculateTppFromSample(generateSupportSample(date));
-}
-
 int Projection::getPartyIndexFromCode(std::string code) const
 {
 	int index = 0;
@@ -205,111 +187,10 @@ std::string Projection::textReport(ModelCollection const& models) const
 	for (auto [key, vote] : sample) {
 		report << key << ": " << vote << "\n";
 	}
-	float tppSample = calculateTppFromSample(sample);
-	report << "TPP: " << tppSample << "\n";
 	return report.str();
 }
 
 StanModel const& Projection::getBaseModel(ModelCollection const& models) const
 {
 	return models.view(settings.baseModel);
-}
-
-bool Projection::createCachedPreferenceFlow(FeedbackFunc feedback)
-{
-	if (!cachedPreferenceFlow) {
-		auto preferenceFlowVec = splitString(preferenceFlow, ",");
-		auto preferenceDeviationVec = splitString(preferenceDeviation, ",");
-		auto preferenceSamplesVec = splitString(preferenceSamples, ",");
-		partyCodeVec = splitString(partyCodes, ",");
-		for (auto& partyCode : partyCodeVec) if (partyCode == OthersCode) partyCode = UnnamedOthersCode;
-		bool validSizes = preferenceFlowVec.size() == partyCodeVec.size()
-			&& preferenceDeviationVec.size() == partyCodeVec.size()
-			&& preferenceSamplesVec.size() == partyCodeVec.size();
-		if (!validSizes) {
-			feedback("Warning: ");
-			return false;
-		}
-		if (!projectedSupport.size()) {
-			feedback("Warning: Mean and/or deviation adjustments not valid, skipping two-party-preferred series generation");
-			return false;
-		}
-		const int timeCount = projectedSupport.begin()->second.timePoint.size();
-		preferenceFlowMap.clear();
-		preferenceDeviationMap.clear();
-		preferenceSamplesMap.clear();
-		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
-			std::string partyName = partyCodeVec[partyIndex];
-			if (projectedSupport.count(partyName)) {
-				if (partyName == OthersCode) partyName = UnnamedOthersCode;
-				try {
-					preferenceFlowMap[partyName] = std::clamp(std::stof(preferenceFlowVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
-					preferenceDeviationMap[partyName] = std::clamp(std::stof(preferenceDeviationVec[partyIndex]), 0.0f, 100.0f) * 0.01f;
-					preferenceSamplesMap[partyName] = std::max(std::stoi(preferenceSamplesVec[partyIndex]), 0);
-				}
-				catch (std::invalid_argument) {
-					feedback("Warning: Invalid preference flow for party " + partyName + ", aborting two-party-preferred series generation");
-					return false;
-				}
-			}
-		}
-		cachedPreferenceFlow = true;
-	}
-	return true;
-}
-
-float Projection::calculateTppFromSample(StanModel::SupportSample const& sample, FeedbackFunc feedback) const
-{
-	float tpp = 0.0f;
-	for (auto [key, support] : sample) {
-		float flow = preferenceFlowMap.at(key);
-		float deviation = preferenceDeviationMap.at(key);
-		int historicalSamples = preferenceSamplesMap.at(key);
-		float randomisedFlow = (historicalSamples >= 2
-			? rng.t_dist(historicalSamples - 1, flow, deviation)
-			: flow);
-		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
-		tpp += support * randomisedFlow;
-	}
-	return tpp;
-}
-
-void Projection::generateTppSeries(FeedbackFunc feedback)
-{
-	constexpr static int NumIterations = 4000;
-	tppSupport = StanModel::Series(); // do this first as it should not be left with previous data
-
-	const int timeCount = projectedSupport.begin()->second.timePoint.size();
-	tppSupport.timePoint.resize(timeCount);
-	// Set up calculation function
-	typedef std::pair<int, int> Bounds;
-	auto determineTpp = [&](Bounds b) {
-		for (int time = b.first; time < b.second; ++time) {
-			wxDateTime thisDate = startDate;
-			thisDate.Add(wxDateSpan(0, 0, 0, time));
-			std::array<float, NumIterations> samples;
-			for (int iteration = 0; iteration < NumIterations; ++iteration) {
-				auto fpSample = generateSupportSample(thisDate);
-				samples[iteration] = calculateTppFromSample(fpSample, feedback);
-			}
-			std::sort(samples.begin(), samples.end());
-			for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
-				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(StanModel::Spread::Size));
-				tppSupport.timePoint[time].values[percentile] = samples[sampleIndex];
-			}
-			tppSupport.timePoint[time].calculateExpectation();
-		}
-	};
-
-	// Perform multi-threaded validation for each time point
-	constexpr int NumThreads = 8;
-	const int TimePointsPerThread = timeCount / NumThreads + 1;
-	std::array<std::thread, NumThreads> threadArray;
-	for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
-		Bounds bounds = { threadIndex * TimePointsPerThread, std::min((threadIndex + 1) * TimePointsPerThread, timeCount) };
-		threadArray[threadIndex] = std::thread([&, bounds]() {determineTpp(bounds); });
-	}
-	for (int threadIndex = 0; threadIndex < NumThreads; ++threadIndex) {
-		threadArray[threadIndex].join();
-	}
 }

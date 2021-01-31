@@ -529,6 +529,7 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			if (versionNum >= 6) {
 				thisModel.tppSupport = loadSeries(saveInput, versionNum);
 			}
+			thisModel.generateParameterMaps();
 		}
 		project.modelCollection.add(thisModel);
 	}
@@ -585,12 +586,6 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] in
 			thisProjection.tppSupport = loadSeries(saveInput, versionNum);
 		}
 		
-		auto const& baseModel = project.models().view(thisProjection.settings.baseModel);
-		thisProjection.partyCodes = baseModel.partyCodes;
-		thisProjection.preferenceFlow = baseModel.preferenceFlow;
-		thisProjection.preferenceDeviation = baseModel.preferenceDeviation;
-		thisProjection.preferenceSamples = baseModel.preferenceSamples;
-		thisProjection.createCachedPreferenceFlow();
 		project.projectionCollection.add(thisProjection);
 	}
 }
