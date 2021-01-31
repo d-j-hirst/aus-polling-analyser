@@ -89,8 +89,7 @@ public:
 
 	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
 
-	// Invalid date/time (default) gives the latest time point
-	StanModel::SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
+	StanModel::SupportSample generateSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime) const;
 
 	int getPartyIndexFromCode(std::string code) const;
 

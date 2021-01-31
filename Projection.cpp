@@ -4,7 +4,7 @@
 #include "Log.h"
 #include "Model.h"
 #include "ModelCollection.h"
-#include "OthersCodes.h"
+#include "SpecialPartyCodes.h"
 
 #include <algorithm>
 #include <cmath>
@@ -48,18 +48,17 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 			wxDateTime thisDate = startDate;
 			thisDate.Add(wxDateSpan(0, 0, 0, time));
 			std::vector<std::array<float, NumIterations>> samples(model.partyCodeVec.size());
-			std::array<float, NumIterations> tppSamples;
+			std::unique_ptr<std::array<float, NumIterations>> tppSamples; // on heap to avoid 
+			tppSamples.reset(new std::array<float, NumIterations>());
 			for (int iteration = 0; iteration < NumIterations; ++iteration) {
-				auto sample = model.generateRawSupportSample();
-				int daysAhead = (startDate + wxDateSpan::Days(time) - model.getEndDate()).GetDays();
-				auto adjustedSample = model.adjustRawSupportSample(sample, daysAhead);
+				auto sample = generateSupportSample(models, startDate + wxDateSpan::Days(time));
 				for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
 					std::string partyName = model.partyCodeVec[partyIndex];
-					if (adjustedSample.count(partyName)) {
-						samples[partyIndex][iteration] = adjustedSample[partyName];
+					if (sample.count(partyName)) {
+						samples[partyIndex][iteration] = sample[partyName];
 					}
-					if (adjustedSample.count(TppCode)) {
-						tppSamples[iteration] = adjustedSample[TppCode];
+					if (sample.count(TppCode)) {
+						(*tppSamples)[iteration] = sample[TppCode];
 					}
 				}
 
@@ -72,10 +71,10 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 					projectedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
 				}
 			}
-			std::sort(tppSamples.begin(), tppSamples.end());
+			std::sort(tppSamples->begin(), tppSamples->end());
 			for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
 				int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(StanModel::Spread::Size));
-				tppSupport.timePoint[time].values[percentile] = tppSamples[sampleIndex];
+				tppSupport.timePoint[time].values[percentile] = (*tppSamples)[sampleIndex];
 			}
 		}
 
@@ -87,7 +86,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	}
 
 	catch (std::logic_error & e) {
-		feedback(std::string("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase\n") +
+		feedback(std::string("Could not generate projection\n") +
 			"Specific information: " + e.what());
 		return;
 	}
@@ -134,31 +133,11 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 	return &std::next(projectedSupport.begin(), index)->second;
 }
 
-StanModel::SupportSample Projection::generateSupportSample(wxDateTime date) const
+StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
 {
-	if (!projectedSupport.size()) return StanModel::SupportSample();
-	int seriesLength = projectedSupport.begin()->second.timePoint.size();
-	if (!seriesLength) return StanModel::SupportSample();
-	int dayOffset = projectedSupport.begin()->second.timePoint.size() - 1;
-	if (date.IsValid()) dayOffset = std::min(dayOffset, (date - startDate).GetDays());
-	if (dayOffset < 0) dayOffset = 0;
-	StanModel::SupportSample sample;
-	for (auto [key, support] : projectedSupport) {
-		if (key == OthersCode) continue; // only include the "xOTH" unnamed 
-		float uniform = rng.uniform(0.0, 1.0);
-		int lowerBucket = int(floor(uniform * float(StanModel::Spread::Size - 1)));
-		float upperMix = std::fmod(uniform * float(StanModel::Spread::Size - 1), 1.0f);
-		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
-		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1];
-		float sampledVote = upperVote * upperMix + lowerVote * (1.0f - upperMix);
-		sample.insert({ key, sampledVote });
-	}
-	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
-		[](float a, decltype(sample)::value_type b) {return a + b.second; });
-	float sampleAdjust = 100.0f / sampleSum;
-	for (auto& vote : sample) {
-		vote.second *= sampleAdjust;
-	}
+	auto const& model = getBaseModel(models);
+	int daysAfterModelEnd = (settings.endDate - model.getEndDate()).GetDays();
+	auto sample = model.generateAdjustedSupportSample(date, daysAfterModelEnd);
 	return sample;
 }
 
@@ -182,7 +161,7 @@ std::string Projection::textReport(ModelCollection const& models) const
 	report << " End Date: " << getEndDateString() << "\n";
 	report << " Last Updated: " << getLastUpdatedString() << "\n";
 	report << ";"; // delimiter
-	auto sample = generateSupportSample();
+	auto sample = generateSupportSample(models);
 	report << "Final sample: \n";
 	for (auto [key, vote] : sample) {
 		report << key << ": " << vote << "\n";

@@ -1,7 +1,7 @@
 #include "VisualiserFrame.h"
 
 #include "General.h"
-#include "OthersCodes.h"
+#include "SpecialPartyCodes.h"
 
 #include <algorithm>
 

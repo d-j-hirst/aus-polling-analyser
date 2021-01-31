@@ -567,7 +567,7 @@
     <ClInclude Include="RandomGenerator.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="OthersCodes.h">
+    <ClInclude Include="SpecialPartyCodes.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
   </ItemGroup>

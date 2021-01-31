@@ -2,7 +2,7 @@
 
 #include "General.h"
 #include "Log.h"
-#include "OthersCodes.h"
+#include "SpecialPartyCodes.h"
 
 #include <fstream>
 #include <future>
@@ -230,6 +230,13 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	return sample;
 }
 
+StanModel::SupportSample StanModel::generateAdjustedSupportSample(wxDateTime date, int days) const
+{
+	auto rawSample = generateRawSupportSample(date);
+	auto adjustedSample = adjustRawSupportSample(rawSample, days);
+	return adjustedSample;
+}
+
 void StanModel::generateUnnamedOthersSeries()
 {
 	if (rawSupport.count(OthersCode) && rawSupport.count(UnnamedOthersCode)) {
@@ -320,15 +327,14 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			std::vector<std::array<float, NumIterations>> samples(partyCodeVec.size());
 			std::array<float, NumIterations> tppSamples;
 			for (int iteration = 0; iteration < NumIterations; ++iteration) {
-				auto sample = generateRawSupportSample(thisDate);
-				auto adjustedSample = adjustRawSupportSample(sample);
+				auto sample = generateAdjustedSupportSample(thisDate);
 				for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 					std::string partyName = partyCodeVec[partyIndex];
-					if (adjustedSample.count(partyName)) {
-						samples[partyIndex][iteration] = adjustedSample[partyName];
+					if (sample.count(partyName)) {
+						samples[partyIndex][iteration] = sample[partyName];
 					}
-					if (adjustedSample.count(TppCode)) {
-						tppSamples[iteration] = adjustedSample[TppCode];
+					if (sample.count(TppCode)) {
+						tppSamples[iteration] = sample[TppCode];
 					}
 				}
 

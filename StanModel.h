@@ -91,14 +91,13 @@ private:
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
+	SupportSample generateAdjustedSupportSample(wxDateTime date = wxInvalidDateTime, int days = 0) const;
+
 	void generateUnnamedOthersSeries();
 
 	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0) const;
 
 	void updateAdjustedData(FeedbackFunc feedback);
-
-	// Ensure that adjusted support for minor parties does not exceed the total aggregate values
-	void limitMinorParties(FeedbackFunc feedback);
 
 	void generateTppSeries(FeedbackFunc feedback);
 

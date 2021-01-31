@@ -67,7 +67,7 @@ model {
     sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, 0.001);
     // very broad prior distribution, this shouldn't affect the model much unless
     // there is absolutey no data nearby
-    preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, 40.0);
+    preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, 200.0);
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {

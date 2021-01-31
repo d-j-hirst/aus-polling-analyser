@@ -1,6 +1,7 @@
 #include "SimulationIteration.h"
 
 #include "CountProgress.h"
+#include "SpecialPartyCodes.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
@@ -50,8 +51,8 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	run.partyWins = std::vector<int>(project.parties().count());
 
 	// First, randomly determine the national swing for this particular simulation
-	//run.iterationOverallSwing = project.projections().view(sim.settings.baseProjection).generateTppSample() - sim.settings.prevElection2pp;
-	run.iterationOverallSwing = 0.0f; //replace with a value 
+	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
+	run.iterationOverallSwing = projectedSample.at(TppCode) - sim.settings.prevElection2pp;
 }
 
 void SimulationIteration::determineIterationOverallSwing()
