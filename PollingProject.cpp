@@ -78,6 +78,10 @@ int PollingProject::getEarliestDate() const {
 
 int PollingProject::getLatestDate() const {
 	int latestDay = polls().getLatestDate();
+	for (auto const& [key, model] : models()) {
+		int date = int(floor(model.getEndDate().GetModifiedJulianDayNumber()));
+		if (date > latestDay) latestDay = date;
+	}
 	for (auto const& [key, projection] : projections()) {
 		int date = int(floor(projection.getSettings().endDate.GetModifiedJulianDayNumber()));
 		if (date > latestDay) latestDay = date;

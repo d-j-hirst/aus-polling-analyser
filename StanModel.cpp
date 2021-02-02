@@ -285,6 +285,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		float historicalTransformed = transformVoteShare(std::clamp(thisHistorical, HistoricalVoteMin, HistoricalVoteMax));
 		float pollWeight = std::max(0.0f, (thisMaxPollWeight + 1.0f / (thisInformationHorizon * thisHyperbolaSharpness)) -
 			1.0f / ((thisInformationHorizon - logDays) * thisHyperbolaSharpness));
+		logger << pollWeight << " - poll Weight\n";
 		transformed = transformed * pollWeight + historicalTransformed * (1.0f - pollWeight);
 
 		// Adjust for variable systemic error
@@ -588,53 +589,58 @@ void StanModel::generateParameterMaps()
 {
 	// partyCodeVec is already created by loadData
 	partyCodeVec = splitString(partyCodes, ",");
-	if (!partyCodeVec.size()) throw std::logic_error("No party codes in this model!");
-	auto debiasInterceptVec = splitStringF(debiasIntercept, ",");
-	auto debiasSlopeVec = splitStringF(debiasSlope, ",");
-	auto maxPollWeightVec = splitStringF(maxPollWeight, ",");
-	auto informationHorizonVec = splitStringF(informationHorizon, ",");
-	auto hyperbolaSharpnessVec = splitStringF(hyperbolaSharpness, ",");
-	auto historicalAverageVec = splitStringF(historicalAverage, ",");
-	auto deviationSlopeVec = splitStringF(deviationSlope, ",");
-	auto deviationInterceptVec = splitStringF(deviationIntercept, ",");
-	auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
-	auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
-	auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
-	bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
-		debiasSlopeVec.size() == partyCodeVec.size() &&
-		maxPollWeightVec.size() == partyCodeVec.size() &&
-		informationHorizonVec.size() == partyCodeVec.size() &&
-		hyperbolaSharpnessVec.size() == partyCodeVec.size() &&
-		historicalAverageVec.size() == partyCodeVec.size() &&
-		deviationSlopeVec.size() == partyCodeVec.size() &&
-		deviationInterceptVec.size() == partyCodeVec.size() &&
-		preferenceFlowVec.size() == partyCodeVec.size() &&
-		preferenceDeviationVec.size() == partyCodeVec.size() &&
-		preferenceSamplesVec.size() == partyCodeVec.size();
-	if (!validSizes) throw std::logic_error("Party codes and parameter lines do not match!");
+	if (!partyCodeVec.size()) throw Exception("No party codes in this model!");
+	try {
+		auto debiasInterceptVec = splitStringF(debiasIntercept, ",");
+		auto debiasSlopeVec = splitStringF(debiasSlope, ",");
+		auto maxPollWeightVec = splitStringF(maxPollWeight, ",");
+		auto informationHorizonVec = splitStringF(informationHorizon, ",");
+		auto hyperbolaSharpnessVec = splitStringF(hyperbolaSharpness, ",");
+		auto historicalAverageVec = splitStringF(historicalAverage, ",");
+		auto deviationSlopeVec = splitStringF(deviationSlope, ",");
+		auto deviationInterceptVec = splitStringF(deviationIntercept, ",");
+		auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
+		auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
+		auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
+		bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
+			debiasSlopeVec.size() == partyCodeVec.size() &&
+			maxPollWeightVec.size() == partyCodeVec.size() &&
+			informationHorizonVec.size() == partyCodeVec.size() &&
+			hyperbolaSharpnessVec.size() == partyCodeVec.size() &&
+			historicalAverageVec.size() == partyCodeVec.size() &&
+			deviationSlopeVec.size() == partyCodeVec.size() &&
+			deviationInterceptVec.size() == partyCodeVec.size() &&
+			preferenceFlowVec.size() == partyCodeVec.size() &&
+			preferenceDeviationVec.size() == partyCodeVec.size() &&
+			preferenceSamplesVec.size() == partyCodeVec.size();
+		if (!validSizes) throw Exception("Party codes and parameter lines do not match!");
 
-	debiasInterceptMap.clear();
-	debiasSlopeMap.clear();
-	maxPollWeightMap.clear();
-	informationHorizonMap.clear();
-	hyperbolaSharpnessMap.clear();
-	historicalAverageMap.clear();
-	deviationSlopeMap.clear();
-	deviationInterceptMap.clear();
-	preferenceFlowMap.clear();
-	preferenceDeviationMap.clear();
-	preferenceSamplesMap.clear();
-	for (int index = 0; index < int(partyCodeVec.size()); ++index) {
-		debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
-		debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
-		maxPollWeightMap.insert({ partyCodeVec[index], maxPollWeightVec[index] });
-		informationHorizonMap.insert({ partyCodeVec[index], informationHorizonVec[index] });
-		hyperbolaSharpnessMap.insert({ partyCodeVec[index], hyperbolaSharpnessVec[index] });
-		historicalAverageMap.insert({ partyCodeVec[index], historicalAverageVec[index] });
-		deviationSlopeMap.insert({ partyCodeVec[index], deviationSlopeVec[index] });
-		deviationInterceptMap.insert({ partyCodeVec[index], deviationInterceptVec[index] });
-		preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
-		preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
-		preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
+		debiasInterceptMap.clear();
+		debiasSlopeMap.clear();
+		maxPollWeightMap.clear();
+		informationHorizonMap.clear();
+		hyperbolaSharpnessMap.clear();
+		historicalAverageMap.clear();
+		deviationSlopeMap.clear();
+		deviationInterceptMap.clear();
+		preferenceFlowMap.clear();
+		preferenceDeviationMap.clear();
+		preferenceSamplesMap.clear();
+		for (int index = 0; index < int(partyCodeVec.size()); ++index) {
+			debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
+			debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
+			maxPollWeightMap.insert({ partyCodeVec[index], maxPollWeightVec[index] });
+			informationHorizonMap.insert({ partyCodeVec[index], informationHorizonVec[index] });
+			hyperbolaSharpnessMap.insert({ partyCodeVec[index], hyperbolaSharpnessVec[index] });
+			historicalAverageMap.insert({ partyCodeVec[index], historicalAverageVec[index] });
+			deviationSlopeMap.insert({ partyCodeVec[index], deviationSlopeVec[index] });
+			deviationInterceptMap.insert({ partyCodeVec[index], deviationInterceptVec[index] });
+			preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
+			preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
+			preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
+		}
+	}
+	catch (std::invalid_argument) {
+		throw Exception("One or more model paramater lists could not be converted to floats!");
 	}
 }

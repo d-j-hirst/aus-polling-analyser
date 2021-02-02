@@ -24,6 +24,11 @@ public:
 		float expectation;
 	};
 
+	class Exception : public std::logic_error { 
+	public:
+		Exception(std::string what) : std::logic_error(what) {}
+	};
+
 	struct Series {
 		std::vector<StanModel::Spread> timePoint;
 	};

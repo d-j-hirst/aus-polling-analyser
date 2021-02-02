@@ -70,6 +70,9 @@ private:
 	// updates the interface after a change in item selection.
 	void OnSelectionChange(wxDataViewEvent& event);
 
+	// resets election-specific info for the seat (local modifier, betting odds)
+	void OnResetSeats(wxCommandEvent&);
+
 	// does everything required to add the seat "seat".
 	void addSeat(Seat seat);
 

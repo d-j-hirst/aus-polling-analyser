@@ -33,6 +33,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 	if (!settings.endDate.IsValid()) return;
 	auto const& model = getBaseModel(models);
 	startDate = model.getEndDate() + wxDateSpan::Days(1);
+
 	constexpr static int NumIterations = 5000;
 	projectedSupport.clear(); // do this first as it should not be left with previous data
 	try {
@@ -51,7 +52,9 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 			std::unique_ptr<std::array<float, NumIterations>> tppSamples; // on heap to avoid 
 			tppSamples.reset(new std::array<float, NumIterations>());
 			for (int iteration = 0; iteration < NumIterations; ++iteration) {
-				auto sample = generateSupportSample(models, startDate + wxDateSpan::Days(time));
+				auto projectedDate = startDate + wxDateSpan::Days(time);
+				logger << projectedDate.FormatISODate() << " - projected Date\n";
+				auto sample = generateSupportSample(models, projectedDate);
 				for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
 					std::string partyName = model.partyCodeVec[partyIndex];
 					if (sample.count(partyName)) {
@@ -136,7 +139,8 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
 {
 	auto const& model = getBaseModel(models);
-	int daysAfterModelEnd = (settings.endDate - model.getEndDate()).GetDays();
+	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
+	logger << daysAfterModelEnd << " - days after model end\n";
 	auto sample = model.generateAdjustedSupportSample(date, daysAfterModelEnd);
 	return sample;
 }

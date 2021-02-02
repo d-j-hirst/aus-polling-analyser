@@ -7,6 +7,7 @@
 #include <fstream>
 
 using namespace std::placeholders; // for function object parameter binding
+using namespace std::string_literals;
 
 // IDs for the controls and the menu commands
 enum ControlId {
@@ -17,7 +18,7 @@ enum ControlId {
 	Edit,
 	Remove,
 	CollectData,
-	DisplayResults,
+	DisplayResults
 };
 
 // frame constructor
@@ -122,7 +123,12 @@ void ModelsFrame::OnCollectData(wxCommandEvent&) {
 	// If the button is somehow clicked when there is no poll selected, just stop.
 	if (modelIndex == -1) return;
 
-	collectData();
+	try {
+		collectData();
+	}
+	catch (StanModel::Exception const& e) {
+		wxMessageBox("Could not load or process model data, because:\n"s + e.what());
+	}
 
 	refresher.refreshProjectionData();
 
@@ -151,7 +157,7 @@ void ModelsFrame::OnSelectionChange(wxDataViewEvent&) {
 void ModelsFrame::setupToolbar()
 {
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[5];
+	wxBitmap toolBarBitmaps[6];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);

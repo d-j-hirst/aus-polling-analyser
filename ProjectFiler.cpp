@@ -529,7 +529,12 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 			if (versionNum >= 6) {
 				thisModel.tppSupport = loadSeries(saveInput, versionNum);
 			}
-			thisModel.generateParameterMaps();
+			try {
+				thisModel.generateParameterMaps();
+			}
+			catch (std::logic_error) {
+				// just ignore any errors
+			}
 		}
 		project.modelCollection.add(thisModel);
 	}

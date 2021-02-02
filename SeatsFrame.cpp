@@ -17,6 +17,7 @@ enum ControlId {
 	Edit,
 	Remove,
 	ShowResults,
+	ResetSeats
 };
 
 // frame constructor
@@ -69,6 +70,24 @@ void SeatsFrame::refreshDataTable() {
 	updateInterface();
 }
 
+void SeatsFrame::OnResetSeats(wxCommandEvent&)
+{
+	auto answer = wxMessageBox("Do you want to reset individual seat modifiers?", "Reset individual seat modifiers?", wxYES_NO);
+	if (answer == wxYES) {
+		for (auto& seat : project->seats()) {
+			seat.second.localModifier = 0.0f;
+		}
+	}
+	answer = wxMessageBox("Do you want to reset seat betting odds?", "Reset seat betting odds?", wxYES_NO);
+	if (answer == wxYES) {
+		for (auto& seat : project->seats()) {
+			seat.second.incumbentOdds = 1.01f;
+			seat.second.challengerOdds = 1000.0f;
+			seat.second.challenger2Odds = 1000.0f;
+		}
+	}
+}
+
 void SeatsFrame::setupToolBar()
 {
 	// Load the relevant bitmaps for the toolbar icons.
@@ -78,6 +97,7 @@ void SeatsFrame::setupToolBar()
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[3] = wxBitmap("bitmaps\\details.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[4] = wxBitmap("bitmaps\\reset.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -87,6 +107,7 @@ void SeatsFrame::setupToolBar()
 	toolBar->AddTool(ControlId::Edit, "Edit Seat", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Seat");
 	toolBar->AddTool(ControlId::Remove, "Remove Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Seat");
 	toolBar->AddTool(ControlId::ShowResults, "Seat Results", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Seat Results");
+	toolBar->AddTool(ControlId::ResetSeats, "Reset seats", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Reset seats");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -115,6 +136,7 @@ void SeatsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &SeatsFrame::OnEditSeat, this, ControlId::Edit);
 	Bind(wxEVT_TOOL, &SeatsFrame::OnRemoveSeat, this, ControlId::Remove);
 	Bind(wxEVT_TOOL, &SeatsFrame::OnSeatResults, this, ControlId::ShowResults);
+	Bind(wxEVT_TOOL, &SeatsFrame::OnResetSeats, this, ControlId::ResetSeats);
 
 	// Need to update the interface if the selection changes
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &SeatsFrame::OnSelectionChange, this, ControlId::DataView);
