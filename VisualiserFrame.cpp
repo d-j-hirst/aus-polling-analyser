@@ -399,7 +399,7 @@ void VisualiserFrame::determineSelectedPartyIndex()
 	selectedPartyIndex = -1;
 	if (selectedParty < 0 || selectedParty >= int(partyOrder.size())) return;
 	std::string code = partyOrder[selectedParty];
-	if (code == OthersCode) {
+	if (code == OthersCode || code == UnnamedOthersCode) {
 		selectedPartyIndex = PartyCollection::MaxParties;
 	}
 	else {
