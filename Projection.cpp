@@ -81,11 +81,11 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 			}
 		}
 
+		const int ProjectionSmoothingDays = 21;
 		for (auto& [key, party] : projectedSupport) {
-			for (auto& time : party.timePoint) {
-				time.calculateExpectation();
-			}
+			party.smooth(ProjectionSmoothingDays); // also automatically calculates expectations
 		}
+		tppSupport.smooth(ProjectionSmoothingDays);
 	}
 
 	catch (std::logic_error & e) {

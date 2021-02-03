@@ -355,11 +355,11 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 			}
 		}
 
+		const int ModelSmoothingDays = 21;
 		for (auto& [key, party] : adjustedSupport) {
-			for (auto& time : party.timePoint) {
-				time.calculateExpectation();
-			}
+			party.smooth(ModelSmoothingDays); // also automatically calculates expectations
 		}
+		tppSupport.smooth(ModelSmoothingDays);
 	}
 
 	catch (std::logic_error& e) {
@@ -643,4 +643,26 @@ void StanModel::generateParameterMaps()
 	catch (std::invalid_argument) {
 		throw Exception("One or more model paramater lists could not be converted to floats!");
 	}
+}
+
+void StanModel::Series::smooth(int smoothingFactor)
+{
+	Series newSeries = *this;
+	for (int index = 0; index < int(timePoint.size()); ++index) {
+		int thisSmoothing = std::min(smoothingFactor, std::min(std::abs(index), std::abs(int(timePoint.size()) - index - 1)));
+		for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+			double numerator = 0.0f;
+			double denominator = 0.0f;
+			for (int offset = -thisSmoothing; offset <= thisSmoothing; ++offset) {
+				int source = index + offset;
+				double weight = nCr(thisSmoothing, offset + thisSmoothing);
+				numerator += double(timePoint[source].values[percentile]) * weight;
+				denominator += weight;
+			}
+			double result = numerator / denominator;
+			newSeries.timePoint[index].values[percentile] = float(result);
+		}
+		newSeries.timePoint[index].calculateExpectation();
+	}
+	*this = newSeries;
 }

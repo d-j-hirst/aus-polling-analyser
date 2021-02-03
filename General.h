@@ -123,3 +123,18 @@ constexpr float DefaultLogitDerivLimit = 4.0f;
 inline float limitedLogitDeriv(float startingPoint, float limit = DefaultLogitDerivLimit) {
 	return std::clamp(logitDeriv(startingPoint), 0.0f, limit);
 }
+
+// from https://stackoverflow.com/questions/11809502/which-is-better-way-to-calculate-ncr
+// Some risk of overflow here, but should be fine for smallish values
+inline long long nCr(long long n, long long r) {
+	if (r > n - r) r = n - r; // because C(n, r) == C(n, n - r)
+	long long ans = 1;
+	long long i;
+
+	for (i = 1; i <= r; i++) {
+		ans *= n - r + i;
+		ans /= i;
+	}
+
+	return ans;
+}

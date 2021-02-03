@@ -31,6 +31,7 @@ public:
 
 	struct Series {
 		std::vector<StanModel::Spread> timePoint;
+		void smooth(int smoothingFactor);
 	};
 
 	typedef std::vector<std::string> PartyCodes;
