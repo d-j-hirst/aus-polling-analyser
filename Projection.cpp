@@ -121,7 +121,7 @@ void Projection::logRunStatistics()
 
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
-	//settings.endDate = model.getEffectiveEndDate() + wxDateSpan(0, 0, 0, 1);
+	settings.endDate = model.getEndDate() + wxDateSpan(0, 0, 0, 2);
 }
 
 StanModel::SeriesOutput Projection::viewPrimarySeries(std::string partyCode) const
@@ -139,6 +139,7 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
 {
 	auto const& model = getBaseModel(models);
+	if (!date.IsValid()) date = settings.endDate;
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
 	logger << daysAfterModelEnd << " - days after model end\n";
 	auto sample = model.generateAdjustedSupportSample(date, daysAfterModelEnd);

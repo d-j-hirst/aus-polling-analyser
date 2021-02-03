@@ -3,3 +3,5 @@ Polling Analyser to-do:
 -Fix nowcast button
 -Smooth model/projection output
 -Fix xOTH visual output (don't display poll dots)
+-Add "clear election-specific values"
+-Add feature for taking snapshots of simulation results
