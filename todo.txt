@@ -1,7 +1,6 @@
 Polling Analyser to-do:
--Update seat margins in 2022 Federal file
--Fix nowcast button
+-Add Essential mini-polls to fed2022 file
 -Smooth model/projection output
 -Fix xOTH visual output (don't display poll dots)
 -Add "clear election-specific values"
--Add feature for taking snapshots of simulation results
+-Add feature for taking snapshots of simulation result summaries
