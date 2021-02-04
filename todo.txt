@@ -1,6 +1,5 @@
 Polling Analyser to-do:
--Add Essential mini-polls to fed2022 file
--Smooth model/projection output
 -Fix xOTH visual output (don't display poll dots)
--Add "clear election-specific values"
 -Add feature for taking snapshots of simulation result summaries
+
+-At some point update WA-2021/fed-2022 model parameters to include qld-2020
