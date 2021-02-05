@@ -24,15 +24,8 @@ struct Region {
 	float livePercentCounted = 0.0f;
 	int classicSeatCount = 0;
 
-	std::vector<int> partyLeading;
 	// party first, then region
 	std::vector<std::vector<int>> partyWins;
-	
-	// Get the number of seats in this region in which non-major parties are leading
-	int getOthersLeading() const {
-		if (partyLeading.size() < 3) return 0;
-		return std::accumulate(partyLeading.begin() + 2, partyLeading.end(), 0);
-	}
 
 	std::string textReport() const {
 		std::stringstream report;

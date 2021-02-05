@@ -126,7 +126,7 @@ void DisplayFrame::render(wxDC& dc)
 
 	if (!simulation.isValid()) return;
 
-	DisplayFrameRenderer renderer(*project, dc, simulation, dcPanel->GetClientSize());
+	DisplayFrameRenderer renderer(dc, simulation.getLatestReport(), dcPanel->GetClientSize());
 
 	renderer.render();
 }

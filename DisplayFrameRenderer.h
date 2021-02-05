@@ -14,11 +14,11 @@
 #endif
 
 #include <memory>
-#include "PollingProject.h"
+#include "Simulation.h"
 
 class DisplayFrameRenderer {
 public:
-	DisplayFrameRenderer(PollingProject const& project, wxDC& dc, Simulation const& simulation, wxSize dimensions);
+	DisplayFrameRenderer(wxDC& dc, Simulation::Report const& simulation, wxSize dimensions);
 
 	void render();
 
@@ -87,7 +87,7 @@ private:
 
 	void drawRegionsBoxRowList() const;
 
-	void drawRegionsBoxRowListItem(Region const& thisRegion, RegionCollection::Index regionIndex, wxRect rowNameRect) const;
+	void drawRegionsBoxRowListItem(RegionCollection::Index regionIndex, wxRect rowNameRect) const;
 
 	void drawBoundsBox() const;
 
@@ -131,9 +131,8 @@ private:
 
 	float expectationBoxTop() const;
 
-	PollingProject const& project;
 	wxDC& dc;
-	Simulation const& simulation;
+	Simulation::Report const& simulation;
 
 	DisplayVariables dv;
 };

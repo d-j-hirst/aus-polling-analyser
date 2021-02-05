@@ -398,12 +398,13 @@ std::string ResultsFrame::decideSummaryString(Simulation const & simulation)
 {
 	std::string party1 = project->parties().view(0).abbreviation;
 	std::string party2 = project->parties().view(1).abbreviation;
-	std::string summaryString = party1 + " win chance: " + formatFloat(simulation.getPartyWinPercent(Simulation::MajorParty::One), 2) +
-		"   Projected 2PP: " + party1 + " " + formatFloat(float(simulation.getPartyOne2pp()), 2) +
-		"   Seats: " + party1 + " " + formatFloat(simulation.getPartyWinExpectation(0), 2) + " " +
-		party2 + " " + formatFloat(simulation.getPartyWinExpectation(1), 2) +
-		" Others " + formatFloat(simulation.getOthersWinExpectation(), 2) +
-		"   Count progress: " + formatFloat(simulation.get2cpPercentCounted(), 2) + "%\n" +
+	auto const& report = simulation.getLatestReport();
+	std::string summaryString = party1 + " win chance: " + formatFloat(report.getPartyWinPercent(Simulation::MajorParty::One), 2) +
+		"   Projected 2PP: " + party1 + " " + formatFloat(float(report.getPartyOne2pp()), 2) +
+		"   Seats: " + party1 + " " + formatFloat(report.getPartyWinExpectation(0), 2) + " " +
+		party2 + " " + formatFloat(report.getPartyWinExpectation(1), 2) +
+		" Others " + formatFloat(report.getOthersWinExpectation(), 2) +
+		"   Count progress: " + formatFloat(report.get2cpPercentCounted(), 2) + "%\n" +
 		party1 + " swing by region: ";
 	for (auto const& regionPair : project->regions()) {
 		Region const& thisRegion = regionPair.second;

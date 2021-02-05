@@ -60,6 +60,102 @@ public:
 		Last = Two
 	};
 
+	struct Report {
+		std::array<float, 2> majorityPercent = { 0.0f, 0.0f };
+		std::array<float, 2> minorityPercent = { 0.0f, 0.0f };
+		float hungPercent = 0.0f;
+
+		double partyOneSwing = 0.0;
+
+		std::vector<float> partyWinExpectation;
+
+		// region, then party *** convert to map
+		std::vector<std::vector<float>> regionPartyWinExpectation;
+
+		// party, then seat
+		std::vector<std::vector<int>> partySeatWinFrequency;
+
+		std::vector<int> othersWinFrequency;
+
+		float total2cpPercentCounted = 0.0f;
+
+		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds;
+
+		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		std::array<int, NumProbabilityBoundIndices> partyTwoProbabilityBounds;
+
+		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
+
+		std::vector<std::string> partyAbbr;
+		std::vector<std::string> partyName;
+		std::vector<Party::Colour> partyColour;
+
+		std::vector<std::string> regionName;
+
+		std::vector<std::string> seatName;
+
+		std::vector<int> seatIncumbents;
+
+		std::vector<float> seatMargins;
+
+		std::vector<float> incumbentWinPercent;
+
+		// gives the indices of classic seats
+		std::vector<Seat::Id> classicSeatIndices;
+
+		std::vector<std::vector<int>> regionPartyLeading;
+
+		float prevElection2pp = 0.0f;
+
+		float getPartyMajorityPercent(Simulation::MajorParty whichParty) const;
+		float getPartyMinorityPercent(Simulation::MajorParty whichParty) const;
+		float getHungPercent() const;
+
+		int classicSeatCount() const;
+		Seat::Id classicSeatIndex(int index) const;
+
+		int internalPartyCount() const;
+
+		int internalRegionCount() const;
+
+		float getPartyWinExpectation(int partyIndex) const;
+
+		float getOthersWinExpectation() const;
+
+		float getRegionPartyWinExpectation(int regionIndex, int partyIndex) const;
+
+		float getRegionOthersWinExpectation(int regionIndex) const;
+
+		float getPartySeatWinFrequency(int partyIndex, int seatIndex) const;
+
+		float getOthersWinFrequency(int seatIndex) const;
+
+		float getIncumbentWinPercent(int seatIndex) const;
+
+		float getPartyWinPercent(Simulation::MajorParty whichParty) const;
+
+		int getMinimumSeatFrequency(int partyIndex) const;
+
+		int getMaximumSeatFrequency(int partyIndex) const;
+
+		int getModalSeatFrequencyCount(int partyIndex) const;
+
+		double getPartyOne2pp() const;
+
+		float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const;
+
+		int getProbabilityBound(int bound, Simulation::MajorParty whichParty) const;
+
+		int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) const;
+
+		float get2cpPercentCounted() const { return total2cpPercentCounted; }
+
+		// Get the number of seats in this region in which non-major parties are leading
+		int getOthersLeading(int regionIndex) const;
+	};
+
 	Simulation()
 	{}
 
@@ -73,62 +169,21 @@ public:
 
 	Settings const& getSettings() const { return settings; }
 
-	void replaceSettings(Simulation::Settings newSettings);
-
 	std::string getLastUpdatedString() const;
 
 	std::string getLiveString() const;
 
-	float getPartyMajorityPercent(MajorParty whichParty) const;
-	float getPartyMinorityPercent(MajorParty whichParty) const;
-	float getHungPercent() const;
+	Report const& getLatestReport() const;
 
-	int classicSeatCount() const;
-	Seat::Id classicSeatId(int index) const;
-
-	int internalPartyCount() const;
-
-	int internalRegionCount() const;
-
-	float getPartyWinExpectation(int partyIndex) const;
-
-	float getOthersWinExpectation() const;
-
-	float getRegionPartyWinExpectation(int regionIndex, int partyIndex) const;
-
-	float getRegionOthersWinExpectation(int regionIndex) const;
-
-	float getPartySeatWinFrequency(int partyIndex, int seatIndex) const;
-
-	float getOthersWinFrequency(int seatIndex) const;
-
-	float getIncumbentWinPercent(int seatIndex) const;
-
-	float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex, PollingProject const& project) const;
-
-	int getProbabilityBound(int bound, MajorParty whichParty) const;
+	void replaceSettings(Simulation::Settings newSettings);
 
 	bool isValid() const;
-
-	float getPartyWinPercent(MajorParty whichParty) const;
-
-	int getMinimumSeatFrequency(int partyIndex) const;
-
-	int getMaximumSeatFrequency(int partyIndex) const;
-
-	int getModalSeatFrequencyCount(int partyIndex) const;
-
-	double getPartyOne2pp() const;
-
-	int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed, PollingProject const& project) const;
 
 	std::string textReport(ProjectionCollection const& projections) const;
 
 	bool isLiveAutomatic() const { return settings.live == Settings::Mode::LiveAutomatic; }
 	bool isLiveManual() const { return settings.live == Settings::Mode::LiveManual; }
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
-
-	float get2cpPercentCounted() const { return total2cpPercentCounted;  }
 
 private:
 
@@ -140,36 +195,7 @@ private:
 
 	Settings settings;
 
-	std::array<float, 2> majorityPercent = { 0.0f, 0.0f };
-	std::array<float, 2> minorityPercent = { 0.0f, 0.0f };
-	float hungPercent = 0.0f;
-
-	double partyOneSwing = 0.0;
-
-	std::vector<Seat::Id> classicSeatIds;
-
-	std::vector<float> partyWinExpectation;
-
-	// region, then party
-	std::vector<std::vector<float>> regionPartyWinExpectation;
-
-	// party, then seat
-	std::vector<std::vector<int>> partySeatWinFrequency;
-
-	std::vector<int> othersWinFrequency;
-
-	std::vector<float> incumbentWinPercent;
-
-	float total2cpPercentCounted = 0.0f;
-
-	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
-	std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds;
-
-	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
-	std::array<int, NumProbabilityBoundIndices> partyTwoProbabilityBounds;
-
-	// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
-	std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
+	Report latestReport;
 
 	std::optional<SimulationRun> latestRun;
 

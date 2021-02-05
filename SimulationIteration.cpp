@@ -67,7 +67,7 @@ void SimulationIteration::determineIterationOverallSwing()
 	}
 
 	// this will be used to determine the estimated 2pp swing (for live results) later
-	sim.partyOneSwing += double(run.iterationOverallSwing);
+	sim.latestReport.partyOneSwing += double(run.iterationOverallSwing);
 }
 
 void SimulationIteration::determineIterationPpvcBias()
@@ -301,14 +301,14 @@ void SimulationIteration::addPartySeatWinCounts()
 {
 	int othersWins = 0;
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
-		++sim.partySeatWinFrequency[partyIndex][run.partyWins[partyIndex]];
+		++sim.latestReport.partySeatWinFrequency[partyIndex][run.partyWins[partyIndex]];
 		if (partyIndex > 1) othersWins += run.partyWins[partyIndex];
 		for (auto& regionPair : project.regions()) {
 			Region& thisRegion = regionPair.second;
 			++thisRegion.partyWins[partyIndex][run.regionSeatCount[partyIndex][project.regions().idToIndex(regionPair.first)]];
 		}
 	}
-	++sim.othersWinFrequency[othersWins];
+	++sim.latestReport.othersWinFrequency[othersWins];
 }
 
 SimulationIteration::OddsInfo SimulationIteration::calculateOddsInfo(Seat const& thisSeat)

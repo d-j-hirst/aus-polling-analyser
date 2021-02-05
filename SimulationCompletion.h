@@ -19,6 +19,8 @@ private:
 	void calculateRegionPartyWinExpectations();
 	void recordProbabilityBands();
 	void createClassicSeatsList();
+	void recordNames();
+	void recordReportSettings();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
 

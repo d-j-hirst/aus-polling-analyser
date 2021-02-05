@@ -10,5 +10,5 @@ QuickTest::QuickTest()
 	project.projections().run(0);
 	project.simulations().run(0);
 	project.simulations().run(0);
-	wxMessageBox(formatFloat(project.simulations().view(0).getPartyWinPercent(Simulation::MajorParty::One), 2));
+	wxMessageBox(formatFloat(project.simulations().view(0).getLatestReport().getPartyWinPercent(Simulation::MajorParty::One), 2));
 }

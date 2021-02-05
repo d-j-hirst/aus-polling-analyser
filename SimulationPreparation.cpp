@@ -18,6 +18,8 @@ void SimulationPreparation::prepareForIterations()
 {
 	gen.seed(rd());
 
+	resetLatestReport();
+
 	resetRegionSpecificOutput();
 
 	resetSeatSpecificOutput();
@@ -48,6 +50,11 @@ void SimulationPreparation::prepareForIterations()
 	resetResultCounts();
 
 	loadInitialStateFromProjection();
+}
+
+void SimulationPreparation::resetLatestReport()
+{
+	sim.latestReport = Simulation::Report();
 }
 
 void SimulationPreparation::resetRegionSpecificOutput()
@@ -142,10 +149,12 @@ void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
 
 void SimulationPreparation::resizeRegionSeatCountOutputs()
 {
-	for (auto&[key, region] : project.regions()) {
-		region.partyLeading.clear();
+	sim.latestReport.regionPartyLeading.resize(project.regions().count());
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		sim.latestReport.regionPartyLeading[regionIndex].resize(project.parties().count());
+	}
+	for (auto&[key, region] : project.regions()) { {}
 		region.partyWins.clear();
-		region.partyLeading.resize(project.parties().count());
 		region.partyWins.resize(project.parties().count(), std::vector<int>(region.seatCount + 1));
 	}
 }
@@ -153,8 +162,7 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		Region& thisRegion = project.regions().access(seat.region);
-		++thisRegion.partyLeading[project.parties().idToIndex(seat.getLeadingParty())];
+		++sim.latestReport.regionPartyLeading[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
 	}
 }
 
@@ -186,13 +194,13 @@ void SimulationPreparation::calculateLiveAggregates()
 	}
 
 	if (sim.isLiveAutomatic()) {
-		sim.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f) * 100.0f;
+		sim.latestReport.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f) * 100.0f;
 	}
 	else if (sim.isLiveManual()) {
-		sim.total2cpPercentCounted = run.liveOverallPercent;
+		sim.latestReport.total2cpPercentCounted = run.liveOverallPercent;
 	}
 	else {
-		sim.total2cpPercentCounted = 0.0f;
+		sim.latestReport.total2cpPercentCounted = 0.0f;
 	}
 }
 
@@ -234,11 +242,11 @@ void SimulationPreparation::resetResultCounts()
 	run.partyMajority = { 0, 0 };
 	run.partyMinority = { 0, 0 };
 	run.hungParliament = 0;
-	sim.partySeatWinFrequency.clear();
-	sim.partySeatWinFrequency.resize(project.parties().count(), std::vector<int>(project.seats().count() + 1));
-	sim.othersWinFrequency.clear();
-	sim.othersWinFrequency.resize(project.seats().count() + 1);
-	sim.partyOneSwing = 0.0;
+	sim.latestReport.partySeatWinFrequency.clear();
+	sim.latestReport.partySeatWinFrequency.resize(project.parties().count(), std::vector<int>(project.seats().count() + 1));
+	sim.latestReport.othersWinFrequency.clear();
+	sim.latestReport.othersWinFrequency.resize(project.seats().count() + 1);
+	sim.latestReport.partyOneSwing = 0.0;
 }
 
 void SimulationPreparation::loadInitialStateFromProjection()

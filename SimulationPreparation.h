@@ -16,6 +16,7 @@ private:
 	typedef std::pair<int, int> SeatPartyPreferences;
 
 	// initialization functions
+	void resetLatestReport();
 	void resetRegionSpecificOutput();
 	void resetSeatSpecificOutput();
 	void accumulateRegionStaticInfo();
