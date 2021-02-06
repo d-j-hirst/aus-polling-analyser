@@ -196,6 +196,8 @@ private:
 
 	Report latestReport;
 
+	std::vector<Report> savedReports;
+
 	std::optional<SimulationRun> latestRun;
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.

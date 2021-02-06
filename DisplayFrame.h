@@ -38,10 +38,13 @@ public:
 private:
 
 	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnResize(wxSizeEvent& WXUNUSED(event));
+	void OnResize(wxSizeEvent&);
 
 	// Adjusts controls so that they fill the frame space when it is resized.
-	void OnSimulationSelection(wxCommandEvent& WXUNUSED(event));
+	void OnSimulationSelection(wxCommandEvent&);
+
+	// Adjusts controls so that they fill the frame space when it is resized.
+	void OnSaveReport(wxCommandEvent&);
 
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);

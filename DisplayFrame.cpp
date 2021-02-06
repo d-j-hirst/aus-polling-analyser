@@ -12,7 +12,8 @@ enum ControlId {
 	Base = 450, // To avoid mixing events with other frames.
 	Frame,
 	DcPanel,
-	SelectSimulation
+	SelectSimulation,
+	SaveReport
 };
 
 // frame constructor
@@ -48,19 +49,24 @@ void DisplayFrame::refreshData() {
 	refreshToolbar();
 }
 
-void DisplayFrame::OnResize(wxSizeEvent& WXUNUSED(event)) {
+void DisplayFrame::OnResize(wxSizeEvent&) {
 	// Set the poll data table to the entire client size.
 	//pollData->SetSize(wxSize(this->GetClientSize().x,
 	//	this->GetClientSize().y));
 }
 
-void DisplayFrame::OnSimulationSelection(wxCommandEvent& WXUNUSED(event)) {
+void DisplayFrame::OnSimulationSelection(wxCommandEvent&) {
 	selectedSimulation = selectSimulationComboBox->GetCurrentSelection();
 	paint();
 }
 
+void DisplayFrame::OnSaveReport(wxCommandEvent&)
+{
+	wxMessageBox("Actually save report here ...");
+}
+
 // Handles the movement of the mouse in the display frame.
-void DisplayFrame::OnMouseMove(wxMouseEvent& WXUNUSED(event)) {
+void DisplayFrame::OnMouseMove(wxMouseEvent&) {
 	paint();
 }
 
@@ -70,6 +76,7 @@ void DisplayFrame::bindEventHandlers()
 	//Bind(wxEVT_SIZE, &DisplayFrame::OnResize, this, PA_DisplayFrame_FrameID);
 
 	Bind(wxEVT_COMBOBOX, &DisplayFrame::OnSimulationSelection, this, ControlId::SelectSimulation);
+	Bind(wxEVT_TOOL, &DisplayFrame::OnSaveReport, this, ControlId::SaveReport);
 	dcPanel->Bind(wxEVT_MOTION, &DisplayFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &DisplayFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -91,6 +98,11 @@ void DisplayFrame::refreshToolbar() {
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
 
+	// Load the relevant bitmaps for the toolbar icons.
+	wxLogNull something;
+	wxBitmap toolBarBitmaps[1];
+	toolBarBitmaps[0] = wxBitmap("bitmaps\\camera.png", wxBITMAP_TYPE_PNG);
+
 	// *** Simulation Combo Box *** //
 
 	// Create the choices for the combo box.
@@ -111,6 +123,7 @@ void DisplayFrame::refreshToolbar() {
 
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddControl(selectSimulationComboBox);
+	toolBar->AddTool(ControlId::SaveReport, "Save report", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Save report");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
