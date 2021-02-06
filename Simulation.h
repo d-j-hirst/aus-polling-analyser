@@ -28,6 +28,8 @@ public:
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
 
+	friend class ProjectFiler;
+
 	struct Settings {
 
 		enum class Mode {
@@ -69,7 +71,7 @@ public:
 
 		std::vector<float> partyWinExpectation;
 
-		// region, then party *** convert to map
+		// region, then party
 		std::vector<std::vector<float>> regionPartyWinExpectation;
 
 		// party, then seat
@@ -161,9 +163,6 @@ public:
 
 	Simulation(Settings settings) : settings(settings)
 	{}
-
-	Simulation(Simulation const& other) : settings(other.settings) {}
-	Simulation& operator=(Simulation const& other) { if (this != &other) settings = other.settings; return *this; }
 
 	void run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 

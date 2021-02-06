@@ -44,6 +44,15 @@ public:
 		return *this;
 	}
 
+	template<typename T, int I>
+	inline SaveFileOutput& operator<<(std::array<T, I> itemToAdd)
+	{
+		for (int i = 0; i < I; ++i) {
+			*this << itemToAdd[i];
+		}
+		return *this;
+	}
+
 	template<typename T, typename U>
 	void outputAsType(U const& output) {
 		*this << static_cast<T>(output);
@@ -95,6 +104,15 @@ public:
 		auto count = this->extract<int32_t>();
 		for (int i = 0; i < count; ++i) {
 			itemToAdd.push_back(this->extract<T>());
+		}
+		return *this;
+	}
+
+	template<typename T, int I>
+	inline SaveFileInput& operator>>(std::array<T, I>& itemToAdd)
+	{
+		for (int i = 0; i < I; ++i) {
+			*this >> itemToAdd[i];
 		}
 		return *this;
 	}

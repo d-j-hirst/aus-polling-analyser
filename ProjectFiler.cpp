@@ -16,7 +16,8 @@
 // Version 9: Don't save obsolete projection means/stdevs
 // Version 10: Save new projection series
 // Version 11: Save additional model parameters
-constexpr int VersionNum = 11;
+// Version 12: Save latest simulation report
+constexpr int VersionNum = 12;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -679,6 +680,60 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 	}
 }
 
+void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
+{
+	saveOutput << report.majorityPercent;
+	saveOutput << report.minorityPercent;
+	saveOutput << report.hungPercent;
+	saveOutput << report.partyWinExpectation;
+	saveOutput << report.regionPartyWinExpectation;
+	saveOutput << report.partySeatWinFrequency;
+	saveOutput << report.othersWinFrequency;
+	saveOutput << report.total2cpPercentCounted;
+	saveOutput << report.partyOneProbabilityBounds;
+	saveOutput << report.partyTwoProbabilityBounds;
+	saveOutput << report.othersProbabilityBounds;
+	saveOutput << report.partyAbbr;
+	saveOutput << report.partyName;
+	saveOutput << report.partyColour;
+	saveOutput << report.regionName;
+	saveOutput << report.seatName;
+	saveOutput << report.seatIncumbents;
+	saveOutput << report.seatMargins;
+	saveOutput << report.incumbentWinPercent;
+	saveOutput << report.classicSeatIndices;
+	saveOutput << report.regionPartyLeading;
+	saveOutput << report.prevElection2pp;
+}
+
+Simulation::Report loadReport(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+{
+	Simulation::Report report;
+	saveInput >> report.majorityPercent;
+	saveInput >> report.minorityPercent;
+	saveInput >> report.hungPercent;
+	saveInput >> report.partyWinExpectation;
+	saveInput >> report.regionPartyWinExpectation;
+	saveInput >> report.partySeatWinFrequency;
+	saveInput >> report.othersWinFrequency;
+	saveInput >> report.total2cpPercentCounted;
+	saveInput >> report.partyOneProbabilityBounds;
+	saveInput >> report.partyTwoProbabilityBounds;
+	saveInput >> report.othersProbabilityBounds;
+	saveInput >> report.partyAbbr;
+	saveInput >> report.partyName;
+	saveInput >> report.partyColour;
+	saveInput >> report.regionName;
+	saveInput >> report.seatName;
+	saveInput >> report.seatIncumbents;
+	saveInput >> report.seatMargins;
+	saveInput >> report.incumbentWinPercent;
+	saveInput >> report.classicSeatIndices;
+	saveInput >> report.regionPartyLeading;
+	saveInput >> report.prevElection2pp;
+	return report;
+}
+
 void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 {
 	saveOutput.outputAsType<int32_t>(project.simulationCollection.count());
@@ -690,6 +745,8 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().stateSD;
 		saveOutput << thisSimulation.getSettings().stateDecay;
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
+		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
+		saveReport(saveOutput, thisSimulation.latestReport);
 	}
 }
 
@@ -697,15 +754,20 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 {
 	int simulationCount = saveInput.extract<int32_t>();
 	for (int simulationIndex = 0; simulationIndex < simulationCount; ++simulationIndex) {
-		Simulation::Settings thisSimulation;
-		saveInput >> thisSimulation.name;
-		thisSimulation.numIterations = saveInput.extract<int32_t>();
-		thisSimulation.baseProjection = Projection::Id(saveInput.extract<int32_t>());
-		saveInput >> thisSimulation.prevElection2pp;
-		saveInput >> thisSimulation.stateSD;
-		saveInput >> thisSimulation.stateDecay;
-		thisSimulation.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
-		project.simulationCollection.add(Simulation(thisSimulation));
+		Simulation::Settings thisSettings;
+		saveInput >> thisSettings.name;
+		thisSettings.numIterations = saveInput.extract<int32_t>();
+		thisSettings.baseProjection = Projection::Id(saveInput.extract<int32_t>());
+		saveInput >> thisSettings.prevElection2pp;
+		saveInput >> thisSettings.stateSD;
+		saveInput >> thisSettings.stateDecay;
+		thisSettings.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
+		Simulation thisSimulation = Simulation(thisSettings);
+		if (versionNum >= 12) {
+			thisSimulation.lastUpdated = wxDateTime(saveInput.extract<double>());
+			thisSimulation.latestReport = loadReport(saveInput, versionNum);
+		}
+		project.simulationCollection.add(thisSimulation);
 	}
 }
 
