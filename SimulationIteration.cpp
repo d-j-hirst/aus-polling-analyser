@@ -96,7 +96,7 @@ void SimulationIteration::determineBaseRegionalSwing(Region& thisRegion)
 {
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 	// Calculate mean of the region's swing after accounting for decay to the mean over time.
-	float regionMeanSwing = run.pollOverallSwing +
+	float regionMeanSwing = run.iterationOverallSwing +
 		thisRegion.swingDeviation * pow(1.0f - sim.settings.stateDecay, thisProjection.getProjectionLength());
 	// Add random noise to the region's swing level
 	float swingSD = sim.settings.stateSD + thisRegion.additionalUncertainty;

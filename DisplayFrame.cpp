@@ -13,7 +13,8 @@ enum ControlId {
 	Frame,
 	DcPanel,
 	SelectSimulation,
-	SaveReport
+	SaveReport,
+	SelectSavedReport
 };
 
 // frame constructor
@@ -56,13 +57,39 @@ void DisplayFrame::OnResize(wxSizeEvent&) {
 }
 
 void DisplayFrame::OnSimulationSelection(wxCommandEvent&) {
-	selectedSimulation = selectSimulationComboBox->GetCurrentSelection();
-	paint();
+	// Don't want to reset things if we're reselecting the same simulation
+	if (selectSimulationComboBox->GetCurrentSelection() != selectedSimulation) {
+		selectedSimulation = selectSimulationComboBox->GetCurrentSelection();
+		selectedSaveReport = -1; // always reset to latest report
+		refreshSavedReports(); // need to update the saved reports combobox
+		paint();
+	}
 }
 
 void DisplayFrame::OnSaveReport(wxCommandEvent&)
 {
-	wxMessageBox("Actually save report here ...");
+	if (selectedSimulation < 0 || selectedSimulation >= project->simulations().count()) {
+		wxMessageBox("Could not save report: no simulation selected");
+		return;
+	}
+	auto& simulation = project->simulations().access(project->simulations().indexToId(selectedSimulation));
+	if (!simulation.isValid()) {
+		wxMessageBox("Could not save report: simulation has not yet been run");
+		return;
+	}
+	std::string label = wxGetTextFromUser("Enter a label for this saved report:", "Saved Report");
+	if (!label.size()) {
+		wxMessageBox("Report not saved.");
+		return;
+	}
+	simulation.saveReport(label);
+	refreshToolbar();
+}
+
+void DisplayFrame::OnSavedReportSelection(wxCommandEvent&)
+{
+	selectedSaveReport = selectSavedReportComboBox->GetCurrentSelection() - 1;
+	paint();
 }
 
 // Handles the movement of the mouse in the display frame.
@@ -77,6 +104,7 @@ void DisplayFrame::bindEventHandlers()
 
 	Bind(wxEVT_COMBOBOX, &DisplayFrame::OnSimulationSelection, this, ControlId::SelectSimulation);
 	Bind(wxEVT_TOOL, &DisplayFrame::OnSaveReport, this, ControlId::SaveReport);
+	Bind(wxEVT_COMBOBOX, &DisplayFrame::OnSavedReportSelection, this, ControlId::SelectSavedReport);
 	dcPanel->Bind(wxEVT_MOTION, &DisplayFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &DisplayFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -112,6 +140,9 @@ void DisplayFrame::refreshToolbar() {
 		simulationArray.push_back(simulation.getSettings().name);
 	}
 	std::string comboBoxString;
+	if (selectedSimulation < 0 && simulationArray.size()) {
+		selectedSimulation = 0;
+	}
 	if (selectedSimulation >= int(simulationArray.size())) {
 		selectedSimulation = int(simulationArray.size()) - 1;
 	}
@@ -121,12 +152,41 @@ void DisplayFrame::refreshToolbar() {
 
 	selectSimulationComboBox = new wxComboBox(toolBar, ControlId::SelectSimulation, comboBoxString, wxPoint(0, 0), wxSize(150, 30), simulationArray);
 
+	selectSavedReportComboBox = new wxComboBox(toolBar, ControlId::SelectSavedReport, "", wxPoint(0, 0), wxSize(150, 30), wxArrayString());
+	refreshSavedReports();
+
 	// Add the tools that will be used on the toolbar.
 	toolBar->AddControl(selectSimulationComboBox);
 	toolBar->AddTool(ControlId::SaveReport, "Save report", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Save report");
+	toolBar->AddControl(selectSavedReportComboBox);
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
+}
+
+void DisplayFrame::refreshSavedReports()
+{
+	// Create the choices for the combo box.
+	// Set the selected simulation to be the first simulation
+	wxArrayString saveReportArray;
+	saveReportArray.push_back("Latest Report");
+	if (selectedSimulation >= 0 && selectedSimulation < project->simulations().count()) {
+		auto thisSimulation = project->simulations().viewByIndex(selectedSimulation);
+		for (auto const& savedReport : thisSimulation.viewSavedReports()) {
+			std::string label = savedReport.label + " - " + savedReport.dateSaved.FormatISODate();
+			saveReportArray.push_back(label);
+		}
+	}
+	std::string comboBoxString = "";
+	if (selectedSaveReport >= int(saveReportArray.size()) - 1) {
+		selectedSaveReport = int(saveReportArray.size()) - 2;
+	}
+	comboBoxString = saveReportArray[selectedSaveReport + 1];
+
+	selectSavedReportComboBox->Clear();
+	selectSavedReportComboBox->Append(saveReportArray);
+	selectSavedReportComboBox->SetSelection(selectedSaveReport);
+	selectSavedReportComboBox->SetValue(comboBoxString);
 }
 
 void DisplayFrame::render(wxDC& dc)
@@ -137,9 +197,13 @@ void DisplayFrame::render(wxDC& dc)
 
 	Simulation const& simulation = project->simulations().view(project->simulations().indexToId(selectedSimulation));
 
-	if (!simulation.isValid()) return;
+	if (!simulation.isValid() && selectedSaveReport == -1) return;
 
-	DisplayFrameRenderer renderer(dc, simulation.getLatestReport(), dcPanel->GetClientSize());
+	Simulation::Report const& thisReport = (selectedSaveReport >= 0 ?
+		simulation.viewSavedReports()[selectedSaveReport].report :
+		simulation.getLatestReport());
+
+	DisplayFrameRenderer renderer(dc, thisReport, dcPanel->GetClientSize());
 
 	renderer.render();
 }

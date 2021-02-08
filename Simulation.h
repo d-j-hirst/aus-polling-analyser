@@ -158,6 +158,14 @@ public:
 		int getOthersLeading(int regionIndex) const;
 	};
 
+	struct SavedReport {
+		Report report;
+		wxDateTime dateSaved;
+		std::string label;
+	};
+
+	typedef std::vector<SavedReport> SavedReports;
+
 	Simulation()
 	{}
 
@@ -174,7 +182,11 @@ public:
 
 	Report const& getLatestReport() const;
 
+	SavedReports const& viewSavedReports() const;
+
 	void replaceSettings(Simulation::Settings newSettings);
+
+	void saveReport(std::string label);
 
 	bool isValid() const;
 
@@ -196,7 +208,7 @@ private:
 
 	Report latestReport;
 
-	std::vector<Report> savedReports;
+	SavedReports savedReports;
 
 	std::optional<SimulationRun> latestRun;
 

@@ -220,7 +220,7 @@ void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 void SimulationsFrame::replaceSimulation(Simulation::Settings settings) {
 	int simulationIndex = simulationData->GetSelectedRow();
 	// Simultaneously replace data in the simulation data control and the polling project.
-	project->simulations().replace(simulationIndex, Simulation(settings));
+	project->simulations().access(project->simulations().indexToId(simulationIndex)).replaceSettings(settings);
 
 	refreshDataTable();
 

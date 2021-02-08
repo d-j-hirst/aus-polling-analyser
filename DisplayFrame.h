@@ -40,11 +40,14 @@ private:
 	// Adjusts controls so that they fill the frame space when it is resized.
 	void OnResize(wxSizeEvent&);
 
-	// Adjusts controls so that they fill the frame space when it is resized.
+	// Select the chosen simulation
 	void OnSimulationSelection(wxCommandEvent&);
 
-	// Adjusts controls so that they fill the frame space when it is resized.
+	// Save a permanent copy of the latest simulation report
 	void OnSaveReport(wxCommandEvent&);
+
+	// Select the chosen saved report
+	void OnSavedReportSelection(wxCommandEvent&);
 
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);
@@ -60,14 +63,18 @@ private:
 	// updates the toolbar
 	void refreshToolbar();
 
+	void refreshSavedReports();
+
 	// function that carries out rendering the poll display.
 	void render(wxDC& dc);
 
 	wxComboBox* selectSimulationComboBox = nullptr;
+	wxComboBox* selectSavedReportComboBox = nullptr;
 
 	wxPanel* dcPanel = nullptr;
 
 	int selectedSimulation = -1;
+	int selectedSaveReport = -1; // -1 for "latest report", 0 for the first saved report
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

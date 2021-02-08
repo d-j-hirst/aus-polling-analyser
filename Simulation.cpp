@@ -24,6 +24,12 @@ void Simulation::replaceSettings(Simulation::Settings newSettings)
 	lastUpdated = wxInvalidDateTime;
 }
 
+void Simulation::saveReport(std::string label)
+{
+	if (!isValid()) throw std::runtime_error("Tried to save a report although the simulation hasn't been run yet!");
+	savedReports.push_back({ latestReport, wxDateTime::Now(), label });
+}
+
 std::string Simulation::getLastUpdatedString() const
 {
 	if (!lastUpdated.IsValid()) return "";
@@ -43,6 +49,11 @@ std::string Simulation::getLiveString() const
 Simulation::Report const& Simulation::getLatestReport() const
 {
 	return latestReport;
+}
+
+Simulation::SavedReports const& Simulation::viewSavedReports() const
+{
+	return savedReports;
 }
 
 float Simulation::Report::getPartyMajorityPercent(MajorParty whichParty) const

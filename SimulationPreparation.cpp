@@ -48,8 +48,6 @@ void SimulationPreparation::prepareForIterations()
 	calculateLiveAggregates();
 
 	resetResultCounts();
-
-	loadInitialStateFromProjection();
 }
 
 void SimulationPreparation::resetLatestReport()
@@ -248,15 +246,6 @@ void SimulationPreparation::resetResultCounts()
 	sim.latestReport.othersWinFrequency.resize(project.seats().count() + 1);
 	sim.latestReport.partyOneSwing = 0.0;
 }
-
-void SimulationPreparation::loadInitialStateFromProjection()
-{
-	//Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
-	//int projectionSize = thisProjection.getProjectionLength();
-	//run.pollOverallSwing = thisProjection.getMeanProjection(projectionSize - 1) - sim.settings.prevElection2pp;
-	//run.pollOverallStdDev = thisProjection.getSdProjection(projectionSize - 1);
-}
-
 
 void SimulationPreparation::determineSeatCachedBoothData(Seat& seat)
 {

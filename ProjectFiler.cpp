@@ -17,7 +17,8 @@
 // Version 10: Save new projection series
 // Version 11: Save additional model parameters
 // Version 12: Save latest simulation report
-constexpr int VersionNum = 12;
+// Version 13: Save all simulation reports
+constexpr int VersionNum = 13;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -747,6 +748,12 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
 		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
 		saveReport(saveOutput, thisSimulation.latestReport);
+		saveOutput.outputAsType<uint32_t>(thisSimulation.savedReports.size());
+		for (auto const& savedReport : thisSimulation.savedReports) {
+			saveOutput << savedReport.label;
+			saveOutput << savedReport.dateSaved.GetJulianDayNumber();
+			saveReport(saveOutput, savedReport.report);
+		}
 	}
 }
 
@@ -766,6 +773,16 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 		if (versionNum >= 12) {
 			thisSimulation.lastUpdated = wxDateTime(saveInput.extract<double>());
 			thisSimulation.latestReport = loadReport(saveInput, versionNum);
+		}
+		if (versionNum >= 13) {
+			size_t numReports = saveInput.extract<uint32_t>();
+			for (size_t reportIndex = 0; reportIndex < numReports; ++reportIndex) {
+				Simulation::SavedReport savedReport;
+				saveInput >> savedReport.label;
+				savedReport.dateSaved = wxDateTime(saveInput.extract<double>());
+				savedReport.report = loadReport(saveInput, versionNum);
+				thisSimulation.savedReports.push_back(savedReport);
+			}
 		}
 		project.simulationCollection.add(thisSimulation);
 	}

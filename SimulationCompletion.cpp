@@ -147,5 +147,5 @@ void SimulationCompletion::recordReportSettings()
 
 void SimulationCompletion::updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int & bound)
 {
-	if (partyCount > sim.settings.numIterations / 200 * probThreshold && bound == -1) bound = numSeats;
+	if (float(partyCount) > float(sim.settings.numIterations) * 0.005f * float(probThreshold) && bound == -1) bound = numSeats;
 }

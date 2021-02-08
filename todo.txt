@@ -1,8 +1,7 @@
 Polling Analyser to-do:
 -Add feature for taking snapshots of simulation result summaries
- -First, add region and seats-specific data to the report instead of holding them in the basic elements, make sure this works
- -(DisplayFrameRenderer should not be depending on PollingProject at this point)
- -Load/save for the latest report for each simulation
  -Create and load/save snapshots for each simulation
+-Add multithreading for model/projection generation
 
 -At some point update WA-2021/fed-2022 model parameters to include qld-2020
+

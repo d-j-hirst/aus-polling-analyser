@@ -31,7 +31,6 @@ private:
 	void updateLiveAggregateForSeat(Seat& seat);
 	void finaliseLiveAggregates();
 	void resetResultCounts();
-	void loadInitialStateFromProjection();
 	void determineSeatCachedBoothData(Seat& seat);
 	SeatPartyPreferences aggregateVoteData(Seat& seat);
 	void calculatePreferenceFlows(Seat& seat, SeatPartyPreferences majorPartyPreferences);

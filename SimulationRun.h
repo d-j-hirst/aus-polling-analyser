@@ -59,9 +59,6 @@ private:
 	std::array<int, 2> partyMinority;
 	int hungParliament;
 
-	float pollOverallSwing;
-	float pollOverallStdDev;
-
 	// iteration-specific variables
 	std::vector<std::vector<int>> regionSeatCount;
 	std::vector<int> partyWins;
