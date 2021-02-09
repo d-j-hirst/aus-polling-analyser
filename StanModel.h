@@ -105,10 +105,6 @@ private:
 
 	void updateAdjustedData(FeedbackFunc feedback);
 
-	void generateTppSeries(FeedbackFunc feedback);
-
-	void updateValidationData(FeedbackFunc feedback);
-
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
 

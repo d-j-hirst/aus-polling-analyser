@@ -141,7 +141,6 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 	auto const& model = getBaseModel(models);
 	if (!date.IsValid()) date = settings.endDate;
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
-	logger << daysAfterModelEnd << " - days after model end\n";
 	auto sample = model.generateAdjustedSupportSample(date, daysAfterModelEnd);
 	return sample;
 }
