@@ -28,6 +28,8 @@ void SimulationCompletion::completeRun()
 	createClassicSeatsList();
 
 	recordNames();
+
+	recordReportSettings();
 }
 
 void SimulationCompletion::calculateIndividualSeatStatistics()

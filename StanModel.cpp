@@ -290,7 +290,6 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		float pollWeight = std::max(0.0f, (thisMaxPollWeight + 1.0f / (thisInformationHorizon * thisHyperbolaSharpness)) -
 			1.0f / ((thisInformationHorizon - logDays) * thisHyperbolaSharpness));
 		transformed = transformed * pollWeight + historicalTransformed * (1.0f - pollWeight);
-
 		// Adjust for variable systemic error
 		constexpr float HistoricSampleDeviation = 0.008333f; // effective sample size
 		float thisDeviationSlope = deviationSlopeMap.at(key);
