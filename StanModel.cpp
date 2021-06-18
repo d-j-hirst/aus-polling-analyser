@@ -400,7 +400,7 @@ void StanModel::updateOthersValue(StanModel::SupportSample& sample) {
 	// make sure "others" is actually equal to sum of non-major parties
 	float otherSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
 		[](float a, StanModel::SupportSample::value_type b) {
-			return (b.first == OthersCode || majorPartyCodes.count(b.first) ? a : a + b.second);
+			return (b.first == OthersCode || !majorPartyCodes.count(b.first) ? a + b.second : a );
 		});
 	sample[OthersCode] = otherSum;
 }

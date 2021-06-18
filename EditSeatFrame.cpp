@@ -112,9 +112,9 @@ void EditSeatFrame::createRegionInput(int & y)
 	for (auto it = regions.cbegin(); it != regions.cend(); ++it) {
 		regionArray.push_back(it->second.name);
 	}
-	int selectedRegion = parties.idToIndex(seat.region);
+	int selectedRegion = regions.idToIndex(seat.region);
 
-	auto regionCallback = [this](int i) {seat.region = parties.indexToId(i); };
+	auto regionCallback = [this](int i) {seat.region = regions.indexToId(i); };
 	regionInput.reset(new ChoiceInput(this, ControlId::Region, "Region: ", regionArray,
 		selectedRegion, wxPoint(2, y), regionCallback));
 	y += regionInput->Height + ControlPadding;
