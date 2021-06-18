@@ -311,7 +311,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 void StanModel::updateAdjustedData(FeedbackFunc feedback)
 {
-	constexpr static int NumIterations = 5000;
+	constexpr static int NumIterations = 1000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
 	try {
 		generateParameterMaps();

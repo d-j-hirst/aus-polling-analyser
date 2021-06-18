@@ -29,6 +29,11 @@ std::list<Outcome>::iterator OutcomeCollection::end()
 	return outcomes.end();
 }
 
+void OutcomeCollection::clear()
+{
+	outcomes.clear();
+}
+
 void OutcomeCollection::logAll(SeatCollection const& seats) const
 {
 	for (auto const& thisOutcome : outcomes) {

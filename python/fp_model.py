@@ -12,6 +12,7 @@ def main():
     import pandas as pd
     import pystan
     from time import perf_counter
+    from datetime import timedelta
     
     sys.path.append( './bin' )
     from stan_cache import stan_cache
@@ -34,10 +35,12 @@ def main():
         ('2010','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2007','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2004','fed') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
+        ('2023','nsw') : ['LNP FP', 'ALP FP', 'GRN FP', 'SFF FP', 'ONP FP', 'OTH FP'],
         ('2019','nsw') : ['LNP FP', 'ALP FP', 'GRN FP', 'SFF FP', 'ONP FP', 'OTH FP'],
         ('2015','nsw') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2011','nsw') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2007','nsw') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
+        ('2022','vic') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2018','vic') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2014','vic') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
         ('2010','vic') : ['LNP FP', 'ALP FP', 'GRN FP', 'OTH FP'],
@@ -119,6 +122,11 @@ def main():
              (('2007','nsw'), 'ALP FP'): 42.68,
              (('2007','nsw'), 'GRN FP'): 8.25,
              (('2007','nsw'), 'OTH FP'): 14.42,
+             
+             (('2022','vic'), 'LNP FP'): 35.19,
+             (('2022','vic'), 'ALP FP'): 42.86,
+             (('2022','vic'), 'GRN FP'): 10.71,
+             (('2022','vic'), 'OTH FP'): 11.24,
              
              (('2018','vic'), 'LNP FP'): 42.0,
              (('2018','vic'), 'ALP FP'): 38.1,
@@ -252,9 +260,9 @@ def main():
     all_iterations = {
         'fed': 2000,
         'nsw': 500,
-        'vic': 500,
+        'vic': 2000,
         'qld': 2000,
-        'wa': 500,
+        'wa': 300,
         'sa': 500
     }
     
@@ -450,6 +458,9 @@ def main():
             sm = stan_cache(model_code=model)
             
             print('Beginning sampling for ' + party + ' ...')
+            end = start + timedelta(days = n_days)
+            print('Start date of model: ' + start.strftime('%Y-%m-%d\n'))
+            print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
             
             start_time = perf_counter()
             fit = sm.sampling(data=data,

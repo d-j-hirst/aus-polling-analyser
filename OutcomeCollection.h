@@ -24,6 +24,8 @@ public:
 	// Gets the end iterator for the simulation list.
 	std::list<Outcome>::iterator end();
 
+	void clear();
+
 	void logAll(SeatCollection const& seats) const;
 
 private:

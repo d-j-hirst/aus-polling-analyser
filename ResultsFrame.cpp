@@ -21,6 +21,7 @@ enum ControlId {
 	TotalBoothCount,
 	AddResult,
 	NonClassic,
+	ClearAll,
 	Filter
 };
 
@@ -70,6 +71,7 @@ void ResultsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, ControlId::AddResult);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, ControlId::NonClassic);
 	Bind(wxEVT_COMBOBOX, &ResultsFrame::OnFilterSelection, this, ControlId::Filter);
+	Bind(wxEVT_TOOL, &ResultsFrame::OnClearAll, this, ControlId::ClearAll);
 }
 
 void ResultsFrame::OnResize(wxSizeEvent & WXUNUSED(event))
@@ -108,14 +110,14 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	}
 }
 
-void ResultsFrame::OnNonClassic(wxCommandEvent & WXUNUSED(even))
+void ResultsFrame::OnNonClassic(wxCommandEvent& WXUNUSED(even))
 {
 	std::string enteredName = seatNameTextCtrl->GetLineText(0);
 	try {
 		auto [seatId, seat] = project->seats().accessByName(enteredName);
 
 		// Create the new project frame (where initial settings for the new project are chosen).
-		NonClassicFrame *frame = new NonClassicFrame(project->parties(), seat);
+		NonClassicFrame* frame = new NonClassicFrame(project->parties(), seat);
 
 		// Show the frame.
 		frame->ShowModal();
@@ -135,6 +137,16 @@ void ResultsFrame::OnFilterSelection(wxCommandEvent& WXUNUSED(event))
 {
 	filter = Filter(filterComboBox->GetSelection());
 	refreshData();
+}
+
+void ResultsFrame::OnClearAll(wxCommandEvent& WXUNUSED(even))
+{
+	auto dlog = wxTextEntryDialog(this, "This will delete ALL manually entered results. Please enter \"clear\" to confirm.");
+	dlog.ShowModal();
+	if (dlog.GetValue() == "clear") {
+		project->outcomes().clear();
+		refreshData();
+	}
 }
 
 void ResultsFrame::addResultToResultData(Outcome result)
@@ -178,6 +190,7 @@ void ResultsFrame::refreshToolbar()
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\non_classic.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[3] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -230,6 +243,7 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddTool(ControlId::AddResult, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
 	toolBar->AddTool(ControlId::NonClassic, "Non-Classic Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Non-Classic Seat");
 	toolBar->AddControl(filterComboBox);
+	toolBar->AddTool(ControlId::ClearAll, "Clear All Results", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Clear All Results");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -248,7 +262,7 @@ void ResultsFrame::refreshSummaryBar()
 
 void ResultsFrame::refreshTable()
 {
-	resultsData->BeginBatch(); // prevent updated while doing a lot of grid modifications
+	resultsData->BeginBatch(); // prevent updates while doing a lot of grid modifications
 
 	resetTableColumns();
 

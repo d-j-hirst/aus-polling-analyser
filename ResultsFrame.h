@@ -66,6 +66,9 @@ private:
 	// Handles selection of the results filter
 	void OnFilterSelection(wxCommandEvent& event);
 
+	// Removes all results (after asking for user confirmation)
+	void OnClearAll(wxCommandEvent& event);
+
 	// adds "result" to result data.
 	void addResultToResultData(Outcome result);
 
