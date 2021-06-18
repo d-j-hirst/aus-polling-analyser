@@ -138,3 +138,8 @@ inline long long nCr(long long n, long long r) {
 
 	return ans;
 }
+
+template<typename T>
+bool contains(std::vector<T> const& vec, T find) {
+	return std::find(vec.begin(), vec.end(), find) != vec.end();
+}

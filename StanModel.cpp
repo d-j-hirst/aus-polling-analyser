@@ -40,6 +40,14 @@ void StanModel::loadData(FeedbackFunc feedback)
 		feedback("No party codes found!");
 		return;
 	}
+	if (!contains(partyCodeVec, OthersCode)) {
+		feedback("No party corresponding to Others was given. The model needs a party with code " + OthersCode + " to run properly.");
+		return;
+	}
+	if (!contains(partyCodeVec, UnnamedOthersCode)) {
+		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
+		return;
+	}
 	logger << "Starting model loading: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	startDate = wxInvalidDateTime;
 	rawSupport.clear();
@@ -398,9 +406,10 @@ void StanModel::Spread::calculateExpectation()
 
 void StanModel::updateOthersValue(StanModel::SupportSample& sample) {
 	// make sure "others" is actually equal to sum of non-major parties
+	// note that this relies on there being an "exclusive others" component
 	float otherSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
 		[](float a, StanModel::SupportSample::value_type b) {
-			return (b.first == OthersCode || !majorPartyCodes.count(b.first) ? a + b.second : a );
+			return (b.first == OthersCode || majorPartyCodes.count(b.first) ? a : a + b.second);
 		});
 	sample[OthersCode] = otherSum;
 }
