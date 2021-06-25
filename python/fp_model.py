@@ -260,7 +260,7 @@ def main():
     all_iterations = {
         'fed': 2000,
         'nsw': 500,
-        'vic': 2000,
+        'vic': 500,
         'qld': 2000,
         'wa': 300,
         'sa': 500
@@ -344,7 +344,7 @@ def main():
             # convert dates to days from start
             # do this before removing polls with N/A values so that
             # start times are consistent amongst series
-            start = df['MidDate'].min() # day zero
+            start = election_cycles[desired_election][0] # day zero
             df['Day'] = df['MidDate'] - start # day number for each poll
             n_days = df['Day'].max().n + 1
             

@@ -1,7 +1,17 @@
 Polling Analyser to-do:
--Add feature for taking snapshots of simulation result summaries
- -Create and load/save snapshots for each simulation
--Add multithreading for model/projection generation
+-Change simulation python script so it uses the previous election result as a data point
+-Ability to enter poll quality (and update for historical values)
+-Make python setup for pystan as streamlined as possible (i.e. not requiring more installation/setup than necessary)
+-Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
+-(Make any further adjustments to existing analysis processes)
+-Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
+-Setup basic framework for frontend, including getting some data from the backend and displaying it
+-Work step by step to add more data flow from the authorised user and displaying it
+-Develop documentation detailing the forecasting methodology
+-Publish on a public-facing webpage
 
--At some point update WA-2021/fed-2022 model parameters to include qld-2020
-
+-Configure model # of simulations by user
+-Advanced simulations!
+ -Start by organising past election data
+  -Need to load conversions between equivalent seats
+  -Then organise the existing election
