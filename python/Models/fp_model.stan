@@ -12,7 +12,7 @@ data {
     // poll data
     real<lower=0.0, upper=100.0> pollObservations[pollCount]; // poll data
     int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
-    int<lower=1, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
+    int<lower=0, upper=houseCount> pollHouse[pollCount]; // polling house for each poll, 0 = actual election
     int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
     
     // day of all discontinuities in term
@@ -40,7 +40,8 @@ transformed data {
     vector<lower=0.0, upper=1.0>[includeCount] houseWeight;
     real totalHouseWeight;
     for (poll in 1:pollCount) {
-        if (pollHouse[poll] <= includeCount) {
+        // if (pollHouse[poll] <= includeCount) {
+        if (pollHouse[poll] <= includeCount && pollHouse[poll] > 0) {
             housePollCount[pollHouse[poll]] = housePollCount[pollHouse[poll]] + 1;
         }
     }
@@ -96,10 +97,16 @@ model {
         if (!missingObservations[poll]) {
             
             real obs = pollObservations[poll];
-            real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
-            real distSigma = pseudoSampleSigma + pollQualityAdjustment[poll];
-            
-            obs ~ normal(distMean, distSigma);
+            if (pollHouse[poll] > 0) {
+                real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
+                real distSigma = pseudoSampleSigma + pollQualityAdjustment[poll];
+                
+                obs ~ normal(distMean, distSigma);
+            }
+            else { // actual election result
+                real distMean = preliminaryVoteShare[pollDay[poll]];
+                obs ~ normal(distMean, 0.01);
+            }
         }
     }
 }

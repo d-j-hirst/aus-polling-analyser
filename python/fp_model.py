@@ -433,7 +433,7 @@ def main():
             
             data = {
                     'dayCount': n_days,
-                    'pollCount': n_polls,
+                    'pollCount': n_polls + 1, #extra 1 for previous election
                     'houseCount': n_houses,
                     'discontinuityCount': len(discontinuities_filtered),
                     'pseudoSampleSigma': pseudo_sample_sigma,
@@ -453,6 +453,12 @@ def main():
                     'campaignSigma': 0.35,
                     'finalSigma': 0.5
             }
+            
+            data['pollObservations'] = np.append(data['pollObservations'], prior_result)
+            data['missingObservations'] = np.append(data['missingObservations'], 0)
+            data['pollHouse'] = np.append(data['pollHouse'], 0)
+            data['pollDay'] = np.append(data['pollDay'], 1)
+            data['pollQualityAdjustment'] = np.append(data['pollQualityAdjustment'], 0.0)
             
             # encode the STAN model in C++ 
             sm = stan_cache(model_code=model)
