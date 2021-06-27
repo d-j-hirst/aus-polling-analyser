@@ -24,7 +24,7 @@ def stan_cache(model_code, m_name=None):
         sm = pickle.load(gzip.open(fname, 'rb'))
     except:
         print("About to compile model")
-        sm = pystan.StanModel(model_code=model_code)
+        sm = pystan.StanModel(model_code=model_code, verbose=True)
         with gzip.open(fname, 'wb') as fh:
             pickle.dump(sm, fh)
     else:

@@ -14,7 +14,6 @@ def main():
     from time import perf_counter
     from datetime import timedelta
     
-    sys.path.append( './bin' )
     from stan_cache import stan_cache
     
     # --- check version information
