@@ -301,12 +301,12 @@ def main():
     }
     
     data_source = {
-        'fed': './Data/poll-data-fed.xlsx',
-        'nsw': './Data/poll-data-nsw.xlsx',
-        'vic': './Data/poll-data-vic.xlsx',
-        'qld': './Data/poll-data-qld.xlsx',
-        'wa': './Data/poll-data-wa.xlsx',
-        'sa': './Data/poll-data-sa.xlsx',
+        'fed': './Data/poll-data-fed.csv',
+        'nsw': './Data/poll-data-nsw.csv',
+        'vic': './Data/poll-data-vic.csv',
+        'qld': './Data/poll-data-qld.csv',
+        'wa': './Data/poll-data-wa.csv',
+        'sa': './Data/poll-data-sa.csv',
     }
     
     config = open('config.txt', 'r')
@@ -332,8 +332,7 @@ def main():
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
             # page on next Australian Federal Election
-            workbook = pd.ExcelFile(data_source[desired_election[1]])
-            df = workbook.parse('Data')
+            df = pd.read_csv(data_source[desired_election[1]])
             
             # drop data not in range of this election period
             df['MidDate'] = [pd.Period(date, freq='D') for date in df['MidDate']]

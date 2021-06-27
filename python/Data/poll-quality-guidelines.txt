@@ -1,0 +1,22 @@
+By default a standard poll is represented by an effective sample size of 1000 (pending evidence that larger sample sizes produce a more reliable result in practice as well as in theory).
+
+This is then adjusted according to the following "strikes" - factors that indicate a poll may be less reliable than others:
+ - After the inception of the Australian Polling Council, not a member
+ - Poll is commissioned by a non-media organisation
+ - Poll is not officially published, but unofficially released (note: leaked party internal polls are banned entirely)
+ - Poll is not part of a regular, fully published series
+ - First five region-wide polls published by the pollster under this methodology
+ - In addition, first two region-wide polls published by the pollster under this methodology
+ 
+These last two requirements ensure that new polls and methodologies do not overly skew averages until such a time as they have been established long enough for the pollster to work out the kinks.
+
+Internally, the poll is then adjusted according to the number of strikes, with each reducing the effective sample size by 40%.
+Put together, depending on the quality of the polls, the poll quality may assume the following values:
+ - 1 strike:	0.6
+ - 2 strikes:	0.36
+ - 3 strikes:	0.216
+ - 4 strikes:	0.13
+ - 5 strikes: 	0.078
+ - 6 strikes:	0.047
+ 
+For simplicity we round to the first three decimal places even though this is not quite precise, as the quality adjustment is already somewhat arbitrary in the first place
