@@ -256,8 +256,9 @@ def main():
         'sa': sa_d
     }
     
+    # Note: half of the iterations will be warm-up
     all_iterations = {
-        'fed': 2000,
+        'fed': 400,
         'nsw': 500,
         'vic': 500,
         'qld': 2000,
@@ -317,17 +318,7 @@ def main():
     
     for desired_election in desired_elections:
         for party in parties[desired_election]:
-            
-            output_trend = './Outputs/fp_trend_' + ''.join(desired_election) + '_' + party + '.csv'
-            output_polls = './Outputs/fp_polls_' + ''.join(desired_election) + '_' + party + '.csv'
-            output_house_effects = './Outputs/fp_house_effects_' + ''.join(desired_election) + '_' + party + '.csv'
         
-            # --- key inputs to model
-            sample_size = 1000 # treat all polls as being of this size
-            pseudo_sample_sigma = np.sqrt((50 * 50) / sample_size) 
-            chains = 6
-            iterations = all_iterations[desired_election[1]]
-            # Note: half of the iterations will be warm-up
             
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
@@ -411,20 +402,18 @@ def main():
             
             discontinuities_filtered = [date for date in discontinuities_filtered if date >= 0 and date < n_days]
             
-            # 
+            # Stan doesn't like zero-length arrays so put in a dummy value
+            # if there are no discontinuities
             if not discontinuities_filtered:
                 discontinuities_filtered.append(0)
             
             # quality adjustment for polls
-            # currently commented out as we don't have any particular opinions about qualities of particular polls
-            df['poll_qual_adj'] = 0.0
-            #df['poll_qual_adj'] = pd.Series(2.0, index=df.index
-            #    ).where(df['Firm'].str.contains('Ipsos|YouGov|Roy Morgan|ANU'),
-            #    other=0.0)
-            
-            # --- compile model
-            
-            # get the STAN model 
+            sample_size = 1000 # treat good quality polls as being this size
+            # adjust effective sample size according to quality
+            sigmas = df["Quality Adjustment"].apply( \
+                lambda x: np.sqrt((50 * 50) / (sample_size * 0.6 ** x)))
+
+            # get the Stan model code
             with open ("./Models/fp_model.stan", "r") as f:
                 model = f.read()
                 f.close()
@@ -434,7 +423,6 @@ def main():
                     'pollCount': n_polls + 1, #extra 1 for previous election
                     'houseCount': n_houses,
                     'discontinuityCount': len(discontinuities_filtered),
-                    'pseudoSampleSigma': pseudo_sample_sigma,
                     'priorResult': prior_result,
                 
                     'pollObservations': y.values, 
@@ -442,7 +430,7 @@ def main():
                     'pollHouse': df['House'].values.tolist(), 
                     'pollDay': df['Day'].values.tolist(),
                     'discontinuities': discontinuities_filtered,
-                    'pollQualityAdjustment': df['poll_qual_adj'].values,
+                    'sigmas': sigmas.values,
                     'excludeCount': n_exclude,
                     
                     'electionDay': election_day,
@@ -456,7 +444,7 @@ def main():
             data['missingObservations'] = np.append(data['missingObservations'], 0)
             data['pollHouse'] = np.append(data['pollHouse'], 0)
             data['pollDay'] = np.append(data['pollDay'], 1)
-            data['pollQualityAdjustment'] = np.append(data['pollQualityAdjustment'], 0.0)
+            data['sigmas'] = np.append(data['sigmas'], 0.01)
             
             # encode the STAN model in C++ 
             sm = stan_cache(model_code=model)
@@ -465,6 +453,10 @@ def main():
             end = start + timedelta(days = n_days)
             print('Start date of model: ' + start.strftime('%Y-%m-%d\n'))
             print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
+
+            # --- key inputs to model
+            chains = 6
+            iterations = all_iterations[desired_election[1]]
             
             start_time = perf_counter()
             fit = sm.sampling(data=data,
@@ -480,6 +472,11 @@ def main():
             #--- check diagnostics
             import pystan.diagnostics as psd
             print(psd.check_hmc_diagnostics(fit))
+            
+            # construct the file names to output to
+            output_trend = './Outputs/fp_trend_' + ''.join(desired_election) + '_' + party + '.csv'
+            output_polls = './Outputs/fp_polls_' + ''.join(desired_election) + '_' + party + '.csv'
+            output_house_effects = './Outputs/fp_house_effects_' + ''.join(desired_election) + '_' + party + '.csv'
             
             probs_list = [0.001];
             for i in range(1, 100):

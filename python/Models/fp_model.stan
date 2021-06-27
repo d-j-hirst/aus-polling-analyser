@@ -6,7 +6,6 @@ data {
     int<lower=1> dayCount;
     int<lower=1> houseCount;
     int<lower=0> discontinuityCount;
-    real<lower=0.0> pseudoSampleSigma;
     real<lower=0.0, upper=100.0> priorResult;
     
     // poll data
@@ -19,8 +18,7 @@ data {
     // dummy value of 0 is used to indicate no discontinuities since Stan doesn't like zero-size arrays
     int<lower=0, upper=dayCount> discontinuities[discontinuityCount]; 
     
-    vector<lower=0>[pollCount] pollQualityAdjustment; // poll quality adjustment
-    
+    real<lower=0.0> sigmas[pollCount]; // poll quality adjustment
 
     //exclude final n parties from the sum-to-zero constraint for houseEffects
     int<lower=0> excludeCount;
@@ -99,13 +97,14 @@ model {
             real obs = pollObservations[poll];
             if (pollHouse[poll] > 0) {
                 real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
-                real distSigma = pseudoSampleSigma + pollQualityAdjustment[poll];
+                real distSigma = sigmas[poll];
                 
                 obs ~ normal(distMean, distSigma);
             }
             else { // actual election result
                 real distMean = preliminaryVoteShare[pollDay[poll]];
-                obs ~ normal(distMean, 0.01);
+                real distSigma = sigmas[poll];
+                obs ~ normal(distMean, distSigma);
             }
         }
     }

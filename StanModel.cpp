@@ -59,7 +59,7 @@ void StanModel::loadData(FeedbackFunc feedback)
 		auto file = std::ifstream(filename);
 		if (!file) {
 			feedback("Could not load file: " + filename);
-			continue;
+			return;
 		}
 		series.timePoint.clear();
 		std::string line;
