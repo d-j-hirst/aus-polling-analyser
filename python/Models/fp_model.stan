@@ -29,6 +29,11 @@ data {
     real<lower=0.0> dailySigma;
     real<lower=0.0> campaignSigma;
     real<lower=0.0> finalSigma;
+    
+    // calibration settings
+    real<lower=0.0001> houseEffectSigma;
+    real<lower=0.0001> houseEffectSumSigma;
+    real<lower=0.0001> priorVoteShareSigma;
 }
 
 transformed data {
@@ -61,12 +66,12 @@ parameters {
 model {
     // using this distribution encourages house effects not to be too large but
     // doesn't penalise too heavily if a large house effect is really called for
-    pHouseEffects ~ double_exponential(0.0, 1.0);
+    pHouseEffects ~ double_exponential(0.0, houseEffectSigma);
     // keep sum of house effects constrained to zero, or near enough
-    sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, 0.001);
+    sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, houseEffectSumSigma);
     // very broad prior distribution, this shouldn't affect the model much unless
-    // there is absolutey no data nearby
-    preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, 200.0);
+    // there is absolutely no data nearby
+    preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, priorVoteShareSigma);
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {
