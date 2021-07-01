@@ -25,7 +25,7 @@ constexpr float ExpectationBoxTitleHeight = 30.0f;
 constexpr float ExpectationBoxTextHeight = 24.0f;
 
 constexpr float RegionsBoxLeft = ProbabilityBoxLeft + ProbabilityBoxWidth + ProbabilityBoxMargin;
-constexpr float RegionsBoxWidth = 400.0f;
+constexpr float RegionsBoxWidth = 700.0f;
 constexpr float RegionsBoxHeight = 250.0f;
 constexpr float RegionsBoxTitleHeight = 30.0f;
 constexpr float RegionsBoxTextHeight = 24.0f;

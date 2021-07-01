@@ -116,7 +116,7 @@ void SimulationCompletion::createClassicSeatsList()
 	sim.latestReport.classicSeatIndices.clear();
 	for (auto const&[key, seat] : project.seats()) {
 		if (seat.isClassic2pp(sim.isLiveAutomatic())) {
-			sim.latestReport.classicSeatIndices.push_back(key);
+			sim.latestReport.classicSeatIndices.push_back(project.seats().idToIndex(key));
 		}
 	}
 	std::sort(sim.latestReport.classicSeatIndices.begin(), sim.latestReport.classicSeatIndices.end(),
