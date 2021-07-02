@@ -142,7 +142,8 @@ def run_models():
             houses = df['Firm'].unique().tolist()
             houseCounts = df['Firm'].value_counts()
             exclusions = set(['ANU', 'YouGov', 'Lonergan', 'AMR',
-                              'F2F Morgan', 'Saulwick', 'McNair', 'Taverner'])
+                              'F2F Morgan', 'Saulwick', 'McNair', 'Taverner',
+                              'JWS Research'])
             for h in houses:
                 if houseCounts[h] < 1:
                     exclusions.add(h)
