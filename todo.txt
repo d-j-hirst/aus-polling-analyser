@@ -1,6 +1,12 @@
 Polling Analyser to-do:
 -Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
+ -Include state/federal opposing parties as a factor
+ -Experiment with using logit transform
+ -Make versions that exclude particular election and optionally also those following
+ -Generate series over time and create curves etc. for use at any given time point
+ -Adjust main program to use the new analysis
 -Add function to automatically load polls from trend output into the file
+-More sophisticated handling of non-classic and potentially non-classic seats
 -(Make any further adjustments to existing analysis processes)
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
 -Setup basic framework for frontend, including getting some data from the backend and displaying it
