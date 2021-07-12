@@ -1,5 +1,6 @@
 from sklearn import datasets, linear_model
 import math
+import argparse
 
 unnamed_others_code = 'xOTH FP'
 
@@ -57,10 +58,11 @@ def organize_coeffs_by_party_group(day_coeffs):
     coeffs_by_party_group = {}
     for party_group in party_groups:
         coeff_trends = [[],[],[],[],[],[],[],[]]
-        for coeffs in day_coeffs.values():
-            party_coeffs = coeffs[party_group]
-            for n, coeff in enumerate(party_coeffs):
-                coeff_trends[n].append(str(coeff))
+        coeffs = day_coeffs[max(day_coeffs.keys())]
+        #for coeffs in day_coeffs.values():
+        party_coeffs = coeffs[party_group]
+        for n, coeff in enumerate(party_coeffs):
+            coeff_trends[n].append(str(coeff))
         coeffs_by_party_group[party_group] = coeff_trends
     return coeffs_by_party_group
 
@@ -69,13 +71,15 @@ def print_coeffs(coeffs_by_party_group):
         coeff_names = [','.join(a) for a in 
                        coeffs_by_party_group[party_group]]
         print(f'Model coefficients for party group: {party_group}')
-        print(f' 6-election average: {coeff_names[0]}')
-        print(f' Poll trend: {coeff_names[1]}')
-        print(f' Incumbency: {coeff_names[2]}')
-        print(f' Federal election: {coeff_names[3]}')
-        print(f' Government length: {coeff_names[4]}')
-        print(f' Opposition length: {coeff_names[5]}')
-        print(f' Opposite party federally: {coeff_names[6]}')
+        print(f' Poll trend: {coeff_names[0]}')
+        print(f' Same party federally: {coeff_names[1]}')
+        print(f' Opposite party federally: {coeff_names[2]}')
+        # print(f' 6-election average: {coeff_names[3]}')
+        # print(f' Incumbency: {coeff_names[3]}')
+        # print(f' Federal election: {coeff_names[3]}')
+        # print(f' Government length: {coeff_names[4]}')
+        # print(f' Opposition length: {coeff_names[5]}')
+        # print(f' Opposite party federally: {coeff_names[3]}')
 
 def transform_vote_share(vote_share):
     vote_share = clamp(vote_share, 0.1, 99.9)
@@ -88,6 +92,24 @@ def clamp(n, min_n, max_n):
     return max(min(max_n, n), min_n)
 
 def trend_adjust():
+    parser = argparse.ArgumentParser(
+        description='Determine trend adjustment parameters')
+    parser.add_argument('-f', '--files', action='store_true',
+                        help='Show loaded files')
+    parser.add_argument('-p', '--previous', action='store_true',
+                        help='Show hindcasted previous elections')
+    parser.add_argument('-e', '--errors', action='store_true',
+                        help='Show total errors by day')
+    parser.add_argument('-c', '--parameters', action='store_true',
+                        help='Show parameters for selected day (default: 0)')
+    parser.add_argument('--day', action='store', type=int,
+                        help='Day to display coefficients for (default: 0)')
+    show_loaded_files = parser.parse_args().files
+    show_previous_elections = parser.parse_args().previous
+    show_errors_by_day = parser.parse_args().errors
+    show_parameters = parser.parse_args().parameters
+    feedback_day = parser.parse_args().day
+
     # [0] year of election, [1] region of election
     with open('./Data/ordered-elections.csv', 'r') as f:
         elections = [(a[0], a[1]) for a in
@@ -122,14 +144,17 @@ def trend_adjust():
     parties = {(e[0], e[1]): parties[(e[0], e[1])]
                         for e in elections}
     # Create averages of prior results
-    avg_prior_results = {k: sum(v[:6]) / 6
+    avg_n = 6
+    avg_prior_results = {k: sum(v[:avg_n]) / avg_n
         for k, v in prior_results.items()}
+
     election_data = {}
     for e_p in parties.items():
         for party in e_p[1]:
             trend_filename = './Outputs/fp_trend_' + e_p[0][0] + e_p[0][1] + \
-                             '_' + party + '.csv'
-            print(trend_filename)
+                            '_' + party + '.csv'
+            if show_loaded_files:
+                print(trend_filename)
             data = import_trend_file(trend_filename)
             election_data[(e_p[0][0], e_p[0][1], party)] = data
         election_data[(e_p[0][0], e_p[0][1], party)]
@@ -144,102 +169,139 @@ def trend_adjust():
         eventual_unnamed = eventual_others - eventual_named
         eventual_results[(e[0], e[1], unnamed_others_code)] = eventual_unnamed
         parties[e].append(unnamed_others_code)
-        
-    days = [int((n * (n + 1)) / 2) for n in range(0, 41)]
-    day_coeffs = {}
-    feedback_day = 820  # day we print out expected results for
-                      # valid examples: 0, 10, 55, 120, 210, 325, 465, 630, 820
-    for day in days:
-        info = {}
-        results = {}
-        if day == feedback_day:
-            stored_info = {}
-        for election in elections:
-            for party in parties[election]:
-                party_group = ''
-                for group, group_list in party_groups.items():
-                    if party in group_list:
-                        party_group = group
-                        break
-                if party_group == '':
-                    print(f'Warning: {party} not categorised!')
-                    continue
-                if party_group not in info:
-                    info[party_group] = []
-                if party_group not in results:
-                    results[party_group] = []
-                data_key = (election[0], election[1], party)
-                if not data_key in prior_results:
-                    prior_results[data_key] = [0]
-                    avg_prior_results[data_key] = 0
-                    print(f'Info: prior result not found for: ' + 
-                        f'{election[0]}, {election[1]}, {party}')
-                if not data_key in eventual_results:
-                    eventual_results[data_key] = 0
-                    print(f'Info: eventual result not found for: ' + 
-                        f'{election[0]}, {election[1]}, {party}')
-                incumbent = (incumbency[data_key[0], data_key[1]][0] == party)
-                opposition = (incumbency[data_key[0], data_key[1]][1] == party)
-                government_length = incumbency[data_key[0], data_key[1]][2]
-                # should actually randomply sample poll results from distribution
-                poll_trend = election_data[data_key][day][50] \
-                    if day < len(election_data[data_key]) \
-                    else prior_results[data_key]
-                federal = (data_key[1] == 'fed')
-                opposite_federal = 0 if election not in federal_situation \
-                    else (1 if party == federal_situation[election][1] else 0)
+    
+    no_target_election_marker = ('none', 'none')
+    studied_elections = elections + [no_target_election_marker]
+    day_test_count = 41
+    sum_squared_errors = {}
+    error_count = {}
+    days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
+    if feedback_day not in days:
+        for day in days:
+            if feedback_day < day:
+                feedback_day = day
+                break
+        if feedback_day not in days:
+            feedback_day=days[-1]
 
-                this_info = [
-                    transform_vote_share(avg_prior_results[data_key]),
-                    transform_vote_share(poll_trend),
-                    1 if incumbent else 0,
-                    1 if federal else 0,
-                    government_length if incumbent else 0,
-                    government_length if opposition else 0,
-                    opposite_federal
-                ]
-                if day == feedback_day:
-                    stored_info[data_key] = this_info
-                info[party_group].append(this_info)
-                transformed_results = \
-                    transform_vote_share(eventual_results[data_key])
-                results[party_group].append(transformed_results)
+    for studied_election in studied_elections:
+        day_coeffs = {}
+        stored_info = {}
+        for day in days:
+            info = {}
+            results = {}
+            if day not in sum_squared_errors:
+                sum_squared_errors[day] = 0
+                error_count[day] = 0
+            stored_info[day] = {}
+            for election in elections:
+                for party in parties[election]:
+                    party_group = ''
+                    for group, group_list in party_groups.items():
+                        if party in group_list:
+                            party_group = group
+                            break
+                    if party_group == '':
+                        print(f'Warning: {party} not categorised!')
+                        continue
+                    if party_group not in info:
+                        info[party_group] = []
+                    if party_group not in results:
+                        results[party_group] = []
+                    data_key = (election[0], election[1], party)
+                    if not data_key in prior_results:
+                        prior_results[data_key] = [0]
+                        avg_prior_results[data_key] = 0
+                        print(f'Info: prior result not found for: ' + 
+                            f'{election[0]}, {election[1]}, {party}')
+                    if not data_key in eventual_results:
+                        eventual_results[data_key] = 0
+                        print(f'Info: eventual result not found for: ' + 
+                            f'{election[0]}, {election[1]}, {party}')
+                    incumbent = (incumbency[data_key[0], data_key[1]][0] == party)
+                    opposition = (incumbency[data_key[0], data_key[1]][1] == party)
+                    government_length = incumbency[data_key[0], data_key[1]][2]
+                    # should actually randomply sample poll results from distribution
+                    poll_trend = election_data[data_key][day][50] \
+                        if day < len(election_data[data_key]) \
+                        else prior_results[data_key]
+                    federal = (data_key[1] == 'fed')
+                    opposite_federal = 0 if election not in federal_situation \
+                        else (1 if party == federal_situation[election][1] else 0)
+                    same_federal = 0 if election not in federal_situation \
+                        else (1 if party == federal_situation[election][0] else 0)
 
-        coeffs = {}
-        for party_group in info.keys():
-            regr = linear_model.LinearRegression(fit_intercept=False)
-            regr.fit(info[party_group], results[party_group])
-            this_coeffs = [round(x, 3) for x in regr.coef_]
-            coeffs[party_group] = this_coeffs
-        day_coeffs[day] = coeffs
+                    # note: commented out lines were for factors that
+                    # didn't improve predictiveness
+                    # leaving them here in case something changes that
+                    this_info = [
+                        transform_vote_share(poll_trend),
+                        same_federal,
+                        opposite_federal,
+                        # transform_vote_share(avg_prior_results[data_key]),
+                        # 1 if incumbent else 0,
+                        # 1 if federal else 0,
+                        # government_length if incumbent else 0,
+                        # government_length if opposition else 0,
+                    ]
+                    stored_info[day][data_key] = this_info
+                    # need to store the info so accuracy can be evaluated later
+                    # but we don't want anything from the studied election
+                    # being used to determine the forecast for it, so
+                    # exit out here
+                    if election == studied_election:
+                        continue
+                    info[party_group].append(this_info)
+                    transformed_results = \
+                        transform_vote_share(eventual_results[data_key])
+                    results[party_group].append(transformed_results)
 
-    coeffs_by_party_group = organize_coeffs_by_party_group(day_coeffs)
-    print_coeffs(coeffs_by_party_group)
+            coeffs = {}
+            for party_group in info.keys():
+                regr = linear_model.LinearRegression(fit_intercept=False)
+                regr.fit(info[party_group], results[party_group])
+                this_coeffs = [round(x, 3) for x in regr.coef_]
+                coeffs[party_group] = this_coeffs
+            day_coeffs[day] = coeffs
 
-    for election in elections:
-        print(f'{election[0]}, {election[1]}')
-        for party in parties[election]:
-            print(party)
-            party_group = ''
-            for group, group_list in party_groups.items():
-                if party in group_list:
-                    party_group = group
-                    break
-            if party_group == '':
-                continue
-            data_key = (election[0], election[1], party)
-            zipped = zip(stored_info[data_key], day_coeffs[feedback_day][party_group])
-            # print(stored_info[data_key])
-            # print(f' {day_coeffs[feedback_day][party_group]}')
-            estimated = sum([a[0] * a[1] for a in zipped])
-            estimated = detransform_vote_share(estimated)
-            poll_trend = election_data[data_key][feedback_day][50]
-            print(f'  Prior result: {prior_results[data_key][0]}')
-            print(f'  Prior average: {avg_prior_results[data_key]}')
-            print(f'  Poll trend: {poll_trend}')
-            print(f'  Estimated result: {estimated}')
-            print(f'  Eventual result: {eventual_results[data_key]}')
+            if studied_election == no_target_election_marker \
+                    and day == feedback_day and show_parameters:
+                coeffs_by_party_group = organize_coeffs_by_party_group(day_coeffs)
+                print_coeffs(coeffs_by_party_group)
+            elif studied_election is not no_target_election_marker:
+                if day == feedback_day and show_previous_elections:
+                    print(f'{studied_election[0]}, {studied_election[1]}')
+                for party in parties[studied_election]:
+                    if day == feedback_day and show_previous_elections:
+                        print(party)
+                    party_group = ''
+                    for group, group_list in party_groups.items():
+                        if party in group_list:
+                            party_group = group
+                            break
+                    if party_group == '':
+                        continue
+                    data_key = (studied_election[0], studied_election[1], party)
+                    zipped = zip(stored_info[day][data_key], 
+                                day_coeffs[day][party_group])
+                    estimated = sum([a[0] * a[1] for a in zipped])
+                    detransformed = detransform_vote_share(estimated)
+                    transformed_eventual = transform_vote_share(eventual_results[data_key])
+                    if day == feedback_day and show_previous_elections:
+                        poll_trend = election_data[data_key][feedback_day][50]
+                        print(f'  Prior result: {prior_results[data_key][0]}')
+                        print(f'  Prior average: {avg_prior_results[data_key]}')
+                        print(f'  Poll trend: {poll_trend}')
+                        print(f'  Estimated result: {detransformed}')
+                        print(f'  Eventual result: {eventual_results[data_key]}')
+                    sum_squared_errors[day] += \
+                        (estimated - transformed_eventual) ** 2
+                    error_count[day] += 1
 
+    for day in sum_squared_errors.keys():
+        if show_errors_by_day:
+            print(f'Final RMSE for day {day} forecast: '
+                  f'{math.sqrt(sum_squared_errors[day] / error_count[day])}')
 
 if __name__ == '__main__':
     trend_adjust()
