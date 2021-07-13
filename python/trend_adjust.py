@@ -74,19 +74,18 @@ def print_coeffs(coeffs_by_party_group):
         print(f' Poll trend: {coeff_names[0]}')
         print(f' Same party federally: {coeff_names[1]}')
         print(f' Opposite party federally: {coeff_names[2]}')
-        # print(f' 6-election average: {coeff_names[3]}')
-        # print(f' Incumbency: {coeff_names[3]}')
-        # print(f' Federal election: {coeff_names[3]}')
-        # print(f' Government length: {coeff_names[4]}')
-        # print(f' Opposition length: {coeff_names[5]}')
-        # print(f' Opposite party federally: {coeff_names[3]}')
+        print(f' 6-election average: {coeff_names[3]}')
+        print(f' Incumbency: {coeff_names[4]}')
+        print(f' Federal election: {coeff_names[5]}')
+        print(f' Government length: {coeff_names[6]}')
+        print(f' Opposition length: {coeff_names[7]}')
 
 def transform_vote_share(vote_share):
     vote_share = clamp(vote_share, 0.1, 99.9)
-    return math.log((vote_share * 0.01) / (1 - vote_share * 0.01)) * 25 + 50
+    return math.log((vote_share * 0.01) / (1 - vote_share * 0.01)) * 25
 
 def detransform_vote_share(vote_share):
-    return 100 / (1 + math.exp(-0.04 * (vote_share - 50)))
+    return 100 / (1 + math.exp(-0.04 * vote_share))
 
 def clamp(n, min_n, max_n):
     return max(min(max_n, n), min_n)
@@ -188,11 +187,9 @@ def trend_adjust():
         day_coeffs = {}
         stored_info = {}
         for day in days:
+            stored_info[day] = {}
             info = {}
             results = {}
-            if day not in sum_squared_errors:
-                sum_squared_errors[day] = 0
-                error_count[day] = 0
             stored_info[day] = {}
             for election in elections:
                 for party in parties[election]:
@@ -208,6 +205,14 @@ def trend_adjust():
                         info[party_group] = []
                     if party_group not in results:
                         results[party_group] = []
+
+                    if party_group not in sum_squared_errors:
+                        sum_squared_errors[party_group] = {}
+                        error_count[party_group] = {}
+                    if day not in sum_squared_errors[party_group]:
+                        sum_squared_errors[party_group][day] = 0
+                        error_count[party_group][day] = 0
+
                     data_key = (election[0], election[1], party)
                     if not data_key in prior_results:
                         prior_results[data_key] = [0]
@@ -219,30 +224,49 @@ def trend_adjust():
                         print(f'Info: eventual result not found for: ' + 
                             f'{election[0]}, {election[1]}, {party}')
                     incumbent = (incumbency[data_key[0], data_key[1]][0] == party)
+                    incumbent = 1 if incumbent else 0
                     opposition = (incumbency[data_key[0], data_key[1]][1] == party)
                     government_length = incumbency[data_key[0], data_key[1]][2]
                     # should actually randomply sample poll results from distribution
                     poll_trend = election_data[data_key][day][50] \
                         if day < len(election_data[data_key]) \
                         else prior_results[data_key]
-                    federal = (data_key[1] == 'fed')
+                    poll_trend = transform_vote_share(poll_trend)
+                    federal = 1 if (data_key[1] == 'fed') else 0
                     opposite_federal = 0 if election not in federal_situation \
                         else (1 if party == federal_situation[election][1] else 0)
                     same_federal = 0 if election not in federal_situation \
                         else (1 if party == federal_situation[election][0] else 0)
+                    # previous election average only predictive for xOTH
+                    previous = transform_vote_share(avg_prior_results[data_key]) \
+                        if party_group == 'xOTH' else 0
+                    # some factors are only predictive in some circumstances
+                    if party_group in ['OTH', 'Misc-p']:
+                        federal = 0
+                    if party_group in ['ALP', 'LNP', 'Misc-c'] and day > 70:
+                        federal = 0
+                    in_power_length = government_length if incumbent else 0
+                    opposition_length = government_length if opposition else 0
+                    if party_group != 'LNP':
+                        incumbent = 0
+                    # these factors aren't currently predictive, but
+                    # are left in the code in case they can be incorporated
+                    # in the future
+                    in_power_length = 0
+                    opposition_length = 0
 
                     # note: commented out lines were for factors that
                     # didn't improve predictiveness
                     # leaving them here in case something changes that
                     this_info = [
-                        transform_vote_share(poll_trend),
+                        poll_trend,
                         same_federal,
                         opposite_federal,
-                        # transform_vote_share(avg_prior_results[data_key]),
-                        # 1 if incumbent else 0,
-                        # 1 if federal else 0,
-                        # government_length if incumbent else 0,
-                        # government_length if opposition else 0,
+                        previous,
+                        incumbent,
+                        federal,
+                        in_power_length,
+                        opposition_length,
                     ]
                     stored_info[day][data_key] = this_info
                     # need to store the info so accuracy can be evaluated later
@@ -284,6 +308,9 @@ def trend_adjust():
                     data_key = (studied_election[0], studied_election[1], party)
                     zipped = zip(stored_info[day][data_key], 
                                 day_coeffs[day][party_group])
+                    if party_group == 'xOTH':
+                        print(stored_info[day][data_key])
+                        print(day_coeffs[day][party_group])
                     estimated = sum([a[0] * a[1] for a in zipped])
                     detransformed = detransform_vote_share(estimated)
                     transformed_eventual = transform_vote_share(eventual_results[data_key])
@@ -294,14 +321,17 @@ def trend_adjust():
                         print(f'  Poll trend: {poll_trend}')
                         print(f'  Estimated result: {detransformed}')
                         print(f'  Eventual result: {eventual_results[data_key]}')
-                    sum_squared_errors[day] += \
+                    sum_squared_errors[party_group][day] += \
                         (estimated - transformed_eventual) ** 2
-                    error_count[day] += 1
+                    error_count[party_group][day] += 1
 
-    for day in sum_squared_errors.keys():
-        if show_errors_by_day:
-            print(f'Final RMSE for day {day} forecast: '
-                  f'{math.sqrt(sum_squared_errors[day] / error_count[day])}')
+    if show_errors_by_day:
+        for party_group, days in sum_squared_errors.items():
+            print(f' Errors for party group: {party_group}')
+            for day in days.keys():
+                value = math.sqrt(sum_squared_errors[party_group][day] \
+                     / error_count[party_group][day])
+                print(f' Final RMSE for day {day} forecast: {value}')
 
 if __name__ == '__main__':
     trend_adjust()
