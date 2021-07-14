@@ -175,6 +175,7 @@ def trend_adjust():
     day_test_count = 41
     sum_squared_errors = {}
     error_count = {}
+    estimations = {}
     days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
     if feedback_day not in days:
         for day in days:
@@ -211,8 +212,8 @@ def trend_adjust():
                         sum_squared_errors[party_group] = {}
                         error_count[party_group] = {}
                     if day not in sum_squared_errors[party_group]:
-                        sum_squared_errors[party_group][day] = 0
-                        error_count[party_group][day] = 0
+                        sum_squared_errors[party_group][day] = [0, 0]
+                        error_count[party_group][day] = [0, 0]
 
                     data_key = (election[0], election[1], party)
                     if not data_key in prior_results:
@@ -244,8 +245,8 @@ def trend_adjust():
                     same_federal = 0 if election not in federal_situation \
                         else (1 if party == federal_situation[election][0] else 0)
                     # previous election average only predictive for xOTH
-                    previous = transform_vote_share(avg_prior_results[data_key]) \
-                        if party_group == 'xOTH' else 0
+                    previous = transform_vote_share(avg_prior_results[data_key])
+                    previous = previous if party_group == 'xOTH' else 0
                     # some factors are only predictive in some circumstances
                     if party_group in ['OTH', 'Misc-p']:
                         federal = 0
@@ -298,12 +299,8 @@ def trend_adjust():
                     and day == feedback_day and show_parameters:
                 coeffs_by_party_group = organize_coeffs_by_party_group(day_coeffs)
                 print_coeffs(coeffs_by_party_group)
-            elif studied_election is not no_target_election_marker:
-                if day == feedback_day and show_previous_elections:
-                    print(f'{studied_election[0]}, {studied_election[1]}')
+            elif studied_election != no_target_election_marker:
                 for party in parties[studied_election]:
-                    if day == feedback_day and show_previous_elections:
-                        print(party)
                     party_group = ''
                     for group, group_list in party_groups.items():
                         if party in group_list:
@@ -317,33 +314,72 @@ def trend_adjust():
                     # the algorithm. Since their data is not stored, it would
                     # cause an error for them to be included here, so skip them
                     if data_key not in stored_info[day]:
-                        if day == feedback_day and show_previous_elections:
-                            print(f'  Poll score too low for trend adjustment')
                         continue
                     zipped = zip(stored_info[day][data_key], 
                                 day_coeffs[day][party_group])
                     estimated = sum([a[0] * a[1] for a in zipped])
+                    if day == feedback_day:
+                        estimations[data_key] = estimated
                     detransformed = detransform_vote_share(estimated)
                     transformed_eventual = transform_vote_share(eventual_results[data_key])
-                    if day == feedback_day and show_previous_elections:
-                        poll_trend = election_data[data_key][feedback_day][50]
-                        print(f'  Feedback day: {day}')
-                        print(f'  Prior result: {prior_results[data_key][0]}')
-                        print(f'  Prior average: {avg_prior_results[data_key]}')
-                        print(f'  Poll trend: {poll_trend}')
-                        print(f'  Estimated result: {detransformed}')
-                        print(f'  Eventual result: {eventual_results[data_key]}')
-                    sum_squared_errors[party_group][day] += \
+                    error_dir = 1 if transformed_eventual > estimated else 0
+                    sum_squared_errors[party_group][day][error_dir] += \
                         (estimated - transformed_eventual) ** 2
-                    error_count[party_group][day] += 1
+                    error_count[party_group][day][error_dir] += 1
 
     if show_errors_by_day:
         for party_group, days in sum_squared_errors.items():
             print(f' Errors for party group: {party_group}')
             for day in days.keys():
-                value = math.sqrt(sum_squared_errors[party_group][day] \
-                     / error_count[party_group][day])
-                print(f' Final RMSE for day {day} forecast: {value}')
+                upper_rmse = math.sqrt(sum_squared_errors[party_group][day][1] \
+                     / error_count[party_group][day][1])
+                lower_rmse = math.sqrt(sum_squared_errors[party_group][day][0] \
+                     / error_count[party_group][day][0])
+                print(f' Upper RMSE for day {day} forecast: {upper_rmse}')
+                print(f' Lower RMSE for day {day} forecast: {lower_rmse}')
+
+    if show_previous_elections:
+        for studied_election in studied_elections:
+            if studied_election == no_target_election_marker:
+                continue
+            day = feedback_day
+            print(f'{studied_election[0]}, {studied_election[1]}')
+            for party in parties[studied_election]:
+                if day == feedback_day and show_previous_elections:
+                    print(party)
+                party_group = ''
+                for group, group_list in party_groups.items():
+                    if party in group_list:
+                        party_group = group
+                        break
+                if party_group == '':
+                    continue
+                data_key = (studied_election[0], studied_election[1], party)
+                # Some parties have poll trend scores too low to usefully
+                # be used for trend adjustment, so they are excluded from
+                # the algorithm. Since their data is not stored, it would
+                # cause an error for them to be included here, so skip them
+                if data_key not in estimations:
+                    print(f'  Poll score too low for trend adjustment')
+                    continue
+                estimated = estimations[data_key]
+                detransformed = detransform_vote_share(estimated)
+                poll_trend = election_data[data_key][feedback_day][50]
+                upper_rmse = math.sqrt(sum_squared_errors[party_group][day][1] \
+                     / error_count[party_group][day][1])
+                lower_rmse = math.sqrt(sum_squared_errors[party_group][day][0] \
+                     / error_count[party_group][day][0])
+                estimation_low = estimated - 2 * upper_rmse
+                estimation_high = estimated + 2 * lower_rmse
+                estimated_low = detransform_vote_share(estimation_low)
+                estimated_high = detransform_vote_share(estimation_high)
+                print(f'  Feedback day: {day}')
+                print(f'  Prior result: {prior_results[data_key][0]}')
+                print(f'  Prior average: {avg_prior_results[data_key]}')
+                print(f'  Poll trend: {poll_trend}')
+                print(f'  Estimated result: {detransformed}')
+                print(f'  95% range: {estimated_low}-{estimated_high}')
+                print(f'  Eventual result: {eventual_results[data_key]}')
 
 if __name__ == '__main__':
     trend_adjust()
