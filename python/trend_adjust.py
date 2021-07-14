@@ -3,6 +3,7 @@ import math
 import argparse
 
 unnamed_others_code = 'xOTH FP'
+poll_score_threshold = 3
 
 # To keep analysis simple, and maintain decent sample sizes, group
 # polled parties into categories with similar expected behaviour.
@@ -231,6 +232,11 @@ def trend_adjust():
                     poll_trend = election_data[data_key][day][50] \
                         if day < len(election_data[data_key]) \
                         else prior_results[data_key]
+                    # Very small poll trends cause distortions in the
+                    # Misc-p results, so best to ignore them and
+                    # only use parties polling a substantial % of vote
+                    if poll_trend < poll_score_threshold:
+                        continue
                     poll_trend = transform_vote_share(poll_trend)
                     federal = 1 if (data_key[1] == 'fed') else 0
                     opposite_federal = 0 if election not in federal_situation \
@@ -306,16 +312,22 @@ def trend_adjust():
                     if party_group == '':
                         continue
                     data_key = (studied_election[0], studied_election[1], party)
+                    # Some parties have poll trend scores too low to usefully
+                    # be used for trend adjustment, so they are excluded from
+                    # the algorithm. Since their data is not stored, it would
+                    # cause an error for them to be included here, so skip them
+                    if data_key not in stored_info[day]:
+                        if day == feedback_day and show_previous_elections:
+                            print(f'  Poll score too low for trend adjustment')
+                        continue
                     zipped = zip(stored_info[day][data_key], 
                                 day_coeffs[day][party_group])
-                    if party_group == 'xOTH':
-                        print(stored_info[day][data_key])
-                        print(day_coeffs[day][party_group])
                     estimated = sum([a[0] * a[1] for a in zipped])
                     detransformed = detransform_vote_share(estimated)
                     transformed_eventual = transform_vote_share(eventual_results[data_key])
                     if day == feedback_day and show_previous_elections:
                         poll_trend = election_data[data_key][feedback_day][50]
+                        print(f'  Feedback day: {day}')
                         print(f'  Prior result: {prior_results[data_key][0]}')
                         print(f'  Prior average: {avg_prior_results[data_key]}')
                         print(f'  Poll trend: {poll_trend}')
