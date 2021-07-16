@@ -89,11 +89,14 @@ class Config:
                             help='Show parameters for selected day (default: 0)')
         parser.add_argument('--day', action='store', type=int,
                             help='Day to display coefficients for (default: 0)')
+        parser.add_argument('-w', '--writtenfiles', action='store_true',
+                            help='Show written files')
         self.show_loaded_files = parser.parse_args().files
         self.show_previous_elections = parser.parse_args().previous
         self.show_errors_by_day = parser.parse_args().errors
         self.show_parameters = parser.parse_args().parameters
         self.feedback_day = parser.parse_args().day
+        self.show_written_files = parser.parse_args().writtenfiles
         day_test_count = 41
         self.days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
         self.adjust_feedback_day()
@@ -477,7 +480,7 @@ def show_previous_election_predictions(inputs, config, poll_trend, outputs):
             print(f'  Eventual result: {inputs.eventual_results[party_code]}')
 
 
-def calculate_parameter_curves(outputs):
+def calculate_parameter_curves(config, outputs):
     first_studied_election = None
     for studied_election, election_params in outputs.raw_params.items():
         if first_studied_election is None:
@@ -489,12 +492,14 @@ def calculate_parameter_curves(outputs):
                     x, y = zip(*coeffs.items())
                     total_days = x[len(x) - 1]
                     x = range(0, len(x))
-                    spline = UnivariateSpline(x, y, s=2.2)
+                    w = [10 if a == 0 else 1 for a in x]
+                    spline = UnivariateSpline(x=x, y=y, w=w, s=3)
                     days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
                         for n in range(0, total_days + 1)]
                     full_spline = spline(days_to_study)
                     f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
-                print(f'Wrote trend adjustment details to: {filename}')
+                if config.show_written_files:
+                    print(f'Wrote trend adjustment details to: {filename}')
 
 
 def trend_adjust():
@@ -515,7 +520,7 @@ def trend_adjust():
     if config.show_previous_elections:
         show_previous_election_predictions(inputs, config, poll_trend, outputs)
 
-    calculate_parameter_curves(outputs)
+    calculate_parameter_curves(config, outputs)
 
 if __name__ == '__main__':
     trend_adjust()
