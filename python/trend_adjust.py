@@ -1,4 +1,5 @@
 from sklearn import datasets, linear_model
+from scipy.interpolate import UnivariateSpline
 import math
 import argparse
 
@@ -209,6 +210,7 @@ class Outputs:
         self.sum_squared_errors = {}
         self.error_count = {}
         self.estimations = {}
+        self.raw_params = {}
 
 
 class RegressionInputs:
@@ -297,7 +299,7 @@ def prepare_individual_info(inputs, election, party_code, day, poll_trend_now,
         opposition_length,
     ]
 
-def determine_regresion_inputs(day, studied_election, inputs,
+def determine_regression_inputs(day, studied_election, inputs,
                                config, poll_trend, outputs):
     complete_info = {}
     info = {}
@@ -401,11 +403,21 @@ def record_outputs(config, outputs, inputs, studied_election, day, coeffs, reg_i
             outputs.sum_squared_errors[party_group][day][error_dir] += \
                 (estimated - transformed_eventual) ** 2
             outputs.error_count[party_group][day][error_dir] += 1
+            # Add coefficient data to outputs
+            if studied_election not in outputs.raw_params:
+                outputs.raw_params[studied_election] = {}
+            if party_group not in outputs.raw_params[studied_election]:
+                outputs.raw_params[studied_election][party_group] = []
+                for i in range(0, len(coeffs[party_group])):
+                    outputs.raw_params[studied_election][party_group].append({})
+            for index, coeff_value in enumerate(coeffs[party_group]):
+                outputs.raw_params[studied_election][party_group][index][day] = coeff_value
+    
 
 def determine_trend_adjustments(inputs, config, poll_trend, outputs):
     for studied_election in inputs.studied_elections:
         for day in config.days:
-            reg_inputs = determine_regresion_inputs(day, studied_election,
+            reg_inputs = determine_regression_inputs(day, studied_election,
                                                     inputs, config,
                                                     poll_trend, outputs)
             coeffs = run_regression(reg_inputs)
@@ -464,6 +476,27 @@ def show_previous_election_predictions(inputs, config, poll_trend, outputs):
             print(f'  95% range: {estimated_low}-{estimated_high}')
             print(f'  Eventual result: {inputs.eventual_results[party_code]}')
 
+
+def calculate_parameter_curves(outputs):
+    first_studied_election = None
+    for studied_election, election_params in outputs.raw_params.items():
+        if first_studied_election is None:
+            first_studied_election = studied_election
+        for party_group, party_params in election_params.items():
+            filename = f'./Adjustments/adjust_{studied_election.year()}{studied_election.region()}_{party_group}.csv'
+            with open(filename, 'w') as f:
+                for coeff_index, coeffs in enumerate(party_params):
+                    x, y = zip(*coeffs.items())
+                    total_days = x[len(x) - 1]
+                    x = range(0, len(x))
+                    spline = UnivariateSpline(x, y, s=2.2)
+                    days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
+                        for n in range(0, total_days + 1)]
+                    full_spline = spline(days_to_study)
+                    f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
+                print(f'Wrote trend adjustment details to: {filename}')
+
+
 def trend_adjust():
     config = Config()
     inputs = Inputs()
@@ -481,6 +514,8 @@ def trend_adjust():
 
     if config.show_previous_elections:
         show_previous_election_predictions(inputs, config, poll_trend, outputs)
+
+    calculate_parameter_curves(outputs)
 
 if __name__ == '__main__':
     trend_adjust()
