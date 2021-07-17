@@ -214,6 +214,7 @@ class Outputs:
         self.error_count = {}
         self.estimations = {}
         self.raw_params = {}
+        self.rmse = {}
 
 
 class RegressionInputs:
@@ -415,6 +416,45 @@ def record_outputs(config, outputs, inputs, studied_election, day, coeffs, reg_i
                     outputs.raw_params[studied_election][party_group].append({})
             for index, coeff_value in enumerate(coeffs[party_group]):
                 outputs.raw_params[studied_election][party_group][index][day] = coeff_value
+    # calculate error values to be used in THIS election
+    if studied_election not in outputs.rmse:
+        outputs.rmse[studied_election] = {}
+    for party_group in party_groups:
+        if party_group not in outputs.rmse[studied_election]:
+            outputs.rmse[studied_election][party_group] = {}
+        sum_squares = [0, 0]
+        error_count = [0, 0]
+        for other_election in inputs.elections:
+            if other_election == studied_election:
+                continue
+            for party in inputs.parties[other_election]:
+                if party not in party_groups[party_group]:
+                    continue
+                party_code = ElectionPartyCode(other_election, party)
+                # Some parties have poll trend scores too low to usefully
+                # be used for trend adjustment, so they are excluded from
+                # the algorithm. Since their data is not stored, it would
+                # cause an error for them to be included here, so skip them
+                if party_code not in reg_inputs.complete_info:
+                    continue
+                zipped = zip(reg_inputs.complete_info[party_code], 
+                            coeffs[party_group])
+                estimated = sum([a[0] * a[1] for a in zipped])
+                transformed_eventual = transform_vote_share(inputs.eventual_results[party_code])
+                error_dir = 1 if transformed_eventual > estimated else 0
+                sum_squares[error_dir] += \
+                    (estimated - transformed_eventual) ** 2
+                error_count[error_dir] += 1
+        if 0 in error_count:
+            print(f'Skipping party group {party_group} for election'
+                  f'{studied_election.year}{studied_election.region}'
+                  f' as there were no parties tracked in that group.')
+            continue
+        outputs.rmse[studied_election][party_group][day] = [0, 0]
+        outputs.rmse[studied_election][party_group][day][0] = \
+             math.sqrt(sum_squares[0] / error_count[0])
+        outputs.rmse[studied_election][party_group][day][1] = \
+             math.sqrt(sum_squares[1] / error_count[1])
     
 
 def determine_trend_adjustments(inputs, config, poll_trend, outputs):
@@ -428,16 +468,18 @@ def determine_trend_adjustments(inputs, config, poll_trend, outputs):
                            day, coeffs, reg_inputs)
 
 
-def show_errors_by_day(outputs):
+def record_errors_by_day(config, outputs):
     for party_group, days in outputs.sum_squared_errors.items():
-        print(f' Errors for party group: {party_group}')
+        if config.show_errors_by_day:
+            print(f' Errors for party group: {party_group}')
         for day in days.keys():
-            upper_rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][1] \
-                    / outputs.error_count[party_group][day][1])
             lower_rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][0] \
                     / outputs.error_count[party_group][day][0])
-            print(f' Upper RMSE for day {day} forecast: {upper_rmse}')
-            print(f' Lower RMSE for day {day} forecast: {lower_rmse}')
+            upper_rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][1] \
+                    / outputs.error_count[party_group][day][1])
+            if config.show_errors_by_day:
+                print(f' Lower RMSE for day {day} forecast: {lower_rmse}')
+                print(f' Upper RMSE for day {day} forecast: {upper_rmse}')
 
 def show_previous_election_predictions(inputs, config, poll_trend, outputs):
     for studied_election in inputs.studied_elections:
@@ -481,10 +523,7 @@ def show_previous_election_predictions(inputs, config, poll_trend, outputs):
 
 
 def calculate_parameter_curves(config, outputs):
-    first_studied_election = None
     for studied_election, election_params in outputs.raw_params.items():
-        if first_studied_election is None:
-            first_studied_election = studied_election
         for party_group, party_params in election_params.items():
             filename = f'./Adjustments/adjust_{studied_election.year()}{studied_election.region()}_{party_group}.csv'
             with open(filename, 'w') as f:
@@ -500,6 +539,23 @@ def calculate_parameter_curves(config, outputs):
                     f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
                 if config.show_written_files:
                     print(f'Wrote trend adjustment details to: {filename}')
+    for studied_election, election_error in outputs.rmse.items():
+        for party_group, party_error in election_error.items():
+            filename = f'./Adjustments/errors_{studied_election.year()}{studied_election.region()}_{party_group}.csv'
+            with open(filename, 'w') as f:
+                for side in (0, 1):
+                    x, y = zip(*party_error.items())
+                    y = [a[side] for a in y]
+                    total_days = x[len(x) - 1]
+                    x = range(0, len(x))
+                    w = [10 if a == 0 else 1 for a in x]
+                    spline = UnivariateSpline(x=x, y=y, w=w, s=3)
+                    days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
+                        for n in range(0, total_days + 1)]
+                    full_spline = spline(days_to_study)
+                    f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
+                if config.show_written_files:
+                    print(f'Wrote trend error details to: {filename}')
 
 
 def trend_adjust():
@@ -514,8 +570,7 @@ def trend_adjust():
 
     determine_trend_adjustments(inputs, config, poll_trend, outputs)
 
-    if config.show_errors_by_day:
-        show_errors_by_day(outputs)
+    record_errors_by_day(config, outputs)
 
     if config.show_previous_elections:
         show_previous_election_predictions(inputs, config, poll_trend, outputs)
