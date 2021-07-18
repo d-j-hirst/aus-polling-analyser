@@ -48,6 +48,7 @@ class ElectionCode:
         split_lines = [line.strip().split(',') for line in file.readlines()]
         return [ElectionCode(int(a[0]), a[1]) for a in split_lines]
 
+no_target_election_marker = ElectionCode(0, 'none')
 
 class ElectionPartyCode:
     def __init__(self, election, party):
@@ -75,6 +76,9 @@ class ElectionPartyCode:
             f'{self.region()}, {self.party()})')
 
 
+class ConfigError(ValueError):
+    pass
+
 class Config:
     def __init__(self):
         parser = argparse.ArgumentParser(
@@ -86,9 +90,17 @@ class Config:
         parser.add_argument('-e', '--errors', action='store_true',
                             help='Show total errors by day')
         parser.add_argument('-c', '--parameters', action='store_true',
-                            help='Show parameters for selected day (default: 0)')
+                            help='Show parameters for selected day')
         parser.add_argument('--day', action='store', type=int,
                             help='Day to display coefficients for (default: 0)')
+        parser.add_argument('--election', action='store', type=str,
+                            help='Exclude this election from calculations '
+                            '(so that they can be used for hindcasting that '
+                            'election). Enter as 1234-xxx format,'
+                            ' e.g. 2013-fed. Write "none" to exclude no '
+                            'elections (for present-day forecasting) or "all" '
+                            'to do it for all elections (including "none"). '
+                            'Default is "none"', default='none')
         parser.add_argument('-w', '--writtenfiles', action='store_true',
                             help='Show written files')
         self.show_loaded_files = parser.parse_args().files
@@ -97,6 +109,8 @@ class Config:
         self.show_parameters = parser.parse_args().parameters
         self.feedback_day = parser.parse_args().day
         self.show_written_files = parser.parse_args().writtenfiles
+        self.exclude_instuctions = parser.parse_args().election.lower()
+        self.prepare_election_list()
         day_test_count = 41
         self.days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
         self.adjust_feedback_day()
@@ -109,47 +123,80 @@ class Config:
                     break
             if self.feedback_day not in self.days:
                 self.feedback_day=self.days[-1]
+    
+    def prepare_election_list(self):
+        with open('./Data/ordered-elections.csv', 'r') as f:
+            elections = ElectionCode.load_elections_from_file(f)
+        if self.exclude_instuctions == 'all':
+            self.elections = elections + [no_target_election_marker]
+        elif self.exclude_instuctions == 'none':
+            self.elections = [no_target_election_marker]
+        else:
+            parts = self.exclude_instuctions.split('-')
+            if len(parts) != 2:
+                raise ConfigError('Error in "elections" argument: given value '
+                                 'did not consist of two parts separated '
+                                 'by a hyphen (e.g. 2013-fed)')
+            try:
+                code = ElectionCode(parts[0], parts[1])
+            except ValueError:
+                raise ConfigError('Error in "elections" argument: first part'
+                                 'of election name could not be converted'
+                                 'into an integer')
+            if code not in elections:
+                raise ConfigError('Error in "elections" argument: given value'
+                                 'value given did not match any election'
+                                 'given in Data/ordered-elections.csv')
+            self.elections = [code]
+        print(self.elections)
 
 
 class Inputs:
-    def __init__(self):
+    def __init__(self, exclude):
         # [0] year of election, [1] region of election
         with open('./Data/ordered-elections.csv', 'r') as f:
             self.elections = ElectionCode.load_elections_from_file(f)
+        self.elections = [a for a in self.elections if a != exclude]
         # key: [0] year of election, [1] region of election
         # value: list of significant party codes modelled in that election
         with open('./Data/significant-parties.csv', 'r') as f:
             parties = {ElectionCode(a[0], a[1]): a[2:] for a in
-                    [b.strip().split(',') for b in f.readlines()]}
+                    [b.strip().split(',') for b in f.readlines()]
+                    if ElectionCode(a[0], a[1]) != exclude}
         # key: [0] year of election, [1] region of election, [2] party code
         # value: primary vote recorded in this election
         with open('./Data/eventual-results.csv', 'r') as f:
-            self.eventual_results = {ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]) : float(a[3]) for a in
-                    [b.strip().split(',') for b in f.readlines()]}
+            self.eventual_results = {ElectionPartyCode(ElectionCode(a[0], a[1]), a[2])
+                    : float(a[3]) for a in
+                    [b.strip().split(',') for b in f.readlines()]
+                    if ElectionCode(a[0], a[1]) != exclude}
         # key: [0] year of election, [1] region of election, [2] party code
         # value: primary vote recorded in the previous election
         with open('./Data/prior-results.csv', 'r') as f:
             linelists = [b.strip().split(',') for b in f.readlines()]
-            self.prior_results = {ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]) : [float(x) for x in a[3:]]
-                for a in linelists}
+            self.prior_results = {ElectionPartyCode(ElectionCode(a[0], a[1]), a[2])
+                : [float(x) for x in a[3:]]
+                for a in linelists
+                if ElectionCode(a[0], a[1]) != exclude}
         # stores: first incumbent party, then main opposition party,
         # finally years incumbent party has been in power
         with open('./Data/incumbency.csv', 'r') as f:
             self.incumbency = {ElectionCode(a[0], a[1]) : (a[2], a[3], float(a[4])) for a in
-                    [b.strip().split(',') for b in f.readlines()]}
+                    [b.strip().split(',') for b in f.readlines()]
+                    if ElectionCode(a[0], a[1]) != exclude}
         # stores: party corresponding to federal government, 
         # then party opposing federal government
         with open('./Data/federal-situation.csv', 'r') as f:
             self.federal_situation = {ElectionCode(a[0], a[1]) : (a[2], a[3]) for a in
-                    [b.strip().split(',') for b in f.readlines()]}
+                    [b.strip().split(',') for b in f.readlines()]
+                    if ElectionCode(a[0], a[1]) != exclude}
         # Trim party list so that we only store it for completed elections
         self.parties = {e: parties[e] for e in self.elections}
         # Create averages of prior results
         avg_n = 6
         self.avg_prior_results = {k: sum(v[:avg_n]) / avg_n
             for k, v in self.prior_results.items()}
-        self.no_target_election_marker = ElectionCode(0, 'none')
-        self.studied_elections = self.elections + [self.no_target_election_marker]
+        self.studied_elections = self.elections + [no_target_election_marker]
 
     def determine_eventual_others_results(self):
         for e in self.elections:
@@ -377,10 +424,20 @@ def run_regression(reg_inputs):
 
 
 def record_outputs(config, outputs, inputs, studied_election, day, coeffs, reg_inputs):
-    if studied_election == inputs.no_target_election_marker \
+    if studied_election == no_target_election_marker \
             and day == config.feedback_day and config.show_parameters:
         print_coeffs(coeffs)
-    elif studied_election != inputs.no_target_election_marker:
+    if studied_election == no_target_election_marker:
+        for party_group in reg_inputs.info.keys():
+            if studied_election not in outputs.raw_params:
+                outputs.raw_params[studied_election] = {}
+            if party_group not in outputs.raw_params[studied_election]:
+                outputs.raw_params[studied_election][party_group] = []
+                for i in range(0, len(coeffs[party_group])):
+                    outputs.raw_params[studied_election][party_group].append({})
+            for index, coeff_value in enumerate(coeffs[party_group]):
+                outputs.raw_params[studied_election][party_group][index][day] = coeff_value
+    elif studied_election != no_target_election_marker:
         for party in inputs.parties[studied_election]:
             party_group = ''
             for group, group_list in party_groups.items():
@@ -407,54 +464,6 @@ def record_outputs(config, outputs, inputs, studied_election, day, coeffs, reg_i
             outputs.sum_squared_errors[party_group][day][error_dir] += \
                 (estimated - transformed_eventual) ** 2
             outputs.error_count[party_group][day][error_dir] += 1
-            # Add coefficient data to outputs
-            if studied_election not in outputs.raw_params:
-                outputs.raw_params[studied_election] = {}
-            if party_group not in outputs.raw_params[studied_election]:
-                outputs.raw_params[studied_election][party_group] = []
-                for i in range(0, len(coeffs[party_group])):
-                    outputs.raw_params[studied_election][party_group].append({})
-            for index, coeff_value in enumerate(coeffs[party_group]):
-                outputs.raw_params[studied_election][party_group][index][day] = coeff_value
-    # calculate error values to be used in THIS election
-    if studied_election not in outputs.rmse:
-        outputs.rmse[studied_election] = {}
-    for party_group in party_groups:
-        if party_group not in outputs.rmse[studied_election]:
-            outputs.rmse[studied_election][party_group] = {}
-        sum_squares = [0, 0]
-        error_count = [0, 0]
-        for other_election in inputs.elections:
-            if other_election == studied_election:
-                continue
-            for party in inputs.parties[other_election]:
-                if party not in party_groups[party_group]:
-                    continue
-                party_code = ElectionPartyCode(other_election, party)
-                # Some parties have poll trend scores too low to usefully
-                # be used for trend adjustment, so they are excluded from
-                # the algorithm. Since their data is not stored, it would
-                # cause an error for them to be included here, so skip them
-                if party_code not in reg_inputs.complete_info:
-                    continue
-                zipped = zip(reg_inputs.complete_info[party_code], 
-                            coeffs[party_group])
-                estimated = sum([a[0] * a[1] for a in zipped])
-                transformed_eventual = transform_vote_share(inputs.eventual_results[party_code])
-                error_dir = 1 if transformed_eventual > estimated else 0
-                sum_squares[error_dir] += \
-                    (estimated - transformed_eventual) ** 2
-                error_count[error_dir] += 1
-        if 0 in error_count:
-            print(f'Skipping party group {party_group} for election'
-                  f'{studied_election.year}{studied_election.region}'
-                  f' as there were no parties tracked in that group.')
-            continue
-        outputs.rmse[studied_election][party_group][day] = [0, 0]
-        outputs.rmse[studied_election][party_group][day][0] = \
-             math.sqrt(sum_squares[0] / error_count[0])
-        outputs.rmse[studied_election][party_group][day][1] = \
-             math.sqrt(sum_squares[1] / error_count[1])
     
 
 def determine_trend_adjustments(inputs, config, poll_trend, outputs):
@@ -473,17 +482,19 @@ def record_errors_by_day(config, outputs):
         if config.show_errors_by_day:
             print(f' Errors for party group: {party_group}')
         for day in days.keys():
-            lower_rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][0] \
-                    / outputs.error_count[party_group][day][0])
-            upper_rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][1] \
-                    / outputs.error_count[party_group][day][1])
-            if config.show_errors_by_day:
-                print(f' Lower RMSE for day {day} forecast: {lower_rmse}')
-                print(f' Upper RMSE for day {day} forecast: {upper_rmse}')
+            for side in [0, 1]:
+                rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][side] \
+                        / outputs.error_count[party_group][day][side])
+                if party_group not in outputs.rmse:
+                    outputs.rmse[party_group] = [{}, {}]
+                outputs.rmse[party_group][side][day] = rmse
+                if config.show_errors_by_day:
+                    print(f' {("Lower" if side == 0 else "Upper")}'
+                        f' RMSE for day {day} forecast: {rmse}')
 
 def show_previous_election_predictions(inputs, config, poll_trend, outputs):
     for studied_election in inputs.studied_elections:
-        if studied_election == inputs.no_target_election_marker:
+        if studied_election == no_target_election_marker:
             continue
         for party in inputs.parties[studied_election]:
             party_group = ''
@@ -522,60 +533,66 @@ def show_previous_election_predictions(inputs, config, poll_trend, outputs):
             print(f'  Eventual result: {inputs.eventual_results[party_code]}')
 
 
-def calculate_parameter_curves(config, outputs):
-    for studied_election, election_params in outputs.raw_params.items():
-        for party_group, party_params in election_params.items():
-            filename = f'./Adjustments/adjust_{studied_election.year()}{studied_election.region()}_{party_group}.csv'
-            with open(filename, 'w') as f:
-                for coeff_index, coeffs in enumerate(party_params):
-                    x, y = zip(*coeffs.items())
-                    total_days = x[len(x) - 1]
-                    x = range(0, len(x))
-                    w = [10 if a == 0 else 1 for a in x]
-                    spline = UnivariateSpline(x=x, y=y, w=w, s=3)
-                    days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
-                        for n in range(0, total_days + 1)]
-                    full_spline = spline(days_to_study)
-                    f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
-                if config.show_written_files:
-                    print(f'Wrote trend adjustment details to: {filename}')
-    for studied_election, election_error in outputs.rmse.items():
-        for party_group, party_error in election_error.items():
-            filename = f'./Adjustments/errors_{studied_election.year()}{studied_election.region()}_{party_group}.csv'
-            with open(filename, 'w') as f:
-                for side in (0, 1):
-                    x, y = zip(*party_error.items())
-                    y = [a[side] for a in y]
-                    total_days = x[len(x) - 1]
-                    x = range(0, len(x))
-                    w = [10 if a == 0 else 1 for a in x]
-                    spline = UnivariateSpline(x=x, y=y, w=w, s=3)
-                    days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
-                        for n in range(0, total_days + 1)]
-                    full_spline = spline(days_to_study)
-                    f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
-                if config.show_written_files:
-                    print(f'Wrote trend error details to: {filename}')
+def calculate_parameter_curves(config, exclude, outputs):
+    election_params = outputs.raw_params[no_target_election_marker]
+    for party_group, party_params in election_params.items():
+        filename = f'./Adjustments/adjust_{exclude.year()}{exclude.region()}_{party_group}.csv'
+        with open(filename, 'w') as f:
+            for coeff_index, coeffs in enumerate(party_params):
+                x, y = zip(*coeffs.items())
+                total_days = x[len(x) - 1]
+                x = range(0, len(x))
+                w = [10 if a == 0 else 1 for a in x]
+                spline = UnivariateSpline(x=x, y=y, w=w, s=3)
+                days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
+                    for n in range(0, total_days + 1)]
+                full_spline = spline(days_to_study)
+                f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
+            if config.show_written_files:
+                print(f'Wrote trend adjustment details to: {filename}')
+    for party_group, party_errors in outputs.rmse.items():
+        filename = f'./Adjustments/errors_{exclude.year()}{exclude.region()}_{party_group}.csv'
+        with open(filename, 'w') as f:
+            for side in (0, 1):
+                day_errors = party_errors[side]
+                x, y = zip(*day_errors.items())
+                total_days = x[len(x) - 1]
+                x = range(0, len(x))
+                w = [10 if a == 0 else 1 for a in x]
+                spline = UnivariateSpline(x=x, y=y, w=w, s=3)
+                days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
+                    for n in range(0, total_days + 1)]
+                full_spline = spline(days_to_study)
+                f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
+            if config.show_written_files:
+                print(f'Wrote trend error details to: {filename}')
 
 
 def trend_adjust():
-    config = Config()
-    inputs = Inputs()
-    poll_trend = PollTrend(inputs, config)
-    outputs = Outputs()
+    try:
+        config = Config()
+    except ConfigError as e:
+        print('Could not process configuration due to the following issue:')
+        print(str(e))
+        return
 
-    # Leave this until now so it doesn't interfere with initialization
-    # of poll_trend
-    inputs.determine_eventual_others_results()
+    for exclude in config.elections:
+        inputs = Inputs(exclude)
+        poll_trend = PollTrend(inputs, config)
+        outputs = Outputs()
 
-    determine_trend_adjustments(inputs, config, poll_trend, outputs)
+        # Leave this until now so it doesn't interfere with initialization
+        # of poll_trend
+        inputs.determine_eventual_others_results()
 
-    record_errors_by_day(config, outputs)
+        determine_trend_adjustments(inputs, config, poll_trend, outputs)
 
-    if config.show_previous_elections:
-        show_previous_election_predictions(inputs, config, poll_trend, outputs)
+        record_errors_by_day(config, outputs)
 
-    calculate_parameter_curves(config, outputs)
+        if config.show_previous_elections:
+            show_previous_election_predictions(inputs, config, poll_trend, outputs)
+
+        calculate_parameter_curves(config, exclude, outputs)
 
 if __name__ == '__main__':
     trend_adjust()
