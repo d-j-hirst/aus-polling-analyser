@@ -3,26 +3,16 @@ from scipy.interpolate import UnivariateSpline
 import math
 import argparse
 
-unnamed_others_code = 'xOTH FP'
 poll_score_threshold = 3
 
 # To keep analysis simple, and maintain decent sample sizes, group
 # polled parties into categories with similar expected behaviour.
-party_groups = {
-    'ALP' : ['ALP FP'],
-    'LNP' : ['LNP FP', 'LIB FP'],
-    # Minor "constituency" parties that represent a particular group/viewpoint
-    # Fairly stable, slow moving vote shares
-    'Misc-c' : ['GRN FP', 'NAT FP', 'FF FP'],
-    # Minor "protest" parties that are primarily anti-political,
-    # defining themselves as being against the current system
-    # Volatile, rapidly changing vote shares
-    'Misc-p' : ['UAP FP', 'ONP FP', 'SAB FP', 'SFF FP', 'DEM FP', 'KAP FP'],
-    # General others: Anything not ALP/LIB/NAT/GRN (or their equivalents)
-    'OTH' : ['OTH FP'],
-    # Unnamed others: Anything not listed at all
-    'xOTH' : [unnamed_others_code]
-}
+with open('./Data/party-groups.csv', 'r') as f:
+    party_groups = {
+        b[0]: [c + ' FP' for c in b[1:]] for b in
+        [a.strip().split(',') for a in f.readlines()]}
+
+unnamed_others_code = party_groups['xOTH'][0]
 
 class ElectionCode:
     def __init__(self, year, region):
@@ -580,6 +570,7 @@ def trend_adjust():
         return
 
     for exclude in config.elections:
+        print(f'Beginning trend adjustment algorithm for: {exclude}')
         inputs = Inputs(exclude)
         poll_trend = PollTrend(inputs, config)
         outputs = Outputs()
@@ -596,6 +587,7 @@ def trend_adjust():
             show_previous_election_predictions(inputs, config, poll_trend, outputs)
 
         calculate_parameter_curves(config, exclude, outputs)
+        print(f'Completed trend adjustment algorithm for: {exclude}')
 
 if __name__ == '__main__':
     trend_adjust()
