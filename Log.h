@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,9 @@ public:
 
 	template<typename T>
 	Logger& operator<<(const std::vector<T>& obj);
+
+	template<typename T, typename U>
+	Logger& operator<<(const std::map<T, U>& obj);
 
 	Logger& operator<<(const uint8_t& obj);
 
@@ -36,11 +40,25 @@ inline Logger& Logger::operator<<(const T& obj) {
 
 template<typename T>
 inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
-	fileStream_ << "{";
+	fileStream_ << "[";
 	bool firstItem = true;
 	for (auto const& component : obj) {
 		if (!firstItem) fileStream_ << ", ";
-		fileStream_ << component;
+		*this << component;
+		firstItem = false;
+	}
+	fileStream_ << "]";
+	fileStream_.flush();
+	return *this;
+}
+
+template<typename T, typename U>
+inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
+	fileStream_ << "{";
+	bool firstItem = true;
+	for (auto const& [key, val] : obj) {
+		if (!firstItem) fileStream_ << ", ";
+		*this << key << ": " << val;
 		firstItem = false;
 	}
 	fileStream_ << "}";

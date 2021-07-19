@@ -34,7 +34,7 @@ wxDateTime StanModel::getEndDate() const
 
 void StanModel::loadData(FeedbackFunc feedback)
 {
-
+	loadPartyGroups();
 	generateParameterMaps();
 	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
 		feedback("No party codes found!");
@@ -214,6 +214,24 @@ StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date) const
 std::string StanModel::rawPartyCodeByIndex(int index) const
 {
 	return std::next(rawSupport.begin(), index)->first;
+}
+
+void StanModel::loadPartyGroups()
+{
+	const std::string filename = "python/Data/party-groups.csv";
+	auto file = std::ifstream(filename);
+	if (!file) throw Exception("Party groups file not present! Expected a file at " + filename);
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		partyGroups[values[0]] = PartyGroup();
+		for (auto it = std::next(values.begin()); it != values.end(); ++it) {
+			std::string splitValue = splitString(*it, " ")[0];
+			partyGroups[values[0]].push_back(splitValue);
+		}
+	} while (true);
 }
 
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const

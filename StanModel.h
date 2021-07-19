@@ -94,6 +94,13 @@ public:
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
+	// Type for temporarily storing party group data
+	typedef std::vector<std::string> PartyGroup;
+	typedef std::map<std::string, PartyGroup> PartyGroups;
+
+	// Loads the party group data from python/Data/party-groups.csv
+	void loadPartyGroups();
+
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
@@ -141,7 +148,14 @@ private:
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 
-	// temporary/cached map between parties and parameters
+
+	// temporary/cached data
+
+	// party groupings by rough type, loaded from a text (CSV) file
+	// classifies parties based on electoral behaviour, with minor
+	// parties combined into groups to get useful sample sizes
+	PartyGroups partyGroups;
+
 	PartyCodes partyCodeVec;
 	PartyParameters debiasSlopeMap;
 	PartyParameters debiasInterceptMap;

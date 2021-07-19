@@ -93,13 +93,13 @@ inline std::string boolToStr(bool b) {
 }
 
 template<class InputFirstIt, class InputSecondIt, class OutputIt, class BinaryOperation>
-OutputIt transform_combine(InputFirstIt first1, InputFirstIt last1, InputSecondIt first2, OutputIt d_first,
+OutputIt transform_combine(InputFirstIt begin1, InputFirstIt end1, InputSecondIt begin2, OutputIt d_begin,
 	BinaryOperation binary_op)
 {
-	while (first1 != last1) {
-		*d_first++ = binary_op(*first1++, *first2++);
+	while (begin1 != end1) {
+		*d_begin++ = binary_op(*begin1++, *begin2++);
 	}
-	return d_first;
+	return d_begin;
 }
 
 // Take a regular vote share (in the range 0.0f to 100.0f) and transform it using

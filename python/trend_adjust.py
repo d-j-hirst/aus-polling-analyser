@@ -9,7 +9,7 @@ poll_score_threshold = 3
 # polled parties into categories with similar expected behaviour.
 with open('./Data/party-groups.csv', 'r') as f:
     party_groups = {
-        b[0]: [c + ' FP' for c in b[1:]] for b in
+        b[0]: b[1:] for b in
         [a.strip().split(',') for a in f.readlines()]}
 
 unnamed_others_code = party_groups['xOTH'][0]
