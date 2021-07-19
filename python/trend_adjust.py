@@ -398,7 +398,9 @@ def determine_regression_inputs(day, studied_election, inputs,
             this_info = prepare_individual_info(
                 inputs, election, party_code, day,
                 poll_trend_now, party, party_group)
-            complete_info[party_code] = this_info + [1]
+
+            complete_info[party_code] = this_info
+
             # need to store the info so accuracy can be evaluated later
             # but we don't want anything from the studied election
             # being used to determine the forecast for it, so
@@ -415,13 +417,12 @@ def determine_regression_inputs(day, studied_election, inputs,
 def run_regression(reg_inputs):
     coeffs = {}
     for party_group in reg_inputs.info.keys():
-        regr = linear_model.LinearRegression(fit_intercept=True)
+
+        regr = linear_model.LinearRegression(fit_intercept=False)
+
         regr.fit(reg_inputs.info[party_group], reg_inputs.transformed_results[party_group])
         this_coeffs = [round(x, 3) for x in regr.coef_]
         coeffs[party_group] = this_coeffs
-        coeffs[party_group] += [regr.intercept_]
-        reg_inputs.info[party_group] += [1]
-        print(coeffs[party_group])
     return coeffs
 
 
@@ -455,8 +456,6 @@ def record_outputs(config, outputs, inputs, studied_election, day, coeffs, reg_i
             # cause an error for them to be included here, so skip them
             if party_code not in reg_inputs.complete_info:
                 continue
-            print(coeffs[party_group])
-            print(reg_inputs.complete_info[party_code])
             zipped = zip(reg_inputs.complete_info[party_code], 
                         coeffs[party_group])
             estimated = sum([a[0] * a[1] for a in zipped])
