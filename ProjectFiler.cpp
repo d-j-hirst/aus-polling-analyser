@@ -18,7 +18,8 @@
 // Version 11: Save additional model parameters
 // Version 12: Save latest simulation report
 // Version 13: Save all simulation reports
-constexpr int VersionNum = 13;
+// Version 14: Save source file for polls
+constexpr int VersionNum = 14;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -347,6 +348,7 @@ void ProjectFiler::loadPollsters(SaveFileInput& saveInput, [[maybe_unused]] int 
 void ProjectFiler::savePolls(SaveFileOutput& saveOutput)
 {
 	saveOutput.outputAsType<int32_t>(project.pollCollection.count());
+	saveOutput << project.pollCollection.sourceFile;
 	for (auto const& [key, thisPoll] : project.pollCollection) {
 		saveOutput.outputAsType<int32_t>(project.pollsters().idToIndex(thisPoll.pollster));
 		saveOutput.outputAsType<int32_t>(thisPoll.date.GetYear());
@@ -365,6 +367,9 @@ void ProjectFiler::savePolls(SaveFileOutput& saveOutput)
 void ProjectFiler::loadPolls(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
 {
 	auto pollCount = saveInput.extract<int32_t>();
+	if (versionNum >= 14) {
+		saveInput >> project.pollCollection.sourceFile;
+	}
 	for (int pollIndex = 0; pollIndex < pollCount; ++pollIndex) {
 		Poll thisPoll;
 		thisPoll.pollster = saveInput.extract<int32_t>();

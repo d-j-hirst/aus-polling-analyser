@@ -17,6 +17,8 @@ public:
 
 class PollCollection {
 public:
+	friend class ProjectFiler;
+
 	// Collection is a map between ID values and polls
 	// IDs are not preserved between sessions, and are used to ensure
 	// consistent display with poll deletions etc. while making sure references
