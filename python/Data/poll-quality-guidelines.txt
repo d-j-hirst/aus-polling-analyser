@@ -1,7 +1,7 @@
 By default a standard poll is represented by an effective sample size of 1000 (pending evidence that larger sample sizes produce a more reliable result in practice as well as in theory).
 
 This is then adjusted according to the following "strikes" - factors that indicate a poll may be less reliable than others:
- - After the inception of the Australian Polling Council, not a member
+ - After the inception of the Australian Polling Council (1 Jun 2021), not a member
  - Poll is commissioned by a non-media organisation
  - Poll is not officially published, but unofficially released (note: leaked party internal polls are banned entirely)
  - Poll is not part of a regular, fully published series (polls in the 2 weeks before an election are exempt)
