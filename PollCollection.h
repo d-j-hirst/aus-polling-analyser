@@ -27,6 +27,7 @@ public:
 	typedef std::map<Poll::Id, Poll> PollContainer;
 
 	typedef std::function<std::string(std::string, std::string)> RequestFunc;
+	typedef std::function<void(std::string)> MessageFunc;
 
 	// Poll index refers to the position of the poll in the order of currently existing polls
 	// Should not be stored persistently as removal of a poll will change the indices
@@ -93,7 +94,7 @@ public:
 
 	// requestFunc should take two std::string arguments, one for a prompt and one for a default input,
 	// and display some prompt using those two strings, giving the user's final input as a string
-	void collectPolls(RequestFunc requestFunc);
+	void collectPolls(RequestFunc requestFunc, MessageFunc messageFunc);
 
 	void logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const;
 

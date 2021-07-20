@@ -126,11 +126,16 @@ void PollCollection::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, 
 	}
 }
 
-void PollCollection::collectPolls(RequestFunc requestFunc)
+void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFunc)
 {
 	if (sourceFile == "") sourceFile = DefaultFileName;
 	sourceFile = requestFunc("Enter a path for the poll data.", sourceFile);
-	logger << "User entered filename: " << sourceFile << "\n";
+	auto file = std::ifstream(sourceFile);
+	if (!file) {
+		messageFunc("Polls file not present! Expected a file at " + sourceFile);
+		return;
+	}
+	messageFunc("Successfully found filename: " + sourceFile);
 
 }
 
