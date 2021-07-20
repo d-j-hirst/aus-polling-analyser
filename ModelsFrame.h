@@ -91,6 +91,9 @@ private:
 	// does everything required to run the currently selected model, if possible.
 	void collectData();
 
+	// does everything required to collect polls from the currently selected poll data
+	void collectPolls();
+
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;
 

@@ -58,6 +58,8 @@ private:
 	// updates the interface after a change in item selection.
 	void OnSelectionChange(wxDataViewEvent& event);
 
+	void OnCollectPolls(wxCommandEvent& WXUNUSED(event));
+
 	// does everything required to add the poll "poll".
 	void addPoll(Poll poll);
 

@@ -12,6 +12,7 @@ enum ControlId {
 	New,
 	Edit,
 	Remove,
+	CollectPolls,
 };
 
 // frame constructor
@@ -32,10 +33,11 @@ void PollsFrame::setupToolbar()
 
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[3];
+	std::array<wxBitmap, 4> toolBarBitmaps;
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[3] = wxBitmap("bitmaps\\toggle_polls.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -44,6 +46,7 @@ void PollsFrame::setupToolbar()
 	toolBar->AddTool(ControlId::New, "New Poll", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Poll");
 	toolBar->AddTool(ControlId::Edit, "Edit Poll", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Poll");
 	toolBar->AddTool(ControlId::Remove, "Remove Poll", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Poll");
+	toolBar->AddTool(ControlId::CollectPolls, "Collect Polls", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Collect Polls");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -108,6 +111,7 @@ void PollsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &PollsFrame::OnNewPoll, this, ControlId::New);
 	Bind(wxEVT_TOOL, &PollsFrame::OnEditPoll, this, ControlId::Edit);
 	Bind(wxEVT_TOOL, &PollsFrame::OnRemovePoll, this, ControlId::Remove);
+	Bind(wxEVT_TOOL, &PollsFrame::OnCollectPolls, this, ControlId::CollectPolls);
 
 	// Need to update the interface if the selection changes
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &PollsFrame::OnSelectionChange, this, ControlId::DataView);
@@ -222,4 +226,20 @@ void PollsFrame::updateInterface() {
 	bool somethingSelected = (pollData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
+}
+
+void PollsFrame::OnCollectPolls(wxCommandEvent&) {
+	auto answer = wxMessageDialog(this, "Warning: This will completely replace all polls in this file. Please confirm!", "Confirm replace polls", wxOK | wxCANCEL | wxCANCEL_DEFAULT).ShowModal();
+
+	if (answer != wxID_OK) return;
+
+	PollCollection::RequestFunc requestFunc = [this](std::string caption, std::string default) -> std::string {
+		auto dialog = wxTextEntryDialog(this, caption, "", default);
+		dialog.ShowModal();
+		return std::string(dialog.GetValue());
+	};
+
+	project->polls().collectPolls(requestFunc);
+
+	refresher.refreshPollData();
 }

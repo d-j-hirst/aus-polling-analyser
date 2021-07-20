@@ -162,7 +162,8 @@ void ModelsFrame::setupToolbar()
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[3] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
-	toolBarBitmaps[4] = wxBitmap("bitmaps\\extend_to_last.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[4] = wxBitmap("bitmaps\\extend_polls.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[5] = wxBitmap("bitmaps\\details.png", wxBITMAP_TYPE_PNG);
 
 	toolBar = new wxToolBar(this, wxID_ANY);
 
@@ -170,7 +171,7 @@ void ModelsFrame::setupToolbar()
 	toolBar->AddTool(ControlId::Edit, "Edit Model", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Model");
 	toolBar->AddTool(ControlId::Remove, "Remove Model", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Model");
 	toolBar->AddTool(ControlId::CollectData, "Run Model", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Model");
-	toolBar->AddTool(ControlId::DisplayResults, "Extend model to latest poll", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Extend model to latest poll");
+	toolBar->AddTool(ControlId::DisplayResults, "Display Results", toolBarBitmaps[5], wxNullBitmap, wxITEM_NORMAL, "Display Results");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();

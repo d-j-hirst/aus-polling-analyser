@@ -3,7 +3,9 @@
 #include "PartyCollection.h"
 #include "Poll.h"
 
+#include <functional>
 #include <map>
+#include <string>
 
 class PollingProject;
 class PollsterCollection;
@@ -21,6 +23,8 @@ public:
 	// from other components are preserved
 	// Map must be ordered to ensure order of polls is in order they are added.
 	typedef std::map<Poll::Id, Poll> PollContainer;
+
+	typedef std::function<std::string(std::string, std::string)> RequestFunc;
 
 	// Poll index refers to the position of the poll in the order of currently existing polls
 	// Should not be stored persistently as removal of a poll will change the indices
@@ -85,6 +89,10 @@ public:
 	// If a party is removed, polls need to be adjusted to deal with this
 	void adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
+	// requestFunc should take two std::string arguments, one for a prompt and one for a default input,
+	// and display some prompt using those two strings, giving the user's final input as a string
+	void collectPolls(RequestFunc requestFunc);
+
 	void logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const;
 
 	Poll& back() { return std::prev(polls.end())->second; }
@@ -95,6 +103,8 @@ public:
 	PollContainer::const_iterator end() const { return polls.end(); }
 
 private:
+
+	std::string sourceFile = "";
 
 	// what the next ID for an item in the container will be
 	int nextId = 0;

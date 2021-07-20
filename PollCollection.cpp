@@ -4,6 +4,8 @@
 
 #include <exception>
 
+const std::string DefaultFileName = "./Python/Data/poll-data-fed.csv";
+
 PollCollection::PollCollection(PollingProject& project)
 	: project(project)
 {
@@ -122,6 +124,14 @@ void PollCollection::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, 
 			poll.second.primary[j] = poll.second.primary[j + 1];
 		poll.second.primary[project.parties().count()] = -1;
 	}
+}
+
+void PollCollection::collectPolls(RequestFunc requestFunc)
+{
+	if (sourceFile == "") sourceFile = DefaultFileName;
+	sourceFile = requestFunc("Enter a path for the poll data.", sourceFile);
+	logger << "User entered filename: " << sourceFile << "\n";
+
 }
 
 void PollCollection::logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const
