@@ -11,7 +11,7 @@ data {
     // poll data
     real<lower=0.0, upper=100.0> pollObservations[pollCount]; // poll data
     int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
-    int<lower=0, upper=houseCount> pollHouse[pollCount]; // polling house for each poll, 0 = actual election
+    int<lower=0, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
     int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
     
     // day of all discontinuities in term
@@ -37,14 +37,14 @@ data {
 }
 
 transformed data {
+    int<lower=0> firstDay = min(pollDay);
     real adjustedPriorResult = priorResult;
     int<lower=1> includeCount = (houseCount - excludeCount);
     int<lower=0> housePollCount[includeCount] = rep_array(0, includeCount);
     vector<lower=0.0, upper=1.0>[includeCount] houseWeight;
     real totalHouseWeight;
     for (poll in 1:pollCount) {
-        // if (pollHouse[poll] <= includeCount) {
-        if (pollHouse[poll] <= includeCount && pollHouse[poll] > 0) {
+        if (pollHouse[poll] <= includeCount) {
             housePollCount[pollHouse[poll]] = housePollCount[pollHouse[poll]] + 1;
         }
     }
@@ -74,7 +74,7 @@ model {
     preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, priorVoteShareSigma);
     
     // day-to-day change sampling, excluding discontinuities
-    for (day in 1:dayCount-1) {
+    for (day in firstDay:dayCount-1) {
         int isDisc = 0;
         for (discontinuity in discontinuities) {
             if (discontinuity == day) {
@@ -100,17 +100,10 @@ model {
         if (!missingObservations[poll]) {
             
             real obs = pollObservations[poll];
-            if (pollHouse[poll] > 0) {
-                real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
-                real distSigma = sigmas[poll];
-                
-                obs ~ normal(distMean, distSigma);
-            }
-            else { // actual election result
-                real distMean = preliminaryVoteShare[pollDay[poll]];
-                real distSigma = sigmas[poll];
-                obs ~ normal(distMean, distSigma);
-            }
+            real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
+            real distSigma = sigmas[poll];
+            
+            obs ~ normal(distMean, distSigma);
         }
     }
 }
@@ -119,7 +112,7 @@ generated quantities {
     vector[dayCount] adjustedVoteShare;
     
     // modifiy values near to or beyond edge cases so that they're still valid vote shares
-    for (day in 1:dayCount) {
+    for (day in firstDay:dayCount) {
         real share = preliminaryVoteShare[day];
         if (share < 0.5) {
             adjustedVoteShare[day] = 0.5 * exp(share-0.5);

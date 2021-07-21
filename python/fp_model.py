@@ -93,7 +93,7 @@ def run_models():
             # start times are consistent amongst series
             # (otherwise, a poll missing some parties could cause inconsistent
             # date indexing)
-            start = election_cycles[desired_election][0]  # day zero
+            start = df['MidDate'].min()  # day zero
             df['Day'] = df['MidDate'] - start  # day number for each poll
             n_days = df['Day'].max().n + 1
 
@@ -123,7 +123,7 @@ def run_models():
             # Get the prior result, or a small vote share if
             # the prior result is not given
             if (desired_election, party) in prior_results:
-                prior_result = prior_results[(desired_election, party)]
+                prior_result = max(0.1, prior_results[(desired_election, party)])
             else:
                 prior_result = 0.25  # percentage
 
@@ -195,7 +195,7 @@ def run_models():
             # Prepare the data for Stan to process
             data = {
                 'dayCount': n_days,
-                'pollCount': n_polls + 1,  # extra 1 for previous election
+                'pollCount': n_polls,
                 'houseCount': n_houses,
                 'discontinuityCount': len(discontinuities_filtered),
                 'priorResult': prior_result,
@@ -233,14 +233,11 @@ def run_models():
                 'priorVoteShareSigma': 200.0
             }
 
-            # Add data point representing exact knowledge of previous election
-            data['pollObservations'] = \
-                np.append(data['pollObservations'], prior_result)
-            data['missingObservations'] = \
-                np.append(data['missingObservations'], 0)
-            data['pollHouse'] = np.append(data['pollHouse'], 0)
-            data['pollDay'] = np.append(data['pollDay'], 1)
-            data['sigmas'] = np.append(data['sigmas'], 0.01)
+            print(desired_election)
+            print(party)
+            print(data)
+            print(df['Day'])
+            print(df['House'])
 
             # encode the STAN model in C++ or retrieve it if already cached
             sm = stan_cache(model_code=model)
