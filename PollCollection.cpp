@@ -3,8 +3,16 @@
 #include "PollingProject.h"
 
 #include <exception>
+#include <limits>
 
 const std::string DefaultFileName = "./Python/Data/poll-data-fed.csv";
+
+struct PollInfo {
+	std::vector<int> date;
+	int pollsterId;
+	float tpp = std::numeric_limits<float>::quiet_NaN();
+	std::map<int, float> results;
+};
 
 PollCollection::PollCollection(PollingProject& project)
 	: project(project)
@@ -135,8 +143,82 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 		messageFunc("Polls file not present! Expected a file at " + sourceFile);
 		return;
 	}
-	messageFunc("Successfully found filename: " + sourceFile);
-
+	messageFunc("Successfully found file at: " + sourceFile);
+	std::string line;
+	std::getline(file, line); // first line is just a legend, skip it
+	auto splitLine = splitString(line, ",");
+	std::map<int, std::string> partyNames;
+	std::map<int, int> partyIds;
+	for (int heading = 4; heading < int(splitLine.size()); ++heading) {
+		auto splitHeading = splitString(splitLine[heading], " ");
+		if (splitHeading[1] == "FP") {
+			std::string partyName = splitHeading[0];
+			if (partyName == "OTH") {
+				partyIds[heading] = PartyCollection::MaxParties;
+			}
+			bool partyFound = (partyName == "OTH");
+			for (auto const& [id, party] : project.parties()) {
+				if (contains(party.officialCodes, partyName)) {
+					partyFound = true;
+					partyIds[heading] = id;
+					break;
+				}
+			}
+			if (!partyFound) {
+				messageFunc("Could not find a party with party code " + partyName + ". Please add this party code to a party and try again.");
+			}
+		}
+	}
+	logger << "Party Ids: " << partyIds << "\n";
+	std::vector<PollInfo> pollInfos;
+	do {
+		std::getline(file, line);
+		if (!file) break;
+		splitLine = splitString(line, ",");
+		PollInfo pollInfo;
+		pollInfo.date = splitStringI(splitLine[0], "-");
+		std::string pollsterName = splitLine[2];
+		try {
+			pollInfo.tpp = std::stof(splitLine[3]);
+		}
+		catch (std::invalid_argument) {
+			// N/A value, just silently ignore as it's not actually an error
+		}
+		bool pollsterFound = false;
+		for (auto const& [id, pollster] : project.pollsters()) {
+			if (pollster.name == pollsterName) {
+				pollsterFound = true;
+				pollInfo.pollsterId = id;
+				break;
+			}
+		}
+		if (!pollsterFound) {
+			messageFunc("Could not find a pollster with name " + pollsterName + ". Please add this party code to a party and try again.");
+			return;
+		}
+		for (auto const& [column, id] : partyIds) {
+			try {
+				pollInfo.results[id] = std::stof(splitLine[column]);
+			}
+			catch (std::invalid_argument) {
+				// N/A value, just silently ignore as it's not actually an error
+			}
+		}
+		pollInfos.push_back(pollInfo);
+	} while (true);
+	nextId = 0;
+	polls.clear();
+	for (auto const& pollInfo : pollInfos) {
+		logger << pollInfo.date << "  " << pollInfo.pollsterId << "  " << pollInfo.tpp << "  " << pollInfo.results << "\n";
+		Poll poll(pollInfo.pollsterId, wxDateTime(pollInfo.date[2], wxDateTime::Month(pollInfo.date[1] - 1), pollInfo.date[0]));
+		if (!std::isnan(pollInfo.tpp)) poll.reported2pp = pollInfo.tpp;
+		for (auto const& [index, result] : pollInfo.results) {
+			poll.primary[index] = result;
+		}
+		project.parties().recalculatePollCalc2PP(poll);
+		add(poll);
+	}
+	messageFunc("Polls loaded!");
 }
 
 void PollCollection::logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const

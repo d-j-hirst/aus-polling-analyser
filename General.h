@@ -69,6 +69,16 @@ inline std::vector<float> splitStringF(std::string s, std::string const& delimit
 	return floats;
 }
 
+// Splits a string into an vector of int values according to the provided delimiter
+// Throws std::invalid_argument if a value cannot be converted to a int
+inline std::vector<int> splitStringI(std::string s, std::string const& delimiter) {
+	auto stringTokens = splitString(s, delimiter);
+	std::vector<int> ints;
+	std::transform(stringTokens.begin(), stringTokens.end(), std::back_inserter(ints),
+		[](std::string s) {return std::stoi(s); });
+	return ints;
+}
+
 // Converts from a modified julian date number to a regular julian date number
 inline double mjdToJdn(double mjd) {
 	return mjd + 2400000.5;

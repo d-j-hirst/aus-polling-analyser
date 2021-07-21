@@ -25,20 +25,13 @@ public:
 	float calc2pp = NullValue;
 	std::array<float, PartyCollection::MaxParties + 1> primary; // others is always the final index.
 
-	Poll(Pollster::Id pollster, wxDateTime date, float reported2pp, float respondent2pp, float calc2pp)
+	Poll(Pollster::Id pollster, wxDateTime date, float reported2pp = NullValue, float respondent2pp = NullValue, float calc2pp = NullValue)
 		: pollster(pollster), date(date), reported2pp(reported2pp), respondent2pp(respondent2pp), calc2pp(calc2pp) {
 		resetPrimaries();
 	}
 
 	Poll() {
 		resetPrimaries();
-	}
-
-	std::string removeTrailingZeroes(std::string str) const {
-		std::string newStr = str;
-		newStr.erase(newStr.find_last_not_of('0') + 1, std::string::npos); // remove all trailing zeroes
-		newStr.erase(newStr.find_last_not_of('.') + 1, std::string::npos); // remove the decimal point if it's in last place
-		return newStr;
 	}
 
 	std::string getReported2ppString() const {

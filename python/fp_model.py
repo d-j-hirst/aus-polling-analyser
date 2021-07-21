@@ -233,12 +233,6 @@ def run_models():
                 'priorVoteShareSigma': 200.0
             }
 
-            print(desired_election)
-            print(party)
-            print(data)
-            print(df['Day'])
-            print(df['House'])
-
             # encode the STAN model in C++ or retrieve it if already cached
             sm = stan_cache(model_code=model)
 
