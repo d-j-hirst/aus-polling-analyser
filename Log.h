@@ -20,6 +20,9 @@ public:
 	template<typename T, typename U>
 	Logger& operator<<(const std::map<T, U>& obj);
 
+	template<typename T, int X>
+	Logger& operator<<(const std::array<T, X>& obj);
+
 	Logger& operator<<(const uint8_t& obj);
 
 	Logger& operator<<(const int8_t& obj);
@@ -62,6 +65,21 @@ inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
 		firstItem = false;
 	}
 	fileStream_ << "}";
+	fileStream_.flush();
+	return *this;
+}
+
+template<typename T, int X>
+inline Logger& Logger::operator<<(const std::array<T, X>& obj)
+{
+	fileStream_ << "[";
+	bool firstItem = true;
+	for (auto const& component : obj) {
+		if (!firstItem) fileStream_ << ", ";
+		*this << component;
+		firstItem = false;
+	}
+	fileStream_ << "]";
 	fileStream_.flush();
 	return *this;
 }

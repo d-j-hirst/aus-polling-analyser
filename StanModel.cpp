@@ -35,6 +35,7 @@ wxDateTime StanModel::getEndDate() const
 void StanModel::loadData(FeedbackFunc feedback)
 {
 	loadPartyGroups();
+	loadCoefficients(feedback);
 	generateParameterMaps();
 	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
 		feedback("No party codes found!");
@@ -232,6 +233,40 @@ void StanModel::loadPartyGroups()
 			partyGroups[values[0]].push_back(splitValue);
 		}
 	} while (true);
+}
+
+void StanModel::loadCoefficients(FeedbackFunc feedback)
+{
+	coeffs = {};
+	for (auto const& [partyGroup, partyList] : partyGroups) {
+		// If there's a specific adjustment file for this election (usually only for hindcasts) use that
+		// Otherwise (as for future elections) just use the general versions that use all past elections
+		std::string electionFileName = "python/Adjustments/adjust_" + termCode + "_" + partyGroup + ".csv";
+		std::string generalFileName = "python/Adjustments/adjust_0none_" + partyGroup + ".csv";
+		auto file = std::ifstream(electionFileName);
+		if (!file) file = std::ifstream(generalFileName);
+		if (!file) {
+			feedback("Error: Could not find an adjustment file for party group: " + partyGroup);
+			return;
+		}
+		std::string line;
+		std::getline(file, line);
+		auto coeffLine = splitString(line, ",");
+		int dayCount = coeffLine.size();
+		CoefficientSeries series(dayCount, CoefficientSet{}); // final argument braces sets to zero rather than uninitialized
+		for (int day = 0; day < dayCount; ++day) {
+			series[day][0] = std::stod(coeffLine[day]);
+		}
+		for (int coeffType = 1; coeffType < InputCoefficients::Max; ++coeffType) {
+			std::getline(file, line);
+			coeffLine = splitString(line, ",");
+			for (int day = 0; day < dayCount; ++day) {
+				series[day][coeffType] = std::stod(coeffLine[day]);
+			}
+		}
+		coeffs[partyGroup] = series;
+	}
+	logger << coeffs;
 }
 
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const

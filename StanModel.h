@@ -94,12 +94,32 @@ public:
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
+	enum InputCoefficients {
+		PollTrendNow,
+		SameFederal,
+		OppositeFederal,
+		PreviousElection,
+		Incumbent,
+		Federal,
+		YearsInGovernment,
+		YearsInOpposition,
+		Max
+	};
+
 	// Type for temporarily storing party group data
 	typedef std::vector<std::string> PartyGroup;
 	typedef std::map<std::string, PartyGroup> PartyGroups;
 
+	typedef std::array<double, InputCoefficients::Max> CoefficientSet;
+	typedef std::vector<CoefficientSet> CoefficientSeries;
+	typedef std::map<std::string, CoefficientSeries> CoefficientSeriesByPartyGroup;
+
+
 	// Loads the party group data from python/Data/party-groups.csv
 	void loadPartyGroups();
+
+	// Loads coefficients for model parameters from 
+	void loadCoefficients(FeedbackFunc feedback);
 
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
@@ -155,6 +175,8 @@ private:
 	// classifies parties based on electoral behaviour, with minor
 	// parties combined into groups to get useful sample sizes
 	PartyGroups partyGroups;
+
+	CoefficientSeriesByPartyGroup coeffs;
 
 	PartyCodes partyCodeVec;
 	PartyParameters debiasSlopeMap;
