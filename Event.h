@@ -3,18 +3,21 @@
 #include <wx/datetime.h>
 #include "General.h"
 
-enum EventType {
-	EventType_None,
-	EventType_Election,
-	EventType_Discontinuity
-};
 
 struct Event {
+	enum class Type {
+		None,
+		Election,
+		Discontinuity,
+		EndOfPeriod,
+		Max,
+	};
+
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
 
 	std::string name = "Enter event name here";
-	EventType eventType = EventType_None;
+	Type eventType = Type::None;
 	wxDateTime date = wxDateTime::Now();
 	float vote = 50.0f;
 
@@ -23,17 +26,30 @@ struct Event {
 		else return date.FormatISODate().ToStdString();
 	}
 
-	std::string getEventTypeString() const {
+	static std::string eventTypeString(Type eventType) {
 		switch (eventType) {
-		case EventType_None: return "None";
-		case EventType_Election: return "Election";
-		case EventType_Discontinuity: return "Discontinuity";
+		case Type::None: return "None";
+		case Type::Election: return "Election";
+		case Type::Discontinuity: return "Discontinuity";
+		case Type::EndOfPeriod: return "End Of Period";
 		default: return "";
 		}
 	}
 
+	static std::vector<Type> allEventTypes() {
+		std::vector<Type> types;
+		for (int typeIndex = 0; typeIndex < int(Type::Max); ++typeIndex) {
+			types.push_back(Type(typeIndex));
+		}
+		return types;
+	}
+
+	std::string getEventTypeString() const {
+		return eventTypeString(eventType);
+	}
+
 	std::string getVoteString() const {
-		if (eventType == EventType_Election) return formatFloat(vote, 2);
+		if (eventType == Type::Election) return formatFloat(vote, 2);
 		return "";
 	}
 

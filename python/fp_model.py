@@ -114,16 +114,10 @@ def run_models():
                     pass  # it's expected that some parties aren't in the file
             n_polls = len(df)
 
-            # treat later Newspoll as a seperate series
-            df['Firm'] = \
-                df['Firm'].where((df['MidDate'] <
-                                 pd.Period('2015-06-20', freq='D')) |
-                                 (df['Firm'] != 'Newspoll'), other='Newspoll2')
-
             # Get the prior result, or a small vote share if
             # the prior result is not given
             if (desired_election, party) in prior_results:
-                prior_result = max(0.1, prior_results[(desired_election, party)])
+                prior_result = max(0.25, prior_results[(desired_election, party)])
             else:
                 prior_result = 0.25  # percentage
 

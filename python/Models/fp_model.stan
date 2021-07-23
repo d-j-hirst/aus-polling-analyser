@@ -11,7 +11,7 @@ data {
     // poll data
     real<lower=0.0, upper=100.0> pollObservations[pollCount]; // poll data
     int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
-    int<lower=0, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
+    int<lower=1, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
     int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
     
     // day of all discontinuities in term
@@ -37,7 +37,6 @@ data {
 }
 
 transformed data {
-    int<lower=0> firstDay = min(pollDay);
     real adjustedPriorResult = priorResult;
     int<lower=1> includeCount = (houseCount - excludeCount);
     int<lower=0> housePollCount[includeCount] = rep_array(0, includeCount);
@@ -74,7 +73,7 @@ model {
     preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, priorVoteShareSigma);
     
     // day-to-day change sampling, excluding discontinuities
-    for (day in firstDay:dayCount-1) {
+    for (day in 1:dayCount-1) {
         int isDisc = 0;
         for (discontinuity in discontinuities) {
             if (discontinuity == day) {
@@ -112,7 +111,7 @@ generated quantities {
     vector[dayCount] adjustedVoteShare;
     
     // modifiy values near to or beyond edge cases so that they're still valid vote shares
-    for (day in firstDay:dayCount) {
+    for (day in 1:dayCount) {
         real share = preliminaryVoteShare[day];
         if (share < 0.5) {
             adjustedVoteShare[day] = 0.5 * exp(share-0.5);
@@ -122,5 +121,4 @@ generated quantities {
             adjustedVoteShare[day] = share;
         }
     }
-    
 } 

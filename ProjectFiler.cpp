@@ -84,7 +84,7 @@ int ProjectFiler::save(std::string filename) {
 	for (auto const&[key, thisEvent] : project.eventCollection) {
 		os << "@Event" << "\n";
 		os << "name=" << thisEvent.name << "\n";
-		os << "type=" << thisEvent.eventType << "\n";
+		os << "type=" << int(thisEvent.eventType) << "\n";
 		os << "date=" << thisEvent.date.GetJulianDayNumber() << "\n";
 		os << "vote=" << thisEvent.vote << "\n";
 	}
@@ -405,7 +405,7 @@ void ProjectFiler::loadEvents(SaveFileInput& saveInput, [[maybe_unused]] int ver
 	for (int eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
 		Event thisEvent;
 		saveInput >> thisEvent.name;
-		thisEvent.eventType = EventType(saveInput.extract<int32_t>());
+		thisEvent.eventType = Event::Type(saveInput.extract<int32_t>());
 		thisEvent.date = wxDateTime(saveInput.extract<double>());
 		saveInput >> thisEvent.vote;
 		project.eventCollection.add(thisEvent);
@@ -1180,7 +1180,7 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("type=")) {
-			project.eventCollection.back().eventType = EventType(std::stoi(line.substr(5)));
+			project.eventCollection.back().eventType = Event::Type(std::stoi(line.substr(5)));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("date=")) {

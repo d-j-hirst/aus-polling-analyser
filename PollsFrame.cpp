@@ -244,4 +244,5 @@ void PollsFrame::OnCollectPolls(wxCommandEvent&) {
 	project->polls().collectPolls(requestFunc, messageFunc);
 
 	refresher.refreshPollData();
+	refresher.refreshVisualiser();
 }

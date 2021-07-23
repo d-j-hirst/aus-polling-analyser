@@ -8,7 +8,7 @@
 const std::string DefaultFileName = "./Python/Data/poll-data-fed.csv";
 
 struct PollInfo {
-	std::vector<int> date;
+	wxDateTime date;
 	int pollsterId;
 	float tpp = std::numeric_limits<float>::quiet_NaN();
 	std::map<int, float> results;
@@ -169,14 +169,21 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 			}
 		}
 	}
-	logger << "Party Ids: " << partyIds << "\n";
+	wxDateTime cutoffDate(1, wxDateTime::Month(0), 9999);
+	for (auto const& [key, event] : project.events()) {
+		if (event.eventType == Event::Type::EndOfPeriod) {
+			if (event.date < cutoffDate) cutoffDate = event.date;
+		}
+	}
 	std::vector<PollInfo> pollInfos;
 	do {
 		std::getline(file, line);
 		if (!file) break;
 		splitLine = splitString(line, ",");
 		PollInfo pollInfo;
-		pollInfo.date = splitStringI(splitLine[0], "-");
+		auto dateParts = splitStringI(splitLine[0], "-");
+		pollInfo.date = wxDateTime(dateParts[2], wxDateTime::Month(dateParts[1] - 1), dateParts[0]);
+		if (pollInfo.date > cutoffDate) continue;
 		std::string pollsterName = splitLine[2];
 		try {
 			pollInfo.tpp = std::stof(splitLine[3]);
@@ -209,8 +216,7 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 	nextId = 0;
 	polls.clear();
 	for (auto const& pollInfo : pollInfos) {
-		logger << pollInfo.date << "  " << pollInfo.pollsterId << "  " << pollInfo.tpp << "  " << pollInfo.results << "\n";
-		Poll poll(pollInfo.pollsterId, wxDateTime(pollInfo.date[2], wxDateTime::Month(pollInfo.date[1] - 1), pollInfo.date[0]));
+		Poll poll(pollInfo.pollsterId, pollInfo.date);
 		if (!std::isnan(pollInfo.tpp)) poll.reported2pp = pollInfo.tpp;
 		for (auto const& [index, result] : pollInfo.results) {
 			poll.primary[index] = result;

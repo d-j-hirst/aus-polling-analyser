@@ -131,10 +131,10 @@ void Model::importPolls(PollsterCollection const & pollsters, PollCollection con
 void Model::importEvents(EventCollection const& events)
 {
 	for (auto const& [key, event] : events) {
-		if (event.eventType == EventType_Election) {
+		if (event.eventType == Event::Type::Election) {
 			importElection(event.vote, event.date);
 		}
-		else if (event.eventType == EventType_Discontinuity) {
+		else if (event.eventType == Event::Type::Discontinuity) {
 			importDiscontinuity(event.date);
 		}
 	}

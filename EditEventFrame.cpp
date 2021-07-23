@@ -45,11 +45,11 @@ void EditEventFrame::createNameInput(int & y)
 void EditEventFrame::createTypeInput(int & y)
 {
 	wxArrayString typeArray;
-	typeArray.push_back("None");
-	typeArray.push_back("Election");
-	typeArray.push_back("Discontinuity");
+	for (auto type : Event::allEventTypes()) {
+		typeArray.push_back(Event::eventTypeString(type));
+	}
 
-	auto typeCallback = [this](int i) -> void {event.eventType = EventType(i); };
+	auto typeCallback = [this](int i) -> void {event.eventType = Event::Type(i); };
 	typeInput.reset(new ChoiceInput(this, ControlId::Type, "Event Type:", typeArray, int(event.eventType), wxPoint(2, y), typeCallback));
 	y += nameInput->Height + ControlPadding;
 }
