@@ -11,6 +11,8 @@ public:
 
 	void clear();
 
+	void setFlushFlag(bool val) { doFlush_ = val; }
+
 	template<typename T>
 	Logger& operator<<(const T& obj);
 
@@ -29,6 +31,10 @@ public:
 private:
 	void resetLog();
 
+	void flushIf() { if (doFlush_) fileStream_.flush(); }
+
+	bool doFlush_ = true;
+
 	std::ofstream fileStream_;
 };
 
@@ -37,13 +43,15 @@ extern Logger logger;
 template<typename T>
 inline Logger& Logger::operator<<(const T& obj) {
 	fileStream_ << obj;
-	fileStream_.flush();
+	flushIf();
 	return *this;
 }
 
 template<typename T>
 inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 	fileStream_ << "[";
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
 	bool firstItem = true;
 	for (auto const& component : obj) {
 		if (!firstItem) fileStream_ << ", ";
@@ -51,13 +59,16 @@ inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 		firstItem = false;
 	}
 	fileStream_ << "]";
-	fileStream_.flush();
+	setFlushFlag(prevFlush);
+	flushIf();
 	return *this;
 }
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
 	fileStream_ << "{";
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
 	bool firstItem = true;
 	for (auto const& [key, val] : obj) {
 		if (!firstItem) fileStream_ << ", ";
@@ -65,7 +76,8 @@ inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
 		firstItem = false;
 	}
 	fileStream_ << "}";
-	fileStream_.flush();
+	setFlushFlag(prevFlush);
+	flushIf();
 	return *this;
 }
 
@@ -73,6 +85,8 @@ template<typename T, int X>
 inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 {
 	fileStream_ << "[";
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
 	bool firstItem = true;
 	for (auto const& component : obj) {
 		if (!firstItem) fileStream_ << ", ";
@@ -80,18 +94,19 @@ inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 		firstItem = false;
 	}
 	fileStream_ << "]";
-	fileStream_.flush();
+	setFlushFlag(prevFlush);
+	flushIf();
 	return *this;
 }
 
 inline Logger& Logger::operator<<(const uint8_t& obj) {
 	fileStream_ << static_cast<int>(obj);
-	fileStream_.flush();
+	flushIf();
 	return *this;
 }
 
 inline Logger& Logger::operator<<(const int8_t& obj) {
 	fileStream_ << static_cast<int>(obj);
-	fileStream_.flush();
+	flushIf();
 	return *this;
 }
