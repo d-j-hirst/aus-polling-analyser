@@ -114,12 +114,18 @@ private:
 	typedef std::vector<CoefficientSet> CoefficientSeries;
 	typedef std::map<std::string, CoefficientSeries> CoefficientSeriesByPartyGroup;
 
+	typedef std::pair<double, double> Deviations;
+	typedef std::vector<Deviations> DeviationSeries;
+	typedef std::map<std::string, DeviationSeries> DeviationSeriesByPartyGroup;
 
 	// Loads the party group data from python/Data/party-groups.csv
 	void loadPartyGroups();
 
 	// Loads coefficients for model parameters from 
 	void loadCoefficients(FeedbackFunc feedback);
+
+	// Loads coefficients for model parameters from 
+	void loadDeviations(FeedbackFunc feedback);
 
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
@@ -177,6 +183,7 @@ private:
 	PartyGroups partyGroups;
 
 	CoefficientSeriesByPartyGroup coeffs;
+	DeviationSeriesByPartyGroup deviations;
 
 	PartyCodes partyCodeVec;
 	PartyParameters debiasSlopeMap;

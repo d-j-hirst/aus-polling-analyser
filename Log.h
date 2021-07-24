@@ -25,6 +25,9 @@ public:
 	template<typename T, int X>
 	Logger& operator<<(const std::array<T, X>& obj);
 
+	template<typename T, typename U>
+	Logger& operator<<(const std::pair<T, U>& obj);
+
 	Logger& operator<<(const uint8_t& obj);
 
 	Logger& operator<<(const int8_t& obj);
@@ -49,9 +52,9 @@ inline Logger& Logger::operator<<(const T& obj) {
 
 template<typename T>
 inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
-	fileStream_ << "[";
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
+	fileStream_ << "[";
 	bool firstItem = true;
 	for (auto const& component : obj) {
 		if (!firstItem) fileStream_ << ", ";
@@ -66,9 +69,9 @@ inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
-	fileStream_ << "{";
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
+	fileStream_ << "{";
 	bool firstItem = true;
 	for (auto const& [key, val] : obj) {
 		if (!firstItem) fileStream_ << ", ";
@@ -84,9 +87,9 @@ inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
 template<typename T, int X>
 inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 {
-	fileStream_ << "[";
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
+	fileStream_ << "[";
 	bool firstItem = true;
 	for (auto const& component : obj) {
 		if (!firstItem) fileStream_ << ", ";
@@ -94,6 +97,17 @@ inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 		firstItem = false;
 	}
 	fileStream_ << "]";
+	setFlushFlag(prevFlush);
+	flushIf();
+	return *this;
+}
+
+template<typename T, typename U>
+inline Logger& Logger::operator<<(const std::pair<T, U>& obj)
+{
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
+	*this << "[" << obj.first << ", " << obj.second << "]";
 	setFlushFlag(prevFlush);
 	flushIf();
 	return *this;

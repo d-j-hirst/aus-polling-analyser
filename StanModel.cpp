@@ -36,6 +36,7 @@ void StanModel::loadData(FeedbackFunc feedback)
 {
 	loadPartyGroups();
 	loadCoefficients(feedback);
+	loadDeviations(feedback);
 	generateParameterMaps();
 	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
 		feedback("No party codes found!");
@@ -266,7 +267,37 @@ void StanModel::loadCoefficients(FeedbackFunc feedback)
 		}
 		coeffs[partyGroup] = series;
 	}
-	logger << coeffs;
+}
+
+void StanModel::loadDeviations(FeedbackFunc feedback)
+{
+	coeffs = {};
+	for (auto const& [partyGroup, partyList] : partyGroups) {
+		// If there's a specific adjustment file for this election (usually only for hindcasts) use that
+		// Otherwise (as for future elections) just use the general versions that use all past elections
+		std::string electionFileName = "python/Adjustments/errors_" + termCode + "_" + partyGroup + ".csv";
+		std::string generalFileName = "python/Adjustments/errors_0none_" + partyGroup + ".csv";
+		auto file = std::ifstream(electionFileName);
+		if (!file) file = std::ifstream(generalFileName);
+		if (!file) {
+			feedback("Error: Could not find a error file for party group: " + partyGroup);
+			return;
+		}
+		std::string line;
+		std::getline(file, line);
+		auto coeffLine = splitString(line, ",");
+		int dayCount = coeffLine.size();
+		DeviationSeries series(dayCount, Deviations{}); // final argument braces sets to zero rather than uninitialized
+		for (int day = 0; day < dayCount; ++day) {
+			series[day].first = std::stod(coeffLine[day]);
+		}
+		std::getline(file, line);
+		coeffLine = splitString(line, ",");
+		for (int day = 0; day < dayCount; ++day) {
+			series[day].second = std::stod(coeffLine[day]);
+		}
+		deviations[partyGroup] = series;
+	}
 }
 
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const
