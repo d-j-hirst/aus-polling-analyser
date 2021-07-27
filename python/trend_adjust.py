@@ -2,6 +2,7 @@ from sklearn import datasets, linear_model
 from scipy.interpolate import UnivariateSpline
 import math
 import argparse
+import statistics
 
 poll_score_threshold = 3
 
@@ -101,7 +102,7 @@ class Config:
         self.show_written_files = parser.parse_args().writtenfiles
         self.exclude_instuctions = parser.parse_args().election.lower()
         self.prepare_election_list()
-        day_test_count = 41
+        day_test_count = 47
         self.days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
         self.adjust_feedback_day()
     
@@ -182,9 +183,12 @@ class Inputs:
         # Trim party list so that we only store it for completed elections
         self.parties = {e: parties[e] for e in self.elections}
         # Create averages of prior results
-        avg_n = 6
-        self.avg_prior_results = {k: sum(v[:avg_n]) / avg_n
-            for k, v in self.prior_results.items()}
+        avg_counts = list(range(1,9))
+        self.avg_prior_results = {
+            avg_n: {
+                k: sum(v[:avg_n]) / avg_n
+                for k, v in self.prior_results.items()
+            } for avg_n in avg_counts}
         self.studied_elections = self.elections + [no_target_election_marker]
 
     def determine_eventual_others_results(self):
@@ -308,7 +312,7 @@ def prepare_individual_info(inputs, election, party_code, day, poll_trend_now,
     same_federal = 0 if election not in inputs.federal_situation \
         else (1 if party == inputs.federal_situation[election][0] else 0)
     # previous election average only predictive for xOTH
-    previous = transform_vote_share(inputs.avg_prior_results[party_code])
+    previous = transform_vote_share(inputs.avg_prior_results[6][party_code])
     previous = previous if party_group == 'xOTH' else 0
     # some factors are only predictive in some circumstances
     if party_group in ['OTH', 'Misc-p']:
@@ -369,7 +373,7 @@ def determine_regression_inputs(day, studied_election, inputs,
             party_code = ElectionPartyCode(election, party)
             if not party_code in inputs.prior_results:
                 inputs.prior_results[party_code] = [0]
-                inputs.avg_prior_results[party_code] = 0
+                inputs.avg_prior_results[6][party_code] = 0
                 print(f'Info: prior result not found for: {party_code}')
             if not party_code in inputs.eventual_results:
                 inputs.eventual_results[party_code] = 0
@@ -379,7 +383,7 @@ def determine_regression_inputs(day, studied_election, inputs,
                         party_code=party_code, 
                         day=day, 
                         percentile=50,
-                        default_value=inputs.prior_results[party_code])
+                        default_value=inputs.avg_prior_results[6][party_code])
             # Very small poll trends cause distortions in the
             # Misc-p results, so best to ignore them and
             # only use parties polling a substantial % of vote
@@ -519,7 +523,7 @@ def show_previous_election_predictions(inputs, config, poll_trend, outputs):
             estimated_high = detransform_vote_share(estimation_high)
             print(f'  Feedback day: {config.feedback_day}')
             print(f'  Prior result: {inputs.prior_results[party_code][0]}')
-            print(f'  Prior average: {inputs.avg_prior_results[party_code]}')
+            print(f'  Prior average: {inputs.avg_prior_results[6][party_code]}')
             print(f'  Poll trend: {poll_trend_now}')
             print(f'  Estimated result: {detransformed}')
             print(f'  95% range: {estimated_low}-{estimated_high}')
@@ -536,7 +540,7 @@ def calculate_parameter_curves(config, exclude, outputs):
                 total_days = x[len(x) - 1]
                 x = range(0, len(x))
                 w = [10 if a == 0 else 1 for a in x]
-                spline = UnivariateSpline(x=x, y=y, w=w, s=3)
+                spline = UnivariateSpline(x=x, y=y, w=w, s=1000)
                 days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
                     for n in range(0, total_days + 1)]
                 full_spline = spline(days_to_study)
@@ -552,13 +556,123 @@ def calculate_parameter_curves(config, exclude, outputs):
                 total_days = x[len(x) - 1]
                 x = range(0, len(x))
                 w = [10 if a == 0 else 1 for a in x]
-                spline = UnivariateSpline(x=x, y=y, w=w, s=3)
+                spline = UnivariateSpline(x=x, y=y, w=w, s=1000)
                 days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
                     for n in range(0, total_days + 1)]
                 full_spline = spline(days_to_study)
                 f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
             if config.show_written_files:
                 print(f'Wrote trend error details to: {filename}')
+
+
+def temp_election_code(election):
+    party = 'LIB FP' if election.region() == 'wa' else 'LNP FP'
+    #party = 'ALP FP'
+    return ElectionPartyCode(election, party)
+
+
+def test_procedure(config, inputs, poll_trend):
+    use_averages = [6]
+    for avg_n in use_averages:
+        print(f'*** USING AVERAGE OF PREVIOUS {avg_n} ELECTIONS ***')
+        days = config.days
+        for day in days:
+            print(f' ** DAY {day} **')
+            if day == 0:
+                previous_debiased_errors = []
+            mix_factors = [x / 100 for x in range(0, 105, 5)]
+            poll_debiased_errors = []
+            mix_limits = (0, 1)
+            while mix_limits[1] - mix_limits[0] > 0.0001:
+                mixed_errors = [[],[]]
+                for studied_election in inputs.studied_elections:
+                    if day == 0:
+                        previous_errors = []
+                    poll_errors = []
+                    studied_previous_error = None
+                    studied_poll_error = None
+                    for other_election in inputs.elections:
+                        party_code = temp_election_code(other_election)
+                        polls = poll_trend.value_at(party_code, day, 50)
+
+                        if polls is not None:
+                            result = inputs.eventual_results[party_code]
+                            result_t = transform_vote_share(result)
+
+                            previous = inputs.avg_prior_results[avg_n][party_code]
+
+                            if previous is not None and day == 0:
+                                previous_error = transform_vote_share(previous) - result_t
+                                if other_election == studied_election:
+                                    studied_previous_error = previous_error
+                                else:
+                                    previous_errors.append(previous_error)
+
+
+                            pollError = transform_vote_share(polls) - result_t
+
+                            if mix_limits == (0, 1) and day == 378 and studied_election == no_target_election_marker:
+                                print(f'Election: {other_election.year()} {other_election.region()}')
+                                print(f'Polls: {polls}')
+                                print(f'Previous: {previous}')
+                                print(f'pollError: {pollError}')
+
+                            if other_election == studied_election:
+                                studied_poll_error = pollError
+                            else:
+                                poll_errors.append(pollError)
+
+                            factor = 0.8
+                    previous_bias = sum(previous_errors) / len(previous_errors)
+                    poll_bias = sum(poll_errors) / len(poll_errors)
+                    if studied_election == no_target_election_marker:
+                        if mix_limits == (0, 1):
+                            if (day == 0):
+                                print(f'previous bias: {previous_bias}')
+                            print(f'raw polls bias: {poll_bias}')
+                        continue
+                    if studied_previous_error is not None:
+                        previous_debiased_error = studied_previous_error - previous_bias
+                        previous_debiased_errors.append(previous_debiased_error)
+                    if studied_poll_error is not None:
+                        poll_debiased_error = studied_poll_error - poll_bias
+                        poll_debiased_errors.append(poll_debiased_error)
+                        party_code = temp_election_code(studied_election)
+                        previous = inputs.avg_prior_results[avg_n][party_code]
+                        debiased_previous = transform_vote_share(previous) - previous_bias
+                        polls = poll_trend.value_at(party_code, day, 50)
+                        debiased_polls = transform_vote_share(polls) - poll_bias
+                        result = transform_vote_share(inputs.eventual_results[party_code])
+                        for mix_index, mix_factor in enumerate(mix_limits):
+                            mixed = debiased_polls * mix_factor + debiased_previous * (1 - mix_factor)
+                            mixed_error = mixed - result
+                            mixed_errors[mix_index].append(mixed_error)
+                mixed_rmse = [0, 0]
+                for mix_index in range(0, len(mix_limits)):
+                    mixed_rmse[mix_index] = math.sqrt(sum([a ** 2 for a in mixed_errors[mix_index]]) / len(mixed_errors[mix_index]))
+                window_factor = 0.5  # should be in range [0.5, 1)
+                if mixed_rmse[0] < mixed_rmse[1]:
+                    mix_limits = (mix_limits[0], mix_limits[0] * (1 - window_factor) + mix_limits[1] * window_factor)
+                else:
+                    mix_limits = (mix_limits[1] * (1 - window_factor) + mix_limits[0] * window_factor, mix_limits[1])
+            final_mix_factor = statistics.mean(mix_limits)
+            print(f'Sample size: {len(poll_errors)}')
+            #print(f'Total previous errors: {sum(previous_errors)}')
+            #print(f'Total previous-one errors: {sum(previous_one_errors)}')
+            #print(f'Total poll errors: {sum(poll_errors)}')
+            if day == 0:
+                previous_rmse = math.sqrt(sum([a ** 2 for a in previous_debiased_errors]) / len(previous_debiased_errors))
+                print(f'debiased previous RMSE: {previous_rmse}')
+                previous_bias = sum(previous_debiased_errors) / len(previous_debiased_errors)
+                print(f'debiased previous bias: {previous_bias}')
+            poll_rmse = math.sqrt(sum([a ** 2 for a in poll_debiased_errors]) / len(poll_debiased_errors))
+            print(f'debiased polls RMSE: {poll_rmse}')
+            poll_bias = sum(poll_debiased_errors) / len(poll_debiased_errors)
+            print(f'debiased polls bias: {poll_bias}')
+            mixed_rmse = math.sqrt(sum([a ** 2 for a in mixed_errors[1]]) / len(mixed_errors[1]))
+            print(f'mixed RMSE for mix factor {final_mix_factor}: {mixed_rmse}')
+            mixed_bias = sum(mixed_errors[1]) / len(mixed_errors[1])
+            print(f'mixed bias for mix factor {final_mix_factor}: {mixed_bias}')
 
 
 def trend_adjust():
@@ -578,6 +692,8 @@ def trend_adjust():
         # Leave this until now so it doesn't interfere with initialization
         # of poll_trend
         inputs.determine_eventual_others_results()
+
+        test_procedure(config, inputs, poll_trend)
 
         determine_trend_adjustments(inputs, config, poll_trend, outputs)
 

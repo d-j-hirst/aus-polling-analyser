@@ -1,5 +1,8 @@
 Polling Analyser to-do:
 -Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
+ -LNP best prior: 6 previous elections (7.567)
+ -ALP best prior: 5 previous election (7.696)
+
  -Add config option to have analysis for a given "excluded" election, which will exclude its data from any inputs. Also an option to do all elections in one batch, or excluded none (which would be used for actual forecasts)
  -Process this option and loop through all excluded elections in the batch, running the rest of the program as before but excising data for the excluded election
  -Change the output of coefficients from the current reporting for all elections, to only the complete set under the name of the election that is excluded

@@ -48,7 +48,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 		tppSupport.timePoint.resize(seriesLength);
 
 
-		constexpr int NumThreads = 8;
+		constexpr int NumThreads = 8; // *** CHANGE BACK TO 8
 		constexpr int BatchSize = 10;
 		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += NumThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {

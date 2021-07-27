@@ -115,12 +115,12 @@ OutputIt transform_combine(InputFirstIt begin1, InputFirstIt end1, InputSecondIt
 // Take a regular vote share (in the range 0.0f to 100.0f) and transform it using
 // the logit transform on the scale -infinity to +infinity
 inline float transformVoteShare(float voteShare) {
-	return std::log((voteShare * 0.01f) / (1.0f - voteShare * 0.01f)) * 25.0f + 50.0f;
+	return std::log((voteShare * 0.01f) / (1.0f - voteShare * 0.01f)) * 25.0f;
 }
 
 // Take a transformed vote share
 inline float detransformVoteShare(float transformedVoteShare) {
-	return 100.0f / (1.0f + std::exp(-0.04f * (transformedVoteShare - 50.0f)));
+	return 100.0f / (1.0f + std::exp(-0.04f * (transformedVoteShare)));
 }
 
 // Take a transformed vote share

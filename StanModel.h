@@ -98,7 +98,7 @@ private:
 		PollTrendNow,
 		SameFederal,
 		OppositeFederal,
-		PreviousElection,
+		PreviousElections,
 		Incumbent,
 		Federal,
 		YearsInGovernment,
@@ -109,6 +109,7 @@ private:
 	// Type for temporarily storing party group data
 	typedef std::vector<std::string> PartyGroup;
 	typedef std::map<std::string, PartyGroup> PartyGroups;
+	typedef std::map<std::string, std::string> ReversePartyGroups;
 
 	typedef std::array<double, InputCoefficients::Max> CoefficientSet;
 	typedef std::vector<CoefficientSet> CoefficientSeries;
@@ -177,10 +178,15 @@ private:
 
 	// temporary/cached data
 
+	// Projections only go for this number of days, longer time periods
+	// will be treated as if they are this number of days
+	int numDays = 0;
 	// party groupings by rough type, loaded from a text (CSV) file
 	// classifies parties based on electoral behaviour, with minor
 	// parties combined into groups to get useful sample sizes
 	PartyGroups partyGroups;
+	// Reverse of the previous map, for efficiency of calculations
+	ReversePartyGroups reversePartyGroups;
 
 	CoefficientSeriesByPartyGroup coeffs;
 	DeviationSeriesByPartyGroup deviations;

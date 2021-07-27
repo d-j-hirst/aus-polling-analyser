@@ -234,6 +234,14 @@ void StanModel::loadPartyGroups()
 			partyGroups[values[0]].push_back(splitValue);
 		}
 	} while (true);
+
+	for (auto const& [key, values] : partyGroups) {
+		for (auto const& value : values) {
+			reversePartyGroups[value] = key;
+		}
+	}
+	logger << reversePartyGroups;
+	// *** Create mapping from existing party name to party group
 }
 
 void StanModel::loadCoefficients(FeedbackFunc feedback)
@@ -253,15 +261,15 @@ void StanModel::loadCoefficients(FeedbackFunc feedback)
 		std::string line;
 		std::getline(file, line);
 		auto coeffLine = splitString(line, ",");
-		int dayCount = coeffLine.size();
-		CoefficientSeries series(dayCount, CoefficientSet{}); // final argument braces sets to zero rather than uninitialized
-		for (int day = 0; day < dayCount; ++day) {
+		if (!numDays) numDays = coeffLine.size();
+		CoefficientSeries series(numDays, CoefficientSet{}); // final argument braces sets to zero rather than uninitialized
+		for (int day = 0; day < numDays; ++day) {
 			series[day][0] = std::stod(coeffLine[day]);
 		}
 		for (int coeffType = 1; coeffType < InputCoefficients::Max; ++coeffType) {
 			std::getline(file, line);
 			coeffLine = splitString(line, ",");
-			for (int day = 0; day < dayCount; ++day) {
+			for (int day = 0; day < numDays; ++day) {
 				series[day][coeffType] = std::stod(coeffLine[day]);
 			}
 		}
@@ -271,7 +279,7 @@ void StanModel::loadCoefficients(FeedbackFunc feedback)
 
 void StanModel::loadDeviations(FeedbackFunc feedback)
 {
-	coeffs = {};
+	deviations = {};
 	for (auto const& [partyGroup, partyList] : partyGroups) {
 		// If there's a specific adjustment file for this election (usually only for hindcasts) use that
 		// Otherwise (as for future elections) just use the general versions that use all past elections
@@ -286,18 +294,18 @@ void StanModel::loadDeviations(FeedbackFunc feedback)
 		std::string line;
 		std::getline(file, line);
 		auto coeffLine = splitString(line, ",");
-		int dayCount = coeffLine.size();
-		DeviationSeries series(dayCount, Deviations{}); // final argument braces sets to zero rather than uninitialized
-		for (int day = 0; day < dayCount; ++day) {
+		DeviationSeries series(numDays, Deviations{}); // final argument braces sets to zero rather than uninitialized
+		for (int day = 0; day < numDays; ++day) {
 			series[day].first = std::stod(coeffLine[day]);
 		}
 		std::getline(file, line);
 		coeffLine = splitString(line, ",");
-		for (int day = 0; day < dayCount; ++day) {
+		for (int day = 0; day < numDays; ++day) {
 			series[day].second = std::stod(coeffLine[day]);
 		}
 		deviations[partyGroup] = series;
 	}
+	logger << deviations;
 }
 
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const
@@ -359,40 +367,84 @@ void StanModel::generateUnnamedOthersSeries()
 StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample, int days) const
 {
 	constexpr int MinDays = 2;
-	float logDays = std::log(float(std::max(days, MinDays)));
+	days = std::min(numDays - 1, days);
+	//float logDays = std::log(float(std::max(days, MinDays)));
 	auto sample = rawSupportSample;
 	for (auto& [key, voteShare] : sample) {
-		float transformed = transformVoteShare(voteShare);
+		float transformedVoteShare = transformVoteShare(voteShare);
 
-		// Remove long-term systemic bias
-		float intercept = debiasInterceptMap.at(key);
-		float slope = debiasSlopeMap.at(key);
-		float debiasChange = intercept + slope * logDays;
-		float transformedDebiasChange = debiasChange * limitedLogitDeriv(voteShare);
-		transformed -= transformedDebiasChange;
 
-		// Mix with historical value
-		float thisMaxPollWeight = maxPollWeightMap.at(key);
-		float thisInformationHorizon = informationHorizonMap.at(key);
-		float thisHyperbolaSharpness = hyperbolaSharpnessMap.at(key);
-		float thisHistorical = historicalAverageMap.at(key);
-		constexpr float HistoricalVoteMin = 0.2f;
-		constexpr float HistoricalVoteMax = 99.8f;
-		float historicalTransformed = transformVoteShare(std::clamp(thisHistorical, HistoricalVoteMin, HistoricalVoteMax));
-		float pollWeight = std::max(0.0f, (thisMaxPollWeight + 1.0f / (thisInformationHorizon * thisHyperbolaSharpness)) -
-			1.0f / ((thisInformationHorizon - logDays) * thisHyperbolaSharpness));
-		transformed = transformed * pollWeight + historicalTransformed * (1.0f - pollWeight);
-		// Adjust for variable systemic error
-		constexpr float HistoricSampleDeviation = 0.008333f; // effective sample size
-		float thisDeviationSlope = deviationSlopeMap.at(key);
-		float thisDeviationIntercept = deviationInterceptMap.at(key);
-		float combinedDeviation = thisDeviationIntercept + thisDeviationSlope * logDays;
-		float systemicDeviation = std::sqrt(std::max(0.0f, combinedDeviation * combinedDeviation - HistoricSampleDeviation * HistoricSampleDeviation));
-		float normalVal = rng.normal(0.0f, systemicDeviation);
-		float transformedNormalVal = normalVal * limitedLogitDeriv(voteShare);
-		transformed += transformedNormalVal;
+		std::string partyGroup = reversePartyGroups.at(key);
 
-		float newVoteShare = detransformVoteShare(transformed);
+
+		CoefficientSet inputVals{};
+		inputVals[InputCoefficients::PollTrendNow] = transformedVoteShare;
+		inputVals[InputCoefficients::SameFederal] = 0.0;
+		inputVals[InputCoefficients::OppositeFederal] = 0.0;
+		// Other groups have zero coefficient for the previous election results so don't worry about them
+		inputVals[InputCoefficients::PreviousElections] = (partyGroup == "xOTH" ? 7.5 : 0.0);
+		inputVals[InputCoefficients::Incumbent] = (partyGroup == "LNP" ? 1.0 : 0.0);
+		inputVals[InputCoefficients::Federal] = 1.0;
+		inputVals[InputCoefficients::YearsInGovernment] = (partyGroup == "LNP" ? 8.0 : 0.0);
+		inputVals[InputCoefficients::YearsInOpposition] = (partyGroup == "ALP" ? 8.0 : 0.0);
+
+		//if (days == 0 && partyGroup == "LNP") {
+		//	logger << inputVals << "\n";
+		//	logger << coeffs.at(partyGroup)[days] << "\n" << "\n";
+		//}
+
+		double combined = 0.0;
+		for (int coeffIndex = 0; coeffIndex < InputCoefficients::Max; ++coeffIndex) {
+			combined += inputVals[coeffIndex] * coeffs.at(partyGroup)[days][coeffIndex];
+		}
+
+		//// Remove long-term systemic bias
+		//float intercept = debiasInterceptMap.at(key);
+		//float slope = debiasSlopeMap.at(key);
+		//float debiasChange = intercept + slope * logDays;
+		//float transformedDebiasChange = debiasChange * limitedLogitDeriv(voteShare);
+		//transformed -= transformedDebiasChange;
+
+		//// Mix with historical value
+		//float thisMaxPollWeight = maxPollWeightMap.at(key);
+		//float thisInformationHorizon = informationHorizonMap.at(key);
+		//float thisHyperbolaSharpness = hyperbolaSharpnessMap.at(key);
+		//float thisHistorical = historicalAverageMap.at(key);
+		//constexpr float HistoricalVoteMin = 0.2f;
+		//constexpr float HistoricalVoteMax = 99.8f;
+		//float historicalTransformed = transformVoteShare(std::clamp(thisHistorical, HistoricalVoteMin, HistoricalVoteMax));
+		//float pollWeight = std::max(0.0f, (thisMaxPollWeight + 1.0f / (thisInformationHorizon * thisHyperbolaSharpness)) -
+		//	1.0f / ((thisInformationHorizon - logDays) * thisHyperbolaSharpness));
+		//transformed = transformed * pollWeight + historicalTransformed * (1.0f - pollWeight);
+
+		//// Adjust for variable systemic error
+		//float thisDeviationSlope = deviationSlopeMap.at(key);
+		//float thisDeviationIntercept = deviationInterceptMap.at(key);
+		//float combinedDeviation = thisDeviationIntercept + thisDeviationSlope * logDays;
+
+		// *** change this so that it's a standard N(0, 1) at first (we need to pick out whether it's on the high or low side)
+		// *** determine the high/low value for systemic deviation based on that, then multiply the standard normal variable by that deviation
+		// *** and add it to the (transformed) vote share value
+		constexpr double HistoricSampleDeviation = 0.8333; // effective sample size
+		double baseNormal = rng.normal(0.0, 1.0);
+		double combinedDeviation = (baseNormal >= 0.0 ?
+			deviations.at(partyGroup)[days].first :
+			deviations.at(partyGroup)[days].second);
+		double systemicDeviation = std::sqrt(std::max(0.0, combinedDeviation * combinedDeviation - HistoricSampleDeviation * HistoricSampleDeviation));
+
+		if (partyGroup == "LNP" && (days == 1 || days == 200)) {
+			logger << days << "\n";
+			logger << baseNormal << "\n";
+			logger << systemicDeviation << "\n";
+			logger << HistoricSampleDeviation << "\n";
+			logger << combinedDeviation << "\n";
+			logger << " - deviations\n";
+		}
+
+		float transformedNormalVal = baseNormal * systemicDeviation;
+		transformedVoteShare += transformedNormalVal;
+
+		float newVoteShare = detransformVoteShare(transformedVoteShare);
 		voteShare = newVoteShare;
 	}
 	normaliseSample(sample);
