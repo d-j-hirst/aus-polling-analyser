@@ -599,6 +599,8 @@ def test_procedure(config, inputs, poll_trend):
         for avg_n in use_averages:
             print(f'*** USING AVERAGE OF PREVIOUS {avg_n} ELECTIONS ***')
             days = config.days
+            poll_biases = {}
+            previous_biases = {}
             biases = {}
             deviations = {}
             lower_rmses = {}
@@ -611,6 +613,8 @@ def test_procedure(config, inputs, poll_trend):
                 if day == 0:
                     previous_debiased_errors = []
                 poll_debiased_errors = []
+                overall_poll_biases = []
+                overall_previous_biases = []
                 mix_limits = (0, 1)
                 while mix_limits[1] - mix_limits[0] > 0.0001:
                     mixed_errors = [[],[]]
@@ -646,6 +650,8 @@ def test_procedure(config, inputs, poll_trend):
                                         poll_errors.append(poll_error)
                         previous_bias = statistics.median(previous_errors)
                         poll_bias = statistics.median(poll_errors)
+                        overall_previous_biases.append(previous_bias)
+                        overall_poll_biases.append(poll_bias)
                         if studied_election == no_target_election_marker:
                             continue
                         if studied_previous_error is not None:
@@ -693,11 +699,9 @@ def test_procedure(config, inputs, poll_trend):
                     #print(f'debiased previous deviation: {previous_deviation}')
                     previous_bias = smoothed_median(previous_debiased_errors, 2)
                     #print(f'debiased previous bias: {previous_bias}')
-                poll_deviation = smoothed_median([abs(a) for a in poll_debiased_errors], 2)
-                #math.sqrt(sum([a ** 2 for a in poll_debiased_errors]) / len(poll_debiased_errors))
-                #print(f'debiased polls deviation: {poll_deviation}')
-                poll_bias = smoothed_median(poll_debiased_errors, 2)
-                #print(f'debiased polls bias: {poll_bias}')
+                poll_bias = smoothed_median(overall_poll_biases, 2)
+                previous_bias = smoothed_median(overall_previous_biases, 2)
+                mixed_deviation = smoothed_median([abs(a) for a in mixed_errors[1]], 2)
                 mixed_deviation = smoothed_median([abs(a) for a in mixed_errors[1]], 2)
                 lower_errors = [a for a in mixed_errors[1] if a < 0]
                 upper_errors = [a for a in mixed_errors[1] if a > 0]
@@ -709,6 +713,8 @@ def test_procedure(config, inputs, poll_trend):
                 #print(f'mixed RMSE for mix factor {final_mix_factor}: {mixed_rmse}')
                 mixed_bias = smoothed_median(mixed_errors[1], 2)
                 #print(f'mixed bias for mix factor {final_mix_factor}: {mixed_bias}')
+                poll_biases[day] = poll_bias
+                previous_biases[day] = previous_bias
                 biases[day] = mixed_bias
                 deviations[day] = mixed_deviation
                 lower_rmses[day] = lower_rmse
@@ -720,7 +726,9 @@ def test_procedure(config, inputs, poll_trend):
             # print(f'Deviations: {deviations}')
             # print(f'RMSEs: {rmses}')
             # print(f'Mix Factors: {final_mix_factors}')
-            print_smoothed_series('Biases', biases)
+            print_smoothed_series('Poll Biases', poll_biases)
+            print_smoothed_series('Previous-Elections Biases', previous_biases)
+            print_smoothed_series('Final Biases', biases)
             print_smoothed_series('Deviations', deviations)
             print_smoothed_series('Lower RMSEs', lower_rmses)
             print_smoothed_series('Upper RMSEs', upper_rmses)

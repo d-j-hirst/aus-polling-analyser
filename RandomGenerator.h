@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <random>
 
 class RandomGenerator {
@@ -24,7 +25,12 @@ public:
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0,
 		std::enable_if_t<std::is_integral<U>::value, int> = 0>
 		T t_dist(U df, T mean = T(0.0), T sd = T(1.0)) {
-		return std::student_t_distribution<T>(df)(gen) * sd + mean;
+		// We want the t-distribution to match observed standard distribution
+		// for the purposes of matching observed high-kurtosis distributions,
+		// so rescale the standard distribution by this factor so it has
+		// the correct standard deviation
+		unscaled_sd = std::sqrt(T(df) / (T(df) - 2.0));
+		return std::student_t_distribution<T>(df)(gen) * sd / unscaled_sd + mean;
 	}
 
 	template<typename T,
