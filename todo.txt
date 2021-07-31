@@ -1,9 +1,10 @@
 Polling Analyser to-do:
 -Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
- -Adjust main program to use the new analysis
+ -Adjust errors and mix-factors to be monotonic
  -Refactor to separate into smaller methods, use data classes and remove code no longer used
--Add function to automatically load polls from trend output into the file
+-Small item: Put some hard-coded things like number of threads to use into a config file
 -More sophisticated handling of non-classic and potentially non-classic seats
+-Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -(Make any further adjustments to existing analysis processes)
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
 -Setup basic framework for frontend, including getting some data from the backend and displaying it

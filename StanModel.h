@@ -94,15 +94,15 @@ public:
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
-	enum InputCoefficients {
-		PollTrendNow,
-		SameFederal,
-		OppositeFederal,
-		PreviousElections,
-		Incumbent,
-		Federal,
-		YearsInGovernment,
-		YearsInOpposition,
+	enum InputParameters {
+		PollBias,
+		PreviousBias,
+		MixedBias,
+		LowerError,
+		UpperError,
+		LowerKurtosis,
+		UpperKurtosis,
+		MixFactor,
 		Max
 	};
 
@@ -111,22 +111,15 @@ private:
 	typedef std::map<std::string, PartyGroup> PartyGroups;
 	typedef std::map<std::string, std::string> ReversePartyGroups;
 
-	typedef std::array<double, InputCoefficients::Max> CoefficientSet;
-	typedef std::vector<CoefficientSet> CoefficientSeries;
-	typedef std::map<std::string, CoefficientSeries> CoefficientSeriesByPartyGroup;
-
-	typedef std::pair<double, double> Deviations;
-	typedef std::vector<Deviations> DeviationSeries;
-	typedef std::map<std::string, DeviationSeries> DeviationSeriesByPartyGroup;
+	typedef std::array<double, InputParameters::Max> ParameterSet;
+	typedef std::vector<ParameterSet> ParameterSeries;
+	typedef std::map<std::string, ParameterSeries> ParameterSeriesByPartyGroup;
 
 	// Loads the party group data from python/Data/party-groups.csv
 	void loadPartyGroups();
 
 	// Loads coefficients for model parameters from 
-	void loadCoefficients(FeedbackFunc feedback);
-
-	// Loads coefficients for model parameters from 
-	void loadDeviations(FeedbackFunc feedback);
+	void loadParameters(FeedbackFunc feedback);
 
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
@@ -188,8 +181,7 @@ private:
 	// Reverse of the previous map, for efficiency of calculations
 	ReversePartyGroups reversePartyGroups;
 
-	CoefficientSeriesByPartyGroup coeffs;
-	DeviationSeriesByPartyGroup deviations;
+	ParameterSeriesByPartyGroup parameters;
 
 	PartyCodes partyCodeVec;
 	PartyParameters debiasSlopeMap;

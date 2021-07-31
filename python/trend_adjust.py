@@ -299,19 +299,13 @@ def detransform_vote_share(vote_share):
 def clamp(n, min_n, max_n):
     return max(min(max_n, n), min_n)
 
-def temp_election_code(election):
-    #party = 'LIB FP' if election.region() == 'wa' else 'LNP FP'
-    party = 'ALP FP'
-    #party = 'GRN FP'
-    return ElectionPartyCode(election, party)
-
 
 def print_smoothed_series(label, some_dict, file):
     x_orig, y = zip(*some_dict.items())
     x = range(0, len(x_orig))
     total_days = x_orig[len(x_orig) - 1]
     w = [10 if a == 0 else 1 for a in x]
-    spline = UnivariateSpline(x=x, y=y, w=w, s=100)
+    spline = UnivariateSpline(x=x, y=y, w=w, s=1000)
     full_spline = spline(x)
     full_spline = {x_orig[a]: b for a, b in enumerate(full_spline)}
     print(f'{label} smoothed: ' + '\n'.join([f'{a}: {b:.4f}' for a, b in full_spline.items()]) + '\n')
@@ -373,6 +367,7 @@ def test_procedure(config, inputs, poll_trend, exclude):
                     studied_previous_error = None
                     studied_poll = None
                     studied_poll_errors = []
+                    studied_poll_party = []
                     for other_election in inputs.elections:
                         for party in party_groups[party_group]:
                             if party not in inputs.parties[other_election]:
@@ -385,6 +380,7 @@ def test_procedure(config, inputs, poll_trend, exclude):
 
                             previous = inputs.avg_prior_results[avg_n][party_code]
 
+
                             if previous is not None:
                                 previous_error = transform_vote_share(previous) - result_t
                                 if other_election == studied_election:
@@ -396,6 +392,7 @@ def test_procedure(config, inputs, poll_trend, exclude):
                                     poll_error = transform_vote_share(polls) - result_t
                                     if other_election == studied_election:
                                         studied_poll_errors.append(poll_error)
+                                        studied_poll_party.append(party)
                                     else:
                                         poll_errors.append(poll_error)
                     previous_bias = statistics.median(previous_errors)
@@ -409,19 +406,21 @@ def test_procedure(config, inputs, poll_trend, exclude):
                         if mix_limits == (0, 1):
                             previous_debiased_errors.append(previous_debiased_error)
                     if len(studied_poll_errors) > 0:
-                        for studied_poll_error in studied_poll_errors:
+                        for studied_poll_error, studied_poll_party in zip(studied_poll_errors, studied_poll_party):
                             poll_debiased_error = studied_poll_error - poll_bias
                             if mix_limits == (0, 1):
                                 poll_debiased_errors.append(poll_debiased_error)
-                            party_code = temp_election_code(studied_election)
+                            party_code = ElectionPartyCode(studied_election, studied_poll_party)
                             previous = inputs.avg_prior_results[avg_n][party_code]
                             debiased_previous = transform_vote_share(previous) - previous_bias
                             polls = poll_trend.value_at(party_code, day, 50)
                             debiased_polls = transform_vote_share(polls) - poll_bias
-                            result = transform_vote_share(inputs.eventual_results[party_code])
+                            result = (max(0.5, inputs.eventual_results[party_code])
+                                if party_code in inputs.eventual_results else 0.5)
+                            result_t = transform_vote_share(result)
                             for mix_index, mix_factor in enumerate(mix_limits):
                                 mixed = debiased_polls * mix_factor + debiased_previous * (1 - mix_factor)
-                                mixed_error = mixed - result
+                                mixed_error = mixed - result_t
                                 mixed_errors[mix_index].append(mixed_error)
                 rmse_factor = 0.3
                 mixed_criteria = [0, 0]

@@ -153,3 +153,8 @@ template<typename T>
 bool contains(std::vector<T> const& vec, T find) {
 	return std::find(vec.begin(), vec.end(), find) != vec.end();
 }
+
+template<typename T>
+T mix(T lower, T upper, T upperFactor) {
+	return upper * upperFactor + lower * (T(1.0) - upperFactor);
+}
