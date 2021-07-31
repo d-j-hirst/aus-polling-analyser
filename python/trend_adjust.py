@@ -268,6 +268,7 @@ class RegressionInputs:
 # when calculating exclusive-others vote shares
 not_others = ['ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
 
+
 def import_trend_file(filename):
     debug = (filename == './Outputs/fp_trend_2019fed_ALP FP.csv')
     with open(filename, 'r') as f:
@@ -276,6 +277,7 @@ def import_trend_file(filename):
     lines = [[float(a) for a in line] for line in lines]
     lines.reverse()
     return lines
+
 
 def print_coeffs(coeffs):
     for party_group, coeff_values in coeffs.items():
@@ -289,280 +291,18 @@ def print_coeffs(coeffs):
         print(f' Government length: {coeff_values[6]}')
         print(f' Opposition length: {coeff_values[7]}')
 
+
 def transform_vote_share(vote_share):
     vote_share = clamp(vote_share, 0.1, 99.9)
     return math.log((vote_share * 0.01) / (1 - vote_share * 0.01)) * 25
 
+
 def detransform_vote_share(vote_share):
     return 100 / (1 + math.exp(-0.04 * vote_share))
 
+
 def clamp(n, min_n, max_n):
     return max(min(max_n, n), min_n)
-
-def prepare_individual_info(inputs, election, party_code, day, poll_trend_now,
-                            party, party_group):
-    poll_trend_now = transform_vote_share(poll_trend_now)
-    incumbent = (inputs.incumbency[election][0] == party)
-    incumbent = 1 if incumbent else 0
-    opposition = (inputs.incumbency[election][1] == party)
-    government_length = inputs.incumbency[election][2]
-    federal = 1 if (party_code.region() == 'fed') else 0
-    opposite_federal = 0 if election not in inputs.federal_situation \
-        else (1 if party == inputs.federal_situation[election][1] else 0)
-    same_federal = 0 if election not in inputs.federal_situation \
-        else (1 if party == inputs.federal_situation[election][0] else 0)
-    # previous election average only predictive for xOTH
-    previous = transform_vote_share(inputs.avg_prior_results[6][party_code])
-    previous = previous if party_group == 'xOTH' else 0
-    # some factors are only predictive in some circumstances
-    if party_group in ['OTH', 'Misc-p']:
-        federal = 0
-    if party_group in ['ALP', 'LNP', 'Misc-c'] and day > 70:
-        federal = 0
-    in_power_length = government_length if incumbent else 0
-    opposition_length = government_length if opposition else 0
-    if party_group != 'LNP':
-        incumbent = 0
-    # these factors aren't currently predictive, but
-    # are left in the code in case they can be incorporated
-    # in the future
-    in_power_length = 0
-    opposition_length = 0
-
-    # note: commented out lines were for factors that
-    # didn't improve predictiveness
-    # leaving them here in case something changes that
-    return [
-        poll_trend_now,
-        same_federal,
-        opposite_federal,
-        previous,
-        incumbent,
-        federal,
-        in_power_length,
-        opposition_length,
-    ]
-
-def determine_regression_inputs(day, studied_election, inputs,
-                               config, poll_trend, outputs):
-    complete_info = {}
-    info = {}
-    transformed_results = {}
-    for election in inputs.elections:
-        for party in inputs.parties[election]:
-            party_group = ''
-            for group, group_list in party_groups.items():
-                if party in group_list:
-                    party_group = group
-                    break
-            if party_group == '':
-                print(f'Warning: {party} not categorised!')
-                continue
-            if party_group not in info:
-                info[party_group] = []
-            if party_group not in transformed_results:
-                transformed_results[party_group] = []
-
-            if party_group not in outputs.sum_squared_errors:
-                outputs.sum_squared_errors[party_group] = {}
-                outputs.error_count[party_group] = {}
-            if day not in outputs.sum_squared_errors[party_group]:
-                outputs.sum_squared_errors[party_group][day] = [0, 0]
-                outputs.error_count[party_group][day] = [0, 0]
-
-            party_code = ElectionPartyCode(election, party)
-            if not party_code in inputs.prior_results:
-                inputs.prior_results[party_code] = [0]
-                inputs.avg_prior_results[6][party_code] = 0
-                print(f'Info: prior result not found for: {party_code}')
-            if not party_code in inputs.eventual_results:
-                inputs.eventual_results[party_code] = 0
-                print(f'Info: eventual result not found for: {party_code}')
-            # should actually randomply sample poll results from distribution
-            poll_trend_now = poll_trend.value_at(
-                        party_code=party_code, 
-                        day=day, 
-                        percentile=50,
-                        default_value=inputs.avg_prior_results[6][party_code])
-            # Very small poll trends cause distortions in the
-            # Misc-p results, so best to ignore them and
-            # only use parties polling a substantial % of vote
-            if poll_trend_now < poll_score_threshold:
-                continue
-            this_info = prepare_individual_info(
-                inputs, election, party_code, day,
-                poll_trend_now, party, party_group)
-
-            complete_info[party_code] = this_info
-
-            # need to store the info so accuracy can be evaluated later
-            # but we don't want anything from the studied election
-            # being used to determine the forecast for it, so
-            # exit out here
-            if election == studied_election:
-                continue
-            info[party_group].append(this_info)
-            transformed_result = \
-                transform_vote_share(inputs.eventual_results[party_code])
-            transformed_results[party_group].append(transformed_result)
-    return RegressionInputs(complete_info, info, transformed_results)
-
-
-def run_regression(reg_inputs):
-    coeffs = {}
-    for party_group in reg_inputs.info.keys():
-
-        regr = linear_model.LinearRegression(fit_intercept=False)
-
-        regr.fit(reg_inputs.info[party_group], reg_inputs.transformed_results[party_group])
-        this_coeffs = [round(x, 3) for x in regr.coef_]
-        coeffs[party_group] = this_coeffs
-    return coeffs
-
-
-def record_outputs(config, outputs, inputs, studied_election, day, coeffs, reg_inputs):
-    if studied_election == no_target_election_marker \
-            and day == config.feedback_day and config.show_parameters:
-        print_coeffs(coeffs)
-    if studied_election == no_target_election_marker:
-        for party_group in reg_inputs.info.keys():
-            if studied_election not in outputs.raw_params:
-                outputs.raw_params[studied_election] = {}
-            if party_group not in outputs.raw_params[studied_election]:
-                outputs.raw_params[studied_election][party_group] = []
-                for i in range(0, len(coeffs[party_group])):
-                    outputs.raw_params[studied_election][party_group].append({})
-            for index, coeff_value in enumerate(coeffs[party_group]):
-                outputs.raw_params[studied_election][party_group][index][day] = coeff_value
-    elif studied_election != no_target_election_marker:
-        for party in inputs.parties[studied_election]:
-            party_group = ''
-            for group, group_list in party_groups.items():
-                if party in group_list:
-                    party_group = group
-                    break
-            if party_group == '':
-                continue
-            party_code = ElectionPartyCode(studied_election, party)
-            # Some parties have poll trend scores too low to usefully
-            # be used for trend adjustment, so they are excluded from
-            # the algorithm. Since their data is not stored, it would
-            # cause an error for them to be included here, so skip them
-            if party_code not in reg_inputs.complete_info:
-                continue
-            zipped = zip(reg_inputs.complete_info[party_code], 
-                        coeffs[party_group])
-            estimated = sum([a[0] * a[1] for a in zipped])
-            if day == config.feedback_day:
-                outputs.estimations[party_code] = estimated
-            detransformed = detransform_vote_share(estimated)
-            transformed_eventual = transform_vote_share(inputs.eventual_results[party_code])
-            error_dir = 1 if transformed_eventual > estimated else 0
-            outputs.sum_squared_errors[party_group][day][error_dir] += \
-                (estimated - transformed_eventual) ** 2
-            outputs.error_count[party_group][day][error_dir] += 1
-    
-
-def determine_trend_adjustments(inputs, config, poll_trend, outputs):
-    for studied_election in inputs.studied_elections:
-        for day in config.days:
-            reg_inputs = determine_regression_inputs(day, studied_election,
-                                                    inputs, config,
-                                                    poll_trend, outputs)
-            coeffs = run_regression(reg_inputs)
-            record_outputs(config, outputs, inputs, studied_election,
-                           day, coeffs, reg_inputs)
-
-
-def record_errors_by_day(config, outputs):
-    for party_group, days in outputs.sum_squared_errors.items():
-        if config.show_errors_by_day:
-            print(f' Errors for party group: {party_group}')
-        for day in days.keys():
-            for side in [0, 1]:
-                rmse = math.sqrt(outputs.sum_squared_errors[party_group][day][side] \
-                        / outputs.error_count[party_group][day][side])
-                if party_group not in outputs.rmse:
-                    outputs.rmse[party_group] = [{}, {}]
-                outputs.rmse[party_group][side][day] = rmse
-                if config.show_errors_by_day:
-                    print(f' {("Lower" if side == 0 else "Upper")}'
-                        f' RMSE for day {day} forecast: {rmse}')
-
-def show_previous_election_predictions(inputs, config, poll_trend, outputs):
-    for studied_election in inputs.studied_elections:
-        if studied_election == no_target_election_marker:
-            continue
-        for party in inputs.parties[studied_election]:
-            party_group = ''
-            for group, group_list in party_groups.items():
-                if party in group_list:
-                    party_group = group
-                    break
-            if party_group == '':
-                continue
-            party_code = ElectionPartyCode(studied_election, party)
-            print(party_code)
-            # Some parties have poll trend scores too low to usefully
-            # be used for trend adjustment, so they are excluded from
-            # the algorithm. Since their data is not stored, it would
-            # cause an error for them to be included here, so skip them
-            if party_code not in outputs.estimations:
-                print(f'  Poll score too low for trend adjustment')
-                continue
-            estimated = outputs.estimations[party_code]
-            detransformed = detransform_vote_share(estimated)
-            poll_trend_now = poll_trend.value_at(party_code, config.feedback_day, 50)
-            upper_rmse = math.sqrt(outputs.sum_squared_errors[party_group][config.feedback_day][1] \
-                    / outputs.error_count[party_group][config.feedback_day][1])
-            lower_rmse = math.sqrt(outputs.sum_squared_errors[party_group][config.feedback_day][0] \
-                    / outputs.error_count[party_group][config.feedback_day][0])
-            estimation_low = estimated - 2 * upper_rmse
-            estimation_high = estimated + 2 * lower_rmse
-            estimated_low = detransform_vote_share(estimation_low)
-            estimated_high = detransform_vote_share(estimation_high)
-            print(f'  Feedback day: {config.feedback_day}')
-            print(f'  Prior result: {inputs.prior_results[party_code][0]}')
-            print(f'  Prior average: {inputs.avg_prior_results[6][party_code]}')
-            print(f'  Poll trend: {poll_trend_now}')
-            print(f'  Estimated result: {detransformed}')
-            print(f'  95% range: {estimated_low}-{estimated_high}')
-            print(f'  Eventual result: {inputs.eventual_results[party_code]}')
-
-
-def calculate_parameter_curves(config, exclude, outputs):
-    election_params = outputs.raw_params[no_target_election_marker]
-    for party_group, party_params in election_params.items():
-        filename = f'./Adjustments/adjust_{exclude.year()}{exclude.region()}_{party_group}.csv'
-        with open(filename, 'w') as f:
-            for coeff_index, coeffs in enumerate(party_params):
-                x, y = zip(*coeffs.items())
-                total_days = x[len(x) - 1]
-                x = range(0, len(x))
-                w = [10 if a == 0 else 1 for a in x]
-                spline = UnivariateSpline(x=x, y=y, w=w, s=1000)
-                days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
-                    for n in range(0, total_days + 1)]
-                full_spline = spline(days_to_study)
-                f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
-            if config.show_written_files:
-                print(f'Wrote trend adjustment details to: {filename}')
-    for party_group, party_errors in outputs.rmse.items():
-        filename = f'./Adjustments/errors_{exclude.year()}{exclude.region()}_{party_group}.csv'
-        with open(filename, 'w') as f:
-            for side in (0, 1):
-                day_errors = party_errors[side]
-                x, y = zip(*day_errors.items())
-                total_days = x[len(x) - 1]
-                x = range(0, len(x))
-                w = [10 if a == 0 else 1 for a in x]
-                spline = UnivariateSpline(x=x, y=y, w=w, s=1000)
-                days_to_study = [.5 * (math.sqrt(8 * n + 1) - 1) 
-                    for n in range(0, total_days + 1)]
-                full_spline = spline(days_to_study)
-                f.write(','.join([f'{a:.4f}' for a in full_spline]) + '\n')
-            if config.show_written_files:
-                print(f'Wrote trend error details to: {filename}')
 
 
 def temp_election_code(election):
@@ -749,15 +489,8 @@ def trend_adjust():
 
         test_procedure(config, inputs, poll_trend)
 
-        determine_trend_adjustments(inputs, config, poll_trend, outputs)
-
-        record_errors_by_day(config, outputs)
-
-        if config.show_previous_elections:
-            show_previous_election_predictions(inputs, config, poll_trend, outputs)
-
-        calculate_parameter_curves(config, exclude, outputs)
         print(f'Completed trend adjustment algorithm for: {exclude}')
+
 
 if __name__ == '__main__':
     trend_adjust()
