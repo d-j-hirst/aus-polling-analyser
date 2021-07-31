@@ -102,7 +102,7 @@ class Config:
         self.show_written_files = parser.parse_args().writtenfiles
         self.exclude_instuctions = parser.parse_args().election.lower()
         self.prepare_election_list()
-        day_test_count = 47
+        day_test_count = 46
         self.days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
         self.adjust_feedback_day()
     
@@ -592,6 +592,18 @@ def smoothed_median(container, smoothing):
     return statistics.mean(s[low_end:high_end])
 
 
+# Note: this assessment assumes the mean is 0 (as the
+# calculation is being made for one tail of a distribution,
+# the mean is not actually being calculated)
+def sample_kurtosis(sample):
+    numerator = sum([a ** 4 for a in sample])
+    n = len(sample)
+    denominator = sum([a ** 2 for a in sample]) ** 2
+    sample_size_corrected = (n * (n + 1) * (n - 1)) / ((n - 2) * (n - 3))
+    kurtosis_estimate = numerator * sample_size_corrected / denominator
+    return kurtosis_estimate
+
+
 def test_procedure(config, inputs, poll_trend):
     use_averages = [6]
     for party_group in party_groups.keys():
@@ -609,7 +621,6 @@ def test_procedure(config, inputs, poll_trend):
             upper_kurtoses = {}
             final_mix_factors = {}
             for day in days:
-                #print(f' ** DAY {day} **')
                 if day == 0:
                     previous_debiased_errors = []
                 poll_debiased_errors = []
@@ -636,18 +647,19 @@ def test_procedure(config, inputs, poll_trend):
 
                                 previous = inputs.avg_prior_results[avg_n][party_code]
 
-                                if polls is not None and previous is not None:
-
-                                    poll_error = transform_vote_share(polls) - result_t
-
+                                if previous is not None:
                                     previous_error = transform_vote_share(previous) - result_t
                                     if other_election == studied_election:
                                         studied_previous_error = previous_error
-                                        studied_poll_errors.append(poll_error)
-                                        studied_poll = transform_vote_share(polls)
                                     else:
                                         previous_errors.append(previous_error)
-                                        poll_errors.append(poll_error)
+
+                                    if polls is not None:
+                                        poll_error = transform_vote_share(polls) - result_t
+                                        if other_election == studied_election:
+                                            studied_poll_errors.append(poll_error)
+                                        else:
+                                            poll_errors.append(poll_error)
                         previous_bias = statistics.median(previous_errors)
                         poll_bias = statistics.median(poll_errors)
                         overall_previous_biases.append(previous_bias)
@@ -663,12 +675,6 @@ def test_procedure(config, inputs, poll_trend):
                                 poll_debiased_error = studied_poll_error - poll_bias
                                 if mix_limits == (0, 1):
                                     poll_debiased_errors.append(poll_debiased_error)
-                                #if mix_limits == (0, 1) and day == 378:
-                                    #print(f'Election: {studied_election.year()} {studied_election.region()}')
-                                    #print(f'Studied poll: {detransform_vote_share(studied_poll)}')
-                                    #print(f'Debiased poll: {detransform_vote_share(studied_poll - poll_bias)}')
-                                    #print(f'Studied poll error: {studied_poll_error}')
-                                    #print(f'Debiased poll error: {poll_debiased_error}')
                                 party_code = temp_election_code(studied_election)
                                 previous = inputs.avg_prior_results[avg_n][party_code]
                                 debiased_previous = transform_vote_share(previous) - previous_bias
@@ -679,40 +685,30 @@ def test_procedure(config, inputs, poll_trend):
                                     mixed = debiased_polls * mix_factor + debiased_previous * (1 - mix_factor)
                                     mixed_error = mixed - result
                                     mixed_errors[mix_index].append(mixed_error)
-                    mixed_deviation = [0, 0]
+                    rmse_factor = 0.3
+                    mixed_criteria = [0, 0]
                     for mix_index in range(0, len(mix_limits)):
-                        mixed_deviation[mix_index] = smoothed_median([abs(a) for a in mixed_errors[mix_index]], 2)
-                        #math.sqrt(sum([a ** 2 for a in mixed_errors[mix_index]]) / len(mixed_errors[mix_index]))
+                        mixed_deviation = smoothed_median([abs(a) for a in mixed_errors[mix_index]], 2)
+                        mixed_rmse = math.sqrt(sum([a ** 2 for a in mixed_errors[mix_index]]) / len(mixed_errors[mix_index]))
+                        mixed_criteria[mix_index] = mixed_rmse * rmse_factor + mixed_deviation * (1 - rmse_factor)
                     window_factor = 0.8  # should be in range [0.5, 1)
-                    if mixed_deviation[0] < mixed_deviation[1]:
+                    if mixed_criteria[0] < mixed_criteria[1]:
                         mix_limits = (mix_limits[0], mix_limits[0] * (1 - window_factor) + mix_limits[1] * window_factor)
                     else:
                         mix_limits = (mix_limits[1] * (1 - window_factor) + mix_limits[0] * window_factor, mix_limits[1])
                 final_mix_factor = statistics.mean(mix_limits)
-                #print(f'Sample size: {len(poll_errors)}')
-                #print(f'Total previous errors: {sum(previous_errors)}')
-                #print(f'Total previous-one errors: {sum(previous_one_errors)}')
-                #print(f'Total poll errors: {sum(poll_errors)}')
                 if day == 0:
-                    previous_deviation = smoothed_median([abs(a) for a in previous_debiased_errors], 2)
-                    #math.sqrt(sum([a ** 2 for a in previous_debiased_errors]) / len(previous_debiased_errors))
-                    #print(f'debiased previous deviation: {previous_deviation}')
                     previous_bias = smoothed_median(previous_debiased_errors, 2)
-                    #print(f'debiased previous bias: {previous_bias}')
                 poll_bias = smoothed_median(overall_poll_biases, 2)
                 previous_bias = smoothed_median(overall_previous_biases, 2)
-                mixed_deviation = smoothed_median([abs(a) for a in mixed_errors[1]], 2)
-                mixed_deviation = smoothed_median([abs(a) for a in mixed_errors[1]], 2)
-                lower_errors = [a for a in mixed_errors[1] if a < 0]
-                upper_errors = [a for a in mixed_errors[1] if a > 0]
-                lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors]) / len(lower_errors))
-                upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors]) / len(upper_errors))
-                lower_kurtosis = statistics.mean([a ** 4 for a in lower_errors]) / lower_rmse ** 4 
-                upper_kurtosis = statistics.mean([a ** 4 for a in upper_errors]) / upper_rmse ** 4 
-                #print(f'mixed deviation for mix factor {final_mix_factor}: {mixed_deviation}')
-                #print(f'mixed RMSE for mix factor {final_mix_factor}: {mixed_rmse}')
                 mixed_bias = smoothed_median(mixed_errors[1], 2)
-                #print(f'mixed bias for mix factor {final_mix_factor}: {mixed_bias}')
+                mixed_deviation = smoothed_median([abs(a) for a in mixed_errors[1]], 2)
+                lower_errors = [a - mixed_bias for a in mixed_errors[1] if a < mixed_bias]
+                upper_errors = [a - mixed_bias for a in mixed_errors[1] if a > mixed_bias]
+                lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors]) / (len(lower_errors) - 1))
+                upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors]) / (len(upper_errors) - 1))
+                lower_kurtosis = sample_kurtosis(lower_errors) 
+                upper_kurtosis = sample_kurtosis(upper_errors) 
                 poll_biases[day] = poll_bias
                 previous_biases[day] = previous_bias
                 biases[day] = mixed_bias
@@ -722,19 +718,15 @@ def test_procedure(config, inputs, poll_trend):
                 lower_kurtoses[day] = lower_kurtosis
                 upper_kurtoses[day] = upper_kurtosis
                 final_mix_factors[day] = final_mix_factor
-            # print(f'Biases: {biases}')
-            # print(f'Deviations: {deviations}')
-            # print(f'RMSEs: {rmses}')
-            # print(f'Mix Factors: {final_mix_factors}')
-            print_smoothed_series('Poll Biases', poll_biases)
-            print_smoothed_series('Previous-Elections Biases', previous_biases)
-            print_smoothed_series('Final Biases', biases)
-            print_smoothed_series('Deviations', deviations)
-            print_smoothed_series('Lower RMSEs', lower_rmses)
-            print_smoothed_series('Upper RMSEs', upper_rmses)
+            print_smoothed_series('Poll Bias', poll_biases)
+            print_smoothed_series('Previous-Elections Bias', previous_biases)
+            print_smoothed_series('Mixed Bias', biases)
+            print_smoothed_series('Deviation', deviations)
+            print_smoothed_series('Lower Error', lower_rmses)
+            print_smoothed_series('Upper Error', upper_rmses)
             print_smoothed_series('Lower Kurtosis', lower_kurtoses)
             print_smoothed_series('Upper Kurtosis', upper_kurtoses)
-            print_smoothed_series('Mix factors', final_mix_factors)
+            print_smoothed_series('Mix factor', final_mix_factors)
 
 
 def trend_adjust():

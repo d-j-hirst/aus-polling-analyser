@@ -1,7 +1,5 @@
 Polling Analyser to-do:
 -Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
- -Change so that trend adjustment is done via party groups rather than individual parties
- -Change to measure squared errors on both sides separately
  -Actually output newer trend adjustments to files
  -Adjust main program to use the new analysis
  -Refactor to separate into smaller methods, use data classes and remove code no longer used
