@@ -1,9 +1,7 @@
 Polling Analyser to-do:
 -Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
- -Actually output newer trend adjustments to files
  -Adjust main program to use the new analysis
  -Refactor to separate into smaller methods, use data classes and remove code no longer used
- -Maybe investigate possibility of checking for kurtosis/black swan prediction
 -Add function to automatically load polls from trend output into the file
 -More sophisticated handling of non-classic and potentially non-classic seats
 -(Make any further adjustments to existing analysis processes)
