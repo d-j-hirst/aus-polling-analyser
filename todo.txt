@@ -1,7 +1,8 @@
 Polling Analyser to-do:
 -Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
- -Adjust errors and mix-factors to be monotonic
  -Refactor to separate into smaller methods, use data classes and remove code no longer used
+ -Change trend_adjust flags so they refer to the current program flow
+ -Remove obsolete code from model parts of main program, remove now-unused model parameter fields, and make new save version that doesn't include them.
 -Small item: Put some hard-coded things like number of threads to use into a config file
 -More sophisticated handling of non-classic and potentially non-classic seats
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary

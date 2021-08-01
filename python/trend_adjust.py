@@ -300,7 +300,9 @@ def clamp(n, min_n, max_n):
     return max(min(max_n, n), min_n)
 
 
-def print_smoothed_series(label, some_dict, file):
+# force_monotone: will look at the endpoints 
+# to determine direction of monotonicity
+def print_smoothed_series(label, some_dict, file, force_monotone=False, bounds=[-math.inf, math.inf]):
     x_orig, y = zip(*some_dict.items())
     x = range(0, len(x_orig))
     total_days = x_orig[len(x_orig) - 1]
@@ -311,7 +313,16 @@ def print_smoothed_series(label, some_dict, file):
     print(f'{label} smoothed: ' + '\n'.join([f'{a}: {b:.4f}' for a, b in full_spline.items()]) + '\n')
     daily_x = [.5 * (math.sqrt(8 * n + 1) - 1) 
             for n in range(0, total_days + 1)]
-    daily_spline = spline(daily_x)
+    daily_spline = list(spline(daily_x))
+    if force_monotone:
+        if daily_spline[len(daily_spline) - 1] > daily_spline[0]:
+            for day in range(0, len(daily_spline) - 1):
+                daily_spline[day + 1] = max(daily_spline[day + 1], daily_spline[day]) 
+        else:
+            for day in range(0, len(daily_spline) - 1):
+                daily_spline[day + 1] = min(daily_spline[day + 1], daily_spline[day])
+    for day in range(0, len(daily_spline) - 1):
+        daily_spline[day + 1] = clamp(daily_spline[day + 1], bounds[0], bounds[1])
     file.write(','.join([f'{a:.4f}' for a in daily_spline]) + '\n')
 
 
@@ -455,16 +466,24 @@ def test_procedure(config, inputs, poll_trend, exclude):
             lower_kurtoses[day] = lower_kurtosis
             upper_kurtoses[day] = upper_kurtosis
             final_mix_factors[day] = final_mix_factor
+        # These parameters should always be monotonic - if they aren't,
+        # it's likely a case of underestimated variation, so make them so
+        for index in range(0, len(days) - 1):
+            next_day = days[index + 1]
+            previous_day = days[index]
+            final_mix_factors[next_day] = min(final_mix_factors[next_day], final_mix_factors[previous_day])
+            lower_rmses[next_day] = max(lower_rmses[next_day], lower_rmses[previous_day]) 
+            upper_rmses[next_day] = max(upper_rmses[next_day], upper_rmses[previous_day]) 
         filename = f'./Adjustments/adjust_{exclude.year()}{exclude.region()}_{party_group}.csv'
         with open(filename, 'w') as f:
             print_smoothed_series('Poll Bias', poll_biases, f)
             print_smoothed_series('Previous-Elections Bias', previous_biases, f)
             print_smoothed_series('Mixed Bias', biases, f)
-            print_smoothed_series('Lower Error', lower_rmses, f)
-            print_smoothed_series('Upper Error', upper_rmses, f)
-            print_smoothed_series('Lower Kurtosis', lower_kurtoses, f)
-            print_smoothed_series('Upper Kurtosis', upper_kurtoses, f)
-            print_smoothed_series('Mix factor', final_mix_factors, f)
+            print_smoothed_series('Lower Error', lower_rmses, f, force_monotone=True, bounds=(0, math.inf))
+            print_smoothed_series('Upper Error', upper_rmses, f, force_monotone=True, bounds=(0, math.inf))
+            print_smoothed_series('Lower Kurtosis', lower_kurtoses, f, bounds=(3, math.inf))
+            print_smoothed_series('Upper Kurtosis', upper_kurtoses, f, bounds=(3, math.inf))
+            print_smoothed_series('Mix factor', final_mix_factors, f, force_monotone=True, bounds=(0, 1))
 
 
 def trend_adjust():
