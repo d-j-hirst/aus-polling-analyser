@@ -36,59 +36,14 @@ void StanModel::loadData(FeedbackFunc feedback)
 {
 	loadPartyGroups();
 	loadParameters(feedback);
-	generateParameterMaps();
-	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
-		feedback("No party codes found!");
-		return;
-	}
-	if (!contains(partyCodeVec, OthersCode)) {
-		feedback("No party corresponding to Others was given. The model needs a party with code " + OthersCode + " to run properly.");
-		return;
-	}
-	if (!contains(partyCodeVec, UnnamedOthersCode)) {
-		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
-		return;
-	}
-	logger << "Starting model loading: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	startDate = wxInvalidDateTime;
-	rawSupport.clear();
-	for (auto partyCode : partyCodeVec) {
-		auto& series = rawSupport[partyCode];
-		if (partyCode == UnnamedOthersCode) continue; // calculate this later
-		std::string filename = "python/Outputs/fp_trend_"
-			+ termCode + "_" + partyCode + " FP.csv";
-		auto file = std::ifstream(filename);
-		if (!file) {
-			feedback("Could not load file: " + filename);
-			return;
-		}
-		series.timePoint.clear();
-		std::string line;
-		std::getline(file, line); // first line is just a legend, skip it
-		std::getline(file, line);
-		if (!startDate.IsValid()) {
-			auto dateVals = splitString(line, ",");
-			startDate = wxDateTime(std::stoi(dateVals[0]),
-				wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
-		}
-		std::getline(file, line); // this line is just a legend, skip it
-		do {
-			std::getline(file, line);
-			if (!file) break;
-			auto trendVals = splitString(line, ",");
-			series.timePoint.push_back(Spread());
-			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-				series.timePoint.back().values[percentile]
-					= std::stof(trendVals[percentile + 2]);
-			}
-		} while (true);
-	}
+	if (!generatePreferenceMaps(feedback)) return;
+	logger << "Starting trend data loading: " << wxDateTime::Now().FormatISOCombined() << "\n";
+	if (!loadTrendData(feedback)) return;
 	logger << "Loaded model: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	generateUnnamedOthersSeries();
 	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	updateAdjustedData(feedback);
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
-
 	lastUpdatedDate = wxDateTime::Now();
 	feedback("Finished loading models");
 }
@@ -276,6 +231,86 @@ void StanModel::loadParameters(FeedbackFunc feedback)
 	}
 }
 
+bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
+{
+	// partyCodeVec is already created by loadData
+	partyCodeVec = splitString(partyCodes, ",");
+	if (!partyCodeVec.size()) throw Exception("No party codes in this model!");
+	try {
+		auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
+		auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
+		auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
+		bool validSizes = preferenceFlowVec.size() == partyCodeVec.size() &&
+			preferenceDeviationVec.size() == partyCodeVec.size() &&
+			preferenceSamplesVec.size() == partyCodeVec.size();
+		if (!validSizes) throw Exception("Party codes and parameter lines do not match!");
+		preferenceFlowMap.clear();
+		preferenceDeviationMap.clear();
+		preferenceSamplesMap.clear();
+		for (int index = 0; index < int(partyCodeVec.size()); ++index) {
+			preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
+			preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
+			preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
+		}
+	}
+	catch (std::invalid_argument) {
+		feedback("One or more model paramater lists could not be converted to floats!");
+		return false;
+	}
+	return true;
+}
+
+bool StanModel::loadTrendData(FeedbackFunc feedback)
+{
+	partyCodeVec = splitString(partyCodes, ",");
+	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
+		feedback("No party codes found!");
+		return false;
+	}
+	if (!contains(partyCodeVec, OthersCode)) {
+		feedback("No party corresponding to Others was given. The model needs a party with code " + OthersCode + " to run properly.");
+		return false;
+	}
+	if (!contains(partyCodeVec, UnnamedOthersCode)) {
+		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
+		return false;
+	}
+	startDate = wxInvalidDateTime;
+	rawSupport.clear();
+	for (auto partyCode : partyCodeVec) {
+		auto& series = rawSupport[partyCode];
+		if (partyCode == UnnamedOthersCode) continue; // calculate this later
+		std::string filename = "python/Outputs/fp_trend_"
+			+ termCode + "_" + partyCode + " FP.csv";
+		auto file = std::ifstream(filename);
+		if (!file) {
+			feedback("Could not load file: " + filename);
+			return false;
+		}
+		series.timePoint.clear();
+		std::string line;
+		std::getline(file, line); // first line is just a legend, skip it
+		std::getline(file, line);
+		if (!startDate.IsValid()) {
+			auto dateVals = splitString(line, ",");
+			startDate = wxDateTime(std::stoi(dateVals[0]),
+				wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
+		}
+		std::getline(file, line); // this line is just a legend, skip it
+		do {
+			std::getline(file, line);
+			if (!file) break;
+			auto trendVals = splitString(line, ",");
+			series.timePoint.push_back(Spread());
+			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+				series.timePoint.back().values[percentile]
+					= std::stof(trendVals[percentile + 2]);
+			}
+		} while (true);
+	}
+	return true;
+}
+
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const
 {
 	if (!rawSupport.size()) return SupportSample();
@@ -389,8 +424,6 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 	constexpr static int NumIterations = 1000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
 	try {
-		generateParameterMaps();
-
 		int seriesLength = rawSupport.begin()->second.timePoint.size();
 		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 			std::string partyName = partyCodeVec[partyIndex];
@@ -512,66 +545,6 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		tpp += support * randomisedFlow;
 	}
 	sample.insert({ TppCode, tpp });
-}
-
-void StanModel::generateParameterMaps()
-{
-	// partyCodeVec is already created by loadData
-	partyCodeVec = splitString(partyCodes, ",");
-	if (!partyCodeVec.size()) throw Exception("No party codes in this model!");
-	try {
-		auto debiasInterceptVec = splitStringF(debiasIntercept, ",");
-		auto debiasSlopeVec = splitStringF(debiasSlope, ",");
-		auto maxPollWeightVec = splitStringF(maxPollWeight, ",");
-		auto informationHorizonVec = splitStringF(informationHorizon, ",");
-		auto hyperbolaSharpnessVec = splitStringF(hyperbolaSharpness, ",");
-		auto historicalAverageVec = splitStringF(historicalAverage, ",");
-		auto deviationSlopeVec = splitStringF(deviationSlope, ",");
-		auto deviationInterceptVec = splitStringF(deviationIntercept, ",");
-		auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
-		auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
-		auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
-		bool validSizes = debiasInterceptVec.size() == partyCodeVec.size() &&
-			debiasSlopeVec.size() == partyCodeVec.size() &&
-			maxPollWeightVec.size() == partyCodeVec.size() &&
-			informationHorizonVec.size() == partyCodeVec.size() &&
-			hyperbolaSharpnessVec.size() == partyCodeVec.size() &&
-			historicalAverageVec.size() == partyCodeVec.size() &&
-			deviationSlopeVec.size() == partyCodeVec.size() &&
-			deviationInterceptVec.size() == partyCodeVec.size() &&
-			preferenceFlowVec.size() == partyCodeVec.size() &&
-			preferenceDeviationVec.size() == partyCodeVec.size() &&
-			preferenceSamplesVec.size() == partyCodeVec.size();
-		if (!validSizes) throw Exception("Party codes and parameter lines do not match!");
-
-		debiasInterceptMap.clear();
-		debiasSlopeMap.clear();
-		maxPollWeightMap.clear();
-		informationHorizonMap.clear();
-		hyperbolaSharpnessMap.clear();
-		historicalAverageMap.clear();
-		deviationSlopeMap.clear();
-		deviationInterceptMap.clear();
-		preferenceFlowMap.clear();
-		preferenceDeviationMap.clear();
-		preferenceSamplesMap.clear();
-		for (int index = 0; index < int(partyCodeVec.size()); ++index) {
-			debiasInterceptMap.insert({ partyCodeVec[index], debiasInterceptVec[index] });
-			debiasSlopeMap.insert({ partyCodeVec[index], debiasSlopeVec[index] });
-			maxPollWeightMap.insert({ partyCodeVec[index], maxPollWeightVec[index] });
-			informationHorizonMap.insert({ partyCodeVec[index], informationHorizonVec[index] });
-			hyperbolaSharpnessMap.insert({ partyCodeVec[index], hyperbolaSharpnessVec[index] });
-			historicalAverageMap.insert({ partyCodeVec[index], historicalAverageVec[index] });
-			deviationSlopeMap.insert({ partyCodeVec[index], deviationSlopeVec[index] });
-			deviationInterceptMap.insert({ partyCodeVec[index], deviationInterceptVec[index] });
-			preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
-			preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
-			preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
-		}
-	}
-	catch (std::invalid_argument) {
-		throw Exception("One or more model paramater lists could not be converted to floats!");
-	}
 }
 
 void StanModel::Series::smooth(int smoothingFactor)

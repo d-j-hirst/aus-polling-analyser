@@ -121,6 +121,12 @@ private:
 	// Loads coefficients for model parameters from 
 	void loadParameters(FeedbackFunc feedback);
 
+	// Generates maps between 
+	bool generatePreferenceMaps(FeedbackFunc feedback);
+
+	// Returns false on failure to load trend data
+	bool loadTrendData(FeedbackFunc feedback);
+
 	// Invalid date/time (default) gives the most recent time point
 	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
 
@@ -140,8 +146,6 @@ private:
 	static void normaliseSample(StanModel::SupportSample& sample);
 
 	void generateTppForSample(StanModel::SupportSample& sample) const;
-
-	void generateParameterMaps();
 
 	static RandomGenerator rng;
 
