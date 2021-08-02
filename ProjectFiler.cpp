@@ -19,7 +19,8 @@
 // Version 12: Save latest simulation report
 // Version 13: Save all simulation reports
 // Version 14: Save source file for polls
-constexpr int VersionNum = 14;
+// Version 15: Don't save obsolete model settings
+constexpr int VersionNum = 15;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -431,17 +432,9 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.name;
 		saveOutput << thisModel.termCode;
 		saveOutput << thisModel.partyCodes;
-		saveOutput << thisModel.debiasIntercept;
-		saveOutput << thisModel.debiasSlope;
 		saveOutput << thisModel.preferenceFlow;
 		saveOutput << thisModel.preferenceDeviation;
 		saveOutput << thisModel.preferenceSamples;
-		saveOutput << thisModel.maxPollWeight;
-		saveOutput << thisModel.informationHorizon;
-		saveOutput << thisModel.hyperbolaSharpness;
-		saveOutput << thisModel.deviationSlope;
-		saveOutput << thisModel.deviationIntercept;
-		saveOutput << thisModel.historicalAverage;
 		saveOutput << thisModel.startDate.GetJulianDayNumber();
 		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
 		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
@@ -498,9 +491,8 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 		if (versionNum >= 3) {
 			saveInput >> thisModel.termCode;
 			saveInput >> thisModel.partyCodes;
-			if (versionNum >= 5) {
-				saveInput >> thisModel.debiasIntercept;
-				saveInput >> thisModel.debiasSlope;
+			if (versionNum >= 5 && versionNum <= 14) {
+				for (int i = 0; i < 2; ++i) saveInput.extract<std::string>();
 			}
 			if (versionNum >= 6) {
 				saveInput >> thisModel.preferenceFlow;
@@ -509,13 +501,8 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int ver
 				saveInput >> thisModel.preferenceDeviation;
 				saveInput >> thisModel.preferenceSamples;
 			}
-			if (versionNum >= 11) {
-				saveInput >> thisModel.maxPollWeight;
-				saveInput >> thisModel.informationHorizon;
-				saveInput >> thisModel.hyperbolaSharpness;
-				saveInput >> thisModel.deviationSlope;
-				saveInput >> thisModel.deviationIntercept;
-				saveInput >> thisModel.historicalAverage;
+			if (versionNum >= 11 && versionNum <= 14) {
+				for (int i = 0; i < 6; ++i) saveInput.extract<std::string>();
 			}
 			thisModel.startDate = wxDateTime(saveInput.extract<double>());
 			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());

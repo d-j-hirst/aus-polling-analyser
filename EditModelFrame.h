@@ -63,17 +63,9 @@ private:
 	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<TextInput> termCodeInput;
 	std::unique_ptr<TextInput> partyCodesInput;
-	std::unique_ptr<TextInput> debiasInterceptInput;
-	std::unique_ptr<TextInput> debiasSlopeInput;
 	std::unique_ptr<TextInput> preferenceFlowInput;
 	std::unique_ptr<TextInput> preferenceDeviationInput;
 	std::unique_ptr<TextInput> preferenceSamplesInput;
-	std::unique_ptr<TextInput> maxPollWeightInput;
-	std::unique_ptr<TextInput> informationHorizonInput;
-	std::unique_ptr<TextInput> hyperbolaSharpnessInput;
-	std::unique_ptr<TextInput> historicalAverageInput;
-	std::unique_ptr<TextInput> deviationSlopeInput;
-	std::unique_ptr<TextInput> deviationInterceptInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

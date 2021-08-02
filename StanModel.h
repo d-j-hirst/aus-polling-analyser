@@ -158,17 +158,9 @@ private:
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;
-	std::string debiasIntercept;
-	std::string debiasSlope;
 	std::string preferenceFlow;
 	std::string preferenceDeviation;
 	std::string preferenceSamples;
-	std::string maxPollWeight;
-	std::string informationHorizon;
-	std::string hyperbolaSharpness;
-	std::string historicalAverage;
-	std::string deviationSlope;
-	std::string deviationIntercept;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 
@@ -188,14 +180,6 @@ private:
 	ParameterSeriesByPartyGroup parameters;
 
 	PartyCodes partyCodeVec;
-	PartyParameters debiasSlopeMap;
-	PartyParameters debiasInterceptMap;
-	PartyParameters maxPollWeightMap;
-	PartyParameters informationHorizonMap;
-	PartyParameters hyperbolaSharpnessMap;
-	PartyParameters historicalAverageMap;
-	PartyParameters deviationSlopeMap;
-	PartyParameters deviationInterceptMap;
 	PartyParameters preferenceFlowMap;
 	PartyParameters preferenceDeviationMap;
 	PartyParameters preferenceSamplesMap;
