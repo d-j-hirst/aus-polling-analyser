@@ -19,8 +19,7 @@ RandomGenerator StanModel::rng = RandomGenerator();
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
 	{ "ALP", "LNP", "LIB", "NAT", "GRN" };
 
-StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes,
-	std::string meanAdjustments, std::string deviationAdjustments)
+StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes)
 	
 	: name(name), termCode(termCode), partyCodes(partyCodes)
 {
@@ -32,7 +31,7 @@ wxDateTime StanModel::getEndDate() const
 	return startDate + wxDateSpan::Days(adjustedSupport.begin()->second.timePoint.size() - 1);
 }
 
-void StanModel::loadData(FeedbackFunc feedback)
+void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	loadPartyGroups();
 	loadParameters(feedback);
@@ -42,7 +41,7 @@ void StanModel::loadData(FeedbackFunc feedback)
 	logger << "Loaded model: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	generateUnnamedOthersSeries();
 	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	updateAdjustedData(feedback);
+	updateAdjustedData(feedback, numThreads);
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	lastUpdatedDate = wxDateTime::Now();
 	feedback("Finished loading models");
@@ -194,8 +193,6 @@ void StanModel::loadPartyGroups()
 			reversePartyGroups[value] = key;
 		}
 	}
-	logger << reversePartyGroups;
-	// *** Create mapping from existing party name to party group
 }
 
 void StanModel::loadParameters(FeedbackFunc feedback)
@@ -419,7 +416,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	return sample;
 }
 
-void StanModel::updateAdjustedData(FeedbackFunc feedback)
+void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 {
 	constexpr static int NumIterations = 1000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
@@ -432,9 +429,8 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 		}
 		tppSupport.timePoint.resize(seriesLength);
 
-		constexpr int NumThreads = 8;
 		constexpr int BatchSize = 10;
-		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += NumThreads * BatchSize) {
+		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
 					wxDateTime thisDate = startDate;
@@ -470,7 +466,7 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback)
 				}
 			};
 			std::vector<std::thread> threads;
-			for (int timeStart = timeStart1; timeStart < timeStart1 + NumThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
+			for (int timeStart = timeStart1; timeStart < timeStart1 + numThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
 				threads.push_back(std::thread(std::bind(calculateTimeSupport, timeStart)));
 			}
 			for (auto& thread : threads) {

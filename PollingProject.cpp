@@ -11,10 +11,9 @@
 
 const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
 
-PollingProject::PollingProject(NewProjectData& newProjectData) :
-	name(newProjectData.projectName),
-	lastFileName(newProjectData.projectName + ".pol"),
-	valid(true),
+const std::string ConfigFilename = "config.cfg";
+
+PollingProject::PollingProject() :
 	partyCollection(*this),
 	pollsterCollection(*this),
 	pollCollection(*this),
@@ -25,29 +24,27 @@ PollingProject::PollingProject(NewProjectData& newProjectData) :
 	seatCollection(*this),
 	simulationCollection(*this),
 	electionCollection(*this),
-	resultCoordinator(*this)
+	resultCoordinator(*this),
+	configObj(ConfigFilename)
+{}
+
+PollingProject::PollingProject(NewProjectData& newProjectData)
+	: PollingProject()
 {
+	name = newProjectData.projectName,
+	lastFileName = newProjectData.projectName + ".pol",
 	// The project must always have at least two parties, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
 	partyCollection.add(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
 
 	pollsterCollection.add(Pollster("Default Pollster", 1.0f, 0, true, false));
+	valid = true;
 }
 
-PollingProject::PollingProject(std::string pathName) :
-	lastFileName(pathName.substr(pathName.rfind("\\")+1)),
-	partyCollection(*this),
-	pollsterCollection(*this),
-	pollCollection(*this),
-	eventCollection(*this),
-	modelCollection(*this),
-	projectionCollection(*this),
-	regionCollection(*this),
-	seatCollection(*this),
-	simulationCollection(*this),
-	electionCollection(*this),
-	resultCoordinator(*this)
+PollingProject::PollingProject(std::string pathName)
+	: PollingProject()
 {
+	lastFileName = pathName.substr(pathName.rfind("\\") + 1);
 	logger << "Loading project from: " << lastFileName << "\n";
 	open(pathName);
 }

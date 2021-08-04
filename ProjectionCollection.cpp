@@ -68,7 +68,7 @@ void ProjectionCollection::run(Projection::Id id, Projection::FeedbackFunc feedb
 	auto projectionIt = projections.find(id);
 	if (projectionIt == projections.end()) throw ProjectionDoesntExistException();
 	Projection& projection = projectionIt->second;
-	projection.run(project.models(), feedback);
+	projection.run(project.models(), feedback, project.config().getNumThreads());
 }
 
 void ProjectionCollection::setAsNowCast(Projection::Id id)

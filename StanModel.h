@@ -50,8 +50,7 @@ public:
 	// for the purpose of 
 	typedef std::set<std::string> MajorPartyCodes;
 
-	StanModel(std::string name = "", std::string termCode = "", std::string partyCodes = "",
-		std::string meanAdjustments = "", std::string stdevAdjustments = "");
+	StanModel(std::string name = "", std::string termCode = "", std::string partyCodes = "");
 
 	std::string getName() const { return name; }
 
@@ -67,7 +66,7 @@ public:
 
 	wxDateTime getLastUpdatedDate() const { return lastUpdatedDate; }
 
-	void loadData(FeedbackFunc feedback = [](std::string) {});
+	void loadData(FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
 
 	int rawSeriesCount() const;
 
@@ -136,7 +135,7 @@ private:
 
 	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0) const;
 
-	void updateAdjustedData(FeedbackFunc feedback);
+	void updateAdjustedData(FeedbackFunc feedback, int numThreads);
 
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);

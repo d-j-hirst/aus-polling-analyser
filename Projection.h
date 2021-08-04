@@ -64,7 +64,7 @@ public:
 		else return lastUpdated.FormatISODate().ToStdString();
 	}
 
-	void run(ModelCollection const& models, FeedbackFunc feedback = [](std::string) {});
+	void run(ModelCollection const& models, FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
 
 	void logRunStatistics();
 

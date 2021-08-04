@@ -233,6 +233,9 @@
     <ClCompile Include="RandomGenerator.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
+    <ClCompile Include="Config.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -569,6 +572,9 @@
     </ClInclude>
     <ClInclude Include="SpecialPartyCodes.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Config.h">
+      <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

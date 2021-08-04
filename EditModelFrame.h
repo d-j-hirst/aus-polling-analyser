@@ -45,10 +45,7 @@ private:
 	void createNameInput(int& y);
 	void createTermCodeInput(int& y);
 	void createPartyCodesInput(int& y);
-	void createDebiasInputs(int& y);
 	void createPreferenceInputs(int& y);
-	void createMixingInputs(int& y);
-	void createDeviationInputs(int& y);
 
 	void createOkCancelButtons(int& y);
 

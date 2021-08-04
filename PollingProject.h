@@ -6,6 +6,7 @@
 #include <fstream>
 #include <unordered_map>
 
+#include "Config.h"
 #include "ElectionData.h"
 #include "FileOpeningState.h"
 #include "NewProjectData.h"
@@ -58,6 +59,8 @@ public:
 
 	// Refreshes the calculated 2PPs for all polls.
 	void refreshCalc2PP();
+
+	Config const& config() const { return configObj; }
 
 	PartyCollection& parties() { return partyCollection; }
 	PartyCollection const& parties() const { return partyCollection; }
@@ -134,6 +137,10 @@ public:
 
 private:
 
+	// Basic constructor that handles everything required by the project regardless of whether
+	// it is a new or existing project.
+	PollingProject();
+
 	// Opens the project saved at the given filename.
 	// Returns 0 if successful, and 1 if opening failed.
 	void open(std::string filename);
@@ -159,6 +166,8 @@ private:
 	// The last file name the project was saved under.
 	// Defaults to "name.pol" if the project has not yet been saved at all.
 	std::string lastFileName;
+
+	Config configObj;
 
 	PartyCollection partyCollection;
 	PollsterCollection pollsterCollection;

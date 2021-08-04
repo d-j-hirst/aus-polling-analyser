@@ -29,7 +29,7 @@ void Projection::replaceSettings(Settings newSettings)
 	lastUpdated = wxInvalidDateTime;
 }
 
-void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
+void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int numThreads) {
 	if (!settings.endDate.IsValid()) return;
 	auto const& model = getBaseModel(models);
 	startDate = model.getEndDate() + wxDateSpan::Days(1);
@@ -48,9 +48,8 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 		tppSupport.timePoint.resize(seriesLength);
 
 
-		constexpr int NumThreads = 8;
 		constexpr int BatchSize = 10;
-		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += NumThreads * BatchSize) {
+		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
 					wxDateTime thisDate = startDate;
@@ -88,7 +87,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback) {
 				}
 			};
 			std::vector<std::thread> threads;
-			for (int timeStart = timeStart1; timeStart < timeStart1 + NumThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
+			for (int timeStart = timeStart1; timeStart < timeStart1 + numThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
 				threads.push_back(std::thread(std::bind(calculateTimeSupport, timeStart)));
 			}
 			for (auto& thread : threads) {
