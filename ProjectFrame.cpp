@@ -147,6 +147,11 @@ void ProjectFrame::saveAs() {
 	saveUnderFilename(pathName);
 }
 
+void ProjectFrame::runMacros()
+{
+	wxMessageBox("Would show macros if implemented.");
+}
+
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.
 ProjectFrame::ProjectFrame(ParentFrame* parent, int WXUNUSED(dummyInt))
 	: parent(parent), wxNotebook(parent->accessNotebookPanel(), wxID_ANY)

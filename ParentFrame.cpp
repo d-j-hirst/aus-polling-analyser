@@ -19,6 +19,7 @@ enum class Item
 	Open = wxID_OPEN,
 	Save = wxID_SAVE,
 	SaveAs = wxID_SAVEAS,
+	Macros = Base + 1,
 
 	// Item ID for exiting the program
 	Exit = wxID_EXIT,
@@ -58,19 +59,19 @@ wxWindow* ParentFrame::accessNotebookPanel()
 	return notebookPanel.get();
 }
 
-void ParentFrame::OnExit(wxCommandEvent& WXUNUSED(event))
+void ParentFrame::OnExit(wxCommandEvent&)
 {
 	// The argument is true in order to force the program to close.
 	Close(true);
 }
 
-void ParentFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
+void ParentFrame::OnAbout(wxCommandEvent&)
 {
 	// Displays a message box "about" the program.
 	wxMessageBox(AboutScreenText, AboutScreenTitle, wxOK | wxICON_INFORMATION, this);
 }
 
-void ParentFrame::OnNew(wxCommandEvent& WXUNUSED(event))
+void ParentFrame::OnNew(wxCommandEvent&)
 {
 
 	// Check if the user needs to save their current project.
@@ -87,7 +88,7 @@ void ParentFrame::OnNew(wxCommandEvent& WXUNUSED(event))
 	updateInterface();
 }
 
-void ParentFrame::OnOpen(wxCommandEvent& WXUNUSED(event))
+void ParentFrame::OnOpen(wxCommandEvent&)
 {
 
 	// Check if the user needs to save their current project.
@@ -111,17 +112,24 @@ void ParentFrame::OnOpen(wxCommandEvent& WXUNUSED(event))
 	updateInterface();
 }
 
-void ParentFrame::OnSave(wxCommandEvent & WXUNUSED(event))
+void ParentFrame::OnSave(wxCommandEvent &)
 {
 	if (notebook) {
 		notebook->save();
 	}
 }
 
-void ParentFrame::OnSaveAs(wxCommandEvent& WXUNUSED(event))
+void ParentFrame::OnSaveAs(wxCommandEvent&)
 {
 	if (notebook) {
 		notebook->saveAs();
+	}
+}
+
+void ParentFrame::OnMacros(wxCommandEvent&)
+{
+	if (notebook) {
+		notebook->runMacros();
 	}
 }
 
@@ -156,6 +164,10 @@ void ParentFrame::setupMenuBar()
 	fileMenu->Append(int(Item::SaveAs), "Save Project &As", "Save this project under a new filename");
 	fileMenu->Append(int(Item::Exit), "E&xit\tAlt-X", "Exit this program");
 
+	// Create the macros menu
+	wxMenu* macrosMenu = new wxMenu;
+	macrosMenu->Append(int(Item::Macros), "&Run Macro\tF1", "Run macros");
+
 	// Create the help menu.
 	wxMenu *helpMenu = new wxMenu;
 	helpMenu->Append(int(Item::About), "&About\tF1", "Show about dialog");
@@ -163,6 +175,7 @@ void ParentFrame::setupMenuBar()
 	// Append the freshly created menus to the menu bar.
 	wxMenuBar *menuBar = new wxMenuBar();
 	menuBar->Append(fileMenu, "&File");
+	menuBar->Append(macrosMenu, "&Macros");
 	menuBar->Append(helpMenu, "&Help");
 
 	// Attach this menu bar to the frame.
@@ -196,6 +209,7 @@ void ParentFrame::bindEventHandlers()
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnOpen, this, int(Item::Open));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnSave, this, int(Item::Save));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnSaveAs, this, int(Item::SaveAs));
+	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnMacros, this, int(Item::Macros));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnAbout, this, int(Item::About));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnExit, this, int(Item::Exit));
 

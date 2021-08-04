@@ -90,6 +90,9 @@ public:
 	// Saves as a new file, always opening the file dialog
 	void saveAs();
 
+	// Run macros to do multiple project tasks at once
+	void runMacros();
+
 private:
 
 	// Base constructor, should not actually be called as it does not create a project.
