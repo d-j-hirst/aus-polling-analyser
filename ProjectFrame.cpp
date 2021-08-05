@@ -149,7 +149,19 @@ void ProjectFrame::saveAs() {
 
 void ProjectFrame::runMacros()
 {
-	wxMessageBox("Would show macros if implemented.");
+	auto dialog = wxTextEntryDialog(this, "Enter macro:", "", project->getLastMacro());
+	dialog.ShowModal();
+	std::string newMacro = std::string(dialog.GetValue());
+	auto error = project->runMacro(newMacro);
+	if (error.has_value()) {
+		wxMessageBox(error.value());
+	}
+	Refresher refresher(*this);
+	refresher.refreshPollData();
+	refresher.refreshProjectionData();
+	refresher.refreshSeatData();
+	refresher.refreshVisualiser();
+	refresher.refreshDisplay();
 }
 
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.

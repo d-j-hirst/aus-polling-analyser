@@ -96,6 +96,12 @@ float Simulation::Report::getPartyWinExpectation(int partyIndex) const
 	return partyWinExpectation[partyIndex];
 }
 
+float Simulation::Report::getPartyWinMedian(int partyIndex) const
+{
+	if (partyIndex < int(partyWinMedian.size())) return partyWinMedian[partyIndex];
+	return 0;
+}
+
 float Simulation::Report::getOthersWinExpectation() const
 {
 	if (partyWinExpectation.size() < 3) return 0.0f;

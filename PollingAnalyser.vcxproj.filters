@@ -236,6 +236,7 @@
     <ClCompile Include="Config.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="MacroRunner.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -574,6 +575,9 @@
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="Config.h">
+      <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="MacroRunner.h">
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
   </ItemGroup>

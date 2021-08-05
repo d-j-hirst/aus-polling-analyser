@@ -71,6 +71,8 @@ public:
 
 		std::vector<float> partyWinExpectation;
 
+		std::vector<float> partyWinMedian;
+
 		// region, then party
 		std::vector<std::vector<float>> regionPartyWinExpectation;
 
@@ -123,6 +125,8 @@ public:
 		int internalRegionCount() const;
 
 		float getPartyWinExpectation(int partyIndex) const;
+
+		float getPartyWinMedian(int partyIndex) const;
 
 		float getOthersWinExpectation() const;
 

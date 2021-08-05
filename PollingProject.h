@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <fstream>
+#include <optional>
 #include <unordered_map>
 
 #include "Config.h"
@@ -56,6 +57,12 @@ public:
 
 	// Gets the file name that the project was last saved under.
 	std::string getLastFileName() { return lastFileName; }
+
+	// Gets the full text string for the last macro to be run.
+	std::string getLastMacro() { return lastMacro; }
+
+	// Runs the given macro. Returns true if the macro verified successfully, 
+	std::optional<std::string> runMacro(std::string macro);
 
 	// Refreshes the calculated 2PPs for all polls.
 	void refreshCalc2PP();
@@ -166,6 +173,9 @@ private:
 	// The last file name the project was saved under.
 	// Defaults to "name.pol" if the project has not yet been saved at all.
 	std::string lastFileName;
+	
+	// Stores full text of the last macro to be run.
+	std::string lastMacro;
 
 	Config configObj;
 

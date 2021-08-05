@@ -2,6 +2,7 @@
 
 #include "LatestResultsDataRetriever.h"
 #include "Log.h"
+#include "MacroRunner.h"
 #include "PreloadDataRetriever.h"
 #include "PreviousElectionDataRetriever.h"
 #include "ProjectFiler.h"
@@ -49,6 +50,18 @@ PollingProject::PollingProject(std::string pathName)
 	open(pathName);
 }
 
+
+std::optional<std::string> PollingProject::runMacro(std::string macro)
+{
+	bool passesValidation = true;
+	if (!passesValidation) {
+		return "Didn't pass validation!";
+	}
+	else {
+		lastMacro = macro;
+		return MacroRunner(*this).run(macro, true);
+	}
+}
 
 void PollingProject::refreshCalc2PP() {
 	for (auto it = polls().begin(); it != polls().end(); it++)

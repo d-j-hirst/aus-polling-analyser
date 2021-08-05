@@ -20,7 +20,9 @@
 // Version 13: Save all simulation reports
 // Version 14: Save source file for polls
 // Version 15: Don't save obsolete model settings
-constexpr int VersionNum = 15;
+// Version 16: Save latest macro
+// Version 17: Save medians for parties in simulation reports
+constexpr int VersionNum = 17;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -217,6 +219,7 @@ int ProjectFiler::saveDetailed(std::string filename)
 	SaveFileOutput saveOutput(filename);
 	saveOutput << VersionNum;
 	saveOutput << project.name;
+	saveOutput << project.lastMacro;
 	saveParties(saveOutput);
 	savePollsters(saveOutput);
 	savePolls(saveOutput);
@@ -236,6 +239,7 @@ int ProjectFiler::openDetailed(std::string filename)
 	SaveFileInput saveInput(filename);
 	const int versionNum = saveInput.extract<int>();
 	saveInput >> project.name;
+	if (versionNum >= 16) saveInput >> project.lastMacro;
 	loadParties(saveInput, versionNum);
 	loadPollsters(saveInput, versionNum);
 	loadPolls(saveInput, versionNum);
@@ -673,6 +677,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.minorityPercent;
 	saveOutput << report.hungPercent;
 	saveOutput << report.partyWinExpectation;
+	saveOutput << report.partyWinMedian;
 	saveOutput << report.regionPartyWinExpectation;
 	saveOutput << report.partySeatWinFrequency;
 	saveOutput << report.othersWinFrequency;
@@ -693,13 +698,16 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.prevElection2pp;
 }
 
-Simulation::Report loadReport(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 {
 	Simulation::Report report;
 	saveInput >> report.majorityPercent;
 	saveInput >> report.minorityPercent;
 	saveInput >> report.hungPercent;
 	saveInput >> report.partyWinExpectation;
+	if (versionNum >= 17) {
+		saveInput >> report.partyWinMedian;
+	}
 	saveInput >> report.regionPartyWinExpectation;
 	saveInput >> report.partySeatWinFrequency;
 	saveInput >> report.othersWinFrequency;

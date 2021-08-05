@@ -223,14 +223,14 @@ void DisplayFrameRenderer::drawExpectationsBoxTitle() const
 	wxRect expBoxTitleRect = wxRect(ExpectationBoxLeft, expectationBoxTop(), ExpectationBoxWidth, ExpectationBoxTitleHeight);
 	setBrushAndPen(*wxBLACK);
 	dc.SetFont(font(15));
-	dc.DrawLabel("Seat expectations:", expBoxTitleRect, wxALIGN_CENTRE);
+	dc.DrawLabel("Seat expectations/median:", expBoxTitleRect, wxALIGN_CENTRE);
 }
 
 void DisplayFrameRenderer::drawExpectationsBoxRows() const
 {
 	int rowSize = std::min(22, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.internalPartyCount()));
 	wxRect expBoxNameRect = wxRect(ExpectationBoxLeft, expectationBoxTop() + ExpectationBoxTitleHeight,
-		ExpectationBoxWidth * 0.7f, rowSize);
+		ExpectationBoxWidth * 0.5f, rowSize);
 	dc.SetFont(font(rowSize - 8));
 
 
@@ -242,11 +242,14 @@ void DisplayFrameRenderer::drawExpectationsBoxRows() const
 void DisplayFrameRenderer::drawExpectationsBoxRow(wxRect& nameRect, PartyCollection::Index partyIndex) const
 {
 	int rowSize = std::min(21, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.internalPartyCount()));
+	int width = (ExpectationBoxWidth - nameRect.GetWidth()) / 2;
 	wxRect expBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(),
-		ExpectationBoxWidth - nameRect.GetWidth(), rowSize);
+		(ExpectationBoxWidth - nameRect.GetWidth()) / 2, rowSize);
 	if (partyIndex >= int(simulation.internalPartyCount())) return;
 	dc.DrawLabel(simulation.partyName[partyIndex], nameRect, wxALIGN_CENTRE);
 	dc.DrawLabel(formatFloat(simulation.getPartyWinExpectation(partyIndex), 2), expBoxDataRect, wxALIGN_CENTRE);
+	expBoxDataRect.Offset(width, 0);
+	dc.DrawLabel(formatFloat(simulation.getPartyWinMedian(partyIndex), 0), expBoxDataRect, wxALIGN_CENTRE);
 	nameRect.Offset(0, rowSize);
 }
 

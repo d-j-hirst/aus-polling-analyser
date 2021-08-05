@@ -94,7 +94,9 @@ public:
 
 	// requestFunc should take two std::string arguments, one for a prompt and one for a default input,
 	// and display some prompt using those two strings, giving the user's final input as a string
-	void collectPolls(RequestFunc requestFunc, MessageFunc messageFunc);
+	// For automation purposes these defaults will use existing settings.
+	void collectPolls(RequestFunc requestFunc = [](std::string, std::string a) { return a; },
+		MessageFunc messageFunc = [](std::string) { });
 
 	void logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const;
 

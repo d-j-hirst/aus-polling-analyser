@@ -21,6 +21,8 @@ void SimulationCompletion::completeRun()
 
 	calculatePartyWinExpectations();
 
+	calculatePartyWinMedians();
+
 	calculateRegionPartyWinExpectations();
 
 	recordProbabilityBands();
@@ -67,6 +69,23 @@ void SimulationCompletion::calculatePartyWinExpectations()
 			totalSeats += seatNum * sim.latestReport.partySeatWinFrequency[partyIndex][seatNum];
 		}
 		sim.latestReport.partyWinExpectation[partyIndex] = float(totalSeats) / float(sim.settings.numIterations);
+	}
+}
+
+void SimulationCompletion::calculatePartyWinMedians()
+{
+	sim.latestReport.partyWinMedian.resize(project.parties().count());
+
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		int runningTotal = 0;
+		for (int seatNum = 0; seatNum < int(sim.latestReport.partySeatWinFrequency[partyIndex].size()); ++seatNum) {
+			runningTotal += sim.latestReport.partySeatWinFrequency[partyIndex][seatNum];
+			if (runningTotal > sim.settings.numIterations / 2) {
+				sim.latestReport.partyWinMedian[partyIndex] = seatNum;
+				logger << partyIndex << " - median result: " << seatNum << "\n";
+				break;
+			}
+		}
 	}
 }
 

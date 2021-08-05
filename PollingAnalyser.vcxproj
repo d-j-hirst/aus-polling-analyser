@@ -291,6 +291,7 @@
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="Log.cpp" />
+    <ClCompile Include="MacroRunner.cpp" />
     <ClCompile Include="MapFrame.cpp" />
     <ClCompile Include="ModelCollection.cpp" />
     <ClCompile Include="OutcomeCollection.cpp" />
@@ -375,6 +376,7 @@
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="EventCollection.h" />
     <ClInclude Include="FloatInput.h" />
+    <ClInclude Include="MacroRunner.h" />
     <ClInclude Include="OrthogonalRegression.h" />
     <ClInclude Include="SpecialPartyCodes.h" />
     <ClInclude Include="PartiesAnalyser.h" />
