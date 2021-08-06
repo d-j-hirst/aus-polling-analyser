@@ -1,7 +1,8 @@
 #pragma once
 
-#include <memory>
 #include <fstream>
+#include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -25,6 +26,17 @@ public:
 
 	template<typename T, typename U>
 	inline SaveFileOutput& operator<<(std::unordered_map<T, U> itemToAdd)
+	{
+		this->outputAsType<int32_t>(itemToAdd.size());
+		for (auto const& [t, u] : itemToAdd) {
+			*this << t;
+			*this << u;
+		}
+		return *this;
+	}
+
+	template<typename T, typename U>
+	inline SaveFileOutput& operator<<(std::map<T, U> itemToAdd)
 	{
 		this->outputAsType<int32_t>(itemToAdd.size());
 		for (auto const& [t, u] : itemToAdd) {
@@ -85,6 +97,20 @@ public:
 
 	template<typename T, typename U>
 	inline SaveFileInput& operator>>(std::unordered_map<T, U>& itemToAdd)
+	{
+		itemToAdd.clear();
+		auto count = this->extract<int32_t>();
+		for (int i = 0; i < count; ++i) {
+			T t; U u;
+			*this >> t;
+			*this >> u;
+			itemToAdd[t] = u;
+		}
+		return *this;
+	}
+
+	template<typename T, typename U>
+	inline SaveFileInput& operator>>(std::map<T, U>& itemToAdd)
 	{
 		itemToAdd.clear();
 		auto count = this->extract<int32_t>();

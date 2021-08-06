@@ -22,7 +22,8 @@
 // Version 15: Don't save obsolete model settings
 // Version 16: Save latest macro
 // Version 17: Save medians for parties in simulation reports
-constexpr int VersionNum = 17;
+// Version 18: Save distributions of tpp and party primaries
+constexpr int VersionNum = 18;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -696,6 +697,8 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.classicSeatIndices;
 	saveOutput << report.regionPartyLeading;
 	saveOutput << report.prevElection2pp;
+	saveOutput << report.partyPrimaryFrequency;
+	saveOutput << report.tppFrequency;
 }
 
 Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
@@ -726,6 +729,10 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.classicSeatIndices;
 	saveInput >> report.regionPartyLeading;
 	saveInput >> report.prevElection2pp;
+	if (versionNum >= 18) {
+		saveInput >> report.partyPrimaryFrequency;
+		saveInput >> report.tppFrequency;
+	}
 	return report;
 }
 

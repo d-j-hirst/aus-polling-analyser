@@ -244,6 +244,9 @@ void SimulationPreparation::resetResultCounts()
 	sim.latestReport.partySeatWinFrequency.resize(project.parties().count(), std::vector<int>(project.seats().count() + 1));
 	sim.latestReport.othersWinFrequency.clear();
 	sim.latestReport.othersWinFrequency.resize(project.seats().count() + 1);
+	sim.latestReport.partyPrimaryFrequency.clear();
+	sim.latestReport.partyPrimaryFrequency.resize(project.parties().count());
+	sim.latestReport.tppFrequency.clear();
 	sim.latestReport.partyOneSwing = 0.0;
 }
 

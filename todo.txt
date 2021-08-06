@@ -1,9 +1,4 @@
 Polling Analyser to-do:
--Take historical polling analysis from its current cumbersome spreadsheet to a fast, automatic program
- -Remove obsolete code from model parts of main program, remove now-unused model parameter fields, and make new save version that doesn't include them.
--Small item: Put some hard-coded things like number of threads to use into a config file
--Some simple macro (expandable later) for handling updating model/projections/simulations all at once
--Simulations show median seats per party as well as expectation (since the latter can be seriously misleading for skewed distributions
 -More sophisticated handling of non-classic and potentially non-classic seats
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -(Make any further adjustments to existing analysis processes)

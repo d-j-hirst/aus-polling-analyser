@@ -69,6 +69,9 @@ public:
 
 		double partyOneSwing = 0.0;
 
+		std::vector<std::map<short, int>> partyPrimaryFrequency;
+		std::map<short, int> tppFrequency;
+
 		std::vector<float> partyWinExpectation;
 
 		std::vector<float> partyWinMedian;

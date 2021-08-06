@@ -52,7 +52,21 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
-	run.iterationOverallSwing = projectedSample.at(TppCode) - sim.settings.prevElection2pp;
+	float tpp = projectedSample.at(TppCode);
+	run.iterationOverallSwing = tpp - sim.settings.prevElection2pp;
+	short tppBucket = short(floor(tpp * 10.0f));
+	++sim.latestReport.tppFrequency[tppBucket];
+
+	for (auto const& [sampleKey, partySample] : projectedSample) {
+		for (auto const& [id, party] : project.parties()) {
+			if (contains(party.officialCodes, sampleKey)) {
+				int partyIndex = project.parties().idToIndex(id);
+				short bucket = short(floor(partySample * 10.0f));
+				++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];
+				break;
+			}
+		}
+	}
 }
 
 void SimulationIteration::determineIterationOverallSwing()
