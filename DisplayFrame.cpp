@@ -33,11 +33,11 @@ DisplayFrame::DisplayFrame(ProjectFrame::Refresher refresher, PollingProject* pr
 
 	dcPanel = new wxPanel(this, ControlId::DcPanel, wxPoint(0, toolbarHeight), GetClientSize() - wxSize(0, toolbarHeight));
 
+	bindEventHandlers();
+
 	Layout();
 
 	paint();
-
-	bindEventHandlers();
 }
 
 void DisplayFrame::paint() {

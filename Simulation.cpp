@@ -211,6 +211,41 @@ int Simulation::Report::findBestSeatDisplayCenter(Party::Id partySorted, int num
 	return bestCenter;
 }
 
+int Simulation::Report::getVoteSampleCount(int partyIndex) const
+{
+	// This process is inefficient as the value could be cached upon first use or saved in the save file.
+	// However, for now it's not enough to cause any issues, so leaving it as is
+	return std::accumulate(partyPrimaryFrequency[partyIndex].begin(), partyPrimaryFrequency[partyIndex].end(), 0,
+		[](int sum, std::pair<short, int> a) {return sum + a.second; });
+}
+
+float Simulation::Report::getVoteSampleExpectation(int partyIndex) const
+{
+	// This process is inefficient as the value could be cached upon first use or saved in the save file.
+	// However, for now it's not enough to cause any issues, so leaving it as is
+	int totalCount = getVoteSampleCount(partyIndex);
+	if (!totalCount) return 0;
+	return std::accumulate(partyPrimaryFrequency[partyIndex].begin(), partyPrimaryFrequency[partyIndex].end(), 0.0f,
+		[](float sum, std::pair<short, int> a) {
+			return sum + float(a.first) * float(a.second) * 0.1f;
+		}
+	) / float(totalCount);
+}
+
+float Simulation::Report::getVoteSampleMedian(int partyIndex) const
+{
+	int totalCount = getVoteSampleCount(partyIndex);
+	if (!totalCount) return 0.0f;
+	int currentCount = 0;
+	for (auto const& [bucketKey, bucketCount] : partyPrimaryFrequency[partyIndex]) {
+		currentCount += bucketCount;
+		if (currentCount > totalCount / 2) {
+			return float(bucketKey) * 0.1f;
+		}
+	}
+	return 100.0f;
+}
+
 int Simulation::Report::getOthersLeading(int regionIndex) const
 {
 	if (regionPartyLeading[regionIndex].size() < 3) return 0;

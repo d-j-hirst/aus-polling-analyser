@@ -159,6 +159,12 @@ public:
 
 		int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) const;
 
+		int getVoteSampleCount(int partyIndex) const;
+
+		float getVoteSampleExpectation(int partyIndex) const;
+
+		float getVoteSampleMedian(int partyIndex) const;
+
 		float get2cpPercentCounted() const { return total2cpPercentCounted; }
 
 		// Get the number of seats in this region in which non-major parties are leading

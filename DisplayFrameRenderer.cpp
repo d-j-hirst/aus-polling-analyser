@@ -1,11 +1,18 @@
 #include "DisplayFrameRenderer.h"
 
 #include "General.h"
+#include "Log.h"
 
 constexpr int GraphParty = 1;
 
-constexpr float ProbabilityBoxMargin = 10.0f;
-constexpr float ProbabilityBoxLeft = ProbabilityBoxMargin;
+// Note: The "Top" variables represent the height from the top of the drawing space, which is not
+// the same as the number that is actually passed to the function due to the presence of the toolbar
+// so all the compile-time stuff is done in draw space but needs to be converted to be inclusive of
+// the toolbar before being passed to wx functions.
+
+constexpr float BoxMargin = 10.0f;
+constexpr float ProbabilityBoxLeft = BoxMargin;
+constexpr float ProbabilityBoxTop = BoxMargin;
 constexpr float ProbabilityBoxWidth = 340.0f;
 constexpr float ProbabilityBoxHeight = 180.0f;
 constexpr float ProbabilityBoxPadding = 10.0f;
@@ -18,13 +25,14 @@ constexpr float ProbabilityBoxSumWidth = 90.0f;
 constexpr float ProbabilityBoxSumHeight = 50.0f;
 constexpr float ProbabilityBoxTextInnerPadding = 5.0f;
 
-constexpr float ExpectationBoxLeft = ProbabilityBoxMargin;
+constexpr float ExpectationBoxLeft = BoxMargin;
+constexpr float ExpectationBoxTop = ProbabilityBoxTop + ProbabilityBoxHeight + BoxMargin;
 constexpr float ExpectationBoxWidth = ProbabilityBoxWidth;
 constexpr float ExpectationBoxHeight = 200.0f;
 constexpr float ExpectationBoxTitleHeight = 30.0f;
 constexpr float ExpectationBoxTextHeight = 24.0f;
 
-constexpr float RegionsBoxLeft = ProbabilityBoxLeft + ProbabilityBoxWidth + ProbabilityBoxMargin;
+constexpr float RegionsBoxLeft = ProbabilityBoxLeft + ProbabilityBoxWidth + BoxMargin;
 constexpr float RegionsBoxWidth = 700.0f;
 constexpr float RegionsBoxHeight = 250.0f;
 constexpr float RegionsBoxTitleHeight = 30.0f;
@@ -36,16 +44,23 @@ constexpr float BoundsBoxHeight = 130.0f;
 constexpr float BoundsBoxTitleHeight = 30.0f;
 constexpr float BoundsBoxTextHeight = 24.0f;
 
-constexpr float GraphBoxLeft = ProbabilityBoxLeft;
-constexpr float GraphBoxWidth = ProbabilityBoxWidth + ProbabilityBoxMargin + RegionsBoxWidth;
+constexpr float VoteShareBoxWidth = ProbabilityBoxWidth;
+constexpr float VoteShareBoxTop = ExpectationBoxTop + ExpectationBoxHeight + BoxMargin;
+constexpr float VoteShareBoxLeft = ProbabilityBoxLeft;
+constexpr float VoteShareBoxTitleHeight = 30.0f;
+constexpr float VoteShareBoxTextHeight = 24.0f;
+
+constexpr float SeatsBoxLeft = RegionsBoxLeft + RegionsBoxWidth + BoxMargin;
+constexpr float SeatsBoxTitleHeight = 30.0f;
+constexpr float SeatsBoxTextHeight = 11.0f;
+
+constexpr float GraphBoxLeft = VoteShareBoxLeft + VoteShareBoxWidth + BoxMargin;
+constexpr float GraphBoxWidth = SeatsBoxLeft - GraphBoxLeft - BoxMargin;
+constexpr float GraphBoxTop = VoteShareBoxTop;
 constexpr float GraphAxisOffset = 20.0f;
 constexpr float GraphAxisLabelWidth = 50.0f;
 constexpr float GraphTopSpace = 10.0f;
 constexpr int GraphAxisLabelInterval = 5;
-
-constexpr float SeatsBoxLeft = RegionsBoxLeft + RegionsBoxWidth + ProbabilityBoxMargin;
-constexpr float SeatsBoxTitleHeight = 30.0f;
-constexpr float SeatsBoxTextHeight = 11.0f;
 
 constexpr float CornerRounding = 30.0f;
 constexpr float TextBoxCornerRounding = 20.0f;
@@ -74,8 +89,6 @@ void DisplayFrameRenderer::setBrushAndPen(wxColour currentColour) const {
 
 void DisplayFrameRenderer::render() {
 
-	defineGraphLimits();
-
 	drawBackground();
 
 	drawProbabilityBox();
@@ -86,6 +99,8 @@ void DisplayFrameRenderer::render() {
 
 	drawBoundsBox();
 
+	drawVoteShareBox();
+
 	drawGraphBox();
 
 	drawSeatsBox();
@@ -93,7 +108,7 @@ void DisplayFrameRenderer::render() {
 
 void DisplayFrameRenderer::drawBackground() const
 {
-	wxRect backgroundRect = wxRect(0, dv.displayTop, dv.DCwidth, backgroundHeight());
+	wxRect backgroundRect = wxRect(0, 0, dv.DCwidth, dv.DCheight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRectangle(backgroundRect);
 	const wxColour backgroundGrey = wxColour(210, 210, 210); // light grey
@@ -119,24 +134,24 @@ wxColour DisplayFrameRenderer::lightenedPartyColour(Party::Id partyId) const
 void DisplayFrameRenderer::drawProbabilityBoxBackground() const
 {
 	// top half of probability box is lightened version of party 0's colour
-	wxRect redRect = wxRect(ProbabilityBoxMargin, probabilityBoxTop(), ProbabilityBoxWidth, ProbabilityBoxHeight);
+	wxRect redRect = wxRect(ProbabilityBoxLeft, ProbabilityBoxTop, ProbabilityBoxWidth, ProbabilityBoxHeight);
 	setBrushAndPen(lightenedPartyColour(0));
 	dc.DrawRoundedRectangle(redRect, CornerRounding);
 	// bottom half of probability box is lightened version of party 1's colour
 	// needs to be a rounded rectangle for the bottom corners
-	wxRect blueRect = wxRect(ProbabilityBoxMargin, probabilityBoxTop() + ProbabilityBoxHeight * 0.5f,
+	wxRect blueRect = wxRect(BoxMargin, BoxMargin + ProbabilityBoxHeight * 0.5f,
 		ProbabilityBoxWidth, ProbabilityBoxHeight * 0.5f);
 	setBrushAndPen(lightenedPartyColour(1));
 	dc.DrawRoundedRectangle(blueRect, CornerRounding);
 	// this covers the upper rounded corners so the boundary between the two halves is a straight line
-	wxRect blueCoverRect = wxRect(ProbabilityBoxMargin, probabilityBoxTop() + ProbabilityBoxHeight * 0.5f,
+	wxRect blueCoverRect = wxRect(BoxMargin, BoxMargin + ProbabilityBoxHeight * 0.5f,
 		ProbabilityBoxWidth, CornerRounding);
 	dc.DrawRectangle(blueCoverRect);
 }
 
 void DisplayFrameRenderer::drawProbabilityBoxLabels() const
 {
-	wxRect probTextRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding, probabilityBoxTop() + ProbabilityBoxPadding,
+	wxRect probTextRect = wxRect(BoxMargin + ProbabilityBoxPadding, BoxMargin + ProbabilityBoxPadding,
 		ProbabilityBoxTextWidth, ProbabilityBoxTextHeight);
 	wxPoint offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 
@@ -149,8 +164,8 @@ void DisplayFrameRenderer::drawProbabilityBoxLabels() const
 
 void DisplayFrameRenderer::drawProbabilityBoxData() const
 {
-	wxRect probDataRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 2 + ProbabilityBoxTextWidth,
-		probabilityBoxTop() + ProbabilityBoxPadding,
+	wxRect probDataRect = wxRect(BoxMargin + ProbabilityBoxPadding * 2 + ProbabilityBoxTextWidth,
+		BoxMargin + ProbabilityBoxPadding,
 		ProbabilityBoxDataWidth, ProbabilityBoxTextHeight);
 	wxPoint offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 
@@ -176,8 +191,8 @@ void DisplayFrameRenderer::drawProbabilityBoxText(wxRect& rect, std::string cons
 void DisplayFrameRenderer::drawSumOfLeads() const
 {
 	using Mp = Simulation::MajorParty;
-	wxRect probPartyRect = wxRect(ProbabilityBoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
-		probabilityBoxTop() + ProbabilityBoxHeight * 0.5f - ProbabilityBoxSumHeight - ProbabilityBoxTextPadding,
+	wxRect probPartyRect = wxRect(BoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
+		BoxMargin + ProbabilityBoxHeight * 0.5f - ProbabilityBoxSumHeight - ProbabilityBoxTextPadding,
 		ProbabilityBoxSumWidth, ProbabilityBoxSumHeight);
 	std::string partyOneAnnotation = simulation.partyAbbr[0] + " wins:";
 	std::string partyOneData = formatFloat(simulation.getPartyWinPercent(Mp::One), 2) + "%";
@@ -213,23 +228,23 @@ void DisplayFrameRenderer::drawExpectationsBox() const
 
 void DisplayFrameRenderer::drawExpectationsBoxBackground() const
 {
-	wxRect expBoxRect = wxRect(ExpectationBoxLeft, expectationBoxTop(), ExpectationBoxWidth, ExpectationBoxHeight);
+	wxRect expBoxRect = wxRect(ExpectationBoxLeft, ExpectationBoxTop, ExpectationBoxWidth, ExpectationBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(expBoxRect, TextBoxCornerRounding);
 }
 
 void DisplayFrameRenderer::drawExpectationsBoxTitle() const
 {
-	wxRect expBoxTitleRect = wxRect(ExpectationBoxLeft, expectationBoxTop(), ExpectationBoxWidth, ExpectationBoxTitleHeight);
+	wxRect expBoxTitleRect = wxRect(ExpectationBoxLeft, ExpectationBoxTop, ExpectationBoxWidth, ExpectationBoxTitleHeight);
 	setBrushAndPen(*wxBLACK);
 	dc.SetFont(font(15));
-	dc.DrawLabel("Seat expectations/median:", expBoxTitleRect, wxALIGN_CENTRE);
+	dc.DrawLabel("Seat mean/median:", expBoxTitleRect, wxALIGN_CENTRE);
 }
 
 void DisplayFrameRenderer::drawExpectationsBoxRows() const
 {
 	int rowSize = std::min(22, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.internalPartyCount()));
-	wxRect expBoxNameRect = wxRect(ExpectationBoxLeft, expectationBoxTop() + ExpectationBoxTitleHeight,
+	wxRect expBoxNameRect = wxRect(ExpectationBoxLeft, ExpectationBoxTop + ExpectationBoxTitleHeight,
 		ExpectationBoxWidth * 0.5f, rowSize);
 	dc.SetFont(font(rowSize - 8));
 
@@ -246,7 +261,9 @@ void DisplayFrameRenderer::drawExpectationsBoxRow(wxRect& nameRect, PartyCollect
 	wxRect expBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(),
 		(ExpectationBoxWidth - nameRect.GetWidth()) / 2, rowSize);
 	if (partyIndex >= int(simulation.internalPartyCount())) return;
-	dc.DrawLabel(simulation.partyName[partyIndex], nameRect, wxALIGN_CENTRE);
+	std::string name = (simulation.partyName[partyIndex].size() < 18 ?
+		simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
+	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 	dc.DrawLabel(formatFloat(simulation.getPartyWinExpectation(partyIndex), 2), expBoxDataRect, wxALIGN_CENTRE);
 	expBoxDataRect.Offset(width, 0);
 	dc.DrawLabel(formatFloat(simulation.getPartyWinMedian(partyIndex), 0), expBoxDataRect, wxALIGN_CENTRE);
@@ -262,14 +279,14 @@ void DisplayFrameRenderer::drawRegionsBox() const
 
 void DisplayFrameRenderer::drawRegionsBoxBackground() const
 {
-	wxRect boxRect = wxRect(RegionsBoxLeft, dv.displayTop + ProbabilityBoxMargin, RegionsBoxWidth, RegionsBoxHeight);
+	wxRect boxRect = wxRect(RegionsBoxLeft, BoxMargin, RegionsBoxWidth, RegionsBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(boxRect, CornerRounding);
 }
 
 void DisplayFrameRenderer::drawRegionsBoxTitle() const
 {
-	wxRect titleRect = wxRect(RegionsBoxLeft, dv.displayTop + ProbabilityBoxMargin, RegionsBoxWidth, RegionsBoxTitleHeight);
+	wxRect titleRect = wxRect(RegionsBoxLeft, BoxMargin, RegionsBoxWidth, RegionsBoxTitleHeight);
 	setBrushAndPen(*wxBLACK);
 	dc.SetFont(font(15));
 	dc.DrawLabel("Regional breakdown", titleRect, wxALIGN_CENTRE);
@@ -283,7 +300,7 @@ void DisplayFrameRenderer::drawRegionsBoxRows() const
 
 void DisplayFrameRenderer::drawRegionsBoxRowTitles() const
 {
-	int regionsBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
+	int regionsBoxRowTop = BoxMargin + RegionsBoxTitleHeight;
 	int offset = int(RegionsBoxWidth * 0.25f);
 	wxRect regionsBoxRect = wxRect(RegionsBoxLeft, regionsBoxRowTop,
 		RegionsBoxWidth * 0.25f, RegionsBoxTextHeight);
@@ -298,7 +315,7 @@ void DisplayFrameRenderer::drawRegionsBoxRowTitles() const
 
 void DisplayFrameRenderer::drawRegionsBoxRowList() const
 {
-	int regionsBoxRowTop = dv.displayTop + ProbabilityBoxMargin + RegionsBoxTitleHeight;
+	int regionsBoxRowTop = BoxMargin + RegionsBoxTitleHeight;
 	//int numRegions = simulation.regionPartyWinExpectation.size();
 	int vertOffset = std::min(RegionsBoxTextHeight,
 		(RegionsBoxHeight - RegionsBoxTitleHeight) / (simulation.internalRegionCount() + 1));
@@ -340,7 +357,7 @@ void DisplayFrameRenderer::drawBoundsBox() const
 
 void DisplayFrameRenderer::drawBoundsBoxBackground() const
 {
-	float BoundsBoxTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight;
+	float BoundsBoxTop = BoxMargin + BoxMargin + RegionsBoxHeight;
 	wxRect boundsBoxRect = wxRect(BoundsBoxLeft, BoundsBoxTop, BoundsBoxWidth, BoundsBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(boundsBoxRect, CornerRounding);
@@ -348,7 +365,7 @@ void DisplayFrameRenderer::drawBoundsBoxBackground() const
 
 void DisplayFrameRenderer::drawBoundsBoxTitle() const
 {
-	float BoundsBoxTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight;
+	float BoundsBoxTop = BoxMargin + BoxMargin + RegionsBoxHeight;
 	wxRect boundsBoxTitleRect = wxRect(BoundsBoxLeft, BoundsBoxTop, BoundsBoxWidth, BoundsBoxTitleHeight);
 	setBrushAndPen(*wxBLACK);
 	dc.SetFont(font(15));
@@ -357,7 +374,7 @@ void DisplayFrameRenderer::drawBoundsBoxTitle() const
 
 void DisplayFrameRenderer::drawBoundsBoxColumnHeadings() const
 {
-	float boundsHeadingTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight + BoundsBoxTitleHeight;
+	float boundsHeadingTop = BoxMargin + BoxMargin + RegionsBoxHeight + BoundsBoxTitleHeight;
 	float horzOffset = RegionsBoxWidth * 0.2f;
 	dc.SetFont(font(15));
 	std::array<std::string, 5> headingLabels = { "Party", "50%", "80%", "95%", "99%" };
@@ -372,7 +389,7 @@ void DisplayFrameRenderer::drawBoundsBoxColumnHeadings() const
 
 void DisplayFrameRenderer::drawBoundsBoxItems() const
 {
-	float boundsHeadingTop = ProbabilityBoxMargin + dv.displayTop + ProbabilityBoxMargin + RegionsBoxHeight + BoundsBoxTitleHeight;
+	float boundsHeadingTop = BoxMargin + BoxMargin + RegionsBoxHeight + BoundsBoxTitleHeight;
 	float horzOffset = RegionsBoxWidth * 0.2f;
 	wxRect boundsBoxBaseRect = wxRect(BoundsBoxLeft, boundsHeadingTop,
 	RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
@@ -394,7 +411,7 @@ void DisplayFrameRenderer::drawBoundsBoxItems() const
 
 void DisplayFrameRenderer::drawGraphBox() const
 {
-	dc.SetFont(font(13));
+	dc.SetFont(font(11));
 	GraphVariables gv = calculateGraphVariables();
 	drawGraphBoxBackground(gv);
 	int lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
@@ -413,10 +430,9 @@ DisplayFrameRenderer::GraphVariables DisplayFrameRenderer::calculateGraphVariabl
 	gv.lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
 	gv.highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
 	gv.seatRange = gv.highestSeatFrequency - gv.lowestSeatFrequency;
-	float BackgroundHeight = dv.DCheight - dv.displayTop;
-	gv.GraphBoxTop = ProbabilityBoxMargin + expectationBoxTop() + ExpectationBoxHeight;
-	gv.GraphBoxHeight = BackgroundHeight - gv.GraphBoxTop - ProbabilityBoxMargin + dv.displayTop;
-	gv.axisY = gv.GraphBoxTop + gv.GraphBoxHeight - GraphAxisOffset;
+	float BackgroundHeight = dv.DCheight;
+	gv.GraphBoxHeight = BackgroundHeight - GraphBoxTop - BoxMargin;
+	gv.axisY = GraphBoxTop + gv.GraphBoxHeight - GraphAxisOffset;
 	gv.axisLeft = GraphBoxLeft + GraphAxisOffset;
 	gv.axisRight = GraphBoxLeft + GraphBoxWidth - GraphAxisOffset;
 	gv.axisMidpoint = (gv.axisLeft + gv.axisRight) * 0.5f;
@@ -427,7 +443,7 @@ DisplayFrameRenderer::GraphVariables DisplayFrameRenderer::calculateGraphVariabl
 
 void DisplayFrameRenderer::drawGraphBoxBackground(GraphVariables const& gv) const
 {
-	wxRect graphBoxRect = wxRect(GraphBoxLeft, gv.GraphBoxTop, GraphBoxWidth, gv.GraphBoxHeight);
+	wxRect graphBoxRect = wxRect(GraphBoxLeft, GraphBoxTop, GraphBoxWidth, gv.GraphBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(graphBoxRect, CornerRounding);
 }
@@ -476,6 +492,68 @@ void DisplayFrameRenderer::drawGraphAxis(GraphVariables const& gv) const
 	dc.DrawLine(axisLeftPoint, axisRightPoint);
 }
 
+void DisplayFrameRenderer::drawVoteShareBox() const
+{
+	drawVoteShareBoxBackground();
+	drawVoteShareBoxTitle();
+	drawVoteShareBoxRows();
+}
+
+void DisplayFrameRenderer::drawVoteShareBoxBackground() const
+{
+	float voteBoxHeight = dv.DCheight - VoteShareBoxTop - BoxMargin;
+	wxRect voteBoxRect = wxRect(VoteShareBoxLeft, VoteShareBoxTop, VoteShareBoxWidth, voteBoxHeight);
+	setBrushAndPen(*wxWHITE);
+	dc.DrawRoundedRectangle(voteBoxRect, TextBoxCornerRounding);
+}
+
+void DisplayFrameRenderer::drawVoteShareBoxTitle() const
+{
+	wxRect voteBoxTitleRect = wxRect(VoteShareBoxLeft, VoteShareBoxTop, VoteShareBoxWidth, VoteShareBoxTitleHeight);
+	setBrushAndPen(*wxBLACK);
+	dc.SetFont(font(15));
+	dc.DrawLabel("Party vote share mean/median:", voteBoxTitleRect, wxALIGN_CENTRE);
+}
+
+void DisplayFrameRenderer::drawVoteShareBoxRows() const
+{
+	float voteBoxHeight = dv.DCheight - VoteShareBoxTop - BoxMargin;
+	int rowSize = std::min(22, int(voteBoxHeight - VoteShareBoxTitleHeight) / int(simulation.internalPartyCount()));
+	wxRect voteBoxNameRect = wxRect(VoteShareBoxLeft, VoteShareBoxTop + VoteShareBoxTitleHeight,
+		VoteShareBoxWidth * 0.5f, rowSize);
+	dc.SetFont(font(rowSize - 8));
+
+
+	for (int partyIndex = 0; partyIndex < simulation.internalPartyCount(); ++partyIndex) {
+		drawVoteShareBoxRow(voteBoxNameRect, partyIndex);
+	}
+}
+
+void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection::Index partyIndex) const
+{
+	float voteBoxHeight = dv.DCheight - VoteShareBoxTop - BoxMargin;
+	int rowSize = std::min(21, int(voteBoxHeight - VoteShareBoxTitleHeight) / int(simulation.internalPartyCount() + 3));
+	int width = (VoteShareBoxWidth - nameRect.GetWidth()) / 2;
+	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
+	if (partyIndex >= int(simulation.internalPartyCount())) return;
+	std::string name = (simulation.partyName[partyIndex].size() < 18 ?
+		simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
+	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
+	if (partyIndex < int(simulation.partyPrimaryFrequency.size()) && simulation.getVoteSampleCount(partyIndex)) {
+		float expectation = simulation.getVoteSampleExpectation(partyIndex);
+		dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
+		voteBoxDataRect.Offset(width, 0);
+		float median = simulation.getVoteSampleMedian(partyIndex);
+		dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
+	}
+	else {
+		dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+		voteBoxDataRect.Offset(width, 0);
+		dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+	}
+	nameRect.Offset(0, rowSize);
+}
+
 void DisplayFrameRenderer::drawSeatsBox() const
 {
 	drawSeatsBoxBackground();
@@ -485,17 +563,17 @@ void DisplayFrameRenderer::drawSeatsBox() const
 
 void DisplayFrameRenderer::drawSeatsBoxBackground() const
 {
-	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - ProbabilityBoxMargin;
-	float SeatsBoxHeight = backgroundHeight() - ProbabilityBoxMargin * 2.0f;
-	wxRect seatsBoxRect = wxRect(SeatsBoxLeft, probabilityBoxTop(), SeatsBoxWidth, SeatsBoxHeight);
+	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - BoxMargin;
+	float SeatsBoxHeight = dv.DCheight - BoxMargin * 2.0f;
+	wxRect seatsBoxRect = wxRect(SeatsBoxLeft, BoxMargin, SeatsBoxWidth, SeatsBoxHeight);
 	setBrushAndPen(*wxWHITE);
 	dc.DrawRoundedRectangle(seatsBoxRect, CornerRounding);
 }
 
 void DisplayFrameRenderer::drawSeatsBoxTitle() const
 {
-	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - ProbabilityBoxMargin;
-	wxRect titleRect = wxRect(SeatsBoxLeft, probabilityBoxTop(), SeatsBoxWidth, SeatsBoxTitleHeight);
+	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - BoxMargin;
+	wxRect titleRect = wxRect(SeatsBoxLeft, BoxMargin, SeatsBoxWidth, SeatsBoxTitleHeight);
 	setBrushAndPen(*wxBLACK);
 	dc.SetFont(font(15));
 	dc.DrawLabel("Close Seats", titleRect, wxALIGN_CENTRE);
@@ -503,9 +581,9 @@ void DisplayFrameRenderer::drawSeatsBoxTitle() const
 
 void DisplayFrameRenderer::drawSeatsList() const
 {
-	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - ProbabilityBoxMargin;
-	float SeatsBoxHeight = backgroundHeight() - ProbabilityBoxMargin * 2.0f;
-	float seatsListTop = probabilityBoxTop() + SeatsBoxTitleHeight;
+	float SeatsBoxWidth = dv.DCwidth - SeatsBoxLeft - BoxMargin;
+	float SeatsBoxHeight = dv.DCheight - BoxMargin * 2.0f;
+	float seatsListTop = BoxMargin + SeatsBoxTitleHeight;
 	wxRect seatsBoxNameRect = wxRect(SeatsBoxLeft, seatsListTop,
 		SeatsBoxWidth * 0.4f, SeatsBoxTextHeight);
 	wxRect seatsBoxMarginRect = wxRect(seatsBoxNameRect.GetRight(), seatsListTop,
@@ -531,26 +609,4 @@ void DisplayFrameRenderer::drawSeatsList() const
 		seatsBoxMarginRect.Offset(0, SeatsBoxTextHeight);
 		seatsBoxLnpWinRect.Offset(0, SeatsBoxTextHeight);
 	}
-}
-
-void DisplayFrameRenderer::defineGraphLimits() {
-
-	dv.displayBottom = dv.DCheight;
-	//dv.displayTop = toolBar->GetSize().GetHeight();
-	dv.displayTop = 0;
-}
-
-float DisplayFrameRenderer::backgroundHeight() const
-{
-	return dv.DCheight - dv.displayTop;
-}
-
-float DisplayFrameRenderer::probabilityBoxTop() const
-{
-	return dv.displayTop + ProbabilityBoxMargin;
-}
-
-float DisplayFrameRenderer::expectationBoxTop() const
-{
-	return probabilityBoxTop() + ProbabilityBoxMargin + ProbabilityBoxHeight;
 }

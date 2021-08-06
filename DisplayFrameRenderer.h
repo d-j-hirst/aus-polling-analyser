@@ -29,8 +29,6 @@ private:
 	struct DisplayVariables {
 		float DCwidth;
 		float DCheight;
-		float displayTop;
-		float displayBottom;
 	};
 
 	struct GraphVariables {
@@ -38,7 +36,6 @@ private:
 		int highestSeatFrequency;
 		int seatRange;
 		float GraphBoxHeight;
-		float GraphBoxTop;
 		float axisY;
 		float axisLeft;
 		float axisRight;
@@ -99,6 +96,16 @@ private:
 
 	void drawBoundsBoxItems() const;
 
+	void drawVoteShareBox() const;
+
+	void drawVoteShareBoxBackground() const;
+
+	void drawVoteShareBoxTitle() const;
+
+	void drawVoteShareBoxRows() const;
+
+	void drawVoteShareBoxRow(wxRect& nameRect, PartyCollection::Index partyIndex) const;
+
 	void drawGraphBox() const;
 
 	GraphVariables calculateGraphVariables() const;
@@ -119,17 +126,8 @@ private:
 
 	void drawSeatsList() const;
 
-	// defines the basic variables that represent the pixel limits of the graph.
-	void defineGraphLimits();
-
 	// sets the brush and pen to a particular colour.
 	void setBrushAndPen(wxColour currentColour) const;
-
-	float backgroundHeight() const;
-
-	float probabilityBoxTop() const;
-
-	float expectationBoxTop() const;
 
 	wxDC& dc;
 	Simulation::Report const& simulation;
