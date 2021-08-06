@@ -159,11 +159,17 @@ public:
 
 		int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) const;
 
-		int getVoteSampleCount(int partyIndex) const;
+		int getPrimarySampleCount(int partyIndex) const;
 
-		float getVoteSampleExpectation(int partyIndex) const;
+		float getPrimarySampleExpectation(int partyIndex) const;
 
-		float getVoteSampleMedian(int partyIndex) const;
+		float getPrimarySampleMedian(int partyIndex) const;
+
+		int get2ppSampleCount() const;
+
+		float get2ppSampleExpectation() const;
+
+		float get2ppSampleMedian() const;
 
 		float get2cpPercentCounted() const { return total2cpPercentCounted; }
 

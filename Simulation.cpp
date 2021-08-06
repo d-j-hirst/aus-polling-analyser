@@ -211,19 +211,18 @@ int Simulation::Report::findBestSeatDisplayCenter(Party::Id partySorted, int num
 	return bestCenter;
 }
 
-int Simulation::Report::getVoteSampleCount(int partyIndex) const
+// This process for the following functions is inefficient as the result could be cached upon first use or saved in the save file.
+// However, for now it's not enough to cause any issues, so leaving it as is
+
+int Simulation::Report::getPrimarySampleCount(int partyIndex) const
 {
-	// This process is inefficient as the value could be cached upon first use or saved in the save file.
-	// However, for now it's not enough to cause any issues, so leaving it as is
 	return std::accumulate(partyPrimaryFrequency[partyIndex].begin(), partyPrimaryFrequency[partyIndex].end(), 0,
 		[](int sum, std::pair<short, int> a) {return sum + a.second; });
 }
 
-float Simulation::Report::getVoteSampleExpectation(int partyIndex) const
+float Simulation::Report::getPrimarySampleExpectation(int partyIndex) const
 {
-	// This process is inefficient as the value could be cached upon first use or saved in the save file.
-	// However, for now it's not enough to cause any issues, so leaving it as is
-	int totalCount = getVoteSampleCount(partyIndex);
+	int totalCount = getPrimarySampleCount(partyIndex);
 	if (!totalCount) return 0;
 	return std::accumulate(partyPrimaryFrequency[partyIndex].begin(), partyPrimaryFrequency[partyIndex].end(), 0.0f,
 		[](float sum, std::pair<short, int> a) {
@@ -232,12 +231,43 @@ float Simulation::Report::getVoteSampleExpectation(int partyIndex) const
 	) / float(totalCount);
 }
 
-float Simulation::Report::getVoteSampleMedian(int partyIndex) const
+float Simulation::Report::getPrimarySampleMedian(int partyIndex) const
 {
-	int totalCount = getVoteSampleCount(partyIndex);
+	int totalCount = getPrimarySampleCount(partyIndex);
 	if (!totalCount) return 0.0f;
 	int currentCount = 0;
 	for (auto const& [bucketKey, bucketCount] : partyPrimaryFrequency[partyIndex]) {
+		currentCount += bucketCount;
+		if (currentCount > totalCount / 2) {
+			return float(bucketKey) * 0.1f;
+		}
+	}
+	return 100.0f;
+}
+
+int Simulation::Report::get2ppSampleCount() const
+{
+	return std::accumulate(tppFrequency.begin(), tppFrequency.end(), 0,
+		[](int sum, std::pair<short, int> a) {return sum + a.second; });
+}
+
+float Simulation::Report::get2ppSampleExpectation() const
+{
+	int totalCount = get2ppSampleCount();
+	if (!totalCount) return 0;
+	return std::accumulate(tppFrequency.begin(), tppFrequency.end(), 0.0f,
+		[](float sum, std::pair<short, int> a) {
+			return sum + float(a.first) * float(a.second) * 0.1f;
+		}
+	) / float(totalCount);
+}
+
+float Simulation::Report::get2ppSampleMedian() const
+{
+	int totalCount = get2ppSampleCount();
+	if (!totalCount) return 0.0f;
+	int currentCount = 0;
+	for (auto const& [bucketKey, bucketCount] : tppFrequency) {
 		currentCount += bucketCount;
 		if (currentCount > totalCount / 2) {
 			return float(bucketKey) * 0.1f;

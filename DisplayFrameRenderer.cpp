@@ -524,7 +524,7 @@ void DisplayFrameRenderer::drawVoteShareBoxRows() const
 	dc.SetFont(font(rowSize - 8));
 
 
-	for (int partyIndex = 0; partyIndex < simulation.internalPartyCount(); ++partyIndex) {
+	for (int partyIndex = 0; partyIndex < simulation.internalPartyCount() + 3; ++partyIndex) {
 		drawVoteShareBoxRow(voteBoxNameRect, partyIndex);
 	}
 }
@@ -535,21 +535,54 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 	int rowSize = std::min(21, int(voteBoxHeight - VoteShareBoxTitleHeight) / int(simulation.internalPartyCount() + 3));
 	int width = (VoteShareBoxWidth - nameRect.GetWidth()) / 2;
 	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
-	if (partyIndex >= int(simulation.internalPartyCount())) return;
-	std::string name = (simulation.partyName[partyIndex].size() < 18 ?
-		simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
-	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
-	if (partyIndex < int(simulation.partyPrimaryFrequency.size()) && simulation.getVoteSampleCount(partyIndex)) {
-		float expectation = simulation.getVoteSampleExpectation(partyIndex);
-		dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
-		voteBoxDataRect.Offset(width, 0);
-		float median = simulation.getVoteSampleMedian(partyIndex);
-		dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
+	if (partyIndex < int(simulation.internalPartyCount())) {
+		std::string name = (simulation.partyName[partyIndex].size() < 18 ?
+			simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
+		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
+		if (partyIndex < int(simulation.partyPrimaryFrequency.size()) && simulation.getPrimarySampleCount(partyIndex)) {
+			float expectation = simulation.getPrimarySampleExpectation(partyIndex);
+			dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
+			voteBoxDataRect.Offset(width, 0);
+			float median = simulation.getPrimarySampleMedian(partyIndex);
+			dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
+		}
+		else {
+			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+			voteBoxDataRect.Offset(width, 0);
+			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+		}
 	}
-	else {
-		dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
-		voteBoxDataRect.Offset(width, 0);
-		dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+	else if (partyIndex == int(simulation.internalPartyCount()) + 1) {
+		std::string name = simulation.partyAbbr[0] + " TPP";
+		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
+		if (simulation.get2ppSampleCount()) {
+			float expectation = simulation.get2ppSampleExpectation();
+			dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
+			voteBoxDataRect.Offset(width, 0);
+			float median = simulation.get2ppSampleMedian();
+			dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
+		}
+		else {
+			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+			voteBoxDataRect.Offset(width, 0);
+			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+		}
+	}
+	else if (partyIndex == int(simulation.internalPartyCount()) + 2) {
+		std::string name = simulation.partyAbbr[1] + " TPP";
+		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
+		if (simulation.get2ppSampleCount()) {
+			float expectation = 100.0f - simulation.get2ppSampleExpectation();
+			dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
+			voteBoxDataRect.Offset(width, 0);
+			float median = 100.0f - simulation.get2ppSampleMedian();
+			dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
+		}
+		else {
+			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+			voteBoxDataRect.Offset(width, 0);
+			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
+		}
 	}
 	nameRect.Offset(0, rowSize);
 }
