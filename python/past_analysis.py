@@ -303,6 +303,32 @@ def fed_download_2001(code):
     return all_results.results
 
 
+def fed_download_psephos_archive(year):
+    filename = f'{year}_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = pickle.load(pkl)
+    except FileNotFoundError:
+        all_results = SavedResults()
+        menu_url = f'http://psephos.adam-carr.net/countries/a/australia/{year}/{year}reps.shtml'
+        content = str(requests.get(menu_url).content)
+        split_content = content.split('<li class="data_desc">')[1:]
+        urls = ['http://psephos.adam-carr.net' + 
+            re.search(r'<a href=">([^"]*)"', a).group(1)
+            for a in split_content]
+        for url in urls:
+            state_content = str(requests.get(url).content)
+            seat_contents = state_content.split('=' * 68)[5:]
+            for seat_content in seat_contents:
+                fp_content = seat_content.split('Candidate')[1].split('Total')[0]
+
+
+
+        # with open(filename, 'wb') as pkl:
+            # pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results
+
+
 def election_2019fed_download():
     return modern_fed_download('24310')
 
