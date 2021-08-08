@@ -1,3 +1,4 @@
+import copy
 import pickle
 import re
 import requests
@@ -336,14 +337,16 @@ def fed_download_psephos_archive(year):
                 seat_name = ' '.join(seat.split('\n')[0].strip().replace("TERRITORY",'TERRITORY t').split(' ')[:-1]).replace(',','').title()
                 seat_results = SeatResults(seat_name)
                 if 'Total' in seat:
-                    fp_content = seat.split('Candidate')[1].split(single_divider)[1]
+                    fp_content = seat.split('Candidate')[1].split('Total')[0].split(single_divider)[-2]
                     fp_lines = fp_content.split('\r\n')[1:-1]
                     for line in fp_lines:
                         name = line[:31].replace('*', '').replace('+', '').strip()
+                        if name == 'Anthony Peterson' and seat_name == 'Gippsland' and year == '1983':
+                            name = 'Anthony Petersen'
                         party = line[31:40].strip()
                         if len(party) == 0:
                             party = "IND"
-                        votes_str = line[40:48].strip().replace(',','').replace('.','')
+                        votes_str = line[40:48].strip().replace(',','').replace('.','').replace(' ','')
                         if len(votes_str) == 0:
                             continue
                         votes = int(votes_str)
@@ -359,26 +362,41 @@ def fed_download_psephos_archive(year):
                                                     percent=percent,
                                                     swing=swing)                        
                         seat_results.fp.append(candidate)
-                    tcp_content = seat.split('Total')[-2].split(single_divider)[2]
-                    tcp_lines = tcp_content.split('\r\n')[1:-1]
-                    for line in tcp_lines:
-                        name = line[:17].replace('*', '').replace('+', '').strip()
-                        candidate_list = [a for a in seat_results.fp
-                                        if name.split(' ')[-1].lower() ==
-                                        a.name.split(' ')[-1].lower()]
-                        candidate_match = candidate_list[0]
-                        name = candidate_match.name
-                        party = candidate_match.party
-                        votes_str = line[40:48].strip().replace(',','').replace('.','')
-                        votes = int(votes_str)
-                        percent = float(line[48:54].strip())
-                        swing = None
-                        candidate = CandidateResult(name=name,
-                                                    party=party,
-                                                    votes=votes,
-                                                    percent=percent,
-                                                    swing=swing)                        
-                        seat_results.tcp.append(candidate)
+                    if seat.count('Total') > 1:
+                        tcp_content = seat.split('Total')[-2].split(single_divider)[-2]
+                        tcp_lines = tcp_content.split('\r\n')[1:-1]
+                        for line in tcp_lines:
+                            name = line[:17].replace('*', '').replace('+', '').strip()
+                            if name == '(exhausted':
+                                break
+                            if name == 'King' and seat_name == 'Griffith' and year == '1993':
+                                continue
+                            if name == 'Proctor' and seat_name == 'Forrest' and year == '1993':
+                                name = 'Procter'
+                            # print(seat_name)
+                            # print(name)
+                            # print(seat_results.fp)
+                            # print('-----')
+                            candidate_list = [a for a in seat_results.fp
+                                            if name.split(' ')[-1].lower() ==
+                                            a.name.split(' ')[-1].lower()]
+                            candidate_match = candidate_list[0]
+                            name = candidate_match.name
+                            party = candidate_match.party
+                            votes_str = line[40:48].strip().replace(',','').replace('.','')
+                            votes = int(votes_str)
+                            percent = float(line[48:54].strip())
+                            swing = None
+                            candidate = CandidateResult(name=name,
+                                                        party=party,
+                                                        votes=votes,
+                                                        percent=percent,
+                                                        swing=swing)                        
+                            seat_results.tcp.append(candidate)
+                    else:
+                        seat_results.tcp = copy.deepcopy(seat_results.fp)
+                        for a in seat_results.tcp:
+                           a.swing = None
                     seat_results.order()
                 all_results.results.append(seat_results)
         with open(filename, 'wb') as pkl:
@@ -417,6 +435,42 @@ def election_1998fed_download():
     return fed_download_psephos_archive('1998')
 
 
+def election_1996fed_download():
+    return fed_download_psephos_archive('1996')
+
+
+def election_1993fed_download():
+    return fed_download_psephos_archive('1993')
+
+
+def election_1990fed_download():
+    return fed_download_psephos_archive('1990')
+
+
+def election_1987fed_download():
+    return fed_download_psephos_archive('1987')
+
+
+def election_1984fed_download():
+    return fed_download_psephos_archive('1984')
+
+
+def election_1983fed_download():
+    return fed_download_psephos_archive('1983')
+
+
+def election_1980fed_download():
+    return fed_download_psephos_archive('1980')
+
+
+def election_1977fed_download():
+    return fed_download_psephos_archive('1977')
+
+
+def election_1975fed_download():
+    return fed_download_psephos_archive('1975')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -434,4 +488,16 @@ if __name__ == '__main__':
                                     election_2001fed_download)
     election_1998 = ElectionResults('1998 Federal Election',
                                     election_1998fed_download)
-    print(election_1998)
+    election_1996 = ElectionResults('1996 Federal Election',
+                                    election_1996fed_download)
+    election_1993 = ElectionResults('1993 Federal Election',
+                                    election_1993fed_download)
+    election_1990 = ElectionResults('1990 Federal Election',
+                                    election_1990fed_download)
+    election_1987 = ElectionResults('1987 Federal Election',
+                                    election_1987fed_download)
+    election_1984 = ElectionResults('1984 Federal Election',
+                                    election_1984fed_download)
+    election_1983 = ElectionResults('1983 Federal Election',
+                                    election_1983fed_download)
+    election_1980 = ElectionResults('1980 Federal Election',
