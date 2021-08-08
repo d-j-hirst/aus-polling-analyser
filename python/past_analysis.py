@@ -293,7 +293,7 @@ def fed_download_2001(code):
                                             party=party,
                                             votes=votes,
                                             percent=percent,
-                                            swing=swing) 
+                                            swing=swing)
                 seat_results.tcp.append(candidate)
                 content_tcp = content_tcp[stats_match.end():]
             seat_results.order()
@@ -309,25 +309,81 @@ def fed_download_psephos_archive(year):
         with open(filename, 'rb') as pkl:
             all_results = pickle.load(pkl)
     except FileNotFoundError:
+        single_divider = '-' * 68
+        double_divider = '=' * 68
         all_results = SavedResults()
         menu_url = f'http://psephos.adam-carr.net/countries/a/australia/{year}/{year}reps.shtml'
         content = str(requests.get(menu_url).content)
         split_content = content.split('<li class="data_desc">')[1:]
         urls = ['http://psephos.adam-carr.net' + 
-            re.search(r'<a href=">([^"]*)"', a).group(1)
+            re.search(r'<a href="([^"]*)"', a).group(1)
             for a in split_content]
         for url in urls:
             state_content = str(requests.get(url).content)
-            seat_contents = state_content.split('=' * 68)[5:]
-            for seat_content in seat_contents:
-                fp_content = seat_content.split('Candidate')[1].split('Total')[0]
-
-
-
-        # with open(filename, 'wb') as pkl:
-            # pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
-    return all_results.results
-
+            state_content = state_content.replace('\\r','\r').replace('\\n','\n').replace('\\x92',"'")
+            state_content = re.search(r'VOTING BY DIVISION\s*=+[^=]+=+\s*([\s\S]*)', state_content).group(1)
+            seats = []
+            while True:
+                seat_match = re.search(r'([^\n]+\s+=+[^=]*)(?:\n[^\n=]+\s+=|[^=]*$)', state_content)
+                if seat_match is None:
+                    break
+                seatData = seat_match.group(1)
+                seats.append(seatData)
+                state_content = state_content[seat_match.end(1):]
+            for seat in seats:
+                # "Northern Territory" seat skips the state name,
+                # so add another word so that it parses properly
+                seat_name = ' '.join(seat.split('\n')[0].strip().replace("TERRITORY",'TERRITORY t').split(' ')[:-1]).replace(',','').title()
+                seat_results = SeatResults(seat_name)
+                if 'Total' in seat:
+                    fp_content = seat.split('Candidate')[1].split(single_divider)[1]
+                    fp_lines = fp_content.split('\r\n')[1:-1]
+                    for line in fp_lines:
+                        name = line[:31].replace('*', '').replace('+', '').strip()
+                        party = line[31:40].strip()
+                        if len(party) == 0:
+                            party = "IND"
+                        votes_str = line[40:48].strip().replace(',','').replace('.','')
+                        if len(votes_str) == 0:
+                            continue
+                        votes = int(votes_str)
+                        percent = float(line[48:54].strip())
+                        swing_str = line[54:].strip()
+                        if len(swing_str) == 0:
+                            swing = None
+                        else:
+                            swing = float(swing_str)
+                        candidate = CandidateResult(name=name,
+                                                    party=party,
+                                                    votes=votes,
+                                                    percent=percent,
+                                                    swing=swing)                        
+                        seat_results.fp.append(candidate)
+                    tcp_content = seat.split('Total')[-2].split(single_divider)[2]
+                    tcp_lines = tcp_content.split('\r\n')[1:-1]
+                    for line in tcp_lines:
+                        name = line[:17].replace('*', '').replace('+', '').strip()
+                        candidate_list = [a for a in seat_results.fp
+                                        if name.split(' ')[-1].lower() ==
+                                        a.name.split(' ')[-1].lower()]
+                        candidate_match = candidate_list[0]
+                        name = candidate_match.name
+                        party = candidate_match.party
+                        votes_str = line[40:48].strip().replace(',','').replace('.','')
+                        votes = int(votes_str)
+                        percent = float(line[48:54].strip())
+                        swing = None
+                        candidate = CandidateResult(name=name,
+                                                    party=party,
+                                                    votes=votes,
+                                                    percent=percent,
+                                                    swing=swing)                        
+                        seat_results.tcp.append(candidate)
+                    seat_results.order()
+                all_results.results.append(seat_results)
+        with open(filename, 'wb') as pkl:
+            pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results        
 
 def election_2019fed_download():
     return modern_fed_download('24310')
@@ -357,6 +413,10 @@ def election_2001fed_download():
     return fed_download_2001('10822')
 
 
+def election_1998fed_download():
+    return fed_download_psephos_archive('1998')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -372,4 +432,6 @@ if __name__ == '__main__':
                                     election_2004fed_download)
     election_2001 = ElectionResults('2001 Federal Election',
                                     election_2001fed_download)
-    print(election_2001)
+    election_1998 = ElectionResults('1998 Federal Election',
+                                    election_1998fed_download)
+    print(election_1998)
