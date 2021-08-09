@@ -25,9 +25,13 @@ class SeatResults:
         self.tcp = []
         self.fp = []
 
-    def order(self):
-        self.tcp.sort(key=lambda x: x.percent, reverse=True)
-        self.fp.sort(key=lambda x: x.percent, reverse=True)
+    def order(self, tcp_by_percent=False):
+        self.fp.sort(key=lambda x: x.votes, reverse=True)
+        if not tcp_by_percent:
+            self.tcp.sort(key=lambda x: x.votes, reverse=True)
+        else:
+            self.tcp.sort(key=lambda x: x.percent, reverse=True)
+
     
     def __repr__(self):
         repr = f'{self.name}\n Two-candidate preferred votes:\n'
@@ -232,7 +236,6 @@ def fetch_seat_urls_2001_fed():
                 content = content[match.end():]
             else:
                 break
-    print(seat_urls)
     return seat_urls
 
 def fed_download_2001(code):
@@ -249,8 +252,6 @@ def fed_download_2001(code):
             content = str(requests.get(full_url).content)
             content_fp, content_tcp = content.split('cellspacing="0" callpadding="0" width="100%">')
             while True:
-                # if seat_name == 'Banks':
-                    # print(content_fp)
                 match = re.search(r'<TD align=left noWrap>([^<]*)<', content_fp)
                 if not match:
                     break
@@ -397,7 +398,7 @@ def fed_download_psephos_archive(year):
                 all_results.results.append(seat_results)
         with open(filename, 'wb') as pkl:
             pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
-    return all_results.results  
+    return all_results.results
 
 
 def nsw_download_psephos_archive(year):
@@ -407,13 +408,19 @@ def nsw_download_psephos_archive(year):
         with open(filename, 'rb') as pkl:
             all_results = pickle.load(pkl)
     except FileNotFoundError:
-        single_divider = '-' * 68
-        double_divider = '=' * 68
+        length = 68 if int(year) > 2003 else 67
+        single_divider = '-' * length
+        double_divider = '=' * length
         all_results = SavedResults()
-        menu_url = f'http://psephos.adam-carr.net/countries/a/australia/states/nsw/nsw{year}2.txt'
+        suffix = ('2' if int(year) > 2003 else 
+                  ('1' if int(year) > 1999 else '-1'))
+        menu_url = f'http://psephos.adam-carr.net/countries/a/australia/states/nsw/nsw{year}{suffix}.txt'
         content = str(requests.get(menu_url).content)
         content = content.replace('\\r','\r').replace('\\n','\n').replace('\\x92',"'")
-        content = re.search(r'VOTING BY CONSTITUENCY\s*=+\s*([\s\S]*)', content).group(1)
+        seats_marker = ('VOTING BY CONSTITUENCY'
+                        if int(year) > 2007
+                        else 'VOTING BY DISTRICT')
+        content = re.search(seats_marker + r'\s*=+\s*([\s\S]*)', content).group(1)
         seats = []
         while True:
             seat_match = re.search(r'([^\n]+\s+=+[^=]*)(?:\n[^\n=]+\s+=|[^=]*$)', content)
@@ -423,24 +430,31 @@ def nsw_download_psephos_archive(year):
             seats.append(seatData)
             content = content[seat_match.end(1):]
         for seat in seats:
+            seat = seat.replace('FINAL COUNT', 'Final count')
             seat_name = seat.split('\n')[0].split('  ')[0].strip().replace(',','').title()
             seat_results = SeatResults(seat_name)
             if 'Total' in seat:
                 fp_content = seat.split('Candidate')[1].split('Total')[0].split(single_divider)[1]
-                fp_lines = fp_content.split('\r\n')[1:-1]
+                separator = '\r\n' if int(year) > 2011 else '\n'
+                offset = 0 if int(year) > 2011 else -10
+                fp_lines = fp_content.split(separator)[1:-1]
                 for line in fp_lines:
-                    name = line[:25].replace('*', '').replace('+', '').strip()
-                    party = line[25:48].strip()
+                    name = line[:25].replace('*', '').replace('+', '').strip().title()
+                    party = line[25:48 + offset].strip()
                     if len(party) == 0:
                         party = "IND"
-                    votes_str = line[48:56].strip().replace(',','').replace('.','').replace(' ','')
+                    votes_str = line[48 + offset:56 + offset].strip().replace(',','').replace('.','').replace(' ','')
                     if len(votes_str) == 0:
                         continue
                     # Account for error in 2019 election page
                     line = line.replace('0-1.5','-01.5')
                     votes = int(votes_str)
-                    percent = float(line[56:61].strip())
-                    swing_str = line[61:].strip()
+                    percent_str = line[56 + offset:61 + offset].strip()
+                    if len(percent_str) == 0:
+                        percent = None
+                    else:
+                        percent = float(percent_str)
+                    swing_str = line[61 + offset:].strip().replace('(', '').replace(')', '')
                     if len(swing_str) == 0:
                         swing = None
                     else:
@@ -451,19 +465,22 @@ def nsw_download_psephos_archive(year):
                                                 percent=percent,
                                                 swing=swing)                        
                     seat_results.fp.append(candidate)
-                tcp_content = seat.split('Two-candidate preferred')[1].split('Total')[0].split(single_divider)[1]
-                tcp_lines = tcp_content.split('\r\n')[1:-1]
+                tcp_split = ('Two-candidate preferred'
+                             if int(year) > 2011
+                             else 'Final count')
+                tcp_content = seat.split(tcp_split)[1].split('Total')[0].split(single_divider)[1]
+                tcp_lines = tcp_content.split(separator)[1:-1]
                 for line in tcp_lines:
-                    name = line[:25].replace('*', '').replace('+', '').strip()
-                    party = line[25:48].strip()
+                    name = line[:25].replace('*', '').replace('+', '').strip().title()
+                    party = line[25:48 + offset].strip()
                     if len(party) == 0:
                         party = "IND"
-                    votes_str = line[48:56].strip().replace(',','').replace('.','').replace(' ','')
+                    votes_str = line[48 + offset:56 + offset].strip().replace(',','').replace('.','').replace(' ','')
                     if len(votes_str) == 0:
                         continue
                     votes = int(votes_str)
-                    percent = float(line[56:61].strip())
-                    swing_str = line[61:].strip()
+                    percent = float(line[56 + offset:61 + offset].strip())
+                    swing_str = line[61 + offset:].strip().replace('(', '').replace(')', '')
                     if len(swing_str) == 0:
                         swing = None
                     else:
@@ -479,6 +496,152 @@ def nsw_download_psephos_archive(year):
         with open(filename, 'wb') as pkl:
             pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
     return all_results.results
+
+
+def nsw_download_psephos_archive_1999():
+    filename = f'1999nsw_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = pickle.load(pkl)
+    except FileNotFoundError:
+        length = 67
+        single_divider = '-' * length
+        double_divider = '=' * length
+        all_results = SavedResults()
+        menu_url = 'http://psephos.adam-carr.net/countries/a/australia/states/nsw/nsw-1999-1.txt'
+        content = str(requests.get(menu_url).content)
+        content = content.replace('\\r','\r').replace('\\n','\n').replace('\\x92',"'")
+        content = re.search(r'District[^\n]+\s*=+\s*([\s\S]*)', content).group(1)
+        seats = []
+        while True:
+            seat_match = re.search(r'([\s\S]*?\w[\s\S]*?)(?:\n\s+\n)', content)
+            if seat_match is None:
+                break
+            seatData = seat_match.group(1)
+            seats.append(seatData)
+            content = content[seat_match.end(1):]
+        for seat in seats:
+            seat_name = seat.split('(')[0].strip().title()
+            seat_results = SeatResults(seat_name)
+            fp_content = seat.split(single_divider)[1]
+            fp_lines = fp_content.split('\r\n')[1:-1]
+            for line in fp_lines:
+                name = line[:25].replace('*', '').replace('+', '').strip().title()
+                party = line[25:32].strip()
+                if len(party) == 0:
+                    party = "IND"
+                votes_str = line[32:40].strip().replace(',','').replace('.','').replace(' ','')
+                if len(votes_str) == 0:
+                    continue
+                votes = int(votes_str)
+                percent_str = line[40:46].strip()
+                if len(percent_str) == 0:
+                    percent = None
+                else:
+                    percent = float(percent_str)
+                swing = None
+                fp_candidate = CandidateResult(name=name,
+                                               party=party,
+                                               votes=votes,
+                                               percent=percent,
+                                               swing=swing)                        
+                seat_results.fp.append(fp_candidate)
+                tcp_votes_str = line[46:53].strip().replace(',','').replace('.','').replace(' ','')
+                if len(tcp_votes_str) > 0:
+                    tcp_votes = int(tcp_votes_str)
+                    tcp_percent_str = line[53:58].strip().replace(',','').replace(' ','')
+                    tcp_percent = float(tcp_percent_str)
+                    tcp_swing_str = line[58:].strip().replace(',','').replace(' ','').replace('(','').replace(')','')
+                    if len(tcp_swing_str) > 0:
+                        tcp_swing = float(tcp_swing_str)
+                    else:
+                        tcp_swing = None
+                    tcp_candidate = CandidateResult(name=name,
+                                                    party=party,
+                                                    votes=tcp_votes,
+                                                    percent=tcp_percent,
+                                                    swing=tcp_swing)                   
+                    seat_results.tcp.append(tcp_candidate)
+            seat_results.order()
+            all_results.results.append(seat_results)
+        # with open(filename, 'wb') as pkl:
+        #     pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results
+
+
+def nsw_download_psephos_archive_early(year):
+    filename = f'{year}nsw_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = pickle.load(pkl)
+    except FileNotFoundError:
+        all_results = SavedResults()
+        tcp_offset = 0 if year == '1995' else -5
+        newline = '\r\n' if year == '1995' else '\n'
+        menu_url = ('http://psephos.adam-carr.net/countries/a/australia/states/nsw/1995-nsw-assembly.txt'
+                    if year == '1995' else
+                    'http://psephos.adam-carr.net/countries/a/australia/states/nsw/nsw-91-assembly.txt')
+        content = str(requests.get(menu_url).content)
+        content = content.replace('\\r','\r').replace('\\n','\n').replace('\\x92',"'").replace('\\xb9',"'")
+        content = re.search(r'\n\s*\n([\s\S]*)', content).group(1)
+        seats = []
+        while True:
+            seat_match = re.search(r'([\s\S]*?\d\s*)\n\s*\n[\s\S]*', content)
+            if seat_match is None:
+                break
+            seatData = seat_match.group(1)
+            seats.append(seatData)
+            content = content[seat_match.end(1):]
+        for seat in seats:
+            seat_name = seat.split('(')[0].strip().title()
+            seat_results = SeatResults(seat_name)
+            seat_lines = seat.split(newline)[2:-1]
+            for line in seat_lines:
+                name = line[:25].replace('*', '').replace('+', '').strip().title()
+                party = line[25:32].strip()
+                if len(party) == 0:
+                    party = "IND"
+                votes_str = line[32:40].strip().replace(',','').replace('.','').replace(' ','')
+                if len(votes_str) == 0:
+                    continue
+                votes = int(votes_str)
+                percent_str = line[40:45].strip()
+                if len(percent_str) == 0:
+                    percent = None
+                else:
+                    percent = float(percent_str)
+                swing_str = line[45:53].strip().replace('(','').replace(')','')
+                if len(swing_str) == 0 or year == '1991':
+                    swing = None
+                else:
+                    swing = float(swing_str)
+                swing = None
+                fp_candidate = CandidateResult(name=name,
+                                               party=party,
+                                               votes=votes,
+                                               percent=percent,
+                                               swing=swing)                        
+                seat_results.fp.append(fp_candidate)
+                tcp_percent_str = line[52 + tcp_offset:58 + tcp_offset].strip().replace(',','').replace(' ','')
+                if len(tcp_percent_str) > 0:
+                    tcp_percent = float(tcp_percent_str)
+                    tcp_swing_str = line[58 + tcp_offset:].strip().replace(',','').replace(' ','').replace('(','').replace(')','')
+                    if len(tcp_swing_str) > 0:
+                        tcp_swing = float(tcp_swing_str)
+                    else:
+                        tcp_swing = None
+                    tcp_candidate = CandidateResult(name=name,
+                                                    party=party,
+                                                    votes=None,
+                                                    percent=tcp_percent,
+                                                    swing=tcp_swing)                   
+                    seat_results.tcp.append(tcp_candidate)
+            seat_results.order(tcp_by_percent=True)
+            all_results.results.append(seat_results)
+        with open(filename, 'wb') as pkl:
+            pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results
+
 
 def election_2019fed_download():
     return modern_fed_download('24310')
@@ -552,6 +715,34 @@ def election_2019nsw_download():
     return nsw_download_psephos_archive('2019')
 
 
+def election_2015nsw_download():
+    return nsw_download_psephos_archive('2015')
+
+
+def election_2011nsw_download():
+    return nsw_download_psephos_archive('2011')
+
+
+def election_2007nsw_download():
+    return nsw_download_psephos_archive('2007')
+
+
+def election_2003nsw_download():
+    return nsw_download_psephos_archive('2003')
+
+
+def election_1999nsw_download():
+    return nsw_download_psephos_archive_1999()
+
+
+def election_1995nsw_download():
+    return nsw_download_psephos_archive_early('1995')
+
+
+def election_1991nsw_download():
+    return nsw_download_psephos_archive_early('1991')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -585,4 +776,17 @@ if __name__ == '__main__':
                                     election_1980fed_download)
     election_nsw_2019 = ElectionResults('2019 NSW Election',
                                         election_2019nsw_download)
-    print(election_nsw_2019)
+    election_nsw_2015 = ElectionResults('2015 NSW Election',
+                                        election_2015nsw_download)
+    election_nsw_2011 = ElectionResults('2011 NSW Election',
+                                        election_2011nsw_download)
+    election_nsw_2007 = ElectionResults('2007 NSW Election',
+                                        election_2007nsw_download)
+    election_nsw_2003 = ElectionResults('2003 NSW Election',
+                                        election_2003nsw_download)
+    election_nsw_1999 = ElectionResults('1999 NSW Election',
+                                        election_1999nsw_download)
+    election_nsw_1995 = ElectionResults('1995 NSW Election',
+                                        election_1995nsw_download)
+    election_nsw_1991 = ElectionResults('1991 NSW Election',
+                                        election_1991nsw_download)
