@@ -643,6 +643,84 @@ def nsw_download_psephos_archive_early(year):
     return all_results.results
 
 
+def fetch_seat_urls_vic(code):
+    url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/summary.html'
+    r = requests.get(url)
+    content = str(r.content)
+    content = content.split('Overall Upper House results')[0]
+    pattern = r'listitemsgeneraltext[\s\S]*?<a href="([^"]*)">([^<]*)<'
+    seat_urls = {}  # key is seat name, value is url
+    while True:
+        match = re.search(pattern, content)
+        if match:
+            seat_urls[match.group(2).split(' District')[0]] = match.group(1)
+            content = content[match.end():]
+        else:
+            break
+    return seat_urls
+
+
+def vic_download(code):
+    filename = f'{code}vic_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = pickle.load(pkl)
+    except FileNotFoundError:
+        all_results = SavedResults()
+        seat_urls = fetch_seat_urls_vic(code)
+        for seat_name, url in seat_urls.items():
+            seat_results = SeatResults(seat_name)
+            full_url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/{url}'
+            content = str(requests.get(full_url).content)
+            content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'").replace("&amp;","&")
+            tcp_split = ('<h3>Results after distribution'
+                if '<h3>Results after distribution' in content
+                else '<h3>Two candidate preferred')
+            fp_content = content.split('first preference votes')[1].split(tcp_split)[0]
+            pattern = r'<td>([^<]*)<[^<]*<td>([^<]*)<[^<]*<td>([^<]*)<[\s\S]*?width="([^"]*)"'
+            while True:
+                match = re.search(pattern, fp_content)
+                if not match:
+                    break
+                name = match.group(1).strip().title()
+                party = match.group(2).strip().title()
+                party = party if len(party) > 0 else 'IND'
+                votes = int(match.group(3))
+                percent = float(match.group(4))
+                fp_candidate = CandidateResult(name=name,
+                                            party=party,
+                                            votes=votes,
+                                            percent=percent,
+                                            swing=None)
+                seat_results.fp.append(fp_candidate)
+                fp_content = fp_content[match.end():]
+            tcp_link = re.search(r'a href="([^"]*)">Two candidate preferred', content).group(1)
+            tcp_url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/{tcp_link}'
+            tcp_content = str(requests.get(tcp_url).content)
+            tcp_content = tcp_content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'").replace("&amp;","&")
+            names = re.search(r'candidate1">([^<]*)<[^c]*candidate2">([^<]*)<', tcp_content)
+            name_list = [names.group(1).strip().title(), names.group(2).strip().title()]
+            parties = re.search(r'Voting Centres\s*<[^<]*<th>([^<]*)<[^<]*<th>([^<]*)<', tcp_content)
+            party_list = [parties.group(1).strip().title(), parties.group(2).strip().title()]
+            party_list = [a if len(a) > 0 else 'IND' for a in party_list]
+            votes = re.search(r'>Total<[^<]*<td>([^<]*)<[^<]*<td>([^<]*)<', tcp_content)
+            votes_list = [int(votes.group(1)), int(votes.group(2))]
+            percent = re.search(r'polled by candidate<[^<]*<td>([^<%]*)%\s*<[^<]*<td>([^<%]*)%\s*<', tcp_content)
+            percent_list = [float(percent.group(1)), float(percent.group(2))]
+            for i in (0, 1):
+                tcp_candidate = CandidateResult(name=name_list[i],
+                                                party=party_list[i],
+                                                votes=votes_list[i],
+                                                percent=percent_list[i],
+                                                swing=None)
+                seat_results.tcp.append(tcp_candidate)
+            seat_results.order()
+            all_results.results.append(seat_results)
+        with open(filename, 'wb') as pkl:
+            pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results
+            
+
 def election_2019fed_download():
     return modern_fed_download('24310')
 
@@ -743,6 +821,10 @@ def election_1991nsw_download():
     return nsw_download_psephos_archive_early('1991')
 
 
+def election_2018vic_download():
+    return vic_download('2018')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -790,3 +872,6 @@ if __name__ == '__main__':
                                         election_1995nsw_download)
     election_nsw_1991 = ElectionResults('1991 NSW Election',
                                         election_1991nsw_download)
+    election_vic_2018 = ElectionResults('2018 VIC Election',
+                                        election_2018vic_download)
+    print(election_vic_2018)
