@@ -644,16 +644,18 @@ def nsw_download_psephos_archive_early(year):
 
 
 def fetch_seat_urls_vic(code):
-    url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/summary.html'
+    summary = ('summary' if int(code) > 2010
+               else f'state{code}resultsummary')
+    url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/{summary}.html'
     r = requests.get(url)
     content = str(r.content)
-    content = content.split('Overall Upper House results')[0]
-    pattern = r'listitemsgeneraltext[\s\S]*?<a href="([^"]*)">([^<]*)<'
+    content = content.lower().split('individual lower house results')[1].split('overall upper house results')[0]
+    pattern = r'<a href="([^"]*)">([^<]*)<'
     seat_urls = {}  # key is seat name, value is url
     while True:
         match = re.search(pattern, content)
         if match:
-            seat_urls[match.group(2).split(' District')[0]] = match.group(1)
+            seat_urls[match.group(2).title().split(' District')[0]] = match.group(1)
             content = content[match.end():]
         else:
             break
@@ -677,7 +679,7 @@ def vic_download(code):
                 if '<h3>Results after distribution' in content
                 else '<h3>Two candidate preferred')
             fp_content = content.split('first preference votes')[1].split(tcp_split)[0]
-            pattern = r'<td>([^<]*)<[^<]*<td>([^<]*)<[^<]*<td>([^<]*)<[\s\S]*?width="([^"]*)"'
+            pattern = r'<td>([^<]*)<[^<]*<td(?: colspan=4)?>([^<]*)<[^<]*<td>([^<]*)<[\s\S]*?width="([^"]*)"'
             while True:
                 match = re.search(pattern, fp_content)
                 if not match:
@@ -694,18 +696,19 @@ def vic_download(code):
                                             swing=None)
                 seat_results.fp.append(fp_candidate)
                 fp_content = fp_content[match.end():]
-            tcp_link = re.search(r'a href="([^"]*)">Two candidate preferred', content).group(1)
+            print(seat_name)
+            tcp_link = re.search(r'a href="([^"]*)">(?:Click here for )?[Tt]wo candidate preferred', content).group(1)
             tcp_url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/{tcp_link}'
             tcp_content = str(requests.get(tcp_url).content)
             tcp_content = tcp_content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'").replace("&amp;","&")
             names = re.search(r'candidate1">([^<]*)<[^c]*candidate2">([^<]*)<', tcp_content)
             name_list = [names.group(1).strip().title(), names.group(2).strip().title()]
-            parties = re.search(r'Voting Centres\s*<[^<]*<th>([^<]*)<[^<]*<th>([^<]*)<', tcp_content)
+            parties = re.search(r'Voting [Cc]entres?\s*<[^<]*<th[^>]*>([^<]*)<[^<]*<th[^>]*>([^<]*)<', tcp_content)
             party_list = [parties.group(1).strip().title(), parties.group(2).strip().title()]
             party_list = [a if len(a) > 0 else 'IND' for a in party_list]
-            votes = re.search(r'>Total<[^<]*<td>([^<]*)<[^<]*<td>([^<]*)<', tcp_content)
+            votes = re.search(r'>Total<[^<]*<td[^>]*>([^<]*)<[^<]*<td[^>]*>([^<]*)<', tcp_content)
             votes_list = [int(votes.group(1)), int(votes.group(2))]
-            percent = re.search(r'polled by candidate<[^<]*<td>([^<%]*)%\s*<[^<]*<td>([^<%]*)%\s*<', tcp_content)
+            percent = re.search(r'polled by candidate<[^<]*<td[^>]*>([^<%]*)%\s*<[^<]*<td[^>]*>([^<%]*)%\s*<', tcp_content)
             percent_list = [float(percent.group(1)), float(percent.group(2))]
             for i in (0, 1):
                 tcp_candidate = CandidateResult(name=name_list[i],
@@ -825,6 +828,18 @@ def election_2018vic_download():
     return vic_download('2018')
 
 
+def election_2014vic_download():
+    return vic_download('2014')
+
+
+def election_2010vic_download():
+    return vic_download('2010')
+
+
+def election_2006vic_download():
+    return vic_download('2006')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -874,4 +889,10 @@ if __name__ == '__main__':
                                         election_1991nsw_download)
     election_vic_2018 = ElectionResults('2018 VIC Election',
                                         election_2018vic_download)
-    print(election_vic_2018)
+    election_vic_2014 = ElectionResults('2014 VIC Election',
+                                        election_2014vic_download)
+    election_vic_2010 = ElectionResults('2010 VIC Election',
+                                        election_2010vic_download)
+    election_vic_2006 = ElectionResults('2006 VIC Election',
+                                        election_2006vic_download)
+    print(election_vic_2006)
