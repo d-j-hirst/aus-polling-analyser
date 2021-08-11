@@ -649,6 +649,7 @@ def fetch_seat_urls_vic(code):
     url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/{summary}.html'
     r = requests.get(url)
     content = str(r.content)
+    content = content.replace('  results', ' results')
     content = content.lower().split('individual lower house results')[1].split('overall upper house results')[0]
     pattern = r'<a href="([^"]*)">([^<]*)<'
     seat_urls = {}  # key is seat name, value is url
@@ -696,7 +697,6 @@ def vic_download(code):
                                             swing=None)
                 seat_results.fp.append(fp_candidate)
                 fp_content = fp_content[match.end():]
-            print(seat_name)
             tcp_link = re.search(r'a href="([^"]*)">(?:Click here for )?[Tt]wo candidate preferred', content).group(1)
             tcp_url = f'https://itsitecoreblobvecprd.blob.core.windows.net/public-files/historical-results/state{code}/{tcp_link}'
             tcp_content = str(requests.get(tcp_url).content)
@@ -750,6 +750,18 @@ def vic_download_psephos(year):
             content = content[seat_match.end(1):]
         for seat in seats:
             seat_name = seat.split('\n')[0].split('  ')[0].strip().replace(',','').title()
+            if int(year) < 1996 and int(year) > 1985:
+                if 'distributed' in seat or 'challenged' in seat:
+                    tcp_match = re.search(r'(?:distributed|challenged)[^>]*>([^\n]*)\r\n[^>]*$', seat)
+                    tcp_test = re.search(r'(?:distributed|challenged)([^>]*)>[^>]*$', seat).group(1)
+                    candidate_lines = len(re.findall('\n[^->\d\r\n\()]', tcp_test))
+                    if candidate_lines > 2 and tcp_match.group(1)[-2] != 'e':
+                        insertion_point = tcp_match.end(1)
+                        seat = seat[:insertion_point] + ' e' + seat[insertion_point:]
+                else:
+                    tcp_match = re.search(r'(?:informal)([^\n]*)\r\n', seat)
+                    insertion_point = tcp_match.end(1)
+                    seat = seat[:insertion_point] + ' e' + seat[insertion_point:]
             seat_results = SeatResults(seat_name)
             if 'informal' in seat:
                 fp_content = seat.split('Candidate')[1].split('informal')[0].split(single_divider)[1]
@@ -781,15 +793,21 @@ def vic_download_psephos(year):
                                                 party=party,
                                                 votes=votes,
                                                 percent=percent,
-                                                swing=swing)                        
+                                                swing=swing)
                     seat_results.fp.append(candidate)
                 seat_results.order()
                 if len(seat_results.fp) == 2:
                     seat_results.tcp = copy.deepcopy(seat_results.fp)
+                    all_results.results.append(seat_results)
                     continue
+
                 # Correction for erroneous 1999 Williamstown entry
                 seat = seat.replace('30,686  16.7', '30,686  18.5 e')
-                tcp_est = re.search(' ([\d,]+)\s+([\d.]+) e\r\n', seat)
+                # Corrections for erroneous 1992 Essendon entry
+                seat = seat.replace('14,429  51.2', '14,429  48.7')
+                seat = seat.replace('15,159  48.7', '15,159  51.2')
+
+                tcp_est = re.search(' ([\d,]+)\s+([\d.]+) +e\r\n', seat)
                 primary_leader = seat_results.fp[0]
                 primary_second = seat_results.fp[1]
                 if tcp_est is not None:
@@ -824,12 +842,12 @@ def vic_download_psephos(year):
                         if len(votes_str) == 0:
                             continue
                         votes = int(votes_str)
-                        percent_str = line[54 + offset:60 + offset].strip()
+                        percent_str = line[54 + offset:59 + offset].strip()
                         if len(percent_str) == 0:
                             percent = None
                         else:
                             percent = float(percent_str)
-                        swing_str = line[60 + offset:].strip().replace('(', '').replace(')', '')
+                        swing_str = line[59 + offset:].strip().replace('(', '').replace(')', '')
                         if len(swing_str) == 0:
                             swing = None
                         else:
@@ -847,8 +865,8 @@ def vic_download_psephos(year):
                         seat_results.tcp.append(candidate)
                 seat_results.order()
             all_results.results.append(seat_results)
-        # with open(filename, 'wb') as pkl:
-        #     pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+        with open(filename, 'wb') as pkl:
+            pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
     return all_results.results    
 
 def election_2019fed_download():
@@ -979,6 +997,22 @@ def election_1996vic_download():
     return vic_download_psephos('1996')
 
 
+def election_1992vic_download():
+    return vic_download_psephos('1992')
+
+
+def election_1988vic_download():
+    return vic_download_psephos('1988')
+
+
+def election_1985vic_download():
+    return vic_download_psephos('1985')
+
+
+def election_1982vic_download():
+    return vic_download_psephos('1982')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -1040,4 +1074,12 @@ if __name__ == '__main__':
                                         election_1999vic_download)
     election_vic_1996 = ElectionResults('1996 VIC Election',
                                         election_1996vic_download)
-    print(election_vic_1996)
+    election_vic_1992 = ElectionResults('1992 VIC Election',
+                                        election_1992vic_download)
+    election_vic_1988 = ElectionResults('1988 VIC Election',
+                                        election_1988vic_download)
+    election_vic_1985 = ElectionResults('1985 VIC Election',
+                                        election_1985vic_download)
+    election_vic_1982 = ElectionResults('1985 VIC Election',
+                                        election_1982vic_download)
+    print(election_vic_1982)
