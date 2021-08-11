@@ -722,7 +722,134 @@ def vic_download(code):
         with open(filename, 'wb') as pkl:
             pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
     return all_results.results
-            
+
+
+def vic_download_psephos(year):
+    filename = f'{year}vic_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = pickle.load(pkl)
+    except FileNotFoundError:
+        length = 68
+        single_divider = '-' * length
+        double_divider = '=' * length
+        all_results = SavedResults()
+        menu_url = f'http://psephos.adam-carr.net/countries/a/australia/states/vic/historic/{year}assembly.txt'
+        content = str(requests.get(menu_url).content)
+        content = content.replace('\\r','\r').replace('\\n','\n').replace('\\x92',"'")
+        seats_marker = 'VOTING BY CONSTITUENCY'
+        content = re.search(seats_marker + r'\s*=+\s*([\s\S]*)', content).group(1)
+        content = content.split('BY-ELECTIONS')[0]
+        seats = []
+        while True:
+            seat_match = re.search(r'([^\n]+\s+=+[^=]*)(?:\n[^\n=]+\s+=|[^=]*$)', content)
+            if seat_match is None:
+                break
+            seatData = seat_match.group(1)
+            seats.append(seatData)
+            content = content[seat_match.end(1):]
+        for seat in seats:
+            seat_name = seat.split('\n')[0].split('  ')[0].strip().replace(',','').title()
+            seat_results = SeatResults(seat_name)
+            if 'informal' in seat:
+                fp_content = seat.split('Candidate')[1].split('informal')[0].split(single_divider)[1]
+                separator = '\r\n'
+                offset = 0
+                fp_lines = fp_content.split(separator)[1:-1]
+                for line in fp_lines:
+                    name = line[:26].replace('*', '').replace('+', '').strip().title()
+                    if name == '(Challenged Votes':
+                        continue
+                    party = line[26:46 + offset].strip()
+                    if len(party) == 0:
+                        party = "IND"
+                    votes_str = line[46 + offset:54 + offset].strip().replace(',','').replace('.','').replace(' ','')
+                    if len(votes_str) == 0:
+                        continue
+                    votes = int(votes_str)
+                    percent_str = line[54 + offset:59 + offset].strip()
+                    if len(percent_str) == 0:
+                        percent = None
+                    else:
+                        percent = float(percent_str)
+                    swing_str = line[60 + offset:].strip().replace('(', '').replace(')', '')
+                    if len(swing_str) == 0:
+                        swing = None
+                    else:
+                        swing = float(swing_str)
+                    candidate = CandidateResult(name=name,
+                                                party=party,
+                                                votes=votes,
+                                                percent=percent,
+                                                swing=swing)                        
+                    seat_results.fp.append(candidate)
+                seat_results.order()
+                if len(seat_results.fp) == 2:
+                    seat_results.tcp = copy.deepcopy(seat_results.fp)
+                    continue
+                # Correction for erroneous 1999 Williamstown entry
+                seat = seat.replace('30,686  16.7', '30,686  18.5 e')
+                tcp_est = re.search(' ([\d,]+)\s+([\d.]+) e\r\n', seat)
+                primary_leader = seat_results.fp[0]
+                primary_second = seat_results.fp[1]
+                if tcp_est is not None:
+                    # If there is an estimate, there won't be an
+                    # official two-party preferred result, and vice versa
+                    # Give the two-party-preferred to the leaders in
+                    # primary votes
+                    leader_tpp = round(float(tcp_est.group(2)) + 50, 1)
+                    total_votes = int(tcp_est.group(1).replace(',',''))
+                    leader_votes = int(leader_tpp * total_votes / 100)
+                    lead_tcp = CandidateResult(name=primary_leader.name,
+                                               party=primary_leader.party,
+                                               votes=leader_votes,
+                                               percent=leader_tpp,
+                                               swing=None)                     
+                    seat_results.tcp.append(lead_tcp)
+                    second_tcp = CandidateResult(name=primary_second.name,
+                                                 party=primary_second.party,
+                                                 votes=total_votes - leader_votes,
+                                                 percent=round(100 - leader_tpp, 1),
+                                                 swing=None)                     
+                    seat_results.tcp.append(second_tcp)
+                else:
+                    # If there is no estimate, look for the final distribution
+                    # of preferences
+                    tcp_results = re.search(r'(?:distributed|challenged)([^>]*)>[^>]*$', seat).group(1)
+                    for line in tcp_results.split('\n')[2:-2]:
+                        name = line[:17].replace('*', '').replace('+', '').strip().title()
+                        if name == '(Exhausted' or name == "Informal":
+                            continue
+                        votes_str = line[46 + offset:54 + offset].strip().replace(',','').replace('.','').replace(' ','')
+                        if len(votes_str) == 0:
+                            continue
+                        votes = int(votes_str)
+                        percent_str = line[54 + offset:60 + offset].strip()
+                        if len(percent_str) == 0:
+                            percent = None
+                        else:
+                            percent = float(percent_str)
+                        swing_str = line[60 + offset:].strip().replace('(', '').replace(')', '')
+                        if len(swing_str) == 0:
+                            swing = None
+                        else:
+                            swing = float(swing_str)
+                        party = 'IND'
+                        for fp_c in seat_results.fp:
+                            if name.lower() in fp_c.name.lower():
+                                name = fp_c.name
+                                party = fp_c.party
+                        candidate = CandidateResult(name=name,
+                                                    party=party,
+                                                    votes=votes,
+                                                    percent=percent,
+                                                    swing=swing)               
+                        seat_results.tcp.append(candidate)
+                seat_results.order()
+            all_results.results.append(seat_results)
+        # with open(filename, 'wb') as pkl:
+        #     pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results    
 
 def election_2019fed_download():
     return modern_fed_download('24310')
@@ -840,6 +967,18 @@ def election_2006vic_download():
     return vic_download('2006')
 
 
+def election_2002vic_download():
+    return vic_download_psephos('2002')
+
+
+def election_1999vic_download():
+    return vic_download_psephos('1999')
+
+
+def election_1996vic_download():
+    return vic_download_psephos('1996')
+
+
 if __name__ == '__main__':
     election_2019 = ElectionResults('2019 Federal Election',
                                     election_2019fed_download)
@@ -895,4 +1034,10 @@ if __name__ == '__main__':
                                         election_2010vic_download)
     election_vic_2006 = ElectionResults('2006 VIC Election',
                                         election_2006vic_download)
-    print(election_vic_2006)
+    election_vic_2002 = ElectionResults('2002 VIC Election',
+                                        election_2002vic_download)
+    election_vic_1999 = ElectionResults('1999 VIC Election',
+                                        election_1999vic_download)
+    election_vic_1996 = ElectionResults('1996 VIC Election',
+                                        election_1996vic_download)
+    print(election_vic_1996)
