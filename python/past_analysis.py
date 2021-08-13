@@ -1,7 +1,24 @@
-import copy
+from copy import deepcopy
 import pickle
 import re
 import requests
+from functools import reduce
+
+
+state_page = {'nsw': 'New South Wales',
+              'vic': "Victoria (Australia)",
+              'qld': "Queensland",
+              'sa': "South Australian",
+              'wa': "Western Australian",
+              }
+
+state_election_name = {'fed': 'Australian federal election',
+                       'nsw': 'New South Wales state election',
+                       'vic': 'Victorian state election',
+                       'qld': 'Queensland state election',
+                       'sa': 'South Australian state election',
+                       'wa': 'Western Australian state election',
+                      }
 
 class ElectionResults:
     def __init__(self, name, download):
@@ -391,7 +408,7 @@ def fed_download_psephos_archive(year):
                                                         swing=swing)                        
                             seat_results.tcp.append(candidate)
                     else:
-                        seat_results.tcp = copy.deepcopy(seat_results.fp)
+                        seat_results.tcp = deepcopy(seat_results.fp)
                         for a in seat_results.tcp:
                            a.swing = None
                     seat_results.order()
@@ -797,7 +814,7 @@ def vic_download_psephos(year):
                     seat_results.fp.append(candidate)
                 seat_results.order()
                 if len(seat_results.fp) == 2:
-                    seat_results.tcp = copy.deepcopy(seat_results.fp)
+                    seat_results.tcp = deepcopy(seat_results.fp)
                     all_results.results.append(seat_results)
                     continue
 
@@ -868,6 +885,125 @@ def vic_download_psephos(year):
         with open(filename, 'wb') as pkl:
             pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
     return all_results.results    
+
+
+def fetch_seat_urls_state(state):
+    seat_urls = {}  # key is seat name, value is url
+    if state == 'fed':
+        category_url = f'https://en.wikipedia.org/wiki/Category:Australian_federal_electoral_results_by_division'
+        content_category = str(requests.get(category_url).content)
+        content_category = content_category.split('div class="mw-category"')[1].split('<noscript>')[0]
+        category_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*Division of ([^<]*)<'
+        matches_category = re.findall(category_pattern, content_category)
+        seat_urls.update({match[1].split(" (")[0]: match[0] for match in matches_category})
+        category_url = f'https://en.wikipedia.org/w/index.php?title=Category:Australian_federal_electoral_results_by_division&pagefrom=Perth%0AElectoral+results+for+the+Division+of+Perth#mw-pages'
+        content_category = str(requests.get(category_url).content)
+        content_category = content_category.split('div class="mw-category"')[1].split('<noscript>')[0]
+        category_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*Division of ([^<]*)<'
+        matches_category = re.findall(category_pattern, content_category)
+        seat_urls.update({match[1].split(" (")[0]: match[0] for match in matches_category})
+    else:
+        category_url = f'https://en.wikipedia.org/wiki/Category:{state_page[state]}_state_electoral_results_by_district'
+        content_category = str(requests.get(category_url).content)
+        content_category = content_category.split('div class="mw-category"')[1].split('<noscript>')[0]
+        category_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*district of ([^<]*)<'
+        matches_category = re.findall(category_pattern, content_category)
+        seat_urls.update({match[1].split(" (")[0]: match[0] for match in matches_category})
+    return seat_urls
+
+
+def generic_download(state, year):
+    filename = f'{year}{state}_results.pkl'
+    try:
+        with open(filename, 'rb') as pkl:
+            all_results = pickle.load(pkl)
+    except FileNotFoundError:
+        all_results = SavedResults()
+        seat_urls = fetch_seat_urls_state(state)
+        for seat_name, url in seat_urls.items():
+            print(seat_name)
+            seat_results = SeatResults(seat_name)
+            full_url = f'https://en.wikipedia.org/{url}'
+            content = str(requests.get(full_url).content)
+            content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
+            content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
+            content = content.replace('\\xe2\\x80\\x93', '-')
+            election_marker = f'>{year} {state_election_name[state]}<'
+            if election_marker not in content:
+                continue
+            election_content = content.split(election_marker)[1].split('</table>')[0]
+            if '>Two-' in election_content:
+                fp_content = election_content.split('>Two-')[0]
+                tcp_content = election_content.split('>Two-')[-1]
+            else:
+                fp_content = election_content
+                tcp_content = None
+            pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
+                          + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
+                          + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
+            fp_matches = re.findall(pattern, fp_content)
+            for match in fp_matches:
+                if len(match[3].strip()) == 0:
+                    continue
+                if len(match[4].strip()) > 0:
+                    swing = float(match[4].strip())
+                else:
+                    swing = None
+                seat_results.fp.append(CandidateResult(
+                    name=match[0],
+                    party=match[1].strip(),
+                    votes=int('0'+match[2].replace(',','').replace('.','').strip()),
+                    percent=float(match[3].strip()),
+                    swing=swing))
+            if tcp_content is not None:
+                tcp_matches = re.findall(pattern, tcp_content)
+                for match in tcp_matches:
+                    swing_str = match[4].replace('N/A','').strip()
+                    if len(swing_str) > 0:
+                        swing = float(swing_str)
+                    else:
+                        swing = None
+                    seat_results.tcp.append(CandidateResult(
+                        name=match[0],
+                        party=match[1].strip(),
+                        votes=int('0'+match[2].replace(',','').replace('.','').strip()),
+                        percent=float(match[3].strip()),
+                        swing=swing))
+                if seat_name == 'Barambah' and year == 1989:
+                    seat_results.tcp[0].votes = 8497
+                    seat_results.tcp[1].votes = 3404
+                elif seat_name == 'Bowen' and year == 1989:
+                    seat_results.tcp[0].votes = 7524
+                    seat_results.tcp[1].votes = 3134
+                elif state == 'nsw' and year <= 1984 and seat_results.tcp[0].votes == 0:
+                    total_votes = sum(x.votes for x in seat_results.fp)
+                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * total_votes)
+                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * total_votes)
+                elif ((seat_name == 'Pearce' and year == 2001) or
+                      (seat_name == 'Newcastle' and year == 1987) or
+                      (seat_name == 'Adelaide' and year == 1983) or
+                      (seat_name == 'Ballarat' and year == 1983)):
+                    total_votes = sum(x.votes for x in seat_results.fp)
+                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * total_votes)
+                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * total_votes)
+                elif seat_results.tcp[0].votes == 0:
+                    raise ValueError('Missing votes data - needs attention')
+                try:
+                    if (abs(seat_results.tcp[0].swing - seat_results.tcp[0].percent) < 0.01
+                        or abs(seat_results.tcp[1].swing - seat_results.tcp[1].percent) < 0.01):
+                        seat_results.tcp[0].swing = None
+                        seat_results.tcp[1].swing = None
+                except TypeError:
+                    pass  # If one of the above values is none,
+                          # it's fine to just skip the check altogether
+            else:
+                seat_results.tcp = seat_results.fp
+            seat_results.order()
+            all_results.results.append(seat_results)
+        with open(filename, 'wb') as pkl:
+            pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    return all_results.results
+
 
 def election_2019fed_download():
     return modern_fed_download('24310')
@@ -1014,72 +1150,34 @@ def election_1982vic_download():
 
 
 if __name__ == '__main__':
-    election_2019 = ElectionResults('2019 Federal Election',
-                                    election_2019fed_download)
-    election_2016 = ElectionResults('2016 Federal Election',
-                                    election_2016fed_download)
-    election_2013 = ElectionResults('2013 Federal Election',
-                                    election_2013fed_download)
-    election_2010 = ElectionResults('2010 Federal Election',
-                                    election_2010fed_download)
-    election_2007 = ElectionResults('2007 Federal Election',
-                                    election_2007fed_download)
-    election_2004 = ElectionResults('2004 Federal Election',
-                                    election_2004fed_download)
-    election_2001 = ElectionResults('2001 Federal Election',
-                                    election_2001fed_download)
-    election_1998 = ElectionResults('1998 Federal Election',
-                                    election_1998fed_download)
-    election_1996 = ElectionResults('1996 Federal Election',
-                                    election_1996fed_download)
-    election_1993 = ElectionResults('1993 Federal Election',
-                                    election_1993fed_download)
-    election_1990 = ElectionResults('1990 Federal Election',
-                                    election_1990fed_download)
-    election_1987 = ElectionResults('1987 Federal Election',
-                                    election_1987fed_download)
-    election_1984 = ElectionResults('1984 Federal Election',
-                                    election_1984fed_download)
-    election_1983 = ElectionResults('1983 Federal Election',
-                                    election_1983fed_download)
-    election_1980 = ElectionResults('1980 Federal Election',
-                                    election_1980fed_download)
-    election_nsw_2019 = ElectionResults('2019 NSW Election',
-                                        election_2019nsw_download)
-    election_nsw_2015 = ElectionResults('2015 NSW Election',
-                                        election_2015nsw_download)
-    election_nsw_2011 = ElectionResults('2011 NSW Election',
-                                        election_2011nsw_download)
-    election_nsw_2007 = ElectionResults('2007 NSW Election',
-                                        election_2007nsw_download)
-    election_nsw_2003 = ElectionResults('2003 NSW Election',
-                                        election_2003nsw_download)
-    election_nsw_1999 = ElectionResults('1999 NSW Election',
-                                        election_1999nsw_download)
-    election_nsw_1995 = ElectionResults('1995 NSW Election',
-                                        election_1995nsw_download)
-    election_nsw_1991 = ElectionResults('1991 NSW Election',
-                                        election_1991nsw_download)
-    election_vic_2018 = ElectionResults('2018 VIC Election',
-                                        election_2018vic_download)
-    election_vic_2014 = ElectionResults('2014 VIC Election',
-                                        election_2014vic_download)
-    election_vic_2010 = ElectionResults('2010 VIC Election',
-                                        election_2010vic_download)
-    election_vic_2006 = ElectionResults('2006 VIC Election',
-                                        election_2006vic_download)
-    election_vic_2002 = ElectionResults('2002 VIC Election',
-                                        election_2002vic_download)
-    election_vic_1999 = ElectionResults('1999 VIC Election',
-                                        election_1999vic_download)
-    election_vic_1996 = ElectionResults('1996 VIC Election',
-                                        election_1996vic_download)
-    election_vic_1992 = ElectionResults('1992 VIC Election',
-                                        election_1992vic_download)
-    election_vic_1988 = ElectionResults('1988 VIC Election',
-                                        election_1988vic_download)
-    election_vic_1985 = ElectionResults('1985 VIC Election',
-                                        election_1985vic_download)
-    election_vic_1982 = ElectionResults('1985 VIC Election',
-                                        election_1982vic_download)
-    print(election_vic_1982)
+    fed_years = [2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
+                 1993, 1990, 1987, 1984, 1983, 1980]
+    fed_elections = {year: ElectionResults(f'{year} Federal Election',
+                                           lambda: generic_download('fed', year))
+                     for year in fed_years}
+    nsw_years = [2019, 2015, 2011, 2007, 2003, 1999, 1995, 1991, 1988,
+                 1984, 1981]
+    nsw_elections = {year: ElectionResults(f'{year} NSW Election',
+                                           lambda: generic_download('nsw', year))
+                     for year in nsw_years}
+    vic_years = [2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992, 1988,
+                 1985, 1982]
+    vic_elections = {year: ElectionResults(f'{year} VIC Election',
+                                           lambda: generic_download('vic', year))
+                     for year in vic_years}
+    qld_years = [2020, 2017, 2015, 2012, 2009, 2006, 2004, 2001, 1998,
+                 1995, 1992, 1989, 1986, 1983, 1980]
+    qld_elections = {year: ElectionResults(f'{year} QLD Election',
+                                           lambda: generic_download('qld', year))
+                     for year in qld_years}
+    sa_years = [2018, 2014, 2010, 2006, 2002, 1997, 1993, 1989, 1985,
+                 1982]
+    sa_elections = {year: ElectionResults(f'{year} SA Election',
+                                           lambda: generic_download('sa', year))
+                     for year in sa_years}
+    wa_years = [2021, 2017, 2013, 2008, 2005, 2001, 1996, 1993, 1989,
+                 1986, 1983, 1980]
+    wa_elections = {year: ElectionResults(f'{year} WA Election',
+                                           lambda: generic_download('wa', year))
+                     for year in wa_years}
+    print(fed_elections[2019])
