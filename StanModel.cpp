@@ -404,7 +404,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		const float upperError = parameters.at(partyGroup)[days][InputParameters::UpperError];
 		const float lowerKurtosis = parameters.at(partyGroup)[days][InputParameters::LowerKurtosis];
 		const float upperKurtosis = parameters.at(partyGroup)[days][InputParameters::UpperKurtosis];
-		const float additionalVariation = rng.flexible_dist(0.0f, lowerError, upperError, lowerKurtosis, upperKurtosis);
+		const float additionalVariation = rng.flexibleDist(0.0f, lowerError, upperError, lowerKurtosis, upperKurtosis);
 		const float voteWithVariation = mixedDebiasedVote + additionalVariation;
 
 		float newVoteShare = detransformVoteShare(voteWithVariation);
@@ -535,7 +535,7 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
 		float randomisedFlow = (historicalSamples >= 2
-			? rng.t_dist(int(std::floor(historicalSamples)) - 1, flow, deviation)
+			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
 			: flow);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
 		tpp += support * randomisedFlow;
