@@ -1,4 +1,5 @@
 Polling Analyser to-do:
+-Adjust "flexible" distribution by merging between two distributions based on z-score, pre-generate an ordered lookup table for the distributions (perhaps lazily?) so that two or more different distributions can be sampled from the same z-score
 -More sophisticated handling of non-classic and potentially non-classic seats
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -(Make any further adjustments to existing analysis processes)

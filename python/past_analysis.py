@@ -928,6 +928,7 @@ def generic_download(state, year):
             content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
             content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
             content = content.replace('\\xe2\\x80\\x93', '-')
+            content = content.replace('&#039;', "'")
             election_marker = f'>{year} {state_election_name[state]}<'
             if election_marker not in content:
                 continue
@@ -975,17 +976,13 @@ def generic_download(state, year):
                 elif seat_name == 'Bowen' and year == 1989:
                     seat_results.tcp[0].votes = 7524
                     seat_results.tcp[1].votes = 3134
-                elif state == 'nsw' and year <= 1984 and seat_results.tcp[0].votes == 0:
+                elif ((state == 'nsw' and year <= 1984 and seat_results.tcp[0].votes == 0) or 
+                      (state == 'fed' and year <= 1983 and seat_results.tcp[0].votes == 0) or 
+                      (seat_name == 'Pearce' and year == 2001) or
+                      (seat_name == 'Newcastle' and year == 1987)):
                     total_votes = sum(x.votes for x in seat_results.fp)
-                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * total_votes)
-                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * total_votes)
-                elif ((seat_name == 'Pearce' and year == 2001) or
-                      (seat_name == 'Newcastle' and year == 1987) or
-                      (seat_name == 'Adelaide' and year == 1983) or
-                      (seat_name == 'Ballarat' and year == 1983)):
-                    total_votes = sum(x.votes for x in seat_results.fp)
-                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * total_votes)
-                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * total_votes)
+                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * 0.01 * total_votes)
+                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * 0.01 * total_votes)
                 elif seat_results.tcp[0].votes == 0:
                     raise ValueError('Missing votes data - needs attention')
                 try:
@@ -1180,4 +1177,4 @@ if __name__ == '__main__':
     wa_elections = {year: ElectionResults(f'{year} WA Election',
                                            lambda: generic_download('wa', year))
                      for year in wa_years}
-    print(fed_elections[2019])
+    print(fed_elections[1980])
