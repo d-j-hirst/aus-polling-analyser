@@ -2,6 +2,7 @@ from scipy.interpolate import UnivariateSpline
 import math
 import argparse
 import statistics
+from election_code import ElectionCode
 
 poll_score_threshold = 3
 
@@ -13,31 +14,6 @@ with open('./Data/party-groups.csv', 'r') as f:
         [a.strip().split(',') for a in f.readlines()]}
 
 unnamed_others_code = party_groups['xOTH'][0]
-
-
-class ElectionCode:
-    def __init__(self, year, region):
-        self._internal = (int(year), str(region))
-
-    def __hash__(self):
-        return hash(self._internal)
-
-    def __eq__(self, another):
-        return self._internal == another._internal
-
-    def year(self):
-        return self._internal[0]
-
-    def region(self):
-        return self._internal[1]
-
-    def __repr__(self):
-        return f'ElectionCode({self.year()}, {self.region()})'
-
-    @staticmethod
-    def load_elections_from_file(file):
-        split_lines = [line.strip().split(',') for line in file.readlines()]
-        return [ElectionCode(int(a[0]), a[1]) for a in split_lines]
 
 
 no_target_election_marker = ElectionCode(0, 'none')
