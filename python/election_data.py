@@ -89,8 +89,7 @@ class AllElections:
             ElectionResults(f'{year} NSW Election',
             lambda: generic_download('nsw', year))
             for year in nsw_years})
-        vic_years = [2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992, 1988,
-                    1985, 1982]
+        vic_years = [2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992]
         self.elections.update({
             ElectionCode(year=year, region='vic'): 
             ElectionResults(f'{year} VIC Election',
@@ -103,8 +102,7 @@ class AllElections:
             ElectionResults(f'{year} QLD Election',
             lambda: generic_download('qld', year))
             for year in qld_years})
-        sa_years = [2018, 2014, 2010, 2006, 2002, 1997, 1993, 1989, 1985,
-                    1982]
+        sa_years = [2018, 2014, 2010, 2006, 2002, 1997]
         self.elections.update({
             ElectionCode(year=year, region='sa'): 
             ElectionResults(f'{year} SA Election',
@@ -128,6 +126,8 @@ def collect_seat_urls(seat_url_dict, url, pattern):
     matches_category = re.findall(pattern, content_category)
     for match in matches_category:
         name = match[1].split(" (")[0].replace('&#039;', "'")
+        if name == 'Maneroo':
+            continue
         url = match[0]
         if name in seat_url_dict:
             seat_url_dict[name].add(url)
@@ -140,6 +140,9 @@ def fetch_seat_urls_state(state):
     state_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*district of ([^<]*)<'
     if state == 'fed':
         federal_pattern = r'<a href="([^"?]*)"[^>]*>[^>]*Division of ([^<]*)<'
+        # As Namadgi was only contested for one election, it doesn't have a
+        # dedicated results page, so add it separately
+        seat_urls['Namadgi'] = {'/wiki/Division_of_Namadgi'}
         collect_seat_urls(seat_urls,
                           f'https://en.wikipedia.org/wiki/Category:Australian_federal_electoral_results_by_division',
                           federal_pattern)
@@ -235,6 +238,7 @@ def generic_download(state, year):
                         seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * 0.01 * total_votes)
                         seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * 0.01 * total_votes)
                     elif seat_results.tcp[0].votes == 0:
+                        print(seat_results)
                         raise ValueError('Missing votes data - needs attention')
                     try:
                         if (abs(seat_results.tcp[0].swing - seat_results.tcp[0].percent) < 0.01
@@ -256,4 +260,3 @@ def generic_download(state, year):
 
 if __name__ == '__main__':
     elections = AllElections()
-    print(elections.elections[ElectionCode(region='fed', year=2019)])
