@@ -18,7 +18,7 @@ def check_fp_percent_total(elections):
                 print(f'{election.name} - {seat_result.name}: total fp %: {total_percent}')
 
 
-def check_fp_percent_calc(elections):
+def check_fp_percent_match(elections):
     for code, election in elections.elections.items():
         for seat_result in election.seat_results:
             if len(seat_result.fp) < 2:
@@ -46,7 +46,7 @@ def check_tcp_percent_total(elections):
                 print(f'{election.name} - {seat_result.name}: total tcp %: {total_percent}')
 
 
-def check_tcp_percent_calc(elections):
+def check_tcp_percent_match(elections):
     for code, election in elections.elections.items():
         for seat_result in election.seat_results:
             if len(seat_result.tcp) < 2:
@@ -64,10 +64,20 @@ def check_tcp_percent_calc(elections):
                     print(f'{election.name} - {seat_result.name} - {candidate.name} - recorded tcp %: {candidate.percent}, calc %: {calc_percent}')
 
 
+def check_fp_percent_calc(elections):
+    for code, election in elections.elections.items():
+        for seat_result in election.seat_results:
+            if None not in [a.votes for a in seat_result.fp]:
+                if None in [a.percent for a in seat_result.fp]:
+                    print(f'{election.name} - {seat_result.name} - has fp vote count data that can be converted to a percentage')
+
+
+
 if __name__ == '__main__':
     elections = AllElections()
     check_seat_numbers(elections)
     check_fp_percent_total(elections)
+    check_fp_percent_match(elections)
     check_fp_percent_calc(elections)
     check_tcp_percent_total(elections)
-    check_tcp_percent_calc(elections)
+    check_tcp_percent_match(elections)
