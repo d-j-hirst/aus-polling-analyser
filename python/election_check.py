@@ -72,6 +72,14 @@ def check_fp_percent_calc(elections):
                     print(f'{election.name} - {seat_result.name} - has fp vote count data that can be converted to a percentage')
 
 
+def check_tcp_percent_calc(elections):
+    for code, election in elections.elections.items():
+        for seat_result in election.seat_results:
+            if None not in [a.votes for a in seat_result.tcp]:
+                if None in [a.percent for a in seat_result.tcp]:
+                    print(f'{election.name} - {seat_result.name} - has tcp vote count data that can be converted to a percentage')
+
+
 
 if __name__ == '__main__':
     elections = AllElections()
