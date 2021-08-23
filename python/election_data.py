@@ -205,8 +205,8 @@ def generic_download(state, year):
                     else:
                         swing = None
                     seat_results.fp.append(CandidateResult(
-                        name=match[0],
-                        party=match[1].strip(),
+                        name=match[1].strip(),
+                        party=match[0].strip(),
                         votes=int('0'+match[2].replace(',','').replace('.','').strip()),
                         percent=float(match[3].replace(',','.').strip()),
                         swing=swing))
@@ -219,8 +219,8 @@ def generic_download(state, year):
                         else:
                             swing = None
                         seat_results.tcp.append(CandidateResult(
-                            name=match[0],
-                            party=match[1].strip(),
+                            name=match[1].strip(),
+                            party=match[0].strip(),
                             votes=int('0'+match[2].replace(',','').replace('.','').strip()),
                             percent=float(match[3].strip()),
                             swing=swing))

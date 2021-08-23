@@ -80,6 +80,41 @@ def check_tcp_percent_calc(elections):
                     print(f'{election.name} - {seat_result.name} - has tcp vote count data that can be converted to a percentage')
 
 
+def combine_parties(elections):
+    with open('./Data/party-conversions.csv', 'r') as f:
+        conversions = {a[0].replace(';', ','): a[1] for a in
+            [b.strip().split(',') for b in f.readlines()]}
+    for code, election in elections.elections.items():
+        for seat_result in election.seat_results:
+            for fp_candidate in seat_result.fp:
+                if fp_candidate.party in conversions:
+                    fp_candidate.party = conversions[fp_candidate.party]
+            for tcp_candidate in seat_result.tcp:
+                if tcp_candidate.party in conversions:
+                    tcp_candidate.party = conversions[tcp_candidate.party]
+
+
+def display_parties(elections):
+    parties = {}
+    for code, election in elections.elections.items():
+        for seat_result in election.seat_results:
+            for fp_candidate in seat_result.fp:
+                party = fp_candidate.party
+                if party in parties:
+                    parties[party][0] += 1
+                    parties[party][1] = max(parties[party][1], fp_candidate.percent)
+                else:
+                    parties[party] = [1, fp_candidate.percent, 0, seat_result.name, code]
+            for tcp_candidate in seat_result.tcp:
+                party = tcp_candidate.party
+                if party in parties:
+                    parties[party][2] = max(parties[party][2], tcp_candidate.percent)
+                else:
+                    parties[party] = [0, 0, tcp_candidate.percent, seat_result.name, code]
+    for party_name, party_info in parties.items():
+        print(f'{party_name}: Seats contested (fp) - {party_info[0]}, best fp result - {party_info[1]}, best tcp result - {party_info[2]}, example seat - {party_info[3]}, example election - {party_info[4]}')
+
+
 
 if __name__ == '__main__':
     elections = AllElections()
@@ -89,3 +124,5 @@ if __name__ == '__main__':
     check_fp_percent_calc(elections)
     check_tcp_percent_total(elections)
     check_tcp_percent_match(elections)
+    combine_parties(elections)
+    display_parties(elections)
