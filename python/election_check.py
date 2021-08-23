@@ -81,7 +81,7 @@ def check_tcp_percent_calc(elections):
 
 
 def combine_parties(elections):
-    with open('./Data/party-conversions.csv', 'r') as f:
+    with open('./Data/party-simplification.csv', 'r') as f:
         conversions = {a[0].replace(';', ','): a[1] for a in
             [b.strip().split(',') for b in f.readlines()]}
     for code, election in elections.elections.items():
@@ -115,6 +115,23 @@ def display_parties(elections):
         print(f'{party_name}: Seats contested (fp) - {party_info[0]}, best fp result - {party_info[1]}, best tcp result - {party_info[2]}, example seat - {party_info[3]}, example election - {party_info[4]}')
 
 
+def best_performances(elections):
+    best = {}
+    for code, election in elections.elections.items():
+        for seat_result in election.seat_results:
+            for fp_candidate in seat_result.fp:
+                party = fp_candidate.party
+                if party in best:
+                    best[party].append((code, seat_result.name, fp_candidate.name, fp_candidate.percent))
+                else:
+                    best[party] = [(code, seat_result.name, fp_candidate.name, fp_candidate.percent)]
+    for party, candidate_list in best.items():
+        print(f'Party: {party}')
+        candidate_list.sort(key=lambda x: x[3], reverse=True)
+        for c in candidate_list[:10]:
+            print(f'Election: {c[0].region()}{c[0].year()}, Seat: {c[1]}, Name: {c[2]}, fp %: {c[3]}')
+
+
 
 if __name__ == '__main__':
     elections = AllElections()
@@ -126,3 +143,4 @@ if __name__ == '__main__':
     check_tcp_percent_match(elections)
     combine_parties(elections)
     display_parties(elections)
+    best_performances(elections)
