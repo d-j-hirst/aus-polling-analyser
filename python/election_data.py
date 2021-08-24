@@ -29,6 +29,27 @@ class ElectionResults:
         for seat_result in self.seat_results:
             repr += f'{seat_result}\n'
         return repr
+    
+    def seat_names(self):
+        return [a.name for a in self.seat_results]
+    
+    def seat_by_name(self, name):
+        return next(a for a in self.seat_results if a.name == name)
+    
+    # return total count of fp votes in this election
+    def total_fp_votes(self):
+        return sum(sum(x.votes for x in seat.fp)
+                   for seat in self.seat_results)
+    
+    # return total count of fp votes in this election
+    def total_fp_votes_party(self, party):
+        return sum(sum(x.votes for x in seat.fp if x.party == party)
+                   for seat in self.seat_results)
+    
+    # return total percentage of fp votes in this election
+    # going to the given party
+    def total_fp_percentage_party(self, party):
+        return self.total_fp_votes_party(party) / self.total_fp_votes() * 100
 
 
 class SavedResults:
@@ -48,7 +69,6 @@ class SeatResults:
         else:
             self.tcp.sort(key=lambda x: x.percent, reverse=True)
 
-    
     def __repr__(self):
         repr = f'{self.name}\n Two-candidate preferred votes:\n'
         for tcp in self.tcp:
@@ -57,6 +77,23 @@ class SeatResults:
         for fp in self.fp:
             repr += f'  {fp}\n'
         return repr
+
+    def party_percent(self, party):
+        return sum(x.percent for x in self.fp
+                   if x.party == party)
+
+    def party_votes(self, party):
+        return sum(x.votes for x in self.fp
+                   if x.party == party)
+
+    def party_swing(self, party):
+        # This is more complicated because there is potential
+        # for two categorised parties to have different swings -
+        # so take the average weighted by the number of votes
+        return (sum(x.swing * x.votes for x in self.fp
+                if x.party == party and x.swing is not None) / 
+                sum(x.votes for x in self.fp
+                if x.party == party and x.swing is not None))
 
 
 class CandidateResult:
@@ -116,8 +153,30 @@ class AllElections:
             lambda: generic_download('wa', year))
             for year in wa_years})
     
+    def __getitem__(self, key):
+        return self.elections[key]
+
     def items(self):
-        return elections.items()
+        return self.elections.items()
+
+    def keys(self):
+        return self.elections.keys()
+
+    # return an ordered list of election codes for
+    # elections following the given one
+    def next_elections(self, current_election):
+        return sorted([a for a in self.elections.keys()
+                       if a.region() == current_election.region() and
+                       a.year() > current_election.year()],
+                      key=lambda x: x.year())
+
+    # return an ordered list of election codes for
+    # elections preceding the given one
+    def previous_elections(self, current_election):
+        return sorted([a for a in self.elections.keys()
+                       if a.region() == current_election.region() and
+                       a.year() < current_election.year()],
+                      key=lambda x: x.year())
 
 
 def collect_seat_urls(seat_url_dict, url, pattern):

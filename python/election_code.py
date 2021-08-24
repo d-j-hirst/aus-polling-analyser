@@ -16,6 +16,9 @@ class ElectionCode:
 
     def __repr__(self):
         return f'ElectionCode({self.year()}, {self.region()})'
+    
+    def short(self):
+        return f'{self.year()}{self.region()}'
 
     @staticmethod
     def load_elections_from_file(file):

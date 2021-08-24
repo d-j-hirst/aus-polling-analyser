@@ -3,6 +3,7 @@ import math
 import argparse
 import statistics
 from election_code import ElectionCode
+from poll_transform import transform_vote_share, detransform_vote_share, clamp
 
 poll_score_threshold = 3
 
@@ -246,19 +247,6 @@ def import_trend_file(filename):
     lines = [[float(a) for a in line] for line in lines]
     lines.reverse()
     return lines
-
-
-def transform_vote_share(vote_share):
-    vote_share = clamp(vote_share, 0.1, 99.9)
-    return math.log((vote_share * 0.01) / (1 - vote_share * 0.01)) * 25
-
-
-def detransform_vote_share(vote_share):
-    return 100 / (1 + math.exp(-0.04 * vote_share))
-
-
-def clamp(n, min_n, max_n):
-    return max(min(max_n, n), min_n)
 
 
 # force_monotone: will look at the endpoints
