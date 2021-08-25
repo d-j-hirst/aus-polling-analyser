@@ -5,7 +5,9 @@ import math
 import numpy
 import statistics
 from sklearn.linear_model import LinearRegression
+from scipy.interpolate import UnivariateSpline
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
+from sample_kurtosis import one_tail_kurtosis
 
 def check_seat_numbers(elections):
     for code, election in elections.elections.items():
@@ -139,8 +141,8 @@ def best_performances(elections):
 
 def analyse_greens(elections):
     bucket_min = -90
-    bucket_base = 15
-    bucket_max = -15
+    bucket_base = 10
+    bucket_max = -20
     this_buckets = {(-10000, bucket_min): []}
     this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
     this_buckets.update({(bucket_max, 10000): []})
@@ -176,69 +178,66 @@ def analyse_greens(elections):
                                    and a[1] > this_greens)
                 this_buckets[this_bucket].append(greens_change)
                 swing_buckets[this_bucket].append(election_swing)
+
     bucket_coefficients = {}
     bucket_intercepts = {}
-    bucket_residual_quantiles = {}
-    n_quantiles = 25
+    bucket_median_errors = {}
+    bucket_lower_rmses = {}
+    bucket_upper_rmses = {}
+    bucket_lower_kurtoses = {}
+    bucket_upper_kurtoses = {}
+    
     for bucket, results in this_buckets.items():
         if len(results) > 0:
+            # Run regression between the seat swing and election swing
+            # to find the relationship between the two for initial primary
+            # votes in this bucket
             swings = swing_buckets[bucket]
             swing_array = numpy.array(swings).reshape(-1, 1)
             results_array = numpy.array(results)
             reg = LinearRegression().fit(swing_array, results_array)
             overall_coefficient = reg.coef_[0]
             overall_intercept = reg.intercept_
+
+            # Get the residuals (~= errors if the above relationship is used
+            # as a prediction), find the median, and split the errors into
+            # a group above and below the median, measured by their distance
+            # from the median
             residuals = [results[index] - (overall_coefficient * swings[index] + overall_intercept)
                          for index in range(0, len(results))
             ]
-            bucket_coefficients[bucket] = (overall_coefficient)
-            bucket_intercepts[bucket] = (overall_intercept)
-            quantiles = [a / n_quantiles for a in range(0, n_quantiles + 1)]
-            bucket_residual_quantiles[bucket] = {
-                quantile: numpy.quantile(residuals, [quantile])[0]
-                for quantile in quantiles
-            }
+            median_error = statistics.median(residuals)
+            lower_errors = [a - median_error for a in residuals if a < median_error]
+            upper_errors = [a - median_error for a in residuals if a >= median_error]
 
-    # This section takes sample (untransformed) values and
-    # returns (untransformed) distributions based on those values
-    # samples = [(1, 0),(2, 0),(3.5, 0),(5, 0),(6.5, 0),(8, 0),(10, 0),(12, 0),(15, 0),(20, 0),(25, 0),(30, 0),(35, 0),(40, 0),(45, 0),(50, 0)]
-    samples = [(10, -3), (10, -2), (10, -1), (10, 0), (10, 1), (10, 2), (10, 3)]
-    for sample, sample_swing in samples:
-        sample_t = transform_vote_share(sample)
-        midpoint = lambda x: (max(x[0], bucket_min - bucket_base) + min(x[1], bucket_max + bucket_base)) / 2
-        lower_bucket = max((bucket for bucket in this_buckets.keys()
-                        if (bucket[0] + bucket[1]) / 2 < sample_t),
-                        key=midpoint)
-        upper_bucket = min((bucket for bucket in this_buckets.keys()
-                        if (bucket[0] + bucket[1]) / 2 > sample_t),
-                        key=midpoint)
-        mix_factor = clamp(((sample_t - midpoint(lower_bucket))
-                            / (midpoint(upper_bucket) - midpoint(lower_bucket))),
-                           0, 1)
-        print(mix_factor)
-        print(lower_bucket)
-        print(upper_bucket)
-        upper_coefficient = bucket_coefficients[upper_bucket]
-        lower_coefficient = bucket_coefficients[lower_bucket]
-        upper_intercept = bucket_intercepts[upper_bucket]
-        lower_intercept = bucket_intercepts[lower_bucket]
-        effective_coefficient = (upper_coefficient * mix_factor +
-                                lower_coefficient * (1 - mix_factor))
-        effective_intercept = (upper_intercept * mix_factor +
-                            lower_intercept * (1 - mix_factor))
-        sample_t_adj = sample_t + effective_coefficient * sample_swing + effective_intercept
-        upper_quantiles = bucket_residual_quantiles[upper_bucket]
-        lower_quantiles = bucket_residual_quantiles[lower_bucket]
-        effective_quantiles = {quantile: upper_quantiles[quantile] * mix_factor +
-                            lower_quantiles[quantile] * (1 - mix_factor)
-                            for quantile in upper_quantiles.keys()}
-        sample_t_quantiles = {quantile: sample_t_adj + value
-                            for quantile, value in effective_quantiles.items()}
-        sample_quantiles = {quantile: detransform_vote_share(value)
-                            for quantile, value in sample_t_quantiles.items()}
-        print(f'Expected distribution for original sample vote {sample} and swing {sample_swing}:')
-        print('\n'.join(f'{quantile}: {value}' for quantile, value in sample_quantiles.items()))
+            # Find effective RMSE and kurtosis for the two tails of the
+            # distribution (in each case, as if the other side of the
+            # distribution is symmetrical)
+            lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                                / (len(lower_errors) - 1))
+            upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                                / (len(upper_errors) - 1))      
+            lower_kurtosis = one_tail_kurtosis(lower_errors)
+            upper_kurtosis = one_tail_kurtosis(upper_errors)
 
+            bucket_coefficients[bucket] = overall_coefficient
+            bucket_intercepts[bucket] = overall_intercept
+            bucket_median_errors[bucket] = median_error
+            bucket_lower_rmses[bucket] = lower_rmse
+            bucket_upper_rmses[bucket] = upper_rmse
+            bucket_lower_kurtoses[bucket] = lower_kurtosis
+            bucket_upper_kurtoses[bucket] = upper_kurtosis
+    
+    for bucket in bucket_coefficients.keys():
+        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+        print(f'Seat-Election coefficient: {bucket_coefficients[bucket]}')
+        print(f'Seat-Election intercept: {bucket_intercepts[bucket]}')
+        print(f'Median error: {bucket_median_errors[bucket]}')
+        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+        print('\n')
 
 
 if __name__ == '__main__':

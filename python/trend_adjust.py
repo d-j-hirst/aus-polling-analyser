@@ -4,6 +4,7 @@ import argparse
 import statistics
 from election_code import ElectionCode
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
+from sample_kurtosis import one_tail_kurtosis
 
 poll_score_threshold = 3
 
@@ -291,18 +292,6 @@ def smoothed_median(container, smoothing):
     return statistics.mean(s[low_end:high_end])
 
 
-# Note: this assessment assumes the mean is 0 (as the
-# calculation is being made for one tail of a distribution,
-# the mean is not actually being calculated)
-def sample_kurtosis(sample):
-    numerator = sum([a ** 4 for a in sample])
-    n = max(4, len(sample))
-    denominator = sum([a ** 2 for a in sample]) ** 2
-    sample_size_corrected = (n * (n + 1) * (n - 1)) / ((n - 2) * (n - 3))
-    kurtosis_estimate = numerator * sample_size_corrected / denominator
-    return kurtosis_estimate
-
-
 class BiasData:
     def __init__(self):
         self.previous_errors = []
@@ -469,13 +458,13 @@ def get_party_data(config, inputs, poll_trend, party_group, avg_n):
                         if a < mixed_bias]
         upper_errors = [a - mixed_bias
                         for a in day_data.mixed_errors[1]
-                        if a > mixed_bias]
+                        if a >= mixed_bias]
         lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                                / (len(lower_errors) - 1))
         upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
                                / (len(upper_errors) - 1))
-        lower_kurtosis = sample_kurtosis(lower_errors)
-        upper_kurtosis = sample_kurtosis(upper_errors)
+        lower_kurtosis = one_tail_kurtosis(lower_errors)
+        upper_kurtosis = one_tail_kurtosis(upper_errors)
         party_data.poll_biases[day] = poll_bias
         party_data.previous_biases[day] = previous_bias
         party_data.biases[day] = mixed_bias
