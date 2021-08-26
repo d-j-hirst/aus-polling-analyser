@@ -34,6 +34,7 @@ wxDateTime StanModel::getEndDate() const
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	loadPartyGroups();
+	loadPreviousAverages();
 	loadParameters(feedback);
 	if (!generatePreferenceMaps(feedback)) return;
 	logger << "Starting trend data loading: " << wxDateTime::Now().FormatISOCombined() << "\n";
@@ -193,6 +194,38 @@ void StanModel::loadPartyGroups()
 			reversePartyGroups[value] = key;
 		}
 	}
+}
+
+void StanModel::loadPreviousAverages()
+{
+	logger << "loading previous averages\n";
+	constexpr int PreviousAverageCount = 6;
+	const std::string filename = "python/Data/prior-results.csv";
+	auto file = std::ifstream(filename);
+	std::string termYear = termCode.substr(0, 4);
+	std::string termRegion = termCode.substr(4);
+	if (!file) throw Exception("Previous results file not present! Expected a file at " + filename);
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values[0] == termYear && values[1] == termRegion) {
+			std::string party = splitString(values[2], " ")[0];
+			double previousAverageSum = 0.0f;
+			if (party == "ALP" || party == "LNP") {
+				for (int index = 3; index < 3 + PreviousAverageCount; ++index) {
+					previousAverageSum += std::stod(values[index]);
+				}
+				double previousAverage = previousAverageSum / double(PreviousAverageCount);
+				previousAverages[party] = previousAverage;
+			}
+			else {
+				previousAverages[party] = std::stod(values[3]);
+			}
+		}
+	} while (true);
+	logger << previousAverages << "\n";
 }
 
 void StanModel::loadParameters(FeedbackFunc feedback)
@@ -379,15 +412,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		const float debiasedPolls = transformedPolls - pollBiasToday;
 
 		// remove systemic bias in previous-election average
-		// *** remove hard-coding later
-		const float previousAverage = transformVoteShare((key == "LNP" ? 43.58f :
-			(key == "ALP" ? 36.76f :
-			(key == "GRN" ? 10.4f :
-			(key == "UAP" ? 3.43f :
-			(key == "ONP" ? 3.08f :
-			(key == "OTH" ? 14.72f :
-			(key == "xOTH" ? 8.21f :
-			1.0f))))))));
+		const float previousAverage = transformVoteShare(previousAverages.at(key));
 		const float previousBiasToday = parameters.at(partyGroup)[days][InputParameters::PreviousBias];
 		const float debiasedPreviousAverage = previousAverage - previousBiasToday;
 
