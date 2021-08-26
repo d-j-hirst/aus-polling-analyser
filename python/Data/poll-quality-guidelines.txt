@@ -10,6 +10,7 @@ This is then adjusted according to the following "strikes" - factors that indica
  - Poll has sample size less than 400
  - First five region-wide polls published by the pollster under this methodology
  - In addition, first two region-wide polls published by the pollster under this methodology
+ - Poll has never been tested at an election
  - Poll has history of being biased/inaccurate across previous elections (2 strikes - applies mainly to Morgan F2F)
  
 These last two requirements ensure that new polls and methodologies do not overly skew averages until such a time as they have been established long enough for the pollster to work out the kinks.

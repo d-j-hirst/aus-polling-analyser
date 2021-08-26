@@ -147,12 +147,18 @@ def analyse_greens(elections):
     this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
     this_buckets.update({(bucket_max, 10000): []})
     swing_buckets = copy.deepcopy(this_buckets)
+    sophomore_buckets = copy.deepcopy(this_buckets)
     party = 'Greens'
     for this_election, this_results in elections.items():
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
         next_results = elections[next_election]
+        if len(elections.next_elections(this_election)) > 0:
+            previous_election = elections.previous_elections(this_election)[-1]
+            previous_results = elections[previous_election]
+        else:
+            previous_results = None
         election_swing = (next_results.total_fp_percentage_party(party)
                  - this_results.total_fp_percentage_party(party))
         print(f'{this_election.short()} - {next_election.short()} overall swing to greens: {election_swing}')
@@ -160,6 +166,12 @@ def analyse_greens(elections):
             this_seat_results = this_results.seat_by_name(this_seat_name)
             if this_seat_name in next_results.seat_names():
                 next_seat_results = next_results.seat_by_name(this_seat_name)
+                sophomore = False
+                if this_seat_name in previous_results.seat_names():
+                    previous_seat_results = previous_results.seat_by_name(this_seat_name)
+                    if (previous_seat_results.tcp[0].party != party and 
+                        this_seat_results.tcp[0].party == party):
+                        sophomore = True
                 if party in [a.party for a in this_seat_results.fp]:
                     this_greens = sum(x.percent for x in this_seat_results.fp
                                         if x.party == party)
@@ -178,6 +190,7 @@ def analyse_greens(elections):
                                    and a[1] > this_greens)
                 this_buckets[this_bucket].append(greens_change)
                 swing_buckets[this_bucket].append(election_swing)
+                sophomore_buckets[this_bucket].append(1 if sophomore else 0)
 
     bucket_coefficients = {}
     bucket_intercepts = {}
