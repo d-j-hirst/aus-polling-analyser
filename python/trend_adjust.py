@@ -164,6 +164,7 @@ class Inputs:
                 for k, v in self.prior_results.items()
             } for avg_n in avg_counts}
         self.studied_elections = self.elections + [no_target_election_marker]
+        self.fundamentals = {}  # Filled in later
 
     def determine_eventual_others_results(self):
         for e in self.elections:
@@ -324,6 +325,7 @@ def run_non_poll_regression(inputs):
                 previous_errors.append(inputs.avg_prior_results[avg_len][e_p_c]
                                     - eventual_results)
                 prediction_errors.append(prediction - eventual_results)
+                inputs.fundamentals[e_p_c] = prediction
 
         print(f'Party group: {party_group_code}')
         previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
@@ -337,6 +339,10 @@ def run_non_poll_regression(inputs):
         previous_median_error = statistics.median([abs(a) for a in previous_errors])
         prediction_median_error = statistics.median([abs(a) for a in prediction_errors])
         print(f'Median errors: previous {previous_median_error} vs prediction {prediction_median_error}')
+    for e_p_c, prediction in inputs.fundamentals.items():
+        print(f'{e_p_c} - prediction: {prediction}')
+        if e_p_c in inputs.eventual_results:
+            print(f'{e_p_c} - actual: {inputs.eventual_results[e_p_c]}')
 
 
 def import_trend_file(filename):
