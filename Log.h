@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+// For debugging convenience only - do not leave in stable code
+#define PA_LOG_VAR(a) logger << a << " - " << #a << "\n"
+
 class Logger {
 public:
 	Logger();

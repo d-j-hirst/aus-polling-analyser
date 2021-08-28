@@ -101,11 +101,11 @@ public:
 		T upperVal = 0.0;
 		if (upper_kurt <= T(3.0)) {
 			// use normal distribution for low kurtosis
-			upperVal = std::abs(scaledNormalQuantile(quantile, mean, upper_sd));
+			upperVal = scaledNormalQuantile(quantile, mean, upper_sd);
 		}
 		else {
 			// map kurtosis value to approximate t-dist degrees of freedom
-			T df = T(6.0) / upper_kurt + T(4.0);
+			T df = T(6.0) / (upper_kurt - 3.0) + T(4.0);
 			T floor_df = std::floor(df);
 			T ceil_factor = df - floor_df;
 			if (uniform(T(0.0), T(1.0)) < ceil_factor) {
@@ -118,11 +118,11 @@ public:
 		T lowerVal = 0.0;
 		if (lower_kurt <= T(3.0)) {
 			// use normal distribution for low kurtosis
-			lowerVal = std::abs(scaledNormalQuantile(quantile, mean, lower_sd));
+			lowerVal = scaledNormalQuantile(quantile, mean, lower_sd);
 		}
 		else {
 			// map kurtosis value to approximate t-dist degrees of freedom
-			T df = T(6.0) / lower_kurt + T(4.0);
+			T df = T(6.0) / (lower_kurt - 3.0) + T(4.0);
 			T floor_df = std::floor(df);
 			T ceil_factor = df - floor_df;
 			if (uniform(T(0.0), T(1.0)) < ceil_factor) {
@@ -134,6 +134,7 @@ public:
 		}
 		T mixFactor = quantile;
 		//logger << " " << mean << " " << lower_sd << " " << upper_sd << " " << lower_kurt << " " << upper_kurt << " " << quantile << " " << upperVal << " " << lowerVal << " - flexibleDist variables\n";
+		//logger << upperVal * mixFactor + lowerVal * (T(1.0) - mixFactor) << "\n";
 		return upperVal * mixFactor + lowerVal * (T(1.0) - mixFactor);
 	}
 

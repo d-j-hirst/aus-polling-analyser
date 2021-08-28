@@ -1,4 +1,6 @@
 from scipy.interpolate import UnivariateSpline
+from sklearn.linear_model import LinearRegression
+from numpy import array, transpose, dot
 import math
 import argparse
 import statistics
@@ -14,6 +16,9 @@ with open('./Data/party-groups.csv', 'r') as f:
     party_groups = {
         b[0]: b[1:] for b in
         [a.strip().split(',') for a in f.readlines()]}
+
+average_length = {a: 6 if a == "ALP" or a == "LNP" else 1
+                  for a in party_groups.keys()}
 
 unnamed_others_code = party_groups['xOTH'][0]
 
@@ -239,6 +244,99 @@ class RegressionInputs:
 # Parties that shouldn't be included as part of the OTH FP
 # when calculating exclusive-others vote shares
 not_others = ['ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
+
+
+def run_non_poll_regression(inputs):
+    previous_errors = []
+    prediction_errors = []
+    for party_group_code, party_group_list in party_groups.items():
+        avg_len = average_length[party_group_code]
+        for studied_election in inputs.elections:
+            result_deviations = []
+            incumbents = []
+            oppositions = []
+            incumbency_lengths = []
+            opposition_lengths = []
+            federal_sames = []
+            federal_opposites = []
+            for election in inputs.elections:
+                if election == studied_election:
+                    continue
+                for party in inputs.parties[election] + [unnamed_others_code]:
+                    if party not in party_group_list:
+                        continue
+                    e_p_c = ElectionPartyCode(election, party)
+                    eventual_results = (inputs.eventual_results[e_p_c]
+                                        if e_p_c in inputs.eventual_results else 0)
+                    result_deviation = eventual_results - inputs.avg_prior_results[avg_len][e_p_c]
+                    incumbent = 1 if inputs.incumbency[election][0] == party else 0
+                    opposition = 1 if inputs.incumbency[election][1] == party else 0
+                    incumbency_length = (inputs.incumbency[election][2]
+                                        if incumbent else 0)
+                    opposition_length = (inputs.incumbency[election][2]
+                                        if opposition else 0)
+                    federal = 1 if election.region() == 'fed' else 0
+                    federal_same = 1 if not federal and inputs.federal_situation[election][0] == party else 0
+                    federal_opposite = 1 if not federal and inputs.federal_situation[election][1] == party else 0
+                    result_deviations.append(result_deviation)
+                    incumbents.append(incumbent)
+                    oppositions.append(opposition)
+                    incumbency_lengths.append(incumbency_length)
+                    opposition_lengths.append(opposition_length)
+                    federal_sames.append(federal_same)
+                    federal_opposites.append(federal_opposite)
+            input_array = array([incumbents,
+                                oppositions,
+                                incumbency_lengths,
+                                opposition_lengths,
+                                federal_sames,
+                                federal_opposites
+                                ])
+            input_array = transpose(input_array)
+            dependent_array = array(result_deviations)
+            reg = LinearRegression().fit(input_array, dependent_array)
+            # Test with studied election information:
+            for party in inputs.parties[studied_election]:
+                if party not in party_group_list:
+                    continue
+                e_p_c = ElectionPartyCode(studied_election, party)
+                eventual_results = (inputs.eventual_results[e_p_c]
+                                    if e_p_c in inputs.eventual_results else 0)
+                result_deviation = eventual_results - inputs.avg_prior_results[avg_len][e_p_c]
+                incumbent = 1 if inputs.incumbency[studied_election][0] == party else 0
+                opposition = 1 if inputs.incumbency[studied_election][1] == party else 0
+                incumbency_length = (inputs.incumbency[studied_election][2]
+                                    if incumbent else 0)
+                opposition_length = (inputs.incumbency[studied_election][2]
+                                    if opposition else 0)
+                federal = 1 if studied_election.region() == 'fed' else 0
+                federal_same = 1 if not federal and inputs.federal_situation[studied_election][0] == party else 0
+                federal_opposite = 1 if not federal and inputs.federal_situation[studied_election][1] == party else 0
+                input_array = array([incumbent,
+                                opposition,
+                                incumbency_length,
+                                opposition_length,
+                                federal_same,
+                                federal_opposite
+                                ])
+                prediction = (inputs.avg_prior_results[avg_len][e_p_c] +
+                            dot(input_array, reg.coef_) + reg.intercept_)
+                previous_errors.append(inputs.avg_prior_results[avg_len][e_p_c]
+                                    - eventual_results)
+                prediction_errors.append(prediction - eventual_results)
+
+        print(f'Party group: {party_group_code}')
+        previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
+                                / (len(previous_errors) - 1))
+        prediction_rmse = math.sqrt(sum([a ** 2 for a in prediction_errors])
+                                / (len(prediction_errors) - 1))
+        print(f'RMSEs: previous {previous_rmse} vs prediction {prediction_rmse}')
+        previous_average_error = statistics.mean([abs(a) for a in previous_errors])
+        prediction_average_error = statistics.mean([abs(a) for a in prediction_errors])
+        print(f'Average errors: previous {previous_average_error} vs prediction {prediction_average_error}')
+        previous_median_error = statistics.median([abs(a) for a in previous_errors])
+        prediction_median_error = statistics.median([abs(a) for a in prediction_errors])
+        print(f'Median errors: previous {previous_median_error} vs prediction {prediction_median_error}')
 
 
 def import_trend_file(filename):
@@ -510,7 +608,7 @@ def test_procedure(config, inputs, poll_trend, exclude):
     for party_group in party_groups.keys():
         print(f'*** DETERMINING TREND ADJUSTMENTS FOR PARTY GROUP'
               f' {party_group} ***')
-        avg_n = 6 if party_group == "ALP" or party_group == "LNP" else 1
+        avg_n = average_length[party_group]
         party_data = get_party_data(config=config,
                                     inputs=inputs,
                                     poll_trend=poll_trend,
@@ -533,6 +631,7 @@ def trend_adjust():
     for exclude in config.elections:
         print(f'Beginning trend adjustment algorithm for: {exclude}')
         inputs = Inputs(exclude)
+        run_non_poll_regression(inputs)
         poll_trend = PollTrend(inputs, config)
         outputs = Outputs()
 
