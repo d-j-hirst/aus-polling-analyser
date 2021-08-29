@@ -83,7 +83,7 @@ class Config:
         self.days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
 
     def prepare_election_list(self):
-        with open('./Data/ordered-elections.csv', 'r') as f:
+        with open('./Data/polled-elections.csv', 'r') as f:
             elections = ElectionCode.load_elections_from_file(f)
         if self.exclude_instuctions == 'all':
             self.elections = elections + [no_target_election_marker]
@@ -110,10 +110,18 @@ class Config:
 
 class Inputs:
     def __init__(self, exclude):
+        # Only elections with usable polling data
         # [0] year of election, [1] region of election
-        with open('./Data/ordered-elections.csv', 'r') as f:
+        with open('./Data/polled-elections.csv', 'r') as f:
             self.elections = ElectionCode.load_elections_from_file(f)
         self.elections = [a for a in self.elections if a != exclude]
+        # Old elections without enough polling data, but still useful
+        # for determining fundamentals forecasts
+        # [0] year of election, [1] region of election
+        with open('./Data/old-elections.csv', 'r') as f:
+            old_elections = ElectionCode.load_elections_from_file(f)
+        old_elections = [a for a in old_elections if a != exclude]
+        self.past_elections = self.elections + old_elections
         # key: [0] year of election, [1] region of election
         # value: list of significant party codes modelled in that election
         with open('./Data/significant-parties.csv', 'r') as f:
@@ -165,6 +173,15 @@ class Inputs:
             } for avg_n in avg_counts}
         self.studied_elections = self.elections + [no_target_election_marker]
         self.fundamentals = {}  # Filled in later
+    
+    def safe_prior_average(self, n_elections, e_p_c):
+        if n_elections not in self.avg_prior_results:
+            n_elections = 1
+        if e_p_c in self.avg_prior_results[n_elections]:
+            return self.avg_prior_results[n_elections][e_p_c]
+        else:
+            return 0
+        
 
     def determine_eventual_others_results(self):
         for e in self.elections:
@@ -252,7 +269,7 @@ def run_non_poll_regression(inputs):
     prediction_errors = []
     for party_group_code, party_group_list in party_groups.items():
         avg_len = average_length[party_group_code]
-        for studied_election in inputs.elections:
+        for studied_election in inputs.past_elections:
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -260,7 +277,7 @@ def run_non_poll_regression(inputs):
             opposition_lengths = []
             federal_sames = []
             federal_opposites = []
-            for election in inputs.elections:
+            for election in inputs.past_elections:
                 if election == studied_election:
                     continue
                 for party in inputs.parties[election] + [unnamed_others_code]:
@@ -269,7 +286,7 @@ def run_non_poll_regression(inputs):
                     e_p_c = ElectionPartyCode(election, party)
                     eventual_results = (inputs.eventual_results[e_p_c]
                                         if e_p_c in inputs.eventual_results else 0)
-                    result_deviation = eventual_results - inputs.avg_prior_results[avg_len][e_p_c]
+                    result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
                     incumbent = 1 if inputs.incumbency[election][0] == party else 0
                     opposition = 1 if inputs.incumbency[election][1] == party else 0
                     incumbency_length = (inputs.incumbency[election][2]
@@ -303,7 +320,7 @@ def run_non_poll_regression(inputs):
                 e_p_c = ElectionPartyCode(studied_election, party)
                 eventual_results = (inputs.eventual_results[e_p_c]
                                     if e_p_c in inputs.eventual_results else 0)
-                result_deviation = eventual_results - inputs.avg_prior_results[avg_len][e_p_c]
+                result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
                 incumbent = 1 if inputs.incumbency[studied_election][0] == party else 0
                 opposition = 1 if inputs.incumbency[studied_election][1] == party else 0
                 incumbency_length = (inputs.incumbency[studied_election][2]
@@ -320,9 +337,9 @@ def run_non_poll_regression(inputs):
                                 federal_same,
                                 federal_opposite
                                 ])
-                prediction = (inputs.avg_prior_results[avg_len][e_p_c] +
+                prediction = (inputs.safe_prior_average(avg_len, e_p_c) +
                             dot(input_array, reg.coef_) + reg.intercept_)
-                previous_errors.append(inputs.avg_prior_results[avg_len][e_p_c]
+                previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
                                     - eventual_results)
                 prediction_errors.append(prediction - eventual_results)
                 inputs.fundamentals[e_p_c] = prediction
@@ -418,7 +435,7 @@ def get_bias_data(inputs, poll_trend, party_group,
                       if party_code in inputs.eventual_results else 0.5)
             result_t = transform_vote_share(result)
 
-            previous = inputs.avg_prior_results[avg_n][party_code]
+            previous = inputs.safe_prior_average(avg_n, party_code)
 
             if previous is not None:
                 previous_error = transform_vote_share(previous) - result_t
@@ -475,7 +492,7 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
                 day_data.poll_debiased_errors.append(poll_debiased_error)
             party_code = ElectionPartyCode(studied_election,
                                            studied_poll_party)
-            previous = inputs.avg_prior_results[avg_n][party_code]
+            previous = inputs.safe_prior_average(avg_n, party_code)
             debiased_previous = transform_vote_share(previous) - previous_bias
             polls = poll_trend.value_at(party_code, day, 50)
             debiased_polls = transform_vote_share(polls) - poll_bias
