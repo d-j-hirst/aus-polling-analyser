@@ -113,15 +113,15 @@ class Inputs:
         # Only elections with usable polling data
         # [0] year of election, [1] region of election
         with open('./Data/polled-elections.csv', 'r') as f:
-            self.elections = ElectionCode.load_elections_from_file(f)
-        self.elections = [a for a in self.elections if a != exclude]
+            self.polled_elections = ElectionCode.load_elections_from_file(f)
+        self.polled_elections = [a for a in self.polled_elections if a != exclude]
         # Old elections without enough polling data, but still useful
         # for determining fundamentals forecasts
         # [0] year of election, [1] region of election
         with open('./Data/old-elections.csv', 'r') as f:
             old_elections = ElectionCode.load_elections_from_file(f)
         old_elections = [a for a in old_elections if a != exclude]
-        self.past_elections = self.elections + old_elections
+        self.past_elections = self.polled_elections + old_elections
         # key: [0] year of election, [1] region of election
         # value: list of significant party codes modelled in that election
         with open('./Data/significant-parties.csv', 'r') as f:
@@ -163,7 +163,8 @@ class Inputs:
                 if ElectionCode(a[0], a[1]) != exclude}
 
         # Trim party list so that we only store it for completed elections
-        self.parties = {e: parties[e] for e in self.elections}
+        self.polled_parties = {e: parties[e] for e in self.polled_elections}
+        self.past_parties = {e: parties[e] for e in self.past_elections}
         # Create averages of prior results
         avg_counts = list(range(1, 9))
         self.avg_prior_results = {
@@ -171,7 +172,7 @@ class Inputs:
                 k: sum(v[:avg_n]) / avg_n
                 for k, v in self.prior_results.items()
             } for avg_n in avg_counts}
-        self.studied_elections = self.elections + [no_target_election_marker]
+        self.studied_elections = self.polled_elections + [no_target_election_marker]
         self.fundamentals = {}  # Filled in later
     
     def safe_prior_average(self, n_elections, e_p_c):
@@ -184,24 +185,26 @@ class Inputs:
         
 
     def determine_eventual_others_results(self):
-        for e in self.elections:
+        for e in self.past_elections:
             others_code = ElectionPartyCode(e, 'OTH FP')
             eventual_others = self.eventual_results[others_code]
             eventual_named = 0
-            for p in self.parties[e]:
+            for p in self.past_parties[e]:
                 party_code = ElectionPartyCode(e, p)
                 if p not in not_others and party_code in self.eventual_results:
                     eventual_named += self.eventual_results[party_code]
             eventual_unnamed = eventual_others - eventual_named
             unnamed_code = ElectionPartyCode(e, unnamed_others_code)
             self.eventual_results[unnamed_code] = eventual_unnamed
-            self.parties[e].append(unnamed_others_code)
+            self.past_parties[e].append(unnamed_others_code)
+            if e in self.polled_parties:
+                self.polled_parties[e].append(unnamed_others_code)
 
 
 class PollTrend:
     def __init__(self, inputs, config):
         self._data = {}
-        for election, party_list in inputs.parties.items():
+        for election, party_list in inputs.polled_parties.items():
             for party in party_list:
                 if party == unnamed_others_code:
                     continue
@@ -280,7 +283,7 @@ def run_non_poll_regression(inputs):
             for election in inputs.past_elections:
                 if election == studied_election:
                     continue
-                for party in inputs.parties[election] + [unnamed_others_code]:
+                for party in inputs.past_parties[election] + [unnamed_others_code]:
                     if party not in party_group_list:
                         continue
                     e_p_c = ElectionPartyCode(election, party)
@@ -314,7 +317,7 @@ def run_non_poll_regression(inputs):
             dependent_array = array(result_deviations)
             reg = LinearRegression().fit(input_array, dependent_array)
             # Test with studied election information:
-            for party in inputs.parties[studied_election]:
+            for party in inputs.past_parties[studied_election]:
                 if party not in party_group_list:
                     continue
                 e_p_c = ElectionPartyCode(studied_election, party)
@@ -425,9 +428,9 @@ class BiasData:
 def get_bias_data(inputs, poll_trend, party_group,
                   day, avg_n, studied_election):
     biasData = BiasData()
-    for other_election in inputs.elections:
+    for other_election in inputs.polled_elections:
         for party in party_groups[party_group]:
-            if party not in inputs.parties[other_election]:
+            if party not in inputs.polled_parties[other_election]:
                 continue
             party_code = ElectionPartyCode(other_election, party)
             polls = poll_trend.value_at(party_code, day, 50)
