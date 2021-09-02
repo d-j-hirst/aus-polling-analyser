@@ -74,9 +74,13 @@ class Config:
                             'Default is "none"', default='none')
         parser.add_argument('-w', '--writtenfiles', action='store_true',
                             help='Show written files')
+        parser.add_argument('-u', '--fundamentals', action='store_true',
+                            help='Show regression results for fundamentals '
+                            'forecasts')
         self.show_loaded_files = parser.parse_args().files
         self.show_parameters = parser.parse_args().parameters
         self.show_written_files = parser.parse_args().writtenfiles
+        self.show_fundamentals = parser.parse_args().fundamentals
         self.exclude_instuctions = parser.parse_args().election.lower()
         self.prepare_election_list()
         day_test_count = 46
@@ -122,27 +126,32 @@ class Inputs:
             old_elections = ElectionCode.load_elections_from_file(f)
         old_elections = [a for a in old_elections if a != exclude]
         self.past_elections = self.polled_elections + old_elections
+        # Future elections that may differ in terms of their fundamentals
+        # forecasts. This includes the excluded election (if any) and
+        # should ONLY be used as a target for forecasting
+        # [0] year of election, [1] region of election
+        with open('./Data/future-elections.csv', 'r') as f:
+            future_elections = ElectionCode.load_elections_from_file(f)
+        future_elections = [a for a in future_elections if a != exclude]
+        self.all_elections = self.past_elections + future_elections
         # key: [0] year of election, [1] region of election
         # value: list of significant party codes modelled in that election
         with open('./Data/significant-parties.csv', 'r') as f:
             parties = {ElectionCode(a[0], a[1]): a[2:] for a in
-                       [b.strip().split(',') for b in f.readlines()]
-                       if ElectionCode(a[0], a[1]) != exclude}
+                       [b.strip().split(',') for b in f.readlines()]}
         # key: [0] year of election, [1] region of election, [2] party code
         # value: primary vote recorded in this election
         with open('./Data/eventual-results.csv', 'r') as f:
             self.eventual_results = {
                 ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]): float(a[3])
-                for a in [b.strip().split(',') for b in f.readlines()]
-                if ElectionCode(a[0], a[1]) != exclude}
+                for a in [b.strip().split(',') for b in f.readlines()]}
         # key: [0] year of election, [1] region of election, [2] party code
         # value: primary vote recorded in the previous election
         with open('./Data/prior-results.csv', 'r') as f:
             linelists = [b.strip().split(',') for b in f.readlines()]
             self.prior_results = {
                 ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]):
-                [float(x) for x in a[3:]] for a in linelists
-                if ElectionCode(a[0], a[1]) != exclude}
+                [float(x) for x in a[3:]] for a in linelists}
 
         # Note: These two inputs aren't currently used, but leaving them here
         # in case they are found to be useful again.
@@ -152,19 +161,18 @@ class Inputs:
         with open('./Data/incumbency.csv', 'r') as f:
             self.incumbency = {
                 ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4])) for a in
-                [b.strip().split(',') for b in f.readlines()]
-                if ElectionCode(a[0], a[1]) != exclude}
+                [b.strip().split(',') for b in f.readlines()]}
         # stores: party corresponding to federal government,
         # then party opposing federal government
         with open('./Data/federal-situation.csv', 'r') as f:
             self.federal_situation = {
                 ElectionCode(a[0], a[1]): (a[2], a[3])
-                for a in [b.strip().split(',') for b in f.readlines()]
-                if ElectionCode(a[0], a[1]) != exclude}
+                for a in [b.strip().split(',') for b in f.readlines()]}
 
         # Trim party list so that we only store it for completed elections
         self.polled_parties = {e: parties[e] for e in self.polled_elections}
         self.past_parties = {e: parties[e] for e in self.past_elections}
+        self.all_parties = {e: parties[e] for e in self.all_elections}
         # Create averages of prior results
         avg_counts = list(range(1, 9))
         self.avg_prior_results = {
@@ -267,12 +275,45 @@ class RegressionInputs:
 not_others = ['ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
 
 
-def run_non_poll_regression(inputs):
+def create_fundamentals_inputs(inputs, target_election, party, avg_len):
+    e_p_c = ElectionPartyCode(target_election, party)
+    eventual_results = (inputs.eventual_results[e_p_c]
+                        if e_p_c in inputs.eventual_results else 0)
+    result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
+    incumbent = 1 if inputs.incumbency[target_election][0] == party else 0
+    opposition = 1 if inputs.incumbency[target_election][1] == party else 0
+    incumbency_length = (inputs.incumbency[target_election][2]
+                        if incumbent else 0)
+    opposition_length = (inputs.incumbency[target_election][2]
+                        if opposition else 0)
+    federal = 1 if target_election.region() == 'fed' else 0
+    federal_same = 1 if not federal and inputs.federal_situation[target_election][0] == party else 0
+    federal_opposite = 1 if not federal and inputs.federal_situation[target_election][1] == party else 0
+    return array([incumbent,
+                  opposition,
+                  incumbency_length,
+                  opposition_length,
+                  federal_same,
+                  federal_opposite
+                  ])
+
+
+def save_fundamentals(results):
+    for election, election_data in results.items():
+        filename = (f'./Fundamentals/fundamentals_{election.year()}'
+                    f'{election.region()}.csv')
+        with open(filename, 'w') as f:
+            for party, prediction in election_data.items():
+                 f.write(f'{party},{prediction}\n')
+
+
+def run_fundamentals_regression(config, inputs):
     previous_errors = []
     prediction_errors = []
+    to_file = {}
     for party_group_code, party_group_list in party_groups.items():
         avg_len = average_length[party_group_code]
-        for studied_election in inputs.past_elections:
+        for studied_election in inputs.all_elections:
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -316,53 +357,54 @@ def run_non_poll_regression(inputs):
             input_array = transpose(input_array)
             dependent_array = array(result_deviations)
             reg = LinearRegression().fit(input_array, dependent_array)
+            if config.show_fundamentals:
+                print(f'Election/party: {studied_election.short()}, '
+                      f'{party_group_code}\n Coeffs: {reg.coef_}\n '
+                      f'Intercept: {reg.intercept_}')
             # Test with studied election information:
-            for party in inputs.past_parties[studied_election]:
+            for party in inputs.all_parties[studied_election] + [unnamed_others_code]:
                 if party not in party_group_list:
                     continue
+                input_array = create_fundamentals_inputs(inputs,
+                                                         studied_election,
+                                                         party,
+                                                         avg_len)
                 e_p_c = ElectionPartyCode(studied_election, party)
-                eventual_results = (inputs.eventual_results[e_p_c]
-                                    if e_p_c in inputs.eventual_results else 0)
-                result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
-                incumbent = 1 if inputs.incumbency[studied_election][0] == party else 0
-                opposition = 1 if inputs.incumbency[studied_election][1] == party else 0
-                incumbency_length = (inputs.incumbency[studied_election][2]
-                                    if incumbent else 0)
-                opposition_length = (inputs.incumbency[studied_election][2]
-                                    if opposition else 0)
-                federal = 1 if studied_election.region() == 'fed' else 0
-                federal_same = 1 if not federal and inputs.federal_situation[studied_election][0] == party else 0
-                federal_opposite = 1 if not federal and inputs.federal_situation[studied_election][1] == party else 0
-                input_array = array([incumbent,
-                                opposition,
-                                incumbency_length,
-                                opposition_length,
-                                federal_same,
-                                federal_opposite
-                                ])
                 prediction = (inputs.safe_prior_average(avg_len, e_p_c) +
                             dot(input_array, reg.coef_) + reg.intercept_)
                 previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
                                     - eventual_results)
                 prediction_errors.append(prediction - eventual_results)
                 inputs.fundamentals[e_p_c] = prediction
+                if studied_election not in inputs.past_elections:
+                    # This means it's either the excluded election or a future
+                    # election - either way, want to save the fundamentals
+                    # forecast for the main program to use
+                    if studied_election not in to_file:
+                        to_file[studied_election] = {}
+                    to_file[studied_election][party] = prediction
 
-        print(f'Party group: {party_group_code}')
-        previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
-                                / (len(previous_errors) - 1))
-        prediction_rmse = math.sqrt(sum([a ** 2 for a in prediction_errors])
-                                / (len(prediction_errors) - 1))
-        print(f'RMSEs: previous {previous_rmse} vs prediction {prediction_rmse}')
-        previous_average_error = statistics.mean([abs(a) for a in previous_errors])
-        prediction_average_error = statistics.mean([abs(a) for a in prediction_errors])
-        print(f'Average errors: previous {previous_average_error} vs prediction {prediction_average_error}')
-        previous_median_error = statistics.median([abs(a) for a in previous_errors])
-        prediction_median_error = statistics.median([abs(a) for a in prediction_errors])
-        print(f'Median errors: previous {previous_median_error} vs prediction {prediction_median_error}')
-    for e_p_c, prediction in inputs.fundamentals.items():
-        print(f'{e_p_c} - prediction: {prediction}')
-        if e_p_c in inputs.eventual_results:
-            print(f'{e_p_c} - actual: {inputs.eventual_results[e_p_c]}')
+        if config.show_fundamentals:
+            print(f'Party group: {party_group_code}')
+            previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
+                                    / (len(previous_errors) - 1))
+            prediction_rmse = math.sqrt(sum([a ** 2 for a in prediction_errors])
+                                    / (len(prediction_errors) - 1))
+            print(f'RMSEs: previous {previous_rmse} vs prediction {prediction_rmse}')
+            previous_average_error = statistics.mean([abs(a) for a in previous_errors])
+            prediction_average_error = statistics.mean([abs(a) for a in prediction_errors])
+            print(f'Average errors: previous {previous_average_error} vs prediction {prediction_average_error}')
+            previous_median_error = statistics.median([abs(a) for a in previous_errors])
+            prediction_median_error = statistics.median([abs(a) for a in prediction_errors])
+            print(f'Median errors: previous {previous_median_error} vs prediction {prediction_median_error}')
+
+    if config.show_fundamentals:
+        for e_p_c, prediction in inputs.fundamentals.items():
+            print(f'{e_p_c} - fundamentals prediction: {prediction}')
+            if e_p_c in inputs.eventual_results:
+                print(f'{e_p_c} - actual: {inputs.eventual_results[e_p_c]}')
+    
+    save_fundamentals(to_file)
 
 
 def import_trend_file(filename):
@@ -418,15 +460,15 @@ def smoothed_median(container, smoothing):
 
 class BiasData:
     def __init__(self):
-        self.previous_errors = []
+        self.fundamentals_errors = []
         self.poll_errors = []
-        self.studied_previous_error = None
+        self.studied_fundamentals_error = None
         self.studied_poll_errors = []
         self.studied_poll_parties = []
 
 
 def get_bias_data(inputs, poll_trend, party_group,
-                  day, avg_n, studied_election):
+                  day, studied_election):
     biasData = BiasData()
     for other_election in inputs.polled_elections:
         for party in party_groups[party_group]:
@@ -438,14 +480,14 @@ def get_bias_data(inputs, poll_trend, party_group,
                       if party_code in inputs.eventual_results else 0.5)
             result_t = transform_vote_share(result)
 
-            previous = inputs.safe_prior_average(avg_n, party_code)
+            fundamentals = inputs.fundamentals[party_code]
 
-            if previous is not None:
-                previous_error = transform_vote_share(previous) - result_t
+            if fundamentals is not None:
+                fundamentals_error = transform_vote_share(fundamentals) - result_t
                 if other_election == studied_election:
-                    biasData.studied_previous_error = previous_error
+                    biasData.studied_fundamentals_error = fundamentals_error
                 else:
-                    biasData.previous_errors.append(previous_error)
+                    biasData.fundamentals_errors.append(fundamentals_error)
 
                 if polls is not None:
                     poll_error = transform_vote_share(polls) - result_t
@@ -460,32 +502,31 @@ def get_bias_data(inputs, poll_trend, party_group,
 class DayData:
     def __init__(self):
         self.mixed_errors = [[], []]
-        self.previous_debiased_errors = []
+        self.fundamentals_debiased_errors = []
         self.poll_debiased_errors = []
         self.overall_poll_biases = []
-        self.overall_previous_biases = []
+        self.overall_fundamentals_biases = []
         self.final_mix_factor = 0
 
 
 def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
-                             avg_n, studied_election, mix_limits):
+                             studied_election, mix_limits):
     bias_data = get_bias_data(inputs=inputs,
                               poll_trend=poll_trend,
                               party_group=party_group,
                               day=day,
-                              avg_n=avg_n,
                               studied_election=studied_election)
-    previous_bias = statistics.median(bias_data.previous_errors)
+    fundamentals_bias = statistics.median(bias_data.fundamentals_errors)
     poll_bias = statistics.median(bias_data.poll_errors)
-    day_data.overall_previous_biases.append(previous_bias)
+    day_data.overall_fundamentals_biases.append(fundamentals_bias)
     day_data.overall_poll_biases.append(poll_bias)
     if studied_election == no_target_election_marker:
         return
-    if bias_data.studied_previous_error is not None:
-        previous_debiased_error = (bias_data.studied_previous_error
-                                   - previous_bias)
+    if bias_data.studied_fundamentals_error is not None:
+        previous_debiased_error = (bias_data.studied_fundamentals_error
+                                   - fundamentals_bias)
         if mix_limits == (0, 1):
-            day_data.previous_debiased_errors.append(previous_debiased_error)
+            day_data.fundamentals_debiased_errors.append(previous_debiased_error)
     if len(bias_data.studied_poll_errors) > 0:
         zipped_bias_data = zip(bias_data.studied_poll_errors,
                                bias_data.studied_poll_parties)
@@ -495,8 +536,8 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
                 day_data.poll_debiased_errors.append(poll_debiased_error)
             party_code = ElectionPartyCode(studied_election,
                                            studied_poll_party)
-            previous = inputs.safe_prior_average(avg_n, party_code)
-            debiased_previous = transform_vote_share(previous) - previous_bias
+            fundamentals = inputs.fundamentals[party_code]
+            debiased_fundamentals = transform_vote_share(fundamentals) - fundamentals_bias
             polls = poll_trend.value_at(party_code, day, 50)
             debiased_polls = transform_vote_share(polls) - poll_bias
             result = (max(0.5, inputs.eventual_results[party_code])
@@ -504,12 +545,12 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
             result_t = transform_vote_share(result)
             for mix_index, mix_factor in enumerate(mix_limits):
                 mixed = (debiased_polls * mix_factor
-                         + debiased_previous * (1 - mix_factor))
+                         + debiased_fundamentals * (1 - mix_factor))
                 mixed_error = mixed - result_t
                 day_data.mixed_errors[mix_index].append(mixed_error)
 
 
-def get_day_data(inputs, poll_trend, party_group, day, avg_n):
+def get_day_data(inputs, poll_trend, party_group, day):
     day_data = DayData()
     mix_limits = (0, 1)
     while mix_limits[1] - mix_limits[0] > 0.0001:
@@ -519,7 +560,6 @@ def get_day_data(inputs, poll_trend, party_group, day, avg_n):
                                      poll_trend=poll_trend,
                                      party_group=party_group,
                                      day=day,
-                                     avg_n=avg_n,
                                      studied_election=studied_election,
                                      day_data=day_data,
                                      mix_limits=mix_limits)
@@ -549,8 +589,8 @@ def get_day_data(inputs, poll_trend, party_group, day, avg_n):
 class PartyData:
     def __init__(self):
         self.poll_biases = {}
-        self.previous_biases = {}
-        self.biases = {}
+        self.fundamentals_biases = {}
+        self.mixed_biases = {}
         self.deviations = {}
         self.lower_rmses = {}
         self.upper_rmses = {}
@@ -559,21 +599,20 @@ class PartyData:
         self.final_mix_factors = {}
 
 
-def get_party_data(config, inputs, poll_trend, party_group, avg_n):
+def get_party_data(config, inputs, poll_trend, party_group):
     party_data = PartyData()
     for day in config.days:
         day_data = get_day_data(inputs=inputs,
                                 poll_trend=poll_trend,
                                 party_group=party_group,
-                                day=day,
-                                avg_n=avg_n)
+                                day=day)
         if day == 0:
-            previous_bias = smoothed_median(
-                day_data.previous_debiased_errors, 2)
+            fundamentals_bias = smoothed_median(
+                day_data.fundamentals_debiased_errors, 2)
         poll_bias = smoothed_median(
             day_data.overall_poll_biases, 2)
-        previous_bias = smoothed_median(
-            day_data.overall_previous_biases, 2)
+        fundamentals_bias = smoothed_median(
+            day_data.overall_fundamentals_biases, 2)
         mixed_bias = smoothed_median(day_data.mixed_errors[1], 2)
         mixed_deviation = smoothed_median(
             [abs(a) for a in day_data.mixed_errors[1]], 2)
@@ -590,8 +629,8 @@ def get_party_data(config, inputs, poll_trend, party_group, avg_n):
         lower_kurtosis = one_tail_kurtosis(lower_errors)
         upper_kurtosis = one_tail_kurtosis(upper_errors)
         party_data.poll_biases[day] = poll_bias
-        party_data.previous_biases[day] = previous_bias
-        party_data.biases[day] = mixed_bias
+        party_data.fundamentals_biases[day] = fundamentals_bias
+        party_data.mixed_biases[day] = mixed_bias
         party_data.deviations[day] = mixed_deviation
         party_data.lower_rmses[day] = lower_rmse
         party_data.upper_rmses[day] = upper_rmse
@@ -607,10 +646,10 @@ def save_party_data(config, party_data, exclude, party_group):
     with open(filename, 'w') as f:
         print_smoothed_series(config, 'Poll Bias',
                               party_data.poll_biases, f)
-        print_smoothed_series(config, 'Previous-Elections Bias',
-                              party_data.previous_biases, f)
+        print_smoothed_series(config, 'Fundamentals Bias',
+                              party_data.fundamentals_biases, f)
         print_smoothed_series(config, 'Mixed Bias',
-                              party_data.biases, f)
+                              party_data.mixed_biases, f)
         print_smoothed_series(config, 'Lower Error',
                               party_data.lower_rmses, f,
                               force_monotone=True, bounds=(0, math.inf))
@@ -634,12 +673,10 @@ def test_procedure(config, inputs, poll_trend, exclude):
     for party_group in party_groups.keys():
         print(f'*** DETERMINING TREND ADJUSTMENTS FOR PARTY GROUP'
               f' {party_group} ***')
-        avg_n = average_length[party_group]
         party_data = get_party_data(config=config,
                                     inputs=inputs,
                                     poll_trend=poll_trend,
-                                    party_group=party_group,
-                                    avg_n=avg_n)
+                                    party_group=party_group)
         save_party_data(config=config,
                         party_data=party_data,
                         exclude=exclude,
@@ -657,13 +694,12 @@ def trend_adjust():
     for exclude in config.elections:
         print(f'Beginning trend adjustment algorithm for: {exclude}')
         inputs = Inputs(exclude)
-        run_non_poll_regression(inputs)
         poll_trend = PollTrend(inputs, config)
-        outputs = Outputs()
 
         # Leave this until now so it doesn't interfere with initialization
         # of poll_trend
         inputs.determine_eventual_others_results()
+        run_fundamentals_regression(config, inputs)
 
         test_procedure(config, inputs, poll_trend, exclude)
         print(f'Completed trend adjustment algorithm for: {exclude}')
