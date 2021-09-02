@@ -95,7 +95,7 @@ private:
 
 	enum InputParameters {
 		PollBias,
-		PreviousBias,
+		FundamentalsBias,
 		MixedBias,
 		LowerError,
 		UpperError,
@@ -114,13 +114,13 @@ private:
 	typedef std::vector<ParameterSet> ParameterSeries;
 	typedef std::map<std::string, ParameterSeries> ParameterSeriesByPartyGroup;
 
-	typedef std::map<std::string, float> PreviousAverages;
+	typedef std::map<std::string, double> Fundamentals;
 
 	// Loads the party group data from python/Data/party-groups.csv
 	void loadPartyGroups();
 
-	// Loads the prior averages from python/Data/prior-results.csv
-	void loadPreviousAverages();
+	// Loads the fundamentals predictions from python/Fundamentals
+	void loadFundamentalsPredictions();
 
 	// Loads coefficients for model parameters from 
 	void loadParameters(FeedbackFunc feedback);
@@ -181,7 +181,7 @@ private:
 	// Reverse of the previous map, for efficiency of calculations
 	ReversePartyGroups reversePartyGroups;
 
-	PreviousAverages previousAverages;
+	Fundamentals fundamentals;
 
 	ParameterSeriesByPartyGroup parameters;
 

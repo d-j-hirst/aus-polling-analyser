@@ -114,24 +114,32 @@ OutputIt transform_combine(InputFirstIt begin1, InputFirstIt end1, InputSecondIt
 
 // Take a regular vote share (in the range 0.0f to 100.0f) and transform it using
 // the logit transform on the scale -infinity to +infinity
-inline float transformVoteShare(float voteShare) {
-	return std::log((voteShare * 0.01f) / (1.0f - voteShare * 0.01f)) * 25.0f;
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+inline T transformVoteShare(T voteShare) {
+	return std::log((voteShare * T(0.01)) / (T(1.0) - voteShare * T(0.01))) * T(25.0);
 }
 
 // Take a transformed vote share
-inline float detransformVoteShare(float transformedVoteShare) {
-	return 100.0f / (1.0f + std::exp(-0.04f * (transformedVoteShare)));
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+inline T detransformVoteShare(T transformedVoteShare) {
+	return T(100.0) / (T(1.0) + std::exp(-T(0.04) * transformedVoteShare));
 }
 
 // Take a transformed vote share
-inline float logitDeriv(float startingPoint) {
-	return 25.0f / startingPoint + 0.25f / (1.0f - 0.01f * startingPoint);
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+inline T logitDeriv(T startingPoint) {
+	return T(25.0) / startingPoint + T(0.25) / (T(1.0) - T(0.01) * startingPoint);
 }
 
-constexpr float DefaultLogitDerivLimit = 4.0f;
+constexpr double DefaultLogitDerivLimit = 4.0;
 
-inline float limitedLogitDeriv(float startingPoint, float limit = DefaultLogitDerivLimit) {
-	return std::clamp(logitDeriv(startingPoint), 0.0f, limit);
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+inline T limitedLogitDeriv(T startingPoint, T limit = T(DefaultLogitDerivLimit)) {
+	return std::clamp(logitDeriv(startingPoint), T(0.0), limit);
 }
 
 // from https://stackoverflow.com/questions/11809502/which-is-better-way-to-calculate-ncr

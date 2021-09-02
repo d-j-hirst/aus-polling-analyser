@@ -34,7 +34,7 @@ wxDateTime StanModel::getEndDate() const
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	loadPartyGroups();
-	loadPreviousAverages();
+	loadFundamentalsPredictions();
 	loadParameters(feedback);
 	if (!generatePreferenceMaps(feedback)) return;
 	logger << "Starting trend data loading: " << wxDateTime::Now().FormatISOCombined() << "\n";
@@ -196,36 +196,21 @@ void StanModel::loadPartyGroups()
 	}
 }
 
-void StanModel::loadPreviousAverages()
+void StanModel::loadFundamentalsPredictions()
 {
-	logger << "loading previous averages\n";
-	constexpr int PreviousAverageCount = 6;
-	const std::string filename = "python/Data/prior-results.csv";
+	logger << "loading fundamentals predictions\n";
+	const std::string filename = "python/Fundamentals/fundamentals_" + termCode + ".csv";
 	auto file = std::ifstream(filename);
-	std::string termYear = termCode.substr(0, 4);
-	std::string termRegion = termCode.substr(4);
-	if (!file) throw Exception("Previous results file not present! Expected a file at " + filename);
+	if (!file) throw Exception("Fundamentals prediction file not present! Expected a file at " + filename);
 	do {
 		std::string line;
 		std::getline(file, line);
 		if (!file) break;
 		auto values = splitString(line, ",");
-		if (values[0] == termYear && values[1] == termRegion) {
-			std::string party = splitString(values[2], " ")[0];
-			double previousAverageSum = 0.0f;
-			if (party == "ALP" || party == "LNP") {
-				for (int index = 3; index < 3 + PreviousAverageCount; ++index) {
-					previousAverageSum += std::stod(values[index]);
-				}
-				double previousAverage = previousAverageSum / double(PreviousAverageCount);
-				previousAverages[party] = previousAverage;
-			}
-			else {
-				previousAverages[party] = std::stod(values[3]);
-			}
-		}
+		std::string party = splitString(values[0], " ")[0];
+		fundamentals[party] = std::stod(values[1]);
 	} while (true);
-	logger << previousAverages << "\n";
+	logger << fundamentals << "\n";
 }
 
 void StanModel::loadParameters(FeedbackFunc feedback)
@@ -412,34 +397,34 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	static double lnpVoteFinal = 0.0;
 	static double voteTotalCount = 0.0;
 	for (auto& [key, voteShare] : sample) {
-		float transformedPolls = transformVoteShare(voteShare);
+		double transformedPolls = transformVoteShare(double(voteShare));
 
 		const std::string partyGroup = reversePartyGroups.at(key);
 		
 		// remove systemic bias in poll results
-		const float pollBiasToday = parameters.at(partyGroup)[days][InputParameters::PollBias];
-		const float debiasedPolls = transformedPolls - pollBiasToday;
+		const double pollBiasToday = parameters.at(partyGroup)[days][InputParameters::PollBias];
+		const double debiasedPolls = transformedPolls - pollBiasToday;
 
 		// remove systemic bias in previous-election average
-		const float previousAverage = transformVoteShare(previousAverages.at(key));
-		const float previousBiasToday = parameters.at(partyGroup)[days][InputParameters::PreviousBias];
-		const float debiasedPreviousAverage = previousAverage - previousBiasToday;
+		const double fundamentalsPrediction = transformVoteShare(fundamentals.at(key));
+		const double fundamentalsBiasToday = parameters.at(partyGroup)[days][InputParameters::FundamentalsBias];
+		const double debiasedFundamentalsAverage = fundamentalsPrediction - fundamentalsBiasToday;
 
 		// mix poll and previous values
-		const float mixFactor = parameters.at(partyGroup)[days][InputParameters::MixFactor];
-		const float mixedVoteShare = mix(previousAverage, debiasedPolls, mixFactor);
+		const double mixFactor = parameters.at(partyGroup)[days][InputParameters::MixFactor];
+		const double mixedVoteShare = mix(debiasedFundamentalsAverage, debiasedPolls, mixFactor);
 
 		// adjust for residual bias in the mixed vote share
-		const float mixedBiasToday = parameters.at(partyGroup)[days][InputParameters::MixedBias];
-		const float mixedDebiasedVote = mixedVoteShare - mixedBiasToday;
+		const double mixedBiasToday = parameters.at(partyGroup)[days][InputParameters::MixedBias];
+		const double mixedDebiasedVote = mixedVoteShare - mixedBiasToday;
 
 		// Get parameters for spread
-		const float lowerError = parameters.at(partyGroup)[days][InputParameters::LowerError];
-		const float upperError = parameters.at(partyGroup)[days][InputParameters::UpperError];
-		const float lowerKurtosis = parameters.at(partyGroup)[days][InputParameters::LowerKurtosis];
-		const float upperKurtosis = parameters.at(partyGroup)[days][InputParameters::UpperKurtosis];
-		const float additionalVariation = rng.flexibleDist(0.0f, lowerError, upperError, lowerKurtosis, upperKurtosis);
-		const float voteWithVariation = mixedDebiasedVote + additionalVariation;
+		const double lowerError = parameters.at(partyGroup)[days][InputParameters::LowerError];
+		const double upperError = parameters.at(partyGroup)[days][InputParameters::UpperError];
+		const double lowerKurtosis = parameters.at(partyGroup)[days][InputParameters::LowerKurtosis];
+		const double upperKurtosis = parameters.at(partyGroup)[days][InputParameters::UpperKurtosis];
+		const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis);
+		const double voteWithVariation = mixedDebiasedVote + additionalVariation;
 
 		if (days == 150) {
 			//logger << " - next sample\n";
@@ -480,8 +465,8 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 			}
 		}
 
-		float newVoteShare = detransformVoteShare(voteWithVariation);
-		voteShare = newVoteShare;
+		double newVoteShare = detransformVoteShare(voteWithVariation);
+		voteShare = float(newVoteShare);
 	}
 
 	normaliseSample(sample);
