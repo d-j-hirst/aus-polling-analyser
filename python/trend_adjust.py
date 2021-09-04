@@ -166,7 +166,7 @@ class Inputs:
         # then party opposing federal government
         with open('./Data/federal-situation.csv', 'r') as f:
             self.federal_situation = {
-                ElectionCode(a[0], a[1]): (a[2], a[3])
+                ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4]) / 100 if len(a) >= 5 else 1)
                 for a in [b.strip().split(',') for b in f.readlines()]}
 
         # Trim party list so that we only store it for completed elections
@@ -287,8 +287,16 @@ def create_fundamentals_inputs(inputs, target_election, party, avg_len):
     opposition_length = (inputs.incumbency[target_election][2]
                         if opposition else 0)
     federal = 1 if target_election.region() == 'fed' else 0
-    federal_same = 1 if not federal and inputs.federal_situation[target_election][0] == party else 0
-    federal_opposite = 1 if not federal and inputs.federal_situation[target_election][1] == party else 0
+    if federal:
+        federal_same = 0
+        federal_opposite = 0
+    else:
+        federal_same = (inputs.federal_situation[target_election][2]
+                        if inputs.federal_situation[target_election][0] == party
+                        else 1 - inputs.federal_situation[target_election][2])
+        federal_opposite = (inputs.federal_situation[target_election][2]
+                        if inputs.federal_situation[target_election][1] == party
+                        else 1 - inputs.federal_situation[target_election][2])
     return array([incumbent,
                   opposition,
                   incumbency_length,
@@ -372,6 +380,8 @@ def run_fundamentals_regression(config, inputs):
                 e_p_c = ElectionPartyCode(studied_election, party)
                 prediction = (inputs.safe_prior_average(avg_len, e_p_c) +
                             dot(input_array, reg.coef_) + reg.intercept_)
+                eventual_results = (inputs.eventual_results[e_p_c]
+                                    if e_p_c in inputs.eventual_results else 0)
                 previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
                                     - eventual_results)
                 prediction_errors.append(prediction - eventual_results)
