@@ -1,6 +1,29 @@
 Polling Analyser to-do:
- -Add ability to collect data from older elections for prior-expectation purposes
 -More sophisticated handling of non-classic and potentially non-classic seats
+ -complete Greens analysis and include in simulation model as proof-of-concept
+  -smooth Greens distribution parameters (except sophomore coefficient)
+  -output Greens distribution to file
+  -output previous election primary vote and 2cp figures to csv file
+  -Get main program to internalise past primary votes from above csv file
+  -Work Greens distributions into simulations, similarly to the way currently done for live simulations
+   -sample primary votes for each party based on distributions where available for minors/independents
+   -while we don't have a distribution for it, assume others-collectively remains identical to previous election, keeping 20%+ primary independents separate
+   -directly adjust major party primary votes based on overall TPP swings
+   -re-adjust to add to 100%
+   -calculate a result using preference distributions w/ some assumptions for unknowns
+    -we already have something like this
+	-exit out early if a classic 2pp is guaranteed to avoid unnecessary calculations
+   -re-adjust ALP/LNP primaries to give the correct TPP?
+   -Output per-seat primary vote as part of snapshots
+  -Do similar process for independent votes
+   -Analyse when new significant independent candidates arise. How often do they achieve certain primary votes, are there patterns in terms of type of seats or independent support in other elections
+   -Analyse existing independent vote - separate out retirements from other vote changes, and measure both
+   -Incorporate into main program similarly to how was done for Greens
+  -Look at generic-others, and maybe populist parties
+   -generic-others can be treated similarly to greens vote, we have to calculate it for each seat and ignore seats where no such candidates existed.
+   -Populist parties can also be treated similarly, but may need some tweaks to handle rapid declines in region wide votes and first-election levels
+    -Populist parties may be better served by comparing to long-term populism popularity in the seat/subregion rather than just previous election
+   -Incorporate at least the generic-others and maybe populist parties into main program simulations
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -(Make any further adjustments to existing analysis processes)
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
@@ -9,8 +32,7 @@ Polling Analyser to-do:
 -Develop documentation detailing the forecasting methodology
 -Publish on a public-facing webpage
 
--Configure model # of simulations by user
 -Advanced simulations!
- -Start by organising past election data
+ -Start by organising past election data at booth-level
   -Need to load conversions between equivalent seats
   -Then organise the existing election
