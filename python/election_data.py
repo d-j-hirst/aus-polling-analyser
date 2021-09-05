@@ -19,6 +19,10 @@ state_election_name = {'fed': 'Australian federal election',
                        'wa': 'Western Australian state election',
                       }
 
+previous_names = [
+    {'Newtown', 'Marrickville'}
+]
+
 class ElectionResults:
     def __init__(self, name, download):
         self.name = name
@@ -30,11 +34,31 @@ class ElectionResults:
             repr += f'{seat_result}\n'
         return repr
     
-    def seat_names(self):
-        return [a.name for a in self.seat_results]
+    def seat_names(self, include_name_changes=False):
+        names = [a.name for a in self.seat_results]
+        extra_names = []
+        if include_name_changes:
+            for name in names:
+                for name_set in previous_names:
+                    if name in name_set:
+                        extra_names += [a for a in name_set
+                                        if a != name]
+        return names + extra_names
     
-    def seat_by_name(self, name):
-        return next(a for a in self.seat_results if a.name == name)
+    def seat_by_name(self, name, include_name_changes=False):
+        if include_name_changes:
+            for actual_name in [a.name for a in self.seat_results]:
+                if name == actual_name:
+                    return self.seat_by_name(actual_name,
+                                             include_name_changes=False)
+                for name_set in previous_names:
+                    if ((name in name_set and actual_name in name_set)
+                        or name == actual_name):
+                        return self.seat_by_name(actual_name,
+                                                include_name_changes=False)
+        else:
+            return next(a for a in self.seat_results
+                    if a.name == name)
     
     # return total count of fp votes in this election
     def total_fp_votes(self):
