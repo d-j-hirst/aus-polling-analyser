@@ -175,6 +175,19 @@ def analyse_greens(elections):
     spline = UnivariateSpline(x=x, y=upper_kurtoses, s=10)
     smoothed_upper_kurtoses = spline(x)
 
+    party_code = 'GRN'
+
+    filename = (f'./Seat Statistics/statistics_{party_code}.csv')
+    with open(filename, 'w') as f:
+        f.write(','.join([f'{a:.4f}' for a in x]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_swing_coefficients]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in sophomore_coefficients]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_offsets]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_lower_rmses]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_upper_rmses]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
+
 
 if __name__ == '__main__':
     elections = get_checked_elections()

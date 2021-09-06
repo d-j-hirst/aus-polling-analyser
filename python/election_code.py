@@ -24,3 +24,6 @@ class ElectionCode:
     def load_elections_from_file(file):
         split_lines = [line.strip().split(',') for line in file.readlines()]
         return [ElectionCode(int(a[0]), a[1]) for a in split_lines]
+
+
+no_target_election_marker = ElectionCode(0, 'none')

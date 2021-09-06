@@ -4,7 +4,7 @@ from numpy import array, transpose, dot
 import math
 import argparse
 import statistics
-from election_code import ElectionCode
+from election_code import ElectionCode, no_target_election_marker
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
 
@@ -21,9 +21,6 @@ average_length = {a: 6 if a == "ALP" or a == "LNP" else 1
                   for a in party_groups.keys()}
 
 unnamed_others_code = party_groups['xOTH'][0]
-
-
-no_target_election_marker = ElectionCode(0, 'none')
 
 
 class ElectionPartyCode:
@@ -108,7 +105,7 @@ class Config:
             if code not in elections:
                 raise ConfigError('Error in "elections" argument: given value'
                                   'value given did not match any election'
-                                  'given in Data/ordered-elections.csv')
+                                  'given in Data/polled-elections.csv')
             self.elections = [code]
 
 
