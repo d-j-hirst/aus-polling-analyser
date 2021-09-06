@@ -146,6 +146,34 @@ def analyse_greens(elections):
         print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
         print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
         print('\n')
+    
+    print(bucket_min - bucket_base / 2)
+    print(bucket_max + bucket_base)
+    print(bucket_base)
+    x = list(range(int(bucket_min - bucket_base / 2),
+                   bucket_max + bucket_base,
+                   bucket_base))
+    swing_coefficients = [a for a in bucket_swing_coefficients.values()]
+    spline = UnivariateSpline(x=x, y=swing_coefficients, s=10)
+    smoothed_swing_coefficients = spline(x)
+    # don't smooth the sophomore coefficients as most of them are meaningless
+    sophomore_coefficients = [a for a in bucket_sophomore_coefficients.values()]
+    offsets = [a + b for a, b in zip(bucket_intercepts.values(),
+                                     bucket_median_errors.values())]
+    spline = UnivariateSpline(x=x, y=offsets, s=10)
+    smoothed_offsets = spline(x)
+    lower_rmses = [a for a in bucket_lower_rmses.values()]
+    spline = UnivariateSpline(x=x, y=lower_rmses, s=10)
+    smoothed_lower_rmses = spline(x)
+    upper_rmses = [a for a in bucket_upper_rmses.values()]
+    spline = UnivariateSpline(x=x, y=upper_rmses, s=10)
+    smoothed_upper_rmses = spline(x)
+    lower_kurtoses = [a for a in bucket_lower_kurtoses.values()]
+    spline = UnivariateSpline(x=x, y=lower_kurtoses, s=10)
+    smoothed_lower_kurtoses = spline(x)
+    upper_kurtoses = [a for a in bucket_upper_kurtoses.values()]
+    spline = UnivariateSpline(x=x, y=upper_kurtoses, s=10)
+    smoothed_upper_kurtoses = spline(x)
 
 
 if __name__ == '__main__':
