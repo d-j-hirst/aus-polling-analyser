@@ -92,6 +92,10 @@ public:
 
 	bool isReadyForProjection() const { return readyForProjection; }
 
+	// Load everything needed to adjust samples, without running the model
+	// Returns false if this fails
+	bool prepareForRun(FeedbackFunc feedback);
+
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
@@ -117,10 +121,6 @@ private:
 	typedef std::map<std::string, ParameterSeries> ParameterSeriesByPartyGroup;
 
 	typedef std::map<std::string, double> Fundamentals;
-
-	// Load everything needed to adjust samples, without running the model
-	// Returns false if this fails
-	bool loadPreparationData(FeedbackFunc feedback);
 
 	// Loads the party group data from python/Data/party-groups.csv
 	void loadPartyGroups();

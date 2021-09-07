@@ -8,6 +8,7 @@ struct Instruction {
 	enum class Type {
 		None,
 		CollectPolls,
+		PrepareModel,
 		RunModel,
 		SetNowcast,
 		RunProjection,
@@ -47,6 +48,9 @@ std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*
 		if (parts[0] == "collect-polls") {
 			type = Instruction::Type::CollectPolls;
 		}
+		else if (parts[0] == "prepare-model") {
+			type = Instruction::Type::PrepareModel;
+		}
 		else if (parts[0] == "run-model") {
 			type = Instruction::Type::RunModel;
 		}
@@ -68,6 +72,9 @@ std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*
 	for (auto instruction : instructions) {
 		if (instruction.type == Instruction::Type::CollectPolls) {
 			project_.polls().collectPolls();
+		}
+		else if (instruction.type == Instruction::Type::PrepareModel) {
+			project_.models().access(instruction.id).prepareForRun([](std::string s) {});
 		}
 		else if (instruction.type == Instruction::Type::RunModel) {
 			project_.models().access(instruction.id).loadData([](std::string s) {},

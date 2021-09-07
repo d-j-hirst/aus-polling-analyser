@@ -34,7 +34,7 @@ wxDateTime StanModel::getEndDate() const
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	loadPreparationData(feedback);
+	prepareForRun(feedback);
 	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	updateAdjustedData(feedback, numThreads);
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
@@ -166,7 +166,7 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 	return std::next(rawSupport.begin(), index)->first;
 }
 
-bool StanModel::loadPreparationData(FeedbackFunc feedback)
+bool StanModel::prepareForRun(FeedbackFunc feedback)
 {
 	loadPartyGroups();
 	loadFundamentalsPredictions();
