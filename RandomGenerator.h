@@ -154,9 +154,12 @@ private:
 	static constexpr int MaxDf = 100;
 	static constexpr int LookupSize = 1000000;
 
-	static std::mutex randomGenMutex;
+	static std::mutex tdistGeneralMutex;
+	static std::array<std::mutex, MaxDf + 1> tdistMutex;
 	static std::map<int, std::vector<double>> tdistLookup;
 	static std::array<bool, MaxDf + 1> tdistReady;
+
+	static std::mutex normalMutex;
 	static std::vector<double> normalLookup;
 	static bool normalReady;
 };
