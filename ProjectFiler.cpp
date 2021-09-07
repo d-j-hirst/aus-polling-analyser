@@ -601,7 +601,7 @@ void ProjectFiler::saveRegions(SaveFileOutput& saveOutput)
 	}
 }
 
-void ProjectFiler::loadRegions(SaveFileInput& saveInput,  [[maybe_unused]] int versionNum)
+void ProjectFiler::loadRegions(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
 {
 	auto regionCount = saveInput.extract<int32_t>();
 	for (int regionIndex = 0; regionIndex < regionCount; ++regionIndex) {

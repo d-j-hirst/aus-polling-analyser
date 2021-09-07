@@ -113,14 +113,14 @@ void SimulationPreparation::determinePpvcBias()
 		// whether or not this is a live simulation, if there hasn't been any PPVC votes recorded
 		// then we can set these to zero and it will be assumed there is no PPVC bias
 		// (with the usual random variation  per simulation)
-		run.ppvcBias = 0.0f;
+		run.ppvcBiasObserved = 0.0f;
 		run.ppvcBiasConfidence = 0.0f;
 		return;
 	}
-	run.ppvcBias = run.ppvcBiasNumerator / run.ppvcBiasDenominator;
+	run.ppvcBiasObserved = run.ppvcBiasNumerator / run.ppvcBiasDenominator;
 	run.ppvcBiasConfidence = std::clamp(run.ppvcBiasDenominator / float(run.totalOldPpvcVotes) * 5.0f, 0.0f, 1.0f);
 
-	logger << run.ppvcBiasNumerator << " " << run.ppvcBiasDenominator << " " << run.ppvcBias << " " << run.totalOldPpvcVotes <<
+	logger << run.ppvcBiasNumerator << " " << run.ppvcBiasDenominator << " " << run.ppvcBiasObserved << " " << run.totalOldPpvcVotes <<
 		" " << run.ppvcBiasConfidence << " - ppvc bias measures\n";
 }
 

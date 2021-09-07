@@ -539,7 +539,11 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 		std::string name = (simulation.partyName[partyIndex].size() < 18 ?
 			simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
 		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
-		if (partyIndex < int(simulation.partyPrimaryFrequency.size()) && simulation.getPrimarySampleCount(partyIndex)) {
+		// Parties with a primary vote of exactly 0 are generally to be considered "not analysed"
+		// than actually zero, so we don't print them with an actual value
+		if (partyIndex < int(simulation.partyPrimaryFrequency.size()) && simulation.getPrimarySampleCount(partyIndex) &&
+			simulation.getPrimarySampleExpectation(partyIndex) > 0.0f)
+		{
 			float expectation = simulation.getPrimarySampleExpectation(partyIndex);
 			dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
 			voteBoxDataRect.Offset(width, 0);

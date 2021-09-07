@@ -39,14 +39,6 @@ void RandomGenerator::prepareTdistLookup(int df)
 	for (auto it = orderedValues.begin(); it != orderedValues.end(); ++it, ++index) {
 		lookup[index] = *it;
 	}
-	logger << "df = " << df << " lookup generated\n";
-	for (int testQuantile = 0; testQuantile < LookupSize; testQuantile += 10000) {
-		logger << "quantile = " << testQuantile << "  value = " << lookup[testQuantile] << "\n";
-	}
-	logger << "quantile = " << 10 << "  value = " << lookup[10] << "\n";
-	logger << "quantile = " << LookupSize - 11 << "  value = " << lookup[LookupSize - 11] << "\n";
-	logger << "quantile = " << 100 << "  value = " << lookup[100] << "\n";
-	logger << "quantile = " << LookupSize - 101 << "  value = " << lookup[LookupSize - 101] << "\n";
 	tdistReady[df] = true;
 }
 
@@ -66,10 +58,6 @@ void RandomGenerator::prepareNormalLookup()
 	lookup.resize(LookupSize);
 	for (auto it = orderedValues.begin(); it != orderedValues.end(); ++it, ++index) {
 		lookup[index] = *it;
-	}
-	logger << "normal lookup generated\n";
-	for (int testQuantile = 0; testQuantile < LookupSize; testQuantile += 10000) {
-		logger << "quantile = " << testQuantile << "  value = " << lookup[testQuantile] << "\n";
 	}
 	normalReady = true;
 }

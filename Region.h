@@ -15,7 +15,6 @@ struct Region {
 	float sample2pp = 50.0f;
 	float swingDeviation = 0.0f;
 
-	float simulationSwing = 0.0f;
 	float localModifierAverage = 0.0f;
 	float additionalUncertainty = 0.0f;
 	int seatCount = 0;

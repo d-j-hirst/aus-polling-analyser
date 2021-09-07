@@ -34,7 +34,6 @@ private:
 
 	int currentIteration = 0;
 
-	float ppvcBias = 0.0f;
 	float ppvcBiasNumerator = 0.0f;
 	float ppvcBiasDenominator = 0.0f; // should be the total number of PPVC votes counted
 	float ppvcBiasObserved = 0.0f;
@@ -55,14 +54,7 @@ private:
 	int total2cpVotes = 0;
 	int totalEnrolment = 0;
 
-	std::array<int, 2> partyMajority;
-	std::array<int, 2> partyMinority;
-	int hungParliament;
-
-	// iteration-specific variables
-	std::vector<std::vector<int>> regionSeatCount;
-	std::vector<int> partyWins;
-	float iterationOverallSwing;
-
-	std::array<int, 2> partySupport;
+	std::array<int, 2> partyMajority = std::array<int, 2>();
+	std::array<int, 2> partyMinority = std::array<int, 2>();
+	int hungParliament = 0;
 };

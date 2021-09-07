@@ -50,9 +50,9 @@ private:
 	void determineIterationOverallSwing();
 	void determineIterationPpvcBias();
 	void determineIterationRegionalSwings();
-	void determineBaseRegionalSwing(Region& thisRegion);
-	void modifyLiveRegionalSwing(Region& thisRegion);
-	void correctRegionalSwings(float tempOverallSwing);
+	void determineBaseRegionalSwing(int regionIndex);
+	void modifyLiveRegionalSwing(int regionIndex);
+	void correctRegionalSwings();
 	void determineSeatResult(Seat& seat);
 	void determineClassicSeatResult(Seat& seat);
 	void adjustClassicSeatResultFor3rdPlaceIndependent(Seat& seat);
@@ -63,6 +63,9 @@ private:
 	void assignSupportsPartyWins();
 	void classifyMajorityResult();
 	void addPartySeatWinCounts();
+	void recordIterationResults();
+	void recordVoteTotals();
+	void recordSwings();
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
@@ -109,4 +112,15 @@ private:
 	PollingProject & project;
 	Simulation& sim;
 	SimulationRun& run;
+
+	// iteration-specific variables
+	std::vector<std::vector<int>> regionSeatCount;
+	std::vector<int> partyWins;
+	std::vector<float> regionSwing;
+	float iterationOverallTpp = 0.0f;
+	float iterationOverallSwing = 0.0f;
+	std::vector<float> overallFp;
+	float ppvcBias = 0.0f;
+
+	std::array<int, 2> partySupport = std::array<int, 2>();
 };

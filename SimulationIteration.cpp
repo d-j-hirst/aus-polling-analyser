@@ -27,42 +27,45 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 
 void SimulationIteration::runIteration()
 {
-	initialiseIterationSpecificCounts();
-	determineIterationOverallSwing();
-	determineIterationPpvcBias();
-	determineIterationRegionalSwings();
+	initialiseIterationSpecificCounts(); // clean
+	determineIterationOverallSwing(); // clean
+	determineIterationPpvcBias(); // clean
+	determineIterationRegionalSwings(); // clean
 
 	for (auto&[key, seat] : project.seats()) {
-		determineSeatResult(seat);
-		recordSeatResult(seat);
+		determineSeatResult(seat); // dirty - seat editing
+		recordSeatResult(seat); // dirty - seat editing
 	}
 
-	assignCountAsPartyWins();
-	assignSupportsPartyWins();
-	classifyMajorityResult();
-	addPartySeatWinCounts();
+	assignCountAsPartyWins(); // clean
+	assignSupportsPartyWins(); // clean
+	classifyMajorityResult(); // dirty - run
+	addPartySeatWinCounts(); // dirty - region editing, latestReport
+
+	// This should eventually do all the actual recording of results
+	// to sim/run storage - everything above should only edit local
+	// variables, to allow efficient multithreading
+	recordIterationResults();
 }
 
 void SimulationIteration::initialiseIterationSpecificCounts()
 {
 	// temporary for storing number of seat wins by each party in each region, 1st index = parties, 2nd index = regions
-	run.regionSeatCount = std::vector<std::vector<int>>(project.parties().count(), std::vector<int>(project.regions().count()));
+	regionSeatCount = std::vector<std::vector<int>>(project.parties().count(), std::vector<int>(project.regions().count()));
 
-	run.partyWins = std::vector<int>(project.parties().count());
+	partyWins = std::vector<int>(project.parties().count());
+	overallFp = std::vector<float>(project.parties().count(), 0.0f);
 
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
-	float tpp = projectedSample.at(TppCode);
-	run.iterationOverallSwing = tpp - sim.settings.prevElection2pp;
-	short tppBucket = short(floor(tpp * 10.0f));
-	++sim.latestReport.tppFrequency[tppBucket];
+	iterationOverallTpp = projectedSample.at(TppCode);
+	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
 
 	for (auto const& [sampleKey, partySample] : projectedSample) {
 		for (auto const& [id, party] : project.parties()) {
 			if (contains(party.officialCodes, sampleKey)) {
 				int partyIndex = project.parties().idToIndex(id);
-				short bucket = short(floor(partySample * 10.0f));
-				++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];
+				overallFp[partyIndex] = partySample;
 				break;
 			}
 		}
@@ -77,11 +80,8 @@ void SimulationIteration::determineIterationOverallSwing()
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 		float priorWeight = 0.5f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
-		run.iterationOverallSwing = (run.iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 	}
-
-	// this will be used to determine the estimated 2pp swing (for live results) later
-	sim.latestReport.partyOneSwing += double(run.iterationOverallSwing);
 }
 
 void SimulationIteration::determineIterationPpvcBias()
@@ -89,59 +89,64 @@ void SimulationIteration::determineIterationPpvcBias()
 	if (sim.isLive() && run.liveOverallPercent) {
 		constexpr float ppvcBiasStdDev = 4.0f;
 		float ppvcBiasRandom = std::normal_distribution<float>(0.0f, ppvcBiasStdDev)(gen);
-		run.ppvcBias = run.ppvcBiasObserved * run.ppvcBiasConfidence + ppvcBiasRandom * (1.0f - run.ppvcBiasConfidence);
+		ppvcBias = run.ppvcBiasObserved * run.ppvcBiasConfidence + ppvcBiasRandom * (1.0f - run.ppvcBiasConfidence);
 	}
 }
 
 void SimulationIteration::determineIterationRegionalSwings()
 {
-	float tempOverallSwing = 0.0f;
-	for (auto& regionPair : project.regions()) {
-		Region& thisRegion = regionPair.second;
-		determineBaseRegionalSwing(thisRegion);
-		modifyLiveRegionalSwing(thisRegion);
-		tempOverallSwing += thisRegion.simulationSwing * thisRegion.population;
+	const int numRegions = project.regions().count();
+	regionSwing.resize(numRegions);
+	for (int regionIndex = 0; regionIndex < numRegions; ++regionIndex) {
+		determineBaseRegionalSwing(regionIndex);
+		modifyLiveRegionalSwing(regionIndex);
 	}
-	tempOverallSwing /= run.totalPopulation;
-	correctRegionalSwings(tempOverallSwing);
+	correctRegionalSwings();
 }
 
-void SimulationIteration::determineBaseRegionalSwing(Region& thisRegion)
+void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 {
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
+	Region const& thisRegion = project.regions().viewByIndex(regionIndex);
 	// Calculate mean of the region's swing after accounting for decay to the mean over time.
-	float regionMeanSwing = run.iterationOverallSwing +
+	float regionMeanSwing = iterationOverallSwing +
 		thisRegion.swingDeviation * pow(1.0f - sim.settings.stateDecay, thisProjection.getProjectionLength());
 	// Add random noise to the region's swing level
 	float swingSD = sim.settings.stateSD + thisRegion.additionalUncertainty;
 	if (swingSD > 0) {
-		thisRegion.simulationSwing =
-			std::normal_distribution<float>(regionMeanSwing, sim.settings.stateSD + thisRegion.additionalUncertainty)(gen);
+		float totalSD = sim.settings.stateSD + thisRegion.additionalUncertainty;
+		regionSwing[regionIndex] = std::normal_distribution<float>(regionMeanSwing, totalSD)(gen);
 	}
 	else {
-		thisRegion.simulationSwing = regionMeanSwing;
+		regionSwing[regionIndex] = regionMeanSwing;
 	}
 }
 
-void SimulationIteration::modifyLiveRegionalSwing(Region& thisRegion)
+void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
+	Region const& thisRegion = project.regions().viewByIndex(regionIndex);
 	if (sim.isLive() && thisRegion.livePercentCounted) {
 		float liveSwing = thisRegion.liveSwing;
 		float liveStdDev = stdDevSingleSeat(thisRegion.livePercentCounted);
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 		float priorWeight = 0.5f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
-		thisRegion.simulationSwing = (thisRegion.simulationSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+		regionSwing[regionIndex] = (regionSwing[regionIndex] * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 	}
 }
 
-void SimulationIteration::correctRegionalSwings(float tempOverallSwing)
+void SimulationIteration::correctRegionalSwings()
 {
 	// Adjust regional swings to keep the implied overall 2pp the same as that actually projected
-	float regionSwingAdjustment = run.iterationOverallSwing - tempOverallSwing;
-	for (auto& regionPair : project.regions()) {
-		Region& thisRegion = regionPair.second;
-		thisRegion.simulationSwing += regionSwingAdjustment;
+	float tempOverallSwing = 0.0f;
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		Region const& thisRegion = project.regions().viewByIndex(regionIndex);
+		tempOverallSwing += regionSwing[regionIndex] * thisRegion.population;
+	}
+	tempOverallSwing /= run.totalPopulation;
+	float regionSwingAdjustment = iterationOverallSwing - tempOverallSwing;
+	for (float& swing : regionSwing) {
+		swing += regionSwingAdjustment;
 	}
 }
 
@@ -163,7 +168,7 @@ void SimulationIteration::determineClassicSeatResult(Seat& seat)
 	Region const& thisRegion = project.regions().access(seat.region);
 	bool incIsOne = seat.incumbent == 0; // stores whether the incumbent is Party One
 										 // Add or subtract the simulation regional deviation depending on which party is incumbent
-	float newMargin = seat.margin + thisRegion.simulationSwing * (incIsOne ? 1.0f : -1.0f);
+	float newMargin = seat.margin + regionSwing[project.regions().idToIndex(seat.region)] * (incIsOne ? 1.0f : -1.0f);
 	// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
 	newMargin += seat.localModifier;
 	// Remove the average local modifier across the region
@@ -266,35 +271,35 @@ void SimulationIteration::recordSeatResult(Seat& seat)
 
 	int winnerIndex = project.parties().idToIndex(seat.winner);
 	if (winnerIndex != PartyCollection::InvalidIndex) {
-		run.partyWins[winnerIndex]++;
+		partyWins[winnerIndex]++;
 		int regionIndex = project.regions().idToIndex(seat.region);
-		++run.regionSeatCount[winnerIndex][regionIndex];
+		++regionSeatCount[winnerIndex][regionIndex];
 	}
 }
 
 void SimulationIteration::assignCountAsPartyWins()
 {
-	for (int partyNum = 2; partyNum < int(run.partyWins.size()); ++partyNum) {
+	for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
 		Party const& thisParty = project.parties().viewByIndex(partyNum);
 		if (thisParty.countAsParty == Party::CountAsParty::CountsAsPartyOne) {
-			run.partyWins[0] += run.partyWins[partyNum];
+			partyWins[0] += partyWins[partyNum];
 		}
 		else if (thisParty.countAsParty == Party::CountAsParty::CountsAsPartyTwo) {
-			run.partyWins[1] += run.partyWins[partyNum];
+			partyWins[1] += partyWins[partyNum];
 		}
 	}
 }
 
 void SimulationIteration::assignSupportsPartyWins()
 {
-	run.partySupport = { run.partyWins[0], run.partyWins[1] };
-	for (int partyNum = 2; partyNum < int(run.partyWins.size()); ++partyNum) {
+	partySupport = { partyWins[0], partyWins[1] };
+	for (int partyNum = 2; partyNum < int(partyWins.size()); ++partyNum) {
 		Party const& thisParty = project.parties().viewByIndex(partyNum);
 		if (thisParty.relationType == Party::RelationType::IsPartOf && thisParty.relationTarget < 2) {
-			run.partyWins[thisParty.relationTarget] += run.partyWins[partyNum];
+			partyWins[thisParty.relationTarget] += partyWins[partyNum];
 		}
 		if (thisParty.relationType == Party::RelationType::Supports && thisParty.relationTarget < 2) {
-			run.partySupport[thisParty.relationTarget] += run.partyWins[partyNum];
+			partySupport[thisParty.relationTarget] += partyWins[partyNum];
 		}
 	}
 }
@@ -304,10 +309,10 @@ void SimulationIteration::classifyMajorityResult()
 	int minimumForMajority = project.seats().count() / 2 + 1;
 
 	// Look at the overall result and classify it
-	if (run.partyWins[0] >= minimumForMajority) ++run.partyMajority[Simulation::MajorParty::One];
-	else if (run.partySupport[0] >= minimumForMajority) ++run.partyMinority[Mp::One];
-	else if (run.partyWins[1] >= minimumForMajority) ++run.partyMajority[Mp::Two];
-	else if (run.partySupport[1] >= minimumForMajority) ++run.partyMinority[Mp::Two];
+	if (partyWins[0] >= minimumForMajority) ++run.partyMajority[Simulation::MajorParty::One];
+	else if (partySupport[0] >= minimumForMajority) ++run.partyMinority[Mp::One];
+	else if (partyWins[1] >= minimumForMajority) ++run.partyMajority[Mp::Two];
+	else if (partySupport[1] >= minimumForMajority) ++run.partyMinority[Mp::Two];
 	else ++run.hungParliament;
 }
 
@@ -315,14 +320,37 @@ void SimulationIteration::addPartySeatWinCounts()
 {
 	int othersWins = 0;
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
-		++sim.latestReport.partySeatWinFrequency[partyIndex][run.partyWins[partyIndex]];
-		if (partyIndex > 1) othersWins += run.partyWins[partyIndex];
+		++sim.latestReport.partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
+		if (partyIndex > 1) othersWins += partyWins[partyIndex];
 		for (auto& regionPair : project.regions()) {
 			Region& thisRegion = regionPair.second;
-			++thisRegion.partyWins[partyIndex][run.regionSeatCount[partyIndex][project.regions().idToIndex(regionPair.first)]];
+			++thisRegion.partyWins[partyIndex][regionSeatCount[partyIndex][project.regions().idToIndex(regionPair.first)]];
 		}
 	}
 	++sim.latestReport.othersWinFrequency[othersWins];
+}
+
+void SimulationIteration::recordIterationResults()
+{
+	recordVoteTotals();
+	recordSwings();
+}
+
+void SimulationIteration::recordVoteTotals()
+{
+	short tppBucket = short(floor(iterationOverallTpp * 10.0f));
+	++sim.latestReport.tppFrequency[tppBucket];
+
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		short bucket = short(floor(overallFp[partyIndex] * 10.0f));
+		++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];
+	}
+}
+
+void SimulationIteration::recordSwings()
+{
+	// this will be used to determine the estimated 2pp swing (for live results) later
+	sim.latestReport.partyOneSwing += double(iterationOverallSwing);
 }
 
 SimulationIteration::OddsInfo SimulationIteration::calculateOddsInfo(Seat const& thisSeat)
@@ -455,8 +483,8 @@ SimulationIteration::BoothAccumulation SimulationIteration::sumMatched2cpBoothVo
 			float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
 			if (booth.isPPVC()) {
 				// votes are already in order for the seat, not the booth
-				if (firstParty == 0 && secondParty == 1) boothSwing += run.ppvcBias;
-				if (secondParty == 0 && firstParty == 1) boothSwing -= run.ppvcBias;
+				if (firstParty == 0 && secondParty == 1) boothSwing += ppvcBias;
+				if (secondParty == 0 && firstParty == 1) boothSwing -= ppvcBias;
 			}
 			float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
 			int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
@@ -493,8 +521,8 @@ void SimulationIteration::estimateMysteryBoothVotes(Seat const& seat, BoothAccum
 
 		const float MysteryVoteStdDev = 6.0f;
 		float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
-		if (firstParty == 0 && secondParty == 1) incumbentMysteryPercent += run.ppvcBias * proportionPPVC;
-		if (secondParty == 1 && firstParty == 0) incumbentMysteryPercent -= run.ppvcBias * proportionPPVC;
+		if (firstParty == 0 && secondParty == 1) incumbentMysteryPercent += ppvcBias * proportionPPVC;
+		if (secondParty == 1 && firstParty == 0) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
 		int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
 		int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
 		boothResults.tcpTally[0] += incumbentMysteryVotes;
