@@ -33,14 +33,8 @@ wxDateTime StanModel::getEndDate() const
 
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
-	loadPartyGroups();
-	loadFundamentalsPredictions();
-	loadParameters(feedback);
-	if (!generatePreferenceMaps(feedback)) return;
-	logger << "Starting trend data loading: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	if (!loadTrendData(feedback)) return;
-	logger << "Loaded model: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	generateUnnamedOthersSeries();
+	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
+	loadPreparationData(feedback);
 	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	updateAdjustedData(feedback, numThreads);
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
@@ -170,6 +164,18 @@ StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date) const
 std::string StanModel::rawPartyCodeByIndex(int index) const
 {
 	return std::next(rawSupport.begin(), index)->first;
+}
+
+bool StanModel::loadPreparationData(FeedbackFunc feedback)
+{
+	loadPartyGroups();
+	loadFundamentalsPredictions();
+	loadParameters(feedback);
+	if (!generatePreferenceMaps(feedback)) return false;
+	if (!loadTrendData(feedback)) return false;
+	generateUnnamedOthersSeries();
+	readyForProjection = true;
+	return true;
 }
 
 void StanModel::loadPartyGroups()

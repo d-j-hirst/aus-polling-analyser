@@ -32,6 +32,10 @@ void Projection::replaceSettings(Settings newSettings)
 void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int numThreads) {
 	if (!settings.endDate.IsValid()) return;
 	auto const& model = getBaseModel(models);
+	if (!model.isReadyForProjection()) {
+		feedback("The base model (" + model.name + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
+		return;
+	}
 	startDate = model.getEndDate() + wxDateSpan::Days(1);
 
 	logger << "Starting projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
