@@ -32,15 +32,13 @@ void SimulationIteration::runIteration()
 	determineIterationPpvcBias(); // clean
 	determineIterationRegionalSwings(); // clean
 
-	for (auto&[key, seat] : project.seats()) {
-		determineSeatResult(seat); // dirty - seat editing
-		recordSeatResult(seat); // dirty - seat editing
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		determineSeatResult(seatIndex); // dirty - seat editing
+		recordSeatResult(seatIndex); // dirty - seat editing
 	}
 
 	assignCountAsPartyWins(); // clean
 	assignSupportsPartyWins(); // clean
-	classifyMajorityResult(); // dirty - run
-	addPartySeatWinCounts(); // dirty - region editing, latestReport
 
 	// This should eventually do all the actual recording of results
 	// to sim/run storage - everything above should only edit local
@@ -55,6 +53,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 
 	partyWins = std::vector<int>(project.parties().count());
 	overallFp = std::vector<float>(project.parties().count(), 0.0f);
+	incumbentNewMargin = std::vector<float>(project.seats().count(), 0.0f);
 
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
@@ -150,22 +149,24 @@ void SimulationIteration::correctRegionalSwings()
 	}
 }
 
-void SimulationIteration::determineSeatResult(Seat& seat)
+void SimulationIteration::determineSeatResult(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
 	bool isClassic2CP = seat.isClassic2pp(sim.isLive());
 
 	if (isClassic2CP) {
-		determineClassicSeatResult(seat);
+		determineClassicSeatResult(seatIndex);
 	}
 	else {
-		determineNonClassicSeatResult(seat);
+		determineNonClassicSeatResult(seatIndex);
 	}
 }
 
-void SimulationIteration::determineClassicSeatResult(Seat& seat)
+void SimulationIteration::determineClassicSeatResult(int seatIndex)
 {
-	Region const& thisRegion = project.regions().access(seat.region);
+	Seat& seat = project.seats().access(project.seats().indexToId(seatIndex));
+	Region const& thisRegion = project.regions().view(seat.region);
 	bool incIsOne = seat.incumbent == 0; // stores whether the incumbent is Party One
 										 // Add or subtract the simulation regional deviation depending on which party is incumbent
 	float newMargin = seat.margin + regionSwing[project.regions().idToIndex(seat.region)] * (incIsOne ? 1.0f : -1.0f);
@@ -178,9 +179,8 @@ void SimulationIteration::determineClassicSeatResult(Seat& seat)
 	// Now work out the margin of the seat from actual results if live
 	SeatResult result = calculateResultMatched2cp(seat, newMargin);
 
-	float incumbentNewMargin = result.margin * (result.winner == seat.incumbent ? 1.0f : -1.0f);
+	incumbentNewMargin[seatIndex] = result.margin * (result.winner == seat.incumbent ? 1.0f : -1.0f);
 	// Margin for this simulation is finalised, record it for later averaging
-	seat.simulatedMarginAverage += incumbentNewMargin;
 	seat.winner = result.winner;
 	adjustClassicSeatResultFor3rdPlaceIndependent(seat);
 	adjustClassicSeatResultForBettingOdds(seat, result);
@@ -228,8 +228,9 @@ void SimulationIteration::adjustClassicSeatResultForBettingOdds(Seat& seat, Seat
 	}
 }
 
-void SimulationIteration::determineNonClassicSeatResult(Seat& seat)
+void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 {
+	Seat& seat = project.seats().access(project.seats().indexToId(seatIndex));
 	float liveSignificance = 0.0f;
 	if (sim.isLiveAutomatic()) {
 		SeatResult result = calculateLiveResultNonClassic2CP(seat);
@@ -260,8 +261,9 @@ void SimulationIteration::determineNonClassicSeatResult(Seat& seat)
 	}
 }
 
-void SimulationIteration::recordSeatResult(Seat& seat)
+void SimulationIteration::recordSeatResult(int seatIndex)
 {
+	Seat& seat = project.seats().access(project.seats().indexToId(seatIndex));
 	// If the winner is the incumbent, record this down in the seat's numbers
 	seat.incumbentWins += (seat.winner == seat.incumbent ? 1 : 0);
 
@@ -270,6 +272,7 @@ void SimulationIteration::recordSeatResult(Seat& seat)
 	else ++seat.partyOthersWinRate;
 
 	int winnerIndex = project.parties().idToIndex(seat.winner);
+	sim.latestReport.seatIncumbentMarginAverage[seatIndex] += incumbentNewMargin[seatIndex];
 	if (winnerIndex != PartyCollection::InvalidIndex) {
 		partyWins[winnerIndex]++;
 		int regionIndex = project.regions().idToIndex(seat.region);
@@ -304,7 +307,7 @@ void SimulationIteration::assignSupportsPartyWins()
 	}
 }
 
-void SimulationIteration::classifyMajorityResult()
+void SimulationIteration::recordMajorityResult()
 {
 	int minimumForMajority = project.seats().count() / 2 + 1;
 
@@ -316,7 +319,7 @@ void SimulationIteration::classifyMajorityResult()
 	else ++run.hungParliament;
 }
 
-void SimulationIteration::addPartySeatWinCounts()
+void SimulationIteration::recordPartySeatWinCounts()
 {
 	int othersWins = 0;
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
@@ -334,6 +337,8 @@ void SimulationIteration::recordIterationResults()
 {
 	recordVoteTotals();
 	recordSwings();
+	recordMajorityResult();
+	recordPartySeatWinCounts();
 }
 
 void SimulationIteration::recordVoteTotals()

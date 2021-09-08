@@ -248,7 +248,6 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	data.push_back(wxVariant(formatFloat(seat.challengerOdds, 3)));
 	data.push_back(wxVariant(formatFloat(seat.incumbentWinPercent, 2)));
 	data.push_back(wxVariant(formatFloat(seat.tippingPointPercent, 2)));
-	data.push_back(wxVariant(formatFloat(seat.simulatedMarginAverage, 2)));
 
 	seatData->AppendItem(data);
 }

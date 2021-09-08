@@ -186,7 +186,7 @@ void ResultsFrame::updateInterface()
 void ResultsFrame::refreshToolbar()
 {
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[3];
+	wxBitmap toolBarBitmaps[4];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\non_classic.png", wxBITMAP_TYPE_PNG);
@@ -251,13 +251,7 @@ void ResultsFrame::refreshToolbar()
 
 void ResultsFrame::refreshSummaryBar()
 {
-	for (auto const&[key, simulation] : project->simulations()) {
-		if (simulation.isLive() && simulation.isValid()) {
-			std::string summaryString = decideSummaryString(simulation);
-			summaryText->SetLabel(summaryString);
-			break;
-		}
-	}
+	summaryText->SetLabel(decideSummaryString());
 }
 
 void ResultsFrame::refreshTable()
@@ -280,10 +274,13 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 
 	float significance = 0.0f;
 	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(seat.margin))));
-	if (seat.simulatedMarginAverage) {
-		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(seat.simulatedMarginAverage)))));
+	auto const* report = latestReport();
+	if (report) {
+		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(simulatedMarginAverage)))));
+		// automatically treat seats changing hands as significant
+		if (simulatedMarginAverage < 0.0f) significance += 5.0f;
 	}
-	if (seat.simulatedMarginAverage < 0.0f) significance += 5.0f; // automatically treat seats changing hands as significant
 
 	if (filter == Filter::SignificantResults) return significance > 1.5f;
 	if (filter == Filter::KeyResults) return significance > 5.0f;
@@ -310,19 +307,28 @@ wxColour ResultsFrame::decidePercentCountedColour(Outcome const & thisResult)
 
 std::string ResultsFrame::decideProjectedMarginString(Outcome const & thisResult)
 {
-	auto const& seat = project->seats().viewByIndex(thisResult.seat);
-	float projectedSwing = seat.simulatedMarginAverage - seat.margin;
-	return formatFloat(seat.simulatedMarginAverage, 2) + " (" +
-		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
+	auto const* report = latestReport();
+	if (report) {
+		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+		Seat const& seat = project->seats().view(thisResult.seat);
+		float projectedSwing = simulatedMarginAverage - seat.margin;
+		return formatFloat(simulatedMarginAverage, 2) + " (" +
+			(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
+	}
+	return "";
 }
 
 wxColour ResultsFrame::decideProjectedMarginColour(Outcome const & thisResult)
 {
-	auto const& seat = project->seats().viewByIndex(thisResult.seat);
-	float margin = abs(seat.simulatedMarginAverage);
-	float marginSignificance = (margin ? 1.0f / (1.0f + abs(seat.simulatedMarginAverage)) : 0.0f);
-	wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
-	return projectedMarginColour;
+	auto const* report = latestReport();
+	if (report) {
+		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+		float margin = abs(simulatedMarginAverage);
+		float marginSignificance = (margin ? 1.0f / (1.0f + abs(simulatedMarginAverage)) : 0.0f);
+		wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
+		return projectedMarginColour;
+	}
+	return *wxWHITE;
 }
 
 std::string ResultsFrame::decideLeadingPartyName(Outcome const & thisResult)
@@ -408,23 +414,34 @@ void ResultsFrame::addEnteredOutcome(Seat::Id seatId)
 	project->updateOutcomesForSeats();
 }
 
-std::string ResultsFrame::decideSummaryString(Simulation const & simulation)
+std::string ResultsFrame::decideSummaryString()
 {
 	std::string party1 = project->parties().view(0).abbreviation;
 	std::string party2 = project->parties().view(1).abbreviation;
-	auto const& report = simulation.getLatestReport();
-	std::string summaryString = party1 + " win chance: " + formatFloat(report.getPartyWinPercent(Simulation::MajorParty::One), 2) +
-		"   Projected 2PP: " + party1 + " " + formatFloat(float(report.getPartyOne2pp()), 2) +
-		"   Seats: " + party1 + " " + formatFloat(report.getPartyWinExpectation(0), 2) + " " +
-		party2 + " " + formatFloat(report.getPartyWinExpectation(1), 2) +
-		" Others " + formatFloat(report.getOthersWinExpectation(), 2) +
-		"   Count progress: " + formatFloat(report.get2cpPercentCounted(), 2) + "%\n" +
+	auto const* report = latestReport();
+	if (!report) return "";
+	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyWinPercent(Simulation::MajorParty::One), 2) +
+		"   Projected 2PP: " + party1 + " " + formatFloat(float(report->getPartyOne2pp()), 2) +
+		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +
+		party2 + " " + formatFloat(report->getPartyWinExpectation(1), 2) +
+		" Others " + formatFloat(report->getOthersWinExpectation(), 2) +
+		"   Count progress: " + formatFloat(report->get2cpPercentCounted(), 2) + "%\n" +
 		party1 + " swing by region: ";
 	for (auto const& regionPair : project->regions()) {
 		Region const& thisRegion = regionPair.second;
 		summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
 	}
 	return summaryString;
+}
+
+Simulation::Report const* ResultsFrame::latestReport()
+{
+	for (auto const& [key, simulation] : project->simulations()) {
+		if (simulation.isLive() && simulation.isValid()) {
+			return &simulation.getLatestReport();
+		}
+	}
+	return nullptr;
 }
 
 void ResultsFrame::resetTableColumns()

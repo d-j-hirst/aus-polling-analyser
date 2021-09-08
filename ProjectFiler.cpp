@@ -149,7 +149,7 @@ int ProjectFiler::save(std::string filename) {
 		os << "c2od=" << thisSeat.challenger2Odds << "\n";
 		os << "winp=" << thisSeat.incumbentWinPercent << "\n";
 		os << "tipp=" << thisSeat.tippingPointPercent << "\n";
-		os << "sma =" << thisSeat.simulatedMarginAverage << "\n";
+		os << "sma =" << "0.0f" << "\n";
 		os << "lp1 =" << project.partyCollection.idToIndex(thisSeat.livePartyOne) << "\n";
 		os << "lp2 =" << project.partyCollection.idToIndex(thisSeat.livePartyTwo) << "\n";
 		os << "lp3 =" << project.partyCollection.idToIndex(thisSeat.livePartyThree) << "\n";
@@ -633,7 +633,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.challenger2Odds;
 		saveOutput << thisSeat.incumbentWinPercent;
 		saveOutput << thisSeat.tippingPointPercent;
-		saveOutput << thisSeat.simulatedMarginAverage;
+		saveOutput << 0.0;
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyOne));
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyTwo));
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyThree));
@@ -661,7 +661,7 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		saveInput >> thisSeat.challenger2Odds;
 		saveInput >> thisSeat.incumbentWinPercent;
 		saveInput >> thisSeat.tippingPointPercent;
-		saveInput >> thisSeat.simulatedMarginAverage;
+		saveInput.extract<double>(); // old simulatedMarginAverage
 		thisSeat.livePartyOne = saveInput.extract<int32_t>();
 		thisSeat.livePartyTwo = saveInput.extract<int32_t>();
 		thisSeat.livePartyThree = saveInput.extract<int32_t>();
@@ -1322,7 +1322,6 @@ bool ProjectFiler::processFileLine(std::string line, FileOpeningState& fos) {
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("sma =")) {
-			project.seatCollection.back().simulatedMarginAverage = std::stof(line.substr(5));
 			return true;
 		}
 		else if (!line.substr(0, 5).compare("lp1 =")) {

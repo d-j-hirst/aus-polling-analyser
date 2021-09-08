@@ -46,11 +46,6 @@ public:
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
 
-	// Margin by which the seat is expected to be on after simulation
-	// Note this variable holds the accumulated sum during simulations
-	// and is only divided to form the average once simulations are complete
-	double simulatedMarginAverage = 0.0;
-
 	// Local modifier to the 2pp vote (towards the incumbent).
 	float localModifier = 0.0f;
 
@@ -154,7 +149,6 @@ public:
 		report << " Challenger 2 Betting Odds: " << challenger2Odds << "\n";
 		report << " Incumbent Win %: " << incumbentWinPercent << "\n";
 		report << " Tipping Point %: " << tippingPointPercent << "\n";
-		report << " Simulated Margin Average: " << simulatedMarginAverage << "\n";
 		if (livePartyOne != Party::InvalidId) report << " Live Party One: " << parties.view(livePartyOne).name << "\n";
 		if (livePartyTwo != Party::InvalidId) report << " Live Party Two: " << parties.view(livePartyTwo).name << "\n";
 		if (livePartyThree != Party::InvalidId) report << " Live Party Three: " << parties.view(livePartyThree).name << "\n";

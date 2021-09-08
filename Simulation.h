@@ -82,6 +82,11 @@ public:
 		// party, then seat
 		std::vector<std::vector<int>> partySeatWinFrequency;
 
+		// Margin by which each seat is expected to be on after simulation
+		// Note this variable holds the accumulated sum during simulations
+		// and is only divided to form the average once simulations are complete
+		std::vector<double> seatIncumbentMarginAverage;
+
 		std::vector<int> othersWinFrequency;
 
 		float total2cpPercentCounted = 0.0f;

@@ -108,7 +108,9 @@ private:
 
 	void addEnteredOutcome(Seat::Id seatId);
 
-	std::string decideSummaryString(Simulation const& simulation);
+	std::string decideSummaryString();
+
+	Simulation::Report const* latestReport();
 
 	void resetTableColumns();
 
