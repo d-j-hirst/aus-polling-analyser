@@ -10,6 +10,7 @@ using Mp = Simulation::MajorParty;
 
 static std::random_device rd;
 static std::mt19937 gen;
+static std::mutex recordMutex;
 
 // Threshold at which longshot-bias correction starts being applied for seats being approximated from betting odds
 constexpr float LongshotOddsThreshold = 2.5f;
@@ -34,6 +35,14 @@ void SimulationIteration::runIteration()
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatResult(seatIndex); // clean (?)
+
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		int winnerIndex = project.parties().idToIndex(seatWinner[seatIndex]);
+		if (winnerIndex != PartyCollection::InvalidIndex) {
+			partyWins[winnerIndex]++;
+			int regionIndex = project.regions().idToIndex(seat.region);
+			++regionSeatCount[winnerIndex][regionIndex];
+		}
 	}
 
 	assignCountAsPartyWins(); // clean
@@ -42,6 +51,7 @@ void SimulationIteration::runIteration()
 	// This should eventually do all the actual recording of results
 	// to sim/run storage - everything above should only edit local
 	// variables, to allow efficient multithreading
+	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
 }
 
@@ -272,13 +282,7 @@ void SimulationIteration::recordSeatResult(int seatIndex)
 	else if (seatWinner[seatIndex] == 1) ++sim.latestReport.partyTwoWinPercent[seatIndex];
 	else ++sim.latestReport.othersWinPercent[seatIndex];
 
-	int winnerIndex = project.parties().idToIndex(seatWinner[seatIndex]);
 	sim.latestReport.seatIncumbentMarginAverage[seatIndex] += incumbentNewMargin[seatIndex];
-	if (winnerIndex != PartyCollection::InvalidIndex) {
-		partyWins[winnerIndex]++;
-		int regionIndex = project.regions().idToIndex(seat.region);
-		++regionSeatCount[winnerIndex][regionIndex];
-	}
 }
 
 void SimulationIteration::assignCountAsPartyWins()
@@ -313,7 +317,7 @@ void SimulationIteration::recordMajorityResult()
 	int minimumForMajority = project.seats().count() / 2 + 1;
 
 	// Look at the overall result and classify it
-	if (partyWins[0] >= minimumForMajority) ++run.partyMajority[Simulation::MajorParty::One];
+	if (partyWins[0] >= minimumForMajority) ++run.partyMajority[Mp::One];
 	else if (partySupport[0] >= minimumForMajority) ++run.partyMinority[Mp::One];
 	else if (partyWins[1] >= minimumForMajority) ++run.partyMajority[Mp::Two];
 	else if (partySupport[1] >= minimumForMajority) ++run.partyMinority[Mp::Two];
@@ -684,15 +688,12 @@ SimulationIteration::TcpTally SimulationIteration::estimatePostalVotes(Seat cons
 SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClassic2CP(Seat const& seat)
 {
 	if (sim.isLiveAutomatic() && seatPartiesMatchBetweenElections(seat)) {
-		if (!run.currentIteration) logger << seat.name << " - matched booths\n";
 		return calculateResultMatched2cp(seat, seat.margin);
 	}
 	else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
-		if (!run.currentIteration) logger << seat.name << " - 2cp votes\n";
 		return calculateResultUnmatched2cp(seat);
 	}
 	else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
-		if (!run.currentIteration) logger << seat.name << " - first preferences\n";
 		return calculateLiveResultFromFirstPreferences(seat);
 	}
 	else {

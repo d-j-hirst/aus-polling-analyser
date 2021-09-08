@@ -38,9 +38,7 @@ enum TabsEnum {
 ProjectFrame::ProjectFrame(ParentFrame* parent, std::string pathName)
 	: ProjectFrame(parent, 0)
 {
-	logger << "started loading polling project\n";
 	project.reset(new PollingProject(pathName));
-	logger << "finished loading from file\n";
 
 	if (!project->isValid()) {
 		// this will pop up a message to the user
@@ -191,7 +189,6 @@ void ProjectFrame::OnSwitch(wxBookCtrlEvent& event) {
 }
 
 void ProjectFrame::setupPages() {
-	logger << "started setting up pages\n";
 	createPage<PartiesFrame>(partiesFrame);
 	createPage<PollstersFrame>(pollstersFrame);
 	createPage<PollsFrame>(pollsFrame);
@@ -207,7 +204,6 @@ void ProjectFrame::setupPages() {
 	createPage<DownloadFrame>(downloadFrame);
 	createPage<AnalysisFrame>(analysisFrame);
 	createPage<MapFrame>(mapFrame);
-	logger << "finished setting up pages\n";
 }
 
 void ProjectFrame::saveUnderFilename(std::string const& pathName)

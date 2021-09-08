@@ -80,7 +80,6 @@ void SimulationCompletion::calculatePartyWinMedians()
 			runningTotal += sim.latestReport.partySeatWinFrequency[partyIndex][seatNum];
 			if (runningTotal > sim.settings.numIterations / 2) {
 				sim.latestReport.partyWinMedian[partyIndex] = seatNum;
-				logger << partyIndex << " - median result: " << seatNum << "\n";
 				break;
 			}
 		}
