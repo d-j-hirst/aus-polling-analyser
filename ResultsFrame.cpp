@@ -151,6 +151,7 @@ void ResultsFrame::OnClearAll(wxCommandEvent& WXUNUSED(even))
 
 void ResultsFrame::addResultToResultData(Outcome result)
 {
+	auto const* report = latestReport();
 	wxVector<wxVariant> data;
 	auto seat = project->seats().viewByIndex(result.seat);
 	wxColour swingColour = decideSwingColour(result);
@@ -171,9 +172,16 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	resultsData->SetCellValue(row, 3, result.updateTime.FormatISOTime());
 	resultsData->SetCellValue(row, 4, projectedMarginString);
 	resultsData->SetCellBackgroundColour(row, 4, projectedMarginColour);
-	resultsData->SetCellValue(row, 5, formatFloat(seat.partyOneWinRate * 100.0f, 2));
-	resultsData->SetCellValue(row, 6, formatFloat(seat.partyTwoWinRate * 100.0f, 2));
-	resultsData->SetCellValue(row, 7, formatFloat(seat.partyOthersWinRate * 100.0f, 2));
+	if (report && report->partyOneWinPercent.size()) {
+		resultsData->SetCellValue(row, 5, formatFloat(report->partyOneWinPercent[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, 6, formatFloat(report->partyTwoWinPercent[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, 7, formatFloat(report->othersWinPercent[result.seat] * 100.0f, 2));
+	}
+	else {
+		resultsData->SetCellValue(row, 5, "");
+		resultsData->SetCellValue(row, 6, "");
+		resultsData->SetCellValue(row, 7, "");
+	}
 	resultsData->SetCellValue(row, 8, statusString);
 	resultsData->SetCellBackgroundColour(row, 8, statusColour);
 	resultsData->Refresh();
@@ -275,7 +283,7 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 	float significance = 0.0f;
 	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(seat.margin))));
 	auto const* report = latestReport();
-	if (report) {
+	if (report && report->seatIncumbentMarginAverage.size()) {
 		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
 		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(simulatedMarginAverage)))));
 		// automatically treat seats changing hands as significant
@@ -289,7 +297,7 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 	return true;
 }
 
-wxColour ResultsFrame::decideSwingColour(Outcome const & thisResult)
+wxColour ResultsFrame::decideSwingColour(Outcome const& thisResult)
 {
 	auto const& seat = project->seats().viewByIndex(thisResult.seat);
 	Party::Colour swingPartyColour = (thisResult.incumbentSwing > 0.0f ?
@@ -305,20 +313,18 @@ wxColour ResultsFrame::decidePercentCountedColour(Outcome const & thisResult)
 	return wxColour(255 - std::min(255, int(percentCounted * 2.55f)), 255, 255 - std::min(255, int(percentCounted * 2.55f)));
 }
 
-std::string ResultsFrame::decideProjectedMarginString(Outcome const & thisResult)
+std::string ResultsFrame::decideProjectedMarginString(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (report) {
-		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
-		Seat const& seat = project->seats().view(thisResult.seat);
-		float projectedSwing = simulatedMarginAverage - seat.margin;
-		return formatFloat(simulatedMarginAverage, 2) + " (" +
-			(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
-	}
-	return "";
+	if (!report || !report->partyOneWinPercent.size()) return "";
+	double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+	Seat const& seat = project->seats().view(thisResult.seat);
+	float projectedSwing = simulatedMarginAverage - seat.margin;
+	return formatFloat(simulatedMarginAverage, 2) + " (" +
+		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
 }
 
-wxColour ResultsFrame::decideProjectedMarginColour(Outcome const & thisResult)
+wxColour ResultsFrame::decideProjectedMarginColour(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
 	if (report) {
@@ -331,26 +337,30 @@ wxColour ResultsFrame::decideProjectedMarginColour(Outcome const & thisResult)
 	return *wxWHITE;
 }
 
-std::string ResultsFrame::decideLeadingPartyName(Outcome const & thisResult)
+std::string ResultsFrame::decideLeadingPartyName(Outcome const& thisResult)
 {
-	auto const& seat = project->seats().viewByIndex(thisResult.seat);
-	float p1 = seat.partyOneWinRate;
-	float p2 = seat.partyTwoWinRate;
-	float p3 = seat.partyOthersWinRate;
+	auto const* report = latestReport();
+	if (!report || !report->partyOneWinPercent.size()) return "";
+	float p1 = float(report->partyOneWinPercent[thisResult.seat]);
+	float p2 = float(report->partyTwoWinPercent[thisResult.seat]);
+	float p3 = float(report->othersWinPercent[thisResult.seat]);
 	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
 	std::string leadingPartyName = (thisParty != Party::InvalidId ? project->parties().view(thisParty).abbreviation : "OTH");
 	return leadingPartyName;
 }
 
-float ResultsFrame::decideLeaderProbability(Outcome const & thisResult)
+float ResultsFrame::decideLeaderProbability(Outcome const& thisResult)
 {
-	auto const& seat = project->seats().viewByIndex(thisResult.seat);
-	float leaderProb = std::max(seat.partyOneWinRate * 100.0f,
-		std::max(seat.partyTwoWinRate * 100.0f, seat.partyOthersWinRate * 100.0f));
+	auto const* report = latestReport();
+	if (!report || !report->partyOneWinPercent.size()) return 0.0f;
+	float p1 = float(report->partyOneWinPercent[thisResult.seat]);
+	float p2 = float(report->partyTwoWinPercent[thisResult.seat]);
+	float p3 = float(report->othersWinPercent[thisResult.seat]);
+	float leaderProb = std::max(p1 * 100.0f, std::max(p2 * 100.0f, p3 * 100.0f));
 	return leaderProb;
 }
 
-std::string ResultsFrame::decideLikelihoodString(Outcome const & thisResult)
+std::string ResultsFrame::decideLikelihoodString(Outcome const& thisResult)
 {
 	float leaderProb = decideLeaderProbability(thisResult);
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
@@ -361,21 +371,21 @@ std::string ResultsFrame::decideLikelihoodString(Outcome const & thisResult)
 	return likelihoodString;
 }
 
-std::string ResultsFrame::decideStatusString(Outcome const & thisResult)
+std::string ResultsFrame::decideStatusString(Outcome const& thisResult)
 {
 	return decideLikelihoodString(thisResult) + " (" +
 		formatFloat(decideLeaderProbability(thisResult), 2) + "%) " + 
 		decideLeadingPartyName(thisResult);
 }
 
-wxColour ResultsFrame::decideStatusColour(Outcome const & thisResult)
+wxColour ResultsFrame::decideStatusColour(Outcome const& thisResult)
 {
-	auto const& seat = project->seats().viewByIndex(thisResult.seat);
-	float p1 = seat.partyOneWinRate;
-	float p2 = seat.partyTwoWinRate;
-	float p3 = seat.partyOthersWinRate;
-	float leaderProb = std::max(seat.partyOneWinRate * 100.0f,
-		std::max(seat.partyTwoWinRate * 100.0f, seat.partyOthersWinRate * 100.0f));
+	auto const* report = latestReport();
+	if (!report || !report->partyOneWinPercent.size()) return *wxWHITE;
+	float p1 = float(report->partyOneWinPercent[thisResult.seat]);
+	float p2 = float(report->partyTwoWinPercent[thisResult.seat]);
+	float p3 = float(report->othersWinPercent[thisResult.seat]);
+	float leaderProb = std::max(p1 * 100.0f, std::max(p2 * 100.0f, p3 * 100.0f));
 	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
 		leaderProb < 98.0f ? 3 : (leaderProb < 99.9f ? 4 : 5)))));
@@ -386,7 +396,7 @@ wxColour ResultsFrame::decideStatusColour(Outcome const & thisResult)
 	return statusColour;
 }
 
-void ResultsFrame::confirmOverrideNonClassicStatus(Seat & seat)
+void ResultsFrame::confirmOverrideNonClassicStatus(Seat& seat)
 {
 	if ((!seat.isClassic2pp(true) || seat.challenger2Odds < 8.0f) &&
 		!seat.livePartyOne && !seat.overrideBettingOdds) {
@@ -419,7 +429,7 @@ std::string ResultsFrame::decideSummaryString()
 	std::string party1 = project->parties().view(0).abbreviation;
 	std::string party2 = project->parties().view(1).abbreviation;
 	auto const* report = latestReport();
-	if (!report) return "";
+	if (!report || !report->partyOneWinPercent.size()) return "";
 	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyWinPercent(Simulation::MajorParty::One), 2) +
 		"   Projected 2PP: " + party1 + " " + formatFloat(float(report->getPartyOne2pp()), 2) +
 		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +

@@ -72,14 +72,7 @@ public:
 	float partyThreeProb = 0.0f;
 	bool overrideBettingOdds = false;
 
-	int incumbentWins = 0;
-
-	double partyOneWinRate = 0.0;
-	double partyTwoWinRate = 0.0;
-	double partyOthersWinRate = 0.0;
-
 	//float tempWinnerMargin = 0.0f;
-	Party::Id winner = Party::InvalidId;
 
 	std::array<int, 2> tcpTally = { 0, 0 }; // cached data for simulations
 	float individualBoothGrowth; // cached data for simulations

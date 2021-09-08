@@ -113,6 +113,9 @@ public:
 		std::vector<float> seatMargins;
 
 		std::vector<float> incumbentWinPercent;
+		std::vector<double> partyOneWinPercent;
+		std::vector<double> partyTwoWinPercent;
+		std::vector<double> othersWinPercent;
 
 		// gives the indices of classic seats
 		std::vector<Seat::Id> classicSeatIndices;

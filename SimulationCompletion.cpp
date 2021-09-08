@@ -39,13 +39,11 @@ void SimulationCompletion::calculateIndividualSeatStatistics()
 	sim.latestReport.incumbentWinPercent.resize(project.seats().count());
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat& thisSeat = project.seats().access(project.seats().indexToId(seatIndex));
-		sim.latestReport.incumbentWinPercent[seatIndex] = float(thisSeat.incumbentWins) / float(sim.settings.numIterations) * 100.0f;
+		sim.latestReport.incumbentWinPercent[seatIndex] = float(sim.latestReport.incumbentWinPercent[seatIndex]) / float(sim.settings.numIterations) * 100.0f;
 		sim.latestReport.seatIncumbentMarginAverage[seatIndex] /= float(sim.settings.numIterations) * 100.0;
-		thisSeat.incumbentWinPercent = sim.latestReport.incumbentWinPercent[seatIndex];
-		thisSeat.partyOneWinRate /= double(sim.settings.numIterations);
-		thisSeat.partyTwoWinRate /= double(sim.settings.numIterations);
-		thisSeat.partyOthersWinRate /= double(sim.settings.numIterations);
+		sim.latestReport.partyOneWinPercent[seatIndex] /= double(sim.settings.numIterations);
+		sim.latestReport.partyTwoWinPercent[seatIndex] /= double(sim.settings.numIterations);
+		sim.latestReport.othersWinPercent[seatIndex] /= double(sim.settings.numIterations);
 	}
 }
 

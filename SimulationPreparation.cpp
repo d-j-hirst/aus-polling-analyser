@@ -69,12 +69,12 @@ void SimulationPreparation::resetRegionSpecificOutput()
 void SimulationPreparation::resetSeatSpecificOutput()
 {
 	sim.latestReport.seatIncumbentMarginAverage.resize(project.seats().count(), 0.0);
+	sim.latestReport.incumbentWinPercent.resize(project.seats().count(), 0.0);
+	sim.latestReport.partyOneWinPercent.resize(project.seats().count(), 0.0);
+	sim.latestReport.partyTwoWinPercent.resize(project.seats().count(), 0.0);
+	sim.latestReport.othersWinPercent.resize(project.seats().count(), 0.0);
 
 	for (auto&[key, seat] : project.seats()) {
-		seat.incumbentWins = 0;
-		seat.partyOneWinRate = 0.0f;
-		seat.partyTwoWinRate = 0.0f;
-		seat.partyOthersWinRate = 0.0f;
 		seat.outcome = nullptr;
 	}
 }

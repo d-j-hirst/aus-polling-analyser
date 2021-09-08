@@ -55,8 +55,8 @@ private:
 	void correctRegionalSwings();
 	void determineSeatResult(int seatIndex);
 	void determineClassicSeatResult(int seatIndex);
-	void adjustClassicSeatResultFor3rdPlaceIndependent(Seat& seat);
-	void adjustClassicSeatResultForBettingOdds(Seat& seat, SeatResult result);
+	void adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex);
+	void adjustClassicSeatResultForBettingOdds(int seatIndex, SeatResult result);
 	void determineNonClassicSeatResult(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignCountAsPartyWins();
@@ -118,6 +118,7 @@ private:
 	std::vector<int> partyWins;
 	std::vector<float> regionSwing;
 	std::vector<float> incumbentNewMargin;
+	std::vector<Party::Id> seatWinner;
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
 	std::vector<float> overallFp;
