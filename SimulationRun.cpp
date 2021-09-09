@@ -28,7 +28,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 	SimulationPreparation preparations(project, sim, *this);
 	preparations.prepareForIterations();
 
-	int numThreads = 8; // temporary, pull from settings later
+	int numThreads = project.config().getNumThreads(); // temporary, pull from settings later
 	std::vector<int> batchSizes;
 	int minBatchSize = sim.settings.numIterations / numThreads;
 	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
