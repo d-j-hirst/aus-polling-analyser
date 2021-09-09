@@ -57,11 +57,6 @@ public:
 	float incumbentWinPercent = 0.0f;
 	float tippingPointPercent = 0.0f;
 
-	float liveBoothSwing = 0.0f;
-
-	float firstPartyPreferenceFlow = 0.0f;
-	float preferenceFlowVariation = 0.03f;
-
 	// Party one probability is calculated as being 1 - the other two parties,
 	// which allows for conveniently adding a party as certain to win a seat without needing any other input
 	int livePartyOne = Party::InvalidId;
@@ -71,11 +66,6 @@ public:
 	float partyTwoProb = 0.0f;
 	float partyThreeProb = 0.0f;
 	bool overrideBettingOdds = false;
-
-	//float tempWinnerMargin = 0.0f;
-
-	std::array<int, 2> tcpTally = { 0, 0 }; // cached data for simulations
-	float individualBoothGrowth; // cached data for simulations
 
 	Party::Id getLeadingParty() const {
 		return (margin > 0.0f ? incumbent : challenger);

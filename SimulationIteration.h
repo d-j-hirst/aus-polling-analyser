@@ -69,11 +69,11 @@ private:
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 
-	SeatResult calculateResultMatched2cp(Seat const& seat, float priorMargin);
-	SeatResult calculateLiveAutomaticResultMatched2cp(Seat const& seat, float priorMargin);
+	SeatResult calculateResultMatched2cp(int seatIndex, float priorMargin);
+	SeatResult calculateLiveAutomaticResultMatched2cp(int seatIndex, float priorMargin);
 	SeatResult calculateLiveManualResultMatched2cp(Seat const& seat, float priorMargin);
 	float calculateSeatRemainingSwing(Seat const& seat, float priorMargin);
-	BoothAccumulation sumMatched2cpBoothVotes(Seat const& seat, float priorMargin);
+	BoothAccumulation sumMatched2cpBoothVotes(int seatIndex, float priorMargin);
 	void estimateMysteryBoothVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes);
 	// Resturns an estimate of the total votes in this seat
 	int estimateDeclarationVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes, float enrolmentChange);
@@ -86,9 +86,9 @@ private:
 	TcpTally estimatePrepollVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange);
 	TcpTally estimatePostalVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange);
 
-	SeatResult calculateLiveResultNonClassic2CP(Seat const& seat);
-	SeatResult calculateResultUnmatched2cp(Seat const& seat);
-	TcpTally sumUnmatched2cpBoothVotes(Seat const& seat);
+	SeatResult calculateLiveResultNonClassic2CP(int seatIndex);
+	SeatResult calculateResultUnmatched2cp(int seatIndex);
+	TcpTally sumUnmatched2cpBoothVotes(int seatIndex);
 	int estimateTotalVotes(Seat const& seat);
 	void modifyUnmatchedTallyForRemainingVotes(Seat const& seat, TcpTally& tcpTally, int estimatedTotalVotes);
 	

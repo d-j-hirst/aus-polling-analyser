@@ -31,10 +31,10 @@ private:
 	void updateLiveAggregateForSeat(Seat& seat);
 	void finaliseLiveAggregates();
 	void resetResultCounts();
-	void determineSeatCachedBoothData(Seat& seat);
-	SeatPartyPreferences aggregateVoteData(Seat& seat);
-	void calculatePreferenceFlows(Seat& seat, SeatPartyPreferences majorPartyPreferences);
-	void accumulatePpvcBiasMeasures(Seat& seat);
+	void determineSeatCachedBoothData(int seatIndex);
+	SeatPartyPreferences aggregateVoteData(int seatIndex);
+	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
+	void accumulatePpvcBiasMeasures(int seatIndex);
 
 	PollingProject& project;
 	Simulation& sim;

@@ -187,7 +187,7 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 	// Add random noise to the new margin of this seat
 	newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 	// Now work out the margin of the seat from actual results if live
-	SeatResult result = calculateResultMatched2cp(seat, newMargin);
+	SeatResult result = calculateResultMatched2cp(seatIndex, newMargin);
 
 	// Margin for this simulation is finalised, record it for later averaging
 	incumbentNewMargin[seatIndex] = result.margin * (result.winner == seat.incumbent ? 1.0f : -1.0f);
@@ -245,7 +245,7 @@ void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float liveSignificance = 0.0f;
 	if (sim.isLiveAutomatic()) {
-		SeatResult result = calculateLiveResultNonClassic2CP(seat);
+		SeatResult result = calculateLiveResultNonClassic2CP(seatIndex);
 		seatWinner[seatIndex] = result.winner;
 		liveSignificance = result.significance;
 	}
@@ -381,10 +381,11 @@ SimulationIteration::OddsInfo SimulationIteration::calculateOddsInfo(Seat const&
 	return OddsInfo{ incumbentChance, topTwoChance };
 }
 
-SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(Seat const& seat, float priorMargin)
+SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(int seatIndex, float priorMargin)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
-		return calculateLiveAutomaticResultMatched2cp(seat, priorMargin);
+		return calculateLiveAutomaticResultMatched2cp(seatIndex, priorMargin);
 	}
 	else if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) {
 		return calculateLiveManualResultMatched2cp(seat, priorMargin);
@@ -396,13 +397,14 @@ SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(S
 	}
 }
 
-SimulationIteration::SeatResult SimulationIteration::calculateLiveAutomaticResultMatched2cp(Seat const& seat, float priorMargin)
+SimulationIteration::SeatResult SimulationIteration::calculateLiveAutomaticResultMatched2cp(int seatIndex, float priorMargin)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// All swings are in terms of a swing to candidate 0 as per latest results
 	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 	Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
 
-	auto boothResults = sumMatched2cpBoothVotes(seat, priorMargin);
+	auto boothResults = sumMatched2cpBoothVotes(seatIndex, priorMargin);
 
 	// Now we have also tallied the estimated votes from booths that are uncounted but matched, if any
 
@@ -467,8 +469,9 @@ float SimulationIteration::calculateSeatRemainingSwing(Seat const& seat, float p
 	return remainingVoteSwing;
 }
 
-SimulationIteration::BoothAccumulation SimulationIteration::sumMatched2cpBoothVotes(Seat const& seat, float priorMargin)
+SimulationIteration::BoothAccumulation SimulationIteration::sumMatched2cpBoothVotes(int seatIndex, float priorMargin)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	BoothAccumulation boothAccumulation;
 
 	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
@@ -477,7 +480,7 @@ SimulationIteration::BoothAccumulation SimulationIteration::sumMatched2cpBoothVo
 	// At this point we have tallied all the counted votes from booths (matched or otherwise)
 	float remainingVoteSwing = calculateSeatRemainingSwing(seat, priorMargin);
 
-	boothAccumulation.tcpTally = seat.tcpTally;
+	boothAccumulation.tcpTally = run.seatTcpTally[seatIndex];
 
 	// To estimate the vote count for individual booths we need to adjust the previous election's total votes
 	// according to how the already-counted individual booth growth as occurred
@@ -485,7 +488,7 @@ SimulationIteration::BoothAccumulation SimulationIteration::sumMatched2cpBoothVo
 	for (auto boothId : seat.latestResults->booths) {
 		Results::Booth const& booth = project.results().getBooth(boothId);
 		if (booth.hasOldResults() && !booth.hasNewResults()) {
-			int estimatedTotalVotes = int(std::round(float(booth.totalOldTcpVotes()) * seat.individualBoothGrowth));
+			int estimatedTotalVotes = int(std::round(float(booth.totalOldTcpVotes()) * run.seatIndividualBoothGrowth[seatIndex]));
 			Party::Id boothFirstParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
 			// Party const* boothSecondParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
 			bool isInSeatOrder = boothFirstParty == firstParty;
@@ -685,13 +688,14 @@ SimulationIteration::TcpTally SimulationIteration::estimatePostalVotes(Seat cons
 	return { firstPostalVotes, secondPostalVotes };
 }
 
-SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClassic2CP(Seat const& seat)
+SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClassic2CP(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (sim.isLiveAutomatic() && seatPartiesMatchBetweenElections(seat)) {
-		return calculateResultMatched2cp(seat, seat.margin);
+		return calculateResultMatched2cp(seatIndex, seat.margin);
 	}
 	else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
-		return calculateResultUnmatched2cp(seat);
+		return calculateResultUnmatched2cp(seatIndex);
 	}
 	else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
 		return calculateLiveResultFromFirstPreferences(seat);
@@ -701,9 +705,10 @@ SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClass
 	}
 }
 
-SimulationIteration::SeatResult SimulationIteration::calculateResultUnmatched2cp(Seat const& seat)
+SimulationIteration::SeatResult SimulationIteration::calculateResultUnmatched2cp(int seatIndex)
 {
-	TcpTally tcpTally = sumUnmatched2cpBoothVotes(seat);
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	TcpTally tcpTally = sumUnmatched2cpBoothVotes(seatIndex);
 
 	int estimatedTotalVotes = estimateTotalVotes(seat);
 
@@ -732,12 +737,14 @@ SimulationIteration::SeatResult SimulationIteration::calculateResultUnmatched2cp
 	return { winner, runnerUp, margin, significance };
 }
 
-SimulationIteration::TcpTally SimulationIteration::sumUnmatched2cpBoothVotes(Seat const& seat)
+SimulationIteration::TcpTally SimulationIteration::sumUnmatched2cpBoothVotes(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
 	TcpTally tcpTally = { 0, 0 };
-	float preferenceFlowGuess = std::normal_distribution<float>(seat.firstPartyPreferenceFlow, seat.preferenceFlowVariation)(gen);
+	float preferenceFlowGuess = std::normal_distribution<float>(run.seatFirstPartyPreferenceFlow[seatIndex],
+		run.seatPreferenceFlowVariation[seatIndex])(gen);
 	for (auto boothId : seat.latestResults->booths) {
 		Results::Booth const& booth = project.results().getBooth(boothId);
 		bool matchingOrder = project.results().getPartyByCandidate(booth.tcpCandidateId[0]) == 

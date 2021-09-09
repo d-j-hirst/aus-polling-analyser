@@ -69,10 +69,14 @@ void SimulationPreparation::resetRegionSpecificOutput()
 void SimulationPreparation::resetSeatSpecificOutput()
 {
 	sim.latestReport.seatIncumbentMarginAverage.resize(project.seats().count(), 0.0);
-	sim.latestReport.incumbentWinPercent.resize(project.seats().count(), 0.0);
+	sim.latestReport.incumbentWinPercent.resize(project.seats().count(), 0.0f);
 	sim.latestReport.partyOneWinPercent.resize(project.seats().count(), 0.0);
 	sim.latestReport.partyTwoWinPercent.resize(project.seats().count(), 0.0);
 	sim.latestReport.othersWinPercent.resize(project.seats().count(), 0.0);
+	run.seatFirstPartyPreferenceFlow.resize(project.seats().count(), 0.0f);
+	run.seatPreferenceFlowVariation.resize(project.seats().count(), 0.0f);
+	run.seatTcpTally.resize(project.seats().count(), { 0, 0 });
+	run.seatIndividualBoothGrowth.resize(project.seats().count(), 0.0f);
 
 	for (auto&[key, seat] : project.seats()) {
 		seat.outcome = nullptr;
@@ -103,8 +107,8 @@ void SimulationPreparation::resetPpvcBiasAggregates()
 void SimulationPreparation::cacheBoothData()
 {
 	if (!sim.isLiveAutomatic()) return;
-	for (auto&[key, seat] : project.seats()) {
-		determineSeatCachedBoothData(seat);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		determineSeatCachedBoothData(seatIndex);
 	}
 }
 
@@ -251,26 +255,29 @@ void SimulationPreparation::resetResultCounts()
 	sim.latestReport.partyOneSwing = 0.0;
 }
 
-void SimulationPreparation::determineSeatCachedBoothData(Seat& seat)
+void SimulationPreparation::determineSeatCachedBoothData(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+
 	if (!seat.latestResults.has_value()) return;
 
-	auto seatPartyPreferences = aggregateVoteData(seat);
+	auto seatPartyPreferences = aggregateVoteData(seatIndex);
 
-	calculatePreferenceFlows(seat, seatPartyPreferences);
+	calculatePreferenceFlows(seatIndex, seatPartyPreferences);
 
-	accumulatePpvcBiasMeasures(seat);
+	accumulatePpvcBiasMeasures(seatIndex);
 }
 
-std::pair<int, int> SimulationPreparation::aggregateVoteData(Seat& seat)
+std::pair<int, int> SimulationPreparation::aggregateVoteData(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (!seat.latestResults) return { 0, 0 };
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
 	if (!firstCandidateId || !secondCandidateId) return { 0, 0 }; // maverick results mean we shouldn't try to estimate 2cp swings
 	Party::Id firstSeatParty = project.results().getPartyByCandidate(firstCandidateId);
-	seat.tcpTally[0] = 0;
-	seat.tcpTally[1] = 0;
+	run.seatTcpTally[seatIndex][0] = 0;
+	run.seatTcpTally[seatIndex][1] = 0;
 	int newComparisonVotes = 0;
 	int oldComparisonVotes = 0;
 	int seatFirstPartyPreferences = 0;
@@ -281,8 +288,8 @@ std::pair<int, int> SimulationPreparation::aggregateVoteData(Seat& seat)
 		Party::Id firstBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
 		bool isInSeatOrder = firstBoothParty == firstSeatParty;
 		if (booth.hasNewResults()) {
-			seat.tcpTally[0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
-			seat.tcpTally[1] += float(isInSeatOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
+			run.seatTcpTally[seatIndex][0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
+			run.seatTcpTally[seatIndex][1] += float(isInSeatOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
 		}
 		if (booth.hasOldAndNewResults()) {
 			oldComparisonVotes += booth.totalOldTcpVotes();
@@ -316,13 +323,14 @@ std::pair<int, int> SimulationPreparation::aggregateVoteData(Seat& seat)
 		}
 	}
 
-	seat.individualBoothGrowth = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
+	run.seatIndividualBoothGrowth[seatIndex] = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
 
 	return std::make_pair(seatFirstPartyPreferences, seatSecondPartyPreferences);
 }
 
-void SimulationPreparation::calculatePreferenceFlows(Seat & seat, SeatPartyPreferences seatPartyPreferences)
+void SimulationPreparation::calculatePreferenceFlows(int seatIndex, SeatPartyPreferences seatPartyPreferences)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (!seat.latestResults.has_value()) return;
 	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
 	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
@@ -330,18 +338,19 @@ void SimulationPreparation::calculatePreferenceFlows(Seat & seat, SeatPartyPrefe
 	Party::Id secondSeatParty = project.results().getPartyByCandidate(secondCandidateId);
 	if (seatPartyPreferences.first + seatPartyPreferences.second) {
 		float totalPreferences = float(seatPartyPreferences.first + seatPartyPreferences.second);
-		seat.firstPartyPreferenceFlow = float(seatPartyPreferences.first) / totalPreferences;
-		seat.preferenceFlowVariation = std::clamp(0.1f - totalPreferences / float(seat.latestResults->enrolment), 0.03f, 0.1f);
+		run.seatFirstPartyPreferenceFlow[seatIndex] = float(seatPartyPreferences.first) / totalPreferences;
+		run.seatPreferenceFlowVariation[seatIndex] = std::clamp(0.1f - totalPreferences / float(seat.latestResults->enrolment), 0.03f, 0.1f);
 
 		if (firstSeatParty != Party::InvalidId && secondSeatParty != Party::InvalidId) {
 			logger << seatPartyPreferences.first << " " << seatPartyPreferences.second << " " <<
-				seat.firstPartyPreferenceFlow << " " << seat.preferenceFlowVariation << " preference flow to " <<
+				run.seatFirstPartyPreferenceFlow[seatIndex] << " " << run.seatPreferenceFlowVariation[seatIndex] << " preference flow to " <<
 				project.parties().view(firstSeatParty).name << " vs " << project.parties().view(secondSeatParty).name << " - " << seat.name << "\n";
 		}
 	}
 }
 
-void SimulationPreparation::accumulatePpvcBiasMeasures(Seat& seat) {
+void SimulationPreparation::accumulatePpvcBiasMeasures(int seatIndex) {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (!seat.latestResults.has_value()) return;
 
 	float nonPpvcSwingNumerator = 0.0f;

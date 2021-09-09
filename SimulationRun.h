@@ -56,5 +56,9 @@ private:
 
 	std::array<int, 2> partyMajority = std::array<int, 2>();
 	std::array<int, 2> partyMinority = std::array<int, 2>();
+	std::vector<float> seatFirstPartyPreferenceFlow;
+	std::vector<float> seatPreferenceFlowVariation;
+	std::vector<std::array<int, 2>> seatTcpTally;
+	std::vector<float> seatIndividualBoothGrowth;
 	int hungParliament = 0;
 };
