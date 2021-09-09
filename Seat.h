@@ -35,7 +35,6 @@ public:
 	Party::Id challenger = Party::InvalidId;
 	Party::Id challenger2 = Party::InvalidId;
 	Region::Id region = Region::InvalidId;
-	Outcome const* outcome = nullptr; // used as a temporary in simulations for storing the latest live result
 
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;

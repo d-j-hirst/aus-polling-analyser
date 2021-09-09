@@ -41,9 +41,7 @@ void SimulationPreparation::prepareForIterations()
 
 	determinePpvcBias();
 
-	// this stores the manually input results for seats so that they're ready for the simulations
-	// to use them if set to "Live Manual"
-	run.project.updateOutcomesForSeats();
+	loadSeatOutcomeRelations();
 
 	determinePreviousVoteEnrolmentRatios();
 
@@ -85,10 +83,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPreferenceFlowVariation.resize(project.seats().count(), 0.0f);
 	run.seatTcpTally.resize(project.seats().count(), { 0, 0 });
 	run.seatIndividualBoothGrowth.resize(project.seats().count(), 0.0f);
-
-	for (auto&[key, seat] : project.seats()) {
-		seat.outcome = nullptr;
-	}
+	run.seatToOutcome.resize(project.seats().count(), nullptr);
 }
 
 void SimulationPreparation::accumulateRegionStaticInfo()
@@ -135,6 +130,15 @@ void SimulationPreparation::determinePpvcBias()
 
 	logger << run.ppvcBiasNumerator << " " << run.ppvcBiasDenominator << " " << run.ppvcBiasObserved << " " << run.totalOldPpvcVotes <<
 		" " << run.ppvcBiasConfidence << " - ppvc bias measures\n";
+}
+
+void SimulationPreparation::loadSeatOutcomeRelations()
+{
+	for (auto const& outcome : project.outcomes()) {
+		auto& seatOutcome = run.seatToOutcome[project.seats().idToIndex(outcome.seat)];
+		if (!seatOutcome) seatOutcome = &outcome;
+		else if (seatOutcome->updateTime < outcome.updateTime) seatOutcome = &outcome;
+	}
 }
 
 void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
@@ -196,8 +200,8 @@ void SimulationPreparation::calculateLiveAggregates()
 	run.total2cpVotes = 0;
 	run.totalEnrolment = 0;
 	if (sim.isLive()) {
-		for (auto&[key, seat] : project.seats()) {
-			updateLiveAggregateForSeat(seat);
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			updateLiveAggregateForSeat(seatIndex);
 		}
 		if (run.liveOverallPercent) {
 			finaliseLiveAggregates();
@@ -215,16 +219,17 @@ void SimulationPreparation::calculateLiveAggregates()
 	}
 }
 
-void SimulationPreparation::updateLiveAggregateForSeat(Seat & seat)
+void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (!seat.isClassic2pp(sim.isLiveAutomatic())) return;
 	++run.classicSeatCount;
 	Region& thisRegion = project.regions().access(seat.region);
 	++thisRegion.classicSeatCount;
-	if (!seat.outcome) return;
+	if (!run.seatToOutcome[seatIndex]) return;
 	bool incIsOne = seat.incumbent == 0;
-	float percentCounted = seat.outcome->getPercentCountedEstimate();
-	float weightedSwing = seat.outcome->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
+	float percentCounted = run.seatToOutcome[seatIndex]->getPercentCountedEstimate();
+	float weightedSwing = run.seatToOutcome[seatIndex]->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
 	run.liveOverallSwing += weightedSwing;
 	thisRegion.liveSwing += weightedSwing;
 	run.liveOverallPercent += percentCounted;

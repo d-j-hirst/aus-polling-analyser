@@ -11,6 +11,7 @@ class RegionCollection;
 class Seat;
 class SeatCollection;
 class Simulation;
+class Outcome;
 
 class SimulationRun {
 public:
@@ -60,5 +61,6 @@ private:
 	std::vector<float> seatPreferenceFlowVariation;
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
+	std::vector<Outcome const*> seatToOutcome;
 	int hungParliament = 0;
 };

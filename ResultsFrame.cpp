@@ -277,7 +277,7 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 {
 	if (filter == Filter::AllResults) return true;
 	Seat const& seat = project->seats().view(thisResult.seat);
-	if (seat.outcome && seat.outcome->updateTime != thisResult.updateTime) return false;
+	// if (seat.outcome && seat.outcome->updateTime != thisResult.updateTime) return false;
 	if (filter == Filter::LatestResults) return true;
 
 	float significance = 0.0f;
@@ -421,7 +421,6 @@ void ResultsFrame::addEnteredOutcome(Seat::Id seatId)
 	Outcome outcome = Outcome(seatId, swing, percentCounted, boothsIn, totalBooths);
 
 	project->outcomes().add(outcome);
-	project->updateOutcomesForSeats();
 }
 
 std::string ResultsFrame::decideSummaryString()

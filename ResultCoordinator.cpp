@@ -412,35 +412,35 @@ void ResultCoordinator::matchSeatsFromLatestResults(LatestResultsDataRetriever c
 
 void ResultCoordinator::updateOutcomesFromLatestResults()
 {
-	project.updateOutcomesForSeats(); // only overwrite different results
-	wxDateTime dateTime = wxDateTime::Now();
-	for (auto& seatPair : project.seats()) {
-		Seat& seat = seatPair.second;
-		float percentCounted2cp = calculate2cpPercentComplete(seat);
-		if (!percentCounted2cp) {
-			if (seat.isClassic2pp(true)) continue;
-			float percentCountedFp = calculateFpPercentComplete(seat);
-			if (!percentCountedFp) continue;
-			Outcome thisOutcome;
-			thisOutcome.seat = seatPair.first;
-			thisOutcome.percentCounted = percentCountedFp;
-			thisOutcome.updateTime = dateTime;
-			if (!seat.outcome || seat.outcome->percentCounted != percentCountedFp) {
-				project.outcomes().add(thisOutcome);
-			}
-			continue;
-		}
-		float incumbentSwing = calculateSwingToIncumbent(seat);
-		Outcome thisOutcome;
-		thisOutcome.seat = seatPair.first;
-		thisOutcome.incumbentSwing = incumbentSwing;
-		thisOutcome.percentCounted = percentCounted2cp;
-		thisOutcome.updateTime = dateTime;
-		if (!seat.outcome || seat.outcome->percentCounted != percentCounted2cp) {
-			project.outcomes().add(thisOutcome);
-		}
-	}
-	project.updateOutcomesForSeats(); // only overwrite different results
+	//project.updateOutcomesForSeats(); // only overwrite different results
+	//wxDateTime dateTime = wxDateTime::Now();
+	//for (auto& seatPair : project.seats()) {
+	//	Seat& seat = seatPair.second;
+	//	float percentCounted2cp = calculate2cpPercentComplete(seat);
+	//	if (!percentCounted2cp) {
+	//		if (seat.isClassic2pp(true)) continue;
+	//		float percentCountedFp = calculateFpPercentComplete(seat);
+	//		if (!percentCountedFp) continue;
+	//		Outcome thisOutcome;
+	//		thisOutcome.seat = seatPair.first;
+	//		thisOutcome.percentCounted = percentCountedFp;
+	//		thisOutcome.updateTime = dateTime;
+	//		if (!seat.outcome || seat.outcome->percentCounted != percentCountedFp) {
+	//			project.outcomes().add(thisOutcome);
+	//		}
+	//		continue;
+	//	}
+	//	float incumbentSwing = calculateSwingToIncumbent(seat);
+	//	Outcome thisOutcome;
+	//	thisOutcome.seat = seatPair.first;
+	//	thisOutcome.incumbentSwing = incumbentSwing;
+	//	thisOutcome.percentCounted = percentCounted2cp;
+	//	thisOutcome.updateTime = dateTime;
+	//	if (!seat.outcome || seat.outcome->percentCounted != percentCounted2cp) {
+	//		project.outcomes().add(thisOutcome);
+	//	}
+	//}
+	//project.updateOutcomesForSeats(); // only overwrite different results
 }
 
 int ResultCoordinator::findMatchingSeatIndex(Results::Seat seatData)

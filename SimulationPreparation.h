@@ -23,12 +23,13 @@ private:
 	void resetPpvcBiasAggregates();
 	void cacheBoothData();
 	void determinePpvcBias();
+	void loadSeatOutcomeRelations();
 	void determinePreviousVoteEnrolmentRatios();
 	void resizeRegionSeatCountOutputs();
 	void countInitialRegionSeatLeads();
 	void calculateTotalPopulation();
 	void calculateLiveAggregates();
-	void updateLiveAggregateForSeat(Seat& seat);
+	void updateLiveAggregateForSeat(int seatIndex);
 	void finaliseLiveAggregates();
 	void resetResultCounts();
 	void determineSeatCachedBoothData(int seatIndex);

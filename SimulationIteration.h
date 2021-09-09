@@ -71,7 +71,7 @@ private:
 
 	SeatResult calculateResultMatched2cp(int seatIndex, float priorMargin);
 	SeatResult calculateLiveAutomaticResultMatched2cp(int seatIndex, float priorMargin);
-	SeatResult calculateLiveManualResultMatched2cp(Seat const& seat, float priorMargin);
+	SeatResult calculateLiveManualResultMatched2cp(int seatIndex, float priorMargin);
 	float calculateSeatRemainingSwing(Seat const& seat, float priorMargin);
 	BoothAccumulation sumMatched2cpBoothVotes(int seatIndex, float priorMargin);
 	void estimateMysteryBoothVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes);

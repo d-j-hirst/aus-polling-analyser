@@ -397,8 +397,8 @@ SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(i
 	//}
 	//else if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) {
 
-	if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) { // replace with above line when live results are restored
-		return calculateLiveManualResultMatched2cp(seat, priorMargin);
+	if (sim.isLive() && run.seatToOutcome[seatIndex] && run.seatToOutcome[seatIndex]->getPercentCountedEstimate()) { // replace with above line when live results are restored
+		return calculateLiveManualResultMatched2cp(seatIndex, priorMargin);
 	}
 	else {
 		Party::Id winner = (priorMargin >= 0.0f ? seat.incumbent : seat.challenger);
@@ -453,17 +453,18 @@ SimulationIteration::SeatResult SimulationIteration::calculateLiveAutomaticResul
 	//return { winner, runnerUp, abs(firstMargin), float(significance) };
 }
 
-SimulationIteration::SeatResult SimulationIteration::calculateLiveManualResultMatched2cp(Seat const& seat, float priorMargin)
+SimulationIteration::SeatResult SimulationIteration::calculateLiveManualResultMatched2cp(int seatIndex, float priorMargin)
 {
-	float liveMargin = seat.outcome->incumbentSwing + seat.margin;
-	float liveStdDev = stdDevSingleSeat(seat.outcome->getPercentCountedEstimate());
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	float liveMargin = run.seatToOutcome[seatIndex]->incumbentSwing + seat.margin;
+	float liveStdDev = stdDevSingleSeat(run.seatToOutcome[seatIndex]->getPercentCountedEstimate());
 	liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 	float priorWeight = 0.5f;
 	float liveWeight = 6.0f / (liveStdDev * liveStdDev);
 	float newMargin = (priorMargin * priorWeight + liveMargin * liveWeight) / (priorWeight + liveWeight);
 	Party::Id winner = (newMargin >= 0.0f ? seat.incumbent : seat.challenger);
 	Party::Id runnerUp = (newMargin >= 0.0f ? seat.challenger : seat.incumbent);
-	float significance = std::clamp(float(seat.outcome->percentCounted) * 0.2f, 0.0f, 1.0f);
+	float significance = std::clamp(float(run.seatToOutcome[seatIndex]->percentCounted) * 0.2f, 0.0f, 1.0f);
 	return { winner, runnerUp, abs(newMargin), significance };
 }
 

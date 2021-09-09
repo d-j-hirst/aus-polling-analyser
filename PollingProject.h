@@ -126,10 +126,6 @@ public:
 	ElectionCollection& elections() { return electionCollection; }
 	ElectionCollection const& elections() const { return electionCollection; }
 
-	// Each seat has a pointer to the latest live result (if any)
-	// This updates these pointers to point to the most recent results.
-	void updateOutcomesForSeats();
-
 	// Save this project to the given filename.
 	// Returns 0 if successful, and 1 if saving failed.
 	int save(std::string filename);

@@ -114,14 +114,6 @@ void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionInde
 	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
-void PollingProject::updateOutcomesForSeats() {
-	for (auto& outcome : outcomeCollection) {
-		auto& seatOutcome = seats().access(outcome.seat).outcome;
-		if (!seatOutcome) seatOutcome = &outcome;
-		else if (seatOutcome->updateTime < outcome.updateTime) seatOutcome = &outcome;
-	}
-}
-
 int PollingProject::save(std::string filename)
 {
 	ProjectFiler projectFiler(*this);
