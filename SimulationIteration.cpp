@@ -6,6 +6,14 @@
 #include "Simulation.h"
 #include "SimulationRun.h"
 
+// Note: A large amount of code in this file is commented out as the "previous results"
+// was updated to a new (better) format but the "latest results" was not. Further architectural
+// improvement, including removing cached election results from project seat data, cannot be
+// properly done unless this is fixed, and the fixing is decidedly non-trivial. In order to
+// expedite the initial web release, which does not require live election updating, these have
+// been disabled and code producing errors commented out and replaced with stubs,
+// until the project is prepared to work on restoring the live results.
+
 using Mp = Simulation::MajorParty;
 
 static std::random_device rd;
@@ -384,10 +392,12 @@ SimulationIteration::OddsInfo SimulationIteration::calculateOddsInfo(Seat const&
 SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(int seatIndex, float priorMargin)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
-		return calculateLiveAutomaticResultMatched2cp(seatIndex, priorMargin);
-	}
-	else if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) {
+	//if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
+	//	return calculateLiveAutomaticResultMatched2cp(seatIndex, priorMargin);
+	//}
+	//else if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) {
+
+	if (sim.isLive() && seat.outcome && seat.outcome->getPercentCountedEstimate()) { // replace with above line when live results are restored
 		return calculateLiveManualResultMatched2cp(seat, priorMargin);
 	}
 	else {
@@ -399,45 +409,48 @@ SimulationIteration::SeatResult SimulationIteration::calculateResultMatched2cp(i
 
 SimulationIteration::SeatResult SimulationIteration::calculateLiveAutomaticResultMatched2cp(int seatIndex, float priorMargin)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	// All swings are in terms of a swing to candidate 0 as per latest results
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
+	seatIndex;
+	priorMargin;
+	return SeatResult();
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//// All swings are in terms of a swing to candidate 0 as per latest results
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
 
-	auto boothResults = sumMatched2cpBoothVotes(seatIndex, priorMargin);
+	//auto boothResults = sumMatched2cpBoothVotes(seatIndex, priorMargin);
 
-	// Now we have also tallied the estimated votes from booths that are uncounted but matched, if any
+	//// Now we have also tallied the estimated votes from booths that are uncounted but matched, if any
 
-	// Need to calculate the remaining pool of uncounted and unmatched booths
-	float enrolmentChange = 1.0f;
-	int estimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
-	if (seat.previousResults) {
-		enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
-		estimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
-	}
+	//// Need to calculate the remaining pool of uncounted and unmatched booths
+	//float enrolmentChange = 1.0f;
+	//int estimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
+	//if (seat.previousResults) {
+	//	enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
+	//	estimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
+	//}
 
-	estimateMysteryBoothVotes(seat, boothResults, estimatedTotalOrdinaryVotes);
+	//estimateMysteryBoothVotes(seat, boothResults, estimatedTotalOrdinaryVotes);
 
-	int estimatedTotalVotes = estimateDeclarationVotes(seat, boothResults, estimatedTotalOrdinaryVotes, enrolmentChange);
+	//int estimatedTotalVotes = estimateDeclarationVotes(seat, boothResults, estimatedTotalOrdinaryVotes, enrolmentChange);
 
-	float totalTally = float(boothResults.tcpTally[0] + boothResults.tcpTally[1]);
-	float firstMargin = (float(boothResults.tcpTally[0]) - totalTally * 0.5f) / totalTally * 100.0f;
-	Party::Id winner = (firstMargin >= 0.0f ? firstParty : secondParty);
-	Party::Id runnerUp = (firstMargin >= 0.0f ? secondParty : firstParty);
+	//float totalTally = float(boothResults.tcpTally[0] + boothResults.tcpTally[1]);
+	//float firstMargin = (float(boothResults.tcpTally[0]) - totalTally * 0.5f) / totalTally * 100.0f;
+	//Party::Id winner = (firstMargin >= 0.0f ? firstParty : secondParty);
+	//Party::Id runnerUp = (firstMargin >= 0.0f ? secondParty : firstParty);
 
-	// Third parties can potentially be a "spoiler" for a seat expected to be classic
-	// This check replaces the winner by a third party if it is simulated but doesn't
-	// affect the balance between the 2cp candidates.
-	SeatResult spoilerResult = calculateLiveResultFromFirstPreferences(seat);
-	if (spoilerResult.winner != winner && spoilerResult.winner != runnerUp) {
-		if (std::uniform_real_distribution<float>(0.0f, 1.0f)(gen) < spoilerResult.significance) {
-			return spoilerResult;
-		}
-	}
+	//// Third parties can potentially be a "spoiler" for a seat expected to be classic
+	//// This check replaces the winner by a third party if it is simulated but doesn't
+	//// affect the balance between the 2cp candidates.
+	//SeatResult spoilerResult = calculateLiveResultFromFirstPreferences(seat);
+	//if (spoilerResult.winner != winner && spoilerResult.winner != runnerUp) {
+	//	if (std::uniform_real_distribution<float>(0.0f, 1.0f)(gen) < spoilerResult.significance) {
+	//		return spoilerResult;
+	//	}
+	//}
 
-	float significance = std::clamp(float(seat.latestResults->total2cpVotes()) / float(estimatedTotalVotes) * 20.0f, 0.0f, 1.0f);
+	//float significance = std::clamp(float(seat.latestResults->total2cpVotes()) / float(estimatedTotalVotes) * 20.0f, 0.0f, 1.0f);
 
-	return { winner, runnerUp, abs(firstMargin), float(significance) };
+	//return { winner, runnerUp, abs(firstMargin), float(significance) };
 }
 
 SimulationIteration::SeatResult SimulationIteration::calculateLiveManualResultMatched2cp(Seat const& seat, float priorMargin)
@@ -456,442 +469,510 @@ SimulationIteration::SeatResult SimulationIteration::calculateLiveManualResultMa
 
 float SimulationIteration::calculateSeatRemainingSwing(Seat const& seat, float priorMargin)
 {
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	bool incumbentFirst = firstParty == seat.incumbent;
+	seat;
+	priorMargin;
+	return 0.0f;
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//bool incumbentFirst = firstParty == seat.incumbent;
 
-	float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.outcome->incumbentSwing;
-	float liveStdDev = stdDevSingleSeat(seat.outcome->getPercentCountedEstimate());
-	liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-	float priorWeight = 0.5f;
-	float liveWeight = 6.0f / (liveStdDev * liveStdDev);
-	float priorSwing = (incumbentFirst ? 1.0f : -1.0f) * (priorMargin - seat.margin);
-	float remainingVoteSwing = (priorSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
-	return remainingVoteSwing;
+	//float liveSwing = (incumbentFirst ? 1.0f : -1.0f) * seat.outcome->incumbentSwing;
+	//float liveStdDev = stdDevSingleSeat(seat.outcome->getPercentCountedEstimate());
+	//liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+	//float priorWeight = 0.5f;
+	//float liveWeight = 6.0f / (liveStdDev * liveStdDev);
+	//float priorSwing = (incumbentFirst ? 1.0f : -1.0f) * (priorMargin - seat.margin);
+	//float remainingVoteSwing = (priorSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+	//return remainingVoteSwing;
 }
 
 SimulationIteration::BoothAccumulation SimulationIteration::sumMatched2cpBoothVotes(int seatIndex, float priorMargin)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	BoothAccumulation boothAccumulation;
+	seatIndex;
+	priorMargin;
+	return BoothAccumulation();
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//BoothAccumulation boothAccumulation;
 
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
 
-	// At this point we have tallied all the counted votes from booths (matched or otherwise)
-	float remainingVoteSwing = calculateSeatRemainingSwing(seat, priorMargin);
+	//// At this point we have tallied all the counted votes from booths (matched or otherwise)
+	//float remainingVoteSwing = calculateSeatRemainingSwing(seat, priorMargin);
 
-	boothAccumulation.tcpTally = run.seatTcpTally[seatIndex];
+	//boothAccumulation.tcpTally = run.seatTcpTally[seatIndex];
 
-	// To estimate the vote count for individual booths we need to adjust the previous election's total votes
-	// according to how the already-counted individual booth growth as occurred
-	// There may not be any old comparison votes in which case we assume no growth
-	for (auto boothId : seat.latestResults->booths) {
-		Results::Booth const& booth = project.results().getBooth(boothId);
-		if (booth.hasOldResults() && !booth.hasNewResults()) {
-			int estimatedTotalVotes = int(std::round(float(booth.totalOldTcpVotes()) * run.seatIndividualBoothGrowth[seatIndex]));
-			Party::Id boothFirstParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
-			// Party const* boothSecondParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
-			bool isInSeatOrder = boothFirstParty == firstParty;
-			float oldVotes0 = float(isInSeatOrder ? booth.tcpVote[0] : booth.tcpVote[1]);
-			float oldVotes1 = float(isInSeatOrder ? booth.tcpVote[1] : booth.tcpVote[0]);
-			float oldPercent0 = oldVotes0 / (oldVotes0 + oldVotes1) * 100.0f;
-			float boothSwingStdDev = 2.5f + 200.0f / booth.totalOldTcpVotes(); // small booths a lot swingier
-			float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
-			if (booth.isPPVC()) {
-				// votes are already in order for the seat, not the booth
-				if (firstParty == 0 && secondParty == 1) boothSwing += ppvcBias;
-				if (secondParty == 0 && firstParty == 1) boothSwing -= ppvcBias;
-			}
-			float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
-			int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
-			int newVotes1 = estimatedTotalVotes - newVotes0;
-			boothAccumulation.tcpTally[0] += newVotes0;
-			boothAccumulation.tcpTally[1] += newVotes1;
-		}
-		if (!booth.hasOldResults() && !booth.hasNewResults()) {
-			using Mystery = BoothAccumulation::MysteryBoothType;
-			if (booth.isPPVC()) ++boothAccumulation.mysteryBoothCounts[Mystery::Ppvc];
-			else if (booth.name.find(" Team") != std::string::npos) ++boothAccumulation.mysteryBoothCounts[Mystery::Team];
-			else ++boothAccumulation.mysteryBoothCounts[Mystery::Standard];
-		}
-	}
+	//// To estimate the vote count for individual booths we need to adjust the previous election's total votes
+	//// according to how the already-counted individual booth growth as occurred
+	//// There may not be any old comparison votes in which case we assume no growth
+	//for (auto boothId : seat.latestResults->booths) {
+	//	Results::Booth const& booth = project.results().getBooth(boothId);
+	//	if (booth.hasOldResults() && !booth.hasNewResults()) {
+	//		int estimatedTotalVotes = int(std::round(float(booth.totalOldTcpVotes()) * run.seatIndividualBoothGrowth[seatIndex]));
+	//		Party::Id boothFirstParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
+	//		// Party const* boothSecondParty = project.getPartyByCandidate(booth.tcpCandidateId[1]);
+	//		bool isInSeatOrder = boothFirstParty == firstParty;
+	//		float oldVotes0 = float(isInSeatOrder ? booth.tcpVote[0] : booth.tcpVote[1]);
+	//		float oldVotes1 = float(isInSeatOrder ? booth.tcpVote[1] : booth.tcpVote[0]);
+	//		float oldPercent0 = oldVotes0 / (oldVotes0 + oldVotes1) * 100.0f;
+	//		float boothSwingStdDev = 2.5f + 200.0f / booth.totalOldTcpVotes(); // small booths a lot swingier
+	//		float boothSwing = remainingVoteSwing + std::normal_distribution<float>(0.0f, boothSwingStdDev)(gen);
+	//		if (booth.isPPVC()) {
+	//			// votes are already in order for the seat, not the booth
+	//			if (firstParty == 0 && secondParty == 1) boothSwing += ppvcBias;
+	//			if (secondParty == 0 && firstParty == 1) boothSwing -= ppvcBias;
+	//		}
+	//		float newPercent0 = std::clamp(oldPercent0 + boothSwing, 0.0f, 100.0f);
+	//		int newVotes0 = int(std::round(newPercent0 * float(estimatedTotalVotes) * 0.01f));
+	//		int newVotes1 = estimatedTotalVotes - newVotes0;
+	//		boothAccumulation.tcpTally[0] += newVotes0;
+	//		boothAccumulation.tcpTally[1] += newVotes1;
+	//	}
+	//	if (!booth.hasOldResults() && !booth.hasNewResults()) {
+	//		using Mystery = BoothAccumulation::MysteryBoothType;
+	//		if (booth.isPPVC()) ++boothAccumulation.mysteryBoothCounts[Mystery::Ppvc];
+	//		else if (booth.name.find(" Team") != std::string::npos) ++boothAccumulation.mysteryBoothCounts[Mystery::Team];
+	//		else ++boothAccumulation.mysteryBoothCounts[Mystery::Standard];
+	//	}
+	//}
 
-	return boothAccumulation;
+	//return boothAccumulation;
 }
 
 void SimulationIteration::estimateMysteryBoothVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes)
 {
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
-	float firstTallyPercent = float(boothResults.tcpTally[0]) / float(boothResults.tcpTally[0] + boothResults.tcpTally[1]) * 100.0f;
+	seat;
+	boothResults;
+	estimatedTotalOrdinaryVotes;
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//Party::Id secondParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[1].candidateId);
+	//float firstTallyPercent = float(boothResults.tcpTally[0]) / float(boothResults.tcpTally[0] + boothResults.tcpTally[1]) * 100.0f;
 
-	using Mystery = BoothAccumulation::MysteryBoothType;
-	if (boothResults.hasMysteryBooths()) {
-		int estimatedRemainingOrdinaryVotes = std::max(0, estimatedTotalOrdinaryVotes - boothResults.tcpTally[0] - boothResults.tcpTally[1]);
-		// sanity check to make sure we aren't assigning 5000 votes to a special hospital team or something
-		int plausibleMaximumRemainingOrdinaryVotes = boothResults.mysteryBoothCounts[int(Mystery::Ppvc)] * 10000 +
-			boothResults.mysteryBoothCounts[int(Mystery::Standard)] * 2000 + boothResults.mysteryBoothCounts[int(Mystery::Team)] * 200;
-		float proportionPPVC = float(boothResults.mysteryBoothCounts[int(Mystery::Ppvc)] * 10000) / float(plausibleMaximumRemainingOrdinaryVotes);
-		estimatedRemainingOrdinaryVotes = std::min(estimatedRemainingOrdinaryVotes, plausibleMaximumRemainingOrdinaryVotes);
-		estimatedTotalOrdinaryVotes = estimatedRemainingOrdinaryVotes + boothResults.tcpTally[0] + boothResults.tcpTally[1];
+	//using Mystery = BoothAccumulation::MysteryBoothType;
+	//if (boothResults.hasMysteryBooths()) {
+	//	int estimatedRemainingOrdinaryVotes = std::max(0, estimatedTotalOrdinaryVotes - boothResults.tcpTally[0] - boothResults.tcpTally[1]);
+	//	// sanity check to make sure we aren't assigning 5000 votes to a special hospital team or something
+	//	int plausibleMaximumRemainingOrdinaryVotes = boothResults.mysteryBoothCounts[int(Mystery::Ppvc)] * 10000 +
+	//		boothResults.mysteryBoothCounts[int(Mystery::Standard)] * 2000 + boothResults.mysteryBoothCounts[int(Mystery::Team)] * 200;
+	//	float proportionPPVC = float(boothResults.mysteryBoothCounts[int(Mystery::Ppvc)] * 10000) / float(plausibleMaximumRemainingOrdinaryVotes);
+	//	estimatedRemainingOrdinaryVotes = std::min(estimatedRemainingOrdinaryVotes, plausibleMaximumRemainingOrdinaryVotes);
+	//	estimatedTotalOrdinaryVotes = estimatedRemainingOrdinaryVotes + boothResults.tcpTally[0] + boothResults.tcpTally[1];
 
-		const float MysteryVoteStdDev = 6.0f;
-		float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
-		if (firstParty == 0 && secondParty == 1) incumbentMysteryPercent += ppvcBias * proportionPPVC;
-		if (secondParty == 1 && firstParty == 0) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
-		int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
-		int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
-		boothResults.tcpTally[0] += incumbentMysteryVotes;
-		boothResults.tcpTally[1] += challengerMysteryVotes;
-	}
+	//	const float MysteryVoteStdDev = 6.0f;
+	//	float incumbentMysteryPercent = std::normal_distribution<float>(firstTallyPercent, MysteryVoteStdDev)(gen);
+	//	if (firstParty == 0 && secondParty == 1) incumbentMysteryPercent += ppvcBias * proportionPPVC;
+	//	if (secondParty == 1 && firstParty == 0) incumbentMysteryPercent -= ppvcBias * proportionPPVC;
+	//	int incumbentMysteryVotes = int(std::round(incumbentMysteryPercent * 0.01f * float(estimatedRemainingOrdinaryVotes)));
+	//	int challengerMysteryVotes = estimatedRemainingOrdinaryVotes - incumbentMysteryVotes;
+	//	boothResults.tcpTally[0] += incumbentMysteryVotes;
+	//	boothResults.tcpTally[1] += challengerMysteryVotes;
+	//}
 }
 
 int SimulationIteration::estimateDeclarationVotes(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes, float enrolmentChange)
 {
-	if (seat.previousResults) {
-		return estimateDeclarationVotesUsingPreviousResults(seat, boothResults, estimatedTotalOrdinaryVotes, enrolmentChange);
-	}
-	else {
-		return estimateDeclarationVotesWithoutPreviousResults(seat, boothResults, estimatedTotalOrdinaryVotes);
-	}
+	seat;
+	boothResults;
+	estimatedTotalOrdinaryVotes;
+	enrolmentChange;
+	return 0;
+	//if (seat.previousResults) {
+	//	return estimateDeclarationVotesUsingPreviousResults(seat, boothResults, estimatedTotalOrdinaryVotes, enrolmentChange);
+	//}
+	//else {
+	//	return estimateDeclarationVotesWithoutPreviousResults(seat, boothResults, estimatedTotalOrdinaryVotes);
+	//}
 }
 
 int SimulationIteration::estimateDeclarationVotesUsingPreviousResults(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes, float enrolmentChange)
 {
-	int estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
-	float declarationVoteChange = estimateDeclarationVoteProportionalChange(seat, estimatedTotalVotes, estimatedTotalOrdinaryVotes);
-	float ordinaryVoteSwing = calculateOrdinaryVoteSwing(seat, boothResults);
+	seat;
+	boothResults;
+	estimatedTotalOrdinaryVotes;
+	enrolmentChange;
+	return 0;
+	//int estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
+	//float declarationVoteChange = estimateDeclarationVoteProportionalChange(seat, estimatedTotalVotes, estimatedTotalOrdinaryVotes);
+	//float ordinaryVoteSwing = calculateOrdinaryVoteSwing(seat, boothResults);
 
-	auto[firstAbsentVotes, secondAbsentVotes] = estimateAbsentVotes(seat, ordinaryVoteSwing, declarationVoteChange);
-	auto[firstProvisionalVotes, secondProvisionalVotes] = estimateProvisionalVotes(seat, ordinaryVoteSwing, declarationVoteChange);
-	auto[firstPrepollVotes, secondPrepollVotes] = estimatePrepollVotes(seat, ordinaryVoteSwing, declarationVoteChange);
-	auto[firstPostalVotes, secondPostalVotes] = estimatePostalVotes(seat, ordinaryVoteSwing, declarationVoteChange);
+	//auto[firstAbsentVotes, secondAbsentVotes] = estimateAbsentVotes(seat, ordinaryVoteSwing, declarationVoteChange);
+	//auto[firstProvisionalVotes, secondProvisionalVotes] = estimateProvisionalVotes(seat, ordinaryVoteSwing, declarationVoteChange);
+	//auto[firstPrepollVotes, secondPrepollVotes] = estimatePrepollVotes(seat, ordinaryVoteSwing, declarationVoteChange);
+	//auto[firstPostalVotes, secondPostalVotes] = estimatePostalVotes(seat, ordinaryVoteSwing, declarationVoteChange);
 
-	boothResults.tcpTally[0] += firstAbsentVotes + firstProvisionalVotes + firstPrepollVotes + firstPostalVotes;
-	boothResults.tcpTally[1] += secondAbsentVotes + secondProvisionalVotes + secondPrepollVotes + secondPostalVotes;
-	return estimatedTotalVotes;
+	//boothResults.tcpTally[0] += firstAbsentVotes + firstProvisionalVotes + firstPrepollVotes + firstPostalVotes;
+	//boothResults.tcpTally[1] += secondAbsentVotes + secondProvisionalVotes + secondPrepollVotes + secondPostalVotes;
+	//return estimatedTotalVotes;
 }
 
 int SimulationIteration::estimateDeclarationVotesWithoutPreviousResults(Seat const& seat, BoothAccumulation& boothResults, int estimatedTotalOrdinaryVotes)
 {
-	int estimatedTotalVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
-	if (seat.latestResults->ordinaryVotes() > estimatedTotalOrdinaryVotes) {
-		float totalOrdinaryTally = float(boothResults.tcpTally[0] + boothResults.tcpTally[1]);
-		float estimatedNonOrdinaryVotePotential = float(seat.latestResults->enrolment - estimatedTotalOrdinaryVotes);
-		float estimatedProportionRemainingFormal = float(estimatedTotalVotes) / estimatedNonOrdinaryVotePotential;
-		constexpr float remainingFormalStdDev = 0.05f;
-		estimatedProportionRemainingFormal = std::clamp(estimatedProportionRemainingFormal + std::normal_distribution<float>(0.0f, remainingFormalStdDev)(gen), 0.0f, 1.0f);
-		float actualNonOrdinaryVotePotential = float(seat.latestResults->enrolment - seat.latestResults->ordinaryVotes());
-		int estimatedTotalDeclarationVotes = int(actualNonOrdinaryVotePotential * estimatedProportionRemainingFormal);
+	seat;
+	boothResults;
+	estimatedTotalOrdinaryVotes;
+	return 0;
+	//int estimatedTotalVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
+	//if (seat.latestResults->ordinaryVotes() > estimatedTotalOrdinaryVotes) {
+	//	float totalOrdinaryTally = float(boothResults.tcpTally[0] + boothResults.tcpTally[1]);
+	//	float estimatedNonOrdinaryVotePotential = float(seat.latestResults->enrolment - estimatedTotalOrdinaryVotes);
+	//	float estimatedProportionRemainingFormal = float(estimatedTotalVotes) / estimatedNonOrdinaryVotePotential;
+	//	constexpr float remainingFormalStdDev = 0.05f;
+	//	estimatedProportionRemainingFormal = std::clamp(estimatedProportionRemainingFormal + std::normal_distribution<float>(0.0f, remainingFormalStdDev)(gen), 0.0f, 1.0f);
+	//	float actualNonOrdinaryVotePotential = float(seat.latestResults->enrolment - seat.latestResults->ordinaryVotes());
+	//	int estimatedTotalDeclarationVotes = int(actualNonOrdinaryVotePotential * estimatedProportionRemainingFormal);
 
-		float firstPercent = float(boothResults.tcpTally[0]) / totalOrdinaryTally;
-		constexpr float declarationStdDev = 0.05f;
-		float declarationVoteFirstProportion = std::clamp(firstPercent + std::normal_distribution<float>(0.0f, declarationStdDev)(gen), 0.0f, 1.0f);
-		int firstTcpDeclarationVotes = int(estimatedTotalDeclarationVotes * declarationVoteFirstProportion);
-		int secondTcpDeclarationVotes = int(estimatedTotalDeclarationVotes * (1.0f - declarationVoteFirstProportion));
-		boothResults.tcpTally[0] += firstTcpDeclarationVotes;
-		boothResults.tcpTally[1] += secondTcpDeclarationVotes;
-	}
-	return estimatedTotalVotes;
+	//	float firstPercent = float(boothResults.tcpTally[0]) / totalOrdinaryTally;
+	//	constexpr float declarationStdDev = 0.05f;
+	//	float declarationVoteFirstProportion = std::clamp(firstPercent + std::normal_distribution<float>(0.0f, declarationStdDev)(gen), 0.0f, 1.0f);
+	//	int firstTcpDeclarationVotes = int(estimatedTotalDeclarationVotes * declarationVoteFirstProportion);
+	//	int secondTcpDeclarationVotes = int(estimatedTotalDeclarationVotes * (1.0f - declarationVoteFirstProportion));
+	//	boothResults.tcpTally[0] += firstTcpDeclarationVotes;
+	//	boothResults.tcpTally[1] += secondTcpDeclarationVotes;
+	//}
+	//return estimatedTotalVotes;
 }
 
 float SimulationIteration::estimateDeclarationVoteProportionalChange(Seat const& seat, int estimatedTotalVotes, int estimatedTotalOrdinaryVotes)
 {
-	int estimatedDeclarationVotes = estimatedTotalVotes - estimatedTotalOrdinaryVotes;
-	int oldDeclarationVotes = seat.previousResults->total2cpVotes() - seat.previousResults->ordinaryVotes();
-	return float(estimatedDeclarationVotes) / float(oldDeclarationVotes);
+	seat;
+	estimatedTotalVotes;
+	estimatedTotalOrdinaryVotes;
+	return 0.0f;
+	//int estimatedDeclarationVotes = estimatedTotalVotes - estimatedTotalOrdinaryVotes;
+	//int oldDeclarationVotes = seat.previousResults->total2cpVotes() - seat.previousResults->ordinaryVotes();
+	//return float(estimatedDeclarationVotes) / float(oldDeclarationVotes);
 }
 
 float SimulationIteration::calculateOrdinaryVoteSwing(Seat const& seat, BoothAccumulation const & boothResults)
 {
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	float totalOrdinaryTally = float(boothResults.tcpTally[0] + boothResults.tcpTally[1]);
-	float firstNewOrdinaryPercent = float(boothResults.tcpTally[0]) / totalOrdinaryTally * 100.0f;
-	float firstOldOrdinaryPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].ordinaryVotes) / float(seat.previousResults->ordinaryVotes()) * 100.0f;
-	return firstNewOrdinaryPercent - firstOldOrdinaryPercent;
+	seat;
+	boothResults;
+	return 0.0f;
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	//float totalOrdinaryTally = float(boothResults.tcpTally[0] + boothResults.tcpTally[1]);
+	//float firstNewOrdinaryPercent = float(boothResults.tcpTally[0]) / totalOrdinaryTally * 100.0f;
+	//float firstOldOrdinaryPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].ordinaryVotes) / float(seat.previousResults->ordinaryVotes()) * 100.0f;
+	//return firstNewOrdinaryPercent - firstOldOrdinaryPercent;
 }
 
 SimulationIteration::TcpTally SimulationIteration::estimateAbsentVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange)
 {
-	float absentStdDev = 5.0f; // needs more research
-	float absentSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, absentStdDev)(gen);
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	float firstOldAbsentPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].absentVotes) / float(seat.previousResults->absentVotes()) * 100.0f;
-	float firstNewAbsentPercent = firstOldAbsentPercent + absentSwing;
-	int estimatedAbsentVotes = int(std::round(float(seat.previousResults->absentVotes()) * declarationVoteChange));
-	int firstCountedAbsentVotes = seat.latestResults->finalCandidates[0].absentVotes;
-	int secondCountedAbsentVotes = seat.latestResults->finalCandidates[1].absentVotes;
-	int estimatedRemainingAbsentVotes = std::max(0, estimatedAbsentVotes - firstCountedAbsentVotes - secondCountedAbsentVotes);
-	int firstRemainingAbsentVotes = int(std::round(firstNewAbsentPercent * float(estimatedRemainingAbsentVotes) * 0.01f));
-	int secondRemainingAbsentVotes = estimatedRemainingAbsentVotes - firstRemainingAbsentVotes;
-	int firstAbsentVotes = firstCountedAbsentVotes + firstRemainingAbsentVotes;
-	int secondAbsentVotes = secondCountedAbsentVotes + secondRemainingAbsentVotes;
-	return { firstAbsentVotes, secondAbsentVotes };
+	seat;
+	ordinaryVoteSwing;
+	declarationVoteChange;
+	return SimulationIteration::TcpTally();
+	//float absentStdDev = 5.0f; // needs more research
+	//float absentSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, absentStdDev)(gen);
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	//float firstOldAbsentPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].absentVotes) / float(seat.previousResults->absentVotes()) * 100.0f;
+	//float firstNewAbsentPercent = firstOldAbsentPercent + absentSwing;
+	//int estimatedAbsentVotes = int(std::round(float(seat.previousResults->absentVotes()) * declarationVoteChange));
+	//int firstCountedAbsentVotes = seat.latestResults->finalCandidates[0].absentVotes;
+	//int secondCountedAbsentVotes = seat.latestResults->finalCandidates[1].absentVotes;
+	//int estimatedRemainingAbsentVotes = std::max(0, estimatedAbsentVotes - firstCountedAbsentVotes - secondCountedAbsentVotes);
+	//int firstRemainingAbsentVotes = int(std::round(firstNewAbsentPercent * float(estimatedRemainingAbsentVotes) * 0.01f));
+	//int secondRemainingAbsentVotes = estimatedRemainingAbsentVotes - firstRemainingAbsentVotes;
+	//int firstAbsentVotes = firstCountedAbsentVotes + firstRemainingAbsentVotes;
+	//int secondAbsentVotes = secondCountedAbsentVotes + secondRemainingAbsentVotes;
+	//return { firstAbsentVotes, secondAbsentVotes };
 }
 
 SimulationIteration::TcpTally SimulationIteration::estimateProvisionalVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange)
 {
-	float provisionalStdDev = 5.0f; // needs more research
-	float provisionalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, provisionalStdDev)(gen);
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	float firstOldProvisionalPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].provisionalVotes) / float(seat.previousResults->provisionalVotes()) * 100.0f;
-	float firstNewProvisionalPercent = firstOldProvisionalPercent + provisionalSwing;
-	int estimatedProvisionalVotes = int(std::round(float(seat.previousResults->provisionalVotes()) * declarationVoteChange));
-	int firstCountedProvisionalVotes = seat.latestResults->finalCandidates[0].provisionalVotes;
-	int secondCountedProvisionalVotes = seat.latestResults->finalCandidates[1].provisionalVotes;
-	int estimatedRemainingProvisionalVotes = std::max(0, estimatedProvisionalVotes - firstCountedProvisionalVotes - secondCountedProvisionalVotes);
-	int firstRemainingProvisionalVotes = int(std::round(firstNewProvisionalPercent * float(estimatedRemainingProvisionalVotes) * 0.01f));
-	int secondRemainingProvisionalVotes = estimatedRemainingProvisionalVotes - firstRemainingProvisionalVotes;
-	int firstProvisionalVotes = firstCountedProvisionalVotes + firstRemainingProvisionalVotes;
-	int secondProvisionalVotes = secondCountedProvisionalVotes + secondRemainingProvisionalVotes;
-	return { firstProvisionalVotes, secondProvisionalVotes };
+	seat;
+	ordinaryVoteSwing;
+	declarationVoteChange;
+	return SimulationIteration::TcpTally();
+	//float provisionalStdDev = 5.0f; // needs more research
+	//float provisionalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, provisionalStdDev)(gen);
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	//float firstOldProvisionalPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].provisionalVotes) / float(seat.previousResults->provisionalVotes()) * 100.0f;
+	//float firstNewProvisionalPercent = firstOldProvisionalPercent + provisionalSwing;
+	//int estimatedProvisionalVotes = int(std::round(float(seat.previousResults->provisionalVotes()) * declarationVoteChange));
+	//int firstCountedProvisionalVotes = seat.latestResults->finalCandidates[0].provisionalVotes;
+	//int secondCountedProvisionalVotes = seat.latestResults->finalCandidates[1].provisionalVotes;
+	//int estimatedRemainingProvisionalVotes = std::max(0, estimatedProvisionalVotes - firstCountedProvisionalVotes - secondCountedProvisionalVotes);
+	//int firstRemainingProvisionalVotes = int(std::round(firstNewProvisionalPercent * float(estimatedRemainingProvisionalVotes) * 0.01f));
+	//int secondRemainingProvisionalVotes = estimatedRemainingProvisionalVotes - firstRemainingProvisionalVotes;
+	//int firstProvisionalVotes = firstCountedProvisionalVotes + firstRemainingProvisionalVotes;
+	//int secondProvisionalVotes = secondCountedProvisionalVotes + secondRemainingProvisionalVotes;
+	//return { firstProvisionalVotes, secondProvisionalVotes };
 }
 
 SimulationIteration::TcpTally SimulationIteration::estimatePrepollVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange)
 {
-	float prepollStdDev = 5.0f; // needs more research
-	float prepollSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, prepollStdDev)(gen);
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	float firstOldPrepollPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].prepollVotes) / float(seat.previousResults->prepollVotes()) * 100.0f;
-	float firstNewPrepollPercent = firstOldPrepollPercent + prepollSwing;
-	int estimatedPrepollVotes = int(std::round(float(seat.previousResults->prepollVotes()) * declarationVoteChange));
-	int firstCountedPrepollVotes = seat.latestResults->finalCandidates[0].prepollVotes;
-	int secondCountedPrepollVotes = seat.latestResults->finalCandidates[1].prepollVotes;
-	int estimatedRemainingPrepollVotes = std::max(0, estimatedPrepollVotes - firstCountedPrepollVotes - secondCountedPrepollVotes);
-	int firstRemainingPrepollVotes = int(std::round(firstNewPrepollPercent * float(estimatedRemainingPrepollVotes) * 0.01f));
-	int secondRemainingPrepollVotes = estimatedRemainingPrepollVotes - firstRemainingPrepollVotes;
-	int firstPrepollVotes = firstCountedPrepollVotes + firstRemainingPrepollVotes;
-	int secondPrepollVotes = secondCountedPrepollVotes + secondRemainingPrepollVotes;
-	return { firstPrepollVotes, secondPrepollVotes };
+	seat;
+	ordinaryVoteSwing;
+	declarationVoteChange;
+	return SimulationIteration::TcpTally();
+	//float prepollStdDev = 5.0f; // needs more research
+	//float prepollSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, prepollStdDev)(gen);
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	//float firstOldPrepollPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].prepollVotes) / float(seat.previousResults->prepollVotes()) * 100.0f;
+	//float firstNewPrepollPercent = firstOldPrepollPercent + prepollSwing;
+	//int estimatedPrepollVotes = int(std::round(float(seat.previousResults->prepollVotes()) * declarationVoteChange));
+	//int firstCountedPrepollVotes = seat.latestResults->finalCandidates[0].prepollVotes;
+	//int secondCountedPrepollVotes = seat.latestResults->finalCandidates[1].prepollVotes;
+	//int estimatedRemainingPrepollVotes = std::max(0, estimatedPrepollVotes - firstCountedPrepollVotes - secondCountedPrepollVotes);
+	//int firstRemainingPrepollVotes = int(std::round(firstNewPrepollPercent * float(estimatedRemainingPrepollVotes) * 0.01f));
+	//int secondRemainingPrepollVotes = estimatedRemainingPrepollVotes - firstRemainingPrepollVotes;
+	//int firstPrepollVotes = firstCountedPrepollVotes + firstRemainingPrepollVotes;
+	//int secondPrepollVotes = secondCountedPrepollVotes + secondRemainingPrepollVotes;
+	//return { firstPrepollVotes, secondPrepollVotes };
 }
 
 SimulationIteration::TcpTally SimulationIteration::estimatePostalVotes(Seat const& seat, float ordinaryVoteSwing, float declarationVoteChange)
 {
-	float postalStdDev = 5.0f; // needs more research
-	float postalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, postalStdDev)(gen);
-	Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
-	bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	float firstOldPostalPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].postalVotes) / float(seat.previousResults->postalVotes()) * 100.0f;
-	float firstNewPostalPercent = firstOldPostalPercent + postalSwing;
-	int estimatedPostalVotes = int(std::round(float(seat.previousResults->postalVotes()) * declarationVoteChange));
-	int firstCountedPostalVotes = seat.latestResults->finalCandidates[0].postalVotes;
-	int secondCountedPostalVotes = seat.latestResults->finalCandidates[1].postalVotes;
-	int estimatedRemainingPostalVotes = std::max(0, estimatedPostalVotes - firstCountedPostalVotes - secondCountedPostalVotes);
-	int firstRemainingPostalVotes = int(std::round(firstNewPostalPercent * float(estimatedRemainingPostalVotes) * 0.01f));
-	int secondRemainingPostalVotes = estimatedRemainingPostalVotes - firstRemainingPostalVotes;
-	int firstPostalVotes = firstCountedPostalVotes + firstRemainingPostalVotes;
-	int secondPostalVotes = secondCountedPostalVotes + secondRemainingPostalVotes;
-	return { firstPostalVotes, secondPostalVotes };
+	seat;
+	ordinaryVoteSwing;
+	declarationVoteChange;
+	return SimulationIteration::TcpTally();
+	//float postalStdDev = 5.0f; // needs more research
+	//float postalSwing = ordinaryVoteSwing + std::normal_distribution<float>(0.0f, postalStdDev)(gen);
+	//Party::Id firstParty = project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	//bool sameOrder = firstParty == project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	//float firstOldPostalPercent = float(seat.previousResults->finalCandidates[sameOrder ? 0 : 1].postalVotes) / float(seat.previousResults->postalVotes()) * 100.0f;
+	//float firstNewPostalPercent = firstOldPostalPercent + postalSwing;
+	//int estimatedPostalVotes = int(std::round(float(seat.previousResults->postalVotes()) * declarationVoteChange));
+	//int firstCountedPostalVotes = seat.latestResults->finalCandidates[0].postalVotes;
+	//int secondCountedPostalVotes = seat.latestResults->finalCandidates[1].postalVotes;
+	//int estimatedRemainingPostalVotes = std::max(0, estimatedPostalVotes - firstCountedPostalVotes - secondCountedPostalVotes);
+	//int firstRemainingPostalVotes = int(std::round(firstNewPostalPercent * float(estimatedRemainingPostalVotes) * 0.01f));
+	//int secondRemainingPostalVotes = estimatedRemainingPostalVotes - firstRemainingPostalVotes;
+	//int firstPostalVotes = firstCountedPostalVotes + firstRemainingPostalVotes;
+	//int secondPostalVotes = secondCountedPostalVotes + secondRemainingPostalVotes;
+	//return { firstPostalVotes, secondPostalVotes };
 }
 
 SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClassic2CP(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (sim.isLiveAutomatic() && seatPartiesMatchBetweenElections(seat)) {
-		return calculateResultMatched2cp(seatIndex, seat.margin);
-	}
-	else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
-		return calculateResultUnmatched2cp(seatIndex);
-	}
-	else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
-		return calculateLiveResultFromFirstPreferences(seat);
-	}
-	else {
-		return { seat.incumbent, seat.challenger, seat.margin, 0.0f };
-	}
+	return { seat.incumbent, seat.challenger, seat.margin, 0.0f }; // remove this line (NOT the above one) when restoring live results
+	//if (sim.isLiveAutomatic() && seatPartiesMatchBetweenElections(seat)) {
+	//	return calculateResultMatched2cp(seatIndex, seat.margin);
+	//}
+	//else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
+	//	return calculateResultUnmatched2cp(seatIndex);
+	//}
+	//else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->fpCandidates.size() && seat.latestResults->totalFpVotes()) {
+	//	return calculateLiveResultFromFirstPreferences(seat);
+	//}
+	//else {
+	//	return { seat.incumbent, seat.challenger, seat.margin, 0.0f };
+	//}
 }
 
 SimulationIteration::SeatResult SimulationIteration::calculateResultUnmatched2cp(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	TcpTally tcpTally = sumUnmatched2cpBoothVotes(seatIndex);
+	seatIndex;
+	return SeatResult();
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//TcpTally tcpTally = sumUnmatched2cpBoothVotes(seatIndex);
 
-	int estimatedTotalVotes = estimateTotalVotes(seat);
+	//int estimatedTotalVotes = estimateTotalVotes(seat);
 
-	modifyUnmatchedTallyForRemainingVotes(seat, tcpTally, estimatedTotalVotes);
+	//modifyUnmatchedTallyForRemainingVotes(seat, tcpTally, estimatedTotalVotes);
 
-	int totalVotes = tcpTally[0] + tcpTally[1];
+	//int totalVotes = tcpTally[0] + tcpTally[1];
 
-	float margin = (float(tcpTally[0]) - float(totalVotes) * 0.5f) / float(totalVotes) * 100.0f;
+	//float margin = (float(tcpTally[0]) - float(totalVotes) * 0.5f) / float(totalVotes) * 100.0f;
 
-	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
-	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
-	Party::Id firstParty = project.results().getPartyByCandidate(firstCandidateId);
-	Party::Id secondParty = project.results().getPartyByCandidate(secondCandidateId);
+	//int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
+	//int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
+	//Party::Id firstParty = project.results().getPartyByCandidate(firstCandidateId);
+	//Party::Id secondParty = project.results().getPartyByCandidate(secondCandidateId);
 
-	Party::Id winner = (margin >= 0.0f ? firstParty : secondParty);
-	Party::Id runnerUp = (margin >= 0.0f ? secondParty : firstParty);
+	//Party::Id winner = (margin >= 0.0f ? firstParty : secondParty);
+	//Party::Id runnerUp = (margin >= 0.0f ? secondParty : firstParty);
 
-	// Third parties can potentially be a "spoiler" for a seat expected to be classic
-	// This check replaces the winner by a third party if it is simulated but doesn't
-	// affect the balance between the 2cp candidates.
-	SeatResult spoilerResult = calculateLiveResultFromFirstPreferences(seat);
-	if (spoilerResult.winner != winner && spoilerResult.winner != runnerUp) return spoilerResult;
+	//// Third parties can potentially be a "spoiler" for a seat expected to be classic
+	//// This check replaces the winner by a third party if it is simulated but doesn't
+	//// affect the balance between the 2cp candidates.
+	//SeatResult spoilerResult = calculateLiveResultFromFirstPreferences(seat);
+	//if (spoilerResult.winner != winner && spoilerResult.winner != runnerUp) return spoilerResult;
 
-	float significance = std::clamp(float(seat.latestResults->total2cpVotes()) / float(estimatedTotalVotes) * 20.0f, 0.0f, 1.0f);
+	//float significance = std::clamp(float(seat.latestResults->total2cpVotes()) / float(estimatedTotalVotes) * 20.0f, 0.0f, 1.0f);
 
-	return { winner, runnerUp, margin, significance };
+	//return { winner, runnerUp, margin, significance };
 }
 
 SimulationIteration::TcpTally SimulationIteration::sumUnmatched2cpBoothVotes(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
-	int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
-	TcpTally tcpTally = { 0, 0 };
-	float preferenceFlowGuess = std::normal_distribution<float>(run.seatFirstPartyPreferenceFlow[seatIndex],
-		run.seatPreferenceFlowVariation[seatIndex])(gen);
-	for (auto boothId : seat.latestResults->booths) {
-		Results::Booth const& booth = project.results().getBooth(boothId);
-		bool matchingOrder = project.results().getPartyByCandidate(booth.tcpCandidateId[0]) == 
-			project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
+	seatIndex;
+	return TcpTally();
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
+	//int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
+	//TcpTally tcpTally = { 0, 0 };
+	//float preferenceFlowGuess = std::normal_distribution<float>(run.seatFirstPartyPreferenceFlow[seatIndex],
+	//	run.seatPreferenceFlowVariation[seatIndex])(gen);
+	//for (auto boothId : seat.latestResults->booths) {
+	//	Results::Booth const& booth = project.results().getBooth(boothId);
+	//	bool matchingOrder = project.results().getPartyByCandidate(booth.tcpCandidateId[0]) == 
+	//		project.results().getPartyByCandidate(seat.latestResults->finalCandidates[0].candidateId);
 
-		if (booth.hasNewResults()) {
-			for (int i = 0; i <= 1; ++i) tcpTally[i] += (matchingOrder ? booth.newTcpVote[i] : booth.newTcpVote[1 - i]);
-		}
-		else if (booth.totalNewFpVotes()) {
-			TcpTally tcpEstimate = { 0, 0 };
-			for (auto const& candidate : booth.fpCandidates) {
-				if (candidate.candidateId == firstCandidateId) {
-					tcpEstimate[0] += candidate.fpVotes;
-				}
-				else if (candidate.candidateId != secondCandidateId) {
-					tcpEstimate[0] += int(float(candidate.fpVotes) * preferenceFlowGuess);
-				}
-			}
-			tcpEstimate[1] = booth.totalNewFpVotes() - tcpEstimate[0];
-			for (int i = 0; i <= 1; ++i) tcpTally[i] += tcpEstimate[i];
-		}
-	}
-	return tcpTally;
+	//	if (booth.hasNewResults()) {
+	//		for (int i = 0; i <= 1; ++i) tcpTally[i] += (matchingOrder ? booth.newTcpVote[i] : booth.newTcpVote[1 - i]);
+	//	}
+	//	else if (booth.totalNewFpVotes()) {
+	//		TcpTally tcpEstimate = { 0, 0 };
+	//		for (auto const& candidate : booth.fpCandidates) {
+	//			if (candidate.candidateId == firstCandidateId) {
+	//				tcpEstimate[0] += candidate.fpVotes;
+	//			}
+	//			else if (candidate.candidateId != secondCandidateId) {
+	//				tcpEstimate[0] += int(float(candidate.fpVotes) * preferenceFlowGuess);
+	//			}
+	//		}
+	//		tcpEstimate[1] = booth.totalNewFpVotes() - tcpEstimate[0];
+	//		for (int i = 0; i <= 1; ++i) tcpTally[i] += tcpEstimate[i];
+	//	}
+	//}
+	//return tcpTally;
 }
 
 int SimulationIteration::estimateTotalVotes(Seat const& seat)
 {
-	// now estimate the remaining votes with considerable variance
-	float enrolmentChange = determineEnrolmentChange(seat, nullptr);
-	int estimatedTotalVotes = 0;
-	if (seat.previousResults) {
-		estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
-	}
-	else {
-		estimatedTotalVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
-	}
-	return estimatedTotalVotes;
+	seat;
+	return 0;
+	//// now estimate the remaining votes with considerable variance
+	//float enrolmentChange = determineEnrolmentChange(seat, nullptr);
+	//int estimatedTotalVotes = 0;
+	//if (seat.previousResults) {
+	//	estimatedTotalVotes = int(float(seat.previousResults->total2cpVotes()) * enrolmentChange);
+	//}
+	//else {
+	//	estimatedTotalVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
+	//}
+	//return estimatedTotalVotes;
 }
 
 void SimulationIteration::modifyUnmatchedTallyForRemainingVotes(Seat const& seat, TcpTally& tcpTally, int estimatedTotalVotes)
 {
-	int totalBoothVotes = tcpTally[0] + tcpTally[1];
-	int minTotalVotes = totalBoothVotes;
-	int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
-	constexpr float totalVoteNumberDeviation = 0.05f;
-	float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
-	int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
-	int estimatedRemainingVotes = std::max(0, clampedTotalVotes - totalBoothVotes);
+	seat;
+	tcpTally;
+	estimatedTotalVotes;
+	//int totalBoothVotes = tcpTally[0] + tcpTally[1];
+	//int minTotalVotes = totalBoothVotes;
+	//int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
+	//constexpr float totalVoteNumberDeviation = 0.05f;
+	//float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
+	//int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
+	//int estimatedRemainingVotes = std::max(0, clampedTotalVotes - totalBoothVotes);
 
-	float firstProportionCounted = float(tcpTally[0]) / float(totalBoothVotes);
-	constexpr float firstProportionChangeDeviation = 0.08f;
-	float firstProportionChange = std::normal_distribution<float>(0.0f, firstProportionChangeDeviation)(gen);
-	float firstProportionRemaining = std::clamp(firstProportionChange + firstProportionCounted, 0.0f, 1.0f);
-	int firstRemainingVotes = int(firstProportionRemaining * float(estimatedRemainingVotes));
-	int secondRemainingVotes = estimatedRemainingVotes - firstRemainingVotes;
-	tcpTally[0] += firstRemainingVotes;
-	tcpTally[1] += secondRemainingVotes;
+	//float firstProportionCounted = float(tcpTally[0]) / float(totalBoothVotes);
+	//constexpr float firstProportionChangeDeviation = 0.08f;
+	//float firstProportionChange = std::normal_distribution<float>(0.0f, firstProportionChangeDeviation)(gen);
+	//float firstProportionRemaining = std::clamp(firstProportionChange + firstProportionCounted, 0.0f, 1.0f);
+	//int firstRemainingVotes = int(firstProportionRemaining * float(estimatedRemainingVotes));
+	//int secondRemainingVotes = estimatedRemainingVotes - firstRemainingVotes;
+	//tcpTally[0] += firstRemainingVotes;
+	//tcpTally[1] += secondRemainingVotes;
 }
 
 SimulationIteration::SeatResult SimulationIteration::calculateLiveResultFromFirstPreferences(Seat const& seat)
 {
-	SeatCandidates candidates = collectSeatCandidates(seat);
-	int estimatedTotalVotes = estimateTotalVotes(seat);
-	projectSeatCandidatePrimaries(seat, candidates, estimatedTotalVotes);
-	distributePreferences(candidates);
-	return determineResultFromDistribution(seat, candidates, estimatedTotalVotes);
+	seat;
+	return SeatResult();
+	//SeatCandidates candidates = collectSeatCandidates(seat);
+	//int estimatedTotalVotes = estimateTotalVotes(seat);
+	//projectSeatCandidatePrimaries(seat, candidates, estimatedTotalVotes);
+	//distributePreferences(candidates);
+	//return determineResultFromDistribution(seat, candidates, estimatedTotalVotes);
 }
 
 SimulationIteration::SeatCandidates SimulationIteration::collectSeatCandidates(Seat const& seat)
 {
-	SeatCandidates candidates;
-	for (auto const& fpCandidate : seat.latestResults->fpCandidates) {
-		candidates.push_back({ fpCandidate.totalVotes(), project.results().getPartyByCandidate(fpCandidate.candidateId) });
-	}
-	return candidates;
+	seat;
+	return SeatCandidates();
+	//SeatCandidates candidates;
+	//for (auto const& fpCandidate : seat.latestResults->fpCandidates) {
+	//	candidates.push_back({ fpCandidate.totalVotes(), project.results().getPartyByCandidate(fpCandidate.candidateId) });
+	//}
+	//return candidates;
 }
 
 void SimulationIteration::projectSeatCandidatePrimaries(Seat const& seat, SeatCandidates& candidates, int estimatedTotalVotes)
 {
-	// now estimate the remaining votes with considerable variance
-	int countedVotes = std::accumulate(candidates.begin(), candidates.end(), 0,
-		[](int i, SeatCandidate const& c) { return i + c.vote; });
+	seat;
+	candidates;
+	estimatedTotalVotes;
+	//// now estimate the remaining votes with considerable variance
+	//int countedVotes = std::accumulate(candidates.begin(), candidates.end(), 0,
+	//	[](int i, SeatCandidate const& c) { return i + c.vote; });
 
-	int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
-	int minTotalVotes = std::min(countedVotes, maxTotalVotes);
-	constexpr float totalVoteNumberDeviation = 0.05f;
-	float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
-	int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
-	int estimatedRemainingVotes = std::max(0, clampedTotalVotes - countedVotes);
+	//int maxTotalVotes = (estimatedTotalVotes + seat.latestResults->enrolment) / 2;
+	//int minTotalVotes = std::min(countedVotes, maxTotalVotes);
+	//constexpr float totalVoteNumberDeviation = 0.05f;
+	//float randomizedTotalVotes = float(estimatedTotalVotes) * std::normal_distribution<float>(1.0f, totalVoteNumberDeviation)(gen);
+	//int clampedTotalVotes = std::clamp(int(randomizedTotalVotes), minTotalVotes, maxTotalVotes);
+	//int estimatedRemainingVotes = std::max(0, clampedTotalVotes - countedVotes);
 
-	float totalProjectionWeight = 0.0f;
-	for (auto& candidate : candidates) {
-		float countedProportion = float(candidate.vote) / float(countedVotes);
-		float candidateStdDev = std::min(countedProportion * 0.2f, 0.04f);
-		float remainingProportion = std::normal_distribution<float>(float(countedProportion), candidateStdDev)(gen);
-		candidate.weight = std::max(0.0f, remainingProportion);
-		totalProjectionWeight += candidate.weight;
-	}
+	//float totalProjectionWeight = 0.0f;
+	//for (auto& candidate : candidates) {
+	//	float countedProportion = float(candidate.vote) / float(countedVotes);
+	//	float candidateStdDev = std::min(countedProportion * 0.2f, 0.04f);
+	//	float remainingProportion = std::normal_distribution<float>(float(countedProportion), candidateStdDev)(gen);
+	//	candidate.weight = std::max(0.0f, remainingProportion);
+	//	totalProjectionWeight += candidate.weight;
+	//}
 
-	for (auto& candidate : candidates) {
-		candidate.vote += int(float(estimatedRemainingVotes) * candidate.weight / totalProjectionWeight);
-	}
+	//for (auto& candidate : candidates) {
+	//	candidate.vote += int(float(estimatedRemainingVotes) * candidate.weight / totalProjectionWeight);
+	//}
 }
 
 void SimulationIteration::distributePreferences(SeatCandidates& candidates)
 {
-	for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
-		SeatCandidate sourceCandidate = candidates[sourceIndex];
-		if (sourceCandidate.partyId == Party::InvalidId) continue;
-		Party const& sourceParty = project.parties().view(sourceCandidate.partyId);
-		candidates[sourceIndex].vote = 0;
-		std::vector<float> weights;
-		weights.resize(candidates.size(), 0);
-		for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
-			SeatCandidate const& targetCandidate = candidates[targetIndex];
-			if (targetCandidate.partyId == Party::InvalidId) continue;
-			Party const& targetParty = project.parties().view(targetCandidate.partyId);
-			int ideologyDistance = float(std::abs(sourceParty.ideology - targetParty.ideology));
-			float consistencyBase = PreferenceConsistencyBase[sourceParty.consistency];
-			float thisWeight = std::pow(consistencyBase, -ideologyDistance);
-			if (!sourceParty.countsAsMajor() && !targetParty.countsAsMajor()) thisWeight *= 1.6f;
-			if (project.parties().oppositeMajors(sourceCandidate.partyId, targetCandidate.partyId)) thisWeight /= 2.0f;
-			// note, these frequent calls to the RNG are a significant bottleneck
-			thisWeight *= std::uniform_real_distribution<float>(0.5f, 1.5f)(gen);
-			thisWeight *= std::sqrt(float(targetCandidate.vote)); // preferences tend to flow to more popular candidates
-			weights[targetIndex] = thisWeight;
-		}
-		float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0f) + 0.0000001f; // avoid divide by zero warning
-		for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
-			// this will cause a few votes to be lost to rounding errors but since we're only running
-			// these calculations when uncertainty is high that doesn't really matter.
-			candidates[targetIndex].vote += int(float(sourceCandidate.vote) * weights[targetIndex] / totalWeight);
-		}
-		std::sort(candidates.begin(), candidates.end(),
-			[](SeatCandidate lhs, SeatCandidate rhs) {return lhs.vote > rhs.vote; });
-	}
+	candidates;
+	//for (int sourceIndex = candidates.size() - 1; sourceIndex > 1; --sourceIndex) {
+	//	SeatCandidate sourceCandidate = candidates[sourceIndex];
+	//	if (sourceCandidate.partyId == Party::InvalidId) continue;
+	//	Party const& sourceParty = project.parties().view(sourceCandidate.partyId);
+	//	candidates[sourceIndex].vote = 0;
+	//	std::vector<float> weights;
+	//	weights.resize(candidates.size(), 0);
+	//	for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
+	//		SeatCandidate const& targetCandidate = candidates[targetIndex];
+	//		if (targetCandidate.partyId == Party::InvalidId) continue;
+	//		Party const& targetParty = project.parties().view(targetCandidate.partyId);
+	//		int ideologyDistance = float(std::abs(sourceParty.ideology - targetParty.ideology));
+	//		float consistencyBase = PreferenceConsistencyBase[sourceParty.consistency];
+	//		float thisWeight = std::pow(consistencyBase, -ideologyDistance);
+	//		if (!sourceParty.countsAsMajor() && !targetParty.countsAsMajor()) thisWeight *= 1.6f;
+	//		if (project.parties().oppositeMajors(sourceCandidate.partyId, targetCandidate.partyId)) thisWeight /= 2.0f;
+	//		// note, these frequent calls to the RNG are a significant bottleneck
+	//		thisWeight *= std::uniform_real_distribution<float>(0.5f, 1.5f)(gen);
+	//		thisWeight *= std::sqrt(float(targetCandidate.vote)); // preferences tend to flow to more popular candidates
+	//		weights[targetIndex] = thisWeight;
+	//	}
+	//	float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0f) + 0.0000001f; // avoid divide by zero warning
+	//	for (int targetIndex = sourceIndex - 1; targetIndex >= 0; --targetIndex) {
+	//		// this will cause a few votes to be lost to rounding errors but since we're only running
+	//		// these calculations when uncertainty is high that doesn't really matter.
+	//		candidates[targetIndex].vote += int(float(sourceCandidate.vote) * weights[targetIndex] / totalWeight);
+	//	}
+	//	std::sort(candidates.begin(), candidates.end(),
+	//		[](SeatCandidate lhs, SeatCandidate rhs) {return lhs.vote > rhs.vote; });
+	//}
 }
 
 SimulationIteration::SeatResult SimulationIteration::determineResultFromDistribution(Seat const& seat, SeatCandidates& candidates, int estimatedTotalVotes)
 {
-	float totalTally = float(candidates[0].vote + candidates[1].vote);
-	float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
-	Party::Id winner = candidates[0].partyId;
-	Party::Id runnerUp = candidates[1].partyId;
-	float significance = std::clamp(float(seat.latestResults->totalFpVotes()) / float(estimatedTotalVotes) * 5.0f, 0.0f, 1.0f);
+	seat;
+	candidates;
+	estimatedTotalVotes;
+	return SeatResult();
+	//float totalTally = float(candidates[0].vote + candidates[1].vote);
+	//float margin = (float(candidates[0].vote) - totalTally * 0.5f) / totalTally * 100.0f;
+	//Party::Id winner = candidates[0].partyId;
+	//Party::Id runnerUp = candidates[1].partyId;
+	//float significance = std::clamp(float(seat.latestResults->totalFpVotes()) / float(estimatedTotalVotes) * 5.0f, 0.0f, 1.0f);
 
-	return { winner, runnerUp, margin, significance };
+	//return { winner, runnerUp, margin, significance };
 }
 
 Party::Id SimulationIteration::simulateWinnerFromBettingOdds(Seat const& thisSeat)
@@ -910,26 +991,31 @@ Party::Id SimulationIteration::simulateWinnerFromBettingOdds(Seat const& thisSea
 
 bool SimulationIteration::seatPartiesMatchBetweenElections(Seat const& seat)
 {
-	if (!seat.latestResults) return false;
-	if (!seat.previousResults) return false;
-	Party::Id oldPartyOne = project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
-	Party::Id oldPartyTwo = project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[1].affiliationId);
-	Party::Id newPartyOne = project.results().getPartyByAffiliation(seat.latestResults->finalCandidates[0].affiliationId);
-	Party::Id newPartyTwo = project.results().getPartyByAffiliation(seat.latestResults->finalCandidates[1].affiliationId);
-	if (oldPartyOne == newPartyOne && oldPartyTwo == newPartyTwo) return true;
-	if (oldPartyOne == newPartyTwo && oldPartyTwo == newPartyOne) return true;
+	seat;
 	return false;
+	//if (!seat.latestResults) return false;
+	//if (!seat.previousResults) return false;
+	//Party::Id oldPartyOne = project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[0].affiliationId);
+	//Party::Id oldPartyTwo = project.results().getPartyByAffiliation(seat.previousResults->finalCandidates[1].affiliationId);
+	//Party::Id newPartyOne = project.results().getPartyByAffiliation(seat.latestResults->finalCandidates[0].affiliationId);
+	//Party::Id newPartyTwo = project.results().getPartyByAffiliation(seat.latestResults->finalCandidates[1].affiliationId);
+	//if (oldPartyOne == newPartyOne && oldPartyTwo == newPartyTwo) return true;
+	//if (oldPartyOne == newPartyTwo && oldPartyTwo == newPartyOne) return true;
+	//return false;
 }
 
 float SimulationIteration::determineEnrolmentChange(Seat const& seat, int* estimatedTotalOrdinaryVotes)
 {
-	// Need to calculate the remaining pool of uncounted and unmatched booths
-	float enrolmentChange = 1.0f;
-	int tempEstimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
-	if (seat.previousResults) {
-		enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
-		tempEstimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
-	}
-	if (estimatedTotalOrdinaryVotes) *estimatedTotalOrdinaryVotes = tempEstimatedTotalOrdinaryVotes;
-	return enrolmentChange;
+	return 0.0f;
+	seat;
+	estimatedTotalOrdinaryVotes;
+	//// Need to calculate the remaining pool of uncounted and unmatched booths
+	//float enrolmentChange = 1.0f;
+	//int tempEstimatedTotalOrdinaryVotes = int(float(seat.latestResults->enrolment) * run.previousOrdinaryVoteEnrolmentRatio);
+	//if (seat.previousResults) {
+	//	enrolmentChange = float(seat.latestResults->enrolment) / float(seat.previousResults->enrolment);
+	//	tempEstimatedTotalOrdinaryVotes = int(float(seat.previousResults->ordinaryVotes()) * enrolmentChange);
+	//}
+	//if (estimatedTotalOrdinaryVotes) *estimatedTotalOrdinaryVotes = tempEstimatedTotalOrdinaryVotes;
+	//return enrolmentChange;
 }

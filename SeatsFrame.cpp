@@ -270,7 +270,10 @@ void SeatsFrame::removeSeat() {
 
 void SeatsFrame::showSeatResults()
 {
-	auto results = project->seats().viewByIndex(seatData->GetSelectedRow()).latestResults;
+	// Most of this function is disabled until previous/current 
+	wxMessageBox("No previous election results for this seat!\n");
+
+	/*auto results = project->seats().viewByIndex(seatData->GetSelectedRow()).latestResults;
 	if (!results) {
 		wxMessageBox("No previous election results for this seat!\n");
 		return;
@@ -347,7 +350,7 @@ void SeatsFrame::showSeatResults()
 		boothString = "Booth results: ";
 		boothString += project->results().getCandidateById(results->leadingCandidate().candidateId)->name + " vs. " +
 			project->results().getCandidateById(results->trailingCandidate().candidateId)->name + "\n";
-	}
+	}*/
 }
 
 void SeatsFrame::updateInterface() {

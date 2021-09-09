@@ -37,12 +37,6 @@ public:
 	Region::Id region = Region::InvalidId;
 	Outcome const* outcome = nullptr; // used as a temporary in simulations for storing the latest live result
 
-	// Official seat ID from the electoral commission
-	int officialId = -1;
-
-	std::optional<Results::Seat> previousResults;
-	std::optional<Results::Seat> latestResults;
-
 	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
 	float margin = 0.0f;
 
@@ -72,44 +66,50 @@ public:
 	}
 
 	bool hasFpResults() const {
-		if (!latestResults.has_value()) return false;
-		return std::find_if(latestResults->fpCandidates.begin(), latestResults->fpCandidates.end(),
-			[](Results::Seat::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
+		return false;
+		//if (!latestResults.has_value()) return false;
+		//return std::find_if(latestResults->fpCandidates.begin(), latestResults->fpCandidates.end(),
+		//	[](Results::Seat::Candidate const& cand) {return cand.totalVotes() > 0; }) != latestResults->fpCandidates.end();
 	}
 
 	bool has2cpResults() const {
-		if (!latestResults) return false;
-		return latestResults->total2cpVotes();
+		return false;
+		//if (!latestResults) return false;
+		//return latestResults->total2cpVotes();
 	}
 
 	bool hasLiveResults() const {
-		if (!latestResults.has_value()) return false;
-		if (has2cpResults()) return true;
-		if (hasFpResults()) return !isClassic2pp(true);
 		return false;
+		//if (!latestResults.has_value()) return false;
+		//if (has2cpResults()) return true;
+		//if (hasFpResults()) return !isClassic2pp(true);
+		//return false;
 	}
 
 	bool isClassic2pp(bool live) const {
+		live;
 		// If either incumbent or challenger is somehow invalid then throw an exception
 		if (incumbent == Party::InvalidId || challenger == Party::InvalidId) throw PartiesNotSetException();
-		if (live && has2cpResults()) {
-			// First possibility, we have a live classic 2cp count and can booth-match it, then it is classic overall
-			if (latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
-			// otherwise it wasn't classic one of the times so we can't use standard classic procedure
-			return false;
-		}
-		if (live && hasFpResults()) {
-			// Here we don't have any 2cp results, but if the fp results are determined to not be classic
-			// (e.g. because it's been noted as a maverick seat) then we can't use standard procedure
-			if (!latestResults->classic2pp) return false;
-		}
-		// Even if there are some first-preference results consistent with a classic 2cp
-		// we can still manually override this if we judge otherwise
-		if (live && livePartyOne != Party::InvalidId) return false;
-		// At this point, we have no 2cp results, and maybe some regular fp results,
-		// and might not even be running live results yet,
-		// so just go by the incumbent/challenger pairs recorded pre-election.
 		return incumbent + challenger == 1;
+
+		//if (live && has2cpResults()) {
+		//	// First possibility, we have a live classic 2cp count and can booth-match it, then it is classic overall
+		//	if (latestResults->classic2pp && previousResults.has_value() && previousResults->classic2pp) return true;
+		//	// otherwise it wasn't classic one of the times so we can't use standard classic procedure
+		//	return false;
+		//}
+		//if (live && hasFpResults()) {
+		//	// Here we don't have any 2cp results, but if the fp results are determined to not be classic
+		//	// (e.g. because it's been noted as a maverick seat) then we can't use standard procedure
+		//	if (!latestResults->classic2pp) return false;
+		//}
+		//// Even if there are some first-preference results consistent with a classic 2cp
+		//// we can still manually override this if we judge otherwise
+		//if (live && livePartyOne != Party::InvalidId) return false;
+		//// At this point, we have no 2cp results, and maybe some regular fp results,
+		//// and might not even be running live results yet,
+		//// so just go by the incumbent/challenger pairs recorded pre-election.
+		//return incumbent + challenger == 1;
 	}
 
 	float getMajorPartyWinRate(Party::Id thisParty) const {

@@ -94,7 +94,7 @@ private:
 	void matchSeatsFromLatestResults(LatestResultsDataRetriever const& dataRetriever);
 	void updateOutcomesFromLatestResults();
 
-	Seat& findMatchingSeat(Results::Seat seatData);
+	int findMatchingSeatIndex(Results::Seat seatData);
 
 	PollingProject& project;
 };

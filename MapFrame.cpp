@@ -329,16 +329,18 @@ bool MapFrame::decideBoothSpecificPrimaryVisibility(Results::Booth const & booth
 
 void MapFrame::drawBoothsForSeat(Seat const& seat, wxDC& dc)
 {
-	if (!seat.latestResults) return;
-	for (int boothId : seat.latestResults->booths) {
-		auto const& booth = project->results().getBooth(boothId);
-		if (!decideBoothCircleVisibility(booth)) continue;
-		Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
-		int circleSize = calculateBoothCircleSize(booth);
-		wxColour boothColour = decideBoothCircleColour(booth);
-		dc.SetBrush(boothColour);
-		dc.DrawCircle(wxPoint(int(std::floor(mapCoords.x)), int(std::floor(mapCoords.y))), circleSize);
-	}
+	seat;
+	dc;
+	//if (!seat.latestResults) return;
+	//for (int boothId : seat.latestResults->booths) {
+	//	auto const& booth = project->results().getBooth(boothId);
+	//	if (!decideBoothCircleVisibility(booth)) continue;
+	//	Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+	//	int circleSize = calculateBoothCircleSize(booth);
+	//	wxColour boothColour = decideBoothCircleColour(booth);
+	//	dc.SetBrush(boothColour);
+	//	dc.DrawCircle(wxPoint(int(std::floor(mapCoords.x)), int(std::floor(mapCoords.y))), circleSize);
+	//}
 }
 
 Point2Df MapFrame::getMinWorldCoords()
@@ -531,27 +533,28 @@ void MapFrame::setBrushAndPen(wxColour currentColour, wxDC& dc) const {
 
 void MapFrame::updateMouseoverBooth(Point2Di mousePos)
 {
-	Point2Df mousePosF = Point2Df(mousePos);
-	int seatIndex = 0;
-	float smallestDistance = std::numeric_limits<float>::max();
-	int bestBooth = -1;
-	for (auto const& [key, seat] : project->seats()) {
-		++seatIndex; // need this to be increased even if the seat isn't checked so that it'll be correct when we get to the selected seat
-		if (selectedSeat > 0 && selectedSeat != seatIndex) continue;
-		if (!seat.latestResults) return;
-		for (int boothId : seat.latestResults->booths) {
-			auto const& booth = project->results().getBooth(boothId);
-			if (!booth.totalNewTcpVotes()) continue;
-			Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
-			float thisDistance = mousePosF.distance(mapCoords);
-			int circleSize = calculateBoothCircleSize(booth);
-			if (thisDistance < smallestDistance && thisDistance <= circleSize + 1) {
-				smallestDistance = thisDistance;
-				bestBooth = boothId;
-			}
-		}
-	}
-	mouseoverBooth = bestBooth;
+	mousePos;
+	//Point2Df mousePosF = Point2Df(mousePos);
+	//int seatIndex = 0;
+	//float smallestDistance = std::numeric_limits<float>::max();
+	//int bestBooth = -1;
+	//for (auto const& [key, seat] : project->seats()) {
+	//	++seatIndex; // need this to be increased even if the seat isn't checked so that it'll be correct when we get to the selected seat
+	//	if (selectedSeat > 0 && selectedSeat != seatIndex) continue;
+	//	if (!seat.latestResults) return;
+	//	for (int boothId : seat.latestResults->booths) {
+	//		auto const& booth = project->results().getBooth(boothId);
+	//		if (!booth.totalNewTcpVotes()) continue;
+	//		Point2Df mapCoords = calculateScreenPosFromCoords(Point2Df(booth.coords.longitude, booth.coords.latitude));
+	//		float thisDistance = mousePosF.distance(mapCoords);
+	//		int circleSize = calculateBoothCircleSize(booth);
+	//		if (thisDistance < smallestDistance && thisDistance <= circleSize + 1) {
+	//			smallestDistance = thisDistance;
+	//			bestBooth = boothId;
+	//		}
+	//	}
+	//}
+	//mouseoverBooth = bestBooth;
 }
 
 std::string MapFrame::decideTooltipText(Booth const & booth) const
