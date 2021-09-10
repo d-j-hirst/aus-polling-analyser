@@ -74,11 +74,12 @@ void SimulationPreparation::resetRegionSpecificOutput()
 
 void SimulationPreparation::resetSeatSpecificOutput()
 {
-	sim.latestReport.seatIncumbentMarginAverage.resize(project.seats().count(), 0.0);
-	sim.latestReport.incumbentWinPercent.resize(project.seats().count(), 0.0f);
-	sim.latestReport.partyOneWinPercent.resize(project.seats().count(), 0.0);
-	sim.latestReport.partyTwoWinPercent.resize(project.seats().count(), 0.0);
-	sim.latestReport.othersWinPercent.resize(project.seats().count(), 0.0);
+	run.seatIncumbentMarginAverage.resize(project.seats().count(), 0.0);
+	run.incumbentWinPercent.resize(project.seats().count(), 0.0f);
+	run.partyOneWinPercent.resize(project.seats().count(), 0.0);
+	run.partyTwoWinPercent.resize(project.seats().count(), 0.0);
+	run.othersWinPercent.resize(project.seats().count(), 0.0);
+
 	run.seatFirstPartyPreferenceFlow.resize(project.seats().count(), 0.0f);
 	run.seatPreferenceFlowVariation.resize(project.seats().count(), 0.0f);
 	run.seatTcpTally.resize(project.seats().count(), { 0, 0 });

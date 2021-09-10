@@ -58,11 +58,18 @@ private:
 
 	std::array<int, 2> partyMajority = std::array<int, 2>();
 	std::array<int, 2> partyMinority = std::array<int, 2>();
+	std::vector<double> seatIncumbentMarginAverage;
+	std::vector<double> incumbentWinPercent;
+	std::vector<double> partyOneWinPercent;
+	std::vector<double> partyTwoWinPercent;
+	std::vector<double> othersWinPercent;
+	std::vector<std::map<Party::Id, int>> seatPartyWins;
+
+	std::vector<Outcome const*> seatToOutcome;
+
 	std::vector<float> seatFirstPartyPreferenceFlow;
 	std::vector<float> seatPreferenceFlowVariation;
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
-	std::vector<Outcome const*> seatToOutcome;
-	std::vector<std::map<Party::Id, int>> seatPartyWins;
 	int hungParliament = 0;
 };

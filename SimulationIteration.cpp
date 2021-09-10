@@ -285,12 +285,12 @@ void SimulationIteration::recordSeatResult(int seatIndex)
 {
 	Seat& seat = project.seats().access(project.seats().indexToId(seatIndex));
 
-	sim.latestReport.incumbentWinPercent[seatIndex] += double(seatWinner[seatIndex] == seat.incumbent ? 1 : 0);
-	if (seatWinner[seatIndex] == 0) ++sim.latestReport.partyOneWinPercent[seatIndex];
-	else if (seatWinner[seatIndex] == 1) ++sim.latestReport.partyTwoWinPercent[seatIndex];
-	else ++sim.latestReport.othersWinPercent[seatIndex];
+	run.incumbentWinPercent[seatIndex] += seatWinner[seatIndex] == seat.incumbent ? 1.0 : 0.0;
+	if (seatWinner[seatIndex] == 0) ++run.partyOneWinPercent[seatIndex];
+	else if (seatWinner[seatIndex] == 1) ++run.partyTwoWinPercent[seatIndex];
+	else ++run.othersWinPercent[seatIndex];
 
-	sim.latestReport.seatIncumbentMarginAverage[seatIndex] += incumbentNewMargin[seatIndex];
+	run.seatIncumbentMarginAverage[seatIndex] += incumbentNewMargin[seatIndex];
 }
 
 void SimulationIteration::assignCountAsPartyWins()

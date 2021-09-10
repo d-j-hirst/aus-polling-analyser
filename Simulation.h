@@ -85,7 +85,7 @@ public:
 		// Margin by which each seat is expected to be on after simulation
 		// Note this variable holds the accumulated sum during simulations
 		// and is only divided to form the average once simulations are complete
-		std::vector<double> seatIncumbentMarginAverage;
+		std::vector<float> seatIncumbentMarginAverage;
 
 		std::vector<int> othersWinFrequency;
 
@@ -113,9 +113,9 @@ public:
 		std::vector<float> seatMargins;
 
 		std::vector<float> incumbentWinPercent;
-		std::vector<double> partyOneWinPercent;
-		std::vector<double> partyTwoWinPercent;
-		std::vector<double> othersWinPercent;
+		std::vector<float> partyOneWinPercent;
+		std::vector<float> partyTwoWinPercent;
+		std::vector<float> othersWinPercent;
 
 		// gives the indices of classic seats
 		std::vector<Seat::Id> classicSeatIndices;

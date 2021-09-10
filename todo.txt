@@ -1,13 +1,6 @@
 Polling Analyser to-do:
 -More sophisticated handling of non-classic and potentially non-classic seats
- -finish rework of simulations
-  -make # of threads configurable (as for models/projections)
-  -get all the other data out of the seats
-  -add % win for every seat for all parties (at least for those that get a win)
-  -update save file to store all the new data we're taking
  -complete Greens analysis and include in simulation model as proof-of-concept
-  -smooth Greens distribution parameters (except sophomore coefficient)
-  -output Greens distribution to file
   -output previous election primary vote and 2cp figures to csv file
   -Get main program to internalise past primary votes from above csv file
   -Work Greens distributions into simulations, similarly to the way currently done for live simulations

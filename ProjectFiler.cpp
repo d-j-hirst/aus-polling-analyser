@@ -23,7 +23,8 @@
 // Version 16: Save latest macro
 // Version 17: Save medians for parties in simulation reports
 // Version 18: Save distributions of tpp and party primaries
-constexpr int VersionNum = 18;
+// Version 19: Save several more data sets for simulation reports
+constexpr int VersionNum = 19;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -694,6 +695,11 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.seatIncumbents;
 	saveOutput << report.seatMargins;
 	saveOutput << report.incumbentWinPercent;
+	saveOutput << report.seatIncumbentMarginAverage;
+	saveOutput << report.partyOneWinPercent;
+	saveOutput << report.partyTwoWinPercent;
+	saveOutput << report.othersWinPercent;
+	saveOutput << report.seatPartyWinPercent;
 	saveOutput << report.classicSeatIndices;
 	saveOutput << report.regionPartyLeading;
 	saveOutput << report.prevElection2pp;
@@ -726,6 +732,14 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.seatIncumbents;
 	saveInput >> report.seatMargins;
 	saveInput >> report.incumbentWinPercent;
+	if (versionNum >= 19) {
+		saveInput >> report.seatIncumbentMarginAverage;
+		saveInput >> report.partyOneWinPercent;
+		saveInput >> report.partyTwoWinPercent;
+		saveInput >> report.othersWinPercent;
+		saveInput >> report.seatPartyWinPercent;
+		logger << report.seatPartyWinPercent;
+	}
 	saveInput >> report.classicSeatIndices;
 	saveInput >> report.regionPartyLeading;
 	saveInput >> report.prevElection2pp;
