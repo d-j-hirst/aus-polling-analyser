@@ -221,6 +221,7 @@ void EditPartyFrame::updateShortCodes(std::string shortCodes)
 {
 	party.officialCodes = splitString(shortCodes, ",");
 }
+
 void EditPartyFrame::updateRelation(int relation)
 {
 	party.relationTarget = relation;

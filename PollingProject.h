@@ -127,8 +127,7 @@ public:
 	ElectionCollection const& elections() const { return electionCollection; }
 
 	// Save this project to the given filename.
-	// Returns 0 if successful, and 1 if saving failed.
-	int save(std::string filename);
+	void save(std::string filename);
 
 	// Returns whether the project is valid (after opening from a file).
 	// If this is false then the project should be closed by

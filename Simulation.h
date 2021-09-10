@@ -41,6 +41,9 @@ public:
 		// User-defined name.
 		std::string name = "";
 
+		// Election codes (e.g. fed2019) for previous elections, most recent first
+		std::vector<std::string> prevTermCodes;
+
 		int numIterations = 10000;
 
 		Mode live = Mode::Projection;

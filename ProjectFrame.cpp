@@ -208,7 +208,11 @@ void ProjectFrame::setupPages() {
 
 void ProjectFrame::saveUnderFilename(std::string const& pathName)
 {
-	if (project->save(pathName)) {
+	try {
+		project->save(pathName);
+	}
+	catch (...)
+	{
 		wxMessageDialog* message = new wxMessageDialog(
 			this,
 			"Could not save file.",
@@ -216,7 +220,6 @@ void ProjectFrame::saveUnderFilename(std::string const& pathName)
 			wxOK | wxCENTRE | wxICON_ERROR);
 		message->ShowModal();
 		return;
-
 	}
 	wxMessageDialog* message = new wxMessageDialog(
 		this,

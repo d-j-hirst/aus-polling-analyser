@@ -9,6 +9,8 @@
 #include "ProjectionCollection.h"
 #include "TextInput.h"
 
+using namespace std::placeholders; // for function object parameter binding
+
 constexpr int ControlPadding = 4;
 
 enum ControlId
@@ -19,6 +21,7 @@ enum ControlId
 	BaseProjection,
 	NumIterations,
 	PrevElection2pp,
+	PrevTermCodes,
 	StateSD,
 	StateDecay,
 	Live,
@@ -42,6 +45,7 @@ void EditSimulationFrame::createControls(int & y)
 	createProjectionInput(y);
 	createNumIterationsInput(y);
 	createPrevElection2ppInput(y);
+	createPrevTermCodesInput(y);
 	createStateSDInput(y);
 	createStateDecayInput(y);
 	createLiveInput(y);
@@ -89,6 +93,21 @@ void EditSimulationFrame::createPrevElection2ppInput(int & y)
 	prevElection2ppInput.reset(new FloatInput(this, ControlId::PrevElection2pp, "Previous election 2pp:", simulationSettings.prevElection2pp,
 		wxPoint(2, y), prevElection2ppCallback, prevElection2ppValidator));
 	y += prevElection2ppInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createPrevTermCodesInput(int& y)
+{
+	std::string termCodes = "";
+	if (simulationSettings.prevTermCodes.size()) {
+		termCodes += simulationSettings.prevTermCodes[0];
+		for (size_t i = 1; i < simulationSettings.prevTermCodes.size(); ++i) {
+			termCodes += "," + simulationSettings.prevTermCodes[i];
+		}
+	}
+
+	auto shortCodesCallback = std::bind(&EditSimulationFrame::updatePrevTermCodes, this, _1);
+	prevTermCodesInput.reset(new TextInput(this, ControlId::PrevTermCodes, "Official Short Codes:", termCodes, wxPoint(2, y), shortCodesCallback));
+	y += prevTermCodesInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createStateSDInput(int & y)
@@ -143,4 +162,9 @@ void EditSimulationFrame::OnOK(wxCommandEvent& WXUNUSED(event))
 	callback(simulationSettings);
 	// Then close this dialog.
 	Close();
+}
+
+void EditSimulationFrame::updatePrevTermCodes(std::string shortCodes)
+{
+	simulationSettings.prevTermCodes = splitString(shortCodes, ",");
 }

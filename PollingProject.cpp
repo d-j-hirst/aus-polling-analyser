@@ -114,11 +114,11 @@ void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionInde
 	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
-int PollingProject::save(std::string filename)
+void PollingProject::save(std::string filename)
 {
 	ProjectFiler projectFiler(*this);
 	lastFileName = filename;
-	return projectFiler.save(filename);
+	projectFiler.save(filename);
 }
 
 bool PollingProject::isValid() {

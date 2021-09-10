@@ -51,6 +51,7 @@ private:
 	void createProjectionInput(int& y);
 	void createNumIterationsInput(int& y);
 	void createPrevElection2ppInput(int& y);
+	void createPrevTermCodesInput(int& y);
 	void createStateSDInput(int& y);
 	void createStateDecayInput(int& y);
 	void createLiveInput(int& y);
@@ -61,6 +62,9 @@ private:
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
+
+	// Callbacks for the controls to update the party data.
+	void updatePrevTermCodes(std::string prevTermCodes);
 
 	// Data container for the preliminary settings for the simulation to be created.
 	Simulation::Settings simulationSettings;
@@ -73,6 +77,7 @@ private:
 	std::unique_ptr<ChoiceInput> projectionInput;
 	std::unique_ptr<IntInput> numIterationsInput;
 	std::unique_ptr<FloatInput> prevElection2ppInput;
+	std::unique_ptr<TextInput> prevTermCodesInput;
 	std::unique_ptr<FloatInput> stateSDInput;
 	std::unique_ptr<FloatInput> stateDecayInput;
 	std::unique_ptr<ChoiceInput> liveInput;
