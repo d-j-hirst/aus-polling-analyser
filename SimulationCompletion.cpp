@@ -15,6 +15,8 @@ SimulationCompletion::SimulationCompletion(PollingProject & project, Simulation 
 
 void SimulationCompletion::completeRun()
 {
+	recordNames();
+
 	calculateIndividualSeatStatistics();
 
 	calculateWholeResultStatistics();
@@ -27,9 +29,9 @@ void SimulationCompletion::completeRun()
 
 	recordProbabilityBands();
 
-	createClassicSeatsList();
+	recordSeatPartyWinPercentages();
 
-	recordNames();
+	createClassicSeatsList();
 
 	recordReportSettings();
 }
@@ -155,6 +157,18 @@ void SimulationCompletion::recordNames()
 		sim.latestReport.seatName.push_back(project.seats().viewByIndex(index).name);
 		sim.latestReport.seatIncumbents.push_back(project.seats().viewByIndex(index).incumbent);
 		sim.latestReport.seatMargins.push_back(project.seats().viewByIndex(index).margin);
+	}
+}
+
+void SimulationCompletion::recordSeatPartyWinPercentages()
+{
+	sim.latestReport.seatPartyWinPercent.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		for (auto [partyIndex, count] : run.seatPartyWins[seatIndex]) {
+			float percent = float(count) / float(sim.settings.numIterations) * 100.0f;
+			sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] = percent;
+			logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
+		}
 	}
 }
 

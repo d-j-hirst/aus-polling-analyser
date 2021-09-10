@@ -63,6 +63,7 @@ private:
 	void assignSupportsPartyWins();
 	void recordMajorityResult();
 	void recordPartySeatWinCounts();
+	void recordSeatPartyWinner(int seatIndex);
 	void recordIterationResults();
 	void recordVoteTotals();
 	void recordSwings();

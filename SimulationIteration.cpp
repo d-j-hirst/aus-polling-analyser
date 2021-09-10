@@ -346,10 +346,22 @@ void SimulationIteration::recordPartySeatWinCounts()
 	++sim.latestReport.othersWinFrequency[othersWins];
 }
 
+void SimulationIteration::recordSeatPartyWinner(int seatIndex)
+{
+	int winner = seatWinner[seatIndex];
+	if (!run.seatPartyWins[seatIndex].count(winner)) {
+		run.seatPartyWins[seatIndex][winner] = 1;
+	}
+	else {
+		++run.seatPartyWins[seatIndex][winner];
+	}
+}
+
 void SimulationIteration::recordIterationResults()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		recordSeatResult(seatIndex);
+		recordSeatPartyWinner(seatIndex);
 	}
 	recordVoteTotals();
 	recordSwings();

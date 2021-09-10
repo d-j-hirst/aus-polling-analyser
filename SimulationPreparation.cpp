@@ -84,6 +84,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatTcpTally.resize(project.seats().count(), { 0, 0 });
 	run.seatIndividualBoothGrowth.resize(project.seats().count(), 0.0f);
 	run.seatToOutcome.resize(project.seats().count(), nullptr);
+	run.seatPartyWins.resize(project.seats().count());
 }
 
 void SimulationPreparation::accumulateRegionStaticInfo()

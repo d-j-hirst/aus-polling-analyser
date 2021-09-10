@@ -4,6 +4,7 @@
 
 #include <array>
 #include <functional>
+#include <map>
 #include <string>
 
 class PollingProject;
@@ -62,5 +63,6 @@ private:
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<Outcome const*> seatToOutcome;
+	std::vector<std::map<Party::Id, int>> seatPartyWins;
 	int hungParliament = 0;
 };
