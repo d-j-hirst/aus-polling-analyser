@@ -14,6 +14,11 @@
 
 void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedback)
 {
+	auto const& baseModel = project.projections().view(settings.baseProjection).getBaseModel(project.models());
+	if (!baseModel.isReadyForProjection()) {
+		feedback("The base model (" + baseModel.getName() + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
+		return;
+	}
 	lastUpdated = wxInvalidDateTime;
 	latestRun.emplace(project, *this);
 	latestRun->run(feedback);

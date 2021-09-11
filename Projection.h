@@ -95,8 +95,9 @@ public:
 
 	std::string textReport(ModelCollection const& models) const;
 
-private:
 	StanModel const& getBaseModel(ModelCollection const& models) const;
+
+private:
 
 	StanModel::PartySupport projectedSupport;
 	StanModel::Series tppSupport; // For whatever party is first in the user-defined party list
