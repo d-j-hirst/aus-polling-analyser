@@ -20,6 +20,11 @@ public:
 	friend class SimulationIteration;
 	friend class SimulationCompletion;
 
+	struct PastSeatResult {
+		std::map<int, int> fpVote;
+		std::map<int, int> tcpVote;
+	};
+
 	typedef std::function<void(std::string)> FeedbackFunc;
 
 	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
@@ -71,5 +76,6 @@ private:
 	std::vector<float> seatPreferenceFlowVariation;
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
+	std::vector<PastSeatResult> pastSeatResults;
 	int hungParliament = 0;
 };

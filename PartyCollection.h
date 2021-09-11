@@ -76,6 +76,9 @@ public:
 	// Returns the party with index "partyIndex".
 	Party const& viewByIndex(Index partyIndex) const { return view(indexToId(partyIndex)); }
 
+	// Returns the party with index "partyIndex".
+	int indexByShortCode(std::string shortCode) const;
+
 	Index idToIndex(Party::Id id) const;
 	Party::Id indexToId(Index id) const;
 

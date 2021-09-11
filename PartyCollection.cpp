@@ -40,6 +40,14 @@ Party const& PartyCollection::view(Party::Id id) const {
 	return parties.at(id);
 }
 
+int PartyCollection::indexByShortCode(std::string shortCode) const
+{
+	for (auto const& [id, party] : parties) {
+		if (contains(party.officialCodes, shortCode)) return idToIndex(id);
+	}
+	return -1;
+}
+
 PartyCollection::Index PartyCollection::idToIndex(Party::Id id) const
 {
 	auto foundIt = parties.find(id);

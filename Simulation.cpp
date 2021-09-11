@@ -14,6 +14,7 @@
 
 void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedback)
 {
+	lastUpdated = wxInvalidDateTime;
 	latestRun.emplace(project, *this);
 	latestRun->run(feedback);
 }

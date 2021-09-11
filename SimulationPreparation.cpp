@@ -32,6 +32,8 @@ void SimulationPreparation::prepareForIterations()
 
 	resetSeatSpecificOutput();
 
+	loadPastSeatResults();
+
 	accumulateRegionStaticInfo();
 
 	resetPpvcBiasAggregates();
@@ -341,9 +343,9 @@ std::pair<int, int> SimulationPreparation::aggregateVoteData(int seatIndex)
 	//	}
 	//}
 
-	//run.seatIndividualBoothGrowth[seatIndex] = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
+//run.seatIndividualBoothGrowth[seatIndex] = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
 
-	//return std::make_pair(seatFirstPartyPreferences, seatSecondPartyPreferences);
+//return std::make_pair(seatFirstPartyPreferences, seatSecondPartyPreferences);
 }
 
 void SimulationPreparation::calculatePreferenceFlows(int seatIndex, SeatPartyPreferences seatPartyPreferences)
@@ -421,4 +423,103 @@ void SimulationPreparation::accumulatePpvcBiasMeasures(int seatIndex) {
 	//	run.ppvcBiasNumerator += weightedSwing;
 	//	run.ppvcBiasDenominator += ppvcSwingDenominator;
 	//}
+}
+
+void SimulationPreparation::loadPastSeatResults()
+{
+	if (!sim.settings.prevTermCodes.size()) throw Exception("No previous term codes given!");
+	run.pastSeatResults.resize(project.seats().count());
+	std::string fileName = "python/elections/results_" + sim.settings.prevTermCodes[0] + ".csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	bool fpMode = false;
+	int currentSeat = -1;
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values[0] == "fp") {
+			fpMode = true;
+		}
+		else if (values[0] == "tcp") {
+			fpMode = false;
+		}
+		else if (values[0] == "Seat") {
+			try {
+				currentSeat = project.seats().accessByName(values[1]).first;
+			}
+			catch (SeatDoesntExistException) {
+				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
+				logger << "Could not find a match for seat " + values[1] + "\n";
+			}
+		}
+		else if (values.size() >= 3) {
+			std::string partyStr = values[1];
+			int numVotes = std::stoi(values[2]);
+			std::string shortCodeUsed;
+			if (partyStr == "Labor") {
+				shortCodeUsed = "ALP";
+			}
+			else if (partyStr == "Liberal") {
+				shortCodeUsed = "LNP";
+			}
+			else if (partyStr == "National") {
+				shortCodeUsed = "LNP";
+			}
+			else if (partyStr == "Greens") {
+				shortCodeUsed = "GRN";
+			}
+			else if (partyStr == "One Nation") {
+				shortCodeUsed = "ONP";
+			}
+			else if (partyStr == "United Australia") {
+				shortCodeUsed = "UAP";
+			}
+			else if (partyStr == "Independent") {
+				shortCodeUsed = "IND";
+			}
+			else if (partyStr == "Katter's Australian") {
+				shortCodeUsed = "KAP";
+			}
+			else if (partyStr == "Centre Alliance") {
+				shortCodeUsed = "CA";
+			}
+			else if (partyStr == "Democrats") {
+				shortCodeUsed = "DEM";
+			}
+			else if (partyStr == "SFF") {
+				shortCodeUsed = "SFF";
+			}
+			else {
+				// Anything else can just go under "Other" for now, so leave it blank
+			}
+			int partyId = project.parties().indexByShortCode(shortCodeUsed);
+			if (fpMode) {
+				run.pastSeatResults[currentSeat].fpVote[partyId] += numVotes;
+			}
+			else {
+				run.pastSeatResults[currentSeat].tcpVote[partyId] += numVotes;
+			}
+		}
+	} while (true);
+
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto const& seatResults = run.pastSeatResults[seatIndex];
+		logger << project.seats().viewByIndex(seatIndex).name << "\n";
+		logger << " Fp votes:\n";
+		for (auto const& [partyIndex, partyVotes] : seatResults.fpVote) {
+			logger << "  ";
+			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
+			else logger << "Others";
+			logger << ": " << partyVotes << "\n";
+		}
+		logger << " Tcp votes:\n";
+		for (auto const& [partyIndex, partyVotes] : seatResults.tcpVote) {
+			logger << "  ";
+			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
+			else logger << "Others";
+			logger << ": " << partyVotes << "\n";
+		}
+	}
 }

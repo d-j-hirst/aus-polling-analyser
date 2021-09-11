@@ -68,7 +68,7 @@ void SimulationCollection::run(Simulation::Id id, SimulationRun::FeedbackFunc fe
 		feedback("Live-automatic simulations are not presently available.");
 		return;
 	}
-	simulation.run(project);
+	simulation.run(project, feedback);
 }
 
 Simulation& SimulationCollection::access(Simulation::Id id)

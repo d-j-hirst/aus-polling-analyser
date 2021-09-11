@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <utility>
 
 class PollingProject;
@@ -9,6 +10,11 @@ class SimulationRun;
 
 class SimulationPreparation {
 public:
+	class Exception : public std::runtime_error {
+	public:
+		Exception(std::string what) : std::runtime_error(what) {}
+	};
+
 	SimulationPreparation(PollingProject& project, Simulation& sim, SimulationRun& run);
 	void prepareForIterations();
 private:
@@ -36,6 +42,7 @@ private:
 	SeatPartyPreferences aggregateVoteData(int seatIndex);
 	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
 	void accumulatePpvcBiasMeasures(int seatIndex);
+	void loadPastSeatResults();
 
 	PollingProject& project;
 	Simulation& sim;

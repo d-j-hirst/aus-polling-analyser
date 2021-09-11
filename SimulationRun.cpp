@@ -22,7 +22,14 @@ void SimulationRun::run(FeedbackFunc feedback) {
 	}
 
 	SimulationPreparation preparations(project, sim, *this);
-	preparations.prepareForIterations();
+	try {
+		preparations.prepareForIterations();
+	}
+	catch (SimulationPreparation::Exception const& e) {
+
+		feedback("Could not run simulation due to the following issue: \n" + std::string(e.what()));
+		return;
+	}
 
 	int numThreads = project.config().getNumThreads(); // temporary, pull from settings later
 	std::vector<int> batchSizes;
