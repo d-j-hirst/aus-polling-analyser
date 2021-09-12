@@ -22,6 +22,7 @@ private:
 	void createClassicSeatsList();
 	void recordNames();
 	void recordSeatPartyWinPercentages();
+	void recordSeatFpVoteStats();
 	void recordReportSettings();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);

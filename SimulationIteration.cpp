@@ -200,8 +200,17 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 	// Margin for this simulation is finalised, record it for later averaging
 	incumbentNewMargin[seatIndex] = result.margin * (result.winner == seat.incumbent ? 1.0f : -1.0f);
 	seatWinner[seatIndex] = result.winner;
-	adjustClassicSeatResultFor3rdPlaceIndependent(seatIndex);
+	determineSeatInitialPrimaryVotes(seatIndex);
+;	adjustClassicSeatResultFor3rdPlaceIndependent(seatIndex);
 	adjustClassicSeatResultForBettingOdds(seatIndex, result);
+}
+
+void SimulationIteration::determineSeatInitialPrimaryVotes(int seatIndex)
+{
+	this->seatPrimaryVotes.resize(project.seats().count());
+	for (auto const& [partyIndex, votes] : run.pastSeatResults[seatIndex].fpVote) {
+		this->seatPrimaryVotes[seatIndex][partyIndex] = votes;
+	}
 }
 
 void SimulationIteration::adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex)
@@ -251,6 +260,7 @@ void SimulationIteration::adjustClassicSeatResultForBettingOdds(int seatIndex, S
 void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	determineSeatInitialPrimaryVotes(seatIndex);
 	float liveSignificance = 0.0f;
 	if (sim.isLiveAutomatic()) {
 		SeatResult result = calculateLiveResultNonClassic2CP(seatIndex);
@@ -357,11 +367,19 @@ void SimulationIteration::recordSeatPartyWinner(int seatIndex)
 	}
 }
 
+void SimulationIteration::recordSeatFpVotes(int seatIndex)
+{
+	for (auto [partyIndex, fpPercent] : seatPrimaryVotes[seatIndex]) {
+		run.cumulativePartyVoteShare[seatIndex][partyIndex] += fpPercent;
+	}
+}
+
 void SimulationIteration::recordIterationResults()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		recordSeatResult(seatIndex);
 		recordSeatPartyWinner(seatIndex);
+		recordSeatFpVotes(seatIndex);
 	}
 	recordVoteTotals();
 	recordSwings();

@@ -88,6 +88,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatIndividualBoothGrowth.resize(project.seats().count(), 0.0f);
 	run.seatToOutcome.resize(project.seats().count(), nullptr);
 	run.seatPartyWins.resize(project.seats().count());
+	run.cumulativePartyVoteShare.resize(project.seats().count());
 }
 
 void SimulationPreparation::accumulateRegionStaticInfo()
@@ -454,9 +455,9 @@ void SimulationPreparation::loadPastSeatResults()
 				logger << "Could not find a match for seat " + values[1] + "\n";
 			}
 		}
-		else if (values.size() >= 3) {
+		else if (values.size() >= 4) {
 			std::string partyStr = values[1];
-			int numVotes = std::stoi(values[2]);
+			float votePercent = std::stof(values[3]);
 			std::string shortCodeUsed;
 			if (partyStr == "Labor") {
 				shortCodeUsed = "ALP";
@@ -496,30 +497,11 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 			int partyId = project.parties().indexByShortCode(shortCodeUsed);
 			if (fpMode) {
-				run.pastSeatResults[currentSeat].fpVote[partyId] += numVotes;
+				run.pastSeatResults[currentSeat].fpVote[partyId] += votePercent;
 			}
 			else {
-				run.pastSeatResults[currentSeat].tcpVote[partyId] += numVotes;
+				run.pastSeatResults[currentSeat].tcpVote[partyId] += votePercent;
 			}
 		}
 	} while (true);
-
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		auto const& seatResults = run.pastSeatResults[seatIndex];
-		logger << project.seats().viewByIndex(seatIndex).name << "\n";
-		logger << " Fp votes:\n";
-		for (auto const& [partyIndex, partyVotes] : seatResults.fpVote) {
-			logger << "  ";
-			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
-			else logger << "Others";
-			logger << ": " << partyVotes << "\n";
-		}
-		logger << " Tcp votes:\n";
-		for (auto const& [partyIndex, partyVotes] : seatResults.tcpVote) {
-			logger << "  ";
-			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
-			else logger << "Others";
-			logger << ": " << partyVotes << "\n";
-		}
-	}
 }

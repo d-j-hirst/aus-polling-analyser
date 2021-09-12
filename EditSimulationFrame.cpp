@@ -105,8 +105,8 @@ void EditSimulationFrame::createPrevTermCodesInput(int& y)
 		}
 	}
 
-	auto shortCodesCallback = std::bind(&EditSimulationFrame::updatePrevTermCodes, this, _1);
-	prevTermCodesInput.reset(new TextInput(this, ControlId::PrevTermCodes, "Official Short Codes:", termCodes, wxPoint(2, y), shortCodesCallback));
+	auto prevTermCodesCallback = std::bind(&EditSimulationFrame::updatePrevTermCodes, this, _1);
+	prevTermCodesInput.reset(new TextInput(this, ControlId::PrevTermCodes, "Previous Term Codes:", termCodes, wxPoint(2, y), prevTermCodesCallback));
 	y += prevTermCodesInput->Height + ControlPadding;
 }
 

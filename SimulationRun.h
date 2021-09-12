@@ -21,8 +21,8 @@ public:
 	friend class SimulationCompletion;
 
 	struct PastSeatResult {
-		std::map<int, int> fpVote;
-		std::map<int, int> tcpVote;
+		std::map<int, float> fpVote; // map from party index -> percentage
+		std::map<int, float> tcpVote; // map from party index -> percentage
 	};
 
 	typedef std::function<void(std::string)> FeedbackFunc;
@@ -68,6 +68,7 @@ private:
 	std::vector<double> partyOneWinPercent;
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
+	std::vector<std::map<Party::Id, double>> cumulativePartyVoteShare;
 	std::vector<std::map<Party::Id, int>> seatPartyWins;
 
 	std::vector<Outcome const*> seatToOutcome;

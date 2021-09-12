@@ -31,6 +31,8 @@ void SimulationCompletion::completeRun()
 
 	recordSeatPartyWinPercentages();
 
+	recordSeatFpVoteStats();
+
 	createClassicSeatsList();
 
 	recordReportSettings();
@@ -172,6 +174,26 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 			float percent = float(count) / float(sim.settings.numIterations) * 100.0f;
 			sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] = percent;
 			logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
+		}
+	}
+}
+
+
+void SimulationCompletion::recordSeatFpVoteStats()
+{
+	sim.latestReport.seatPartyMeanFpShare.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		for (auto [partyIndex, cumulativePercent] : run.cumulativePartyVoteShare[seatIndex]) {
+			sim.latestReport.seatPartyMeanFpShare[seatIndex][partyIndex] = cumulativePercent / double(sim.settings.numIterations);
+		}
+
+		logger << project.seats().viewByIndex(seatIndex).name << "\n";
+		logger << " Fp percent:\n";
+		for (auto const& [partyIndex, fpVoteShare] : sim.latestReport.seatPartyMeanFpShare[seatIndex]) {
+			logger << "  ";
+			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
+			else logger << "Others";
+			logger << ": " << fpVoteShare << "\n";
 		}
 	}
 }

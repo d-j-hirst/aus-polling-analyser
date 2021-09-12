@@ -127,6 +127,8 @@ public:
 
 		std::vector<std::map<Party::Id, float>> seatPartyWinPercent;
 
+		std::vector<std::map<Party::Id, float>> seatPartyMeanFpShare;
+
 		float prevElection2pp = 0.0f;
 
 		float getPartyMajorityPercent(Simulation::MajorParty whichParty) const;
