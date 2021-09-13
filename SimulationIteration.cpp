@@ -69,7 +69,6 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	regionSeatCount = std::vector<std::vector<int>>(project.parties().count(), std::vector<int>(project.regions().count()));
 
 	partyWins = std::vector<int>(project.parties().count());
-	overallFp = std::vector<float>(project.parties().count(), 0.0f);
 	incumbentNewMargin = std::vector<float>(project.seats().count(), 0.0f);
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
 }
@@ -88,6 +87,15 @@ void SimulationIteration::determineIterationOverallSwing()
 				overallFp[partyIndex] = partySample;
 				break;
 			}
+		}
+	}
+
+	for (auto const& [partyIndex, partyFp] : overallFp) {
+		if (run.previousFpVoteShare.contains(partyIndex)) {
+			overallFpSwing[partyIndex] = partyFp - run.previousFpVoteShare[partyIndex];
+		}
+		else {
+			overallFpSwing[partyIndex] = 0.0f;
 		}
 	}
 
@@ -208,9 +216,12 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 
 void SimulationIteration::determineSeatInitialPrimaryVotes(int seatIndex)
 {
-	this->seatFpVoteShare.resize(project.seats().count());
+	seatFpVoteShare.resize(project.seats().count());
 	for (auto const& [partyIndex, votes] : run.pastSeatResults[seatIndex].fpVote) {
-		this->seatFpVoteShare[seatIndex][partyIndex] = votes;
+		seatFpVoteShare[seatIndex][partyIndex] = votes;
+		if (overallFpSwing.contains(partyIndex)) {
+			seatFpVoteShare[seatIndex][partyIndex] += overallFpSwing[partyIndex];
+		}
 	}
 }
 

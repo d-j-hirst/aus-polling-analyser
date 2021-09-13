@@ -127,7 +127,7 @@ private:
 	std::vector<std::map<Party::Id, float>> seatFpVoteShare;
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
-	std::vector<float> overallFp;
+	std::map<Party::Id, float> overallFp;
 	std::map<Party::Id, float> overallFpSwing;
 	float ppvcBias = 0.0f;
 

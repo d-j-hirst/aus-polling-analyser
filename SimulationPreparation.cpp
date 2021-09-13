@@ -538,5 +538,4 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 			run.previousFpVoteShare[partyIndex] = std::stof(values[3]);
 		}
 	} while (true);
-	logger << "Previous vote shares: " << run.previousFpVoteShare << "\n";
 }
