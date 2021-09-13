@@ -25,6 +25,24 @@ public:
 		std::map<int, float> tcpVote; // map from party index -> percentage
 	};
 
+	struct SeatStatistics {
+		enum class TrendType {
+			SwingCoefficient,
+			SophomoreCoefficient,
+			Offset,
+			LowerRmse,
+			UpperRmse,
+			LowerKurtosis,
+			UpperKurtosis,
+			Num
+		};
+
+		float scaleLow = 0.0f;
+		float scaleStep = 10.0f;
+		float scaleHigh = 0.0f;
+		std::array<std::vector<float>, int(TrendType::Num)> trend;
+	};
+
 	typedef std::function<void(std::string)> FeedbackFunc;
 
 	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
@@ -78,5 +96,6 @@ private:
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
+	SeatStatistics greensSeatStatistics;
 	int hungParliament = 0;
 };

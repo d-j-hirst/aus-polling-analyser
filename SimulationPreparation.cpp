@@ -34,6 +34,8 @@ void SimulationPreparation::prepareForIterations()
 
 	loadPastSeatResults();
 
+	loadGreensSeatStatistics();
+
 	accumulateRegionStaticInfo();
 
 	resetPpvcBiasAggregates();
@@ -426,6 +428,20 @@ void SimulationPreparation::accumulatePpvcBiasMeasures(int seatIndex) {
 	//}
 }
 
+const std::map<std::string, std::string> simplifiedStringToPartyCode = {
+	{"Labor", "ALP"},
+	{"Liberal", "LNP"},
+	{"National", "LNP"},
+	{"Greens", "GRN"},
+	{"One Nation", "ONP"},
+	{"United Australia", "UAP"},
+	{"Independent", "IND"},
+	{"Katter's Australian", "KAP"},
+	{"Centre Alliance", "CA"},
+	{"Democrats", "DEM"},
+	{"Centre Alliance", "SFF"}
+};
+
 void SimulationPreparation::loadPastSeatResults()
 {
 	if (!sim.settings.prevTermCodes.size()) throw Exception("No previous term codes given!");
@@ -459,41 +475,8 @@ void SimulationPreparation::loadPastSeatResults()
 			std::string partyStr = values[1];
 			float votePercent = std::stof(values[3]);
 			std::string shortCodeUsed;
-			if (partyStr == "Labor") {
-				shortCodeUsed = "ALP";
-			}
-			else if (partyStr == "Liberal") {
-				shortCodeUsed = "LNP";
-			}
-			else if (partyStr == "National") {
-				shortCodeUsed = "LNP";
-			}
-			else if (partyStr == "Greens") {
-				shortCodeUsed = "GRN";
-			}
-			else if (partyStr == "One Nation") {
-				shortCodeUsed = "ONP";
-			}
-			else if (partyStr == "United Australia") {
-				shortCodeUsed = "UAP";
-			}
-			else if (partyStr == "Independent") {
-				shortCodeUsed = "IND";
-			}
-			else if (partyStr == "Katter's Australian") {
-				shortCodeUsed = "KAP";
-			}
-			else if (partyStr == "Centre Alliance") {
-				shortCodeUsed = "CA";
-			}
-			else if (partyStr == "Democrats") {
-				shortCodeUsed = "DEM";
-			}
-			else if (partyStr == "SFF") {
-				shortCodeUsed = "SFF";
-			}
-			else {
-				// Anything else can just go under "Other" for now, so leave it blank
+			if (simplifiedStringToPartyCode.count(partyStr)) {
+				shortCodeUsed = simplifiedStringToPartyCode.at(partyStr);
 			}
 			int partyId = project.parties().indexByShortCode(shortCodeUsed);
 			if (fpMode) {
@@ -504,4 +487,28 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 		}
 	} while (true);
+}
+
+void SimulationPreparation::loadGreensSeatStatistics()
+{
+	std::string fileName = "python/Seat Statistics/statistics_GRN.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	std::string line;
+	std::getline(file, line);
+	auto scaleValues = splitString(line, ",");
+	run.greensSeatStatistics.scaleLow = std::stof(scaleValues[0]);
+	run.greensSeatStatistics.scaleStep = std::stof(scaleValues[1]) - run.greensSeatStatistics.scaleLow;
+	run.greensSeatStatistics.scaleHigh = std::stof(scaleValues.back());
+	for (int trendType = 0; trendType < int(SimulationRun::SeatStatistics::TrendType::Num); ++trendType) {
+		std::getline(file, line);
+		auto strings = splitString(line, ",");
+		for (auto const& str : strings) {
+			run.greensSeatStatistics.trend[trendType].push_back(std::stof(str));
+		}
+	}
+	
+	for (auto const& trend : run.greensSeatStatistics.trend) {
+		logger << trend << "\n";
+	}
 }

@@ -43,6 +43,7 @@ private:
 	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
 	void accumulatePpvcBiasMeasures(int seatIndex);
 	void loadPastSeatResults();
+	void loadGreensSeatStatistics();
 
 	PollingProject& project;
 	Simulation& sim;
