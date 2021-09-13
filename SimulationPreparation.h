@@ -44,6 +44,7 @@ private:
 	void accumulatePpvcBiasMeasures(int seatIndex);
 	void loadPastSeatResults();
 	void loadGreensSeatStatistics();
+	void loadPreviousElectionBaselineVotes();
 
 	PollingProject& project;
 	Simulation& sim;

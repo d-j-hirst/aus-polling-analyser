@@ -178,7 +178,6 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 	}
 }
 
-
 void SimulationCompletion::recordSeatFpVoteStats()
 {
 	sim.latestReport.seatPartyMeanFpShare.resize(project.seats().count());

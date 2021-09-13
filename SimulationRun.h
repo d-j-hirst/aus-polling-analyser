@@ -96,6 +96,7 @@ private:
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
+	std::map<Party::Id, float> previousFpVoteShare;
 	SeatStatistics greensSeatStatistics;
 	int hungParliament = 0;
 };

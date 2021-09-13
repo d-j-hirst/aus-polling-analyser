@@ -124,10 +124,11 @@ private:
 	std::vector<float> regionSwing;
 	std::vector<float> incumbentNewMargin;
 	std::vector<Party::Id> seatWinner;
-	std::vector<std::map<Party::Id, float>> seatPrimaryVotes;
+	std::vector<std::map<Party::Id, float>> seatFpVoteShare;
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
 	std::vector<float> overallFp;
+	std::map<Party::Id, float> overallFpSwing;
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();

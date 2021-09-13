@@ -3,6 +3,7 @@
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
+#include "SpecialPartyCodes.h"
 
 #include <random>
 
@@ -31,6 +32,8 @@ void SimulationPreparation::prepareForIterations()
 	resetRegionSpecificOutput();
 
 	resetSeatSpecificOutput();
+
+	loadPreviousElectionBaselineVotes();
 
 	loadPastSeatResults();
 
@@ -511,4 +514,29 @@ void SimulationPreparation::loadGreensSeatStatistics()
 	for (auto const& trend : run.greensSeatStatistics.trend) {
 		logger << trend << "\n";
 	}
+}
+
+void SimulationPreparation::loadPreviousElectionBaselineVotes()
+{
+	std::string fileName = "python/Data/prior-results.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	std::string yearCode = sim.settings.prevTermCodes[0].substr(0, 4);
+	std::string regionCode = sim.settings.prevTermCodes[0].substr(4);
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values[0] == yearCode && values[1] == regionCode) {
+			std::string partyCode = splitString(values[2], " ")[0];
+			// exclusive others is what we want to store, overall others isn't used
+			if (partyCode == "OTH") continue;
+			int partyIndex = project.parties().indexByShortCode(partyCode);
+			// ignore parties that were significant last election but not expected to be so for this election
+			if (partyIndex == -1 && partyCode != UnnamedOthersCode) continue;
+			run.previousFpVoteShare[partyIndex] = std::stof(values[3]);
+		}
+	} while (true);
+	logger << "Previous vote shares: " << run.previousFpVoteShare << "\n";
 }

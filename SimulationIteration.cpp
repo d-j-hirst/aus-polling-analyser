@@ -72,7 +72,10 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	overallFp = std::vector<float>(project.parties().count(), 0.0f);
 	incumbentNewMargin = std::vector<float>(project.seats().count(), 0.0f);
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
+}
 
+void SimulationIteration::determineIterationOverallSwing()
+{
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
 	iterationOverallTpp = projectedSample.at(TppCode);
@@ -87,10 +90,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 			}
 		}
 	}
-}
 
-void SimulationIteration::determineIterationOverallSwing()
-{
 	if (sim.isLive() && run.liveOverallPercent) {
 		float liveSwing = run.liveOverallSwing;
 		float liveStdDev = stdDevOverall(run.liveOverallPercent);
@@ -98,6 +98,7 @@ void SimulationIteration::determineIterationOverallSwing()
 		float priorWeight = 0.5f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
 		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+		iterationOverallTpp = iterationOverallSwing + sim.settings.prevElection2pp;
 	}
 }
 
@@ -207,9 +208,9 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 
 void SimulationIteration::determineSeatInitialPrimaryVotes(int seatIndex)
 {
-	this->seatPrimaryVotes.resize(project.seats().count());
+	this->seatFpVoteShare.resize(project.seats().count());
 	for (auto const& [partyIndex, votes] : run.pastSeatResults[seatIndex].fpVote) {
-		this->seatPrimaryVotes[seatIndex][partyIndex] = votes;
+		this->seatFpVoteShare[seatIndex][partyIndex] = votes;
 	}
 }
 
@@ -369,7 +370,7 @@ void SimulationIteration::recordSeatPartyWinner(int seatIndex)
 
 void SimulationIteration::recordSeatFpVotes(int seatIndex)
 {
-	for (auto [partyIndex, fpPercent] : seatPrimaryVotes[seatIndex]) {
+	for (auto [partyIndex, fpPercent] : seatFpVoteShare[seatIndex]) {
 		run.cumulativePartyVoteShare[seatIndex][partyIndex] += fpPercent;
 	}
 }
