@@ -182,7 +182,7 @@ void SimulationCompletion::recordSeatFpVoteStats()
 {
 	sim.latestReport.seatPartyMeanFpShare.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		for (auto [partyIndex, cumulativePercent] : run.cumulativePartyVoteShare[seatIndex]) {
+		for (auto [partyIndex, cumulativePercent] : run.cumulativeSeatPartyFpShare[seatIndex]) {
 			sim.latestReport.seatPartyMeanFpShare[seatIndex][partyIndex] = cumulativePercent / double(sim.settings.numIterations);
 		}
 
@@ -192,7 +192,7 @@ void SimulationCompletion::recordSeatFpVoteStats()
 			logger << "  ";
 			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
 			else logger << "Others";
-			logger << ": " << fpVoteShare << "\n";
+			logger << ": " << fpVoteShare << ", " << "distribution: " << run.seatPartyFpDistribution[seatIndex][partyIndex] << "\n";
 		}
 	}
 }

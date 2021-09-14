@@ -79,6 +79,8 @@ private:
 	int total2cpVotes = 0;
 	int totalEnrolment = 0;
 
+	constexpr static int FpBucketCount = 100;
+
 	std::array<int, 2> partyMajority = std::array<int, 2>();
 	std::array<int, 2> partyMinority = std::array<int, 2>();
 	std::vector<double> seatIncumbentMarginAverage;
@@ -86,7 +88,8 @@ private:
 	std::vector<double> partyOneWinPercent;
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
-	std::vector<std::map<Party::Id, double>> cumulativePartyVoteShare;
+	std::vector<std::map<Party::Id, double>> cumulativeSeatPartyFpShare;
+	std::vector<std::map<Party::Id, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<Party::Id, int>> seatPartyWins;
 
 	std::vector<Outcome const*> seatToOutcome;

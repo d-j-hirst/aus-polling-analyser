@@ -14,6 +14,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -165,4 +166,19 @@ bool contains(std::vector<T> const& vec, T find) {
 template<typename T>
 T mix(T lower, T upper, T upperFactor) {
 	return upper * upperFactor + lower * (T(1.0) - upperFactor);
+}
+
+namespace detail
+{
+	template <typename T, std::size_t...Is>
+	std::array<T, sizeof...(Is)> make_array(const T& value, std::index_sequence<Is...>)
+	{
+		return { { (static_cast<void>(Is), value)... } };
+	}
+}
+
+template <std::size_t N, typename T>
+std::array<T, N> make_array(const T& value)
+{
+	return detail::make_array(value, std::make_index_sequence<N>());
 }

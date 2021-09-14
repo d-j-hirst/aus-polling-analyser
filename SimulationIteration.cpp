@@ -382,7 +382,10 @@ void SimulationIteration::recordSeatPartyWinner(int seatIndex)
 void SimulationIteration::recordSeatFpVotes(int seatIndex)
 {
 	for (auto [partyIndex, fpPercent] : seatFpVoteShare[seatIndex]) {
-		run.cumulativePartyVoteShare[seatIndex][partyIndex] += fpPercent;
+		run.cumulativeSeatPartyFpShare[seatIndex][partyIndex] += fpPercent;
+		int bucket = std::clamp(int(std::floor(fpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+		++run.seatPartyFpDistribution[seatIndex][partyIndex][bucket];
+		++run.seatPartyFpDistribution[seatIndex][partyIndex][bucket];
 	}
 }
 
