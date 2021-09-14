@@ -192,7 +192,16 @@ void SimulationCompletion::recordSeatFpVoteStats()
 			logger << "  ";
 			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
 			else logger << "Others";
-			logger << ": " << fpVoteShare << ", " << "distribution: " << run.seatPartyFpDistribution[seatIndex][partyIndex] << "\n";
+			logger << ": " << fpVoteShare << ", " << "distribution: ";
+			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
+				if (run.seatPartyFpDistribution[seatIndex][partyIndex][a] > 0) {
+					logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
+					logger << "-";
+					logger << run.seatPartyFpDistribution[seatIndex][partyIndex][a];
+					logger << ", ";
+				}
+			}
+			logger << "\n";
 		}
 	}
 }
