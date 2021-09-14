@@ -57,7 +57,8 @@ private:
 	void correctRegionalSwings();
 	void determineSeatResult(int seatIndex);
 	void determineClassicSeatResult(int seatIndex);
-	void determineSeatInitialPrimaryVotes(int seatIndex);
+	void determineSeatInitialFp(int seatIndex);
+	void calculateNewFpVoteTotals();
 	void adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex);
 	void adjustClassicSeatResultForBettingOdds(int seatIndex, SeatResult result);
 	void determineNonClassicSeatResult(int seatIndex);

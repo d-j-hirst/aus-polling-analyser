@@ -39,14 +39,18 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 
 void SimulationIteration::runIteration()
 {
-	initialiseIterationSpecificCounts(); // clean
-	determineIterationOverallSwing(); // clean
-	determineIterationPpvcBias(); // clean
-	determineIterationRegionalSwings(); // clean
+	initialiseIterationSpecificCounts();
+	determineIterationOverallSwing();
+	determineIterationPpvcBias();
+	determineIterationRegionalSwings();
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		determineSeatResult(seatIndex); // clean (?)
+		determineSeatResult(seatIndex);
+	}
 
+	calculateNewFpVoteTotals();
+
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		int winnerIndex = project.parties().idToIndex(seatWinner[seatIndex]);
 		if (winnerIndex != PartyCollection::InvalidIndex) {
@@ -56,12 +60,9 @@ void SimulationIteration::runIteration()
 		}
 	}
 
-	assignCountAsPartyWins(); // clean
-	assignSupportsPartyWins(); // clean
+	assignCountAsPartyWins();
+	assignSupportsPartyWins();
 
-	// This should eventually do all the actual recording of results
-	// to sim/run storage - everything above should only edit local
-	// variables, to allow efficient multithreading
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
 }
@@ -212,12 +213,12 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 	// Margin for this simulation is finalised, record it for later averaging
 	incumbentNewMargin[seatIndex] = result.margin * (result.winner == seat.incumbent ? 1.0f : -1.0f);
 	seatWinner[seatIndex] = result.winner;
-	determineSeatInitialPrimaryVotes(seatIndex);
+	determineSeatInitialFp(seatIndex);
 ;	adjustClassicSeatResultFor3rdPlaceIndependent(seatIndex);
 	adjustClassicSeatResultForBettingOdds(seatIndex, result);
 }
 
-void SimulationIteration::determineSeatInitialPrimaryVotes(int seatIndex)
+void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
 	seatFpVoteShare.resize(project.seats().count());
 	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVote) {
@@ -253,6 +254,21 @@ void SimulationIteration::determineSeatInitialPrimaryVotes(int seatIndex)
 		voteShare = detransformVoteShare(transformedFp);
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
+}
+
+void SimulationIteration::calculateNewFpVoteTotals()
+{
+	//std::map<int, int> partyVoteCount;
+	//int totalVoteCount = 0;
+	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+	//	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVote) {
+	//		partyVoteCount[partyIndex] += voteShare;
+	//		totalVoteCount += voteShare;
+	//	}
+	//}
+	//for (auto [partyIndex, voteCount] : partyVoteCount) {
+	//	//overallFp[partyIndex] = float(voteCount) / float(totalVoteCount) * 100.0f;
+	//}
 }
 
 void SimulationIteration::adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex)
@@ -302,7 +318,7 @@ void SimulationIteration::adjustClassicSeatResultForBettingOdds(int seatIndex, S
 void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	determineSeatInitialPrimaryVotes(seatIndex);
+	determineSeatInitialFp(seatIndex);
 	float liveSignificance = 0.0f;
 	if (sim.isLiveAutomatic()) {
 		SeatResult result = calculateLiveResultNonClassic2CP(seatIndex);
