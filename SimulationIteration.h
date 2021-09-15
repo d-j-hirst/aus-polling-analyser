@@ -58,6 +58,7 @@ private:
 	void determineSeatResult(int seatIndex);
 	void determineClassicSeatResult(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
+	void normaliseSeatFp(int seatIndex);
 	void calculateNewFpVoteTotals();
 	void adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex);
 	void adjustClassicSeatResultForBettingOdds(int seatIndex, SeatResult result);

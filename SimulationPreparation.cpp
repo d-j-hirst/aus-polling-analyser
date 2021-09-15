@@ -477,6 +477,7 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 		else if (values.size() >= 4) {
 			std::string partyStr = values[1];
+			float voteCount = std::stof(values[2]);
 			float votePercent = std::stof(values[3]);
 			std::string shortCodeUsed;
 			if (simplifiedStringToPartyCode.count(partyStr)) {
@@ -484,7 +485,12 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 			int partyId = project.parties().indexByShortCode(shortCodeUsed);
 			if (fpMode) {
-				run.pastSeatResults[currentSeat].fpVote[partyId] += votePercent;
+				run.pastSeatResults[currentSeat].fpVoteCount[partyId] += voteCount;
+				run.pastSeatResults[currentSeat].fpVotePercent[partyId] += votePercent;
+				if (partyId == -1) {
+					logger << "Others vote found ***!\n";
+					logger << run.pastSeatResults[currentSeat].fpVotePercent[partyId] << "\n";
+				}
 			}
 			else {
 				run.pastSeatResults[currentSeat].tcpVote[partyId] += votePercent;
@@ -522,8 +528,9 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 	std::string fileName = "python/Data/prior-results.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string yearCode = sim.settings.prevTermCodes[0].substr(0, 4);
-	std::string regionCode = sim.settings.prevTermCodes[0].substr(4);
+	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+	std::string yearCode = termCode.substr(0, 4);
+	std::string regionCode = termCode.substr(4);
 	do {
 		std::string line;
 		std::getline(file, line);

@@ -85,6 +85,10 @@ void SimulationIteration::determineIterationOverallSwing()
 	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
 
 	for (auto const& [sampleKey, partySample] : projectedSample) {
+		if (sampleKey == UnnamedOthersCode) {
+			overallFp[-1] = partySample;
+			continue;
+		}
 		for (auto const& [id, party] : project.parties()) {
 			if (contains(party.officialCodes, sampleKey)) {
 				int partyIndex = project.parties().idToIndex(id);
@@ -221,54 +225,69 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
 	seatFpVoteShare.resize(project.seats().count());
-	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVote) {
-		float transformedFp = transformVoteShare(voteShare);
-		if (overallFpSwing.contains(partyIndex)) {
-			auto const& stats = run.greensSeatStatistics;
-			float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
-			int seatStatisticsLower = int(std::floor(seatStatisticsExact));
-			float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
-			using StatType = SimulationRun::SeatStatistics::TrendType;
-			float swingMultiplierLower = stats.trend[int(StatType::SwingCoefficient)][seatStatisticsLower];
-			// following ternary operator prevents accessing beyong the end of the array when at the upper end of the scale
-			float swingMultiplierUpper = (seatStatisticsMix ? stats.trend[int(StatType::SwingCoefficient)][seatStatisticsLower + 1] : 0.0f);
-			float swingMultiplierMixed = swingMultiplierLower * (1.0f - seatStatisticsMix) + swingMultiplierUpper * seatStatisticsMix;
-			float offsetLower = stats.trend[int(StatType::Offset)][seatStatisticsLower];
-			float offsetUpper = (seatStatisticsMix ? stats.trend[int(StatType::Offset)][seatStatisticsLower + 1] : 0.0f);
-			float offsetMixed = offsetLower * (1.0f - seatStatisticsMix) + offsetUpper * seatStatisticsMix;
-			float lowerRmseLower = stats.trend[int(StatType::LowerRmse)][seatStatisticsLower];
-			float lowerRmseUpper = (seatStatisticsMix ? stats.trend[int(StatType::LowerRmse)][seatStatisticsLower + 1] : 0.0f);
-			float lowerRmseMixed = lowerRmseLower * (1.0f - seatStatisticsMix) + lowerRmseUpper * seatStatisticsMix;
-			float upperRmseLower = stats.trend[int(StatType::UpperRmse)][seatStatisticsLower];
-			float upperRmseUpper = (seatStatisticsMix ? stats.trend[int(StatType::UpperRmse)][seatStatisticsLower + 1] : 0.0f);
-			float upperRmseMixed = upperRmseLower * (1.0f - seatStatisticsMix) + upperRmseUpper * seatStatisticsMix;
-			float lowerKurtosisLower = stats.trend[int(StatType::LowerKurtosis)][seatStatisticsLower];
-			float lowerKurtosisUpper = (seatStatisticsMix ? stats.trend[int(StatType::LowerKurtosis)][seatStatisticsLower + 1] : 0.0f);
-			float lowerKurtosisMixed = lowerKurtosisLower * (1.0f - seatStatisticsMix) + lowerKurtosisUpper * seatStatisticsMix;
-			float upperKurtosisLower = stats.trend[int(StatType::UpperKurtosis)][seatStatisticsLower];
-			float upperKurtosisUpper = (seatStatisticsMix ? stats.trend[int(StatType::UpperKurtosis)][seatStatisticsLower + 1] : 0.0f);
-			float upperKurtosisMixed = upperKurtosisLower * (1.0f - seatStatisticsMix) + upperKurtosisUpper * seatStatisticsMix;
-			transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex] + offsetMixed;
-			transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
+	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
+		if (partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"))) {
+			float transformedFp = transformVoteShare(voteShare);
+			if (overallFpSwing.contains(partyIndex)) {
+				auto const& stats = run.greensSeatStatistics;
+				float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
+				int seatStatisticsLower = int(std::floor(seatStatisticsExact));
+				float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
+				using StatType = SimulationRun::SeatStatistics::TrendType;
+				auto getMixedStat = [&](StatType statType) {
+					return mix(stats.trend[int(statType)][seatStatisticsLower],
+						(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
+						seatStatisticsMix);
+				};
+				// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
+				float swingMultiplierMixed = getMixedStat(StatType::SwingCoefficient);
+				float offsetMixed = getMixedStat(StatType::Offset);
+				float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
+				float upperRmseMixed = getMixedStat(StatType::UpperRmse);
+				float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
+				float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
+				transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex] + offsetMixed;
+				transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
+			}
+			voteShare = detransformVoteShare(transformedFp);
 		}
-		voteShare = detransformVoteShare(transformedFp);
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
+	}
+	normaliseSeatFp(seatIndex);
+}
+
+void SimulationIteration::normaliseSeatFp(int seatIndex)
+{
+	float totalVoteShare = 0.0f;
+	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		totalVoteShare += voteShare;
+	}
+	float correctionFactor = 100.0f / totalVoteShare;
+	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		seatFpVoteShare[seatIndex][partyIndex] *= correctionFactor;
 	}
 }
 
 void SimulationIteration::calculateNewFpVoteTotals()
 {
-	//std::map<int, int> partyVoteCount;
-	//int totalVoteCount = 0;
-	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-	//	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVote) {
-	//		partyVoteCount[partyIndex] += voteShare;
-	//		totalVoteCount += voteShare;
-	//	}
-	//}
-	//for (auto [partyIndex, voteCount] : partyVoteCount) {
-	//	//overallFp[partyIndex] = float(voteCount) / float(totalVoteCount) * 100.0f;
-	//}
+	// Vote shares in each seat are converted to equivalent previous-election vote totals to ensure that
+	// they reflect the turnout differences between seats (esp. Tasmanian seats)
+	std::map<int, int> partyVoteCount;
+	int totalVoteCount = 0;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		int seatVoteCount = 0;
+		for (auto [partyIndex, voteCount] : run.pastSeatResults[seatIndex].fpVoteCount) {
+			seatVoteCount += voteCount;
+		}
+		for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+			float voteCount = voteShare * float(seatVoteCount);
+			totalVoteCount += voteCount;
+			partyVoteCount[partyIndex] += voteCount;
+		}
+	}
+	for (auto [partyIndex, voteCount] : partyVoteCount) {
+		overallFp[partyIndex] = float(voteCount) / float(totalVoteCount) * 100.0f;
+	}
 }
 
 void SimulationIteration::adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex)
