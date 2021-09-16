@@ -276,7 +276,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float partyOneCurrentTpp = 0.0f;
 	if (seat.incumbent == 1 && seat.challenger == 0) partyOneCurrentTpp = 50.0f - incumbentNewMargin[seatIndex];
 	else if (seat.incumbent == 0 && seat.challenger == 1) partyOneCurrentTpp = 50.0f + incumbentNewMargin[seatIndex];
-	else partyOneCurrentTpp = seat.margin;
+	else partyOneCurrentTpp = seat.margin + 50.0f;
 
 
 	float preferenceBias = 0.0f;
@@ -312,12 +312,14 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		}
 	}
 	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
+	// Temporary bandaid fix to handle situations where the bias adjustment actually gives more preferences than there are available.
+	biasAdjustedPartyOnePrefs = std::clamp(biasAdjustedPartyOnePrefs, currentTotalPrefs * 0.05f, currentTotalPrefs * 0.95f);
 	// It would probably be better to completely redo seats where the major party vote falls below zero,
 	// but for now that's expected to only happen in a tiny proportion of simulations so this approximation will suffice
 	float partyOneFp = std::clamp(partyOneCurrentTpp - biasAdjustedPartyOnePrefs, 0.0f, 100.0f - currentTotalPrefs);
 	float partyTwoFp = 100.0f - partyOneFp - currentTotalPrefs;
 	//PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-	//PA_LOG_VAR(partyOnePriorTpp);
+	//PA_LOG_VAR(partyOneCurrentTpp);
 	//PA_LOG_VAR(preferenceBias);
 	//PA_LOG_VAR(nonMajorFpShare);
 	//PA_LOG_VAR(pastClassicTppAvailable);
