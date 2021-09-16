@@ -182,3 +182,8 @@ std::array<T, N> make_array(const T& value)
 {
 	return detail::make_array(value, std::make_index_sequence<N>());
 }
+
+template<typename T>
+bool isBoundedBy(const T& val, const T& lower, const T& upper) {
+	return lower <= val && val <= upper;
+}

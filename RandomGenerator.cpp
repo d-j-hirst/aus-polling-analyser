@@ -7,6 +7,7 @@
 std::random_device RandomGenerator::rd = std::random_device();
 std::mt19937 RandomGenerator::gen = std::mt19937();
 
+std::mutex RandomGenerator::tdistGeneralMutex;
 std::array<std::mutex, RandomGenerator::MaxDf + 1> RandomGenerator::tdistMutex = std::array<std::mutex, RandomGenerator::MaxDf + 1>();
 std::map<int, std::vector<double>> RandomGenerator::tdistLookup = std::map<int, std::vector<double>>();
 std::array<bool, RandomGenerator::MaxDf + 1> RandomGenerator::tdistReady = {};
@@ -18,7 +19,7 @@ bool RandomGenerator::normalReady = false;
 void RandomGenerator::prepareTdistLookup(int df)
 {
 	if (!tdistLookup.size()) {
-		std::lock_guard<std::mutex> lock_general(tdistMutex[df]);
+		std::lock_guard<std::mutex> lock_general(tdistGeneralMutex);
 		for (int a = 0; a <= MaxDf; ++a) {
 			tdistLookup[a] = std::vector<double>();
 		}

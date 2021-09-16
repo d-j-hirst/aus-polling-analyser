@@ -151,6 +151,7 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 	std::map<int, int> partyIds;
 	for (int heading = 4; heading < int(splitLine.size()); ++heading) {
 		auto splitHeading = splitString(splitLine[heading], " ");
+		if (splitHeading.size() != 2) continue;
 		if (splitHeading[1] == "FP") {
 			std::string partyName = splitHeading[0];
 			if (partyName == "OTH") {

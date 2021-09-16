@@ -434,41 +434,41 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 		if (days == 150) {
 			//logger << " - next sample\n";
-			if (key == "ALP") alpVoteTotal += voteShare;
-			if (key == "ALP") ++voteTotalCount;
-			if (key == "LNP") lnpVoteTotal += voteShare;
-			if (key == "LNP") lnpDebiasedPolls += detransformVoteShare(debiasedPolls);
-			if (key == "LNP") lnpMixedVoteShare += detransformVoteShare(mixedVoteShare);
-			if (key == "LNP") lnpMixedBias += detransformVoteShare(mixedBiasToday);
-			if (key == "LNP") lnpMixedDebiasedVote += detransformVoteShare(mixedDebiasedVote);
-			if (key == "LNP") lnpVoteWithVariation += detransformVoteShare(voteWithVariation);
-			if (key == "LNP") {
-				//PA_LOG_VAR(sample);
-				//PA_LOG_VAR(voteShare);
-				//PA_LOG_VAR(transformedPolls);
-				//PA_LOG_VAR(partyGroup);
-				//PA_LOG_VAR(pollBiasToday);
-				//PA_LOG_VAR(debiasedPolls);
-				//PA_LOG_VAR(detransformVoteShare(debiasedPolls));
-				//PA_LOG_VAR(previousAverage);
-				//PA_LOG_VAR(detransformVoteShare(previousAverage));
-				//PA_LOG_VAR(previousBiasToday);
-				//PA_LOG_VAR(debiasedPreviousAverage);
-				//PA_LOG_VAR(detransformVoteShare(debiasedPreviousAverage));
-				//PA_LOG_VAR(mixFactor);
-				//PA_LOG_VAR(mixedVoteShare);
-				//PA_LOG_VAR(detransformVoteShare(mixedVoteShare));
-				//PA_LOG_VAR(mixedBiasToday);
-				//PA_LOG_VAR(mixedDebiasedVote);
-				//PA_LOG_VAR(detransformVoteShare(mixedDebiasedVote));
-				//PA_LOG_VAR(lowerError);
-				//PA_LOG_VAR(upperError);
-				//PA_LOG_VAR(lowerKurtosis);
-				//PA_LOG_VAR(upperKurtosis);
-				//PA_LOG_VAR(additionalVariation);
-				//PA_LOG_VAR(voteWithVariation);
-				//PA_LOG_VAR(detransformVoteShare(voteWithVariation));
-			}
+			//if (key == "ALP") alpVoteTotal += voteShare;
+			//if (key == "ALP") ++voteTotalCount;
+			//if (key == "LNP") lnpVoteTotal += voteShare;
+			//if (key == "LNP") lnpDebiasedPolls += detransformVoteShare(debiasedPolls);
+			//if (key == "LNP") lnpMixedVoteShare += detransformVoteShare(mixedVoteShare);
+			//if (key == "LNP") lnpMixedBias += detransformVoteShare(mixedBiasToday);
+			//if (key == "LNP") lnpMixedDebiasedVote += detransformVoteShare(mixedDebiasedVote);
+			//if (key == "LNP") lnpVoteWithVariation += detransformVoteShare(voteWithVariation);
+			//if (key == "LNP") {
+			//	//PA_LOG_VAR(sample);
+			//	//PA_LOG_VAR(voteShare);
+			//	//PA_LOG_VAR(transformedPolls);
+			//	//PA_LOG_VAR(partyGroup);
+			//	//PA_LOG_VAR(pollBiasToday);
+			//	//PA_LOG_VAR(debiasedPolls);
+			//	//PA_LOG_VAR(detransformVoteShare(debiasedPolls));
+			//	//PA_LOG_VAR(previousAverage);
+			//	//PA_LOG_VAR(detransformVoteShare(previousAverage));
+			//	//PA_LOG_VAR(previousBiasToday);
+			//	//PA_LOG_VAR(debiasedPreviousAverage);
+			//	//PA_LOG_VAR(detransformVoteShare(debiasedPreviousAverage));
+			//	//PA_LOG_VAR(mixFactor);
+			//	//PA_LOG_VAR(mixedVoteShare);
+			//	//PA_LOG_VAR(detransformVoteShare(mixedVoteShare));
+			//	//PA_LOG_VAR(mixedBiasToday);
+			//	//PA_LOG_VAR(mixedDebiasedVote);
+			//	//PA_LOG_VAR(detransformVoteShare(mixedDebiasedVote));
+			//	//PA_LOG_VAR(lowerError);
+			//	//PA_LOG_VAR(upperError);
+			//	//PA_LOG_VAR(lowerKurtosis);
+			//	//PA_LOG_VAR(upperKurtosis);
+			//	//PA_LOG_VAR(additionalVariation);
+			//	//PA_LOG_VAR(voteWithVariation);
+			//	//PA_LOG_VAR(detransformVoteShare(voteWithVariation));
+			//}
 		}
 
 		double newVoteShare = detransformVoteShare(voteWithVariation);
@@ -480,14 +480,14 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	generateTppForSample(sample);
 	if (days == 150) {
 		lnpVoteFinal += sample["LNP"];
-		logger << alpVoteTotal / voteTotalCount << " - average unadjusted ALP vote share\n";
-		logger << lnpVoteTotal / voteTotalCount << " - average unadjusted LNP vote share\n";
-		logger << lnpDebiasedPolls / voteTotalCount << " - average lnpDebiasedPolls\n";
-		logger << lnpMixedVoteShare / voteTotalCount << " - average lnpMixedVoteShare\n";
-		logger << lnpMixedBias / voteTotalCount << " - average lnpMixedBias\n";
-		logger << lnpMixedDebiasedVote / voteTotalCount << " - average lnpMixedDebiasedVote\n";
-		logger << lnpVoteWithVariation / voteTotalCount << " - average lnpVoteWithVariation\n";
-		logger << lnpVoteFinal / voteTotalCount << " - average lnpVoteFinal\n";
+		//logger << alpVoteTotal / voteTotalCount << " - average unadjusted ALP vote share\n";
+		//logger << lnpVoteTotal / voteTotalCount << " - average unadjusted LNP vote share\n";
+		//logger << lnpDebiasedPolls / voteTotalCount << " - average lnpDebiasedPolls\n";
+		//logger << lnpMixedVoteShare / voteTotalCount << " - average lnpMixedVoteShare\n";
+		//logger << lnpMixedBias / voteTotalCount << " - average lnpMixedBias\n";
+		//logger << lnpMixedDebiasedVote / voteTotalCount << " - average lnpMixedDebiasedVote\n";
+		//logger << lnpVoteWithVariation / voteTotalCount << " - average lnpVoteWithVariation\n";
+		//logger << lnpVoteFinal / voteTotalCount << " - average lnpVoteFinal\n";
 	}
 	return sample;
 }

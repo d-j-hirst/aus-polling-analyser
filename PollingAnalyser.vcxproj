@@ -245,7 +245,7 @@
       <ProgramDataBaseFileName>vc_mswud\PollingAnalyser.pdb</ProgramDataBaseFileName>
       <AdditionalOptions> /EHsc </AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <DisableSpecificWarnings>5054;4005</DisableSpecificWarnings>
     </ClCompile>
     <Midl>

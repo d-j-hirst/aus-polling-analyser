@@ -253,7 +253,83 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
-	normaliseSeatFp(seatIndex);
+	allocateMajorPartyFp(seatIndex);
+
+	// Shouldn't actually be needed since allocateMajorPartyFp automatically sums fp votes to 100%,
+	// but we'll need this function at some point once we normalise results across 
+	//normaliseSeatFp(seatIndex);
+}
+
+void SimulationIteration::allocateMajorPartyFp(int seatIndex)
+{
+	// This has three parts:
+	//  1 - calculate previous-election preference allocation using overall preference flows,
+	//      then determine this seat's deviation from that (per vote)
+	//  2 - calculate the preference allocation for the current simulated fp votes
+	//      using last-election preference flows, and adjust it according to (1)
+	//  3 - Assign the remaining (major-party) vote shares to match the current simulated 2pp
+
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	// In general the ALP TPP will correspond to the entered seat margin
+	// except when it's a LNP-incumbent classic 2pp seat,
+	// in which case reverse it
+	float partyOneCurrentTpp = 0.0f;
+	if (seat.incumbent == 1 && seat.challenger == 0) partyOneCurrentTpp = 50.0f - incumbentNewMargin[seatIndex];
+	else if (seat.incumbent == 0 && seat.challenger == 1) partyOneCurrentTpp = 50.0f + incumbentNewMargin[seatIndex];
+	else partyOneCurrentTpp = seat.margin;
+
+
+	float preferenceBias = 0.0f;
+	float nonMajorFpShare = 0.0f;
+	bool pastClassicTppAvailable = run.pastSeatResults[seatIndex].tcpVote.contains(0) && run.pastSeatResults[seatIndex].tcpVote.contains(1);
+	float previousFirstPartyTpp = (pastClassicTppAvailable ? run.pastSeatResults[seatIndex].tcpVote[0] : 50.0f + seat.margin);
+	float pastElectionPartyOnePrefEstimate = 0.0f;
+	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
+		if (partyIndex >= 2) {
+			pastElectionPartyOnePrefEstimate += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
+			nonMajorFpShare += voteShare;
+		}
+		else if (partyIndex == -1) {
+			pastElectionPartyOnePrefEstimate += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
+			nonMajorFpShare += voteShare;
+		}
+	}
+	preferenceBias = previousFirstPartyTpp - run.pastSeatResults[seatIndex].fpVotePercent[0] - pastElectionPartyOnePrefEstimate;
+	// Amount by which actual TPP is higher than estimated TPP, per 1% of the vote
+	// If we don't have a previous TPP to go off, just leave it at zero - assume preferences are same as nation wide
+	float preferenceBiasRate = (nonMajorFpShare > 0.0f ? preferenceBias / nonMajorFpShare : 0.0f);
+
+	float currentPartyOnePrefs = 0.0f;
+	float currentTotalPrefs = 0.0f;
+	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (partyIndex >= 2) {
+			currentPartyOnePrefs += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
+			currentTotalPrefs += voteShare;
+		}
+		else if (partyIndex == -1) {
+			currentPartyOnePrefs += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
+			currentTotalPrefs += voteShare;
+		}
+	}
+	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
+	// It would probably be better to completely redo seats where the major party vote falls below zero,
+	// but for now that's expected to only happen in a tiny proportion of simulations so this approximation will suffice
+	float partyOneFp = std::clamp(partyOneCurrentTpp - biasAdjustedPartyOnePrefs, 0.0f, 100.0f - currentTotalPrefs);
+	float partyTwoFp = 100.0f - partyOneFp - currentTotalPrefs;
+	//PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+	//PA_LOG_VAR(partyOnePriorTpp);
+	//PA_LOG_VAR(preferenceBias);
+	//PA_LOG_VAR(nonMajorFpShare);
+	//PA_LOG_VAR(pastClassicTppAvailable);
+	//PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+	//PA_LOG_VAR(preferenceBiasRate);
+	//PA_LOG_VAR(currentPartyOnePrefs);
+	//PA_LOG_VAR(currentTotalPrefs);
+	//PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+	//PA_LOG_VAR(partyOneFp);
+	//PA_LOG_VAR(partyTwoFp);
+	seatFpVoteShare[seatIndex][0] = partyOneFp;
+	seatFpVoteShare[seatIndex][1] = partyTwoFp;
 }
 
 void SimulationIteration::normaliseSeatFp(int seatIndex)

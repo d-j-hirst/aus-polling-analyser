@@ -59,8 +59,6 @@ void SeatsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	seatData->AppendTextColumn("Tipping Point %", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	seatData->AppendTextColumn("Sim. Margin", wxDATAVIEW_CELL_INERT, 80, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
 	// Add the seat data
 	for (int i = 0; i < project->seats().count(); ++i) {
