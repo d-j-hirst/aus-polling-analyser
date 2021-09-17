@@ -85,8 +85,7 @@ public:
 		//return false;
 	}
 
-	bool isClassic2pp(bool live) const {
-		live;
+	bool isClassic2pp() const {
 		// If either incumbent or challenger is somehow invalid then throw an exception
 		if (incumbent == Party::InvalidId || challenger == Party::InvalidId) throw PartiesNotSetException();
 		return incumbent + challenger == 1;

@@ -139,7 +139,7 @@ void SimulationCompletion::createClassicSeatsList()
 	// Get a list of classic seats and list the in order of Coalition win %
 	sim.latestReport.classicSeatIndices.clear();
 	for (auto const&[key, seat] : project.seats()) {
-		if (seat.isClassic2pp(sim.isLiveAutomatic())) {
+		if (seat.isClassic2pp()) {
 			sim.latestReport.classicSeatIndices.push_back(project.seats().idToIndex(key));
 		}
 	}

@@ -188,7 +188,7 @@ void SimulationIteration::determineSeatResult(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
-	bool isClassic2CP = seat.isClassic2pp(sim.isLive());
+	bool isClassic2CP = seat.isClassic2pp();
 
 	if (isClassic2CP) {
 		determineClassicSeatResult(seatIndex);
@@ -281,8 +281,22 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	float preferenceBias = 0.0f;
 	float nonMajorFpShare = 0.0f;
-	bool pastClassicTppAvailable = run.pastSeatResults[seatIndex].tcpVote.contains(0) && run.pastSeatResults[seatIndex].tcpVote.contains(1);
-	float previousFirstPartyTpp = (pastClassicTppAvailable ? run.pastSeatResults[seatIndex].tcpVote[0] : 50.0f + seat.margin);
+	float previousFirstPartyTpp = 0.0f;
+	if (run.pastSeatResults[seatIndex].tcpVote.contains(0) && run.pastSeatResults[seatIndex].tcpVote.contains(1)) {
+		previousFirstPartyTpp = run.pastSeatResults[seatIndex].tcpVote[0];
+	}
+	else if (seat.isClassic2pp()) {
+		if (seat.incumbent == 0) {
+			previousFirstPartyTpp = 50.0f + seat.margin;
+		}
+		else {
+			previousFirstPartyTpp = 50.0f - seat.margin;
+		}
+	}
+	else {
+		previousFirstPartyTpp = 50.0f + seat.margin;
+	}
+
 	float pastElectionPartyOnePrefEstimate = 0.0f;
 	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
 		if (partyIndex >= 2) {
@@ -318,18 +332,21 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// but for now that's expected to only happen in a tiny proportion of simulations so this approximation will suffice
 	float partyOneFp = std::clamp(partyOneCurrentTpp - biasAdjustedPartyOnePrefs, 0.0f, 100.0f - currentTotalPrefs);
 	float partyTwoFp = 100.0f - partyOneFp - currentTotalPrefs;
-	//PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-	//PA_LOG_VAR(partyOneCurrentTpp);
-	//PA_LOG_VAR(preferenceBias);
-	//PA_LOG_VAR(nonMajorFpShare);
-	//PA_LOG_VAR(pastClassicTppAvailable);
-	//PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//PA_LOG_VAR(preferenceBiasRate);
-	//PA_LOG_VAR(currentPartyOnePrefs);
-	//PA_LOG_VAR(currentTotalPrefs);
-	//PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//PA_LOG_VAR(partyOneFp);
-	//PA_LOG_VAR(partyTwoFp);
+	//if (seat.name == "Maranoa") {
+	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+	//	PA_LOG_VAR(partyOneCurrentTpp);
+	//	PA_LOG_VAR(nonMajorFpShare);
+	//	PA_LOG_VAR(previousFirstPartyTpp);
+	//	PA_LOG_VAR(pastElectionPartyOnePrefEstimate);
+	//	PA_LOG_VAR(nonMajorFpShare);
+	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+	//	PA_LOG_VAR(preferenceBiasRate);
+	//	PA_LOG_VAR(currentPartyOnePrefs);
+	//	PA_LOG_VAR(currentTotalPrefs);
+	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+	//	PA_LOG_VAR(partyOneFp);
+	//	PA_LOG_VAR(partyTwoFp);
+	//}
 	seatFpVoteShare[seatIndex][0] = partyOneFp;
 	seatFpVoteShare[seatIndex][1] = partyTwoFp;
 }

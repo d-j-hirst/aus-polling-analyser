@@ -233,7 +233,7 @@ void SimulationPreparation::calculateLiveAggregates()
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (!seat.isClassic2pp(sim.isLiveAutomatic())) return;
+	if (!seat.isClassic2pp()) return;
 	++run.classicSeatCount;
 	Region& thisRegion = project.regions().access(seat.region);
 	++thisRegion.classicSeatCount;
