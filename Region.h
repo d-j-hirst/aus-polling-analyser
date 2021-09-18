@@ -14,17 +14,7 @@ struct Region {
 	float lastElection2pp = 50.0f;
 	float sample2pp = 50.0f;
 	float swingDeviation = 0.0f;
-
-	float localModifierAverage = 0.0f;
 	float additionalUncertainty = 0.0f;
-	int seatCount = 0;
-
-	float liveSwing = 0.0f;
-	float livePercentCounted = 0.0f;
-	int classicSeatCount = 0;
-
-	// party first, then region
-	std::vector<std::vector<int>> partyWins;
 
 	std::string textReport() const {
 		std::stringstream report;

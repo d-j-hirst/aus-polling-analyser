@@ -70,13 +70,9 @@ void SimulationPreparation::resetLatestReport()
 
 void SimulationPreparation::resetRegionSpecificOutput()
 {
-	for (auto&[key, thisRegion] : project.regions()) {
-		thisRegion.localModifierAverage = 0.0f;
-		thisRegion.seatCount = 0;
-		thisRegion.liveSwing = 0.0f;
-		thisRegion.livePercentCounted = 0.0f;
-		thisRegion.classicSeatCount = 0;
-	}
+	run.regionLocalModifierAverage.resize(project.regions().count());
+	regionSeatCount.resize(project.regions().count());
+	run.regionPartyWins.resize(project.regions().count());
 }
 
 void SimulationPreparation::resetSeatSpecificOutput()
@@ -101,13 +97,11 @@ void SimulationPreparation::accumulateRegionStaticInfo()
 {
 	for (auto&[key, seat] : project.seats()) {
 		bool isPartyOne = (seat.incumbent == 0);
-		Region& thisRegion = project.regions().access(seat.region);
-		thisRegion.localModifierAverage += seat.localModifier * (isPartyOne ? 1.0f : -1.0f);
-		++thisRegion.seatCount;
+		run.regionLocalModifierAverage[seat.region] += seat.localModifier * (isPartyOne ? 1.0f : -1.0f);
+		++regionSeatCount[seat.region];
 	}
-	// Need the region's seat count to be complete before calculating these
-	for (auto&[key, region] : project.regions()) {
-		region.localModifierAverage /= float(region.seatCount);
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		run.regionLocalModifierAverage[regionIndex] /= float(regionSeatCount[regionIndex]);
 	}
 }
 
@@ -178,10 +172,9 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 	sim.latestReport.regionPartyLeading.resize(project.regions().count());
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		sim.latestReport.regionPartyLeading[regionIndex].resize(project.parties().count());
-	}
-	for (auto&[key, region] : project.regions()) { {}
-		region.partyWins.clear();
-		region.partyWins.resize(project.parties().count(), std::vector<int>(region.seatCount + 1));
+		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+			run.regionPartyWins[regionIndex][partyIndex] = std::vector<int>(regionSeatCount[regionIndex] + 1);
+		}
 	}
 }
 
@@ -235,16 +228,16 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (!seat.isClassic2pp()) return;
 	++run.classicSeatCount;
-	Region& thisRegion = project.regions().access(seat.region);
-	++thisRegion.classicSeatCount;
+	//Region& thisRegion = project.regions().access(seat.region);
+	//++thisRegion.classicSeatCount;
 	if (!run.seatToOutcome[seatIndex]) return;
 	bool incIsOne = seat.incumbent == 0;
 	float percentCounted = run.seatToOutcome[seatIndex]->getPercentCountedEstimate();
 	float weightedSwing = run.seatToOutcome[seatIndex]->incumbentSwing * (incIsOne ? 1.0f : -1.0f) * percentCounted;
 	run.liveOverallSwing += weightedSwing;
-	thisRegion.liveSwing += weightedSwing;
+	//thisRegion.liveSwing += weightedSwing;
 	run.liveOverallPercent += percentCounted;
-	thisRegion.livePercentCounted += percentCounted;
+	//thisRegion.livePercentCounted += percentCounted;
 	run.sampleRepresentativeness += std::min(2.0f, percentCounted) * 0.5f;
 	//run.total2cpVotes += seat.latestResults->total2cpVotes();
 	//run.totalEnrolment += seat.latestResults->enrolment;
@@ -256,12 +249,12 @@ void SimulationPreparation::finaliseLiveAggregates()
 	run.liveOverallPercent /= run.classicSeatCount;
 	run.sampleRepresentativeness /= run.classicSeatCount;
 	run.sampleRepresentativeness = std::sqrt(run.sampleRepresentativeness);
-	for (auto& regionPair : project.regions()) {
-		Region& thisRegion = regionPair.second;
-		if (!thisRegion.livePercentCounted) continue;
-		thisRegion.liveSwing /= thisRegion.livePercentCounted;
-		thisRegion.livePercentCounted /= thisRegion.classicSeatCount;
-	}
+	//for (auto& regionPair : project.regions()) {
+	//	Region& thisRegion = regionPair.second;
+	//	if (!thisRegion.livePercentCounted) continue;
+	//	thisRegion.liveSwing /= thisRegion.livePercentCounted;
+	//	thisRegion.livePercentCounted /= thisRegion.classicSeatCount;
+	//}
 }
 
 void SimulationPreparation::resetResultCounts()

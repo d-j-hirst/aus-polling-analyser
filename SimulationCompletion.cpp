@@ -98,13 +98,11 @@ void SimulationCompletion::calculateRegionPartyWinExpectations()
 {
 	sim.latestReport.regionPartyWinExpectation.resize(project.regions().count(), std::vector<float>(project.parties().count(), 0.0f));
 
-	for (auto& regionPair : project.regions()) {
-		Region& thisRegion = regionPair.second;
-		int regionIndex = project.regions().idToIndex(regionPair.first);
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			int totalSeats = 0;
-			for (int seatNum = 1; seatNum < int(thisRegion.partyWins[partyIndex].size()); ++seatNum) {
-				totalSeats += seatNum * thisRegion.partyWins[partyIndex][seatNum];
+			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][partyIndex].size()); ++seatNum) {
+				totalSeats += seatNum * run.regionPartyWins[regionIndex][partyIndex][seatNum];
 			}
 			sim.latestReport.regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(sim.settings.numIterations);
 		}

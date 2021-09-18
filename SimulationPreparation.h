@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <vector>
 #include <utility>
 
 class PollingProject;
@@ -45,6 +46,8 @@ private:
 	void loadPastSeatResults();
 	void loadGreensSeatStatistics();
 	void loadPreviousElectionBaselineVotes();
+
+	std::vector<int> regionSeatCount;
 
 	PollingProject& project;
 	Simulation& sim;

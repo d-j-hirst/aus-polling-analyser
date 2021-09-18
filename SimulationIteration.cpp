@@ -154,15 +154,16 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 
 void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
-	Region const& thisRegion = project.regions().viewByIndex(regionIndex);
-	if (sim.isLive() && thisRegion.livePercentCounted) {
-		float liveSwing = thisRegion.liveSwing;
-		float liveStdDev = stdDevSingleSeat(thisRegion.livePercentCounted);
-		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-		float priorWeight = 0.5f;
-		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
-		regionSwing[regionIndex] = (regionSwing[regionIndex] * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
-	}
+	regionIndex;
+	//Region const& thisRegion = project.regions().viewByIndex(regionIndex);
+	//if (sim.isLive() && thisRegion.livePercentCounted) {
+	//	float liveSwing = thisRegion.liveSwing;
+	//	float liveStdDev = stdDevSingleSeat(thisRegion.livePercentCounted);
+	//	liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+	//	float priorWeight = 0.5f;
+	//	float liveWeight = 1.0f / (liveStdDev * liveStdDev);
+	//	regionSwing[regionIndex] = (regionSwing[regionIndex] * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+	//}
 }
 
 void SimulationIteration::correctRegionalSwings()
@@ -189,14 +190,13 @@ void SimulationIteration::determineSeatInitialResult(int seatIndex)
 void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	Region const& thisRegion = project.regions().view(seat.region);
 	bool incIsOne = seat.incumbent == 0; // stores whether the incumbent is Party One
 										 // Add or subtract the simulation regional deviation depending on which party is incumbent
 	float newMargin = seat.margin + regionSwing[project.regions().idToIndex(seat.region)] * (incIsOne ? 1.0f : -1.0f);
 	// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
 	newMargin += seat.localModifier;
 	// Remove the average local modifier across the region
-	newMargin -= thisRegion.localModifierAverage * (incIsOne ? 1.0f : -1.0f);
+	newMargin -= run.regionLocalModifierAverage[seat.region] * (incIsOne ? 1.0f : -1.0f);
 	// Add random noise to the new margin of this seat
 	newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 
@@ -531,9 +531,8 @@ void SimulationIteration::recordPartySeatWinCounts()
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 		++sim.latestReport.partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
 		if (partyIndex > 1) othersWins += partyWins[partyIndex];
-		for (auto& regionPair : project.regions()) {
-			Region& thisRegion = regionPair.second;
-			++thisRegion.partyWins[partyIndex][regionSeatCount[partyIndex][project.regions().idToIndex(regionPair.first)]];
+		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+			++run.regionPartyWins[regionIndex][partyIndex][regionSeatCount[partyIndex][regionIndex]];
 		}
 	}
 	++sim.latestReport.othersWinFrequency[othersWins];

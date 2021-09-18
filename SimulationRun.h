@@ -92,6 +92,8 @@ private:
 	std::vector<std::map<Party::Id, double>> cumulativeSeatPartyFpShare;
 	std::vector<std::map<Party::Id, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<Party::Id, int>> seatPartyWins;
+	// region, then party, then seat count
+	std::vector<std::map<Party::Id, std::vector<int>>> regionPartyWins;
 
 	std::vector<Outcome const*> seatToOutcome;
 
@@ -101,6 +103,9 @@ private:
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
 	std::map<Party::Id, float> previousFpVoteShare;
+
+	std::vector<float> regionLocalModifierAverage;
+
 	SeatStatistics greensSeatStatistics;
 	int hungParliament = 0;
 };

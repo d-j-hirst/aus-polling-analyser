@@ -436,10 +436,10 @@ std::string ResultsFrame::decideSummaryString()
 		" Others " + formatFloat(report->getOthersWinExpectation(), 2) +
 		"   Count progress: " + formatFloat(report->get2cpPercentCounted(), 2) + "%\n" +
 		party1 + " swing by region: ";
-	for (auto const& regionPair : project->regions()) {
-		Region const& thisRegion = regionPair.second;
-		summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
-	}
+	//for (auto const& regionPair : project->regions()) {
+	//	Region const& thisRegion = regionPair.second;
+	//	summaryString += thisRegion.name + " " + formatFloat(thisRegion.liveSwing, 2) + " ";
+	//}
 	return summaryString;
 }
 
