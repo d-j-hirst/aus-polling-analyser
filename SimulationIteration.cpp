@@ -45,21 +45,17 @@ void SimulationIteration::runIteration()
 	determineIterationRegionalSwings();
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		determineSeatResult(seatIndex);
+		determineSeatInitialResult(seatIndex);
 	}
 
+	// TODO: Ensure primary vote totals match original sample proportions
 	calculateNewFpVoteTotals();
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		int winnerIndex = project.parties().idToIndex(seatWinner[seatIndex]);
-		if (winnerIndex != PartyCollection::InvalidIndex) {
-			partyWins[winnerIndex]++;
-			int regionIndex = project.regions().idToIndex(seat.region);
-			++regionSeatCount[winnerIndex][regionIndex];
-		}
+		determineSeatFinalResult(seatIndex);
 	}
 
+	assignDirectWins();
 	assignCountAsPartyWins();
 	assignSupportsPartyWins();
 
@@ -184,21 +180,13 @@ void SimulationIteration::correctRegionalSwings()
 	}
 }
 
-void SimulationIteration::determineSeatResult(int seatIndex)
+void SimulationIteration::determineSeatInitialResult(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	// First determine if this seat is "classic" (main-parties only) 2CP, which determines how we get a result and the winner
-	bool isClassic2CP = seat.isClassic2pp();
-
-	if (isClassic2CP) {
-		determineClassicSeatResult(seatIndex);
-	}
-	else {
-		determineNonClassicSeatResult(seatIndex);
-	}
+	determineSeatTpp(seatIndex);
+	determineSeatInitialFp(seatIndex);
 }
 
-void SimulationIteration::determineClassicSeatResult(int seatIndex)
+void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	Region const& thisRegion = project.regions().view(seat.region);
@@ -211,15 +199,9 @@ void SimulationIteration::determineClassicSeatResult(int seatIndex)
 	newMargin -= thisRegion.localModifierAverage * (incIsOne ? 1.0f : -1.0f);
 	// Add random noise to the new margin of this seat
 	newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
-	// Now work out the margin of the seat from actual results if live
-	SeatResult result = calculateResultMatched2cp(seatIndex, newMargin);
 
 	// Margin for this simulation is finalised, record it for later averaging
-	incumbentNewMargin[seatIndex] = result.margin * (result.winner == seat.incumbent ? 1.0f : -1.0f);
-	seatWinner[seatIndex] = result.winner;
-	determineSeatInitialFp(seatIndex);
-;	adjustClassicSeatResultFor3rdPlaceIndependent(seatIndex);
-	adjustClassicSeatResultForBettingOdds(seatIndex, result);
+	incumbentNewMargin[seatIndex] = newMargin;
 }
 
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
@@ -463,6 +445,22 @@ void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 	}
 }
 
+void SimulationIteration::determineSeatFinalResult(int seatIndex)
+{
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	// Very simple placeholder for now, will of course be more complex later.
+	// Just give the seat to the incumbent if it's already held by a major party and 2pp winner otherwise.
+	if (seat.incumbent > 1) {
+		seatWinner[seatIndex] = seat.incumbent;
+	}
+	else if (incumbentNewMargin[seatIndex] >= 0.0f) {
+		seatWinner[seatIndex] = seat.incumbent;
+	}
+	else {
+		seatWinner[seatIndex] = 1 - seat.incumbent;
+	}
+}
+
 void SimulationIteration::recordSeatResult(int seatIndex)
 {
 	Seat& seat = project.seats().access(project.seats().indexToId(seatIndex));
@@ -473,6 +471,19 @@ void SimulationIteration::recordSeatResult(int seatIndex)
 	else ++run.othersWinPercent[seatIndex];
 
 	run.seatIncumbentMarginAverage[seatIndex] += incumbentNewMargin[seatIndex];
+}
+
+void SimulationIteration::assignDirectWins()
+{
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		int winnerIndex = project.parties().idToIndex(seatWinner[seatIndex]);
+		if (winnerIndex != PartyCollection::InvalidIndex) {
+			partyWins[winnerIndex]++;
+			int regionIndex = project.regions().idToIndex(seat.region);
+			++regionSeatCount[winnerIndex][regionIndex];
+		}
+	}
 }
 
 void SimulationIteration::assignCountAsPartyWins()

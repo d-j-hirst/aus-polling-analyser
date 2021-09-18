@@ -55,8 +55,8 @@ private:
 	void determineBaseRegionalSwing(int regionIndex);
 	void modifyLiveRegionalSwing(int regionIndex);
 	void correctRegionalSwings();
-	void determineSeatResult(int seatIndex);
-	void determineClassicSeatResult(int seatIndex);
+	void determineSeatInitialResult(int seatIndex);
+	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
 	void normaliseSeatFp(int seatIndex);
@@ -64,7 +64,9 @@ private:
 	void adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex);
 	void adjustClassicSeatResultForBettingOdds(int seatIndex, SeatResult result);
 	void determineNonClassicSeatResult(int seatIndex);
+	void determineSeatFinalResult(int seatIndex);
 	void recordSeatResult(int seatIndex);
+	void assignDirectWins();
 	void assignCountAsPartyWins();
 	void assignSupportsPartyWins();
 	void recordMajorityResult();
