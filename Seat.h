@@ -61,7 +61,12 @@ public:
 	bool overrideBettingOdds = false;
 
 	Party::Id getLeadingParty() const {
-		return (margin > 0.0f ? incumbent : challenger);
+		if (isClassic2pp()) {
+			return (margin > 0.0f ? incumbent : challenger);
+		}
+		else {
+			return incumbent;
+		}
 	}
 
 	bool hasFpResults() const {
