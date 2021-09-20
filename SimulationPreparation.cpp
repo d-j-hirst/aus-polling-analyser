@@ -480,10 +480,6 @@ void SimulationPreparation::loadPastSeatResults()
 			if (fpMode) {
 				run.pastSeatResults[currentSeat].fpVoteCount[partyId] += voteCount;
 				run.pastSeatResults[currentSeat].fpVotePercent[partyId] += votePercent;
-				if (partyId == -1) {
-					logger << "Others vote found ***!\n";
-					logger << run.pastSeatResults[currentSeat].fpVotePercent[partyId] << "\n";
-				}
 			}
 			else {
 				run.pastSeatResults[currentSeat].tcpVote[partyId] += votePercent;

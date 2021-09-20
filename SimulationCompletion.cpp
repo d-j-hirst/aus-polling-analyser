@@ -171,7 +171,7 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 		for (auto [partyIndex, count] : run.seatPartyWins[seatIndex]) {
 			float percent = float(count) / float(sim.settings.numIterations) * 100.0f;
 			sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] = percent;
-			logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
+			// logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
 		}
 	}
 }
