@@ -113,7 +113,7 @@ OutputIt transform_combine(InputFirstIt begin1, InputFirstIt end1, InputSecondIt
 	return d_begin;
 }
 
-// Take a regular vote share (in the range 0.0f to 100.0f) and transform it using
+// Take a regular vote share (in the range 0 to 100) and transform it using
 // the logit transform on the scale -infinity to +infinity
 template<typename T,
 	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
@@ -121,18 +121,52 @@ inline T transformVoteShare(T voteShare) {
 	return std::log((voteShare * T(0.01)) / (T(1.0) - voteShare * T(0.01))) * T(25.0);
 }
 
-// Take a transformed vote share
+// Take a transformed vote share and detransform it back to a regular vote share
+// on the scale 0-100
 template<typename T,
 	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
 inline T detransformVoteShare(T transformedVoteShare) {
 	return T(100.0) / (T(1.0) + std::exp(-T(0.04) * transformedVoteShare));
 }
 
-// Take a transformed vote share
+// Get the derivative of the logit function for a given regular vote share
 template<typename T,
 	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
 inline T logitDeriv(T startingPoint) {
 	return T(25.0) / startingPoint + T(0.25) / (T(1.0) - T(0.01) * startingPoint);
+}
+
+// Takes a regular vote share and adjusts it by transforming it and applying a
+// swing proportional to the derivative, then detransforming it to yield a new
+// vote share after the swing
+// Useful as it prevents the result from exceeding (0, 100) and results in
+// "flattening" of the swing towards the bounds which may be desirable in many cases
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+	inline T basicTransformedSwing(T startingPoint, T swing) {
+	T transformed = transformVoteShare(startingPoint);
+	T deriv = logitDeriv(startingPoint);
+	T projection = transformed - deriv * swing;
+	return detransformVoteShare(projection);
+}
+
+// Takes a regular vote share and adjusts it by transforming it and applying a
+// swing proportional to the derivative, then detransforming it to yield a new
+// vote share after the swing. This method uses a predictor-corrector method
+// to better estimate the derivative.
+// Useful for situations where bounding the value between (0, 100) is desirable,
+// but with less flattening.
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+	inline T predictorCorrectorTransformedSwing(T startingPoint, T swing) {
+	T transformed = transformVoteShare(startingPoint);
+	T deriv = logitDeriv(startingPoint);
+	T projection = transformed - deriv * swing;
+	T tempDetransformed = detransformVoteShare(projection);
+	T projectedDeriv = logitDeriv(tempDetransformed);
+	T averagedDeriv = (deriv + projectedDeriv) * T(0.5);
+	T correctedProjection = transformed - averagedDeriv * swing;
+	return detransformVoteShare(correctedProjection);
 }
 
 constexpr double DefaultLogitDerivLimit = 4.0;
