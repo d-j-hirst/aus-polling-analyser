@@ -461,14 +461,16 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 		else if (values[0] == "Seat") {
 			try {
-				currentSeat = project.seats().accessByName(values[1]).first;
+				currentSeat = project.seats().idToIndex(project.seats().accessByName(values[1]).first);
 			}
 			catch (SeatDoesntExistException) {
 				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
 				logger << "Could not find a match for seat " + values[1] + "\n";
+				currentSeat = -1;
 			}
 		}
 		else if (values.size() >= 4) {
+			if (currentSeat < 0) continue;
 			std::string partyStr = values[1];
 			float voteCount = std::stof(values[2]);
 			float votePercent = std::stof(values[3]);

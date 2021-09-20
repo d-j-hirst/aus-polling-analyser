@@ -265,7 +265,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	constexpr float DefaultPartyTwoPrimary = 15.0f;
 	float preferenceBias = 0.0f;
-	float nonMajorFpShare = 0.0f;
+	float previousNonMajorFpShare = 0.0f;
 	float previousPartyOneTpp = 0.0f;
 	float previousPartyOneFp = run.pastSeatResults[seatIndex].fpVotePercent[0];
 	// ternary operator for situtations where party two didn't previously run, e.g. Richmond (vic) 2018
@@ -290,17 +290,17 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
 		if (partyIndex >= 2) {
 			pastElectionPartyOnePrefEstimate += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
-			nonMajorFpShare += voteShare;
+			previousNonMajorFpShare += voteShare;
 		}
 		else if (partyIndex == -1) {
 			pastElectionPartyOnePrefEstimate += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
-			nonMajorFpShare += voteShare;
+			previousNonMajorFpShare += voteShare;
 		}
 	}
 	preferenceBias = previousPartyOneTpp - previousPartyOneFp - pastElectionPartyOnePrefEstimate;
 	// Amount by which actual TPP is higher than estimated TPP, per 1% of the vote
 	// If we don't have a previous TPP to go off, just leave it at zero - assume preferences are same as nation wide
-	float preferenceBiasRate = (nonMajorFpShare > 0.0f ? preferenceBias / nonMajorFpShare : 0.0f);
+	float preferenceBiasRate = (previousNonMajorFpShare > 0.0f ? preferenceBias / previousNonMajorFpShare : 0.0f);
 
 	float currentPartyOnePrefs = 0.0f;
 	float currentTotalPrefs = 0.0f;
@@ -315,7 +315,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		}
 	}
 	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
-	float biasAdjustedPartyTwoPrefs = nonMajorFpShare - biasAdjustedPartyOnePrefs;
+	float biasAdjustedPartyTwoPrefs = previousNonMajorFpShare - biasAdjustedPartyOnePrefs;
 
 	// this number can be below zero ...
 	float partyOneEstimate = partyOneCurrentTpp - biasAdjustedPartyOnePrefs;
@@ -329,7 +329,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// so we calculate a swing ...
 	float partyTwoSwing = previousPartyTwoFp - partyTwoEstimate;
 	// and then use logistic transformation to make sure it is above zero
-	float newPartyTwoFp = basicTransformedSwing(previousPartyOneFp, partyTwoSwing);
+	float newPartyTwoFp = basicTransformedSwing(previousPartyTwoFp, partyTwoSwing);
 	float newPartyTwoTpp = biasAdjustedPartyTwoPrefs + newPartyTwoFp;
 	float totalTpp = newPartyOneTpp + newPartyTwoTpp;
 	// Derivation of following formula (assuming ALP as first party):
@@ -348,20 +348,31 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Maranoa") {
+	//if (seat.name == "Sturt") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
-	//	PA_LOG_VAR(nonMajorFpShare);
+	//	PA_LOG_VAR(partyTwoCurrentTpp);
+	//	PA_LOG_VAR(previousNonMajorFpShare);
 	//	PA_LOG_VAR(previousPartyOneTpp);
 	//	PA_LOG_VAR(pastElectionPartyOnePrefEstimate);
-	//	PA_LOG_VAR(nonMajorFpShare);
 	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
 	//	PA_LOG_VAR(preferenceBiasRate);
 	//	PA_LOG_VAR(currentPartyOnePrefs);
 	//	PA_LOG_VAR(currentTotalPrefs);
 	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//	PA_LOG_VAR(partyOneFp);
-	//	PA_LOG_VAR(partyTwoFp);
+	//	PA_LOG_VAR(biasAdjustedPartyTwoPrefs);
+	//	PA_LOG_VAR(partyOneEstimate);
+	//	PA_LOG_VAR(partyTwoEstimate);
+	//	PA_LOG_VAR(partyOneSwing);
+	//	PA_LOG_VAR(partyTwoSwing);
+	//	PA_LOG_VAR(newPartyOneTpp);
+	//	PA_LOG_VAR(newPartyTwoTpp);
+	//	PA_LOG_VAR(totalTpp);
+	//	PA_LOG_VAR(addPartyOneFp);
+	//	PA_LOG_VAR(partyOneEstimate);
+	//	PA_LOG_VAR(partyTwoEstimate);
+	//	PA_LOG_VAR(newPartyOneFp);
+	//	PA_LOG_VAR(newPartyTwoFp);
 	//}
 	seatFpVoteShare[seatIndex][0] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][1] = newPartyTwoFp;
