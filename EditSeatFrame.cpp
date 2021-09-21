@@ -13,6 +13,7 @@ enum ControlId
 	Ok,
 	Name,
 	PreviousName,
+	UseFpResults,
 	Incumbent,
 	Challenger,
 	Challenger2,
@@ -49,6 +50,7 @@ void EditSeatFrame::createControls(int & y)
 {
 	createNameInput(y);
 	createPreviousNameInput(y);
+	createUseFpResultsInput(y);
 	createIncumbentInput(y);
 	createChallengerInput(y);
 	createChallenger2Input(y);
@@ -73,6 +75,13 @@ void EditSeatFrame::createPreviousNameInput(int & y)
 {
 	auto nameCallback = [this](std::string s) -> void {seat.previousName = s; };
 	previousNameInput.reset(new TextInput(this, ControlId::PreviousName, "Previous Name:", seat.previousName, wxPoint(2, y), nameCallback));
+	y += nameInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createUseFpResultsInput(int& y)
+{
+	auto useFpResultsCallback = [this](std::string s) -> void {seat.useFpResults = s; };
+	useFpResultsInput.reset(new TextInput(this, ControlId::UseFpResults, "Use Fp Results From:", seat.useFpResults, wxPoint(2, y), useFpResultsCallback));
 	y += nameInput->Height + ControlPadding;
 }
 

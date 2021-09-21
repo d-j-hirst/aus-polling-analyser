@@ -403,7 +403,7 @@ void SimulationIteration::calculateNewFpVoteTotals()
 			seatVoteCount += voteCount;
 		}
 		for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
-			float voteCount = voteShare * float(seatVoteCount);
+			float voteCount = voteShare * float(seatVoteCount) * 0.01f;
 			totalVoteCount += voteCount;
 			partyVoteCount[partyIndex] += voteCount;
 		}

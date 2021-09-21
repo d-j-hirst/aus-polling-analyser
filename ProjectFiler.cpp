@@ -25,7 +25,8 @@
 // Version 18: Save distributions of tpp and party primaries
 // Version 19: Save several more data sets for simulation reports
 // Version 20: Save term codes of previous elections for simulations
-constexpr int VersionNum = 20;
+// Version 21: Save alternate fp results for new seats
+constexpr int VersionNum = 21;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -429,6 +430,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 	for (auto const& [key, thisSeat] : project.seatCollection) {
 		saveOutput << thisSeat.name;
 		saveOutput << thisSeat.previousName;
+		saveOutput << thisSeat.useFpResults;
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.incumbent));
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger));
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger2));
@@ -457,6 +459,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		Seat thisSeat;
 		saveInput >> thisSeat.name;
 		saveInput >> thisSeat.previousName;
+		if (versionNum >= 21) {
+			saveInput >> thisSeat.useFpResults;
+		}
 		thisSeat.incumbent = saveInput.extract<int32_t>();
 		thisSeat.challenger = saveInput.extract<int32_t>();
 		thisSeat.challenger2 = saveInput.extract<int32_t>();

@@ -1,11 +1,11 @@
 Polling Analyser to-do:
 -More sophisticated handling of non-classic and potentially non-classic seats
  -complete Greens analysis and include in simulation model as proof-of-concept
-  -output previous election primary vote and 2cp figures to csv file
-  -Get main program to internalise past primary votes from above csv file
   -Work Greens distributions into simulations, similarly to the way currently done for live simulations
-   -sample primary votes for each party based on distributions where available for minors/independents
-   -while we don't have a distribution for it, assume others-collectively remains identical to previous election, keeping 20%+ primary independents separate
+   -fix further issues with particular seats
+    -Overall fp votes are currently screwed up, fix
+	-Melbourne green votes cut off abruptly at 53%, why?
+	-Hawke is not working, fix that
    -directly adjust major party primary votes based on overall TPP swings
    -re-adjust to add to 100%
    -calculate a result using preference distributions w/ some assumptions for unknowns

@@ -47,6 +47,7 @@ private:
 
 	void createNameInput(int& y);
 	void createPreviousNameInput(int& y);
+	void createUseFpResultsInput(int& y);
 	void createIncumbentInput(int& y);
 	void createChallengerInput(int& y);
 	void createChallenger2Input(int& y);
@@ -74,6 +75,7 @@ private:
 
 	std::unique_ptr<TextInput> nameInput;
 	std::unique_ptr<TextInput> previousNameInput;
+	std::unique_ptr<TextInput> useFpResultsInput;
 	std::unique_ptr<ChoiceInput> incumbentInput;
 	std::unique_ptr<ChoiceInput> challengerInput;
 	std::unique_ptr<ChoiceInput> challenger2Input;

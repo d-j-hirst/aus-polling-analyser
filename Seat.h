@@ -30,6 +30,7 @@ public:
 
 	std::string name = "";
 	std::string previousName = "";
+	std::string useFpResults = "";
 
 	Party::Id incumbent = Party::InvalidId;
 	Party::Id challenger = Party::InvalidId;

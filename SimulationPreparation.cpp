@@ -488,6 +488,21 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 		}
 	} while (true);
+	for (auto& [key, seat] : project.seats()) {
+		if (seat.useFpResults.size()) {
+			int thisSeatIndex = project.seats().idToIndex(key);
+			try {
+				int otherSeatIndex = project.seats().idToIndex(project.seats().accessByName(seat.useFpResults).first);
+				run.pastSeatResults[thisSeatIndex] = run.pastSeatResults[otherSeatIndex];
+			}
+			catch (SeatDoesntExistException) {
+				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
+				logger << "Could not match fp results for seat " + project.seats().view(thisSeatIndex).name + 
+					" - no seat found matching name " + seat.useFpResults + "\n";
+				currentSeat = -1;
+			}
+		}
+	}
 }
 
 void SimulationPreparation::loadGreensSeatStatistics()
