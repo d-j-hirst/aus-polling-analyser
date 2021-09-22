@@ -190,7 +190,7 @@ void SimulationIteration::determineSeatInitialResult(int seatIndex)
 void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	bool incIsOne = seat.incumbent == 0; // stores whether the incumbent is Party One
+	bool incIsOne = seat.incumbent != 1 || seat.challenger != 0; // stores whether the incumbent is Party One
 										 // Add or subtract the simulation regional deviation depending on which party is incumbent
 	float newMargin = seat.margin + regionSwing[project.regions().idToIndex(seat.region)] * (incIsOne ? 1.0f : -1.0f);
 	// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
@@ -216,13 +216,16 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 				int seatStatisticsLower = int(std::floor(seatStatisticsExact));
 				float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
 				using StatType = SimulationRun::SeatStatistics::TrendType;
+				// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
 				auto getMixedStat = [&](StatType statType) {
 					return mix(stats.trend[int(statType)][seatStatisticsLower],
 						(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
 						seatStatisticsMix);
 				};
-				// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
 				float swingMultiplierMixed = getMixedStat(StatType::SwingCoefficient);
+				// *** NB at the moment this does not account for sophomore effects
+				//     which aren't a priority as of writing since no such effects
+				//     exist in 2022fed or 2022sa elections, but we'll need them for 2022vic.
 				float offsetMixed = getMixedStat(StatType::Offset);
 				float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
 				float upperRmseMixed = getMixedStat(StatType::UpperRmse);
@@ -236,10 +239,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
 	allocateMajorPartyFp(seatIndex);
-
-	// Shouldn't actually be needed since allocateMajorPartyFp automatically sums fp votes to 100%,
-	// but we'll need this function at some point once we normalise results across 
-	//normaliseSeatFp(seatIndex);
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)
@@ -260,7 +259,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float partyOneCurrentTpp = 0.0f;
 	if (seat.incumbent == 1 && seat.challenger == 0) partyOneCurrentTpp = 50.0f - incumbentNewMargin[seatIndex];
 	else if (seat.incumbent == 0 && seat.challenger == 1) partyOneCurrentTpp = 50.0f + incumbentNewMargin[seatIndex];
-	else partyOneCurrentTpp = seat.margin + 50.0f;
+	else partyOneCurrentTpp = incumbentNewMargin[seatIndex] + 50.0f;
 	float partyTwoCurrentTpp = 100.0f - partyOneCurrentTpp;
 
 	constexpr float DefaultPartyTwoPrimary = 15.0f;
@@ -315,7 +314,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		}
 	}
 	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
-	float biasAdjustedPartyTwoPrefs = previousNonMajorFpShare - biasAdjustedPartyOnePrefs;
+	float biasAdjustedPartyTwoPrefs = currentTotalPrefs - biasAdjustedPartyOnePrefs;
 
 	// this number can be below zero ...
 	float partyOneEstimate = partyOneCurrentTpp - biasAdjustedPartyOnePrefs;
@@ -348,7 +347,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Sturt") {
+	//if (seat.name == "Melbourne") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -365,6 +364,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(partyTwoEstimate);
 	//	PA_LOG_VAR(partyOneSwing);
 	//	PA_LOG_VAR(partyTwoSwing);
+	//	PA_LOG_VAR(previousPartyOneFp);
+	//	PA_LOG_VAR(previousPartyTwoFp);
 	//	PA_LOG_VAR(newPartyOneTpp);
 	//	PA_LOG_VAR(newPartyTwoTpp);
 	//	PA_LOG_VAR(totalTpp);

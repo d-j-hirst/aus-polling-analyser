@@ -523,10 +523,6 @@ void SimulationPreparation::loadGreensSeatStatistics()
 			run.greensSeatStatistics.trend[trendType].push_back(std::stof(str));
 		}
 	}
-	
-	for (auto const& trend : run.greensSeatStatistics.trend) {
-		logger << trend << "\n";
-	}
 }
 
 void SimulationPreparation::loadPreviousElectionBaselineVotes()
