@@ -189,6 +189,208 @@ def analyse_greens(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
 
 
+def effective_independent(party, this_election):
+    if party in ['Labor', 'Liberal', 'Greens', 'Democrats', 'National', 'One Nation']:
+        return False
+    if (party == "Katter's Australian"
+        and this_election.region() == "qld"):
+        return False
+    if (party == 'Centre Alliance'
+        and this_election.region() == "sa"):
+        return False
+    return True
+
+
+def analyse_existing_independents(elections):
+    # Note: Covers "effective independents" (those who are technically
+    # standing for a party but mainly dependent on their)
+    bucket_min = -50
+    bucket_base = 15
+    bucket_max = -5
+    fp_threshold = 8
+    this_buckets = {(-10000, bucket_min): []}
+    this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
+    this_buckets.update({(bucket_max, 10000): []})
+    swing_buckets = copy.deepcopy(this_buckets)
+    sophomore_buckets = copy.deepcopy(this_buckets)
+    recontest_buckets = copy.deepcopy(this_buckets)
+    party = 'Independent'
+    for this_election, this_results in elections.items():
+        print(f'\nGathering results for {this_election}')
+        if len(elections.next_elections(this_election)) == 0:
+            continue
+        next_election = elections.next_elections(this_election)[0]
+        next_results = elections[next_election]
+        if len(elections.previous_elections(this_election)) > 0:
+            previous_election = elections.previous_elections(this_election)[-1]
+            previous_results = elections[previous_election]
+        else:
+            previous_results = None
+        for this_seat_name in this_results.seat_names():
+            this_seat_results = this_results.seat_by_name(this_seat_name)
+            # ignore seats where candidates are unopposed
+            if len(this_seat_results.tcp) == 0:
+                continue
+            if this_seat_name in next_results.seat_names():
+                next_seat_results = next_results.seat_by_name(this_seat_name)
+                # ignore seats where candidates are unopposed
+                if len(next_seat_results.tcp) == 0:
+                    continue
+                independents = [a for a in this_seat_results.fp
+                                if a.percent > fp_threshold
+                                and effective_independent(a.party,
+                                                          this_election)
+                               ]
+                if (len(independents) == 0):
+                    continue
+                # Only consider the highest polling independent from each seat
+                highest = max(independents, key=lambda x: x.percent)
+                # Only consider independents with above a certain primary vote
+                if highest.percent < fp_threshold:
+                    continue
+                sophomore = False
+                if (previous_results is not None
+                    and this_seat_name in previous_results.seat_names(include_name_changes=True)):
+                    previous_seat_results = \
+                        previous_results.seat_by_name(this_seat_name,
+                                                      include_name_changes=True)
+                    # For independent sophomore effects, independents with a different name
+                    # should not be counted
+                    if (len(previous_seat_results.tcp) > 0
+                        and this_seat_results.tcp[0].name == highest.name
+                        and (not effective_independent(previous_seat_results.tcp[0].party,
+                                                   previous_election)
+                             or previous_seat_results.tcp[0].name != 
+                             this_seat_results.tcp[0].name)):
+                        sophomore = True
+                        print(f'Sophomore found: {this_seat_name}')
+                this_fp = highest.percent
+                this_fp = transform_vote_share(this_fp)
+                this_bucket = next(a for a in this_buckets 
+                                   if a[0] < this_fp
+                                   and a[1] > this_fp)
+                matching_next = [a for a in next_seat_results.fp
+                                 if a.name == highest.name]
+                if len(matching_next) > 0:
+                    next_fp = matching_next[0].percent
+                    recontest_buckets[this_bucket].append(1)
+                else:
+                    recontest_buckets[this_bucket].append(0)
+                    continue
+                print(f' Found independent for seat {this_seat_name}: {matching_next}')
+                next_fp = transform_vote_share(next_fp)
+                fp_change = next_fp - this_fp
+                this_buckets[this_bucket].append(fp_change)
+                sophomore_buckets[this_bucket].append(1 if sophomore else 0)
+
+    bucket_counts = {}
+    bucket_sophomore_coefficients = {}
+    bucket_intercepts = {}
+    bucket_median_errors = {}
+    bucket_lower_rmses = {}
+    bucket_upper_rmses = {}
+    bucket_lower_kurtoses = {}
+    bucket_upper_kurtoses = {}
+    bucket_recontest_rate = {}
+
+    print(this_buckets)
+    
+    for bucket, results in this_buckets.items():
+        if len(results) > 0:
+            # Run regression between the seat swing and election swing
+            # to find the relationship between the two for initial primary
+            # votes in this bucket
+            sophomores = sophomore_buckets[bucket]
+            inputs_array = numpy.transpose(numpy.array([sophomores]))
+            results_array = numpy.array(results)
+            reg = LinearRegression().fit(inputs_array, results_array)
+            sophomore_coefficient = reg.coef_[0]
+            overall_intercept = reg.intercept_
+
+            # Get the residuals (~= errors if the above relationship is used
+            # as a prediction), find the median, and split the errors into
+            # a group above and below the median, measured by their distance
+            # from the median
+            residuals = [results[index] -
+                         (sophomore_coefficient * sophomores[index] 
+                          + overall_intercept)
+                         for index in range(0, len(results))
+            ]
+            median_error = statistics.median(residuals)
+            lower_errors = [a - median_error for a in residuals if a < median_error]
+            upper_errors = [a - median_error for a in residuals if a >= median_error]
+
+            # Find effective RMSE and kurtosis for the two tails of the
+            # distribution (in each case, as if the other side of the
+            # distribution is symmetrical)
+            lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                                / (len(lower_errors) - 1))
+            upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                                / (len(upper_errors) - 1))      
+            lower_kurtosis = one_tail_kurtosis(lower_errors)
+            upper_kurtosis = one_tail_kurtosis(upper_errors)
+
+
+            bucket_counts[bucket] = len(results)
+            bucket_sophomore_coefficients[bucket] = sophomore_coefficient
+            bucket_intercepts[bucket] = overall_intercept
+            bucket_median_errors[bucket] = median_error
+            bucket_lower_rmses[bucket] = lower_rmse
+            bucket_upper_rmses[bucket] = upper_rmse
+            bucket_lower_kurtoses[bucket] = lower_kurtosis
+            bucket_upper_kurtoses[bucket] = upper_kurtosis
+            bucket_recontest_rate[bucket] = (recontest_buckets[bucket].count(1)
+                                            / len(recontest_buckets[bucket]))
+    
+    for bucket in bucket_counts.keys():
+        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+        print(f'Sample size: {bucket_counts[bucket]}')
+        print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
+        print(f'Intercept: {bucket_intercepts[bucket]}')
+        print(f'Median error: {bucket_median_errors[bucket]}')
+        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+        print(f'Recontest rate: {bucket_recontest_rate[bucket]}')
+        print('\n')
+    
+    x = list(range(int(bucket_min - bucket_base / 2),
+                   bucket_max + bucket_base,
+                   bucket_base))
+    # don't smooth the sophomore coefficients as most of them are meaningless
+    sophomore_coefficients = [a for a in bucket_sophomore_coefficients.values()]
+    offsets = [a + b for a, b in zip(bucket_intercepts.values(),
+                                     bucket_median_errors.values())]
+    spline = UnivariateSpline(x=x, y=offsets, s=10)
+    smoothed_offsets = spline(x)
+    lower_rmses = [a for a in bucket_lower_rmses.values()]
+    spline = UnivariateSpline(x=x, y=lower_rmses, s=10)
+    smoothed_lower_rmses = spline(x)
+    upper_rmses = [a for a in bucket_upper_rmses.values()]
+    spline = UnivariateSpline(x=x, y=upper_rmses, s=10)
+    smoothed_upper_rmses = spline(x)
+    lower_kurtoses = [a for a in bucket_lower_kurtoses.values()]
+    spline = UnivariateSpline(x=x, y=lower_kurtoses, s=10)
+    smoothed_lower_kurtoses = spline(x)
+    upper_kurtoses = [a for a in bucket_upper_kurtoses.values()]
+    spline = UnivariateSpline(x=x, y=upper_kurtoses, s=10)
+    smoothed_upper_kurtoses = spline(x)
+
+    party_code = 'IND'
+
+    filename = (f'./Seat Statistics/statistics_{party_code}.csv')
+    with open(filename, 'w') as f:
+        f.write(','.join([f'{a:.4f}' for a in x]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in sophomore_coefficients]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_offsets]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_lower_rmses]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_upper_rmses]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
+
+
 if __name__ == '__main__':
     elections = get_checked_elections()
     analyse_greens(elections)
+    analyse_existing_independents(elections)
