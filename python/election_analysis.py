@@ -160,8 +160,9 @@ def analyse_greens(elections):
     swing_coefficients = [a for a in bucket_swing_coefficients.values()]
     spline = UnivariateSpline(x=x, y=swing_coefficients, s=10)
     smoothed_swing_coefficients = spline(x)
-    # don't smooth the sophomore coefficients as most of them are meaningless
     sophomore_coefficients = [a for a in bucket_sophomore_coefficients.values()]
+    spline = UnivariateSpline(x=x, y=sophomore_coefficients, s=10)
+    smoothed_sophomore_coefficients = spline(x)
     offsets = [a + b for a, b in zip(bucket_intercepts.values(),
                                      bucket_median_errors.values())]
     spline = UnivariateSpline(x=x, y=offsets, s=10)
@@ -179,7 +180,7 @@ def analyse_greens(elections):
     spline = UnivariateSpline(x=x, y=upper_kurtoses, s=10)
     smoothed_upper_kurtoses = spline(x)
     # Assume Greens always recontest
-    smoothed_recontest_rates = [1 for a in bucket_counts]
+    recontest_rates = [1 for a in bucket_counts]
 
     party_code = 'GRN'
 
@@ -187,13 +188,13 @@ def analyse_greens(elections):
     with open(filename, 'w') as f:
         f.write(','.join([f'{a:.4f}' for a in x]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_swing_coefficients]) + '\n')
-        f.write(','.join([f'{a:.4f}' for a in sophomore_coefficients]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_sophomore_coefficients]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_offsets]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_rmses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_rmses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
-        f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_rates]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in recontest_rates]) + '\n')
 
 
 def effective_independent(party, this_election):
@@ -370,27 +371,29 @@ def analyse_existing_independents(elections):
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
                    bucket_base))
+    # assume no relationship between overall and individual IND swing
     swing_coefficients = [0 for a in bucket_counts]
-    # don't smooth the sophomore coefficients as most of them are meaningless
     sophomore_coefficients = [a for a in bucket_sophomore_coefficients.values()]
+    spline = UnivariateSpline(x=x, y=sophomore_coefficients, s=100)
+    smoothed_sophomore_coefficients = spline(x)
     offsets = [a + b for a, b in zip(bucket_intercepts.values(),
                                      bucket_median_errors.values())]
-    spline = UnivariateSpline(x=x, y=offsets, s=10)
+    spline = UnivariateSpline(x=x, y=offsets, s=100)
     smoothed_offsets = spline(x)
     lower_rmses = [a for a in bucket_lower_rmses.values()]
-    spline = UnivariateSpline(x=x, y=lower_rmses, s=10)
+    spline = UnivariateSpline(x=x, y=lower_rmses, s=100)
     smoothed_lower_rmses = spline(x)
     upper_rmses = [a for a in bucket_upper_rmses.values()]
-    spline = UnivariateSpline(x=x, y=upper_rmses, s=10)
+    spline = UnivariateSpline(x=x, y=upper_rmses, s=100)
     smoothed_upper_rmses = spline(x)
     lower_kurtoses = [a for a in bucket_lower_kurtoses.values()]
-    spline = UnivariateSpline(x=x, y=lower_kurtoses, s=10)
+    spline = UnivariateSpline(x=x, y=lower_kurtoses, s=100)
     smoothed_lower_kurtoses = spline(x)
     upper_kurtoses = [a for a in bucket_upper_kurtoses.values()]
-    spline = UnivariateSpline(x=x, y=upper_kurtoses, s=10)
+    spline = UnivariateSpline(x=x, y=upper_kurtoses, s=100)
     smoothed_upper_kurtoses = spline(x)
     recontest_rates = [a for a in bucket_recontest_rates.values()]
-    spline = UnivariateSpline(x=x, y=recontest_rates, s=10)
+    spline = UnivariateSpline(x=x, y=recontest_rates, s=100)
     smoothed_recontest_rates = spline(x)
 
     party_code = 'IND'
@@ -399,7 +402,7 @@ def analyse_existing_independents(elections):
     with open(filename, 'w') as f:
         f.write(','.join([f'{a:.4f}' for a in x]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in swing_coefficients]) + '\n')
-        f.write(','.join([f'{a:.4f}' for a in sophomore_coefficients]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_sophomore_coefficients]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_offsets]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_rmses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_rmses]) + '\n')
