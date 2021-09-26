@@ -9,6 +9,8 @@ from election_check import get_checked_elections
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
 
+fp_threshold = 8
+
 def analyse_greens(elections):
     bucket_min = -90
     bucket_base = 10
@@ -20,7 +22,7 @@ def analyse_greens(elections):
     sophomore_buckets = copy.deepcopy(this_buckets)
     party = 'Greens'
     for this_election, this_results in elections.items():
-        print(f'Gathering results for {this_election}')
+        print(f'Gathering results for {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
@@ -37,40 +39,41 @@ def analyse_greens(elections):
             this_seat_results = this_results.seat_by_name(this_seat_name)
             if len(this_seat_results.tcp) == 0:
                 continue  # ignore seats where candidates are unopposed
-            if this_seat_name in next_results.seat_names():
-                next_seat_results = next_results.seat_by_name(this_seat_name)
-                if len(next_seat_results.tcp) == 0:
-                    continue  # ignore seats where candidates are unopposed
-                sophomore = False
-                if (previous_results is not None
-                    and this_seat_name in previous_results.seat_names(include_name_changes=True)):
-                    previous_seat_results = \
-                        previous_results.seat_by_name(this_seat_name,
-                                                      include_name_changes=True)
-                    if (len(previous_seat_results.tcp) > 0 and
-                        previous_seat_results.tcp[0].party != party and 
-                        this_seat_results.tcp[0].party == party):
-                        sophomore = True
-                        print(f'Sophomore found: {this_seat_name}')
-                if party in [a.party for a in this_seat_results.fp]:
-                    this_greens = sum(x.percent for x in this_seat_results.fp
-                                        if x.party == party)
-                else:
-                    continue
-                if party in [a.party for a in next_seat_results.fp]:
-                    next_greens = sum(x.percent for x in next_seat_results.fp
-                                        if x.party == party)
-                else:
-                    continue
-                this_greens = transform_vote_share(this_greens)
-                next_greens = transform_vote_share(next_greens)
-                greens_change = next_greens - this_greens
-                this_bucket = next(a for a in this_buckets 
-                                   if a[0] < this_greens
-                                   and a[1] > this_greens)
-                this_buckets[this_bucket].append(greens_change)
-                swing_buckets[this_bucket].append(election_swing)
-                sophomore_buckets[this_bucket].append(1 if sophomore else 0)
+            if this_seat_name not in next_results.seat_names():
+                continue
+            next_seat_results = next_results.seat_by_name(this_seat_name)
+            if len(next_seat_results.tcp) == 0:
+                continue  # ignore seats where candidates are unopposed
+            sophomore = False
+            if (previous_results is not None
+                and this_seat_name in previous_results.seat_names(include_name_changes=True)):
+                previous_seat_results = \
+                    previous_results.seat_by_name(this_seat_name,
+                                                    include_name_changes=True)
+                if (len(previous_seat_results.tcp) > 0 and
+                    previous_seat_results.tcp[0].party != party and 
+                    this_seat_results.tcp[0].party == party):
+                    sophomore = True
+                    print(f'Sophomore found: {this_seat_name}')
+            if party in [a.party for a in this_seat_results.fp]:
+                this_greens = sum(x.percent for x in this_seat_results.fp
+                                    if x.party == party)
+            else:
+                continue
+            if party in [a.party for a in next_seat_results.fp]:
+                next_greens = sum(x.percent for x in next_seat_results.fp
+                                    if x.party == party)
+            else:
+                continue
+            this_greens = transform_vote_share(this_greens)
+            next_greens = transform_vote_share(next_greens)
+            greens_change = next_greens - this_greens
+            this_bucket = next(a for a in this_buckets 
+                                if a[0] < this_greens
+                                and a[1] > this_greens)
+            this_buckets[this_bucket].append(greens_change)
+            swing_buckets[this_bucket].append(election_swing)
+            sophomore_buckets[this_bucket].append(1 if sophomore else 0)
 
     ordered_buckets = sorted(this_buckets.keys(), key=lambda x: x[0])
     bucket_counts = {}
@@ -215,7 +218,6 @@ def analyse_existing_independents(elections):
     bucket_min = -50
     bucket_base = 15
     bucket_max = -5
-    fp_threshold = 8
     this_buckets = {(-10000, bucket_min): []}
     this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
     this_buckets.update({(bucket_max, 10000): []})
@@ -224,7 +226,7 @@ def analyse_existing_independents(elections):
     recontest_buckets = copy.deepcopy(this_buckets)
     party = 'Independent'
     for this_election, this_results in elections.items():
-        print(f'\nGathering results for {this_election}')
+        print(f'\nGathering results for {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
@@ -239,57 +241,58 @@ def analyse_existing_independents(elections):
             # ignore seats where candidates are unopposed
             if len(this_seat_results.tcp) == 0:
                 continue
-            if this_seat_name in next_results.seat_names():
-                next_seat_results = next_results.seat_by_name(this_seat_name)
-                # ignore seats where candidates are unopposed
-                if len(next_seat_results.tcp) == 0:
-                    continue
-                independents = [a for a in this_seat_results.fp
-                                if a.percent > fp_threshold
-                                and effective_independent(a.party,
-                                                          this_election)
-                               ]
-                if (len(independents) == 0):
-                    continue
-                # Only consider the highest polling independent from each seat
-                highest = max(independents, key=lambda x: x.percent)
-                # Only consider independents with above a certain primary vote
-                if highest.percent < fp_threshold:
-                    continue
-                sophomore = False
-                if (previous_results is not None
-                    and this_seat_name in previous_results.seat_names(include_name_changes=True)):
-                    previous_seat_results = \
-                        previous_results.seat_by_name(this_seat_name,
-                                                      include_name_changes=True)
-                    # For independent sophomore effects, independents with a different name
-                    # should not be counted
-                    if (len(previous_seat_results.tcp) > 0
-                        and this_seat_results.tcp[0].name == highest.name
-                        and (not effective_independent(previous_seat_results.tcp[0].party,
-                                                   previous_election)
-                             or previous_seat_results.tcp[0].name != 
-                             this_seat_results.tcp[0].name)):
-                        sophomore = True
-                        print(f'Sophomore found: {this_seat_name}')
-                this_fp = highest.percent
-                this_fp = transform_vote_share(this_fp)
-                this_bucket = next(a for a in this_buckets 
-                                   if a[0] < this_fp
-                                   and a[1] > this_fp)
-                matching_next = [a for a in next_seat_results.fp
-                                 if a.name == highest.name]
-                if len(matching_next) > 0:
-                    next_fp = matching_next[0].percent
-                    recontest_buckets[this_bucket].append(1)
-                else:
-                    recontest_buckets[this_bucket].append(0)
-                    continue
-                print(f' Found independent for seat {this_seat_name}: {matching_next}')
-                next_fp = transform_vote_share(next_fp)
-                fp_change = next_fp - this_fp
-                this_buckets[this_bucket].append(fp_change)
-                sophomore_buckets[this_bucket].append(1 if sophomore else 0)
+            if this_seat_name not in next_results.seat_names():
+                continue
+            next_seat_results = next_results.seat_by_name(this_seat_name)
+            # ignore seats where candidates are unopposed
+            if len(next_seat_results.tcp) == 0:
+                continue
+            independents = [a for a in this_seat_results.fp
+                            if a.percent > fp_threshold
+                            and effective_independent(a.party,
+                                                        this_election)
+                            ]
+            if (len(independents) == 0):
+                continue
+            # Only consider the highest polling independent from each seat
+            highest = max(independents, key=lambda x: x.percent)
+            # Only consider independents with above a certain primary vote
+            if highest.percent < fp_threshold:
+                continue
+            sophomore = False
+            if (previous_results is not None
+                and this_seat_name in previous_results.seat_names(include_name_changes=True)):
+                previous_seat_results = \
+                    previous_results.seat_by_name(this_seat_name,
+                                                    include_name_changes=True)
+                # For independent sophomore effects, independents with a different name
+                # should not be counted
+                if (len(previous_seat_results.tcp) > 0
+                    and this_seat_results.tcp[0].name == highest.name
+                    and (not effective_independent(previous_seat_results.tcp[0].party,
+                                                previous_election)
+                            or previous_seat_results.tcp[0].name != 
+                            this_seat_results.tcp[0].name)):
+                    sophomore = True
+                    print(f'Sophomore found: {this_seat_name}')
+            this_fp = highest.percent
+            this_fp = transform_vote_share(this_fp)
+            this_bucket = next(a for a in this_buckets 
+                                if a[0] < this_fp
+                                and a[1] > this_fp)
+            matching_next = [a for a in next_seat_results.fp
+                                if a.name == highest.name]
+            if len(matching_next) > 0:
+                next_fp = matching_next[0].percent
+                recontest_buckets[this_bucket].append(1)
+            else:
+                recontest_buckets[this_bucket].append(0)
+                continue
+            print(f' Found independent for seat {this_seat_name}: {matching_next}')
+            next_fp = transform_vote_share(next_fp)
+            fp_change = next_fp - this_fp
+            this_buckets[this_bucket].append(fp_change)
+            sophomore_buckets[this_bucket].append(1 if sophomore else 0)
 
     ordered_buckets = sorted(this_buckets.keys(), key=lambda x: x[0])
     bucket_counts = {}
@@ -411,7 +414,93 @@ def analyse_existing_independents(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_rates]) + '\n')
 
 
+def analyse_emerging_independents(elections):
+    bucket_min = -50
+    bucket_base = 15
+    bucket_max = -5
+    fp_threshold = 8
+    seat_ind_count = []
+    seat_fed = []
+    cand_fp_vote = []
+    cand_fed = []
+    party = 'Independent'
+    for this_election, this_results in elections.items():
+        print(f'\nGathering results for emerging {party} in {this_election}')
+        if len(elections.next_elections(this_election)) == 0:
+            continue
+        next_election = elections.next_elections(this_election)[0]
+        next_results = elections[next_election]
+        if len(elections.previous_elections(this_election)) > 0:
+            previous_election = elections.previous_elections(this_election)[-1]
+            previous_results = elections[previous_election]
+        else:
+            previous_results = None
+        for this_seat_name in this_results.seat_names():
+            this_seat_results = this_results.seat_by_name(this_seat_name)
+            # ignore seats where candidates are unopposed
+            if len(this_seat_results.tcp) == 0:
+                continue
+            if this_seat_name not in next_results.seat_names():
+                continue
+            next_seat_results = next_results.seat_by_name(this_seat_name)
+            # ignore seats where candidates are unopposed
+            if len(next_seat_results.tcp) == 0:
+                continue
+            old_names = [a.name for a in this_seat_results.fp
+                         if a.percent > fp_threshold
+                         and effective_independent(a.party, this_election)]
+            new_independents = [a for a in next_seat_results.fp
+                                if effective_independent(a.party, next_election)
+                                and a.name not in old_names
+                                and a.percent > fp_threshold]
+            seat_ind_count.append(len(new_independents))
+            fed = 1 if next_election.region() == 'fed' else 0
+            seat_fed.append(fed)
+            for candidate in new_independents:
+                print(f'Found emerging independent - {candidate} in {this_seat_name}')
+                cand_fp_vote.append(candidate.percent)
+                cand_fed.append(fed)
+
+    for count in range(0, max(seat_ind_count) + 1):
+        print (f'Independent count {count}: {seat_ind_count.count(count)}')
+
+    for count in range(0, 2):
+        print (f'Federal count {count}: {seat_fed.count(count)}')
+
+    inputs_array = numpy.transpose(numpy.array([seat_fed]))
+    results_array = numpy.array(seat_ind_count)
+    reg = LinearRegression().fit(inputs_array, results_array)
+    fed_coefficient = reg.coef_[0]
+    fed_intercept = reg.intercept_
+    print(f'Federal emergence coefficient: {fed_coefficient}')
+    print(f'Federal emergence intercept: {fed_intercept}')
+
+    fp_vote_buckets = {}
+    bucket_size = 2
+    for index in range(0, len(cand_fp_vote)):
+        fp_vote = cand_fp_vote[index]
+        fp_vote_bucket = int(math.floor(fp_vote / bucket_size)) * bucket_size
+        if fp_vote_bucket in fp_vote_buckets:
+            fp_vote_buckets[fp_vote_bucket] += 1
+        else:
+            fp_vote_buckets[fp_vote_bucket] = 1
+
+    print ('')
+    for bucket in sorted(fp_vote_buckets.keys()):
+        print (f'Fp vote in range {bucket} - {bucket + bucket_size}: '
+               f'{fp_vote_buckets[bucket]}')
+
+    inputs_array = numpy.transpose(numpy.array([cand_fed]))
+    results_array = numpy.array(cand_fp_vote)
+    reg = LinearRegression().fit(inputs_array, results_array)
+    fed_vote_coefficient = reg.coef_[0]
+    fed_vote_intercept = reg.intercept_
+    print(f'Federal vote coefficient: {fed_vote_coefficient}')
+    print(f'Federal vote intercept: {fed_vote_intercept}')
+
+
 if __name__ == '__main__':
     elections = get_checked_elections()
     analyse_greens(elections)
     analyse_existing_independents(elections)
+    analyse_emerging_independents(elections)

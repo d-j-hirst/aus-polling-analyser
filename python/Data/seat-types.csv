@@ -1,0 +1,757 @@
+Adelaide,fed,0
+Aston,fed,1
+Ballarat,fed,2
+Banks,fed,0
+Barker,fed,3
+Barton,fed,0
+Bass,fed,2
+Bean,fed,0
+Bendigo,fed,2
+Bennelong,fed,0
+Berowra,fed,1
+Blair,fed,2
+Blaxland,fed,0
+Bonner,fed,1
+Boothby,fed,1
+Bowman,fed,1
+Braddon,fed,3
+Bradfield,fed,0
+Brand,fed,1
+Brisbane,fed,0
+Bruce,fed,1
+Burt,fed,1
+Calare,fed,3
+Calwell,fed,1
+Canberra,fed,0
+Canning,fed,1
+Capricornia,fed,2
+Casey,fed,3
+Chifley,fed,1
+Chisholm,fed,0
+Clark,fed,0
+Cook,fed,0
+Cooper,fed,0
+Corangamite,fed,2
+Corio,fed,2
+Cowan,fed,0
+Cowper,fed,2
+Cunningham,fed,2
+Curtin,fed,0
+Dawson,fed,3
+Deakin,fed,1
+Dickson,fed,1
+Dobell,fed,2
+Dunkley,fed,1
+Durack,fed,3
+Eden-Monaro,fed,3
+Fadden,fed,1
+Fairfax,fed,3
+Farrer,fed,3
+Fenner,fed,0
+Fisher,fed,3
+Flinders,fed,3
+Flynn,fed,3
+Forde,fed,1
+Forrest,fed,3
+Fowler,fed,1
+Franklin,fed,1
+Fraser,fed,0
+Fremantle,fed,0
+Gellibrand,fed,0
+Gilmore,fed,3
+Gippsland,fed,3
+Goldstein,fed,0
+Gorton,fed,1
+Grayndler,fed,0
+Greenway,fed,1
+Grey,fed,3
+Griffith,fed,0
+Groom,fed,2
+Hasluck,fed,1
+Hawke,fed,2
+Herbert,fed,2
+Higgins,fed,0
+Hindmarsh,fed,0
+Hinkler,fed,2
+Holt,fed,1
+Hotham,fed,0
+Hughes,fed,1
+Hume,fed,2
+Hunter,fed,3
+Indi,fed,3
+Isaacs,fed,1
+Jagajaga,fed,1
+Kennedy,fed,3
+Kingsford Smith,fed,0
+Kingston,fed,1
+Kooyong,fed,0
+La Trobe,fed,2
+Lalor,fed,1
+Leichhardt,fed,3
+Lilley,fed,0
+Lindsay,fed,1
+Lingiari,fed,3
+Longman,fed,2
+Lyne,fed,3
+Lyons,fed,3
+Macarthur,fed,1
+Mackellar,fed,1
+Macnamara,fed,0
+Macquarie,fed,2
+Makin,fed,1
+Mallee,fed,3
+Maranoa,fed,3
+Maribyrnong,fed,0
+Mayo,fed,3
+McEwen,fed,3
+McMahon,fed,1
+McPherson,fed,2
+Melbourne,fed,0
+Menzies,fed,1
+Mitchell,fed,1
+Monash,fed,3
+Moncrieff,fed,2
+Moore,fed,1
+Moreton,fed,0
+New England,fed,3
+Newcastle,fed,2
+Nicholls,fed,3
+North Sydney,fed,0
+O'Connor,fed,3
+Oxley,fed,1
+Page,fed,3
+Parkes,fed,3
+Parramatta,fed,0
+Paterson,fed,2
+Pearce,fed,1
+Perth,fed,0
+Petrie,fed,1
+Rankin,fed,1
+Reid,fed,0
+Richmond,fed,3
+Riverina,fed,3
+Robertson,fed,2
+Ryan,fed,1
+Scullin,fed,1
+Shortland,fed,2
+Solomon,fed,0
+Spence,fed,1
+Stirling,fed,0
+Sturt,fed,0
+Swan,fed,0
+Sydney,fed,0
+Tangney,fed,0
+Wannon,fed,3
+Warringah,fed,0
+Watson,fed,0
+Wentworth,fed,0
+Werriwa,fed,1
+Whitlam,fed,2
+Wide Bay,fed,3
+Wills,fed,1
+Wright,fed,3
+Balaclava,fed,0
+Barrier,fed,3
+Batman,fed,0
+Bland,fed,3
+Bonython,fed,1
+Bourke,fed,0
+Burke,fed,0
+Canobolas,fed,0
+Charlton,fed,2
+Corinella,fed,1
+Denison,fed,0
+Diamond Valley,fed,1
+Dundas,fed,0
+Gwydir,fed,0
+Hawker,fed,1
+Henty,fed,0
+Kalgoorlie,fed,3
+Lowe,fed,0
+McMillan,fed,3
+Melbourne Ports,fed,0
+Murray,fed,3
+Namadgi,fed,0
+Northern Territory,fed,2
+Phillip,fed,0
+Port Adelaide,fed,0
+Prospect,fed,1
+Riverina-Darling,fed,3
+St George,fed,0
+Streeton,fed,1
+Throsby,fed,2
+Wakefield,fed,1
+Wilmot,fed,3
+Albury,nsw,2
+Auburn,nsw,0
+Ballina,nsw,2
+Balmain,nsw,0
+Bankstown,nsw,0
+Barwon,nsw,3
+Bathurst,nsw,2
+Baulkham Hills,nsw,1
+Bega,nsw,3
+Blacktown,nsw,1
+Blue Mountains,nsw,2
+Cabramatta,nsw,1
+Camden,nsw,1
+Campbelltown,nsw,1
+Canterbury,nsw,0
+Castle Hill,nsw,1
+Cessnock,nsw,2
+Charlestown,nsw,2
+Clarence,nsw,3
+Coffs Harbour,nsw,2
+Coogee,nsw,0
+Cootamundra,nsw,0
+Cronulla,nsw,1
+Davidson,nsw,1
+Drummoyne,nsw,0
+Dubbo,nsw,3
+East Hills,nsw,0
+Eden-Bombala,nsw,3
+Epping,nsw,0
+Fairfield,nsw,0
+Gosford,nsw,2
+Goulburn,nsw,3
+Granville,nsw,0
+Hawkesbury,nsw,1
+Heathcote,nsw,1
+Heffron,nsw,0
+Holsworthy,nsw,1
+Hornsby,nsw,1
+Keira,nsw,2
+Kiama,nsw,3
+Kogarah,nsw,0
+Ku-ring-gai,nsw,0
+Lake Macquarie,nsw,2
+Lakemba,nsw,0
+Lane Cove,nsw,0
+Leppington,nsw,1
+Lismore,nsw,3
+Liverpool,nsw,1
+Londonderry,nsw,1
+Macquarie Fields,nsw,1
+Maitland,nsw,2
+Manly,nsw,0
+Maroubra,nsw,0
+Miranda,nsw,1
+Monaro,nsw,3
+Mount Druitt,nsw,1
+Mulgoa,nsw,1
+Murray,nsw,3
+Myall Lakes,nsw,3
+Newcastle,nsw,2
+Newtown,nsw,0
+Northern Tablelands,nsw,3
+North Shore,nsw,0
+Oatley,nsw,0
+Orange,nsw,2
+Oxley,nsw,3
+Parramatta,nsw,0
+Penrith,nsw,1
+Pittwater,nsw,1
+Port Macquarie,nsw,2
+Port Stephens,nsw,2
+Prospect,nsw,1
+Riverstone,nsw,1
+Rockdale,nsw,0
+Ryde,nsw,0
+Seven Hills,nsw,0
+Shellharbour,nsw,2
+South Coast,nsw,3
+Strathfield,nsw,0
+Summer Hill,nsw,0
+Swansea,nsw,2
+Sydney,nsw,0
+Tamworth,nsw,2
+Terrigal,nsw,2
+The Entrance,nsw,2
+Tweed,nsw,2
+Upper Hunter,nsw,3
+Vaucluse,nsw,0
+Wagga Wagga,nsw,2
+Wakehurst,nsw,0
+Wallsend,nsw,2
+Willoughby,nsw,0
+Wollondilly,nsw,3
+Wollongong,nsw,2
+Wyong,nsw,2
+Armidale,nsw,2
+Ashfield,nsw,0
+Badgerys Creek,nsw,1
+Bass Hill,nsw,0
+Bligh,nsw,0
+Broken Hill,nsw,3
+Bulli,nsw,2
+Burragorang,nsw,3
+Burrendong,nsw,3
+Burrinjuck,nsw,3
+Burwood,nsw,0
+Byron,nsw,3
+Carlingford,nsw,0
+Castlereagh,nsw,3
+Corrimal,nsw,2
+Earlwood,nsw,0
+Eastwood,nsw,0
+Elizabeth,nsw,0
+Ermington,nsw,0
+Fuller,nsw,0
+Georges River,nsw,1
+Gladesville,nsw,0
+Gloucester,nsw,3
+Gordon,nsw,0
+Hurstville,nsw,0
+Illawarra,nsw,2
+Ingleburn,nsw,1
+Kirribilli,nsw,0
+Lachlan,nsw,3
+Manning,nsw,3
+Marrickville,nsw,0
+McKell,nsw,0
+Menai,nsw,1
+Merrylands,nsw,0
+Minchinbury,nsw,1
+Moorebank,nsw,1
+Mosman,nsw,0
+Munmorah,nsw,2
+Murray-Darling,nsw,3
+Murrumbidgee,nsw,3
+Murwillumbah,nsw,3
+Nepean,nsw,1
+Northcott,nsw,0
+Peats,nsw,2
+Phillip,nsw,0
+Port Jackson,nsw,0
+Pyrmont,nsw,0
+Raleigh,nsw,3
+St Marys,nsw,1
+Smithfield,nsw,1
+Southern Highlands,nsw,3
+Sturt,nsw,3
+Sutherland,nsw,1
+Temora,nsw,3
+Tenterfield,nsw,3
+The Hills,nsw,2
+Toongabbie,nsw,1
+Tuggerah,nsw,2
+Waratah,nsw,2
+Waverley,nsw,0
+Wentworthville,nsw,1
+Woronara,nsw,1
+Yaralla,nsw,0
+Young,nsw,3
+Albert Park,vic,0
+Altona,vic,1
+Bass,vic,3
+Bayswater,vic,1
+Bellarine,vic,2
+Benambra,vic,2
+Bendigo East,vic,2
+Bendigo West,vic,2
+Bentleigh,vic,0
+Box Hill,vic,0
+Brighton,vic,0
+Broadmeadows,vic,1
+Brunswick,vic,0
+Bulleen,vic,0
+Bundoora,vic,1
+Buninyong,vic,2
+Burwood,vic,0
+Carrum,vic,1
+Caulfield,vic,0
+Clarinda,vic,1
+Cranbourne,vic,1
+Croydon,vic,1
+Dandenong,vic,1
+Eildon,vic,3
+Eltham,vic,1
+Essendon,vic,0
+Euroa,vic,3
+Evelyn,vic,1
+Ferntree Gully,vic,1
+Footscray,vic,0
+Forest Hill,vic,0
+Frankston,vic,1
+Geelong,vic,2
+Gembrook,vic,1
+Gippsland East,vic,3
+Gippsland South,vic,3
+Hastings,vic,1
+Hawthorn,vic,0
+Ivanhoe,vic,1
+Kew,vic,0
+Keysborough,vic,1
+Kororoit,vic,1
+Lara,vic,2
+Lowan,vic,3
+Macedon,vic,2
+Malvern,vic,0
+Melbourne,vic,0
+Melton,vic,1
+Mildura,vic,2
+Mill Park,vic,1
+Monbulk,vic,1
+Mordialloc,vic,1
+Mornington,vic,1
+Morwell,vic,2
+Mount Waverley,vic,0
+Mulgrave,vic,0
+Murray Plains,vic,3
+Narracan,vic,3
+Narre Warren North,vic,1
+Narre Warren South,vic,1
+Nepean,vic,1
+Niddrie,vic,1
+Northcote,vic,0
+Oakleigh,vic,0
+Ovens Valley,vic,3
+Pascoe Vale,vic,1
+Polwarth,vic,3
+Prahran,vic,0
+Preston,vic,0
+Richmond,vic,0
+Ringwood,vic,1
+Ripon,vic,3
+Rowville,vic,1
+St Albans,vic,1
+Sandringham,vic,0
+Shepparton,vic,2
+South Barwon,vic,2
+South-West Coast,vic,2
+Sunbury,vic,1
+Sydenham,vic,1
+Tarneit,vic,1
+Thomastown,vic,1
+Warrandyte,vic,1
+Wendouree,vic,2
+Werribee,vic,1
+Williamstown,vic,0
+Yan Yean,vic,1
+Yuroke,vic,1
+Ascot Vale,vic,0
+Ballarat East,vic,2
+Ballarat North,vic,2
+Ballarat South,vic,2
+Ballarat West,vic,2
+Balwyn,vic,0
+Benalla,vic,3
+Bendigo,vic,2
+Bennettswood,vic,0
+Berwick,vic,1
+Clayton,vic,0
+Coburg,vic,0
+Dandenong North,vic,1
+Derrimut,vic,1
+Dromana,vic,1
+Frankston East,vic,1
+Frankston North,vic,1
+Frankston South,vic,1
+Geelong East,vic,2
+Geelong North,vic,2
+Geelong West,vic,2
+Gippsland West,vic,3
+Gisborne,vic,3
+Glen Waverley,vic,0
+Glenhuntly,vic,0
+Glenroy,vic,1
+Greensborough,vic,1
+Heatherton,vic,1
+Keilor,vic,1
+Kilsyth,vic,1
+Knox,vic,0
+Lyndhurst,vic,1
+Mentone,vic,0
+Midlands,vic,3
+Mitcham,vic,1
+Mooroolbark,vic,1
+Murray Valley,vic,3
+Noble Park,vic,1
+Pakenham,vic,1
+Portland,vic,3
+Reservoir,vic,0
+Rodney,vic,3
+St Kilda,vic,0
+Scoresby,vic,0
+Seymour,vic,3
+Springvale,vic,0
+Sunshine,vic,0
+Swan Hill,vic,3
+Syndal,vic,0
+Tullamarine,vic,1
+Wantirna,vic,0
+Warrnambool,vic,2
+Westernport,vic,1
+Whittlesea,vic,3
+Wimmera,vic,3
+Algester,qld,1
+Aspley,qld,1
+Bancroft,qld,1
+Barron River,qld,2
+Bonney,qld,2
+Broadwater,qld,2
+Buderim,qld,2
+Bulimba,qld,0
+Bundaberg,qld,2
+Bundamba,qld,1
+Burdekin,qld,3
+Burleigh,qld,2
+Burnett,qld,3
+Cairns,qld,2
+Callide,qld,3
+Caloundra,qld,2
+Capalaba,qld,0
+Chatsworth,qld,0
+Clayfield,qld,0
+Condamine,qld,3
+Cook,qld,3
+Coomera,qld,2
+Cooper,qld,1
+Currumbin,qld,2
+Everton,qld,1
+Ferny Grove,qld,1
+Gaven,qld,2
+Gladstone,qld,2
+Glass House,qld,3
+Greenslopes,qld,0
+Gregory,qld,3
+Gympie,qld,3
+Hervey Bay,qld,2
+Hill,qld,3
+Hinchinbrook,qld,3
+Inala,qld,1
+Ipswich,qld,1
+Ipswich West,qld,1
+Jordan,qld,1
+Kawana,qld,2
+Keppel,qld,3
+Kurwongbah,qld,1
+Lockyer,qld,3
+Logan,qld,1
+Lytton,qld,0
+Macalister,qld,1
+Mackay,qld,2
+Maiwar,qld,0
+Mansfield,qld,1
+Maroochydore,qld,2
+Maryborough,qld,3
+McConnel,qld,0
+Mermaid Beach,qld,2
+Miller,qld,0
+Mirani,qld,3
+Moggill,qld,1
+Morayfield,qld,1
+Mount Ommaney,qld,1
+Mudgeeraba,qld,2
+Mulgrave,qld,2
+Mundingburra,qld,2
+Murrumba,qld,1
+Nanango,qld,3
+Nicklin,qld,3
+Ninderry,qld,2
+Noosa,qld,2
+Nudgee,qld,0
+Oodgeroo,qld,0
+Pine Rivers,qld,1
+Pumicestone,qld,1
+Redcliffe,qld,1
+Redlands,qld,1
+Rockhampton,qld,2
+Sandgate,qld,1
+Scenic Rim,qld,3
+South Brisbane,qld,0
+Southern Downs,qld,3
+Southport,qld,2
+Springwood,qld,1
+Stafford,qld,0
+Stretton,qld,1
+Surfers Paradise,qld,2
+Theodore,qld,2
+Thuringowa,qld,2
+Toohey,qld,1
+Toowoomba North,qld,2
+Toowoomba South,qld,2
+Townsville,qld,2
+Traeger,qld,3
+Warrego,qld,3
+Waterford,qld,1
+Whitsunday,qld,3
+Woodridge,qld,1
+Albert,qld,2
+Archerfield,qld,1
+Ashgrove,qld,1
+Auburn,qld,3
+Balonne,qld,3
+Barambah,qld,3
+Beaudesert,qld,3
+Bowen,qld,3
+Brisbane Central,qld,0
+Broadsound,qld,3
+Caboolture,qld,1
+Carnavon,qld,3
+Charters Towers,qld,3
+Chermside,qld,0
+Cleveland,qld,1
+Cooroora,qld,3
+Crows Nest,qld,3
+Cunningham,qld,3
+Dalrymple,qld,3
+Fassifern,qld,3
+Fitzroy,qld,3
+Flinders,qld,3
+Indooroopilly,qld,0
+Isis,qld,3
+Ithaca,qld,0
+Kallangur,qld,1
+Kedron,qld,0
+Kurilpa,qld,0
+Landsborough,qld,2
+Manly,qld,0
+Merrimac,qld,2
+Merthyr,qld,0
+Mooloolah,qld,2
+Mount Coot-tha,qld,1
+Mount Gravatt,qld,0
+Mount Isa,qld,3
+Mourilyan,qld,3
+Nerang,qld,2
+Nundah,qld,0
+Peak Downs,qld,3
+Port Curtis,qld,2
+Robina,qld,2
+Rockhampton North,qld,2
+Rockhampton South,qld,2
+Roma,qld,3
+Salisbury,qld,0
+Sherwood,qld,0
+Somerset,qld,3
+South Coast,qld,2
+Sunnybank,qld,1
+Toowong,qld,0
+Townsville East,qld,2
+Townsville South,qld,2
+Townsville West,qld,2
+Warwick,qld,2
+Wavell,qld,0
+Western Downs,qld,3
+Windsor,qld,0
+Wolston,qld,1
+Wynnum,qld,0
+Yeerongpilly,qld,0
+Yeronga,qld,0
+Albany,wa,2
+Armadale,wa,1
+Balcatta,wa,0
+Baldivis,wa,1
+Bassendean,wa,1
+Bateman,wa,0
+Belmont,wa,0
+Bicton,wa,0
+Bunbury,wa,2
+Burns Beach,wa,1
+Butler,wa,1
+Cannington,wa,0
+Carine,wa,0
+Central Wheatbelt,wa,3
+Churchlands,wa,0
+Cockburn,wa,1
+Collie-Preston,wa,3
+Cottesloe,wa,0
+Darling Range,wa,1
+Dawesville,wa,1
+Eyre,wa,3
+Forrestfield,wa,1
+Fremantle,wa,0
+Geraldton,wa,2
+Hillarys,wa,0
+Jandakot,wa,1
+Joondalup,wa,1
+Kalamunda,wa,1
+Kalgoorlie,wa,3
+Kimberley,wa,3
+Kingsley,wa,1
+Kwinana,wa,1
+Landsdale,wa,1
+Mandurah,wa,1
+Maylands,wa,0
+Midland,wa,1
+Mirrabooka,wa,1
+Moore,wa,3
+Morley,wa,0
+Mount Lawley,wa,0
+Murray-Wellington,wa,3
+Nedlands,wa,0
+North West Central,wa,3
+Perth,wa,0
+Pilbara,wa,3
+Riverton,wa,0
+Rockingham,wa,1
+Roe,wa,3
+Scarborough,wa,0
+South Perth,wa,0
+Southern River,wa,1
+Swan Hills,wa,1
+Thornlie,wa,0
+Vasse,wa,3
+Victoria Park,wa,0
+Wagin,wa,3
+Wanneroo,wa,1
+Warnbro,wa,1
+Warren-Blackwood,wa,3
+West Swan,wa,1
+Willagee,wa,0
+Alfred Cove,wa,0
+Applecross,wa,0
+Ascot,wa,0
+Ashburton,wa,3
+Avon,wa,3
+Balga,wa,0
+Ballajura,wa,1
+Blackwood-Stirling,wa,3
+Burrup,wa,3
+Canning,wa,1
+Capel,wa,3
+Clontarf,wa,0
+Dale,wa,3
+Dianella,wa,1
+East Melville,wa,0
+Esperance-Dundas,wa,3
+Floreat,wa,0
+Gascoyne,wa,3
+Girrawheen,wa,1
+Glendalough,wa,0
+Gosnells,wa,1
+Greenough,wa,3
+Helena,wa,1
+Innaloo,wa,0
+Karrinyup,wa,0
+Katanning,wa,3
+Kenwick,wa,1
+Marangaroo,wa,1
+Marmion,wa,1
+Melville,wa,0
+Merredin,wa,3
+Mindarie,wa,1
+Mitchell,wa,2
+Mount Hawthorn,wa,0
+Mount Leonora,wa,0
+Mount Marshall,wa,3
+Muindaring,wa,1
+Murchison-Eyre,wa,3
+Murdoch,wa,0
+Narrogin,wa,3
+Ningaloo,wa,3
+Nollamara,wa,0
+Northern Rivers,wa,1
+Ocean Reef,wa,1
+Peel,wa,1
+Roleystone,wa,1
+Serpentine-Jarrahdale,wa,1
+Stirling,wa,3
+Subiaco,wa,0
+Swan,wa,1
+Wellington,wa,3
+Welshpool,wa,0
+Whitford,wa,1
+Yilgarn-Dundas,wa,3
+Yokine,wa,0
