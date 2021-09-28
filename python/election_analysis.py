@@ -430,11 +430,13 @@ def analyse_emerging_independents(elections, seat_types):
     seat_provincial = []
     seat_outer_metro = []
     seat_rural = []
+    seat_prev_others = []
     cand_fp_vote = []
     cand_fed = []
     cand_rural = []
     cand_provincial = []
     cand_outer_metro = []
+    cand_prev_others = []
     party = 'Independent'
     for this_election, this_results in elections.items():
         print(f'\nGathering results for emerging {party} in {this_election}')
@@ -442,6 +444,11 @@ def analyse_emerging_independents(elections, seat_types):
             continue
         next_election = elections.next_elections(this_election)[0]
         next_results = elections[next_election]
+        if len(elections.previous_elections(this_election)) > 0:
+            previous_election = elections.previous_elections(this_election)[-1]
+            previous_results = elections[previous_election]
+        else:
+            previous_results = None
         for this_seat_name in this_results.seat_names():
             this_seat_results = this_results.seat_by_name(this_seat_name)
             # ignore seats where candidates are unopposed
@@ -462,11 +469,14 @@ def analyse_emerging_independents(elections, seat_types):
                                 and a.percent > fp_threshold]
             seat_ind_count.append(len(new_independents))
             fed = 1 if next_election.region() == 'fed' else 0
+            this_others = sum([min(a.percent, fp_threshold) for a in this_seat_results.fp
+                               if a.name not in ['Labor', 'Liberal', 'Greens', 'National']])
             seat_fed.append(fed)
             seat_type = seat_types.get((this_seat_name, next_election.region()), -1)
             seat_rural.append(1 if seat_type == 3 else 0)
             seat_provincial.append(1 if seat_type == 2 else 0)
             seat_outer_metro.append(1 if seat_type == 1 else 0)
+            seat_prev_others.append(prev_others)
             for candidate in new_independents:
                 # print(f'Found emerging independent - {candidate} in {this_seat_name}')
                 cand_fp_vote.append(transform_vote_share(candidate.percent))
@@ -474,6 +484,7 @@ def analyse_emerging_independents(elections, seat_types):
                 cand_rural.append(1 if seat_type == 3 else 0)
                 cand_provincial.append(1 if seat_type == 2 else 0)
                 cand_outer_metro.append(1 if seat_type == 1 else 0)
+                cand_prev_others.append(prev_others)
 
     for count in range(0, max(seat_ind_count) + 1):
         print (f'Independent count {count}: {seat_ind_count.count(count)}')
@@ -481,18 +492,20 @@ def analyse_emerging_independents(elections, seat_types):
     for count in range(0, 2):
         print (f'Federal count {count}: {seat_fed.count(count)}')
 
-    inputs_array = numpy.transpose(numpy.array([seat_fed, seat_rural, seat_provincial, seat_outer_metro]))
+    inputs_array = numpy.transpose(numpy.array([seat_fed, seat_rural, seat_provincial, seat_outer_metro, seat_prev_others]))
     results_array = numpy.array(seat_ind_count)
     reg = LinearRegression().fit(inputs_array, results_array)
     fed_coefficient = reg.coef_[0]
     rural_coefficient = reg.coef_[1]
     provincial_coefficient = reg.coef_[2]
     outer_metro_coefficient = reg.coef_[3]
+    prev_others_coefficient = reg.coef_[4]
     intercept = reg.intercept_
     print(f'Federal emergence coefficient: {fed_coefficient}')
     print(f'Rural emergence coefficient: {rural_coefficient}')
     print(f'Provincial emergence coefficient: {provincial_coefficient}')
     print(f'Outer Metro emergence coefficient: {outer_metro_coefficient}')
+    print(f'Previous-others coefficient: {prev_others_coefficient}')
     print(f'Emergence intercept: {intercept}')
 
     fp_vote_buckets = {}
@@ -509,18 +522,20 @@ def analyse_emerging_independents(elections, seat_types):
         print (f'Fp vote in range {bucket} - {bucket + ind_bucket_size}: '
                f'{fp_vote_buckets[bucket]}')
 
-    inputs_array = numpy.transpose(numpy.array([cand_fed, cand_rural, cand_provincial, cand_outer_metro]))
+    inputs_array = numpy.transpose(numpy.array([cand_fed, cand_rural, cand_provincial, cand_outer_metro, cand_prev_others]))
     results_array = numpy.array(cand_fp_vote)
     reg = LinearRegression().fit(inputs_array, results_array)
     fed_vote_coefficient = reg.coef_[0]
     rural_vote_coefficient = reg.coef_[1]
     provincial_vote_coefficient = reg.coef_[2]
     outer_metro_vote_coefficient = reg.coef_[3]
+    prev_others_vote_coefficient = reg.coef_[4]
     vote_intercept = reg.intercept_
     print(f'Federal vote coefficient: {fed_vote_coefficient}')
     print(f'Rural vote coefficient: {rural_vote_coefficient}')
     print(f'Provincial vote coefficient: {provincial_vote_coefficient}')
     print(f'Outer Metro vote coefficient: {outer_metro_vote_coefficient}')
+    print(f'Previous-others coefficient: {prev_others_vote_coefficient}')
     print(f'Vote intercept: {vote_intercept}')
     print(f'fp threshold: {fp_threshold}')
 
