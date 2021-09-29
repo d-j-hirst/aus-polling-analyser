@@ -107,5 +107,6 @@ private:
 	std::vector<float> regionLocalModifierAverage;
 
 	SeatStatistics greensSeatStatistics;
+	SeatStatistics indSeatStatistics;
 	int hungParliament = 0;
 };

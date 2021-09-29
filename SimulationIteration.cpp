@@ -236,6 +236,32 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			}
 			voteShare = detransformVoteShare(transformedFp);
 		}
+		else if (partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
+			if (voteShare < detransformVoteShare(-62.0f)) continue;
+			float transformedFp = transformVoteShare(voteShare);
+			auto const& stats = run.indSeatStatistics;
+			float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
+			int seatStatisticsLower = int(std::floor(seatStatisticsExact));
+			float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
+			using StatType = SimulationRun::SeatStatistics::TrendType;
+			// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
+			auto getMixedStat = [&](StatType statType) {
+				return mix(stats.trend[int(statType)][seatStatisticsLower],
+					(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
+					seatStatisticsMix);
+			};
+			// *** NB at the moment this does not account for sophomore effects
+			//     which aren't a priority as of writing since no such effects
+			//     exist in 2022fed or 2022sa elections, but we'll need them for 2022vic.
+			float offsetMixed = getMixedStat(StatType::Offset);
+			float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
+			float upperRmseMixed = getMixedStat(StatType::UpperRmse);
+			float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
+			float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
+			transformedFp += offsetMixed;
+			transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
+			voteShare = detransformVoteShare(transformedFp);
+		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
 	allocateMajorPartyFp(seatIndex);

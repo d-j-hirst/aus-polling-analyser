@@ -45,6 +45,7 @@ private:
 	void accumulatePpvcBiasMeasures(int seatIndex);
 	void loadPastSeatResults();
 	void loadGreensSeatStatistics();
+	void loadIndSeatStatistics();
 	void loadPreviousElectionBaselineVotes();
 
 	std::vector<int> regionSeatCount;

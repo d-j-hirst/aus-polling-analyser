@@ -38,6 +38,7 @@ void SimulationPreparation::prepareForIterations()
 	loadPastSeatResults();
 
 	loadGreensSeatStatistics();
+	loadIndSeatStatistics();
 
 	accumulateRegionStaticInfo();
 
@@ -521,6 +522,26 @@ void SimulationPreparation::loadGreensSeatStatistics()
 		auto strings = splitString(line, ",");
 		for (auto const& str : strings) {
 			run.greensSeatStatistics.trend[trendType].push_back(std::stof(str));
+		}
+	}
+}
+
+void SimulationPreparation::loadIndSeatStatistics()
+{
+	std::string fileName = "python/Seat Statistics/statistics_IND.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	std::string line;
+	std::getline(file, line);
+	auto scaleValues = splitString(line, ",");
+	run.indSeatStatistics.scaleLow = std::stof(scaleValues[0]);
+	run.indSeatStatistics.scaleStep = std::stof(scaleValues[1]) - run.indSeatStatistics.scaleLow;
+	run.indSeatStatistics.scaleHigh = std::stof(scaleValues.back());
+	for (int trendType = 0; trendType < int(SimulationRun::SeatStatistics::TrendType::Num); ++trendType) {
+		std::getline(file, line);
+		auto strings = splitString(line, ",");
+		for (auto const& str : strings) {
+			run.indSeatStatistics.trend[trendType].push_back(std::stof(str));
 		}
 	}
 }
