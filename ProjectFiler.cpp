@@ -26,7 +26,8 @@
 // Version 19: Save several more data sets for simulation reports
 // Version 20: Save term codes of previous elections for simulations
 // Version 21: Save alternate fp results for new seats
-constexpr int VersionNum = 21;
+// Version 22: Sophomore/retirement settings for seats
+constexpr int VersionNum = 22;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -449,6 +450,9 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.partyTwoProb;
 		saveOutput << thisSeat.partyThreeProb;
 		saveOutput << thisSeat.overrideBettingOdds;
+		saveOutput << thisSeat.sophomoreCandidate;
+		saveOutput << thisSeat.sophomoreParty;
+		saveOutput << thisSeat.retirement;
 	}
 }
 
@@ -480,6 +484,11 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		saveInput >> thisSeat.partyTwoProb;
 		saveInput >> thisSeat.partyThreeProb;
 		saveInput >> thisSeat.overrideBettingOdds;
+		if (versionNum >= 22) {
+			saveInput >> thisSeat.sophomoreCandidate;
+			saveInput >> thisSeat.sophomoreParty;
+			saveInput >> thisSeat.retirement;
+		}
 		project.seatCollection.add(thisSeat);
 	}
 }
