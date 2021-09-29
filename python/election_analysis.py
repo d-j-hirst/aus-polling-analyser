@@ -201,14 +201,12 @@ def analyse_greens(elections):
         f.write(','.join([f'{a:.4f}' for a in recontest_rates]) + '\n')
 
 
-def effective_independent(party, this_election):
+def effective_independent(party, election_results):
+    if party == 'Independent':
+        return True
     if party in ['Labor', 'Liberal', 'Greens', 'Democrats', 'National', 'One Nation']:
         return False
-    if (party == "Katter's Australian"
-        and this_election.region() == "qld"):
-        return False
-    if (party == 'Centre Alliance'
-        and this_election.region() == "sa"):
+    if election_results.total_fp_percentage_party(party) > 3:
         return False
     return True
 
@@ -251,7 +249,7 @@ def analyse_existing_independents(elections):
             independents = [a for a in this_seat_results.fp
                             if a.percent > fp_threshold
                             and effective_independent(a.party,
-                                                        this_election)
+                                                        this_results)
                             ]
             if (len(independents) == 0):
                 continue
@@ -271,7 +269,7 @@ def analyse_existing_independents(elections):
                 if (len(previous_seat_results.tcp) > 0
                     and this_seat_results.tcp[0].name == highest.name
                     and (not effective_independent(previous_seat_results.tcp[0].party,
-                                                previous_election)
+                                                previous_results)
                             or previous_seat_results.tcp[0].name != 
                             this_seat_results.tcp[0].name)):
                     sophomore = True
@@ -447,8 +445,10 @@ def analyse_emerging_independents(elections, seat_types):
         if len(elections.previous_elections(this_election)) > 0:
             previous_election = elections.previous_elections(this_election)[-1]
             previous_results = elections[previous_election]
+            print('found previous results')
         else:
             previous_results = None
+            print("didn't find previous results")
         for this_seat_name in this_results.seat_names():
             this_seat_results = this_results.seat_by_name(this_seat_name)
             # ignore seats where candidates are unopposed
@@ -462,21 +462,26 @@ def analyse_emerging_independents(elections, seat_types):
                 continue
             old_names = [a.name for a in this_seat_results.fp
                          if a.percent > fp_threshold
-                         and effective_independent(a.party, this_election)]
+                         and effective_independent(a.party, this_results)]
             new_independents = [a for a in next_seat_results.fp
-                                if effective_independent(a.party, next_election)
+                                if effective_independent(a.party, next_results)
                                 and a.name not in old_names
                                 and a.percent > fp_threshold]
             seat_ind_count.append(len(new_independents))
             fed = 1 if next_election.region() == 'fed' else 0
             this_others = sum([min(a.percent, fp_threshold) for a in this_seat_results.fp
                                if a.name not in ['Labor', 'Liberal', 'Greens', 'National']])
+            prev_others = (sum([min(a.percent, fp_threshold) for a in this_seat_results.fp
+                               if a.name not in ['Labor', 'Liberal', 'Greens', 'National']])
+                          if previous_results else this_others)
+            #others_indicator = (this_others + prev_others) / 2
+            others_indicator = this_others
             seat_fed.append(fed)
             seat_type = seat_types.get((this_seat_name, next_election.region()), -1)
             seat_rural.append(1 if seat_type == 3 else 0)
             seat_provincial.append(1 if seat_type == 2 else 0)
             seat_outer_metro.append(1 if seat_type == 1 else 0)
-            seat_prev_others.append(prev_others)
+            seat_prev_others.append(others_indicator)
             for candidate in new_independents:
                 # print(f'Found emerging independent - {candidate} in {this_seat_name}')
                 cand_fp_vote.append(transform_vote_share(candidate.percent))
@@ -484,7 +489,7 @@ def analyse_emerging_independents(elections, seat_types):
                 cand_rural.append(1 if seat_type == 3 else 0)
                 cand_provincial.append(1 if seat_type == 2 else 0)
                 cand_outer_metro.append(1 if seat_type == 1 else 0)
-                cand_prev_others.append(prev_others)
+                cand_prev_others.append(others_indicator)
 
     for count in range(0, max(seat_ind_count) + 1):
         print (f'Independent count {count}: {seat_ind_count.count(count)}')
@@ -538,6 +543,13 @@ def analyse_emerging_independents(elections, seat_types):
     print(f'Previous-others coefficient: {prev_others_vote_coefficient}')
     print(f'Vote intercept: {vote_intercept}')
     print(f'fp threshold: {fp_threshold}')
+
+    deviations = [a - transform_vote_share(fp_threshold) for a in cand_fp_vote]
+    upper_rmse = math.sqrt(sum([a ** 2 for a in deviations])
+                           / (len(deviations) - 1))
+    upper_kurtosis = one_tail_kurtosis(deviations)
+    print(f'\nUpper rmse: {upper_rmse}')
+    print(f'\nUpper kurtosis: {upper_kurtosis}')
 
 
 if __name__ == '__main__':
