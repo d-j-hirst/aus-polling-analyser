@@ -1,5 +1,6 @@
 #include "EditSeatFrame.h"
 
+#include "CheckInput.h"
 #include "ChoiceInput.h"
 #include "FloatInput.h"
 #include "General.h"
@@ -23,6 +24,9 @@ enum ControlId
 	IncumbentOdds,
 	ChallengerOdds,
 	Challenger2Odds,
+	SophomoreCandidate,
+	SophomoreParty,
+	Retirement,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -60,6 +64,9 @@ void EditSeatFrame::createControls(int & y)
 	createIncumbentOddsInput(y);
 	createChallengerOddsInput(y);
 	createChallenger2OddsInput(y);
+	createSophomoreCandidateInput(y);
+	createSophomorePartyInput(y);
+	createRetirementInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -171,6 +178,30 @@ void EditSeatFrame::createChallenger2OddsInput(int & y)
 	auto challenger2OddsValidator = [](float f) {return std::max(f, 1.0f); };
 	challenger2OddsInput.reset(new FloatInput(this, ControlId::Challenger2Odds, "Challenger 2 Odds:", seat.challenger2Odds,
 		wxPoint(2, y), challenger2OddsCallback, challenger2OddsValidator));
+	y += challenger2OddsInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createSophomoreCandidateInput(int& y)
+{
+	auto sophomoreCandidateCallback = [this](int i) -> void {seat.sophomoreCandidate = (i != 0); };
+	sophomoreCandidateInput.reset(new CheckInput(this, ControlId::SophomoreCandidate, "Sophomore (candidate)", seat.sophomoreCandidate,
+		wxPoint(2, y), sophomoreCandidateCallback));
+	y += challenger2OddsInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createSophomorePartyInput(int& y)
+{
+	auto sophomorePartyCallback = [this](int i) -> void {seat.sophomoreParty = (i != 0); };
+	sophomorePartyInput.reset(new CheckInput(this, ControlId::SophomoreParty, "Sophomore (party)", seat.sophomoreParty,
+		wxPoint(2, y), sophomorePartyCallback));
+	y += challenger2OddsInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createRetirementInput(int& y)
+{
+	auto retirementCallback = [this](int i) -> void {seat.retirement = (i != 0); };
+	retirementInput.reset(new CheckInput(this, ControlId::Retirement, "Retirement", seat.retirement,
+		wxPoint(2, y), retirementCallback));
 	y += challenger2OddsInput->Height + ControlPadding;
 }
 

@@ -61,6 +61,10 @@ public:
 	float partyThreeProb = 0.0f;
 	bool overrideBettingOdds = false;
 
+	bool sophomoreCandidate = false;
+	bool sophomoreParty = false;
+	bool retirement = false;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (margin > 0.0f ? incumbent : challenger);

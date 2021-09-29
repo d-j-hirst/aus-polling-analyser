@@ -17,6 +17,7 @@
 #include "PartyCollection.h"
 #include "RegionCollection.h"
 
+class CheckInput;
 class ChoiceInput;
 class FloatInput;
 class TextInput;
@@ -57,6 +58,9 @@ private:
 	void createIncumbentOddsInput(int& y);
 	void createChallengerOddsInput(int& y);
 	void createChallenger2OddsInput(int& y);
+	void createSophomoreCandidateInput(int& y);
+	void createSophomorePartyInput(int& y);
+	void createRetirementInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -85,6 +89,9 @@ private:
 	std::unique_ptr<FloatInput> incumbentOddsInput;
 	std::unique_ptr<FloatInput> challengerOddsInput;
 	std::unique_ptr<FloatInput> challenger2OddsInput;
+	std::unique_ptr<CheckInput> sophomoreCandidateInput;
+	std::unique_ptr<CheckInput> sophomorePartyInput;
+	std::unique_ptr<CheckInput> retirementInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;
