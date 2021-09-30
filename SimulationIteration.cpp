@@ -194,7 +194,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 										 // Add or subtract the simulation regional deviation depending on which party is incumbent
 	float newMargin = seat.margin + regionSwing[project.regions().idToIndex(seat.region)] * (incIsOne ? 1.0f : -1.0f);
 	// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
-	newMargin += seat.localModifier;
+	newMargin += run.seatIncTppModifier[seatIndex];
 	// Remove the average local modifier across the region
 	newMargin -= run.regionLocalModifierAverage[seat.region] * (incIsOne ? 1.0f : -1.0f);
 	// Add random noise to the new margin of this seat

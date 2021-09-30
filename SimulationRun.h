@@ -110,6 +110,7 @@ private:
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
 	std::vector<SeatType> seatTypes;
+	std::vector<float> seatIncTppModifier;
 	std::map<Party::Id, float> previousFpVoteShare;
 
 	std::vector<float> regionLocalModifierAverage;

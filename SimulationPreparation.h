@@ -26,6 +26,7 @@ private:
 	void resetLatestReport();
 	void resetRegionSpecificOutput();
 	void resetSeatSpecificOutput();
+	void determineEffectiveSeatModifiers();
 	void accumulateRegionStaticInfo();
 	void resetPpvcBiasAggregates();
 	void cacheBoothData();

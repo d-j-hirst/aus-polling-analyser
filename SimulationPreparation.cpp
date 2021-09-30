@@ -42,6 +42,8 @@ void SimulationPreparation::prepareForIterations()
 	loadGreensSeatStatistics();
 	loadIndSeatStatistics();
 
+	determineEffectiveSeatModifiers();
+
 	accumulateRegionStaticInfo();
 
 	resetPpvcBiasAggregates();
@@ -96,11 +98,36 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPartyFpDistribution.resize(project.seats().count());
 }
 
+void SimulationPreparation::determineEffectiveSeatModifiers()
+{
+	run.seatIncTppModifier.resize(project.seats().count(), 0.0f);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		bool majorParty = (seat.incumbent <= 1);
+		if (!majorParty) continue;
+		if (seat.sophomoreCandidate) {
+			run.seatIncTppModifier[seatIndex] += 0.5f;
+			typedef SimulationRun::SeatType ST;
+			auto type = run.seatTypes[seatIndex];
+			if (type == ST::Provincial || type == ST::Rural) {
+				run.seatIncTppModifier[seatIndex] += 0.9f;
+			}
+		}
+		if (seat.sophomoreParty) run.seatIncTppModifier[seatIndex] += 0.8f;
+		if (seat.retirement) run.seatIncTppModifier[seatIndex] -= 1.0f;
+	}
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		logger << run.seatIncTppModifier[seatIndex] << project.seats().viewByIndex(seatIndex).name << "\n";
+	}
+}
+
 void SimulationPreparation::accumulateRegionStaticInfo()
 {
-	for (auto&[key, seat] : project.seats()) {
-		bool isPartyOne = (seat.incumbent == 0);
-		run.regionLocalModifierAverage[seat.region] += seat.localModifier * (isPartyOne ? 1.0f : -1.0f);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		// Takes into account non-classic seats, where the margin given is the ALP TPP margin
+		bool isPartyOne = (seat.incumbent != 1 || seat.challenger != 0);
+		run.regionLocalModifierAverage[seat.region] += run.seatIncTppModifier[seatIndex] * (isPartyOne ? 1.0f : -1.0f);
 		++regionSeatCount[seat.region];
 	}
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
