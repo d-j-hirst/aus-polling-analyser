@@ -116,9 +116,6 @@ void SimulationPreparation::determineEffectiveSeatModifiers()
 		if (seat.sophomoreParty) run.seatIncTppModifier[seatIndex] += 0.8f;
 		if (seat.retirement) run.seatIncTppModifier[seatIndex] -= 1.0f;
 	}
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		logger << run.seatIncTppModifier[seatIndex] << project.seats().viewByIndex(seatIndex).name << "\n";
-	}
 }
 
 void SimulationPreparation::accumulateRegionStaticInfo()

@@ -206,6 +206,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	seatFpVoteShare.resize(project.seats().count());
 	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
 		if (partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"))) {
@@ -223,15 +224,16 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 						seatStatisticsMix);
 				};
 				float swingMultiplierMixed = getMixedStat(StatType::SwingCoefficient);
-				// *** NB at the moment this does not account for sophomore effects
-				//     which aren't a priority as of writing since no such effects
-				//     exist in 2022fed or 2022sa elections, but we'll need them for 2022vic.
+				float sophomoreMixed = getMixedStat(StatType::SophomoreCoefficient);
 				float offsetMixed = getMixedStat(StatType::Offset);
 				float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
 				float upperRmseMixed = getMixedStat(StatType::UpperRmse);
 				float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
 				float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
 				transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex] + offsetMixed;
+				if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
+					transformedFp += sophomoreMixed;
+				}
 				transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
 			}
 			voteShare = detransformVoteShare(transformedFp);
@@ -250,15 +252,16 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 					(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
 					seatStatisticsMix);
 			};
-			// *** NB at the moment this does not account for sophomore effects
-			//     which aren't a priority as of writing since no such effects
-			//     exist in 2022fed or 2022sa elections, but we'll need them for 2022vic.
+			float sophomoreMixed = getMixedStat(StatType::SophomoreCoefficient);
 			float offsetMixed = getMixedStat(StatType::Offset);
 			float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
 			float upperRmseMixed = getMixedStat(StatType::UpperRmse);
 			float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
 			float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
 			transformedFp += offsetMixed;
+			if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
+				transformedFp += sophomoreMixed;
+			}
 			transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
 			voteShare = detransformVoteShare(transformedFp);
 		}
