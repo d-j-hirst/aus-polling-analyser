@@ -35,6 +35,8 @@ void SimulationPreparation::prepareForIterations()
 
 	loadPreviousElectionBaselineVotes();
 
+	loadSeatTypes();
+
 	loadPastSeatResults();
 
 	loadGreensSeatStatistics();
@@ -506,6 +508,28 @@ void SimulationPreparation::loadPastSeatResults()
 	}
 }
 
+void SimulationPreparation::loadSeatTypes()
+{
+	run.seatTypes.resize(project.seats().count());
+	std::string fileName = "python/Data/seat-types.csv";
+	std::string region = getRegionCode();
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values[1] == region) {
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
+					run.seatTypes[seatIndex] = SimulationRun::SeatType(std::stoi(values[2]));
+				}
+			}
+		}
+	} while (true);
+}
+
 void SimulationPreparation::loadGreensSeatStatistics()
 {
 	std::string fileName = "python/Seat Statistics/statistics_GRN.csv";
@@ -551,9 +575,8 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 	std::string fileName = "python/Data/prior-results.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
-	std::string yearCode = termCode.substr(0, 4);
-	std::string regionCode = termCode.substr(4);
+	std::string yearCode = getYearCode();
+	std::string regionCode = getRegionCode();
 	do {
 		std::string line;
 		std::getline(file, line);
@@ -569,4 +592,16 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 			run.previousFpVoteShare[partyIndex] = std::stof(values[3]);
 		}
 	} while (true);
+}
+
+std::string SimulationPreparation::getYearCode()
+{
+	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+	return termCode.substr(0, 4);
+}
+
+std::string SimulationPreparation::getRegionCode()
+{
+	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+	return termCode.substr(4);
 }

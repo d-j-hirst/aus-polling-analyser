@@ -44,9 +44,13 @@ private:
 	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
 	void accumulatePpvcBiasMeasures(int seatIndex);
 	void loadPastSeatResults();
+	void loadSeatTypes();
 	void loadGreensSeatStatistics();
 	void loadIndSeatStatistics();
 	void loadPreviousElectionBaselineVotes();
+
+	std::string getYearCode();
+	std::string getRegionCode();
 
 	std::vector<int> regionSeatCount;
 

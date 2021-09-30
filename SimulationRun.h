@@ -44,6 +44,13 @@ public:
 		std::array<std::vector<float>, int(TrendType::Num)> trend;
 	};
 
+	enum class SeatType {
+		InnerMetro,
+		OuterMetro,
+		Provincial,
+		Rural
+	};
+
 	typedef std::function<void(std::string)> FeedbackFunc;
 
 	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
@@ -102,6 +109,7 @@ private:
 	std::vector<std::array<int, 2>> seatTcpTally;
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
+	std::vector<SeatType> seatTypes;
 	std::map<Party::Id, float> previousFpVoteShare;
 
 	std::vector<float> regionLocalModifierAverage;
