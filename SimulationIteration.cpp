@@ -82,7 +82,7 @@ void SimulationIteration::determineIterationOverallSwing()
 
 	for (auto const& [sampleKey, partySample] : projectedSample) {
 		if (sampleKey == UnnamedOthersCode) {
-			overallFp[-1] = partySample;
+			overallFp[OthersIndex] = partySample;
 			continue;
 		}
 		for (auto const& [id, party] : project.parties()) {
@@ -239,8 +239,8 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			voteShare = detransformVoteShare(transformedFp);
 		}
 		else if (partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
-			if (voteShare < detransformVoteShare(-62.0f)) continue;
 			float transformedFp = transformVoteShare(voteShare);
+			if (transformedFp < run.indEmergence.fpThreshold) continue;
 			auto const& stats = run.indSeatStatistics;
 			float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
 			int seatStatisticsLower = int(std::floor(seatStatisticsExact));
@@ -265,9 +265,41 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
 			voteShare = detransformVoteShare(transformedFp);
 		}
+
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
+	determineSeatEmergingInds(seatIndex);
 	allocateMajorPartyFp(seatIndex);
+}
+
+void SimulationIteration::determineSeatEmergingInds(int seatIndex)
+{
+	// Emergence of new independents
+	float indEmergenceRate = run.indEmergence.baseRate;
+	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
+	if (isFederal) indEmergenceRate += run.indEmergence.fedRateMod;
+	typedef SimulationRun::SeatType ST;
+	bool isRural = run.seatTypes[seatIndex] == ST::Rural;
+	bool isProvincial = run.seatTypes[seatIndex] == ST::Provincial;
+	bool isOuterMetro = run.seatTypes[seatIndex] == ST::OuterMetro;
+	if (isRural) indEmergenceRate += run.indEmergence.ruralRateMod;
+	if (isProvincial) indEmergenceRate += run.indEmergence.provincialRateMod;
+	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
+	float prevOthers = run.pastSeatResults[seatIndex].prevOthers;
+	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
+	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
+		float rmse = run.indEmergence.voteRmse;
+		float kurtosis = run.indEmergence.voteKurtosis;
+		float interceptSize = run.indEmergence.voteIntercept - transformVoteShare(run.indEmergence.fpThreshold);
+		if (isFederal) rmse *= (1.0f + run.indEmergence.fedVoteCoeff / interceptSize);
+		if (isRural) rmse *= (1.0f + run.indEmergence.ruralVoteCoeff / interceptSize);
+		if (isProvincial) rmse *= (1.0f + run.indEmergence.provincialVoteCoeff / interceptSize);
+		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
+		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
+		rmse *= (1.0f + prevOthersCoeff / interceptSize);
+		float voteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = voteShare;
+	}
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)
@@ -320,7 +352,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			pastElectionPartyOnePrefEstimate += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
 			previousNonMajorFpShare += voteShare;
 		}
-		else if (partyIndex == -1) {
+		else if (partyIndex <= OthersIndex) {
 			pastElectionPartyOnePrefEstimate += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
 			previousNonMajorFpShare += voteShare;
 		}
@@ -337,7 +369,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			currentPartyOnePrefs += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
 			currentTotalPrefs += voteShare;
 		}
-		else if (partyIndex == -1) {
+		else if (partyIndex <= OthersIndex) {
 			currentPartyOnePrefs += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
 			currentTotalPrefs += voteShare;
 		}
@@ -362,7 +394,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float totalTpp = newPartyOneTpp + newPartyTwoTpp;
 	// Derivation of following formula (assuming ALP as first party):
 	//  (alp_add + alp_sum) / (alp_add + fp_sum) = alp_tpp
-	//	(alp_add + alp_sum) = alp_tpp * (alp_add + fp_sum)
+	//	alp_add + alp_sum = alp_tpp * (alp_add + fp_sum)
 	//	alp_add + alp_sum - alp_tpp * alp_add = alp_tpp * fp_sum
 	//	alp_add(1 - alp_tpp) = alp_tpp * fp_sum - alp_sum
 	//	alp_add = (alp_tpp * fp_sum - alp_sum) / (1 - alp_tpp)

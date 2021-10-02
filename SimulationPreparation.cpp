@@ -37,10 +37,11 @@ void SimulationPreparation::prepareForIterations()
 
 	loadSeatTypes();
 
-	loadPastSeatResults();
-
 	loadGreensSeatStatistics();
 	loadIndSeatStatistics();
+	loadIndEmergence();
+
+	loadPastSeatResults();
 
 	determineEffectiveSeatModifiers();
 
@@ -530,6 +531,18 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 		}
 	}
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto& results = run.pastSeatResults[seatIndex];
+		for (auto& [party, voteShare] : results.fpVotePercent) {
+			// This is a crutch that depends on the greens having index 2,
+			// probably best to eventually run this with a per-party flag
+			// But at the moment that's low priority
+			if (party > 2 || party < 0) {
+				results.prevOthers += std::min(voteShare, run.indEmergence.fpThreshold);
+			}
+		}
+		results.prevOthers = std::max(2.0f, results.prevOthers);
+	}
 }
 
 void SimulationPreparation::loadSeatTypes()
@@ -594,6 +607,29 @@ void SimulationPreparation::loadIndSeatStatistics()
 	}
 }
 
+void SimulationPreparation::loadIndEmergence()
+{
+	std::string fileName = "python/Seat Statistics/statistics_emerging_IND.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
+	run.indEmergence.fpThreshold = extractNum();
+	run.indEmergence.baseRate = extractNum();
+	run.indEmergence.fedRateMod = extractNum();
+	run.indEmergence.ruralRateMod = extractNum();
+	run.indEmergence.provincialRateMod = extractNum();
+	run.indEmergence.outerMetroRateMod = extractNum();
+	run.indEmergence.prevOthersRateMod = extractNum();
+	run.indEmergence.voteRmse = extractNum();
+	run.indEmergence.voteKurtosis = extractNum();
+	run.indEmergence.fedVoteCoeff = extractNum();
+	run.indEmergence.ruralVoteCoeff = extractNum();
+	run.indEmergence.provincialVoteCoeff = extractNum();
+	run.indEmergence.outerMetroVoteCoeff = extractNum();
+	run.indEmergence.prevOthersVoteCoeff = extractNum();
+	run.indEmergence.voteIntercept = extractNum();
+}
+
 void SimulationPreparation::loadPreviousElectionBaselineVotes()
 {
 	std::string fileName = "python/Data/prior-results.csv";
@@ -612,7 +648,7 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 			if (partyCode == "OTH") continue;
 			int partyIndex = project.parties().indexByShortCode(partyCode);
 			// ignore parties that were significant last election but not expected to be so for this election
-			if (partyIndex == -1 && partyCode != UnnamedOthersCode) continue;
+			if (partyIndex == OthersIndex && partyCode != UnnamedOthersCode) continue;
 			run.previousFpVoteShare[partyIndex] = std::stof(values[3]);
 		}
 	} while (true);

@@ -189,7 +189,9 @@ void SimulationCompletion::recordSeatFpVoteStats()
 		for (auto const& [partyIndex, fpVoteShare] : sim.latestReport.seatPartyMeanFpShare[seatIndex]) {
 			logger << "  ";
 			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
-			else logger << "Others";
+			else if (partyIndex == -1) logger << "Others";
+			else if (partyIndex == -2) logger << "Emerging Ind";
+			else if (partyIndex == -3) logger << "Emerging Party";
 			logger << ": " << fpVoteShare << ", " << "distribution: ";
 			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
 				if (run.seatPartyFpDistribution[seatIndex][partyIndex][a] > 0) {

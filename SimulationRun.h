@@ -24,6 +24,7 @@ public:
 		std::map<int, float> fpVotePercent; // map from party index -> percentage
 		std::map<int, int> fpVoteCount; // map from party index -> number
 		std::map<int, float> tcpVote; // map from party index -> percentage
+		float prevOthers = 0.0f; // Special variable for calculating emergence of independents
 	};
 
 	struct SeatStatistics {
@@ -42,6 +43,24 @@ public:
 		float scaleStep = 10.0f;
 		float scaleHigh = 0.0f;
 		std::array<std::vector<float>, int(TrendType::Num)> trend;
+	};
+
+	struct IndEmergence {
+		float fpThreshold;
+		float baseRate;
+		float fedRateMod;
+		float ruralRateMod;
+		float provincialRateMod;
+		float outerMetroRateMod;
+		float prevOthersRateMod;
+		float voteRmse;
+		float voteKurtosis;
+		float fedVoteCoeff;
+		float ruralVoteCoeff;
+		float provincialVoteCoeff;
+		float outerMetroVoteCoeff;
+		float prevOthersVoteCoeff;
+		float voteIntercept;
 	};
 
 	enum class SeatType {
@@ -117,5 +136,7 @@ private:
 
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
+	IndEmergence indEmergence;
+
 	int hungParliament = 0;
 };

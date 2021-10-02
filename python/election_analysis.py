@@ -470,12 +470,8 @@ def analyse_emerging_independents(elections, seat_types):
             seat_ind_count.append(len(new_independents))
             fed = 1 if next_election.region() == 'fed' else 0
             this_others = sum([min(a.percent, fp_threshold) for a in this_seat_results.fp
-                               if a.name not in ['Labor', 'Liberal', 'Greens', 'National']])
-            prev_others = (sum([min(a.percent, fp_threshold) for a in this_seat_results.fp
-                               if a.name not in ['Labor', 'Liberal', 'Greens', 'National']])
-                          if previous_results else this_others)
-            #others_indicator = (this_others + prev_others) / 2
-            others_indicator = this_others
+                               if a.party not in ['Labor', 'Liberal', 'Greens', 'National']])
+            others_indicator = max(2, this_others)
             seat_fed.append(fed)
             seat_type = seat_types.get((this_seat_name, next_election.region()), -1)
             seat_rural.append(1 if seat_type == 3 else 0)
@@ -511,7 +507,7 @@ def analyse_emerging_independents(elections, seat_types):
     print(f'Provincial emergence coefficient: {provincial_coefficient}')
     print(f'Outer Metro emergence coefficient: {outer_metro_coefficient}')
     print(f'Previous-others coefficient: {prev_others_coefficient}')
-    print(f'Emergence intercept: {intercept}')
+    print(f'Emergence base rate: {intercept}')
 
     fp_vote_buckets = {}
     for index in range(0, len(cand_fp_vote)):
@@ -541,15 +537,35 @@ def analyse_emerging_independents(elections, seat_types):
     print(f'Provincial vote coefficient: {provincial_vote_coefficient}')
     print(f'Outer Metro vote coefficient: {outer_metro_vote_coefficient}')
     print(f'Previous-others coefficient: {prev_others_vote_coefficient}')
-    print(f'Vote intercept: {vote_intercept}')
+    print(f'Vote intercept: {vote_intercept} - detransformed {detransform_vote_share(vote_intercept)}')
     print(f'fp threshold: {fp_threshold}')
 
     deviations = [a - transform_vote_share(fp_threshold) for a in cand_fp_vote]
     upper_rmse = math.sqrt(sum([a ** 2 for a in deviations])
                            / (len(deviations) - 1))
     upper_kurtosis = one_tail_kurtosis(deviations)
+    average_extra_vote = statistics.mean([a for a in deviations])
+    print(f'\nAverage extra vote (transformed): {average_extra_vote}')
     print(f'\nUpper rmse: {upper_rmse}')
     print(f'\nUpper kurtosis: {upper_kurtosis}')
+    
+    filename = (f'./Seat Statistics/statistics_emerging_IND.csv')
+    with open(filename, 'w') as f:
+        f.write(f'{fp_threshold}\n')
+        f.write(f'{intercept}\n')
+        f.write(f'{fed_coefficient}\n')
+        f.write(f'{rural_coefficient}\n')
+        f.write(f'{provincial_coefficient}\n')
+        f.write(f'{outer_metro_coefficient}\n')
+        f.write(f'{prev_others_coefficient}\n')
+        f.write(f'{upper_rmse}\n')
+        f.write(f'{upper_kurtosis}\n')
+        f.write(f'{fed_vote_coefficient}\n')
+        f.write(f'{rural_vote_coefficient}\n')
+        f.write(f'{provincial_vote_coefficient}\n')
+        f.write(f'{outer_metro_vote_coefficient}\n')
+        f.write(f'{prev_others_vote_coefficient}\n')
+        f.write(f'{vote_intercept}\n')
 
 
 if __name__ == '__main__':

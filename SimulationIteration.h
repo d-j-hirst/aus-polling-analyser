@@ -58,6 +58,7 @@ private:
 	void determineSeatInitialResult(int seatIndex);
 	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
+	void determineSeatEmergingInds(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
 	void normaliseSeatFp(int seatIndex);
 	void calculateNewFpVoteTotals();
