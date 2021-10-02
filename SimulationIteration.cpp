@@ -206,70 +206,55 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	seatFpVoteShare.resize(project.seats().count());
 	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
-		if (partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"))) {
-			float transformedFp = transformVoteShare(voteShare);
-			if (overallFpSwing.contains(partyIndex)) {
-				auto const& stats = run.greensSeatStatistics;
-				float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
-				int seatStatisticsLower = int(std::floor(seatStatisticsExact));
-				float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
-				using StatType = SimulationRun::SeatStatistics::TrendType;
-				// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
-				auto getMixedStat = [&](StatType statType) {
-					return mix(stats.trend[int(statType)][seatStatisticsLower],
-						(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
-						seatStatisticsMix);
-				};
-				float swingMultiplierMixed = getMixedStat(StatType::SwingCoefficient);
-				float sophomoreMixed = getMixedStat(StatType::SophomoreCoefficient);
-				float offsetMixed = getMixedStat(StatType::Offset);
-				float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
-				float upperRmseMixed = getMixedStat(StatType::UpperRmse);
-				float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
-				float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
-				transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex] + offsetMixed;
-				if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
-					transformedFp += sophomoreMixed;
-				}
-				transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
-			}
-			voteShare = detransformVoteShare(transformedFp);
+		bool effectiveGreen = partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
+		if (!overallFpSwing.contains(partyIndex)) effectiveGreen = false;
+		bool effectiveIndependent = partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"));
+		if (!overallFpSwing.contains(partyIndex)) effectiveIndependent = true;
+		if (voteShare < run.indEmergence.fpThreshold) effectiveIndependent = false;
+		if (effectiveGreen) {
+			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
-		else if (partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
-			float transformedFp = transformVoteShare(voteShare);
-			if (transformedFp < run.indEmergence.fpThreshold) continue;
-			auto const& stats = run.indSeatStatistics;
-			float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
-			int seatStatisticsLower = int(std::floor(seatStatisticsExact));
-			float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
-			using StatType = SimulationRun::SeatStatistics::TrendType;
-			// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
-			auto getMixedStat = [&](StatType statType) {
-				return mix(stats.trend[int(statType)][seatStatisticsLower],
-					(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
-					seatStatisticsMix);
-			};
-			float sophomoreMixed = getMixedStat(StatType::SophomoreCoefficient);
-			float offsetMixed = getMixedStat(StatType::Offset);
-			float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
-			float upperRmseMixed = getMixedStat(StatType::UpperRmse);
-			float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
-			float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
-			transformedFp += offsetMixed;
-			if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
-				transformedFp += sophomoreMixed;
-			}
-			transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
-			voteShare = detransformVoteShare(transformedFp);
+		else if (effectiveIndependent) {
+			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
-
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
 	determineSeatEmergingInds(seatIndex);
 	allocateMajorPartyFp(seatIndex);
+}
+
+void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	float transformedFp = transformVoteShare(voteShare);
+	auto const& stats = run.greensSeatStatistics;
+	float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
+	int seatStatisticsLower = int(std::floor(seatStatisticsExact));
+	float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
+	using StatType = SimulationRun::SeatStatistics::TrendType;
+	// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
+	auto getMixedStat = [&](StatType statType) {
+		return mix(stats.trend[int(statType)][seatStatisticsLower],
+			(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
+			seatStatisticsMix);
+	};
+	float swingMultiplierMixed = getMixedStat(StatType::SwingCoefficient);
+	float sophomoreMixed = getMixedStat(StatType::SophomoreCoefficient);
+	float offsetMixed = getMixedStat(StatType::Offset);
+	float lowerRmseMixed = getMixedStat(StatType::LowerRmse);
+	float upperRmseMixed = getMixedStat(StatType::UpperRmse);
+	float lowerKurtosisMixed = getMixedStat(StatType::LowerKurtosis);
+	float upperKurtosisMixed = getMixedStat(StatType::UpperKurtosis);
+	if (overallFpSwing.contains(partyIndex)) {
+		transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex];
+	}
+	transformedFp += offsetMixed;
+	if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
+		transformedFp += sophomoreMixed;
+	}
+	transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
+	voteShare = detransformVoteShare(transformedFp);
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)

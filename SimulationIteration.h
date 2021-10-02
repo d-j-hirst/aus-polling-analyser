@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Party.h"
+#include "SimulationRun.h"
 
 #include <array>
 #include <map>
@@ -11,7 +12,6 @@ class PollingProject;
 struct Region;
 class Seat;
 class Simulation;
-class SimulationRun;
 
 class SimulationIteration {
 public:
@@ -58,6 +58,7 @@ private:
 	void determineSeatInitialResult(int seatIndex);
 	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
+	void determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics);
 	void determineSeatEmergingInds(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
 	void normaliseSeatFp(int seatIndex);
