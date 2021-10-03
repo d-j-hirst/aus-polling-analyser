@@ -23,7 +23,7 @@ def analyse_greens(elections):
     sophomore_buckets = copy.deepcopy(this_buckets)
     party = 'Greens'
     for this_election, this_results in elections.items():
-        print(f'Gathering results for {party} in {this_election}')
+        # print(f'Gathering results for {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
@@ -35,7 +35,7 @@ def analyse_greens(elections):
             previous_results = None
         election_swing = (transform_vote_share(next_results.total_fp_percentage_party(party))
                  - transform_vote_share(this_results.total_fp_percentage_party(party)))
-        print(f'{this_election.short()} - {next_election.short()} overall swing to greens: {election_swing}')
+        # print(f'{this_election.short()} - {next_election.short()} overall swing to greens: {election_swing}')
         for this_seat_name in this_results.seat_names():
             this_seat_results = this_results.seat_by_name(this_seat_name)
             if len(this_seat_results.tcp) == 0:
@@ -55,7 +55,6 @@ def analyse_greens(elections):
                     previous_seat_results.tcp[0].party != party and 
                     this_seat_results.tcp[0].party == party):
                     sophomore = True
-                    print(f'Sophomore found: {this_seat_name}')
             if party in [a.party for a in this_seat_results.fp]:
                 this_greens = sum(x.percent for x in this_seat_results.fp
                                     if x.party == party)
@@ -142,22 +141,19 @@ def analyse_greens(elections):
             bucket_sophomore_coefficients[bucket] = \
                 bucket_sophomore_coefficients[next_bucket]
     
-    for bucket in bucket_swing_coefficients.keys():
-        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
-        print(f'Sample size: {bucket_counts[bucket]}')
-        print(f'Election swing coefficient: {bucket_swing_coefficients[bucket]}')
-        print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
-        print(f'Intercept: {bucket_intercepts[bucket]}')
-        print(f'Median error: {bucket_median_errors[bucket]}')
-        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
-        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
-        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
-        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
-        print('\n')
+    # for bucket in bucket_swing_coefficients.keys():
+    #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+    #     print(f'Sample size: {bucket_counts[bucket]}')
+    #     print(f'Election swing coefficient: {bucket_swing_coefficients[bucket]}')
+    #     print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
+    #     print(f'Intercept: {bucket_intercepts[bucket]}')
+    #     print(f'Median error: {bucket_median_errors[bucket]}')
+    #     print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+    #     print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+    #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+    #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+    #     print('\n')
     
-    print(bucket_min - bucket_base / 2)
-    print(bucket_max + bucket_base)
-    print(bucket_base)
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
                    bucket_base))
@@ -220,12 +216,10 @@ def analyse_existing_independents(elections):
     this_buckets = {(-10000, bucket_min): []}
     this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
     this_buckets.update({(bucket_max, 10000): []})
-    swing_buckets = copy.deepcopy(this_buckets)
     sophomore_buckets = copy.deepcopy(this_buckets)
     recontest_buckets = copy.deepcopy(this_buckets)
-    party = 'Independent'
     for this_election, this_results in elections.items():
-        print(f'\nGathering results for {party} in {this_election}')
+        # print(f'\nGathering results for {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
@@ -273,7 +267,6 @@ def analyse_existing_independents(elections):
                             or previous_seat_results.tcp[0].name != 
                             this_seat_results.tcp[0].name)):
                     sophomore = True
-                    print(f'Sophomore found: {this_seat_name}')
             this_fp = highest.percent
             this_fp = transform_vote_share(this_fp)
             this_bucket = next(a for a in this_buckets 
@@ -357,18 +350,18 @@ def analyse_existing_independents(elections):
             bucket_sophomore_coefficients[bucket] = \
                 bucket_sophomore_coefficients[next_bucket]
 
-    for bucket in bucket_counts.keys():
-        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
-        print(f'Sample size: {bucket_counts[bucket]}')
-        print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
-        print(f'Intercept: {bucket_intercepts[bucket]}')
-        print(f'Median error: {bucket_median_errors[bucket]}')
-        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
-        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
-        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
-        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
-        print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
-        print('\n')
+    # for bucket in bucket_counts.keys():
+    #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+    #     print(f'Sample size: {bucket_counts[bucket]}')
+    #     print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
+    #     print(f'Intercept: {bucket_intercepts[bucket]}')
+    #     print(f'Median error: {bucket_median_errors[bucket]}')
+    #     print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+    #     print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+    #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+    #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+    #     print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
+    #     print('\n')
     
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
@@ -417,7 +410,6 @@ def load_seat_types():
     with open('Data/seat-types.csv', 'r') as f:
         linelists = [b.strip().split(',') for b in f.readlines()]
         seat_types = {(a[0], a[1]): int(a[2]) for a in linelists}
-    print(seat_types)
     return seat_types
 
 
@@ -437,7 +429,6 @@ def analyse_emerging_independents(elections, seat_types):
     cand_prev_others = []
     party = 'Independent'
     for this_election, this_results in elections.items():
-        print(f'\nGathering results for emerging {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
@@ -445,10 +436,8 @@ def analyse_emerging_independents(elections, seat_types):
         if len(elections.previous_elections(this_election)) > 0:
             previous_election = elections.previous_elections(this_election)[-1]
             previous_results = elections[previous_election]
-            print('found previous results')
         else:
             previous_results = None
-            print("didn't find previous results")
         for this_seat_name in this_results.seat_names():
             this_seat_results = this_results.seat_by_name(this_seat_name)
             # ignore seats where candidates are unopposed
@@ -487,12 +476,6 @@ def analyse_emerging_independents(elections, seat_types):
                 cand_outer_metro.append(1 if seat_type == 1 else 0)
                 cand_prev_others.append(others_indicator)
 
-    for count in range(0, max(seat_ind_count) + 1):
-        print (f'Independent count {count}: {seat_ind_count.count(count)}')
-
-    for count in range(0, 2):
-        print (f'Federal count {count}: {seat_fed.count(count)}')
-
     inputs_array = numpy.transpose(numpy.array([seat_fed, seat_rural, seat_provincial, seat_outer_metro, seat_prev_others]))
     results_array = numpy.array(seat_ind_count)
     reg = LinearRegression().fit(inputs_array, results_array)
@@ -502,12 +485,12 @@ def analyse_emerging_independents(elections, seat_types):
     outer_metro_coefficient = reg.coef_[3]
     prev_others_coefficient = reg.coef_[4]
     intercept = reg.intercept_
-    print(f'Federal emergence coefficient: {fed_coefficient}')
-    print(f'Rural emergence coefficient: {rural_coefficient}')
-    print(f'Provincial emergence coefficient: {provincial_coefficient}')
-    print(f'Outer Metro emergence coefficient: {outer_metro_coefficient}')
-    print(f'Previous-others coefficient: {prev_others_coefficient}')
-    print(f'Emergence base rate: {intercept}')
+    # print(f'Federal emergence coefficient: {fed_coefficient}')
+    # print(f'Rural emergence coefficient: {rural_coefficient}')
+    # print(f'Provincial emergence coefficient: {provincial_coefficient}')
+    # print(f'Outer Metro emergence coefficient: {outer_metro_coefficient}')
+    # print(f'Previous-others coefficient: {prev_others_coefficient}')
+    # print(f'Emergence base rate: {intercept}')
 
     fp_vote_buckets = {}
     for index in range(0, len(cand_fp_vote)):
@@ -518,11 +501,6 @@ def analyse_emerging_independents(elections, seat_types):
         else:
             fp_vote_buckets[fp_vote_bucket] = 1
 
-    print ('')
-    for bucket in sorted(fp_vote_buckets.keys()):
-        print (f'Fp vote in range {bucket} - {bucket + ind_bucket_size}: '
-               f'{fp_vote_buckets[bucket]}')
-
     inputs_array = numpy.transpose(numpy.array([cand_fed, cand_rural, cand_provincial, cand_outer_metro, cand_prev_others]))
     results_array = numpy.array(cand_fp_vote)
     reg = LinearRegression().fit(inputs_array, results_array)
@@ -532,22 +510,22 @@ def analyse_emerging_independents(elections, seat_types):
     outer_metro_vote_coefficient = reg.coef_[3]
     prev_others_vote_coefficient = reg.coef_[4]
     vote_intercept = reg.intercept_
-    print(f'Federal vote coefficient: {fed_vote_coefficient}')
-    print(f'Rural vote coefficient: {rural_vote_coefficient}')
-    print(f'Provincial vote coefficient: {provincial_vote_coefficient}')
-    print(f'Outer Metro vote coefficient: {outer_metro_vote_coefficient}')
-    print(f'Previous-others coefficient: {prev_others_vote_coefficient}')
-    print(f'Vote intercept: {vote_intercept} - detransformed {detransform_vote_share(vote_intercept)}')
-    print(f'fp threshold: {fp_threshold}')
+    # print(f'Federal vote coefficient: {fed_vote_coefficient}')
+    # print(f'Rural vote coefficient: {rural_vote_coefficient}')
+    # print(f'Provincial vote coefficient: {provincial_vote_coefficient}')
+    # print(f'Outer Metro vote coefficient: {outer_metro_vote_coefficient}')
+    # print(f'Previous-others coefficient: {prev_others_vote_coefficient}')
+    # print(f'Vote intercept: {vote_intercept} - detransformed {detransform_vote_share(vote_intercept)}')
+    # print(f'fp threshold: {fp_threshold}')
 
     deviations = [a - transform_vote_share(fp_threshold) for a in cand_fp_vote]
     upper_rmse = math.sqrt(sum([a ** 2 for a in deviations])
                            / (len(deviations) - 1))
     upper_kurtosis = one_tail_kurtosis(deviations)
     average_extra_vote = statistics.mean([a for a in deviations])
-    print(f'\nAverage extra vote (transformed): {average_extra_vote}')
-    print(f'\nUpper rmse: {upper_rmse}')
-    print(f'\nUpper kurtosis: {upper_kurtosis}')
+    # print(f'\nAverage extra vote (transformed): {average_extra_vote}')
+    # print(f'\nUpper rmse: {upper_rmse}')
+    # print(f'\nUpper kurtosis: {upper_kurtosis}')
     
     filename = (f'./Seat Statistics/statistics_emerging_IND.csv')
     with open(filename, 'w') as f:
@@ -568,9 +546,53 @@ def analyse_emerging_independents(elections, seat_types):
         f.write(f'{vote_intercept}\n')
 
 
+def analyse_populist_minors(elections, seat_types):
+    best_cases = {}
+    for election, results in elections.items():
+        for party in results.fp_by_party.keys():
+            if party not in ['One Nation', 'United Australia', 'SA-Best']:
+                continue
+            cand_proportion = results.candidates_by_party[party] / len(results.seat_results)
+            vote_proportion = results.fp_by_party[party] / results.total_votes
+            region = election.region()
+            value = cand_proportion ** 2 * vote_proportion
+            if region not in best_cases:
+                best_cases[region] = (value, election, party, vote_proportion, cand_proportion)
+            elif value > best_cases[region][0]:
+                best_cases[region] = (value, election, party, vote_proportion, cand_proportion)
+    for region, best_case in best_cases.items():
+        print(f' Most representative party for {region}: {best_case[2]} in {best_case[1].year()} with {best_case[0]:.3f} value, {best_case[4] * 100:.3f}% candidate coverage, {best_case[3] * 100:.3f}% of total fp vote')
+    seat_propensity = {}
+    for election, results in elections.items():
+        if election.region() not in seat_propensity:
+            seat_propensity[election.region()] = {}
+        for seat_result in results.seat_results:
+            seat_name = seat_result.name
+            others_support_index = 0
+            for candidate in seat_result.fp:
+                if candidate.party not in ['Liberal', 'Nationals', 'National',
+                                     'Liberal National', 'Labor', 
+                                     'Country Liberal', 'Greens']:
+                    others_support_index += math.sqrt(min(20, candidate.percent) / 20)
+            if seat_name in seat_propensity[election.region()]:
+                seat_propensity[election.region()][seat_name][0] += 1
+                seat_propensity[election.region()][seat_name][1] += others_support_index
+            else:
+                seat_propensity[election.region()][seat_name] = [1, others_support_index]
+    for region_name, region_results in seat_propensity.items():
+        print(f'Others-propensity for seats in {region_name}:')
+        for seat_name, seat_results in region_results.items():
+            if seat_results[0] > 0:
+                print(f' {seat_name} {seat_results[1] / seat_results[0]}:')
+
+                    
+
+
+
 if __name__ == '__main__':
     elections = get_checked_elections()
     seat_types = load_seat_types()
     analyse_greens(elections)
     analyse_existing_independents(elections)
     analyse_emerging_independents(elections, seat_types)
+    analyse_populist_minors(elections, seat_types)

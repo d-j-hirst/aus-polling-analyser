@@ -27,6 +27,7 @@ class ElectionResults:
     def __init__(self, name, download):
         self.name = name
         self.seat_results = download()
+        self.calculate_totals_by_party()
 
     def __repr__(self):
         repr = f'\n*** Election: {self.name} ***\n\n'
@@ -74,6 +75,20 @@ class ElectionResults:
     # going to the given party
     def total_fp_percentage_party(self, party):
         return self.total_fp_votes_party(party) / self.total_fp_votes() * 100
+    
+    def calculate_totals_by_party(self):
+        self.fp_by_party = {}
+        self.candidates_by_party = {}
+        self.total_votes = 0
+        for seat in self.seat_results:
+            for candidate in seat.fp:
+                self.total_votes += candidate.votes
+                if candidate.party in self.fp_by_party:
+                    self.fp_by_party[candidate.party] += candidate.votes
+                    self.candidates_by_party[candidate.party] += 1
+                else:
+                    self.fp_by_party[candidate.party] = candidate.votes
+                    self.candidates_by_party[candidate.party] = 1
 
 
 class SavedResults:
