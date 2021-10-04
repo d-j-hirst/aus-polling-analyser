@@ -584,6 +584,44 @@ def analyse_populist_minors(elections, seat_types):
         for seat_name, seat_results in region_results.items():
             if seat_results[0] > 0:
                 print(f' {seat_name} {seat_results[1] / seat_results[0]}:')
+    
+    on_results = {}
+    on_election_votes = {}
+    on_election_cands = {}
+    for election, results in elections.items():
+        region = election.region()
+        year = election.year()
+        if region not in on_results:
+            on_results[region] = {}
+        if (region, year) not in on_election_votes:
+            on_election_votes[(region, year)] = 0
+            on_election_cands[(region, year)] = 0
+        for seat_result in results.seat_results:
+            for cand in [a for a in seat_result.fp if a.party == 'One Nation']:
+                on_percent = cand.percent
+                on_election_votes[(region, year)] += cand.percent
+                on_election_cands[(region, year)] += 1
+                if seat_result.name not in on_results[election.region()]:
+                    on_results[region][seat_result.name] = [(year, on_percent)]
+                else:
+                    on_results[region][seat_result.name].append((year, on_percent))
+    on_election_average = {}
+    print(on_election_votes)
+    print(on_election_cands)
+    for key, total in on_election_votes.items():
+        if on_election_cands[key] == 0:
+            continue
+        on_election_average[key] = total / on_election_cands[key]
+
+
+    for region_name, region_results in on_results.items():
+        print(f'One Nation results for seats in {region_name}:')
+        for seat_name, seat_results in region_results.items():
+            for cand in seat_results:
+                print(f' {seat_name}  - {cand[0]} - {cand[1]}% (average {on_election_average[region_name, cand[0]]})')
+    
+
+
 
                     
 
