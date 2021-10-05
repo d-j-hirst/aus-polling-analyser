@@ -658,12 +658,6 @@ def analyse_populist_minors(elections, seat_types):
                         / (len(upper_errors) - 1))      
     lower_kurtosis = one_tail_kurtosis(lower_errors)
     upper_kurtosis = one_tail_kurtosis(upper_errors)
-    print(f'Statistics for all predicted elections put together:')
-    print(f'median_error: {median_error}')
-    print(f'lower_rmse: {lower_rmse}')
-    print(f'upper_rmse: {upper_rmse}')
-    print(f'lower_kurtosis: {lower_kurtosis}')
-    print(f'upper_kurtosis: {upper_kurtosis}')
 
     filename = (f'./Seat Statistics/statistics_populist.csv')
     with open(filename, 'w') as f:
@@ -675,7 +669,7 @@ def analyse_populist_minors(elections, seat_types):
     filename = (f'./Seat Statistics/modifiers_populist.csv')
     with open(filename, 'w') as f:
         for key, value in avg_mult_seat.items():
-            f.write(f'{key[0]},{key[1]},{value:.4f}\n')
+            f.write(f'{key[1]},{key[0]},{value:.4f}\n')
 
 
 if __name__ == '__main__':

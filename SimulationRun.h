@@ -45,6 +45,13 @@ public:
 		std::array<std::vector<float>, int(TrendType::Num)> trend;
 	};
 
+	struct PopulistStatistics {
+		float lowerRmse;
+		float upperRmse;
+		float lowerKurtosis;
+		float upperKurtosis;
+	};
+
 	struct IndEmergence {
 		float fpThreshold;
 		float baseRate;
@@ -129,6 +136,7 @@ private:
 	std::vector<float> seatIndividualBoothGrowth;
 	std::vector<PastSeatResult> pastSeatResults;
 	std::vector<SeatType> seatTypes;
+	std::vector<float> seatPopulistModifiers;
 	std::vector<float> seatIncTppModifier;
 	std::map<Party::Id, float> previousFpVoteShare;
 
@@ -137,6 +145,7 @@ private:
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
 	IndEmergence indEmergence;
+	PopulistStatistics populistStatistics;
 
 	int hungParliament = 0;
 };

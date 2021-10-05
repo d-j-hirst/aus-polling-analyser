@@ -40,6 +40,8 @@ void SimulationPreparation::prepareForIterations()
 	loadGreensSeatStatistics();
 	loadIndSeatStatistics();
 	loadIndEmergence();
+	loadPopulistSeatStatistics();
+	loadPopulistSeatModifiers();
 
 	loadPastSeatResults();
 
@@ -628,6 +630,40 @@ void SimulationPreparation::loadIndEmergence()
 	run.indEmergence.outerMetroVoteCoeff = extractNum();
 	run.indEmergence.prevOthersVoteCoeff = extractNum();
 	run.indEmergence.voteIntercept = extractNum();
+}
+
+void SimulationPreparation::loadPopulistSeatStatistics()
+{
+	std::string fileName = "python/Seat Statistics/statistics_populist.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
+	run.populistStatistics.lowerRmse = extractNum();
+	run.populistStatistics.upperRmse = extractNum();
+	run.populistStatistics.lowerKurtosis = extractNum();
+	run.populistStatistics.upperKurtosis = extractNum();
+}
+
+void SimulationPreparation::loadPopulistSeatModifiers()
+{
+	run.seatPopulistModifiers.resize(project.seats().count());
+	std::string fileName = "python/Seat Statistics/modifiers_populist.csv";
+	std::string region = getRegionCode();
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values[1] == region) {
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
+					run.seatPopulistModifiers[seatIndex] = std::stof(values[2]);
+				}
+			}
+		}
+	} while (true);
 }
 
 void SimulationPreparation::loadPreviousElectionBaselineVotes()
