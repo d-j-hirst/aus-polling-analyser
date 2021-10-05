@@ -146,7 +146,7 @@ template<typename T,
 	inline T basicTransformedSwing(T startingPoint, T swing) {
 	T transformed = transformVoteShare(startingPoint);
 	T deriv = logitDeriv(startingPoint);
-	T projection = transformed - deriv * swing;
+	T projection = transformed + deriv * swing;
 	return detransformVoteShare(projection);
 }
 
@@ -161,11 +161,11 @@ template<typename T,
 	inline T predictorCorrectorTransformedSwing(T startingPoint, T swing) {
 	T transformed = transformVoteShare(startingPoint);
 	T deriv = logitDeriv(startingPoint);
-	T projection = transformed - deriv * swing;
+	T projection = transformed + deriv * swing;
 	T tempDetransformed = detransformVoteShare(projection);
 	T projectedDeriv = logitDeriv(tempDetransformed);
 	T averagedDeriv = (deriv + projectedDeriv) * T(0.5);
-	T correctedProjection = transformed - averagedDeriv * swing;
+	T correctedProjection = transformed + averagedDeriv * swing;
 	return detransformVoteShare(correctedProjection);
 }
 

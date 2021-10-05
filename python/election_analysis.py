@@ -666,6 +666,30 @@ def analyse_populist_minors(elections, seat_types):
         f.write(f'{lower_kurtosis}\n')
         f.write(f'{upper_kurtosis}\n')
 
+    # re-do this with recent results
+    avg_mult_seat = {}
+    for region_name, region_results in on_results.items():
+        for seat_name, seat_results in region_results.items():
+            max_mult = 0
+            min_mult = 100
+            mult_sum = 0
+            mult_count = 0
+            for cand in seat_results:
+                if cand[0] > 2003 and cand[0] < 2017:
+                    continue
+                mult = cand[1] / on_election_average[region_name, cand[0]]
+                max_mult = max(max_mult, mult)
+                min_mult = min(min_mult, mult)
+                mult_sum += mult
+                mult_count += 1
+                if cand[0] > 2016:  # weight recent years more
+                    mult_sum += mult
+                    mult_count += 1
+            if mult_count == 0:
+                continue
+            seat_id = (region_name, seat_name)
+            avg_mult_seat[seat_id] = mult_sum / mult_count
+
     filename = (f'./Seat Statistics/modifiers_populist.csv')
     with open(filename, 'w') as f:
         for key, value in avg_mult_seat.items():

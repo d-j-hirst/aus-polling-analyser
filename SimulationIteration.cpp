@@ -213,11 +213,16 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		bool effectiveIndependent = partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"));
 		if (!overallFpSwing.contains(partyIndex)) effectiveIndependent = true;
 		if (voteShare < run.indEmergence.fpThreshold) effectiveIndependent = false;
+		bool effectivePopulist = partyIndex >= 2 && !effectiveGreen && !effectiveIndependent &&
+			overallFpSwing.contains(partyIndex);
 		if (effectiveGreen) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
 		else if (effectiveIndependent) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
+		}
+		else if (effectivePopulist) {
+			determinePopulistFp(seatIndex, partyIndex, voteShare);
 		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
@@ -254,6 +259,21 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp += sophomoreMixed;
 	}
 	transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
+	voteShare = detransformVoteShare(transformedFp);
+}
+
+void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
+{
+	float partyFp = overallFp[partyIndex];
+	float seatModifier = run.seatPopulistModifiers[seatIndex];
+	if (seatModifier == 0.0f) seatModifier = 1.0f;
+	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
+	float modifiedFp1 = predictorCorrectorTransformedSwing(partyFp, partyFp * (seatModifier - 1.0f));
+	float modifiedFp2 = partyFp * seatModifier;
+	float modifiedFp = std::min(modifiedFp1, modifiedFp2);
+	float transformedFp = transformVoteShare(modifiedFp);
+	transformedFp += rng.flexibleDist(0.0f, run.populistStatistics.lowerRmse, run.populistStatistics.upperRmse,
+		run.populistStatistics.lowerKurtosis, run.populistStatistics.upperKurtosis);
 	voteShare = detransformVoteShare(transformedFp);
 }
 
@@ -365,14 +385,14 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// this number can be below zero ...
 	float partyOneEstimate = partyOneCurrentTpp - biasAdjustedPartyOnePrefs;
 	// so we calculate a swing ...
-	float partyOneSwing = previousPartyOneFp - partyOneEstimate;
+	float partyOneSwing = partyOneEstimate - previousPartyOneFp;
 	// and then use logistic transformation to make sure it is above zero
 	float newPartyOneFp = basicTransformedSwing(previousPartyOneFp, partyOneSwing);
 	float newPartyOneTpp = biasAdjustedPartyOnePrefs + newPartyOneFp;
 	// this number can be below zero ...
 	float partyTwoEstimate = partyTwoCurrentTpp - biasAdjustedPartyTwoPrefs;
 	// so we calculate a swing ...
-	float partyTwoSwing = previousPartyTwoFp - partyTwoEstimate;
+	float partyTwoSwing = partyTwoEstimate - previousPartyTwoFp;
 	// and then use logistic transformation to make sure it is above zero
 	float newPartyTwoFp = basicTransformedSwing(previousPartyTwoFp, partyTwoSwing);
 	float newPartyTwoTpp = biasAdjustedPartyTwoPrefs + newPartyTwoFp;
