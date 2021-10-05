@@ -547,44 +547,7 @@ def analyse_emerging_independents(elections, seat_types):
 
 
 def analyse_populist_minors(elections, seat_types):
-    best_cases = {}
-    for election, results in elections.items():
-        for party in results.fp_by_party.keys():
-            if party not in ['One Nation', 'United Australia', 'SA-Best']:
-                continue
-            cand_proportion = results.candidates_by_party[party] / len(results.seat_results)
-            vote_proportion = results.fp_by_party[party] / results.total_votes
-            region = election.region()
-            value = cand_proportion ** 2 * vote_proportion
-            if region not in best_cases:
-                best_cases[region] = (value, election, party, vote_proportion, cand_proportion)
-            elif value > best_cases[region][0]:
-                best_cases[region] = (value, election, party, vote_proportion, cand_proportion)
-    for region, best_case in best_cases.items():
-        print(f' Most representative party for {region}: {best_case[2]} in {best_case[1].year()} with {best_case[0]:.3f} value, {best_case[4] * 100:.3f}% candidate coverage, {best_case[3] * 100:.3f}% of total fp vote')
-    seat_propensity = {}
-    for election, results in elections.items():
-        if election.region() not in seat_propensity:
-            seat_propensity[election.region()] = {}
-        for seat_result in results.seat_results:
-            seat_name = seat_result.name
-            others_support_index = 0
-            for candidate in seat_result.fp:
-                if candidate.party not in ['Liberal', 'Nationals', 'National',
-                                     'Liberal National', 'Labor', 
-                                     'Country Liberal', 'Greens']:
-                    others_support_index += math.sqrt(min(20, candidate.percent) / 20)
-            if seat_name in seat_propensity[election.region()]:
-                seat_propensity[election.region()][seat_name][0] += 1
-                seat_propensity[election.region()][seat_name][1] += others_support_index
-            else:
-                seat_propensity[election.region()][seat_name] = [1, others_support_index]
-    for region_name, region_results in seat_propensity.items():
-        print(f'Others-propensity for seats in {region_name}:')
-        for seat_name, seat_results in region_results.items():
-            if seat_results[0] > 0:
-                print(f' {seat_name} {seat_results[1] / seat_results[0]}:')
-    
+
     on_results = {}
     on_election_votes = {}
     on_election_cands = {}
@@ -606,25 +569,103 @@ def analyse_populist_minors(elections, seat_types):
                 else:
                     on_results[region][seat_result.name].append((year, on_percent))
     on_election_average = {}
-    print(on_election_votes)
-    print(on_election_cands)
     for key, total in on_election_votes.items():
         if on_election_cands[key] == 0:
             continue
         on_election_average[key] = total / on_election_cands[key]
 
-
-    for region_name, region_results in on_results.items():
-        print(f'One Nation results for seats in {region_name}:')
-        for seat_name, seat_results in region_results.items():
-            for cand in seat_results:
-                print(f' {seat_name}  - {cand[0]} - {cand[1]}% (average {on_election_average[region_name, cand[0]]})')
+    test_settings = [(2019, 'fed', 'One Nation'),
+                  (2019, 'fed', 'United Australia'),
+                  (2017, 'qld', 'One Nation'),
+                  (2020, 'qld', 'One Nation'),
+                  (2015, 'qld', 'United Australia'),
+                  (2013, 'fed', 'United Australia')]
+    all_residuals = []
+    for test_setting in test_settings:
+        test_year = test_setting[0]
+        test_region = test_setting[1]
+        test_party = test_setting[2]
+        avg_mult_seat = {}
+        for region_name, region_results in on_results.items():
+            if region_name != test_region:
+                continue
+            for seat_name, seat_results in region_results.items():
+                max_mult = 0
+                min_mult = 100
+                mult_sum = 0
+                mult_count = 0
+                for cand in seat_results:
+                    if cand[0] == test_year:
+                        continue
+                    if cand[0] > 2003:
+                        continue
+                    mult = cand[1] / on_election_average[region_name, cand[0]]
+                    max_mult = max(max_mult, mult)
+                    min_mult = min(min_mult, mult)
+                    mult_sum += mult
+                    mult_count += 1
+                if mult_count == 0:
+                    continue
+                seat_id = (region_name, seat_name)
+                avg_mult_seat[seat_id] = mult_sum / mult_count
     
+        test_election = elections[ElectionCode(test_year, test_region)]
+        avg_mults = []
+        vote_shares = []
+        seat_names = []
+        for seat_result in test_election.seat_results:
+            seat_name = seat_result.name
+            seat_id = (test_region, seat_name)
+            if seat_id not in avg_mult_seat:
+                continue
+            if seat_name == 'Fairfax' and test_year == 2013:
+                continue  # Clive Palmer standing, skews results
+            if seat_name == 'Mirani' and test_year == 2020:
+                continue  # One Nation incumbent, skews results
+            on_sum = sum([a.percent for a in seat_result.fp if a.party == test_party])
+            avg_mult = avg_mult_seat[(test_region, seat_name)]
+            if on_sum > 0:
+                avg_mults.append(avg_mult)
+                vote_shares.append(on_sum)
+                seat_names.append(seat_name)
 
+        use_intercepts = False
+        
+        inputs_array = numpy.transpose(numpy.array([avg_mults]))
+        results_array = numpy.array(vote_shares)
+        reg = LinearRegression(fit_intercept=use_intercepts).fit(inputs_array, results_array)
+        coef = reg.coef_
+        intercept = reg.intercept_
+        residuals = [transform_vote_share(vote_shares[index]) -
+                    transform_vote_share(coef * avg_mults[index] + intercept)
+                    for index in range(0, len(vote_shares))]
+        all_residuals += residuals
 
-
-                    
-
+        median_error = statistics.median(residuals)
+        lower_errors = [a - median_error for a in residuals if a < median_error]
+        upper_errors = [a - median_error for a in residuals if a >= median_error]
+        lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                            / (len(lower_errors) - 1))
+        upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                            / (len(upper_errors) - 1))      
+        lower_kurtosis = one_tail_kurtosis(lower_errors)
+        upper_kurtosis = one_tail_kurtosis(upper_errors)
+    
+    median_error = statistics.median(all_residuals)
+    lower_errors = [a - median_error for a in all_residuals if a < median_error]
+    upper_errors = [a - median_error for a in all_residuals if a >= median_error]
+    lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                        / (len(lower_errors) - 1))
+    upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                        / (len(upper_errors) - 1))      
+    lower_kurtosis = one_tail_kurtosis(lower_errors)
+    upper_kurtosis = one_tail_kurtosis(upper_errors)
+    print(f'Statistics for all predicted elections put together:')
+    print(f'median_error: {median_error}')
+    print(f'lower_rmse: {lower_rmse}')
+    print(f'upper_rmse: {upper_rmse}')
+    print(f'lower_kurtosis: {lower_kurtosis}')
+    print(f'upper_kurtosis: {upper_kurtosis}')
 
 
 if __name__ == '__main__':
