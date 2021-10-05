@@ -573,6 +573,27 @@ def analyse_populist_minors(elections, seat_types):
         if on_election_cands[key] == 0:
             continue
         on_election_average[key] = total / on_election_cands[key]
+    
+    
+    avg_mult_seat = {}
+    for region_name, region_results in on_results.items():
+        for seat_name, seat_results in region_results.items():
+            max_mult = 0
+            min_mult = 100
+            mult_sum = 0
+            mult_count = 0
+            for cand in seat_results:
+                if cand[0] > 2003:
+                    continue
+                mult = cand[1] / on_election_average[region_name, cand[0]]
+                max_mult = max(max_mult, mult)
+                min_mult = min(min_mult, mult)
+                mult_sum += mult
+                mult_count += 1
+            if mult_count == 0:
+                continue
+            seat_id = (region_name, seat_name)
+            avg_mult_seat[seat_id] = mult_sum / mult_count
 
     test_settings = [(2019, 'fed', 'One Nation'),
                   (2019, 'fed', 'United Australia'),
@@ -585,29 +606,6 @@ def analyse_populist_minors(elections, seat_types):
         test_year = test_setting[0]
         test_region = test_setting[1]
         test_party = test_setting[2]
-        avg_mult_seat = {}
-        for region_name, region_results in on_results.items():
-            if region_name != test_region:
-                continue
-            for seat_name, seat_results in region_results.items():
-                max_mult = 0
-                min_mult = 100
-                mult_sum = 0
-                mult_count = 0
-                for cand in seat_results:
-                    if cand[0] == test_year:
-                        continue
-                    if cand[0] > 2003:
-                        continue
-                    mult = cand[1] / on_election_average[region_name, cand[0]]
-                    max_mult = max(max_mult, mult)
-                    min_mult = min(min_mult, mult)
-                    mult_sum += mult
-                    mult_count += 1
-                if mult_count == 0:
-                    continue
-                seat_id = (region_name, seat_name)
-                avg_mult_seat[seat_id] = mult_sum / mult_count
     
         test_election = elections[ElectionCode(test_year, test_region)]
         avg_mults = []
@@ -666,6 +664,18 @@ def analyse_populist_minors(elections, seat_types):
     print(f'upper_rmse: {upper_rmse}')
     print(f'lower_kurtosis: {lower_kurtosis}')
     print(f'upper_kurtosis: {upper_kurtosis}')
+
+    filename = (f'./Seat Statistics/statistics_populist.csv')
+    with open(filename, 'w') as f:
+        f.write(f'{lower_rmse}\n')
+        f.write(f'{upper_rmse}\n')
+        f.write(f'{lower_kurtosis}\n')
+        f.write(f'{upper_kurtosis}\n')
+
+    filename = (f'./Seat Statistics/modifiers_populist.csv')
+    with open(filename, 'w') as f:
+        for key, value in avg_mult_seat.items():
+            f.write(f'{key[0]},{key[1]},{value:.4f}\n')
 
 
 if __name__ == '__main__':
