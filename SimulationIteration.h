@@ -52,6 +52,7 @@ private:
 	void determineIterationOverallSwing();
 	void determineIterationPpvcBias();
 	void determineIterationRegionalSwings();
+	void loadPastSeatResults();
 	void determineBaseRegionalSwing(int regionIndex);
 	void modifyLiveRegionalSwing(int regionIndex);
 	void correctRegionalSwings();
@@ -127,6 +128,7 @@ private:
 	SimulationRun& run;
 
 	// iteration-specific variables
+	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::vector<std::vector<int>> regionSeatCount;
 	std::vector<int> partyWins;
 	std::vector<float> regionSwing;

@@ -44,6 +44,7 @@ void SimulationIteration::runIteration()
 	determineIterationPpvcBias();
 	determineIterationRegionalSwings();
 
+	loadPastSeatResults();
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatInitialResult(seatIndex);
 	}
@@ -134,6 +135,15 @@ void SimulationIteration::determineIterationRegionalSwings()
 	correctRegionalSwings();
 }
 
+void SimulationIteration::loadPastSeatResults()
+{
+	// Make a copy of these because we'll be changing them
+	// during the analysis (e.g. by converting minor parties
+	// to "others" in some cases) and we need to avoid
+	// conflicting with other threads
+	pastSeatResults = run.pastSeatResults;
+}
+
 void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 {
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
@@ -207,7 +217,8 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
 	seatFpVoteShare.resize(project.seats().count());
-	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
+	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
+	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		bool effectiveGreen = partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
 		if (!overallFpSwing.contains(partyIndex)) effectiveGreen = false;
 		bool effectiveIndependent = partyIndex >= 0 && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"));
@@ -223,6 +234,13 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		else if (effectivePopulist) {
 			determinePopulistFp(seatIndex, partyIndex, voteShare);
+		}
+		else if (partyIndex >= 2) {
+			// For non-major candidates that don't fit into the above categories,
+			// convert their past votes into "Others" votes
+			pastSeatResults[seatIndex].fpVotePercent[OthersIndex] += pastSeatResults[seatIndex].fpVotePercent[partyIndex];
+			pastSeatResults[seatIndex].fpVotePercent.erase(partyIndex);
+			continue;
 		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
@@ -290,7 +308,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (isRural) indEmergenceRate += run.indEmergence.ruralRateMod;
 	if (isProvincial) indEmergenceRate += run.indEmergence.provincialRateMod;
 	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
-	float prevOthers = run.pastSeatResults[seatIndex].prevOthers;
+	float prevOthers = pastSeatResults[seatIndex].prevOthers;
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
 	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
 		float rmse = run.indEmergence.voteRmse;
@@ -332,12 +350,12 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float preferenceBias = 0.0f;
 	float previousNonMajorFpShare = 0.0f;
 	float previousPartyOneTpp = 0.0f;
-	float previousPartyOneFp = run.pastSeatResults[seatIndex].fpVotePercent[0];
+	float previousPartyOneFp = pastSeatResults[seatIndex].fpVotePercent[0];
 	// ternary operator for situtations where party two didn't previously run, e.g. Richmond (vic) 2018
-	float previousPartyTwoFp = (run.pastSeatResults[seatIndex].fpVotePercent.contains(1) ?
-		run.pastSeatResults[seatIndex].fpVotePercent[1] : DefaultPartyTwoPrimary);
-	if (run.pastSeatResults[seatIndex].tcpVote.contains(0) && run.pastSeatResults[seatIndex].tcpVote.contains(1)) {
-		previousPartyOneTpp = run.pastSeatResults[seatIndex].tcpVote[0];
+	float previousPartyTwoFp = (pastSeatResults[seatIndex].fpVotePercent.contains(1) ?
+		pastSeatResults[seatIndex].fpVotePercent[1] : DefaultPartyTwoPrimary);
+	if (pastSeatResults[seatIndex].tcpVote.contains(0) && pastSeatResults[seatIndex].tcpVote.contains(1)) {
+		previousPartyOneTpp = pastSeatResults[seatIndex].tcpVote[0];
 	}
 	else if (seat.isClassic2pp()) {
 		if (seat.incumbent == 0) {
@@ -352,7 +370,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	}
 
 	float pastElectionPartyOnePrefEstimate = 0.0f;
-	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
+	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		if (partyIndex >= 2) {
 			pastElectionPartyOnePrefEstimate += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
 			previousNonMajorFpShare += voteShare;
@@ -466,7 +484,7 @@ void SimulationIteration::calculateNewFpVoteTotals()
 	//int totalVoteCount = 0;
 	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 	//	int seatVoteCount = 0;
-	//	for (auto [partyIndex, voteCount] : run.pastSeatResults[seatIndex].fpVoteCount) {
+	//	for (auto [partyIndex, voteCount] : pastSeatResults[seatIndex].fpVoteCount) {
 	//		seatVoteCount += voteCount;
 	//	}
 	//	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
