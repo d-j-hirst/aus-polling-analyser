@@ -63,13 +63,13 @@ class ElectionResults:
     
     # return total count of fp votes in this election
     def total_fp_votes(self):
-        return sum(sum(x.votes for x in seat.fp)
-                   for seat in self.seat_results)
+        return self.total_votes
     
     # return total count of fp votes in this election
     def total_fp_votes_party(self, party):
-        return sum(sum(x.votes for x in seat.fp if x.party == party)
-                   for seat in self.seat_results)
+        if party not in self.fp_by_party:
+            return 0
+        return self.fp_by_party[party]
     
     # return total percentage of fp votes in this election
     # going to the given party
