@@ -667,7 +667,11 @@ def analyse_populist_minors(elections, seat_types):
         f.write(f'{upper_kurtosis}\n')
 
     # re-do this with recent results
+    # and include seat characteristics for regressions
     avg_mult_seat = {}
+    rural_seat = {}
+    provincial_seat = {}
+    outer_metro_seat = {}
     for region_name, region_results in on_results.items():
         for seat_name, seat_results in region_results.items():
             max_mult = 0
@@ -687,13 +691,43 @@ def analyse_populist_minors(elections, seat_types):
                     mult_count += 1
             if mult_count == 0:
                 continue
-            seat_id = (region_name, seat_name)
+            seat_id = (seat_name, region_name)
+            seat_type = seat_types.get((seat_name, region_name), -1)
             avg_mult_seat[seat_id] = mult_sum / mult_count
+            rural_seat[seat_id] = seat_type == 3
+            provincial_seat[seat_id] = seat_type == 2
+            outer_metro_seat[seat_id] = seat_type == 1  
+    
+    avg_mult_list = [avg_mult_seat[key] for key in sorted(avg_mult_seat.keys())]
+    rural_list = [rural_seat[key] for key in sorted(avg_mult_seat.keys())]
+    provincial_list = [provincial_seat[key] for key in sorted(avg_mult_seat.keys())]
+    outer_metro_list = [outer_metro_seat[key] for key in sorted(avg_mult_seat.keys())]
+    inputs_array = numpy.transpose(numpy.array([rural_list, provincial_list, outer_metro_list]))
+    results_array = numpy.array(avg_mult_list)
+    reg = LinearRegression().fit(inputs_array, results_array)
+    rural_coefficient = reg.coef_[0]
+    provincial_coefficient = reg.coef_[1]
+    outer_metro_coefficient = reg.coef_[2]
+    vote_intercept = reg.intercept_
+    print(f"ON coefficient for rural seats: {rural_coefficient}")
+    print(f"ON coefficient for provincial seats: {provincial_coefficient}")
+    print(f"ON coefficient for outer metro seats: {outer_metro_coefficient}")
+    print(f"ON intercept: {vote_intercept}")
+
+    for seat_id, type in seat_types.items():
+        if seat_id not in avg_mult_seat:
+            avg_mult_seat[seat_id] = vote_intercept
+            if type == 3:
+                avg_mult_seat[seat_id] += rural_coefficient
+            if type == 2:
+                avg_mult_seat[seat_id] += provincial_coefficient
+            if type == 1:
+                avg_mult_seat[seat_id] += outer_metro_coefficient
 
     filename = (f'./Seat Statistics/modifiers_populist.csv')
     with open(filename, 'w') as f:
         for key, value in avg_mult_seat.items():
-            f.write(f'{key[1]},{key[0]},{value:.4f}\n')
+            f.write(f'{key[0]},{key[1]},{value:.4f}\n')
 
 
 if __name__ == '__main__':
