@@ -422,14 +422,14 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// so we calculate a swing ...
 	float partyOneSwing = partyOneEstimate - previousPartyOneFp;
 	// and then use logistic transformation to make sure it is above zero
-	float newPartyOneFp = basicTransformedSwing(previousPartyOneFp, partyOneSwing);
+	float newPartyOneFp = (partyOneSwing < 0 ? basicTransformedSwing(previousPartyOneFp, partyOneSwing) : partyOneEstimate);
 	float newPartyOneTpp = biasAdjustedPartyOnePrefs + newPartyOneFp;
 	// this number can be below zero ...
 	float partyTwoEstimate = partyTwoCurrentTpp - biasAdjustedPartyTwoPrefs;
 	// so we calculate a swing ...
 	float partyTwoSwing = partyTwoEstimate - previousPartyTwoFp;
 	// and then use logistic transformation to make sure it is above zero
-	float newPartyTwoFp = basicTransformedSwing(previousPartyTwoFp, partyTwoSwing);
+	float newPartyTwoFp = (partyTwoSwing < 0 ? basicTransformedSwing(previousPartyTwoFp, partyTwoSwing) : partyTwoEstimate);
 	float newPartyTwoTpp = biasAdjustedPartyTwoPrefs + newPartyTwoFp;
 	float totalTpp = newPartyOneTpp + newPartyTwoTpp;
 	// Derivation of following formula (assuming ALP as first party):
@@ -448,10 +448,12 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Melbourne") {
+	//if (seat.name == "Warringah") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//	PA_LOG_VAR(currentTotalPrefs);
 	//	PA_LOG_VAR(previousNonMajorFpShare);
 	//	PA_LOG_VAR(previousPartyOneTpp);
 	//	PA_LOG_VAR(pastElectionPartyOnePrefEstimate);
