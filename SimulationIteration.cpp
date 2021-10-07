@@ -245,6 +245,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
 	determineSeatEmergingInds(seatIndex);
+	determineSeatOthers(seatIndex);
 	allocateMajorPartyFp(seatIndex);
 }
 
@@ -323,6 +324,17 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		float voteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = voteShare;
 	}
+}
+
+void SimulationIteration::determineSeatOthers(int seatIndex)
+{
+	constexpr float MinPreviousOthFp = 2.0f;
+	float voteShare = MinPreviousOthFp;
+	if (pastSeatResults[seatIndex].fpVotePercent.contains(OthersIndex)) {
+		voteShare = std::max(voteShare, pastSeatResults[seatIndex].fpVotePercent[OthersIndex]);
+	}
+	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
+	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)

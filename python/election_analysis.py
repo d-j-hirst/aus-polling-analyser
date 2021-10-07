@@ -87,52 +87,51 @@ def analyse_greens(elections):
     bucket_upper_kurtoses = {}
     
     for bucket, results in this_buckets.items():
-        if len(results) > 0:
-            # Run regression between the seat swing and election swing
-            # to find the relationship between the two for initial primary
-            # votes in this bucket
-            swings = swing_buckets[bucket]
-            sophomores = sophomore_buckets[bucket]
-            inputs_array = numpy.transpose(numpy.array([swings, sophomores]))
-            results_array = numpy.array(results)
-            reg = LinearRegression().fit(inputs_array, results_array)
-            swing_coefficient = reg.coef_[0]
-            sophomore_coefficient = reg.coef_[1]
-            overall_intercept = reg.intercept_
+        # Run regression between the seat swing and election swing
+        # to find the relationship between the two for initial primary
+        # votes in this bucket
+        swings = swing_buckets[bucket]
+        sophomores = sophomore_buckets[bucket]
+        inputs_array = numpy.transpose(numpy.array([swings, sophomores]))
+        results_array = numpy.array(results)
+        reg = LinearRegression().fit(inputs_array, results_array)
+        swing_coefficient = reg.coef_[0]
+        sophomore_coefficient = reg.coef_[1]
+        overall_intercept = reg.intercept_
 
-            # Get the residuals (~= errors if the above relationship is used
-            # as a prediction), find the median, and split the errors into
-            # a group above and below the median, measured by their distance
-            # from the median
-            residuals = [results[index] -
-                         (swing_coefficient * swings[index] +
-                          sophomore_coefficient * sophomores[index] 
-                          + overall_intercept)
-                         for index in range(0, len(results))
-            ]
-            median_error = statistics.median(residuals)
-            lower_errors = [a - median_error for a in residuals if a < median_error]
-            upper_errors = [a - median_error for a in residuals if a >= median_error]
+        # Get the residuals (~= errors if the above relationship is used
+        # as a prediction), find the median, and split the errors into
+        # a group above and below the median, measured by their distance
+        # from the median
+        residuals = [results[index] -
+                        (swing_coefficient * swings[index] +
+                        sophomore_coefficient * sophomores[index] 
+                        + overall_intercept)
+                        for index in range(0, len(results))
+        ]
+        median_error = statistics.median(residuals)
+        lower_errors = [a - median_error for a in residuals if a < median_error]
+        upper_errors = [a - median_error for a in residuals if a >= median_error]
 
-            # Find effective RMSE and kurtosis for the two tails of the
-            # distribution (in each case, as if the other side of the
-            # distribution is symmetrical)
-            lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
-                                / (len(lower_errors) - 1))
-            upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                                / (len(upper_errors) - 1))      
-            lower_kurtosis = one_tail_kurtosis(lower_errors)
-            upper_kurtosis = one_tail_kurtosis(upper_errors)
+        # Find effective RMSE and kurtosis for the two tails of the
+        # distribution (in each case, as if the other side of the
+        # distribution is symmetrical)
+        lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                            / (len(lower_errors) - 1))
+        upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                            / (len(upper_errors) - 1))      
+        lower_kurtosis = one_tail_kurtosis(lower_errors)
+        upper_kurtosis = one_tail_kurtosis(upper_errors)
 
-            bucket_counts[bucket] = len(results)
-            bucket_swing_coefficients[bucket] = swing_coefficient
-            bucket_sophomore_coefficients[bucket] = sophomore_coefficient
-            bucket_intercepts[bucket] = overall_intercept
-            bucket_median_errors[bucket] = median_error
-            bucket_lower_rmses[bucket] = lower_rmse
-            bucket_upper_rmses[bucket] = upper_rmse
-            bucket_lower_kurtoses[bucket] = lower_kurtosis
-            bucket_upper_kurtoses[bucket] = upper_kurtosis
+        bucket_counts[bucket] = len(results)
+        bucket_swing_coefficients[bucket] = swing_coefficient
+        bucket_sophomore_coefficients[bucket] = sophomore_coefficient
+        bucket_intercepts[bucket] = overall_intercept
+        bucket_median_errors[bucket] = median_error
+        bucket_lower_rmses[bucket] = lower_rmse
+        bucket_upper_rmses[bucket] = upper_rmse
+        bucket_lower_kurtoses[bucket] = lower_kurtosis
+        bucket_upper_kurtoses[bucket] = upper_kurtosis
     
     for bucket_index in range(len(ordered_buckets) - 2, -1, -1):
         bucket = ordered_buckets[bucket_index]
@@ -820,65 +819,67 @@ def analyse_others(elections):
     bucket_upper_rmses = {}
     bucket_lower_kurtoses = {}
     bucket_upper_kurtoses = {}
+    bucket_recontest_rates = {}
     
     for bucket, results in this_buckets.items():
-        if len(results) > 0:
-            # Run regression between the seat swing and election swing
-            # to find the relationship between the two for initial primary
-            # votes in this bucket
-            swings = swing_buckets[bucket]
-            inputs_array = numpy.transpose(numpy.array([swings]))
-            results_array = numpy.array(results)
-            # print(swings)
-            # print(results)
-            # return
-            reg = LinearRegression().fit(inputs_array, results_array)
-            swing_coefficient = reg.coef_[0]
-            overall_intercept = reg.intercept_
+        # Run regression between the seat swing and election swing
+        # to find the relationship between the two for initial primary
+        # votes in this bucket
+        swings = swing_buckets[bucket]
+        inputs_array = numpy.transpose(numpy.array([swings]))
+        results_array = numpy.array(results)
+        # print(swings)
+        # print(results)
+        # return
+        reg = LinearRegression().fit(inputs_array, results_array)
+        swing_coefficient = reg.coef_[0]
+        overall_intercept = reg.intercept_
 
-            # Get the residuals (~= errors if the above relationship is used
-            # as a prediction), find the median, and split the errors into
-            # a group above and below the median, measured by their distance
-            # from the median
-            residuals = [results[index] -
-                         (swing_coefficient * swings[index]
-                          + overall_intercept)
-                         for index in range(0, len(results))
-            ]
-            median_error = statistics.median(residuals)
-            lower_errors = [a - median_error for a in residuals if a < median_error]
-            upper_errors = [a - median_error for a in residuals if a >= median_error]
+        # Get the residuals (~= errors if the above relationship is used
+        # as a prediction), find the median, and split the errors into
+        # a group above and below the median, measured by their distance
+        # from the median
+        residuals = [results[index] -
+                        (swing_coefficient * swings[index]
+                        + overall_intercept)
+                        for index in range(0, len(results))
+        ]
+        median_error = statistics.median(residuals)
+        lower_errors = [a - median_error for a in residuals if a < median_error]
+        upper_errors = [a - median_error for a in residuals if a >= median_error]
 
-            # Find effective RMSE and kurtosis for the two tails of the
-            # distribution (in each case, as if the other side of the
-            # distribution is symmetrical)
-            lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
-                                / (len(lower_errors) - 1))
-            upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                                / (len(upper_errors) - 1))      
-            lower_kurtosis = one_tail_kurtosis(lower_errors)
-            upper_kurtosis = one_tail_kurtosis(upper_errors)
+        # Find effective RMSE and kurtosis for the two tails of the
+        # distribution (in each case, as if the other side of the
+        # distribution is symmetrical)
+        lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                            / (len(lower_errors) - 1))
+        upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                            / (len(upper_errors) - 1))      
+        lower_kurtosis = one_tail_kurtosis(lower_errors)
+        upper_kurtosis = one_tail_kurtosis(upper_errors)
 
-            bucket_counts[bucket] = len(results)
-            bucket_swing_coefficients[bucket] = swing_coefficient
-            bucket_intercepts[bucket] = overall_intercept
-            bucket_median_errors[bucket] = median_error
-            bucket_lower_rmses[bucket] = lower_rmse
-            bucket_upper_rmses[bucket] = upper_rmse
-            bucket_lower_kurtoses[bucket] = lower_kurtosis
-            bucket_upper_kurtoses[bucket] = upper_kurtosis
+        bucket_counts[bucket] = len(results)
+        bucket_swing_coefficients[bucket] = swing_coefficient
+        bucket_intercepts[bucket] = overall_intercept
+        bucket_median_errors[bucket] = median_error
+        bucket_lower_rmses[bucket] = lower_rmse
+        bucket_upper_rmses[bucket] = upper_rmse
+        bucket_lower_kurtoses[bucket] = lower_kurtosis
+        bucket_upper_kurtoses[bucket] = upper_kurtosis
+        bucket_recontest_rates[bucket] = (recontest_buckets[bucket].count(1)
+                                        / len(recontest_buckets[bucket]))
     
-    for bucket in bucket_swing_coefficients.keys():
-        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
-        print(f'Sample size: {bucket_counts[bucket]}')
-        print(f'Election swing coefficient: {bucket_swing_coefficients[bucket]}')
-        print(f'Intercept: {bucket_intercepts[bucket]}')
-        print(f'Median error: {bucket_median_errors[bucket]}')
-        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
-        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
-        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
-        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
-        print('\n')
+    # for bucket in bucket_swing_coefficients.keys():
+    #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+    #     print(f'Sample size: {bucket_counts[bucket]}')
+    #     print(f'Election swing coefficient: {bucket_swing_coefficients[bucket]}')
+    #     print(f'Intercept: {bucket_intercepts[bucket]}')
+    #     print(f'Median error: {bucket_median_errors[bucket]}')
+    #     print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+    #     print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+    #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+    #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+    #     print('\n')
     
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
@@ -903,8 +904,9 @@ def analyse_others(elections):
     upper_kurtoses = [a for a in bucket_upper_kurtoses.values()]
     spline = UnivariateSpline(x=x, y=upper_kurtoses, s=10)
     smoothed_upper_kurtoses = spline(x)
-    # Assume Others always recontest
-    recontest_rates = [1 for a in bucket_counts]
+    recontest_rates = [a for a in bucket_recontest_rates.values()]
+    spline = UnivariateSpline(x=x, y=recontest_rates, s=100)
+    smoothed_recontest_rates = spline(x)
 
     party_code = 'OTH'
 
@@ -918,7 +920,7 @@ def analyse_others(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_rmses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
-        f.write(','.join([f'{a:.4f}' for a in recontest_rates]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_rates]) + '\n')
 
 if __name__ == '__main__':
     elections = get_checked_elections()

@@ -609,6 +609,26 @@ void SimulationPreparation::loadIndSeatStatistics()
 	}
 }
 
+void SimulationPreparation::loadOthSeatStatistics()
+{
+	std::string fileName = "python/Seat Statistics/statistics_OTH.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	std::string line;
+	std::getline(file, line);
+	auto scaleValues = splitString(line, ",");
+	run.othSeatStatistics.scaleLow = std::stof(scaleValues[0]);
+	run.othSeatStatistics.scaleStep = std::stof(scaleValues[1]) - run.othSeatStatistics.scaleLow;
+	run.othSeatStatistics.scaleHigh = std::stof(scaleValues.back());
+	for (int trendType = 0; trendType < int(SimulationRun::SeatStatistics::TrendType::Num); ++trendType) {
+		std::getline(file, line);
+		auto strings = splitString(line, ",");
+		for (auto const& str : strings) {
+			run.othSeatStatistics.trend[trendType].push_back(std::stof(str));
+		}
+	}
+}
+
 void SimulationPreparation::loadIndEmergence()
 {
 	std::string fileName = "python/Seat Statistics/statistics_emerging_IND.csv";

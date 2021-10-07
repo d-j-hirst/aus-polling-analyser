@@ -144,6 +144,7 @@ private:
 
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
+	SeatStatistics othSeatStatistics;
 	IndEmergence indEmergence;
 	PopulistStatistics populistStatistics;
 

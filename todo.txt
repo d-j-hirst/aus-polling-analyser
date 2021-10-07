@@ -3,14 +3,17 @@ Polling Analyser to-do:
  -complete Greens analysis and include in simulation model as proof-of-concept
   -handle generic-others vote
   -recontest rates for independents
+  -possibility of polled parties standing for seats they didn't stand for last time (and vice versa)
+  -emerging minor parties
   -output preference flow from model samples
   -region/seat fp total matching
-  -calculation of eventual winner from 
+  -calculation of eventual winner from fp results
    -re-adjust to add to 100%
    -calculate a result using preference distributions w/ some assumptions for unknowns
     -we already have something like this
 	-exit out early if a classic 2pp is guaranteed to avoid unnecessary calculations
-   -Output per-seat primary vote as part of snapshots
+   -Output per-seat primary vote as part of snapshots (and include in display?)
+   -Tidy up code from this part of the project
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -(Make any further adjustments to existing analysis processes)
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
@@ -19,7 +22,12 @@ Polling Analyser to-do:
 -Develop documentation detailing the forecasting methodology
 -Publish on a public-facing webpage
 
--Advanced simulations!
- -Start by organising past election data at booth-level
+-Post-release, as soon as possible before election is called:
+ -Integrate confirmed candidacies (for 3rd parties)
+ -Integrate betting odds
+
+-Before election day, if possible:
+ -Advanced simulations!
+  -Start by organising past election data at booth-level
   -Need to load conversions between equivalent seats
   -Then organise the existing election
