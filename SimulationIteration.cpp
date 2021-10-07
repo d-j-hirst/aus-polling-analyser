@@ -252,17 +252,22 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float transformedFp = transformVoteShare(voteShare);
-	auto const& stats = run.greensSeatStatistics;
-	float seatStatisticsExact = (std::clamp(transformedFp, stats.scaleLow, stats.scaleHigh) - stats.scaleLow) / stats.scaleStep;
+	float seatStatisticsExact = (std::clamp(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
+		- seatStatistics.scaleLow) / seatStatistics.scaleStep;
 	int seatStatisticsLower = int(std::floor(seatStatisticsExact));
 	float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
 	using StatType = SimulationRun::SeatStatistics::TrendType;
 	// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
 	auto getMixedStat = [&](StatType statType) {
-		return mix(stats.trend[int(statType)][seatStatisticsLower],
-			(seatStatisticsMix ? stats.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
+		return mix(seatStatistics.trend[int(statType)][seatStatisticsLower],
+			(seatStatisticsMix ? seatStatistics.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
 			seatStatisticsMix);
 	};
+	float recontestRateMixed = getMixedStat(StatType::RecontestRate);
+	if (rng.uniform() > recontestRateMixed) {
+		voteShare = 0.0f;
+		return;
+	}
 	float swingMultiplierMixed = getMixedStat(StatType::SwingCoefficient);
 	float sophomoreMixed = getMixedStat(StatType::SophomoreCoefficient);
 	float offsetMixed = getMixedStat(StatType::Offset);

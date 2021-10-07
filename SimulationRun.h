@@ -36,6 +36,7 @@ public:
 			UpperRmse,
 			LowerKurtosis,
 			UpperKurtosis,
+			RecontestRate,
 			Num
 		};
 

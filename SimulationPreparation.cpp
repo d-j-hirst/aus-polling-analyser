@@ -42,6 +42,7 @@ void SimulationPreparation::prepareForIterations()
 	loadIndEmergence();
 	loadPopulistSeatStatistics();
 	loadPopulistSeatModifiers();
+	loadOthSeatStatistics();
 
 	loadPastSeatResults();
 
@@ -163,8 +164,8 @@ void SimulationPreparation::determinePpvcBias()
 	run.ppvcBiasObserved = run.ppvcBiasNumerator / run.ppvcBiasDenominator;
 	run.ppvcBiasConfidence = std::clamp(run.ppvcBiasDenominator / float(run.totalOldPpvcVotes) * 5.0f, 0.0f, 1.0f);
 
-	logger << run.ppvcBiasNumerator << " " << run.ppvcBiasDenominator << " " << run.ppvcBiasObserved << " " << run.totalOldPpvcVotes <<
-		" " << run.ppvcBiasConfidence << " - ppvc bias measures\n";
+	//logger << run.ppvcBiasNumerator << " " << run.ppvcBiasDenominator << " " << run.ppvcBiasObserved << " " << run.totalOldPpvcVotes <<
+	//	" " << run.ppvcBiasConfidence << " - ppvc bias measures\n";
 }
 
 void SimulationPreparation::loadSeatOutcomeRelations()

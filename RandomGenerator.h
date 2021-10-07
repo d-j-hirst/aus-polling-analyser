@@ -15,7 +15,7 @@ public:
 		randomise();
 	}
 
-	template<typename T,
+	template<typename T = float,
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
 	static T uniform(T low = T(0.0), T high = T(1.0)) {
 		return std::uniform_real_distribution<T>(low, high)(gen);
@@ -65,6 +65,7 @@ public:
 		int lookupIndex = int(std::floor(quantile * T(LookupSize - 1)));
 		lookupIndex = std::min(lookupIndex, LookupSize - 2);
 		T mixFactor = quantile - T(lookupIndex) / T(LookupSize - 1);
+		df = std::clamp(df, 0, MaxDf);
 		prepareTdistLookup(df);
 		T lowerVal = tdistLookup[df][lookupIndex];
 		T upperVal = tdistLookup[df][lookupIndex + 1];
