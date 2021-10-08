@@ -914,7 +914,7 @@ def analyse_emerging_parties(elections):
     election_count = 0
     party_count = 0
     vote_shares = []
-    threshold = 3
+    fp_threshold = 3
     for this_election, this_results in elections.items():
         if len(elections.previous_elections(this_election)) > 0:
             previous_election = elections.previous_elections(this_election)[-1]
@@ -925,9 +925,9 @@ def analyse_emerging_parties(elections):
                 if party == "Independent" or (party in larger_parties and party != 'One Nation'):
                     continue
                 vote = this_results.total_fp_percentage_party(party)
-                if vote > threshold:
+                if vote > fp_threshold:
                     if party in previous_results.fp_by_party:
-                        if previous_results.total_fp_percentage_party(party) < threshold:
+                        if previous_results.total_fp_percentage_party(party) < fp_threshold:
                             emerged_vote += vote
                             print(f'{this_election} {party} {vote}')
                     else:
@@ -935,21 +935,31 @@ def analyse_emerging_parties(elections):
                         print(f'{this_election} {party} {vote}')
             if emerged_vote > 0:
                 party_count += 1
-                vote_shares.append(emerged_vote)
+                vote_shares.append(transform_vote_share(emerged_vote))
     emergence_rate = party_count / election_count
     print(f'Election count: {election_count}')
     print(f'Emerging party count: {party_count}')
     
-    residuals = [a - threshold for a in vote_shares]
+    residuals = [a - transform_vote_share(fp_threshold) for a in vote_shares]
 
-    # one-tailed RMSE equivalent and 
+    # one-tailed RMSE and kurtosis equivalent
     rmse = math.sqrt(sum([a ** 2 for a in residuals])
                         / (len(residuals) - 1))      
     kurtosis = one_tail_kurtosis(residuals)
 
+    print(f'Transformed threshold: {transform_vote_share(fp_threshold)}')
+    print(f'2.5% untransformed: {detransform_vote_share(transform_vote_share(fp_threshold) + 2 * rmse)}')
+    print(f'0.15% untransformed: {detransform_vote_share(transform_vote_share(fp_threshold) + 3 * rmse)}')
     print(f'Emergence rate: {emergence_rate}')
     print(f'upper_rmse: {rmse}')
     print(f'upper_kurtosis: {kurtosis}')
+
+    filename = (f'./Seat Statistics/statistics_emerging_party.csv')
+    with open(filename, 'w') as f:
+        f.write(f'{fp_threshold}\n')
+        f.write(f'{emergence_rate}\n')
+        f.write(f'{rmse}\n')
+        f.write(f'{kurtosis}\n')
 
 if __name__ == '__main__':
     elections = get_checked_elections()

@@ -2,6 +2,7 @@
 
 const std::string OthersCode = "OTH";
 const std::string UnnamedOthersCode = "xOTH";
+const std::string EmergingOthersCode = "eOTH";
 const std::string TppCode = "@TPP";
 
 const int OthersIndex = -1;

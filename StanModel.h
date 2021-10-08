@@ -99,7 +99,7 @@ public:
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
-	enum InputParameters {
+	enum class InputParameters {
 		PollBias,
 		FundamentalsBias,
 		MixedBias,
@@ -111,12 +111,21 @@ private:
 		Max
 	};
 
+	enum class EmergingPartyParameters {
+		Threshold,
+		EmergenceRate,
+		Rmse,
+		Kurtosis,
+		Max
+	};
+
 	// Type for temporarily storing party group data
 	typedef std::vector<std::string> PartyGroup;
 	typedef std::map<std::string, PartyGroup> PartyGroups;
 	typedef std::map<std::string, std::string> ReversePartyGroups;
 
-	typedef std::array<double, InputParameters::Max> ParameterSet;
+	typedef std::array<double, int(InputParameters::Max)> ParameterSet;
+	typedef std::array<double, int(EmergingPartyParameters::Max)> EmergingPartyParameterSet;
 	typedef std::vector<ParameterSet> ParameterSeries;
 	typedef std::map<std::string, ParameterSeries> ParameterSeriesByPartyGroup;
 
@@ -128,8 +137,11 @@ private:
 	// Loads the fundamentals predictions from python/Fundamentals
 	void loadFundamentalsPredictions();
 
-	// Loads coefficients for model parameters from 
+	// Loads coefficients for model parameters from files
 	void loadParameters(FeedbackFunc feedback);
+
+	// Loads parameters specifically relating to 
+	void loadEmergingOthersParameters(FeedbackFunc feedback);
 
 	// Generates maps between 
 	bool generatePreferenceMaps(FeedbackFunc feedback);
@@ -190,6 +202,7 @@ private:
 	ReversePartyGroups reversePartyGroups;
 
 	Fundamentals fundamentals;
+	EmergingPartyParameterSet emergingParameters;
 
 	ParameterSeriesByPartyGroup parameters;
 

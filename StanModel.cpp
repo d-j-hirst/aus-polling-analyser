@@ -171,6 +171,7 @@ bool StanModel::prepareForRun(FeedbackFunc feedback)
 	loadPartyGroups();
 	loadFundamentalsPredictions();
 	loadParameters(feedback);
+	loadEmergingOthersParameters(feedback);
 	if (!generatePreferenceMaps(feedback)) return false;
 	if (!loadTrendData(feedback)) return false;
 	generateUnnamedOthersSeries();
@@ -241,7 +242,7 @@ void StanModel::loadParameters(FeedbackFunc feedback)
 		for (int day = 0; day < numDays; ++day) {
 			series[day][0] = std::stod(coeffLine[day]);
 		}
-		for (int coeffType = 1; coeffType < InputParameters::Max; ++coeffType) {
+		for (int coeffType = 1; coeffType < int(InputParameters::Max); ++coeffType) {
 			std::getline(file, line);
 			coeffLine = splitString(line, ",");
 			for (int day = 0; day < numDays; ++day) {
@@ -250,6 +251,22 @@ void StanModel::loadParameters(FeedbackFunc feedback)
 		}
 		parameters[partyGroup] = series;
 	}
+}
+
+void StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
+{
+	logger << "loading emerging others parameters\n";
+	const std::string filename = "python/Seat Statistics/statistics_emerging_party.csv";
+	auto file = std::ifstream(filename);
+	if (!file) throw Exception("Emerging others parameters not present! Expected a file at " + filename);
+	for (int parameter = 0; parameter < int(EmergingPartyParameters::Max); ++parameter) {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		double value = std::stod(line);
+		emergingParameters[parameter] = value;
+	}
+	logger << emergingParameters << "\n";
 }
 
 bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
@@ -408,27 +425,27 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		const std::string partyGroup = reversePartyGroups.at(key);
 		
 		// remove systemic bias in poll results
-		const double pollBiasToday = parameters.at(partyGroup)[days][InputParameters::PollBias];
+		const double pollBiasToday = parameters.at(partyGroup)[days][int(InputParameters::PollBias)];
 		const double debiasedPolls = transformedPolls - pollBiasToday;
 
 		// remove systemic bias in previous-election average
 		const double fundamentalsPrediction = transformVoteShare(fundamentals.at(key));
-		const double fundamentalsBiasToday = parameters.at(partyGroup)[days][InputParameters::FundamentalsBias];
+		const double fundamentalsBiasToday = parameters.at(partyGroup)[days][int(InputParameters::FundamentalsBias)];
 		const double debiasedFundamentalsAverage = fundamentalsPrediction - fundamentalsBiasToday;
 
 		// mix poll and previous values
-		const double mixFactor = parameters.at(partyGroup)[days][InputParameters::MixFactor];
+		const double mixFactor = parameters.at(partyGroup)[days][int(InputParameters::MixFactor)];
 		const double mixedVoteShare = mix(debiasedFundamentalsAverage, debiasedPolls, mixFactor);
 
 		// adjust for residual bias in the mixed vote share
-		const double mixedBiasToday = parameters.at(partyGroup)[days][InputParameters::MixedBias];
+		const double mixedBiasToday = parameters.at(partyGroup)[days][int(InputParameters::MixedBias)];
 		const double mixedDebiasedVote = mixedVoteShare - mixedBiasToday;
 
 		// Get parameters for spread
-		const double lowerError = parameters.at(partyGroup)[days][InputParameters::LowerError];
-		const double upperError = parameters.at(partyGroup)[days][InputParameters::UpperError];
-		const double lowerKurtosis = parameters.at(partyGroup)[days][InputParameters::LowerKurtosis];
-		const double upperKurtosis = parameters.at(partyGroup)[days][InputParameters::UpperKurtosis];
+		const double lowerError = parameters.at(partyGroup)[days][int(InputParameters::LowerError)];
+		const double upperError = parameters.at(partyGroup)[days][int(InputParameters::UpperError)];
+		const double lowerKurtosis = parameters.at(partyGroup)[days][int(InputParameters::LowerKurtosis)];
+		const double upperKurtosis = parameters.at(partyGroup)[days][int(InputParameters::UpperKurtosis)];
 		const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis);
 		const double voteWithVariation = mixedDebiasedVote + additionalVariation;
 
