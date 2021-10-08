@@ -453,11 +453,6 @@ def analyse_emerging_independents(elections, seat_types):
             continue
         next_election = elections.next_elections(this_election)[0]
         next_results = elections[next_election]
-        if len(elections.previous_elections(this_election)) > 0:
-            previous_election = elections.previous_elections(this_election)[-1]
-            previous_results = elections[previous_election]
-        else:
-            previous_results = None
         for this_seat_name in this_results.seat_names():
             this_seat_results = this_results.seat_by_name(this_seat_name)
             # ignore seats where candidates are unopposed
@@ -542,7 +537,6 @@ def analyse_emerging_independents(elections, seat_types):
     upper_rmse = math.sqrt(sum([a ** 2 for a in deviations])
                            / (len(deviations) - 1))
     upper_kurtosis = one_tail_kurtosis(deviations)
-    average_extra_vote = statistics.mean([a for a in deviations])
     # print(f'\nAverage extra vote (transformed): {average_extra_vote}')
     # print(f'\nUpper rmse: {upper_rmse}')
     # print(f'\nUpper kurtosis: {upper_kurtosis}')
@@ -755,18 +749,12 @@ def analyse_others(elections):
     this_buckets.update({(bucket_max, 10000): []})
     swing_buckets = copy.deepcopy(this_buckets)
     recontest_buckets = copy.deepcopy(this_buckets)
-    party = 'Others'
     for this_election, this_results in elections.items():
         # print(f'Gathering results for {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
             continue
         next_election = elections.next_elections(this_election)[0]
         next_results = elections[next_election]
-        if len(elections.previous_elections(this_election)) > 0:
-            previous_election = elections.previous_elections(this_election)[-1]
-            previous_results = elections[previous_election]
-        else:
-            previous_results = None
         next_others_percent = total_others_vote_share(next_results)
         this_others_percent = total_others_vote_share(this_results)
         print(f'Next election {next_election.short()} others vote share: {next_others_percent}')
@@ -810,7 +798,6 @@ def analyse_others(elections):
             this_buckets[this_bucket].append(others_change)
             swing_buckets[this_bucket].append(election_swing)
 
-    ordered_buckets = sorted(this_buckets.keys(), key=lambda x: x[0])
     bucket_counts = {}
     bucket_swing_coefficients = {}
     bucket_intercepts = {}
@@ -922,6 +909,48 @@ def analyse_others(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_rates]) + '\n')
 
+
+def analyse_emerging_parties(elections):
+    election_count = 0
+    party_count = 0
+    vote_shares = []
+    threshold = 3
+    for this_election, this_results in elections.items():
+        if len(elections.previous_elections(this_election)) > 0:
+            previous_election = elections.previous_elections(this_election)[-1]
+            previous_results = elections[previous_election]
+            election_count += 1
+            emerged_vote = 0
+            for party in this_results.fp_by_party.keys():
+                if party == "Independent" or (party in larger_parties and party != 'One Nation'):
+                    continue
+                vote = this_results.total_fp_percentage_party(party)
+                if vote > threshold:
+                    if party in previous_results.fp_by_party:
+                        if previous_results.total_fp_percentage_party(party) < threshold:
+                            emerged_vote += vote
+                            print(f'{this_election} {party} {vote}')
+                    else:
+                        emerged_vote += vote
+                        print(f'{this_election} {party} {vote}')
+            if emerged_vote > 0:
+                party_count += 1
+                vote_shares.append(emerged_vote)
+    emergence_rate = party_count / election_count
+    print(f'Election count: {election_count}')
+    print(f'Emerging party count: {party_count}')
+    
+    residuals = [a - threshold for a in vote_shares]
+
+    # one-tailed RMSE equivalent and 
+    rmse = math.sqrt(sum([a ** 2 for a in residuals])
+                        / (len(residuals) - 1))      
+    kurtosis = one_tail_kurtosis(residuals)
+
+    print(f'Emergence rate: {emergence_rate}')
+    print(f'upper_rmse: {rmse}')
+    print(f'upper_kurtosis: {kurtosis}')
+
 if __name__ == '__main__':
     elections = get_checked_elections()
     seat_types = load_seat_types()
@@ -930,3 +959,4 @@ if __name__ == '__main__':
     analyse_emerging_independents(elections, seat_types)
     analyse_populist_minors(elections, seat_types)
     analyse_others(elections)
+    analyse_emerging_parties(elections)
