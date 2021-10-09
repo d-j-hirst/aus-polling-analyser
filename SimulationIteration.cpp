@@ -86,6 +86,10 @@ void SimulationIteration::determineIterationOverallSwing()
 			overallFp[OthersIndex] = partySample;
 			continue;
 		}
+		if (sampleKey == EmergingOthersCode) {
+			overallFp[EmergingPartyIndex] = partySample;
+			continue;
+		}
 		for (auto const& [id, party] : project.parties()) {
 			if (contains(party.officialCodes, sampleKey)) {
 				int partyIndex = project.parties().idToIndex(id);
@@ -244,6 +248,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
+	determineSeatEmergingParties(seatIndex);
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
 	allocateMajorPartyFp(seatIndex);
@@ -289,6 +294,10 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
 {
 	float partyFp = overallFp[partyIndex];
+	if (partyFp == 0.0f) {
+		voteShare = 0.0f;
+		return;
+	}
 	float seatModifier = run.seatPopulistModifiers[seatIndex];
 	if (seatModifier == 0.0f) seatModifier = 1.0f;
 	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
@@ -340,6 +349,13 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	}
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
+}
+
+void SimulationIteration::determineSeatEmergingParties(int seatIndex)
+{
+	float voteShare = 0.0f;
+	determinePopulistFp(seatIndex, EmergingPartyIndex, voteShare);
+	seatFpVoteShare[seatIndex][EmergingPartyIndex] = voteShare;
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)
