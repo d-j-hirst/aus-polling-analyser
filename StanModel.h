@@ -85,9 +85,6 @@ public:
 
 	Series const& viewTPPSeries() const;
 
-	// Invalid date/time (default) gives the most recent time point
-	SupportSample generateSupportSample(wxDateTime date = wxInvalidDateTime) const;
-
 	std::string rawPartyCodeByIndex(int index) const;
 
 	bool isReadyForProjection() const { return readyForProjection; }
@@ -162,6 +159,8 @@ private:
 
 	// Adds a series to the model for the given party name and returns a reference to it
 	Series& addSeries(std::string partyCode);
+
+	void addEmergingOthers(StanModel::SupportSample& sample, int days) const;
 
 	static void updateOthersValue(StanModel::SupportSample& sample);
 

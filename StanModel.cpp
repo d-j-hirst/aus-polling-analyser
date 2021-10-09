@@ -96,11 +96,6 @@ std::string StanModel::getTextReport() const
 		}
 	}
 	ss << ";";
-	ss << "Vote share sample:\n";
-	auto sample = generateSupportSample();
-	for (auto [key, vote] : sample) {
-		ss << key << ": " << vote << "\n";
-	}
 	return ss.str();
 }
 
@@ -131,34 +126,6 @@ StanModel::SeriesOutput StanModel::viewAdjustedSeriesByIndex(int index) const
 StanModel::Series const& StanModel::viewTPPSeries() const
 {
 	return tppSupport;
-}
-
-StanModel::SupportSample StanModel::generateSupportSample(wxDateTime date) const
-{
-	if (!adjustedSupport.size()) return SupportSample();
-	int seriesLength = adjustedSupport.begin()->second.timePoint.size();
-	if (!seriesLength) return SupportSample();
-	int dayOffset = adjustedSupport.begin()->second.timePoint.size() - 1;
-	if (date.IsValid()) dayOffset = std::min(dayOffset, (date - startDate).GetDays());
-	if (dayOffset < 0) dayOffset = 0;
-	SupportSample sample;
-	for (auto [key, support] : adjustedSupport) {
-		//if (key == OthersCode) continue; // only include the "xOTH" unnamed 
-		float uniform = rng.uniform(0.0, 1.0);
-		int lowerBucket = int(floor(uniform * float(Spread::Size - 1)));
-		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
-		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
-		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1]; 
-		float sampledVote = mix(lowerVote, upperVote, upperMix);
-		sample.insert({ key, sampledVote });
-	}
-	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
-		[](float a, decltype(sample)::value_type b) {return a + b.second; });
-	float sampleAdjust = 100.0f / sampleSum;
-	for (auto& vote : sample) {
-		vote.second *= sampleAdjust;
-	}
-	return sample;
 }
 
 std::string StanModel::rawPartyCodeByIndex(int index) const
@@ -317,6 +284,7 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 	rawSupport.clear();
 	for (auto partyCode : partyCodeVec) {
 		auto& series = rawSupport[partyCode];
+		if (partyCode == EmergingOthersCode) continue;
 		if (partyCode == UnnamedOthersCode) continue; // calculate this later
 		std::string filename = "python/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
@@ -359,6 +327,10 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	if (dayOffset < 0) dayOffset = 0;
 	SupportSample sample;
 	for (auto [key, support] : rawSupport) {
+		if (key == EmergingOthersCode) {
+			sample.insert({ key, 0.0 });
+			continue;
+		}
 		float uniform = rng.uniform(0.0, 1.0);
 		int lowerBucket = std::clamp(int(floor(uniform * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
 		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
@@ -388,7 +360,7 @@ void StanModel::generateUnnamedOthersSeries()
 		for (int time = 0; time < int(rawSupport[OthersCode].timePoint.size()); ++time) {
 			float namedMinorTotal = 0.0f;
 			for (auto const& [code, series] : rawSupport) {
-				if (code != UnnamedOthersCode && code != OthersCode && !majorPartyCodes.count(code)) {
+				if (!isOthersCode(code) && !majorPartyCodes.count(code)) {
 					namedMinorTotal += series.timePoint[time].values[MedianSpreadValue];
 				}
 			}
@@ -420,6 +392,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	static double lnpVoteFinal = 0.0;
 	static double voteTotalCount = 0.0;
 	for (auto& [key, voteShare] : sample) {
+		if (key == EmergingOthersCode) continue;
 		double transformedPolls = transformVoteShare(double(voteShare));
 
 		const std::string partyGroup = reversePartyGroups.at(key);
@@ -492,6 +465,8 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		voteShare = float(newVoteShare);
 	}
 
+	// *** Add "emerging others" here ***
+	addEmergingOthers(sample, days);
 	normaliseSample(sample);
 	updateOthersValue(sample);
 	generateTppForSample(sample);
@@ -581,9 +556,39 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 	}
 }
 
-StanModel::Series& StanModel::addSeries(std::string partyCode)
+void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days) const
 {
-	return rawSupport.insert({ partyCode, Series() }).first->second;
+	const double threshold = emergingParameters[int(EmergingPartyParameters::Threshold)];
+	const double transformedThreshold = transformVoteShare(threshold);
+	const double baseEmergenceRate = emergingParameters[int(EmergingPartyParameters::EmergenceRate)];
+	const double baseEmergenceRmse = emergingParameters[int(EmergingPartyParameters::Rmse)];
+	const double kurtosis = emergingParameters[int(EmergingPartyParameters::Kurtosis)];
+	// Guessed values for a curve that makes the chance of a new party emerging
+	// decrease approaching election day. E.g. 100 days out it is halved, on election day it's about 16%
+	double emergenceChance = baseEmergenceRate * (1.0 - 1.0 / (double(days) * 0.01 + 1.2));
+	if (rng.uniform() > emergenceChance) {
+		sample[EmergingOthersCode] = 0.0;
+		return;
+	}
+	// As above, but slightly different numbers and the curve takes longer to drop.
+	double rmse = baseEmergenceRmse * (1.0 - 1.0 / (double(days) * 0.03 + 1.4));
+	double emergingOthersFpTargetTransformed = transformedThreshold + abs(rng.flexibleDist(0.0, rmse, rmse, kurtosis, kurtosis));
+	double emergingOthersFpTarget = detransformVoteShare(emergingOthersFpTargetTransformed);
+	// The normalisation procedure will reduce the value of 
+	double correctedFp = 100.0 * emergingOthersFpTarget / (100.0 - emergingOthersFpTarget) ;
+	//PA_LOG_VAR(sample);
+	//PA_LOG_VAR(days);
+	//PA_LOG_VAR(threshold);
+	//PA_LOG_VAR(transformedThreshold);
+	//PA_LOG_VAR(baseEmergenceRate);
+	//PA_LOG_VAR(baseEmergenceRmse);
+	//PA_LOG_VAR(kurtosis);
+	//PA_LOG_VAR(emergenceChance);
+	//PA_LOG_VAR(rmse);
+	//PA_LOG_VAR(emergingOthersFpTargetTransformed);
+	//PA_LOG_VAR(emergingOthersFpTarget);
+	//PA_LOG_VAR(correctedFp);
+	sample[EmergingOthersCode] = correctedFp;
 }
 
 void StanModel::Spread::calculateExpectation()
