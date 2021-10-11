@@ -101,18 +101,22 @@ void SimulationIteration::determineIterationOverallBehaviour()
 
 	for (auto const& [sampleKey, preferenceFlow] : projectedSample.preferenceFlow) {
 		if (sampleKey == UnnamedOthersCode) {
-			overallPreferenceFlowChange[OthersIndex] = preferenceFlow - project.parties().getOthersPreferenceFlow();
-			overallPreferenceFlowChange[EmergingIndIndex] = preferenceFlow - project.parties().getOthersPreferenceFlow();
+			previousPreferenceFlow[OthersIndex] = project.parties().getOthersPreferenceFlow();
+			previousPreferenceFlow[EmergingIndIndex] = project.parties().getOthersPreferenceFlow();
+			overallPreferenceFlow[OthersIndex] = preferenceFlow;
+			overallPreferenceFlow[EmergingIndIndex] = preferenceFlow;
 			continue;
 		}
 		if (sampleKey == EmergingOthersCode) {
-			overallPreferenceFlowChange[EmergingPartyIndex] = preferenceFlow - project.parties().getOthersPreferenceFlow();
+			previousPreferenceFlow[EmergingPartyIndex] = project.parties().getOthersPreferenceFlow();
+			overallPreferenceFlow[EmergingPartyIndex] = preferenceFlow;
 			continue;
 		}
 		for (auto const& [id, party] : project.parties()) {
 			if (contains(party.officialCodes, sampleKey)) {
 				int partyIndex = project.parties().idToIndex(id);
-				overallPreferenceFlowChange[partyIndex] = preferenceFlow - project.parties().view(id).preferenceShare;
+				previousPreferenceFlow[partyIndex] = project.parties().view(id).preferenceShare;
+				overallPreferenceFlow[partyIndex] = preferenceFlow;
 				break;
 			}
 		}
@@ -423,12 +427,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	float pastElectionPartyOnePrefEstimate = 0.0f;
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
-		if (partyIndex >= 2) {
-			pastElectionPartyOnePrefEstimate += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
-			previousNonMajorFpShare += voteShare;
-		}
-		else if (partyIndex <= OthersIndex) {
-			pastElectionPartyOnePrefEstimate += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
+		if (partyIndex >= 2 || partyIndex <= OthersIndex) {
+			pastElectionPartyOnePrefEstimate += voteShare * previousPreferenceFlow[partyIndex] * 0.01f;
 			previousNonMajorFpShare += voteShare;
 		}
 	}
@@ -440,12 +440,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentPartyOnePrefs = 0.0f;
 	float currentTotalPrefs = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
-		if (partyIndex >= 2) {
-			currentPartyOnePrefs += voteShare * project.parties().viewByIndex(partyIndex).preferenceShare * 0.01f;
-			currentTotalPrefs += voteShare;
-		}
-		else if (partyIndex <= OthersIndex) {
-			currentPartyOnePrefs += voteShare * project.parties().getOthersPreferenceFlow() * 0.01f;
+		if (partyIndex >= 2 || partyIndex <= OthersIndex) {
+			currentPartyOnePrefs += voteShare * overallPreferenceFlow[partyIndex] * 0.01f;
 			currentTotalPrefs += voteShare;
 		}
 	}
