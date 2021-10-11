@@ -574,10 +574,7 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 	float tpp = 0.0f;
 	for (auto [key, support] : sample.voteShare) {
 		if (key == OthersCode) continue;
-		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) {
-			tpp = 0.0f;
-			break;
-		}
+		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) continue;
 		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
@@ -585,7 +582,7 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
 			: flow);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
-		sample.preferenceFlow.insert({ key, randomisedFlow });
+		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
 		tpp += support * randomisedFlow;
 	}
 	sample.voteShare.insert({ TppCode, tpp });

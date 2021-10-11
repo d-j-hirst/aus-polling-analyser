@@ -49,7 +49,7 @@ private:
 
 
 	void initialiseIterationSpecificCounts();
-	void determineIterationOverallSwing();
+	void determineIterationOverallBehaviour();
 	void determineIterationPpvcBias();
 	void determineIterationRegionalSwings();
 	void loadPastSeatResults();
@@ -141,6 +141,7 @@ private:
 	float iterationOverallSwing = 0.0f;
 	std::map<Party::Id, float> overallFp;
 	std::map<Party::Id, float> overallFpSwing;
+	std::map<Party::Id, float> overallPreferenceFlowChange;
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();

@@ -40,7 +40,7 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 void SimulationIteration::runIteration()
 {
 	initialiseIterationSpecificCounts();
-	determineIterationOverallSwing();
+	determineIterationOverallBehaviour();
 	determineIterationPpvcBias();
 	determineIterationRegionalSwings();
 
@@ -74,7 +74,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
 }
 
-void SimulationIteration::determineIterationOverallSwing()
+void SimulationIteration::determineIterationOverallBehaviour()
 {
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
@@ -94,6 +94,25 @@ void SimulationIteration::determineIterationOverallSwing()
 			if (contains(party.officialCodes, sampleKey)) {
 				int partyIndex = project.parties().idToIndex(id);
 				overallFp[partyIndex] = partySample;
+				break;
+			}
+		}
+	}
+
+	for (auto const& [sampleKey, preferenceFlow] : projectedSample.preferenceFlow) {
+		if (sampleKey == UnnamedOthersCode) {
+			overallPreferenceFlowChange[OthersIndex] = preferenceFlow - project.parties().getOthersPreferenceFlow();
+			overallPreferenceFlowChange[EmergingIndIndex] = preferenceFlow - project.parties().getOthersPreferenceFlow();
+			continue;
+		}
+		if (sampleKey == EmergingOthersCode) {
+			overallPreferenceFlowChange[EmergingPartyIndex] = preferenceFlow - project.parties().getOthersPreferenceFlow();
+			continue;
+		}
+		for (auto const& [id, party] : project.parties()) {
+			if (contains(party.officialCodes, sampleKey)) {
+				int partyIndex = project.parties().idToIndex(id);
+				overallPreferenceFlowChange[partyIndex] = preferenceFlow - project.parties().view(id).preferenceShare;
 				break;
 			}
 		}
