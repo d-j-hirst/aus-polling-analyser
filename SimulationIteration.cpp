@@ -78,10 +78,10 @@ void SimulationIteration::determineIterationOverallSwing()
 {
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
-	iterationOverallTpp = projectedSample.at(TppCode);
+	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
 	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
 
-	for (auto const& [sampleKey, partySample] : projectedSample) {
+	for (auto const& [sampleKey, partySample] : projectedSample.voteShare) {
 		if (sampleKey == UnnamedOthersCode) {
 			overallFp[OthersIndex] = partySample;
 			continue;

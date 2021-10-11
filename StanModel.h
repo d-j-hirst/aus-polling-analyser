@@ -38,7 +38,10 @@ public:
 
 	typedef std::map<std::string, Series> PartySupport;
 
-	typedef std::map<std::string, float> SupportSample;
+	struct SupportSample {
+		std::map<std::string, float> voteShare;
+		std::map<std::string, float> preferenceFlow;
+	};
 
 	typedef std::map<std::string, float> PartyParameters;
 

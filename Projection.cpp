@@ -66,11 +66,11 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 						auto sample = generateSupportSample(models, projectedDate);
 						for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
 							std::string partyName = model.partyCodeVec[partyIndex];
-							if (sample.count(partyName)) {
-								samples[partyIndex][iteration] = sample[partyName];
+							if (sample.voteShare.count(partyName)) {
+								samples[partyIndex][iteration] = sample.voteShare[partyName];
 							}
-							if (sample.count(TppCode)) {
-								(*tppSamples)[iteration] = sample[TppCode];
+							if (sample.voteShare.count(TppCode)) {
+								(*tppSamples)[iteration] = sample.voteShare[TppCode];
 							}
 						}
 
@@ -186,7 +186,7 @@ std::string Projection::textReport(ModelCollection const& models) const
 	report << ";"; // delimiter
 	auto sample = generateSupportSample(models);
 	report << "Final sample: \n";
-	for (auto [key, vote] : sample) {
+	for (auto [key, vote] : sample.voteShare) {
 		report << key << ": " << vote << "\n";
 	}
 	return report.str();

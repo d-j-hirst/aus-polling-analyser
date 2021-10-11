@@ -328,7 +328,7 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	SupportSample sample;
 	for (auto [key, support] : rawSupport) {
 		if (key == EmergingOthersCode) {
-			sample.insert({ key, 0.0 });
+			sample.voteShare.insert({ key, 0.0 });
 			continue;
 		}
 		float uniform = rng.uniform(0.0, 1.0);
@@ -337,7 +337,7 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
 		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1];
 		float sampledVote = mix(lowerVote, upperVote, upperMix);
-		sample.insert({ key, sampledVote });
+		sample.voteShare.insert({ key, sampledVote });
 	}
 
 	normaliseSample(sample);
@@ -391,7 +391,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	static double lnpVoteWithVariation = 0.0;
 	static double lnpVoteFinal = 0.0;
 	static double voteTotalCount = 0.0;
-	for (auto& [key, voteShare] : sample) {
+	for (auto& [key, voteShare] : sample.voteShare) {
 		if (key == EmergingOthersCode) continue;
 		double transformedPolls = transformVoteShare(double(voteShare));
 
@@ -422,65 +422,14 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis);
 		const double voteWithVariation = mixedDebiasedVote + additionalVariation;
 
-		if (days == 150) {
-			//logger << " - next sample\n";
-			//if (key == "ALP") alpVoteTotal += voteShare;
-			//if (key == "ALP") ++voteTotalCount;
-			//if (key == "LNP") lnpVoteTotal += voteShare;
-			//if (key == "LNP") lnpDebiasedPolls += detransformVoteShare(debiasedPolls);
-			//if (key == "LNP") lnpMixedVoteShare += detransformVoteShare(mixedVoteShare);
-			//if (key == "LNP") lnpMixedBias += detransformVoteShare(mixedBiasToday);
-			//if (key == "LNP") lnpMixedDebiasedVote += detransformVoteShare(mixedDebiasedVote);
-			//if (key == "LNP") lnpVoteWithVariation += detransformVoteShare(voteWithVariation);
-			//if (key == "LNP") {
-			//	//PA_LOG_VAR(sample);
-			//	//PA_LOG_VAR(voteShare);
-			//	//PA_LOG_VAR(transformedPolls);
-			//	//PA_LOG_VAR(partyGroup);
-			//	//PA_LOG_VAR(pollBiasToday);
-			//	//PA_LOG_VAR(debiasedPolls);
-			//	//PA_LOG_VAR(detransformVoteShare(debiasedPolls));
-			//	//PA_LOG_VAR(previousAverage);
-			//	//PA_LOG_VAR(detransformVoteShare(previousAverage));
-			//	//PA_LOG_VAR(previousBiasToday);
-			//	//PA_LOG_VAR(debiasedPreviousAverage);
-			//	//PA_LOG_VAR(detransformVoteShare(debiasedPreviousAverage));
-			//	//PA_LOG_VAR(mixFactor);
-			//	//PA_LOG_VAR(mixedVoteShare);
-			//	//PA_LOG_VAR(detransformVoteShare(mixedVoteShare));
-			//	//PA_LOG_VAR(mixedBiasToday);
-			//	//PA_LOG_VAR(mixedDebiasedVote);
-			//	//PA_LOG_VAR(detransformVoteShare(mixedDebiasedVote));
-			//	//PA_LOG_VAR(lowerError);
-			//	//PA_LOG_VAR(upperError);
-			//	//PA_LOG_VAR(lowerKurtosis);
-			//	//PA_LOG_VAR(upperKurtosis);
-			//	//PA_LOG_VAR(additionalVariation);
-			//	//PA_LOG_VAR(voteWithVariation);
-			//	//PA_LOG_VAR(detransformVoteShare(voteWithVariation));
-			//}
-		}
-
 		double newVoteShare = detransformVoteShare(voteWithVariation);
 		voteShare = float(newVoteShare);
 	}
 
-	// *** Add "emerging others" here ***
 	addEmergingOthers(sample, days);
 	normaliseSample(sample);
 	updateOthersValue(sample);
 	generateTppForSample(sample);
-	if (days == 150) {
-		lnpVoteFinal += sample["LNP"];
-		//logger << alpVoteTotal / voteTotalCount << " - average unadjusted ALP vote share\n";
-		//logger << lnpVoteTotal / voteTotalCount << " - average unadjusted LNP vote share\n";
-		//logger << lnpDebiasedPolls / voteTotalCount << " - average lnpDebiasedPolls\n";
-		//logger << lnpMixedVoteShare / voteTotalCount << " - average lnpMixedVoteShare\n";
-		//logger << lnpMixedBias / voteTotalCount << " - average lnpMixedBias\n";
-		//logger << lnpMixedDebiasedVote / voteTotalCount << " - average lnpMixedDebiasedVote\n";
-		//logger << lnpVoteWithVariation / voteTotalCount << " - average lnpVoteWithVariation\n";
-		//logger << lnpVoteFinal / voteTotalCount << " - average lnpVoteFinal\n";
-	}
 	return sample;
 }
 
@@ -509,11 +458,11 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 						auto sample = generateAdjustedSupportSample(thisDate);
 						for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 							std::string partyName = partyCodeVec[partyIndex];
-							if (sample.count(partyName)) {
-								samples[partyIndex][iteration] = sample[partyName];
+							if (sample.voteShare.count(partyName)) {
+								samples[partyIndex][iteration] = sample.voteShare[partyName];
 							}
-							if (sample.count(TppCode)) {
-								tppSamples[iteration] = sample[TppCode];
+							if (sample.voteShare.count(TppCode)) {
+								tppSamples[iteration] = sample.voteShare[TppCode];
 							}
 						}
 
@@ -567,7 +516,7 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days) co
 	// decrease approaching election day. E.g. 100 days out it is halved, on election day it's about 16%
 	double emergenceChance = baseEmergenceRate * (1.0 - 1.0 / (double(days) * 0.01 + 1.2));
 	if (rng.uniform() > emergenceChance) {
-		sample[EmergingOthersCode] = 0.0;
+		sample.voteShare[EmergingOthersCode] = 0.0;
 		return;
 	}
 	// As above, but slightly different numbers and the curve takes longer to drop.
@@ -588,7 +537,7 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days) co
 	//PA_LOG_VAR(emergingOthersFpTargetTransformed);
 	//PA_LOG_VAR(emergingOthersFpTarget);
 	//PA_LOG_VAR(correctedFp);
-	sample[EmergingOthersCode] = correctedFp;
+	sample.voteShare[EmergingOthersCode] = correctedFp;
 }
 
 void StanModel::Spread::calculateExpectation()
@@ -601,21 +550,21 @@ void StanModel::Spread::calculateExpectation()
 void StanModel::updateOthersValue(StanModel::SupportSample& sample) {
 	// make sure "others" is actually equal to sum of non-major parties
 	// note that this relies on there being an "exclusive others" component
-	float otherSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
-		[](float a, StanModel::SupportSample::value_type b) {
+	float otherSum = std::accumulate(sample.voteShare.begin(), sample.voteShare.end(), 0.0f,
+		[](float a, decltype(sample.voteShare)::value_type b) {
 			return (b.first == OthersCode || majorPartyCodes.count(b.first) ? a : a + b.second);
 		});
-	sample[OthersCode] = otherSum;
+	sample.voteShare[OthersCode] = otherSum;
 }
 
 void StanModel::normaliseSample(StanModel::SupportSample& sample)
 {
-	float sampleSum = std::accumulate(sample.begin(), sample.end(), 0.0f,
-		[](float a, StanModel::SupportSample::value_type b) {
+	float sampleSum = std::accumulate(sample.voteShare.begin(), sample.voteShare.end(), 0.0f,
+		[](float a, decltype(sample.voteShare)::value_type b) {
 			return (b.first == OthersCode || b.first == TppCode ? a : a + b.second); }
 		);
 	float sampleAdjust = 100.0f / sampleSum;
-	for (auto& vote : sample) {
+	for (auto& vote : sample.voteShare) {
 		vote.second *= sampleAdjust;
 	}
 }
@@ -623,7 +572,7 @@ void StanModel::normaliseSample(StanModel::SupportSample& sample)
 void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 {
 	float tpp = 0.0f;
-	for (auto [key, support] : sample) {
+	for (auto [key, support] : sample.voteShare) {
 		if (key == OthersCode) continue;
 		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) {
 			tpp = 0.0f;
@@ -636,9 +585,10 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
 			: flow);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+		sample.preferenceFlow.insert({ key, randomisedFlow });
 		tpp += support * randomisedFlow;
 	}
-	sample.insert({ TppCode, tpp });
+	sample.voteShare.insert({ TppCode, tpp });
 }
 
 void StanModel::Series::smooth(int smoothingFactor)
