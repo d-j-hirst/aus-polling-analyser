@@ -1,5 +1,7 @@
 Polling Analyser to-do:
 -More sophisticated handling of non-classic and potentially non-classic seats
+ -"home state" for minor parties
+ -"centrist" axis for populist parties using 1990-2001 Democrats totals
  -possibility of polled parties standing for seats they didn't stand for last time (and vice versa)
  -region/seat fp reconciliation
  -calculation of eventual winner from fp results

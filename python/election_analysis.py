@@ -433,6 +433,13 @@ def load_seat_types():
     return seat_types
 
 
+def load_seat_regions():
+    with open('Data/seat-regions.csv', 'r') as f:
+        linelists = [b.strip().split(',') for b in f.readlines()]
+        seat_regions = {(a[0], a[1]): a[2] for a in linelists}
+    return seat_regions
+
+
 def analyse_emerging_independents(elections, seat_types):
     seat_ind_count = []
     seat_fed = []
@@ -560,7 +567,7 @@ def analyse_emerging_independents(elections, seat_types):
         f.write(f'{vote_intercept}\n')
 
 
-def analyse_populist_minors(elections, seat_types):
+def analyse_populist_minors(elections, seat_types, seat_regions):
 
     on_results = {}
     on_election_votes = {}
@@ -686,6 +693,8 @@ def analyse_populist_minors(elections, seat_types):
     rural_seat = {}
     provincial_seat = {}
     outer_metro_seat = {}
+    # Conviently the home state of all right-populist parties is QLD
+    qld_seat = {}
     for region_name, region_results in on_results.items():
         for seat_name, seat_results in region_results.items():
             max_mult = 0
@@ -707,22 +716,32 @@ def analyse_populist_minors(elections, seat_types):
                 continue
             seat_id = (seat_name, region_name)
             seat_type = seat_types.get((seat_name, region_name), -1)
+            is_qld = seat_regions.get((seat_name, region_name), '') == 'qld'
             avg_mult_seat[seat_id] = mult_sum / mult_count
-            rural_seat[seat_id] = seat_type == 3
-            provincial_seat[seat_id] = seat_type == 2
-            outer_metro_seat[seat_id] = seat_type == 1  
+            rural_seat[seat_id] = 1 if seat_type == 3 else 0
+            provincial_seat[seat_id] = 1 if seat_type == 2 else 0
+            outer_metro_seat[seat_id] = 1 if seat_type == 1 else 0
+            qld_seat[seat_id] = 1 if is_qld else 0
     
     avg_mult_list = [avg_mult_seat[key] for key in sorted(avg_mult_seat.keys())]
     rural_list = [rural_seat[key] for key in sorted(avg_mult_seat.keys())]
     provincial_list = [provincial_seat[key] for key in sorted(avg_mult_seat.keys())]
     outer_metro_list = [outer_metro_seat[key] for key in sorted(avg_mult_seat.keys())]
-    inputs_array = numpy.transpose(numpy.array([rural_list, provincial_list, outer_metro_list]))
+    qld_list = [qld_seat[key] for key in sorted(avg_mult_seat.keys())]
+    inputs_array = numpy.transpose(numpy.array([rural_list, provincial_list, outer_metro_list, qld_list]))
     results_array = numpy.array(avg_mult_list)
     reg = LinearRegression().fit(inputs_array, results_array)
     rural_coefficient = reg.coef_[0]
     provincial_coefficient = reg.coef_[1]
     outer_metro_coefficient = reg.coef_[2]
+    qld_coefficient = reg.coef_[3]
     vote_intercept = reg.intercept_
+
+    print(f'rural_coefficient: {rural_coefficient}')
+    print(f'provincial_coefficient: {provincial_coefficient}')
+    print(f'outer_metro_coefficient: {outer_metro_coefficient}')
+    print(f'qld_coefficient: {qld_coefficient}')
+    print(f'vote_intercept: {vote_intercept}')
 
     for seat_id, type in seat_types.items():
         if seat_id not in avg_mult_seat:
@@ -733,6 +752,9 @@ def analyse_populist_minors(elections, seat_types):
                 avg_mult_seat[seat_id] += provincial_coefficient
             if type == 1:
                 avg_mult_seat[seat_id] += outer_metro_coefficient
+            if seat_regions in seat_id:
+                if seat_regions[seat_id] == 'qld':
+                    avg_mult_seat[seat_id] += qld_coefficient
 
     filename = (f'./Seat Statistics/modifiers_populist.csv')
     with open(filename, 'w') as f:
@@ -757,8 +779,8 @@ def analyse_others(elections):
         next_results = elections[next_election]
         next_others_percent = total_others_vote_share(next_results)
         this_others_percent = total_others_vote_share(this_results)
-        print(f'Next election {next_election.short()} others vote share: {next_others_percent}')
-        print(f'This election {this_election.short()} others vote share: {this_others_percent}')
+        # print(f'Next election {next_election.short()} others vote share: {next_others_percent}')
+        # print(f'This election {this_election.short()} others vote share: {this_others_percent}')
         election_swing = (transform_vote_share(next_others_percent)
                  - transform_vote_share(this_others_percent))
         # print(f'{this_election.short()} - {next_election.short()} overall swing to others: {election_swing}')
@@ -929,16 +951,16 @@ def analyse_emerging_parties(elections):
                     if party in previous_results.fp_by_party:
                         if previous_results.total_fp_percentage_party(party) < fp_threshold:
                             emerged_vote += vote
-                            print(f'{this_election} {party} {vote}')
+                            # print(f'{this_election} {party} {vote}')
                     else:
                         emerged_vote += vote
-                        print(f'{this_election} {party} {vote}')
+                        # print(f'{this_election} {party} {vote}')
             if emerged_vote > 0:
                 party_count += 1
                 vote_shares.append(transform_vote_share(emerged_vote))
     emergence_rate = party_count / election_count
-    print(f'Election count: {election_count}')
-    print(f'Emerging party count: {party_count}')
+    # print(f'Election count: {election_count}')
+    # print(f'Emerging party count: {party_count}')
     
     residuals = [a - transform_vote_share(fp_threshold) for a in vote_shares]
 
@@ -947,12 +969,12 @@ def analyse_emerging_parties(elections):
                         / (len(residuals) - 1))      
     kurtosis = one_tail_kurtosis(residuals)
 
-    print(f'Transformed threshold: {transform_vote_share(fp_threshold)}')
-    print(f'2.5% untransformed: {detransform_vote_share(transform_vote_share(fp_threshold) + 2 * rmse)}')
-    print(f'0.15% untransformed: {detransform_vote_share(transform_vote_share(fp_threshold) + 3 * rmse)}')
-    print(f'Emergence rate: {emergence_rate}')
-    print(f'upper_rmse: {rmse}')
-    print(f'upper_kurtosis: {kurtosis}')
+    # print(f'Transformed threshold: {transform_vote_share(fp_threshold)}')
+    # print(f'2.5% untransformed: {detransform_vote_share(transform_vote_share(fp_threshold) + 2 * rmse)}')
+    # print(f'0.15% untransformed: {detransform_vote_share(transform_vote_share(fp_threshold) + 3 * rmse)}')
+    # print(f'Emergence rate: {emergence_rate}')
+    # print(f'upper_rmse: {rmse}')
+    # print(f'upper_kurtosis: {kurtosis}')
 
     filename = (f'./Seat Statistics/statistics_emerging_party.csv')
     with open(filename, 'w') as f:
@@ -964,9 +986,10 @@ def analyse_emerging_parties(elections):
 if __name__ == '__main__':
     elections = get_checked_elections()
     seat_types = load_seat_types()
+    seat_regions = load_seat_regions()
     analyse_greens(elections)
     analyse_existing_independents(elections)
     analyse_emerging_independents(elections, seat_types)
-    analyse_populist_minors(elections, seat_types)
+    analyse_populist_minors(elections, seat_types, seat_regions)
     analyse_others(elections)
     analyse_emerging_parties(elections)
