@@ -51,6 +51,7 @@ public:
 		float upperRmse;
 		float lowerKurtosis;
 		float upperKurtosis;
+		float homeStateCoefficient;
 	};
 
 	struct IndEmergence {
