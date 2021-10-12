@@ -27,6 +27,14 @@ Region const& RegionCollection::view(Region::Id id) const {
 	return regions.at(id);
 }
 
+std::pair<Region::Id, Region const*> RegionCollection::findbyName(std::string const& name) const
+{
+	for (auto const& [id, region] : regions) {
+		if (region.name == name) return { id, &region };
+	}
+	return { Region::InvalidId, nullptr };
+}
+
 RegionCollection::Index RegionCollection::idToIndex(Region::Id id) const
 {
 	auto foundIt = regions.find(id);

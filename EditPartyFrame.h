@@ -50,6 +50,7 @@ private:
 	void createExhaustRateInput(int& y);
 	void createAbbreviationInput(int& y);
 	void createShortCodesInput(int& y);
+	void createHomeRegionInput(int& y);
 	void createColourInput(int& y);
 	void createIdeologyInput(int& y);
 	void createConsistencyInput(int& y);
@@ -80,6 +81,7 @@ private:
 	std::unique_ptr<FloatInput> exhaustRateInput;
 	std::unique_ptr<TextInput> abbreviationInput;
 	std::unique_ptr<TextInput> shortCodesInput;
+	std::unique_ptr<TextInput> homeRegionInput;
 	std::unique_ptr<ColourInput> colourInput;
 	std::unique_ptr<ChoiceInput> ideologyInput;
 	std::unique_ptr<ChoiceInput> consistencyInput;

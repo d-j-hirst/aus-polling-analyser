@@ -21,6 +21,12 @@ public:
 		return std::uniform_real_distribution<T>(low, high)(gen);
 	}
 
+	template<typename T = int,
+		std::enable_if_t<std::is_integral<T>::value, int> = 0>
+	static T uniform_int(T low = T(0), T high = T(2)) {
+		return std::clamp(T(floor(uniform(float(low), float(high)))), low, high - T(1));
+	}
+
 	template<typename T,
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
 	static T normal(T mean = T(0.0), T sd = T(1.0)) {

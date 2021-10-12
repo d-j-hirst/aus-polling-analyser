@@ -41,6 +41,7 @@ void SimulationIteration::runIteration()
 {
 	initialiseIterationSpecificCounts();
 	determineIterationOverallBehaviour();
+	determineIterationHomeRegions();
 	determineIterationPpvcBias();
 	determineIterationRegionalSwings();
 
@@ -139,6 +140,29 @@ void SimulationIteration::determineIterationOverallBehaviour()
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
 		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 		iterationOverallTpp = iterationOverallSwing + sim.settings.prevElection2pp;
+	}
+}
+
+void SimulationIteration::determineIterationHomeRegions()
+{
+	for (auto const& [id, party] : project.parties()) {
+		int partyIndex = project.parties().idToIndex(id);
+		if (party.homeRegion.size()) {
+			auto foundRegion = project.regions().findbyName(party.homeRegion);
+			if (foundRegion.second) {
+				homeRegion[partyIndex] = project.regions().idToIndex(foundRegion.first);
+				continue;
+			}
+		}
+		homeRegion[partyIndex] = -1;
+	}
+	// 0.75f is Subjective guesstimate, too little data to calculate the
+	// chance emerging parties will have a home state
+	if (rng.uniform() < 0.75f) {
+		homeRegion[EmergingPartyIndex] = rng.uniform_int(0, project.regions().count());
+	}
+	else {
+		homeRegion[EmergingPartyIndex] = -1;
 	}
 }
 
@@ -322,6 +346,9 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 		return;
 	}
 	float seatModifier = run.seatPopulistModifiers[seatIndex];
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	int regionIndex = project.regions().idToIndex(seat.region);
+	if (homeRegion[partyIndex] == regionIndex) seatModifier += run.populistStatistics.homeStateCoefficient;
 	if (seatModifier == 0.0f) seatModifier = 1.0f;
 	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
 	float modifiedFp1 = predictorCorrectorTransformedSwing(partyFp, partyFp * (seatModifier - 1.0f));

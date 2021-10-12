@@ -67,6 +67,8 @@ public:
 	// Returns the region with index "regionIndex".
 	Region const& viewByIndex(Index regionIndex) const { return view(indexToId(regionIndex)); }
 
+	std::pair<Region::Id, Region const*> findbyName(std::string const& name) const;
+
 	Index idToIndex(Region::Id id) const;
 	Region::Id indexToId(Index id) const;
 

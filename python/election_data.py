@@ -95,6 +95,7 @@ class SavedResults:
     def __init__(self):
         self.results = []
 
+
 class SeatResults:
     def __init__(self, name):
         self.name = name

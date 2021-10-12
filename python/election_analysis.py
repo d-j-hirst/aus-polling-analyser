@@ -754,6 +754,13 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
         f.write(f'{upper_kurtosis}\n')
         f.write(f'{home_state_coefficient}\n')
 
+    # The home state coefficient gets automatically added to all
+    # seats in the main program, so remove it from the seats in
+    # that state to avoid double-counting it
+    for key in avg_mult_seat.keys():
+        if seat_regions.get((key[0], key[1]), '') == 'qld':
+            avg_mult_seat[key] -= home_state_coefficient
+
     filename = (f'./Seat Statistics/modifiers_populist.csv')
     with open(filename, 'w') as f:
         for key, value in avg_mult_seat.items():

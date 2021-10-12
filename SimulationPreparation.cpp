@@ -664,7 +664,6 @@ void SimulationPreparation::loadPopulistSeatStatistics()
 	run.populistStatistics.lowerKurtosis = extractNum();
 	run.populistStatistics.upperKurtosis = extractNum();
 	run.populistStatistics.homeStateCoefficient = extractNum();
-	PA_LOG_VAR(run.populistStatistics.homeStateCoefficient);
 }
 
 void SimulationPreparation::loadPopulistSeatModifiers()

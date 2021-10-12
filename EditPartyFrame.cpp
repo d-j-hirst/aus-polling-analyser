@@ -22,6 +22,7 @@ enum ControlId
 	ExhaustRate,
 	Abbreviation,
 	OfficialShortCodes,
+	HomeRegion,
 	Colour,
 	Ideology,
 	Consistency,
@@ -47,6 +48,7 @@ void EditPartyFrame::createControls(int& y)
 	createExhaustRateInput(y);
 	createAbbreviationInput(y);
 	createShortCodesInput(y);
+	createHomeRegionInput(y);
 	createColourInput(y);
 	createIdeologyInput(y);
 	createConsistencyInput(y);
@@ -105,6 +107,13 @@ void EditPartyFrame::createShortCodesInput(int& y)
 	auto shortCodesCallback = std::bind(&EditPartyFrame::updateShortCodes, this, _1);
 	shortCodesInput.reset(new TextInput(this, ControlId::OfficialShortCodes, "Official Short Codes:", shortCodes, wxPoint(2, y), shortCodesCallback));
 	y += shortCodesInput->Height + ControlPadding;
+}
+
+void EditPartyFrame::createHomeRegionInput(int& y)
+{
+	auto homeRegionCallback = [this](std::string s) -> void {party.homeRegion = s; };
+	homeRegionInput.reset(new TextInput(this, ControlId::HomeRegion, "Home region:", party.homeRegion, wxPoint(2, y), homeRegionCallback));
+	y += homeRegionInput->Height + ControlPadding;
 }
 
 void EditPartyFrame::createColourInput(int& y)
