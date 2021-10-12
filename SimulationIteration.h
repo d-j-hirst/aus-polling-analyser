@@ -49,10 +49,11 @@ private:
 
 
 	void initialiseIterationSpecificCounts();
-	void determineIterationOverallBehaviour();
-	void determineIterationHomeRegions();
-	void determineIterationPpvcBias();
-	void determineIterationRegionalSwings();
+	void determineOverallBehaviour();
+	void determineHomeRegions();
+	void determinePpvcBias();
+	void determineRegionalSwings();
+	void determineMinorPartyContests();
 	void loadPastSeatResults();
 	void determineBaseRegionalSwing(int regionIndex);
 	void modifyLiveRegionalSwing(int regionIndex);

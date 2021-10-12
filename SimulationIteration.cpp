@@ -40,10 +40,11 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 void SimulationIteration::runIteration()
 {
 	initialiseIterationSpecificCounts();
-	determineIterationOverallBehaviour();
-	determineIterationHomeRegions();
-	determineIterationPpvcBias();
-	determineIterationRegionalSwings();
+	determineOverallBehaviour();
+	determineHomeRegions();
+	// determinePpvcBias();
+	determineRegionalSwings();
+	determineMinorPartyContests();
 
 	loadPastSeatResults();
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -75,7 +76,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
 }
 
-void SimulationIteration::determineIterationOverallBehaviour()
+void SimulationIteration::determineOverallBehaviour()
 {
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
@@ -143,7 +144,7 @@ void SimulationIteration::determineIterationOverallBehaviour()
 	}
 }
 
-void SimulationIteration::determineIterationHomeRegions()
+void SimulationIteration::determineHomeRegions()
 {
 	for (auto const& [id, party] : project.parties()) {
 		int partyIndex = project.parties().idToIndex(id);
@@ -166,7 +167,7 @@ void SimulationIteration::determineIterationHomeRegions()
 	}
 }
 
-void SimulationIteration::determineIterationPpvcBias()
+void SimulationIteration::determinePpvcBias()
 {
 	if (sim.isLive() && run.liveOverallPercent) {
 		constexpr float ppvcBiasStdDev = 4.0f;
@@ -175,7 +176,7 @@ void SimulationIteration::determineIterationPpvcBias()
 	}
 }
 
-void SimulationIteration::determineIterationRegionalSwings()
+void SimulationIteration::determineRegionalSwings()
 {
 	const int numRegions = project.regions().count();
 	regionSwing.resize(numRegions);
@@ -184,6 +185,13 @@ void SimulationIteration::determineIterationRegionalSwings()
 		modifyLiveRegionalSwing(regionIndex);
 	}
 	correctRegionalSwings();
+}
+
+void SimulationIteration::determineMinorPartyContests()
+{
+	for (auto& [key, swing] : overallFp) {
+		if (key == 0 || key == 1 || key == OthersIndex || key == EmergingIndIndex) continue;
+	}
 }
 
 void SimulationIteration::loadPastSeatResults()

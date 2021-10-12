@@ -27,8 +27,9 @@
 // Version 20: Save term codes of previous elections for simulations
 // Version 21: Save alternate fp results for new seats
 // Version 22: Sophomore/retirement settings for seats
-// Version 23: Home regions for minor parties and emerging party home region modifiers
-constexpr int VersionNum = 23;
+// Version 23: Save home regions for minor parties and emerging party home region modifiers
+// Version 24: Save minor party seat targets
+constexpr int VersionNum = 24;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -88,6 +89,7 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 		saveOutput << thisParty.exhaustRate;
 		saveOutput << thisParty.abbreviation;
 		saveOutput << thisParty.homeRegion;
+		saveOutput << thisParty.seatTarget;
 		saveOutput.outputAsType<int32_t>(thisParty.relationTarget);
 		saveOutput.outputAsType<int32_t>(thisParty.relationType);
 		saveOutput << thisParty.boothColourMult;
@@ -117,6 +119,9 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, int versionNum)
 		saveInput >> thisParty.abbreviation;
 		if (versionNum >= 23) {
 			saveInput >> thisParty.homeRegion;
+		}
+		if (versionNum >= 24) {
+			saveInput >> thisParty.seatTarget;
 		}
 		// Some legacy files may have a value of -1 which will cause problems for the simulation
 		// and edit-party function, so make sure it's brought up to zero.

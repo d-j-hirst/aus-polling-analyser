@@ -45,6 +45,7 @@ struct Party {
 	std::string abbreviation = "";
 	std::vector<std::string> officialCodes; // official codes that match to this party according to the electoral commission
 	std::string homeRegion = "";
+	float seatTarget = 10000.0f; // By default target all seats
 	CountAsParty countAsParty = CountAsParty::None;
 	SupportsParty supportsParty = SupportsParty::None;
 	int ideology = 2; // 0 = strong left, 4 = strong right

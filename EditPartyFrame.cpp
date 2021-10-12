@@ -23,6 +23,7 @@ enum ControlId
 	Abbreviation,
 	OfficialShortCodes,
 	HomeRegion,
+	SeatTarget,
 	Colour,
 	Ideology,
 	Consistency,
@@ -49,6 +50,7 @@ void EditPartyFrame::createControls(int& y)
 	createAbbreviationInput(y);
 	createShortCodesInput(y);
 	createHomeRegionInput(y);
+	createSeatTargetInput(y);
 	createColourInput(y);
 	createIdeologyInput(y);
 	createConsistencyInput(y);
@@ -114,6 +116,15 @@ void EditPartyFrame::createHomeRegionInput(int& y)
 	auto homeRegionCallback = [this](std::string s) -> void {party.homeRegion = s; };
 	homeRegionInput.reset(new TextInput(this, ControlId::HomeRegion, "Home region:", party.homeRegion, wxPoint(2, y), homeRegionCallback));
 	y += homeRegionInput->Height + ControlPadding;
+}
+
+void EditPartyFrame::createSeatTargetInput(int& y)
+{
+	auto seatTargetCallback = [this](float f) -> void {party.seatTarget = f; };
+	auto seatTargetValidator = [](float f) {return std::clamp(f, 0.0f, 10000.0f); };
+	seatTargetInput.reset(new FloatInput(this, ControlId::SeatTarget, "Seat Target:", party.seatTarget,
+		wxPoint(2, y), seatTargetCallback, seatTargetValidator));
+	y += seatTargetInput->Height + ControlPadding;
 }
 
 void EditPartyFrame::createColourInput(int& y)
