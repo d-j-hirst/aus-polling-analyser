@@ -27,7 +27,8 @@
 // Version 20: Save term codes of previous elections for simulations
 // Version 21: Save alternate fp results for new seats
 // Version 22: Sophomore/retirement settings for seats
-constexpr int VersionNum = 22;
+// Version 23: Home regions for minor parties and emerging party home region modifiers
+constexpr int VersionNum = 23;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -86,6 +87,7 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 		saveOutput << thisParty.preferenceShare;
 		saveOutput << thisParty.exhaustRate;
 		saveOutput << thisParty.abbreviation;
+		saveOutput << thisParty.homeRegion;
 		saveOutput.outputAsType<int32_t>(thisParty.relationTarget);
 		saveOutput.outputAsType<int32_t>(thisParty.relationType);
 		saveOutput << thisParty.boothColourMult;
@@ -102,7 +104,7 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 	}
 }
 
-void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+void ProjectFiler::loadParties(SaveFileInput& saveInput, int versionNum)
 {
 	project.parties().setOthersPreferenceFlow(saveInput.extract<float>());
 	project.parties().setOthersExhaustRate(saveInput.extract<float>());
@@ -113,6 +115,9 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, [[maybe_unused]] int ve
 		saveInput >> thisParty.preferenceShare;
 		saveInput >> thisParty.exhaustRate;
 		saveInput >> thisParty.abbreviation;
+		if (versionNum >= 23) {
+			saveInput >> thisParty.homeRegion;
+		}
 		// Some legacy files may have a value of -1 which will cause problems for the simulation
 		// and edit-party function, so make sure it's brought up to zero.
 		thisParty.relationTarget = std::max(0, saveInput.extract<int32_t>());
@@ -265,7 +270,7 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 	}
 }
 
-StanModel::Series loadSeries(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+StanModel::Series loadSeries(SaveFileInput& saveInput, int versionNum)
 {
 	StanModel::Series thisSeries;
 	size_t numTimePoints = saveInput.extract<uint32_t>();
@@ -286,7 +291,7 @@ StanModel::Series loadSeries(SaveFileInput& saveInput, [[maybe_unused]] int vers
 	return thisSeries;
 }
 
-void ProjectFiler::loadModels(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+void ProjectFiler::loadModels(SaveFileInput& saveInput, int versionNum)
 {
 	auto modelCount = saveInput.extract<int32_t>();
 	for (int modelIndex = 0; modelIndex < modelCount; ++modelIndex) {
@@ -360,7 +365,7 @@ void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
 	}
 }
 
-void ProjectFiler::loadProjections(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+void ProjectFiler::loadProjections(SaveFileInput& saveInput, int versionNum)
 {
 	int projectionCount = saveInput.extract<int32_t>();
 	for (int projectionIndex = 0; projectionIndex < projectionCount; ++projectionIndex) {
@@ -407,10 +412,11 @@ void ProjectFiler::saveRegions(SaveFileOutput& saveOutput)
 		saveOutput << thisRegion.sample2pp;
 		saveOutput << thisRegion.swingDeviation;
 		saveOutput << thisRegion.additionalUncertainty;
+		saveOutput << thisRegion.homeRegionMod;
 	}
 }
 
-void ProjectFiler::loadRegions(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+void ProjectFiler::loadRegions(SaveFileInput& saveInput, int versionNum)
 {
 	auto regionCount = saveInput.extract<int32_t>();
 	for (int regionIndex = 0; regionIndex < regionCount; ++regionIndex) {
@@ -421,6 +427,9 @@ void ProjectFiler::loadRegions(SaveFileInput& saveInput, [[maybe_unused]] int ve
 		saveInput >> thisRegion.sample2pp;
 		saveInput >> thisRegion.swingDeviation;
 		saveInput >> thisRegion.additionalUncertainty;
+		if (versionNum >= 23) {
+			saveInput >> thisRegion.homeRegionMod;
+		}
 		project.regionCollection.add(thisRegion);
 	}
 }

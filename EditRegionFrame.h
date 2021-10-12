@@ -52,6 +52,7 @@ private:
 	void createLastElection2ppInput(int& y);
 	void createSample2pp(int& y);
 	void createAdditionalUncertainty(int& y);
+	void createHomeRegionMod(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -68,6 +69,7 @@ private:
 	std::unique_ptr<FloatInput> lastElection2ppInput;
 	std::unique_ptr<FloatInput> sample2ppInput;
 	std::unique_ptr<FloatInput> additionalUncertaintyInput;
+	std::unique_ptr<FloatInput> homeRegionModInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

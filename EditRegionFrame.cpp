@@ -14,7 +14,8 @@ enum ControlId
 	Population,
 	LastElection2pp,
 	Sample2pp,
-	AdditionalUncertainty
+	AdditionalUncertainty,
+	HomeRegionMod
 };
 
 EditRegionFrame::EditRegionFrame(Function function, OkCallback callback, Region region)
@@ -33,6 +34,7 @@ void EditRegionFrame::createControls(int & y)
 	createLastElection2ppInput(y);
 	createSample2pp(y);
 	createAdditionalUncertainty(y);
+	createHomeRegionMod(y);
 
 	createOkCancelButtons(y);
 }
@@ -78,6 +80,15 @@ void EditRegionFrame::createAdditionalUncertainty(int & y)
 	additionalUncertaintyInput.reset(new FloatInput(this, ControlId::AdditionalUncertainty, "Additional uncertainty:", region.additionalUncertainty,
 		wxPoint(2, y), additionalUncertaintyCallback, additionalUncertaintyValidator));
 	y += additionalUncertaintyInput->Height + ControlPadding;
+}
+
+void EditRegionFrame::createHomeRegionMod(int& y)
+{
+	auto homeRegionModCallback = [this](float f) -> void {region.homeRegionMod = f; };
+	auto homeRegionModValidator = [](float f) {return std::max(f, 0.0f); };
+	homeRegionModInput.reset(new FloatInput(this, ControlId::HomeRegionMod, "Home Region Modifier:", region.homeRegionMod,
+		wxPoint(2, y), homeRegionModCallback, homeRegionModValidator));
+	y += homeRegionModInput->Height + ControlPadding;
 }
 
 void EditRegionFrame::createOkCancelButtons(int & y)
