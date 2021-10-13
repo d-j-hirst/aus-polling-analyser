@@ -146,6 +146,7 @@ private:
 	std::map<Party::Id, float> previousPreferenceFlow;
 	std::map<Party::Id, float> overallPreferenceFlow;
 	std::map<Party::Id, int> homeRegion;
+	std::map<Party::Id, std::vector<bool>> seatContested;
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();

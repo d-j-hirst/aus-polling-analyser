@@ -39,14 +39,13 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 
 void SimulationIteration::runIteration()
 {
+	loadPastSeatResults();
 	initialiseIterationSpecificCounts();
 	determineOverallBehaviour();
 	determineHomeRegions();
 	// determinePpvcBias();
 	determineRegionalSwings();
 	determineMinorPartyContests();
-
-	loadPastSeatResults();
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatInitialResult(seatIndex);
 	}
@@ -189,8 +188,40 @@ void SimulationIteration::determineRegionalSwings()
 
 void SimulationIteration::determineMinorPartyContests()
 {
-	for (auto& [key, swing] : overallFp) {
-		if (key == 0 || key == 1 || key == OthersIndex || key == EmergingIndIndex) continue;
+	for (auto& [key, voteShare] : overallFp) {
+		if (!(key >= 2 || key == EmergingPartyIndex)) continue;
+		typedef std::pair<int, float> Priority;
+		std::vector<Priority> seatPriorities;
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			float seatMod = run.seatPopulistModifiers[seatIndex];
+			float priority = rng.flexibleDist(seatMod, seatMod * 0.2f, seatMod * 0.6f, 3.0f, 6.0f);
+			seatPriorities.push_back({ seatIndex, priority });
+			// Make sure this seat is able to be contested later on for this party
+			// This will insert zeroed results if there's 
+			pastSeatResults[seatPriorities[seatIndex].first].fpVotePercent.insert({ key, 0.0f });
+		}
+		std::sort(seatPriorities.begin(), seatPriorities.end(),
+			[](Priority const& a, Priority const& b) {return a.second > b.second; });
+		float estimatedSeats = 0.0f;
+		float totalSeats = float(project.seats().count());
+		if (key >= 0) {
+			estimatedSeats = std::clamp(project.parties().viewByIndex(key).seatTarget, 0.0f, totalSeats);
+		}
+		else if (key == -3) {
+			float HalfSeatsPrimary = 5.0f;
+			float seatProp = estimatedSeats = 1.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
+			estimatedSeats = totalSeats * seatProp;
+		}
+		else {
+			logger << "Error: tried to determine minor party contest rate for a party category that hasn't been accounted for";
+		}
+		float lowerRmse = estimatedSeats * 0.4f;
+		float upperRmse = (totalSeats - estimatedSeats) * 1.0f;
+		int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), estimatedSeats * 0.2f, totalSeats)));
+		seatContested[key] = std::vector<bool>(project.seats().count());
+		for (int seatPlace = 0; seatPlace < actualSeats; ++seatPlace) {
+			seatContested[key][seatPriorities[seatPlace].first] = true;
+		}
 	}
 }
 
@@ -352,6 +383,12 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	if (partyFp == 0.0f) {
 		voteShare = 0.0f;
 		return;
+	}
+	if (seatContested.contains(partyIndex)) {
+		if (!seatContested[partyIndex][seatIndex]) {
+			voteShare = 0.0f;
+			return;
+		}
 	}
 	float seatModifier = run.seatPopulistModifiers[seatIndex];
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
