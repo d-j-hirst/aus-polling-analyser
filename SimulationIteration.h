@@ -50,6 +50,7 @@ private:
 
 	void initialiseIterationSpecificCounts();
 	void determineOverallBehaviour();
+	void decideMinorPartyPopulism();
 	void determineHomeRegions();
 	void determinePpvcBias();
 	void determineRegionalSwings();
@@ -147,6 +148,7 @@ private:
 	std::map<Party::Id, float> overallPreferenceFlow;
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;
+	std::map<Party::Id, float> centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();

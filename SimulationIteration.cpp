@@ -42,6 +42,7 @@ void SimulationIteration::runIteration()
 	loadPastSeatResults();
 	initialiseIterationSpecificCounts();
 	determineOverallBehaviour();
+	decideMinorPartyPopulism();
 	determineHomeRegions();
 	// determinePpvcBias();
 	determineRegionalSwings();
@@ -143,6 +144,24 @@ void SimulationIteration::determineOverallBehaviour()
 	}
 }
 
+void SimulationIteration::decideMinorPartyPopulism()
+{
+	for (auto const& [partyIndex, voteShare] : overallFp) {
+		if (partyIndex == EmergingPartyIndex) {
+			centristPopulistFactor[partyIndex] = std::clamp(rng.uniform(-1.0f, 2.0f), 0.0f, 1.0f);
+			continue;
+		}
+		if (partyIndex <= 1) continue; // don't bother with major parties or micro/ind others
+		Party const& party = project.parties().viewByIndex(partyIndex);
+		if (party.ideology >= 3) { // center-right or strong right wing
+			centristPopulistFactor[partyIndex] = 1.0f;
+		}
+		else {
+			centristPopulistFactor[partyIndex] = 0.0f;
+		}
+	}
+}
+
 void SimulationIteration::determineHomeRegions()
 {
 	for (auto const& [id, party] : project.parties()) {
@@ -192,16 +211,15 @@ void SimulationIteration::determineMinorPartyContests()
 		if (!(key >= 2 || key == EmergingPartyIndex)) continue;
 		typedef std::pair<int, float> Priority;
 		std::vector<Priority> seatPriorities;
+		const float populism = centristPopulistFactor[key];
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			float seatMod = run.seatPopulistModifiers[seatIndex];
+			float seatMod = mix(run.seatCentristModifiers[seatIndex], run.seatPopulistModifiers[seatIndex], populism);
 			float priority = rng.flexibleDist(seatMod, seatMod * 0.2f, seatMod * 0.6f, 3.0f, 6.0f);
 			seatPriorities.push_back({ seatIndex, priority });
 			// Make sure this seat is able to be contested later on for this party
 			// This will insert zeroed results if there's 
 			pastSeatResults[seatPriorities[seatIndex].first].fpVotePercent.insert({ key, 0.0f });
 		}
-		std::sort(seatPriorities.begin(), seatPriorities.end(),
-			[](Priority const& a, Priority const& b) {return a.second > b.second; });
 		float estimatedSeats = 0.0f;
 		float totalSeats = float(project.seats().count());
 		if (key >= 0) {
@@ -219,6 +237,8 @@ void SimulationIteration::determineMinorPartyContests()
 		float upperRmse = (totalSeats - estimatedSeats) * 1.0f;
 		int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), estimatedSeats * 0.2f, totalSeats)));
 		seatContested[key] = std::vector<bool>(project.seats().count());
+		std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
+			[](Priority const& a, Priority const& b) {return a.second > b.second; });
 		for (int seatPlace = 0; seatPlace < actualSeats; ++seatPlace) {
 			seatContested[key][seatPriorities[seatPlace].first] = true;
 		}
@@ -390,18 +410,23 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 			return;
 		}
 	}
-	float seatModifier = run.seatPopulistModifiers[seatIndex];
+	float populism = centristPopulistFactor[partyIndex];
+	float seatModifier = mix(run.seatCentristModifiers[seatIndex], run.seatPopulistModifiers[seatIndex], populism);
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	int regionIndex = project.regions().idToIndex(seat.region);
-	if (homeRegion[partyIndex] == regionIndex) seatModifier += run.populistStatistics.homeStateCoefficient;
+	float homeStateCoefficient = mix(run.centristStatistics.homeStateCoefficient, run.populistStatistics.homeStateCoefficient, populism);
+	float lowerRmse = mix(run.centristStatistics.lowerRmse, run.populistStatistics.lowerRmse, populism);
+	float upperRmse = mix(run.centristStatistics.upperRmse, run.populistStatistics.upperRmse, populism);
+	float lowerKurtosis = mix(run.centristStatistics.lowerKurtosis, run.populistStatistics.lowerKurtosis, populism);
+	float upperKurtosis = mix(run.centristStatistics.upperKurtosis, run.populistStatistics.upperKurtosis, populism);
+	if (homeRegion[partyIndex] == regionIndex) seatModifier += homeStateCoefficient;
 	if (seatModifier == 0.0f) seatModifier = 1.0f;
 	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
 	float modifiedFp1 = predictorCorrectorTransformedSwing(partyFp, partyFp * (seatModifier - 1.0f));
 	float modifiedFp2 = partyFp * seatModifier;
 	float modifiedFp = std::min(modifiedFp1, modifiedFp2);
 	float transformedFp = transformVoteShare(modifiedFp);
-	transformedFp += rng.flexibleDist(0.0f, run.populistStatistics.lowerRmse, run.populistStatistics.upperRmse,
-		run.populistStatistics.lowerKurtosis, run.populistStatistics.upperKurtosis);
+	transformedFp += rng.flexibleDist(0.0f, lowerRmse, upperRmse, lowerKurtosis, upperKurtosis);
 	voteShare = detransformVoteShare(transformedFp);
 }
 
