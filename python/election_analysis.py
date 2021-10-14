@@ -641,6 +641,8 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
                 continue  # Clive Palmer standing, skews results
             if seat_name == 'Mirani' and test_year == 2020:
                 continue  # One Nation incumbent, skews results
+            if seat_name == 'Fraser' and test_year < 2018:
+                continue  # two federal Frasers, only use the latest one
             on_sum = sum([a.percent for a in seat_result.fp if a.party == test_party])
             avg_mult = avg_mult_seat[(test_region, seat_name)]
             if on_sum > 0:
@@ -730,12 +732,6 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
     home_state_coefficient = reg.coef_[3]
     vote_intercept = reg.intercept_
 
-    print(f'rural_coefficient: {rural_coefficient}')
-    print(f'provincial_coefficient: {provincial_coefficient}')
-    print(f'outer_metro_coefficient: {outer_metro_coefficient}')
-    print(f'qld_coefficient: {home_state_coefficient}')
-    print(f'vote_intercept: {vote_intercept}')
-
     for seat_id, type in seat_types.items():
         if seat_id not in avg_mult_seat:
             avg_mult_seat[seat_id] = vote_intercept
@@ -762,6 +758,202 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
             avg_mult_seat[key] -= home_state_coefficient
 
     filename = (f'./Seat Statistics/modifiers_populist.csv')
+    with open(filename, 'w') as f:
+        for key, value in avg_mult_seat.items():
+            f.write(f'{key[0]},{key[1]},{value:.4f}\n')
+
+
+def analyse_centrist_minors(elections, seat_types, seat_regions):
+    dem_results = {}
+    dem_election_votes = {}
+    dem_election_cands = {}
+    for election, results in elections.items():
+        region = election.region()
+        year = election.year()
+        if region not in dem_results:
+            dem_results[region] = {}
+        if (region, year) not in dem_election_votes:
+            dem_election_votes[(region, year)] = 0
+            dem_election_cands[(region, year)] = 0
+        for seat_result in results.seat_results:
+            for cand in [a for a in seat_result.fp if a.party == 'Democrats']:
+                on_percent = cand.percent
+                dem_election_votes[(region, year)] += cand.percent
+                dem_election_cands[(region, year)] += 1
+                if seat_result.name not in dem_results[election.region()]:
+                    dem_results[region][seat_result.name] = [(year, on_percent)]
+                else:
+                    dem_results[region][seat_result.name].append((year, on_percent))
+    dem_election_average = {}
+    for key, total in dem_election_votes.items():
+        if dem_election_cands[key] == 0:
+            continue
+        dem_election_average[key] = total / dem_election_cands[key]
+    
+    
+    avg_mult_seat = {}
+    for region_name, region_results in dem_results.items():
+        for seat_name, seat_results in region_results.items():
+            max_mult = 0
+            min_mult = 100
+            mult_sum = 0
+            mult_count = 0
+            for cand in seat_results:
+                if cand[0] > 2002:
+                    continue
+                mult = cand[1] / dem_election_average[region_name, cand[0]]
+                max_mult = max(max_mult, mult)
+                min_mult = min(min_mult, mult)
+                mult_sum += mult
+                mult_count += 1
+            if mult_count == 0:
+                continue
+            seat_id = (region_name, seat_name)
+            avg_mult_seat[seat_id] = mult_sum / mult_count
+
+    test_settings = [(1990, 'fed', 'Democrats'),
+                  (1993, 'fed', 'Democrats'),
+                  (1996, 'fed', 'Democrats'),
+                  (1998, 'fed', 'Democrats'),
+                  (2001, 'fed', 'Democrats')]
+    all_residuals = []
+    for test_setting in test_settings:
+        test_year = test_setting[0]
+        test_region = test_setting[1]
+        test_party = test_setting[2]
+    
+        test_election = elections[ElectionCode(test_year, test_region)]
+        avg_mults = []
+        vote_shares = []
+        seat_names = []
+        for seat_result in test_election.seat_results:
+            seat_name = seat_result.name
+            seat_id = (test_region, seat_name)
+            if seat_id not in avg_mult_seat:
+                continue
+            if seat_name == 'Fraser' and test_year < 2018:
+                continue  # two federal Frasers, only use the latest one
+            dem_sum = sum([a.percent for a in seat_result.fp if a.party == test_party])
+            avg_mult = avg_mult_seat[(test_region, seat_name)]
+            if dem_sum > 0:
+                avg_mults.append(avg_mult)
+                vote_shares.append(dem_sum)
+                seat_names.append(seat_name)
+
+        use_intercepts = False
+        
+        inputs_array = numpy.transpose(numpy.array([avg_mults]))
+        results_array = numpy.array(vote_shares)
+        reg = LinearRegression(fit_intercept=use_intercepts).fit(inputs_array, results_array)
+        coef = reg.coef_
+        intercept = reg.intercept_
+        residuals = [transform_vote_share(vote_shares[index]) -
+                    transform_vote_share(coef * avg_mults[index] + intercept)
+                    for index in range(0, len(vote_shares))]
+        all_residuals += residuals
+
+        median_error = statistics.median(residuals)
+        lower_errors = [a - median_error for a in residuals if a < median_error]
+        upper_errors = [a - median_error for a in residuals if a >= median_error]
+        lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                            / (len(lower_errors) - 1))
+        upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                            / (len(upper_errors) - 1))      
+        lower_kurtosis = one_tail_kurtosis(lower_errors)
+        upper_kurtosis = one_tail_kurtosis(upper_errors)
+    
+    median_error = statistics.median(all_residuals)
+    lower_errors = [a - median_error for a in all_residuals if a < median_error]
+    upper_errors = [a - median_error for a in all_residuals if a >= median_error]
+    lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
+                        / (len(lower_errors) - 1))
+    upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
+                        / (len(upper_errors) - 1))      
+    lower_kurtosis = one_tail_kurtosis(lower_errors)
+    upper_kurtosis = one_tail_kurtosis(upper_errors)
+
+    # re-do this with recent results
+    # and include seat characteristics for regressions
+    avg_mult_seat = {}
+    rural_seat = {}
+    provincial_seat = {}
+    outer_metro_seat = {}
+    home_state_seat = {}
+    for region_name, region_results in dem_results.items():
+        for seat_name, seat_results in region_results.items():
+            max_mult = 0
+            min_mult = 100
+            mult_sum = 0
+            mult_count = 0
+            for cand in seat_results:
+                if cand[0] > 2003 and cand[0] < 2017:
+                    continue
+                mult = cand[1] / dem_election_average[region_name, cand[0]]
+                max_mult = max(max_mult, mult)
+                min_mult = min(min_mult, mult)
+                mult_sum += mult
+                mult_count += 1
+                if cand[0] > 2016:  # weight recent years more
+                    mult_sum += mult
+                    mult_count += 1
+            if mult_count == 0:
+                continue
+            seat_id = (seat_name, region_name)
+            seat_type = seat_types.get((seat_name, region_name), -1)
+            # Conviently the home state of all right-populist parties is QLD
+            is_home_state = seat_regions.get((seat_name, region_name), '') == 'sa'
+            avg_mult_seat[seat_id] = mult_sum / mult_count
+            rural_seat[seat_id] = 1 if seat_type == 3 else 0
+            provincial_seat[seat_id] = 1 if seat_type == 2 else 0
+            outer_metro_seat[seat_id] = 1 if seat_type == 1 else 0
+            home_state_seat[seat_id] = 1 if is_home_state else 0
+    
+    avg_mult_list = [avg_mult_seat[key] for key in sorted(avg_mult_seat.keys())]
+    rural_list = [rural_seat[key] for key in sorted(avg_mult_seat.keys())]
+    provincial_list = [provincial_seat[key] for key in sorted(avg_mult_seat.keys())]
+    outer_metro_list = [outer_metro_seat[key] for key in sorted(avg_mult_seat.keys())]
+    home_state_list = [home_state_seat[key] for key in sorted(avg_mult_seat.keys())]
+    inputs_array = numpy.transpose(numpy.array([rural_list, provincial_list, outer_metro_list, home_state_list]))
+    results_array = numpy.array(avg_mult_list)
+    reg = LinearRegression().fit(inputs_array, results_array)
+    rural_coefficient = reg.coef_[0]
+    provincial_coefficient = reg.coef_[1]
+    outer_metro_coefficient = reg.coef_[2]
+    home_state_coefficient = reg.coef_[3]
+    vote_intercept = reg.intercept_
+
+    print(f'rural_coefficient: {rural_coefficient}')
+    print(f'provincial_coefficient: {provincial_coefficient}')
+    print(f'outer_metro_coefficient: {outer_metro_coefficient}')
+    print(f'home_state_coefficient: {home_state_coefficient}')
+    print(f'vote_intercept: {vote_intercept}')
+
+    for seat_id, type in seat_types.items():
+        if seat_id not in avg_mult_seat:
+            avg_mult_seat[seat_id] = vote_intercept
+            if type == 3:
+                avg_mult_seat[seat_id] += rural_coefficient
+            if type == 2:
+                avg_mult_seat[seat_id] += provincial_coefficient
+            if type == 1:
+                avg_mult_seat[seat_id] += outer_metro_coefficient
+
+    filename = (f'./Seat Statistics/statistics_centrist.csv')
+    with open(filename, 'w') as f:
+        f.write(f'{lower_rmse}\n')
+        f.write(f'{upper_rmse}\n')
+        f.write(f'{lower_kurtosis}\n')
+        f.write(f'{upper_kurtosis}\n')
+        f.write(f'{home_state_coefficient}\n')
+
+    # The home state coefficient gets automatically added to all
+    # seats in the main program, so remove it from the seats in
+    # that state to avoid double-counting it
+    for key in avg_mult_seat.keys():
+        if seat_regions.get((key[0], key[1]), '') == 'sa':
+            avg_mult_seat[key] -= home_state_coefficient
+
+    filename = (f'./Seat Statistics/modifiers_centrist.csv')
     with open(filename, 'w') as f:
         for key, value in avg_mult_seat.items():
             f.write(f'{key[0]},{key[1]},{value:.4f}\n')
@@ -996,5 +1188,6 @@ if __name__ == '__main__':
     analyse_existing_independents(elections)
     analyse_emerging_independents(elections, seat_types)
     analyse_populist_minors(elections, seat_types, seat_regions)
+    analyse_centrist_minors(elections, seat_types, seat_regions)
     analyse_others(elections)
     analyse_emerging_parties(elections)
