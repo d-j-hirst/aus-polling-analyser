@@ -42,6 +42,8 @@ void SimulationPreparation::prepareForIterations()
 	loadIndEmergence();
 	loadPopulistSeatStatistics();
 	loadPopulistSeatModifiers();
+	loadCentristSeatStatistics();
+	loadCentristSeatModifiers();
 	loadOthSeatStatistics();
 
 	loadPastSeatResults();
@@ -682,6 +684,41 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
 					run.seatPopulistModifiers[seatIndex] = std::stof(values[2]);
+				}
+			}
+		}
+	} while (true);
+}
+
+void SimulationPreparation::loadCentristSeatStatistics()
+{
+	std::string fileName = "python/Seat Statistics/statistics_centrist.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
+	run.centristStatistics.lowerRmse = extractNum();
+	run.centristStatistics.upperRmse = extractNum();
+	run.centristStatistics.lowerKurtosis = extractNum();
+	run.centristStatistics.upperKurtosis = extractNum();
+	run.centristStatistics.homeStateCoefficient = extractNum();
+}
+
+void SimulationPreparation::loadCentristSeatModifiers()
+{
+	run.seatCentristModifiers.resize(project.seats().count());
+	std::string fileName = "python/Seat Statistics/modifiers_centrist.csv";
+	std::string region = getRegionCode();
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values[1] == region) {
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
+					run.seatCentristModifiers[seatIndex] = std::stof(values[2]);
 				}
 			}
 		}

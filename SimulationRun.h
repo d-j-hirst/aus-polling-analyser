@@ -139,6 +139,7 @@ private:
 	std::vector<PastSeatResult> pastSeatResults;
 	std::vector<SeatType> seatTypes;
 	std::vector<float> seatPopulistModifiers;
+	std::vector<float> seatCentristModifiers;
 	std::vector<float> seatIncTppModifier;
 	std::map<Party::Id, float> previousFpVoteShare;
 
@@ -149,6 +150,7 @@ private:
 	SeatStatistics othSeatStatistics;
 	IndEmergence indEmergence;
 	PopulistStatistics populistStatistics;
+	PopulistStatistics centristStatistics;
 
 	int hungParliament = 0;
 };

@@ -52,6 +52,8 @@ private:
 	void loadIndEmergence();
 	void loadPopulistSeatStatistics();
 	void loadPopulistSeatModifiers();
+	void loadCentristSeatStatistics();
+	void loadCentristSeatModifiers();
 	void loadPreviousElectionBaselineVotes();
 
 	std::string getYearCode();
