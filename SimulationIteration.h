@@ -128,6 +128,8 @@ private:
 	// estimatedTotalOrdinaryVotes representing an estimate of the total ordinary vote count
 	float determineEnrolmentChange(Seat const & seat, int* estimatedTotalOrdinaryVotes);
 
+	float calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const;
+
 	PollingProject & project;
 	Simulation& sim;
 	SimulationRun& run;
@@ -149,6 +151,7 @@ private:
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;
 	std::map<Party::Id, float> centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
+	std::map<Party::Id, float> fpModificationAdjustment;
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();
