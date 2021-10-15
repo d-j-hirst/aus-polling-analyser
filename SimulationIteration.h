@@ -152,6 +152,7 @@ private:
 	std::map<Party::Id, std::vector<bool>> seatContested;
 	std::map<Party::Id, float> centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
 	std::map<Party::Id, float> fpModificationAdjustment;
+	std::map<Party::Id, float> tempOverallFp;
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();

@@ -159,7 +159,7 @@ private:
 	static std::mt19937 gen;
 
 	static constexpr int MaxDf = 100;
-	static constexpr int LookupSize = 1000000;
+	static constexpr int LookupSize = 500000;
 
 	static std::mutex tdistGeneralMutex;
 	static std::array<std::mutex, MaxDf + 1> tdistMutex;

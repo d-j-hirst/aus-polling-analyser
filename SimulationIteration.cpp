@@ -634,22 +634,35 @@ void SimulationIteration::calculateNewFpVoteTotals()
 {
 	// Vote shares in each seat are converted to equivalent previous-election vote totals to ensure that
 	// they reflect the turnout differences between seats (esp. Tasmanian seats)
-	//std::map<int, int> partyVoteCount;
-	//int totalVoteCount = 0;
-	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-	//	int seatVoteCount = 0;
-	//	for (auto [partyIndex, voteCount] : pastSeatResults[seatIndex].fpVoteCount) {
-	//		seatVoteCount += voteCount;
-	//	}
-	//	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
-	//		float voteCount = voteShare * float(seatVoteCount) * 0.01f;
-	//		totalVoteCount += voteCount;
-	//		partyVoteCount[partyIndex] += voteCount;
-	//	}
-	//}
-	//for (auto [partyIndex, voteCount] : partyVoteCount) {
-	//	overallFp[partyIndex] = float(voteCount) / float(totalVoteCount) * 100.0f;
-	//}
+	std::map<int, int> partyVoteCount;
+	int totalVoteCount = 0;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		int seatVoteCount = 0;
+		for (auto [partyIndex, voteCount] : pastSeatResults[seatIndex].fpVoteCount) {
+			seatVoteCount += voteCount;
+		}
+		for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+			float voteCount = voteShare * float(seatVoteCount) * 0.01f;
+			totalVoteCount += voteCount;
+			partyVoteCount[partyIndex] += voteCount;
+		}
+	}
+	for (auto [partyIndex, voteCount] : partyVoteCount) {
+		float fp = float(voteCount) / float(totalVoteCount) * 100.0f;
+		if (overallFp.contains(partyIndex)) {
+			tempOverallFp[partyIndex] = fp;
+		}
+		else if (tempOverallFp.contains(OthersIndex)) {
+			tempOverallFp[OthersIndex] += fp;
+		}
+		else {
+			tempOverallFp[OthersIndex] = fp;
+		}
+	}
+	for (auto [partyIndex, voteCount] : tempOverallFp) {
+		logger << partyIndex << " " << overallFp[partyIndex] << " - sample fp  " << voteCount << " - seat-simulation fp\n";
+	}
+	logger << "single simulation stats complete\n";
 }
 
 void SimulationIteration::adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex)
