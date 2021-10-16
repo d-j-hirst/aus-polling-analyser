@@ -51,8 +51,7 @@ void SimulationIteration::runIteration()
 		determineSeatInitialResult(seatIndex);
 	}
 
-	// TODO: Ensure primary vote totals match original sample proportions
-	calculateNewFpVoteTotals();
+	reconcileSeatAndOverallFp();
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatFinalResult(seatIndex);
@@ -630,6 +629,22 @@ void SimulationIteration::normaliseSeatFp(int seatIndex)
 	}
 }
 
+void SimulationIteration::reconcileSeatAndOverallFp()
+{
+	constexpr int NumReconciliationCycles = 5;
+	for (int i = 0; i < NumReconciliationCycles; ++i) {
+		calculateNewFpVoteTotals();
+		if (i == NumReconciliationCycles - 1) break;
+		applyCorrectionsToSeatFps();
+	}
+	//PA_LOG_VAR(overallFpError);
+	//PA_LOG_VAR(iterationOverallSwing);
+	//PA_LOG_VAR(overallFpSwing[0]);
+	//PA_LOG_VAR(overallFpSwing[1]);
+	//PA_LOG_VAR(overallFpError);
+	//PA_LOG_VAR(nonMajorFpError);
+}
+
 void SimulationIteration::calculateNewFpVoteTotals()
 {
 	// Vote shares in each seat are converted to equivalent previous-election vote totals to ensure that
@@ -659,10 +674,52 @@ void SimulationIteration::calculateNewFpVoteTotals()
 			tempOverallFp[OthersIndex] = fp;
 		}
 	}
+	overallFpError = 0.0f;
+	nonMajorFpError = 0.0f;
 	for (auto [partyIndex, voteCount] : tempOverallFp) {
-		logger << partyIndex << " " << overallFp[partyIndex] << " - sample fp  " << voteCount << " - seat-simulation fp\n";
+		float error = abs(overallFp[partyIndex] - voteCount);
+		overallFpError += error;
+		if (partyIndex && partyIndex != 1) nonMajorFpError += error;
+		//logger << partyIndex << " " << overallFp[partyIndex] << " - sample fp  " << voteCount << " - seat-simulation fp\n";
 	}
-	logger << "single simulation stats complete\n";
+	float tempMicroOthers = float(partyVoteCount[OthersIndex]) / float(totalVoteCount) * 100.0f;
+	float indOthers = tempOverallFp[OthersIndex] - tempMicroOthers;
+	othersCorrectionFactor = (overallFp[OthersIndex] - indOthers) / tempMicroOthers;
+}
+
+void SimulationIteration::applyCorrectionsToSeatFps()
+{
+	for (auto [partyIndex, vote] : tempOverallFp) {
+		if (partyIndex != OthersIndex) {
+			if (!tempOverallFp[partyIndex]) continue; // avoid division by zero when we have non-existent emerging others
+			float correctionFactor = overallFp[partyIndex] / tempOverallFp[partyIndex];
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
+					seatFpVoteShare[seatIndex][partyIndex] *= correctionFactor;
+				}
+			}
+		}
+		else {
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				float allocation = seatFpVoteShare[seatIndex][OthersIndex] * (othersCorrectionFactor - 1.0f);
+				FloatByPartyIndex categories;
+				float totalOthers = 0.0f;
+				for (auto [seatPartyIndex, seatPartyVote] : seatFpVoteShare[seatIndex]) {
+					if (seatPartyIndex == OthersIndex || !overallFp.contains(seatPartyIndex)) {
+						categories[seatPartyIndex] = seatPartyVote;
+						totalOthers += seatPartyVote;
+					}
+				}
+				if (!totalOthers) continue;
+				for (auto& [seatPartyIndex, voteShare] : categories) {
+					seatFpVoteShare[seatIndex][seatPartyIndex] += allocation * voteShare / totalOthers;
+				}
+			}
+		}
+	}
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		allocateMajorPartyFp(seatIndex);
+	}
 }
 
 void SimulationIteration::adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex)
@@ -747,7 +804,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// Very simple placeholder for now, will of course be more complex later.
-	// Just give the seat to the incumbent if it's already held by a major party and 2pp winner otherwise.
+	// Just give the seat to the incumbent if it's already held by a minor party and 2pp winner otherwise.
 	if (seat.incumbent > 1) {
 		seatWinner[seatIndex] = seat.incumbent;
 	}

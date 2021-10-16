@@ -69,7 +69,9 @@ private:
 	void determineSeatEmergingParties(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
 	void normaliseSeatFp(int seatIndex);
+	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals();
+	void applyCorrectionsToSeatFps();
 	void adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex);
 	void adjustClassicSeatResultForBettingOdds(int seatIndex, SeatResult result);
 	void determineNonClassicSeatResult(int seatIndex);
@@ -134,6 +136,8 @@ private:
 	Simulation& sim;
 	SimulationRun& run;
 
+	typedef std::map<Party::Id, float> FloatByPartyIndex;
+
 	// iteration-specific variables
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::vector<std::vector<int>> regionSeatCount;
@@ -141,18 +145,21 @@ private:
 	std::vector<float> regionSwing;
 	std::vector<float> incumbentNewMargin;
 	std::vector<Party::Id> seatWinner;
-	std::vector<std::map<Party::Id, float>> seatFpVoteShare;
+	std::vector<FloatByPartyIndex> seatFpVoteShare;
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
-	std::map<Party::Id, float> overallFp;
-	std::map<Party::Id, float> overallFpSwing;
-	std::map<Party::Id, float> previousPreferenceFlow;
-	std::map<Party::Id, float> overallPreferenceFlow;
+	FloatByPartyIndex overallFp;
+	FloatByPartyIndex overallFpSwing;
+	FloatByPartyIndex previousPreferenceFlow;
+	FloatByPartyIndex overallPreferenceFlow;
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;
-	std::map<Party::Id, float> centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
-	std::map<Party::Id, float> fpModificationAdjustment;
-	std::map<Party::Id, float> tempOverallFp;
+	FloatByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
+	FloatByPartyIndex fpModificationAdjustment;
+	FloatByPartyIndex tempOverallFp;
+	float overallFpError = 0.0f;
+	float nonMajorFpError = 0.0f;
+	float othersCorrectionFactor = 0.0f;
 	float ppvcBias = 0.0f;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();
