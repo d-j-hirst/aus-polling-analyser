@@ -545,6 +545,10 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 		}
 		results.prevOthers = std::max(2.0f, results.prevOthers);
+		for (auto& [party, voteCount] : results.fpVoteCount) {
+			results.turnoutCount += voteCount;
+		}
+		run.totalPreviousTurnout += results.turnoutCount;
 	}
 }
 

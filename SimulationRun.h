@@ -24,6 +24,7 @@ public:
 		std::map<int, float> fpVotePercent; // map from party index -> percentage
 		std::map<int, int> fpVoteCount; // map from party index -> number
 		std::map<int, float> tcpVote; // map from party index -> percentage
+		int turnoutCount;
 		float prevOthers = 0.0f; // Special variable for calculating emergence of independents
 	};
 
@@ -114,6 +115,7 @@ private:
 	float sampleRepresentativeness = 0.0f;
 	int total2cpVotes = 0;
 	int totalEnrolment = 0;
+	int totalPreviousTurnout = 0;
 
 	constexpr static int FpBucketCount = 100;
 

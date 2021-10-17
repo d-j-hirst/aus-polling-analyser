@@ -336,8 +336,20 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 void SimulationIteration::correctSeatSwings()
 {
 	// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
+	double totalSwing = 0.0;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
+		double turnoutScaledSwing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin) * turnout;
+		totalSwing += turnoutScaledSwing;
+	}
+	// Theoretically this could cause the margin to fall outside valid bounds, but
+	// practically it's not close to ever happening so save a little computation time
+	// not bothering to check
+	double averageSwing = totalSwing / double(run.totalPreviousTurnout);
+	float swingAdjust = iterationOverallSwing - float(averageSwing);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		partyOneNewTppMargin[seatIndex] += swingAdjust;
 	}
 }
 
@@ -509,9 +521,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// except when it's a LNP-incumbent classic 2pp seat,
 	// in which case reverse it
 	float partyOneCurrentTpp = 0.0f;
-	if (seat.incumbent == 1 && seat.challenger == 0) partyOneCurrentTpp = 50.0f - partyOneNewTppMargin[seatIndex];
-	else if (seat.incumbent == 0 && seat.challenger == 1) partyOneCurrentTpp = 50.0f + partyOneNewTppMargin[seatIndex];
-	else partyOneCurrentTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
+	partyOneCurrentTpp = 50.0f + partyOneNewTppMargin[seatIndex];
 	float partyTwoCurrentTpp = 100.0f - partyOneCurrentTpp;
 
 	constexpr float DefaultPartyTwoPrimary = 15.0f;
@@ -646,7 +656,6 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 		if (i == NumReconciliationCycles - 1) break;
 		applyCorrectionsToSeatFps();
 	}
-	//PA_LOG_VAR(overallFpError);
 	//PA_LOG_VAR(iterationOverallSwing);
 	//PA_LOG_VAR(overallFpSwing[0]);
 	//PA_LOG_VAR(overallFpSwing[1]);
@@ -689,7 +698,6 @@ void SimulationIteration::calculateNewFpVoteTotals()
 		float error = abs(overallFp[partyIndex] - voteCount);
 		overallFpError += error;
 		if (partyIndex && partyIndex != 1) nonMajorFpError += error;
-		//logger << partyIndex << " " << overallFp[partyIndex] << " - sample fp  " << voteCount << " - seat-simulation fp\n";
 	}
 	float tempMicroOthers = float(partyVoteCount[OthersIndex]) / float(totalVoteCount) * 100.0f;
 	float indOthers = tempOverallFp[OthersIndex] - tempMicroOthers;
