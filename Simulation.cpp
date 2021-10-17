@@ -136,15 +136,9 @@ float Simulation::Report::getOthersWinFrequency(int seatIndex) const
 	return othersWinFrequency[seatIndex];
 }
 
-float Simulation::Report::getIncumbentWinPercent(int seatIndex) const
-{
-	return incumbentWinPercent[seatIndex];
-}
-
 float Simulation::Report::getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const {
-	return (seatIncumbents[classicSeatIndices[classicSeatIndex]] == partyIndex ?
-		incumbentWinPercent[classicSeatIndices[classicSeatIndex]] :
-		100.0f - incumbentWinPercent[classicSeatIndices[classicSeatIndex]]);
+	return (partyIndex ? 100.0f - partyOneWinPercent[classicSeatIndices[classicSeatIndex]] :
+		partyOneWinPercent[classicSeatIndices[classicSeatIndex]]);
 }
 
 int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) const
@@ -284,8 +278,8 @@ float Simulation::Report::get2ppSampleMedian() const
 
 int Simulation::Report::getOthersLeading(int regionIndex) const
 {
-	if (regionPartyLeading[regionIndex].size() < 3) return 0;
-	return std::accumulate(regionPartyLeading[regionIndex].begin() + 2, regionPartyLeading[regionIndex].end(), 0);
+	if (regionPartyIncuments[regionIndex].size() < 3) return 0;
+	return std::accumulate(regionPartyIncuments[regionIndex].begin() + 2, regionPartyIncuments[regionIndex].end(), 0);
 }
 
 std::string Simulation::textReport(ProjectionCollection const& projections) const

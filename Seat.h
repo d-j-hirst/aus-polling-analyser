@@ -37,8 +37,8 @@ public:
 	Party::Id challenger2 = Party::InvalidId;
 	Region::Id region = Region::InvalidId;
 
-	// Margin by which the incumbent holds the seat (and hence the swing required for it to fall).
-	float margin = 0.0f;
+	// Margin by which Party One is favoured on TPP.
+	float tppMargin = 0.0f;
 
 	// Local modifier to the 2pp vote (towards the incumbent).
 	float localModifier = 0.0f;
@@ -67,7 +67,7 @@ public:
 
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
-			return (margin > 0.0f ? incumbent : challenger);
+			return (tppMargin > 0.0f ? 0 : 1);
 		}
 		else {
 			return incumbent;
@@ -133,7 +133,7 @@ public:
 		report << " Challenger Party: " << parties.view(challenger).name << "\n";
 		if (challenger2 != Party::InvalidId) report << " Challenger Party 2: " << parties.view(challenger2).name << "\n";
 		report << " Last election 2pp: " << regions.view(region).name << "\n";
-		report << " Margin: " << margin << "\n";
+		report << " Margin: " << tppMargin << "\n";
 		report << " Local Modifier: " << localModifier << "\n";
 		report << " Incumbent Betting Odds: " << incumbentOdds << "\n";
 		report << " Challenger Betting Odds: " << challengerOdds << "\n";

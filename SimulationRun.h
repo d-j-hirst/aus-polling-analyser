@@ -119,8 +119,7 @@ private:
 
 	std::array<int, 2> partyMajority = std::array<int, 2>();
 	std::array<int, 2> partyMinority = std::array<int, 2>();
-	std::vector<double> seatIncumbentMarginAverage;
-	std::vector<double> incumbentWinPercent;
+	std::vector<double> seatPartyOneMarginSum;
 	std::vector<double> partyOneWinPercent;
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
@@ -140,7 +139,7 @@ private:
 	std::vector<SeatType> seatTypes;
 	std::vector<float> seatPopulistModifiers;
 	std::vector<float> seatCentristModifiers;
-	std::vector<float> seatIncTppModifier;
+	std::vector<float> seatPartyOneTppModifier;
 	std::map<Party::Id, float> previousFpVoteShare;
 
 	std::vector<float> regionLocalModifierAverage;

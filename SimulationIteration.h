@@ -59,7 +59,8 @@ private:
 	void determineBaseRegionalSwing(int regionIndex);
 	void modifyLiveRegionalSwing(int regionIndex);
 	void correctRegionalSwings();
-	void determineSeatInitialResult(int seatIndex);
+	void determineSeatInitialResults();
+	void correctSeatSwings();
 	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
 	void determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics);
@@ -143,7 +144,7 @@ private:
 	std::vector<std::vector<int>> regionSeatCount;
 	std::vector<int> partyWins;
 	std::vector<float> regionSwing;
-	std::vector<float> incumbentNewMargin;
+	std::vector<float> partyOneNewTppMargin;
 	std::vector<Party::Id> seatWinner;
 	std::vector<FloatByPartyIndex> seatFpVoteShare;
 	float iterationOverallTpp = 0.0f;

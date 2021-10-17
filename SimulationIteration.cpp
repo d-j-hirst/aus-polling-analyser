@@ -47,9 +47,7 @@ void SimulationIteration::runIteration()
 	// determinePpvcBias();
 	determineRegionalSwings();
 	determineMinorPartyContests();
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		determineSeatInitialResult(seatIndex);
-	}
+	determineSeatInitialResults();
 
 	reconcileSeatAndOverallFp();
 
@@ -71,7 +69,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	regionSeatCount = std::vector<std::vector<int>>(project.parties().count(), std::vector<int>(project.regions().count()));
 
 	partyWins = std::vector<int>(project.parties().count());
-	incumbentNewMargin = std::vector<float>(project.seats().count(), 0.0f);
+	partyOneNewTppMargin = std::vector<float>(project.seats().count(), 0.0f);
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
 }
 
@@ -309,27 +307,38 @@ void SimulationIteration::correctRegionalSwings()
 	}
 }
 
-void SimulationIteration::determineSeatInitialResult(int seatIndex)
+void SimulationIteration::determineSeatInitialResults()
 {
-	determineSeatTpp(seatIndex);
-	determineSeatInitialFp(seatIndex);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		determineSeatTpp(seatIndex);
+	}
+	correctSeatSwings();
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		determineSeatInitialFp(seatIndex);
+	}
 }
 
 void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	bool incIsOne = seat.incumbent != 1 || seat.challenger != 0; // stores whether the incumbent is Party One
-										 // Add or subtract the simulation regional deviation depending on which party is incumbent
-	float newMargin = seat.margin + regionSwing[project.regions().idToIndex(seat.region)] * (incIsOne ? 1.0f : -1.0f);
-	// Add modifiers for known local effects (these are measured as positive if favouring the incumbent)
-	newMargin += run.seatIncTppModifier[seatIndex];
+	float newMargin = seat.tppMargin + regionSwing[project.regions().idToIndex(seat.region)];
+	// Add modifiers for known local effects
+	newMargin += run.seatPartyOneTppModifier[seatIndex];
 	// Remove the average local modifier across the region
-	newMargin -= run.regionLocalModifierAverage[seat.region] * (incIsOne ? 1.0f : -1.0f);
+	newMargin -= run.regionLocalModifierAverage[seat.region];
 	// Add random noise to the new margin of this seat
 	newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
 
 	// Margin for this simulation is finalised, record it for later averaging
-	incumbentNewMargin[seatIndex] = newMargin;
+	partyOneNewTppMargin[seatIndex] = newMargin;
+}
+
+void SimulationIteration::correctSeatSwings()
+{
+	// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+
+	}
 }
 
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
@@ -500,9 +509,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// except when it's a LNP-incumbent classic 2pp seat,
 	// in which case reverse it
 	float partyOneCurrentTpp = 0.0f;
-	if (seat.incumbent == 1 && seat.challenger == 0) partyOneCurrentTpp = 50.0f - incumbentNewMargin[seatIndex];
-	else if (seat.incumbent == 0 && seat.challenger == 1) partyOneCurrentTpp = 50.0f + incumbentNewMargin[seatIndex];
-	else partyOneCurrentTpp = incumbentNewMargin[seatIndex] + 50.0f;
+	if (seat.incumbent == 1 && seat.challenger == 0) partyOneCurrentTpp = 50.0f - partyOneNewTppMargin[seatIndex];
+	else if (seat.incumbent == 0 && seat.challenger == 1) partyOneCurrentTpp = 50.0f + partyOneNewTppMargin[seatIndex];
+	else partyOneCurrentTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
 	float partyTwoCurrentTpp = 100.0f - partyOneCurrentTpp;
 
 	constexpr float DefaultPartyTwoPrimary = 15.0f;
@@ -518,14 +527,14 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	}
 	else if (seat.isClassic2pp()) {
 		if (seat.incumbent == 0) {
-			previousPartyOneTpp = 50.0f + seat.margin;
+			previousPartyOneTpp = 50.0f + seat.tppMargin;
 		}
 		else {
-			previousPartyOneTpp = 50.0f - seat.margin;
+			previousPartyOneTpp = 50.0f - seat.tppMargin;
 		}
 	}
 	else {
-		previousPartyOneTpp = 50.0f + seat.margin;
+		previousPartyOneTpp = 50.0f + seat.tppMargin;
 	}
 
 	float pastElectionPartyOnePrefEstimate = 0.0f;
@@ -808,24 +817,20 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (seat.incumbent > 1) {
 		seatWinner[seatIndex] = seat.incumbent;
 	}
-	else if (incumbentNewMargin[seatIndex] >= 0.0f) {
-		seatWinner[seatIndex] = seat.incumbent;
+	else if (partyOneNewTppMargin[seatIndex] >= 0.0f) {
+		seatWinner[seatIndex] = 0;
 	}
 	else {
-		seatWinner[seatIndex] = 1 - seat.incumbent;
+		seatWinner[seatIndex] = 1;
 	}
 }
 
 void SimulationIteration::recordSeatResult(int seatIndex)
 {
-	Seat& seat = project.seats().access(project.seats().indexToId(seatIndex));
-
-	run.incumbentWinPercent[seatIndex] += seatWinner[seatIndex] == seat.incumbent ? 1.0 : 0.0;
+	run.seatPartyOneMarginSum[seatIndex] += partyOneNewTppMargin[seatIndex];
 	if (seatWinner[seatIndex] == 0) ++run.partyOneWinPercent[seatIndex];
 	else if (seatWinner[seatIndex] == 1) ++run.partyTwoWinPercent[seatIndex];
 	else ++run.othersWinPercent[seatIndex];
-
-	run.seatIncumbentMarginAverage[seatIndex] += incumbentNewMargin[seatIndex];
 }
 
 void SimulationIteration::assignDirectWins()
@@ -1025,7 +1030,7 @@ SimulationIteration::SeatResult SimulationIteration::calculateLiveAutomaticResul
 SimulationIteration::SeatResult SimulationIteration::calculateLiveManualResultMatched2cp(int seatIndex, float priorMargin)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	float liveMargin = run.seatToOutcome[seatIndex]->incumbentSwing + seat.margin;
+	float liveMargin = run.seatToOutcome[seatIndex]->incumbentSwing + seat.tppMargin;
 	float liveStdDev = stdDevSingleSeat(run.seatToOutcome[seatIndex]->getPercentCountedEstimate());
 	liveMargin += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 	float priorWeight = 0.5f;
@@ -1050,7 +1055,7 @@ float SimulationIteration::calculateSeatRemainingSwing(Seat const& seat, float p
 	//liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 	//float priorWeight = 0.5f;
 	//float liveWeight = 6.0f / (liveStdDev * liveStdDev);
-	//float priorSwing = (incumbentFirst ? 1.0f : -1.0f) * (priorMargin - seat.margin);
+	//float priorSwing = (incumbentFirst ? 1.0f : -1.0f) * (priorMargin - seat.tppMargin);
 	//float remainingVoteSwing = (priorSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 	//return remainingVoteSwing;
 }
@@ -1320,9 +1325,9 @@ SimulationIteration::TcpTally SimulationIteration::estimatePostalVotes(Seat cons
 SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClassic2CP(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	return { seat.incumbent, seat.challenger, seat.margin, 0.0f }; // remove this line (NOT the above one) when restoring live results
+	return { seat.incumbent, seat.challenger, seat.tppMargin, 0.0f }; // remove this line (NOT the above one) when restoring live results
 	//if (sim.isLiveAutomatic() && seatPartiesMatchBetweenElections(seat)) {
-	//	return calculateResultMatched2cp(seatIndex, seat.margin);
+	//	return calculateResultMatched2cp(seatIndex, seat.tppMargin);
 	//}
 	//else if (sim.isLiveAutomatic() && seat.latestResults && seat.latestResults->total2cpVotes()) {
 	//	return calculateResultUnmatched2cp(seatIndex);
@@ -1331,7 +1336,7 @@ SimulationIteration::SeatResult SimulationIteration::calculateLiveResultNonClass
 	//	return calculateLiveResultFromFirstPreferences(seat);
 	//}
 	//else {
-	//	return { seat.incumbent, seat.challenger, seat.margin, 0.0f };
+	//	return { seat.incumbent, seat.challenger, seat.tppMargin, 0.0f };
 	//}
 }
 

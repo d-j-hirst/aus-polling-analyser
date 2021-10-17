@@ -240,7 +240,7 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	data.push_back(wxVariant(project->parties().view(seat.incumbent).name));
 	data.push_back(wxVariant(project->parties().view(seat.challenger).name));
 	data.push_back(wxVariant(project->regions().view(seat.region).name));
-	data.push_back(wxVariant(formatFloat(seat.margin, 2)));
+	data.push_back(wxVariant(formatFloat(seat.tppMargin, 2)));
 	data.push_back(wxVariant(formatFloat(seat.localModifier, 2)));
 	data.push_back(wxVariant(formatFloat(seat.incumbentOdds, 3)));
 	data.push_back(wxVariant(formatFloat(seat.challengerOdds, 3)));

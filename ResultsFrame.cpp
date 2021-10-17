@@ -281,13 +281,14 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 	if (filter == Filter::LatestResults) return true;
 
 	float significance = 0.0f;
-	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(seat.margin))));
+	significance += std::max(0.0f, 3.0f / (1.0f + std::max(2.0f, abs(seat.tppMargin))));
 	auto const* report = latestReport();
-	if (report && report->seatIncumbentMarginAverage.size()) {
-		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+	if (report && report->seatPartyOneMarginAverage.size()) {
+		double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
 		significance += std::max(0.0f, 10.0f / (1.0f + std::max(1.0f, abs(float(simulatedMarginAverage)))));
-		// automatically treat seats changing hands as significant
-		if (simulatedMarginAverage < 0.0f) significance += 5.0f;
+		// automatically treat seats expected to change hands as significant
+		// this can be detected by the simulated tpp average and previous margin having opposite signs
+		if (simulatedMarginAverage * seat.tppMargin < 0.0f) significance += 5.0f;
 	}
 
 	if (filter == Filter::SignificantResults) return significance > 1.5f;
@@ -315,22 +316,26 @@ wxColour ResultsFrame::decidePercentCountedColour(Outcome const & thisResult)
 
 std::string ResultsFrame::decideProjectedMarginString(Outcome const& thisResult)
 {
+	// *** Currently messed up because of changing margins from incumbent-relative to party-one-relative
+	//     Fix later once reporting of non-classic results is properly sorted
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinPercent.size()) return "";
-	double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+	if (!report || !report->seatPartyOneMarginAverage.size()) return "";
+	double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
 	Seat const& seat = project->seats().view(thisResult.seat);
-	float projectedSwing = simulatedMarginAverage - seat.margin;
+	float projectedSwing = simulatedMarginAverage - seat.tppMargin;
 	return formatFloat(simulatedMarginAverage, 2) + " (" +
 		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
 }
 
 wxColour ResultsFrame::decideProjectedMarginColour(Outcome const& thisResult)
 {
+	// *** Currently messed up because of changing margins from incumbent-relative to party-one-relative
+	//     Fix later once reporting of non-classic results is properly sorted
 	auto const* report = latestReport();
 	if (report) {
-		double simulatedMarginAverage = report->seatIncumbentMarginAverage[thisResult.seat];
+		double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
 		float margin = abs(simulatedMarginAverage);
-		float marginSignificance = (margin ? 1.0f / (1.0f + abs(simulatedMarginAverage)) : 0.0f);
+		float marginSignificance = (margin ? 1.0f / (1.0f + margin) : 0.0f);
 		wxColour projectedMarginColour = wxColour(int(255.f), int(255.f - marginSignificance * 255.f), int(255.f - marginSignificance * 255.f));
 		return projectedMarginColour;
 	}

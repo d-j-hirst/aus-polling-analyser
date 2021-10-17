@@ -88,8 +88,7 @@ void SimulationPreparation::resetRegionSpecificOutput()
 
 void SimulationPreparation::resetSeatSpecificOutput()
 {
-	run.seatIncumbentMarginAverage.resize(project.seats().count(), 0.0);
-	run.incumbentWinPercent.resize(project.seats().count(), 0.0f);
+	run.seatPartyOneMarginSum.resize(project.seats().count(), 0.0);
 	run.partyOneWinPercent.resize(project.seats().count(), 0.0);
 	run.partyTwoWinPercent.resize(project.seats().count(), 0.0);
 	run.othersWinPercent.resize(project.seats().count(), 0.0);
@@ -106,21 +105,22 @@ void SimulationPreparation::resetSeatSpecificOutput()
 
 void SimulationPreparation::determineEffectiveSeatModifiers()
 {
-	run.seatIncTppModifier.resize(project.seats().count(), 0.0f);
+	run.seatPartyOneTppModifier.resize(project.seats().count(), 0.0f);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		bool majorParty = (seat.incumbent <= 1);
 		if (!majorParty) continue;
+		float direction = (seat.incumbent ? -1.0f : 1.0f);
 		if (seat.sophomoreCandidate) {
-			run.seatIncTppModifier[seatIndex] += 0.5f;
+			run.seatPartyOneTppModifier[seatIndex] += 0.5f * direction;
 			typedef SimulationRun::SeatType ST;
 			auto type = run.seatTypes[seatIndex];
 			if (type == ST::Provincial || type == ST::Rural) {
-				run.seatIncTppModifier[seatIndex] += 0.9f;
+				run.seatPartyOneTppModifier[seatIndex] += 0.9f * direction;
 			}
 		}
-		if (seat.sophomoreParty) run.seatIncTppModifier[seatIndex] += 0.8f;
-		if (seat.retirement) run.seatIncTppModifier[seatIndex] -= 1.0f;
+		if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += 0.8f * direction;
+		if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] -= 1.0f * direction;
 	}
 }
 
@@ -128,9 +128,7 @@ void SimulationPreparation::accumulateRegionStaticInfo()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		// Takes into account non-classic seats, where the margin given is the ALP TPP margin
-		bool isPartyOne = (seat.incumbent != 1 || seat.challenger != 0);
-		run.regionLocalModifierAverage[seat.region] += run.seatIncTppModifier[seatIndex] * (isPartyOne ? 1.0f : -1.0f);
+		run.regionLocalModifierAverage[seat.region] += run.seatPartyOneTppModifier[seatIndex];
 		++regionSeatCount[seat.region];
 	}
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
@@ -202,9 +200,9 @@ void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
 
 void SimulationPreparation::resizeRegionSeatCountOutputs()
 {
-	sim.latestReport.regionPartyLeading.resize(project.regions().count());
+	sim.latestReport.regionPartyIncuments.resize(project.regions().count());
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		sim.latestReport.regionPartyLeading[regionIndex].resize(project.parties().count());
+		sim.latestReport.regionPartyIncuments[regionIndex].resize(project.parties().count());
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			run.regionPartyWins[regionIndex][partyIndex] = std::vector<int>(regionSeatCount[regionIndex] + 1);
 		}
@@ -214,7 +212,7 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		++sim.latestReport.regionPartyLeading[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
+		++sim.latestReport.regionPartyIncuments[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
 	}
 }
 

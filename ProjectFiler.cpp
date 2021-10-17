@@ -29,7 +29,8 @@
 // Version 22: Sophomore/retirement settings for seats
 // Version 23: Save home regions for minor parties and emerging party home region modifiers
 // Version 24: Save minor party seat targets
-constexpr int VersionNum = 24;
+// Version 25: Remove incumbent-relative margins and stats
+constexpr int VersionNum = 25;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -450,7 +451,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger));
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger2));
 		saveOutput.outputAsType<int32_t>(project.regions().idToIndex(thisSeat.region));
-		saveOutput << thisSeat.margin;
+		saveOutput << thisSeat.tppMargin;
 		saveOutput << thisSeat.localModifier;
 		saveOutput << thisSeat.incumbentOdds;
 		saveOutput << thisSeat.challengerOdds;
@@ -484,7 +485,7 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		thisSeat.challenger = saveInput.extract<int32_t>();
 		thisSeat.challenger2 = saveInput.extract<int32_t>();
 		thisSeat.region = saveInput.extract<int32_t>();
-		saveInput >> thisSeat.margin;
+		saveInput >> thisSeat.tppMargin;
 		saveInput >> thisSeat.localModifier;
 		saveInput >> thisSeat.incumbentOdds;
 		saveInput >> thisSeat.challengerOdds;
@@ -528,14 +529,13 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.seatName;
 	saveOutput << report.seatIncumbents;
 	saveOutput << report.seatMargins;
-	saveOutput << report.incumbentWinPercent;
-	saveOutput << report.seatIncumbentMarginAverage;
+	saveOutput << report.seatPartyOneMarginAverage;
 	saveOutput << report.partyOneWinPercent;
 	saveOutput << report.partyTwoWinPercent;
 	saveOutput << report.othersWinPercent;
 	saveOutput << report.seatPartyWinPercent;
 	saveOutput << report.classicSeatIndices;
-	saveOutput << report.regionPartyLeading;
+	saveOutput << report.regionPartyIncuments;
 	saveOutput << report.prevElection2pp;
 	saveOutput << report.partyPrimaryFrequency;
 	saveOutput << report.tppFrequency;
@@ -565,16 +565,34 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.seatName;
 	saveInput >> report.seatIncumbents;
 	saveInput >> report.seatMargins;
-	saveInput >> report.incumbentWinPercent;
+	if (versionNum <= 24) {
+		std::vector<float> tempObj; // dummy variable for "incumbentWinPercent" no longer used
+		saveInput >> tempObj;
+	}
 	if (versionNum >= 19) {
-		saveInput >> report.seatIncumbentMarginAverage;
+		saveInput >> report.seatPartyOneMarginAverage;
+		if (versionNum <= 24) {
+			// Convert old "incumbentMarginAverage" into party one margin average
+			for (int seatIndex = 0; seatIndex < int(report.seatPartyOneMarginAverage.size()); ++seatIndex) {
+				if (report.seatIncumbents[seatIndex] == 1) {
+					report.seatPartyOneMarginAverage[seatIndex] = -report.seatPartyOneMarginAverage[seatIndex];
+				}
+			}
+		}
 		saveInput >> report.partyOneWinPercent;
 		saveInput >> report.partyTwoWinPercent;
 		saveInput >> report.othersWinPercent;
 		saveInput >> report.seatPartyWinPercent;
 	}
+	else {
+		report.seatPartyOneMarginAverage.resize(report.seatName.size());
+		report.partyOneWinPercent.resize(report.seatName.size());
+		report.partyTwoWinPercent.resize(report.seatName.size());
+		report.othersWinPercent.resize(report.seatName.size());
+		report.seatPartyWinPercent.resize(report.seatName.size());
+	}
 	saveInput >> report.classicSeatIndices;
-	saveInput >> report.regionPartyLeading;
+	saveInput >> report.regionPartyIncuments;
 	saveInput >> report.prevElection2pp;
 	if (versionNum >= 18) {
 		saveInput >> report.partyPrimaryFrequency;
