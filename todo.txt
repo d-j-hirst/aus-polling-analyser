@@ -1,8 +1,6 @@
 Polling Analyser to-do:
 -More sophisticated handling of non-classic and potentially non-classic seats
- -region/seat fp reconciliation
  -calculation of eventual winner from fp results
-  -re-adjust to add to 100%
   -calculate a result using preference distributions w/ some assumptions for unknowns
    -we already have something like this	-exit out early if a classic 2pp is guaranteed to avoid unnecessary calculations
  -Keep track of simulated recontest-only stats for independents and minors that may not recontest
@@ -10,7 +8,9 @@ Polling Analyser to-do:
  -Tidy up code from this part of the project
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
  -Also check distribution of seat TPP swings
+-Investigate different recontest rates for incumbent independents
 -(Make any further adjustments to existing analysis processes)
+- *** ANALYSIS PHASE COMPLETE ***
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
 -Setup basic framework for frontend, including getting some data from the backend and displaying it
 -Work step by step to add more data flow from the authorised user and displaying it

@@ -60,7 +60,7 @@ private:
 	void modifyLiveRegionalSwing(int regionIndex);
 	void correctRegionalSwings();
 	void determineSeatInitialResults();
-	void correctSeatSwings();
+	void correctSeatTppSwings();
 	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
 	void determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics);
@@ -72,7 +72,9 @@ private:
 	void normaliseSeatFp(int seatIndex);
 	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals();
+	void calculatePreferenceCorrections();
 	void applyCorrectionsToSeatFps();
+	void correctMajorPartyFpBias();
 	void adjustClassicSeatResultFor3rdPlaceIndependent(int seatIndex);
 	void adjustClassicSeatResultForBettingOdds(int seatIndex, SeatResult result);
 	void determineNonClassicSeatResult(int seatIndex);
@@ -158,6 +160,7 @@ private:
 	FloatByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
 	FloatByPartyIndex fpModificationAdjustment;
 	FloatByPartyIndex tempOverallFp;
+	float prefCorrection = 0.0f;
 	float overallFpError = 0.0f;
 	float nonMajorFpError = 0.0f;
 	float othersCorrectionFactor = 0.0f;

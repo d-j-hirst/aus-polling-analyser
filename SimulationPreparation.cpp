@@ -550,6 +550,7 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 		run.totalPreviousTurnout += results.turnoutCount;
 	}
+	PA_LOG_VAR(run.pastSeatResults[12].fpVotePercent);
 }
 
 void SimulationPreparation::loadSeatTypes()

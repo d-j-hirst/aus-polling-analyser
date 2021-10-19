@@ -228,7 +228,7 @@ void SimulationIteration::determineMinorPartyContests()
 			estimatedSeats = std::clamp(project.parties().viewByIndex(partyIndex).seatTarget * seatProp, 0.0f, totalSeats);
 		}
 		else if (partyIndex == -3) {
-			float HalfSeatsPrimary = 5.0f;
+			float HalfSeatsPrimary = 4.0f;
 			float seatProp = 1.0f - 1.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
 			estimatedSeats = totalSeats * seatProp;
 		}
@@ -237,7 +237,7 @@ void SimulationIteration::determineMinorPartyContests()
 		}
 		float lowerRmse = estimatedSeats * 0.25f;
 		float upperRmse = (totalSeats - estimatedSeats) * 1.0f;
-		int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), estimatedSeats * 0.2f, totalSeats)));
+		int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), std::max(7.0f, estimatedSeats * 0.4f), totalSeats)));
 		std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
 			[](Priority const& a, Priority const& b) {return a.second > b.second; });
 
@@ -312,7 +312,7 @@ void SimulationIteration::determineSeatInitialResults()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatTpp(seatIndex);
 	}
-	correctSeatSwings();
+	correctSeatTppSwings();
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatInitialFp(seatIndex);
 	}
@@ -333,7 +333,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	partyOneNewTppMargin[seatIndex] = newMargin;
 }
 
-void SimulationIteration::correctSeatSwings()
+void SimulationIteration::correctSeatTppSwings()
 {
 	// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
 	double totalSwing = 0.0;
@@ -568,22 +568,24 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		}
 	}
 	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
-	float biasAdjustedPartyTwoPrefs = currentTotalPrefs - biasAdjustedPartyOnePrefs;
+
+	float overallAdjustedPartyOnePrefs = biasAdjustedPartyOnePrefs + prefCorrection * currentTotalPrefs;
+	float overallAdjustedPartyTwoPrefs = currentTotalPrefs - overallAdjustedPartyOnePrefs;
 
 	// this number can be below zero ...
-	float partyOneEstimate = partyOneCurrentTpp - biasAdjustedPartyOnePrefs;
+	float partyOneEstimate = partyOneCurrentTpp - overallAdjustedPartyOnePrefs;
 	// so we calculate a swing ...
 	float partyOneSwing = partyOneEstimate - previousPartyOneFp;
 	// and then use logistic transformation to make sure it is above zero
-	float newPartyOneFp = (partyOneSwing < 0 ? basicTransformedSwing(previousPartyOneFp, partyOneSwing) : partyOneEstimate);
-	float newPartyOneTpp = biasAdjustedPartyOnePrefs + newPartyOneFp;
+	float newPartyOneFp = (partyOneSwing < 0 ? predictorCorrectorTransformedSwing(previousPartyOneFp, partyOneSwing) : partyOneEstimate);
+	float newPartyOneTpp = overallAdjustedPartyOnePrefs + newPartyOneFp;
 	// this number can be below zero ...
-	float partyTwoEstimate = partyTwoCurrentTpp - biasAdjustedPartyTwoPrefs;
+	float partyTwoEstimate = partyTwoCurrentTpp - overallAdjustedPartyTwoPrefs;
 	// so we calculate a swing ...
 	float partyTwoSwing = partyTwoEstimate - previousPartyTwoFp;
 	// and then use logistic transformation to make sure it is above zero
-	float newPartyTwoFp = (partyTwoSwing < 0 ? basicTransformedSwing(previousPartyTwoFp, partyTwoSwing) : partyTwoEstimate);
-	float newPartyTwoTpp = biasAdjustedPartyTwoPrefs + newPartyTwoFp;
+	float newPartyTwoFp = (partyTwoSwing < 0 ? predictorCorrectorTransformedSwing(previousPartyTwoFp, partyTwoSwing) : partyTwoEstimate);
+	float newPartyTwoTpp = overallAdjustedPartyTwoPrefs + newPartyTwoFp;
 	float totalTpp = newPartyOneTpp + newPartyTwoTpp;
 	// Derivation of following formula (assuming ALP as first party):
 	//  (alp_add + alp_sum) / (alp_add + fp_sum) = alp_tpp
@@ -601,7 +603,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Warringah") {
+	//if (seat.name == "Banks") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -610,12 +612,12 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(previousNonMajorFpShare);
 	//	PA_LOG_VAR(previousPartyOneTpp);
 	//	PA_LOG_VAR(pastElectionPartyOnePrefEstimate);
-	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
 	//	PA_LOG_VAR(preferenceBiasRate);
 	//	PA_LOG_VAR(currentPartyOnePrefs);
 	//	PA_LOG_VAR(currentTotalPrefs);
 	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//	PA_LOG_VAR(biasAdjustedPartyTwoPrefs);
+	//	PA_LOG_VAR(overallAdjustedPartyOnePrefs);
+	//	PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
 	//	PA_LOG_VAR(partyOneEstimate);
 	//	PA_LOG_VAR(partyTwoEstimate);
 	//	PA_LOG_VAR(partyOneSwing);
@@ -634,6 +636,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	seatFpVoteShare[seatIndex][0] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][1] = newPartyTwoFp;
 	normaliseSeatFp(seatIndex);
+	//if (seat.name == "Banks") {
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//}
 }
 
 void SimulationIteration::normaliseSeatFp(int seatIndex)
@@ -650,25 +655,23 @@ void SimulationIteration::normaliseSeatFp(int seatIndex)
 
 void SimulationIteration::reconcileSeatAndOverallFp()
 {
-	constexpr int NumReconciliationCycles = 5;
-	for (int i = 0; i < NumReconciliationCycles; ++i) {
+	constexpr int MaxReconciliationCycles = 5;
+	for (int i = 0; i < MaxReconciliationCycles; ++i) {
 		calculateNewFpVoteTotals();
-		if (i == NumReconciliationCycles - 1) break;
+		if (overallFpError < 0.3f) break;
+		if (i > 2) correctMajorPartyFpBias();
+		if (i > 1) calculatePreferenceCorrections();
+		if (i == MaxReconciliationCycles - 1) break;
 		applyCorrectionsToSeatFps();
 	}
-	//PA_LOG_VAR(iterationOverallSwing);
-	//PA_LOG_VAR(overallFpSwing[0]);
-	//PA_LOG_VAR(overallFpSwing[1]);
-	//PA_LOG_VAR(overallFpError);
-	//PA_LOG_VAR(nonMajorFpError);
 }
 
 void SimulationIteration::calculateNewFpVoteTotals()
 {
 	// Vote shares in each seat are converted to equivalent previous-election vote totals to ensure that
 	// they reflect the turnout differences between seats (esp. Tasmanian seats)
-	std::map<int, int> partyVoteCount;
-	int totalVoteCount = 0;
+	std::map<int, float> partyVoteCount;
+	float totalVoteCount = 0;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		int seatVoteCount = 0;
 		for (auto [partyIndex, voteCount] : pastSeatResults[seatIndex].fpVoteCount) {
@@ -680,9 +683,10 @@ void SimulationIteration::calculateNewFpVoteTotals()
 			partyVoteCount[partyIndex] += voteCount;
 		}
 	}
+	tempOverallFp.clear();
 	for (auto [partyIndex, voteCount] : partyVoteCount) {
-		float fp = float(voteCount) / float(totalVoteCount) * 100.0f;
-		if (overallFp.contains(partyIndex)) {
+		float fp = voteCount / totalVoteCount * 100.0f;
+		if (partyIndex != -1 && overallFp.contains(partyIndex)) {
 			tempOverallFp[partyIndex] = fp;
 		}
 		else if (tempOverallFp.contains(OthersIndex)) {
@@ -704,10 +708,26 @@ void SimulationIteration::calculateNewFpVoteTotals()
 	othersCorrectionFactor = (overallFp[OthersIndex] - indOthers) / tempMicroOthers;
 }
 
+void SimulationIteration::calculatePreferenceCorrections()
+{
+	float estTppSeats = 0.0f;
+	float totalPrefs = 0.0f;
+	for (auto [partyIndex, prefFlow] : tempOverallFp) {
+		estTppSeats += overallPreferenceFlow[partyIndex] * tempOverallFp[partyIndex] * 0.01f;
+		if (partyIndex && partyIndex != 1) totalPrefs += tempOverallFp[partyIndex];
+	}
+	float prefError = estTppSeats - iterationOverallTpp;
+	// Since, for each sample/seat reconciliation cycle, the previous pref correction is already built
+	// into the preferences for each seat, so add the current bias from the present number
+	// to make sure it continues on for the next cycle
+	prefCorrection += prefError / totalPrefs;
+}
+
 void SimulationIteration::applyCorrectionsToSeatFps()
 {
 	for (auto [partyIndex, vote] : tempOverallFp) {
 		if (partyIndex != OthersIndex) {
+			if (!partyIndex || partyIndex == 1) continue;
 			if (!tempOverallFp[partyIndex]) continue; // avoid division by zero when we have non-existent emerging others
 			float correctionFactor = overallFp[partyIndex] / tempOverallFp[partyIndex];
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -736,6 +756,33 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 	}
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		allocateMajorPartyFp(seatIndex);
+	}
+
+	//PA_LOG_VAR(seatFpVoteShare[banksIndex][6]);
+}
+
+void SimulationIteration::correctMajorPartyFpBias()
+{
+	float majorFpCurrent = tempOverallFp[0] + tempOverallFp[1];
+	float majorFpTarget = overallFp[0] + overallFp[1];
+	// This formula calculates the adjustment needed for the current fp to reach the target fp *after normalisation*
+	float adjustmentFactor = (majorFpTarget * (majorFpCurrent - 100.0f)) / (majorFpCurrent * (majorFpTarget - 100.0f));
+	float totalMinors = 0.0f;
+	float partyOnePrefs = 0.0f;
+	for (auto [partyIndex, vote] : tempOverallFp) {
+		if (!partyIndex || partyIndex == 1) continue;
+		partyOnePrefs += overallPreferenceFlow[partyIndex] * vote * 0.01f;
+		totalMinors += vote;
+	}
+	float partyOnePrefAdvantage = (partyOnePrefs * 2.0f - totalMinors) * totalMinors * 0.01f;
+	float partyOneTarget = tempOverallFp[0] * adjustmentFactor - partyOnePrefAdvantage * 0.005f;
+	float partyTwoTarget = tempOverallFp[1] * adjustmentFactor + partyOnePrefAdvantage * 0.005f;
+	float partyOneAdjust = partyOneTarget / tempOverallFp[0];
+	float partyTwoAdjust = partyTwoTarget / tempOverallFp[1];
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		seatFpVoteShare[seatIndex][0] = seatFpVoteShare[seatIndex][0] * partyOneAdjust;
+		seatFpVoteShare[seatIndex][1] = seatFpVoteShare[seatIndex][1] * partyTwoAdjust;
+		normaliseSeatFp(seatIndex);
 	}
 }
 
@@ -945,7 +992,7 @@ void SimulationIteration::recordVoteTotals()
 	++sim.latestReport.tppFrequency[tppBucket];
 
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
-		short bucket = short(floor(overallFp[partyIndex] * 10.0f));
+		short bucket = short(floor(tempOverallFp[partyIndex] * 10.0f));
 		++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];
 	}
 }
