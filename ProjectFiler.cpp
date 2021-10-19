@@ -566,25 +566,28 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.seatIncumbents;
 	saveInput >> report.seatMargins;
 	if (versionNum <= 24) {
-		std::vector<float> tempObj; // dummy variable for "incumbentWinPercent" no longer used
+		std::vector<float> tempObj;
 		saveInput >> tempObj;
-	}
-	if (versionNum >= 19) {
-		saveInput >> report.seatPartyOneMarginAverage;
-		if (versionNum <= 24) {
-			// Convert old "incumbentMarginAverage" into party one margin average
-			for (int seatIndex = 0; seatIndex < int(report.seatPartyOneMarginAverage.size()); ++seatIndex) {
+		if (versionNum <= 18) {
+			report.partyOneWinPercent.resize(report.seatName.size());
+			for (int seatIndex = 0; seatIndex < int(report.partyOneWinPercent.size()); ++seatIndex) {
 				if (report.seatIncumbents[seatIndex] == 1) {
-					report.seatPartyOneMarginAverage[seatIndex] = -report.seatPartyOneMarginAverage[seatIndex];
+					report.partyOneWinPercent[seatIndex] = 100.0f - tempObj[seatIndex];
+				}
+				else {
+					report.partyOneWinPercent[seatIndex] = tempObj[seatIndex];
 				}
 			}
 		}
+	}
+	if (versionNum >= 19) {
+		saveInput >> report.seatPartyOneMarginAverage;
 		saveInput >> report.partyOneWinPercent;
 		saveInput >> report.partyTwoWinPercent;
 		saveInput >> report.othersWinPercent;
 		saveInput >> report.seatPartyWinPercent;
 	}
-	else {
+	if (!report.seatPartyOneMarginAverage.size()) {
 		report.seatPartyOneMarginAverage.resize(report.seatName.size());
 		report.partyOneWinPercent.resize(report.seatName.size());
 		report.partyTwoWinPercent.resize(report.seatName.size());
