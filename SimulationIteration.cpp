@@ -148,9 +148,6 @@ void SimulationIteration::determineOverallBehaviour()
 		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 		iterationOverallTpp = iterationOverallSwing + sim.settings.prevElection2pp;
 	}
-
-	PA_LOG_VAR(previousPreferenceFlow);
-	PA_LOG_VAR(overallPreferenceFlow);
 }
 
 void SimulationIteration::decideMinorPartyPopulism()
