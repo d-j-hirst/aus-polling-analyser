@@ -121,6 +121,15 @@ void SimulationIteration::determineOverallBehaviour()
 		}
 	}
 
+	// Give any party without a sampled preference flow (e.g. Independents) a preference flow relative to generic others
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		if (!previousPreferenceFlow.contains(partyIndex)) {
+			float pastPreferenceFlow = project.parties().viewByIndex(partyIndex).preferenceShare;
+			previousPreferenceFlow[partyIndex] = pastPreferenceFlow;
+			overallPreferenceFlow[partyIndex] = overallPreferenceFlow[OthersIndex] + pastPreferenceFlow - project.parties().getOthersPreferenceFlow();
+		}
+	}
+
 	for (auto const& [partyIndex, partyFp] : overallFp) {
 		if (run.previousFpVoteShare.contains(partyIndex)) {
 			overallFpSwing[partyIndex] = partyFp - run.previousFpVoteShare[partyIndex];
@@ -139,6 +148,9 @@ void SimulationIteration::determineOverallBehaviour()
 		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 		iterationOverallTpp = iterationOverallSwing + sim.settings.prevElection2pp;
 	}
+
+	PA_LOG_VAR(previousPreferenceFlow);
+	PA_LOG_VAR(overallPreferenceFlow);
 }
 
 void SimulationIteration::decideMinorPartyPopulism()
@@ -545,14 +557,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	if (pastSeatResults[seatIndex].tcpVote.contains(0) && pastSeatResults[seatIndex].tcpVote.contains(1)) {
 		previousPartyOneTpp = pastSeatResults[seatIndex].tcpVote[0];
 	}
-	else if (seat.isClassic2pp()) {
-		if (seat.incumbent == 0) {
-			previousPartyOneTpp = 50.0f + seat.tppMargin;
-		}
-		else {
-			previousPartyOneTpp = 50.0f - seat.tppMargin;
-		}
-	}
 	else {
 		previousPartyOneTpp = 50.0f + seat.tppMargin;
 	}
@@ -613,7 +617,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Banks") {
+	//if (seat.name == "Farrer") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -621,6 +625,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(currentTotalPrefs);
 	//	PA_LOG_VAR(previousNonMajorFpShare);
 	//	PA_LOG_VAR(previousPartyOneTpp);
+	//	PA_LOG_VAR(previousPreferenceFlow);
+	//	PA_LOG_VAR(previousPartyOneFp);
 	//	PA_LOG_VAR(pastElectionPartyOnePrefEstimate);
 	//	PA_LOG_VAR(preferenceBiasRate);
 	//	PA_LOG_VAR(currentPartyOnePrefs);
@@ -646,7 +652,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	seatFpVoteShare[seatIndex][0] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][1] = newPartyTwoFp;
 	normaliseSeatFp(seatIndex);
-	//if (seat.name == "Banks") {
+	//if (seat.name == "Farrer") {
 	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
 	//}
 }
@@ -876,8 +882,8 @@ void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	PA_LOG_VAR(seat.name);
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//PA_LOG_VAR(seat.name);
 	typedef std::pair<int, float> PartyVotes;
 	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
 	// transfer fp vote shares to vector
@@ -895,9 +901,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 	accumulatedVoteShares = originalVoteShares;
-	PA_LOG_VAR(originalVoteShares);
-	PA_LOG_VAR(accumulatedVoteShares);
-	PA_LOG_VAR(excludedVoteShares);
+	//PA_LOG_VAR(originalVoteShares);
+	//PA_LOG_VAR(accumulatedVoteShares);
+	//PA_LOG_VAR(excludedVoteShares);
 	// find top two highest fp parties in order
 	while (true) {
 		// Set up some reused functions ...
@@ -926,8 +932,8 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 					accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 				}
-				logger << "allocating: " << sourceParty << "\n";
-				PA_LOG_VAR(accumulatedVoteShares);
+				//logger << "allocating: " << sourceParty << "\n";
+				//PA_LOG_VAR(accumulatedVoteShares);
 			}
 		};
 
@@ -940,22 +946,22 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float secondVoteShare = std::min(accumulatedVoteShares[0].second, accumulatedVoteShares[1].second);
 			if (100.0f - firstTwo < secondVoteShare) finalTwoConfirmed = true;
 		}
-		PA_LOG_VAR(accumulatedVoteShares);
-		PA_LOG_VAR(finalTwoConfirmed);
+		//PA_LOG_VAR(accumulatedVoteShares);
+		//PA_LOG_VAR(finalTwoConfirmed);
 		if (finalTwoConfirmed) {
 			// Just use classic 2pp winner if labor/lib are the final two
 			if (accumulatedVoteShares[0].first == 0 && accumulatedVoteShares[1].first == 1) {
 				accumulatedVoteShares[0].second = partyOneNewTppMargin[seatIndex] + 50.0f;
 				accumulatedVoteShares[1].second = 50.0f - partyOneNewTppMargin[seatIndex];
-				logger << "First exit\n";
-				PA_LOG_VAR(accumulatedVoteShares);
+				//logger << "First exit\n";
+				//PA_LOG_VAR(accumulatedVoteShares);
 				break;
 			}
 			else if (accumulatedVoteShares[0].first == 1 && accumulatedVoteShares[1].first == 0) {
 				accumulatedVoteShares[0].second = 50.0f - partyOneNewTppMargin[seatIndex];
 				accumulatedVoteShares[1].second = partyOneNewTppMargin[seatIndex] + 50.0f;
-				logger << "Second exit\n";
-				PA_LOG_VAR(accumulatedVoteShares);
+				//logger << "Second exit\n";
+				//PA_LOG_VAR(accumulatedVoteShares);
 				break;
 			}
 			// otherwise exclude any remaining votes and allocate 
@@ -966,43 +972,43 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				std::erase(accumulatedVoteShares, excludedCandidate);
 				std::erase(originalVoteShares, originalCandidate);
 			}
-			logger << "Third exit\n";
-			PA_LOG_VAR(accumulatedVoteShares);
-			PA_LOG_VAR(excludedVoteShares);
+			//logger << "Third exit\n";
+			//PA_LOG_VAR(accumulatedVoteShares);
+			//PA_LOG_VAR(excludedVoteShares);
 			accumulatedVoteShares = originalVoteShares;
 			allocateVotes();
-			PA_LOG_VAR(accumulatedVoteShares);
-			PA_LOG_VAR(excludedVoteShares);
+			//PA_LOG_VAR(accumulatedVoteShares);
+			//PA_LOG_VAR(excludedVoteShares);
 			break;
 		}
 		// Allocate preferences from excluded groups, then exclude the lowest and allocate those too
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes();
-		logger << "Allocate votes once\n";
-		PA_LOG_VAR(originalVoteShares);
-		PA_LOG_VAR(accumulatedVoteShares);
-		PA_LOG_VAR(excludedVoteShares);
+		//logger << "Allocate votes once\n";
+		//PA_LOG_VAR(originalVoteShares);
+		//PA_LOG_VAR(accumulatedVoteShares);
+		//PA_LOG_VAR(excludedVoteShares);
 		auto excludedCandidate = *std::min_element(accumulatedVoteShares.begin(), accumulatedVoteShares.end(), partyVoteLess);
 		auto originalCandidate = *std::find_if(originalVoteShares.begin(), originalVoteShares.end(), [=](PartyVotes a) {return a.first == excludedCandidate.first; });
-		PA_LOG_VAR(excludedCandidate);
-		PA_LOG_VAR(originalCandidate);
+		//PA_LOG_VAR(excludedCandidate);
+		//PA_LOG_VAR(originalCandidate);
 		excludedVoteShares.push_back(originalCandidate);
 		std::erase(accumulatedVoteShares, excludedCandidate);
-		PA_LOG_VAR(originalVoteShares);
+		//PA_LOG_VAR(originalVoteShares);
 		std::erase(originalVoteShares, originalCandidate);
-		PA_LOG_VAR(originalVoteShares);
+		//PA_LOG_VAR(originalVoteShares);
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes();
-		logger << "Allocation after exclusion\n";
-		PA_LOG_VAR(originalVoteShares);
-		PA_LOG_VAR(accumulatedVoteShares);
-		PA_LOG_VAR(excludedVoteShares);
+		//logger << "Allocation after exclusion\n";
+		//PA_LOG_VAR(originalVoteShares);
+		//PA_LOG_VAR(accumulatedVoteShares);
+		//PA_LOG_VAR(excludedVoteShares);
 	}
 
-	logger << "Final assignment\n";
-	PA_LOG_VAR(accumulatedVoteShares);
+	//logger << "Final assignment\n";
+	//PA_LOG_VAR(accumulatedVoteShares);
 	auto topTwo = std::minmax(accumulatedVoteShares[0], accumulatedVoteShares[1], partyVoteLess);
-	PA_LOG_VAR(topTwo);
+	//PA_LOG_VAR(topTwo);
 	seatWinner[seatIndex] = topTwo.second.first;
 }
 
