@@ -93,7 +93,7 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 
 void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 {
-	std::string enteredName = seatNameTextCtrl->GetLineText(0);
+	std::string enteredName = seatNameTextCtrl->GetLineText(0).ToStdString();
 	try {
 		auto [seatId, seat] = project->seats().accessByName(enteredName);
 
@@ -112,7 +112,7 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 
 void ResultsFrame::OnNonClassic(wxCommandEvent& WXUNUSED(even))
 {
-	std::string enteredName = seatNameTextCtrl->GetLineText(0);
+	std::string enteredName = seatNameTextCtrl->GetLineText(0).ToStdString();
 	try {
 		auto [seatId, seat] = project->seats().accessByName(enteredName);
 

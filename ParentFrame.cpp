@@ -7,7 +7,7 @@
 const std::string AboutScreenText = std::string("Welcome to Polling Analyser!\n\n"
 	"This is Polling Analyser, a polling and election analysis program\n"
 	"based on the minimal wxWidgets sample\n"
-	"using ") + wxVERSION_STRING + std::string("\nunder ") + wxGetOsDescription() + ".";
+	"using ") + wxString(wxVERSION_STRING).ToStdString() + std::string("\nunder ") + wxGetOsDescription().ToStdString() + ".";
 
 const std::string AboutScreenTitle = "About Polling Analyser";
 

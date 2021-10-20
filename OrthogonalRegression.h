@@ -108,7 +108,7 @@ inline OrthogonalRegression calculateOrthogonalRegression(std::vector<float> con
 
     float sumDistanceSquared = 0.0f;
     for (int pair = 0; pair < reg.n; ++pair) {
-        float distanceSquared = std::pow(reg.a * xValues[pair] + reg.b * xValues[pair] + reg.c, 2)
+        float distanceSquared = float(std::pow(reg.a * xValues[pair] + reg.b * xValues[pair] + reg.c, 2))
             / (reg.a * reg.a + reg.b * reg.b);
         sumDistanceSquared += distanceSquared;
     }

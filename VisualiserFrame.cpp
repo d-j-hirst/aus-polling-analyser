@@ -288,7 +288,7 @@ void VisualiserFrame::refreshToolbar() {
 	wxArrayString modelDisplayModeArray;
 	modelDisplayModeArray.push_back("Raw Trend");
 	modelDisplayModeArray.push_back("Adjusted Trend");
-	std::string modelDisplayModeString = modelDisplayModeArray[int(modelDisplayMode)];
+	std::string modelDisplayModeString = modelDisplayModeArray[int(modelDisplayMode)].ToStdString();
 
 	selectModelComboBox = new wxComboBox(toolBar, ControlId::SelectModel, modelBoxString, wxPoint(0, 0), wxSize(150, 30), modelArray);
 

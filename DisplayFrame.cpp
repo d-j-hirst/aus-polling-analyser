@@ -77,7 +77,7 @@ void DisplayFrame::OnSaveReport(wxCommandEvent&)
 		wxMessageBox("Could not save report: simulation has not yet been run");
 		return;
 	}
-	std::string label = wxGetTextFromUser("Enter a label for this saved report:", "Saved Report");
+	std::string label = wxGetTextFromUser("Enter a label for this saved report:", "Saved Report").ToStdString();
 	if (!label.size()) {
 		wxMessageBox("Report not saved.");
 		return;
@@ -173,7 +173,7 @@ void DisplayFrame::refreshSavedReports()
 	if (selectedSimulation >= 0 && selectedSimulation < project->simulations().count()) {
 		auto thisSimulation = project->simulations().viewByIndex(selectedSimulation);
 		for (auto const& savedReport : thisSimulation.viewSavedReports()) {
-			std::string label = savedReport.label + " - " + savedReport.dateSaved.FormatISODate();
+			std::string label = savedReport.label + " - " + savedReport.dateSaved.FormatISODate().ToStdString();
 			saveReportArray.push_back(label);
 		}
 	}

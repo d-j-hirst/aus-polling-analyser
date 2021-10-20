@@ -267,7 +267,7 @@ private:
 
 	static double normalDistribution(double z);
 
-	static double Model::inverseNormalDistribution(double p);
+	static double inverseNormalDistribution(double p);
 
 	// vector of time points
 	std::vector<TimePoint> day;

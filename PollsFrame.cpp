@@ -233,8 +233,8 @@ void PollsFrame::OnCollectPolls(wxCommandEvent&) {
 
 	if (answer != wxID_OK) return;
 
-	auto requestFunc = [this](std::string caption, std::string default) -> std::string {
-		auto dialog = wxTextEntryDialog(this, caption, "", default);
+	auto requestFunc = [this](std::string caption, std::string defaultValue) -> std::string {
+		auto dialog = wxTextEntryDialog(this, caption, "", defaultValue);
 		dialog.ShowModal();
 		return std::string(dialog.GetValue());
 	};

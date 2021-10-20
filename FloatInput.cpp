@@ -16,7 +16,7 @@ FloatInput::FloatInput(wxWindow* parent, wxWindowID textCtrlId, std::string labe
 
 float FloatInput::getValue() const
 {
-	std::string str = textCtrl->GetValue();
+	std::string str = textCtrl->GetValue().ToStdString();
 	if (str.empty()) {
 		if (nullValue == std::numeric_limits<float>::lowest()) return 0.0f;
 		return nullValue;

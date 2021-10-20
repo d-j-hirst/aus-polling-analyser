@@ -67,21 +67,21 @@ inline float getSimilarityScore(ClusterAnalyser::Output::Cluster const& cluster1
 		if (cluster2e == cluster2.elections.end()) continue;
 		if (!(cluster1e.second.alp2cp && cluster2e->second.alp2cp)) continue;
 		float significanceFactor = std::sqrt(float(cluster1e.second.votes2cp.value()) * float(cluster2e->second.votes2cp.value())) / totalSignificance;
-		squaredErrorSum += std::pow((cluster1e.second.alp2cp.value() - cluster2e->second.alp2cp.value()) * 5.0f, 2) * significanceFactor;
+		squaredErrorSum += float(std::pow((cluster1e.second.alp2cp.value() - cluster2e->second.alp2cp.value()) * 5.0f, 2)) * significanceFactor;
 		dataDensityCount += 0.25f * significanceFactor;
 		if (cluster1e.second.greenFp && cluster2e->second.greenFp) {
 			float ratioEffect = std::abs(cluster1e.second.greenFp.value() / cluster2e->second.greenFp.value() - 1.0f);
-			squaredErrorSum += std::pow(ratioEffect * 0.5f, 2) * significanceFactor;
+			squaredErrorSum += float(std::pow<float>(ratioEffect * 0.5f, 2)) * significanceFactor;
 			dataDensityCount += 0.25f * significanceFactor;
 		}
 		if (cluster1e.second.othersFp && cluster2e->second.othersFp) {
 			float ratioEffect = std::abs(cluster1e.second.othersFp.value() / cluster2e->second.othersFp.value() - 1.0f);
 			ratioEffect = std::clamp(ratioEffect, 0.0f, 1.5f); // don't want this to skew outcomes too much
-			squaredErrorSum += std::pow(ratioEffect * 0.3f, 2) * significanceFactor;
+			squaredErrorSum += float(std::pow(ratioEffect * 0.3f, 2)) * significanceFactor;
 			dataDensityCount += 0.25f * significanceFactor;
 		}
 		if (!(cluster1e.second.alpSwing && cluster2e->second.alpSwing)) continue;
-		squaredErrorSum += std::pow((cluster1e.second.alpSwing.value() - cluster2e->second.alpSwing.value()) * 0.6f, 2) * significanceFactor;
+		squaredErrorSum += float(std::pow((cluster1e.second.alpSwing.value() - cluster2e->second.alpSwing.value()) * 0.6f, 2)) * significanceFactor;
 		dataDensityCount += 0.75f * significanceFactor;
 	}
 	constexpr float SubtractMatchedElection = 0.9f;

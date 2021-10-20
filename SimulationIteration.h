@@ -158,6 +158,8 @@ private:
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;
 	FloatByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
+	std::map<Party::Id, int> partyIdeologies;
+	std::map<Party::Id, int> partyConsistencies;
 	FloatByPartyIndex fpModificationAdjustment;
 	FloatByPartyIndex tempOverallFp;
 	float prefCorrection = 0.0f;

@@ -145,11 +145,21 @@ void SimulationIteration::decideMinorPartyPopulism()
 {
 	for (auto const& [partyIndex, voteShare] : overallFp) {
 		if (partyIndex == EmergingPartyIndex) {
-			centristPopulistFactor[partyIndex] = std::clamp(rng.uniform(-1.0f, 2.0f), 0.0f, 1.0f);
+			float populism = std::clamp(rng.uniform(-1.0f, 2.0f), 0.0f, 1.0f);
+			centristPopulistFactor[partyIndex] = populism;
+			partyIdeologies[partyIndex] = (populism > 0.5f ? 4 : populism < 0.1f ? 2 : 3);
+			partyConsistencies[partyIndex] = 0;
 			continue;
 		}
-		if (partyIndex <= 1) continue; // don't bother with major parties or micro/ind others
+		else if (partyIndex < 0) {
+			partyIdeologies[partyIndex] = 2;
+			partyConsistencies[partyIndex] = 0;
+			continue;
+		}
 		Party const& party = project.parties().viewByIndex(partyIndex);
+		partyIdeologies[partyIndex] = party.ideology;
+		partyConsistencies[partyIndex] = party.consistency;
+		if (partyIndex <= 1) continue;
 		if (party.ideology >= 3) { // center-right or strong right wing
 			centristPopulistFactor[partyIndex] = 1.0f;
 		}
@@ -867,17 +877,133 @@ void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	// Very simple placeholder for now, will of course be more complex later.
-	// Just give the seat to the incumbent if it's already held by a minor party and 2pp winner otherwise.
-	if (seat.incumbent > 1) {
-		seatWinner[seatIndex] = seat.incumbent;
+	PA_LOG_VAR(seat.name);
+	typedef std::pair<int, float> PartyVotes;
+	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
+	// transfer fp vote shares to vector
+	std::vector<PartyVotes> originalVoteShares; // those still in the count
+	std::vector<PartyVotes> excludedVoteShares; // excluded from the count, original values
+	std::vector<PartyVotes> accumulatedVoteShares;
+	for (auto val : seatFpVoteShare[seatIndex]) {
+		if (!val.second) continue; // don't add groups with no votes at all
+		if (val.first == -1) {
+			// always exclude "Others" before considering other candidates
+			excludedVoteShares.push_back(val);
+		}
+		else {
+			originalVoteShares.push_back(val);
+		}
 	}
-	else if (partyOneNewTppMargin[seatIndex] >= 0.0f) {
-		seatWinner[seatIndex] = 0;
+	accumulatedVoteShares = originalVoteShares;
+	PA_LOG_VAR(originalVoteShares);
+	PA_LOG_VAR(accumulatedVoteShares);
+	PA_LOG_VAR(excludedVoteShares);
+	// find top two highest fp parties in order
+	while (true) {
+		// Set up some reused functions ...
+		auto bothMajorParties = [](int a, int b) {
+			return a == 0 && b == 1 || a == 1 && b == 0;
+		};
+		// Function for allocating votes from excluded parties. Used in several places in this loop only,
+		// so create once and use wherever needed
+		auto allocateVotes = [&]() {
+			for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
+				std::vector<float> weights(accumulatedVoteShares.size());
+				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
+					auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
+					int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
+					float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
+					float thisWeight = std::pow(consistencyBase, -ideologyDistance);
+					bool sourceMajor = sourceParty == 0 || sourceParty == 1;
+					bool targetMajor = sourceParty == 0 || sourceParty == 1;
+					if (!sourceMajor && !targetMajor) thisWeight *= 1.6f;
+					if (bothMajorParties(sourceParty, targetParty)) thisWeight *= 0.5f;
+					thisWeight *= rng.uniform(0.5f, 1.5f);
+					thisWeight *= std::sqrt(targetVoteShare);
+					weights[targetIndex] = thisWeight;
+				}
+				float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
+				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
+					accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
+				}
+				logger << "allocating: " << sourceParty << "\n";
+				PA_LOG_VAR(accumulatedVoteShares);
+			}
+		};
+
+		// Actual method starts here
+		bool finalTwoConfirmed = (accumulatedVoteShares.size() <= 2);
+		if (!finalTwoConfirmed) {
+			std::nth_element(accumulatedVoteShares.begin(), std::next(accumulatedVoteShares.begin()), accumulatedVoteShares.end(),
+				[](PartyVotes a, PartyVotes b) {return b.second < a.second; });
+			float firstTwo = accumulatedVoteShares[0].second + accumulatedVoteShares[1].second;
+			float secondVoteShare = std::min(accumulatedVoteShares[0].second, accumulatedVoteShares[1].second);
+			if (100.0f - firstTwo < secondVoteShare) finalTwoConfirmed = true;
+		}
+		PA_LOG_VAR(accumulatedVoteShares);
+		PA_LOG_VAR(finalTwoConfirmed);
+		if (finalTwoConfirmed) {
+			// Just use classic 2pp winner if labor/lib are the final two
+			if (accumulatedVoteShares[0].first == 0 && accumulatedVoteShares[1].first == 1) {
+				accumulatedVoteShares[0].second = partyOneNewTppMargin[seatIndex] + 50.0f;
+				accumulatedVoteShares[1].second = 50.0f - partyOneNewTppMargin[seatIndex];
+				logger << "First exit\n";
+				PA_LOG_VAR(accumulatedVoteShares);
+				break;
+			}
+			else if (accumulatedVoteShares[0].first == 1 && accumulatedVoteShares[1].first == 0) {
+				accumulatedVoteShares[0].second = 50.0f - partyOneNewTppMargin[seatIndex];
+				accumulatedVoteShares[1].second = partyOneNewTppMargin[seatIndex] + 50.0f;
+				logger << "Second exit\n";
+				PA_LOG_VAR(accumulatedVoteShares);
+				break;
+			}
+			// otherwise exclude any remaining votes and allocate 
+			while (accumulatedVoteShares.size() > 2) {
+				auto excludedCandidate = *std::min_element(accumulatedVoteShares.begin(), accumulatedVoteShares.end(), partyVoteLess);
+				auto originalCandidate = *std::find_if(originalVoteShares.begin(), originalVoteShares.end(), [=](PartyVotes a) {return a.first == excludedCandidate.first; });
+				excludedVoteShares.push_back(originalCandidate);
+				std::erase(accumulatedVoteShares, excludedCandidate);
+				std::erase(originalVoteShares, originalCandidate);
+			}
+			logger << "Third exit\n";
+			PA_LOG_VAR(accumulatedVoteShares);
+			PA_LOG_VAR(excludedVoteShares);
+			accumulatedVoteShares = originalVoteShares;
+			allocateVotes();
+			PA_LOG_VAR(accumulatedVoteShares);
+			PA_LOG_VAR(excludedVoteShares);
+			break;
+		}
+		// Allocate preferences from excluded groups, then exclude the lowest and allocate those too
+		accumulatedVoteShares = originalVoteShares;
+		allocateVotes();
+		logger << "Allocate votes once\n";
+		PA_LOG_VAR(originalVoteShares);
+		PA_LOG_VAR(accumulatedVoteShares);
+		PA_LOG_VAR(excludedVoteShares);
+		auto excludedCandidate = *std::min_element(accumulatedVoteShares.begin(), accumulatedVoteShares.end(), partyVoteLess);
+		auto originalCandidate = *std::find_if(originalVoteShares.begin(), originalVoteShares.end(), [=](PartyVotes a) {return a.first == excludedCandidate.first; });
+		PA_LOG_VAR(excludedCandidate);
+		PA_LOG_VAR(originalCandidate);
+		excludedVoteShares.push_back(originalCandidate);
+		std::erase(accumulatedVoteShares, excludedCandidate);
+		PA_LOG_VAR(originalVoteShares);
+		std::erase(originalVoteShares, originalCandidate);
+		PA_LOG_VAR(originalVoteShares);
+		accumulatedVoteShares = originalVoteShares;
+		allocateVotes();
+		logger << "Allocation after exclusion\n";
+		PA_LOG_VAR(originalVoteShares);
+		PA_LOG_VAR(accumulatedVoteShares);
+		PA_LOG_VAR(excludedVoteShares);
 	}
-	else {
-		seatWinner[seatIndex] = 1;
-	}
+
+	logger << "Final assignment\n";
+	PA_LOG_VAR(accumulatedVoteShares);
+	auto topTwo = std::minmax(accumulatedVoteShares[0], accumulatedVoteShares[1], partyVoteLess);
+	PA_LOG_VAR(topTwo);
+	seatWinner[seatIndex] = topTwo.second.first;
 }
 
 void SimulationIteration::recordSeatResult(int seatIndex)
