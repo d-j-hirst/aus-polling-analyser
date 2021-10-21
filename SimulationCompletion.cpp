@@ -3,6 +3,7 @@
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
+#include "SpecialPartyCodes.h"
 
 using Mp = Simulation::MajorParty;
 
@@ -148,10 +149,19 @@ void SimulationCompletion::createClassicSeatsList()
 void SimulationCompletion::recordNames()
 {
 	for (int index = 0; index < project.parties().count(); ++index) {
-		sim.latestReport.partyName.push_back(project.parties().viewByIndex(index).name);
-		sim.latestReport.partyAbbr.push_back(project.parties().viewByIndex(index).abbreviation);
-		sim.latestReport.partyColour.push_back(project.parties().viewByIndex(index).colour);
+		sim.latestReport.partyName[index] = project.parties().viewByIndex(index).name;
+		sim.latestReport.partyAbbr[index] = project.parties().viewByIndex(index).abbreviation;
+		sim.latestReport.partyColour[index] = project.parties().viewByIndex(index).colour;
 	}
+	sim.latestReport.partyName[OthersIndex] = "Emerging Independent";
+	sim.latestReport.partyName[EmergingIndIndex] = "Emerging Independent";
+	sim.latestReport.partyName[EmergingPartyIndex] = "Emerging Party";
+	sim.latestReport.partyAbbr[OthersIndex] = "OTH";
+	sim.latestReport.partyAbbr[EmergingIndIndex] = "IND";
+	sim.latestReport.partyAbbr[EmergingPartyIndex] = "OTH";
+	sim.latestReport.partyColour[OthersIndex] = Party::createColour(128, 128, 128);
+	sim.latestReport.partyColour[EmergingIndIndex] = Party::createColour(128, 128, 128);
+	sim.latestReport.partyColour[EmergingPartyIndex] = Party::createColour(64, 64, 64);
 	for (int index = 0; index < project.regions().count(); ++index) {
 		sim.latestReport.regionName.push_back(project.regions().viewByIndex(index).name);
 	}
@@ -169,7 +179,7 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 		for (auto [partyIndex, count] : run.seatPartyWins[seatIndex]) {
 			float percent = float(count) / float(sim.settings.numIterations) * 100.0f;
 			sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] = percent;
-			// logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
+			logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
 		}
 	}
 }

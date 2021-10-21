@@ -126,7 +126,7 @@ void DisplayFrameRenderer::drawProbabilityBox() const
 
 wxColour DisplayFrameRenderer::lightenedPartyColour(Party::Id partyId) const
 {
-	auto col = simulation.partyColour[partyId];
+	auto col = simulation.partyColour.at(partyId);
 	col = { col.r / 2 + 128, col.g / 2 + 128, col.b / 2 + 128 };
 	return wxColour(col.r, col.g, col.b);
 }
@@ -155,11 +155,11 @@ void DisplayFrameRenderer::drawProbabilityBoxLabels() const
 		ProbabilityBoxTextWidth, ProbabilityBoxTextHeight);
 	wxPoint offset(0, ProbabilityBoxTextHeight + ProbabilityBoxTextPadding);
 
-	drawProbabilityBoxText(probTextRect, simulation.partyAbbr[0] + " majority", offset);
-	drawProbabilityBoxText(probTextRect, simulation.partyAbbr[0] + " minority", offset);
+	drawProbabilityBoxText(probTextRect, simulation.partyAbbr.at(0) + " majority", offset);
+	drawProbabilityBoxText(probTextRect, simulation.partyAbbr.at(0) + " minority", offset);
 	drawProbabilityBoxText(probTextRect, "Hung", offset);
-	drawProbabilityBoxText(probTextRect, simulation.partyAbbr[1] + " minority", offset);
-	drawProbabilityBoxText(probTextRect, simulation.partyAbbr[1] + " majority", offset);
+	drawProbabilityBoxText(probTextRect, simulation.partyAbbr.at(1) + " minority", offset);
+	drawProbabilityBoxText(probTextRect, simulation.partyAbbr.at(1) + " majority", offset);
 }
 
 void DisplayFrameRenderer::drawProbabilityBoxData() const
@@ -194,11 +194,11 @@ void DisplayFrameRenderer::drawSumOfLeads() const
 	wxRect probPartyRect = wxRect(BoxMargin + ProbabilityBoxPadding * 3 + ProbabilityBoxTextWidth + ProbabilityBoxDataWidth,
 		BoxMargin + ProbabilityBoxHeight * 0.5f - ProbabilityBoxSumHeight - ProbabilityBoxTextPadding,
 		ProbabilityBoxSumWidth, ProbabilityBoxSumHeight);
-	std::string partyOneAnnotation = simulation.partyAbbr[0] + " wins:";
+	std::string partyOneAnnotation = simulation.partyAbbr.at(0) + " wins:";
 	std::string partyOneData = formatFloat(simulation.getPartyWinPercent(Mp::One), 2) + "%";
 	drawSumOfLeadsText(probPartyRect, partyOneAnnotation, partyOneData);
 	probPartyRect.Offset(0, ProbabilityBoxSumHeight + ProbabilityBoxTextPadding * 2);
-	std::string partyTwoAnnotation = simulation.partyAbbr[1] + " wins:";
+	std::string partyTwoAnnotation = simulation.partyAbbr.at(1) + " wins:";
 	std::string partyTwoData = formatFloat(simulation.getPartyWinPercent(Mp::Two), 2) + "%";
 	drawSumOfLeadsText(probPartyRect, partyTwoAnnotation, partyTwoData);
 }
@@ -261,8 +261,8 @@ void DisplayFrameRenderer::drawExpectationsBoxRow(wxRect& nameRect, PartyCollect
 	wxRect expBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(),
 		(ExpectationBoxWidth - nameRect.GetWidth()) / 2, rowSize);
 	if (partyIndex >= int(simulation.internalPartyCount())) return;
-	std::string name = (simulation.partyName[partyIndex].size() < 18 ?
-		simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
+	std::string name = (simulation.partyName.at(partyIndex).size() < 18 ?
+		simulation.partyName.at(partyIndex) : simulation.partyAbbr.at(partyIndex));
 	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 	dc.DrawLabel(formatFloat(simulation.getPartyWinExpectation(partyIndex), 2), expBoxDataRect, wxALIGN_CENTRE);
 	expBoxDataRect.Offset(width, 0);
@@ -306,9 +306,9 @@ void DisplayFrameRenderer::drawRegionsBoxRowTitles() const
 		RegionsBoxWidth * 0.25f, RegionsBoxTextHeight);
 	dc.DrawLabel("Region", regionsBoxRect, wxALIGN_CENTRE);
 	regionsBoxRect.Offset(offset, 0);
-	dc.DrawLabel(simulation.partyAbbr[0], regionsBoxRect, wxALIGN_CENTRE);
+	dc.DrawLabel(simulation.partyAbbr.at(0), regionsBoxRect, wxALIGN_CENTRE);
 	regionsBoxRect.Offset(offset, 0);
-	dc.DrawLabel(simulation.partyAbbr[1], regionsBoxRect, wxALIGN_CENTRE);
+	dc.DrawLabel(simulation.partyAbbr.at(1), regionsBoxRect, wxALIGN_CENTRE);
 	regionsBoxRect.Offset(offset, 0);
 	dc.DrawLabel("Others", regionsBoxRect, wxALIGN_CENTRE);
 }
@@ -394,7 +394,7 @@ void DisplayFrameRenderer::drawBoundsBoxItems() const
 	wxRect boundsBoxBaseRect = wxRect(BoundsBoxLeft, boundsHeadingTop,
 	RegionsBoxWidth * 0.2f, BoundsBoxTextHeight);
 	dc.SetFont(font(13));
-	std::array<std::string, 3> groupNames = { simulation.partyName[0], simulation.partyName[1], "Others" };
+	std::array<std::string, 3> groupNames = { simulation.partyName.at(0), simulation.partyName.at(1), "Others" };
 	for (int group = 0; group < 3; ++group) {
 		boundsBoxBaseRect.Offset(0, BoundsBoxTextHeight);
 		wxRect boundsBoxItemRect = boundsBoxBaseRect;
@@ -536,8 +536,8 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 	int width = (VoteShareBoxWidth - nameRect.GetWidth()) / 2;
 	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
 	if (partyIndex < int(simulation.internalPartyCount())) {
-		std::string name = (simulation.partyName[partyIndex].size() < 18 ?
-			simulation.partyName[partyIndex] : simulation.partyAbbr[partyIndex]);
+		std::string name = (simulation.partyName.at(partyIndex).size() < 18 ?
+			simulation.partyName.at(partyIndex) : simulation.partyAbbr.at(partyIndex));
 		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 		// Parties with a primary vote of exactly 0 are generally to be considered "not analysed"
 		// than actually zero, so we don't print them with an actual value
@@ -557,7 +557,7 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 		}
 	}
 	else if (partyIndex == int(simulation.internalPartyCount()) + 1) {
-		std::string name = simulation.partyAbbr[0] + " TPP";
+		std::string name = simulation.partyAbbr.at(0) + " TPP";
 		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 		if (simulation.get2ppSampleCount()) {
 			float expectation = simulation.get2ppSampleExpectation();
@@ -573,7 +573,7 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 		}
 	}
 	else if (partyIndex == int(simulation.internalPartyCount()) + 2) {
-		std::string name = simulation.partyAbbr[1] + " TPP";
+		std::string name = simulation.partyAbbr.at(1) + " TPP";
 		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 		if (simulation.get2ppSampleCount()) {
 			float expectation = 100.0f - simulation.get2ppSampleExpectation();
@@ -638,7 +638,7 @@ void DisplayFrameRenderer::drawSeatsList() const
 		int seatIndex = simulation.classicSeatIndex(classicSeatIndex);
 		float lnpWinPercent = simulation.getClassicSeatMajorPartyWinRate(classicSeatIndex, GraphParty);
 		dc.DrawLabel(simulation.seatName[seatIndex], seatsBoxNameRect, wxALIGN_CENTRE);
-		std::string seatCountText = simulation.partyAbbr[simulation.seatIncumbents[seatIndex]] +
+		std::string seatCountText = simulation.partyAbbr.at(simulation.seatIncumbents[seatIndex]) +
 			" (" + formatFloat(simulation.seatMargins[seatIndex], 1) + ")";
 		dc.DrawLabel(seatCountText, seatsBoxMarginRect, wxALIGN_CENTRE);
 		dc.DrawLabel(formatFloat(lnpWinPercent, 2), seatsBoxLnpWinRect, wxALIGN_CENTRE);

@@ -30,7 +30,8 @@
 // Version 23: Save home regions for minor parties and emerging party home region modifiers
 // Version 24: Save minor party seat targets
 // Version 25: Remove incumbent-relative margins and stats
-constexpr int VersionNum = 25;
+// Version 26: Party names/abbr/colour now stored as maps rather than vectors
+constexpr int VersionNum = 26;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -558,9 +559,21 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.partyOneProbabilityBounds;
 	saveInput >> report.partyTwoProbabilityBounds;
 	saveInput >> report.othersProbabilityBounds;
-	saveInput >> report.partyAbbr;
-	saveInput >> report.partyName;
-	saveInput >> report.partyColour;
+	if (versionNum >= 26) {
+		saveInput >> report.partyAbbr;
+		saveInput >> report.partyName;
+		saveInput >> report.partyColour;
+	}
+	else {
+		std::vector<std::string> abbrs; saveInput >> abbrs;
+		std::vector<std::string> names; saveInput >> names;
+		std::vector<Party::Colour> colours; saveInput >> colours;
+		for (int i = 0; i < int(abbrs.size()); ++i) {
+			report.partyAbbr[i] = abbrs[i];
+			report.partyName[i] = names[i];
+			report.partyColour[i] = colours[i];
+		}
+	}
 	saveInput >> report.regionName;
 	saveInput >> report.seatName;
 	saveInput >> report.seatIncumbents;

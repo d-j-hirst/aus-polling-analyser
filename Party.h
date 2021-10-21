@@ -30,11 +30,16 @@ struct Party {
 		IsMajor
 	};
 
+	// Has to be a straight struct with no constructor in order to be saved simply
 	struct Colour {
 		int r;
 		int g;
 		int b;
 	};
+
+	// Pseudo-constructors for party colours
+	static Colour createColour() { Colour colour; colour.r = 0; colour.g = 0; colour.b = 0; return colour; }
+	static Colour createColour(int r, int g, int b) { Colour colour; colour.r = r; colour.g = g; colour.b = b; return colour; }
 
 	Party(std::string name, float preferenceShare, float exhaustRate, std::string abbreviation, CountAsParty countAsParty)
 		: name(name), preferenceShare(preferenceShare), exhaustRate(exhaustRate), abbreviation(abbreviation), countAsParty(countAsParty) {}

@@ -234,7 +234,6 @@ void SimulationIteration::determineMinorPartyContests()
 			float priority = rng.flexibleDist(seatMod, seatMod * 0.2f, seatMod * 0.6f, 3.0f, 6.0f);
 			seatPriorities.push_back({ seatIndex, priority });
 			// Make sure this seat is able to be contested later on for this party
-			// This will insert zeroed results if there's 
 			pastSeatResults[seatPriorities[seatIndex].first].fpVotePercent.insert({ partyIndex, 0.0f });
 		}
 		float estimatedSeats = 0.0f;

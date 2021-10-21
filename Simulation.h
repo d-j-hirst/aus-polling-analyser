@@ -103,9 +103,9 @@ public:
 		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 		std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
 
-		std::vector<std::string> partyAbbr;
-		std::vector<std::string> partyName;
-		std::vector<Party::Colour> partyColour;
+		std::map<int, std::string> partyAbbr;
+		std::map<int, std::string> partyName;
+		std::map<int, Party::Colour> partyColour;
 
 		std::vector<std::string> regionName;
 
