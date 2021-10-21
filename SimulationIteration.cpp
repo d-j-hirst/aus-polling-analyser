@@ -253,8 +253,8 @@ void SimulationIteration::determineMinorPartyContests()
 		else {
 			logger << "Error: tried to determine minor party contest rate for a party category that hasn't been accounted for";
 		}
-		float lowerRmse = estimatedSeats * 0.25f;
-		float upperRmse = (totalSeats - estimatedSeats) * 1.0f;
+		float lowerRmse = estimatedSeats * 0.3f;
+		float upperRmse = std::min((totalSeats - estimatedSeats) * 1.0f, estimatedSeats);
 		int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), std::max(7.0f, estimatedSeats * 0.4f), totalSeats)));
 		std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
 			[](Priority const& a, Priority const& b) {return a.second > b.second; });
@@ -458,10 +458,10 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 		}
 	}
 	float seatModifier = calculateEffectiveSeatModifier(seatIndex, partyIndex);
-	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
 	float adjustedModifier = seatModifier * fpModificationAdjustment[partyIndex];
 	float modifiedFp1 = predictorCorrectorTransformedSwing(partyFp, partyFp * (adjustedModifier - 1.0f));
 	float modifiedFp2 = partyFp * adjustedModifier;
+	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
 	float modifiedFp = std::min(modifiedFp1, modifiedFp2);
 	float transformedFp = transformVoteShare(modifiedFp);
 
@@ -473,6 +473,19 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	transformedFp += rng.flexibleDist(0.0f, lowerRmse, upperRmse, lowerKurtosis, upperKurtosis);
 
 	voteShare = detransformVoteShare(transformedFp);
+
+	//if (partyIndex == 7) {
+	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+	//	PA_LOG_VAR(seatModifier);
+	//	PA_LOG_VAR(partyFp);
+	//	PA_LOG_VAR(modifiedFp1);
+	//	PA_LOG_VAR(modifiedFp2);
+	//	PA_LOG_VAR(modifiedFp);
+	//	PA_LOG_VAR(transformedFp);
+	//	PA_LOG_VAR(upperRmse);
+	//	PA_LOG_VAR(upperKurtosis);
+	//	PA_LOG_VAR(voteShare);
+	//}
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
@@ -1006,6 +1019,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	auto topTwo = std::minmax(accumulatedVoteShares[0], accumulatedVoteShares[1], partyVoteLess);
 	//PA_LOG_VAR(topTwo);
 	seatWinner[seatIndex] = topTwo.second.first;
+	//if (seatWinner[seatIndex] == 7) {
+	//	logger << "One nation winning a seat!\n";
+	//	PA_LOG_VAR(seat.name);
+	//	PA_LOG_VAR(overallFp[7]);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//	PA_LOG_VAR(topTwo);
+	//	PA_LOG_VAR(centristPopulistFactor[7]);
+	//	PA_LOG_VAR(fpModificationAdjustment[7]);
+	//	PA_LOG_VAR(fpModificationAdjustment[7]);
+	//}
 }
 
 void SimulationIteration::recordSeatResult(int seatIndex)
@@ -1786,5 +1809,7 @@ float SimulationIteration::calculateEffectiveSeatModifier(int seatIndex, int par
 	int regionIndex = project.regions().idToIndex(seat.region);
 	float homeStateCoefficient = mix(run.centristStatistics.homeStateCoefficient, run.populistStatistics.homeStateCoefficient, populism);
 	if (homeRegion.at(partyIndex) == regionIndex) seatModifier += homeStateCoefficient;
+	float highVoteModifier = std::clamp(std::pow(2.0f, (3.0f - overallFp.at(partyIndex)) * 0.1f), 0.2f, 1.0f);
+	seatModifier = (seatModifier - 1.0f) * highVoteModifier + 1.0f;
 	return seatModifier;
 }

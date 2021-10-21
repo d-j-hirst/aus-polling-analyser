@@ -139,7 +139,7 @@ private:
 	Simulation& sim;
 	SimulationRun& run;
 
-	typedef std::map<Party::Id, float> FloatByPartyIndex;
+	typedef std::map<int, float> FloatByPartyIndex;
 
 	// iteration-specific variables
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
