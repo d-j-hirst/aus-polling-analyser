@@ -180,6 +180,7 @@ def analyse_greens(elections):
     smoothed_upper_kurtoses = spline(x)
     # Assume Greens always recontest
     recontest_rates = [1 for a in bucket_counts]
+    recontest_incumbent_rates = [1 for a in bucket_counts]
 
     party_code = 'GRN'
 
@@ -194,6 +195,7 @@ def analyse_greens(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in recontest_rates]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in recontest_incumbent_rates]) + '\n')
 
 
 larger_parties = ['Labor', 'Liberal', 'Liberal National', 'Greens', 'Democrats', 'National', 'Nationals', 'One Nation']
@@ -237,7 +239,10 @@ def analyse_existing_independents(elections):
     this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
     this_buckets.update({(bucket_max, 10000): []})
     sophomore_buckets = copy.deepcopy(this_buckets)
+    incumbent_buckets = copy.deepcopy(this_buckets)
     recontest_buckets = copy.deepcopy(this_buckets)
+    recontest_sophomore_buckets = copy.deepcopy(this_buckets)
+    recontest_incumbent_buckets = copy.deepcopy(this_buckets)
     for this_election, this_results in elections.items():
         # print(f'\nGathering results for {party} in {this_election}')
         if len(elections.next_elections(this_election)) == 0:
@@ -287,6 +292,7 @@ def analyse_existing_independents(elections):
                             or previous_seat_results.tcp[0].name != 
                             this_seat_results.tcp[0].name)):
                     sophomore = True
+            incumbent = (this_seat_results.tcp[0].name == highest.name)
             this_fp = highest.percent
             this_fp = transform_vote_share(this_fp)
             this_bucket = next(a for a in this_buckets 
@@ -297,13 +303,16 @@ def analyse_existing_independents(elections):
             if len(matching_next) > 0:
                 next_fp = matching_next[0].percent
                 recontest_buckets[this_bucket].append(1)
+                recontest_incumbent_buckets[this_bucket].append(1 if incumbent else 0)
             else:
                 recontest_buckets[this_bucket].append(0)
+                recontest_incumbent_buckets[this_bucket].append(1 if incumbent else 0)
                 continue
             # print(f' Found independent for seat {this_seat_name}: {matching_next}')
             next_fp = transform_vote_share(next_fp)
             fp_change = next_fp - this_fp
             this_buckets[this_bucket].append(fp_change)
+            incumbent_buckets[this_bucket].append(1 if incumbent else 0)
             sophomore_buckets[this_bucket].append(1 if sophomore else 0)
 
     ordered_buckets = sorted(this_buckets.keys(), key=lambda x: x[0])
@@ -315,6 +324,8 @@ def analyse_existing_independents(elections):
     bucket_upper_rmses = {}
     bucket_lower_kurtoses = {}
     bucket_upper_kurtoses = {}
+    # bucket_recontest_sophomores = {}
+    bucket_recontest_incumbents = {}
     bucket_recontest_rates = {}
     
     for bucket in ordered_buckets:
@@ -322,10 +333,12 @@ def analyse_existing_independents(elections):
         # to find the relationship between the two for initial primary
         # votes in this bucket
         sophomores = sophomore_buckets[bucket]
-        inputs_array = numpy.transpose(numpy.array([sophomores]))
+        incumbents = incumbent_buckets[bucket]
+        inputs_array = numpy.transpose(numpy.array([sophomores, incumbents]))
         results_array = numpy.array(this_buckets[bucket])
         reg = LinearRegression().fit(inputs_array, results_array)
         sophomore_coefficient = reg.coef_[0]
+        incumbent_coefficient = reg.coef_[1]
         overall_intercept = reg.intercept_
 
         # Get the residuals (~= errors if the above relationship is used
@@ -360,8 +373,18 @@ def analyse_existing_independents(elections):
         bucket_upper_rmses[bucket] = upper_rmse
         bucket_lower_kurtoses[bucket] = lower_kurtosis
         bucket_upper_kurtoses[bucket] = upper_kurtosis
-        bucket_recontest_rates[bucket] = (recontest_buckets[bucket].count(1)
-                                        / len(recontest_buckets[bucket]))
+
+        recontests = recontest_buckets[bucket]
+        incumbent_recontests = recontest_incumbent_buckets[bucket]
+        inputs_array = numpy.transpose(numpy.array([incumbent_recontests]))
+        results_array = numpy.array(recontests)
+        print(inputs_array)
+        print(results_array)
+        reg = LinearRegression().fit(inputs_array, results_array)
+        incumbent_recontest_coefficient = reg.coef_[0]
+        recontest_intercept = reg.intercept_
+        bucket_recontest_incumbents[bucket] = incumbent_recontest_coefficient
+        bucket_recontest_rates[bucket] = recontest_intercept
     
     for bucket_index in range(len(ordered_buckets) - 2, -1, -1):
         bucket = ordered_buckets[bucket_index]
@@ -369,19 +392,24 @@ def analyse_existing_independents(elections):
             next_bucket = ordered_buckets[bucket_index + 1]
             bucket_sophomore_coefficients[bucket] = \
                 bucket_sophomore_coefficients[next_bucket]
+        if not 1 in recontest_incumbent_buckets[bucket]:
+            next_bucket = ordered_buckets[bucket_index + 1]
+            bucket_recontest_incumbents[bucket] = \
+                bucket_recontest_incumbents[next_bucket]
 
-    # for bucket in bucket_counts.keys():
-    #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
-    #     print(f'Sample size: {bucket_counts[bucket]}')
-    #     print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
-    #     print(f'Intercept: {bucket_intercepts[bucket]}')
-    #     print(f'Median error: {bucket_median_errors[bucket]}')
-    #     print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
-    #     print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
-    #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
-    #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
-    #     print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
-    #     print('\n')
+    for bucket in bucket_counts.keys():
+        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+        print(f'Sample size: {bucket_counts[bucket]}')
+        print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
+        print(f'Intercept: {bucket_intercepts[bucket]}')
+        print(f'Median error: {bucket_median_errors[bucket]}')
+        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+        print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
+        print(f'Recontest incumbent: {bucket_recontest_incumbents[bucket]}')
+        print('\n')
     
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
@@ -410,6 +438,9 @@ def analyse_existing_independents(elections):
     recontest_rates = [a for a in bucket_recontest_rates.values()]
     spline = UnivariateSpline(x=x, y=recontest_rates, s=100)
     smoothed_recontest_rates = spline(x)
+    recontest_incumbent_rates = [a for a in bucket_recontest_incumbents.values()]
+    spline = UnivariateSpline(x=x, y=recontest_incumbent_rates, s=100)
+    smoothed_recontest_incumbent_rates = spline(x)
 
     party_code = 'IND'
 
@@ -424,6 +455,7 @@ def analyse_existing_independents(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_rates]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_incumbent_rates]) + '\n')
 
 
 def load_seat_types():
@@ -1113,6 +1145,7 @@ def analyse_others(elections):
     recontest_rates = [a for a in bucket_recontest_rates.values()]
     spline = UnivariateSpline(x=x, y=recontest_rates, s=100)
     smoothed_recontest_rates = spline(x)
+    recontest_incumbent_rates = [1 for a in bucket_counts]
 
     party_code = 'OTH'
 
@@ -1127,6 +1160,7 @@ def analyse_others(elections):
         f.write(','.join([f'{a:.4f}' for a in smoothed_lower_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_upper_kurtoses]) + '\n')
         f.write(','.join([f'{a:.4f}' for a in smoothed_recontest_rates]) + '\n')
+        f.write(','.join([f'{a:.4f}' for a in recontest_incumbent_rates]) + '\n')
 
 
 def analyse_emerging_parties(elections):

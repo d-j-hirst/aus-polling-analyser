@@ -38,6 +38,7 @@ public:
 			LowerKurtosis,
 			UpperKurtosis,
 			RecontestRate,
+			RecontestIncumbentRate,
 			Num
 		};
 

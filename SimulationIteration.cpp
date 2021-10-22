@@ -422,7 +422,10 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 			seatStatisticsMix);
 	};
 	float recontestRateMixed = getMixedStat(StatType::RecontestRate);
-	if (rng.uniform() > recontestRateMixed) {
+	float recontestIncumbentRateMixed = getMixedStat(StatType::RecontestIncumbentRate);
+	if (seat.incumbent == partyIndex) recontestRateMixed += recontestIncumbentRateMixed;
+	// might want to add an adjustment for time left before the election for retirements?
+	if (rng.uniform() > recontestRateMixed || seat.retirement) {
 		voteShare = 0.0f;
 		return;
 	}
