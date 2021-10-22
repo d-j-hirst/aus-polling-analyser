@@ -66,12 +66,10 @@ void SimulationCompletion::calculateWholeResultStatistics()
 
 void SimulationCompletion::calculatePartyWinExpectations()
 {
-	sim.latestReport.partyWinExpectation.resize(project.parties().count());
-
-	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+	for (auto [partyIndex, frequency] : sim.latestReport.partySeatWinFrequency) {
 		int totalSeats = 0;
 		for (int seatNum = 1; seatNum < project.seats().count(); ++seatNum) {
-			totalSeats += seatNum * sim.latestReport.partySeatWinFrequency[partyIndex][seatNum];
+			totalSeats += seatNum * frequency[seatNum];
 		}
 		sim.latestReport.partyWinExpectation[partyIndex] = float(totalSeats) / float(sim.settings.numIterations);
 	}
@@ -79,12 +77,10 @@ void SimulationCompletion::calculatePartyWinExpectations()
 
 void SimulationCompletion::calculatePartyWinMedians()
 {
-	sim.latestReport.partyWinMedian.resize(project.parties().count());
-
-	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+	for (auto [partyIndex, frequency] : sim.latestReport.partySeatWinFrequency) {
 		int runningTotal = 0;
-		for (int seatNum = 0; seatNum < int(sim.latestReport.partySeatWinFrequency[partyIndex].size()); ++seatNum) {
-			runningTotal += sim.latestReport.partySeatWinFrequency[partyIndex][seatNum];
+		for (int seatNum = 0; seatNum < int(frequency.size()); ++seatNum) {
+			runningTotal += frequency[seatNum];
 			if (runningTotal > sim.settings.numIterations / 2) {
 				sim.latestReport.partyWinMedian[partyIndex] = seatNum;
 				break;
@@ -95,7 +91,7 @@ void SimulationCompletion::calculatePartyWinMedians()
 
 void SimulationCompletion::calculateRegionPartyWinExpectations()
 {
-	sim.latestReport.regionPartyWinExpectation.resize(project.regions().count(), std::vector<float>(project.parties().count(), 0.0f));
+	sim.latestReport.regionPartyWinExpectation.resize(project.regions().count());
 
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {

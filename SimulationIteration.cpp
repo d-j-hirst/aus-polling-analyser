@@ -395,8 +395,8 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		else if (partyIndex >= 2) {
 			// For non-major candidates that don't fit into the above categories,
 			// convert their past votes into "Others" votes
-			pastSeatResults[seatIndex].fpVotePercent[OthersIndex] += pastSeatResults[seatIndex].fpVotePercent[partyIndex];
-			pastSeatResults[seatIndex].fpVotePercent.erase(partyIndex);
+			tempPastResults[OthersIndex] += tempPastResults[partyIndex];
+			tempPastResults.erase(partyIndex);
 			continue;
 		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
@@ -1098,6 +1098,9 @@ void SimulationIteration::recordPartySeatWinCounts()
 {
 	int othersWins = 0;
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		if (!sim.latestReport.partySeatWinFrequency.contains(partyIndex)) {
+			sim.latestReport.partySeatWinFrequency[partyIndex] = std::vector<int>(project.seats().count());
+		}
 		++sim.latestReport.partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
 		if (partyIndex > 1) othersWins += partyWins[partyIndex];
 		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {

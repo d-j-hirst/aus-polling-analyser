@@ -31,7 +31,8 @@
 // Version 24: Save minor party seat targets
 // Version 25: Remove incumbent-relative margins and stats
 // Version 26: Party names/abbr/colour now stored as maps rather than vectors
-constexpr int VersionNum = 26;
+// Version 27: More conversion of party-sorted info from vectors to maps
+constexpr int VersionNum = 27;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -548,12 +549,37 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.majorityPercent;
 	saveInput >> report.minorityPercent;
 	saveInput >> report.hungPercent;
-	saveInput >> report.partyWinExpectation;
-	if (versionNum >= 17) {
+	if (versionNum >= 27) {
+		saveInput >> report.partyWinExpectation;
 		saveInput >> report.partyWinMedian;
+		saveInput >> report.regionPartyWinExpectation;
+		saveInput >> report.partySeatWinFrequency;
 	}
-	saveInput >> report.regionPartyWinExpectation;
-	saveInput >> report.partySeatWinFrequency;
+	else {
+		std::vector<float> winExpectationVec; saveInput >> winExpectationVec;
+		for (int i = 0; i < int(winExpectationVec.size()); ++i) {
+			report.partyWinExpectation[i] = winExpectationVec[i];
+		}
+		if (versionNum >= 17) {
+			std::vector<float> winMedianVec; saveInput >> winMedianVec;
+			for (int i = 0; i < int(winMedianVec.size()); ++i) {
+				report.partyWinMedian[i] = winMedianVec[i];
+			}
+		}
+		std::vector<std::vector<float>> regionWinExpectationVec; saveInput >> regionWinExpectationVec;
+		for (int i = 0; i < int(regionWinExpectationVec.size()); ++i) {
+			auto const& subVec = regionWinExpectationVec[i];
+			std::map<int, float> subMap;
+			for (int j = 0; j < int(regionWinExpectationVec.size()); ++j) {
+				subMap[j] = subVec[j];
+			}
+			report.regionPartyWinExpectation.push_back(subMap);
+		}
+		std::vector<std::vector<int>> winFrequencyVec; saveInput >> winFrequencyVec;
+		for (int i = 0; i < int(winExpectationVec.size()); ++i) {
+			report.partySeatWinFrequency[i] = winFrequencyVec[i];
+		}
+	}
 	saveInput >> report.othersWinFrequency;
 	saveInput >> report.total2cpPercentCounted;
 	saveInput >> report.partyOneProbabilityBounds;
@@ -611,7 +637,15 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.regionPartyIncuments;
 	saveInput >> report.prevElection2pp;
 	if (versionNum >= 18) {
-		saveInput >> report.partyPrimaryFrequency;
+		if (versionNum >= 27) {
+			saveInput >> report.partyPrimaryFrequency;
+		}
+		else {
+			std::vector<std::map<short, int>> primaryFrequencyVec; saveInput >> primaryFrequencyVec;
+			for (int i = 0; i < int(primaryFrequencyVec.size()); ++i) {
+				report.partyPrimaryFrequency[i] = primaryFrequencyVec[i];
+			}
+		}
 		saveInput >> report.tppFrequency;
 	}
 	return report;

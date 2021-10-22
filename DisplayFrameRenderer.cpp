@@ -247,9 +247,14 @@ void DisplayFrameRenderer::drawExpectationsBoxRows() const
 	wxRect expBoxNameRect = wxRect(ExpectationBoxLeft, ExpectationBoxTop + ExpectationBoxTitleHeight,
 		ExpectationBoxWidth * 0.5f, rowSize);
 	dc.SetFont(font(rowSize - 8));
-
-
-	for (int partyIndex = 0; partyIndex < simulation.internalPartyCount(); ++partyIndex) {
+	
+	// Split into two so that we have the major parties first and emerging parties last
+	for (auto [partyIndex, x] : simulation.partyName) {
+		if (partyIndex < 0) continue;
+		drawExpectationsBoxRow(expBoxNameRect, partyIndex);
+	}
+	for (auto [partyIndex, x] : simulation.partyWinExpectation) {
+		if (partyIndex >= 0) continue;
 		drawExpectationsBoxRow(expBoxNameRect, partyIndex);
 	}
 }
@@ -541,7 +546,7 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 		// Parties with a primary vote of exactly 0 are generally to be considered "not analysed"
 		// than actually zero, so we don't print them with an actual value
-		if (partyIndex < int(simulation.partyPrimaryFrequency.size()) && simulation.getPrimarySampleCount(partyIndex) &&
+		if (simulation.partyPrimaryFrequency.contains(partyIndex) && simulation.getPrimarySampleCount(partyIndex) &&
 			simulation.getPrimarySampleExpectation(partyIndex) > 0.0f)
 		{
 			float expectation = simulation.getPrimarySampleExpectation(partyIndex);

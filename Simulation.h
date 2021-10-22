@@ -72,18 +72,18 @@ public:
 
 		double partyOneSwing = 0.0;
 
-		std::vector<std::map<short, int>> partyPrimaryFrequency;
+		std::map<int, std::map<short, int>> partyPrimaryFrequency;
 		std::map<short, int> tppFrequency;
 
-		std::vector<float> partyWinExpectation;
+		std::map<int, float> partyWinExpectation;
 
-		std::vector<float> partyWinMedian;
+		std::map<int, float> partyWinMedian;
 
 		// region, then party
-		std::vector<std::vector<float>> regionPartyWinExpectation;
+		std::vector<std::map<int, float>> regionPartyWinExpectation;
 
 		// party, then seat
-		std::vector<std::vector<int>> partySeatWinFrequency;
+		std::map<int, std::vector<int>> partySeatWinFrequency;
 
 		// Margin by which each seat is expected to be on after simulation
 		// Note this variable holds the accumulated sum during simulations
@@ -124,9 +124,9 @@ public:
 
 		std::vector<std::vector<int>> regionPartyIncuments;
 
-		std::vector<std::map<Party::Id, float>> seatPartyWinPercent;
+		std::vector<std::map<int, float>> seatPartyWinPercent;
 
-		std::vector<std::map<Party::Id, float>> seatPartyMeanFpShare;
+		std::vector<std::map<int, float>> seatPartyMeanFpShare;
 
 		float prevElection2pp = 0.0f;
 

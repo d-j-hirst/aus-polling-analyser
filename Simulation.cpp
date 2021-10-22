@@ -99,36 +99,48 @@ int Simulation::Report::internalRegionCount() const
 
 float Simulation::Report::getPartyWinExpectation(int partyIndex) const
 {
-	return partyWinExpectation[partyIndex];
+	return partyWinExpectation.at(partyIndex);
 }
 
 float Simulation::Report::getPartyWinMedian(int partyIndex) const
 {
-	if (partyIndex < int(partyWinMedian.size())) return partyWinMedian[partyIndex];
+	if (partyWinMedian.contains(partyIndex)) return partyWinMedian.at(partyIndex);
 	return 0;
 }
 
 float Simulation::Report::getOthersWinExpectation() const
 {
 	if (partyWinExpectation.size() < 3) return 0.0f;
-	return std::accumulate(std::next(partyWinExpectation.begin(), 2), partyWinExpectation.end(), 0.0f);
+	float totalExpectation = 0.0f;
+	for (auto [partyIndex, expectation] : partyWinExpectation) {
+		if (partyIndex && partyIndex != 1) {
+			totalExpectation += expectation;
+		}
+	}
+	return totalExpectation;
 }
 
 float Simulation::Report::getRegionPartyWinExpectation(int regionIndex, int partyIndex) const
 {
-	return regionPartyWinExpectation[regionIndex][partyIndex];
+	return regionPartyWinExpectation[regionIndex].at(partyIndex);
 }
 
 float Simulation::Report::getRegionOthersWinExpectation(int regionIndex) const
 {
 	if (regionIndex < 0 || regionIndex >= int(regionPartyWinExpectation.size())) return 0.0f;
 	if (regionPartyWinExpectation[regionIndex].size() < 3) return 0.0f;
-	return std::accumulate(regionPartyWinExpectation[regionIndex].begin() + 2, regionPartyWinExpectation[regionIndex].end(), 0.0f);
+	float totalExpectation = 0.0f;
+	for (auto [partyIndex, expectation] : regionPartyWinExpectation[regionIndex]) {
+		if (partyIndex && partyIndex != 1) {
+			totalExpectation += expectation;
+		}
+	}
+	return totalExpectation;
 }
 
 float Simulation::Report::getPartySeatWinFrequency(int partyIndex, int seatIndex) const
 {
-	return partySeatWinFrequency[partyIndex][seatIndex];
+	return partySeatWinFrequency.at(partyIndex)[seatIndex];
 }
 
 float Simulation::Report::getOthersWinFrequency(int seatIndex) const
@@ -166,9 +178,9 @@ float Simulation::Report::getPartyWinPercent(MajorParty whichParty) const
 int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const
 {
 	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
-	if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
-	for (int i = 0; i < int(partySeatWinFrequency[partyIndex].size()); ++i) {
-		if (partySeatWinFrequency[partyIndex][i] > 0) return i;
+	if (partySeatWinFrequency.at(partyIndex).size() == 0) return 0;
+	for (int i = 0; i < int(partySeatWinFrequency.at(partyIndex).size()); ++i) {
+		if (partySeatWinFrequency.at(partyIndex)[i] > 0) return i;
 	}
 	return 0;
 }
@@ -176,9 +188,9 @@ int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const
 int Simulation::Report::getMaximumSeatFrequency(int partyIndex) const
 {
 	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
-	if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
-	for (int i = int(partySeatWinFrequency[partyIndex].size()) - 1; i >= 0; --i) {
-		if (partySeatWinFrequency[partyIndex][i] > 0) return i;
+	if (partySeatWinFrequency.at(partyIndex).size() == 0) return 0;
+	for (int i = int(partySeatWinFrequency.at(partyIndex).size()) - 1; i >= 0; --i) {
+		if (partySeatWinFrequency.at(partyIndex)[i] > 0) return i;
 	}
 	return 0;
 }
@@ -186,8 +198,8 @@ int Simulation::Report::getMaximumSeatFrequency(int partyIndex) const
 int Simulation::Report::getModalSeatFrequencyCount(int partyIndex) const
 {
 	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
-	if (partySeatWinFrequency[partyIndex].size() == 0) return 0;
-	return *std::max_element(partySeatWinFrequency[partyIndex].begin(), partySeatWinFrequency[partyIndex].end());
+	if (partySeatWinFrequency.at(partyIndex).size() == 0) return 0;
+	return *std::max_element(partySeatWinFrequency.at(partyIndex).begin(), partySeatWinFrequency.at(partyIndex).end());
 }
 
 double Simulation::Report::getPartyOne2pp() const
@@ -216,7 +228,7 @@ int Simulation::Report::findBestSeatDisplayCenter(Party::Id partySorted, int num
 
 int Simulation::Report::getPrimarySampleCount(int partyIndex) const
 {
-	return std::accumulate(partyPrimaryFrequency[partyIndex].begin(), partyPrimaryFrequency[partyIndex].end(), 0,
+	return std::accumulate(partyPrimaryFrequency.at(partyIndex).begin(), partyPrimaryFrequency.at(partyIndex).end(), 0,
 		[](int sum, std::pair<short, int> a) {return sum + a.second; });
 }
 
@@ -224,7 +236,7 @@ float Simulation::Report::getPrimarySampleExpectation(int partyIndex) const
 {
 	int totalCount = getPrimarySampleCount(partyIndex);
 	if (!totalCount) return 0;
-	return std::accumulate(partyPrimaryFrequency[partyIndex].begin(), partyPrimaryFrequency[partyIndex].end(), 0.0f,
+	return std::accumulate(partyPrimaryFrequency.at(partyIndex).begin(), partyPrimaryFrequency.at(partyIndex).end(), 0.0f,
 		[](float sum, std::pair<short, int> a) {
 			return sum + float(a.first) * float(a.second) * 0.1f;
 		}
@@ -236,7 +248,7 @@ float Simulation::Report::getPrimarySampleMedian(int partyIndex) const
 	int totalCount = getPrimarySampleCount(partyIndex);
 	if (!totalCount) return 0.0f;
 	int currentCount = 0;
-	for (auto const& [bucketKey, bucketCount] : partyPrimaryFrequency[partyIndex]) {
+	for (auto const& [bucketKey, bucketCount] : partyPrimaryFrequency.at(partyIndex)) {
 		currentCount += bucketCount;
 		if (currentCount > totalCount / 2) {
 			return float(bucketKey) * 0.1f;
