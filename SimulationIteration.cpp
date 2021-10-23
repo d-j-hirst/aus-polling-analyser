@@ -476,19 +476,6 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	transformedFp += rng.flexibleDist(0.0f, lowerRmse, upperRmse, lowerKurtosis, upperKurtosis);
 
 	voteShare = detransformVoteShare(transformedFp);
-
-	//if (partyIndex == 7) {
-	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-	//	PA_LOG_VAR(seatModifier);
-	//	PA_LOG_VAR(partyFp);
-	//	PA_LOG_VAR(modifiedFp1);
-	//	PA_LOG_VAR(modifiedFp2);
-	//	PA_LOG_VAR(modifiedFp);
-	//	PA_LOG_VAR(transformedFp);
-	//	PA_LOG_VAR(upperRmse);
-	//	PA_LOG_VAR(upperKurtosis);
-	//	PA_LOG_VAR(voteShare);
-	//}
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
@@ -785,8 +772,6 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		allocateMajorPartyFp(seatIndex);
 	}
-
-	//PA_LOG_VAR(seatFpVoteShare[banksIndex][6]);
 }
 
 void SimulationIteration::correctMajorPartyFpBias()
@@ -894,8 +879,6 @@ void SimulationIteration::determineNonClassicSeatResult(int seatIndex)
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-	//PA_LOG_VAR(seat.name);
 	typedef std::pair<int, float> PartyVotes;
 	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
 	// transfer fp vote shares to vector
@@ -913,9 +896,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 	accumulatedVoteShares = originalVoteShares;
-	//PA_LOG_VAR(originalVoteShares);
-	//PA_LOG_VAR(accumulatedVoteShares);
-	//PA_LOG_VAR(excludedVoteShares);
 	// find top two highest fp parties in order
 	while (true) {
 		// Set up some reused functions ...
@@ -934,7 +914,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 					float thisWeight = std::pow(consistencyBase, -ideologyDistance);
 					bool sourceMajor = sourceParty == 0 || sourceParty == 1;
 					bool targetMajor = sourceParty == 0 || sourceParty == 1;
-					if (!sourceMajor && !targetMajor) thisWeight *= 1.6f;
 					if (bothMajorParties(sourceParty, targetParty)) thisWeight *= 0.5f;
 					thisWeight *= rng.uniform(0.5f, 1.5f);
 					thisWeight *= std::sqrt(targetVoteShare);
@@ -944,8 +923,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 					accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 				}
-				//logger << "allocating: " << sourceParty << "\n";
-				//PA_LOG_VAR(accumulatedVoteShares);
 			}
 		};
 
@@ -958,22 +935,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float secondVoteShare = std::min(accumulatedVoteShares[0].second, accumulatedVoteShares[1].second);
 			if (100.0f - firstTwo < secondVoteShare) finalTwoConfirmed = true;
 		}
-		//PA_LOG_VAR(accumulatedVoteShares);
-		//PA_LOG_VAR(finalTwoConfirmed);
 		if (finalTwoConfirmed) {
 			// Just use classic 2pp winner if labor/lib are the final two
 			if (accumulatedVoteShares[0].first == 0 && accumulatedVoteShares[1].first == 1) {
 				accumulatedVoteShares[0].second = partyOneNewTppMargin[seatIndex] + 50.0f;
 				accumulatedVoteShares[1].second = 50.0f - partyOneNewTppMargin[seatIndex];
-				//logger << "First exit\n";
-				//PA_LOG_VAR(accumulatedVoteShares);
 				break;
 			}
 			else if (accumulatedVoteShares[0].first == 1 && accumulatedVoteShares[1].first == 0) {
 				accumulatedVoteShares[0].second = 50.0f - partyOneNewTppMargin[seatIndex];
 				accumulatedVoteShares[1].second = partyOneNewTppMargin[seatIndex] + 50.0f;
-				//logger << "Second exit\n";
-				//PA_LOG_VAR(accumulatedVoteShares);
 				break;
 			}
 			// otherwise exclude any remaining votes and allocate 
@@ -984,54 +955,24 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				std::erase(accumulatedVoteShares, excludedCandidate);
 				std::erase(originalVoteShares, originalCandidate);
 			}
-			//logger << "Third exit\n";
-			//PA_LOG_VAR(accumulatedVoteShares);
-			//PA_LOG_VAR(excludedVoteShares);
 			accumulatedVoteShares = originalVoteShares;
 			allocateVotes();
-			//PA_LOG_VAR(accumulatedVoteShares);
-			//PA_LOG_VAR(excludedVoteShares);
 			break;
 		}
 		// Allocate preferences from excluded groups, then exclude the lowest and allocate those too
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes();
-		//logger << "Allocate votes once\n";
-		//PA_LOG_VAR(originalVoteShares);
-		//PA_LOG_VAR(accumulatedVoteShares);
-		//PA_LOG_VAR(excludedVoteShares);
 		auto excludedCandidate = *std::min_element(accumulatedVoteShares.begin(), accumulatedVoteShares.end(), partyVoteLess);
 		auto originalCandidate = *std::find_if(originalVoteShares.begin(), originalVoteShares.end(), [=](PartyVotes a) {return a.first == excludedCandidate.first; });
-		//PA_LOG_VAR(excludedCandidate);
-		//PA_LOG_VAR(originalCandidate);
 		excludedVoteShares.push_back(originalCandidate);
 		std::erase(accumulatedVoteShares, excludedCandidate);
-		//PA_LOG_VAR(originalVoteShares);
 		std::erase(originalVoteShares, originalCandidate);
-		//PA_LOG_VAR(originalVoteShares);
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes();
-		//logger << "Allocation after exclusion\n";
-		//PA_LOG_VAR(originalVoteShares);
-		//PA_LOG_VAR(accumulatedVoteShares);
-		//PA_LOG_VAR(excludedVoteShares);
 	}
 
-	//logger << "Final assignment\n";
-	//PA_LOG_VAR(accumulatedVoteShares);
 	auto topTwo = std::minmax(accumulatedVoteShares[0], accumulatedVoteShares[1], partyVoteLess);
-	//PA_LOG_VAR(topTwo);
 	seatWinner[seatIndex] = topTwo.second.first;
-	//if (seatWinner[seatIndex] == 7) {
-	//	logger << "One nation winning a seat!\n";
-	//	PA_LOG_VAR(seat.name);
-	//	PA_LOG_VAR(overallFp[7]);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(topTwo);
-	//	PA_LOG_VAR(centristPopulistFactor[7]);
-	//	PA_LOG_VAR(fpModificationAdjustment[7]);
-	//	PA_LOG_VAR(fpModificationAdjustment[7]);
-	//}
 }
 
 void SimulationIteration::recordSeatResult(int seatIndex)
