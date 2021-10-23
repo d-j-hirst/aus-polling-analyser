@@ -149,8 +149,8 @@ void SimulationCompletion::recordNames()
 		sim.latestReport.partyAbbr[index] = project.parties().viewByIndex(index).abbreviation;
 		sim.latestReport.partyColour[index] = project.parties().viewByIndex(index).colour;
 	}
-	sim.latestReport.partyName[OthersIndex] = "Emerging Independent";
-	sim.latestReport.partyName[EmergingIndIndex] = "Emerging Independent";
+	sim.latestReport.partyName[OthersIndex] = "Others";
+	sim.latestReport.partyName[EmergingIndIndex] = "Emerging Ind";
 	sim.latestReport.partyName[EmergingPartyIndex] = "Emerging Party";
 	sim.latestReport.partyAbbr[OthersIndex] = "OTH";
 	sim.latestReport.partyAbbr[EmergingIndIndex] = "IND";

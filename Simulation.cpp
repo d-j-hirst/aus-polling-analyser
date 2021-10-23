@@ -87,11 +87,6 @@ Seat::Id Simulation::Report::classicSeatIndex(int index) const
 	return classicSeatIndices[index];
 }
 
-int Simulation::Report::internalPartyCount() const
-{
-	return partyWinExpectation.size();
-}
-
 int Simulation::Report::internalRegionCount() const
 {
 	return regionPartyWinExpectation.size();

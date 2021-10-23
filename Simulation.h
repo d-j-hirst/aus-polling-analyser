@@ -137,8 +137,6 @@ public:
 		int classicSeatCount() const;
 		Seat::Id classicSeatIndex(int index) const;
 
-		int internalPartyCount() const;
-
 		int internalRegionCount() const;
 
 		float getPartyWinExpectation(int partyIndex) const;
