@@ -66,6 +66,14 @@ public:
 	}
 
 	template<typename T, typename U>
+	inline SaveFileOutput& operator<<(std::pair<T, U> itemToAdd)
+	{
+		*this << itemToAdd.first;
+		*this << itemToAdd.second;
+		return *this;
+	}
+
+	template<typename T, typename U>
 	void outputAsType(U const& output) {
 		*this << static_cast<T>(output);
 	}
@@ -143,6 +151,15 @@ public:
 		return *this;
 	}
 
+	template<typename T, typename U>
+	inline SaveFileInput& operator>>(std::pair<T, U>& itemToAdd)
+	{
+		*this >> itemToAdd.first;
+		*this >> itemToAdd.second;
+		return *this;
+	}
+
+	// Use this when you want to remove data from the stream without storing it in a variable
 	template <typename T>
 	T extract() {
 		T temp;

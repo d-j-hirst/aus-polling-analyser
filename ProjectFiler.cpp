@@ -32,7 +32,8 @@
 // Version 25: Remove incumbent-relative margins and stats
 // Version 26: Party names/abbr/colour now stored as maps rather than vectors
 // Version 27: More conversion of party-sorted info from vectors to maps
-constexpr int VersionNum = 27;
+// Version 28: Different possible end dates for election projections (with odds for each)
+constexpr int VersionNum = 28;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -363,6 +364,7 @@ void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(thisProjection.getSettings().numIterations);
 		saveOutput.outputAsType<int32_t>(project.models().idToIndex(thisProjection.getSettings().baseModel));
 		saveOutput << thisProjection.getSettings().endDate.GetJulianDayNumber();
+		saveOutput << thisProjection.getSettings().possibleDates;
 		saveOutput << thisProjection.getLastUpdatedDate().GetJulianDayNumber();
 		saveOutput.outputAsType<uint32_t>(thisProjection.projectedSupport.size());
 		for (auto [seriesKey, series] : thisProjection.projectedSupport) {
@@ -382,6 +384,9 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, int versionNum)
 		thisProjection.settings.numIterations = saveInput.extract<int32_t>();
 		thisProjection.settings.baseModel = saveInput.extract<int32_t>();
 		thisProjection.settings.endDate = wxDateTime(saveInput.extract<double>());
+		if (versionNum >= 28) {
+			saveInput >> thisProjection.settings.possibleDates;
+		}
 		thisProjection.lastUpdated = wxDateTime(saveInput.extract<double>());
 		if (versionNum <= 7) { // some legacy data no longer needed
 			for (int i = 0; i < 3; ++i) saveInput.extract<float>();

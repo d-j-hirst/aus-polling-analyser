@@ -32,6 +32,8 @@ public:
 
 		int numIterations = 5000;
 
+		std::vector<std::pair<std::string, float>> possibleDates;
+
 		wxDateTime endDate = wxDateTime::Now();
 	};
 

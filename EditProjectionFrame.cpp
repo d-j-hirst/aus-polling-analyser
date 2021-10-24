@@ -9,6 +9,8 @@
 #include "ModelCollection.h"
 #include "TextInput.h"
 
+using namespace std::placeholders; // for function object parameter binding
+
 constexpr int ControlPadding = 4;
 
 // IDs for the controls and the menu commands
@@ -20,10 +22,7 @@ enum ControlId
 	BaseModel,
 	EndDate,
 	NumIterations,
-	VoteLoss,
-	DailyChange,
-	InitialChange,
-	NumElections,
+	PossibleDates,
 };
 
 EditProjectionFrame::EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection::Settings projectionSettings)
@@ -44,6 +43,7 @@ void EditProjectionFrame::createControls(int & y)
 	createModelInput(y);
 	createEndDateInput(y);
 	createNumIterationsInput(y);
+	createPossibleDatesInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -89,6 +89,21 @@ void EditProjectionFrame::createNumIterationsInput(int & y)
 	y += numIterationsInput->Height + ControlPadding;
 }
 
+void EditProjectionFrame::createPossibleDatesInput(int& y)
+{
+	std::string dates = "";
+	if (projectionSettings.possibleDates.size()) {
+		dates += projectionSettings.possibleDates[0].first + ":" + formatFloat(projectionSettings.possibleDates[0].second, 3);
+		for (size_t i = 1; i < projectionSettings.possibleDates.size(); ++i) {
+			dates += "," + projectionSettings.possibleDates[i].first + ":" + formatFloat(projectionSettings.possibleDates[i].second, 3);
+		}
+	}
+
+	auto possibleDatesCallback = std::bind(&EditProjectionFrame::updatePossibleDates, this, _1);
+	possibleDatesInput.reset(new TextInput(this, ControlId::PossibleDates, "Possible Dates:", dates, wxPoint(2, y), possibleDatesCallback));
+	y += possibleDatesInput->Height + ControlPadding;
+}
+
 void EditProjectionFrame::createOkCancelButtons(int & y)
 {
 	// Create the OK and cancel buttons.
@@ -110,4 +125,21 @@ void EditProjectionFrame::OnOK(wxCommandEvent& WXUNUSED(event))\
 	callback(projectionSettings);
 	// Then close this dialog.
 	Close();
+}
+
+void EditProjectionFrame::updatePossibleDates(std::string possibleDates)
+{
+	try {
+		std::vector<std::pair<std::string, float>> dates;
+		for (auto dateOdds : splitString(possibleDates, ",")) {
+			auto split = splitString(dateOdds, ":");
+			if (split.size() != 2) return;
+			dates.push_back(std::pair(split[0], std::stof(split[1])));
+		}
+		projectionSettings.possibleDates = dates;
+		PA_LOG_VAR(projectionSettings.possibleDates);
+	}
+	catch (std::invalid_argument) {
+		// Just don't update the variable if the input isn't properly given
+	}
 }

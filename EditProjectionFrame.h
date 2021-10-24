@@ -48,6 +48,7 @@ private:
 	void createModelInput(int& y);
 	void createEndDateInput(int& y);
 	void createNumIterationsInput(int& y);
+	void createPossibleDatesInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -55,6 +56,8 @@ private:
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
+
+	void updatePossibleDates(std::string possibleDates);
 	
 	// Holds the preliminary settings for the projection to be created.
 	Projection::Settings projectionSettings;
@@ -65,6 +68,7 @@ private:
 	std::unique_ptr<ChoiceInput> modelInput;
 	std::unique_ptr<DateInput> endDateInput;
 	std::unique_ptr<IntInput> numIterationsInput;
+	std::unique_ptr<TextInput> possibleDatesInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;
