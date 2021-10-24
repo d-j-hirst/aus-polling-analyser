@@ -637,7 +637,7 @@ void SimulationPreparation::loadIndEmergence()
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
-	run.indEmergence.fpThreshold = extractNum();
+	run.indEmergence.fpThreshold = transformVoteShare(extractNum());
 	run.indEmergence.baseRate = extractNum();
 	run.indEmergence.fedRateMod = extractNum();
 	run.indEmergence.ruralRateMod = extractNum();

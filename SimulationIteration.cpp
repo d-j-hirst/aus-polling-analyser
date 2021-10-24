@@ -366,9 +366,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
 	seatFpVoteShare.resize(project.seats().count());
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
-	if (seatIndex == 14) {
-		logger << "Seat 14!\n";
-	}
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		bool effectiveGreen = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
 		if (!overallFpSwing.contains(partyIndex)) effectiveGreen = false;
@@ -491,15 +488,15 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
-		float interceptSize = run.indEmergence.voteIntercept - transformVoteShare(run.indEmergence.fpThreshold);
+		float interceptSize = run.indEmergence.voteIntercept - run.indEmergence.fpThreshold;
 		if (isFederal) rmse *= (1.0f + run.indEmergence.fedVoteCoeff / interceptSize);
 		if (isRural) rmse *= (1.0f + run.indEmergence.ruralVoteCoeff / interceptSize);
 		if (isProvincial) rmse *= (1.0f + run.indEmergence.provincialVoteCoeff / interceptSize);
 		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
-		float voteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
-		seatFpVoteShare[seatIndex][EmergingIndIndex] = voteShare;
+		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
 }
 

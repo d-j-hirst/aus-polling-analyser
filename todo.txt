@@ -1,8 +1,10 @@
 Polling Analyser to-do:
 -More sophisticated handling of non-classic and potentially non-classic seats
- -calculation of eventual winner from fp results
-  -calculate a result using preference distributions w/ some assumptions for unknowns
-   -we already have something like this	-exit out early if a classic 2pp is guaranteed to avoid unnecessary calculations
+ -Independents should be considered more likely to recontest as the next election approaches
+  -Because some upcoming retirements occur mid-term and e.g. deaths in office are less likely as time passes
+  -Requires passing days-until-election as part of the polling sample
+ -Update seats list to order in ascending order of win% for most likely candidate and list higher third party chances
+ -Variable days-to-election from betting odds
  -Keep track of simulated recontest-only stats for independents and minors that may not recontest
  -Output per-seat primary vote as part of snapshots (and include in display?)
  -Tidy up code from this part of the project
