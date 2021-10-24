@@ -349,6 +349,7 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 
 StanModel::SupportSample StanModel::generateAdjustedSupportSample(wxDateTime date, int days) const
 {
+	if (!date.IsValid()) date = getEndDate();
 	auto rawSample = generateRawSupportSample(date);
 	auto adjustedSample = adjustRawSupportSample(rawSample, days);
 	return adjustedSample;
@@ -430,6 +431,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	normaliseSample(sample);
 	updateOthersValue(sample);
 	generateTppForSample(sample);
+	sample.daysToElection = days;
 	return sample;
 }
 

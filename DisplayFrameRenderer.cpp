@@ -521,6 +521,7 @@ void DisplayFrameRenderer::drawVoteShareBoxTitle() const
 
 void DisplayFrameRenderer::drawVoteShareBoxRows() const
 {
+	if (!(simulation.partyPrimaryFrequency.size())) return;
 	float voteBoxHeight = dv.DCheight - VoteShareBoxTop - BoxMargin;
 	int rowSize = std::min(22, int(voteBoxHeight - VoteShareBoxTitleHeight) / int(simulation.partyPrimaryFrequency.size()));
 	wxRect voteBoxNameRect = wxRect(VoteShareBoxLeft, VoteShareBoxTop + VoteShareBoxTitleHeight,

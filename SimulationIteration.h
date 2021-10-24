@@ -110,7 +110,8 @@ private:
 	std::vector<FloatByPartyIndex> seatFpVoteShare;
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
-	FloatByPartyIndex overallFp;
+	int daysToElection = 0;
+	FloatByPartyIndex overallFpTarget;
 	FloatByPartyIndex overallFpSwing;
 	FloatByPartyIndex previousPreferenceFlow;
 	FloatByPartyIndex overallPreferenceFlow;

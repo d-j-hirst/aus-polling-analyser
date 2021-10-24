@@ -158,9 +158,10 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
 {
 	auto const& model = getBaseModel(models);
+	// *** This is where to account for differing end dates
 	if (!date.IsValid()) date = settings.endDate;
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
-	auto sample = model.generateAdjustedSupportSample(date, daysAfterModelEnd);
+	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd);
 	return sample;
 }
 
