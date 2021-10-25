@@ -158,8 +158,30 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
 {
 	auto const& model = getBaseModel(models);
-	// *** This is where to account for differing end dates
-	if (!date.IsValid()) date = settings.endDate;
+	if (!date.IsValid()) {
+		float totalOdds = 0.0f;
+		std::vector<std::pair<wxDateTime, float>> cumulativeOdds;
+		for (auto [thisDate, odds] : settings.possibleDates) {
+			wxDateTime tempDate;
+			bool success = tempDate.ParseISODate(thisDate);
+			if (!success) continue;
+			if (tempDate < model.getEndDate()) continue;
+			totalOdds += 1.0f / odds;
+			cumulativeOdds.push_back(std::pair(tempDate, totalOdds));
+		}
+		if (!cumulativeOdds.size()) {
+			date = settings.endDate;
+		}
+		else {
+			float selectedOdds = rng.uniform(0.0f, totalOdds);
+			for (int index = 0; index < int(cumulativeOdds.size()); ++index) {
+				if (selectedOdds < cumulativeOdds[index].second) {
+					date = cumulativeOdds[index].first;
+					break;
+				}
+			}
+		}
+	}
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
 	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd);
 	return sample;

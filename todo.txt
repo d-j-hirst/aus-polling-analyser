@@ -1,16 +1,12 @@
 Polling Analyser to-do:
 -More sophisticated handling of non-classic and potentially non-classic seats
- -Independents should be considered more likely to recontest as the next election approaches
-  -Because some upcoming retirements occur mid-term and e.g. deaths in office are less likely as time passes
-  -Requires passing days-until-election as part of the polling sample
  -Update seats list to order in ascending order of win% for most likely candidate and list higher third party chances
- -Variable days-to-election from betting odds
  -Keep track of simulated recontest-only stats for independents and minors that may not recontest
  -Output per-seat primary vote as part of snapshots (and include in display?)
+ -Output separate TCPs for each simulated set of 2cp candidates
  -Tidy up code from this part of the project
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
- -Also check distribution of seat TPP swings
--Investigate different recontest rates for incumbent independents
+-Also check distribution of seat TPP swings
 -(Make any further adjustments to existing analysis processes)
 - *** ANALYSIS PHASE COMPLETE ***
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request

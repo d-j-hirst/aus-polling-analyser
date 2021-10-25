@@ -17,7 +17,12 @@ public:
 	void setFlushFlag(bool val) { doFlush_ = val; }
 
 	template<typename T>
-	Logger& operator<<(const T& obj);
+	auto operator<<(const T& obj)
+		-> decltype(std::ofstream() << obj, *this)&;
+	
+	template<typename T>
+	auto operator<<(const T& obj)
+		-> decltype(obj.FormatISODate(), *this)&;
 
 	template<typename T>
 	Logger& operator<<(const std::vector<T>& obj);
@@ -47,8 +52,19 @@ private:
 extern Logger logger;
 
 template<typename T>
-inline Logger& Logger::operator<<(const T& obj) {
+auto Logger::operator<<(const T& obj)
+-> decltype(std::ofstream() << obj, *this)&
+{
 	fileStream_ << obj;
+	flushIf();
+	return *this;
+}
+
+template<typename T>
+auto Logger::operator<<(const T& obj)
+-> decltype(obj.FormatISODate(), *this)&
+{
+	fileStream_ << obj.FormatISODate();
 	flushIf();
 	return *this;
 }

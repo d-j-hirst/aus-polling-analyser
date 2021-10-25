@@ -9,6 +9,8 @@
 #include "ModelCollection.h"
 #include "TextInput.h"
 
+#include <wx/datetime.h>
+
 using namespace std::placeholders; // for function object parameter binding
 
 constexpr int ControlPadding = 4;
@@ -134,6 +136,8 @@ void EditProjectionFrame::updatePossibleDates(std::string possibleDates)
 		for (auto dateOdds : splitString(possibleDates, ",")) {
 			auto split = splitString(dateOdds, ":");
 			if (split.size() != 2) return;
+			wxDateTime tempDate;
+			if (!tempDate.ParseISODate(split[0])) continue;
 			dates.push_back(std::pair(split[0], std::stof(split[1])));
 		}
 		projectionSettings.possibleDates = dates;
