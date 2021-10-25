@@ -63,6 +63,11 @@ std::optional<std::string> PollingProject::runMacro(std::string macro)
 	}
 }
 
+void PollingProject::updateMacro(std::string macro)
+{
+	lastMacro = macro;
+}
+
 void PollingProject::refreshCalc2PP() {
 	for (auto it = polls().begin(); it != polls().end(); it++)
 		partyCollection.recalculatePollCalc2PP(it->second);

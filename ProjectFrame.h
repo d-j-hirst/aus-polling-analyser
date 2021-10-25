@@ -91,7 +91,10 @@ public:
 	void saveAs();
 
 	// Run macros to do multiple project tasks at once
-	void runMacros();
+	void runMacro();
+
+	// Update the stored macro without running it
+	void updateMacro();
 
 private:
 

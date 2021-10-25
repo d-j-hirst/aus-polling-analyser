@@ -30,7 +30,7 @@ enum TabsEnum {
 	Tab_Display,
 	Tab_Results,
 	Tab_Downloads,
-	Tab_Adanysis,
+	Tab_Analysis,
 	Tab_Map
 };
 
@@ -147,10 +147,11 @@ void ProjectFrame::saveAs() {
 	saveUnderFilename(pathName);
 }
 
-void ProjectFrame::runMacros()
+void ProjectFrame::runMacro()
 {
 	auto dialog = wxTextEntryDialog(this, "Enter macro:", "", project->getLastMacro());
-	dialog.ShowModal();
+	int result = dialog.ShowModal();
+	if (result == wxID_CANCEL) return;
 	std::string newMacro = std::string(dialog.GetValue());
 	auto error = project->runMacro(newMacro);
 	if (error.has_value()) {
@@ -162,6 +163,15 @@ void ProjectFrame::runMacros()
 	refresher.refreshSeatData();
 	refresher.refreshVisualiser();
 	refresher.refreshDisplay();
+}
+
+void ProjectFrame::updateMacro()
+{
+	auto dialog = wxTextEntryDialog(this, "Enter macro (it will not be run, just stored):", "", project->getLastMacro());
+	int result = dialog.ShowModal();
+	if (result == wxID_CANCEL) return;
+	std::string newMacro = std::string(dialog.GetValue());
+	project->updateMacro(newMacro);
 }
 
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.

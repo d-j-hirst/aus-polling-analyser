@@ -19,7 +19,8 @@ enum class Item
 	Open = wxID_OPEN,
 	Save = wxID_SAVE,
 	SaveAs = wxID_SAVEAS,
-	Macros = Base + 1,
+	RunMacro = Base + 1,
+	UpdateMacro,
 
 	// Item ID for exiting the program
 	Exit = wxID_EXIT,
@@ -126,10 +127,17 @@ void ParentFrame::OnSaveAs(wxCommandEvent&)
 	}
 }
 
-void ParentFrame::OnMacros(wxCommandEvent&)
+void ParentFrame::OnRunMacro(wxCommandEvent&)
 {
 	if (notebook) {
-		notebook->runMacros();
+		notebook->runMacro();
+	}
+}
+
+void ParentFrame::OnUpdateMacro(wxCommandEvent&)
+{
+	if (notebook) {
+		notebook->updateMacro();
 	}
 }
 
@@ -166,7 +174,8 @@ void ParentFrame::setupMenuBar()
 
 	// Create the macros menu
 	wxMenu* macrosMenu = new wxMenu;
-	macrosMenu->Append(int(Item::Macros), "&Run Macro\tF1", "Run macros");
+	macrosMenu->Append(int(Item::RunMacro), "&Run Macro\tF1", "Run macro");
+	macrosMenu->Append(int(Item::UpdateMacro), "&Update Macro\tShift+F1", "Update macro");
 
 	// Create the help menu.
 	wxMenu *helpMenu = new wxMenu;
@@ -209,7 +218,8 @@ void ParentFrame::bindEventHandlers()
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnOpen, this, int(Item::Open));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnSave, this, int(Item::Save));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnSaveAs, this, int(Item::SaveAs));
-	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnMacros, this, int(Item::Macros));
+	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnRunMacro, this, int(Item::RunMacro));
+	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnUpdateMacro, this, int(Item::UpdateMacro));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnAbout, this, int(Item::About));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnExit, this, int(Item::Exit));
 

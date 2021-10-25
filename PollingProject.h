@@ -64,6 +64,9 @@ public:
 	// Runs the given macro. Returns true if the macro verified successfully, 
 	std::optional<std::string> runMacro(std::string macro);
 
+	// Update the macro to the given value without running it.
+	void updateMacro(std::string macro);
+
 	// Refreshes the calculated 2PPs for all polls.
 	void refreshCalc2PP();
 
