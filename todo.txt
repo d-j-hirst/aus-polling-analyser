@@ -1,10 +1,9 @@
 Polling Analyser to-do:
--More sophisticated handling of non-classic and potentially non-classic seats
- -Update seats list to order in ascending order of win% for most likely candidate and list higher third party chances
- -Keep track of simulated recontest-only stats for independents and minors that may not recontest
- -Output per-seat primary vote as part of snapshots (and include in display?)
- -Output separate TCPs for each simulated set of 2cp candidates
- -Tidy up code from this part of the project
+-Change seats list to order in ascending order of win% for most likely candidate and list higher third party chances
+-Custom known preference flows for non-classic 2cps
+-Output per-seat primary vote as part of snapshots (and include in display?)
+-Output separate TCPs for each simulated set of 2cp candidates
+-Tidy up code from this part of the project
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -Also check distribution of seat TPP swings
 -(Make any further adjustments to existing analysis processes)

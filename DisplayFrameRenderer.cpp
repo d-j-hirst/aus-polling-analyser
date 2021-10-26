@@ -643,28 +643,70 @@ void DisplayFrameRenderer::drawSeatsList() const
 	float SeatsBoxHeight = dv.DCheight - BoxMargin * 2.0f;
 	float seatsListTop = BoxMargin + SeatsBoxTitleHeight;
 	wxRect seatsBoxNameRect = wxRect(SeatsBoxLeft, seatsListTop,
-		SeatsBoxWidth * 0.4f, SeatsBoxTextHeight);
+		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
 	wxRect seatsBoxMarginRect = wxRect(seatsBoxNameRect.GetRight(), seatsListTop,
-		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
-	wxRect seatsBoxLnpWinRect = wxRect(seatsBoxMarginRect.GetRight(), seatsListTop,
-		SeatsBoxWidth * 0.3f, SeatsBoxTextHeight);
+		SeatsBoxWidth * 0.25f, SeatsBoxTextHeight);
+	wxRect seatsBoxPartyOneWinRect = wxRect(seatsBoxMarginRect.GetRight(), seatsListTop,
+		SeatsBoxWidth * 0.12f, SeatsBoxTextHeight);
+	wxRect seatsBoxPartyTwoWinRect = wxRect(seatsBoxPartyOneWinRect.GetRight(), seatsListTop,
+		SeatsBoxWidth * 0.12f, SeatsBoxTextHeight);
+	wxRect seatsBoxOthersWinRect = wxRect(seatsBoxPartyTwoWinRect.GetRight(), seatsListTop,
+		SeatsBoxWidth * 0.21f, SeatsBoxTextHeight);
 	int seatsFittingInBox = int((SeatsBoxHeight - SeatsBoxTitleHeight) / SeatsBoxTextHeight);
-	int closeSeat = simulation.findBestSeatDisplayCenter(GraphParty, seatsFittingInBox);
-	int firstSeat = std::max(std::min(closeSeat - seatsFittingInBox / 2, int(simulation.classicSeatCount()) - seatsFittingInBox), 0);
+
+	struct SeatInfo {
+		std::string name;
+		std::string incumbentText;
+		float partyOneWinRate = 0.0f;
+		float partyTwoWinRate = 0.0f;
+		float bestOthersWinRate = 0.0f;
+		float sortingVal; // highest individual category win rate
+		std::string bestOthersString;
+	};
+
+	std::vector<SeatInfo> seatInfos;
+	for (int seatIndex = 0; seatIndex < int(simulation.seatName.size()); ++seatIndex) {
+		SeatInfo seatInfo;
+		seatInfo.name = simulation.seatName[seatIndex];
+		int incumbent = simulation.seatIncumbents[seatIndex];
+		seatInfo.incumbentText = simulation.partyAbbr.at(simulation.seatIncumbents[seatIndex]);
+		if (!incumbent) seatInfo.incumbentText += " (" + formatFloat(simulation.seatMargins[seatIndex], 1) + "%)";
+		else if (incumbent == 1) seatInfo.incumbentText += " (" + formatFloat(-simulation.seatMargins[seatIndex], 1) + "%)";
+		if (simulation.seatPartyWinPercent[seatIndex].contains(0)) seatInfo.partyOneWinRate = simulation.seatPartyWinPercent[seatIndex].at(0);
+		if (simulation.seatPartyWinPercent[seatIndex].contains(1)) seatInfo.partyTwoWinRate = simulation.seatPartyWinPercent[seatIndex].at(1);
+		int bestOthersIndex = -1;
+		float bestOthersWinRate = 0.0f;
+		for (auto const& [partyIndex, vote] : simulation.seatPartyWinPercent[seatIndex]) {
+			if (partyIndex == 0 || partyIndex == 1) continue;
+			if (vote > bestOthersWinRate) {
+				bestOthersIndex = partyIndex;
+				bestOthersWinRate = vote;
+			}
+		}
+		seatInfo.bestOthersWinRate = bestOthersWinRate;
+		if (bestOthersIndex != -1) {
+			seatInfo.bestOthersString = " (" + simulation.partyAbbr.at(bestOthersIndex) + ")";
+		}
+		seatInfo.sortingVal = std::max(std::max(seatInfo.partyOneWinRate, seatInfo.partyTwoWinRate), seatInfo.bestOthersWinRate);
+		seatInfos.push_back(seatInfo);
+	}
+
+	std::sort(seatInfos.begin(), seatInfos.end(), [](SeatInfo const& lhs, SeatInfo const& rhs) {
+		return lhs.sortingVal < rhs.sortingVal;
+	});
+
 	dc.SetFont(font(8));
-	for (int classicSeatIndex = firstSeat; 
-		classicSeatIndex < firstSeat + seatsFittingInBox && classicSeatIndex < int(simulation.classicSeatCount());
-		++classicSeatIndex)
+	for (int listPos = 0; listPos < seatsFittingInBox; ++listPos)
 	{
-		int seatIndex = simulation.classicSeatIndex(classicSeatIndex);
-		float lnpWinPercent = simulation.getClassicSeatMajorPartyWinRate(classicSeatIndex, GraphParty);
-		dc.DrawLabel(simulation.seatName[seatIndex], seatsBoxNameRect, wxALIGN_CENTRE);
-		std::string seatCountText = simulation.partyAbbr.at(simulation.seatIncumbents[seatIndex]) +
-			" (" + formatFloat(simulation.seatMargins[seatIndex], 1) + ")";
-		dc.DrawLabel(seatCountText, seatsBoxMarginRect, wxALIGN_CENTRE);
-		dc.DrawLabel(formatFloat(lnpWinPercent, 2), seatsBoxLnpWinRect, wxALIGN_CENTRE);
+		dc.DrawLabel(seatInfos[listPos].name, seatsBoxNameRect, wxALIGN_CENTRE);
+		dc.DrawLabel(seatInfos[listPos].incumbentText, seatsBoxMarginRect, wxALIGN_CENTRE);
+		dc.DrawLabel(formatFloat(seatInfos[listPos].partyOneWinRate, 2), seatsBoxPartyOneWinRect, wxALIGN_CENTRE);
+		dc.DrawLabel(formatFloat(seatInfos[listPos].partyTwoWinRate, 2), seatsBoxPartyTwoWinRect, wxALIGN_CENTRE);
+		dc.DrawLabel(formatFloat(seatInfos[listPos].bestOthersWinRate, 2) + seatInfos[listPos].bestOthersString, seatsBoxOthersWinRect, wxALIGN_CENTRE);
 		seatsBoxNameRect.Offset(0, SeatsBoxTextHeight);
 		seatsBoxMarginRect.Offset(0, SeatsBoxTextHeight);
-		seatsBoxLnpWinRect.Offset(0, SeatsBoxTextHeight);
+		seatsBoxPartyOneWinRect.Offset(0, SeatsBoxTextHeight);
+		seatsBoxPartyTwoWinRect.Offset(0, SeatsBoxTextHeight);
+		seatsBoxOthersWinRect.Offset(0, SeatsBoxTextHeight);
 	}
 }
