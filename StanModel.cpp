@@ -380,8 +380,13 @@ void StanModel::generateUnnamedOthersSeries()
 
 StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample, int days) const
 {
-	constexpr int MinDays = 2;
-	days = std::min(numDays - 1, days);
+	constexpr int MinDays = 0;
+	// the "days" parameter used for trend adjustment calculation is the number of days to the end
+	// of the series, not the election itself - and the typical series ends 2 days before the election proper
+	// So, reduce the number of days by 2 so that it's approximating the "end of series" since that's what the
+	// adjustment model is trained on
+	constexpr int DaysOffset = 2;
+	days = std::clamp(days - DaysOffset, MinDays, numDays - 1);
 	auto sample = rawSupportSample;
 	static double alpVoteTotal = 0.0;
 	static double lnpVoteTotal = 0.0;
