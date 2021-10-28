@@ -1,5 +1,4 @@
 Polling Analyser to-do:
--Change seats list to order in ascending order of win% for most likely candidate and list higher third party chances
 -Custom known preference flows for non-classic 2cps
 -Output per-seat primary vote as part of snapshots (and include in display?)
 -Output separate TCPs for each simulated set of 2cp candidates
