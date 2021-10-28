@@ -235,7 +235,7 @@ void PartiesFrame::addParty(Party party) {
 void PartiesFrame::addPartyToPartyData(Party party) {
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(party.name));
-	data.push_back(wxVariant(formatFloat(party.preferenceShare, 3)));
+	data.push_back(wxVariant(formatFloat(party.p1PreferenceFlow, 3)));
 	data.push_back(wxVariant(formatFloat(party.exhaustRate, 3)));
 	data.push_back(wxVariant(party.abbreviation));
 

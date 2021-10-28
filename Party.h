@@ -37,18 +37,23 @@ struct Party {
 		int b;
 	};
 
+	// Slightly conmplicated structure to work with but it makes saving/loading to file easier
+	// since we just use existing template patterns
+	typedef std::pair<std::pair<std::string, std::string>, float> NcPreferenceFlow;
+
 	// Pseudo-constructors for party colours
 	static Colour createColour() { Colour colour; colour.r = 0; colour.g = 0; colour.b = 0; return colour; }
 	static Colour createColour(int r, int g, int b) { Colour colour; colour.r = r; colour.g = g; colour.b = b; return colour; }
 
-	Party(std::string name, float preferenceShare, float exhaustRate, std::string abbreviation, CountAsParty countAsParty)
-		: name(name), preferenceShare(preferenceShare), exhaustRate(exhaustRate), abbreviation(abbreviation), countAsParty(countAsParty) {}
 	Party() {}
+	Party(std::string name, float p1PreferenceFlow, float exhaustRate, std::string abbreviation, CountAsParty countAsParty)
+		: name(name), p1PreferenceFlow(p1PreferenceFlow), exhaustRate(exhaustRate), abbreviation(abbreviation), countAsParty(countAsParty) {}
 	std::string name = "";
-	float preferenceShare = 50.0f;
+	float p1PreferenceFlow = 50.0f;
 	float exhaustRate = 0.0f;
 	std::string abbreviation = "";
 	std::vector<std::string> officialCodes; // official codes that match to this party according to the electoral commission
+	std::vector<NcPreferenceFlow> ncPreferenceFlow;
 	std::string homeRegion = "";
 	float seatTarget = 10000.0f; // By default target all seats
 	CountAsParty countAsParty = CountAsParty::None;
@@ -82,7 +87,7 @@ struct Party {
 		std::stringstream report;
 		report << "Reporting Party: \n";
 		report << " Name: " << name << "\n";
-		report << " Preference Share: " << preferenceShare << "\n";
+		report << " Preference Share: " << p1PreferenceFlow << "\n";
 		report << " Exhaust Rate: " << exhaustRate << "\n";
 		report << " Abbreviation: " << abbreviation << "\n";
 		report << " Relation to Party: " << relationString() << "\n";

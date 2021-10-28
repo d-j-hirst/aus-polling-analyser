@@ -33,7 +33,8 @@
 // Version 26: Party names/abbr/colour now stored as maps rather than vectors
 // Version 27: More conversion of party-sorted info from vectors to maps
 // Version 28: Different possible end dates for election projections (with odds for each)
-constexpr int VersionNum = 28;
+// Version 29: Custom non-classic preference flows
+constexpr int VersionNum = 29;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -89,8 +90,9 @@ void ProjectFiler::saveParties(SaveFileOutput& saveOutput)
 	saveOutput.outputAsType<int32_t>(project.partyCollection.count());
 	for (auto const& [key, thisParty] : project.partyCollection) {
 		saveOutput << thisParty.name;
-		saveOutput << thisParty.preferenceShare;
+		saveOutput << thisParty.p1PreferenceFlow;
 		saveOutput << thisParty.exhaustRate;
+		saveOutput << thisParty.ncPreferenceFlow;
 		saveOutput << thisParty.abbreviation;
 		saveOutput << thisParty.homeRegion;
 		saveOutput << thisParty.seatTarget;
@@ -118,8 +120,11 @@ void ProjectFiler::loadParties(SaveFileInput& saveInput, int versionNum)
 	for (int partyIndex = 0; partyIndex < partyCount; ++partyIndex) {
 		Party thisParty;
 		saveInput >> thisParty.name;
-		saveInput >> thisParty.preferenceShare;
+		saveInput >> thisParty.p1PreferenceFlow;
 		saveInput >> thisParty.exhaustRate;
+		if (versionNum >= 29) {
+			saveInput >> thisParty.ncPreferenceFlow;
+		}
 		saveInput >> thisParty.abbreviation;
 		if (versionNum >= 23) {
 			saveInput >> thisParty.homeRegion;

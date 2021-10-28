@@ -48,6 +48,7 @@ private:
 	void createNameInput(int& y);
 	void createPreferenceFlowInput(int& y);
 	void createExhaustRateInput(int& y);
+	void createNcPreferenceFlowInput(int& y);
 	void createAbbreviationInput(int& y);
 	void createShortCodesInput(int& y);
 	void createHomeRegionInput(int& y);
@@ -68,6 +69,7 @@ private:
 	void OnOK(wxCommandEvent& WXUNUSED(event));
 
 	// Callbacks for the controls to update the party data.
+	void updateNcPreferenceFlow(std::string allPreferenceFlows);
 	void updateShortCodes(std::string shortCodes);
 	void updateRelation(int countAsParty);
 	void updateRelationType(int supportsParty);
@@ -91,6 +93,7 @@ private:
 	std::unique_ptr<ChoiceInput> relationInput;
 	std::unique_ptr<ChoiceInput> relationTypeInput;
 	std::unique_ptr<CheckInput> includeInOthersInput;
+	std::unique_ptr<TextInput> ncPreferenceFlowInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

@@ -98,7 +98,7 @@ void PartyCollection::recalculatePollCalc2PP(Poll& poll) const {
 	float sumPrimaries = 0.0f;
 	for (int i = 0; i < npartyCollection; i++) {
 		if (poll.primary[i] < 0) continue;
-		sum2PP += poll.primary[i] * viewByIndex(i).preferenceShare * (1.0f - viewByIndex(i).exhaustRate * 0.01f);
+		sum2PP += poll.primary[i] * viewByIndex(i).p1PreferenceFlow * (1.0f - viewByIndex(i).exhaustRate * 0.01f);
 		sumPrimaries += poll.primary[i] * (1.0f - viewByIndex(i).exhaustRate * 0.01f);
 	}
 	if (poll.primary[PartyCollection::MaxParties] > 0) {

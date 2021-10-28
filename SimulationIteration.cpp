@@ -115,7 +115,7 @@ void SimulationIteration::determineOverallBehaviour()
 		for (auto const& [id, party] : project.parties()) {
 			if (contains(party.officialCodes, sampleKey)) {
 				int partyIndex = project.parties().idToIndex(id);
-				previousPreferenceFlow[partyIndex] = project.parties().view(id).preferenceShare;
+				previousPreferenceFlow[partyIndex] = project.parties().view(id).p1PreferenceFlow;
 				overallPreferenceFlow[partyIndex] = preferenceFlow;
 				break;
 			}
@@ -125,7 +125,7 @@ void SimulationIteration::determineOverallBehaviour()
 	// Give any party without a sampled preference flow (e.g. Independents) a preference flow relative to generic others
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 		if (!previousPreferenceFlow.contains(partyIndex)) {
-			float pastPreferenceFlow = project.parties().viewByIndex(partyIndex).preferenceShare;
+			float pastPreferenceFlow = project.parties().viewByIndex(partyIndex).p1PreferenceFlow;
 			previousPreferenceFlow[partyIndex] = pastPreferenceFlow;
 			overallPreferenceFlow[partyIndex] = overallPreferenceFlow[OthersIndex] + pastPreferenceFlow - project.parties().getOthersPreferenceFlow();
 		}

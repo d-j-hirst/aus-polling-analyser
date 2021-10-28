@@ -5,6 +5,7 @@
 #include "ColourInput.h"
 #include "FloatInput.h"
 #include "General.h"
+#include "Log.h"
 #include "PartyCollection.h"
 #include "TextInput.h"
 
@@ -30,7 +31,8 @@ enum ControlId
 	BoothColourMult,
 	Relation,
 	RelationType,
-	IncludeInOthers
+	IncludeInOthers,
+	NcPreferenceFlow
 };
 
 EditPartyFrame::EditPartyFrame(Function function, OkCallback callback, PartyCollection const& parties, Party party)
@@ -47,6 +49,7 @@ void EditPartyFrame::createControls(int& y)
 	createNameInput(y);
 	createPreferenceFlowInput(y);
 	createExhaustRateInput(y);
+	createNcPreferenceFlowInput(y);
 	createAbbreviationInput(y);
 	createShortCodesInput(y);
 	createHomeRegionInput(y);
@@ -73,9 +76,9 @@ void EditPartyFrame::createNameInput(int& y)
 
 void EditPartyFrame::createPreferenceFlowInput(int& y)
 {
-	auto preferenceFlowCallback = [this](float f) -> void {party.preferenceShare = f; };
+	auto preferenceFlowCallback = [this](float f) -> void {party.p1PreferenceFlow = f; };
 	auto preferenceFlowValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
-	preferenceFlowInput.reset(new FloatInput(this, ControlId::PreferenceFlow, "Preferences to party 1:", party.preferenceShare,
+	preferenceFlowInput.reset(new FloatInput(this, ControlId::PreferenceFlow, "Preferences to party 1:", party.p1PreferenceFlow,
 		wxPoint(2, y), preferenceFlowCallback, preferenceFlowValidator));
 	y += preferenceFlowInput->Height + ControlPadding;
 }
@@ -87,6 +90,24 @@ void EditPartyFrame::createExhaustRateInput(int& y)
 	exhaustRateInput.reset(new FloatInput(this, ControlId::ExhaustRate, "Exhaust Rate:", party.exhaustRate,
 		wxPoint(2, y), exhaustRateCallback, exhaustRateValidator));
 	y += exhaustRateInput->Height + ControlPadding;
+}
+
+void EditPartyFrame::createNcPreferenceFlowInput(int& y)
+{
+	std::string preferenceString = "";
+	if (party.ncPreferenceFlow.size()) {
+		auto stringifyPreferenceFlow = [](Party::NcPreferenceFlow const& a) {
+			return a.first.first + "," + a.first.second + "," + formatFloat(a.second, 3);
+		};
+		preferenceString += stringifyPreferenceFlow(party.ncPreferenceFlow[0]);
+		for (size_t i = 1; i < party.ncPreferenceFlow.size(); ++i) {
+			preferenceString += "," + stringifyPreferenceFlow(party.ncPreferenceFlow[i]);
+		}
+	}
+
+	auto ncPreferenceFlowCallback = std::bind(&EditPartyFrame::updateNcPreferenceFlow, this, _1);
+	ncPreferenceFlowInput.reset(new TextInput(this, ControlId::NcPreferenceFlow, "Non-Classic Pref. Flow:", preferenceString, wxPoint(2, y), ncPreferenceFlowCallback));
+	y += ncPreferenceFlowInput->Height + ControlPadding;
 }
 
 void EditPartyFrame::createAbbreviationInput(int& y)
@@ -237,7 +258,24 @@ void EditPartyFrame::OnOK(wxCommandEvent&)
 	Close();
 }
 
-void EditPartyFrame::updateShortCodes(std::string shortCodes) 
+void EditPartyFrame::updateNcPreferenceFlow(std::string allPreferenceFlows)
+{
+	try {
+		party.ncPreferenceFlow.clear();
+		auto preferenceFlows = splitString(allPreferenceFlows, ";");
+		for (auto preferenceFlow : preferenceFlows) {
+			auto parts = splitString(preferenceFlow, ",");
+			if (parts.size() != 3) continue;
+			Party::NcPreferenceFlow parsedFlow = { {parts[0], parts[1]}, std::stof(parts[2]) };
+			party.ncPreferenceFlow.push_back(parsedFlow);
+		}
+	}
+	catch (std::invalid_argument) {
+		// Just don't update the variable if the input isn't properly given
+	}
+}
+
+void EditPartyFrame::updateShortCodes(std::string shortCodes)
 {
 	party.officialCodes = splitString(shortCodes, ",");
 }
