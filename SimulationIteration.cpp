@@ -923,6 +923,12 @@ void SimulationIteration::recordSeatResult(int seatIndex)
 
 void SimulationIteration::assignDirectWins()
 {
+	// make sure that the map entry exists for each party, even if they don't win any seats
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		partyWins[partyIndex] = 0;
+	}
+	partyWins[EmergingIndIndex] = 0;
+	partyWins[EmergingPartyIndex] = 0;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		int partyIndex = seatWinner[seatIndex];
