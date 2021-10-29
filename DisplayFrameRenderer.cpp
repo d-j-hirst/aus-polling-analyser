@@ -2,6 +2,7 @@
 
 #include "General.h"
 #include "Log.h"
+#include "SpecialPartyCodes.h"
 
 constexpr int GraphParty = 1;
 
@@ -530,8 +531,10 @@ void DisplayFrameRenderer::drawVoteShareBoxRows() const
 
 
 	for (auto [partyIndex, dummy] : simulation.partyPrimaryFrequency) {
+		if (partyIndex == OthersIndex) continue;
 		drawVoteShareBoxRow(voteBoxNameRect, partyIndex);
 	}
+	drawVoteShareBoxOthersRow(voteBoxNameRect);
 	drawVoteShareBoxPartyOneTppRow(voteBoxNameRect);
 	drawVoteShareBoxPartyTwoTppRow(voteBoxNameRect);
 }
@@ -562,6 +565,34 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 			voteBoxDataRect.Offset(width, 0);
 			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
 		}
+	}
+	nameRect.Offset(0, rowSize);
+}
+
+void DisplayFrameRenderer::drawVoteShareBoxOthersRow(wxRect& nameRect) const
+{
+	float voteBoxHeight = dv.DCheight - VoteShareBoxTop - BoxMargin;
+	int rowSize = std::min(21, int(voteBoxHeight - VoteShareBoxTitleHeight) / int(simulation.partyPrimaryFrequency.size() + 3));
+	int width = (VoteShareBoxWidth - nameRect.GetWidth()) / 2;
+	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
+	std::string name = "Others";
+	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
+	if (simulation.partyPrimaryFrequency.contains(OthersIndex)) {
+		float meanVote = simulation.getPrimarySampleExpectation(OthersIndex);
+		dc.DrawLabel(formatFloat(meanVote, 1), voteBoxDataRect, wxALIGN_CENTRE);
+		voteBoxDataRect.Offset(width, 0);
+		float medianVote = simulation.getPrimarySampleMedian(OthersIndex);
+		dc.DrawLabel(formatFloat(medianVote, 1), voteBoxDataRect, wxALIGN_CENTRE);
+	}
+	else {
+		float totalVote = 0.0f;
+		for (auto const& [partyIndex, primaryFrequencies] : simulation.partyPrimaryFrequency) {
+			totalVote += simulation.getPrimarySampleExpectation(partyIndex);
+		}
+		float othersVote = 100.0f - totalVote;
+		dc.DrawLabel(formatFloat(othersVote, 1), voteBoxDataRect, wxALIGN_CENTRE);
+		voteBoxDataRect.Offset(width, 0);
+		dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
 	}
 	nameRect.Offset(0, rowSize);
 }

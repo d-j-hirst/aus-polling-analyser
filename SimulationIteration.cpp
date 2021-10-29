@@ -1017,10 +1017,18 @@ void SimulationIteration::recordVoteTotals()
 	short tppBucket = short(floor(iterationOverallTpp * 10.0f));
 	++sim.latestReport.tppFrequency[tppBucket];
 
-	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
-		short bucket = short(floor(tempOverallFp[partyIndex] * 10.0f));
-		++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];
+	float othersFp = 0.0f;
+	for (auto const& [partyIndex, fp]: tempOverallFp) {
+		if (partyIndex >= 0) {
+			short bucket = short(floor(fp * 10.0f));
+			++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];
+		}
+		else {
+			othersFp += fp;
+		}
 	}
+	short bucket = short(floor(othersFp * 10.0f + 0.5f));
+	++sim.latestReport.partyPrimaryFrequency[OthersIndex][bucket];
 }
 
 void SimulationIteration::recordSwings()

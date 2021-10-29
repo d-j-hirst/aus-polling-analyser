@@ -233,7 +233,7 @@ float Simulation::Report::getPrimarySampleExpectation(int partyIndex) const
 	if (!totalCount) return 0;
 	return std::accumulate(partyPrimaryFrequency.at(partyIndex).begin(), partyPrimaryFrequency.at(partyIndex).end(), 0.0f,
 		[](float sum, std::pair<short, int> a) {
-			return sum + float(a.first) * float(a.second) * 0.1f;
+			return sum + float(a.second) * (float(a.first) * 0.1f + 0.05f);
 		}
 	) / float(totalCount);
 }

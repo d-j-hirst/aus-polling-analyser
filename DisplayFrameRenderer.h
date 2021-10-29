@@ -105,6 +105,7 @@ private:
 	void drawVoteShareBoxRows() const;
 
 	void drawVoteShareBoxRow(wxRect& nameRect, PartyCollection::Index partyIndex) const;
+	void drawVoteShareBoxOthersRow(wxRect& nameRect) const;
 	void drawVoteShareBoxPartyOneTppRow(wxRect& nameRect) const;
 	void drawVoteShareBoxPartyTwoTppRow(wxRect& nameRect) const;
 
