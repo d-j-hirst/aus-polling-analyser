@@ -59,6 +59,20 @@ def run_models():
                            for a in [b.strip().split(',')
                            for b in f.readlines()]}
 
+    # Load the list of credentialled pollsters for each election
+    # The house-effect sum-to-zero constraint will only apply
+    # for these pollsters
+    # Membership is based on track record of having similar or
+    # better results than the consensus, no notable house
+    # effect (including minor party effects), and compliance with
+    # any industry standards
+    # Rules may be relaxed somewhat while there are very few
+    # pollsters covering a race (e.g. ResolvePM for NSW-2023)
+    with open('./Data/anchoring-pollsters.csv', 'r') as f:
+        anchoring_pollsters = {(a[0], a[1]): a[2:]
+                           for a in [b.strip().split(',')
+                           for b in f.readlines()]}
+
     # File paths for polling data in each jurisdiction
     data_source = {
         'fed': './Data/poll-data-fed.csv',
@@ -135,9 +149,10 @@ def run_models():
             # others follow
             houses = df['Firm'].unique().tolist()
             houseCounts = df['Firm'].value_counts()
-            exclusions = set(['ANU', 'YouGov', 'Lonergan', 'AMR',
-                              'F2F Morgan', 'Saulwick', 'McNair', 'Taverner',
-                              'JWS Research'])
+            whitelist = anchoring_pollsters[desired_election]
+            exclusions = set([h for h in houses if h not in whitelist])
+            print(f'Pollsters included in anchoring: {[h for h in houses if h not in exclusions]}')
+            print(f'Pollsters not included in anchoring: {exclusions}')
             for h in houses:
                 if houseCounts[h] < 1:
                     exclusions.add(h)
