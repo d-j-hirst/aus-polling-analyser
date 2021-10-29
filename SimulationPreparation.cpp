@@ -33,6 +33,8 @@ void SimulationPreparation::prepareForIterations()
 
 	resetSeatSpecificOutput();
 
+	loadNcPreferenceFlows();
+
 	loadPreviousElectionBaselineVotes();
 
 	loadSeatTypes();
@@ -451,6 +453,26 @@ void SimulationPreparation::accumulatePpvcBiasMeasures(int seatIndex) {
 	//	run.ppvcBiasNumerator += weightedSwing;
 	//	run.ppvcBiasDenominator += ppvcSwingDenominator;
 	//}
+}
+
+void SimulationPreparation::loadNcPreferenceFlows()
+{
+	for (auto const& [partyIndex, party] : project.parties()) {
+		for (auto prefFlow : party.ncPreferenceFlow) {
+			int firstParty = project.parties().indexByShortCode(prefFlow.first.first);
+			int secondParty = project.parties().indexByShortCode(prefFlow.first.second);
+			run.ncPreferenceFlow[partyIndex][{firstParty, secondParty}] = prefFlow.second;
+			run.ncPreferenceFlow[partyIndex][{secondParty, firstParty}] = 100.0f - prefFlow.second;
+			if (prefFlow.first.first == "IND") {
+				run.ncPreferenceFlow[partyIndex][{EmergingIndIndex, secondParty}] = prefFlow.second;
+				run.ncPreferenceFlow[partyIndex][{secondParty, EmergingIndIndex}] = 100.0f - prefFlow.second;
+			}
+			else if (prefFlow.first.second == "IND") {
+				run.ncPreferenceFlow[partyIndex][{firstParty, EmergingIndIndex}] = prefFlow.second;
+				run.ncPreferenceFlow[partyIndex][{EmergingIndIndex, firstParty}] = 100.0f - prefFlow.second;
+			}
+		}
+	}
 }
 
 const std::map<std::string, std::string> simplifiedStringToPartyCode = {

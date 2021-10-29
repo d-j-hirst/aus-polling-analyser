@@ -44,6 +44,7 @@ private:
 	SeatPartyPreferences aggregateVoteData(int seatIndex);
 	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
 	void accumulatePpvcBiasMeasures(int seatIndex);
+	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
 	void loadSeatTypes();
 	void loadGreensSeatStatistics();

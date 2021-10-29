@@ -831,6 +831,22 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		auto allocateVotes = [&]() {
 			for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
 				std::vector<float> weights(accumulatedVoteShares.size());
+				// if it's a final-two situation, check if we have 
+				if (int(accumulatedVoteShares.size() == 2)) {
+					if (run.ncPreferenceFlow.contains(sourceParty)) {
+						auto const& item = run.ncPreferenceFlow[sourceParty];
+						std::pair<int, int> targetParties = {accumulatedVoteShares[0].first, accumulatedVoteShares[1].first};
+						if (item.contains(targetParties)) {
+							float flow = item.at(targetParties);
+							float transformedFlow = transformVoteShare(flow);
+							transformedFlow += rng.normal(0.0f, 10.0f);
+							flow = detransformVoteShare(transformedFlow);
+							accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
+							accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
+							continue;
+						}
+					}
+				}
 				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 					auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 					int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);

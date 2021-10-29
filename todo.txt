@@ -1,10 +1,15 @@
 Polling Analyser to-do:
 -Custom known preference flows for non-classic 2cps
+-Fix emerging ind median value
+-Output additional scenario types:
+ -Each major party win more seats than the other but without assumed support for minority
+ -Major parties exactly tied
+ -Some other party has the most seats
 -Output per-seat primary vote as part of snapshots (and include in display?)
 -Output separate TCPs for each simulated set of 2cp candidates
--Tidy up code from this part of the project
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -Also check distribution of seat TPP swings
+-Tidy up code from this part of the project
 -(Make any further adjustments to existing analysis processes)
 - *** ANALYSIS PHASE COMPLETE ***
 -Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request

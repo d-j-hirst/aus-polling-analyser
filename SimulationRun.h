@@ -126,11 +126,11 @@ private:
 	std::vector<double> partyOneWinPercent;
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
-	std::vector<std::map<Party::Id, double>> cumulativeSeatPartyFpShare;
-	std::vector<std::map<Party::Id, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
-	std::vector<std::map<Party::Id, int>> seatPartyWins;
+	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
+	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
+	std::vector<std::map<int, int>> seatPartyWins;
 	// region, then party, then seat count
-	std::vector<std::map<Party::Id, std::vector<int>>> regionPartyWins;
+	std::vector<std::map<int, std::vector<int>>> regionPartyWins;
 
 	std::vector<Outcome const*> seatToOutcome;
 
@@ -143,7 +143,8 @@ private:
 	std::vector<float> seatPopulistModifiers;
 	std::vector<float> seatCentristModifiers;
 	std::vector<float> seatPartyOneTppModifier;
-	std::map<Party::Id, float> previousFpVoteShare;
+	std::map<int, float> previousFpVoteShare;
+	std::map<int, std::map<std::pair<int, int>, float>> ncPreferenceFlow;
 
 	std::vector<float> regionLocalModifierAverage;
 

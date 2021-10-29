@@ -101,7 +101,7 @@ void EditPartyFrame::createNcPreferenceFlowInput(int& y)
 		};
 		preferenceString += stringifyPreferenceFlow(party.ncPreferenceFlow[0]);
 		for (size_t i = 1; i < party.ncPreferenceFlow.size(); ++i) {
-			preferenceString += "," + stringifyPreferenceFlow(party.ncPreferenceFlow[i]);
+			preferenceString += ";" + stringifyPreferenceFlow(party.ncPreferenceFlow[i]);
 		}
 	}
 
