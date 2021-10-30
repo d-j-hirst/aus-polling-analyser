@@ -62,19 +62,31 @@ Simulation::SavedReports const& Simulation::viewSavedReports() const
 	return savedReports;
 }
 
-float Simulation::Report::getPartyMajorityPercent(MajorParty whichParty) const
+float Simulation::Report::getPartyMajorityPercent(int whichParty) const
 {
-	return majorityPercent[whichParty];
+	if (majorityPercent.contains(whichParty)) {
+		return majorityPercent.at(whichParty);
+	}
+	else {
+		return 0.0f;
+	}
 }
 
-float Simulation::Report::getPartyMinorityPercent(MajorParty whichParty) const
+float Simulation::Report::getPartyMinorityPercent(int whichParty) const
 {
-	return minorityPercent[whichParty];
+	if (minorityPercent.contains(whichParty)) {
+		return minorityPercent.at(whichParty);
+	}
+	else {
+		return 0.0f;
+	}
 }
 
 float Simulation::Report::getHungPercent() const
 {
-	return hungPercent;
+	float mostSeatsSum = std::accumulate(mostSeatsPercent.begin(), mostSeatsPercent.end(), 0.0f,
+		[](float sum, decltype(mostSeatsPercent)::value_type a) {return sum + a.second; });
+	return mostSeatsSum + tiedPercent;
 }
 
 int Simulation::Report::classicSeatCount() const
@@ -163,11 +175,13 @@ bool Simulation::isValid() const
 	return lastUpdated.IsValid();
 }
 
-float Simulation::Report::getPartyWinPercent(MajorParty whichParty) const
+float Simulation::Report::getPartyWinPercent(int whichParty) const
 {
-	return majorityPercent[whichParty] + 
-		minorityPercent[whichParty] + 
-		hungPercent * 0.5f;
+	float totalWinPercent = 0.0f;
+	if (majorityPercent.contains(whichParty)) totalWinPercent += majorityPercent.at(whichParty);
+	if (minorityPercent.contains(whichParty)) totalWinPercent += minorityPercent.at(whichParty);
+	totalWinPercent += getHungPercent() * 0.5f;
+	return totalWinPercent;
 }
 
 int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const

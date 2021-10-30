@@ -292,9 +292,10 @@ void SimulationPreparation::finaliseLiveAggregates()
 
 void SimulationPreparation::resetResultCounts()
 {
-	run.partyMajority = { 0, 0 };
-	run.partyMinority = { 0, 0 };
-	run.hungParliament = 0;
+	run.partyMajority.clear();
+	run.partyMinority.clear();
+	run.partyMostSeats.clear();
+	run.tiedParliament = 0;
 	sim.latestReport.partySeatWinFrequency.clear();
 	sim.latestReport.othersWinFrequency.resize(project.seats().count() + 1);
 	sim.latestReport.partyPrimaryFrequency.clear();

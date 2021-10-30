@@ -974,11 +974,25 @@ void SimulationIteration::recordMajorityResult()
 	int minimumForMajority = project.seats().count() / 2 + 1;
 
 	// Look at the overall result and classify it
+	// Note for "supports" wins there is some logic to make sure a supporting party doesn't actually outnumber the larger party
 	if (partyWins[Mp::One] >= minimumForMajority) ++run.partyMajority[Mp::One];
-	else if (partySupport[Mp::One] >= minimumForMajority) ++run.partyMinority[Mp::One];
 	else if (partyWins[Mp::Two] >= minimumForMajority) ++run.partyMajority[Mp::Two];
-	else if (partySupport[Mp::Two] >= minimumForMajority) ++run.partyMinority[Mp::Two];
-	else ++run.hungParliament;
+	else if (partySupport[Mp::One] >= minimumForMajority && partyWins[Mp::One] > partySupport[Mp::One] / 2) ++run.partyMinority[Mp::One];
+	else if (partySupport[Mp::Two] >= minimumForMajority && partyWins[Mp::Two] > partySupport[Mp::Two] / 2) ++run.partyMinority[Mp::Two];
+	else {
+		std::vector<std::pair<int, int>> sortedPartyWins(partyWins.begin(), partyWins.end());
+		std::sort(sortedPartyWins.begin(), sortedPartyWins.end(),
+			[](std::pair<int, int> lhs, std::pair<int, int> rhs) {return lhs.second > rhs.second; });
+		if (sortedPartyWins[0].second >= minimumForMajority) {
+			++run.partyMajority[sortedPartyWins[0].first];
+		}
+		else if (sortedPartyWins[0].second > sortedPartyWins[1].second) {
+			++run.partyMostSeats[sortedPartyWins[0].first];
+		}
+		else {
+			++run.tiedParliament;
+		}
+	}
 }
 
 void SimulationIteration::recordPartySeatWinCounts()

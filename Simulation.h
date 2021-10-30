@@ -66,9 +66,17 @@ public:
 	};
 
 	struct Report {
-		std::array<float, 2> majorityPercent = { 0.0f, 0.0f };
-		std::array<float, 2> minorityPercent = { 0.0f, 0.0f };
-		float hungPercent = 0.0f;
+		// Proportion of times the party wins an absolute majority of seats
+		// including only itself and other parties that count as it
+		std::map<int, float> majorityPercent;
+		// Proportion of times the party doesn't win an absolute majority
+		// by itself but can do so with the support parties considered highly likely to be favourable
+		std::map<int, float> minorityPercent; // only two as a third-party won't have other parties supporting it
+		// Proportion of times the party doesn't make get enough support from favourable parties
+		// but still has more seats than any other party
+		std::map<int, float> mostSeatsPercent;
+		// Proportion of times the top two (or more) parties have exactly the same number of seats
+		float tiedPercent = 0.0f;
 
 		double partyOneSwing = 0.0;
 
@@ -130,8 +138,8 @@ public:
 
 		float prevElection2pp = 0.0f;
 
-		float getPartyMajorityPercent(Simulation::MajorParty whichParty) const;
-		float getPartyMinorityPercent(Simulation::MajorParty whichParty) const;
+		float getPartyMajorityPercent(int whichParty) const;
+		float getPartyMinorityPercent(int whichParty) const;
 		float getHungPercent() const;
 
 		int classicSeatCount() const;
@@ -153,7 +161,7 @@ public:
 
 		float getOthersWinFrequency(int seatIndex) const;
 
-		float getPartyWinPercent(Simulation::MajorParty whichParty) const;
+		float getPartyWinPercent(int whichParty) const;
 
 		int getMinimumSeatFrequency(int partyIndex) const;
 

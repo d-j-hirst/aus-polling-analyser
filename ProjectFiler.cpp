@@ -34,7 +34,8 @@
 // Version 27: More conversion of party-sorted info from vectors to maps
 // Version 28: Different possible end dates for election projections (with odds for each)
 // Version 29: Custom non-classic preference flows
-constexpr int VersionNum = 29;
+// Version 30: More election outcomes in report, 3rd party wins as well as "most seats" for all parties
+constexpr int VersionNum = 30;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -524,7 +525,8 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 {
 	saveOutput << report.majorityPercent;
 	saveOutput << report.minorityPercent;
-	saveOutput << report.hungPercent;
+	saveOutput << report.mostSeatsPercent;
+	saveOutput << report.tiedPercent;
 	saveOutput << report.partyWinExpectation;
 	saveOutput << report.partyWinMedian;
 	saveOutput << report.regionPartyWinExpectation;
@@ -556,9 +558,21 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 {
 	Simulation::Report report;
-	saveInput >> report.majorityPercent;
-	saveInput >> report.minorityPercent;
-	saveInput >> report.hungPercent;
+	if (versionNum >= 30) {
+		saveInput >> report.majorityPercent;
+		saveInput >> report.minorityPercent;
+		saveInput >> report.mostSeatsPercent;
+	}
+	else {
+		std::array<float, 2> temp;
+		saveInput >> temp;
+		report.majorityPercent[0] = temp[0];
+		report.majorityPercent[1] = temp[1];
+		saveInput >> temp;
+		report.minorityPercent[0] = temp[0];
+		report.minorityPercent[1] = temp[1];
+	}
+	saveInput >> report.tiedPercent;
 	if (versionNum >= 27) {
 		saveInput >> report.partyWinExpectation;
 		saveInput >> report.partyWinMedian;

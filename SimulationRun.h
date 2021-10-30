@@ -120,8 +120,11 @@ private:
 
 	constexpr static int FpBucketCount = 100;
 
-	std::array<int, 2> partyMajority = std::array<int, 2>();
-	std::array<int, 2> partyMinority = std::array<int, 2>();
+	std::map<int, int> partyMajority;
+	std::map<int, int> partyMinority;
+	std::map<int, int> partyMostSeats;
+	int tiedParliament = 0;
+
 	std::vector<double> seatPartyOneMarginSum;
 	std::vector<double> partyOneWinPercent;
 	std::vector<double> partyTwoWinPercent;
@@ -155,5 +158,4 @@ private:
 	PopulistStatistics populistStatistics;
 	PopulistStatistics centristStatistics;
 
-	int hungParliament = 0;
 };

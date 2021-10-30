@@ -56,11 +56,24 @@ void SimulationCompletion::calculateIndividualSeatStatistics()
 
 void SimulationCompletion::calculateWholeResultStatistics()
 {
-	for (Mp party = Mp::First; party <= Mp::Last; ++party) {
-		sim.latestReport.majorityPercent[party] = float(run.partyMajority[party]) / float(sim.settings.numIterations) * 100.0f;
-		sim.latestReport.minorityPercent[party] = float(run.partyMinority[party]) / float(sim.settings.numIterations) * 100.0f;
+	logger << "Party majorities:\n";
+	for (auto [partyIndex, result] : run.partyMajority) {
+		sim.latestReport.majorityPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
+		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.majorityPercent[partyIndex] << "%\n";
 	}
-	sim.latestReport.hungPercent = float(run.hungParliament) / float(sim.settings.numIterations) * 100.0f;
+	logger << "Party minorities:\n";
+	for (auto [partyIndex, result] : run.partyMinority) {
+		sim.latestReport.minorityPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
+		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.minorityPercent[partyIndex] << "%\n";
+	}
+	logger << "Party most-seats:\n";
+	for (auto [partyIndex, result] : run.partyMostSeats) {
+		sim.latestReport.mostSeatsPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
+		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.mostSeatsPercent[partyIndex] << "%\n";
+	}
+	sim.latestReport.tiedPercent = float(run.tiedParliament) / float(sim.settings.numIterations) * 100.0f;
+
+	logger << "Tied: - " << sim.latestReport.tiedPercent << "%\n";
 	sim.latestReport.partyOneSwing = sim.latestReport.partyOneSwing / double(sim.settings.numIterations);
 }
 

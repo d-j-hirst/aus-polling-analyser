@@ -1,6 +1,4 @@
 Polling Analyser to-do:
--Custom known preference flows for non-classic 2cps
--Fix emerging ind median value
 -Output additional scenario types:
  -Each major party win more seats than the other but without assumed support for minority
  -Major parties exactly tied
