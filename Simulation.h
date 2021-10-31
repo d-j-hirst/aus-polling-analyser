@@ -69,12 +69,15 @@ public:
 		// Proportion of times the party wins an absolute majority of seats
 		// including only itself and other parties that count as it
 		std::map<int, float> majorityPercent;
+
 		// Proportion of times the party doesn't win an absolute majority
 		// by itself but can do so with the support parties considered highly likely to be favourable
-		std::map<int, float> minorityPercent; // only two as a third-party won't have other parties supporting it
+		std::map<int, float> minorityPercent;
+
 		// Proportion of times the party doesn't make get enough support from favourable parties
 		// but still has more seats than any other party
 		std::map<int, float> mostSeatsPercent;
+
 		// Proportion of times the top two (or more) parties have exactly the same number of seats
 		float tiedPercent = 0.0f;
 
@@ -135,6 +138,12 @@ public:
 		std::vector<std::map<int, float>> seatPartyWinPercent;
 
 		std::vector<std::map<int, float>> seatPartyMeanFpShare;
+
+		constexpr static int FpProbabilityBandCount = 9;
+		constexpr static std::array<float, FpProbabilityBandCount> fpProbabilityBand =
+			{ 0.1f, 1.0f, 5.0f, 20.0f, 50.0f, 80.0f, 95.0f, 99.0f, 99.9f };
+
+		std::vector<std::map<int, std::array<float, FpProbabilityBandCount>>> seatFpProbabilityBand;
 
 		float prevElection2pp = 0.0f;
 

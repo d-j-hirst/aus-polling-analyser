@@ -196,6 +196,7 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 void SimulationCompletion::recordSeatFpVoteStats()
 {
 	sim.latestReport.seatPartyMeanFpShare.resize(project.seats().count());
+	sim.latestReport.seatFpProbabilityBand.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		for (auto [partyIndex, cumulativePercent] : run.cumulativeSeatPartyFpShare[seatIndex]) {
 			sim.latestReport.seatPartyMeanFpShare[seatIndex][partyIndex] = cumulativePercent / double(sim.settings.numIterations);
@@ -210,15 +211,32 @@ void SimulationCompletion::recordSeatFpVoteStats()
 			else if (partyIndex == -2) logger << "Emerging Ind";
 			else if (partyIndex == -3) logger << "Emerging Party";
 			logger << ": " << fpVoteShare << ", " << "distribution: ";
+			auto const& distribution = run.seatPartyFpDistribution[seatIndex][partyIndex];
+			int cumulative = sim.settings.numIterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+			int currentProbabilityBand = 0;
 			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
-				if (run.seatPartyFpDistribution[seatIndex][partyIndex][a] > 0) {
+				if (distribution[a] > 0) {
+					float lowerPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
+					cumulative += distribution[a];
+					float upperPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
+					while (currentProbabilityBand < Simulation::Report::FpProbabilityBandCount && Simulation::Report::fpProbabilityBand[currentProbabilityBand] < 
+						float(cumulative) / float(sim.settings.numIterations) * 100.0f)
+					{
+						float band = Simulation::Report::fpProbabilityBand[currentProbabilityBand];
+						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
+						float exactFp = float(a) + exactFrac;
+						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
+						sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
+						++currentProbabilityBand;
+					}
 					logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
 					logger << "-";
-					logger << run.seatPartyFpDistribution[seatIndex][partyIndex][a];
+					logger << distribution[a];
 					logger << ", ";
 				}
 			}
 			logger << "\n";
+			logger << "Probability bands: " << sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex] << "\n";
 		}
 	}
 }
