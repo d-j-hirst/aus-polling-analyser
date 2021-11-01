@@ -1,9 +1,4 @@
 Polling Analyser to-do:
--Output additional scenario types:
- -Each major party win more seats than the other but without assumed support for minority
- -Major parties exactly tied
- -Some other party has the most seats
--Output per-seat primary vote as part of snapshots (and include in display?)
 -Output separate TCPs for each simulated set of 2cp candidates
 -Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
 -Also check distribution of seat TPP swings

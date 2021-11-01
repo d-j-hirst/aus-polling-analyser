@@ -33,6 +33,7 @@ void SimulationCompletion::completeRun()
 	recordSeatPartyWinPercentages();
 
 	recordSeatFpVoteStats();
+	recordSeatTcpVoteStats();
 
 	createClassicSeatsList();
 
@@ -219,10 +220,10 @@ void SimulationCompletion::recordSeatFpVoteStats()
 					float lowerPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
 					cumulative += distribution[a];
 					float upperPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
-					while (currentProbabilityBand < Simulation::Report::FpProbabilityBandCount && Simulation::Report::fpProbabilityBand[currentProbabilityBand] < 
+					while (currentProbabilityBand < Simulation::Report::ProbabilityBandCount && Simulation::Report::probabilityBand[currentProbabilityBand] < 
 						float(cumulative) / float(sim.settings.numIterations) * 100.0f)
 					{
-						float band = Simulation::Report::fpProbabilityBand[currentProbabilityBand];
+						float band = Simulation::Report::probabilityBand[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
 						float exactFp = float(a) + exactFrac;
 						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
@@ -237,6 +238,54 @@ void SimulationCompletion::recordSeatFpVoteStats()
 			}
 			logger << "\n";
 			logger << "Probability bands: " << sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex] << "\n";
+		}
+	}
+}
+
+void SimulationCompletion::recordSeatTcpVoteStats()
+{
+	sim.latestReport.seatTcpProbabilityBand.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		logger << project.seats().viewByIndex(seatIndex).name << "\n";
+		logger << " Tcp percent:\n";
+		for (auto const& [parties, distribution] : run.seatTcpDistribution[seatIndex]) {
+			logger << "  ";
+			if (parties.first >= 0) logger << project.parties().viewByIndex(parties.first).name;
+			else if (parties.first == -1) logger << "Others";
+			else if (parties.first == -2) logger << "Emerging Ind";
+			else if (parties.first == -3) logger << "Emerging Party";
+			logger << " vs ";
+			if (parties.second >= 0) logger << project.parties().viewByIndex(parties.second).name;
+			else if (parties.second == -1) logger << "Others";
+			else if (parties.second == -2) logger << "Emerging Ind";
+			else if (parties.second == -3) logger << "Emerging Party";
+			logger << " - distribution: ";
+			int total = std::accumulate(distribution.begin(), distribution.end(), 0);
+			int cumulative = 0;
+			int currentProbabilityBand = 0;
+			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
+				if (distribution[a] > 0) {
+					float lowerPercentile = float(cumulative) / float(total) * 100.0f;
+					cumulative += distribution[a];
+					float upperPercentile = float(cumulative) / float(total) * 100.0f;
+					while (currentProbabilityBand < Simulation::Report::ProbabilityBandCount && Simulation::Report::probabilityBand[currentProbabilityBand] <
+						float(cumulative) / float(total) * 100.0f)
+					{
+						float band = Simulation::Report::probabilityBand[currentProbabilityBand];
+						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
+						float exactFp = float(a) + exactFrac;
+						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
+						sim.latestReport.seatTcpProbabilityBand[seatIndex][parties][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
+						++currentProbabilityBand;
+					}
+					logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
+					logger << "-";
+					logger << distribution[a];
+					logger << ", ";
+				}
+			}
+			logger << "\n";
+			logger << "Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
 		}
 	}
 }

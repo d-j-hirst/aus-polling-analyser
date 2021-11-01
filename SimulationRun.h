@@ -131,6 +131,13 @@ private:
 	std::vector<double> othersWinPercent;
 	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
 	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
+
+	// Store all potential TCP results found in iterations
+	// First index is seat
+	// Second index is a pair containing the two parties involved in ascending order
+	// Third index represents the bucket.
+	// E.g. bucket 51 contains all TCP results for the first party (lower index) that fall between 51.0 and 52.0
+	std::vector<std::map<std::pair<int, int>, std::array<int, FpBucketCount>>> seatTcpDistribution;
 	std::vector<std::map<int, int>> seatPartyWins;
 	// region, then party, then seat count
 	std::vector<std::map<int, std::vector<int>>> regionPartyWins;

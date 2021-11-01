@@ -103,6 +103,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPartyWins.resize(project.seats().count());
 	run.cumulativeSeatPartyFpShare.resize(project.seats().count());
 	run.seatPartyFpDistribution.resize(project.seats().count());
+	run.seatTcpDistribution.resize(project.seats().count());
 }
 
 void SimulationPreparation::determineEffectiveSeatModifiers()

@@ -55,6 +55,7 @@ void SimulationIteration::runIteration()
 
 	reconcileSeatAndOverallFp();
 
+	seatTcpVoteShare.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatFinalResult(seatIndex);
 	}
@@ -911,6 +912,8 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	auto topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);
 	seatWinner[seatIndex] = topTwo.second.first;
+	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
+	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 }
 
 void SimulationIteration::recordSeatResult(int seatIndex)
@@ -1035,12 +1038,22 @@ void SimulationIteration::recordSeatFpVotes(int seatIndex)
 	}
 }
 
+void SimulationIteration::recordSeatTcpVotes(int seatIndex)
+{
+	auto parties = seatTcpVoteShare[seatIndex].first;
+	if (isMajor(parties.first) && isMajor(parties.second)) return; // don't bother recording classic tpp
+	float tcpPercent = seatTcpVoteShare[seatIndex].second;
+	int bucket = std::clamp(int(std::floor(tcpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+	++run.seatTcpDistribution[seatIndex][parties][bucket];
+}
+
 void SimulationIteration::recordIterationResults()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		recordSeatResult(seatIndex);
 		recordSeatPartyWinner(seatIndex);
 		recordSeatFpVotes(seatIndex);
+		recordSeatTcpVotes(seatIndex);
 	}
 	recordVoteTotals();
 	recordSwings();

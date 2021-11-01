@@ -83,6 +83,7 @@ private:
 	void recordPartySeatWinCounts();
 	void recordSeatPartyWinner(int seatIndex);
 	void recordSeatFpVotes(int seatIndex);
+	void recordSeatTcpVotes(int seatIndex);
 	void recordIterationResults();
 	void recordVoteTotals();
 	void recordSwings();
@@ -108,6 +109,7 @@ private:
 	std::vector<float> partyOneNewTppMargin;
 	std::vector<Party::Id> seatWinner;
 	std::vector<FloatByPartyIndex> seatFpVoteShare;
+	std::vector<std::pair<std::pair<int, int>, float>> seatTcpVoteShare;
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
 	int daysToElection = 0;

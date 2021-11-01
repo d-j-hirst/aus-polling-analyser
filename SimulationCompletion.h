@@ -23,6 +23,7 @@ private:
 	void recordNames();
 	void recordSeatPartyWinPercentages();
 	void recordSeatFpVoteStats();
+	void recordSeatTcpVoteStats();
 	void recordReportSettings();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
