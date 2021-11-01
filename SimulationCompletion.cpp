@@ -245,10 +245,14 @@ void SimulationCompletion::recordSeatFpVoteStats()
 void SimulationCompletion::recordSeatTcpVoteStats()
 {
 	sim.latestReport.seatTcpProbabilityBand.resize(project.seats().count());
+	sim.latestReport.seatTcpScenarioPercent.resize(project.seats().count());
+	sim.latestReport.seatTcpWinPercent.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		logger << project.seats().viewByIndex(seatIndex).name << "\n";
 		logger << " Tcp percent:\n";
 		for (auto const& [parties, distribution] : run.seatTcpDistribution[seatIndex]) {
+			int total = std::accumulate(distribution.begin(), distribution.end(), 0);
+			if (total < sim.settings.numIterations / 1000) continue;
 			logger << "  ";
 			if (parties.first >= 0) logger << project.parties().viewByIndex(parties.first).name;
 			else if (parties.first == -1) logger << "Others";
@@ -259,13 +263,20 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 			else if (parties.second == -1) logger << "Others";
 			else if (parties.second == -2) logger << "Emerging Ind";
 			else if (parties.second == -3) logger << "Emerging Party";
-			logger << " - distribution: ";
-			int total = std::accumulate(distribution.begin(), distribution.end(), 0);
+			float scenarioPercent = float(total) / float(sim.settings.numIterations);
+			sim.latestReport.seatTcpScenarioPercent[seatIndex][parties] = scenarioPercent;
+			logger << " - scenario frequency: " << scenarioPercent << " - distribution: ";
 			int cumulative = 0;
 			int currentProbabilityBand = 0;
+			float winPercent = 0.0f;
+			bool winPercentAssigned = false;
 			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
 				if (distribution[a] > 0) {
 					float lowerPercentile = float(cumulative) / float(total) * 100.0f;
+					if (a >= SimulationRun::FpBucketCount / 2 && !winPercentAssigned) {
+						winPercent = 100.0f - lowerPercentile;
+						winPercentAssigned = true;
+					}
 					cumulative += distribution[a];
 					float upperPercentile = float(cumulative) / float(total) * 100.0f;
 					while (currentProbabilityBand < Simulation::Report::ProbabilityBandCount && Simulation::Report::probabilityBand[currentProbabilityBand] <
@@ -285,7 +296,9 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 				}
 			}
 			logger << "\n";
-			logger << "Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
+			logger << "   Win rate: " << winPercent << "%\n";
+			sim.latestReport.seatTcpWinPercent[seatIndex][parties] = winPercent;
+			logger << "   Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
 		}
 	}
 }

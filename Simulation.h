@@ -142,11 +142,13 @@ public:
 		constexpr static int ProbabilityBandCount = 9;
 		typedef std::array<float, ProbabilityBandCount> ProbabilityBands;
 		constexpr static ProbabilityBands probabilityBand =
-			{ 0.1f, 1.0f, 5.0f, 20.0f, 50.0f, 80.0f, 95.0f, 99.0f, 99.9f };
+			{ 0.5f, 2.5f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 97.5f, 99.5f };
 
 		std::vector<std::map<int, ProbabilityBands>> seatFpProbabilityBand;
 
 		std::vector<std::map<std::pair<int, int>, ProbabilityBands>> seatTcpProbabilityBand;
+		std::vector<std::map<std::pair<int, int>, float>> seatTcpScenarioPercent;
+		std::vector<std::map<std::pair<int, int>, float>> seatTcpWinPercent;
 
 		float prevElection2pp = 0.0f;
 

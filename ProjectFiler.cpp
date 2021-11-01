@@ -36,7 +36,8 @@
 // Version 29: Custom non-classic preference flows
 // Version 30: More election outcomes in report, 3rd party wins as well as "most seats" for all parties
 // Version 31: Probability bands for seat fps
-constexpr int VersionNum = 31;
+// Version 32: Tcp probability bands, scenario likelihood and party win rate
+constexpr int VersionNum = 32;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -550,6 +551,9 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.othersWinPercent;
 	saveOutput << report.seatPartyWinPercent;
 	saveOutput << report.seatFpProbabilityBand;
+	saveOutput << report.seatTcpProbabilityBand;
+	saveOutput << report.seatTcpScenarioPercent;
+	saveOutput << report.seatTcpWinPercent;
 	saveOutput << report.classicSeatIndices;
 	saveOutput << report.regionPartyIncuments;
 	saveOutput << report.prevElection2pp;
@@ -661,6 +665,11 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	}
 	if (versionNum >= 31) {
 		saveInput >> report.seatFpProbabilityBand;
+	}
+	if (versionNum >= 32) {
+		saveInput >> report.seatTcpProbabilityBand;
+		saveInput >> report.seatTcpScenarioPercent;
+		saveInput >> report.seatTcpWinPercent;
 	}
 	saveInput >> report.classicSeatIndices;
 	saveInput >> report.regionPartyIncuments;
