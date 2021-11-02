@@ -37,7 +37,8 @@
 // Version 30: More election outcomes in report, 3rd party wins as well as "most seats" for all parties
 // Version 31: Probability bands for seat fps
 // Version 32: Tcp probability bands, scenario likelihood and party win rate
-constexpr int VersionNum = 32;
+// Version 33: Save analysis codes for regions
+constexpr int VersionNum = 33;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -431,6 +432,7 @@ void ProjectFiler::saveRegions(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(thisRegion.population);
 		saveOutput << thisRegion.lastElection2pp;
 		saveOutput << thisRegion.sample2pp;
+		saveOutput << thisRegion.analysisCode;
 		saveOutput << thisRegion.swingDeviation;
 		saveOutput << thisRegion.additionalUncertainty;
 		saveOutput << thisRegion.homeRegionMod;
@@ -446,6 +448,9 @@ void ProjectFiler::loadRegions(SaveFileInput& saveInput, int versionNum)
 		thisRegion.population = saveInput.extract<int32_t>();
 		saveInput >> thisRegion.lastElection2pp;
 		saveInput >> thisRegion.sample2pp;
+		if (versionNum >= 33) {
+			saveInput >> thisRegion.analysisCode;
+		}
 		saveInput >> thisRegion.swingDeviation;
 		saveInput >> thisRegion.additionalUncertainty;
 		if (versionNum >= 23) {

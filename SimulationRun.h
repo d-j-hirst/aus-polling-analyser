@@ -74,6 +74,14 @@ public:
 		float voteIntercept;
 	};
 
+	// Default values for any region not found in a file
+	struct RegionBaseBehaviour {
+		float overallSwingCoeff = 1.0f;
+		float baseSwingDeviation = 0.0f;
+		float rmse = 2.0f;
+		float kurtosis = 4.0f;
+	};
+
 	enum class SeatType {
 		InnerMetro,
 		OuterMetro,
@@ -157,6 +165,7 @@ private:
 	std::map<int, std::map<std::pair<int, int>, float>> ncPreferenceFlow;
 
 	std::vector<float> regionLocalModifierAverage;
+	std::vector<RegionBaseBehaviour> regionBaseBehaviour;
 
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;

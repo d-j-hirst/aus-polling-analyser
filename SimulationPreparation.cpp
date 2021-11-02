@@ -69,6 +69,8 @@ void SimulationPreparation::prepareForIterations()
 
 	countInitialRegionSeatLeads();
 
+	loadRegionBaseBehaviours();
+
 	calculateTotalPopulation();
 
 	calculateLiveAggregates();
@@ -772,7 +774,47 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 	} while (true);
 }
 
-std::string SimulationPreparation::getYearCode()
+void SimulationPreparation::loadRegionBaseBehaviours()
+{
+	run.regionBaseBehaviour.resize(project.regions().count());
+	std::string fileName = "python/Data/" + getTermCode() + "-region-base.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) {
+		// Not finding a file is fine, but log a message in case this isn't intended behaviour
+		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		return;
+	}
+	std::string yearCode = getYearCode();
+	std::string regionCode = getRegionCode();
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		int matchingRegion = -1;
+		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+			if (project.regions().viewByIndex(regionIndex).analysisCode == values[0]) {
+				matchingRegion = regionIndex;
+				break;
+			}
+		}
+		if (matchingRegion == -1) {
+			logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
+			continue;
+		}
+		run.regionBaseBehaviour[matchingRegion].overallSwingCoeff = std::stof(values[1]);
+		run.regionBaseBehaviour[matchingRegion].baseSwingDeviation = std::stof(values[2]);
+		run.regionBaseBehaviour[matchingRegion].rmse = std::stof(values[3]);
+		run.regionBaseBehaviour[matchingRegion].kurtosis = std::stof(values[4]);
+	} while (true);
+}
+
+std::string SimulationPreparation::getTermCode()
+{
+	return project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+}
+
+	std::string SimulationPreparation::getYearCode()
 {
 	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
 	return termCode.substr(0, 4);

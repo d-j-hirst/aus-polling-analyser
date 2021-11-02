@@ -56,7 +56,9 @@ private:
 	void loadCentristSeatStatistics();
 	void loadCentristSeatModifiers();
 	void loadPreviousElectionBaselineVotes();
+	void loadRegionBaseBehaviours();
 
+	std::string getTermCode();
 	std::string getYearCode();
 	std::string getRegionCode();
 

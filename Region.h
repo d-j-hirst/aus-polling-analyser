@@ -13,6 +13,7 @@ struct Region {
 	int population = 0;
 	float lastElection2pp = 50.0f;
 	float sample2pp = 50.0f;
+	std::string analysisCode = "";
 	float swingDeviation = 0.0f;
 	float additionalUncertainty = 0.0f;
 	float homeRegionMod = 1.0f; // relative chance that an emerging party will have this as its home state

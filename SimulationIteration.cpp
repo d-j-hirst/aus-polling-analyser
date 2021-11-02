@@ -273,20 +273,17 @@ void SimulationIteration::loadPastSeatResults()
 
 void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 {
-	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 	Region const& thisRegion = project.regions().viewByIndex(regionIndex);
-	// Calculate mean of the region's swing after accounting for decay to the mean over time.
-	float regionMeanSwing = iterationOverallSwing +
-		thisRegion.swingDeviation * pow(1.0f - sim.settings.stateDecay, thisProjection.getProjectionLength());
-	// Add random noise to the region's swing level
-	float swingSD = sim.settings.stateSD + thisRegion.additionalUncertainty;
-	if (swingSD > 0) {
-		float totalSD = sim.settings.stateSD + thisRegion.additionalUncertainty;
-		regionSwing[regionIndex] = std::normal_distribution<float>(regionMeanSwing, totalSD)(gen);
-	}
-	else {
-		regionSwing[regionIndex] = regionMeanSwing;
-	}
+	float overallSwingCoeff = run.regionBaseBehaviour[regionIndex].overallSwingCoeff;
+	float baseSwingDeviation = run.regionBaseBehaviour[regionIndex].baseSwingDeviation;
+	float rmse = run.regionBaseBehaviour[regionIndex].rmse;
+	float kurtosis = run.regionBaseBehaviour[regionIndex].kurtosis;
+	float medianRegionalSwing = overallSwingCoeff * iterationOverallSwing + baseSwingDeviation;
+	float randomVariation = rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis);
+	float swingToTransform = medianRegionalSwing + randomVariation;
+	float transformedTpp = transformVoteShare(thisRegion.lastElection2pp) + swingToTransform;
+	float detransformedTpp = detransformVoteShare(transformedTpp);
+	regionSwing[regionIndex] = detransformedTpp - thisRegion.lastElection2pp;
 }
 
 void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)

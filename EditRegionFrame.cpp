@@ -14,6 +14,7 @@ enum ControlId
 	Population,
 	LastElection2pp,
 	Sample2pp,
+	AnalysisCode,
 	AdditionalUncertainty,
 	HomeRegionMod
 };
@@ -32,9 +33,10 @@ void EditRegionFrame::createControls(int & y)
 	createNameInput(y);
 	createPopulationInput(y);
 	createLastElection2ppInput(y);
-	createSample2pp(y);
-	createAdditionalUncertainty(y);
-	createHomeRegionMod(y);
+	createSample2ppInput(y);
+	createAnalysisCodeInput(y);
+	createAdditionalUncertaintyInput(y);
+	createHomeRegionModInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -64,7 +66,7 @@ void EditRegionFrame::createLastElection2ppInput(int & y)
 	y += lastElection2ppInput->Height + ControlPadding;
 }
 
-void EditRegionFrame::createSample2pp(int & y)
+void EditRegionFrame::createSample2ppInput(int & y)
 {
 	auto sample2ppCallback = [this](float f) -> void {region.sample2pp = f; };
 	auto sample2ppValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
@@ -73,7 +75,14 @@ void EditRegionFrame::createSample2pp(int & y)
 	y += sample2ppInput->Height + ControlPadding;
 }
 
-void EditRegionFrame::createAdditionalUncertainty(int & y)
+void EditRegionFrame::createAnalysisCodeInput(int& y)
+{
+	auto analysisCodeCallback = [this](std::string s) -> void {region.analysisCode = s; };
+	analysisCodeInput.reset(new TextInput(this, ControlId::AnalysisCode, "Analysis Code:", region.analysisCode, wxPoint(2, y), analysisCodeCallback));
+	y += analysisCodeInput->Height + ControlPadding;
+}
+
+void EditRegionFrame::createAdditionalUncertaintyInput(int & y)
 {
 	auto additionalUncertaintyCallback = [this](float f) -> void {region.additionalUncertainty = f; };
 	auto additionalUncertaintyValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
@@ -82,7 +91,7 @@ void EditRegionFrame::createAdditionalUncertainty(int & y)
 	y += additionalUncertaintyInput->Height + ControlPadding;
 }
 
-void EditRegionFrame::createHomeRegionMod(int& y)
+void EditRegionFrame::createHomeRegionModInput(int& y)
 {
 	auto homeRegionModCallback = [this](float f) -> void {region.homeRegionMod = f; };
 	auto homeRegionModValidator = [](float f) {return std::max(f, 0.0f); };

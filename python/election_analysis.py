@@ -1246,26 +1246,29 @@ def analyse_state_swings():
         # swing_deviation = result[1] - election_results[election[0]][1]
         # print(f'{election}, {result}, {swing_deviation}')
 
-    for key in fed_swings.keys():
-        inputs_array = numpy.transpose(numpy.array([fed_swings[key]]))
-        results_array = numpy.array(state_swings[key])
-        reg = LinearRegression().fit(inputs_array, results_array)
-        print(f'state: {key}')
-        print(f' coefficient: {reg.coef_[0]}')
-        print(f' intercept: {reg.intercept_}')
-        residuals = [state_swings[key][a] - (
-                        reg.coef_[0] * fed_swings[key][a] + reg.intercept_
-                     ) for a in range(0,len(state_swings[key]))]
+    output_filename = (f'./Regional/{target_year}fed-regions-base.csv')
+    with open(output_filename, 'w') as f:
+        for key in fed_swings.keys():
+            inputs_array = numpy.transpose(numpy.array([fed_swings[key]]))
+            results_array = numpy.array(state_swings[key])
+            reg = LinearRegression().fit(inputs_array, results_array)
+            print(f'state: {key}')
+            print(f' coefficient: {reg.coef_[0]}')
+            print(f' intercept: {reg.intercept_}')
+            residuals = [state_swings[key][a] - (
+                            reg.coef_[0] * fed_swings[key][a] + reg.intercept_
+                        ) for a in range(0,len(state_swings[key]))]
 
-        # Find effective RMSE and kurtosis for the two tails of the
-        # distribution (in each case, as if the other side of the
-        # distribution is symmetrical)
-        rmse = math.sqrt(sum([a ** 2 for a in residuals])
-                            / (len(residuals) - 1))
-        kurtosis = one_tail_kurtosis(residuals)
+            # Find effective RMSE and kurtosis for the two tails of the
+            # distribution (in each case, as if the other side of the
+            # distribution is symmetrical)
+            rmse = math.sqrt(sum([a ** 2 for a in residuals])
+                                / (len(residuals) - 1))
+            kurtosis = one_tail_kurtosis(residuals)
 
-        print(f' rmse: {rmse}')
-        print(f' kurtosis: {kurtosis}')
+            print(f' rmse: {rmse}')
+            print(f' kurtosis: {kurtosis}')
+            f.write(f'{key},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
 
 
 if __name__ == '__main__':
