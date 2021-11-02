@@ -378,8 +378,8 @@ def analyse_existing_independents(elections):
         incumbent_recontests = recontest_incumbent_buckets[bucket]
         inputs_array = numpy.transpose(numpy.array([incumbent_recontests]))
         results_array = numpy.array(recontests)
-        print(inputs_array)
-        print(results_array)
+        # print(inputs_array)
+        # print(results_array)
         reg = LinearRegression().fit(inputs_array, results_array)
         incumbent_recontest_coefficient = reg.coef_[0]
         recontest_intercept = reg.intercept_
@@ -397,19 +397,19 @@ def analyse_existing_independents(elections):
             bucket_recontest_incumbents[bucket] = \
                 bucket_recontest_incumbents[next_bucket]
 
-    for bucket in bucket_counts.keys():
-        print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
-        print(f'Sample size: {bucket_counts[bucket]}')
-        print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
-        print(f'Intercept: {bucket_intercepts[bucket]}')
-        print(f'Median error: {bucket_median_errors[bucket]}')
-        print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
-        print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
-        print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
-        print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
-        print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
-        print(f'Recontest incumbent: {bucket_recontest_incumbents[bucket]}')
-        print('\n')
+    # for bucket in bucket_counts.keys():
+    #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
+    #     print(f'Sample size: {bucket_counts[bucket]}')
+    #     print(f'Sophomore coefficient: {bucket_sophomore_coefficients[bucket]}')
+    #     print(f'Intercept: {bucket_intercepts[bucket]}')
+    #     print(f'Median error: {bucket_median_errors[bucket]}')
+    #     print(f'Lower rmse: {bucket_lower_rmses[bucket]}')
+    #     print(f'Upper rmse: {bucket_upper_rmses[bucket]}')
+    #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
+    #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
+    #     print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
+    #     print(f'Recontest incumbent: {bucket_recontest_incumbents[bucket]}')
+    #     print('\n')
     
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
@@ -954,11 +954,11 @@ def analyse_centrist_minors(elections, seat_types, seat_regions):
     home_state_coefficient = reg.coef_[3]
     vote_intercept = reg.intercept_
 
-    print(f'rural_coefficient: {rural_coefficient}')
-    print(f'provincial_coefficient: {provincial_coefficient}')
-    print(f'outer_metro_coefficient: {outer_metro_coefficient}')
-    print(f'home_state_coefficient: {home_state_coefficient}')
-    print(f'vote_intercept: {vote_intercept}')
+    # print(f'rural_coefficient: {rural_coefficient}')
+    # print(f'provincial_coefficient: {provincial_coefficient}')
+    # print(f'outer_metro_coefficient: {outer_metro_coefficient}')
+    # print(f'home_state_coefficient: {home_state_coefficient}')
+    # print(f'vote_intercept: {vote_intercept}')
 
     for seat_id, type in seat_types.items():
         if seat_id not in avg_mult_seat:
@@ -1092,7 +1092,7 @@ def analyse_others(elections):
         lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                             / (len(lower_errors) - 1))
         upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                            / (len(upper_errors) - 1))      
+                            / (len(upper_errors) - 1))
         lower_kurtosis = one_tail_kurtosis(lower_errors)
         upper_kurtosis = one_tail_kurtosis(upper_errors)
 
@@ -1214,6 +1214,60 @@ def analyse_emerging_parties(elections):
         f.write(f'{rmse}\n')
         f.write(f'{kurtosis}\n')
 
+
+def analyse_state_swings():
+    target_year = 2022
+    election_results = {}
+    state_results = {}
+    filename = ('./Data/tpp-fed-regions.csv')
+    with open(filename, 'r') as f:
+        linelists = [b.strip().split(',') for b in f.readlines()]
+        for a in linelists:
+            code = ElectionCode(a[0], a[1])
+            results = (float(a[3]), float(a[4]))
+            if a[2] == 'all':
+                election_results[code] = results
+            else:
+                state_results[(code, a[2])] = results
+
+    fed_swings = {}
+    state_swings = {}
+    weights = {}
+    for election, result in state_results.items():
+        if election[0].year() >= target_year:
+            continue
+        if target_year - election[0].year() > 25:
+            continue
+        if election[1] not in fed_swings:
+            fed_swings[election[1]] = []
+            state_swings[election[1]] = []
+        fed_swings[election[1]].append(election_results[election[0]][1])
+        state_swings[election[1]].append(result[1])
+        # swing_deviation = result[1] - election_results[election[0]][1]
+        # print(f'{election}, {result}, {swing_deviation}')
+
+    for key in fed_swings.keys():
+        inputs_array = numpy.transpose(numpy.array([fed_swings[key]]))
+        results_array = numpy.array(state_swings[key])
+        reg = LinearRegression().fit(inputs_array, results_array)
+        print(f'state: {key}')
+        print(f' coefficient: {reg.coef_[0]}')
+        print(f' intercept: {reg.intercept_}')
+        residuals = [state_swings[key][a] - (
+                        reg.coef_[0] * fed_swings[key][a] + reg.intercept_
+                     ) for a in range(0,len(state_swings[key]))]
+
+        # Find effective RMSE and kurtosis for the two tails of the
+        # distribution (in each case, as if the other side of the
+        # distribution is symmetrical)
+        rmse = math.sqrt(sum([a ** 2 for a in residuals])
+                            / (len(residuals) - 1))
+        kurtosis = one_tail_kurtosis(residuals)
+
+        print(f' rmse: {rmse}')
+        print(f' kurtosis: {kurtosis}')
+
+
 if __name__ == '__main__':
     elections = get_checked_elections()
     seat_types = load_seat_types()
@@ -1225,3 +1279,4 @@ if __name__ == '__main__':
     analyse_centrist_minors(elections, seat_types, seat_regions)
     analyse_others(elections)
     analyse_emerging_parties(elections)
+    analyse_state_swings()
