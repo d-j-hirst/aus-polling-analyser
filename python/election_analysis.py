@@ -1207,7 +1207,7 @@ def analyse_emerging_parties(elections):
     # print(f'upper_rmse: {rmse}')
     # print(f'upper_kurtosis: {kurtosis}')
 
-    filename = (f'./Seat Statistics/statistics_emerging_party.csv')
+    filename = f'./Seat Statistics/statistics_emerging_party.csv'
     with open(filename, 'w') as f:
         f.write(f'{fp_threshold}\n')
         f.write(f'{emergence_rate}\n')
@@ -1215,11 +1215,28 @@ def analyse_emerging_parties(elections):
         f.write(f'{kurtosis}\n')
 
 
+class RegionPolls:
+    def __init__(self):
+        self.prev_tpp = 50
+        self.next_tpp = 50
+        self.next_deviation = 50
+        self.polls = []
+        self.deviations = []
+        self.population = 0
+
+    
+    def __repr__(self):
+        return (f'prev_tpp: {self.prev_tpp}, next_tpp: {self.next_tpp}, '
+                f'next_deviation: {self.next_deviation}, '
+                f'population: {self.population}, '
+                f'polls: {self.polls}, deviations: {self.deviations}')
+
+
 def analyse_state_swings():
     target_year = 2022
     election_results = {}
     state_results = {}
-    filename = ('./Data/tpp-fed-regions.csv')
+    filename = './Data/tpp-fed-regions.csv'
     with open(filename, 'r') as f:
         linelists = [b.strip().split(',') for b in f.readlines()]
         for a in linelists:
@@ -1229,6 +1246,45 @@ def analyse_state_swings():
                 election_results[code] = results
             else:
                 state_results[(code, a[2])] = results
+    
+    poll_lists = {}
+    highest_poll_number = 0
+
+    filename = './Data/region-polls-fed.csv'
+    with open(filename, 'r') as f:
+        linelists = [b.strip().split(',') for b in f.readlines()]
+        for a in linelists:
+            code = ElectionCode(a[0], a[1])
+            region = a[2]
+            region_polls = RegionPolls()
+            region_polls.prev_tpp = float(a[3])
+            region_polls.next_tpp = float(a[4])
+            region_polls.population = int(a[5])
+            for i in range(6, len(a)):
+                region_polls.polls.append(float(a[i]))
+            if code not in poll_lists:
+                poll_lists[code] = {}
+            poll_lists[code][region] = region_polls
+    
+    for election, poll_list in poll_lists.items():
+        total_population = sum([i.population for i in poll_list.values()])
+        next_tpp_overall = sum([i.next_tpp * i.population / total_population
+                                for i in poll_list.values()])
+        prev_tpp_overall = sum([i.prev_tpp * i.population / total_population
+                                for i in poll_list.values()])
+        next_swing_overall = next_tpp_overall - prev_tpp_overall
+        overall_tpps = []
+        for j in range(0, len(next(iter(poll_list.values())).polls)):
+            overall_tpps.append(sum([i.polls[j] * i.population / total_population
+                                for i in poll_list.values()]))
+        for region, polls in poll_lists[election].items():
+            polls.next_deviation = (polls.next_tpp - polls.prev_tpp
+                                    - next_swing_overall)
+            highest_poll_number = max(highest_poll_number, len(polls.polls))
+            for i in range(0, len(polls.polls)):
+                polls.deviations.append((polls.polls[i] - polls.prev_tpp
+                                         - overall_tpps[i] + prev_tpp_overall))
+
 
     fed_swings = {}
     state_swings = {}
@@ -1246,12 +1302,17 @@ def analyse_state_swings():
         # swing_deviation = result[1] - election_results[election[0]][1]
         # print(f'{election}, {result}, {swing_deviation}')
 
+    naive_coefficients = {}
+    naive_intercepts = {}
+
     output_filename = (f'./Regional/{target_year}fed-regions-base.csv')
     with open(output_filename, 'w') as f:
         for key in fed_swings.keys():
             inputs_array = numpy.transpose(numpy.array([fed_swings[key]]))
             results_array = numpy.array(state_swings[key])
             reg = LinearRegression().fit(inputs_array, results_array)
+            naive_coefficients[key] = reg.coef_[0]
+            naive_intercepts[key] = reg.intercept_
             print(f'state: {key}')
             print(f' coefficient: {reg.coef_[0]}')
             print(f' intercept: {reg.intercept_}')
@@ -1259,9 +1320,6 @@ def analyse_state_swings():
                             reg.coef_[0] * fed_swings[key][a] + reg.intercept_
                         ) for a in range(0,len(state_swings[key]))]
 
-            # Find effective RMSE and kurtosis for the two tails of the
-            # distribution (in each case, as if the other side of the
-            # distribution is symmetrical)
             rmse = math.sqrt(sum([a ** 2 for a in residuals])
                                 / (len(residuals) - 1))
             kurtosis = one_tail_kurtosis(residuals)
@@ -1269,6 +1327,54 @@ def analyse_state_swings():
             print(f' rmse: {rmse}')
             print(f' kurtosis: {kurtosis}')
             f.write(f'{key},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
+
+    print(f'Poll comparisons:')
+    # In future, replace the 1 in the line below with highest_poll_number
+    # This is not done now because (as of 2021) there are not enough polls
+    # publically available for longer time periods to get a decent sample size
+    # so just use the immediate pre-election polls and taper them off
+    # appropriately
+    # Leaving in the framework for multiple time-periods as it's likely to
+    # be used in the future
+    for poll_number in range(0, 1):
+        print(f' Poll number {poll_number}:')
+        poll_deviations = {}
+        next_deviations = {}
+        for election, election_polls in poll_lists.items():
+            for region, region_polls in election_polls.items():
+                if poll_number >= len(region_polls.deviations):
+                    continue
+                if region not in poll_deviations:
+                    poll_deviations[region] = []
+                    next_deviations[region] = []
+                poll_deviations[region].append(region_polls.deviations[poll_number])
+                next_deviations[region].append(region_polls.next_deviation)
+        
+        if len(poll_deviations[region]) < 4:
+            break
+
+        for region in poll_deviations.keys():
+            inputs_array = numpy.transpose(numpy.array([poll_deviations[region]]))
+            results_array = numpy.array(next_deviations[region])
+            reg = LinearRegression().fit(inputs_array, results_array)
+            print(f'  state: {region}')
+            print(f'   polls: {poll_deviations[region]}')
+            print(f'   results: {next_deviations[region]}')
+            print(f'   coefficient: {reg.coef_[0]}')
+            print(f'   intercept: {reg.intercept_}')
+            residuals = [next_deviations[region][a] - (
+                            reg.coef_[0] * poll_deviations[region][a] + reg.intercept_
+                        ) for a in range(0,len(next_deviations[region]))]
+
+            rmse = math.sqrt(sum([a ** 2 for a in residuals])
+                                / (len(residuals) - 1))
+            kurtosis = one_tail_kurtosis(residuals)
+
+            print(f'   rmse: {rmse}')
+            print(f'   kurtosis: {kurtosis}')
+            # f.write(f'{region},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
+        
+
 
 
 if __name__ == '__main__':
