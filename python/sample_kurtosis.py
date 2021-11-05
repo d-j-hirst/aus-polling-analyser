@@ -1,4 +1,8 @@
+import math
 
+def calc_rmse(sample):
+    return math.sqrt(sum([a ** 2 for a in sample])
+                     / (len(sample) - 1))
 
 # Calculates kurtosis for one tail of a sampled distribution
 # Note: this assessment assumes the mean is 0 (as the

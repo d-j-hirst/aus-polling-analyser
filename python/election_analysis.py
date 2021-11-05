@@ -4,10 +4,11 @@ import math
 import numpy
 import statistics
 from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
 from election_check import get_checked_elections
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
-from sample_kurtosis import one_tail_kurtosis
+from sample_kurtosis import calc_rmse, one_tail_kurtosis
 
 ind_bucket_size = 2
 fp_threshold = detransform_vote_share(int(math.floor(transform_vote_share(8) / ind_bucket_size)) * ind_bucket_size)
@@ -1266,6 +1267,9 @@ def analyse_state_swings():
                 poll_lists[code] = {}
             poll_lists[code][region] = region_polls
     
+    next_overall_tpps = {}
+    prev_overall_tpps = {}
+    poll_overall_tpps = {}
     for election, poll_list in poll_lists.items():
         total_population = sum([i.population for i in poll_list.values()])
         next_tpp_overall = sum([i.next_tpp * i.population / total_population
@@ -1277,6 +1281,9 @@ def analyse_state_swings():
         for j in range(0, len(next(iter(poll_list.values())).polls)):
             overall_tpps.append(sum([i.polls[j] * i.population / total_population
                                 for i in poll_list.values()]))
+        next_overall_tpps[election] = next_tpp_overall
+        prev_overall_tpps[election] = prev_tpp_overall
+        poll_overall_tpps[election] = overall_tpps
         for region, polls in poll_lists[election].items():
             polls.next_deviation = (polls.next_tpp - polls.prev_tpp
                                     - next_swing_overall)
@@ -1311,8 +1318,8 @@ def analyse_state_swings():
             inputs_array = numpy.transpose(numpy.array([fed_swings[key]]))
             results_array = numpy.array(state_swings[key])
             reg = LinearRegression().fit(inputs_array, results_array)
-            naive_coefficients[key] = reg.coef_[0]
-            naive_intercepts[key] = reg.intercept_
+            naive_coefficients[key] = float(reg.coef_[0])
+            naive_intercepts[key] = float(reg.intercept_)
             print(f'state: {key}')
             print(f' coefficient: {reg.coef_[0]}')
             print(f' intercept: {reg.intercept_}')
@@ -1329,14 +1336,10 @@ def analyse_state_swings():
             f.write(f'{key},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
 
     print(f'Poll comparisons:')
-    # In future, replace the 1 in the line below with highest_poll_number
-    # This is not done now because (as of 2021) there are not enough polls
-    # publically available for longer time periods to get a decent sample size
-    # so just use the immediate pre-election polls and taper them off
-    # appropriately
-    # Leaving in the framework for multiple time-periods as it's likely to
-    # be used in the future
-    for poll_number in range(0, 1):
+    best_mix_factors = []
+    best_rmses = []
+    best_kurtoses = []
+    for poll_number in range(0, 9):
         print(f' Poll number {poll_number}:')
         poll_deviations = {}
         next_deviations = {}
@@ -1350,30 +1353,121 @@ def analyse_state_swings():
                 poll_deviations[region].append(region_polls.deviations[poll_number])
                 next_deviations[region].append(region_polls.next_deviation)
         
-        if len(poll_deviations[region]) < 4:
+        if len(poll_deviations[region]) < 2:
             break
 
-        for region in poll_deviations.keys():
-            inputs_array = numpy.transpose(numpy.array([poll_deviations[region]]))
-            results_array = numpy.array(next_deviations[region])
-            reg = LinearRegression().fit(inputs_array, results_array)
-            print(f'  state: {region}')
-            print(f'   polls: {poll_deviations[region]}')
-            print(f'   results: {next_deviations[region]}')
-            print(f'   coefficient: {reg.coef_[0]}')
-            print(f'   intercept: {reg.intercept_}')
-            residuals = [next_deviations[region][a] - (
-                            reg.coef_[0] * poll_deviations[region][a] + reg.intercept_
-                        ) for a in range(0,len(next_deviations[region]))]
+        if poll_number == 0:
+            polled_coefficients = {}
+            polled_intercepts = {}
+            for region in poll_deviations.keys():
+                inputs_array = numpy.transpose(numpy.array([poll_deviations[region]]))
+                results_array = numpy.array(next_deviations[region])
+                reg = LinearRegression().fit(inputs_array, results_array)
+                polled_coefficients[region] = reg.coef_[0]
+                polled_intercepts[region] = reg.intercept_
+                print(f'  state: {region}')
+                print(f'   polls: {poll_deviations[region]}')
+                print(f'   results: {next_deviations[region]}')
+                print(f'   coefficient: {reg.coef_[0]}')
+                print(f'   intercept: {reg.intercept_}')
+                residuals = [next_deviations[region][a] - (
+                                reg.coef_[0] * poll_deviations[region][a] + reg.intercept_
+                            ) for a in range(0,len(next_deviations[region]))]
 
-            rmse = math.sqrt(sum([a ** 2 for a in residuals])
-                                / (len(residuals) - 1))
-            kurtosis = one_tail_kurtosis(residuals)
+                rmse = math.sqrt(sum([a ** 2 for a in residuals])
+                                    / (len(residuals) - 1))
+                kurtosis = one_tail_kurtosis(residuals)
 
-            print(f'   rmse: {rmse}')
-            print(f'   kurtosis: {kurtosis}')
-            # f.write(f'{region},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
+                print(f'   rmse: {rmse}')
+                print(f'   kurtosis: {kurtosis}')
+                # f.write(f'{region},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
+
+        mixed_rmses = {}
+        mixed_kurtoses = {}
+        for mix_factor in [a / 100 for a in range(1, 101)]:
+            naive_errors = []
+            polled_errors = []
+            mixed_errors = []
+
+            for election, poll_overall_tpp in poll_overall_tpps.items():
+                for region in poll_deviations.keys():
+                    if poll_number >= len(poll_overall_tpp):
+                        continue
+                    poll_overall_swing = poll_overall_tpp[poll_number] - prev_overall_tpps[election]
+                    polled_region_swing = (poll_lists[election][region].polls[poll_number]
+                                                - poll_lists[election][region].prev_tpp)
+                    polled_raw_deviation = polled_region_swing - poll_overall_swing
+                    naive_region_swing = (naive_coefficients[region] *
+                                        poll_overall_swing +
+                                        naive_intercepts[region])
+                    naive_deviation = naive_region_swing - poll_overall_swing
+                    polled_final_deviation = (polled_coefficients[region] *
+                                            polled_raw_deviation +
+                                            polled_intercepts[region])
+                    actual_overall_swing = next_overall_tpps[election] - prev_overall_tpps[election]
+                    actual_region_swing = (poll_lists[election][region].next_tpp - 
+                                           poll_lists[election][region].prev_tpp)
+                    actual_deviation = actual_region_swing - actual_overall_swing
+                    mixed_deviation = (polled_final_deviation * mix_factor +
+                                    naive_deviation * (1 - mix_factor))
+                    mixed_errors.append(mixed_deviation - actual_deviation)
+                    naive_errors.append(naive_deviation - actual_deviation)
+                    polled_errors.append(polled_final_deviation - actual_deviation)
+
+            if abs(mix_factor - 0.75) < 0.00001 and poll_number == 8:
+                print(naive_errors)
+                print(polled_errors)
+                print(mixed_errors)
+                print(calc_rmse(naive_errors))
+                print(calc_rmse(polled_errors))
+                print(calc_rmse(mixed_errors))
+            mixed_rmse = calc_rmse(mixed_errors)
+            mixed_rmses[mix_factor] = mixed_rmse
+            mixed_kurtosis = one_tail_kurtosis(mixed_errors)
+            mixed_kurtoses[mix_factor] = mixed_kurtosis
         
+        best_mix_factor = min(mixed_rmses, key=mixed_rmses.get)
+        best_mix_factors.append(best_mix_factor)
+        best_rmses.append(mixed_rmses[best_mix_factor])
+        best_kurtoses.append(mixed_kurtoses[best_mix_factor])
+
+
+    def func(x, a, b):
+        return a*numpy.exp(-b*x)
+
+    def func2(x, a, b, c):
+        return a*numpy.sqrt(b*x)+c
+
+    def func3(x, a, b):
+        return a*x+b
+
+    x = numpy.array(list(range(0, len(best_mix_factors))))
+    y = numpy.array(best_mix_factors)
+    mix_factor_params, mix_factor_cov = curve_fit(func, x, y, [1, 1])
+    print(f'mix_factor_params: {mix_factor_params}')
+
+    y = numpy.array(best_rmses)
+    rmse_params, mix_factor_cov = curve_fit(func2, x, y, [2, 1, 2.5])
+    print(f'rmse_params: {rmse_params}')
+
+    y = numpy.array(best_kurtoses)
+    kurtosis_params, mix_factor_cov = curve_fit(func3, x, y, [2, 1])
+    print(f'kurtosis_params: {kurtosis_params}')
+
+    for i in range(0, len(best_mix_factors)):
+        print(f'Poll period: {i}')
+        print(f'Exact mix factor: {best_mix_factors[i]}')
+        print(f'Trend mix factor: {func(i, mix_factor_params[0], mix_factor_params[1])}')
+        print(f'Rmse: {best_rmses[i]}')
+        print(f'Trend Rmse: {func2(i, rmse_params[0], rmse_params[1], rmse_params[2])}')
+        print(f'Kurtosis: {best_kurtoses[i]}')
+        print(f'Trend Kurtosis: {func3(i, kurtosis_params[0], kurtosis_params[1])}')
+    
+    # Now output data
+    # -> For each region, need naive coeff/intercept
+    # -> For each region, need polled coeff/intercept
+    # General polled coeff-intercept (to mix with region-specific data)
+    # Parameters for mix-factor, rmse and kurtosis trends
 
 
 
