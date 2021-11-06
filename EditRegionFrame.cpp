@@ -69,7 +69,7 @@ void EditRegionFrame::createLastElection2ppInput(int & y)
 void EditRegionFrame::createSample2ppInput(int & y)
 {
 	auto sample2ppCallback = [this](float f) -> void {region.sample2pp = f; };
-	auto sample2ppValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	auto sample2ppValidator = [](float f) {return std::clamp(f, -100.0f, 100.0f); };
 	sample2ppInput.reset(new FloatInput(this, ControlId::Sample2pp, "Polling average 2pp vote:", region.sample2pp,
 		wxPoint(2, y), sample2ppCallback, sample2ppValidator));
 	y += sample2ppInput->Height + ControlPadding;
