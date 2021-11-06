@@ -69,6 +69,8 @@ public:
 
 	std::pair<Region::Id, Region const*> findbyName(std::string const& name) const;
 
+	std::pair<Region::Id, Region const*> findbyAnalysisCode(std::string const& analysisCode) const;
+
 	Index idToIndex(Region::Id id) const;
 	Region::Id indexToId(Index id) const;
 

@@ -57,6 +57,9 @@ private:
 	void loadCentristSeatModifiers();
 	void loadPreviousElectionBaselineVotes();
 	void loadRegionBaseBehaviours();
+	void loadRegionPollBehaviours();
+	void loadRegionMixBehaviours();
+	void loadOverallRegionMixParameters();
 
 	std::string getTermCode();
 	std::string getYearCode();

@@ -276,11 +276,42 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 	Region const& thisRegion = project.regions().viewByIndex(regionIndex);
 	float overallSwingCoeff = run.regionBaseBehaviour[regionIndex].overallSwingCoeff;
 	float baseSwingDeviation = run.regionBaseBehaviour[regionIndex].baseSwingDeviation;
-	float rmse = run.regionBaseBehaviour[regionIndex].rmse;
-	float kurtosis = run.regionBaseBehaviour[regionIndex].kurtosis;
-	float medianRegionalSwing = overallSwingCoeff * iterationOverallSwing + baseSwingDeviation;
-	float randomVariation = rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis);
-	float swingToTransform = medianRegionalSwing + randomVariation;
+	float medianNaiveSwing = overallSwingCoeff * iterationOverallSwing + baseSwingDeviation;
+	float swingToTransform = 0.0f;
+	if (run.regionPollBehaviour.contains(regionIndex)) {
+		float pollRawDeviation = thisRegion.swingDeviation;
+		float pollCoeff = run.regionPollBehaviour[regionIndex].overallSwingCoeff;
+		float pollIntercept = run.regionPollBehaviour[regionIndex].baseSwingDeviation;
+		float pollMedianDeviation = pollCoeff * pollRawDeviation + pollIntercept;
+		float naiveDeviation = medianNaiveSwing - iterationOverallSwing;
+		float mixCoeff = run.regionMixParameters.mixFactorA;
+		float mixTimeFactor = run.regionMixParameters.mixFactorB;
+		float quartersToElection = daysToElection / 91.315f;
+		float mixFactor = mixCoeff * exp(-mixTimeFactor * quartersToElection);
+		float mixedDeviation = mix(naiveDeviation, pollMedianDeviation, mixFactor);
+		mixedDeviation -= run.regionMixBehaviour[regionIndex].bias;
+		float rmseCoeff = run.regionMixParameters.rmseA;
+		float rmseTimeFactor = run.regionMixParameters.rmseB;
+		float rmseAsymptote = run.regionMixParameters.rmseC;
+		float generalRmse = rmseCoeff * exp(-rmseTimeFactor * quartersToElection) + rmseAsymptote;
+		float regionRmseMod = run.regionMixBehaviour[regionIndex].rmse;
+		float specificRmse = generalRmse * regionRmseMod;
+		float kurtosisCoeff = run.regionMixParameters.kurtosisA;
+		float kurtosisIntercept = run.regionMixParameters.kurtosisB;
+		float kurtosis = kurtosisCoeff * quartersToElection + kurtosisIntercept;
+		float randomVariation = rng.flexibleDist(0.0f, specificRmse, specificRmse, kurtosis, kurtosis);
+		float totalDeviation = mixedDeviation + randomVariation;
+		swingToTransform = iterationOverallSwing + totalDeviation;
+	}
+	else {
+		// Naive swing - the swing we get without any region polling information
+		float rmse = run.regionBaseBehaviour[regionIndex].rmse;
+		float kurtosis = run.regionBaseBehaviour[regionIndex].kurtosis;
+		float randomVariation = rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis);
+		float naiveSwing = medianNaiveSwing + randomVariation;
+		swingToTransform = naiveSwing;
+	}
+
 	float transformedTpp = transformVoteShare(thisRegion.lastElection2pp) + swingToTransform;
 	float detransformedTpp = detransformVoteShare(transformedTpp);
 	regionSwing[regionIndex] = detransformedTpp - thisRegion.lastElection2pp;

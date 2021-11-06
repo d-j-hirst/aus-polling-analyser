@@ -82,6 +82,26 @@ public:
 		float kurtosis = 4.0f;
 	};
 
+	struct RegionPollBehaviour {
+		float overallSwingCoeff = 1.0f;
+		float baseSwingDeviation = 0.0f;
+	};
+
+	struct RegionMixBehaviour {
+		float bias = 1.0f;
+		float rmse = 2.0f;
+	};
+
+	struct RegionMixParameters {
+		float mixFactorA = 1.0f;
+		float mixFactorB = 0.015f;
+		float rmseA = -0.5f;
+		float rmseB = 2.7f;
+		float rmseC = 2.0f;
+		float kurtosisA = -0.5f;
+		float kurtosisB = 2.7f;
+	};
+
 	enum class SeatType {
 		InnerMetro,
 		OuterMetro,
@@ -165,7 +185,11 @@ private:
 	std::map<int, std::map<std::pair<int, int>, float>> ncPreferenceFlow;
 
 	std::vector<float> regionLocalModifierAverage;
-	std::vector<RegionBaseBehaviour> regionBaseBehaviour;
+	std::map<int, RegionBaseBehaviour> regionBaseBehaviour;
+	std::map<int, RegionPollBehaviour> regionPollBehaviour;
+	std::map<int, RegionMixBehaviour> regionMixBehaviour;
+	RegionMixParameters regionMixParameters;
+	RegionPollBehaviour generalPollBehaviour;
 
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;

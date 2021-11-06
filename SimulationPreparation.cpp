@@ -70,6 +70,9 @@ void SimulationPreparation::prepareForIterations()
 	countInitialRegionSeatLeads();
 
 	loadRegionBaseBehaviours();
+	loadRegionPollBehaviours();
+	loadRegionMixBehaviours();
+	loadOverallRegionMixParameters();
 
 	calculateTotalPopulation();
 
@@ -776,8 +779,93 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 
 void SimulationPreparation::loadRegionBaseBehaviours()
 {
-	run.regionBaseBehaviour.resize(project.regions().count());
-	std::string fileName = "python/Data/" + getTermCode() + "-region-base.csv";
+	std::string fileName = "python/Regional/" + getTermCode() + "-regions-base.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) {
+		// Not finding a file is fine, but log a message in case this isn't intended behaviour
+		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		return;
+	}
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() <= 1) break;
+		if (values[0] == "all") continue;
+		auto match = project.regions().findbyAnalysisCode(values[0]);
+		if (match.first == Region::InvalidId) {
+			if (values[0] != "all") logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
+			continue;
+		}
+		auto regionIndex = project.regions().idToIndex(match.first);
+		run.regionBaseBehaviour[regionIndex].overallSwingCoeff = std::stof(values[1]);
+		run.regionBaseBehaviour[regionIndex].baseSwingDeviation = std::stof(values[2]);
+		run.regionBaseBehaviour[regionIndex].rmse = std::stof(values[3]);
+		run.regionBaseBehaviour[regionIndex].kurtosis = std::stof(values[4]);
+	} while (true);
+}
+
+void SimulationPreparation::loadRegionPollBehaviours()
+{
+	std::string fileName = "python/Regional/" + getTermCode() + "-regions-polled.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) {
+		// Not finding a file is fine, but log a message in case this isn't intended behaviour
+		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		return;
+	}
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() <= 1) break;
+		if (values[0] == "all") {
+			run.generalPollBehaviour.overallSwingCoeff = std::stof(values[1]);
+			run.generalPollBehaviour.baseSwingDeviation = std::stof(values[2]);
+			continue;
+		}
+		auto match = project.regions().findbyAnalysisCode(values[0]);
+		if (match.first == Region::InvalidId) {
+			if (values[0] != "all") logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
+			continue;
+		}
+		auto regionIndex = project.regions().idToIndex(match.first);
+		run.regionPollBehaviour[regionIndex].overallSwingCoeff = std::stof(values[1]);
+		run.regionPollBehaviour[regionIndex].baseSwingDeviation = std::stof(values[2]);
+	} while (true);
+}
+
+void SimulationPreparation::loadRegionMixBehaviours()
+{
+	std::string fileName = "python/Regional/" + getTermCode() + "-mix-regions.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) {
+		// Not finding a file is fine, but log a message in case this isn't intended behaviour
+		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		return;
+	}
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() <= 1) break;
+		auto match = project.regions().findbyAnalysisCode(values[0]);
+		if (match.first == Region::InvalidId) {
+			if (values[0] != "all") logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
+			continue;
+		}
+		auto regionIndex = project.regions().idToIndex(match.first);
+		run.regionMixBehaviour[regionIndex].bias = std::stof(values[1]);
+		run.regionMixBehaviour[regionIndex].rmse = std::stof(values[2]);
+	} while (true);
+}
+
+void SimulationPreparation::loadOverallRegionMixParameters()
+{
+	std::string fileName = "python/Regional/" + getTermCode() + "-mix-parameters.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -791,21 +879,21 @@ void SimulationPreparation::loadRegionBaseBehaviours()
 		std::getline(file, line);
 		if (!file) break;
 		auto values = splitString(line, ",");
-		int matchingRegion = -1;
-		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-			if (project.regions().viewByIndex(regionIndex).analysisCode == values[0]) {
-				matchingRegion = regionIndex;
-				break;
-			}
+		if (values.size() <= 1) break;
+		if (values[0] == "mix_factor") {
+			run.regionMixParameters.mixFactorA = std::stof(values[1]);
+			run.regionMixParameters.mixFactorB = std::stof(values[2]);
 		}
-		if (matchingRegion == -1) {
-			if (values[0] != "all") logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
-			continue;
+		else if (values[0] == "rmse") {
+			run.regionMixParameters.rmseA = std::stof(values[1]);
+			run.regionMixParameters.rmseB = std::stof(values[2]);
+			run.regionMixParameters.rmseC = std::stof(values[3]);
 		}
-		run.regionBaseBehaviour[matchingRegion].overallSwingCoeff = std::stof(values[1]);
-		run.regionBaseBehaviour[matchingRegion].baseSwingDeviation = std::stof(values[2]);
-		run.regionBaseBehaviour[matchingRegion].rmse = std::stof(values[3]);
-		run.regionBaseBehaviour[matchingRegion].kurtosis = std::stof(values[4]);
+		else if (values[0] == "kurtosis") {
+			run.regionMixParameters.kurtosisA = std::stof(values[1]);
+			run.regionMixParameters.kurtosisB = std::stof(values[2]);
+		}
+
 	} while (true);
 }
 

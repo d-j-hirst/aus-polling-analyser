@@ -1472,7 +1472,7 @@ def analyse_state_swings():
     with open(output_filename, 'w') as f:
         f.write(f'mix_factor,{mix_factor_params[0]},{mix_factor_params[1]}\n')
         f.write(f'rmse,{rmse_params[0]},{rmse_params[1]},{rmse_params[2]}\n')
-        f.write(f'kurtosis_,{kurtosis_params[0]},{kurtosis_params[1]}\n')
+        f.write(f'kurtosis,{kurtosis_params[0]},{kurtosis_params[1]}\n')
 
 
 if __name__ == '__main__':

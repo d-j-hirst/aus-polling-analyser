@@ -35,6 +35,14 @@ std::pair<Region::Id, Region const*> RegionCollection::findbyName(std::string co
 	return { Region::InvalidId, nullptr };
 }
 
+std::pair<Region::Id, Region const*> RegionCollection::findbyAnalysisCode(std::string const& analysisCode) const
+{
+	for (auto const& [id, region] : regions) {
+		if (region.analysisCode == analysisCode) return { id, &region };
+	}
+	return { Region::InvalidId, nullptr };
+}
+
 RegionCollection::Index RegionCollection::idToIndex(Region::Id id) const
 {
 	auto foundIt = regions.find(id);
