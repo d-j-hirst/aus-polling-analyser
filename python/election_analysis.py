@@ -1427,8 +1427,9 @@ def analyse_state_swings():
         for region, error_list in region_errors.items():
             if region == 'all':
                 continue
-            region_bias = statistics.mean(error_list)
-            region_rmse = calc_rmse(error_list)
+            print(f'{region}: {error_list}')
+            region_bias = statistics.median(error_list)
+            region_rmse = calc_rmse(error_list, region_bias)
             rmse_modifier = region_rmse / all_rmse
             # To account for small sample size, which may result in
             # rmse factors being underestimated, increase the rmse
