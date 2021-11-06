@@ -1233,6 +1233,20 @@ class RegionPolls:
                 f'polls: {self.polls}, deviations: {self.deviations}')
 
 
+def regress_and_write_to_file(f, inputs, outputs, region):
+    inputs_array = numpy.transpose(numpy.array([inputs]))
+    results_array = numpy.array(outputs)
+    reg = LinearRegression().fit(inputs_array, results_array)
+    residuals = [outputs[a] - 
+                 (reg.coef_[0] * inputs[a] + reg.intercept_)
+                 for a in range(0,len(outputs))]
+    rmse = math.sqrt(sum([a ** 2 for a in residuals])
+                        / (len(residuals) - 1))
+    kurtosis = one_tail_kurtosis(residuals)
+    f.write(f'{region},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
+    return reg
+
+
 def analyse_state_swings():
     target_year = 2022
     election_results = {}
@@ -1315,32 +1329,19 @@ def analyse_state_swings():
     output_filename = (f'./Regional/{target_year}fed-regions-base.csv')
     with open(output_filename, 'w') as f:
         for key in fed_swings.keys():
-            inputs_array = numpy.transpose(numpy.array([fed_swings[key]]))
-            results_array = numpy.array(state_swings[key])
-            reg = LinearRegression().fit(inputs_array, results_array)
+            reg = regress_and_write_to_file(f, fed_swings[key], state_swings[key], key)
             naive_coefficients[key] = float(reg.coef_[0])
             naive_intercepts[key] = float(reg.intercept_)
-            print(f'state: {key}')
-            print(f' coefficient: {reg.coef_[0]}')
-            print(f' intercept: {reg.intercept_}')
-            residuals = [state_swings[key][a] - (
-                            reg.coef_[0] * fed_swings[key][a] + reg.intercept_
-                        ) for a in range(0,len(state_swings[key]))]
+        # Note: following relies on ordered dicts (python 3.6+)
+        flat_fed_swings = [a for sublist in fed_swings.values() for a in sublist]
+        flat_state_swings = [a for sublist in state_swings.values() for a in sublist]
+        regress_and_write_to_file(f, flat_fed_swings, flat_state_swings, 'all')
 
-            rmse = math.sqrt(sum([a ** 2 for a in residuals])
-                                / (len(residuals) - 1))
-            kurtosis = one_tail_kurtosis(residuals)
-
-            print(f' rmse: {rmse}')
-            print(f' kurtosis: {kurtosis}')
-            f.write(f'{key},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
-
-    print(f'Poll comparisons:')
     best_mix_factors = []
     best_rmses = []
     best_kurtoses = []
+    region_errors = {'all': []}
     for poll_number in range(0, 9):
-        print(f' Poll number {poll_number}:')
         poll_deviations = {}
         next_deviations = {}
         for election, election_polls in poll_lists.items():
@@ -1359,40 +1360,33 @@ def analyse_state_swings():
         if poll_number == 0:
             polled_coefficients = {}
             polled_intercepts = {}
-            for region in poll_deviations.keys():
-                inputs_array = numpy.transpose(numpy.array([poll_deviations[region]]))
-                results_array = numpy.array(next_deviations[region])
-                reg = LinearRegression().fit(inputs_array, results_array)
-                polled_coefficients[region] = reg.coef_[0]
-                polled_intercepts[region] = reg.intercept_
-                print(f'  state: {region}')
-                print(f'   polls: {poll_deviations[region]}')
-                print(f'   results: {next_deviations[region]}')
-                print(f'   coefficient: {reg.coef_[0]}')
-                print(f'   intercept: {reg.intercept_}')
-                residuals = [next_deviations[region][a] - (
-                                reg.coef_[0] * poll_deviations[region][a] + reg.intercept_
-                            ) for a in range(0,len(next_deviations[region]))]
-
-                rmse = math.sqrt(sum([a ** 2 for a in residuals])
-                                    / (len(residuals) - 1))
-                kurtosis = one_tail_kurtosis(residuals)
-
-                print(f'   rmse: {rmse}')
-                print(f'   kurtosis: {kurtosis}')
-                # f.write(f'{region},{reg.coef_[0]},{reg.intercept_},{rmse},{kurtosis}\n')
+            output_filename = (f'./Regional/{target_year}fed-regions-polled.csv')
+            with open(output_filename, 'w') as f:
+                for region in poll_deviations.keys():
+                    reg = regress_and_write_to_file(f, poll_deviations[region], next_deviations[region], region)
+                    polled_coefficients[region] = float(reg.coef_[0])
+                    polled_intercepts[region] = float(reg.intercept_)
+                # Note: following relies on ordered dicts (python 3.6+)
+                flat_poll_dev = [a for sublist in poll_deviations.values() for a in sublist]
+                flat_actual_dev = [a for sublist in next_deviations.values() for a in sublist]
+                region = 'all'
+                reg = regress_and_write_to_file(f, flat_poll_dev, flat_actual_dev, region)
+                polled_coefficients[region] = float(reg.coef_[0])
+                polled_intercepts[region] = float(reg.intercept_)
 
         mixed_rmses = {}
         mixed_kurtoses = {}
         for mix_factor in [a / 100 for a in range(1, 101)]:
-            naive_errors = []
-            polled_errors = []
             mixed_errors = []
 
             for election, poll_overall_tpp in poll_overall_tpps.items():
                 for region in poll_deviations.keys():
                     if poll_number >= len(poll_overall_tpp):
                         continue
+                    polled_coefficient = (polled_coefficients[region] * 0.5 +
+                                         polled_coefficients['all'] * 0.5)
+                    polled_intercept = (polled_intercepts[region] * 0.5 +
+                                       polled_intercepts['all'] * 0.5)
                     poll_overall_swing = poll_overall_tpp[poll_number] - prev_overall_tpps[election]
                     polled_region_swing = (poll_lists[election][region].polls[poll_number]
                                                 - poll_lists[election][region].prev_tpp)
@@ -1401,26 +1395,22 @@ def analyse_state_swings():
                                         poll_overall_swing +
                                         naive_intercepts[region])
                     naive_deviation = naive_region_swing - poll_overall_swing
-                    polled_final_deviation = (polled_coefficients[region] *
+                    polled_final_deviation = (polled_coefficient *
                                             polled_raw_deviation +
-                                            polled_intercepts[region])
+                                            polled_intercept)
                     actual_overall_swing = next_overall_tpps[election] - prev_overall_tpps[election]
                     actual_region_swing = (poll_lists[election][region].next_tpp - 
                                            poll_lists[election][region].prev_tpp)
                     actual_deviation = actual_region_swing - actual_overall_swing
                     mixed_deviation = (polled_final_deviation * mix_factor +
                                     naive_deviation * (1 - mix_factor))
-                    mixed_errors.append(mixed_deviation - actual_deviation)
-                    naive_errors.append(naive_deviation - actual_deviation)
-                    polled_errors.append(polled_final_deviation - actual_deviation)
+                    mixed_error = mixed_deviation - actual_deviation
+                    mixed_errors.append(mixed_error)
+                    if region not in region_errors:
+                        region_errors[region] = []
+                    region_errors[region].append(mixed_error)
+                    region_errors['all'].append(mixed_error)
 
-            if abs(mix_factor - 0.75) < 0.00001 and poll_number == 8:
-                print(naive_errors)
-                print(polled_errors)
-                print(mixed_errors)
-                print(calc_rmse(naive_errors))
-                print(calc_rmse(polled_errors))
-                print(calc_rmse(mixed_errors))
             mixed_rmse = calc_rmse(mixed_errors)
             mixed_rmses[mix_factor] = mixed_rmse
             mixed_kurtosis = one_tail_kurtosis(mixed_errors)
@@ -1431,44 +1421,58 @@ def analyse_state_swings():
         best_rmses.append(mixed_rmses[best_mix_factor])
         best_kurtoses.append(mixed_kurtoses[best_mix_factor])
 
+    all_rmse = calc_rmse(region_errors['all'])
+    output_filename = (f'./Regional/{target_year}fed-mix-regions.csv')
+    with open(output_filename, 'w') as f:
+        for region, error_list in region_errors.items():
+            if region == 'all':
+                continue
+            region_bias = statistics.mean(error_list)
+            region_rmse = calc_rmse(error_list)
+            rmse_modifier = region_rmse / all_rmse
+            # To account for small sample size, which may result in
+            # rmse factors being underestimated, increase the rmse
+            # factor a bit for a region when it's under the overall average
+            if rmse_modifier < 1: rmse_modifier = rmse_modifier * 0.5 + 0.5
+            f.write(f'{region},{region_bias},{rmse_modifier}\n')
+
 
     def func(x, a, b):
         return a*numpy.exp(-b*x)
 
     def func2(x, a, b, c):
-        return a*numpy.sqrt(b*x)+c
+        return a*numpy.exp(-b*x)+c
 
     def func3(x, a, b):
         return a*x+b
 
-    x = numpy.array(list(range(0, len(best_mix_factors))))
-    y = numpy.array(best_mix_factors)
+    # In order to avoid too sharp a change after the first timepoint,
+    # add a dummy value linearly interpolated between the two so that
+    # smooths down more clearly
+    dummy_time = 0.25
+    x_list = list(range(0, len(best_mix_factors))) + [dummy_time]
+    x = numpy.array(x_list)
+
+    mix_factor_dummy = (best_mix_factors[0] * (1 - dummy_time) + 
+                        best_mix_factors[1] * dummy_time)
+    y = numpy.array(best_mix_factors + [mix_factor_dummy])
     mix_factor_params, mix_factor_cov = curve_fit(func, x, y, [1, 1])
-    print(f'mix_factor_params: {mix_factor_params}')
 
-    y = numpy.array(best_rmses)
-    rmse_params, mix_factor_cov = curve_fit(func2, x, y, [2, 1, 2.5])
-    print(f'rmse_params: {rmse_params}')
+    rmse_dummy = (best_rmses[0] * (1 - dummy_time) + 
+                  best_rmses[1] * dummy_time)
+    y = numpy.array(best_rmses + [rmse_dummy])
+    rmse_params, rmse_cov = curve_fit(func2, x, y, [-1, 0.1, 2.5])
 
-    y = numpy.array(best_kurtoses)
-    kurtosis_params, mix_factor_cov = curve_fit(func3, x, y, [2, 1])
-    print(f'kurtosis_params: {kurtosis_params}')
+    kurtosis_dummy = (best_kurtoses[0] * (1 - dummy_time) + 
+                      best_kurtoses[1] * dummy_time)
+    y = numpy.array(best_kurtoses + [kurtosis_dummy])
+    kurtosis_params, kurtosis_cov = curve_fit(func3, x, y, [2, 1])
 
-    for i in range(0, len(best_mix_factors)):
-        print(f'Poll period: {i}')
-        print(f'Exact mix factor: {best_mix_factors[i]}')
-        print(f'Trend mix factor: {func(i, mix_factor_params[0], mix_factor_params[1])}')
-        print(f'Rmse: {best_rmses[i]}')
-        print(f'Trend Rmse: {func2(i, rmse_params[0], rmse_params[1], rmse_params[2])}')
-        print(f'Kurtosis: {best_kurtoses[i]}')
-        print(f'Trend Kurtosis: {func3(i, kurtosis_params[0], kurtosis_params[1])}')
-    
-    # Now output data
-    # -> For each region, need naive coeff/intercept
-    # -> For each region, need polled coeff/intercept
-    # General polled coeff-intercept (to mix with region-specific data)
-    # Parameters for mix-factor, rmse and kurtosis trends
-
+    output_filename = (f'./Regional/{target_year}fed-mix-parameters.csv')
+    with open(output_filename, 'w') as f:
+        f.write(f'mix_factor,{mix_factor_params[0]},{mix_factor_params[1]}\n')
+        f.write(f'rmse,{rmse_params[0]},{rmse_params[1]},{rmse_params[2]}\n')
+        f.write(f'kurtosis_,{kurtosis_params[0]},{kurtosis_params[1]}\n')
 
 
 if __name__ == '__main__':

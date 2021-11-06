@@ -799,7 +799,7 @@ void SimulationPreparation::loadRegionBaseBehaviours()
 			}
 		}
 		if (matchingRegion == -1) {
-			logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
+			if (values[0] != "all") logger << "Warning: Could not find region to match analysis code " + values[0] + "\n";
 			continue;
 		}
 		run.regionBaseBehaviour[matchingRegion].overallSwingCoeff = std::stof(values[1]);
