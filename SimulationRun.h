@@ -102,6 +102,18 @@ public:
 		float kurtosisB = 2.7f;
 	};
 
+	struct TppSwingFactors {
+		float meanSwingDeviation;
+		float federalModifier;
+		float retirementUrban;
+		float retirementRegional;
+		float sophomoreCandidateUrban;
+		float sophomoreCandidateRegional;
+		float sophomorePartyUrban;
+		float sophomorePartyRegional;
+		float previousSwingModifier;
+	};
+
 	enum class SeatType {
 		InnerMetro,
 		OuterMetro,
@@ -190,6 +202,7 @@ private:
 	std::map<int, RegionMixBehaviour> regionMixBehaviour;
 	RegionMixParameters regionMixParameters;
 	RegionPollBehaviour generalPollBehaviour;
+	TppSwingFactors tppSwingFactors;
 
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;

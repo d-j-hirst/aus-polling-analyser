@@ -33,6 +33,8 @@ void SimulationPreparation::prepareForIterations()
 
 	resetSeatSpecificOutput();
 
+	loadTppSwingFactors();
+
 	loadNcPreferenceFlows();
 
 	loadPreviousElectionBaselineVotes();
@@ -894,6 +896,47 @@ void SimulationPreparation::loadOverallRegionMixParameters()
 			run.regionMixParameters.kurtosisB = std::stof(values[2]);
 		}
 
+	} while (true);
+}
+
+void SimulationPreparation::loadTppSwingFactors()
+{
+	std::string fileName = "python/Seat Statistics/tpp-swing-factors.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() <= 1) break;
+		if (values[0] == "mean-swing-deviation") {
+			run.tppSwingFactors.meanSwingDeviation = std::stof(values[1]);
+		}
+		else if (values[0] == "federal-modifier") {
+			run.tppSwingFactors.federalModifier = std::stof(values[1]);
+		}
+		else if (values[0] == "retirement-urban") {
+			run.tppSwingFactors.retirementUrban = std::stof(values[1]);
+		}
+		else if (values[0] == "retirement-regional") {
+			run.tppSwingFactors.retirementRegional = std::stof(values[1]);
+		}
+		else if (values[0] == "sophomore-candidate-urban") {
+			run.tppSwingFactors.sophomoreCandidateUrban = std::stof(values[1]);
+		}
+		else if (values[0] == "sophomore-candidate-regional") {
+			run.tppSwingFactors.sophomoreCandidateRegional = std::stof(values[1]);
+		}
+		else if (values[0] == "sophomore-party-urban") {
+			run.tppSwingFactors.sophomorePartyUrban = std::stof(values[1]);
+		}
+		else if (values[0] == "sophomore-party-regional") {
+			run.tppSwingFactors.sophomorePartyRegional = std::stof(values[1]);
+		}
+		else if (values[0] == "previous-swing-modifier") {
+			run.tppSwingFactors.previousSwingModifier = std::stof(values[1]);
+		}
 	} while (true);
 }
 

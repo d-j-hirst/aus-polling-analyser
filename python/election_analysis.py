@@ -1687,22 +1687,35 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                                                 previous_swing_deviations_flat]))
     results_array = numpy.array(alp_swings_flat)
     reg = LinearRegression().fit(inputs_array, results_array)
-    print(f'Incumbent retirement (urban) effect: {reg.coef_[0]}')
-    print(f'Incumbent retirement (regional) effect: {reg.coef_[1]}')
-    print(f'Sophomore candidate (urban) effect: {reg.coef_[2]}')
-    print(f'Sophomore candidate (regional) effect: {reg.coef_[3]}')
-    print(f'Sophomore party (urban) effect: {reg.coef_[4]}')
-    print(f'Sophomore party (regional) effect: {reg.coef_[5]}')
-    print(f'Previous swing deviation: {reg.coef_[6]}')
+    retirement_urban = reg.coef_[0]
+    retirement_regional = reg.coef_[1]
+    sophomore_candidate_urban = reg.coef_[2]
+    sophomore_candidate_regional = reg.coef_[3]
+    sophomore_party_urban = reg.coef_[4]
+    sophomore_party_regional = reg.coef_[5]
+    previous_swing_modifier = reg.coef_[6]
 
     # Analysis of swing *magnitude* factors
     inputs_array = numpy.transpose(numpy.array([federal_flat, region_swings_flat, margins_flat]))
     results_array = numpy.array(abs_swings_flat)
     reg = LinearRegression().fit(inputs_array, results_array)
-    print(f'Mean swing deviation: {reg.intercept_}')
-    print(f'Federal effect: {reg.coef_[0]}')
-    print(f'Region swing effect: {reg.coef_[1]}')
-    print(f'Margin effect: {reg.coef_[2]}')
+
+    mean_swing_deviation = reg.intercept_
+    federal_modifier = reg.coef_[0]
+    region_swing_effect = reg.coef_[1]
+    margin_effect = reg.coef_[2]
+
+    filename = (f'./Seat Statistics/tpp-swing-factors.csv')
+    with open(filename, 'w') as f:
+        f.write(f'mean-swing-deviation,{mean_swing_deviation}\n')
+        f.write(f'federal-modifier,{federal_modifier}\n')
+        f.write(f'retirement-urban,{retirement_urban}\n')
+        f.write(f'retirement-regional,{retirement_regional}\n')
+        f.write(f'sophomore-candidate-urban,{sophomore_candidate_urban}\n')
+        f.write(f'sophomore-candidate-regional,{sophomore_candidate_regional}\n')
+        f.write(f'sophomore-party-urban,{sophomore_party_urban}\n')
+        f.write(f'sophomore-party-regional,{sophomore_party_regional}\n')
+        f.write(f'previous-swing-modifier,{previous_swing_modifier}\n')
 
 
 

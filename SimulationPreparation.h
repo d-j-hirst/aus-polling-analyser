@@ -60,6 +60,7 @@ private:
 	void loadRegionPollBehaviours();
 	void loadRegionMixBehaviours();
 	void loadOverallRegionMixParameters();
+	void loadTppSwingFactors();
 
 	std::string getTermCode();
 	std::string getYearCode();
