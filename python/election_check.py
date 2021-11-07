@@ -62,6 +62,22 @@ def check_tcp_percent_match(elections):
                     print(f'{election.name} - {seat_result.name} - {candidate.name} - recorded tcp %: {candidate.percent}, calc %: {calc_percent}')
 
 
+def check_tcp_swing_total(elections):
+    for code, election in elections.elections.items():
+        for seat_result in election.seat_results:
+            if len(seat_result.tcp) < 2:
+                # Don't need to flag some old uncontested seats 
+                # or seats where TCP is not recorded
+                continue
+            if None in [x.swing for x in seat_result.tcp]:
+                # If we are confirmed to not have a valid tcp count,
+                # just skip the seat
+                continue
+            total_swing = sum(x.swing for x in seat_result.tcp)
+            if total_swing != 0:
+                print(f'{election.name} - {seat_result.name}: total swing %: {total_swing}')
+
+
 def check_fp_percent_calc(elections):
     for code, election in elections.elections.items():
         for seat_result in election.seat_results:
@@ -130,8 +146,6 @@ def best_performances(elections):
             print(f'Election: {c[0].region()}{c[0].year()}, Seat: {c[1]}, Name: {c[2]}, fp %: {c[3]}')
 
 
-
-
 def get_checked_elections():
     elections = AllElections()
     # Automatic checks that enforce consistency of election data
@@ -140,6 +154,7 @@ def get_checked_elections():
     check_fp_percent_calc(elections)
     check_tcp_percent_total(elections)
     check_tcp_percent_match(elections)
+    check_tcp_swing_total(elections)
     # Combine micro parties into categories for better data processing
     combine_parties(elections)
     

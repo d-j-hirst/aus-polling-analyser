@@ -157,6 +157,7 @@ Bonython,fed,1
 Burke,fed,0
 Charlton,fed,2
 Corinella,fed,1
+Darling Downs,fed,3
 Denison,fed,0
 Diamond Valley,fed,1
 Dundas,fed,0
@@ -273,6 +274,7 @@ Wallsend,nsw,2
 Willoughby,nsw,0
 Wollondilly,nsw,3
 Wollongong,nsw,2
+Woronora,nsw,1
 Wyong,nsw,2
 Armidale,nsw,2
 Ashfield,nsw,0
@@ -440,6 +442,7 @@ Clayton,vic,0
 Coburg,vic,0
 Dandenong North,vic,1
 Derrimut,vic,1
+Doncaster,vic,1
 Dromana,vic,1
 Frankston East,vic,1
 Frankston North,vic,1
@@ -585,7 +588,7 @@ Bowen,qld,3
 Brisbane Central,qld,0
 Broadsound,qld,3
 Caboolture,qld,1
-Carnavon,qld,3
+Carnarvon,qld,3
 Charters Towers,qld,3
 Chermside,qld,0
 Cleveland,qld,1
@@ -593,6 +596,7 @@ Cooroora,qld,3
 Crows Nest,qld,3
 Cunningham,qld,3
 Dalrymple,qld,3
+Darling Downs,qld,3
 Fassifern,qld,3
 Fitzroy,qld,3
 Flinders,qld,3
@@ -624,6 +628,7 @@ Sherwood,qld,0
 Somerset,qld,3
 South Coast,qld,2
 Sunnybank,qld,1
+Tablelands,qld,3
 Toowong,qld,0
 Townsville East,qld,2
 Townsville South,qld,2
@@ -733,7 +738,7 @@ Mitchell,wa,2
 Mount Hawthorn,wa,0
 Mount Leonora,wa,0
 Mount Marshall,wa,3
-Muindaring,wa,1
+Mundaring,wa,1
 Murchison-Eyre,wa,3
 Murdoch,wa,0
 Narrogin,wa,3
@@ -822,6 +827,7 @@ Hayward,sa,1
 Henley Beach,sa,0
 Little Para,sa,1
 Mallee,sa,3
+Mitchell,sa,1
 Murray,sa,3
 Murray-Mallee,sa,3
 Norwood,sa,0

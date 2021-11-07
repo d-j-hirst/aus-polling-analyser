@@ -58,8 +58,8 @@ class ElectionResults:
                         return self.seat_by_name(actual_name,
                                                 include_name_changes=False)
         else:
-            return next(a for a in self.seat_results
-                    if a.name == name)
+            return next((a for a in self.seat_results
+                    if a.name == name), None)
     
     # return total count of fp votes in this election
     def total_fp_votes(self):
@@ -267,93 +267,105 @@ def generic_download(state, year):
     try:
         with open(filename, 'rb') as pkl:
             all_results = pickle.load(pkl)
-        print(f'Loaded election from stored file: {year}{state}')
+        return all_results.results
     except FileNotFoundError:
-        all_results = SavedResults()
-        seat_urls = fetch_seat_urls_state(state)
-        for seat_name, url_list in seat_urls.items():
-            for url in url_list:
-                seat_results = SeatResults(seat_name)
-                full_url = f'https://en.wikipedia.org/{url}'
-                content = str(requests.get(full_url).content)
-                content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
-                content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
-                content = content.replace('\\xe2\\x80\\x93', '-')
-                content = content.replace('&#039;', "'")
-                election_marker = f'>{year} {state_election_name[state]}<'
-                if election_marker not in content:
-                    print(f'Seat not present in election: {seat_name}')
+        pass
+    all_results = SavedResults()
+    seat_urls = fetch_seat_urls_state(state)
+    for seat_name, url_list in seat_urls.items():
+        for url in url_list:
+            seat_results = SeatResults(seat_name)
+            full_url = f'https://en.wikipedia.org/{url}'
+            content = str(requests.get(full_url).content)
+            content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
+            content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
+            content = content.replace('\\xe2\\x80\\x93', '-')
+            content = content.replace('&#039;', "'")
+            election_marker = f'>{year} {state_election_name[state]}<'
+            if election_marker not in content:
+                print(f'Seat not present in election: {seat_name}')
+                continue
+            print(f'Seat results found: {seat_name}')
+            election_content = content.split(election_marker)[1].split('</table>')[0]
+            if '>Two-' in election_content:
+                fp_content = election_content.split('>Two-')[0]
+                tcp_content = election_content.split('>Two-')[-1]
+            else:
+                fp_content = election_content
+                tcp_content = None
+            pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
+                        + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
+                        + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
+            fp_matches = re.findall(pattern, fp_content)
+            for match in fp_matches:
+                if len(match[3].strip()) == 0:
                     continue
-                print(f'Seat results found: {seat_name}')
-                election_content = content.split(election_marker)[1].split('</table>')[0]
-                if '>Two-' in election_content:
-                    fp_content = election_content.split('>Two-')[0]
-                    tcp_content = election_content.split('>Two-')[-1]
+                if len(match[4].strip()) > 0:
+                    swing = float(match[4].strip())
                 else:
-                    fp_content = election_content
-                    tcp_content = None
-                pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
-                            + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
-                            + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
-                fp_matches = re.findall(pattern, fp_content)
-                for match in fp_matches:
-                    if len(match[3].strip()) == 0:
-                        continue
-                    if len(match[4].strip()) > 0:
-                        swing = float(match[4].strip())
+                    swing = None
+                seat_results.fp.append(CandidateResult(
+                    name=match[1].strip(),
+                    party=match[0].strip(),
+                    votes=int('0'+match[2].replace(',','').replace('.','').strip()),
+                    percent=float(match[3].replace(',','.').strip()),
+                    swing=swing))
+            if tcp_content is not None:
+                tcp_matches = re.findall(pattern, tcp_content)
+                for match in tcp_matches:
+                    swing_str = match[4].replace('N/A','').strip()
+                    if len(swing_str) > 0:
+                        swing = float(swing_str)
                     else:
                         swing = None
-                    seat_results.fp.append(CandidateResult(
+                    seat_results.tcp.append(CandidateResult(
                         name=match[1].strip(),
                         party=match[0].strip(),
                         votes=int('0'+match[2].replace(',','').replace('.','').strip()),
-                        percent=float(match[3].replace(',','.').strip()),
+                        percent=float(match[3].strip()),
                         swing=swing))
-                if tcp_content is not None:
-                    tcp_matches = re.findall(pattern, tcp_content)
-                    for match in tcp_matches:
-                        swing_str = match[4].replace('N/A','').strip()
-                        if len(swing_str) > 0:
-                            swing = float(swing_str)
-                        else:
-                            swing = None
-                        seat_results.tcp.append(CandidateResult(
-                            name=match[1].strip(),
-                            party=match[0].strip(),
-                            votes=int('0'+match[2].replace(',','').replace('.','').strip()),
-                            percent=float(match[3].strip()),
-                            swing=swing))
-                    if seat_name == 'Barambah' and year == 1989:
-                        seat_results.tcp[0].votes = 8497
-                        seat_results.tcp[1].votes = 3404
-                    elif seat_name == 'Bowen' and year == 1989:
-                        seat_results.tcp[0].votes = 7524
-                        seat_results.tcp[1].votes = 3134
-                    elif ((state == 'nsw' and year <= 1984 and seat_results.tcp[0].votes == 0) or 
-                        (state == 'fed' and year <= 1983 and seat_results.tcp[0].votes == 0) or 
-                        (seat_name == 'Pearce' and year == 2001) or
-                        (seat_name == 'Newcastle' and year == 1987)):
-                        total_votes = sum(x.votes for x in seat_results.fp)
-                        seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * 0.01 * total_votes)
-                        seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * 0.01 * total_votes)
-                    elif seat_results.tcp[0].votes == 0:
-                        print(seat_results)
-                        raise ValueError('Missing votes data - needs attention')
-                    try:
-                        if (abs(seat_results.tcp[0].swing - seat_results.tcp[0].percent) < 0.01
-                            or abs(seat_results.tcp[1].swing - seat_results.tcp[1].percent) < 0.01):
-                            seat_results.tcp[0].swing = None
-                            seat_results.tcp[1].swing = None
-                    except TypeError:
-                        pass  # If one of the above values is none,
-                            # it's fine to just skip the check altogether
-                else:
-                    seat_results.tcp = seat_results.fp
-                seat_results.order()
-                all_results.results.append(seat_results)
-        with open(filename, 'wb') as pkl:
-            pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
-        print(f'Downloaded election from Wikipedia: {year}{state}')
+                if seat_name == 'Barambah' and year == 1989:
+                    seat_results.tcp[0].votes = 8497
+                    seat_results.tcp[1].votes = 3404
+                elif seat_name == 'Bowen' and year == 1989:
+                    seat_results.tcp[0].votes = 7524
+                    seat_results.tcp[1].votes = 3134
+                elif ((state == 'nsw' and year <= 1984 and seat_results.tcp[0].votes == 0) or 
+                    (state == 'fed' and year <= 1983 and seat_results.tcp[0].votes == 0) or 
+                    (seat_name == 'Pearce' and year == 2001) or
+                    (seat_name == 'Newcastle' and year == 1987)):
+                    total_votes = sum(x.votes for x in seat_results.fp)
+                    seat_results.tcp[0].votes = round(seat_results.tcp[0].percent * 0.01 * total_votes)
+                    seat_results.tcp[1].votes = round(seat_results.tcp[1].percent * 0.01 * total_votes)
+                elif seat_name == 'Hammond' and year == 2006:
+                    seat_results.tcp[0].swing = -4.2
+                elif seat_results.tcp[0].votes == 0:
+                    print(seat_results)
+                    raise ValueError('Missing votes data - needs attention')
+                try:
+                    # If one of the swing values is equal to the vote percent,
+                    # then it's not actually a legitimate swing and the
+                    # swing values should be set to "None" to represent this
+                    if (abs(seat_results.tcp[0].swing - seat_results.tcp[0].percent) < 0.06
+                        or abs(seat_results.tcp[1].swing - seat_results.tcp[1].percent) < 0.06):
+                        seat_results.tcp[0].swing = None
+                        seat_results.tcp[1].swing = None
+                except TypeError:
+                    pass  # If one of the above values is none,
+                        # it's fine to just skip the check altogether
+            else:
+                seat_results.tcp = seat_results.fp
+                if None not in (x.swing for x in seat_results.tcp):
+                    # Remove swing where the tcp swing isn't the same
+                    # as fp swing (evidenced by it not adding to 0)
+                    if sum(x.swing for x in seat_results.tcp) != 0:
+                        for x in seat_results.tcp:
+                            x.swing = None
+            seat_results.order()
+            all_results.results.append(seat_results)
+    with open(filename, 'wb') as pkl:
+        pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    print(f'Downloaded election from Wikipedia: {year}{state}')
     return all_results.results
 
 
