@@ -33,6 +33,8 @@ void SimulationPreparation::prepareForIterations()
 
 	resetSeatSpecificOutput();
 
+	storeTermCode();
+
 	loadTppSwingFactors();
 
 	loadNcPreferenceFlows();
@@ -113,6 +115,13 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatTcpDistribution.resize(project.seats().count());
 }
 
+void SimulationPreparation::storeTermCode()
+{
+	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+	run.yearCode = termCode.substr(0, 4);
+	run.regionCode = termCode.substr(4);
+}
+
 void SimulationPreparation::determineEffectiveSeatModifiers()
 {
 	run.seatPartyOneTppModifier.resize(project.seats().count(), 0.0f);
@@ -120,17 +129,20 @@ void SimulationPreparation::determineEffectiveSeatModifiers()
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		bool majorParty = (seat.incumbent <= 1);
 		if (!majorParty) continue;
+		typedef SimulationRun::SeatType ST;
+		auto type = run.seatTypes[seatIndex];
+		bool isRegional = type == ST::Provincial || type == ST::Rural;
 		float direction = (seat.incumbent ? -1.0f : 1.0f);
-		if (seat.sophomoreCandidate) {
-			run.seatPartyOneTppModifier[seatIndex] += 0.5f * direction;
-			typedef SimulationRun::SeatType ST;
-			auto type = run.seatTypes[seatIndex];
-			if (type == ST::Provincial || type == ST::Rural) {
-				run.seatPartyOneTppModifier[seatIndex] += 0.9f * direction;
-			}
+		if (isRegional) {
+			if (seat.sophomoreCandidate) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomoreCandidateRegional * direction;
+			if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomorePartyRegional * direction;
+			if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.retirementRegional * direction;
 		}
-		if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += 0.8f * direction;
-		if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] -= 1.0f * direction;
+		else {
+			if (seat.sophomoreCandidate) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomoreCandidateUrban * direction;
+			if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomorePartyUrban * direction;
+			if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.retirementUrban * direction;
+		}
 	}
 }
 
@@ -584,7 +596,6 @@ void SimulationPreparation::loadSeatTypes()
 {
 	run.seatTypes.resize(project.seats().count());
 	std::string fileName = "python/Data/seat-types.csv";
-	std::string region = getRegionCode();
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -592,7 +603,7 @@ void SimulationPreparation::loadSeatTypes()
 		std::getline(file, line);
 		if (!file) break;
 		auto values = splitString(line, ",");
-		if (values[1] == region) {
+		if (values[1] == run.regionCode) {
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
 					run.seatTypes[seatIndex] = SimulationRun::SeatType(std::stoi(values[2]));
@@ -702,7 +713,6 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 {
 	run.seatPopulistModifiers.resize(project.seats().count());
 	std::string fileName = "python/Seat Statistics/modifiers_populist.csv";
-	std::string region = getRegionCode();
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -710,7 +720,7 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 		std::getline(file, line);
 		if (!file) break;
 		auto values = splitString(line, ",");
-		if (values[1] == region) {
+		if (values[1] == run.regionCode) {
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
 					run.seatPopulistModifiers[seatIndex] = std::stof(values[2]);
@@ -737,7 +747,6 @@ void SimulationPreparation::loadCentristSeatModifiers()
 {
 	run.seatCentristModifiers.resize(project.seats().count());
 	std::string fileName = "python/Seat Statistics/modifiers_centrist.csv";
-	std::string region = getRegionCode();
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -745,7 +754,7 @@ void SimulationPreparation::loadCentristSeatModifiers()
 		std::getline(file, line);
 		if (!file) break;
 		auto values = splitString(line, ",");
-		if (values[1] == region) {
+		if (values[1] == run.regionCode) {
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
 					run.seatCentristModifiers[seatIndex] = std::stof(values[2]);
@@ -760,14 +769,12 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 	std::string fileName = "python/Data/prior-results.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string yearCode = getYearCode();
-	std::string regionCode = getRegionCode();
 	do {
 		std::string line;
 		std::getline(file, line);
 		if (!file) break;
 		auto values = splitString(line, ",");
-		if (values[0] == yearCode && values[1] == regionCode) {
+		if (values[0] == run.yearCode && values[1] == run.regionCode) {
 			std::string partyCode = splitString(values[2], " ")[0];
 			// exclusive others is what we want to store, overall others isn't used
 			if (partyCode == "OTH") continue;
@@ -874,8 +881,6 @@ void SimulationPreparation::loadOverallRegionMixParameters()
 		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
 		return;
 	}
-	std::string yearCode = getYearCode();
-	std::string regionCode = getRegionCode();
 	do {
 		std::string line;
 		std::getline(file, line);
@@ -913,6 +918,9 @@ void SimulationPreparation::loadTppSwingFactors()
 		if (values[0] == "mean-swing-deviation") {
 			run.tppSwingFactors.meanSwingDeviation = std::stof(values[1]);
 		}
+		if (values[0] == "swing-kurtosis") {
+			run.tppSwingFactors.swingKurtosis = std::stof(values[1]);
+		}
 		else if (values[0] == "federal-modifier") {
 			run.tppSwingFactors.federalModifier = std::stof(values[1]);
 		}
@@ -942,17 +950,5 @@ void SimulationPreparation::loadTppSwingFactors()
 
 std::string SimulationPreparation::getTermCode()
 {
-	return project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
-}
-
-	std::string SimulationPreparation::getYearCode()
-{
-	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
-	return termCode.substr(0, 4);
-}
-
-std::string SimulationPreparation::getRegionCode()
-{
-	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
-	return termCode.substr(4);
+	return run.yearCode + run.regionCode;
 }

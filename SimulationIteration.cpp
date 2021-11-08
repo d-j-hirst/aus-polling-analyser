@@ -26,9 +26,6 @@ RandomGenerator rng;
 // Threshold at which longshot-bias correction starts being applied for seats being approximated from betting odds
 constexpr float LongshotOddsThreshold = 2.5f;
 
-// Seat standard deviation, someday remove this and use a user-input parameter instead
-constexpr float seatStdDev = 2.0f;
-
 // How strongly preferences align with ideology based on the "consistency" property of a party
 constexpr std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.4f, 1.8f };
 
@@ -360,16 +357,19 @@ void SimulationIteration::determineSeatInitialResults()
 void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	float newMargin = seat.tppMargin + regionSwing[project.regions().idToIndex(seat.region)];
+	float transformedTpp = transformVoteShare(seat.tppMargin + 50.0f);
+	transformedTpp += regionSwing[project.regions().idToIndex(seat.region)];
 	// Add modifiers for known local effects
-	newMargin += run.seatPartyOneTppModifier[seatIndex];
+	transformedTpp += run.seatPartyOneTppModifier[seatIndex];
 	// Remove the average local modifier across the region
-	newMargin -= run.regionLocalModifierAverage[seat.region];
+	transformedTpp -= run.regionLocalModifierAverage[seat.region];
+	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
+	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
+	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
-	newMargin += std::normal_distribution<float>(0.0f, seatStdDev)(gen);
-
+	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
 	// Margin for this simulation is finalised, record it for later averaging
-	partyOneNewTppMargin[seatIndex] = newMargin;
+	partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 }
 
 void SimulationIteration::correctSeatTppSwings()

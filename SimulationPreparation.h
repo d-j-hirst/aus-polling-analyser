@@ -26,6 +26,7 @@ private:
 	void resetLatestReport();
 	void resetRegionSpecificOutput();
 	void resetSeatSpecificOutput();
+	void storeTermCode();
 	void determineEffectiveSeatModifiers();
 	void accumulateRegionStaticInfo();
 	void resetPpvcBiasAggregates();
@@ -63,8 +64,6 @@ private:
 	void loadTppSwingFactors();
 
 	std::string getTermCode();
-	std::string getYearCode();
-	std::string getRegionCode();
 
 	std::vector<int> regionSeatCount;
 

@@ -1704,10 +1704,12 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     federal_modifier = reg.coef_[0]
     region_swing_effect = reg.coef_[1]
     margin_effect = reg.coef_[2]
+    swing_kurtosis = one_tail_kurtosis(abs_swings_flat)
 
     filename = (f'./Seat Statistics/tpp-swing-factors.csv')
     with open(filename, 'w') as f:
         f.write(f'mean-swing-deviation,{mean_swing_deviation}\n')
+        f.write(f'swing-kurtosis,{swing_kurtosis}\n')
         f.write(f'federal-modifier,{federal_modifier}\n')
         f.write(f'retirement-urban,{retirement_urban}\n')
         f.write(f'retirement-regional,{retirement_regional}\n')

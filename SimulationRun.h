@@ -104,6 +104,7 @@ public:
 
 	struct TppSwingFactors {
 		float meanSwingDeviation;
+		float swingKurtosis;
 		float federalModifier;
 		float retirementUrban;
 		float retirementRegional;
@@ -142,6 +143,8 @@ private:
 	float ppvcBiasObserved = 0.0f;
 	float ppvcBiasConfidence = 0.0f;
 	int totalOldPpvcVotes = 0;
+	std::string regionCode;
+	std::string yearCode;
 
 	float totalPopulation = 0.0f;
 
