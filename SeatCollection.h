@@ -68,7 +68,7 @@ public:
 	// Returns the seat with index "seatIndex".
 	Seat const& viewByIndex(Index seatIndex) const { return view(indexToId(seatIndex)); }
 
-	std::pair<Seat::Id, Seat&> accessByName(std::string name);
+	std::pair<Seat::Id, Seat&> accessByName(std::string name, bool usePreviousNames = false);
 
 	Index idToIndex(Seat::Id id) const;
 	Seat::Id indexToId(Index id) const;

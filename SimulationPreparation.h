@@ -63,6 +63,7 @@ private:
 	void loadRegionMixBehaviours();
 	void loadOverallRegionMixParameters();
 	void loadTppSwingFactors();
+	void loadIndividualSeatParameters();
 
 	std::string getTermCode();
 

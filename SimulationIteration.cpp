@@ -358,7 +358,11 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float transformedTpp = transformVoteShare(seat.tppMargin + 50.0f);
-	transformedTpp += regionSwing[project.regions().idToIndex(seat.region)];
+	float elasticity = run.seatParameters[seatIndex].elasticity;
+	float trend = run.seatParameters[seatIndex].trend;
+	float volatility = run.seatParameters[seatIndex].volatility;
+	bool useVolatility = run.seatParameters[seatIndex].loaded;
+	transformedTpp += regionSwing[project.regions().idToIndex(seat.region)] * elasticity + trend;
 	// Add modifiers for known local effects
 	transformedTpp += run.seatPartyOneTppModifier[seatIndex];
 	// Remove the average local modifier across the region
@@ -366,6 +370,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	transformedTpp += run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
+	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);

@@ -52,6 +52,8 @@ void SimulationPreparation::prepareForIterations()
 	loadCentristSeatModifiers();
 	loadOthSeatStatistics();
 
+	loadIndividualSeatParameters();
+
 	loadPastSeatResults();
 
 	determineEffectiveSeatModifiers();
@@ -972,6 +974,46 @@ void SimulationPreparation::loadTppSwingFactors()
 			run.tppSwingFactors.previousSwingModifier = std::stof(values[1]);
 		}
 	} while (true);
+}
+
+void SimulationPreparation::loadIndividualSeatParameters()
+{
+	run.seatParameters.resize(project.seats().count());
+	std::string fileName = "python/Seat Statistics/individual-seat-factors.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() < 6) break;
+		std::string electionRegion = values[1];
+		if (electionRegion != run.regionCode) continue;
+		std::string seatName = values[0];
+		std::string subRegion = values[2];
+		int regionId = project.regions().findbyAnalysisCode(subRegion).first;
+		if (regionId == Region::InvalidId) continue;
+		try {
+			int seatId = project.seats().accessByName(seatName, true).first;
+			int seatIndex = project.seats().idToIndex(seatId);
+			if (run.seatParameters[seatIndex].loaded) continue;
+			run.seatParameters[seatIndex].loaded = true;
+			run.seatParameters[seatIndex].elasticity = std::stof(values[3]);
+			run.seatParameters[seatIndex].trend = std::stof(values[4]);
+			run.seatParameters[seatIndex].volatility = std::stof(values[5]);
+		}
+		catch (SeatDoesntExistException) {
+			// Expected that some seats won't exist, ignore them
+		}
+
+	} while (true);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		logger << project.seats().viewByIndex(seatIndex).name << ":\n";
+		PA_LOG_VAR(run.seatParameters[seatIndex].elasticity);
+		PA_LOG_VAR(run.seatParameters[seatIndex].trend);
+		PA_LOG_VAR(run.seatParameters[seatIndex].volatility);
+	}
 }
 
 std::string SimulationPreparation::getTermCode()

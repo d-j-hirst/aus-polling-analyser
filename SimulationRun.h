@@ -115,6 +115,13 @@ public:
 		float previousSwingModifier;
 	};
 
+	struct IndividualSeatParameters {
+		bool loaded = false; // If a seat has parameters for both its current and past name, don't want the past one to overwrite the current one
+		float elasticity = 1.0f;
+		float trend = 0.0f;
+		float volatility = 2.5f;
+	};
+
 	enum class SeatType {
 		InnerMetro,
 		OuterMetro,
@@ -197,6 +204,7 @@ private:
 	std::vector<float> seatPopulistModifiers;
 	std::vector<float> seatCentristModifiers;
 	std::vector<float> seatPartyOneTppModifier;
+	std::vector<IndividualSeatParameters> seatParameters;
 	std::map<int, float> previousFpVoteShare;
 	std::map<int, std::map<std::pair<int, int>, float>> ncPreferenceFlow;
 

@@ -36,10 +36,14 @@ Seat const& SeatCollection::view(Seat::Id id) const {
 	return seats.at(id);
 }
 
-std::pair<Seat::Id, Seat&> SeatCollection::accessByName(std::string name)
+std::pair<Seat::Id, Seat&> SeatCollection::accessByName(std::string name, bool usePreviousNames)
 {
 	auto seatIt = std::find_if(seats.begin(), seats.end(),
 		[name](decltype(seats)::value_type seatPair) {return seatPair.second.name == name; });
+	if (seatIt == seats.end()) {
+		if (usePreviousNames) seatIt = std::find_if(seats.begin(), seats.end(),
+			[name](decltype(seats)::value_type seatPair) {return seatPair.second.previousName == name; });
+	}
 	if (seatIt == seats.end()) throw SeatDoesntExistException();
 	return { seatIt->first, seatIt->second };
 }

@@ -1489,6 +1489,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urban = {}
     sophomore_party_regional = {}
     previous_swings = {}
+    names = {}
     for this_election, this_results in elections.items():
         previous_elections = elections.previous_elections(this_election)
         if len(elections.previous_elections(this_election)) > 0:
@@ -1502,6 +1503,14 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         else:
             old_results = None
         for this_seat_name in this_results.seat_names():
+            # Fraser appears federally in both VIC and ACT (both safe seats)
+            # since VIC is more recent, pretend the ACT results don't exist
+            if this_seat_name == "Fraser" and this_election.year() < 2019:
+                continue
+            # Northern Territory is the only seat in its region,
+            # so we can't analyse how it compares to its state
+            if this_seat_name == "Northern Territory":
+                continue
             this_seat_result = this_results.seat_by_name(this_seat_name)
             # These automatically gives None if no seat is found
             previous_seat_result = (previous_results.seat_by_name(this_seat_name,
@@ -1566,6 +1575,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 sophomore_party_urban[this_election] = {}
                 sophomore_party_regional[this_election] = {}
                 previous_swings[this_election] = {}
+                names[this_election] = {}
             if this_seat_region not in alp_swings[this_election]:
                 alp_swings[this_election][this_seat_region] = []
                 federal[this_election][this_seat_region] = []
@@ -1577,6 +1587,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 sophomore_party_urban[this_election][this_seat_region] = []
                 sophomore_party_regional[this_election][this_seat_region] = []
                 previous_swings[this_election][this_seat_region] = []
+                names[this_election][this_seat_region] = []
 
             temp_incumbent_retirement = 0
             if previous_seat_result is not None and len(previous_seat_result.tcp) == 2:
@@ -1627,6 +1638,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             sophomore_party_regional[this_election][this_seat_region].append(temp_sophomore_party
                 if seat_types[(this_seat_name, this_election.region())] >= 2 else 0)
             previous_swings[this_election][this_seat_region].append(temp_previous_swing)
+            names[this_election][this_seat_region].append(this_seat_name)
     region_averages = {election: {region: statistics.mean(x)
                                   for region, x in a.items()}
                        for election, a in alp_swings.items()}
@@ -1652,6 +1664,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 for region_code, previous_swings in regions.items()}
 
     alp_swings_flat = []
+    alp_deviations_flat = []
     federal_flat = []
     region_swings_flat = []
     margins_flat = []
@@ -1662,9 +1675,13 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urban_flat = []
     sophomore_party_regional_flat = []
     previous_swing_deviations_flat = []
+    names_flat = []
+    election_regions_flat = []
+    regions_flat = []
     for election_code, election in swing_deviations.items():
         for region_code, region in election.items():
-            alp_swings_flat += region
+            alp_swings_flat += alp_swings[election_code][region_code]
+            alp_deviations_flat += region
             federal_flat += federal[election_code][region_code]
             region_swings_flat += region_swings[election_code][region_code]
             margins_flat += margin[election_code][region_code]
@@ -1675,7 +1692,10 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             sophomore_party_urban_flat += sophomore_party_urban[election_code][region_code]
             sophomore_party_regional_flat += sophomore_party_regional[election_code][region_code]
             previous_swing_deviations_flat += previous_swing_deviations[election_code][region_code]
-    abs_swings_flat = [abs(x) for x in alp_swings_flat]
+            names_flat += names[election_code][region_code]
+            election_regions_flat += [election_code.region()] * len(region)
+            regions_flat += [region_code] * len(region)
+    abs_swings_flat = [abs(x) for x in alp_deviations_flat]
 
     # Analysis of swing *direction* factors
     inputs_array = numpy.transpose(numpy.array([incumbent_retirement_urban_flat,
@@ -1685,7 +1705,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                                                 sophomore_party_urban_flat,
                                                 sophomore_party_regional_flat,
                                                 previous_swing_deviations_flat]))
-    results_array = numpy.array(alp_swings_flat)
+    results_array = numpy.array(alp_deviations_flat)
     reg = LinearRegression().fit(inputs_array, results_array)
     retirement_urban = reg.coef_[0]
     retirement_regional = reg.coef_[1]
@@ -1719,7 +1739,31 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         f.write(f'sophomore-party-regional,{sophomore_party_regional}\n')
         f.write(f'previous-swing-modifier,{previous_swing_modifier}\n')
 
-
+    individual_infos = {}
+    for i in range(0, len(names_flat)):
+        key = (names_flat[i], election_regions_flat[i], regions_flat[i])
+        vals = (alp_swings_flat[i], region_swings_flat[i])
+        if key not in individual_infos:
+            individual_infos[key] = []
+        individual_infos[key].append(vals)
+    
+    filename = (f'./Seat Statistics/individual-seat-factors.csv')
+    with open(filename, 'w') as f:
+        for key, values in individual_infos.items():
+            if len(values) < 4:
+                continue
+            inputs_array = numpy.transpose(numpy.array([[a[1] for a in values]]))
+            results_array = numpy.array([a[0] for a in values])
+            reg = LinearRegression().fit(inputs_array, results_array)
+            elasticity = reg.coef_[0]
+            trend = reg.intercept_
+            residuals = [a[0] - elasticity * a[1] - trend for a in values]
+            volatility = calc_rmse(residuals)
+            # High trend/low volatility values are likely artifacts of small
+            # sample sizes, so cap them 
+            limited_trend = min(max(trend, -2.5), 2.5)
+            limited_volatility = max(volatility, 1.5)
+            f.write(f'{key[0]},{key[1]},{key[2]},{elasticity},{trend},{volatility}\n')
 
 
 if __name__ == '__main__':
