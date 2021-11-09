@@ -55,6 +55,7 @@ void SimulationPreparation::prepareForIterations()
 	loadPastSeatResults();
 
 	determineEffectiveSeatModifiers();
+	determinePreviousSwingDeviations();
 
 	accumulateRegionStaticInfo();
 
@@ -143,6 +144,31 @@ void SimulationPreparation::determineEffectiveSeatModifiers()
 			if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomorePartyUrban * direction;
 			if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.retirementUrban * direction;
 		}
+	}
+}
+
+void SimulationPreparation::determinePreviousSwingDeviations()
+{
+	// Not storing region ids here or relating them to any other process using indices,
+	// so using ids rather than indices is fine
+	// Also, this should ideally be population-weighted, but since
+	// comparisons are being made within states and within-state population
+	// differences are fairly small it's a lot easier for implementation to assume all seats
+	// are the same size and it won't have a noticeable effect on the outcome
+	std::map<int, std::vector<float>> swingsByRegion;
+	for (auto const& [id, seat] : project.seats()) {
+		swingsByRegion[seat.region].push_back(seat.previousSwing);
+	}
+	std::map<int, float> averages;
+	for (auto const& [id, swings] : swingsByRegion) {
+		float sum = std::accumulate(swings.begin(), swings.end(), 0.0f);
+		float average = sum / float(swings.size());
+		averages[id] = average;
+	}
+	run.seatPreviousTppSwing.resize(project.seats().count());
+	for (auto const& [id, seat] : project.seats()) {
+		int index = project.seats().idToIndex(id);
+		run.seatPreviousTppSwing[index] = seat.previousSwing - averages[seat.region];
 	}
 }
 

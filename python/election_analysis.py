@@ -199,7 +199,7 @@ def analyse_greens(elections):
         f.write(','.join([f'{a:.4f}' for a in recontest_incumbent_rates]) + '\n')
 
 
-larger_parties = ['Labor', 'Liberal', 'Liberal National', 'Greens', 'Democrats', 'National', 'Nationals', 'One Nation']
+larger_parties = ['Labor', 'Liberal', 'Liberal National', 'Greens', 'Democrats', 'National', 'Nationals', 'One Nation', 'Country Liberal']
 
 
 def effective_independent(party, election_results):
@@ -1475,7 +1475,7 @@ def analyse_region_swings():
         f.write(f'kurtosis,{kurtosis_params[0]},{kurtosis_params[1]}\n')
 
 
-majors = ['Liberal', 'National', 'Liberal National', 'Labor', 'National']
+majors = ['Liberal', 'National', 'Liberal National', 'Labor', 'National', 'Country Liberal']
 
 
 def analyse_seat_swings(elections, seat_types, seat_regions):

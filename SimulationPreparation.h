@@ -28,6 +28,7 @@ private:
 	void resetSeatSpecificOutput();
 	void storeTermCode();
 	void determineEffectiveSeatModifiers();
+	void determinePreviousSwingDeviations();
 	void accumulateRegionStaticInfo();
 	void resetPpvcBiasAggregates();
 	void cacheBoothData();

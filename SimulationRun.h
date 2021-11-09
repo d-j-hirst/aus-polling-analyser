@@ -187,6 +187,7 @@ private:
 
 	std::vector<Outcome const*> seatToOutcome;
 
+	std::vector<float> seatPreviousTppSwing;
 	std::vector<float> seatFirstPartyPreferenceFlow;
 	std::vector<float> seatPreferenceFlowVariation;
 	std::vector<std::array<int, 2>> seatTcpTally;

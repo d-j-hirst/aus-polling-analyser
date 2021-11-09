@@ -54,6 +54,7 @@ private:
 	void createChallenger2Input(int& y);
 	void createRegionInput(int& y);
 	void createMarginInput(int& y);
+	void createPreviousSwingInput(int& y);
 	void createLocalModifierInput(int& y);
 	void createIncumbentOddsInput(int& y);
 	void createChallengerOddsInput(int& y);
@@ -85,6 +86,7 @@ private:
 	std::unique_ptr<ChoiceInput> challenger2Input;
 	std::unique_ptr<ChoiceInput> regionInput;
 	std::unique_ptr<FloatInput> marginInput;
+	std::unique_ptr<FloatInput> previousSwingInput;
 	std::unique_ptr<FloatInput> localModifierInput;
 	std::unique_ptr<FloatInput> incumbentOddsInput;
 	std::unique_ptr<FloatInput> challengerOddsInput;

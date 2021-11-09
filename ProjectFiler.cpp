@@ -38,7 +38,8 @@
 // Version 31: Probability bands for seat fps
 // Version 32: Tcp probability bands, scenario likelihood and party win rate
 // Version 33: Save analysis codes for regions
-constexpr int VersionNum = 33;
+// Version 34: Save previous tpp swings for seats
+constexpr int VersionNum = 34;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -472,6 +473,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger2));
 		saveOutput.outputAsType<int32_t>(project.regions().idToIndex(thisSeat.region));
 		saveOutput << thisSeat.tppMargin;
+		saveOutput << thisSeat.previousSwing;
 		saveOutput << thisSeat.localModifier;
 		saveOutput << thisSeat.incumbentOdds;
 		saveOutput << thisSeat.challengerOdds;
@@ -506,6 +508,7 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		thisSeat.challenger2 = saveInput.extract<int32_t>();
 		thisSeat.region = saveInput.extract<int32_t>();
 		saveInput >> thisSeat.tppMargin;
+		if (versionNum >= 34) saveInput >> thisSeat.previousSwing;
 		saveInput >> thisSeat.localModifier;
 		saveInput >> thisSeat.incumbentOdds;
 		saveInput >> thisSeat.challengerOdds;

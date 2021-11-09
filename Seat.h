@@ -43,6 +43,9 @@ public:
 	// Local modifier to the 2pp vote (towards the incumbent).
 	float localModifier = 0.0f;
 
+	// Previous TPP swing in this seat, to Party One.
+	float previousSwing = 0.0f;
+
 	// Betting odds on the incumbent and challenger - only necessary for non-classic seats
 	float incumbentOdds = 2.0f;
 	float challengerOdds = 2.0f;

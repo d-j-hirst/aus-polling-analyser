@@ -363,6 +363,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	transformedTpp += run.seatPartyOneTppModifier[seatIndex];
 	// Remove the average local modifier across the region
 	transformedTpp -= run.regionLocalModifierAverage[seat.region];
+	transformedTpp += run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
