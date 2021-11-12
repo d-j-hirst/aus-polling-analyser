@@ -290,19 +290,19 @@ __pycache__/
 /vc_mswud/PollingAnalyser/PollingAnalyser.tlog/CL.command.1.tlog
 /maps/maps_backup.txt
 /z.pol2
-/python/Outputs
-/python/Intermediate
-/python/Charts prototypes.xlsx
-/python/stan-cache
-/python/Data/poll-data-fed-test.xlsx
-/python/Data/poll-data-fed-test2.xlsx
+/analysis/Outputs
+/analysis/Intermediate
+/analysis/Charts prototypes.xlsx
+/analysis/stan-cache
+/analysis/Data/poll-data-fed-test.xlsx
+/analysis/Data/poll-data-fed-test2.xlsx
 */env
-/python/Adjustments/*
+/analysis/Adjustments/*
 /Federal Election 2022 test v14.pol2
 *.pkl
-/python/Fundamentals
-/python/Seat Statistics
-/python/elections
+/analysis/Fundamentals
+/analysis/Seat Statistics
+/analysis/elections
 /vc_mswu/PollingAnalyser/PollingAnalyser.tlog/link.12604.delete.1.tlog
 /Federal Election 2022 sim test.pol2
 /vc_mswu/PollingAnalyser/PollingAnalyser.tlog
@@ -312,6 +312,9 @@ __pycache__/
 /vc_mswu/PollingAnalyser/PollingAnalyser.iobj
 /vc_mswu/PollingAnalyser
 /vc_mswud/PollingAnalyser
-/python/Regional/2022fed-mix-parameters.csv
-/python/Regional/2022fed-mix-regions.csv
-/python/Regional/2022fed-regions-polled.csv
+/analysis/Regional/2022fed-mix-parameters.csv
+/analysis/Regional/2022fed-mix-regions.csv
+/analysis/Regional/2022fed-regions-polled.csv
+/analysis/Regional/2022fed-regions-base.csv
+/analysis/Model Election Comparisons.xlsx
+/analysis/Poll data converter.xlsx
