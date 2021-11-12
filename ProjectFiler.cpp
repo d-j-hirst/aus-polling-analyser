@@ -608,7 +608,7 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 		for (int i = 0; i < int(regionWinExpectationVec.size()); ++i) {
 			auto const& subVec = regionWinExpectationVec[i];
 			std::map<int, float> subMap;
-			for (int j = 0; j < int(regionWinExpectationVec.size()); ++j) {
+			for (int j = 0; j < int(regionWinExpectationVec[i].size()); ++j) {
 				subMap[j] = subVec[j];
 			}
 			report.regionPartyWinExpectation.push_back(subMap);

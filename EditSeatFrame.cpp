@@ -141,7 +141,7 @@ void EditSeatFrame::createRegionInput(int & y)
 void EditSeatFrame::createMarginInput(int & y)
 {
 	auto marginCallback = [this](float f) -> void {seat.tppMargin = f; };
-	auto marginValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	auto marginValidator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
 	marginInput.reset(new FloatInput(this, ControlId::Margin, "Party One TPP Margin:", seat.tppMargin,
 		wxPoint(2, y), marginCallback, marginValidator));
 	y += marginInput->Height + ControlPadding;
