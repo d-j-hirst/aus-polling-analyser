@@ -1,14 +1,70 @@
 import sys
+import argparse
 import numpy as np
 import pandas as pd
 import pystan
 from time import perf_counter
 from datetime import timedelta
+from election_code import ElectionCode, no_target_election_marker
 
 from stan_cache import stan_cache
 
 
+class ConfigError(ValueError):
+    pass
+
+
+class Config:
+    def __init__(self):
+        parser = argparse.ArgumentParser(
+            description='Determine trend adjustment parameters')
+        parser.add_argument('--election', action='store', type=str,
+                            help='Exclude this election from calculations '
+                            '(so that they can be used for hindcasting that '
+                            'election). Enter as 1234-xxx format,'
+                            ' e.g. 2013-fed. Write "none" to exclude no '
+                            'elections (for present-day forecasting) or "all" '
+                            'to do it for all elections (including "none"). '
+                            'Default is "none"', default='none')
+        self.election_instructions = parser.parse_args().election.lower()
+        self.prepare_election_list()
+
+    def prepare_election_list(self):
+        with open('./Data/polled-elections.csv', 'r') as f:
+            elections = ElectionCode.load_elections_from_file(f)
+        with open('./Data/future-elections.csv', 'r') as f:
+            elections += ElectionCode.load_elections_from_file(f)
+        if self.election_instructions == 'all':
+            self.elections = elections + [no_target_election_marker]
+        elif self.election_instructions == 'none':
+            self.elections = [no_target_election_marker]
+        else:
+            parts = self.election_instructions.split('-')
+            if len(parts) != 2:
+                raise ConfigError('Error in "elections" argument: given value '
+                                  'did not consist of two parts separated '
+                                  'by a hyphen (e.g. 2013-fed)')
+            try:
+                code = ElectionCode(parts[0], parts[1])
+            except ValueError:
+                raise ConfigError('Error in "elections" argument: first part '
+                                  'of election name could not be converted '
+                                  'into an integer')
+            if code not in elections:
+                raise ConfigError('Error in "elections" argument: given value '
+                                  'value given did not match any election '
+                                  'given in Data/polled-elections.csv')
+            self.elections = [code]
+
+
 def run_models():
+
+    try:
+        config = Config()
+    except ConfigError as e:
+        print('Could not process configuration due to the following issue:')
+        print(str(e))
+        return
 
     # check version information
     print('Python version: {}'.format(sys.version))
@@ -84,23 +140,23 @@ def run_models():
     }
 
     # Load the list of election periods we want to model
-    with open('config.txt', 'r') as f:
-        desired_elections = \
-            [tuple([val.strip() for val in line.split('-')]) for line in f]
+    desired_elections = config.elections
 
     for desired_election in desired_elections:
-        for party in parties[desired_election]:
+        election_tuple = (str(desired_election.year()),
+                          desired_election.region())
+        for party in parties[election_tuple]:
 
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
             # page on next Australian Federal Election
-            df = pd.read_csv(data_source[desired_election[1]])
+            df = pd.read_csv(data_source[election_tuple[1]])
 
             # drop data not in range of this election period
             df['MidDate'] = [pd.Period(date, freq='D')
                              for date in df['MidDate']]
-            df = df[df['MidDate'] >= election_cycles[desired_election][0]]
-            df = df[df['MidDate'] <= election_cycles[desired_election][1]]
+            df = df[df['MidDate'] >= election_cycles[election_tuple][0]]
+            df = df[df['MidDate'] <= election_cycles[election_tuple][1]]
 
             # convert dates to days from start
             # do this before removing polls with N/A values so that
@@ -112,7 +168,7 @@ def run_models():
             n_days = df['Day'].max().n + 1
 
             # store the election day for when the model needs it later
-            election_day = (election_cycles[desired_election][1] - start).n
+            election_day = (election_cycles[election_tuple][1] - start).n
 
             # drop any rows with N/A values for the current party
             df = df.dropna(subset=[party])
@@ -130,8 +186,8 @@ def run_models():
 
             # Get the prior result, or a small vote share if
             # the prior result is not given
-            if (desired_election, party) in prior_results:
-                prior_result = max(0.25, prior_results[(desired_election, party)])
+            if (election_tuple, party) in prior_results:
+                prior_result = max(0.25, prior_results[(election_tuple, party)])
             else:
                 prior_result = 0.25  # percentage
 
@@ -149,7 +205,7 @@ def run_models():
             # others follow
             houses = df['Firm'].unique().tolist()
             houseCounts = df['Firm'].value_counts()
-            whitelist = anchoring_pollsters[desired_election]
+            whitelist = anchoring_pollsters[election_tuple]
             exclusions = set([h for h in houses if h not in whitelist])
             print(f'Pollsters included in anchoring: {[h for h in houses if h not in exclusions]}')
             print(f'Pollsters not included in anchoring: {exclusions}')
@@ -176,7 +232,7 @@ def run_models():
                 df.loc[i, 'Day'] = df.loc[i, 'Day'].n + 1
 
             # Transform discontinuities from dates to raw numbers
-            discontinuities_filtered = discontinuities[desired_election[1]]
+            discontinuities_filtered = discontinuities[election_tuple[1]]
             discontinuities_filtered = \
                 [(pd.to_datetime(date).to_period('D') - start).n + 1
                  for date in discontinuities_filtered]
@@ -254,7 +310,7 @@ def run_models():
 
             # Stan model configuration
             chains = 6
-            iterations = desired_iterations[desired_election]
+            iterations = desired_iterations[election_tuple]
 
             # Do model sampling. Time for diagnostic purposes
             start_time = perf_counter()
@@ -273,12 +329,12 @@ def run_models():
             print(psd.check_hmc_diagnostics(fit))
 
             # construct the file names to output to
-            output_trend = './Outputs/fp_trend_' + ''.join(desired_election) \
+            output_trend = './Outputs/fp_trend_' + ''.join(election_tuple) \
                 + '_' + party + '.csv'
-            output_polls = './Outputs/fp_polls_' + ''.join(desired_election) \
+            output_polls = './Outputs/fp_polls_' + ''.join(election_tuple) \
                 + '_' + party + '.csv'
             output_house_effects = './Outputs/fp_house_effects_' + \
-                ''.join(desired_election) + '_' + party + '.csv'
+                ''.join(election_tuple) + '_' + party + '.csv'
 
             # Extract trend data from model summary and write to file
             probs_list = [0.001]

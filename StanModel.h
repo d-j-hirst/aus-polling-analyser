@@ -132,10 +132,10 @@ private:
 
 	typedef std::map<std::string, double> Fundamentals;
 
-	// Loads the party group data from python/Data/party-groups.csv
+	// Loads the party group data from analysis/Data/party-groups.csv
 	void loadPartyGroups();
 
-	// Loads the fundamentals predictions from python/Fundamentals
+	// Loads the fundamentals predictions from analysis/Fundamentals
 	void loadFundamentalsPredictions();
 
 	// Loads coefficients for model parameters from files

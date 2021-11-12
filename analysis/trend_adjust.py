@@ -78,7 +78,7 @@ class Config:
         self.show_parameters = parser.parse_args().parameters
         self.show_written_files = parser.parse_args().writtenfiles
         self.show_fundamentals = parser.parse_args().fundamentals
-        self.exclude_instuctions = parser.parse_args().election.lower()
+        self.election_instructions = parser.parse_args().election.lower()
         self.prepare_election_list()
         day_test_count = 46
         self.days = [int((n * (n + 1)) / 2) for n in range(0, day_test_count)]
@@ -86,12 +86,12 @@ class Config:
     def prepare_election_list(self):
         with open('./Data/polled-elections.csv', 'r') as f:
             elections = ElectionCode.load_elections_from_file(f)
-        if self.exclude_instuctions == 'all':
+        if self.election_instructions == 'all':
             self.elections = elections + [no_target_election_marker]
-        elif self.exclude_instuctions == 'none':
+        elif self.election_instructions == 'none':
             self.elections = [no_target_election_marker]
         else:
-            parts = self.exclude_instuctions.split('-')
+            parts = self.election_instructions.split('-')
             if len(parts) != 2:
                 raise ConfigError('Error in "elections" argument: given value '
                                   'did not consist of two parts separated '
@@ -99,13 +99,13 @@ class Config:
             try:
                 code = ElectionCode(parts[0], parts[1])
             except ValueError:
-                raise ConfigError('Error in "elections" argument: first part'
-                                  'of election name could not be converted'
+                raise ConfigError('Error in "elections" argument: first part '
+                                  'of election name could not be converted '
                                   'into an integer')
             if code not in elections:
-                raise ConfigError('Error in "elections" argument: given value'
-                                  'value given did not match any election'
-                                  'given in Data/polled-elections.csv')
+                raise ConfigError('Error in "elections" argument: given value '
+                                  'value given did not match any election '
+                                  'given in Data/polled-elections.csv ')
             self.elections = [code]
 
 

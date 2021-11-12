@@ -542,7 +542,7 @@ void SimulationPreparation::loadPastSeatResults()
 {
 	if (!sim.settings.prevTermCodes.size()) throw Exception("No previous term codes given!");
 	run.pastSeatResults.resize(project.seats().count());
-	std::string fileName = "python/elections/results_" + sim.settings.prevTermCodes[0] + ".csv";
+	std::string fileName = "analysis/elections/results_" + sim.settings.prevTermCodes[0] + ".csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	bool fpMode = false;
@@ -623,7 +623,7 @@ void SimulationPreparation::loadPastSeatResults()
 void SimulationPreparation::loadSeatTypes()
 {
 	run.seatTypes.resize(project.seats().count());
-	std::string fileName = "python/Data/seat-types.csv";
+	std::string fileName = "analysis/Data/seat-types.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -643,7 +643,7 @@ void SimulationPreparation::loadSeatTypes()
 
 void SimulationPreparation::loadGreensSeatStatistics()
 {
-	std::string fileName = "python/Seat Statistics/statistics_GRN.csv";
+	std::string fileName = "analysis/Seat Statistics/statistics_GRN.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -663,7 +663,7 @@ void SimulationPreparation::loadGreensSeatStatistics()
 
 void SimulationPreparation::loadIndSeatStatistics()
 {
-	std::string fileName = "python/Seat Statistics/statistics_IND.csv";
+	std::string fileName = "analysis/Seat Statistics/statistics_IND.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -683,7 +683,7 @@ void SimulationPreparation::loadIndSeatStatistics()
 
 void SimulationPreparation::loadOthSeatStatistics()
 {
-	std::string fileName = "python/Seat Statistics/statistics_OTH.csv";
+	std::string fileName = "analysis/Seat Statistics/statistics_OTH.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -703,7 +703,7 @@ void SimulationPreparation::loadOthSeatStatistics()
 
 void SimulationPreparation::loadIndEmergence()
 {
-	std::string fileName = "python/Seat Statistics/statistics_emerging_IND.csv";
+	std::string fileName = "analysis/Seat Statistics/statistics_emerging_IND.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
@@ -726,7 +726,7 @@ void SimulationPreparation::loadIndEmergence()
 
 void SimulationPreparation::loadPopulistSeatStatistics()
 {
-	std::string fileName = "python/Seat Statistics/statistics_populist.csv";
+	std::string fileName = "analysis/Seat Statistics/statistics_populist.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
@@ -740,7 +740,7 @@ void SimulationPreparation::loadPopulistSeatStatistics()
 void SimulationPreparation::loadPopulistSeatModifiers()
 {
 	run.seatPopulistModifiers.resize(project.seats().count());
-	std::string fileName = "python/Seat Statistics/modifiers_populist.csv";
+	std::string fileName = "analysis/Seat Statistics/modifiers_populist.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -760,7 +760,7 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 
 void SimulationPreparation::loadCentristSeatStatistics()
 {
-	std::string fileName = "python/Seat Statistics/statistics_centrist.csv";
+	std::string fileName = "analysis/Seat Statistics/statistics_centrist.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	auto extractNum = [&]() {std::string line; std::getline(file, line); return std::stof(line); };
@@ -774,7 +774,7 @@ void SimulationPreparation::loadCentristSeatStatistics()
 void SimulationPreparation::loadCentristSeatModifiers()
 {
 	run.seatCentristModifiers.resize(project.seats().count());
-	std::string fileName = "python/Seat Statistics/modifiers_centrist.csv";
+	std::string fileName = "analysis/Seat Statistics/modifiers_centrist.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -794,7 +794,7 @@ void SimulationPreparation::loadCentristSeatModifiers()
 
 void SimulationPreparation::loadPreviousElectionBaselineVotes()
 {
-	std::string fileName = "python/Data/prior-results.csv";
+	std::string fileName = "analysis/Data/prior-results.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -816,7 +816,7 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 
 void SimulationPreparation::loadRegionBaseBehaviours()
 {
-	std::string fileName = "python/Regional/" + getTermCode() + "-regions-base.csv";
+	std::string fileName = "analysis/Regional/" + getTermCode() + "-regions-base.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -845,7 +845,7 @@ void SimulationPreparation::loadRegionBaseBehaviours()
 
 void SimulationPreparation::loadRegionPollBehaviours()
 {
-	std::string fileName = "python/Regional/" + getTermCode() + "-regions-polled.csv";
+	std::string fileName = "analysis/Regional/" + getTermCode() + "-regions-polled.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -876,7 +876,7 @@ void SimulationPreparation::loadRegionPollBehaviours()
 
 void SimulationPreparation::loadRegionMixBehaviours()
 {
-	std::string fileName = "python/Regional/" + getTermCode() + "-mix-regions.csv";
+	std::string fileName = "analysis/Regional/" + getTermCode() + "-mix-regions.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -902,7 +902,7 @@ void SimulationPreparation::loadRegionMixBehaviours()
 
 void SimulationPreparation::loadOverallRegionMixParameters()
 {
-	std::string fileName = "python/Regional/" + getTermCode() + "-mix-parameters.csv";
+	std::string fileName = "analysis/Regional/" + getTermCode() + "-mix-parameters.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -934,7 +934,7 @@ void SimulationPreparation::loadOverallRegionMixParameters()
 
 void SimulationPreparation::loadTppSwingFactors()
 {
-	std::string fileName = "python/Seat Statistics/tpp-swing-factors.csv";
+	std::string fileName = "analysis/Seat Statistics/tpp-swing-factors.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {
@@ -979,7 +979,7 @@ void SimulationPreparation::loadTppSwingFactors()
 void SimulationPreparation::loadIndividualSeatParameters()
 {
 	run.seatParameters.resize(project.seats().count());
-	std::string fileName = "python/Seat Statistics/individual-seat-factors.csv";
+	std::string fileName = "analysis/Seat Statistics/individual-seat-factors.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	do {

@@ -5,7 +5,7 @@
 #include <exception>
 #include <limits>
 
-const std::string DefaultFileName = "./Python/Data/poll-data-fed.csv";
+const std::string DefaultFileName = "./analysis/Data/poll-data-fed.csv";
 
 struct PollInfo {
 	wxDateTime date;

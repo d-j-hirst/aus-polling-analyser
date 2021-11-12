@@ -148,7 +148,7 @@ bool StanModel::prepareForRun(FeedbackFunc feedback)
 
 void StanModel::loadPartyGroups()
 {
-	const std::string filename = "python/Data/party-groups.csv";
+	const std::string filename = "analysis/Data/party-groups.csv";
 	auto file = std::ifstream(filename);
 	if (!file) throw Exception("Party groups file not present! Expected a file at " + filename);
 	do {
@@ -173,7 +173,7 @@ void StanModel::loadPartyGroups()
 void StanModel::loadFundamentalsPredictions()
 {
 	logger << "loading fundamentals predictions\n";
-	const std::string filename = "python/Fundamentals/fundamentals_" + termCode + ".csv";
+	const std::string filename = "analysis/Fundamentals/fundamentals_" + termCode + ".csv";
 	auto file = std::ifstream(filename);
 	if (!file) throw Exception("Fundamentals prediction file not present! Expected a file at " + filename);
 	do {
@@ -193,8 +193,8 @@ void StanModel::loadParameters(FeedbackFunc feedback)
 	for (auto const& [partyGroup, partyList] : partyGroups) {
 		// If there's a specific adjustment file for this election (usually only for hindcasts) use that
 		// Otherwise (as for future elections) just use the general versions that use all past elections
-		std::string electionFileName = "python/Adjustments/adjust_" + termCode + "_" + partyGroup + ".csv";
-		std::string generalFileName = "python/Adjustments/adjust_0none_" + partyGroup + ".csv";
+		std::string electionFileName = "analysis/Adjustments/adjust_" + termCode + "_" + partyGroup + ".csv";
+		std::string generalFileName = "analysis/Adjustments/adjust_0none_" + partyGroup + ".csv";
 		auto file = std::ifstream(electionFileName);
 		if (!file) file = std::ifstream(generalFileName);
 		if (!file) {
@@ -223,7 +223,7 @@ void StanModel::loadParameters(FeedbackFunc feedback)
 void StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
 {
 	logger << "loading emerging others parameters\n";
-	const std::string filename = "python/Seat Statistics/statistics_emerging_party.csv";
+	const std::string filename = "analysis/Seat Statistics/statistics_emerging_party.csv";
 	auto file = std::ifstream(filename);
 	if (!file) throw Exception("Emerging others parameters not present! Expected a file at " + filename);
 	for (int parameter = 0; parameter < int(EmergingPartyParameters::Max); ++parameter) {
@@ -286,7 +286,7 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 		auto& series = rawSupport[partyCode];
 		if (partyCode == EmergingOthersCode) continue;
 		if (partyCode == UnnamedOthersCode) continue; // calculate this later
-		std::string filename = "python/Outputs/fp_trend_"
+		std::string filename = "analysis/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
 		auto file = std::ifstream(filename);
 		if (!file) {
