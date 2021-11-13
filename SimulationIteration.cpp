@@ -786,7 +786,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 			float correctionFactor = overallFpTarget[partyIndex] / tempOverallFp[partyIndex];
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
-					float correctionSwing = seatFpVoteShare[seatIndex][partyIndex] * (1.0f - correctionFactor);
+					float correctionSwing = seatFpVoteShare[seatIndex][partyIndex] * (correctionFactor - 1.0f);
 					float newValue = basicTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
 					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}

@@ -130,7 +130,7 @@ class Inputs:
         with open('./Data/future-elections.csv', 'r') as f:
             future_elections = ElectionCode.load_elections_from_file(f)
         future_elections = [a for a in future_elections if a != exclude]
-        self.all_elections = self.past_elections + future_elections
+        self.all_elections = self.past_elections + future_elections + [exclude]
         # key: [0] year of election, [1] region of election
         # value: list of significant party codes modelled in that election
         with open('./Data/significant-parties.csv', 'r') as f:

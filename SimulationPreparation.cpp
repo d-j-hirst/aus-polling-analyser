@@ -560,7 +560,7 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 		else if (values[0] == "Seat") {
 			try {
-				currentSeat = project.seats().idToIndex(project.seats().accessByName(values[1]).first);
+				currentSeat = project.seats().idToIndex(project.seats().accessByName(values[1], true).first);
 			}
 			catch (SeatDoesntExistException) {
 				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
