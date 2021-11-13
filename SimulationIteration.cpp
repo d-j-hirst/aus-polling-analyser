@@ -653,7 +653,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Farrer") {
+	//if (newPartyOneFp <= 0.0f) {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -674,6 +674,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(partyTwoEstimate);
 	//	PA_LOG_VAR(partyOneSwing);
 	//	PA_LOG_VAR(partyTwoSwing);
+	//	PA_LOG_VAR(predictorCorrectorTransformedSwing(previousPartyOneFp, partyOneSwing));
 	//	PA_LOG_VAR(previousPartyOneFp);
 	//	PA_LOG_VAR(previousPartyTwoFp);
 	//	PA_LOG_VAR(newPartyOneTpp);
@@ -777,6 +778,7 @@ void SimulationIteration::calculatePreferenceCorrections()
 
 void SimulationIteration::applyCorrectionsToSeatFps()
 {
+	auto oldVoteShares = seatFpVoteShare;
 	for (auto [partyIndex, vote] : tempOverallFp) {
 		if (partyIndex != OthersIndex) {
 			if (isMajor(partyIndex)) continue;
@@ -784,7 +786,9 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 			float correctionFactor = overallFpTarget[partyIndex] / tempOverallFp[partyIndex];
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
-					seatFpVoteShare[seatIndex][partyIndex] *= correctionFactor;
+					float correctionSwing = seatFpVoteShare[seatIndex][partyIndex] * (1.0f - correctionFactor);
+					float newValue = basicTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
+					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}
 			}
 		}
@@ -801,7 +805,9 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				}
 				if (!totalOthers) continue;
 				for (auto& [seatPartyIndex, voteShare] : categories) {
-					seatFpVoteShare[seatIndex][seatPartyIndex] += allocation * voteShare / totalOthers;
+					float additionalVotes = allocation * voteShare / totalOthers;
+					float newValue = basicTransformedSwing(seatFpVoteShare[seatIndex][seatPartyIndex], additionalVotes);
+					seatFpVoteShare[seatIndex][seatPartyIndex] = newValue;
 				}
 			}
 		}

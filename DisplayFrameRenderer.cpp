@@ -727,6 +727,7 @@ void DisplayFrameRenderer::drawSeatsList() const
 	});
 
 	dc.SetFont(font(8));
+	seatsFittingInBox = std::min(int(seatInfos.size()), seatsFittingInBox);
 	for (int listPos = 0; listPos < seatsFittingInBox; ++listPos)
 	{
 		dc.DrawLabel(seatInfos[listPos].name, seatsBoxNameRect, wxALIGN_CENTRE);

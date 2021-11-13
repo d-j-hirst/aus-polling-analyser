@@ -1008,12 +1008,6 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		}
 
 	} while (true);
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		logger << project.seats().viewByIndex(seatIndex).name << ":\n";
-		PA_LOG_VAR(run.seatParameters[seatIndex].elasticity);
-		PA_LOG_VAR(run.seatParameters[seatIndex].trend);
-		PA_LOG_VAR(run.seatParameters[seatIndex].volatility);
-	}
 }
 
 std::string SimulationPreparation::getTermCode()

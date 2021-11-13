@@ -136,6 +136,14 @@ inline T logitDeriv(T startingPoint) {
 	return T(25.0) / startingPoint + T(0.25) / (T(1.0) - T(0.01) * startingPoint);
 }
 
+constexpr double DefaultLogitDerivLimit = 4.0;
+
+template<typename T,
+	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+	inline T limitedLogitDeriv(T startingPoint, T limit = T(DefaultLogitDerivLimit)) {
+	return std::clamp(logitDeriv(startingPoint), T(0.0), limit);
+}
+
 // Takes a regular vote share and adjusts it by transforming it and applying a
 // swing proportional to the derivative, then detransforming it to yield a new
 // vote share after the swing
@@ -143,9 +151,9 @@ inline T logitDeriv(T startingPoint) {
 // "flattening" of the swing towards the bounds which may be desirable in many cases
 template<typename T,
 	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-	inline T basicTransformedSwing(T startingPoint, T swing) {
+	inline T basicTransformedSwing(T startingPoint, T swing, T limit = T(DefaultLogitDerivLimit)) {
 	T transformed = transformVoteShare(startingPoint);
-	T deriv = logitDeriv(startingPoint);
+	T deriv = limitedLogitDeriv(startingPoint, limit);
 	T projection = transformed + deriv * swing;
 	return detransformVoteShare(projection);
 }
@@ -158,23 +166,15 @@ template<typename T,
 // but with less flattening.
 template<typename T,
 	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-	inline T predictorCorrectorTransformedSwing(T startingPoint, T swing) {
+	inline T predictorCorrectorTransformedSwing(T startingPoint, T swing, T limit = T(DefaultLogitDerivLimit)) {
 	T transformed = transformVoteShare(startingPoint);
-	T deriv = logitDeriv(startingPoint);
+	T deriv = limitedLogitDeriv(startingPoint, limit);
 	T projection = transformed + deriv * swing;
 	T tempDetransformed = detransformVoteShare(projection);
-	T projectedDeriv = logitDeriv(tempDetransformed);
+	T projectedDeriv = limitedLogitDeriv(tempDetransformed, limit);
 	T averagedDeriv = (deriv + projectedDeriv) * T(0.5);
 	T correctedProjection = transformed + averagedDeriv * swing;
 	return detransformVoteShare(correctedProjection);
-}
-
-constexpr double DefaultLogitDerivLimit = 4.0;
-
-template<typename T,
-	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-inline T limitedLogitDeriv(T startingPoint, T limit = T(DefaultLogitDerivLimit)) {
-	return std::clamp(logitDeriv(startingPoint), T(0.0), limit);
 }
 
 // from https://stackoverflow.com/questions/11809502/which-is-better-way-to-calculate-ncr
