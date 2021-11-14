@@ -39,7 +39,8 @@
 // Version 32: Tcp probability bands, scenario likelihood and party win rate
 // Version 33: Save analysis codes for regions
 // Version 34: Save previous tpp swings for seats
-constexpr int VersionNum = 34;
+// Version 35: Disendorsement flags for seats
+constexpr int VersionNum = 35;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -490,6 +491,8 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.sophomoreCandidate;
 		saveOutput << thisSeat.sophomoreParty;
 		saveOutput << thisSeat.retirement;
+		saveOutput << thisSeat.disendorsement;
+		saveOutput << thisSeat.previousDisendorsement;
 	}
 }
 
@@ -526,6 +529,10 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 			saveInput >> thisSeat.sophomoreCandidate;
 			saveInput >> thisSeat.sophomoreParty;
 			saveInput >> thisSeat.retirement;
+		}
+		if (versionNum >= 35) {
+			saveInput >> thisSeat.disendorsement;
+			saveInput >> thisSeat.previousDisendorsement;
 		}
 		project.seatCollection.add(thisSeat);
 	}

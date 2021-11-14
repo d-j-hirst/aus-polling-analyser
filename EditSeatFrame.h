@@ -62,6 +62,8 @@ private:
 	void createSophomoreCandidateInput(int& y);
 	void createSophomorePartyInput(int& y);
 	void createRetirementInput(int& y);
+	void createDisendorsementInput(int& y);
+	void createPreviousDisendorsementInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -94,6 +96,8 @@ private:
 	std::unique_ptr<CheckInput> sophomoreCandidateInput;
 	std::unique_ptr<CheckInput> sophomorePartyInput;
 	std::unique_ptr<CheckInput> retirementInput;
+	std::unique_ptr<CheckInput> disendorsementInput;
+	std::unique_ptr<CheckInput> previousDisendorsementInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

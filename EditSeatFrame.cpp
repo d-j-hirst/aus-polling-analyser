@@ -28,6 +28,8 @@ enum ControlId
 	SophomoreCandidate,
 	SophomoreParty,
 	Retirement,
+	Disendorsement,
+	PreviousDisendorsement,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -69,6 +71,8 @@ void EditSeatFrame::createControls(int & y)
 	createSophomoreCandidateInput(y);
 	createSophomorePartyInput(y);
 	createRetirementInput(y);
+	createDisendorsementInput(y);
+	createPreviousDisendorsementInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -205,7 +209,7 @@ void EditSeatFrame::createSophomorePartyInput(int& y)
 	auto sophomorePartyCallback = [this](int i) -> void {seat.sophomoreParty = (i != 0); };
 	sophomorePartyInput.reset(new CheckInput(this, ControlId::SophomoreParty, "Sophomore (party)", seat.sophomoreParty,
 		wxPoint(2, y), sophomorePartyCallback));
-	y += challenger2OddsInput->Height + ControlPadding;
+	y += sophomorePartyInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createRetirementInput(int& y)
@@ -213,7 +217,23 @@ void EditSeatFrame::createRetirementInput(int& y)
 	auto retirementCallback = [this](int i) -> void {seat.retirement = (i != 0); };
 	retirementInput.reset(new CheckInput(this, ControlId::Retirement, "Retirement", seat.retirement,
 		wxPoint(2, y), retirementCallback));
-	y += challenger2OddsInput->Height + ControlPadding;
+	y += retirementInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createDisendorsementInput(int& y)
+{
+	auto disendorsementCallback = [this](int i) -> void {seat.disendorsement = (i != 0); };
+	disendorsementInput.reset(new CheckInput(this, ControlId::Disendorsement, "Disendorsement", seat.disendorsement,
+		wxPoint(2, y), disendorsementCallback));
+	y += disendorsementInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createPreviousDisendorsementInput(int& y)
+{
+	auto previousDisendorsementCallback = [this](int i) -> void {seat.previousDisendorsement = (i != 0); };
+	previousDisendorsementInput.reset(new CheckInput(this, ControlId::PreviousDisendorsement, "Previous Disendorsement", seat.previousDisendorsement,
+		wxPoint(2, y), previousDisendorsementCallback));
+	y += previousDisendorsementInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createOkCancelButtons(int & y)

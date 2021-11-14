@@ -67,6 +67,8 @@ public:
 	bool sophomoreCandidate = false;
 	bool sophomoreParty = false;
 	bool retirement = false;
+	bool disendorsement = false;
+	bool previousDisendorsement = false;
 
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
