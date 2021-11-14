@@ -319,6 +319,8 @@ def run_fundamentals_regression(config, inputs):
     for party_group_code, party_group_list in party_groups.items():
         avg_len = average_length[party_group_code]
         for studied_election in inputs.all_elections:
+            if studied_election == no_target_election_marker:
+                continue
             result_deviations = []
             incumbents = []
             oppositions = []

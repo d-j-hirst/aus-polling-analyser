@@ -472,7 +472,6 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 								tppSamples[iteration] = sample.voteShare[TppCode];
 							}
 						}
-
 					}
 					for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 						std::string partyName = partyCodeVec[partyIndex];
