@@ -28,7 +28,6 @@ class ParentFrame;
 class PartiesFrame;
 class PollstersFrame;
 class PollsFrame;
-class EventsFrame;
 class VisualiserFrame;
 class ModelsFrame;
 class ProjectionsFrame;
@@ -135,9 +134,6 @@ private:
 
 	// points to the polls frame (if it exists).
 	PollsFrame* pollsFrame = nullptr;
-
-	// points to the events frame (if it exists).
-	EventsFrame* eventsFrame = nullptr;
 
 	// points to the visualiser frame (if it exists).
 	VisualiserFrame* visualiserFrame = nullptr;

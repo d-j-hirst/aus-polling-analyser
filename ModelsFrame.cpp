@@ -252,7 +252,7 @@ void ModelsFrame::displayResults() {
 
 void ModelsFrame::collectData() {
 	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
-	Model::Id modelId = project->models().indexToId(modelIndex);
+	StanModel::Id modelId = project->models().indexToId(modelIndex);
 	StanModel& thisModel = project->models().access(modelId);
 	thisModel.loadData([](std::string s) {wxMessageBox(s); },
 		project->config().getNumThreads());

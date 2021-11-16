@@ -3,7 +3,6 @@
 #include "PartiesFrame.h"
 #include "PollstersFrame.h"
 #include "PollsFrame.h"
-#include "EventsFrame.h"
 #include "VisualiserFrame.h"
 #include "ModelsFrame.h"
 #include "ProjectionsFrame.h"
@@ -202,7 +201,6 @@ void ProjectFrame::setupPages() {
 	createPage<PartiesFrame>(partiesFrame);
 	createPage<PollstersFrame>(pollstersFrame);
 	createPage<PollsFrame>(pollsFrame);
-	createPage<EventsFrame>(eventsFrame);
 	createPage<VisualiserFrame>(visualiserFrame);
 	createPage<ModelsFrame>(modelsFrame);
 	createPage<ProjectionsFrame>(projectionsFrame);

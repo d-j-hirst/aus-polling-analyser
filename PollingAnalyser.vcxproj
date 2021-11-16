@@ -289,7 +289,6 @@
     <ClCompile Include="DisplayFrameRenderer.cpp" />
     <ClCompile Include="ElectionAnalyser.cpp" />
     <ClCompile Include="ElectionCollection.cpp" />
-    <ClCompile Include="EventCollection.cpp" />
     <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
@@ -307,7 +306,6 @@
     <ClCompile Include="PreviousElectionDataRetriever.cpp" />
     <ClCompile Include="DisplayFrame.cpp" />
     <ClCompile Include="DownloadFrame.cpp" />
-    <ClCompile Include="EditEventFrame.cpp" />
     <ClCompile Include="EditModelFrame.cpp" />
     <ClCompile Include="EditPartyFrame.cpp" />
     <ClCompile Include="EditPollFrame.cpp" />
@@ -316,7 +314,6 @@
     <ClCompile Include="EditRegionFrame.cpp" />
     <ClCompile Include="EditSeatFrame.cpp" />
     <ClCompile Include="EditSimulationFrame.cpp" />
-    <ClCompile Include="EventsFrame.cpp" />
     <ClCompile Include="General.cpp" />
     <ClCompile Include="GenericChildFrame.cpp" />
     <ClCompile Include="NonClassicFrame.cpp" />
@@ -328,7 +325,6 @@
     <ClCompile Include="ResultCoordinator.cpp" />
     <ClCompile Include="ResultsDownloader.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
-    <ClCompile Include="Model.cpp" />
     <ClCompile Include="ModelsFrame.cpp" />
     <ClCompile Include="NewProjectFrame.cpp" />
     <ClCompile Include="ParentFrame.cpp" />
@@ -377,7 +373,6 @@
     <ClInclude Include="ElectionAnalyser.h" />
     <ClInclude Include="ElectionCollection.h" />
     <ClInclude Include="ElectionData.h" />
-    <ClInclude Include="EventCollection.h" />
     <ClInclude Include="FloatInput.h" />
     <ClInclude Include="MacroRunner.h" />
     <ClInclude Include="OrthogonalRegression.h" />
@@ -418,7 +413,6 @@
     <ClInclude Include="DownloadFrame.h" />
     <ClInclude Include="RegexNavigation.h" />
     <ClInclude Include="ResultsDownloader.h" />
-    <ClInclude Include="EditEventFrame.h" />
     <ClInclude Include="EditModelFrame.h" />
     <ClInclude Include="EditPollFrame.h" />
     <ClInclude Include="EditPollsterFrame.h" />
@@ -426,15 +420,12 @@
     <ClInclude Include="EditRegionFrame.h" />
     <ClInclude Include="EditSeatFrame.h" />
     <ClInclude Include="EditSimulationFrame.h" />
-    <ClInclude Include="Event.h" />
-    <ClInclude Include="EventsFrame.h" />
     <ClInclude Include="FileOpeningState.h" />
     <ClInclude Include="General.h" />
     <ClInclude Include="GenericChildFrame.h" />
     <ClInclude Include="Outcome.h" />
     <ClInclude Include="NonClassicFrame.h" />
     <ClInclude Include="ResultsFrame.h" />
-    <ClInclude Include="Model.h" />
     <ClInclude Include="ModelsFrame.h" />
     <ClInclude Include="ParentFrame.h" />
     <ClInclude Include="Party.h" />

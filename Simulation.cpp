@@ -2,7 +2,6 @@
 
 #include "CountProgress.h"
 #include "Log.h"
-#include "Model.h"
 #include "Party.h"
 #include "PollingProject.h"
 #include "Projection.h"
@@ -311,8 +310,6 @@ std::string Simulation::textReport(ProjectionCollection const& projections) cons
 	report << " Number of Iterations: " << settings.numIterations << "\n";
 	report << " Base Projection: " << projections.view(settings.baseProjection).getSettings().name << "\n";
 	report << " Previous Election 2pp: " << settings.prevElection2pp << "\n";
-	report << " State Standard Deviation (Base): " << settings.stateSD << "\n";
-	report << " State Deviation Decay (per day): " << settings.stateDecay << "\n";
 	report << " Live Status: " << getLiveString() << "\n";
 	return report.str();
 }

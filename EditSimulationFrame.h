@@ -52,8 +52,6 @@ private:
 	void createNumIterationsInput(int& y);
 	void createPrevElection2ppInput(int& y);
 	void createPrevTermCodesInput(int& y);
-	void createStateSDInput(int& y);
-	void createStateDecayInput(int& y);
 	void createLiveInput(int& y);
 
 	void createOkCancelButtons(int& y);
@@ -78,8 +76,6 @@ private:
 	std::unique_ptr<IntInput> numIterationsInput;
 	std::unique_ptr<FloatInput> prevElection2ppInput;
 	std::unique_ptr<TextInput> prevTermCodesInput;
-	std::unique_ptr<FloatInput> stateSDInput;
-	std::unique_ptr<FloatInput> stateDecayInput;
 	std::unique_ptr<ChoiceInput> liveInput;
 
 	wxButton* okButton;

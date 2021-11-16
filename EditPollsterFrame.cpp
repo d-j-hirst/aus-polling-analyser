@@ -14,10 +14,7 @@ enum ControlId
 {
 	Ok,
 	Name,
-	Weight,
-	Colour,
-	UseForCalibration,
-	IgnoreInitially,
+	Colour
 };
 
 EditPollsterFrame::EditPollsterFrame(Function function, OkCallback callback, Pollster pollster)
@@ -32,10 +29,7 @@ EditPollsterFrame::EditPollsterFrame(Function function, OkCallback callback, Pol
 void EditPollsterFrame::createControls(int& y)
 {
 	createNameInput(y);
-	createWeightInput(y);
 	createColourInput(y);
-	createCalibrationInput(y);
-	createIgnoreInitiallyInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -47,37 +41,12 @@ void EditPollsterFrame::createNameInput(int& y)
 	y += nameInput->Height + ControlPadding;
 }
 
-void EditPollsterFrame::createWeightInput(int& y)
-{
-	auto weightCallback = [this](float f) -> void {pollster.weight = f; };
-	auto weightValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
-	weightInput.reset(new FloatInput(this, ControlId::Weight, "Weight:", pollster.weight,
-		wxPoint(2, y), weightCallback, weightValidator));
-	y += weightInput->Height + ControlPadding;
-}
-
 void EditPollsterFrame::createColourInput(int& y)
 {
 	wxColour currentColour(pollster.colour);
 	auto colourCallback = [this](wxColour c) -> void {pollster.colour = c.GetRGB(); };
 	colourInput.reset(new ColourInput(this, ControlId::Colour, "Colour:", currentColour, wxPoint(2, y), colourCallback));
 	y += colourInput->Height + ControlPadding;
-}
-
-void EditPollsterFrame::createCalibrationInput(int & y)
-{
-	auto calibrationCallback = [this](int i) -> void {pollster.useForCalibration = (i != 0); };
-	calibrationInput.reset(new CheckInput(this, ControlId::UseForCalibration, "Use for calibration:", pollster.useForCalibration,
-		wxPoint(2, y), calibrationCallback));
-	y += calibrationInput->Height + ControlPadding;
-}
-
-void EditPollsterFrame::createIgnoreInitiallyInput(int & y)
-{
-	auto ignoreInitiallyCallback = [this](int i) -> void {pollster.ignoreInitially = (i != 0); };
-	ignoreInitiallyInput.reset(new CheckInput(this, ControlId::IgnoreInitially, "Ignore initially:", pollster.ignoreInitially,
-		wxPoint(2, y), ignoreInitiallyCallback));
-	y += ignoreInitiallyInput->Height + ControlPadding;
 }
 
 void EditPollsterFrame::createOkCancelButtons(int & y)

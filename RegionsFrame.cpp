@@ -81,7 +81,6 @@ void RegionsFrame::refreshDataTable() {
 	regionData->AppendTextColumn("Previous Election 2PP", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
 	regionData->AppendTextColumn("Sample 2PP", wxDATAVIEW_CELL_INERT, 90); // wide enough to fit the title
 	regionData->AppendTextColumn("Swing Deviation", wxDATAVIEW_CELL_INERT, 120); // wide enough to fit the title
-	regionData->AppendTextColumn("Additional Uncertainty", wxDATAVIEW_CELL_INERT, 130); // wide enough to fit the title
 
 	for (auto const& [key, region] : project->regions()) {
 		addRegionToRegionData(region);
@@ -120,7 +119,6 @@ void RegionsFrame::addRegionToRegionData(Region region) {
 	data.push_back(wxVariant(formatFloat(region.lastElection2pp, 2)));
 	data.push_back(wxVariant(formatFloat(region.sample2pp, 2)));
 	data.push_back(wxVariant(formatFloat(region.swingDeviation, 2)));
-	data.push_back(wxVariant(formatFloat(region.additionalUncertainty, 1)));
 
 	regionData->AppendItem(data);
 }

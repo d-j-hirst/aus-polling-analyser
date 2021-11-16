@@ -171,11 +171,6 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 		}
 	}
 	wxDateTime cutoffDate(1, wxDateTime::Month(0), 9999);
-	for (auto const& [key, event] : project.events()) {
-		if (event.eventType == Event::Type::EndOfPeriod) {
-			if (event.date < cutoffDate) cutoffDate = event.date;
-		}
-	}
 	std::vector<PollInfo> pollInfos;
 	do {
 		std::getline(file, line);

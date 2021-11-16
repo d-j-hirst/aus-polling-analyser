@@ -8,9 +8,6 @@
     <ClCompile Include="ParentFrame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EditEventFrame.cpp">
-      <Filter>Source Files\Dialog Boxes</Filter>
-    </ClCompile>
     <ClCompile Include="EditModelFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
@@ -22,9 +19,6 @@
     </ClCompile>
     <ClCompile Include="EditPollsterFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
-    </ClCompile>
-    <ClCompile Include="EventsFrame.cpp">
-      <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
     <ClCompile Include="GenericChildFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
@@ -79,9 +73,6 @@
     </ClCompile>
     <ClCompile Include="ResultsFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
-    </ClCompile>
-    <ClCompile Include="Model.cpp">
-      <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
     <ClCompile Include="Simulation.cpp">
       <Filter>Source Files\Process Objects</Filter>
@@ -154,9 +145,6 @@
     </ClCompile>
     <ClCompile Include="DateInput.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
-    </ClCompile>
-    <ClCompile Include="EventCollection.cpp">
-      <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
     <ClCompile Include="ProjectionCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
@@ -307,9 +295,6 @@
     <ClInclude Include="ProjectFrame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EventsFrame.h">
-      <Filter>Header Files\Tabbed Frames</Filter>
-    </ClInclude>
     <ClInclude Include="GenericChildFrame.h">
       <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
@@ -328,9 +313,6 @@
     <ClInclude Include="ParentFrame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EditEventFrame.h">
-      <Filter>Header Files\Dialog Boxes</Filter>
-    </ClInclude>
     <ClInclude Include="EditModelFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
@@ -348,9 +330,6 @@
     </ClInclude>
     <ClInclude Include="PartySettingsFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
-    </ClInclude>
-    <ClInclude Include="Event.h">
-      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
     <ClInclude Include="NewProjectFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
@@ -481,9 +460,6 @@
     <ClInclude Include="DateInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
-    <ClInclude Include="EventCollection.h">
-      <Filter>Header Files\Project Sections</Filter>
-    </ClInclude>
     <ClInclude Include="ProjectionCollection.h">
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
@@ -501,9 +477,6 @@
     </ClInclude>
     <ClInclude Include="QuickTest.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model.h">
-      <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="Projection.h">
       <Filter>Header Files\Process Objects</Filter>

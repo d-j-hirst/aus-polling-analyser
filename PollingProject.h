@@ -14,7 +14,6 @@
 #include "Points.h"
 
 #include "ElectionCollection.h"
-#include "EventCollection.h"
 #include "ModelCollection.h"
 #include "OutcomeCollection.h"
 #include "PartyCollection.h"
@@ -25,8 +24,6 @@
 #include "ResultCoordinator.h"
 #include "SeatCollection.h"
 #include "SimulationCollection.h"
-#include "Event.h"
-#include "Model.h"
 #include "Projection.h"
 #include "Region.h"
 #include "Seat.h"
@@ -93,14 +90,11 @@ public:
 	// gets the date in MJD form of the latest thing recorded in the file
 	int getLatestDate() const;
 
-	EventCollection& events() { return eventCollection; }
-	EventCollection const& events() const { return eventCollection; }
-
 	ModelCollection& models() { return modelCollection; }
 	ModelCollection const& models() const { return modelCollection; }
 
 	// If a model is removed, various parts of the project need to be adjusted to account for this.
-	void adjustAfterModelRemoval(ModelCollection::Index modelIndex, Model::Id modelId);
+	void adjustAfterModelRemoval(ModelCollection::Index modelIndex, StanModel::Id modelId);
 
 	ProjectionCollection& projections() { return projectionCollection; }
 	ProjectionCollection const& projections() const { return projectionCollection; }
@@ -138,7 +132,7 @@ public:
 	bool isValid();
 
 	// Invalidates all the projections from a particular model. Used when editing a model.
-	void invalidateProjectionsFromModel(Model::Id modelId);
+	void invalidateProjectionsFromModel(StanModel::Id modelId);
 
 private:
 
@@ -151,7 +145,7 @@ private:
 	void open(std::string filename);
 
 	// Removes all the projections from a particular model. Used when deleting a model.
-	void removeProjectionsFromModel(Model::Id modelId);
+	void removeProjectionsFromModel(StanModel::Id modelId);
 
 	// Removes all the simulations from a particular projection. Used when deleting a projection.
 	void removeSimulationsFromProjection(Projection::Id projectionId);
@@ -180,7 +174,6 @@ private:
 	PartyCollection partyCollection;
 	PollsterCollection pollsterCollection;
 	PollCollection pollCollection;
-	EventCollection eventCollection;
 	ModelCollection modelCollection;
 	ProjectionCollection projectionCollection;
 	RegionCollection regionCollection;

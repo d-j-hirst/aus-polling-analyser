@@ -79,9 +79,6 @@ void PollstersFrame::setupDataTable()
 
 	// Set widths of columns so that they're wide enough to fit the titles
 	pollsterData->AppendTextColumn("Polling House Name", wxDATAVIEW_CELL_INERT, 122);
-	pollsterData->AppendTextColumn("Weight", wxDATAVIEW_CELL_INERT, 55);
-	pollsterData->AppendTextColumn("Use For Calibration", wxDATAVIEW_CELL_INERT, 130);
-	pollsterData->AppendTextColumn("Ignore Initially", wxDATAVIEW_CELL_INERT, 115);
 }
 
 void PollstersFrame::refreshDataTable()
@@ -117,9 +114,6 @@ void PollstersFrame::addPollsterToPollsterData(Pollster pollster) {
 	// Create a vector with all the pollster data.
 	wxVector<wxVariant> data;
 	data.push_back(wxVariant(pollster.name));
-	data.push_back(wxVariant(formatFloat(pollster.weight, 4)));
-	data.push_back(wxVariant((pollster.useForCalibration ? "Y" : "N")));
-	data.push_back(wxVariant((pollster.ignoreInitially ? "Y" : "N")));
 
 	pollsterData->AppendItem(data);
 }

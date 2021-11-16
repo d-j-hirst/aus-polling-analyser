@@ -22,8 +22,6 @@ enum ControlId
 	NumIterations,
 	PrevElection2pp,
 	PrevTermCodes,
-	StateSD,
-	StateDecay,
 	Live,
 };
 
@@ -46,8 +44,6 @@ void EditSimulationFrame::createControls(int & y)
 	createNumIterationsInput(y);
 	createPrevElection2ppInput(y);
 	createPrevTermCodesInput(y);
-	createStateSDInput(y);
-	createStateDecayInput(y);
 	createLiveInput(y);
 
 	createOkCancelButtons(y);
@@ -108,24 +104,6 @@ void EditSimulationFrame::createPrevTermCodesInput(int& y)
 	auto prevTermCodesCallback = std::bind(&EditSimulationFrame::updatePrevTermCodes, this, _1);
 	prevTermCodesInput.reset(new TextInput(this, ControlId::PrevTermCodes, "Previous Term Codes:", termCodes, wxPoint(2, y), prevTermCodesCallback));
 	y += prevTermCodesInput->Height + ControlPadding;
-}
-
-void EditSimulationFrame::createStateSDInput(int & y)
-{
-	auto stateSDCallback = [this](float f) -> void {simulationSettings.stateSD = f; };
-	auto stateSDValidator = [](float f) {return std::max(f, 0.0f); };
-	stateSDInput.reset(new FloatInput(this, ControlId::StateSD, "State standard deviation:", simulationSettings.stateSD,
-		wxPoint(2, y), stateSDCallback, stateSDValidator));
-	y += stateSDInput->Height + ControlPadding;
-}
-
-void EditSimulationFrame::createStateDecayInput(int & y)
-{
-	auto stateDecayCallback = [this](float f) -> void {simulationSettings.stateDecay = f; };
-	auto stateDecayValidator = [](float f) {return std::clamp(f, 0.0f, 1.0f); };
-	stateDecayInput.reset(new FloatInput(this, ControlId::StateDecay, "State daily vote decay:", simulationSettings.stateDecay,
-		wxPoint(2, y), stateDecayCallback, stateDecayValidator));
-	y += stateDecayInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createLiveInput(int & y)

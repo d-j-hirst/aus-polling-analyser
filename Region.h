@@ -15,7 +15,6 @@ struct Region {
 	float sample2pp = 50.0f;
 	std::string analysisCode = "";
 	float swingDeviation = 0.0f;
-	float additionalUncertainty = 0.0f;
 	float homeRegionMod = 1.0f; // relative chance that an emerging party will have this as its home state
 
 	std::string textReport() const {
@@ -26,7 +25,6 @@ struct Region {
 		report << " Last election 2pp: " << lastElection2pp << "\n";
 		report << " Sample 2pp: " << sample2pp << "\n";
 		report << " Swing Deviation: " << swingDeviation << "\n";
-		report << " Additional Uncertainty: " << additionalUncertainty << "\n";
 		return report.str();
 	}
 

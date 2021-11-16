@@ -17,6 +17,9 @@ public:
 	friend class ProjectFiler;
 	friend class Projection;
 
+	typedef int Id;
+	constexpr static Id InvalidId = -1;
+
 	struct Spread {
 		void calculateExpectation();
 		constexpr static size_t Size = 101; // must be odd so that there is a single median value

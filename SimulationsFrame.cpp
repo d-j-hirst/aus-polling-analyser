@@ -177,10 +177,6 @@ void SimulationsFrame::refreshDataTable() {
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	simulationData->AppendTextColumn("Last Election 2pp", wxDATAVIEW_CELL_INERT, 120, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	simulationData->AppendTextColumn("State SD", wxDATAVIEW_CELL_INERT, 72, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
-	simulationData->AppendTextColumn("State Decay", wxDATAVIEW_CELL_INERT, 72, wxALIGN_LEFT,
-		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 	simulationData->AppendTextColumn("Latest Update", wxDATAVIEW_CELL_INERT, 120, wxALIGN_LEFT,
 		wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
 
@@ -211,8 +207,6 @@ void SimulationsFrame::addSimulationToSimulationData(Simulation simulation) {
 	data.push_back(wxVariant(project->projections().view(simulation.getSettings().baseProjection).getSettings().name));
 	data.push_back(wxVariant(std::to_string(simulation.getSettings().numIterations)));
 	data.push_back(wxVariant(formatFloat(simulation.getSettings().prevElection2pp, 2)));
-	data.push_back(wxVariant(formatFloat(simulation.getSettings().stateSD, 3)));
-	data.push_back(wxVariant(formatFloat(simulation.getSettings().stateDecay, 5)));
 	data.push_back(wxVariant(simulation.getLastUpdatedString()));
 	simulationData->AppendItem(data);
 }

@@ -31,9 +31,7 @@ private:
 
 	void loadPolls(SaveFileInput& saveInput, int versionNum);
 
-	void saveEvents(SaveFileOutput& saveOutput);
-
-	void loadEvents(SaveFileInput& saveInput, int versionNum);
+	void loadEvents(SaveFileInput& saveInput, int versionNum); // for legacy files
 
 	void saveModels(SaveFileOutput& saveOutput);
 

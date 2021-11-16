@@ -51,10 +51,6 @@ public:
 		Projection::Id baseProjection = Projection::InvalidId;
 
 		float prevElection2pp = 50.0f;
-
-		float stateSD = 2.0f;
-
-		float stateDecay = 0.001633f;
 	};
 
 	enum MajorParty {

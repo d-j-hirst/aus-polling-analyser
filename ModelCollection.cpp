@@ -26,7 +26,7 @@ StanModel const& ModelCollection::view(ModelCollection::Id id) const {
 	return models.at(id);
 }
 
-ModelCollection::Index ModelCollection::idToIndex(Model::Id id) const
+ModelCollection::Index ModelCollection::idToIndex(StanModel::Id id) const
 {
 	auto foundIt = models.find(id);
 	if (foundIt == models.end()) return InvalidIndex;
@@ -39,14 +39,14 @@ ModelCollection::Id ModelCollection::indexToId(Index index) const
 	return std::next(models.begin(), index)->first;
 }
 
-ModelCollection::Result ModelCollection::canRemove(Model::Id id)
+ModelCollection::Result ModelCollection::canRemove(StanModel::Id id)
 {
 	auto modelIt = models.find(id);
 	if (modelIt == models.end()) return Result::ModelDoesntExist;
 	return Result::Ok;
 }
 
-void ModelCollection::remove(Model::Id id) {
+void ModelCollection::remove(StanModel::Id id) {
 	// A lot of model management is simplified by keeping the first two models consistent,
 	// so we forbid removal of these models to avoid messier code.
 	// If the user wants different top-two models they can just edit them
@@ -59,14 +59,14 @@ void ModelCollection::remove(Model::Id id) {
 	project.adjustAfterModelRemoval(index, id);
 }
 
-void ModelCollection::run(Model::Id id)
+void ModelCollection::run(StanModel::Id id)
 {
 	auto modelIt = models.find(id);
 	if (modelIt == models.end()) throw ModelDoesntExistException();
 	// StanModel& model = modelIt->second;
 }
 
-void ModelCollection::extend(Model::Id id)
+void ModelCollection::extend(StanModel::Id id)
 {
 	auto modelIt = models.find(id);
 	if (modelIt == models.end()) throw ModelDoesntExistException();
@@ -76,7 +76,7 @@ void ModelCollection::extend(Model::Id id)
 	//model.extendToDate(latestDate);
 }
 
-StanModel& ModelCollection::access(Model::Id id)
+StanModel& ModelCollection::access(StanModel::Id id)
 {
 	return models.at(id);
 }

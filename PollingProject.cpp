@@ -18,7 +18,6 @@ PollingProject::PollingProject() :
 	partyCollection(*this),
 	pollsterCollection(*this),
 	pollCollection(*this),
-	eventCollection(*this),
 	modelCollection(*this),
 	projectionCollection(*this),
 	regionCollection(*this),
@@ -37,8 +36,7 @@ PollingProject::PollingProject(NewProjectData& newProjectData)
 	// The project must always have at least two parties, no matter what. This initializes them with default values.
 	partyCollection.add(Party("Labor", 100, 0.0f, "ALP", Party::CountAsParty::IsPartyOne));
 	partyCollection.add(Party("Liberals", 0, 0.0f, "LIB", Party::CountAsParty::IsPartyTwo));
-
-	pollsterCollection.add(Pollster("Default Pollster", 1.0f, 0, true, false));
+	pollsterCollection.add(Pollster("Default Pollster", 0));
 	valid = true;
 }
 
@@ -104,7 +102,7 @@ int PollingProject::getLatestDate() const {
 	return latestDay;
 }
 
-void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, Model::Id modelId)
+void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, StanModel::Id modelId)
 {
 	removeProjectionsFromModel(modelId);
 }
@@ -130,7 +128,7 @@ bool PollingProject::isValid() {
 	return valid;
 }
 
-void PollingProject::invalidateProjectionsFromModel(Model::Id modelId) {
+void PollingProject::invalidateProjectionsFromModel(StanModel::Id modelId) {
 	for (auto& [key, projection] : projections()) {
 		if (projection.getSettings().baseModel == modelId) projection.invalidate();
 	}
@@ -142,7 +140,7 @@ void PollingProject::open(std::string filename)
 	projectFiler.open(filename);
 }
 
-void PollingProject::removeProjectionsFromModel(Model::Id modelId) {
+void PollingProject::removeProjectionsFromModel(StanModel::Id modelId) {
 	for (auto const& [key, projection] : projections()) {
 		if (projection.getSettings().baseModel == modelId) projections().remove(key);
 	}

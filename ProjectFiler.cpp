@@ -40,7 +40,8 @@
 // Version 33: Save analysis codes for regions
 // Version 34: Save previous tpp swings for seats
 // Version 35: Disendorsement flags for seats
-constexpr int VersionNum = 35;
+// Version 36: Remove various legacy data
+constexpr int VersionNum = 36;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -56,7 +57,6 @@ void ProjectFiler::save(std::string filename)
 	saveParties(saveOutput);
 	savePollsters(saveOutput);
 	savePolls(saveOutput);
-	saveEvents(saveOutput);
 	saveModels(saveOutput);
 	saveProjections(saveOutput);
 	saveRegions(saveOutput);
@@ -76,7 +76,7 @@ void ProjectFiler::open(std::string filename)
 	loadParties(saveInput, versionNum);
 	loadPollsters(saveInput, versionNum);
 	loadPolls(saveInput, versionNum);
-	loadEvents(saveInput, versionNum);
+	if (versionNum <= 35) loadEvents(saveInput, versionNum); // needed for legacy files
 	loadModels(saveInput, versionNum);
 	loadProjections(saveInput, versionNum);
 	loadRegions(saveInput, versionNum);
@@ -164,23 +164,24 @@ void ProjectFiler::savePollsters(SaveFileOutput& saveOutput)
 	saveOutput.outputAsType<int32_t>(project.pollsterCollection.count());
 	for (auto const& [key, thisPollster] : project.pollsterCollection) {
 		saveOutput << thisPollster.name;
-		saveOutput << thisPollster.weight;
 		saveOutput.outputAsType<uint64_t>(thisPollster.colour);
-		saveOutput << thisPollster.useForCalibration;
-		saveOutput << thisPollster.ignoreInitially;
 	}
 }
 
-void ProjectFiler::loadPollsters(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
+void ProjectFiler::loadPollsters(SaveFileInput& saveInput, int versionNum)
 {
 	auto pollsterCount = saveInput.extract<int32_t>();
 	for (int pollsterIndex = 0; pollsterIndex < pollsterCount; ++pollsterIndex) {
 		Pollster thisPollster;
 		saveInput >> thisPollster.name;
-		saveInput >> thisPollster.weight;
+		if (versionNum <= 35) {
+			saveInput.extract<int32_t>();
+		}
 		thisPollster.colour = saveInput.extract<uint64_t>();
-		saveInput >> thisPollster.useForCalibration;
-		saveInput >> thisPollster.ignoreInitially;
+		if (versionNum <= 35) {
+			saveInput.extract<bool>();
+			saveInput.extract<bool>();
+		}
 		project.pollsterCollection.add(thisPollster);
 	}
 }
@@ -228,27 +229,18 @@ void ProjectFiler::loadPolls(SaveFileInput& saveInput, [[maybe_unused]] int vers
 	}
 }
 
-void ProjectFiler::saveEvents(SaveFileOutput& saveOutput)
+void ProjectFiler::loadEvents(SaveFileInput& saveInput, int versionNum)
 {
-	saveOutput.outputAsType<int32_t>(project.eventCollection.count());
-	for (auto const& [key, thisEvent] : project.eventCollection) {
-		saveOutput << thisEvent.name;
-		saveOutput.outputAsType<int32_t>(thisEvent.eventType);
-		saveOutput << thisEvent.date.GetJulianDayNumber();
-		saveOutput << thisEvent.vote;
-	}
-}
-
-void ProjectFiler::loadEvents(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
-{
-	auto eventCount = saveInput.extract<int32_t>();
-	for (int eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
-		Event thisEvent;
-		saveInput >> thisEvent.name;
-		thisEvent.eventType = Event::Type(saveInput.extract<int32_t>());
-		thisEvent.date = wxDateTime(saveInput.extract<double>());
-		saveInput >> thisEvent.vote;
-		project.eventCollection.add(thisEvent);
+	// "Events" are obsolete, but for legacy files we still need to extract the data
+	// to match the save format, and just not do anything with it
+	if (versionNum <= 35) {
+		auto eventCount = saveInput.extract<int32_t>();
+		for (int eventIndex = 0; eventIndex < eventCount; ++eventIndex) {
+			saveInput.extract<std::string>();
+			saveInput.extract<int32_t>();
+			saveInput.extract<double>();
+			saveInput.extract<float>();
+		}
 	}
 }
 
@@ -436,7 +428,6 @@ void ProjectFiler::saveRegions(SaveFileOutput& saveOutput)
 		saveOutput << thisRegion.sample2pp;
 		saveOutput << thisRegion.analysisCode;
 		saveOutput << thisRegion.swingDeviation;
-		saveOutput << thisRegion.additionalUncertainty;
 		saveOutput << thisRegion.homeRegionMod;
 	}
 }
@@ -454,7 +445,9 @@ void ProjectFiler::loadRegions(SaveFileInput& saveInput, int versionNum)
 			saveInput >> thisRegion.analysisCode;
 		}
 		saveInput >> thisRegion.swingDeviation;
-		saveInput >> thisRegion.additionalUncertainty;
+		if (versionNum <= 35) {
+			saveInput.extract<float>(); // additionalUncertainty
+		}
 		if (versionNum >= 23) {
 			saveInput >> thisRegion.homeRegionMod;
 		}
@@ -713,8 +706,6 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.projections().idToIndex(thisSimulation.getSettings().baseProjection));
 		saveOutput << thisSimulation.getSettings().prevElection2pp;
 		saveOutput << thisSimulation.getSettings().prevTermCodes;
-		saveOutput << thisSimulation.getSettings().stateSD;
-		saveOutput << thisSimulation.getSettings().stateDecay;
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
 		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
 		saveReport(saveOutput, thisSimulation.latestReport);
@@ -739,8 +730,10 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 		if (versionNum >= 20) {
 			saveInput >> thisSettings.prevTermCodes;
 		}
-		saveInput >> thisSettings.stateSD;
-		saveInput >> thisSettings.stateDecay;
+		if (versionNum <= 35) {
+			saveInput.extract<float>();
+			saveInput.extract<float>();
+		}
 		thisSettings.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
 		Simulation thisSimulation = Simulation(thisSettings);
 		if (versionNum >= 12) {

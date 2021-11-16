@@ -15,7 +15,6 @@ enum ControlId
 	LastElection2pp,
 	Sample2pp,
 	AnalysisCode,
-	AdditionalUncertainty,
 	HomeRegionMod
 };
 
@@ -35,7 +34,6 @@ void EditRegionFrame::createControls(int & y)
 	createLastElection2ppInput(y);
 	createSample2ppInput(y);
 	createAnalysisCodeInput(y);
-	createAdditionalUncertaintyInput(y);
 	createHomeRegionModInput(y);
 
 	createOkCancelButtons(y);
@@ -80,15 +78,6 @@ void EditRegionFrame::createAnalysisCodeInput(int& y)
 	auto analysisCodeCallback = [this](std::string s) -> void {region.analysisCode = s; };
 	analysisCodeInput.reset(new TextInput(this, ControlId::AnalysisCode, "Analysis Code:", region.analysisCode, wxPoint(2, y), analysisCodeCallback));
 	y += analysisCodeInput->Height + ControlPadding;
-}
-
-void EditRegionFrame::createAdditionalUncertaintyInput(int & y)
-{
-	auto additionalUncertaintyCallback = [this](float f) -> void {region.additionalUncertainty = f; };
-	auto additionalUncertaintyValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
-	additionalUncertaintyInput.reset(new FloatInput(this, ControlId::AdditionalUncertainty, "Additional uncertainty:", region.additionalUncertainty,
-		wxPoint(2, y), additionalUncertaintyCallback, additionalUncertaintyValidator));
-	y += additionalUncertaintyInput->Height + ControlPadding;
 }
 
 void EditRegionFrame::createHomeRegionModInput(int& y)

@@ -35,7 +35,7 @@ public:
 
 	// pollster: Pollster data to be used if editing (has default values for creating a new pollster).
 	EditPollsterFrame(Function function, OkCallback callback,
-		Pollster pollster = Pollster("Enter pollster name here", 1.0f, 0, false, false));
+		Pollster pollster = Pollster("Enter pollster name here", 0));
 
 private:
 
@@ -43,10 +43,7 @@ private:
 
 	// Each of these takes a value for the current y-position
 	void createNameInput(int& y);
-	void createWeightInput(int& y);
 	void createColourInput(int& y);
-	void createCalibrationInput(int& y);
-	void createIgnoreInitiallyInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -59,10 +56,7 @@ private:
 	Pollster pollster;
 
 	std::unique_ptr<TextInput> nameInput;
-	std::unique_ptr<FloatInput> weightInput;
 	std::unique_ptr<ColourInput> colourInput;
-	std::unique_ptr<CheckInput> calibrationInput;
-	std::unique_ptr<CheckInput> ignoreInitiallyInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;
