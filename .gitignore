@@ -318,3 +318,4 @@ __pycache__/
 /analysis/Regional/2022fed-regions-base.csv
 /analysis/Model Election Comparisons.xlsx
 /analysis/Poll data converter.xlsx
+/backend/setup_auth.sh
