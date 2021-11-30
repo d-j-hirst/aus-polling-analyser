@@ -14,7 +14,8 @@ enum ControlId {
 	DcPanel,
 	SelectSimulation,
 	SaveReport,
-	SelectSavedReport
+	SelectSavedReport,
+	SendToServer
 };
 
 // frame constructor
@@ -92,6 +93,11 @@ void DisplayFrame::OnSavedReportSelection(wxCommandEvent&)
 	paint();
 }
 
+void DisplayFrame::OnSendToServer(wxCommandEvent&)
+{
+	wxMessageBox("Dialog box to send to server would be here");
+}
+
 // Handles the movement of the mouse in the display frame.
 void DisplayFrame::OnMouseMove(wxMouseEvent&) {
 	paint();
@@ -105,6 +111,7 @@ void DisplayFrame::bindEventHandlers()
 	Bind(wxEVT_COMBOBOX, &DisplayFrame::OnSimulationSelection, this, ControlId::SelectSimulation);
 	Bind(wxEVT_TOOL, &DisplayFrame::OnSaveReport, this, ControlId::SaveReport);
 	Bind(wxEVT_COMBOBOX, &DisplayFrame::OnSavedReportSelection, this, ControlId::SelectSavedReport);
+	Bind(wxEVT_TOOL, &DisplayFrame::OnSendToServer, this, ControlId::SendToServer);
 	dcPanel->Bind(wxEVT_MOTION, &DisplayFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &DisplayFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -128,8 +135,9 @@ void DisplayFrame::refreshToolbar() {
 
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[1];
+	wxBitmap toolBarBitmaps[2];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\camera.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[1] = wxBitmap("bitmaps\\web.png", wxBITMAP_TYPE_PNG);
 
 	// *** Simulation Combo Box *** //
 
@@ -159,6 +167,7 @@ void DisplayFrame::refreshToolbar() {
 	toolBar->AddControl(selectSimulationComboBox);
 	toolBar->AddTool(ControlId::SaveReport, "Save report", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Save report");
 	toolBar->AddControl(selectSavedReportComboBox);
+	toolBar->AddTool(ControlId::SendToServer, "Save to server", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Send to server");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
