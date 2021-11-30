@@ -1,15 +1,8 @@
 Polling Analyser to-do:
--Output separate TCPs for each simulated set of 2cp candidates
--Better treatment of state-based TPP swings, especially for small states which are currently fairly arbitrary
--Also check distribution of seat TPP swings
--Tidy up code from this part of the project
--(Make any further adjustments to existing analysis processes)
-- *** ANALYSIS PHASE COMPLETE ***
--Create simple backend w/ authorisation that takes election forecast from an authorised user and sends a formatted version to a frontend on request
--Setup basic framework for frontend, including getting some data from the backend and displaying it
+-Test curl requests to public endpoints and develop a simple process by which data can be sent to server from analyzer program
+-Secure data by password-protecting the response
 -Work step by step to add more data flow from the authorised user and displaying it
 -Develop documentation detailing the forecasting methodology
--Publish on a public-facing webpage
 -Post-release, as soon as possible before election is called:
  -Integrate confirmed candidacies (for 3rd parties)
  -Integrate betting odds
