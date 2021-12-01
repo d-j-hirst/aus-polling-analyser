@@ -80,6 +80,21 @@ int SimulationCollection::count() const {
 	return simulations.size();
 }
 
+void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
+{
+	auto simulationIt = simulations.find(id);
+	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
+	auto const& reports = simulationIt->second.viewSavedReports();
+	if (reportIndex < -1 && reportIndex >= int(reports.size())) {
+		logger << "Invalid report!\n";
+		return;
+	}
+	auto const& report = (reportIndex == -1 ? simulationIt->second.getLatestReport() : reports[reportIndex].report);
+	logger << "Would save report with ALP TPP" << formatFloat(report.getPartyWinPercent(Simulation::MajorParty::One), 2) << "\n";
+	auto reportUploader = ReportUploader(report);
+	reportUploader.upload();
+}
+
 
 void SimulationCollection::startLoadingSimulation()
 {

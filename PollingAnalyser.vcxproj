@@ -322,6 +322,7 @@
     <ClCompile Include="QuickTest.cpp" />
     <ClCompile Include="RandomGenerator.cpp" />
     <ClCompile Include="RegionCollection.cpp" />
+    <ClCompile Include="ReportUploader.cpp" />
     <ClCompile Include="ResultCoordinator.cpp" />
     <ClCompile Include="ResultsDownloader.cpp" />
     <ClCompile Include="ResultsFrame.cpp" />
@@ -376,6 +377,7 @@
     <ClInclude Include="FloatInput.h" />
     <ClInclude Include="MacroRunner.h" />
     <ClInclude Include="OrthogonalRegression.h" />
+    <ClInclude Include="ReportUploader.h" />
     <ClInclude Include="SpecialPartyCodes.h" />
     <ClInclude Include="PartiesAnalyser.h" />
     <ClInclude Include="InputGeneral.h" />

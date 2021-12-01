@@ -225,6 +225,9 @@
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
     <ClCompile Include="MacroRunner.cpp" />
+    <ClCompile Include="ReportUploader.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -552,6 +555,9 @@
     </ClInclude>
     <ClInclude Include="MacroRunner.h">
       <Filter>Header Files\Project Sections</Filter>
+    </ClInclude>
+    <ClInclude Include="ReportUploader.h">
+      <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

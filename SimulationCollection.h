@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ReportUploader.h"
 #include "Simulation.h"
 
 #include <map>
@@ -14,6 +15,7 @@ public:
 
 class SimulationCollection {
 public:
+
 	// Collection is a map between ID values and simulations
 	// IDs are not preserved between sessions, and are used to ensure
 	// consistent display with simulation deletions etc. while making sure references
@@ -67,6 +69,8 @@ public:
 
 	// Returns the number of simulations.
 	int count() const;
+
+	void uploadToServer(Simulation::Id id, int reportIndex);
 
 	void startLoadingSimulation();
 

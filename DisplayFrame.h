@@ -50,7 +50,7 @@ private:
 	void OnSavedReportSelection(wxCommandEvent&);
 
 	// Save a permanent copy of the latest simulation report
-	void OnSendToServer(wxCommandEvent&);
+	void OnUploadToServer(wxCommandEvent&);
 
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);
