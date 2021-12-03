@@ -91,7 +91,7 @@ void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
 	}
 	auto const& report = (reportIndex == -1 ? simulationIt->second.getLatestReport() : reports[reportIndex].report);
 	logger << "Would save report with ALP TPP" << formatFloat(report.getPartyWinPercent(Simulation::MajorParty::One), 2) << "\n";
-	auto reportUploader = ReportUploader(report);
+	auto reportUploader = ReportUploader(report, project);
 	reportUploader.upload();
 }
 
