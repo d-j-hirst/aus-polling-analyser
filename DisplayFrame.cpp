@@ -95,8 +95,12 @@ void DisplayFrame::OnSavedReportSelection(wxCommandEvent&)
 
 void DisplayFrame::OnUploadToServer(wxCommandEvent&)
 {
-	wxMessageBox("Dialog box to send to server would be here");
+	if (!project->getElectionName().size()) {
+		std::string electionName = wxGetTextFromUser("An election name has not yet been entered for this project. Enter a name for this election:", "Saved Report").ToStdString();
+		project->setElectionName(electionName);
+	}
 	project->simulations().uploadToServer(project->simulations().indexToId(selectedSimulation), selectedSaveReport);
+	wxMessageBox("Successfully prepared upload of report. Use Python script: uploads/upload_manager.py to upload to the server.");
 }
 
 // Handles the movement of the mouse in the display frame.

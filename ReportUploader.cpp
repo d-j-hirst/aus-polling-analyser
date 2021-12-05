@@ -12,6 +12,9 @@ ReportUploader::ReportUploader(Simulation::Report const& thisReport, PollingProj
 std::string ReportUploader::upload()
 {
 	std::ofstream file("uploads/latest.dat");
-	file << project.models().view(0).getTermCode();
+	// *** This should be a temporary hack, replace with a global project setting
+	// once creating the UI for that can be justified
+	file << project.models().view(0).getTermCode() << "\n";
+	file << project.getElectionName() << "\n";
 	return "ok";
 }

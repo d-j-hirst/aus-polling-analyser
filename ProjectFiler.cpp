@@ -41,7 +41,8 @@
 // Version 34: Save previous tpp swings for seats
 // Version 35: Disendorsement flags for seats
 // Version 36: Remove various legacy data
-constexpr int VersionNum = 36;
+// Version 37: Save election name
+constexpr int VersionNum = 37;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -53,6 +54,7 @@ void ProjectFiler::save(std::string filename)
 	SaveFileOutput saveOutput(filename);
 	saveOutput << VersionNum;
 	saveOutput << project.name;
+	saveOutput << project.electionName;
 	saveOutput << project.lastMacro;
 	saveParties(saveOutput);
 	savePollsters(saveOutput);
@@ -72,6 +74,7 @@ void ProjectFiler::open(std::string filename)
 	SaveFileInput saveInput(filename);
 	const int versionNum = saveInput.extract<int>();
 	saveInput >> project.name;
+	if (versionNum >= 37) saveInput >> project.electionName;
 	if (versionNum >= 16) saveInput >> project.lastMacro;
 	loadParties(saveInput, versionNum);
 	loadPollsters(saveInput, versionNum);

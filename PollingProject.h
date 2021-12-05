@@ -58,6 +58,10 @@ public:
 	// Gets the full text string for the last macro to be run.
 	std::string getLastMacro() { return lastMacro; }
 
+	std::string getElectionName() const { return electionName; }
+
+	void setElectionName(std::string newName) { electionName = newName; }
+
 	// Runs the given macro. Returns true if the macro verified successfully, 
 	std::optional<std::string> runMacro(std::string macro);
 
@@ -161,6 +165,9 @@ private:
 
 	// The name of the project.
 	std::string name;
+
+	// Name of the election ("e.g. 2022 Federal Election")
+	std::string electionName;
 
 	// The last file name the project was saved under.
 	// Defaults to "name.pol" if the project has not yet been saved at all.
