@@ -25,5 +25,8 @@ std::string ReportUploader::upload()
 	case Simulation::Settings::ReportMode::Nowcast: modeString = "NC"; break;
 	}
 	file << modeString << "\n";
+	file << thisReport.report.getPartyOverallWinPercent(Simulation::MajorParty::One) << "\n";
+	file << thisReport.report.getPartyOverallWinPercent(Simulation::MajorParty::Two) << "\n";
+	file << thisReport.report.getOthersOverallWinPercent() << "\n";
 	return "ok";
 }

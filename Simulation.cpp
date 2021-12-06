@@ -174,13 +174,45 @@ bool Simulation::isValid() const
 	return lastUpdated.IsValid();
 }
 
-float Simulation::Report::getPartyWinPercent(int whichParty) const
+float Simulation::Report::getPartyOverallWinPercent(int whichParty) const
 {
+	float thisWinPercent = 0.0f;
 	float totalWinPercent = 0.0f;
-	if (majorityPercent.contains(whichParty)) totalWinPercent += majorityPercent.at(whichParty);
-	if (minorityPercent.contains(whichParty)) totalWinPercent += minorityPercent.at(whichParty);
-	totalWinPercent += getHungPercent() * 0.5f;
-	return totalWinPercent;
+	for (auto [party, percent] : majorityPercent) {
+		if (party == whichParty) thisWinPercent += percent;
+		totalWinPercent += percent;
+	}
+	for (auto [party, percent] : minorityPercent) {
+		if (party == whichParty) thisWinPercent += percent;
+		totalWinPercent += percent;
+	}
+	for (auto [party, percent] : mostSeatsPercent) {
+		if (party == whichParty) thisWinPercent += percent;
+		totalWinPercent += percent;
+	}
+	// Distribute exact ties in proportion to other wins
+	return thisWinPercent * 100.0f / totalWinPercent;
+}
+
+float Simulation::Report::getOthersOverallWinPercent() const
+{
+	float othersOverallWinPercent = 0.0f;
+	float totalWinPercent = 0.0f;
+	for (auto [party, _] : this->partyName) {
+		if (majorityPercent.count(party)) {
+			if (party != 0 && party != 1) othersOverallWinPercent += majorityPercent.at(party);
+			totalWinPercent += majorityPercent.at(party);
+		}
+		if (minorityPercent.count(party)) {
+			if (party != 0 && party != 1) othersOverallWinPercent += minorityPercent.at(party);
+			totalWinPercent += minorityPercent.at(party);
+		}
+		if (mostSeatsPercent.count(party)) {
+			if (party != 0 && party != 1) othersOverallWinPercent += mostSeatsPercent.at(party);
+			totalWinPercent += mostSeatsPercent.at(party);
+		}
+	}
+	return othersOverallWinPercent * 100.0f / totalWinPercent;
 }
 
 int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const

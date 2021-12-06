@@ -196,11 +196,11 @@ void DisplayFrameRenderer::drawSumOfLeads() const
 		BoxMargin + ProbabilityBoxHeight * 0.5f - ProbabilityBoxSumHeight - ProbabilityBoxTextPadding,
 		ProbabilityBoxSumWidth, ProbabilityBoxSumHeight);
 	std::string partyOneAnnotation = simulation.partyAbbr.at(0) + " wins:";
-	std::string partyOneData = formatFloat(simulation.getPartyWinPercent(Mp::One), 2) + "%";
+	std::string partyOneData = formatFloat(simulation.getPartyOverallWinPercent(Mp::One), 2) + "%";
 	drawSumOfLeadsText(probPartyRect, partyOneAnnotation, partyOneData);
 	probPartyRect.Offset(0, ProbabilityBoxSumHeight + ProbabilityBoxTextPadding * 2);
 	std::string partyTwoAnnotation = simulation.partyAbbr.at(1) + " wins:";
-	std::string partyTwoData = formatFloat(simulation.getPartyWinPercent(Mp::Two), 2) + "%";
+	std::string partyTwoData = formatFloat(simulation.getPartyOverallWinPercent(Mp::Two), 2) + "%";
 	drawSumOfLeadsText(probPartyRect, partyTwoAnnotation, partyTwoData);
 }
 

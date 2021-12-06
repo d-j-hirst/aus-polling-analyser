@@ -179,7 +179,9 @@ public:
 
 		float getOthersWinFrequency(int seatIndex) const;
 
-		float getPartyWinPercent(int whichParty) const;
+		float getPartyOverallWinPercent(int whichParty) const;
+
+		float getOthersOverallWinPercent() const;
 
 		int getMinimumSeatFrequency(int partyIndex) const;
 

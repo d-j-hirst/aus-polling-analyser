@@ -434,7 +434,7 @@ std::string ResultsFrame::decideSummaryString()
 	std::string party2 = project->parties().view(1).abbreviation;
 	auto const* report = latestReport();
 	if (!report || !report->partyOneWinPercent.size()) return "";
-	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyWinPercent(Simulation::MajorParty::One), 2) +
+	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyOverallWinPercent(Simulation::MajorParty::One), 2) +
 		"   Projected 2PP: " + party1 + " " + formatFloat(float(report->getPartyOne2pp()), 2) +
 		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +
 		party2 + " " + formatFloat(report->getPartyWinExpectation(1), 2) +
