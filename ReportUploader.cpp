@@ -4,8 +4,8 @@
 
 #include <fstream>
 
-ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, PollingProject const& project)
-	: thisReport(thisReport), project(project)
+ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, Simulation const& simulation, PollingProject const& project)
+	: project(project), simulation(simulation), thisReport(thisReport)
 {
 }
 
@@ -17,6 +17,13 @@ std::string ReportUploader::upload()
 	file << project.models().view(0).getTermCode() << "\n";
 	file << project.getElectionName() << "\n";
 	file << thisReport.label << "\n";
-	file << thisReport.dateSaved.FormatISOCombined() << "\n";
+	file << thisReport.dateSaved.ToUTC().FormatISOCombined() << "\n";
+	std::string modeString;
+	switch (simulation.getSettings().reportMode) {
+	case Simulation::Settings::ReportMode::RegularForecast: modeString = "RF"; break;
+	case Simulation::Settings::ReportMode::LiveForecast: modeString = "LF"; break;
+	case Simulation::Settings::ReportMode::Nowcast: modeString = "NC"; break;
+	}
+	file << modeString << "\n";
 	return "ok";
 }

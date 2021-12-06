@@ -85,17 +85,12 @@ void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
 	auto simulationIt = simulations.find(id);
 	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
 	auto const& reports = simulationIt->second.viewSavedReports();
-	if (reportIndex < -1 && reportIndex >= int(reports.size())) {
+	if (reportIndex <= -1 && reportIndex >= int(reports.size())) {
 		logger << "Invalid report!\n";
 		return;
 	}
-	Simulation::SavedReport quasiSavedLatestReport;
-	quasiSavedLatestReport.dateSaved = wxDateTime::Now();
-	quasiSavedLatestReport.label = "Latest Report";
-	quasiSavedLatestReport.report = simulationIt->second.getLatestReport();
-	auto const& report = (reportIndex == -1 ? quasiSavedLatestReport : reports[reportIndex]);
-	logger << "Would save report with ALP TPP" << formatFloat(report.report.getPartyWinPercent(Simulation::MajorParty::One), 2) << "\n";
-	auto reportUploader = ReportUploader(report, project);
+	auto const& report = reports[reportIndex];
+	auto reportUploader = ReportUploader(report, (*simulationIt).second, project);
 	reportUploader.upload();
 }
 

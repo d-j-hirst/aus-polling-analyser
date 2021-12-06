@@ -38,6 +38,12 @@ public:
 			LiveAutomatic
 		};
 
+		enum class ReportMode {
+			RegularForecast,
+			LiveForecast,
+			Nowcast
+		};
+
 		// User-defined name.
 		std::string name = "";
 
@@ -47,6 +53,8 @@ public:
 		int numIterations = 10000;
 
 		Mode live = Mode::Projection;
+
+		ReportMode reportMode = ReportMode::RegularForecast;
 
 		Projection::Id baseProjection = Projection::InvalidId;
 

@@ -23,6 +23,7 @@ enum ControlId
 	PrevElection2pp,
 	PrevTermCodes,
 	Live,
+	ReportMode
 };
 
 EditSimulationFrame::EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings simulation)
@@ -45,6 +46,7 @@ void EditSimulationFrame::createControls(int & y)
 	createPrevElection2ppInput(y);
 	createPrevTermCodesInput(y);
 	createLiveInput(y);
+	createReportModeInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -116,6 +118,19 @@ void EditSimulationFrame::createLiveInput(int & y)
 	auto liveCallback = [this](int i) {simulationSettings.live = Simulation::Settings::Mode(i); };
 	liveInput.reset(new ChoiceInput(this, ControlId::Live, "Live status:", liveArray, int(simulationSettings.live),
 		wxPoint(2, y), liveCallback));
+	y += liveInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createReportModeInput(int& y)
+{
+	wxArrayString reportModeArray;
+	reportModeArray.push_back("Regular Forecast");
+	reportModeArray.push_back("Live Forecast");
+	reportModeArray.push_back("Nowcast");
+
+	auto reportModeCallback = [this](int i) {simulationSettings.reportMode = Simulation::Settings::ReportMode(i); };
+	reportModeInput.reset(new ChoiceInput(this, ControlId::ReportMode, "Report Mode:", reportModeArray, int(simulationSettings.reportMode),
+		wxPoint(2, y), reportModeCallback));
 	y += liveInput->Height + ControlPadding;
 }
 

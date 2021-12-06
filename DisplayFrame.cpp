@@ -95,6 +95,10 @@ void DisplayFrame::OnSavedReportSelection(wxCommandEvent&)
 
 void DisplayFrame::OnUploadToServer(wxCommandEvent&)
 {
+	if (selectedSaveReport == -1) {
+		wxMessageBox("To minimise accidental additional updates, uploading \"Latest Forecast\" to the server is not allowed. Create a snapshot and upload that instead.");
+		return;
+	}
 	if (!project->getElectionName().size()) {
 		std::string electionName = wxGetTextFromUser("An election name has not yet been entered for this project. Enter a name for this election:", "Saved Report").ToStdString();
 		project->setElectionName(electionName);

@@ -42,7 +42,8 @@
 // Version 35: Disendorsement flags for seats
 // Version 36: Remove various legacy data
 // Version 37: Save election name
-constexpr int VersionNum = 37;
+// Version 38: Save simulation report mode
+constexpr int VersionNum = 38;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -710,6 +711,7 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().prevElection2pp;
 		saveOutput << thisSimulation.getSettings().prevTermCodes;
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
+		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().reportMode);
 		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
 		saveReport(saveOutput, thisSimulation.latestReport);
 		saveOutput.outputAsType<uint32_t>(thisSimulation.savedReports.size());
@@ -738,6 +740,9 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 			saveInput.extract<float>();
 		}
 		thisSettings.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
+		if (versionNum >= 38) {
+			thisSettings.reportMode = Simulation::Settings::ReportMode(saveInput.extract<int32_t>());
+		}
 		Simulation thisSimulation = Simulation(thisSettings);
 		if (versionNum >= 12) {
 			thisSimulation.lastUpdated = wxDateTime(saveInput.extract<double>());

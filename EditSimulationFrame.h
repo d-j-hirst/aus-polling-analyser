@@ -53,6 +53,7 @@ private:
 	void createPrevElection2ppInput(int& y);
 	void createPrevTermCodesInput(int& y);
 	void createLiveInput(int& y);
+	void createReportModeInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -77,6 +78,7 @@ private:
 	std::unique_ptr<FloatInput> prevElection2ppInput;
 	std::unique_ptr<TextInput> prevTermCodesInput;
 	std::unique_ptr<ChoiceInput> liveInput;
+	std::unique_ptr<ChoiceInput> reportModeInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;
