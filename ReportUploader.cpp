@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-ReportUploader::ReportUploader(Simulation::Report const& thisReport, PollingProject const& project)
+ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, PollingProject const& project)
 	: thisReport(thisReport), project(project)
 {
 }
@@ -16,5 +16,7 @@ std::string ReportUploader::upload()
 	// once creating the UI for that can be justified
 	file << project.models().view(0).getTermCode() << "\n";
 	file << project.getElectionName() << "\n";
+	file << thisReport.label << "\n";
+	file << thisReport.dateSaved.FormatISOCombined() << "\n";
 	return "ok";
 }
