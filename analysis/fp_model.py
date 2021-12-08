@@ -73,8 +73,14 @@ def run_models():
     # Load the file containing a list of significant parties for each election
     # and arrange the data for the rest of the program to efficiently use
     with open('./Data/significant-parties.csv', 'r') as f:
-        parties = {(a[0], a[1]): a[2:] for a in
-                   [b.strip().split(',') for b in f.readlines()]}
+        parties = {
+            (a[0], a[1]): a[2:] for a in
+            [b.strip().split(',') for b in f.readlines()]}
+
+    with open('./Data/preference-estimates.csv', 'r') as f:
+        preference_flows = {
+            (a[0], a[1], a[2]): a[3] for a in
+            [b.strip().split(',') for b in f.readlines()]}
 
     # N.B. The "Others" (OTH) "party" values include votes for these other
     # minor parties, so these are effectively counted twice. The reason for
@@ -145,7 +151,9 @@ def run_models():
     for desired_election in desired_elections:
         election_tuple = (str(desired_election.year()),
                           desired_election.region())
-        for party in parties[election_tuple]:
+        #for party in parties[election_tuple] + ['ALP TPP']:
+        for party in ['TPP ALP']:  #Temporary for debug speed, doesn't recalc fp votes
+                                          #Replace with commented line
 
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
@@ -188,6 +196,8 @@ def run_models():
             # the prior result is not given
             if (election_tuple, party) in prior_results:
                 prior_result = max(0.25, prior_results[(election_tuple, party)])
+            elif party == 'TPP ALP':
+                prior_result = 50  # placeholder TPP
             else:
                 prior_result = 0.25  # percentage
 
