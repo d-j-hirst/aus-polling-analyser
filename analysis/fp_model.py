@@ -79,7 +79,7 @@ def run_models():
 
     with open('./Data/preference-estimates.csv', 'r') as f:
         preference_flows = {
-            (a[0], a[1], a[2]): a[3] for a in
+            (a[0], a[1], a[2]): float(a[3]) * 0.01 for a in
             [b.strip().split(',') for b in f.readlines()]}
 
     # N.B. The "Others" (OTH) "party" values include votes for these other
@@ -152,7 +152,7 @@ def run_models():
         election_tuple = (str(desired_election.year()),
                           desired_election.region())
         #for party in parties[election_tuple] + ['ALP TPP']:
-        for party in ['TPP ALP']:  #Temporary for debug speed, doesn't recalc fp votes
+        for party in ['ALP TPP']:  #Temporary for debug speed, doesn't recalc fp votes
                                           #Replace with commented line
 
             # --- collect the model data
@@ -178,6 +178,19 @@ def run_models():
             # store the election day for when the model needs it later
             election_day = (election_cycles[election_tuple][1] - start).n
 
+            # Important: do this before transferring the misc parties
+            # to Others so they don't get double-counted (or make sure that
+            # only one section uns)
+            df['ALP TPP'] = df['ALP FP']
+            for column in df:
+                pref_tuple = (election_tuple[0], election_tuple[1], column)
+                if pref_tuple not in preference_flows:
+                    continue
+                preference_flow = preference_flows[pref_tuple]
+                df['ALP TPP'] += df[column].fillna(0) * preference_flow
+            if desired_election.region() == 'fed':
+                df['ALP TPP'] += 0.1  # leakage in LIB/NAT seats
+
             # drop any rows with N/A values for the current party
             df = df.dropna(subset=[party])
 
@@ -196,7 +209,7 @@ def run_models():
             # the prior result is not given
             if (election_tuple, party) in prior_results:
                 prior_result = max(0.25, prior_results[(election_tuple, party)])
-            elif party == 'TPP ALP':
+            elif party == 'ALP TPP':
                 prior_result = 50  # placeholder TPP
             else:
                 prior_result = 0.25  # percentage
