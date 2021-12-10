@@ -1,8 +1,9 @@
-import sys
 import argparse
+import math
 import numpy as np
 import pandas as pd
 import pystan
+import sys
 from time import perf_counter
 from datetime import timedelta
 from election_code import ElectionCode, no_target_election_marker
@@ -151,8 +152,10 @@ def run_models():
     for desired_election in desired_elections:
         election_tuple = (str(desired_election.year()),
                           desired_election.region())
-        #for party in parties[election_tuple] + ['ALP TPP']:
-        for party in ['ALP TPP']:  #Temporary for debug speed, doesn't recalc fp votes
+        others_medians = {}
+        # for party in parties[election_tuple] + ['ALP TPP']:
+        for party in ['UAP FP', 'ONP FP', 'ALP TPP']:
+        # for party in ['ALP TPP']:  #Temporary for debug speed, doesn't recalc fp votes
                                           #Replace with commented line
 
             # --- collect the model data
@@ -178,18 +181,47 @@ def run_models():
             # store the election day for when the model needs it later
             election_day = (election_cycles[election_tuple][1] - start).n
 
-            # Important: do this before transferring the misc parties
-            # to Others so they don't get double-counted (or make sure that
-            # only one section uns)
-            df['ALP TPP'] = df['ALP FP']
-            for column in df:
-                pref_tuple = (election_tuple[0], election_tuple[1], column)
-                if pref_tuple not in preference_flows:
-                    continue
-                preference_flow = preference_flows[pref_tuple]
-                df['ALP TPP'] += df[column].fillna(0) * preference_flow
-            if desired_election.region() == 'fed':
-                df['ALP TPP'] += 0.1  # leakage in LIB/NAT seats
+            if party == 'ALP TPP':
+                num_polls = len(df['TPP ALP'].values.tolist())
+                # print(num_polls)
+                min_index = df.index.values.tolist()[0]
+                # print(min_index)
+                adjustments = {a + min_index: 0 for a in range(0, num_polls)}
+                for others_party in others_parties:
+                    days = df['Day'].values.tolist()
+                    if others_party in df:
+                        pref_tuple = (election_tuple[0], election_tuple[1], others_party)
+                        oth_tuple = (election_tuple[0], election_tuple[1], 'OTH FP')
+                        polled_percent = df[others_party].values.tolist()
+                        adj_flow = preference_flows[pref_tuple] - preference_flows[oth_tuple]
+                        for a in range(0, num_polls):
+                            if math.isnan(polled_percent[a]):
+                                day = days[a]
+                                print(day.n)
+                                estimated_fp = others_medians[others_party][a]
+                                # print(estimated_fp)
+                                pref_adjust = estimated_fp * adj_flow
+                                print(pref_adjust)
+                                adjustments[a + min_index] += pref_adjust
+                                # print(a + min_index)
+                                # print(adjustments[a + min_index])
+                        # print(others_party)
+                        # print(polled_percent)
+                # print(adjustments)
+                adjustment_series = pd.Series(data=adjustments)
+                # print(adjustment_series)
+                df['ALP TPP'] = df['ALP FP']
+                for column in df:
+                    pref_tuple = (election_tuple[0], election_tuple[1], column)
+                    if pref_tuple not in preference_flows:
+                        continue
+                    preference_flow = preference_flows[pref_tuple]
+                    df['ALP TPP'] += df[column].fillna(0) * preference_flow
+                print(df['ALP TPP'].to_string())
+                df['ALP TPP'] += adjustment_series
+                print(df['ALP TPP'].to_string())
+                if desired_election.region() == 'fed':
+                    df['ALP TPP'] += 0.1  # leakage in LIB/NAT seats
 
             # drop any rows with N/A values for the current party
             df = df.dropna(subset=[party])
@@ -359,6 +391,9 @@ def run_models():
             output_house_effects = './Outputs/fp_house_effects_' + \
                 ''.join(election_tuple) + '_' + party + '.csv'
 
+            if party in others_parties:
+                others_medians[party] = {}
+
             # Extract trend data from model summary and write to file
             probs_list = [0.001]
             for i in range(1, 100):
@@ -366,7 +401,6 @@ def run_models():
             probs_list.append(0.999)
             output_probs = tuple(probs_list)
             summary = fit.summary(probs=output_probs)['summary']
-            print('Got Summary ...')
             trend_file = open(output_trend, 'w')
             trend_file.write('Start date day,Month,Year\n')
             trend_file.write(start.strftime('%d,%m,%Y\n'))
@@ -382,8 +416,13 @@ def run_models():
                 trend_file.write(str(summaryDay) + ",")
                 trend_file.write(party + ",")
                 for col in range(3, 3+len(output_probs)-1):
-                    trendValue = summary[table_index][col]
-                    trend_file.write(str(trendValue) + ',')
+                    trend_value = summary[table_index][col]
+                    trend_file.write(str(trend_value) + ',')
+                if party in others_parties:
+                    # Average of first and last
+                    median_col = math.floor((4+len(output_probs)) / 2)
+                    median_val = summary[table_index][median_col]
+                    others_medians[party][summaryDay] = median_val
                 trend_file.write(
                     str(summary[table_index][3+len(output_probs)-1]) + '\n')
             trend_file.close()
@@ -439,6 +478,7 @@ def run_models():
 
             house_effects_file.close()
             print('Saved house effects file at ' + output_house_effects)
+        print(others_medians)
 
 
 if __name__ == '__main__':
