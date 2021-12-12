@@ -153,11 +153,7 @@ def run_models():
         election_tuple = (str(desired_election.year()),
                           desired_election.region())
         others_medians = {}
-        # for party in parties[election_tuple] + ['ALP TPP']:
-        for party in ['UAP FP', 'ONP FP', 'ALP TPP']:
-        # for party in ['ALP TPP']:  #Temporary for debug speed, doesn't recalc fp votes
-                                          #Replace with commented line
-
+        for party in parties[election_tuple] + ['ALP TPP']:
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
             # page on next Australian Federal Election
@@ -187,9 +183,9 @@ def run_models():
                 min_index = df.index.values.tolist()[0]
                 # print(min_index)
                 adjustments = {a + min_index: 0 for a in range(0, num_polls)}
-                for others_party in others_parties:
+                for others_party in others_parties + ['GRN FP']:
                     days = df['Day'].values.tolist()
-                    if others_party in df:
+                    if others_party in df and others_party in others_medians:
                         pref_tuple = (election_tuple[0], election_tuple[1], others_party)
                         oth_tuple = (election_tuple[0], election_tuple[1], 'OTH FP')
                         polled_percent = df[others_party].values.tolist()
@@ -198,25 +194,35 @@ def run_models():
                             if math.isnan(polled_percent[a]):
                                 day = days[a]
                                 print(day.n)
-                                estimated_fp = others_medians[others_party][a]
-                                # print(estimated_fp)
+                                estimated_fp = others_medians[others_party][day.n]
+                                print(estimated_fp)
                                 pref_adjust = estimated_fp * adj_flow
                                 print(pref_adjust)
                                 adjustments[a + min_index] += pref_adjust
-                                # print(a + min_index)
-                                # print(adjustments[a + min_index])
-                        # print(others_party)
-                        # print(polled_percent)
-                # print(adjustments)
+                                print(a + min_index)
+                                print(adjustments[a + min_index])
+                        print(others_party)
+                        print(polled_percent)
+                print(adjustments)
                 adjustment_series = pd.Series(data=adjustments)
-                # print(adjustment_series)
+                print(adjustment_series)
                 df['ALP TPP'] = df['ALP FP']
                 for column in df:
                     pref_tuple = (election_tuple[0], election_tuple[1], column)
                     if pref_tuple not in preference_flows:
                         continue
                     preference_flow = preference_flows[pref_tuple]
-                    df['ALP TPP'] += df[column].fillna(0) * preference_flow
+                    if column == 'OTH FP':
+                        lnp_col = 'LIB FP' if 'LIB FP' in df else 'LNP FP'
+                        pref_col = df.apply(
+                            lambda row: (100-row['ALP FP']-row[lnp_col]-
+                                (row['GRN FP'] if 'GRN FP' in row else 0))
+                                if np.isnan(row['OTH FP']) else row['OTH FP'],
+                            axis=1
+                        )
+                    else:
+                        pref_col = df[column].fillna(0)
+                    df['ALP TPP'] += pref_col * preference_flow
                 print(df['ALP TPP'].to_string())
                 df['ALP TPP'] += adjustment_series
                 print(df['ALP TPP'].to_string())
@@ -391,7 +397,7 @@ def run_models():
             output_house_effects = './Outputs/fp_house_effects_' + \
                 ''.join(election_tuple) + '_' + party + '.csv'
 
-            if party in others_parties:
+            if party in others_parties or party == 'GRN FP':
                 others_medians[party] = {}
 
             # Extract trend data from model summary and write to file
@@ -418,7 +424,7 @@ def run_models():
                 for col in range(3, 3+len(output_probs)-1):
                     trend_value = summary[table_index][col]
                     trend_file.write(str(trend_value) + ',')
-                if party in others_parties:
+                if party in others_parties or party == 'GRN FP':
                     # Average of first and last
                     median_col = math.floor((4+len(output_probs)) / 2)
                     median_val = summary[table_index][median_col]
