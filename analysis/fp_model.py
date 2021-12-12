@@ -193,19 +193,19 @@ def run_models():
                         for a in range(0, num_polls):
                             if math.isnan(polled_percent[a]):
                                 day = days[a]
-                                print(day.n)
+                                # print(day.n)
                                 estimated_fp = others_medians[others_party][day.n]
-                                print(estimated_fp)
+                                # print(estimated_fp)
                                 pref_adjust = estimated_fp * adj_flow
-                                print(pref_adjust)
+                                # print(pref_adjust)
                                 adjustments[a + min_index] += pref_adjust
-                                print(a + min_index)
-                                print(adjustments[a + min_index])
-                        print(others_party)
-                        print(polled_percent)
-                print(adjustments)
+                                # print(a + min_index)
+                                # print(adjustments[a + min_index])
+                        # print(others_party)
+                        # print(polled_percent)
+                # print(adjustments)
                 adjustment_series = pd.Series(data=adjustments)
-                print(adjustment_series)
+                # print(adjustment_series)
                 df['ALP TPP'] = df['ALP FP']
                 for column in df:
                     pref_tuple = (election_tuple[0], election_tuple[1], column)
@@ -214,18 +214,17 @@ def run_models():
                     preference_flow = preference_flows[pref_tuple]
                     if column == 'OTH FP':
                         lnp_col = 'LIB FP' if 'LIB FP' in df else 'LNP FP'
-                        pref_col = df.apply(
-                            lambda row: (100-row['ALP FP']-row[lnp_col]-
-                                (row['GRN FP'] if 'GRN FP' in row else 0))
-                                if np.isnan(row['OTH FP']) else row['OTH FP'],
+                        df['OTH FP'] = df.apply(
+                            lambda row: 100 - row['ALP FP'] - row[lnp_col] - (row['GRN FP'] if not math.isnan(row['GRN FP']) else 0) if pd.isnull(row['OTH FP']) else row['OTH FP'],
                             axis=1
                         )
-                    else:
-                        pref_col = df[column].fillna(0)
+                    pref_col = df[column].fillna(0)
+                    # print(column)
+                    # print(pref_col)
                     df['ALP TPP'] += pref_col * preference_flow
-                print(df['ALP TPP'].to_string())
+                # print(df['ALP TPP'].to_string())
                 df['ALP TPP'] += adjustment_series
-                print(df['ALP TPP'].to_string())
+                # print(df['ALP TPP'].to_string())
                 if desired_election.region() == 'fed':
                     df['ALP TPP'] += 0.1  # leakage in LIB/NAT seats
 
