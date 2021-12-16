@@ -320,3 +320,4 @@ __pycache__/
 /analysis/Poll data converter.xlsx
 .env
 /uploads/latest.dat
+/uploads/latest_json.dat

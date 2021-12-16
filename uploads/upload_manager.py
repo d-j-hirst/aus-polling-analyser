@@ -6,7 +6,7 @@ import argparse
 parser = argparse.ArgumentParser(
     description='Determine trend adjustment parameters')
 parser.add_argument('--local', action='store_true',
-                    help='Upload to remote server only (default)')
+                    help='Upload to local server only (default)')
 parser.add_argument('--remote', action='store_true',
                     help='Upload to remote server only')
 parser.add_argument('--all', action='store_true',
@@ -22,7 +22,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, 'uploads/.env'))
 AUTO_EMAIL = env('AUTO_EMAIL')
 AUTO_PASSWORD = env('AUTO_PASSWORD')
 
-with open("latest.dat") as f:
+with open("latest_json.dat") as f:
     data = f.read()
 
 login_data = {'email': AUTO_EMAIL, 'password': AUTO_PASSWORD}

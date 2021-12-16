@@ -375,6 +375,7 @@
     <ClInclude Include="ElectionCollection.h" />
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="FloatInput.h" />
+    <ClInclude Include="json.h" />
     <ClInclude Include="MacroRunner.h" />
     <ClInclude Include="OrthogonalRegression.h" />
     <ClInclude Include="ReportUploader.h" />
