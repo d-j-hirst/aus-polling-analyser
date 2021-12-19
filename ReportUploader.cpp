@@ -37,6 +37,9 @@ std::string ReportUploader::upload()
 		{1, thisReport.report.getPartyOverallWinPercent(Simulation::MajorParty::Two)},
 		{-1, thisReport.report.getOthersOverallWinPercent()}
 	};
+	j["majorityWinPc"] = thisReport.report.majorityPercent;
+	j["minorityWinPc"] = thisReport.report.minorityPercent;
+	j["mostSeatsWinPc"] = thisReport.report.mostSeatsPercent;
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";

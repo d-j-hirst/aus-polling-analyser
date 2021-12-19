@@ -191,7 +191,7 @@ float Simulation::Report::getPartyOverallWinPercent(int whichParty) const
 		totalWinPercent += percent;
 	}
 	// Distribute exact ties in proportion to other wins
-	return thisWinPercent * 100.0f / totalWinPercent;
+	return thisWinPercent + 0.5f * (100.0f - totalWinPercent);
 }
 
 float Simulation::Report::getOthersOverallWinPercent() const
@@ -212,7 +212,7 @@ float Simulation::Report::getOthersOverallWinPercent() const
 			totalWinPercent += mostSeatsPercent.at(party);
 		}
 	}
-	return othersOverallWinPercent * 100.0f / totalWinPercent;
+	return othersOverallWinPercent;
 }
 
 int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const
