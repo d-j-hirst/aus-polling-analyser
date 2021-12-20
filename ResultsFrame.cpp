@@ -439,7 +439,7 @@ std::string ResultsFrame::decideSummaryString()
 		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +
 		party2 + " " + formatFloat(report->getPartyWinExpectation(1), 2) +
 		" Others " + formatFloat(report->getOthersWinExpectation(), 2) +
-		"   Count progress: " + formatFloat(report->get2cpPercentCounted(), 2) + "%\n" +
+		"   Count progress: " + formatFloat(report->getTcpPercentCounted(), 2) + "%\n" +
 		party1 + " swing by region: ";
 	//for (auto const& regionPair : project->regions()) {
 	//	Region const& thisRegion = regionPair.second;

@@ -530,7 +530,7 @@ void DisplayFrameRenderer::drawVoteShareBoxRows() const
 	dc.SetFont(font(rowSize - 8));
 
 
-	for (auto [partyIndex, dummy] : simulation.partyPrimaryFrequency) {
+	for (auto [partyIndex, _] : simulation.partyPrimaryFrequency) {
 		if (partyIndex == OthersIndex) continue;
 		drawVoteShareBoxRow(voteBoxNameRect, partyIndex);
 	}
@@ -551,13 +551,13 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 		dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 		// Parties with a primary vote of exactly 0 are generally to be considered "not analysed"
 		// than actually zero, so we don't print them with an actual value
-		if (simulation.partyPrimaryFrequency.contains(partyIndex) && simulation.getPrimarySampleCount(partyIndex) &&
-			simulation.getPrimarySampleExpectation(partyIndex) > 0.0f)
+		if (simulation.partyPrimaryFrequency.contains(partyIndex) && simulation.getFpSampleCount(partyIndex) &&
+			simulation.getFpSampleExpectation(partyIndex) > 0.0f)
 		{
-			float expectation = simulation.getPrimarySampleExpectation(partyIndex);
+			float expectation = simulation.getFpSampleExpectation(partyIndex);
 			dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
 			voteBoxDataRect.Offset(width, 0);
-			float median = simulation.getPrimarySampleMedian(partyIndex);
+			float median = simulation.getFpSampleMedian(partyIndex);
 			dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
 		}
 		else {
@@ -578,16 +578,16 @@ void DisplayFrameRenderer::drawVoteShareBoxOthersRow(wxRect& nameRect) const
 	std::string name = "Others";
 	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 	if (simulation.partyPrimaryFrequency.contains(OthersIndex)) {
-		float meanVote = simulation.getPrimarySampleExpectation(OthersIndex);
+		float meanVote = simulation.getFpSampleExpectation(OthersIndex);
 		dc.DrawLabel(formatFloat(meanVote, 1), voteBoxDataRect, wxALIGN_CENTRE);
 		voteBoxDataRect.Offset(width, 0);
-		float medianVote = simulation.getPrimarySampleMedian(OthersIndex);
+		float medianVote = simulation.getFpSampleMedian(OthersIndex);
 		dc.DrawLabel(formatFloat(medianVote, 1), voteBoxDataRect, wxALIGN_CENTRE);
 	}
 	else {
 		float totalVote = 0.0f;
 		for (auto const& [partyIndex, primaryFrequencies] : simulation.partyPrimaryFrequency) {
-			totalVote += simulation.getPrimarySampleExpectation(partyIndex);
+			totalVote += simulation.getFpSampleExpectation(partyIndex);
 		}
 		float othersVote = 100.0f - totalVote;
 		dc.DrawLabel(formatFloat(othersVote, 1), voteBoxDataRect, wxALIGN_CENTRE);
@@ -605,11 +605,11 @@ void DisplayFrameRenderer::drawVoteShareBoxPartyOneTppRow(wxRect& nameRect) cons
 	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
 	std::string name = simulation.partyAbbr.at(0) + " TPP";
 	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
-	if (simulation.get2ppSampleCount()) {
-		float expectation = simulation.get2ppSampleExpectation();
+	if (simulation.getTppSampleCount()) {
+		float expectation = simulation.getTppSampleExpectation();
 		dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
 		voteBoxDataRect.Offset(width, 0);
-		float median = simulation.get2ppSampleMedian();
+		float median = simulation.getTppSampleMedian();
 		dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
 	}
 	else {
@@ -628,11 +628,11 @@ void DisplayFrameRenderer::drawVoteShareBoxPartyTwoTppRow(wxRect& nameRect) cons
 	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
 	std::string name = simulation.partyAbbr.at(1) + " TPP";
 	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
-	if (simulation.get2ppSampleCount()) {
-		float expectation = 100.0f - simulation.get2ppSampleExpectation();
+	if (simulation.getTppSampleCount()) {
+		float expectation = 100.0f - simulation.getTppSampleExpectation();
 		dc.DrawLabel(formatFloat(expectation, 1), voteBoxDataRect, wxALIGN_CENTRE);
 		voteBoxDataRect.Offset(width, 0);
-		float median = 100.0f - simulation.get2ppSampleMedian();
+		float median = 100.0f - simulation.getTppSampleMedian();
 		dc.DrawLabel(formatFloat(median, 1), voteBoxDataRect, wxALIGN_CENTRE);
 	}
 	else {

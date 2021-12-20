@@ -197,19 +197,23 @@ public:
 
 		int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) const;
 
-		int getPrimarySampleCount(int partyIndex) const;
+		int getFpSampleCount(int partyIndex) const;
 
-		float getPrimarySampleExpectation(int partyIndex) const;
+		float getFpSampleExpectation(int partyIndex) const;
 
-		float getPrimarySampleMedian(int partyIndex) const;
+		// Get the given percentile for this party's overall primary vote.
+		// Percentile should be expressed as a percentage e.g. median as 50.0f.
+		float getFpSamplePercentile(int partyIndex, float percentile) const;
 
-		int get2ppSampleCount() const;
+		float getFpSampleMedian(int partyIndex) const;
 
-		float get2ppSampleExpectation() const;
+		int getTppSampleCount() const;
 
-		float get2ppSampleMedian() const;
+		float getTppSampleExpectation() const;
 
-		float get2cpPercentCounted() const { return total2cpPercentCounted; }
+		float getTppSampleMedian() const;
+
+		float getTcpPercentCounted() const { return total2cpPercentCounted; }
 
 		// Get the number of seats in this region in which non-major parties are leading
 		int getOthersLeading(int regionIndex) const;
