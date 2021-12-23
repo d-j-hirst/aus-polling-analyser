@@ -42,10 +42,10 @@ std::string ReportUploader::upload()
 	j["mostSeatsWinPc"] = thisReport.report.mostSeatsPercent;
 	const std::vector<float> thresholds = {0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f};
 	j["voteTotalThresholds"] = thresholds;
-	std::map<int, std::vector<float>> fpFrequencies;
+	typedef std::vector<float> VF;
+	std::map<int, VF> fpFrequencies;
 	for (auto [partyIndex, frequencies] : thisReport.report.partyPrimaryFrequency) {
 		if (thisReport.report.getFpSampleExpectation(partyIndex) > 0.0f) {
-			typedef std::vector<float> VF;
 			VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
 				[this, partyIndex](VF v, float percentile) {
 					v.push_back(thisReport.report.getFpSamplePercentile(partyIndex, percentile));
@@ -55,6 +55,12 @@ std::string ReportUploader::upload()
 		}
 	}
 	j["fpFrequencies"] = fpFrequencies;
+	std::vector<float> tppFrequencies = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
+		[this](VF v, float percentile) {
+			v.push_back(thisReport.report.getTppSamplePercentile(percentile));
+			return v;
+		});
+	j["tppFrequencies"] = tppFrequencies;
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";

@@ -213,6 +213,10 @@ public:
 
 		float getTppSampleMedian() const;
 
+		// Get the given percentile for this party's overall primary vote.
+		// Percentile should be expressed as a percentage e.g. median as 50.0f.
+		float getTppSamplePercentile(float percentile) const;
+
 		float getTcpPercentCounted() const { return total2cpPercentCounted; }
 
 		// Get the number of seats in this region in which non-major parties are leading

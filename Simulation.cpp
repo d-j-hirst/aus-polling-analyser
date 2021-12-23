@@ -324,13 +324,21 @@ float Simulation::Report::getTppSampleExpectation() const
 
 float Simulation::Report::getTppSampleMedian() const
 {
+	return getTppSamplePercentile(50.0f);
+}
+
+float Simulation::Report::getTppSamplePercentile(float percentile) const
+{
 	int totalCount = getTppSampleCount();
 	if (!totalCount) return 0.0f;
+	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
 	int currentCount = 0;
 	for (auto const& [bucketKey, bucketCount] : tppFrequency) {
+		int prevCount = currentCount;
 		currentCount += bucketCount;
-		if (currentCount > totalCount / 2) {
-			return float(bucketKey) * 0.1f;
+		if (currentCount > targetCount) {
+			float extra = (float(targetCount) - float(prevCount)) / (float(currentCount) - float(prevCount)) * 0.1f;
+			return float(bucketKey) * 0.1f + extra;
 		}
 	}
 	return 100.0f;
