@@ -187,6 +187,10 @@ public:
 
 		int getMaximumSeatFrequency(int partyIndex) const;
 
+		int getPartySeatsSampleCount(int partyIndex) const;
+
+		int getPartySeatsPercentile(int partyIndex, float percentile) const;
+
 		int getModalSeatFrequencyCount(int partyIndex) const;
 
 		double getPartyOne2pp() const;

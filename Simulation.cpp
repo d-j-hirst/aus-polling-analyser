@@ -235,6 +235,29 @@ int Simulation::Report::getMaximumSeatFrequency(int partyIndex) const
 	return 0;
 }
 
+int Simulation::Report::getPartySeatsSampleCount(int partyIndex) const
+{
+	return std::accumulate(partySeatWinFrequency.at(partyIndex).begin(), partySeatWinFrequency.at(partyIndex).end(), 0);
+}
+
+int Simulation::Report::getPartySeatsPercentile(int partyIndex, float percentile) const
+{
+	PA_LOG_VAR(partySeatWinFrequency);
+	int totalCount = getPartySeatsSampleCount(partyIndex);
+	if (!totalCount) return 0.0f;
+	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
+	int currentCount = 0;
+	auto const& thisSeatFreqs = partySeatWinFrequency.at(partyIndex);
+	for (int seatCount = 0; seatCount < int(thisSeatFreqs.size()); ++seatCount) {
+		int bucketCount = thisSeatFreqs.at(seatCount);
+		currentCount += bucketCount;
+		if (currentCount > targetCount) {
+			return seatCount;
+		}
+	}
+	return 100.0f;
+}
+
 int Simulation::Report::getModalSeatFrequencyCount(int partyIndex) const
 {
 	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;

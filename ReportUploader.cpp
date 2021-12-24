@@ -61,6 +61,17 @@ std::string ReportUploader::upload()
 			return v;
 		});
 	j["tppFrequencies"] = tppFrequencies;
+	typedef std::vector<int> VI;
+	std::map<int, VI> seatFrequencies;
+	for (auto [partyIndex, frequencies] : thisReport.report.partySeatWinFrequency) {
+		VI partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VI(),
+			[this, partyIndex](VI v, float percentile) {
+				v.push_back(thisReport.report.getPartySeatsPercentile(partyIndex, percentile));
+				return v;
+			});
+		seatFrequencies[partyIndex] = partyThresholds;
+	}
+	j["seatFrequencies"] = seatFrequencies;
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";
