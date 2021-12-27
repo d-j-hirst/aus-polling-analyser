@@ -71,7 +71,11 @@ std::string ReportUploader::upload()
 			});
 		seatFrequencies[partyIndex] = partyThresholds;
 	}
-	j["seatFrequencies"] = seatFrequencies;
+	j["seatCountFrequencies"] = seatFrequencies;
+	j["seatNames"] = thisReport.report.seatName;
+	j["seatIncumbents"] = thisReport.report.seatIncumbents;
+	j["seatMargins"] = thisReport.report.seatMargins;
+	j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";

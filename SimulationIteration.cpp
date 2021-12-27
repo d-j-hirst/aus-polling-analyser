@@ -1081,7 +1081,6 @@ void SimulationIteration::recordSeatFpVotes(int seatIndex)
 void SimulationIteration::recordSeatTcpVotes(int seatIndex)
 {
 	auto parties = seatTcpVoteShare[seatIndex].first;
-	if (isMajor(parties.first) && isMajor(parties.second)) return; // don't bother recording classic tpp
 	float tcpPercent = seatTcpVoteShare[seatIndex].second;
 	int bucket = std::clamp(int(std::floor(tcpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
 	++run.seatTcpDistribution[seatIndex][parties][bucket];

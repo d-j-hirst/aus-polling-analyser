@@ -247,6 +247,7 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 	sim.latestReport.seatTcpProbabilityBand.resize(project.seats().count());
 	sim.latestReport.seatTcpScenarioPercent.resize(project.seats().count());
 	sim.latestReport.seatTcpWinPercent.resize(project.seats().count());
+	logger << run.seatTcpDistribution;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		logger << project.seats().viewByIndex(seatIndex).name << "\n";
 		logger << " Tcp percent:\n";
@@ -301,6 +302,9 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 			logger << "   Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
 		}
 	}
+
+	logger << "Scenario percent!" << "\n";
+	logger << sim.latestReport.seatTcpScenarioPercent[0] << "\n";
 }
 
 void SimulationCompletion::recordReportSettings()
