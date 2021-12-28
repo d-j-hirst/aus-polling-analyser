@@ -43,7 +43,8 @@
 // Version 36: Remove various legacy data
 // Version 37: Save election name
 // Version 38: Save simulation report mode
-constexpr int VersionNum = 38;
+// Version 39: Improve flexibility of report probability bands
+constexpr int VersionNum = 39;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -562,6 +563,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.partyTwoWinPercent;
 	saveOutput << report.othersWinPercent;
 	saveOutput << report.seatPartyWinPercent;
+	saveOutput << report.probabilityBands;
 	saveOutput << report.seatFpProbabilityBand;
 	saveOutput << report.seatTcpProbabilityBand;
 	saveOutput << report.seatTcpScenarioPercent;
@@ -675,11 +677,28 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 		report.othersWinPercent.resize(report.seatName.size());
 		report.seatPartyWinPercent.resize(report.seatName.size());
 	}
-	if (versionNum >= 31) {
+
+	typedef std::array<float, 9> ProbabilityBands;
+	if (versionNum >= 31 && versionNum <= 38) {
+		// Not worth keeping legacy probability bands, just consume them
+		// The old reports will likely be regenerated anyway
+		std::vector<std::map<int, ProbabilityBands>> legacyFpBands;
+		saveInput >> legacyFpBands;
+	}
+	if (versionNum >= 39) {
+		saveInput >> report.probabilityBands;
 		saveInput >> report.seatFpProbabilityBand;
 	}
 	if (versionNum >= 32) {
-		saveInput >> report.seatTcpProbabilityBand;
+		if (versionNum <= 38) {
+			// Not worth keeping legacy probability bands, just consume them
+			// The old reports will likely be regenerated anyway
+			std::vector<std::map<std::pair<int, int>, ProbabilityBands>> legacyTcpBands;
+			saveInput >> legacyTcpBands;
+		}
+		if (versionNum >= 39) {
+			saveInput >> report.seatTcpProbabilityBand;
+		}
 		saveInput >> report.seatTcpScenarioPercent;
 		saveInput >> report.seatTcpWinPercent;
 	}

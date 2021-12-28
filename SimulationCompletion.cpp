@@ -196,6 +196,7 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 
 void SimulationCompletion::recordSeatFpVoteStats()
 {
+	sim.latestReport.probabilityBands = sim.latestReport.CurrentlyUsedProbabilityBands;
 	sim.latestReport.seatPartyMeanFpShare.resize(project.seats().count());
 	sim.latestReport.seatFpProbabilityBand.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -214,16 +215,17 @@ void SimulationCompletion::recordSeatFpVoteStats()
 			logger << ": " << fpVoteShare << ", " << "distribution: ";
 			auto const& distribution = run.seatPartyFpDistribution[seatIndex][partyIndex];
 			int cumulative = sim.settings.numIterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+			sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex].resize(sim.latestReport.probabilityBands.size());
 			int currentProbabilityBand = 0;
 			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
 				if (distribution[a] > 0) {
 					float lowerPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
 					cumulative += distribution[a];
 					float upperPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
-					while (currentProbabilityBand < Simulation::Report::ProbabilityBandCount && Simulation::Report::probabilityBand[currentProbabilityBand] < 
+					while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
 						float(cumulative) / float(sim.settings.numIterations) * 100.0f)
 					{
-						float band = Simulation::Report::probabilityBand[currentProbabilityBand];
+						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
 						float exactFp = float(a) + exactFrac;
 						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
@@ -244,6 +246,7 @@ void SimulationCompletion::recordSeatFpVoteStats()
 
 void SimulationCompletion::recordSeatTcpVoteStats()
 {
+	sim.latestReport.probabilityBands = sim.latestReport.CurrentlyUsedProbabilityBands;
 	sim.latestReport.seatTcpProbabilityBand.resize(project.seats().count());
 	sim.latestReport.seatTcpScenarioPercent.resize(project.seats().count());
 	sim.latestReport.seatTcpWinPercent.resize(project.seats().count());
@@ -266,6 +269,7 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 			else if (parties.second == -3) logger << "Emerging Party";
 			float scenarioPercent = float(total) / float(sim.settings.numIterations);
 			sim.latestReport.seatTcpScenarioPercent[seatIndex][parties] = scenarioPercent;
+			sim.latestReport.seatTcpProbabilityBand[seatIndex][parties].resize(sim.latestReport.probabilityBands.size());
 			logger << " - scenario frequency: " << scenarioPercent << " - distribution: ";
 			int cumulative = 0;
 			int currentProbabilityBand = 0;
@@ -280,10 +284,10 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 					}
 					cumulative += distribution[a];
 					float upperPercentile = float(cumulative) / float(total) * 100.0f;
-					while (currentProbabilityBand < Simulation::Report::ProbabilityBandCount && Simulation::Report::probabilityBand[currentProbabilityBand] <
+					while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
 						float(cumulative) / float(total) * 100.0f)
 					{
-						float band = Simulation::Report::probabilityBand[currentProbabilityBand];
+						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
 						float exactFp = float(a) + exactFrac;
 						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;

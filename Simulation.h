@@ -143,14 +143,13 @@ public:
 
 		std::vector<std::map<int, float>> seatPartyMeanFpShare;
 
-		constexpr static int ProbabilityBandCount = 9;
-		typedef std::array<float, ProbabilityBandCount> ProbabilityBands;
-		constexpr static ProbabilityBands probabilityBand =
-			{ 0.5f, 2.5f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 97.5f, 99.5f };
+		static const std::vector<float> CurrentlyUsedProbabilityBands;
 
-		std::vector<std::map<int, ProbabilityBands>> seatFpProbabilityBand;
+		std::vector<float> probabilityBands;
 
-		std::vector<std::map<std::pair<int, int>, ProbabilityBands>> seatTcpProbabilityBand;
+		std::vector<std::map<int, std::vector<float>>> seatFpProbabilityBand;
+
+		std::vector<std::map<std::pair<int, int>, std::vector<float>>> seatTcpProbabilityBand;
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpScenarioPercent;
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpWinPercent;
 

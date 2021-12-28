@@ -11,6 +11,8 @@
 #undef min
 #undef max
 
+const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = { 0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f };
+
 void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedback)
 {
 	auto const& baseModel = project.projections().view(settings.baseProjection).getBaseModel(project.models());
