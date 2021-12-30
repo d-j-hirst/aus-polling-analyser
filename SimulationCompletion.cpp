@@ -179,7 +179,17 @@ void SimulationCompletion::recordNames()
 		sim.latestReport.seatName.push_back(project.seats().viewByIndex(index).name);
 		sim.latestReport.seatIncumbents.push_back(project.seats().viewByIndex(index).incumbent);
 		sim.latestReport.seatMargins.push_back(project.seats().viewByIndex(index).tppMargin);
+		if (project.seats().viewByIndex(index).incumbent == 0) {
+			sim.latestReport.seatIncumbentMargins.push_back(project.seats().viewByIndex(index).tppMargin);
+		}
+		else if (project.seats().viewByIndex(index).incumbent == 1) {
+			sim.latestReport.seatIncumbentMargins.push_back(-project.seats().viewByIndex(index).tppMargin);
+		}
+		else {
+			sim.latestReport.seatIncumbentMargins.push_back(run.pastSeatResults[index].tcpVote.at(project.seats().viewByIndex(index).incumbent) - 50.0f);
+		}
 	}
+	logger << sim.latestReport.seatIncumbentMargins;
 }
 
 void SimulationCompletion::recordSeatPartyWinPercentages()

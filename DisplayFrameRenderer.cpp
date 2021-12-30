@@ -701,8 +701,13 @@ void DisplayFrameRenderer::drawSeatsList() const
 		seatInfo.name = simulation.seatName[seatIndex];
 		int incumbent = simulation.seatIncumbents[seatIndex];
 		seatInfo.incumbentText = simulation.partyAbbr.at(simulation.seatIncumbents[seatIndex]);
-		if (!incumbent) seatInfo.incumbentText += " (" + formatFloat(simulation.seatMargins[seatIndex], 1) + "%)";
-		else if (incumbent == 1) seatInfo.incumbentText += " (" + formatFloat(-simulation.seatMargins[seatIndex], 1) + "%)";
+		if (simulation.seatIncumbentMargins.size()) {
+			seatInfo.incumbentText += " (" + formatFloat(simulation.seatIncumbentMargins[seatIndex], 1) + "%)";
+		}
+		else {
+			if (!incumbent) seatInfo.incumbentText += " (" + formatFloat(simulation.seatMargins[seatIndex], 1) + "%)";
+			else if (incumbent == 1) seatInfo.incumbentText += " (" + formatFloat(-simulation.seatMargins[seatIndex], 1) + "%)";
+		}
 		if (simulation.seatPartyWinPercent[seatIndex].contains(0)) seatInfo.partyOneWinRate = simulation.seatPartyWinPercent[seatIndex].at(0);
 		if (simulation.seatPartyWinPercent[seatIndex].contains(1)) seatInfo.partyTwoWinRate = simulation.seatPartyWinPercent[seatIndex].at(1);
 		int bestOthersIndex = -1;

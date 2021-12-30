@@ -44,7 +44,8 @@
 // Version 37: Save election name
 // Version 38: Save simulation report mode
 // Version 39: Improve flexibility of report probability bands
-constexpr int VersionNum = 39;
+// Version 40: Save incumbent margin on simulation reports
+constexpr int VersionNum = 40;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -558,6 +559,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.seatName;
 	saveOutput << report.seatIncumbents;
 	saveOutput << report.seatMargins;
+	saveOutput << report.seatIncumbentMargins;
 	saveOutput << report.seatPartyOneMarginAverage;
 	saveOutput << report.partyOneWinPercent;
 	saveOutput << report.partyTwoWinPercent;
@@ -648,6 +650,9 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	saveInput >> report.seatName;
 	saveInput >> report.seatIncumbents;
 	saveInput >> report.seatMargins;
+	if (versionNum >= 40) {
+		saveInput >> report.seatIncumbentMargins;
+	}
 	if (versionNum <= 24) {
 		std::vector<float> tempObj;
 		saveInput >> tempObj;

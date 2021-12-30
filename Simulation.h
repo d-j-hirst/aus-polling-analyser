@@ -130,6 +130,8 @@ public:
 
 		std::vector<float> seatMargins;
 
+		std::vector<float> seatIncumbentMargins;
+
 		std::vector<float> partyOneWinPercent;
 		std::vector<float> partyTwoWinPercent;
 		std::vector<float> othersWinPercent;
