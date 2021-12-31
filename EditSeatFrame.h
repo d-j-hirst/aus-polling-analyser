@@ -64,6 +64,8 @@ private:
 	void createRetirementInput(int& y);
 	void createDisendorsementInput(int& y);
 	void createPreviousDisendorsementInput(int& y);
+	void createIncumbentRecontestConfirmedInput(int& y);
+	void createConfirmedProminentIndependentInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -98,6 +100,8 @@ private:
 	std::unique_ptr<CheckInput> retirementInput;
 	std::unique_ptr<CheckInput> disendorsementInput;
 	std::unique_ptr<CheckInput> previousDisendorsementInput;
+	std::unique_ptr<CheckInput> incumbentRecontestConfirmedInput;
+	std::unique_ptr<CheckInput> confirmedProminentIndependentInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

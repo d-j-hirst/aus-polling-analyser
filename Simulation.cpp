@@ -244,7 +244,6 @@ int Simulation::Report::getPartySeatsSampleCount(int partyIndex) const
 
 int Simulation::Report::getPartySeatsPercentile(int partyIndex, float percentile) const
 {
-	PA_LOG_VAR(partySeatWinFrequency);
 	int totalCount = getPartySeatsSampleCount(partyIndex);
 	if (!totalCount) return 0.0f;
 	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));

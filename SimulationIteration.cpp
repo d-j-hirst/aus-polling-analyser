@@ -453,14 +453,17 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	float timeToElectionFactor = std::clamp(1.78f - 0.26f * log(float(daysToElection)), 0.0f, 1.0f);
 	if (seat.incumbent == partyIndex) {
 		recontestRateMixed += recontestIncumbentRateMixed;
-		// rough, un-empirical estimate of lower recontest rates with less time before election
+		// rough, un-empirical estimate of higher recontest rates with less time before election
 		recontestRateMixed += (1.0f - recontestRateMixed) * timeToElectionFactor;
+		// independents who have publically confirmed they are recontesting are given a much higher chance of
+		// actually running, but not 100% as unforeseen events may occur
+		if (seat.incumbentRecontestConfirmed) recontestRateMixed = 0.9f + 0.1f * recontestRateMixed;
 	}
 	else if (partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
 		// non-incumbent independents have a reverse effect: less likely to recontest as time passes
 		recontestRateMixed *= 1.0f - timeToElectionFactor;
 	}
-	// also, some day handle retirements for minor parties that are expected to stay competitive
+	// also, some day handle retirements for minor parties that would be expected to stay competitive
 	if (rng.uniform() > recontestRateMixed || (seat.retirement && partyIndex == seat.incumbent)) {
 
 		voteShare = 0.0f;
@@ -517,6 +520,7 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// Emergence of new independents
 	float indEmergenceRate = run.indEmergence.baseRate;
 	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
@@ -530,6 +534,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
 	float prevOthers = pastSeatResults[seatIndex].prevOthers;
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
+	if (seat.confirmedProminentIndependent) indEmergenceRate = 1.0f;
 	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;

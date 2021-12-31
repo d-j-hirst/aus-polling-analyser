@@ -30,6 +30,8 @@ enum ControlId
 	Retirement,
 	Disendorsement,
 	PreviousDisendorsement,
+	IncumbentRecontestConfirmed,
+	ConfirmedProminentIndependent,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -73,6 +75,8 @@ void EditSeatFrame::createControls(int & y)
 	createRetirementInput(y);
 	createDisendorsementInput(y);
 	createPreviousDisendorsementInput(y);
+	createIncumbentRecontestConfirmedInput(y);
+	createConfirmedProminentIndependentInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -234,6 +238,22 @@ void EditSeatFrame::createPreviousDisendorsementInput(int& y)
 	previousDisendorsementInput.reset(new CheckInput(this, ControlId::PreviousDisendorsement, "Previous Disendorsement", seat.previousDisendorsement,
 		wxPoint(2, y), previousDisendorsementCallback));
 	y += previousDisendorsementInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createIncumbentRecontestConfirmedInput(int& y)
+{
+	auto incumbentRecontestConfirmedCallback = [this](int i) -> void {seat.incumbentRecontestConfirmed = (i != 0); };
+	incumbentRecontestConfirmedInput.reset(new CheckInput(this, ControlId::IncumbentRecontestConfirmed, "Incumbent Recontest Confirmed", seat.incumbentRecontestConfirmed,
+		wxPoint(2, y), incumbentRecontestConfirmedCallback));
+	y += incumbentRecontestConfirmedInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createConfirmedProminentIndependentInput(int& y)
+{
+	auto confirmedProminentIndependentCallback = [this](int i) -> void {seat.confirmedProminentIndependent = (i != 0); };
+	confirmedProminentIndependentInput.reset(new CheckInput(this, ControlId::ConfirmedProminentIndependent, "Confirmed Prominent Independent", seat.confirmedProminentIndependent,
+		wxPoint(2, y), confirmedProminentIndependentCallback));
+	y += confirmedProminentIndependentInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createOkCancelButtons(int & y)

@@ -45,7 +45,8 @@
 // Version 38: Save simulation report mode
 // Version 39: Improve flexibility of report probability bands
 // Version 40: Save incumbent margin on simulation reports
-constexpr int VersionNum = 40;
+// Version 41: Save confirmed recontesting 3rd parties + confirmed prominent independents
+constexpr int VersionNum = 41;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -492,6 +493,8 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.retirement;
 		saveOutput << thisSeat.disendorsement;
 		saveOutput << thisSeat.previousDisendorsement;
+		saveOutput << thisSeat.incumbentRecontestConfirmed;
+		saveOutput << thisSeat.confirmedProminentIndependent;
 	}
 }
 
@@ -532,6 +535,10 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		if (versionNum >= 35) {
 			saveInput >> thisSeat.disendorsement;
 			saveInput >> thisSeat.previousDisendorsement;
+		}
+		if (versionNum >= 41) {
+			saveInput >> thisSeat.incumbentRecontestConfirmed;
+			saveInput >> thisSeat.confirmedProminentIndependent;
 		}
 		project.seatCollection.add(thisSeat);
 	}
