@@ -613,7 +613,7 @@ void SimulationPreparation::loadPastSeatResults()
 			// probably best to eventually run this with a per-party flag
 			// But at the moment that's low priority
 			if (party > 2 || party < 0) {
-				results.prevOthers += std::min(voteShare, run.indEmergence.fpThreshold);
+				results.prevOthers += std::min(voteShare, detransformVoteShare(run.indEmergence.fpThreshold));
 			}
 		}
 		results.prevOthers = std::max(2.0f, results.prevOthers);

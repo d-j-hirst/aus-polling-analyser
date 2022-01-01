@@ -534,7 +534,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
 	float prevOthers = pastSeatResults[seatIndex].prevOthers;
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
-	if (seat.confirmedProminentIndependent) indEmergenceRate = 1.0f;
+	if (seat.confirmedProminentIndependent) indEmergenceRate = 0.9f + 0.1f * indEmergenceRate;
 	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
@@ -545,6 +545,10 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
+		//PA_LOG_VAR(pastSeatResults[seatIndex].prevOthers);
+		//PA_LOG_VAR(prevOthersCoeff);
+		//PA_LOG_VAR(prevOthersCoeff / interceptSize);
+		//PA_LOG_VAR(rmse);
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
