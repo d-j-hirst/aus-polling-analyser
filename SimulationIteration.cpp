@@ -618,7 +618,42 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentTotalPrefs = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (!isMajor(partyIndex)) {
-			currentPartyOnePrefs += voteShare * overallPreferenceFlow[partyIndex] * 0.01f;
+			// *** Probably want to introduce some randomness into these - they assume
+			// an *exact* flow of preferences each time which is not realistic
+			if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
+				// Prominent independents and centrist candidates attract a lot
+				// of tactical voting from the less-favoured major party, so it's not accurate
+				// to give them the same share as the national vote
+				// We allocate the first 5% of the vote at national rates, the next 10% at a sliding scale
+				// up to the cap (see below), and the remained at the cap
+				// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
+				// by 0-5% at the previous two elections
+				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
+				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 20.0f, 80.0f);
+				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
+				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
+				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
+					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
+					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
+				float effectivePreferenceFlow = summedPreferenceFlow / voteShare;
+				currentPartyOnePrefs += voteShare * effectivePreferenceFlow * 0.01f;
+				//if (voteShare > 15.0f) {
+				//	PA_LOG_VAR(seat.name);
+				//	PA_LOG_VAR(seat.tppMargin);
+				//	PA_LOG_VAR(seat.previousSwing);
+				//	PA_LOG_VAR(partyIndex);
+				//	PA_LOG_VAR(voteShare);
+				//	PA_LOG_VAR(previousAverage);
+				//	PA_LOG_VAR(upperPreferenceFlow);
+				//	PA_LOG_VAR(basePreferenceFlow);
+				//	PA_LOG_VAR(transitionPreferenceFlow);
+				//	PA_LOG_VAR(summedPreferenceFlow);
+				//	PA_LOG_VAR(effectivePreferenceFlow);
+				//}
+			}
+			else {
+				currentPartyOnePrefs += voteShare * overallPreferenceFlow[partyIndex] * 0.01f;
+			}
 			currentTotalPrefs += voteShare;
 		}
 	}
@@ -658,7 +693,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (newPartyOneFp <= 0.0f) {
+	//if (seat.name == "Groom") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);

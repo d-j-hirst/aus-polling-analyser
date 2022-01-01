@@ -1,8 +1,29 @@
 Polling Analyser to-do:
--Test curl requests to public endpoints and develop a simple process by which data can be sent to server from analyzer program
--Secure data by password-protecting the response
--Work step by step to add more data flow from the authorised user and displaying it
+-Complete "TPP-first" alternative methodology for determining primary votes
+-Account for correlated error in emerging-ind performance
+-Add data display step by step to the webpage (* indicates not release-critical):
+ -Party vote totals
+  *Stacked area graph of distribution across time for individual parties
+ -Seat totals
+  *Bar graph of seat count distribution for all individual parties
+ -Individual seats
+  -List view
+  *cartogram, maybe map view depending on feasibility
+  -List view:
+   -Show chance of winning for each candidate/party
+   -Dropdown for:
+	-Show margin of victory distribution (horizonal shaded bars) across the most common TCP pairing
+	-Primary distributions
+	-Click through for full details including different TCP pairings
 -Develop documentation detailing the forecasting methodology
+ -FAQs
+  -What's the point?
+  -What if you're wrong?
+  -What about this hypothetical event?
+  -What's the difference between the regular forecast and the now-cast?
+  -What does it really mean for there to be an X% chance of winning an election/seat?
+  -Why don't the vote totals add to 100%? Why don't the seat totals add to the number of seats in Parliament?
+  -
 -Post-release, as soon as possible before election is called:
  -Integrate confirmed candidacies (for 3rd parties)
  -Integrate betting odds
