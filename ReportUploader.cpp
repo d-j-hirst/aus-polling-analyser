@@ -77,6 +77,8 @@ std::string ReportUploader::upload()
 	j["seatMargins"] = thisReport.report.seatIncumbentMargins;
 	j["seatPartyWinFrequencies"] = thisReport.report.seatPartyWinPercent;
 	j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;
+	j["seatFpBands"] = thisReport.report.seatFpProbabilityBand;
+	j["seatTcpBands"] = thisReport.report.seatTcpProbabilityBand;
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";

@@ -545,10 +545,6 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
-		//PA_LOG_VAR(pastSeatResults[seatIndex].prevOthers);
-		//PA_LOG_VAR(prevOthersCoeff);
-		//PA_LOG_VAR(prevOthersCoeff / interceptSize);
-		//PA_LOG_VAR(rmse);
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
@@ -732,6 +728,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//}
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = newPartyTwoFp;
+
 	normaliseSeatFp(seatIndex);
 	//if (seat.name == "Farrer") {
 	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
