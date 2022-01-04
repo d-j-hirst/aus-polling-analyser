@@ -17,7 +17,7 @@ with open('./Data/party-groups.csv', 'r') as f:
         b[0]: b[1:] for b in
         [a.strip().split(',') for a in f.readlines()]}
 
-average_length = {a: 6 if a == "ALP" or a == "LNP" else 1
+average_length = {a: 6 if a == "ALP" or a == "LNP" or a == "TPP" else 1
                   for a in party_groups.keys()}
 
 unnamed_others_code = party_groups['xOTH'][0]
@@ -269,7 +269,7 @@ class RegressionInputs:
 
 # Parties that shouldn't be included as part of the OTH FP
 # when calculating exclusive-others vote shares
-not_others = ['ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
+not_others = ['ALP TPP', 'ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
 
 
 def create_fundamentals_inputs(inputs, target_election, party, avg_len):
@@ -277,8 +277,9 @@ def create_fundamentals_inputs(inputs, target_election, party, avg_len):
     eventual_results = (inputs.eventual_results[e_p_c]
                         if e_p_c in inputs.eventual_results else 0)
     result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
-    incumbent = 1 if inputs.incumbency[target_election][0] == party else 0
-    opposition = 1 if inputs.incumbency[target_election][1] == party else 0
+    effective_party = 'ALP FP' if party == 'ALP TPP' else party
+    incumbent = 1 if inputs.incumbency[target_election][0] == effective_party else 0
+    opposition = 1 if inputs.incumbency[target_election][1] == effective_party else 0
     incumbency_length = (inputs.incumbency[target_election][2]
                         if incumbent else 0)
     opposition_length = (inputs.incumbency[target_election][2]
@@ -289,10 +290,10 @@ def create_fundamentals_inputs(inputs, target_election, party, avg_len):
         federal_opposite = 0
     else:
         federal_same = (inputs.federal_situation[target_election][2]
-                        if inputs.federal_situation[target_election][0] == party
+                        if inputs.federal_situation[target_election][0] == effective_party
                         else 1 - inputs.federal_situation[target_election][2])
         federal_opposite = (inputs.federal_situation[target_election][2]
-                        if inputs.federal_situation[target_election][1] == party
+                        if inputs.federal_situation[target_election][1] == effective_party
                         else 1 - inputs.federal_situation[target_election][2])
     return array([incumbent,
                   opposition,
@@ -338,15 +339,16 @@ def run_fundamentals_regression(config, inputs):
                     eventual_results = (inputs.eventual_results[e_p_c]
                                         if e_p_c in inputs.eventual_results else 0)
                     result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
-                    incumbent = 1 if inputs.incumbency[election][0] == party else 0
-                    opposition = 1 if inputs.incumbency[election][1] == party else 0
+                    effective_party = 'ALP FP' if party == 'ALP TPP' else party
+                    incumbent = 1 if inputs.incumbency[election][0] == effective_party else 0
+                    opposition = 1 if inputs.incumbency[election][1] == effective_party else 0
                     incumbency_length = (inputs.incumbency[election][2]
                                         if incumbent else 0)
                     opposition_length = (inputs.incumbency[election][2]
                                         if opposition else 0)
                     federal = 1 if election.region() == 'fed' else 0
-                    federal_same = 1 if not federal and inputs.federal_situation[election][0] == party else 0
-                    federal_opposite = 1 if not federal and inputs.federal_situation[election][1] == party else 0
+                    federal_same = 1 if not federal and inputs.federal_situation[election][0] == effective_party else 0
+                    federal_opposite = 1 if not federal and inputs.federal_situation[election][1] == effective_party else 0
                     result_deviations.append(result_deviation)
                     incumbents.append(incumbent)
                     oppositions.append(opposition)
@@ -365,6 +367,8 @@ def run_fundamentals_regression(config, inputs):
             dependent_array = array(result_deviations)
             reg = LinearRegression().fit(input_array, dependent_array)
             if config.show_fundamentals:
+                # print(f'{input_array}')
+                # print(f'{dependent_array}')
                 print(f'Election/party: {studied_election.short()}, '
                       f'{party_group_code}\n Coeffs: {reg.coef_}\n '
                       f'Intercept: {reg.intercept_}')
