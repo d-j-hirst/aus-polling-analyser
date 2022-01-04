@@ -153,7 +153,7 @@ def run_models():
         election_tuple = (str(desired_election.year()),
                           desired_election.region())
         others_medians = {}
-        for party in parties[election_tuple] + ['ALP TPP']:
+        for party in parties[election_tuple] + ['@TPP']:
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
             # page on next Australian Federal Election
@@ -177,8 +177,8 @@ def run_models():
             # store the election day for when the model needs it later
             election_day = (election_cycles[election_tuple][1] - start).n
 
-            if party == 'ALP TPP':
-                num_polls = len(df['TPP ALP'].values.tolist())
+            if party == '@TPP':
+                num_polls = len(df['@TPP'].values.tolist())
                 # print(num_polls)
                 min_index = df.index.values.tolist()[0]
                 # print(min_index)
@@ -206,7 +206,7 @@ def run_models():
                 # print(adjustments)
                 adjustment_series = pd.Series(data=adjustments)
                 # print(adjustment_series)
-                df['ALP TPP'] = df['ALP FP']
+                df['@TPP'] = df['ALP FP']
                 for column in df:
                     pref_tuple = (election_tuple[0], election_tuple[1], column)
                     if pref_tuple not in preference_flows:
@@ -221,12 +221,12 @@ def run_models():
                     pref_col = df[column].fillna(0)
                     # print(column)
                     # print(pref_col)
-                    df['ALP TPP'] += pref_col * preference_flow
-                # print(df['ALP TPP'].to_string())
-                df['ALP TPP'] += adjustment_series
-                # print(df['ALP TPP'].to_string())
+                    df['@TPP'] += pref_col * preference_flow
+                # print(df['@TPP'].to_string())
+                df['@TPP'] += adjustment_series
+                # print(df['@TPP'].to_string())
                 if desired_election.region() == 'fed':
-                    df['ALP TPP'] += 0.1  # leakage in LIB/NAT seats
+                    df['@TPP'] += 0.1  # leakage in LIB/NAT seats
 
             # drop any rows with N/A values for the current party
             df = df.dropna(subset=[party])
@@ -246,7 +246,7 @@ def run_models():
             # the prior result is not given
             if (election_tuple, party) in prior_results:
                 prior_result = max(0.25, prior_results[(election_tuple, party)])
-            elif party == 'ALP TPP':
+            elif party == '@TPP':
                 prior_result = 50  # placeholder TPP
             else:
                 prior_result = 0.25  # percentage
@@ -483,7 +483,6 @@ def run_models():
 
             house_effects_file.close()
             print('Saved house effects file at ' + output_house_effects)
-        print(others_medians)
 
 
 if __name__ == '__main__':

@@ -213,8 +213,11 @@ class PollTrend:
             for party in party_list:
                 if party == unnamed_others_code:
                     continue
+                # This "effective_party" is a quick hack done while changing party code conventions
+                # to avoid having to rerun all the models at one. Delete when no longer necessary.
+                effective_party = 'ALP TPP' if party == '@TPP' else party
                 trend_filename = (f'./Outputs/fp_trend_{election.year()}'
-                                  f'{election.region()}_{party}.csv')
+                                  f'{election.region()}_{effective_party}.csv')
                 if config.show_loaded_files:
                     print(trend_filename)
                 data = import_trend_file(trend_filename)
@@ -269,7 +272,7 @@ class RegressionInputs:
 
 # Parties that shouldn't be included as part of the OTH FP
 # when calculating exclusive-others vote shares
-not_others = ['ALP TPP', 'ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
+not_others = ['@TPP', 'ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
 
 
 def create_fundamentals_inputs(inputs, target_election, party, avg_len):
@@ -277,7 +280,7 @@ def create_fundamentals_inputs(inputs, target_election, party, avg_len):
     eventual_results = (inputs.eventual_results[e_p_c]
                         if e_p_c in inputs.eventual_results else 0)
     result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
-    effective_party = 'ALP FP' if party == 'ALP TPP' else party
+    effective_party = 'ALP FP' if party == '@TPP' else party
     incumbent = 1 if inputs.incumbency[target_election][0] == effective_party else 0
     opposition = 1 if inputs.incumbency[target_election][1] == effective_party else 0
     incumbency_length = (inputs.incumbency[target_election][2]
@@ -339,7 +342,7 @@ def run_fundamentals_regression(config, inputs):
                     eventual_results = (inputs.eventual_results[e_p_c]
                                         if e_p_c in inputs.eventual_results else 0)
                     result_deviation = eventual_results - inputs.safe_prior_average(avg_len, e_p_c)
-                    effective_party = 'ALP FP' if party == 'ALP TPP' else party
+                    effective_party = 'ALP FP' if party == '@TPP' else party
                     incumbent = 1 if inputs.incumbency[election][0] == effective_party else 0
                     opposition = 1 if inputs.incumbency[election][1] == effective_party else 0
                     incumbency_length = (inputs.incumbency[election][2]

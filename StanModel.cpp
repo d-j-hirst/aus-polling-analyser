@@ -376,6 +376,16 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 		sample.voteShare.insert({ key, sampledVote });
 	}
 
+	// This "raw TPP" may not be congruent with the primary votes above, but the adjustment
+	// process will only use one or the other, so that doesn't matter
+	float uniform = rng.uniform(0.0, 1.0);
+	int lowerBucket = std::clamp(int(floor(uniform * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
+	float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
+	float lowerVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket];
+	float upperVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket + 1];
+	float sampledVote = mix(lowerVote, upperVote, upperMix);
+	sample.voteShare.insert({ TppCode, sampledVote });
+
 	normaliseSample(sample);
 
 	updateOthersValue(sample);
@@ -424,17 +434,12 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	constexpr int DaysOffset = 2;
 	days = std::clamp(days - DaysOffset, MinDays, numDays - 1);
 	auto sample = rawSupportSample;
-	static double alpVoteTotal = 0.0;
-	static double lnpVoteTotal = 0.0;
-	static double lnpDebiasedPolls = 0.0;
-	static double lnpMixedVoteShare = 0.0;
-	static double lnpMixedBias = 0.0;
-	static double lnpMixedDebiasedVote = 0.0;
-	static double lnpVoteWithVariation = 0.0;
-	static double lnpVoteFinal = 0.0;
-	static double voteTotalCount = 0.0;
+	constexpr float TppFirstChance = 0.5f;
+	const bool tppFirst = rng.uniform() < TppFirstChance;
 	for (auto& [key, voteShare] : sample.voteShare) {
 		if (key == EmergingOthersCode) continue;
+		if (tppFirst && (key == partyCodeVec[0] || key == partyCodeVec[1])) continue;
+		if (!tppFirst && key == TppCode) continue;
 		double transformedPolls = transformVoteShare(double(voteShare));
 
 		const std::string partyGroup = reversePartyGroups.at(key);
@@ -466,12 +471,18 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 		double newVoteShare = detransformVoteShare(voteWithVariation);
 		voteShare = float(newVoteShare);
+
 	}
 
 	addEmergingOthers(sample, days);
 	normaliseSample(sample);
 	updateOthersValue(sample);
-	generateTppForSample(sample);
+	if (!tppFirst) {
+		generateTppForSample(sample);
+	}
+	else {
+		generateMajorFpForSample(sample);
+	}
 	sample.daysToElection = days;
 	return sample;
 }
@@ -627,7 +638,34 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
 		tpp += support * randomisedFlow;
 	}
-	sample.voteShare.insert({ TppCode, tpp });
+	sample.voteShare[TppCode] = tpp;
+}
+
+void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
+{
+	float tpp = 0.0f;
+	float totalFp = 0.0f;
+	// First add up all party-one preference from minor parties
+	for (auto [key, support] : sample.voteShare) {
+		if (key == OthersCode) continue;
+		if (key == TppCode || key == partyCodeVec[0] || key == partyCodeVec[1]) continue;
+		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) continue;
+		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
+		float deviation = preferenceDeviationMap.at(key) * 0.01f;
+		float historicalSamples = preferenceSamplesMap.at(key);
+		float randomisedFlow = (historicalSamples >= 2
+			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
+			: flow);
+		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
+		tpp += support * randomisedFlow;
+		totalFp += support;
+	}
+	// Now we have the contribution to tpp from minors, so the difference between this and the total tpp gives the party-one fp
+	float partyOneFp = sample.voteShare[TppCode] - tpp;
+	sample.voteShare[partyCodeVec[0]] = partyOneFp;
+	totalFp += partyOneFp;
+	sample.voteShare[partyCodeVec[1]] = 100.0f - totalFp;
 }
 
 void StanModel::Series::smooth(int smoothingFactor)

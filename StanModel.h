@@ -177,6 +177,8 @@ private:
 
 	void generateTppForSample(StanModel::SupportSample& sample) const;
 
+	void generateMajorFpForSample(StanModel::SupportSample& sample) const;
+
 	static RandomGenerator rng;
 
 	static MajorPartyCodes majorPartyCodes;
