@@ -123,6 +123,11 @@ StanModel::SeriesOutput StanModel::viewAdjustedSeriesByIndex(int index) const
 	return &std::next(adjustedSupport.begin(), index)->second;
 }
 
+StanModel::Series const& StanModel::viewRawTPPSeries() const
+{
+	return rawTppSupport;
+}
+
 StanModel::Series const& StanModel::viewTPPSeries() const
 {
 	return tppSupport;
@@ -288,6 +293,37 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 		if (partyCode == UnnamedOthersCode) continue; // calculate this later
 		std::string filename = "analysis/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
+		auto file = std::ifstream(filename);
+		if (!file) {
+			feedback("Could not load file: " + filename);
+			return false;
+		}
+		series.timePoint.clear();
+		std::string line;
+		std::getline(file, line); // first line is just a legend, skip it
+		std::getline(file, line);
+		if (!startDate.IsValid()) {
+			auto dateVals = splitString(line, ",");
+			startDate = wxDateTime(std::stoi(dateVals[0]),
+				wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
+		}
+		std::getline(file, line); // this line is just a legend, skip it
+		do {
+			std::getline(file, line);
+			if (!file) break;
+			auto trendVals = splitString(line, ",");
+			series.timePoint.push_back(Spread());
+			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+				series.timePoint.back().values[percentile]
+					= std::stof(trendVals[percentile + 2]);
+			}
+		} while (true);
+	}
+	{
+		auto partyCode = partyCodeVec[0];
+		auto& series = rawTppSupport;
+		std::string filename = "analysis/Outputs/fp_trend_"
+			+ termCode + "_" + partyCode + " TPP.csv";
 		auto file = std::ifstream(filename);
 		if (!file) {
 			feedback("Could not load file: " + filename);

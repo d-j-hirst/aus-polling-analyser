@@ -90,6 +90,8 @@ public:
 
 	SeriesOutput viewAdjustedSeriesByIndex(int index) const;
 
+	Series const& viewRawTPPSeries() const;
+
 	Series const& viewTPPSeries() const;
 
 	std::string rawPartyCodeByIndex(int index) const;
@@ -182,6 +184,7 @@ private:
 	bool readyForProjection = false;
 
 	PartySupport rawSupport;
+	Series rawTppSupport; // For whatever party is first in the user-defined party list
 	PartySupport adjustedSupport;
 	Series tppSupport; // For whatever party is first in the user-defined party list
 	PartySupport validationSupport;

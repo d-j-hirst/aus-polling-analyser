@@ -1039,7 +1039,13 @@ StanModel::SeriesOutput VisualiserFrame::viewSeriesFromModel(StanModel const& mo
 		}
 	}
 	else if (modelDisplayMode == ModelDisplayMode::Raw) {
-		return model.viewRawSeries(partyCode);
+		// default to raw series if the adjusted series haven'y been generated
+		if (selectedParty < int(partyOrder.size()) - 1) {
+			return model.viewRawSeries(partyCode);
+		}
+		else if (selectedParty == int(partyOrder.size() - 1)) {
+			return &model.viewRawTPPSeries();
+		}
 	}
 	return nullptr;
 }
