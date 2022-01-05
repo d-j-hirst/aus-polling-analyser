@@ -386,8 +386,6 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	float sampledVote = mix(lowerVote, upperVote, upperMix);
 	sample.voteShare.insert({ TppCode, sampledVote });
 
-	normaliseSample(sample);
-
 	updateOthersValue(sample);
 
 	return sample;
@@ -471,17 +469,17 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 		double newVoteShare = detransformVoteShare(voteWithVariation);
 		voteShare = float(newVoteShare);
-
 	}
 
 	addEmergingOthers(sample, days);
-	normaliseSample(sample);
-	updateOthersValue(sample);
 	if (!tppFirst) {
+		normaliseSample(sample);
+		updateOthersValue(sample);
 		generateTppForSample(sample);
 	}
 	else {
 		generateMajorFpForSample(sample);
+		updateOthersValue(sample);
 	}
 	sample.daysToElection = days;
 	return sample;
@@ -618,7 +616,9 @@ void StanModel::normaliseSample(StanModel::SupportSample& sample)
 		);
 	float sampleAdjust = 100.0f / sampleSum;
 	for (auto& vote : sample.voteShare) {
-		vote.second *= sampleAdjust;
+		if (vote.first != TppCode) {
+			vote.second *= sampleAdjust;
+		}
 	}
 }
 
@@ -662,10 +662,29 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 		totalFp += support;
 	}
 	// Now we have the contribution to tpp from minors, so the difference between this and the total tpp gives the party-one fp
+	float targetTpp = sample.voteShare[TppCode];
 	float partyOneFp = sample.voteShare[TppCode] - tpp;
-	sample.voteShare[partyCodeVec[0]] = partyOneFp;
-	totalFp += partyOneFp;
-	sample.voteShare[partyCodeVec[1]] = 100.0f - totalFp;
+	float partyTwoFp = 100.0f - (totalFp + partyOneFp);
+	float minMajorFp = std::min(partyOneFp, partyTwoFp);
+	if (minMajorFp >= 1.0f) {
+		sample.voteShare[partyCodeVec[0]] = partyOneFp;
+		sample.voteShare[partyCodeVec[1]] = partyTwoFp;
+	}
+	else {
+		if (partyOneFp < 1.0f) {
+			float deficit = 1.0f - partyOneFp;
+			partyOneFp = 1.0f;
+			partyTwoFp += deficit * ((100.0f - targetTpp) / targetTpp);
+		}
+		if (partyTwoFp < 1.0f) {
+			float deficit = 1.0f - partyTwoFp;
+			partyTwoFp = 1.0f;
+			partyOneFp += deficit * (targetTpp / (100.0f - targetTpp));
+		}
+		sample.voteShare[partyCodeVec[0]] = partyOneFp;
+		sample.voteShare[partyCodeVec[1]] = partyTwoFp;
+		normaliseSample(sample);
+	}
 }
 
 void StanModel::Series::smooth(int smoothingFactor)
