@@ -60,14 +60,19 @@ transformed data {
 parameters {
     vector[dayCount] preliminaryVoteShare;
     vector[houseCount] pHouseEffects;
+    vector[houseCount] pOldHouseEffects;
 }
 
 model {
     // using this distribution encourages house effects not to be too large but
     // doesn't penalise too heavily if a large house effect is really called for
     pHouseEffects ~ double_exponential(0.0, houseEffectSigma);
+    pOldHouseEffects ~ double_exponential(0.0, houseEffectSigma);
+    // Tend to keep old and new house effects similar, but not too much
+    pHouseEffects ~ double_exponential(pOldHouseEffects, houseEffectSigma * 2.0);
     // keep sum of house effects constrained to zero, or near enough
     sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, houseEffectSumSigma);
+    sum(pOldHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, houseEffectSumSigma);
     // very broad prior distribution, this shouldn't affect the model much unless
     // there is absolutely no data nearby
     preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, priorVoteShareSigma);
@@ -97,10 +102,23 @@ model {
     // poll observations
     for (poll in 1:pollCount) {
         if (!missingObservations[poll]) {
-            
+            int daysBeforePresent = dayCount - pollDay[poll];
+            real houseEffectFactor = 1.0;
+            real effectiveHouseEffect = 0.0;
             real obs = pollObservations[poll];
-            real distMean = preliminaryVoteShare[pollDay[poll]] + pHouseEffects[pollHouse[poll]];
-            real distSigma = sigmas[poll];
+            real distMean = 0.0;
+            real distSigma = 1.0;
+            if (daysBeforePresent >= 180) {
+                houseEffectFactor = 0.0;
+            }
+            else if (daysBeforePresent >= 90) {
+                houseEffectFactor = (180.0 - daysBeforePresent) / 90.0;
+            }
+            effectiveHouseEffect = pHouseEffects[pollHouse[poll]] * houseEffectFactor +
+                pOldHouseEffects[pollHouse[poll]] * (1.0 - houseEffectFactor);
+            
+            distMean = preliminaryVoteShare[pollDay[poll]] + effectiveHouseEffect;
+            distSigma = sigmas[poll];
             
             obs ~ normal(distMean, distSigma);
         }

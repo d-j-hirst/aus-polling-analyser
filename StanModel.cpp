@@ -323,7 +323,7 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 		auto partyCode = partyCodeVec[0];
 		auto& series = rawTppSupport;
 		std::string filename = "analysis/Outputs/fp_trend_"
-			+ termCode + "_" + partyCode + " TPP.csv";
+			+ termCode + "_@TPP.csv";
 		auto file = std::ifstream(filename);
 		if (!file) {
 			feedback("Could not load file: " + filename);

@@ -428,10 +428,27 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
+	{
+		for (auto n : seatFpVoteShare) {
+			for (auto [party, nn] : n) {
+				if (std::isnan(nn)) {
+					PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+					PA_LOG_VAR(seatIndex);
+					PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+					PA_LOG_VAR(n);
+					PA_LOG_VAR(seatFpVoteShare);
+					logger << "seatFpVoteShare part 01\n";
+				}
+			}
+		}
+	}
 	determineSeatEmergingParties(seatIndex);
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
 	allocateMajorPartyFp(seatIndex);
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		logger << "seatFpVoteShare part 8\n";
+	}
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
@@ -516,6 +533,22 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	transformedFp += rng.flexibleDist(0.0f, lowerRmse, upperRmse, lowerKurtosis, upperKurtosis);
 
 	voteShare = detransformVoteShare(transformedFp);
+	{
+		if (std::isnan(voteShare)) {
+			PA_LOG_VAR(seatModifier);
+			PA_LOG_VAR(modifiedFp1);
+			PA_LOG_VAR(modifiedFp2);
+			PA_LOG_VAR(modifiedFp);
+			PA_LOG_VAR(transformedFp);
+			PA_LOG_VAR(populism);
+			PA_LOG_VAR(lowerRmse);
+			PA_LOG_VAR(upperRmse);
+			PA_LOG_VAR(lowerKurtosis);
+			PA_LOG_VAR(upperKurtosis);
+			PA_LOG_VAR(transformedFp);
+			logger << "seatFpVoteShare part 0B\n";
+		}
+	}
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
@@ -548,6 +581,9 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		logger << "seatFpVoteShare part 7\n";
+	}
 }
 
 void SimulationIteration::determineSeatOthers(int seatIndex)
@@ -559,17 +595,66 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	}
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		logger << "seatFpVoteShare part 6\n";
+	}
 }
 
 void SimulationIteration::determineSeatEmergingParties(int seatIndex)
 {
+	{
+		for (auto n : seatFpVoteShare) {
+			for (auto [party, nn] : n) {
+				if (std::isnan(nn)) {
+					PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+					PA_LOG_VAR(seatIndex);
+					PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+					PA_LOG_VAR(n);
+					PA_LOG_VAR(seatFpVoteShare);
+					logger << "seatFpVoteShare part 0B\n";
+				}
+			}
+		}
+	}
 	float voteShare = 0.0f;
 	determinePopulistFp(seatIndex, EmergingPartyIndex, voteShare);
 	seatFpVoteShare[seatIndex][EmergingPartyIndex] = voteShare;
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		logger << "seatFpVoteShare part 5\n";
+	}
+	{
+		for (auto n : seatFpVoteShare) {
+			for (auto [party, nn] : n) {
+				if (std::isnan(nn)) {
+					PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+					PA_LOG_VAR(seatIndex);
+					PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+					PA_LOG_VAR(n);
+					PA_LOG_VAR(voteShare);
+					PA_LOG_VAR(seatFpVoteShare);
+					logger << "seatFpVoteShare part 0B\n";
+				}
+			}
+		}
+	}
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 {
+	{
+		for (auto n : seatFpVoteShare) {
+			for (auto [party, nn] : n) {
+				if (std::isnan(nn)) {
+					PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+					PA_LOG_VAR(seatIndex);
+					PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+					PA_LOG_VAR(n);
+					PA_LOG_VAR(seatFpVoteShare);
+					logger << "seatFpVoteShare part 0B\n";
+				}
+			}
+		}
+	}
 	// This has four parts:
 	//  1 - calculate previous-election preference allocation using overall preference flows,
 	//      then determine this seat's deviation from that (per vote)
@@ -733,17 +818,58 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//if (seat.name == "Farrer") {
 	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
 	//}
+	{
+		for (auto n : seatFpVoteShare) {
+			for (auto [party, nn] : n) {
+				if (std::isnan(nn)) {
+					PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+					PA_LOG_VAR(seatIndex);
+					PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+					PA_LOG_VAR(n);
+					PA_LOG_VAR(seatFpVoteShare);
+					logger << "seatFpVoteShare part 0B\n";
+				}
+			}
+		}
+	}
 }
 
 void SimulationIteration::normaliseSeatFp(int seatIndex)
 {
 	float totalVoteShare = 0.0f;
+	auto previousVoteShare = seatFpVoteShare[seatIndex];
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		totalVoteShare += voteShare;
 	}
 	float correctionFactor = 100.0f / totalVoteShare;
 	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		seatFpVoteShare[seatIndex][partyIndex] *= correctionFactor;
+	}
+
+	{
+		for (auto n : seatFpVoteShare) {
+			for (auto [party, nn] : n) {
+				if (std::isnan(nn)) {
+					PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+					PA_LOG_VAR(seatIndex);
+					PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+					PA_LOG_VAR(totalVoteShare);
+					PA_LOG_VAR(previousVoteShare);
+					PA_LOG_VAR(n);
+					PA_LOG_VAR(seatFpVoteShare);
+					logger << "seatFpVoteShare part 3a\n";
+				}
+			}
+		}
+	}
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+		PA_LOG_VAR(seatIndex);
+		PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+		PA_LOG_VAR(totalVoteShare);
+		PA_LOG_VAR(previousVoteShare);
+		PA_LOG_VAR(seatFpVoteShare);
+		logger << "seatFpVoteShare part 3\n";
 	}
 }
 
@@ -790,6 +916,12 @@ void SimulationIteration::calculateNewFpVoteTotals()
 			tempOverallFp[OthersIndex] = fp;
 		}
 	}
+	if (std::isnan(tempOverallFp[0])) {
+		PA_LOG_VAR(partyVoteCount);
+		PA_LOG_VAR(totalVoteCount);
+		PA_LOG_VAR(seatFpVoteShare);
+		logger << "Nan tempOverallFp detected! Part 1\n";
+	}
 	overallFpError = 0.0f;
 	nonMajorFpError = 0.0f;
 	for (auto [partyIndex, voteCount] : tempOverallFp) {
@@ -800,6 +932,9 @@ void SimulationIteration::calculateNewFpVoteTotals()
 	float tempMicroOthers = float(partyVoteCount[OthersIndex]) / float(totalVoteCount) * 100.0f;
 	float indOthers = tempOverallFp[OthersIndex] - tempMicroOthers;
 	othersCorrectionFactor = (overallFpTarget[OthersIndex] - indOthers) / tempMicroOthers;
+	if (std::isnan(tempOverallFp[0])) {
+		logger << "Nan tempOverallFp detected! Part 1\n";
+	}
 }
 
 void SimulationIteration::calculatePreferenceCorrections()
@@ -856,6 +991,12 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		allocateMajorPartyFp(seatIndex);
 	}
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		logger << "seatFpVoteShare part 2\n";
+	}
+	if (std::isnan(tempOverallFp[0])) {
+		logger << "Nan tempOverallFp detected! Part 2\n";
+	}
 }
 
 void SimulationIteration::correctMajorPartyFpBias()
@@ -881,6 +1022,9 @@ void SimulationIteration::correctMajorPartyFpBias()
 		seatFpVoteShare[seatIndex][Mp::Two] = seatFpVoteShare[seatIndex][Mp::Two] * partyTwoAdjust;
 		normaliseSeatFp(seatIndex);
 	}
+	if (std::isnan(seatFpVoteShare[1][0])) {
+		logger << "seatFpVoteShare part 1\n";
+	}
 }
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
@@ -902,12 +1046,22 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 	accumulatedVoteShares = originalVoteShares;
+
+	if (std::isnan(accumulatedVoteShares[0].second)) {
+		PA_LOG_VAR(overallFpTarget);
+		PA_LOG_VAR(tempOverallFp);
+		PA_LOG_VAR(seatFpVoteShare[seatIndex][0]);
+		PA_LOG_VAR(originalVoteShares);
+		PA_LOG_VAR(accumulatedVoteShares);
+		logger << "Nan accumulated vote shares detected! Part 1\n";
+	}
 	// find top two highest fp parties in order
 	while (true) {
 		// Set up some reused functions ...
 		auto bothMajorParties = [](int a, int b) {
 			return isMajor(a) && isMajor(b);
 		};
+
 		// Function for allocating votes from excluded parties. Used in several places in this loop only,
 		// so create once and use wherever needed
 		auto allocateVotes = [&]() {
@@ -929,6 +1083,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						}
 					}
 				}
+
+				if (std::isnan(accumulatedVoteShares[0].second)) {
+					PA_LOG_VAR(accumulatedVoteShares);
+					logger << "Nan accumulated vote shares detected! Part 2\n";
+				}
 				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 					auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 					int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
@@ -943,8 +1102,17 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 					accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 				}
+				if (std::isnan(accumulatedVoteShares[0].second)) {
+					PA_LOG_VAR(accumulatedVoteShares);
+					logger << "Nan accumulated vote shares detected! Part 3\n";
+				}
 			}
 		};
+
+		if (std::isnan(accumulatedVoteShares[0].second)) {
+			PA_LOG_VAR(accumulatedVoteShares);
+			logger << "Nan accumulated vote shares detected!\n";
+		}
 
 		// Actual method starts here
 		bool finalTwoConfirmed = (accumulatedVoteShares.size() <= 2);
@@ -967,6 +1135,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				accumulatedVoteShares[1].second = partyOneNewTppMargin[seatIndex] + 50.0f;
 				break;
 			}
+			if (std::isnan(accumulatedVoteShares[0].second)) {
+				PA_LOG_VAR(accumulatedVoteShares);
+				logger << "Nan accumulated vote shares detected! Part 4\n";
+			}
 			// otherwise exclude any remaining votes and allocate 
 			while (accumulatedVoteShares.size() > 2) {
 				auto excludedCandidate = *std::min_element(accumulatedVoteShares.begin(), accumulatedVoteShares.end(), partyVoteLess);
@@ -976,6 +1148,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				std::erase(originalVoteShares, originalCandidate);
 			}
 			accumulatedVoteShares = originalVoteShares;
+			if (std::isnan(accumulatedVoteShares[0].second)) {
+				PA_LOG_VAR(accumulatedVoteShares);
+				logger << "Nan accumulated vote shares detected! Part 5\n";
+			}
 			allocateVotes();
 			break;
 		}
@@ -988,6 +1164,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		std::erase(accumulatedVoteShares, excludedCandidate);
 		std::erase(originalVoteShares, originalCandidate);
 		accumulatedVoteShares = originalVoteShares;
+
+		if (std::isnan(accumulatedVoteShares[0].second)) {
+			PA_LOG_VAR(accumulatedVoteShares);
+			logger << "Nan accumulated vote shares detected! Part 6\n";
+		}
 		allocateVotes();
 	}
 

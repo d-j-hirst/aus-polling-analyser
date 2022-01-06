@@ -153,7 +153,7 @@ def run_models():
         election_tuple = (str(desired_election.year()),
                           desired_election.region())
         others_medians = {}
-        for party in parties[election_tuple] + ['@TPP']:
+        for party in parties[election_tuple]:
             # --- collect the model data
             # the XL data file was extracted from the Wikipedia
             # page on next Australian Federal Election
@@ -415,7 +415,7 @@ def run_models():
             trend_file.write('\n')
             # need to get past the centered values and house effects
             # this is where the actual FP trend starts
-            offset = n_days + n_houses
+            offset = n_days + n_houses * 2
             for summaryDay in range(0, n_days):
                 table_index = summaryDay + offset
                 trend_file.write(str(summaryDay) + ",")
