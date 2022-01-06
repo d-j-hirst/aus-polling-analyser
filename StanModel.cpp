@@ -267,6 +267,9 @@ bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 		feedback("One or more model paramater lists could not be converted to floats!");
 		return false;
 	}
+	preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
+	preferenceDeviationMap[EmergingOthersCode] = preferenceDeviationMap[OthersCode];
+	preferenceSamplesMap[EmergingOthersCode] = preferenceSamplesMap[OthersCode];
 	return true;
 }
 
