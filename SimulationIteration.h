@@ -66,6 +66,7 @@ private:
 	void determinePopulistFp(int seatIndex, int partyIndex, float& voteShare);
 	void determineSeatEmergingInds(int seatIndex);
 	void determineSeatOthers(int seatIndex);
+	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
 	void normaliseSeatFp(int seatIndex);

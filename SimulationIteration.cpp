@@ -426,11 +426,19 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			tempPastResults.erase(partyIndex);
 			continue;
 		}
+		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
+	pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = tempPastResults[OthersIndex];
 	determineSeatEmergingParties(seatIndex);
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
+
+	// Helps to effect minor party crowding, i.e. if too many minor parties
+	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
+	// *** Remove the change-in-highest-minor from the highest-major-party
+	prepareFpsForNormalisation(seatIndex);
+	normaliseSeatFp(seatIndex);
 	allocateMajorPartyFp(seatIndex);
 }
 
@@ -562,8 +570,25 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	}
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
-	if (std::isnan(seatFpVoteShare[1][0])) {
-		logger << "seatFpVoteShare part 6\n";
+}
+
+void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
+{
+	float maxPrevious = 0.0f;
+	for (auto& [party, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
+		if (!isMajor(party) && voteShare > maxPrevious) maxPrevious = voteShare;
+	}
+	float maxCurrent = 0.0f;
+	for (auto& [party, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (!isMajor(party) && voteShare > maxCurrent) maxCurrent = voteShare;
+	}
+	float diff = maxCurrent - maxPrevious;
+	if (diff > 0.0f) {
+		// The values for the majors (i.e. parties 0 and 1) are overwritten anyway,
+		// so this only has the effect of softening the normalisation.
+		// This ensures that the normalisation is only punishing to minor parties
+		// when more than one rises in votes (thus crowding each other out)
+		seatFpVoteShare[seatIndex][0] -= diff;
 	}
 }
 
@@ -572,9 +597,6 @@ void SimulationIteration::determineSeatEmergingParties(int seatIndex)
 	float voteShare = 0.0f;
 	determinePopulistFp(seatIndex, EmergingPartyIndex, voteShare);
 	seatFpVoteShare[seatIndex][EmergingPartyIndex] = voteShare;
-	if (std::isnan(seatFpVoteShare[1][0])) {
-		logger << "seatFpVoteShare part 5\n";
-	}
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)

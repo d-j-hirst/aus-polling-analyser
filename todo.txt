@@ -1,7 +1,5 @@
 Polling Analyser to-do:
 -Methodological adjustments
- -Include dummy ALP/LNP (from previous election) and normalise before calculation actual major parties for TPP-first methodology,
-  this should reduce the number of minor-on-minor contests to more believable levels by keeping the major parties (in total) well above zero.
  -Adjust IND -> major preference flow based on historical regression with margin size and IND primary,
   this should help with INDs being underrated in more heavily conservative seats
  -Check that above calculation is included in both calculation of preference bias and the subsequent calculation of major party vote
