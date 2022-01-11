@@ -481,6 +481,12 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		generateTppForSample(sample);
 	}
 	else {
+		// Add rough approximations for major party fps so that normalisation works properly
+		// Normalisation is needed so that high-rating minor parties crowd each other out as you'd expect
+		for (int partyIndex = 0; partyIndex < 2; ++partyIndex) {
+			sample.voteShare[partyCodeVec[partyIndex]] = fundamentals.at(reversePartyGroups.at(partyCodeVec[partyIndex]));
+		}
+		normaliseSample(sample);
 		generateMajorFpForSample(sample);
 		updateOthersValue(sample);
 	}
