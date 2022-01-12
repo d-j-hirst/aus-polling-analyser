@@ -8,6 +8,8 @@ Polling Analyser to-do:
   *Stacked area graph of distribution across time for individual parties
  -Individual seats
   *cartogram, maybe map view depending on feasibility
+  *winner bar for 2cp scenarios
+ -Include small info/warning symbols with tooltips explaining concepts
 -Develop documentation detailing the forecasting methodology
  -FAQs
   -What's the point?

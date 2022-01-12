@@ -553,6 +553,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
+		if (seat.confirmedProminentIndependent) rmse = (rmse * 0.5f + run.indEmergence.voteRmse * 0.5f) * 1.2f;
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
@@ -636,7 +637,34 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float pastElectionPartyOnePrefEstimate = 0.0f;
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		if (!isMajor(partyIndex)) {
-			pastElectionPartyOnePrefEstimate += voteShare * previousPreferenceFlow[partyIndex] * 0.01f;
+			// *** Probably want to introduce some randomness into these - they assume
+			// an *exact* flow of preferences each time which is not realistic
+			if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
+				// Prominent independents and centrist candidates attract a lot
+				// of tactical voting from the less-favoured major party, so it's not accurate
+				// to give them the same share as the national vote
+				// We allocate the first 5% of the vote at national rates, the next 10% at a sliding scale
+				// up to the cap (see below), and the remained at the cap
+				// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
+				// by 0-5% at the previous two elections
+				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
+				// declines for >30%, according to formula given below for preferenceFlowCap
+				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
+				float preferenceFlowCap = 88.5f - 0.79f * voteShare;
+				float upperPreferenceFlow = (previousAverage > 0.0f ? 
+					std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
+					std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
+				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
+				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
+				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
+					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
+					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
+				float effectivePreferenceFlow = summedPreferenceFlow / voteShare;
+				pastElectionPartyOnePrefEstimate += voteShare * effectivePreferenceFlow * 0.01f;
+			}
+			else {
+				pastElectionPartyOnePrefEstimate += voteShare * previousPreferenceFlow[partyIndex] * 0.01f;
+			}
 			previousNonMajorFpShare += voteShare;
 		}
 	}
@@ -659,8 +687,11 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				// up to the cap (see below), and the remained at the cap
 				// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
 				// by 0-5% at the previous two elections
+				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
+				// declines for >30%, according to formula given below for preferenceFlowCap
 				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
-				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 20.0f, 80.0f);
+				float preferenceFlowCap = 88.5f - 0.79f * voteShare;
+				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 20.0f, preferenceFlowCap);
 				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
 				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
 				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
