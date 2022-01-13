@@ -650,7 +650,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
 				// declines for >30%, according to formula given below for preferenceFlowCap
 				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
-				float preferenceFlowCap = 88.5f - 0.79f * voteShare;
+				float preferenceFlowCap = (partyOneCurrentTpp >= 50.0f ?
+					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
+					: 100.f - (-67.42f - 0.47f * voteShare - 0.0167f * (100.0f - partyOneCurrentTpp)));
 				float upperPreferenceFlow = (previousAverage > 0.0f ? 
 					std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
 					std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
@@ -690,7 +692,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
 				// declines for >30%, according to formula given below for preferenceFlowCap
 				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
-				float preferenceFlowCap = 88.5f - 0.79f * voteShare;
+				// Estimated ALP preference rate from historical results based on IND fp and ALP TPP.
+				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ? 
+					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
+					: 100.f - (-67.42f - 0.47f * voteShare - 0.016701355 * (100.0f - partyOneCurrentTpp)));
 				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 20.0f, preferenceFlowCap);
 				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
 				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
@@ -699,6 +704,20 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
 				float effectivePreferenceFlow = summedPreferenceFlow / voteShare;
 				currentPartyOnePrefs += voteShare * effectivePreferenceFlow * 0.01f;
+				//if (seat.name == "Wentworth") {
+				//	PA_LOG_VAR(seat.name);
+				//	PA_LOG_VAR(seat.tppMargin);
+				//	PA_LOG_VAR(seat.previousSwing);
+				//	PA_LOG_VAR(previousAverage);
+				//	PA_LOG_VAR(preferenceFlowCap);
+				//	PA_LOG_VAR(partyOneCurrentTpp);
+				//	PA_LOG_VAR(voteShare);
+				//	PA_LOG_VAR(upperPreferenceFlow);
+				//	PA_LOG_VAR(basePreferenceFlow);
+				//	PA_LOG_VAR(transitionPreferenceFlow);
+				//	PA_LOG_VAR(summedPreferenceFlow);
+				//	PA_LOG_VAR(effectivePreferenceFlow);
+				//}
 			}
 			else {
 				currentPartyOnePrefs += voteShare * overallPreferenceFlow[partyIndex] * 0.01f;
