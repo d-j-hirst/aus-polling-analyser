@@ -761,7 +761,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Groom") {
+	//if (seat.name == "Indi") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -969,52 +969,55 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 	accumulatedVoteShares = originalVoteShares;
 
-	// find top two highest fp parties in order
-	while (true) {
-		// Set up some reused functions ...
-		auto bothMajorParties = [](int a, int b) {
-			return isMajor(a) && isMajor(b);
-		};
+	// Set up reused functions...
 
-		// Function for allocating votes from excluded parties. Used in several places in this loop only,
-		// so create once and use wherever needed
-		auto allocateVotes = [&]() {
-			for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
-				std::vector<float> weights(accumulatedVoteShares.size());
-				// if it's a final-two situation, check if we have 
-				if (int(accumulatedVoteShares.size() == 2)) {
-					if (run.ncPreferenceFlow.contains(sourceParty)) {
-						auto const& item = run.ncPreferenceFlow[sourceParty];
-						std::pair<int, int> targetParties = {accumulatedVoteShares[0].first, accumulatedVoteShares[1].first};
-						if (item.contains(targetParties)) {
-							float flow = item.at(targetParties);
-							float transformedFlow = transformVoteShare(flow);
-							transformedFlow += rng.normal(0.0f, 10.0f);
-							flow = detransformVoteShare(transformedFlow);
-							accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
-							accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
-							continue;
-						}
+	auto bothMajorParties = [](int a, int b) {
+		return isMajor(a) && isMajor(b);
+	};
+
+	// Function for allocating votes from excluded parties. Used in several places in this loop only,
+	// so create once and use wherever needed
+	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
+		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
+			std::vector<float> weights(accumulatedVoteShares.size());
+			// if it's a final-two situation, check if we have 
+			if (int(accumulatedVoteShares.size() == 2)) {
+				if (run.ncPreferenceFlow.contains(sourceParty)) {
+					auto const& item = run.ncPreferenceFlow[sourceParty];
+					std::pair<int, int> targetParties = { accumulatedVoteShares[0].first, accumulatedVoteShares[1].first };
+					if (item.contains(targetParties)) {
+						float flow = item.at(targetParties);
+						float transformedFlow = transformVoteShare(flow);
+						transformedFlow += rng.normal(0.0f, 10.0f);
+						flow = detransformVoteShare(transformedFlow);
+						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
+						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
+						continue;
 					}
 				}
-				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
-					auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
-					int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
-					float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
-					float thisWeight = std::pow(consistencyBase, -ideologyDistance);
-					if (bothMajorParties(sourceParty, targetParty)) thisWeight *= 0.5f;
-					thisWeight *= rng.uniform(0.5f, 1.5f);
-					thisWeight *= std::sqrt(targetVoteShare);
-					weights[targetIndex] = thisWeight;
-				}
-				float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
-				for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
-					accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
-				}
 			}
-		};
+			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
+				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
+				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
+				float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
+				float thisWeight = std::pow(consistencyBase, -ideologyDistance);
+				if (bothMajorParties(sourceParty, targetParty)) thisWeight *= 0.5f;
+				thisWeight *= rng.uniform(0.5f, 1.5f);
+				thisWeight *= std::sqrt(targetVoteShare);
+				weights[targetIndex] = thisWeight;
+			}
+			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
+			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
+				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
+			}
+		}
+	};
 
-		// Actual method starts here
+	// Actual method continues here
+
+	// find top two highest fp parties in order
+	while (true) {
+
 		bool finalTwoConfirmed = (accumulatedVoteShares.size() <= 2);
 		if (!finalTwoConfirmed) {
 			std::nth_element(accumulatedVoteShares.begin(), std::next(accumulatedVoteShares.begin()), accumulatedVoteShares.end(),
@@ -1044,22 +1047,75 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				std::erase(originalVoteShares, originalCandidate);
 			}
 			accumulatedVoteShares = originalVoteShares;
-			allocateVotes();
+			allocateVotes(accumulatedVoteShares, excludedVoteShares);
 			break;
 		}
 		// Allocate preferences from excluded groups, then exclude the lowest and allocate those too
 		accumulatedVoteShares = originalVoteShares;
-		allocateVotes();
+		allocateVotes(accumulatedVoteShares, excludedVoteShares);
 		auto excludedCandidate = *std::min_element(accumulatedVoteShares.begin(), accumulatedVoteShares.end(), partyVoteLess);
 		auto originalCandidate = *std::find_if(originalVoteShares.begin(), originalVoteShares.end(), [=](PartyVotes a) {return a.first == excludedCandidate.first; });
 		excludedVoteShares.push_back(originalCandidate);
 		std::erase(accumulatedVoteShares, excludedCandidate);
 		std::erase(originalVoteShares, originalCandidate);
 		accumulatedVoteShares = originalVoteShares;
-		allocateVotes();
+		allocateVotes(accumulatedVoteShares, excludedVoteShares);
 	}
 
-	auto topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);
+	std::pair<PartyVotes, PartyVotes> topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);
+
+	// For non-standard Tcp scenarios, if it's a match to the previous tcp pair then compare with that
+	// and adjsut the current results to match.
+	if (!bothMajorParties(topTwo.first.first, topTwo.second.first)) {
+		auto const& prevResults = pastSeatResults[seatIndex];
+		if (prevResults.tcpVote.count(topTwo.first.first) && prevResults.tcpVote.count(topTwo.second.first)) {
+			// Allocate the previous elections fp votes as if it were now
+			std::vector<PartyVotes> pseudoAccumulated;
+			std::vector<PartyVotes> pseudoExcluded;
+			for (auto [party, voteShare] : prevResults.fpVotePercent) {
+				if (prevResults.tcpVote.count(party)) {
+					pseudoAccumulated.push_back({ party, voteShare });
+				}
+				else {
+					pseudoExcluded.push_back({ party, voteShare });
+				}
+
+			}
+			if (pseudoAccumulated[0].first != topTwo.first.first) std::swap(pseudoAccumulated[0], pseudoAccumulated[1]);
+			//if (project.seats().viewByIndex(seatIndex).name == "Mayo") {
+			//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+			//	PA_LOG_VAR(pseudoAccumulated);
+			//}
+			allocateVotes(pseudoAccumulated, pseudoExcluded);
+			float bias = pseudoAccumulated[0].second - prevResults.tcpVote.at(topTwo.first.first);
+			float totalAllocatedPrev = std::accumulate(pseudoExcluded.begin(), pseudoExcluded.end(), 0.0f,
+				[](float acc, PartyVotes const& votes) {return acc + votes.second; });
+			float biasRate = bias / totalAllocatedPrev;
+			float totalAllocatedNow = std::accumulate(excludedVoteShares.begin(), excludedVoteShares.end(), 0.0f,
+				[](float acc, PartyVotes const& votes) {return acc + votes.second; });
+			//if (project.seats().viewByIndex(seatIndex).name == "Mayo") {
+			//	logger << "After allocation:\n";
+			//	PA_LOG_VAR(topTwo);
+			//	PA_LOG_VAR(pseudoAccumulated);
+			//	PA_LOG_VAR(pseudoExcluded);
+			//	PA_LOG_VAR(prevResults.tcpVote);
+			//	PA_LOG_VAR(bias);
+			//	PA_LOG_VAR(pseudoAccumulated[0].second);
+			//	PA_LOG_VAR(prevResults.tcpVote.at(topTwo.first.first));
+			//	PA_LOG_VAR(totalAllocatedPrev);
+			//	PA_LOG_VAR(biasRate);
+			//	PA_LOG_VAR(totalAllocatedNow);
+			//}
+			topTwo.first.second -= biasRate * totalAllocatedNow;
+			topTwo.second.second += biasRate * totalAllocatedNow;
+			if (topTwo.second.second < topTwo.first.second) std::swap(topTwo.first, topTwo.second);
+			//if (project.seats().viewByIndex(seatIndex).name == "Mayo") {
+			//	logger << "After adjustment:\n";
+			//	PA_LOG_VAR(topTwo);
+			//}
+		}
+	}
+
 	seatWinner[seatIndex] = topTwo.second.first;
 	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
