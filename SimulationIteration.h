@@ -123,6 +123,7 @@ private:
 	FloatByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
 	std::map<Party::Id, int> partyIdeologies;
 	std::map<Party::Id, int> partyConsistencies;
+	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
 	FloatByPartyIndex fpModificationAdjustment;
 	FloatByPartyIndex tempOverallFp;
 	float prefCorrection = 0.0f;

@@ -439,6 +439,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// *** Remove the change-in-highest-minor from the highest-major-party
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
+	preferenceVariation.clear();
 	allocateMajorPartyFp(seatIndex);
 }
 
@@ -659,6 +660,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
 					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
 				float effectivePreferenceFlow = summedPreferenceFlow / voteShare;
+				if (!preferenceVariation.contains(partyIndex)) {
+					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+				}
+				effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
 				pastElectionPartyOnePrefEstimate += voteShare * effectivePreferenceFlow * 0.01f;
 			}
 			else {
