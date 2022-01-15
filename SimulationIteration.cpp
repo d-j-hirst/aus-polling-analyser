@@ -557,9 +557,6 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
-	if (std::isnan(seatFpVoteShare[1][0])) {
-		logger << "seatFpVoteShare part 7\n";
-	}
 }
 
 void SimulationIteration::determineSeatOthers(int seatIndex)
