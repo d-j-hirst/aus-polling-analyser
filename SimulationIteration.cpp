@@ -151,6 +151,10 @@ void SimulationIteration::determineOverallBehaviour()
 
 void SimulationIteration::decideMinorPartyPopulism()
 {
+	for (auto partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		partyIdeologies[partyIndex] = project.parties().viewByIndex(partyIndex).ideology;
+		partyConsistencies[partyIndex] = project.parties().viewByIndex(partyIndex).consistency;
+	}
 	for (auto const& [partyIndex, voteShare] : overallFpTarget) {
 		if (partyIndex == EmergingPartyIndex) {
 			float populism = std::clamp(rng.uniform(-1.0f, 2.0f), 0.0f, 1.0f);
@@ -164,11 +168,7 @@ void SimulationIteration::decideMinorPartyPopulism()
 			partyConsistencies[partyIndex] = 0;
 			continue;
 		}
-		Party const& party = project.parties().viewByIndex(partyIndex);
-		partyIdeologies[partyIndex] = party.ideology;
-		partyConsistencies[partyIndex] = party.consistency;
-		if (partyIndex <= 1) continue;
-		if (party.ideology >= 3) { // center-right or strong right wing
+		if (partyIdeologies[partyIndex] >= 3) { // center-right or strong right wing
 			centristPopulistFactor[partyIndex] = 1.0f;
 		}
 		else {
@@ -400,6 +400,7 @@ void SimulationIteration::correctSeatTppSwings()
 
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
+
 	seatFpVoteShare.resize(project.seats().count());
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
@@ -429,6 +430,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
+
 	pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = tempPastResults[OthersIndex];
 	determineSeatEmergingParties(seatIndex);
 	determineSeatEmergingInds(seatIndex);
@@ -472,9 +474,8 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		// non-incumbent independents have a reverse effect: less likely to recontest as time passes
 		recontestRateMixed *= 1.0f - timeToElectionFactor;
 	}
-	// also, some day handle retirements for minor parties that would be expected to stay competitive
+	// also, should some day handle retirements for minor parties that would be expected to stay competitive
 	if (rng.uniform() > recontestRateMixed || (seat.retirement && partyIndex == seat.incumbent)) {
-
 		voteShare = 0.0f;
 		return;
 	}
@@ -581,7 +582,7 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 	for (auto& [party, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (!isMajor(party) && voteShare > maxCurrent) maxCurrent = voteShare;
 	}
-	float diff = maxCurrent - maxPrevious;
+	float diff = std::min(std::min(10.0f, seatFpVoteShare[seatIndex][0]), maxCurrent - maxPrevious);
 	if (diff > 0.0f) {
 		// The values for the majors (i.e. parties 0 and 1) are overwritten anyway,
 		// so this only has the effect of softening the normalisation.
@@ -648,7 +649,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
 				// declines for >30%, according to formula given below for preferenceFlowCap
 				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
-				float preferenceFlowCap = (partyOneCurrentTpp >= 50.0f ?
+				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ?
 					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
 					: 100.f - (-67.42f - 0.47f * voteShare - 0.0167f * (100.0f - partyOneCurrentTpp)));
 				float upperPreferenceFlow = (previousAverage > 0.0f ? 
@@ -659,12 +660,32 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
 					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
 					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
-				float effectivePreferenceFlow = summedPreferenceFlow / voteShare;
+				float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
 				if (!preferenceVariation.contains(partyIndex)) {
 					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
 				}
-				effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-				pastElectionPartyOnePrefEstimate += voteShare * effectivePreferenceFlow * 0.01f;
+				float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
+				pastElectionPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f;
+				//if (seat.name == "Shepparton") {
+				//	logger << "past\n";
+				//	PA_LOG_VAR(seat.name);
+				//	PA_LOG_VAR(partyIndex);
+				//	PA_LOG_VAR(seat.tppMargin);
+				//	PA_LOG_VAR(seat.previousSwing);
+				//	PA_LOG_VAR(previousAverage);
+				//	PA_LOG_VAR(preferenceFlowCap);
+				//	PA_LOG_VAR(partyOneCurrentTpp);
+				//	PA_LOG_VAR(voteShare);
+				//	PA_LOG_VAR(upperPreferenceFlow);
+				//	PA_LOG_VAR(basePreferenceFlow);
+				//	PA_LOG_VAR(transitionPreferenceFlow);
+				//	PA_LOG_VAR(summedPreferenceFlow);
+				//	PA_LOG_VAR(preferenceVariation);
+				//	PA_LOG_VAR(effectivePreferenceFlow);
+				//	PA_LOG_VAR(preferenceVariation[partyIndex]);
+				//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
+				//	PA_LOG_VAR(randomisedPreferenceFlow);
+				//}
 			}
 			else {
 				pastElectionPartyOnePrefEstimate += voteShare * previousPreferenceFlow[partyIndex] * 0.01f;
@@ -704,10 +725,20 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
 					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
 					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
-				float effectivePreferenceFlow = summedPreferenceFlow / voteShare;
-				currentPartyOnePrefs += voteShare * effectivePreferenceFlow * 0.01f;
-				//if (seat.name == "Wentworth") {
+				float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
+				if (!preferenceVariation.contains(partyIndex)) {
+					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+				}
+				effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
+				if (!preferenceVariation.contains(partyIndex)) {
+					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+				}
+				float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
+				currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f;
+				//if (seat.name == "Shepparton") {
+				//	logger << "now\n";
 				//	PA_LOG_VAR(seat.name);
+				//	PA_LOG_VAR(partyIndex);
 				//	PA_LOG_VAR(seat.tppMargin);
 				//	PA_LOG_VAR(seat.previousSwing);
 				//	PA_LOG_VAR(previousAverage);
@@ -719,6 +750,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				//	PA_LOG_VAR(transitionPreferenceFlow);
 				//	PA_LOG_VAR(summedPreferenceFlow);
 				//	PA_LOG_VAR(effectivePreferenceFlow);
+				//	PA_LOG_VAR(preferenceVariation[partyIndex]);
+				//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
+				//	PA_LOG_VAR(randomisedPreferenceFlow);
 				//}
 			}
 			else {
@@ -763,7 +797,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Indi") {
+	//if (seat.name == "Shepparton") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -799,18 +833,28 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = newPartyTwoFp;
 
-	normaliseSeatFp(seatIndex);
+
+	if (seat.incumbent >= Mp::Others && seatFpVoteShare[seatIndex][seat.incumbent]) {
+		// Maintain constant fp vote for non-major incumbents
+		normaliseSeatFp(seatIndex, seat.incumbent, seatFpVoteShare[seatIndex][seat.incumbent]);
+	}
+	else {
+		normaliseSeatFp(seatIndex);
+	}
 }
 
-void SimulationIteration::normaliseSeatFp(int seatIndex)
+void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float fixedVote)
 {
 	float totalVoteShare = 0.0f;
 	auto previousVoteShare = seatFpVoteShare[seatIndex];
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (partyIndex == fixedParty) continue;
 		totalVoteShare += voteShare;
 	}
-	float correctionFactor = 100.0f / totalVoteShare;
+	float totalTarget = 100.0f - fixedVote;
+	float correctionFactor = totalTarget / totalVoteShare;
 	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (partyIndex == fixedParty) continue;
 		seatFpVoteShare[seatIndex][partyIndex] *= correctionFactor;
 	}
 }
@@ -821,6 +865,7 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 	for (int i = 0; i < MaxReconciliationCycles; ++i) {
 		calculateNewFpVoteTotals();
 		if (overallFpError < 0.3f) break;
+
 		if (i > 2) correctMajorPartyFpBias();
 		if (i > 1) calculatePreferenceCorrections();
 		if (i == MaxReconciliationCycles - 1) break;
@@ -953,6 +998,7 @@ void SimulationIteration::correctMajorPartyFpBias()
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
+
 	typedef std::pair<int, float> PartyVotes;
 	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
 	// transfer fp vote shares to vector
@@ -1084,10 +1130,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 			}
 			if (pseudoAccumulated[0].first != topTwo.first.first) std::swap(pseudoAccumulated[0], pseudoAccumulated[1]);
-			//if (project.seats().viewByIndex(seatIndex).name == "Mayo") {
-			//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-			//	PA_LOG_VAR(pseudoAccumulated);
-			//}
 			allocateVotes(pseudoAccumulated, pseudoExcluded);
 			float bias = pseudoAccumulated[0].second - prevResults.tcpVote.at(topTwo.first.first);
 			float totalAllocatedPrev = std::accumulate(pseudoExcluded.begin(), pseudoExcluded.end(), 0.0f,
@@ -1095,26 +1137,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float biasRate = bias / totalAllocatedPrev;
 			float totalAllocatedNow = std::accumulate(excludedVoteShares.begin(), excludedVoteShares.end(), 0.0f,
 				[](float acc, PartyVotes const& votes) {return acc + votes.second; });
-			//if (project.seats().viewByIndex(seatIndex).name == "Mayo") {
-			//	logger << "After allocation:\n";
-			//	PA_LOG_VAR(topTwo);
-			//	PA_LOG_VAR(pseudoAccumulated);
-			//	PA_LOG_VAR(pseudoExcluded);
-			//	PA_LOG_VAR(prevResults.tcpVote);
-			//	PA_LOG_VAR(bias);
-			//	PA_LOG_VAR(pseudoAccumulated[0].second);
-			//	PA_LOG_VAR(prevResults.tcpVote.at(topTwo.first.first));
-			//	PA_LOG_VAR(totalAllocatedPrev);
-			//	PA_LOG_VAR(biasRate);
-			//	PA_LOG_VAR(totalAllocatedNow);
-			//}
 			topTwo.first.second -= biasRate * totalAllocatedNow;
 			topTwo.second.second += biasRate * totalAllocatedNow;
 			if (topTwo.second.second < topTwo.first.second) std::swap(topTwo.first, topTwo.second);
-			//if (project.seats().viewByIndex(seatIndex).name == "Mayo") {
-			//	logger << "After adjustment:\n";
-			//	PA_LOG_VAR(topTwo);
-			//}
 		}
 	}
 

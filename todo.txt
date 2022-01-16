@@ -4,11 +4,12 @@ Polling Analyser to-do:
   this should help with INDs being underrated in more heavily conservative seats
  -Check that above calculation is included in both calculation of preference bias and the subsequent calculation of major party vote
 -Add data display step by step to the webpage (* indicates not release-critical):
+ -Better labels for independents
  -Party vote totals
   *Stacked area graph of distribution across time for individual parties
  -Individual seats
+  -winner bar for 2cp scenarios
   *cartogram, maybe map view depending on feasibility
-  *winner bar for 2cp scenarios
  -Include small info/warning symbols with tooltips explaining concepts
 -Develop documentation detailing the forecasting methodology
  -FAQs

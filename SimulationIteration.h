@@ -69,7 +69,7 @@ private:
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
-	void normaliseSeatFp(int seatIndex);
+	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals();
 	void calculatePreferenceCorrections();
