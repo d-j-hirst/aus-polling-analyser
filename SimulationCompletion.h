@@ -24,6 +24,9 @@ private:
 	void recordSeatPartyWinPercentages();
 	void recordSeatFpVoteStats();
 	void recordSeatTcpVoteStats();
+	void recordTrends();
+	void recordTcpTrend();
+	void recordFpTrends();
 	void recordReportSettings();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);

@@ -155,6 +155,11 @@ public:
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpScenarioPercent;
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpWinPercent;
 
+		std::vector<int> trendProbBands;
+
+		std::vector<std::vector<float>> tppTrend; // outer: time point, inner: prob band
+		std::map<int, std::vector<std::vector<float>>> fpTrend; // outer: party index, middle: time point, inner: prob band
+
 		float prevElection2pp = 0.0f;
 
 		float getPartyMajorityPercent(int whichParty) const;

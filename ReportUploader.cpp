@@ -71,6 +71,9 @@ std::string ReportUploader::upload()
 			});
 		seatFrequencies[partyIndex] = partyThresholds;
 	}
+	j["trendProbBands"] = thisReport.report.trendProbBands;
+	j["tppTrend"] = thisReport.report.tppTrend;
+	j["fpTrend"] = thisReport.report.fpTrend;
 	j["seatCountFrequencies"] = seatFrequencies;
 	j["seatNames"] = thisReport.report.seatName;
 	j["seatIncumbents"] = thisReport.report.seatIncumbents;

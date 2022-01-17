@@ -37,6 +37,8 @@ void SimulationCompletion::completeRun()
 
 	createClassicSeatsList();
 
+	recordTrends();
+
 	recordReportSettings();
 }
 
@@ -319,6 +321,43 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 
 	logger << "Scenario percent!" << "\n";
 	logger << sim.latestReport.seatTcpScenarioPercent[0] << "\n";
+}
+
+void SimulationCompletion::recordTrends()
+{
+	sim.latestReport.trendProbBands = { 1, 5, 10, 25, 50, 75, 90, 95, 99 };
+	recordTcpTrend();
+	recordFpTrends();
+}
+
+void SimulationCompletion::recordTcpTrend()
+{
+	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	auto const& series = model.viewTPPSeries();
+	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+		sim.latestReport.tppTrend.push_back({});
+		for (int j : sim.latestReport.trendProbBands) {
+			sim.latestReport.tppTrend.back().push_back(series.timePoint[i].values[j]);
+		}
+	}
+}
+
+void SimulationCompletion::recordFpTrends()
+{
+	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	for (auto [index, abbr] : sim.latestReport.partyAbbr) {
+		if (index == EmergingPartyIndex) abbr = EmergingOthersCode;
+		if (index == OthersIndex) abbr = UnnamedOthersCode;
+		if (model.viewAdjustedSeries(abbr)) {
+			auto const& series = *model.viewAdjustedSeries(abbr);
+			for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+				sim.latestReport.fpTrend[index].push_back({});
+				for (int j : sim.latestReport.trendProbBands) {
+					sim.latestReport.fpTrend[index].back().push_back(series.timePoint[i].values[j]);
+				}
+			}
+		}
+	}
 }
 
 void SimulationCompletion::recordReportSettings()
