@@ -325,7 +325,13 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 
 void SimulationCompletion::recordTrends()
 {
-	sim.latestReport.trendProbBands = { 1, 5, 10, 25, 50, 75, 90, 95, 99 };
+	sim.latestReport.trendProbBands = { 1, 5, 25, 50, 75, 95, 99 };
+	sim.latestReport.trendPeriod = 5;
+	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	auto const startDate = model.getStartDate();
+	sim.latestReport.trendStartDate = std::to_string(startDate.GetYear()) + "-" +
+		(int(startDate.GetMonth()) < 9 ? "0" : "") +
+		std::to_string(int(startDate.GetMonth()) + 1) + "-" + std::to_string(startDate.GetDay());
 	recordTcpTrend();
 	recordFpTrends();
 }
@@ -334,10 +340,14 @@ void SimulationCompletion::recordTcpTrend()
 {
 	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
 	auto const& series = model.viewTPPSeries();
-	for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+	for (int i = 0; ; i = std::min(i + sim.latestReport.trendPeriod, int(series.timePoint.size()) - 1)) {
 		sim.latestReport.tppTrend.push_back({});
 		for (int j : sim.latestReport.trendProbBands) {
 			sim.latestReport.tppTrend.back().push_back(series.timePoint[i].values[j]);
+		}
+		if (i == int(series.timePoint.size()) - 1) {
+			sim.latestReport.finalTrendValue = i;
+			break;
 		}
 	}
 }
@@ -350,11 +360,12 @@ void SimulationCompletion::recordFpTrends()
 		if (index == OthersIndex) abbr = UnnamedOthersCode;
 		if (model.viewAdjustedSeries(abbr)) {
 			auto const& series = *model.viewAdjustedSeries(abbr);
-			for (int i = 0; i < int(series.timePoint.size()) - 1; ++i) {
+			for (int i = 0; ; i = std::min(i + sim.latestReport.trendPeriod, int(series.timePoint.size()) - 1)) {
 				sim.latestReport.fpTrend[index].push_back({});
 				for (int j : sim.latestReport.trendProbBands) {
 					sim.latestReport.fpTrend[index].back().push_back(series.timePoint[i].values[j]);
 				}
+				if (i == int(series.timePoint.size()) - 1) break;
 			}
 		}
 	}

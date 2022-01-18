@@ -72,6 +72,9 @@ std::string ReportUploader::upload()
 		seatFrequencies[partyIndex] = partyThresholds;
 	}
 	j["trendProbBands"] = thisReport.report.trendProbBands;
+	j["trendPeriod"] = thisReport.report.trendPeriod;
+	j["finalTrendValue"] = thisReport.report.finalTrendValue;
+	j["trendStartDate"] = thisReport.report.trendStartDate;
 	j["tppTrend"] = thisReport.report.tppTrend;
 	j["fpTrend"] = thisReport.report.fpTrend;
 	j["seatCountFrequencies"] = seatFrequencies;
