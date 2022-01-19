@@ -66,6 +66,7 @@ private:
 	void createPreviousDisendorsementInput(int& y);
 	void createIncumbentRecontestConfirmedInput(int& y);
 	void createConfirmedProminentIndependentInput(int& y);
+	void createProminentMinorsInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -75,6 +76,9 @@ private:
 
 	// Calls upon the window to send its data to the parent frame and close.
 	void OnOK(wxCommandEvent& WXUNUSED(event));
+
+	// Callbacks for the controls to update the seat data.
+	void updateProminentMinors(std::string prominentMinors);
 
 	// Data container for the preliminary settings for the seat to be created.
 	Seat seat;
@@ -102,6 +106,7 @@ private:
 	std::unique_ptr<CheckInput> previousDisendorsementInput;
 	std::unique_ptr<CheckInput> incumbentRecontestConfirmedInput;
 	std::unique_ptr<CheckInput> confirmedProminentIndependentInput;
+	std::unique_ptr<TextInput> prominentMinorsInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

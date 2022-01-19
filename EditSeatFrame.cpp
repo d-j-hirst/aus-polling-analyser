@@ -6,6 +6,8 @@
 #include "General.h"
 #include "TextInput.h"
 
+using namespace std::placeholders; // for function object parameter binding
+
 constexpr int ControlPadding = 4;
 
 enum ControlId
@@ -32,6 +34,7 @@ enum ControlId
 	PreviousDisendorsement,
 	IncumbentRecontestConfirmed,
 	ConfirmedProminentIndependent,
+	ProminentMinors,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -77,6 +80,7 @@ void EditSeatFrame::createControls(int & y)
 	createPreviousDisendorsementInput(y);
 	createIncumbentRecontestConfirmedInput(y);
 	createConfirmedProminentIndependentInput(y);
+	createProminentMinorsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -256,6 +260,21 @@ void EditSeatFrame::createConfirmedProminentIndependentInput(int& y)
 	y += confirmedProminentIndependentInput->Height + ControlPadding;
 }
 
+void EditSeatFrame::createProminentMinorsInput(int& y)
+{
+	std::string prominentMinors = "";
+	if (seat.prominentMinors.size()) {
+		prominentMinors += seat.prominentMinors[0];
+		for (size_t i = 1; i < seat.prominentMinors.size(); ++i) {
+			prominentMinors += "," + seat.prominentMinors[i];
+		}
+	}
+
+	auto prominentMinorsCallback = std::bind(&EditSeatFrame::updateProminentMinors, this, _1);
+	prominentMinorsInput.reset(new TextInput(this, ControlId::ProminentMinors, "Prominent Minors:", prominentMinors, wxPoint(2, y), prominentMinorsCallback));
+	y += prominentMinorsInput->Height + ControlPadding;
+}
+
 void EditSeatFrame::createOkCancelButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
@@ -294,4 +313,9 @@ void EditSeatFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 
 	// Then close this dialog.
 	Close();
+}
+
+void EditSeatFrame::updateProminentMinors(std::string prominentMinors)
+{
+	seat.prominentMinors = splitString(prominentMinors, ",");
 }

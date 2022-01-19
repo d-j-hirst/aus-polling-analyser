@@ -46,7 +46,8 @@
 // Version 39: Improve flexibility of report probability bands
 // Version 40: Save incumbent margin on simulation reports
 // Version 41: Save confirmed recontesting 3rd parties + confirmed prominent independents
-constexpr int VersionNum = 41;
+// Version 42: Prominent minor party figures for seats + trend info in reports
+constexpr int VersionNum = 42;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -495,6 +496,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.previousDisendorsement;
 		saveOutput << thisSeat.incumbentRecontestConfirmed;
 		saveOutput << thisSeat.confirmedProminentIndependent;
+		saveOutput << thisSeat.prominentMinors;
 	}
 }
 
@@ -540,6 +542,10 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 			saveInput >> thisSeat.incumbentRecontestConfirmed;
 			saveInput >> thisSeat.confirmedProminentIndependent;
 		}
+		if (versionNum >= 42) {
+			saveInput >> thisSeat.prominentMinors;
+		}
+
 		project.seatCollection.add(thisSeat);
 	}
 }
@@ -582,6 +588,12 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.prevElection2pp;
 	saveOutput << report.partyPrimaryFrequency;
 	saveOutput << report.tppFrequency;
+	saveOutput << report.trendProbBands;
+	saveOutput << report.trendPeriod;
+	saveOutput << report.finalTrendValue;
+	saveOutput << report.trendStartDate;
+	saveOutput << report.tppTrend;
+	saveOutput << report.fpTrend;
 }
 
 Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
@@ -728,6 +740,14 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 			}
 		}
 		saveInput >> report.tppFrequency;
+	}
+	if (versionNum >= 42) {
+		saveInput >> report.trendProbBands;
+		saveInput >> report.trendPeriod;
+		saveInput >> report.finalTrendValue;
+		saveInput >> report.trendStartDate;
+		saveInput >> report.tppTrend;
+		saveInput >> report.fpTrend;
 	}
 	return report;
 }

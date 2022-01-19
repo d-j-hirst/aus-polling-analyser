@@ -72,6 +72,8 @@ public:
 	bool incumbentRecontestConfirmed = false;
 	bool confirmedProminentIndependent = false;
 
+	std::vector<std::string> prominentMinors;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (tppMargin > 0.0f ? 0 : 1);
