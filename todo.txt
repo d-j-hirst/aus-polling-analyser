@@ -1,14 +1,13 @@
 Polling Analyser to-do:
--Methodological adjustments
- -Adjust IND -> major preference flow based on historical regression with margin size and IND primary,
-  this should help with INDs being underrated in more heavily conservative seats
- -Check that above calculation is included in both calculation of preference bias and the subsequent calculation of major party vote
+-Add "prominent 3rd party" option (for Hughes)
 -Add data display step by step to the webpage (* indicates not release-critical):
  -Better labels for independents
  -Party vote totals
-  *Stacked area graph of distribution across time for individual parties
+  -Show polls on graph
+  -Options for showing different parties, and poll options (raw vs. adjusted)
  -Individual seats
   -winner bar for 2cp scenarios
+  -options to sort in various ways by % chance, alphabetical, state, margin
   *cartogram, maybe map view depending on feasibility
  -Include small info/warning symbols with tooltips explaining concepts
 -Develop documentation detailing the forecasting methodology
