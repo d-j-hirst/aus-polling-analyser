@@ -26,6 +26,10 @@ RandomGenerator rng;
 // Threshold at which longshot-bias correction starts being applied for seats being approximated from betting odds
 constexpr float LongshotOddsThreshold = 2.5f;
 
+constexpr float ProminentMinorFlatBonus = 5.0f;
+constexpr float ProminentMinorFlatBonusThreshold = 10.0f;
+constexpr float ProminentMinorBonusMax = 0.0f;
+
 // How strongly preferences align with ideology based on the "consistency" property of a party
 constexpr std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.4f, 1.8f };
 
@@ -175,6 +179,8 @@ void SimulationIteration::decideMinorPartyPopulism()
 			centristPopulistFactor[partyIndex] = 0.0f;
 		}
 	}
+	partyIdeologies[EmergingIndIndex] = 2;
+	partyConsistencies[EmergingIndIndex] = 0;
 }
 
 void SimulationIteration::determineHomeRegions()
@@ -490,22 +496,36 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex];
 	}
 	transformedFp += offsetMixed;
+	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
+		transformedFp += rng.uniform(0.0f, 15.0f);
+	}
 	if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
 		transformedFp += sophomoreMixed;
 	}
 	transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
-	voteShare = detransformVoteShare(transformedFp);
+
+	float regularVoteShare = detransformVoteShare(transformedFp);
+
+	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
+		regularVoteShare += (1.0f - std::clamp(regularVoteShare / ProminentMinorFlatBonusThreshold, 0.0f, 1.0f)) * ProminentMinorFlatBonus;
+		regularVoteShare = predictorCorrectorTransformedSwing(
+			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
+	}
+
+	voteShare = regularVoteShare;
 }
 
 void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	bool prominent = seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation);
 	float partyFp = overallFpTarget[partyIndex];
 	if (partyFp == 0.0f) {
 		voteShare = 0.0f;
 		return;
 	}
 	if (seatContested.contains(partyIndex)) {
-		if (!seatContested[partyIndex][seatIndex]) {
+		if (!seatContested[partyIndex][seatIndex] && !prominent) {
 			voteShare = 0.0f;
 			return;
 		}
@@ -523,9 +543,21 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	float upperRmse = mix(run.centristStatistics.upperRmse, run.populistStatistics.upperRmse, populism);
 	float lowerKurtosis = mix(run.centristStatistics.lowerKurtosis, run.populistStatistics.lowerKurtosis, populism);
 	float upperKurtosis = mix(run.centristStatistics.upperKurtosis, run.populistStatistics.upperKurtosis, populism);
+
 	transformedFp += rng.flexibleDist(0.0f, lowerRmse, upperRmse, lowerKurtosis, upperKurtosis);
 
-	voteShare = detransformVoteShare(transformedFp);
+	float regularVoteShare = detransformVoteShare(transformedFp);
+
+	if (prominent) {
+		//logger << regularVoteShare << " - before\n";
+		regularVoteShare += (1.0f - std::clamp(regularVoteShare / ProminentMinorFlatBonusThreshold, 0.0f, 1.0f)) * ProminentMinorFlatBonus;
+		//logger << regularVoteShare << " - after\n";
+
+		regularVoteShare = predictorCorrectorTransformedSwing(
+			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
+	}
+
+	voteShare = regularVoteShare;
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
@@ -1017,6 +1049,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 	accumulatedVoteShares = originalVoteShares;
 
+	//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
+	//	PA_LOG_VAR(accumulatedVoteShares);
+	//}
+
 	// Set up reused functions...
 
 	auto bothMajorParties = [](int a, int b) {
@@ -1027,7 +1063,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// so create once and use wherever needed
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
-			std::vector<float> weights(accumulatedVoteShares.size());
 			// if it's a final-two situation, check if we have 
 			if (int(accumulatedVoteShares.size() == 2)) {
 				if (run.ncPreferenceFlow.contains(sourceParty)) {
@@ -1040,24 +1075,50 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						flow = detransformVoteShare(transformedFlow);
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
+
 						continue;
 					}
 				}
 			}
+			std::vector<float> weights(accumulatedVoteShares.size());
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
+				if (bothMajorParties(sourceParty, targetParty)) ++ideologyDistance;
 				float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
 				float thisWeight = std::pow(consistencyBase, -ideologyDistance);
-				if (bothMajorParties(sourceParty, targetParty)) thisWeight *= 0.5f;
-				thisWeight *= rng.uniform(0.5f, 1.5f);
+				float randomFactor = rng.uniform(0.6f, 1.4f);
+				thisWeight *= randomFactor;
 				thisWeight *= std::sqrt(targetVoteShare);
 				weights[targetIndex] = thisWeight;
+				//if (project.seats().viewByIndex(seatIndex).name == "Hughes" && accumulatedVoteShares.size() == 2 && sourceParty == 1 && (targetParty == 3 || targetParty == 0)) {
+				//	logger << "Weights here!\n";
+				//	PA_LOG_VAR(sourceParty);
+				//	PA_LOG_VAR(targetParty);
+				//	PA_LOG_VAR(targetVoteShare);
+				//	PA_LOG_VAR(ideologyDistance);
+				//	PA_LOG_VAR(partyIdeologies);
+				//	PA_LOG_VAR(partyIdeologies[sourceParty]);
+				//	PA_LOG_VAR(partyIdeologies[targetParty]);
+				//	PA_LOG_VAR(consistencyBase);
+				//	PA_LOG_VAR(std::pow(consistencyBase, -ideologyDistance));
+				//	PA_LOG_VAR(bothMajorParties(sourceParty, targetParty));
+				//	PA_LOG_VAR(randomFactor);
+				//}
 			}
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 			}
+
+			//if (project.seats().viewByIndex(seatIndex).name == "Hughes" && accumulatedVoteShares.size() == 2) {
+			//	PA_LOG_VAR(excludedVoteShares);
+			//	PA_LOG_VAR(accumulatedVoteShares);
+			//	PA_LOG_VAR(totalWeight);
+			//	PA_LOG_VAR(weights);
+			//	PA_LOG_VAR(sourceParty);
+			//	PA_LOG_VAR(sourceVoteShare);
+			//}
 		}
 	};
 
@@ -1108,6 +1169,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		std::erase(originalVoteShares, originalCandidate);
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes(accumulatedVoteShares, excludedVoteShares);
+
+		//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
+		//	PA_LOG_VAR(accumulatedVoteShares);
+		//}
 	}
 
 	std::pair<PartyVotes, PartyVotes> topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);
@@ -1145,6 +1210,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	seatWinner[seatIndex] = topTwo.second.first;
 	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
+
+	//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
+	//	PA_LOG_VAR(topTwo);
+	//}
+
+	//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
+
+	//	logger << seatFpVoteShare[seatIndex] << " - final\n";
+	//}
+
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 }
 

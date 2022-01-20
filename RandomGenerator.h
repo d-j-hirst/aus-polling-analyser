@@ -17,8 +17,14 @@ public:
 
 	template<typename T = float,
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-	static T uniform(T low = T(0.0), T high = T(1.0)) {
+		static T uniform(T low = T(0.0), T high = T(1.0)) {
 		return std::uniform_real_distribution<T>(low, high)(gen);
+	}
+
+	template<typename T = float,
+		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+		static T uniform(std::pair<T, T> range) {
+		return std::uniform_real_distribution<T>(range.first, range.second)(gen);
 	}
 
 	template<typename T = int,
