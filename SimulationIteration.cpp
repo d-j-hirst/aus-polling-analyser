@@ -28,7 +28,7 @@ constexpr float LongshotOddsThreshold = 2.5f;
 
 constexpr float ProminentMinorFlatBonus = 5.0f;
 constexpr float ProminentMinorFlatBonusThreshold = 10.0f;
-constexpr float ProminentMinorBonusMax = 0.0f;
+constexpr float ProminentMinorBonusMax = 35.0f;
 
 // How strongly preferences align with ideology based on the "consistency" property of a party
 constexpr std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.4f, 1.8f };
@@ -549,10 +549,7 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	float regularVoteShare = detransformVoteShare(transformedFp);
 
 	if (prominent) {
-		//logger << regularVoteShare << " - before\n";
 		regularVoteShare += (1.0f - std::clamp(regularVoteShare / ProminentMinorFlatBonusThreshold, 0.0f, 1.0f)) * ProminentMinorFlatBonus;
-		//logger << regularVoteShare << " - after\n";
-
 		regularVoteShare = predictorCorrectorTransformedSwing(
 			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
 	}
@@ -972,8 +969,10 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 			float correctionFactor = overallFpTarget[partyIndex] / tempOverallFp[partyIndex];
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
-					float correctionSwing = seatFpVoteShare[seatIndex][partyIndex] * (correctionFactor - 1.0f);
-					float newValue = basicTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
+					// prevent outlier seats from getting monster swings
+					float swingCap = std::max(0.0f, tempOverallFp[partyIndex] * (correctionFactor - 1.0f) * 3.0f);
+					float correctionSwing = std::min(swingCap, seatFpVoteShare[seatIndex][partyIndex] * (correctionFactor - 1.0f));
+					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
 					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}
 			}
@@ -992,7 +991,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				if (!totalOthers) continue;
 				for (auto& [seatPartyIndex, voteShare] : categories) {
 					float additionalVotes = allocation * voteShare / totalOthers;
-					float newValue = basicTransformedSwing(seatFpVoteShare[seatIndex][seatPartyIndex], additionalVotes);
+					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][seatPartyIndex], additionalVotes);
 					seatFpVoteShare[seatIndex][seatPartyIndex] = newValue;
 				}
 			}
@@ -1091,34 +1090,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				thisWeight *= randomFactor;
 				thisWeight *= std::sqrt(targetVoteShare);
 				weights[targetIndex] = thisWeight;
-				//if (project.seats().viewByIndex(seatIndex).name == "Hughes" && accumulatedVoteShares.size() == 2 && sourceParty == 1 && (targetParty == 3 || targetParty == 0)) {
-				//	logger << "Weights here!\n";
-				//	PA_LOG_VAR(sourceParty);
-				//	PA_LOG_VAR(targetParty);
-				//	PA_LOG_VAR(targetVoteShare);
-				//	PA_LOG_VAR(ideologyDistance);
-				//	PA_LOG_VAR(partyIdeologies);
-				//	PA_LOG_VAR(partyIdeologies[sourceParty]);
-				//	PA_LOG_VAR(partyIdeologies[targetParty]);
-				//	PA_LOG_VAR(consistencyBase);
-				//	PA_LOG_VAR(std::pow(consistencyBase, -ideologyDistance));
-				//	PA_LOG_VAR(bothMajorParties(sourceParty, targetParty));
-				//	PA_LOG_VAR(randomFactor);
-				//}
 			}
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 			}
-
-			//if (project.seats().viewByIndex(seatIndex).name == "Hughes" && accumulatedVoteShares.size() == 2) {
-			//	PA_LOG_VAR(excludedVoteShares);
-			//	PA_LOG_VAR(accumulatedVoteShares);
-			//	PA_LOG_VAR(totalWeight);
-			//	PA_LOG_VAR(weights);
-			//	PA_LOG_VAR(sourceParty);
-			//	PA_LOG_VAR(sourceVoteShare);
-			//}
 		}
 	};
 
@@ -1210,15 +1186,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	seatWinner[seatIndex] = topTwo.second.first;
 	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
-
-	//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
-	//	PA_LOG_VAR(topTwo);
-	//}
-
-	//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
-
-	//	logger << seatFpVoteShare[seatIndex] << " - final\n";
-	//}
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 }
