@@ -74,6 +74,8 @@ public:
 
 	std::vector<std::string> prominentMinors;
 
+	std::map<std::string, float> bettingOdds;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (tppMargin > 0.0f ? 0 : 1);

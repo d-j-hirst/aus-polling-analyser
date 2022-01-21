@@ -35,11 +35,12 @@ enum ControlId
 	IncumbentRecontestConfirmed,
 	ConfirmedProminentIndependent,
 	ProminentMinors,
+	BettingOdds,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
 	RegionCollection const& regions, Seat seat)
-	: wxDialog(NULL, 0, (function == Function::New ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(375, 371)),
+	: wxDialog(NULL, 0, (function == Function::New ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(450, 371)),
 	callback(callback), parties(parties), regions(regions), seat(seat)
 {
 	validateSeatParties();
@@ -81,6 +82,7 @@ void EditSeatFrame::createControls(int & y)
 	createIncumbentRecontestConfirmedInput(y);
 	createConfirmedProminentIndependentInput(y);
 	createProminentMinorsInput(y);
+	createBettingOddsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -275,6 +277,21 @@ void EditSeatFrame::createProminentMinorsInput(int& y)
 	y += prominentMinorsInput->Height + ControlPadding;
 }
 
+void EditSeatFrame::createBettingOddsInput(int& y)
+{
+	std::string bettingOdds = "";
+	bool firstDone = false;
+	for (auto [shortCode, odds] : seat.bettingOdds) {
+		if (firstDone) bettingOdds += ";";
+		bettingOdds += shortCode + "," + formatFloat(odds, 2);
+		firstDone = true;
+	}
+
+	auto bettingOddsCallback = std::bind(&EditSeatFrame::updateBettingOdds, this, _1);
+	bettingOddsInput.reset(new TextInput(this, ControlId::BettingOdds, "Betting Odds:", bettingOdds, wxPoint(2, y), bettingOddsCallback));
+	y += bettingOddsInput->Height + ControlPadding;
+}
+
 void EditSeatFrame::createOkCancelButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
@@ -318,4 +335,22 @@ void EditSeatFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 void EditSeatFrame::updateProminentMinors(std::string prominentMinors)
 {
 	seat.prominentMinors = splitString(prominentMinors, ",");
+}
+
+void EditSeatFrame::updateBettingOdds(std::string bettingOdds)
+{
+	seat.bettingOdds.clear();
+	auto oddsVec = splitString(bettingOdds, ";");
+	for (auto odds : oddsVec) {
+		auto singleOdds = splitString(odds, ",");
+		if (singleOdds.size() < 2) continue;
+		std::string party = singleOdds[0];
+		try {
+			float oddsVal = std::stof(singleOdds[1]);
+			seat.bettingOdds[party] = oddsVal;
+		}
+		catch (std::invalid_argument) {
+			continue;
+		}
+	}
 }

@@ -67,6 +67,7 @@ private:
 	void createIncumbentRecontestConfirmedInput(int& y);
 	void createConfirmedProminentIndependentInput(int& y);
 	void createProminentMinorsInput(int& y);
+	void createBettingOddsInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -79,6 +80,7 @@ private:
 
 	// Callbacks for the controls to update the seat data.
 	void updateProminentMinors(std::string prominentMinors);
+	void updateBettingOdds(std::string bettingOddsInput);
 
 	// Data container for the preliminary settings for the seat to be created.
 	Seat seat;
@@ -107,6 +109,7 @@ private:
 	std::unique_ptr<CheckInput> incumbentRecontestConfirmedInput;
 	std::unique_ptr<CheckInput> confirmedProminentIndependentInput;
 	std::unique_ptr<TextInput> prominentMinorsInput;
+	std::unique_ptr<TextInput> bettingOddsInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

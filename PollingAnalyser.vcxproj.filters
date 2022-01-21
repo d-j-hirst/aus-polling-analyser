@@ -328,9 +328,6 @@
     <ClInclude Include="EditPollsterFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
-    <ClInclude Include="VisualiserFrame.h">
-      <Filter>Header Files\Tabbed Frames</Filter>
-    </ClInclude>
     <ClInclude Include="PartySettingsFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
@@ -560,6 +557,9 @@
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
     <ClInclude Include="json.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualiserFrame.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
   </ItemGroup>

@@ -47,7 +47,8 @@
 // Version 40: Save incumbent margin on simulation reports
 // Version 41: Save confirmed recontesting 3rd parties + confirmed prominent independents
 // Version 42: Prominent minor party figures for seats + trend info in reports
-constexpr int VersionNum = 42;
+// Version 43: Betting odds for individual seats
+constexpr int VersionNum = 43;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -497,6 +498,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.incumbentRecontestConfirmed;
 		saveOutput << thisSeat.confirmedProminentIndependent;
 		saveOutput << thisSeat.prominentMinors;
+		saveOutput << thisSeat.bettingOdds;
 	}
 }
 
@@ -544,6 +546,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		}
 		if (versionNum >= 42) {
 			saveInput >> thisSeat.prominentMinors;
+		}
+		if (versionNum >= 43) {
+			saveInput >> thisSeat.bettingOdds;
 		}
 
 		project.seatCollection.add(thisSeat);
