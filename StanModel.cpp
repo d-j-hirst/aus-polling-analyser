@@ -189,7 +189,6 @@ void StanModel::loadFundamentalsPredictions()
 		std::string party = splitString(values[0], " ")[0];
 		fundamentals[party] = std::stod(values[1]);
 	} while (true);
-	logger << fundamentals << "\n";
 }
 
 void StanModel::loadParameters(FeedbackFunc feedback)
@@ -238,7 +237,6 @@ void StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
 		double value = std::stod(line);
 		emergingParameters[parameter] = value;
 	}
-	logger << emergingParameters << "\n";
 }
 
 bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)

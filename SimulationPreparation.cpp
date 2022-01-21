@@ -551,6 +551,7 @@ void SimulationPreparation::loadPastSeatResults()
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	bool fpMode = false;
 	int currentSeat = -1;
+	bool indSeen = false;
 	do {
 		std::string line;
 		std::getline(file, line);
@@ -565,6 +566,7 @@ void SimulationPreparation::loadPastSeatResults()
 		else if (values[0] == "Seat") {
 			try {
 				currentSeat = project.seats().idToIndex(project.seats().accessByName(values[1], true).first);
+				indSeen = false;
 			}
 			catch (SeatDoesntExistException) {
 				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
@@ -583,6 +585,14 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 			int partyId = project.parties().indexByShortCode(shortCodeUsed);
 			if (fpMode) {
+				if (shortCodeUsed == "IND") {
+					if (indSeen) {
+						partyId = -1;
+					}
+					else {
+						indSeen = true;
+					}
+				}
 				run.pastSeatResults[currentSeat].fpVoteCount[partyId] += voteCount;
 				run.pastSeatResults[currentSeat].fpVotePercent[partyId] += votePercent;
 			}
