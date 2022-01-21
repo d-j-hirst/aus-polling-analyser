@@ -64,6 +64,7 @@ private:
 	void determineSeatInitialFp(int seatIndex);
 	void determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics);
 	void determinePopulistFp(int seatIndex, int partyIndex, float& voteShare);
+	void determineSeatConfirmedInds(int seatIndex);
 	void determineSeatEmergingInds(int seatIndex);
 	void determineSeatOthers(int seatIndex);
 	void prepareFpsForNormalisation(int seatIndex);

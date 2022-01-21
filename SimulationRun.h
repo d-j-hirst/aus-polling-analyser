@@ -153,6 +153,8 @@ private:
 	std::string regionCode;
 	std::string yearCode;
 
+	int indPartyIndex = 0;
+
 	float totalPopulation = 0.0f;
 
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;

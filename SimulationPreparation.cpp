@@ -34,6 +34,7 @@ void SimulationPreparation::prepareForIterations()
 	resetSeatSpecificOutput();
 
 	storeTermCode();
+	determineIndependentPartyIndex();
 
 	loadTppSwingFactors();
 
@@ -353,6 +354,12 @@ void SimulationPreparation::resetResultCounts()
 	sim.latestReport.partyPrimaryFrequency.clear();
 	sim.latestReport.tppFrequency.clear();
 	sim.latestReport.partyOneSwing = 0.0;
+}
+
+void SimulationPreparation::determineIndependentPartyIndex()
+{
+	run.indPartyIndex = project.parties().indexByShortCode("IND");
+	if (run.indPartyIndex == -1) run.indPartyIndex = EmergingIndIndex;
 }
 
 void SimulationPreparation::determineSeatCachedBoothData(int seatIndex)

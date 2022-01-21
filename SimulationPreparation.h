@@ -42,6 +42,7 @@ private:
 	void updateLiveAggregateForSeat(int seatIndex);
 	void finaliseLiveAggregates();
 	void resetResultCounts();
+	void determineIndependentPartyIndex();
 	void determineSeatCachedBoothData(int seatIndex);
 	SeatPartyPreferences aggregateVoteData(int seatIndex);
 	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
