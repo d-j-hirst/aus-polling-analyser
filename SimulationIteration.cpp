@@ -587,6 +587,15 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
 		rmse = (rmse * 0.5f + run.indEmergence.voteRmse * 0.5f) * 1.2f;
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
+		if (run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
+			float impliedChance = 1.0f / run.seatBettingOdds[seatIndex][run.indPartyIndex];
+			const float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
+			constexpr float range = 32.0f;
+			float voteShareCenter = pivot + range * (impliedChance - 0.5f);
+			constexpr float variation = 10.0f;
+			float transformedBettingFp = rng.normal(voteShareCenter, variation);
+			transformedVoteShare = transformedVoteShare * 0.3f + transformedBettingFp * 0.7f;
+		}
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(seatFpVoteShare[seatIndex][run.indPartyIndex], detransformVoteShare(transformedVoteShare));
 	}
 }

@@ -218,6 +218,8 @@ private:
 	RegionPollBehaviour generalPollBehaviour;
 	TppSwingFactors tppSwingFactors;
 
+	std::vector<std::map<int, float>> seatBettingOdds;
+
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
 	SeatStatistics othSeatStatistics;

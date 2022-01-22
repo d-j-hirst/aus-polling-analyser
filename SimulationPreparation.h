@@ -30,6 +30,7 @@ private:
 	void determineEffectiveSeatModifiers();
 	void determinePreviousSwingDeviations();
 	void accumulateRegionStaticInfo();
+	void loadSeatBettingOdds();
 	void resetPpvcBiasAggregates();
 	void cacheBoothData();
 	void determinePpvcBias();

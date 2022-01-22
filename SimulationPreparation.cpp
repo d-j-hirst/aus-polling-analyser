@@ -62,6 +62,8 @@ void SimulationPreparation::prepareForIterations()
 
 	accumulateRegionStaticInfo();
 
+	loadSeatBettingOdds();
+
 	resetPpvcBiasAggregates();
 
 	// This will also accumulate the PPVC bias aggregates
@@ -189,6 +191,18 @@ void SimulationPreparation::accumulateRegionStaticInfo()
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		run.regionLocalModifierAverage[regionIndex] /= float(regionSeatCount[regionIndex]);
 	}
+}
+
+void SimulationPreparation::loadSeatBettingOdds()
+{
+	run.seatBettingOdds.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		for (auto const& [partyCode, odds] : project.seats().viewByIndex(seatIndex).bettingOdds) {
+			int partyIndex = project.parties().indexByShortCode(partyCode);
+			run.seatBettingOdds[seatIndex][partyIndex] = odds;
+		}
+	}
+	logger << run.seatBettingOdds;
 }
 
 void SimulationPreparation::resetPpvcBiasAggregates()
