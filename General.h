@@ -221,3 +221,15 @@ template<typename T>
 bool isBoundedBy(const T& val, const T& lower, const T& upper) {
 	return lower <= val && val <= upper;
 }
+
+// Efficient (for small e) method for raising a float to an integer power
+inline float myPow(float b, unsigned int e) {
+	{
+		if (e == 0)
+			return 1;
+		else if (e % 2 == 0)
+			return myPow(b, e / 2) * myPow(b, e / 2);
+		else
+			return b * myPow(b, e / 2) * myPow(b, e / 2);
+	}
+};

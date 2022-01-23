@@ -593,7 +593,22 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			float voteShareCenter = pivot + range * (impliedChance - 0.5f);
 			constexpr float variation = 10.0f;
 			float transformedBettingFp = rng.normal(voteShareCenter, variation);
-			transformedVoteShare = transformedVoteShare * 0.3f + transformedBettingFp * 0.7f;
+			transformedVoteShare = mix(transformedVoteShare, transformedBettingFp, 0.7f);
+		}
+		if (run.seatPolls[seatIndex].contains(run.indPartyIndex)) {
+			float weightedSum = 0.0f;
+			float sumOfWeights = 0.0f;
+			for (auto poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
+				constexpr float QualityWeightBase = 0.6f;
+				float weight = myPow(QualityWeightBase, poll.second);
+				weightedSum += poll.first * weight;
+				sumOfWeights += weight;
+			}
+			float transformedPollFp = transformVoteShare(std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
+			constexpr float MaxPollWeight = 0.8f;
+			constexpr float PollWeightBase = 0.6f;
+			float pollFactor = MaxPollWeight * (1.0f - std::powf(PollWeightBase, sumOfWeights));
+			transformedVoteShare = mix(transformedVoteShare, transformedPollFp, pollFactor);
 		}
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(seatFpVoteShare[seatIndex][run.indPartyIndex], detransformVoteShare(transformedVoteShare));
 	}

@@ -219,6 +219,7 @@ private:
 	TppSwingFactors tppSwingFactors;
 
 	std::vector<std::map<int, float>> seatBettingOdds;
+	std::vector<std::map<int, std::vector<std::pair<float, int>>>> seatPolls;
 
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;

@@ -63,6 +63,7 @@ void SimulationPreparation::prepareForIterations()
 	accumulateRegionStaticInfo();
 
 	loadSeatBettingOdds();
+	loadSeatPolls();
 
 	resetPpvcBiasAggregates();
 
@@ -202,7 +203,18 @@ void SimulationPreparation::loadSeatBettingOdds()
 			run.seatBettingOdds[seatIndex][partyIndex] = odds;
 		}
 	}
-	logger << run.seatBettingOdds;
+}
+
+void SimulationPreparation::loadSeatPolls()
+{
+	run.seatPolls.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		for (auto const& [partyCode, polls] : project.seats().viewByIndex(seatIndex).polls) {
+			int partyIndex = project.parties().indexByShortCode(partyCode);
+			run.seatPolls[seatIndex][partyIndex] = polls;
+		}
+	}
+	logger << run.seatPolls;
 }
 
 void SimulationPreparation::resetPpvcBiasAggregates()

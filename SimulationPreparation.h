@@ -31,6 +31,7 @@ private:
 	void determinePreviousSwingDeviations();
 	void accumulateRegionStaticInfo();
 	void loadSeatBettingOdds();
+	void loadSeatPolls();
 	void resetPpvcBiasAggregates();
 	void cacheBoothData();
 	void determinePpvcBias();
