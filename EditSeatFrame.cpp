@@ -36,11 +36,12 @@ enum ControlId
 	ConfirmedProminentIndependent,
 	ProminentMinors,
 	BettingOdds,
+	Polls,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
 	RegionCollection const& regions, Seat seat)
-	: wxDialog(NULL, 0, (function == Function::New ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(450, 371)),
+	: wxDialog(NULL, 0, (function == Function::New ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(500, 371)),
 	callback(callback), parties(parties), regions(regions), seat(seat)
 {
 	validateSeatParties();
@@ -83,6 +84,7 @@ void EditSeatFrame::createControls(int & y)
 	createConfirmedProminentIndependentInput(y);
 	createProminentMinorsInput(y);
 	createBettingOddsInput(y);
+	createPollsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -292,6 +294,23 @@ void EditSeatFrame::createBettingOddsInput(int& y)
 	y += bettingOddsInput->Height + ControlPadding;
 }
 
+void EditSeatFrame::createPollsInput(int& y)
+{
+	std::string pollStr = "";
+	bool firstDone = false;
+	for (auto [shortCode, partyPolls] : seat.polls) {
+		for (auto poll : partyPolls) {
+			if (firstDone) pollStr += ";";
+			pollStr += shortCode + "," + formatFloat(poll.first, 2) + "," + std::to_string(poll.second);
+			firstDone = true;
+		}
+	}
+
+	auto pollsCallback = std::bind(&EditSeatFrame::updatePolls, this, _1);
+	pollsInput.reset(new TextInput(this, ControlId::Polls, "Seat Polls:", pollStr, wxPoint(2, y), pollsCallback));
+	y += pollsInput->Height + ControlPadding;
+}
+
 void EditSeatFrame::createOkCancelButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
@@ -348,6 +367,25 @@ void EditSeatFrame::updateBettingOdds(std::string bettingOdds)
 		try {
 			float oddsVal = std::stof(singleOdds[1]);
 			seat.bettingOdds[party] = oddsVal;
+		}
+		catch (std::invalid_argument) {
+			continue;
+		}
+	}
+}
+
+void EditSeatFrame::updatePolls(std::string pollStr)
+{
+	seat.polls.clear();
+	auto pollsVec = splitString(pollStr, ";");
+	for (auto poll : pollsVec) {
+		auto singlePoll = splitString(poll, ",");
+		if (singlePoll.size() < 3) continue;
+		std::string party = singlePoll[0];
+		try {
+			float fpVal = std::stof(singlePoll[1]);
+			int credibility = std::stoi(singlePoll[2]);
+			seat.polls[party].push_back({ fpVal, credibility });
 		}
 		catch (std::invalid_argument) {
 			continue;

@@ -36,6 +36,9 @@ public:
 	template<typename T, typename U>
 	Logger& operator<<(const std::pair<T, U>& obj);
 
+	template<typename T, typename U, typename V>
+	Logger& operator<<(const std::tuple<T, U, V>& obj);
+
 	Logger& operator<<(const uint8_t& obj);
 
 	Logger& operator<<(const int8_t& obj);
@@ -127,6 +130,17 @@ inline Logger& Logger::operator<<(const std::pair<T, U>& obj)
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	*this << "[" << obj.first << ", " << obj.second << "]";
+	setFlushFlag(prevFlush);
+	flushIf();
+	return *this;
+}
+
+template<typename T, typename U, typename V>
+inline Logger& Logger::operator<<(const std::tuple<T, U, V>& obj)
+{
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
+	*this << "[" << std::get<0>(obj) << ", " << std::get<1>(obj) << ", " << std::get<2>(obj) << "]";
 	setFlushFlag(prevFlush);
 	flushIf();
 	return *this;

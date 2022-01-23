@@ -445,7 +445,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 	// Helps to effect minor party crowding, i.e. if too many minor parties
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
-	// *** Remove the change-in-highest-minor from the highest-major-party
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
 	preferenceVariation.clear();

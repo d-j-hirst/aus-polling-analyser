@@ -48,7 +48,8 @@
 // Version 41: Save confirmed recontesting 3rd parties + confirmed prominent independents
 // Version 42: Prominent minor party figures for seats + trend info in reports
 // Version 43: Betting odds for individual seats
-constexpr int VersionNum = 43;
+// Version 44: Polls for individual seats
+constexpr int VersionNum = 44;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -499,6 +500,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.confirmedProminentIndependent;
 		saveOutput << thisSeat.prominentMinors;
 		saveOutput << thisSeat.bettingOdds;
+		saveOutput << thisSeat.polls;
 	}
 }
 
@@ -549,6 +551,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		}
 		if (versionNum >= 43) {
 			saveInput >> thisSeat.bettingOdds;
+		}
+		if (versionNum >= 44) {
+			saveInput >> thisSeat.polls;
 		}
 
 		project.seatCollection.add(thisSeat);

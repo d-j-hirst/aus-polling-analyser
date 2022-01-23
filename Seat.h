@@ -76,6 +76,9 @@ public:
 
 	std::map<std::string, float> bettingOdds;
 
+	// outer string = party abbr, inner float = fp, inner int = credibility as for national poll
+	std::map<std::string, std::vector<std::pair<float, int>>> polls;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (tppMargin > 0.0f ? 0 : 1);

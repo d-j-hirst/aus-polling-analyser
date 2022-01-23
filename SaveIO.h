@@ -73,6 +73,15 @@ public:
 		return *this;
 	}
 
+	template<typename T, typename U, typename V>
+	inline SaveFileOutput& operator<<(std::tuple<T, U, V> itemToAdd)
+	{
+		*this << std::get<0>(itemToAdd);
+		*this << std::get<1>(itemToAdd);
+		*this << std::get<2>(itemToAdd);
+		return *this;
+	}
+
 	template<typename T, typename U>
 	void outputAsType(U const& output) {
 		*this << static_cast<T>(output);
