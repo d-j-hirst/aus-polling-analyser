@@ -79,6 +79,7 @@ void SimulationIteration::determineOverallBehaviour()
 {
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
+
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
 	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
@@ -1103,10 +1104,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 	accumulatedVoteShares = originalVoteShares;
 
-	//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
-	//	PA_LOG_VAR(accumulatedVoteShares);
-	//}
-
 	// Set up reused functions...
 
 	auto bothMajorParties = [](int a, int b) {
@@ -1200,10 +1197,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		std::erase(originalVoteShares, originalCandidate);
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes(accumulatedVoteShares, excludedVoteShares);
-
-		//if (project.seats().viewByIndex(seatIndex).name == "Hughes") {
-		//	PA_LOG_VAR(accumulatedVoteShares);
-		//}
 	}
 
 	std::pair<PartyVotes, PartyVotes> topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);

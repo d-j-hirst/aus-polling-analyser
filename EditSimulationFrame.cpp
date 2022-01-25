@@ -27,7 +27,7 @@ enum ControlId
 };
 
 EditSimulationFrame::EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings simulation)
-	: wxDialog(NULL, 0, (function == Function::New ? "New Simulation" : "Edit Simulation"), wxDefaultPosition, wxSize(375, 260)),
+	: wxDialog(NULL, 0, (function == Function::New ? "New Simulation" : "Edit Simulation"), wxDefaultPosition, wxSize(500, 400)),
 	callback(callback), projections(projections), simulationSettings(simulation)
 {
 	// If a model has not been specified it should default to the first.

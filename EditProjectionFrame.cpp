@@ -28,7 +28,7 @@ enum ControlId
 };
 
 EditProjectionFrame::EditProjectionFrame(Function function, OkCallback callback, ModelCollection const& models, Projection::Settings projectionSettings)
-	: wxDialog(NULL, 0, (function == Function::New ? "New Projection" : "Edit Projection"), wxDefaultPosition, wxSize(375, 287)),
+	: wxDialog(NULL, 0, (function == Function::New ? "New Projection" : "Edit Projection"), wxDefaultPosition, wxSize(500, 400)),
 	callback(callback), models(models), projectionSettings(projectionSettings)
 {
 	// If a model has not been specified it should default to the first.

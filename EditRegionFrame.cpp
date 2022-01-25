@@ -19,7 +19,7 @@ enum ControlId
 };
 
 EditRegionFrame::EditRegionFrame(Function function, OkCallback callback, Region region)
-	: wxDialog(NULL, 0, (function == Function::New ? "New Region" : "Edit Region")),
+	: wxDialog(NULL, 0, (function == Function::New ? "New Region" : "Edit Region"), wxDefaultPosition, wxSize(500, 400)),
 	callback(callback), region(region)
 {
 	int currentY = ControlPadding;

@@ -21,7 +21,7 @@ enum ControlId
 };
 
 EditPollFrame::EditPollFrame(Function function, OkCallback callback, PartyCollection const& parties, PollsterCollection const& pollsters, Poll poll)
-	: wxDialog(NULL, 0, (function == Function::New ? "New Poll" : "Edit Poll")),
+	: wxDialog(NULL, 0, (function == Function::New ? "New Poll" : "Edit Poll"), wxDefaultPosition, wxSize(500, 400)),
 	poll(poll), callback(callback), parties(parties), pollsters(pollsters)
 {
 	int currentY = ControlPadding;

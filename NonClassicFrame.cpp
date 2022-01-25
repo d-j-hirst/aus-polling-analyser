@@ -22,7 +22,7 @@ enum ControlId
 };
 
 NonClassicFrame::NonClassicFrame(PartyCollection const& parties, Seat& seat)
-	: wxDialog(NULL, 0, "Non-classic seat"),
+	: wxDialog(NULL, 0, "Non-classic seat", wxDefaultPosition, wxSize(500, 400)),
 	parties(parties), seat(seat)
 {
 	int currentY = ControlPadding;

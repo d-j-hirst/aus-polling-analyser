@@ -610,7 +610,7 @@ void StanModel::updateOthersValue(StanModel::SupportSample& sample) {
 	// note that this relies on there being an "exclusive others" component
 	float otherSum = std::accumulate(sample.voteShare.begin(), sample.voteShare.end(), 0.0f,
 		[](float a, decltype(sample.voteShare)::value_type b) {
-			return (b.first == OthersCode || majorPartyCodes.count(b.first) ? a : a + b.second);
+			return (b.first == OthersCode || b.first == TppCode || majorPartyCodes.count(b.first) ? a : a + b.second);
 		});
 	sample.voteShare[OthersCode] = otherSum;
 }
@@ -668,6 +668,8 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 		tpp += support * randomisedFlow;
 		totalFp += support;
 	}
+	sample.preferenceFlow[partyCodeVec[0]] = 100.0f;
+	sample.preferenceFlow[partyCodeVec[1]] = 0.0f;
 	// Now we have the contribution to tpp from minors, so the difference between this and the total tpp gives the party-one fp
 	float targetTpp = sample.voteShare[TppCode];
 	float partyOneFp = sample.voteShare[TppCode] - tpp;
