@@ -802,7 +802,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ? 
 					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
 					: 100.f - (-67.42f - 0.47f * voteShare - 0.016701355 * (100.0f - partyOneCurrentTpp)));
-				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 20.0f, preferenceFlowCap);
+				preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
+				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 5.0f, preferenceFlowCap);
 				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
 				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
 				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
@@ -1331,7 +1332,7 @@ void SimulationIteration::recordPartySeatWinCounts()
 	int othersWins = 0;
 	for (auto [partyIndex, wins] : partyWins) {
 		if (!sim.latestReport.partySeatWinFrequency.contains(partyIndex)) {
-			sim.latestReport.partySeatWinFrequency[partyIndex] = std::vector<int>(project.seats().count());
+			sim.latestReport.partySeatWinFrequency[partyIndex] = std::vector<int>(project.seats().count() + 1);
 		}
 		++sim.latestReport.partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
 		if (partyIndex > 1) othersWins += partyWins[partyIndex];

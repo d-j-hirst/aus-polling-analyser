@@ -160,7 +160,9 @@ class Inputs:
                 ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4])) for a in
                 [b.strip().split(',') for b in f.readlines()]}
         # stores: party corresponding to federal government,
-        # then party opposing federal government
+        # then party opposing federal government,
+        # then the chance the federal government is still in power at this election,
+        # given in the file as a percentage (defaults to 100 if not given)
         with open('./Data/federal-situation.csv', 'r') as f:
             self.federal_situation = {
                 ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4]) / 100 if len(a) >= 5 else 1)
