@@ -79,7 +79,6 @@ void SimulationIteration::determineOverallBehaviour()
 {
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
-
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
 	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
@@ -450,6 +449,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	normaliseSeatFp(seatIndex);
 	preferenceVariation.clear();
 	allocateMajorPartyFp(seatIndex);
+
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {

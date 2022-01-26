@@ -1,15 +1,15 @@
 Polling Analyser to-do:
--Add "prominent 3rd party" option (for Hughes)
 -Add data display step by step to the webpage (* indicates not release-critical):
- -Better labels for independents
  -Party vote totals
   -Show polls on graph
   -Options for showing different parties, and poll options (raw vs. adjusted)
+ -Better labels for independents
  -Individual seats
   -winner bar for 2cp scenarios
   -options to sort in various ways by % chance, alphabetical, state, margin
   *cartogram, maybe map view depending on feasibility
- -Include small info/warning symbols with tooltips explaining concepts
+ -Include small info/warning symbols with tooltips/overlays explaining concepts
+-Get SA election file as prepared as possible
 -Develop documentation detailing the forecasting methodology
  -FAQs
   -What's the point?
@@ -18,11 +18,8 @@ Polling Analyser to-do:
   -What's the difference between the regular forecast and the now-cast?
   -What does it really mean for there to be an X% chance of winning an election/seat?
   -Why don't the vote totals add to 100%? Why don't the seat totals add to the number of seats in Parliament?
-  -
--Post-release, as soon as possible before election is called:
- -Integrate confirmed candidacies (for 3rd parties)
- -Integrate betting odds
- -Further investigation for seat-by-seat differences in TPP behaviour
+  -How should I interpret the different two-party-preferred scenarios?
+
 
 -Before election day, if possible:
  -Advanced simulations!

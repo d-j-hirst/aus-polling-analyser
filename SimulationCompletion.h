@@ -4,6 +4,7 @@ class PollingProject;
 class Seat;
 class Simulation;
 class SimulationRun;
+class StanModel;
 
 class SimulationCompletion {
 public:
@@ -28,6 +29,9 @@ private:
 	void recordTcpTrend();
 	void recordFpTrends();
 	void recordReportSettings();
+	void recordModelledPolls();
+
+	StanModel const& baseModel();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
 

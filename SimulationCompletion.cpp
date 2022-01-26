@@ -39,6 +39,8 @@ void SimulationCompletion::completeRun()
 
 	recordTrends();
 
+	recordModelledPolls();
+
 	recordReportSettings();
 }
 
@@ -322,7 +324,7 @@ void SimulationCompletion::recordTrends()
 {
 	sim.latestReport.trendProbBands = { 1, 5, 25, 50, 75, 95, 99 };
 	sim.latestReport.trendPeriod = 5;
-	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	auto const& model = baseModel();
 	auto const startDate = model.getStartDate();
 	sim.latestReport.trendStartDate = std::to_string(startDate.GetYear()) + "-" +
 		(int(startDate.GetMonth()) < 9 ? "0" : "") +
@@ -333,7 +335,7 @@ void SimulationCompletion::recordTrends()
 
 void SimulationCompletion::recordTcpTrend()
 {
-	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	auto const& model = baseModel();
 	auto const& series = model.viewTPPSeries();
 	for (int i = 0; ; i = std::min(i + sim.latestReport.trendPeriod, int(series.timePoint.size()) - 1)) {
 		sim.latestReport.tppTrend.push_back({});
@@ -349,7 +351,7 @@ void SimulationCompletion::recordTcpTrend()
 
 void SimulationCompletion::recordFpTrends()
 {
-	auto const& model = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
+	auto const& model = baseModel();
 	for (auto [index, abbr] : sim.latestReport.partyAbbr) {
 		if (index == EmergingPartyIndex) abbr = EmergingOthersCode;
 		if (index == OthersIndex) abbr = UnnamedOthersCode;
@@ -369,6 +371,16 @@ void SimulationCompletion::recordFpTrends()
 void SimulationCompletion::recordReportSettings()
 {
 	sim.latestReport.prevElection2pp = sim.settings.prevElection2pp;
+}
+
+void SimulationCompletion::recordModelledPolls()
+{
+	sim.latestReport.modelledPolls = baseModel().viewModelledPolls();
+}
+
+StanModel const& SimulationCompletion::baseModel()
+{
+	return project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
 }
 
 void SimulationCompletion::updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int & bound)

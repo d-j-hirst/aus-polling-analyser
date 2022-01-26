@@ -3,6 +3,7 @@
 #include "RandomGenerator.h"
 
 #include <array>
+#include <limits>
 #include <map>
 #include <set>
 #include <string>
@@ -46,6 +47,16 @@ public:
 		std::map<std::string, float> preferenceFlow;
 		int daysToElection;
 	};
+
+	struct ModelledPoll {
+		std::string pollster;
+		int day = -1;
+		float base = std::numeric_limits<float>::quiet_NaN(); // for fp, the value reported by the poll, for tcp, the figure calculated from the fp values in the poll
+		float adjusted = std::numeric_limits<float>::quiet_NaN(); // value for this poll after all adjustments including for house effects
+		float reported = std::numeric_limits<float>::quiet_NaN(); // tcp only
+	};
+
+	typedef std::map<std::string, std::vector<ModelledPoll>> ModelledPolls;
 
 	typedef std::map<std::string, float> PartyParameters;
 
@@ -102,6 +113,8 @@ public:
 	// Returns false if this fails
 	bool prepareForRun(FeedbackFunc feedback);
 
+	ModelledPolls const& viewModelledPolls() const { return modelledPolls; }
+
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 private:
 
@@ -146,10 +159,13 @@ private:
 	// Loads coefficients for model parameters from files
 	void loadParameters(FeedbackFunc feedback);
 
-	// Loads parameters specifically relating to 
+	// Loads parameters specifically relating to emerging others
 	void loadEmergingOthersParameters(FeedbackFunc feedback);
 
-	// Generates maps between 
+	// Not actually needed for running trend adjustment but will eventually need to be queried for simulation reports
+	bool loadModelledPolls(FeedbackFunc feedback);
+
+	// Generates maps between parties and parameters for their preference flows
 	bool generatePreferenceMaps(FeedbackFunc feedback);
 
 	// Returns false on failure to load trend data
@@ -165,9 +181,6 @@ private:
 	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0) const;
 
 	void updateAdjustedData(FeedbackFunc feedback, int numThreads);
-
-	// Adds a series to the model for the given party name and returns a reference to it
-	Series& addSeries(std::string partyCode);
 
 	void addEmergingOthers(StanModel::SupportSample& sample, int days) const;
 
@@ -199,6 +212,7 @@ private:
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
 
+	ModelledPolls modelledPolls; // this is for the simulation reports
 
 	// temporary/cached data
 

@@ -13,6 +13,8 @@ ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, Simula
 {
 }
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StanModel::ModelledPoll, pollster, day, base, adjusted, reported)
+
 std::string ReportUploader::upload()
 {
 	json j;
@@ -85,6 +87,7 @@ std::string ReportUploader::upload()
 	j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;
 	j["seatFpBands"] = thisReport.report.seatFpProbabilityBand;
 	j["seatTcpBands"] = thisReport.report.seatTcpProbabilityBand;
+	j["polls"] = thisReport.report.modelledPolls;
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";

@@ -145,6 +145,7 @@ bool StanModel::prepareForRun(FeedbackFunc feedback)
 	loadParameters(feedback);
 	loadEmergingOthersParameters(feedback);
 	if (!generatePreferenceMaps(feedback)) return false;
+	if (!loadModelledPolls(feedback)) return false;
 	if (!loadTrendData(feedback)) return false;
 	generateUnnamedOthersSeries();
 	readyForProjection = true;
@@ -239,6 +240,70 @@ void StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
 	}
 }
 
+bool StanModel::loadModelledPolls(FeedbackFunc feedback)
+{
+	partyCodeVec = splitString(partyCodes, ",");
+	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
+		feedback("No party codes found!");
+		return false;
+	}
+	if (!contains(partyCodeVec, OthersCode)) {
+		feedback("No party corresponding to Others was given. The model needs a party with code " + OthersCode + " to run properly.");
+		return false;
+	}
+	if (!contains(partyCodeVec, UnnamedOthersCode)) {
+		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
+		return false;
+	}
+	modelledPolls.clear();
+
+	// This section is used multiple times only inside this procedure, so define it once
+	auto loadPolls = [](std::vector<ModelledPoll>& polls, std::ifstream& file) {
+		polls.clear();
+		std::string line;
+		std::getline(file, line); // first line is just a legend, skip it
+		do {
+			std::getline(file, line);
+			if (!file) break;
+			auto pollVals = splitString(line, ",");
+			ModelledPoll poll;
+			poll.pollster = pollVals[0];
+			poll.day = std::stoi(pollVals[1]);
+			poll.base = std::stof(pollVals[2]);
+			poll.adjusted = std::stof(pollVals[3]);
+			if (pollVals.size() >= 5) poll.reported = std::stof(pollVals[4]);
+			polls.push_back(poll);
+		} while (true);
+	};
+
+	for (auto partyCode : partyCodeVec) {
+		if (partyCode == EmergingOthersCode) continue;
+		if (partyCode == UnnamedOthersCode) continue; // calculate this later
+		std::string filename = "analysis/Outputs/fp_polls_"
+			+ termCode + "_" + partyCode + " FP.csv";
+		auto file = std::ifstream(filename);
+		if (!file) {
+			feedback("Could not load file: " + filename);
+			return false;
+		}
+		auto& polls = modelledPolls[partyCode];
+		loadPolls(polls, file);
+	}
+	{
+		auto partyCode = partyCodeVec[0];
+		std::string filename = "analysis/Outputs/fp_polls_"
+			+ termCode + "_@TPP.csv";
+		auto file = std::ifstream(filename);
+		if (!file) {
+			feedback("Could not load file: " + filename);
+			return false;
+		}
+		auto& polls = modelledPolls["@TPP"];
+		loadPolls(polls, file);
+	}
+	return true;
+}
+
 bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 {
 	// partyCodeVec is already created by loadData
@@ -289,9 +354,9 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 	startDate = wxInvalidDateTime;
 	rawSupport.clear();
 	for (auto partyCode : partyCodeVec) {
-		auto& series = rawSupport[partyCode];
+		auto& series = rawSupport[partyCode]; // this needs to go here so that the Unnamed Others series is generated later on
 		if (partyCode == EmergingOthersCode) continue;
-		if (partyCode == UnnamedOthersCode) continue; // calculate this later
+		if (partyCode == UnnamedOthersCode) continue;
 		std::string filename = "analysis/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
 		auto file = std::ifstream(filename);
@@ -321,7 +386,6 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 		} while (true);
 	}
 	{
-		auto partyCode = partyCodeVec[0];
 		auto& series = rawTppSupport;
 		std::string filename = "analysis/Outputs/fp_trend_"
 			+ termCode + "_@TPP.csv";

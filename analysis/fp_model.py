@@ -178,6 +178,7 @@ def run_models():
             election_day = (election_cycles[election_tuple][1] - start).n
 
             if party == '@TPP':
+                df['old_tpp'] = df['@TPP']
                 num_polls = len(df['@TPP'].values.tolist())
                 # print(num_polls)
                 min_index = df.index.values.tolist()[0]
@@ -445,6 +446,8 @@ def run_models():
             polls_file.write('Firm,Day')
             polls_file.write(',' + party)
             polls_file.write(',' + party + ' adj')
+            if party == "@TPP":
+                polls_file.write(',' + party + ' reported')
             polls_file.write('\n')
             for poll_index in df.index:
                 polls_file.write(str(df.loc[poll_index, 'Firm']))
@@ -454,6 +457,8 @@ def run_models():
                     house_effects[df.loc[poll_index, 'House'] - 1]
                 polls_file.write(',' + str(fp))
                 polls_file.write(',' + str(adjusted_fp))
+                if party == "@TPP":
+                    polls_file.write(',' + str(df.loc[poll_index, 'old_tpp']))
                 polls_file.write('\n')
             polls_file.close()
             print('Saved polls file at ' + output_polls)
