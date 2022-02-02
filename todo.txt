@@ -1,15 +1,15 @@
 Polling Analyser to-do:
 -Add data display step by step to the webpage (* indicates not release-critical):
- -Party vote totals
-  -Show polls on graph
-  -Options for showing different parties, and poll options (raw vs. adjusted)
- -Better labels for independents
- -Individual seats
-  -winner bar for 2cp scenarios
-  -options to sort in various ways by % chance, alphabetical, state, margin
-  *cartogram, maybe map view depending on feasibility
+ -Recreate pie chart using recharts
  -Include small info/warning symbols with tooltips/overlays explaining concepts
+ -Adjust for mobile device use
+ -Individual seats
+  *winner bar for 2cp scenarios
+  *options to sort in various ways by % chance, alphabetical, state, margin
+  *cartogram, maybe map view depending on feasibility
 -Get SA election file as prepared as possible
+-Add ability to view archived forecasts
+-Fix same/no key element issues
 -Develop documentation detailing the forecasting methodology
  -FAQs
   -What's the point?
@@ -21,6 +21,8 @@ Polling Analyser to-do:
   -How should I interpret the different two-party-preferred scenarios?
 
 
+-Soon after release:
+ -Anything non-critical above not done before release.
 -Before election day, if possible:
  -Advanced simulations!
   -Start by organising past election data at booth-level
