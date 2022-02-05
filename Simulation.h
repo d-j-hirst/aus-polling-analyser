@@ -70,6 +70,9 @@ public:
 	};
 
 	struct Report {
+		typedef std::pair<std::pair<std::string, int>, std::array<float, 3>> SaveablePoll;
+		typedef std::map<std::string, std::vector<SaveablePoll>> SaveablePolls;
+
 		// Proportion of times the party wins an absolute majority of seats
 		// including only itself and other parties that count as it
 		std::map<int, float> majorityPercent;
@@ -236,6 +239,10 @@ public:
 
 		// Get the number of seats in this region in which non-major parties are leading
 		int getOthersLeading(int regionIndex) const;
+
+		SaveablePolls getSaveablePolls() const;
+
+		void retrieveSaveablePolls(SaveablePolls saveablePolls);
 	};
 
 	struct SavedReport {

@@ -49,7 +49,8 @@
 // Version 42: Prominent minor party figures for seats + trend info in reports
 // Version 43: Betting odds for individual seats
 // Version 44: Polls for individual seats
-constexpr int VersionNum = 44;
+// Version 45: Save polling info in reports
+constexpr int VersionNum = 45;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -604,6 +605,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.trendStartDate;
 	saveOutput << report.tppTrend;
 	saveOutput << report.fpTrend;
+	saveOutput << report.getSaveablePolls();
 }
 
 Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
@@ -758,6 +760,11 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 		saveInput >> report.trendStartDate;
 		saveInput >> report.tppTrend;
 		saveInput >> report.fpTrend;
+	}
+	if (versionNum >= 45) {
+		Simulation::Report::SaveablePolls saveablePolls;
+		saveInput >> saveablePolls;
+		report.retrieveSaveablePolls(saveablePolls);
 	}
 	return report;
 }

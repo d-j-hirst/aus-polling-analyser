@@ -374,6 +374,33 @@ int Simulation::Report::getOthersLeading(int regionIndex) const
 	return std::accumulate(regionPartyIncuments[regionIndex].begin() + 2, regionPartyIncuments[regionIndex].end(), 0);
 }
 
+Simulation::Report::SaveablePolls Simulation::Report::getSaveablePolls() const
+{
+	SaveablePolls saveablePolls;
+	for (auto const& [party, polls] : modelledPolls) {
+		for (auto const& poll : polls) {
+			saveablePolls[party].push_back({ {poll.pollster, poll.day}, {poll.base, poll.adjusted, poll.reported} });
+		}
+	}
+	return saveablePolls;
+}
+
+void Simulation::Report::retrieveSaveablePolls(SaveablePolls saveablePolls)
+{
+	modelledPolls.clear();
+	for (auto const& [party, polls] : saveablePolls) {
+		for (auto const& saveablePoll : polls) {
+			StanModel::ModelledPoll poll;
+			poll.pollster = saveablePoll.first.first;
+			poll.day = saveablePoll.first.second;
+			poll.base = saveablePoll.second[0];
+			poll.adjusted = saveablePoll.second[1];
+			poll.reported = saveablePoll.second[2];
+			modelledPolls[party].push_back(poll);
+		}
+	}
+}
+
 std::string Simulation::textReport(ProjectionCollection const& projections) const
 {
 	std::stringstream report;
