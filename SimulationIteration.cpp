@@ -588,11 +588,19 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		rmse = (rmse * 0.5f + run.indEmergence.voteRmse * 0.5f) * 1.2f;
 		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
 		if (run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
-			float impliedChance = 1.0f / run.seatBettingOdds[seatIndex][run.indPartyIndex];
+			// Exact values of odds above $15 don't generally mean much, so cap them at this level
+			constexpr float OddsCap = 15.0f;
+			float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
+			// the last part of this line compensates for the typical bookmaker's margin
+			float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.85f));
+			// significant adjustment downwards to adjust for longshot bias.
+			// this number isn't really treated as a probability from here on so it's ok for
+			// it to become negative.
+			if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
 			const float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
-			constexpr float range = 32.0f;
+			constexpr float range = 42.0f;
 			float voteShareCenter = pivot + range * (impliedChance - 0.5f);
-			constexpr float variation = 10.0f;
+			constexpr float variation = 20.0f;
 			float transformedBettingFp = rng.normal(voteShareCenter, variation);
 			transformedVoteShare = mix(transformedVoteShare, transformedBettingFp, 0.7f);
 		}
@@ -630,6 +638,8 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
 	float prevOthers = pastSeatResults[seatIndex].prevOthers;
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
+	// Less chance of independents emerging when there's already a strong candidate
+	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) indEmergenceRate *= 0.3f;
 	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;

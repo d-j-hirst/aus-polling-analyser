@@ -1,7 +1,7 @@
 Polling Analyser to-do:
 -Add data display step by step to the webpage (* indicates not release-critical):
- -Recreate pie chart using recharts
  -Include small info/warning symbols with tooltips/overlays explaining concepts
+ -Properly space out vote/seat total ranges
  -Adjust for mobile device use
  -Individual seats
   *winner bar for 2cp scenarios
@@ -28,3 +28,4 @@ Polling Analyser to-do:
   -Start by organising past election data at booth-level
   -Need to load conversions between equivalent seats
   -Then organise the existing election
+
