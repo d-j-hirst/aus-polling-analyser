@@ -1,14 +1,12 @@
 Polling Analyser to-do:
 -Add data display step by step to the webpage (* indicates not release-critical):
- -Include small info/warning symbols with tooltips/overlays explaining concepts
- -Properly space out vote/seat total ranges
  -Adjust for mobile device use
  -Individual seats
   *winner bar for 2cp scenarios
   *options to sort in various ways by % chance, alphabetical, state, margin
   *cartogram, maybe map view depending on feasibility
--Get SA election file as prepared as possible
 -Add ability to view archived forecasts
+-Get SA election file as prepared as possible
 -Fix same/no key element issues
 -Develop documentation detailing the forecasting methodology
  -FAQs

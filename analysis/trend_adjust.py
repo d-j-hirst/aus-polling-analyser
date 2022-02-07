@@ -69,6 +69,14 @@ class Config:
                             'elections (for present-day forecasting) or "all" '
                             'to do it for all elections (including "none"). '
                             'Default is "none"', default='none')
+        parser.add_argument('--check', action='store', type=str,
+                            help='Compares accuracy of projection types. Enter'
+                            ' "no" (default) for no checking, yes for '
+                            'checking after doing adjustment calculations, '
+                            'and "only" to do only checks and skip '
+                            'calculations (of course calculations will still '
+                            'need to have been done at some point before).'
+                            '', default='no')
         parser.add_argument('-w', '--writtenfiles', action='store_true',
                             help='Show written files')
         parser.add_argument('-u', '--fundamentals', action='store_true',
@@ -78,6 +86,7 @@ class Config:
         self.show_parameters = parser.parse_args().parameters
         self.show_written_files = parser.parse_args().writtenfiles
         self.show_fundamentals = parser.parse_args().fundamentals
+        self.check = parser.parse_args().check
         self.election_instructions = parser.parse_args().election.lower()
         self.prepare_election_list()
         day_test_count = 46
@@ -216,7 +225,7 @@ class PollTrend:
                 if party == unnamed_others_code:
                     continue
                 # This "effective_party" is a quick hack done while changing party code conventions
-                # to avoid having to rerun all the models at one. Delete when no longer necessary.
+                # to avoid having to rerun all the models at once. Delete when no longer necessary.
                 effective_party = 'ALP TPP' if party == '@TPP' else party
                 trend_filename = (f'./Outputs/fp_trend_{election.year()}'
                                   f'{election.region()}_{effective_party}.csv')
@@ -701,6 +710,82 @@ def test_procedure(config, inputs, poll_trend, exclude):
                         party_group=party_group)
 
 
+def check_poll_predictiveness(config):
+    baseline_errors = []
+    poll_errors = []
+    fundamentals_errors = []
+    mixed_errors = []
+    poll_day = 4
+    for election in config.elections:
+        if election == no_target_election_marker:
+            continue
+        party_group = "TPP"
+        party = "@TPP"
+        adjust_filename = (f'./Adjustments/adjust_{election.year()}'
+                    f'{election.region()}_{party_group}.csv')
+        with open(adjust_filename, 'r') as f:
+            poll_bias = float(f.readline().split(',')[poll_day])
+            fund_bias = float(f.readline().split(',')[poll_day])
+            mixed_bias = float(f.readline().split(',')[poll_day])
+            lower_error = float(f.readline().split(',')[poll_day])
+            upper_error = float(f.readline().split(',')[poll_day])
+            lower_kurtosis = float(f.readline().split(',')[poll_day])
+            upper_kurtosis = float(f.readline().split(',')[poll_day])
+            mix_factor = float(f.readline().split(',')[poll_day])
+        trend_filename = (f'./Outputs/fp_trend_{election.year()}'
+                        f'{election.region()}_{party}.csv')
+        trend_data = import_trend_file(trend_filename)
+        # print(f"election: {election}")
+        try:
+            poll_trend = trend_data[poll_day][50]
+        except IndexError:
+            continue
+        fundamentals_filename = (f'./Fundamentals/fundamentals_{election.year()}'
+                    f'{election.region()}.csv')
+        with open(fundamentals_filename, 'r') as f:
+            fundamentals = next(float(obj.split(',')[1]) for obj in f.readlines()
+                                if obj.split(',')[0] == "@TPP")
+        poll_adjusted = poll_trend - poll_bias
+        fund_adjusted = fundamentals - fund_bias
+        mixed = poll_adjusted * mix_factor + fund_adjusted * (1 - mix_factor) - mixed_bias
+        with open('./Data/eventual-results.csv', 'r') as f:
+            eventual_result = next(float(a.split(",")[3]) for a in f.readlines()
+                                if int(a.split(",")[0]) == election.year()
+                                and a.split(",")[1] == election.region()
+                                and a.split(",")[2] == party)
+        baseline_errors.append(50 - eventual_result)
+        poll_errors.append(poll_trend - eventual_result)
+        fundamentals_errors.append(fundamentals - eventual_result)
+        mixed_errors.append(mixed - eventual_result)
+        # print(party_group)
+        # print(f"poll_bias: {poll_bias}")
+        # print(f"fund_bias: {fund_bias}")
+        # print(f"mixed_bias: {mixed_bias}")
+        # print(f"lower_error: {lower_error}")
+        # print(f"upper_error: {upper_error}")
+        # print(f"lower_kurtosis: {lower_kurtosis}")
+        # print(f"upper_kurtosis: {upper_kurtosis}")
+        # print(f"mix_factor: {mix_factor}")
+        # print(f"poll trend: {poll_trend}")
+        # print(f"fundamentals: {fundamentals}")
+        # print(f"mixed: {mixed}")
+        # print(f"eventual_result: {eventual_result}")
+    
+    print(f"poll day: {poll_day}")
+    print(f"Average baseline error:      {statistics.mean([abs(a) for a in baseline_errors])}")
+    print(f"Average poll error:          {statistics.mean([abs(a) for a in poll_errors])}")
+    print(f"Average fundamentals error:  {statistics.mean([abs(a) for a in fundamentals_errors])}")
+    print(f"Average mixed error:         {statistics.mean([abs(a) for a in mixed_errors])}")
+    print(f"Median baseline error:      {statistics.median([abs(a) for a in baseline_errors])}")
+    print(f"Median poll error:          {statistics.median([abs(a) for a in poll_errors])}")
+    print(f"Median fundamentals error:  {statistics.median([abs(a) for a in fundamentals_errors])}")
+    print(f"Median mixed error:         {statistics.median([abs(a) for a in mixed_errors])}")
+    print(f"baseline RMSE:      {math.sqrt(statistics.mean([abs(a) ** 2 for a in baseline_errors]))}")
+    print(f"poll RMSE:          {math.sqrt(statistics.mean([abs(a) ** 2 for a in poll_errors]))}")
+    print(f"fundamentals RMSE:  {math.sqrt(statistics.mean([abs(a) ** 2 for a in fundamentals_errors]))}")
+    print(f"mixed RMSE:         {math.sqrt(statistics.mean([abs(a) ** 2 for a in mixed_errors]))}")
+
+
 def trend_adjust():
     try:
         config = Config()
@@ -709,18 +794,22 @@ def trend_adjust():
         print(str(e))
         return
 
-    for exclude in config.elections:
-        print(f'Beginning trend adjustment algorithm for: {exclude}')
-        inputs = Inputs(exclude)
-        poll_trend = PollTrend(inputs, config)
+    if config.check != "only":
+        for exclude in config.elections:
+            print(f'Beginning trend adjustment algorithm for: {exclude}')
+            inputs = Inputs(exclude)
+            poll_trend = PollTrend(inputs, config)
 
-        # Leave this until now so it doesn't interfere with initialization
-        # of poll_trend
-        inputs.determine_eventual_others_results()
-        run_fundamentals_regression(config, inputs)
+            # Leave this until now so it doesn't interfere with initialization
+            # of poll_trend
+            inputs.determine_eventual_others_results()
+            run_fundamentals_regression(config, inputs)
 
-        test_procedure(config, inputs, poll_trend, exclude)
-        print(f'Completed trend adjustment algorithm for: {exclude}')
+            test_procedure(config, inputs, poll_trend, exclude)
+            print(f'Completed trend adjustment algorithm for: {exclude}')
+
+    if config.check == "only" or config.check == "yes":
+        check_poll_predictiveness(config)
 
 
 if __name__ == '__main__':
