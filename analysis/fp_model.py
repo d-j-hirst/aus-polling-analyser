@@ -314,6 +314,9 @@ def run_models():
             sigmas = df['Quality Adjustment'].apply(
                 lambda x: np.sqrt((50 * 50) / (sample_size * 0.6 ** x)))
 
+            houseEffectOld = 240
+            houseEffectNew = 120
+
             # get the Stan model code
             with open("./Models/fp_model.stan", "r") as f:
                 model = f.read()
@@ -356,7 +359,11 @@ def run_models():
                 'houseEffectSumSigma': 0.001,
 
                 # prior distribution for each day's vote share
-                'priorVoteShareSigma': 200.0
+                'priorVoteShareSigma': 200.0,
+
+                # Bounds for the transition between 
+                'houseEffectOld': houseEffectOld,
+                'houseEffectNew': houseEffectNew
             }
 
             # encode the STAN model in C++ or retrieve it if already cached
@@ -435,10 +442,12 @@ def run_models():
             print('Saved trend file at ' + output_trend)
 
             # Extract house effect data from model summary
-            house_effects = []
+            new_house_effects = []
+            old_house_effects = []
             offset = n_days
             for house in range(0, n_houses):
-                house_effects.append(summary[offset + house, 0])
+                new_house_effects.append(summary[offset + house, 0])
+                old_house_effects.append(summary[offset + n_houses + house, 0])
 
             # Write poll data to file, giving both raw and
             # house effect adjusted values
@@ -451,10 +460,18 @@ def run_models():
             polls_file.write('\n')
             for poll_index in df.index:
                 polls_file.write(str(df.loc[poll_index, 'Firm']))
-                polls_file.write(',' + str(df.loc[poll_index, 'Day']))
+                day = df.loc[poll_index, 'Day']
+                days_ago = n_days - day
+                polls_file.write(',' + str(day))
                 fp = df.loc[poll_index, party]
-                adjusted_fp = fp - \
-                    house_effects[df.loc[poll_index, 'House'] - 1]
+                new_he = new_house_effects[df.loc[poll_index, 'House'] - 1]
+                old_he = old_house_effects[df.loc[poll_index, 'House'] - 1]
+                old_factor = ((days_ago - houseEffectNew) / 
+                             (houseEffectOld - houseEffectNew))
+                old_factor = max(min(old_factor, 1), 0)
+                mixed_he = (old_factor * old_he + 
+                            (1 - old_factor) * new_he)
+                adjusted_fp = fp - mixed_he
                 polls_file.write(',' + str(fp))
                 polls_file.write(',' + str(adjusted_fp))
                 if party == "@TPP":
@@ -476,7 +493,18 @@ def run_models():
             for prob in output_probs:
                 house_effects_file.write(',' + str(round(prob * 100)) + "%")
             house_effects_file.write('\n')
+            house_effects_file.write('New house effects\n')
             offset = n_days
+            for house_index in range(0, n_houses):
+                house_effects_file.write(houses[house_index])
+                table_index = offset + house_index
+                house_effects_file.write("," + party)
+                for col in range(3, 3+len(output_probs)):
+                    house_effects_file.write(
+                        ',' + str(summary[table_index][col]))
+                house_effects_file.write('\n')
+            offset = n_days + n_houses
+            house_effects_file.write('Old house effects\n')
             for house_index in range(0, n_houses):
                 house_effects_file.write(houses[house_index])
                 table_index = offset + house_index

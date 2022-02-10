@@ -34,6 +34,10 @@ data {
     real<lower=0.0001> houseEffectSigma;
     real<lower=0.0001> houseEffectSumSigma;
     real<lower=0.0001> priorVoteShareSigma;
+
+    // End points between the transition between "new" and "old" house effects
+    real<lower=1> houseEffectNew;
+    real<lower=1> houseEffectOld;
 }
 
 transformed data {
@@ -108,11 +112,11 @@ model {
             real obs = pollObservations[poll];
             real distMean = 0.0;
             real distSigma = 1.0;
-            if (daysBeforePresent >= 180) {
+            if (daysBeforePresent >= houseEffectOld) {
                 houseEffectFactor = 0.0;
             }
-            else if (daysBeforePresent >= 90) {
-                houseEffectFactor = (180.0 - daysBeforePresent) / 90.0;
+            else if (daysBeforePresent >= houseEffectNew) {
+                houseEffectFactor = (houseEffectOld - daysBeforePresent) / (houseEffectOld - houseEffectNew);
             }
             effectiveHouseEffect = pHouseEffects[pollHouse[poll]] * houseEffectFactor +
                 pOldHouseEffects[pollHouse[poll]] * (1.0 - houseEffectFactor);
