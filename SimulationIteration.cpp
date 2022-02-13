@@ -497,11 +497,11 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex];
 	}
 	transformedFp += offsetMixed;
-	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
-		transformedFp += rng.uniform(0.0f, 15.0f);
-	}
 	if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
 		transformedFp += sophomoreMixed;
+	}
+	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
+		transformedFp += rng.uniform(0.0f, 15.0f);
 	}
 	transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
 

@@ -4,9 +4,11 @@ Polling Analyser to-do:
   *winner bar for 2cp scenarios
   *options to sort in various ways by % chance, alphabetical, state, margin
   *cartogram, maybe map view depending on feasibility
--Add ability to view archived forecasts
 -Get SA election file as prepared as possible
+-Add ability to manually flag archived forecasts (e.g. to note known errors, old methodology)
+-Fix titles for different pages (currently all "Australian Election Forecasting")
 -Fix same/no key element issues
+-Build FAQ/methodology page outlines
 -Develop documentation detailing the forecasting methodology
  -FAQs
   -What's the point?
@@ -16,6 +18,11 @@ Polling Analyser to-do:
   -What does it really mean for there to be an X% chance of winning an election/seat?
   -Why don't the vote totals add to 100%? Why don't the seat totals add to the number of seats in Parliament?
   -How should I interpret the different two-party-preferred scenarios?
+ -methodology documentation (probably overall guide for now and fill in details later)
+  -include link to source code
+ -glossary
+ -about page
+-Footer
 
 Immediately before release:
  -Check for any new voices candidates and betting odds for seats and election timing, then create final pre-release forecast.
