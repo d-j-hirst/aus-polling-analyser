@@ -342,8 +342,8 @@ def run_models():
                 # distributions for the daily change in vote share
                 # higher values during campaigns, since it's more likely
                 # people are paying attention and changing their mind then
-                'dailySigma': 0.35,
-                'campaignSigma': 0.7,
+                'dailySigma': 0.25,
+                'campaignSigma': 0.6,
                 'finalSigma': 1.2,
 
                 # prior distribution for each house effect

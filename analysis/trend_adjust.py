@@ -1,5 +1,5 @@
 from scipy.interpolate import UnivariateSpline
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import QuantileRegressor
 from numpy import array, transpose, dot
 import math
 import argparse
@@ -76,7 +76,16 @@ class Config:
                             'and "only" to do only checks and skip '
                             'calculations (of course calculations will still '
                             'need to have been done at some point before).'
-                            '', default='no')
+                            , default='no')
+        parser.add_argument('--checkday', action='store', type=int,
+                            help='Number of days out to check poll data.'
+                            ' Not use if --check is absent or set to "no".'
+                            , default=300)
+        parser.add_argument('--checkregion', action='store', type=str,
+                            help='Filter for a region to check for'
+                            '(e.g. "fed", "nsw" or "sa").'
+                            'Use "nofed" to exclude federal election only.'
+                            , default='')
         parser.add_argument('-w', '--writtenfiles', action='store_true',
                             help='Show written files')
         parser.add_argument('-u', '--fundamentals', action='store_true',
@@ -87,6 +96,8 @@ class Config:
         self.show_written_files = parser.parse_args().writtenfiles
         self.show_fundamentals = parser.parse_args().fundamentals
         self.check = parser.parse_args().check
+        self.check_day = parser.parse_args().checkday
+        self.check_region = parser.parse_args().checkregion
         self.election_instructions = parser.parse_args().election.lower()
         self.prepare_election_list()
         day_test_count = 46
@@ -328,14 +339,16 @@ def save_fundamentals(results):
 
 
 def run_fundamentals_regression(config, inputs):
-    previous_errors = []
-    prediction_errors = []
     to_file = {}
     for party_group_code, party_group_list in party_groups.items():
+        previous_errors = []
+        prediction_errors = []
+        baseline_errors = []
         avg_len = average_length[party_group_code]
         for studied_election in inputs.all_elections:
             if studied_election == no_target_election_marker:
                 continue
+
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -346,6 +359,7 @@ def run_fundamentals_regression(config, inputs):
             for election in inputs.past_elections:
                 if election == studied_election:
                     continue
+                
                 for party in inputs.past_parties[election] + [unnamed_others_code]:
                     if party not in party_group_list:
                         continue
@@ -363,6 +377,7 @@ def run_fundamentals_regression(config, inputs):
                     federal = 1 if election.region() == 'fed' else 0
                     federal_same = 1 if not federal and inputs.federal_situation[election][0] == effective_party else 0
                     federal_opposite = 1 if not federal and inputs.federal_situation[election][1] == effective_party else 0
+
                     result_deviations.append(result_deviation)
                     incumbents.append(incumbent)
                     oppositions.append(opposition)
@@ -379,13 +394,15 @@ def run_fundamentals_regression(config, inputs):
                                 ])
             input_array = transpose(input_array)
             dependent_array = array(result_deviations)
-            reg = LinearRegression().fit(input_array, dependent_array)
+            reg = QuantileRegressor(alpha=0, quantile=0.5).fit(input_array, dependent_array)
             if config.show_fundamentals:
                 # print(f'{input_array}')
                 # print(f'{dependent_array}')
-                print(f'Election/party: {studied_election.short()}, '
-                      f'{party_group_code}\n Coeffs: {reg.coef_}\n '
-                      f'Intercept: {reg.intercept_}')
+                # print(f'Quantile regressor:')
+                # print(f'Election/party: {studied_election.short()}, '
+                #       f'{party_group_code}\n Coeffs: {reg_q.coef_}\n '
+                #       f'Intercept: {reg_q.intercept_}')
+                pass
             # Test with studied election information:
             for party in inputs.all_parties[studied_election] + [unnamed_others_code]:
                 if party not in party_group_list:
@@ -401,6 +418,8 @@ def run_fundamentals_regression(config, inputs):
                                     if e_p_c in inputs.eventual_results else 0)
                 previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
                                     - eventual_results)
+                baseline_errors.append((50 if party_group_code == "TPP" else 0)
+                                    - eventual_results)
                 prediction_errors.append(prediction - eventual_results)
                 inputs.fundamentals[e_p_c] = prediction
                 if studied_election not in inputs.past_elections:
@@ -413,17 +432,22 @@ def run_fundamentals_regression(config, inputs):
 
         if config.show_fundamentals:
             print(f'Party group: {party_group_code}')
+            print(baseline_errors)
             previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
                                     / (len(previous_errors) - 1))
             prediction_rmse = math.sqrt(sum([a ** 2 for a in prediction_errors])
                                     / (len(prediction_errors) - 1))
-            print(f'RMSEs: previous {previous_rmse} vs prediction {prediction_rmse}')
+            baseline_rmse = math.sqrt(sum([a ** 2 for a in baseline_errors])
+                                    / (len(previous_errors) - 1))
+            print(f'RMSEs: previous {previous_rmse} vs baseline {baseline_rmse} vs prediction {prediction_rmse}')
             previous_average_error = statistics.mean([abs(a) for a in previous_errors])
             prediction_average_error = statistics.mean([abs(a) for a in prediction_errors])
-            print(f'Average errors: previous {previous_average_error} vs prediction {prediction_average_error}')
+            baseline_average_error = statistics.mean([abs(a) for a in baseline_errors])
+            print(f'Average errors: previous {previous_average_error} vs baseline {baseline_average_error} vs prediction {prediction_average_error}')
             previous_median_error = statistics.median([abs(a) for a in previous_errors])
             prediction_median_error = statistics.median([abs(a) for a in prediction_errors])
-            print(f'Median errors: previous {previous_median_error} vs prediction {prediction_median_error}')
+            baseline_median_error = statistics.median([abs(a) for a in baseline_errors])
+            print(f'Median errors: previous {previous_median_error} vs baseline {baseline_median_error} vs prediction {prediction_median_error}')
 
     if config.show_fundamentals:
         for e_p_c, prediction in inputs.fundamentals.items():
@@ -715,9 +739,14 @@ def check_poll_predictiveness(config):
     poll_errors = []
     fundamentals_errors = []
     mixed_errors = []
-    poll_day = 4
+    poll_day = config.check_day
     for election in config.elections:
         if election == no_target_election_marker:
+            continue
+        if config.check_region == "nofed" and election.region() == "fed":
+            continue
+        elif (config.check_region != "" and config.check_region != "nofed"
+              and election.region() != config.check_region):
             continue
         party_group = "TPP"
         party = "@TPP"

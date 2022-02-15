@@ -4,10 +4,6 @@ Polling Analyser to-do:
   *winner bar for 2cp scenarios
   *options to sort in various ways by % chance, alphabetical, state, margin
   *cartogram, maybe map view depending on feasibility
--Get SA election file as prepared as possible
--Add ability to manually flag archived forecasts (e.g. to note known errors, old methodology)
--Fix titles for different pages (currently all "Australian Election Forecasting")
--Fix same/no key element issues
 -Build FAQ/methodology page outlines
 -Develop documentation detailing the forecasting methodology
  -FAQs
@@ -23,6 +19,8 @@ Polling Analyser to-do:
  -glossary
  -about page
 -Footer
+ -Legal stuff
+ -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
 
 Immediately before release:
  -Check for any new voices candidates and betting odds for seats and election timing, then create final pre-release forecast.
