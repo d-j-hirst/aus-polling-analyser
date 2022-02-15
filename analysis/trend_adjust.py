@@ -421,6 +421,11 @@ def run_fundamentals_regression(config, inputs):
                 baseline_errors.append((50 if party_group_code == "TPP" else 0)
                                     - eventual_results)
                 prediction_errors.append(prediction - eventual_results)
+                # Fundamentals regression is significantly worse for federal
+                # results than a 50-50 baseline, so just use that instead there:
+                if (party_group_code == "TPP" 
+                    and studied_election.region() == "fed"):
+                    prediction = 50
                 inputs.fundamentals[e_p_c] = prediction
                 if studied_election not in inputs.past_elections:
                     # This means it's either the excluded election or a future
