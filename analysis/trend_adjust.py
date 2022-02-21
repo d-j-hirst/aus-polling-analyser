@@ -359,6 +359,12 @@ def run_fundamentals_regression(config, inputs):
             for election in inputs.past_elections:
                 if election == studied_election:
                     continue
+
+                # Maybe remove this, or not?
+                if (election.region() == 'fed' and 
+                    party_group_code in ['TPP', 'ALP', 'LNP']):
+                    continue
+
                 
                 for party in inputs.past_parties[election] + [unnamed_others_code]:
                     if party not in party_group_list:
@@ -420,12 +426,18 @@ def run_fundamentals_regression(config, inputs):
                                     - eventual_results)
                 baseline_errors.append((50 if party_group_code == "TPP" else 0)
                                     - eventual_results)
-                prediction_errors.append(prediction - eventual_results)
                 # Fundamentals regression is significantly worse for federal
                 # results than a 50-50 baseline, so just use that instead there:
                 if (party_group_code == "TPP" 
                     and studied_election.region() == "fed"):
-                    prediction = 50
+                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                if (party_group_code == "ALP" 
+                    and studied_election.region() == "fed"):
+                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                if (party_group_code == "LNP" 
+                    and studied_election.region() == "fed"):
+                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                prediction_errors.append(prediction - eventual_results)
                 inputs.fundamentals[e_p_c] = prediction
                 if studied_election not in inputs.past_elections:
                     # This means it's either the excluded election or a future
@@ -437,7 +449,6 @@ def run_fundamentals_regression(config, inputs):
 
         if config.show_fundamentals:
             print(f'Party group: {party_group_code}')
-            print(baseline_errors)
             previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
                                     / (len(previous_errors) - 1))
             prediction_rmse = math.sqrt(sum([a ** 2 for a in prediction_errors])
