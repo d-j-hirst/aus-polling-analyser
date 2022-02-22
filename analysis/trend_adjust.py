@@ -76,6 +76,10 @@ class Config:
                             'and "only" to do only checks and skip '
                             'calculations (of course calculations will still '
                             'need to have been done at some point before).'
+                            'Note the check will only include elections'
+                            'included under the --election argument, if'
+                            'you get a StatisticsError, try setting'
+                            '"--election none" as well.'
                             , default='no')
         parser.add_argument('--checkday', action='store', type=int,
                             help='Number of days out to check poll data.'
@@ -638,8 +642,12 @@ def get_day_data(inputs, poll_trend, party_group, day):
             mixed_rmse = math.sqrt(
                 sum([a ** 2 for a in day_data.mixed_errors[mix_index]])
                 / len(day_data.mixed_errors[mix_index]))
+            mixed_average_error = statistics.mean(
+                [abs(a) for a in day_data.mixed_errors[mix_index]]
+            )
             mixed_criteria[mix_index] = (mixed_rmse * rmse_factor
-                                         + mixed_deviation * (1 - rmse_factor))
+                                        + mixed_deviation * (1 - rmse_factor))
+            #mixed_criteria[mix_index] = mixed_average_error
         window_factor = 0.8  # should be in range [0.5, 1)
         if mixed_criteria[0] < mixed_criteria[1]:
             mix_limits = (mix_limits[0],
@@ -816,19 +824,23 @@ def check_poll_predictiveness(config):
         # print(f"mixed: {mixed}")
         # print(f"eventual_result: {eventual_result}")
     
-    print(f"poll day: {poll_day}")
-    print(f"Average baseline error:      {statistics.mean([abs(a) for a in baseline_errors])}")
-    print(f"Average poll error:          {statistics.mean([abs(a) for a in poll_errors])}")
-    print(f"Average fundamentals error:  {statistics.mean([abs(a) for a in fundamentals_errors])}")
-    print(f"Average mixed error:         {statistics.mean([abs(a) for a in mixed_errors])}")
-    print(f"Median baseline error:      {statistics.median([abs(a) for a in baseline_errors])}")
-    print(f"Median poll error:          {statistics.median([abs(a) for a in poll_errors])}")
-    print(f"Median fundamentals error:  {statistics.median([abs(a) for a in fundamentals_errors])}")
-    print(f"Median mixed error:         {statistics.median([abs(a) for a in mixed_errors])}")
-    print(f"baseline RMSE:      {math.sqrt(statistics.mean([abs(a) ** 2 for a in baseline_errors]))}")
-    print(f"poll RMSE:          {math.sqrt(statistics.mean([abs(a) ** 2 for a in poll_errors]))}")
-    print(f"fundamentals RMSE:  {math.sqrt(statistics.mean([abs(a) ** 2 for a in fundamentals_errors]))}")
-    print(f"mixed RMSE:         {math.sqrt(statistics.mean([abs(a) ** 2 for a in mixed_errors]))}")
+    try:
+        print(f"poll day: {poll_day}")
+        print(f"Average baseline error:      {statistics.mean([abs(a) for a in baseline_errors])}")
+        print(f"Average poll error:          {statistics.mean([abs(a) for a in poll_errors])}")
+        print(f"Average fundamentals error:  {statistics.mean([abs(a) for a in fundamentals_errors])}")
+        print(f"Average mixed error:         {statistics.mean([abs(a) for a in mixed_errors])}")
+        print(f"Median baseline error:      {statistics.median([abs(a) for a in baseline_errors])}")
+        print(f"Median poll error:          {statistics.median([abs(a) for a in poll_errors])}")
+        print(f"Median fundamentals error:  {statistics.median([abs(a) for a in fundamentals_errors])}")
+        print(f"Median mixed error:         {statistics.median([abs(a) for a in mixed_errors])}")
+        print(f"baseline RMSE:      {math.sqrt(statistics.mean([abs(a) ** 2 for a in baseline_errors]))}")
+        print(f"poll RMSE:          {math.sqrt(statistics.mean([abs(a) ** 2 for a in poll_errors]))}")
+        print(f"fundamentals RMSE:  {math.sqrt(statistics.mean([abs(a) ** 2 for a in fundamentals_errors]))}")
+        print(f"mixed RMSE:         {math.sqrt(statistics.mean([abs(a) ** 2 for a in mixed_errors]))}")
+    except statistics.StatisticsError:
+        print("Could not check statistics as there were no data. Make sure you use --election all so that the program uses all available elections")
+
 
 
 def trend_adjust():

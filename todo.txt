@@ -1,9 +1,5 @@
 Polling Analyser to-do:
 -Add data display step by step to the webpage (* indicates not release-critical):
- *Individual seats
-  *winner bar for 2cp scenarios
-  *options to sort in various ways by % chance, alphabetical, state, margin
-  *cartogram, maybe map view depending on feasibility
 -Build FAQ/methodology page outlines
 -Develop documentation detailing the forecasting methodology
  -FAQs
@@ -21,6 +17,10 @@ Polling Analyser to-do:
 -Footer
  -Legal stuff
  -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
+-investigate using average errors for mix factors
+-investigate seat elasticity and its predictivity
+-Prepare commentary page
+-Make example copy of data outputs in git repo
 
 Immediately before release:
  -Check for any new voices candidates and betting odds for seats and election timing, then create final pre-release forecast.
@@ -29,8 +29,13 @@ Immediately before release:
 
 -Soon after release:
  -Script to auto-check seat betting odds.
+  *options to sort in various ways by % chance, alphabetical, state, margin
+ -Graph for prediction over time - for overall forecast and then maybe individual seats
+ -cartogram, maybe map view depending on feasibility
+ -Individual seats winner bar for 2cp scenarios (maybe?)
  -Anything non-critical above not done before release.
--Before election day, if possible:
+-Before SA election day, if possible:
+-Before federal election day, if possible:
  -Advanced simulations!
   -Start by organising past election data at booth-level
   -Need to load conversions between equivalent seats

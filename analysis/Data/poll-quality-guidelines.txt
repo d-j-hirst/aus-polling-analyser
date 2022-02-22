@@ -4,7 +4,7 @@ This is then adjusted according to the following "strikes" - factors that indica
  - After the inception of the Australian Polling Council (1 Jun 2021), not a member
  - Poll is commissioned by a non-media organisation
  - Poll is not officially published, but unofficially released (note: leaked party internal polls are banned entirely)
- - Poll is not part of a regular, fully published series (polls in the 2 weeks before an election are exempt)
+ - Poll is not part of a regular, fully published series (polls in the 2 weeks before a federal election or 4 weeks before a state election are exempt)
  - Poll has sample size less than 1000 (assumed if no sample size given)
  - Poll has sample size less than 600
  - Poll has sample size less than 400
