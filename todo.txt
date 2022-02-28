@@ -1,23 +1,13 @@
 Polling Analyser to-do:
--Add data display step by step to the webpage (* indicates not release-critical):
 -Build FAQ/methodology page outlines
 -Develop documentation detailing the forecasting methodology
- -FAQs
-  -What's the point?
-  -What if you're wrong?
-  -What about this hypothetical event?
-  -What's the difference between the regular forecast and the now-cast?
-  -What does it really mean for there to be an X% chance of winning an election/seat?
-  -Why don't the vote totals add to 100%? Why don't the seat totals add to the number of seats in Parliament?
-  -How should I interpret the different two-party-preferred scenarios?
- -methodology documentation (probably overall guide for now and fill in details later)
-  -include link to source code
- -glossary
+ -methodology documentation
  -about page
+ -glossary?
 -Footer
  -Legal stuff
  -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
--investigate using average errors for mix factors
+-adjust correctSeatTppSwings to correct by region rather than the whole election
 -investigate seat elasticity and its predictivity
 -Prepare commentary page
 -Make example copy of data outputs in git repo

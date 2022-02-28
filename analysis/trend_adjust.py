@@ -646,8 +646,8 @@ def get_day_data(inputs, poll_trend, party_group, day):
                 [abs(a) for a in day_data.mixed_errors[mix_index]]
             )
             mixed_criteria[mix_index] = (mixed_rmse * rmse_factor
-                                        + mixed_deviation * (1 - rmse_factor))
-            #mixed_criteria[mix_index] = mixed_average_error
+                                       + mixed_deviation * (1 - rmse_factor))
+            # mixed_criteria[mix_index] = mixed_average_error
         window_factor = 0.8  # should be in range [0.5, 1)
         if mixed_criteria[0] < mixed_criteria[1]:
             mix_limits = (mix_limits[0],
