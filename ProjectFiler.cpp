@@ -50,7 +50,8 @@
 // Version 43: Betting odds for individual seats
 // Version 44: Polls for individual seats
 // Version 45: Save polling info in reports
-constexpr int VersionNum = 45;
+// Version 46: List running parties (on the ballot)
+constexpr int VersionNum = 46;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -502,6 +503,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.prominentMinors;
 		saveOutput << thisSeat.bettingOdds;
 		saveOutput << thisSeat.polls;
+		saveOutput << thisSeat.runningParties;
 	}
 }
 
@@ -555,6 +557,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		}
 		if (versionNum >= 44) {
 			saveInput >> thisSeat.polls;
+		}
+		if (versionNum >= 46) {
+			saveInput >> thisSeat.runningParties;
 		}
 
 		project.seatCollection.add(thisSeat);

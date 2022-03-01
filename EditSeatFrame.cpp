@@ -37,6 +37,7 @@ enum ControlId
 	ProminentMinors,
 	BettingOdds,
 	Polls,
+	RunningParties,
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -85,6 +86,7 @@ void EditSeatFrame::createControls(int & y)
 	createProminentMinorsInput(y);
 	createBettingOddsInput(y);
 	createPollsInput(y);
+	createRunningPartiesInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -311,6 +313,21 @@ void EditSeatFrame::createPollsInput(int& y)
 	y += pollsInput->Height + ControlPadding;
 }
 
+void EditSeatFrame::createRunningPartiesInput(int& y)
+{
+	std::string runningParties = "";
+	if (seat.runningParties.size()) {
+		runningParties += seat.runningParties[0];
+		for (size_t i = 1; i < seat.runningParties.size(); ++i) {
+			runningParties += "," + seat.runningParties[i];
+		}
+	}
+
+	auto runningPartiesCallback = std::bind(&EditSeatFrame::updateRunningParties, this, _1);
+	runningPartiesInput.reset(new TextInput(this, ControlId::RunningParties, "Running Parties:", runningParties, wxPoint(2, y), runningPartiesCallback));
+	y += runningPartiesInput->Height + ControlPadding;
+}
+
 void EditSeatFrame::createOkCancelButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
@@ -391,4 +408,9 @@ void EditSeatFrame::updatePolls(std::string pollStr)
 			continue;
 		}
 	}
+}
+
+void EditSeatFrame::updateRunningParties(std::string runningParties)
+{
+	seat.runningParties = splitString(runningParties, ",");
 }

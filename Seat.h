@@ -73,6 +73,7 @@ public:
 	bool confirmedProminentIndependent = false;
 
 	std::vector<std::string> prominentMinors;
+	std::vector<std::string> runningParties;
 
 	std::map<std::string, float> bettingOdds;
 

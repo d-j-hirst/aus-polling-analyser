@@ -41,9 +41,9 @@ class Config:
             self.elections = [no_target_election_marker]
         else:
             parts = self.election_instructions.split('-')
-            if len(parts) != 2:
+            if len(parts) < 2:
                 raise ConfigError('Error in "elections" argument: given value '
-                                  'did not consist of two parts separated '
+                                  'did not have two parts separated '
                                   'by a hyphen (e.g. 2013-fed)')
             try:
                 code = ElectionCode(parts[0], parts[1])
@@ -52,10 +52,23 @@ class Config:
                                   'of election name could not be converted '
                                   'into an integer')
             if code not in elections:
-                raise ConfigError('Error in "elections" argument: given value '
+                raise ConfigError('Error in "elections" argument: '
                                   'value given did not match any election '
                                   'given in Data/polled-elections.csv')
-            self.elections = [code]
+            if len(parts) == 2:
+                self.elections = [code]
+            elif parts[2] == 'onwards':
+                try:
+                    self.elections = (elections[elections.index(code):]
+                        + [no_target_election_marker])
+                except ValueError:
+                    raise ConfigError('Error in "elections" argument: '
+                                  'value given did not match any election '
+                                  'given in Data/polled-elections.csv')
+            else:
+                raise ConfigError('Invalid instruction in "elections"'
+                                  'argument.')
+
 
 
 def run_models():

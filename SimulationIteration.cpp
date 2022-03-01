@@ -454,6 +454,16 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	if (seat.runningParties.size() && partyIndex >= Mp::Others &&
+		!contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+		voteShare = 0.0f;
+		return;
+	}
+	if (seat.runningParties.size() && partyIndex == OthersIndex &&
+		!contains(seat.runningParties, OthersCode)) {
+		voteShare = 0.0f;
+		return;
+	}
 	float transformedFp = transformVoteShare(voteShare);
 	float seatStatisticsExact = (std::clamp(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
 		- seatStatistics.scaleLow) / seatStatistics.scaleStep;
@@ -519,6 +529,11 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	if (seat.runningParties.size() && partyIndex >= Mp::Others &&
+		!contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+		voteShare = 0.0f;
+		return;
+	}
 	bool prominent = seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation);
 	float partyFp = overallFpTarget[partyIndex];
 	if (partyFp == 0.0f) {
@@ -561,6 +576,9 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	if (seat.runningParties.size() && !contains(seat.runningParties, project.parties().viewByIndex(run.indPartyIndex).abbreviation)) {
+		return;
+	}
 	if (!seat.confirmedProminentIndependent) return;
 	float indEmergenceRate = run.indEmergence.baseRate;
 	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
@@ -625,7 +643,10 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 {
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) {
+		return;
+	}
 	float indEmergenceRate = run.indEmergence.baseRate;
 	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
 	if (isFederal) indEmergenceRate += run.indEmergence.fedRateMod;
@@ -657,6 +678,10 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 
 void SimulationIteration::determineSeatOthers(int seatIndex)
 {
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) {
+		return;
+	}
 	constexpr float MinPreviousOthFp = 2.0f;
 	float voteShare = MinPreviousOthFp;
 	if (pastSeatResults[seatIndex].fpVotePercent.contains(OthersIndex)) {
