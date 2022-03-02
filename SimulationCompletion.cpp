@@ -66,16 +66,22 @@ void SimulationCompletion::calculateWholeResultStatistics()
 		sim.latestReport.majorityPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
 		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.majorityPercent[partyIndex] << "%\n";
 	}
+	if (!sim.latestReport.majorityPercent.contains(0)) sim.latestReport.majorityPercent[0] = 0;
+	if (!sim.latestReport.majorityPercent.contains(1)) sim.latestReport.majorityPercent[1] = 0;
 	logger << "Party minorities:\n";
 	for (auto [partyIndex, result] : run.partyMinority) {
 		sim.latestReport.minorityPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
 		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.minorityPercent[partyIndex] << "%\n";
 	}
+	if (!sim.latestReport.minorityPercent.contains(0)) sim.latestReport.minorityPercent[0] = 0;
+	if (!sim.latestReport.minorityPercent.contains(1)) sim.latestReport.minorityPercent[1] = 0;
 	logger << "Party most-seats:\n";
 	for (auto [partyIndex, result] : run.partyMostSeats) {
 		sim.latestReport.mostSeatsPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
 		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.mostSeatsPercent[partyIndex] << "%\n";
 	}
+	if (!sim.latestReport.mostSeatsPercent.contains(0)) sim.latestReport.mostSeatsPercent[0] = 0;
+	if (!sim.latestReport.mostSeatsPercent.contains(1)) sim.latestReport.mostSeatsPercent[1] = 0;
 	sim.latestReport.tiedPercent = float(run.tiedParliament) / float(sim.settings.numIterations) * 100.0f;
 
 	logger << "Tied: - " << sim.latestReport.tiedPercent << "%\n";
