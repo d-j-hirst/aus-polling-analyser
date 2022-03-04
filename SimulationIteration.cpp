@@ -365,10 +365,10 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float transformedTpp = transformVoteShare(seat.tppMargin + 50.0f);
 	float elasticity = run.seatParameters[seatIndex].elasticity;
-	float trend = run.seatParameters[seatIndex].trend;
+	// float trend = run.seatParameters[seatIndex].trend;
 	float volatility = run.seatParameters[seatIndex].volatility;
 	bool useVolatility = run.seatParameters[seatIndex].loaded;
-	transformedTpp += regionSwing[project.regions().idToIndex(seat.region)] * elasticity + trend;
+	transformedTpp += regionSwing[project.regions().idToIndex(seat.region)] * elasticity;
 	// Add modifiers for known local effects
 	transformedTpp += run.seatPartyOneTppModifier[seatIndex];
 	// Remove the average local modifier across the region

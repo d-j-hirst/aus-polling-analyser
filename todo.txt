@@ -1,33 +1,31 @@
 Polling Analyser to-do:
--Build FAQ/methodology page outlines
--Develop documentation detailing the forecasting methodology
- -methodology documentation
- -about page
- -glossary?
 -Footer
  -Legal stuff
  -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
 -adjust correctSeatTppSwings to correct by region rather than the whole election
 -investigate seat elasticity and its predictivity
--Prepare commentary page
 -Make example copy of data outputs in git repo
 
 Immediately before release:
+ -set default page to default forecast page (rather than clouds page)
  -Check for any new voices candidates and betting odds for seats and election timing, then create final pre-release forecast.
+ -prepare and post actual initial commentary post
  -Make polling analyser repo public
  -Remove login protections
 
 -Soon after release:
+ -glossary
  -Script to auto-check seat betting odds.
-  *options to sort in various ways by % chance, alphabetical, state, margin
+ *options to sort in various ways by % chance, alphabetical, state, margin
+ -caching most recently loaded forecast
  -Graph for prediction over time - for overall forecast and then maybe individual seats
  -cartogram, maybe map view depending on feasibility
  -Individual seats winner bar for 2cp scenarios (maybe?)
  -Anything non-critical above not done before release.
 -Before SA election day, if possible:
 -Before federal election day, if possible:
- -Advanced simulations!
+ -Advanced live simulations!
   -Start by organising past election data at booth-level
   -Need to load conversions between equivalent seats
-  -Then organise the existing election
+  -Then organise the existing election data
 

@@ -1749,21 +1749,59 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     
     filename = (f'./Seat Statistics/individual-seat-factors.csv')
     with open(filename, 'w') as f:
+        # mix_factor = 0.38
+        elasticity_factor = 0.38
+        # base_errors = []
+        # predicted_errors = []
+        # mixed_errors = []
         for key, values in individual_infos.items():
-            if len(values) < 4:
+            if len(values) < 10:
                 continue
-            inputs_array = numpy.transpose(numpy.array([[a[1] for a in values]]))
+            inputs_array = numpy.transpose(numpy.array(
+                [[a[1] for a in values]]))
             results_array = numpy.array([a[0] for a in values])
-            reg = LinearRegression().fit(inputs_array, results_array)
+            reg = LinearRegression(fit_intercept=False).fit(inputs_array, results_array)
             elasticity = reg.coef_[0]
-            trend = reg.intercept_
+            trend = 0  # set to zero as it seems to harm predictiveness so far
             residuals = [a[0] - elasticity * a[1] - trend for a in values]
             volatility = calc_rmse(residuals)
+            # The elasticity from the regression significantly overestimates
+            # seat elasticity in new samples. A factor of 0.38 was found to
+            # provided the optimum predictiveness for sample sizes of 10 and up.
+            adjusted_elasticity = (elasticity - 1) * elasticity_factor + 1
             # High trend/low volatility values are likely artifacts of small
             # sample sizes, so cap them 
             limited_trend = min(max(trend, -2.5), 2.5)
-            limited_volatility = max(volatility, 1.5)
-            f.write(f'{key[0]},{key[1]},{key[2]},{elasticity},{trend},{volatility}\n')
+            limited_volatility = max(volatility, 2)
+            f.write(f'{key[0]},{key[1]},{key[2]},{adjusted_elasticity},{limited_trend},{limited_volatility}\n')
+
+            # code for testing elasticity predictiveness
+
+            # for remove in range(0, len(values)):
+            #     new_values = [a for ind, a in enumerate(values) if ind != remove]
+            #     inputs_array = numpy.transpose(numpy.array(
+            #         [[a[1] for a in new_values]]))
+            #     results_array = numpy.array([a[0] for a in new_values])
+            #     reg = LinearRegression(fit_intercept=False).fit(inputs_array, results_array)
+            #     new_elasticity = reg.coef_[0]
+            #     new_trend = reg.intercept_
+            #     observed_swing = values[remove][0]
+            #     predicted_swing = values[remove][1] * new_elasticity + new_trend
+            #     mixed_swing = predicted_swing * mix_factor + values[remove][1] * (1 - mix_factor)
+            #     base_error = abs(observed_swing - values[remove][1])
+            #     predicted_error = abs(observed_swing - predicted_swing)
+            #     mixed_error = abs(observed_swing - mixed_swing)
+            #     base_errors.append(base_error)
+            #     predicted_errors.append(predicted_error)
+            #     mixed_errors.append(mixed_error)
+        # print("Overall errors:")
+        # print(mix_factor)
+        # print(len(base_errors))
+        # print(statistics.mean(base_errors))
+        # print(statistics.mean(predicted_errors))
+        # print(statistics.mean(mixed_errors))
+
+
 
 
 if __name__ == '__main__':
