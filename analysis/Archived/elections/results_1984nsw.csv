@@ -1,0 +1,786 @@
+1984 NSW Election
+Seat,Albury
+fp
+Harold Mair,Labor,15788,50.8,-4.5
+Ian Glachan,Liberal,14617,47.1,2.4
+Christopher Rooke,Democrats,665,2.1,2.1
+tcp
+Harold Mair,Labor,16125,51.9,-3.4
+Ian Glachan,Liberal,14945,48.1,3.4
+Seat,Ashfield
+fp
+Paul Whelan,Labor,16290,59.9,-5.6
+Geoffrey Howe,Liberal,10891,40.1,9.8
+tcp
+Paul Whelan,Labor,16290,59.9,-5.6
+Geoffrey Howe,Liberal,10891,40.1,9.8
+Seat,Auburn
+fp
+Peter Cox,Labor,17831,66.8,-3.5
+Rudolph Ognibene,Liberal,8856,33.2,3.5
+tcp
+Peter Cox,Labor,17831,66.8,-3.5
+Rudolph Ognibene,Liberal,8856,33.2,3.5
+Seat,Balmain
+fp
+Peter Crawford,Labor,15158,60.7,1.5
+Gibson Bennie,Liberal,6003,24.0,9.4
+Noel Hazard,Left-wing,2061,8.3,5.5
+Karen McEwan,Democrats,1763,7.1,0.1
+tcp
+Peter Crawford,Labor,17240,69.0,-12.0
+Gibson Bennie,Liberal,7745,31.0,12.0
+Seat,Bankstown
+fp
+Ric Mochalski,Labor,19403,64.5,-0.4
+Terry McDonald,Liberal,10668,35.5,5.6
+tcp
+Ric Mochalski,Labor,19403,64.5,-0.4
+Terry McDonald,Liberal,10668,35.5,5.6
+Seat,Barwon
+fp
+Wal Murray,National,18503,58.5,-4.7
+Bill Sinclair,Labor,10368,32.8,-4.0
+Andrew Von Mengersen,Independent,2729,8.6,8.6
+tcp
+Wal Murray,National,19908,63.0,-0.2
+Bill Sinclair,Labor,11692,37.0,0.2
+Seat,Bass Hill
+fp
+Neville Wran,Labor,19432,64.1,-11.6
+Peter Swiderski,Liberal,8897,29.4,5.1
+Sandor Torzsok,Misc,1330,4.4,4.4
+Julien Droulers,Misc,642,2.1,2.1
+tcp
+Neville Wran,Labor,20393,67.3,-8.4
+Peter Swiderski,Liberal,9908,32.7,8.4
+Seat,Bathurst
+fp
+Mick Clough,Labor,17400,52.9,2.8
+Clive Osborne,National,10364,31.5,-18.4
+Trevor Toole,National,4298,13.1,13.1
+Louis Winters,Democrats,848,2.6,2.6
+tcp
+Mick Clough,Labor,18199,55.3,5.2
+Clive Osborne,National,14711,44.7,-5.2
+Seat,Blacktown
+fp
+John Aquilina,Labor,20605,66.6,-6.5
+David Bannerman,Liberal,10319,33.4,6.5
+tcp
+John Aquilina,Labor,20605,66.6,-6.5
+David Bannerman,Liberal,10319,33.4,6.5
+Seat,Bligh
+fp
+Michael Yabsley,Liberal,13134,48.5,4.2
+Fred Miller,Labor,12279,45.3,-2.3
+Brian Hillman,Democrats,1689,6.2,2.0
+tcp
+Michael Yabsley,Liberal,13740,51.2,3.9
+Fred Miller,Labor,13085,48.8,-3.9
+Seat,Blue Mountains
+fp
+Bob Debus,Labor,16830,48.5,-9.9
+Margaret Bradshaw,Liberal,12962,37.3,-2.2
+Steve Franklin,Democrats,2600,7.5,7.5
+Bruce Fry,Christian,2347,6.8,6.8
+tcp
+Bob Debus,Labor,18186,53.5,-6.1
+Margaret Bradshaw,Liberal,15832,46.5,6.1
+Seat,Broken Hill
+fp
+Bill Beckroge,Labor,17440,68.7,-0.3
+Geoffrey Anderson,Liberal,4019,15.8,15.8
+Neville Crisp,National,3913,15.4,-15.6
+tcp
+Bill Beckroge,Labor,17786,70.1,None
+Geoffrey Anderson,Liberal,7586,29.9,None
+Seat,Burrinjuck
+fp
+Terry Sheahan,Labor,17377,52.8,-2.8
+John Sharp,National,14643,44.5,3.1
+Joyce Copeland,Democrats,885,2.7,-0.3
+tcp
+Terence Sheahan,Labor,17867,54.3,-2.9
+John Sharp,National,15038,45.7,2.9
+Seat,Burwood
+fp
+Paul Zammit,Liberal,14377,49.9,8.1
+Phil O'Neill,Labor,13556,47.1,-8.1
+Stephen Kirkham,Democrats,857,3.0,-0.1
+tcp
+Paul Zammit,Liberal,14802,51.6,8.8
+Phil O'Neill,Labor,13869,48.4,-8.8
+Seat,Byron
+fp
+Don Beck,National,15860,45.4,-6.8
+Lyle Robb,Labor,14586,41.8,-2.1
+Alan Mountain,Independent,1704,4.9,4.9
+Kenneth Nicholson,Democrats,1631,4.7,0.8
+James Mangleson,Independent,1133,3.2,3.2
+tcp
+Don Beck,National,17431,50.8,-3.5
+Lyle Robb,Labor,16850,49.2,3.5
+Seat,Cabramatta
+fp
+Eric Bedford,Labor,19159,65.1,-8.9
+Maria Heggie,Liberal,10289,34.9,8.9
+tcp
+Eric Bedford,Labor,19159,65.1,-8.9
+Maria Heggie,Liberal,10289,34.9,8.9
+Seat,Camden
+fp
+John Fahey,Liberal,18656,55.2,9.5
+Ralph Brading,Labor,15112,44.8,-2.6
+tcp
+John Fahey,Liberal,18656,55.2,9.5
+Ralph Brading,Labor,15112,44.8,-2.6
+Seat,Campbelltown
+fp
+Michael Knight,Labor,19781,53.0,0.3
+Gordon Fetterplace,Independent,8518,22.8,-17.9
+Violette Samaha,Liberal,7138,19.1,19.1
+Edward Houston,Independent,1856,5.0,5.0
+tcp
+Michael Knight,Labor,21891,58.7,None
+Gordon Fetterplace,Independent,15402,41.3,None
+Seat,Canterbury
+fp
+Kevin Stewart,Labor,19253,67.9,-10.7
+Robert Sharp,Liberal,9087,32.1,10.7
+tcp
+Kevin Stewart,Labor,19253,67.9,-10.7
+Robert Sharp,Liberal,9087,32.1,10.7
+Seat,Castlereagh
+fp
+Roger Wotton,National,17931,56.0,2.6
+Jim Curran,Labor,13158,41.1,-5.5
+Anne Graham,Democrats,900,2.8,2.8
+tcp
+Roger Wotton,National,18330,57.3,3.9
+Jim Curran,Labor,13659,42.7,-3.9
+Seat,Cessnock
+fp
+Stan Neilly,Labor,23519,76.2,-1.3
+Gerard Berkhout,Liberal,7341,23.8,5.6
+tcp
+Stan Neilly,Labor,23519,76.2,-1.3
+Gerard Berkhout,Liberal,7341,23.8,5.6
+Seat,Charlestown
+fp
+Richard Face,Labor,19014,59.0,-9.3
+Peter Wilson,Liberal,13211,41.0,9.3
+tcp
+Richard Face,Labor,19014,59.0,-9.3
+Peter Wilson,Liberal,13211,41.0,9.3
+Seat,Clarence
+fp
+Ian Causley,National,17765,52.1,8.7
+Bill Day,Labor,14630,42.9,-13.7
+Denis O'Keeffe,Independent,1703,5.0,5.0
+tcp
+Ian Causley,National,18515,54.3,10.9
+Bill Day,Labor,15583,45.7,-10.9
+Seat,Coffs Harbour
+fp
+Matt Singleton,National,21873,61.3,2.0
+Laurence Brown,Labor,13789,38.7,-2.0
+tcp
+Matt Singleton,National,21873,61.3,2.0
+Laurence Brown,Labor,13789,38.7,-2.0
+Seat,Coogee
+fp
+Michael Cleary,Labor,13674,52.8,-11.5
+Ken Finn,Liberal,10521,40.6,7.5
+Gavan Schneider,Democrats,1708,6.6,6.6
+tcp
+Michael Cleary,Labor,14713,56.8,-9.1
+Ken Finn,Liberal,11190,43.2,9.1
+Seat,Corrimal
+fp
+Laurie Kelly,Labor,21068,68.9,-1.1
+Colin Bruton,Liberal,9527,31.1,9.0
+tcp
+Laurie Kelly,Labor,21068,68.9,-1.1
+Colin Bruton,Liberal,9527,31.1,9.0
+Seat,Cronulla
+fp
+Malcolm Kerr,Liberal,14644,50.5,5.8
+Michael Egan,Labor,14375,49.5,-5.8
+tcp
+Malcolm Kerr,Liberal,14644,50.5,5.8
+Michael Egan,Labor,14375,49.5,-5.8
+Seat,Davidson
+fp
+Terry Metherell,Liberal,19246,63.0,5.2
+Julie Sutton,Labor,9682,31.7,-10.5
+Anthony Dunne,Democrats,1601,5.2,5.2
+tcp
+Terry Metherell,Liberal,19996,65.5,7.7
+Julie Sutton,Labor,10533,34.5,-7.7
+Seat,Drummoyne
+fp
+John Murray,Labor,17002,59.0,-10.2
+Ben Sonego,Liberal,11802,41.0,17.0
+tcp
+John Murray,Labor,17002,59.0,-10.2
+Ben Sonego,Liberal,11802,41.0,17.0
+Seat,Dubbo
+fp
+Gerry Peacocke,National,20324,64.9,28.4
+Gordon Lerve,Labor,10973,35.1,-2.4
+tcp
+Gerry Peacocke,National,20324,64.9,28.4
+Gordon Lerve,Labor,10973,35.1,-2.4
+Seat,Earlwood
+fp
+Ken Gabb,Labor,15528,53.7,-7.0
+John Ryan,Liberal,12534,43.3,6.7
+Paul Terrett,Democrats,862,3.0,0.3
+tcp
+Ken Gabb,Labor,15966,55.2,-7.0
+John Ryan,Liberal,12958,44.8,7.0
+Seat,East Hills
+fp
+Pat Rogan,Labor,19206,62.8,-6.1
+Max Parker,Liberal,9477,31.0,9.1
+Margaret Vitlin,Democrats,1879,6.2,-3.1
+tcp
+Pat Rogan,Labor,20171,66.0,-9.8
+Max Parker,Liberal,10391,34.0,9.8
+Seat,Eastwood
+fp
+Jim Clough,Liberal,17937,60.0,5.0
+Joyce Tuckwell,Labor,9404,31.5,-5.3
+Christopher Dunkerley,Democrats,2545,8.5,0.2
+tcp
+Jim Clough,Liberal,19366,64.8,5.1
+Joyce Tuckwell,Labor,10520,35.2,-5.1
+Seat,Elizabeth
+fp
+Pat Hills,Labor,14728,58.1,-18.9
+Philip Daley,Liberal,4447,17.5,3.3
+Michael Matthews,Independent,3707,14.6,14.6
+Jennifer MacLeod,Democrats,1939,7.7,7.7
+Nadar Ponnuswamy,Independent,511,2.0,2.0
+tcp
+Pat Hills,Labor,18290,72.2,-12.5
+Philip Daley,Liberal,7042,27.8,12.5
+Seat,Fairfield
+fp
+Janice Crosio,Labor,20042,66.4,-13.8
+Geoffrey Goninon,Liberal,7520,24.9,5.1
+Raymon Wilson,Independent,2602,8.6,8.6
+tcp
+Janice Crosio,Labor,21658,71.8,-8.4
+Geoffrey Goninon,Liberal,8506,28.2,8.4
+Seat,Georges River
+fp
+Frank Walker,Labor,15792,55.0,-5.9
+Warren Griffin,Liberal,12920,45.0,18.0
+tcp
+Frank Walker,Labor,15792,55.0,-5.9
+Warren Griffin,Liberal,12920,45.0,18.0
+Seat,Gladesville
+fp
+Rodney Cavalier,Labor,13818,47.8,-9.4
+Ivan Petch,Liberal,10561,36.5,0.9
+Michael Lardelli,Independent,2927,10.1,10.1
+John Sanders,Democrats,832,2.9,-4.3
+John Egan,Independent,777,2.7,2.7
+tcp
+Rodney Cavalier,Labor,16048,55.5,-4.6
+Ivan Petch,Liberal,12867,44.5,4.6
+Seat,Gloucester
+fp
+Leon Punch,National,21678,61.9,1.7
+John Eastman,Labor,13360,38.1,-1.7
+tcp
+Leon Punch,National,21678,61.9,1.7
+John Eastman,Labor,13360,38.1,-1.7
+Seat,Gordon
+fp
+Tim Moore,Liberal,22762,77.7,5.6
+Robert Dubler,Labor,5083,17.4,-3.1
+Kevin Gartrell-Wardale,Democrats,1452,5.0,-2.3
+tcp
+Tim Moore,Liberal,23525,80.3,3.1
+Robert Dubler,Labor,5772,19.7,-3.1
+Seat,Gosford
+fp
+Brian McGowan,Labor,17438,46.5,-5.0
+Chris Hartcher,Liberal,11323,30.2,-10.3
+Donald Leggett,National,6548,17.5,17.5
+Gary Chestnut,Democrats,2168,5.8,1.3
+tcp
+Brian McGowan,Labor,19147,51.9,-4.9
+Chris Hartcher,Liberal,17734,48.1,4.9
+Seat,Goulburn
+fp
+Robert Webster,National,15089,49.7,-2.1
+Bob Stephens,Labor,13652,45.0,-3.2
+Miriam Naughton,Independent,1369,4.5,4.5
+Ronald Sarina,Independent,222,0.7,0.7
+tcp
+Robert Webster,National,15864,52.3,0.4
+Bob Stephens,Labor,14468,47.7,-0.4
+Seat,Granville
+fp
+Laurie Ferguson,Labor,18810,68.9,-3.1
+Yvonne Maio,Liberal,8476,31.1,3.1
+tcp
+Laurie Ferguson,Labor,18810,68.9,-3.1
+Yvonne Maio,Liberal,8476,31.1,3.1
+Seat,Hawkesbury
+fp
+Kevin Rozzoli,Liberal,23128,68.0,9.5
+Harmanus Toorneman,Labor,10862,32.0,-2.0
+tcp
+Kevin Rozzoli,Liberal,23128,68.0,9.5
+Harmanus Toorneman,Labor,10862,32.0,-2.0
+Seat,Heathcote
+fp
+Rex Jackson,Labor,16582,55.6,-11.7
+Gordon Davies,Liberal,10052,33.7,10.0
+Fran Johnson,Democrats,3179,10.7,6.4
+tcp
+Rex Jackson,Labor,18216,61.1,-12.0
+Gordon Davies,Liberal,11597,38.9,12.0
+Seat,Heffron
+fp
+Laurie Brereton,Labor,18536,65.6,-11.9
+Barry Devine,Liberal,9730,34.4,11.9
+tcp
+Laurie Brereton,Labor,18536,65.6,-11.9
+Barry Devine,Liberal,9730,34.4,11.9
+Seat,Hornsby
+fp
+Neil Pickard,Liberal,18177,56.7,5.2
+Christopher Gorrick,Labor,12339,38.5,-5.5
+Michael Pettigrew,Democrats,1520,4.7,1.5
+tcp
+Neil Pickard,Liberal,18965,59.2,5.4
+Christopher Gorrick,Labor,13071,40.8,-5.4
+Seat,Hurstville
+fp
+Guy Yeomans,Liberal,14427,50.9,11.7
+Kevin Ryan,Labor,13896,49.1,-8.2
+tcp
+Guy Yeomans,Liberal,14427,50.9,11.7
+Kevin Ryan,Labor,13896,49.1,-8.2
+Seat,Illawarra
+fp
+George Petersen,Labor,20774,65.6,-3.5
+Dennis Owen,Liberal,8451,26.7,11.0
+James Kay,Democrats,2444,7.7,0.0
+tcp
+George Petersen,Labor,22042,69.6,-10.0
+Dennis Owen,Liberal,9627,30.4,10.0
+Seat,Ingleburn
+fp
+Stan Knowles,Labor,18554,63.0,-1.3
+Gary Lucas,Liberal,10897,37.0,1.3
+tcp
+Stan Knowles,Labor,18554,63.0,-1.3
+Gary Lucas,Liberal,10897,37.0,1.3
+Seat,Kiama
+fp
+Bill Knott,Labor,19636,58.7,-1.2
+Warren Steel,Liberal,13797,41.3,1.2
+tcp
+Bill Knott,Labor,19636,58.7,-1.2
+Warren Steel,Liberal,13797,41.3,1.2
+Seat,Kogarah
+fp
+Brian Langton,Labor,15254,53.1,-9.9
+Robert Young,Liberal,11804,41.0,8.8
+Ronald George,Democrats,1697,5.9,1.1
+tcp
+Brian Langton,Labor,16189,56.3,-3.6
+Robert Young,Liberal,12566,43.7,3.6
+Seat,Ku-ring-gai
+fp
+Nick Greiner,Liberal,24271,77.8,11.2
+Ian Cameron,Labor,5096,16.3,-7.2
+Pamela Tuckwell,Democrats,1829,5.9,-4.1
+tcp
+Nick Greiner,Liberal,25238,80.9,10.1
+Ian Cameron,Labor,5958,19.1,-10.1
+Seat,Lachlan
+fp
+Ian Armstrong,National,19108,65.9,7.2
+Tim West,Labor,9885,34.1,-7.2
+tcp
+Ian Armstrong,National,19108,65.9,7.2
+Tim West,Labor,9885,34.1,-7.2
+Seat,Lake Macquarie
+fp
+Merv Hunter,Labor,20145,57.8,-8.7
+Edward Hayes,Liberal,11694,33.5,9.3
+Edwina Wilson,Democrats,3025,8.7,-0.6
+tcp
+Merv Hunter,Labor,21685,62.2,-9.5
+Edward Hayes,Liberal,13179,37.8,9.5
+Seat,Lakemba
+fp
+Wes Davoren,Labor,16398,61.8,-16.8
+Stephen Law,Liberal,10125,38.2,16.8
+tcp
+Wes Davoren,Labor,16398,61.8,-16.8
+Stephen Law,Liberal,10125,38.2,16.8
+Seat,Lane Cove
+fp
+John Dowd,Liberal,17720,65.6,7.5
+Miron Shapira,Labor,7446,27.6,-4.1
+Graham Baker,Democrats,1831,6.8,0.2
+tcp
+John Dowd,Liberal,18682,69.2,5.1
+Miron Shapira,Labor,8315,30.8,-5.1
+Seat,Lismore
+fp
+Bruce Duncan,Independent,25227,75.7,75.7
+Claire Newton,Labor,7340,22.0,-9.1
+Ivor Brown,Democrats,767,2.3,2.3
+tcp
+Bruce Duncan,Independent,25634,76.9,None
+Claire Newton,Labor,7700,23.1,None
+Seat,Liverpool
+fp
+George Paciullo,Labor,18382,68.6,-7.9
+Anthony Garbin,Liberal,6552,24.5,6.7
+David Bransdon,Independent,1855,6.9,3.7
+tcp
+George Paciullo,Labor,19342,72.2,-8.2
+Anthony Garbin,Liberal,7447,27.8,8.2
+Seat,Maitland
+fp
+Allan Walsh,Labor,18178,56.9,3.9
+Donald Wilkinson,Liberal,9704,30.4,-6.5
+Robert Gee,National,4052,12.7,12.7
+tcp
+Allan Walsh,Labor,18809,58.9,1.4
+Donald Wilkinson,Liberal,13125,41.1,-1.4
+Seat,Manly
+fp
+David Hay,Liberal,14772,50.7,4.1
+Alan Stewart,Labor,12156,41.7,-7.2
+Joan Cooke,Independent,1015,3.5,3.5
+Robert Leys,Democrats,945,3.2,3.2
+Margaret Lee,Independent,266,0.9,0.9
+tcp
+David Hay,Liberal,15889,54.5,5.7
+Alan Stewart,Labor,13265,45.5,-5.7
+Seat,Maroubra
+fp
+Bob Carr,Labor,18569,63.2,-5.6
+Phillip Abadee,Liberal,10804,36.8,5.6
+tcp
+Bob Carr,Labor,18569,63.2,-5.6
+Phillip Abadee,Liberal,10804,36.8,5.6
+Seat,Marrickville
+fp
+Andrew Refshauge,Labor,16890,66.3,-5.0
+Peter Rout,Liberal,5422,21.3,2.0
+Michael Walsh,Democrats,3164,12.4,9.4
+tcp
+Andrew Refshauge,Labor,18699,73.4,-4.6
+Peter Rout,Liberal,6777,26.6,4.6
+Seat,Merrylands
+fp
+Geoff Irwin,Labor,17874,63.7,-11.6
+Garo Gabrielian,Liberal,8159,29.1,4.4
+Alan Byers,Independent,2045,7.3,7.3
+tcp
+Geoff Irwin,Labor,18925,67.4,-7.9
+Garo Gabrielian,Liberal,9153,32.6,7.9
+Seat,Miranda
+fp
+Ron Phillips,Liberal,15242,50.3,6.9
+Bill Robb,Labor,14176,46.8,-5.0
+Michael Moriarty,Democrats,890,2.9,-1.9
+tcp
+Ron Phillips,Liberal,15700,51.8,6.1
+Bill Robb,Labor,14608,48.2,-6.1
+Seat,Monaro
+fp
+John Akister,Labor,17403,55.3,-4.5
+John Munro,Liberal,11800,37.5,7.1
+Ronald Formann,National,2245,7.1,-1.1
+tcp
+John Akister,Labor,17579,55.9,-5.5
+John Munro,Liberal,13869,44.1,5.5
+Seat,Mosman
+fp
+Phillip Smiles,Liberal,16426,58.6,-5.6
+Liliane Leroy,Labor,5693,20.3,-15.5
+Dom Lopez,Independent,4574,16.3,16.3
+Christine Townend,Democrats,1353,4.8,4.8
+tcp
+Phillip Smiles,Liberal,19492,69.5,5.2
+Liliane Leroy,Labor,8554,30.5,-5.2
+Seat,Murray
+fp
+Tim Fischer,National,19144,67.9,0.9
+Michael Anthony,Labor,6584,23.4,-4.7
+John Murphy,Independent,1721,6.1,6.1
+Gregory Butler,Democrats,732,2.6,-2.3
+tcp
+Tim Fischer,National,20459,72.6,3.5
+Michael Anthony,Labor,7722,27.4,-3.5
+Seat,Murrumbidgee
+fp
+Margaret Delves,Labor,11917,38.7,-14.8
+Thomas Marriott,Independent,8281,26.9,4.9
+Adrian Cruickshank,National,7773,25.2,0.5
+Brian Thornton,Liberal,2857,9.3,9.3
+tcp
+Adrian Cruickshank,National,15132,51.5,15.4
+Margaret Delves,Labor,14241,48.5,-15.4
+Seat,Newcastle
+fp
+Arthur Wade,Labor,18143,57.0,-7.9
+Patricia Forsythe,Liberal,9195,28.9,-0.4
+Stephen Jeffries,Democrats,3721,11.7,11.7
+Frank Blefari,Independent,772,2.4,2.4
+tcp
+Arthur Wade,Labor,20499,64.4,-6.5
+Patricia Forsythe,Liberal,11332,35.6,6.5
+Seat,North Shore
+fp
+Ted Mack,Independent,11122,42.2,13.5
+Jillian Skinner,Liberal,10850,41.2,-0.4
+Peter Semmler,Labor,4365,16.6,-11.6
+tcp
+Ted Mack,Independent,15043,57.7,3.1
+Jillian Skinner,Liberal,11037,42.3,-3.1
+Seat,Northcott
+fp
+Bruce Baird,Liberal,23048,66.9,5.6
+Jan Dekker,Labor,9149,26.6,-6.4
+Clifford Wiltshire,Democrats,2236,6.5,0.9
+tcp
+Bruce Baird,Liberal,24103,70.0,5.9
+Jan Dekker,Labor,10330,30.0,-5.9
+Seat,Northern Tablelands
+fp
+Bill McCarthy,Labor,15335,51.6,-1.3
+Claude Cainero,National,14383,48.4,1.3
+tcp
+Bill McCarthy,Labor,15335,51.6,-1.3
+Claude Cainero,National,14383,48.4,1.3
+Seat,Orange
+fp
+Garry West,National,17156,58.0,4.5
+Trevor Jaeger,Labor,12423,42.0,-4.5
+tcp
+Garry West,National,17156,58.0,4.5
+Trevor Jaeger,Labor,12423,42.0,-4.5
+Seat,Oxley
+fp
+Bruce Jeffery,National,15769,43.9,-17.6
+George Viskauskas,Labor,10457,29.1,-9.4
+John Barrett,Independent,8677,24.2,24.2
+William Giles,Democrats,997,2.8,2.8
+tcp
+Bruce Jeffery,National,21387,62.7,1.2
+George Viskauskas,Labor,12699,37.3,-1.2
+Seat,Parramatta
+fp
+Barry Wilde,Labor,14392,49.5,-7.2
+John Worthington,Liberal,10558,36.3,10.2
+Kenneth Hale,Independent,3385,11.6,11.6
+John Macrae,Democrats,752,2.6,0.0
+tcp
+Barry Wilde,Labor,16085,55.3,-10.4
+John Worthington,Liberal,13002,44.7,10.4
+Seat,Peats
+fp
+Paul Landa,Labor,17789,59.7,-4.8
+Jim Lloyd,Liberal,9959,33.4,8.4
+John Aitken,Democrats,2065,6.9,-3.6
+tcp
+Paul Landa,Labor,18842,63.2,-7.2
+Jim Lloyd,Liberal,10971,36.8,7.2
+Seat,Penrith
+fp
+Peter Anderson,Labor,21794,58.8,-12.0
+Ross Shuttleworth,Liberal,11545,31.1,1.9
+Kevin Crameri,Democrats,2576,7.0,7.0
+Ian Perry,Independent,1150,3.1,3.1
+tcp
+Peter Anderson,Labor,23833,64.3,-6.5
+Ross Shuttleworth,Liberal,13232,35.7,6.5
+Seat,Pittwater
+fp
+Max Smith,Liberal,17452,58.1,-2.8
+Denise Morgan,Labor,8290,27.6,-11.5
+John Webeck,Independent,3035,10.1,10.1
+Graeme MacLennan,Democrats,1249,4.2,4.2
+tcp
+Max Smith,Liberal,19667,65.5,4.6
+Denise Morgan,Labor,10359,34.5,-4.6
+Seat,Riverstone
+fp
+Richard Amery,Labor,17731,64.9,-6.2
+Kenneth Jessup,Liberal,9608,35.1,10.5
+tcp
+Richard Amery,Labor,17731,64.9,-6.2
+Kenneth Jessup,Liberal,9608,35.1,10.5
+Seat,Rockdale
+fp
+Brian Bannon,Labor,18015,63.3,-5.9
+Bob Gemmell,Liberal,9705,34.1,3.3
+Edwin Bellchambers,Independent,755,2.6,2.6
+tcp
+Brian Bannon,Labor,18395,64.6,-4.6
+Bob Gemmell,Liberal,10080,35.4,4.6
+Seat,Ryde
+fp
+Garry McIlwaine,Labor,14059,51.5,-5.5
+Ian Kortlang,Liberal,11163,40.9,3.7
+Peter Chambers,Democrats,2093,7.7,1.9
+tcp
+Garry McIlwaine,Labor,14996,54.9,-5.4
+Ian Kortlang,Liberal,12319,45.1,5.4
+Seat,St Marys
+fp
+Ron Mulock,Labor,22662,66.6,-10.9
+Daryl Chamberlain,Liberal,9826,28.9,6.4
+Viv Carter,Democrats,1526,4.5,4.5
+tcp
+Ron Mulock,Labor,23470,69.0,-8.5
+Daryl Chamberlain,Liberal,10544,31.0,8.5
+Seat,Seven Hills
+fp
+Bob Christie,Labor,16726,60.1,-4.7
+Marc Clifford,Liberal,11090,39.9,12.8
+tcp
+Bob Christie,Labor,16726,60.1,-4.7
+Marc Clifford,Liberal,11090,39.9,12.8
+Seat,South Coast
+fp
+John Hatton,Independent,21497,61.4,None
+Robyn Drysdale,Labor,6906,19.7,None
+David Egan,Liberal,6633,18.9,None
+tcp
+John Hatton,Independent,26627,76.0,None
+Robyn Drysdale,Labor,8409,24.0,None
+Seat,Swansea
+fp
+Don Bowman,Labor,21913,65.0,-6.2
+Milton Caine,Liberal,7718,22.9,7.1
+Ann Leahy,Left-wing,2113,6.3,6.3
+Lyn Godfrey,Democrats,1985,5.9,-7.0
+tcp
+Don Bowman,Labor,24352,72.2,-6.6
+Milton Caine,Liberal,9377,27.8,6.6
+Seat,Tamworth
+fp
+Noel Park,National,18639,59.1,0.7
+Garry Ryan,Labor,10459,33.1,-2.6
+Anne Irvine,Democrats,2463,7.8,1.9
+tcp
+Noel Park,National,20010,63.4,1.3
+Garry Ryan,Labor,11551,36.6,-1.3
+Seat,The Hills
+fp
+Fred Caterson,Liberal,19649,62.0,2.5
+Barry Calvert,Labor,7807,24.6,-10.2
+John Griffiths,Independent,2923,9.2,9.2
+Toni Chapman,Democrats,1322,4.2,-1.5
+tcp
+Fred Caterson,Liberal,21842,68.9,7.2
+Barry Calvert,Labor,9859,31.1,-7.2
+Seat,Tuggerah
+fp
+Harry Moore,Labor,18345,55.8,-3.3
+Leslie Nunn,Liberal,10416,31.7,2.1
+Clem Payne,Independent,2664,8.1,8.1
+Lynn Sawyer,Democrats,1438,4.4,-6.9
+tcp
+Harry Moore,Labor,20309,61.8,-5.0
+Leslie Nunn,Liberal,12554,38.2,5.0
+Seat,Upper Hunter
+fp
+Col Fisher,National,18999,59.5,3.1
+Colleen Green,Labor,12926,40.5,-3.1
+tcp
+Col Fisher,National,18999,59.5,3.1
+Colleen Green,Labor,12926,40.5,-3.1
+Seat,Vaucluse
+fp
+Rosemary Foot,Liberal,19331,72.4,7.8
+David Curtis,Labor,6271,23.5,-1.5
+Joseph Zingarelli,Democrats,1080,4.1,-0.2
+tcp
+Rosemary Foot,Liberal,19905,74.6,4.5
+David Curtis,Labor,6777,25.4,-4.5
+Seat,Wagga Wagga
+fp
+Joe Schipp,Liberal,18923,61.3,10.0
+Barry Leal,Labor,10339,33.5,-4.2
+Scott Milne,Democrats,1609,5.2,-5.7
+tcp
+Joe Schipp,Liberal,19757,64.0,9.7
+Barry Leal,Labor,11114,36.0,-9.7
+Seat,Wakehurst
+fp
+John Booth,Liberal,13767,49.2,7.6
+Tom Webster,Labor,13038,46.6,8.7
+Maurice Foley,Independent,606,2.2,2.2
+Laurence Bourke,Democrats,581,2.1,-1.0
+tcp
+John Booth,Liberal,14332,51.2,8.2
+Tom Webster,Labor,13660,48.8,-8.2
+Seat,Wallsend
+fp
+Ken Booth,Labor,19435,64.3,-10.0
+Garry Carter,Liberal,10804,35.7,-10.0
+tcp
+Ken Booth,Labor,19435,64.3,-10.0
+Garry Carter,Liberal,10804,35.7,-10.0
+Seat,Waratah
+fp
+John Price,Labor,13641,46.8,-23.4
+Ashley Saunders,Liberal,7314,25.1,-0.6
+Sam Jones,Independent,6926,23.8,23.8
+Wayne Jarman,Democrats,1078,3.7,3.7
+John Cain,Independent,205,0.7,0.7
+tcp
+John Price,Labor,15816,63.2,-10.4
+Ashley Saunders,Liberal,9220,36.8,10.4
+Seat,Wentworthville
+fp
+Ernie Quinn,Labor,14593,50.9,-11.7
+Colin Edwards,Liberal,11962,41.7,4.3
+David Knight,Democrats,2107,7.4,7.4
+tcp
+Ernie Quinn,Labor,15649,54.6,-8.0
+Colin Edwards,Liberal,13013,45.4,8.0
+Seat,Willoughby
+fp
+Peter Collins,Liberal,17391,63.2,13.3
+Eddie Britt,Labor,8974,32.6,-10.4
+Sean Turkington,Democrats,1154,4.2,4.2
+tcp
+Peter Collins,Liberal,17997,65.4,11.7
+Eddie Britt,Labor,9522,34.6,-11.7
+Seat,Wollongong
+fp
+Frank Arkell,Independent,13429,44.7,3.3
+Rex Connor,Labor,13057,43.5,-3.0
+Ronald Brooks,Liberal,2809,9.4,1.2
+Phillip Xenos,Independent,325,1.1,1.1
+Rudolph Dezelin,Independent,213,0.7,0.7
+Julius Kudrynski,Independent,177,0.6,0.6
+tcp
+Frank Arkell,Independent,15959,54.2,4.3
+Rex Connor,Labor,13508,45.8,-4.3
+Seat,Woronora
+fp
+Maurice Keane,Labor,17490,51.2,-10.9
+Chris Downy,Liberal,15221,44.5,6.6
+Ronald Hellyer,Democrats,1462,4.3,4.3
+tcp
+Maurice Keane,Labor,18214,53.3,-8.8
+Chris Downy,Liberal,15959,46.7,8.8
