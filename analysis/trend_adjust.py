@@ -75,10 +75,10 @@ class Config:
                             'checking after doing adjustment calculations, '
                             'and "only" to do only checks and skip '
                             'calculations (of course calculations will still '
-                            'need to have been done at some point before).'
-                            'Note the check will only include elections'
-                            'included under the --election argument, if'
-                            'you get a StatisticsError, try setting'
+                            'need to have been done at some point before). '
+                            'Note the check will only include elections '
+                            'included under the --election argument, if '
+                            'you get a StatisticsError, try setting '
                             '"--election none" as well.'
                             , default='no')
         parser.add_argument('--checkday', action='store', type=int,

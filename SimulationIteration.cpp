@@ -386,21 +386,29 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 
 void SimulationIteration::correctSeatTppSwings()
 {
-	// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
-	double totalSwing = 0.0;
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
-		double turnoutScaledSwing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin) * turnout;
-		totalSwing += turnoutScaledSwing;
-	}
-	// Theoretically this could cause the margin to fall outside valid bounds, but
-	// practically it's not close to ever happening so save a little computation time
-	// not bothering to check
-	double averageSwing = totalSwing / double(run.totalPreviousTurnout);
-	float swingAdjust = iterationOverallSwing - float(averageSwing);
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		partyOneNewTppMargin[seatIndex] += swingAdjust;
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		int regionId = project.regions().indexToId(regionIndex);
+		// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
+		double totalSwing = 0.0;
+		double totalTurnout = 0.0;
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			Seat const& seat = project.seats().viewByIndex(seatIndex);
+			if (seat.region != regionId) continue;
+			double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
+			double turnoutScaledSwing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin) * turnout;
+			totalSwing += turnoutScaledSwing;
+			totalTurnout += turnout;
+		}
+		// Theoretically this could cause the margin to fall outside valid bounds, but
+		// practically it's not close to ever happening so save a little computation time
+		// not bothering to check
+		double averageSwing = totalSwing / totalTurnout;
+		float swingAdjust = iterationOverallSwing - float(averageSwing);
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			Seat const& seat = project.seats().viewByIndex(seatIndex);
+			if (seat.region != regionId) continue;
+			partyOneNewTppMargin[seatIndex] += swingAdjust;
+		}
 	}
 }
 
