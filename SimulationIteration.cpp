@@ -652,7 +652,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) {
+	if (seat.runningParties.size() && !contains(seat.runningParties, std::string("IND"))) {
 		return;
 	}
 	float indEmergenceRate = run.indEmergence.baseRate;

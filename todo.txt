@@ -1,14 +1,11 @@
 Polling Analyser to-do:
--Footer
+-Single-item commentary page
+-Footer?
  -Legal stuff
  -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
--adjust correctSeatTppSwings to correct by region rather than the whole election
--investigate seat elasticity and its predictivity
--Make example copy of data outputs in git repo
 
 Immediately before release:
  -set default page to default forecast page (rather than clouds page)
- -Check for any new voices candidates and betting odds for seats and election timing, then create final pre-release forecast.
  -prepare and post actual initial commentary post
  -Make polling analyser repo public
  -Remove login protections
