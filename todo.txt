@@ -1,18 +1,17 @@
 Polling Analyser to-do:
--Single-item commentary page
 -Footer?
  -Legal stuff
  -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
 
 Immediately before release:
  -set default page to default forecast page (rather than clouds page)
- -prepare and post actual initial commentary post
  -Make polling analyser repo public
  -Remove login protections
 
 -Soon after release:
  -glossary
  -Script to auto-check seat betting odds.
+ -Restructure About page so it's not all in the same component?
  *options to sort in various ways by % chance, alphabetical, state, margin
  -caching most recently loaded forecast
  -Graph for prediction over time - for overall forecast and then maybe individual seats

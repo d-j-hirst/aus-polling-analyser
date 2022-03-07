@@ -1,6 +1,6 @@
 from scipy.interpolate import UnivariateSpline
 from sklearn.linear_model import QuantileRegressor
-from numpy import array, transpose, dot
+from numpy import array, transpose, dot, average
 import math
 import argparse
 import statistics
@@ -239,11 +239,8 @@ class PollTrend:
             for party in party_list:
                 if party == unnamed_others_code:
                     continue
-                # This "effective_party" is a quick hack done while changing party code conventions
-                # to avoid having to rerun all the models at once. Delete when no longer necessary.
-                effective_party = 'ALP TPP' if party == '@TPP' else party
                 trend_filename = (f'./Outputs/fp_trend_{election.year()}'
-                                  f'{election.region()}_{effective_party}.csv')
+                                  f'{election.region()}_{party}.csv')
                 if config.show_loaded_files:
                     print(trend_filename)
                 data = import_trend_file(trend_filename)
@@ -496,7 +493,7 @@ def print_smoothed_series(config, label, some_dict, file,
     x = range(0, len(x_orig))
     total_days = x_orig[len(x_orig) - 1]
     w = [10 if a == 0 else 1 for a in x]
-    spline = UnivariateSpline(x=x, y=y, w=w, s=1000)
+    spline = UnivariateSpline(x=x, y=y, w=w, s=10)
     full_spline = spline(x)
     full_spline = {x_orig[a]: b for a, b in enumerate(full_spline)}
     if config.show_parameters:
@@ -529,10 +526,19 @@ def smoothed_median(container, smoothing):
     return statistics.mean(s[low_end:high_end])
 
 
+def weighted_median(container, weights):
+    new_container = []
+    for index, val in enumerate(container):
+        for i in range(0, math.floor(weights[index])):
+            new_container.append(val)
+    return statistics.median(new_container)
+
+
 class BiasData:
     def __init__(self):
         self.fundamentals_errors = []
         self.poll_errors = []
+        self.poll_distance = []
         self.studied_fundamentals_error = None
         self.studied_poll_errors = []
         self.studied_poll_parties = []
@@ -540,7 +546,10 @@ class BiasData:
 
 def get_bias_data(inputs, poll_trend, party_group,
                   day, studied_election):
-    biasData = BiasData()
+    bias_data = BiasData()
+    target_year = (max(inputs.polled_elections, key=lambda a: a.year()).year()
+        if studied_election == no_target_election_marker
+        else studied_election.year())
     for other_election in inputs.polled_elections:
         for party in party_groups[party_group]:
             if party not in inputs.polled_parties[other_election]:
@@ -556,18 +565,20 @@ def get_bias_data(inputs, poll_trend, party_group,
             if fundamentals is not None:
                 fundamentals_error = transform_vote_share(fundamentals) - result_t
                 if other_election == studied_election:
-                    biasData.studied_fundamentals_error = fundamentals_error
+                    bias_data.studied_fundamentals_error = fundamentals_error
                 else:
-                    biasData.fundamentals_errors.append(fundamentals_error)
+                    bias_data.fundamentals_errors.append(fundamentals_error)
 
                 if polls is not None:
                     poll_error = transform_vote_share(polls) - result_t
+                    year_distance = abs(target_year - other_election.year())
                     if other_election == studied_election:
-                        biasData.studied_poll_errors.append(poll_error)
-                        biasData.studied_poll_parties.append(party)
+                        bias_data.studied_poll_errors.append(poll_error)
+                        bias_data.studied_poll_parties.append(party)
                     else:
-                        biasData.poll_errors.append(poll_error)
-    return biasData
+                        bias_data.poll_errors.append(poll_error)
+                        bias_data.poll_distance.append(year_distance)
+    return bias_data
 
 
 class DayData:
@@ -587,8 +598,9 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
                               party_group=party_group,
                               day=day,
                               studied_election=studied_election)
-    fundamentals_bias = statistics.median(bias_data.fundamentals_errors)
-    poll_bias = statistics.median(bias_data.poll_errors)
+    weights = [10 * 2 ** -(a / 6) for a in bias_data.poll_distance]
+    fundamentals_bias = average(bias_data.fundamentals_errors)
+    poll_bias = average(bias_data.poll_errors, weights=weights)
     day_data.overall_fundamentals_biases.append(fundamentals_bias)
     day_data.overall_poll_biases.append(poll_bias)
     if studied_election == no_target_election_marker:
@@ -645,9 +657,9 @@ def get_day_data(inputs, poll_trend, party_group, day):
             mixed_average_error = statistics.mean(
                 [abs(a) for a in day_data.mixed_errors[mix_index]]
             )
-            mixed_criteria[mix_index] = (mixed_rmse * rmse_factor
-                                       + mixed_deviation * (1 - rmse_factor))
-            # mixed_criteria[mix_index] = mixed_average_error
+            # mixed_criteria[mix_index] = (mixed_rmse * rmse_factor
+            #                           + mixed_deviation * (1 - rmse_factor))
+            mixed_criteria[mix_index] = mixed_average_error
         window_factor = 0.8  # should be in range [0.5, 1)
         if mixed_criteria[0] < mixed_criteria[1]:
             mix_limits = (mix_limits[0],

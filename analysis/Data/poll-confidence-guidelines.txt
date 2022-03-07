@@ -16,7 +16,7 @@ This is then adjusted according to the following "strikes" - factors that indica
 These last two requirements ensure that new polls and methodologies do not overly skew averages until such a time as they have been established long enough for the pollster to work out the kinks.
 
 Internally, the poll is then adjusted according to the number of strikes, with each reducing the effective sample size by 40%.
-Put together, depending on the quality of the polls, the poll quality may assume the following values:
+Put together, depending on the confidence in the polls, the poll confidence may assume the following values with the corresponding effective sample sizes:
  - 1 strike:	0.6
  - 2 strikes:	0.36
  - 3 strikes:	0.216
@@ -24,4 +24,4 @@ Put together, depending on the quality of the polls, the poll quality may assume
  - 5 strikes: 	0.078
  - 6 strikes:	0.047
  
-For simplicity we round to the first three decimal places even though this is not quite precise, as the quality adjustment is already somewhat arbitrary in the first place
+For simplicity the effective sample sizes are rounded to the first three decimal places even though this is not quite precise, as the confidence adjustment is already somewhat arbitrary in the first place

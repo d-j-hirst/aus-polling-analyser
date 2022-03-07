@@ -1,5 +1,3 @@
-// STAN: Primary Vote Intention Model
-
 data {
     // data size
     int<lower=1> pollCount;
