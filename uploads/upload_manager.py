@@ -40,6 +40,19 @@ if upload_local:
     print(response.content.decode())
 
 if upload_remote:
+    print("Sending to remote test server:")
+    response = requests.post('https://dendrite.pythonanywhere.com/auth-api/v1/auth/login/', data=login_data)
+
+    token = response.cookies['jwt_token']
+
+    headers = {
+        'Authorization': 'JWT ' + token
+    }
+
+    response = requests.post('https://dendrite.pythonanywhere.com/forecast-api/submit-report', headers=headers, data=data)
+    print(response.content.decode())
+
+if upload_remote:
     print("Sending to remote server:")
     response = requests.post('https://www.aeforecasts.com/auth-api/v1/auth/login/', data=login_data)
 
