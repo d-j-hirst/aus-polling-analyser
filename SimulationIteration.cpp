@@ -363,7 +363,8 @@ void SimulationIteration::determineSeatInitialResults()
 void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	float transformedTpp = transformVoteShare(seat.tppMargin + 50.0f);
+	float tppPrev = seat.tppMargin + 50.0f;
+	float transformedTpp = transformVoteShare(tppPrev);
 	float elasticity = run.seatParameters[seatIndex].elasticity;
 	// float trend = run.seatParameters[seatIndex].trend;
 	float volatility = run.seatParameters[seatIndex].volatility;
@@ -380,8 +381,21 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
-	// Margin for this simulation is finalised, record it for later averaging
-	partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
+	if (sim.isLiveManual() && run.liveSeatPcCounted[seatIndex] > 0.0f) {
+		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
+			tppPrev + run.liveSeatTppSwing[seatIndex] :
+			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
+		float liveTransformedTpp = transformVoteShare(tppLive);
+		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatPcCounted[seatIndex] * 0.2f)));
+		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
+		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatPcCounted[seatIndex] * 0.2f);
+		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
+		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
+	}
+	else {
+		// Margin for this simulation is finalised, record it for later averaging
+		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
+	}
 }
 
 void SimulationIteration::correctSeatTppSwings()

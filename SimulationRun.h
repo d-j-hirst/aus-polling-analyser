@@ -194,8 +194,6 @@ private:
 	// region, then party, then seat count
 	std::vector<std::map<int, std::vector<int>>> regionPartyWins;
 
-	std::vector<Outcome const*> seatToOutcome;
-
 	std::vector<float> seatPreviousTppSwing;
 	std::vector<float> seatFirstPartyPreferenceFlow;
 	std::vector<float> seatPreferenceFlowVariation;
@@ -221,11 +219,14 @@ private:
 	std::vector<std::map<int, float>> seatBettingOdds;
 	std::vector<std::map<int, std::vector<std::pair<float, int>>>> seatPolls;
 
+	// Live manual results
+	std::vector<float> liveSeatTppSwing;
+	std::vector<float> liveSeatPcCounted;
+
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
 	SeatStatistics othSeatStatistics;
 	IndEmergence indEmergence;
 	PopulistStatistics populistStatistics;
 	PopulistStatistics centristStatistics;
-
 };

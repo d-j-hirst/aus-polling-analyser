@@ -29,6 +29,16 @@ std::list<Outcome>::iterator OutcomeCollection::end()
 	return outcomes.end();
 }
 
+std::list<Outcome>::reverse_iterator OutcomeCollection::rbegin()
+{
+	return outcomes.rbegin();
+}
+
+std::list<Outcome>::reverse_iterator OutcomeCollection::rend()
+{
+	return outcomes.rend();
+}
+
 void OutcomeCollection::clear()
 {
 	outcomes.clear();

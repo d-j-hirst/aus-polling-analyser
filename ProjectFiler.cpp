@@ -840,7 +840,7 @@ void ProjectFiler::saveOutcomes(SaveFileOutput& saveOutput)
 	saveOutput.outputAsType<int32_t>(project.outcomeCollection.count());
 	for (auto const& thisOutcome : project.outcomeCollection) {
 		saveOutput.outputAsType<int32_t>(project.seats().idToIndex(thisOutcome.seat));
-		saveOutput << thisOutcome.incumbentSwing;
+		saveOutput << thisOutcome.partyOneSwing;
 		saveOutput << thisOutcome.percentCounted;
 		saveOutput.outputAsType<int32_t>(thisOutcome.boothsIn);
 		saveOutput.outputAsType<int32_t>(thisOutcome.totalBooths);
@@ -854,7 +854,7 @@ void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int v
 	for (int outcomeIndex = 0; outcomeIndex < outcomeCount; ++outcomeIndex) {
 		Outcome thisOutcome;
 		thisOutcome.seat = saveInput.extract<int32_t>();
-		saveInput >> thisOutcome.incumbentSwing;
+		saveInput >> thisOutcome.partyOneSwing;
 		saveInput >> thisOutcome.percentCounted;
 		thisOutcome.boothsIn = saveInput.extract<int32_t>();
 		thisOutcome.totalBooths = saveInput.extract<int32_t>();

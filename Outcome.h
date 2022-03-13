@@ -12,11 +12,11 @@ class Seat;
 class Outcome {
 public:
 	Outcome() {}
-	Outcome(Seat::Id seat, double incumbentSwing, double percentCounted, std::size_t boothsIn, std::size_t totalBooths)
-		: seat(seat), incumbentSwing(incumbentSwing), percentCounted(percentCounted), boothsIn(boothsIn), totalBooths(totalBooths),
-		updateTime(wxDateTime::Now()) {}
-	Seat::Id seat;
-	double incumbentSwing = 0.0;
+	Outcome(Seat::Id seat, double partyOneSwing, double percentCounted, std::size_t boothsIn, std::size_t totalBooths)
+		: seat(seat), partyOneSwing(partyOneSwing), percentCounted(percentCounted),
+		boothsIn(boothsIn), totalBooths(totalBooths), updateTime(wxDateTime::Now()) {}
+	Seat::Id seat = -1;
+	double partyOneSwing = 0.0;
 	double percentCounted = 0.0;
 	int boothsIn = 0;
 	int totalBooths = 0;
@@ -31,7 +31,7 @@ public:
 		std::stringstream report;
 		report << "Reporting Outcome: \n";
 		report << " Seat: " << seats.view(seat).name << "\n";
-		report << " Incumbent Swing: " << incumbentSwing << "\n";
+		report << " Party One Swing: " << partyOneSwing << "\n";
 		report << " Percent Counted: " << percentCounted << "\n";
 		report << " Booths In: " << boothsIn << "\n";
 		report << " Total Booths: " << totalBooths << "\n";

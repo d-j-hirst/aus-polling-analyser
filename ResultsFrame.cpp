@@ -165,7 +165,7 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	resultsData->AppendRows(1);
 	int row = resultsData->GetNumberRows() - 1;
 	resultsData->SetCellValue(row, 0, seat.name);
-	resultsData->SetCellValue(row, 1, formatFloat(result.incumbentSwing, 1));
+	resultsData->SetCellValue(row, 1, formatFloat(result.partyOneSwing, 1));
 	resultsData->SetCellBackgroundColour(row, 1, swingColour);
 	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
 	resultsData->SetCellBackgroundColour(row, 2, percentCountedColour);
@@ -300,11 +300,10 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 
 wxColour ResultsFrame::decideSwingColour(Outcome const& thisResult)
 {
-	auto const& seat = project->seats().viewByIndex(thisResult.seat);
-	Party::Colour swingPartyColour = (thisResult.incumbentSwing > 0.0f ?
-		project->parties().view(seat.incumbent).colour : project->parties().view(seat.challenger).colour);
+	Party::Colour swingPartyColour = (thisResult.partyOneSwing > 0.0f ?
+		project->parties().viewByIndex(0).colour : project->parties().viewByIndex(1).colour);
 	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };
-	float incSw = std::min(1.0f, float(abs(thisResult.incumbentSwing)) * 0.08f);
+	float incSw = std::min(1.0f, float(abs(thisResult.partyOneSwing)) * 0.08f);
 	return wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
 }
 
@@ -463,7 +462,7 @@ void ResultsFrame::resetTableColumns()
 	if (!resultsData->GetNumberCols()) {
 		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
 		resultsData->SetColLabelValue(0, "Seat Name");
-		resultsData->SetColLabelValue(1, "Swing");
+		resultsData->SetColLabelValue(1, "ALP Swing");
 		resultsData->SetColLabelValue(2, "Count %");
 		resultsData->SetColLabelValue(3, "Updated");
 		resultsData->SetColLabelValue(4, "Proj. Margin");

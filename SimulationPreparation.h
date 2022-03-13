@@ -35,12 +35,10 @@ private:
 	void resetPpvcBiasAggregates();
 	void cacheBoothData();
 	void determinePpvcBias();
-	void loadSeatOutcomeRelations();
 	void determinePreviousVoteEnrolmentRatios();
 	void resizeRegionSeatCountOutputs();
 	void countInitialRegionSeatLeads();
 	void calculateTotalPopulation();
-	void calculateLiveAggregates();
 	void updateLiveAggregateForSeat(int seatIndex);
 	void finaliseLiveAggregates();
 	void resetResultCounts();
@@ -67,6 +65,9 @@ private:
 	void loadOverallRegionMixParameters();
 	void loadTppSwingFactors();
 	void loadIndividualSeatParameters();
+
+	void loadLiveManualResults();
+	void calculateLiveAggregates();
 
 	std::string getTermCode();
 
