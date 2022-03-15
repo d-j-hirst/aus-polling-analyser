@@ -417,7 +417,7 @@ void SimulationIteration::correctSeatTppSwings()
 		// practically it's not close to ever happening so save a little computation time
 		// not bothering to check
 		double averageSwing = totalSwing / totalTurnout;
-		float swingAdjust = iterationOverallSwing - float(averageSwing);
+		float swingAdjust = regionSwing[regionIndex] - float(averageSwing);
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			Seat const& seat = project.seats().viewByIndex(seatIndex);
 			if (seat.region != regionId) continue;
