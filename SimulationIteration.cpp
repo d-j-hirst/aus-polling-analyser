@@ -354,7 +354,31 @@ void SimulationIteration::determineSeatInitialResults()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatTpp(seatIndex);
 	}
+	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+	//	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//	if (seat.name == "Hasluck") {
+	//		PA_LOG_VAR(seat.name);
+	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+	//	}
+	//	if (seat.name == "Menzies") {
+	//		logger << "TPP pre-correction\n";
+	//		PA_LOG_VAR(seat.name);
+	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+	//	}
+	//}
 	correctSeatTppSwings();
+	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+	//	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//	if (seat.name == "Hasluck") {
+	//		PA_LOG_VAR(seat.name);
+	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+	//	}
+	//	if (seat.name == "Menzies") {
+	//		logger << "TPP post-correction\n";
+	//		PA_LOG_VAR(seat.name);
+	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+	//	}
+	//}
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatInitialFp(seatIndex);
 	}
@@ -379,6 +403,54 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
+	//if (seat.name == "Menzies") {
+	//	PA_LOG_VAR(tppPrev);
+	//	PA_LOG_VAR(transformedTpp);
+	//	PA_LOG_VAR(elasticity);
+	//	PA_LOG_VAR(volatility);
+	//	PA_LOG_VAR(useVolatility);
+	//	PA_LOG_VAR(transformedTpp);
+	//	PA_LOG_VAR(regionSwing);
+	//	PA_LOG_VAR(seat.region);
+	//	PA_LOG_VAR(project.regions().idToIndex(seat.region));
+	//	PA_LOG_VAR(iterationOverallTpp);
+	//	PA_LOG_VAR(regionSwing[project.regions().idToIndex(seat.region)]);
+	//	static double vicSwing = 0.0;
+	//	vicSwing += regionSwing[project.regions().idToIndex(seat.region)];
+	//	static double vicSwingCount = double(regionSwing[project.regions().idToIndex(seat.region)]);
+	//	vicSwingCount += 1.0;
+	//	double avgVicSwing = vicSwing / vicSwingCount;
+	//	PA_LOG_VAR(avgVicSwing);
+	//	PA_LOG_VAR(run.seatPartyOneTppModifier[seatIndex]);
+	//	PA_LOG_VAR(run.regionLocalModifierAverage[seat.region]);
+	//	PA_LOG_VAR(run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier);
+	//	PA_LOG_VAR(swingDeviation);
+	//	PA_LOG_VAR(kurtosis);
+	//}
+	//if (seat.name == "Hasluck") {
+	//	PA_LOG_VAR(tppPrev);
+	//	PA_LOG_VAR(transformedTpp);
+	//	PA_LOG_VAR(elasticity);
+	//	PA_LOG_VAR(volatility);
+	//	PA_LOG_VAR(useVolatility);
+	//	PA_LOG_VAR(transformedTpp);
+	//	PA_LOG_VAR(regionSwing);
+	//	PA_LOG_VAR(seat.region);
+	//	PA_LOG_VAR(project.regions().idToIndex(seat.region));
+	//	PA_LOG_VAR(iterationOverallTpp);
+	//	PA_LOG_VAR(regionSwing[project.regions().idToIndex(seat.region)]);
+	//	static double waSwing = 0.0;
+	//	waSwing += regionSwing[project.regions().idToIndex(seat.region)];
+	//	static double waSwingCount = double(regionSwing[project.regions().idToIndex(seat.region)]);
+	//	waSwingCount += 1.0;
+	//	double avgWaSwing = waSwing / waSwingCount;
+	//	PA_LOG_VAR(avgWaSwing);
+	//	PA_LOG_VAR(run.seatPartyOneTppModifier[seatIndex]);
+	//	PA_LOG_VAR(run.regionLocalModifierAverage[seat.region]);
+	//	PA_LOG_VAR(run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier);
+	//	PA_LOG_VAR(swingDeviation);
+	//	PA_LOG_VAR(kurtosis);
+	//}
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
 	if (sim.isLiveManual() && run.liveSeatPcCounted[seatIndex] > 0.0f) {
