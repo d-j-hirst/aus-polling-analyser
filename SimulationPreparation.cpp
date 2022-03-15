@@ -213,7 +213,6 @@ void SimulationPreparation::loadSeatPolls()
 			run.seatPolls[seatIndex][partyIndex] = polls;
 		}
 	}
-	logger << run.seatPolls;
 }
 
 void SimulationPreparation::resetPpvcBiasAggregates()
