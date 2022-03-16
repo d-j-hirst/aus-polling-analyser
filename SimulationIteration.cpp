@@ -1217,6 +1217,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	typedef std::pair<int, float> PartyVotes;
 	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
+
 	// transfer fp vote shares to vector
 	std::vector<PartyVotes> originalVoteShares; // those still in the count
 	std::vector<PartyVotes> excludedVoteShares; // excluded from the count, original values
@@ -1365,6 +1366,30 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
+
+	// Override winner for two-party 
+	if (sim.isLiveManual()) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		// this verifies there's a non-classic result entered.
+		if (seat.livePartyOne != Party::InvalidId) {
+			float prob = rng.uniform();
+			float cumulative = seat.partyOneProb();
+			if (prob < cumulative) {
+				seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyOne);
+				return;
+			}
+			cumulative += seat.partyTwoProb;
+			if (prob < cumulative) {
+				seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyTwo);
+				return;
+			}
+			cumulative += seat.partyThreeProb;
+			if (prob < cumulative) {
+				seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyThree);
+				return;
+			}
+		}
+	}
 }
 
 void SimulationIteration::recordSeatResult(int seatIndex)

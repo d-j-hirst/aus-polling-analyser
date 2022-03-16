@@ -59,7 +59,7 @@ public:
 	int livePartyOne = Party::InvalidId;
 	int livePartyTwo = Party::InvalidId;
 	int livePartyThree = Party::InvalidId;
-	float partyOneProb() { return 1.0f - partyTwoProb - partyThreeProb; }
+	float partyOneProb() const { return 1.0f - partyTwoProb - partyThreeProb; }
 	float partyTwoProb = 0.0f;
 	float partyThreeProb = 0.0f;
 	bool overrideBettingOdds = false;
