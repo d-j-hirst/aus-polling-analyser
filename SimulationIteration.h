@@ -77,6 +77,7 @@ private:
 	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias();
 	void determineSeatFinalResult(int seatIndex);
+	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignDirectWins();
 	void assignCountAsPartyWins();

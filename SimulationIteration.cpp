@@ -1367,28 +1367,33 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 
-	// Override winner for two-party 
-	if (sim.isLiveManual()) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		// this verifies there's a non-classic result entered.
-		if (seat.livePartyOne != Party::InvalidId) {
-			float prob = rng.uniform();
-			float cumulative = seat.partyOneProb();
-			if (prob < cumulative) {
-				seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyOne);
-				return;
-			}
-			cumulative += seat.partyTwoProb;
-			if (prob < cumulative) {
-				seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyTwo);
-				return;
-			}
-			cumulative += seat.partyThreeProb;
-			if (prob < cumulative) {
-				seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyThree);
-				return;
-			}
+	applyLiveManualOverrides(seatIndex);
+}
+
+void SimulationIteration::applyLiveManualOverrides(int seatIndex)
+{
+	if (!sim.isLiveManual()) return;
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	// this verifies there's a non-classic result entered.
+	if (seat.livePartyOne != Party::InvalidId) {
+		float prob = rng.uniform();
+		float firstThreshold = seat.partyOneProb();
+		float secondThreshold = firstThreshold + seat.partyTwoProb;
+		float thirdThreshold = secondThreshold + seat.partyThreeProb;
+		if (prob < firstThreshold) {
+			seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyOne);
 		}
+		else if (prob < secondThreshold) {
+			seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyTwo);
+		}
+		else if (prob < thirdThreshold) {
+			seatWinner[seatIndex] = project.parties().idToIndex(seat.livePartyThree);
+		}
+	}
+	bool tppOverride = seat.liveUseTpp == Seat::UseTpp::Yes && isMajor(seatWinner[seatIndex]);
+	tppOverride = tppOverride || seat.liveUseTpp == Seat::UseTpp::Always;
+	if (tppOverride) {
+		seatWinner[seatIndex] = partyOneNewTppMargin[seatIndex] > 0.0f ? 0 : 1;
 	}
 }
 
