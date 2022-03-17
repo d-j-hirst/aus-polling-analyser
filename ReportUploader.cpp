@@ -26,6 +26,8 @@ std::string ReportUploader::upload()
 	j["reportLabel"] = thisReport.label;
 	j["reportDate"] = thisReport.dateSaved.ToUTC().FormatISOCombined();
 	std::string modeString;
+	bool isLiveManual = simulation.getSettings().reportMode == Simulation::Settings::ReportMode::LiveForecast &&
+		simulation.getSettings().live == Simulation::Settings::Mode::LiveManual;
 	switch (simulation.getSettings().reportMode) {
 	case Simulation::Settings::ReportMode::RegularForecast: modeString = "RF"; break;
 	case Simulation::Settings::ReportMode::LiveForecast: modeString = "LF"; break;
@@ -45,18 +47,20 @@ std::string ReportUploader::upload()
 	const std::vector<float> thresholds = {0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f};
 	j["voteTotalThresholds"] = thresholds;
 	typedef std::vector<float> VF;
-	std::map<int, VF> fpFrequencies;
-	for (auto [partyIndex, frequencies] : thisReport.report.partyPrimaryFrequency) {
-		if (thisReport.report.getFpSampleExpectation(partyIndex) > 0.0f) {
-			VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
-				[this, partyIndex](VF v, float percentile) {
-					v.push_back(thisReport.report.getFpSamplePercentile(partyIndex, percentile));
-					return v;
-				});
-			fpFrequencies[partyIndex] = partyThresholds;
+	if (!isLiveManual) {
+		std::map<int, VF> fpFrequencies;
+		for (auto [partyIndex, frequencies] : thisReport.report.partyPrimaryFrequency) {
+			if (thisReport.report.getFpSampleExpectation(partyIndex) > 0.0f) {
+				VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
+					[this, partyIndex](VF v, float percentile) {
+						v.push_back(thisReport.report.getFpSamplePercentile(partyIndex, percentile));
+						return v;
+					});
+				fpFrequencies[partyIndex] = partyThresholds;
+			}
 		}
+		j["fpFrequencies"] = fpFrequencies;
 	}
-	j["fpFrequencies"] = fpFrequencies;
 	std::vector<float> tppFrequencies = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
 		[this](VF v, float percentile) {
 			v.push_back(thisReport.report.getTppSamplePercentile(percentile));
@@ -73,21 +77,25 @@ std::string ReportUploader::upload()
 			});
 		seatFrequencies[partyIndex] = partyThresholds;
 	}
-	j["trendProbBands"] = thisReport.report.trendProbBands;
-	j["trendPeriod"] = thisReport.report.trendPeriod;
-	j["finalTrendValue"] = thisReport.report.finalTrendValue;
-	j["trendStartDate"] = thisReport.report.trendStartDate;
-	j["tppTrend"] = thisReport.report.tppTrend;
-	j["fpTrend"] = thisReport.report.fpTrend;
 	j["seatCountFrequencies"] = seatFrequencies;
+	if (!isLiveManual) {
+		j["trendProbBands"] = thisReport.report.trendProbBands;
+		j["trendPeriod"] = thisReport.report.trendPeriod;
+		j["finalTrendValue"] = thisReport.report.finalTrendValue;
+		j["trendStartDate"] = thisReport.report.trendStartDate;
+		j["tppTrend"] = thisReport.report.tppTrend;
+		j["fpTrend"] = thisReport.report.fpTrend;
+	}
 	j["seatNames"] = thisReport.report.seatName;
 	j["seatIncumbents"] = thisReport.report.seatIncumbents;
 	j["seatMargins"] = thisReport.report.seatIncumbentMargins;
 	j["seatPartyWinFrequencies"] = thisReport.report.seatPartyWinPercent;
-	j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;
-	j["seatFpBands"] = thisReport.report.seatFpProbabilityBand;
-	j["seatTcpBands"] = thisReport.report.seatTcpProbabilityBand;
-	j["polls"] = thisReport.report.modelledPolls;
+	if (!isLiveManual) {
+		j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;
+		j["seatFpBands"] = thisReport.report.seatFpProbabilityBand;
+		j["seatTcpBands"] = thisReport.report.seatTcpProbabilityBand;
+		j["polls"] = thisReport.report.modelledPolls;
+	}
 	std::ofstream file2("uploads/latest_json.dat");
 	file2 << std::setw(4) << j;
 	return "ok";

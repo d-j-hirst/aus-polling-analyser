@@ -90,7 +90,7 @@ void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
 		return;
 	}
 	auto const& report = reports[reportIndex];
-	auto reportUploader = ReportUploader(report, (*simulationIt).second, project);
+	auto reportUploader = ReportUploader(report, simulationIt->second, project);
 	reportUploader.upload();
 }
 
