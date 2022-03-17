@@ -18,7 +18,8 @@ enum ControlId
 	PartyThree,
 	PartyOneProb,
 	PartyTwoProb,
-	PartyThreeProb
+	PartyThreeProb,
+	UseTpp,
 };
 
 NonClassicFrame::NonClassicFrame(PartyCollection const& parties, Seat& seat)
@@ -38,6 +39,7 @@ void NonClassicFrame::createControls(int & y)
 	createPartyOneProbText(y);
 	createPartyTwoProbInput(y);
 	createPartyThreeProbInput(y);
+	createUseTppInput(y);
 
 	createButtons(y);
 }
@@ -104,6 +106,20 @@ void NonClassicFrame::createPartyThreeProbInput(int & y)
 	y += partyTwoProbInput->Height + ControlPadding;
 }
 
+void NonClassicFrame::createUseTppInput(int& y)
+{
+	wxArrayString optionArray;
+	optionArray.push_back("No");
+	optionArray.push_back("Yes");
+	optionArray.push_back("Always");
+	int selectedOption = int(seat.liveUseTpp);
+
+	// No callback on this, as we only use the input later
+	useTppInput.reset(new ChoiceInput(this, ControlId::UseTpp, "Use Tpp:",
+		optionArray, selectedOption, wxPoint(2, y)));
+	y += partyThreeInput->Height + ControlPadding;
+}
+
 void NonClassicFrame::createButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(50, y), wxSize(60, 24));
@@ -157,6 +173,7 @@ void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event))
 		seat.livePartyThree = partyThree;
 		seat.partyTwoProb = chanceTwo;
 		seat.partyThreeProb = chanceThree;
+		seat.liveUseTpp = Seat::UseTpp(useTppInput->getSelection());
 	}
 	catch (std::invalid_argument) {
 		wxMessageBox("One or more text boxes does not contain a valid numeric value");
@@ -174,6 +191,7 @@ void NonClassicFrame::OnRemove(wxCommandEvent&)
 	seat.livePartyThree = Party::InvalidId;
 	seat.partyTwoProb = 0.0f;
 	seat.partyThreeProb = 0.0f;
+	seat.liveUseTpp = Seat::UseTpp::No;
 	Close();
 }
 

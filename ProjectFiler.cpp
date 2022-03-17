@@ -51,7 +51,8 @@
 // Version 44: Polls for individual seats
 // Version 45: Save polling info in reports
 // Version 46: List running parties (on the ballot)
-constexpr int VersionNum = 46;
+// Version 47: UseTpp value for live-manual non-classic seats.
+constexpr int VersionNum = 47;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -493,6 +494,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.partyTwoProb;
 		saveOutput << thisSeat.partyThreeProb;
 		saveOutput << thisSeat.overrideBettingOdds;
+		saveOutput.outputAsType<int32_t>(thisSeat.liveUseTpp);
 		saveOutput << thisSeat.sophomoreCandidate;
 		saveOutput << thisSeat.sophomoreParty;
 		saveOutput << thisSeat.retirement;
@@ -536,6 +538,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		saveInput >> thisSeat.partyTwoProb;
 		saveInput >> thisSeat.partyThreeProb;
 		saveInput >> thisSeat.overrideBettingOdds;
+		if (versionNum >= 47) {
+			thisSeat.liveUseTpp = Seat::UseTpp(saveInput.extract<int32_t>());
+		}
 		if (versionNum >= 22) {
 			saveInput >> thisSeat.sophomoreCandidate;
 			saveInput >> thisSeat.sophomoreParty;

@@ -28,6 +28,13 @@ public:
 	Seat()
 	{}
 
+	// For whether to use TPP for major parties in live-manual non-classic contests
+	enum class UseTpp {
+		No, // Use probabilities exactly as entered (default)
+		Yes, // Use TPP when the non-classic result gives a major party
+		Always, // Override ANY results with the TPP.
+	};
+
 	std::string name = "";
 	std::string previousName = "";
 	std::string useFpResults = "";
@@ -63,11 +70,12 @@ public:
 	float partyTwoProb = 0.0f;
 	float partyThreeProb = 0.0f;
 	bool overrideBettingOdds = false;
+	UseTpp liveUseTpp = UseTpp::No;
 
 	bool sophomoreCandidate = false;
 	bool sophomoreParty = false;
-	bool retirement = false;
 	bool disendorsement = false;
+	bool retirement = false;
 	bool previousDisendorsement = false;
 	bool incumbentRecontestConfirmed = false;
 	bool confirmedProminentIndependent = false;

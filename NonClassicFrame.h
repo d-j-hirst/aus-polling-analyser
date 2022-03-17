@@ -47,6 +47,7 @@ private:
 	void createPartyOneProbText(int& y);
 	void createPartyTwoProbInput(int& y);
 	void createPartyThreeProbInput(int& y);
+	void createUseTppInput(int& y);
 
 	void createButtons(int& y);
 
@@ -70,6 +71,7 @@ private:
 	wxStaticText* partyOneProbValue;
 	std::unique_ptr<FloatInput> partyTwoProbInput;
 	std::unique_ptr<FloatInput> partyThreeProbInput;
+	std::unique_ptr<ChoiceInput> useTppInput;
 
 	wxButton* okButton;
 	wxButton* removeButton;
