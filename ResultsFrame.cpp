@@ -7,6 +7,8 @@
 
 #include <wx/valnum.h>
 
+#include <fstream>
+
 // IDs for the controls and the menu commands
 enum ControlId {
 	Base = 700, // To avoid mixing events with other frames.
@@ -20,6 +22,7 @@ enum ControlId {
 	CurrentBoothCount,
 	TotalBoothCount,
 	AddResult,
+	AddFromScript,
 	NonClassic,
 	ClearAll,
 	Filter
@@ -69,6 +72,7 @@ void ResultsFrame::bindEventHandlers()
 	// Binding events for the toolbar items.
 	Bind(wxEVT_TOOL, &ResultsFrame::OnRunLiveSimulations, this, ControlId::RunLiveSimulations);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnAddResult, this, ControlId::AddResult);
+	Bind(wxEVT_TOOL, &ResultsFrame::OnAddFromScript, this, ControlId::AddFromScript);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnNonClassic, this, ControlId::NonClassic);
 	Bind(wxEVT_COMBOBOX, &ResultsFrame::OnFilterSelection, this, ControlId::Filter);
 	Bind(wxEVT_TOOL, &ResultsFrame::OnClearAll, this, ControlId::ClearAll);
@@ -91,7 +95,7 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 	refresher.refreshSeatData();
 }
 
-void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
+void ResultsFrame::OnAddResult(wxCommandEvent& WXUNUSED(event))
 {
 	std::string enteredName = seatNameTextCtrl->GetLineText(0).ToStdString();
 	try {
@@ -107,6 +111,54 @@ void ResultsFrame::OnAddResult(wxCommandEvent & WXUNUSED(event))
 	catch (SeatDoesntExistException) {
 		wxMessageBox("No seat found matching this name!");
 		return;
+	}
+}
+
+void ResultsFrame::OnAddFromScript(wxCommandEvent& WXUNUSED(event))
+{
+	try {
+		std::map<std::string, std::pair<float, float>> tempResults;
+		auto file = std::ifstream("live_scripts/output.csv");
+		if (!file) {
+			wxMessageBox("File not found!");
+		}
+		do {
+			std::string line;
+			std::getline(file, line);
+			if (!file) break;
+			auto values = splitString(line, ",");
+			auto name = values[0];
+			auto swing = std::stof(values[1]);
+			auto counted = std::stof(values[2]);
+			tempResults[name] = { swing, counted };
+		} while (true);
+		std::stringstream ss;
+		int counter = 0;
+		for (auto const& result : tempResults) {
+			ss << result.first << ", s: " << result.second.first << "%, c: " << result.second.second;
+			++counter;
+			if (counter % 2 == 0) {
+				ss << "\n";
+			}
+			else {
+				for (int a = 0; a < 16 - int(result.first.size()); ++a) ss << "  ";
+			}
+		}
+		wxMessageBox(ss.str());
+		for (auto const& result : tempResults) {
+			try {
+				auto [seatId, seat] = project->seats().accessByName(result.first);
+				Outcome outcome = Outcome(seatId, result.second.first, result.second.second, 0, 0);
+				project->outcomes().add(outcome);
+			}
+			catch (SeatDoesntExistException) {
+				wxMessageBox("Seat not found - " + result.first);
+			}
+		}
+		refreshData();
+	}
+	catch (...) {
+		wxMessageBox("An error was caught. Save to avoid losing progress.");
 	}
 }
 
@@ -194,11 +246,12 @@ void ResultsFrame::updateInterface()
 void ResultsFrame::refreshToolbar()
 {
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[4];
+	wxBitmap toolBarBitmaps[5];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\non_classic.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[3] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[4] = wxBitmap("bitmaps\\open.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -249,6 +302,7 @@ void ResultsFrame::refreshToolbar()
 	toolBar->AddControl(totalBoothCountTextCtrl);
 	toolBar->AddSeparator();
 	toolBar->AddTool(ControlId::AddResult, "Add Result", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Add Result");
+	toolBar->AddTool(ControlId::AddFromScript, "Add Results From Script", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Add Results From Script");
 	toolBar->AddTool(ControlId::NonClassic, "Non-Classic Seat", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Non-Classic Seat");
 	toolBar->AddControl(filterComboBox);
 	toolBar->AddTool(ControlId::ClearAll, "Clear All Results", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Clear All Results");

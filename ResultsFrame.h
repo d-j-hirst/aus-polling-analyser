@@ -59,6 +59,9 @@ private:
 	// Adds the currently entered result to the records
 	void OnAddResult(wxCommandEvent& event);
 
+	// Adds the results downloaded by a script
+	void OnAddFromScript(wxCommandEvent& event);
+
 	// Brings up dialog box for setting a seat to have non-classic results
 	// (i.e. parties other than the two majors are competitive)
 	void OnNonClassic(wxCommandEvent& event);

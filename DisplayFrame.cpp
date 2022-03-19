@@ -95,15 +95,18 @@ void DisplayFrame::OnSavedReportSelection(wxCommandEvent&)
 
 void DisplayFrame::OnUploadToServer(wxCommandEvent&)
 {
-	if (selectedSaveReport == -1) {
-		wxMessageBox("To minimise accidental additional updates, uploading \"Latest Forecast\" to the server is not allowed. Create a snapshot and upload that instead.");
-		return;
+	auto simIndex = project->simulations().indexToId(selectedSimulation);
+	if (selectedSaveReport == -1 && !project->simulations().viewByIndex(simIndex).isLive()) {
+		if (!project->simulations().viewByIndex(simIndex).isLive()) {
+			wxMessageBox("To minimise accidental additional updates, uploading \"Latest Forecast\" to the server is not allowed. Create a snapshot and upload that instead.");
+			return;
+		}
 	}
 	if (!project->getElectionName().size()) {
 		std::string electionName = wxGetTextFromUser("An election name has not yet been entered for this project. Enter a name for this election:", "Saved Report").ToStdString();
 		project->setElectionName(electionName);
 	}
-	project->simulations().uploadToServer(project->simulations().indexToId(selectedSimulation), selectedSaveReport);
+	project->simulations().uploadToServer(simIndex, selectedSaveReport);
 	wxMessageBox("Successfully prepared upload of report. Use Python script: uploads/upload_manager.py to upload to the server.");
 }
 

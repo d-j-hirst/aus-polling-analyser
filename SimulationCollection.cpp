@@ -85,6 +85,15 @@ void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
 	auto simulationIt = simulations.find(id);
 	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
 	auto const& reports = simulationIt->second.viewSavedReports();
+	if (reportIndex == -1 && simulationIt->second.isLive()) {
+		Simulation::SavedReport sReport;
+		sReport.report = simulationIt->second.getLatestReport();
+		sReport.label = "New results";
+		sReport.dateSaved = wxDateTime::Now();
+		auto reportUploader = ReportUploader(sReport, simulationIt->second, project);
+		reportUploader.upload();
+		return;
+	}
 	if (reportIndex <= -1 && reportIndex >= int(reports.size())) {
 		logger << "Invalid report!\n";
 		return;
