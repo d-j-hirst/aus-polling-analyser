@@ -472,6 +472,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 
 void SimulationIteration::correctSeatTppSwings()
 {
+	if (sim.isLive()) return;
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		int regionId = project.regions().indexToId(regionIndex);
 		// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.

@@ -1,27 +1,16 @@
-Polling Analyser to-do:
--Footer?
- -Legal stuff
- -Somewhere acknowledge used code/modules (e.g. unzip, json, scikit-learn)
 
-Immediately before release:
- -set default page to default forecast page (rather than clouds page)
- -Make polling analyser repo public
- -Remove login protections
-
--Soon after release:
- -glossary
- -Script to auto-check seat betting odds.
- -Restructure About page so it's not all in the same component?
- *options to sort in various ways by % chance, alphabetical, state, margin
- -caching most recently loaded forecast
- -Graph for prediction over time - for overall forecast and then maybe individual seats
- -cartogram, maybe map view depending on feasibility
- -Individual seats winner bar for 2cp scenarios (maybe?)
- -Anything non-critical above not done before release.
--Before SA election day, if possible:
--Before federal election day, if possible:
- -Advanced live simulations!
-  -Start by organising past election data at booth-level
-  -Need to load conversions between equivalent seats
-  -Then organise the existing election data
+-add option to remove live 
+-Script to auto-check seat betting odds.
+-glossary
+-Restructure About page so it's not all in the same component?
+-caching most recently loaded forecast
+-options to sort in various ways by % chance, alphabetical, state, margin
+-Graph for prediction over time - for overall forecast and then maybe individual seats
+-cartogram, maybe map view depending on feasibility
+-Individual seats winner bar for 2cp scenarios (maybe?)
+-Anything non-critical above not done before release.
+-Advanced live simulations!
+ -Start by organising past election data at booth-level
+ -Need to load conversions between equivalent seats
+ -Then organise the existing election data
 
