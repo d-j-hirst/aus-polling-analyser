@@ -52,7 +52,8 @@
 // Version 45: Save polling info in reports
 // Version 46: List running parties (on the ballot)
 // Version 47: UseTpp value for live-manual non-classic seats.
-constexpr int VersionNum = 47;
+// Version 48: tcpChange value for redistributed non-classic seats.
+constexpr int VersionNum = 48;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -506,6 +507,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.bettingOdds;
 		saveOutput << thisSeat.polls;
 		saveOutput << thisSeat.runningParties;
+		saveOutput << thisSeat.tcpChange;
 	}
 }
 
@@ -565,6 +567,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		}
 		if (versionNum >= 46) {
 			saveInput >> thisSeat.runningParties;
+		}
+		if (versionNum >= 48) {
+			saveInput >> thisSeat.tcpChange;
 		}
 
 		project.seatCollection.add(thisSeat);

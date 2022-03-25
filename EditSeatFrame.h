@@ -69,6 +69,7 @@ private:
 	void createProminentMinorsInput(int& y);
 	void createBettingOddsInput(int& y);
 	void createPollsInput(int& y);
+	void createTcpChangeInput(int& y);
 	void createRunningPartiesInput(int& y);
 
 	void createOkCancelButtons(int& y);
@@ -85,6 +86,7 @@ private:
 	void updateBettingOdds(std::string bettingOddsInput);
 	void updatePolls(std::string pollsInput);
 	void updateRunningParties(std::string runningParties);
+	void updateTcpChange(std::string tcpChangeInput);
 
 	// Data container for the preliminary settings for the seat to be created.
 	Seat seat;
@@ -114,6 +116,7 @@ private:
 	std::unique_ptr<CheckInput> confirmedProminentIndependentInput;
 	std::unique_ptr<TextInput> prominentMinorsInput;
 	std::unique_ptr<TextInput> bettingOddsInput;
+	std::unique_ptr<TextInput> tcpChangeInput;
 	std::unique_ptr<TextInput> pollsInput;
 	std::unique_ptr<TextInput> runningPartiesInput;
 

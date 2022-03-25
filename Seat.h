@@ -85,6 +85,10 @@ public:
 
 	std::map<std::string, float> bettingOdds;
 
+	// first argument is party of challenger, incumbent being the other party is assumed
+	// expressed as the tcp change of the incumbent vs this candidate
+	std::map<std::string, float> tcpChange;
+
 	// outer string = party abbr, inner float = fp, inner int = credibility as for national poll
 	std::map<std::string, std::vector<std::pair<float, int>>> polls;
 

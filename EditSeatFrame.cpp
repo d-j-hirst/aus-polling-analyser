@@ -38,6 +38,7 @@ enum ControlId
 	BettingOdds,
 	Polls,
 	RunningParties,
+	TcpChange
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -87,6 +88,7 @@ void EditSeatFrame::createControls(int & y)
 	createBettingOddsInput(y);
 	createPollsInput(y);
 	createRunningPartiesInput(y);
+	createTcpChangeInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -328,6 +330,21 @@ void EditSeatFrame::createRunningPartiesInput(int& y)
 	y += runningPartiesInput->Height + ControlPadding;
 }
 
+void EditSeatFrame::createTcpChangeInput(int& y)
+{
+	std::string tcpChange = "";
+	bool firstDone = false;
+	for (auto [shortCode, change] : seat.tcpChange) {
+		if (firstDone) tcpChange += ";";
+		tcpChange += shortCode + "," + formatFloat(change, 2);
+		firstDone = true;
+	}
+
+	auto tcpChangeCallback = std::bind(&EditSeatFrame::updateTcpChange, this, _1);
+	tcpChangeInput.reset(new TextInput(this, ControlId::TcpChange, "Tcp change:", tcpChange, wxPoint(2, y), tcpChangeCallback));
+	y += tcpChangeInput->Height + ControlPadding;
+}
+
 void EditSeatFrame::createOkCancelButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
@@ -413,4 +430,22 @@ void EditSeatFrame::updatePolls(std::string pollStr)
 void EditSeatFrame::updateRunningParties(std::string runningParties)
 {
 	seat.runningParties = splitString(runningParties, ",");
+}
+
+void EditSeatFrame::updateTcpChange(std::string tcpChange)
+{
+	seat.tcpChange.clear();
+	auto changeVec = splitString(tcpChange, ";");
+	for (auto change : changeVec) {
+		auto singleChange = splitString(change, ",");
+		if (singleChange.size() < 2) continue;
+		std::string party = singleChange[0];
+		try {
+			float changeVal = std::stof(singleChange[1]);
+			seat.tcpChange[party] = changeVal;
+		}
+		catch (std::invalid_argument) {
+			continue;
+		}
+	}
 }
