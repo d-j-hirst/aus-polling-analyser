@@ -505,6 +505,17 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	seatFpVoteShare.resize(project.seats().count());
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
+		if (partyIndex != 0 && partyIndex != 1 && seat.tcpChange.size()) {
+			// reduce incumbent fp by the tcp-change vs challenger (to account for redistributions)
+			if (partyIndex == project.parties().idToIndex(seat.incumbent) &&
+				seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
+				voteShare = predictorCorrectorTransformedSwing(voteShare, seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
+			}
+			else if (partyIndex == project.parties().idToIndex(seat.challenger) &&
+				seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
+				voteShare = predictorCorrectorTransformedSwing(voteShare, -seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
+			}
+		}
 		bool effectiveGreen = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
 		if (!overallFpSwing.contains(partyIndex)) effectiveGreen = false;
 		bool effectiveIndependent = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"));

@@ -186,17 +186,22 @@ void SimulationCompletion::recordNames()
 		sim.latestReport.regionName.push_back(project.regions().viewByIndex(index).name);
 	}
 	for (int index = 0; index < project.seats().count(); ++index) {
-		sim.latestReport.seatName.push_back(project.seats().viewByIndex(index).name);
-		sim.latestReport.seatIncumbents.push_back(project.seats().viewByIndex(index).incumbent);
-		sim.latestReport.seatMargins.push_back(project.seats().viewByIndex(index).tppMargin);
-		if (project.seats().viewByIndex(index).incumbent == 0) {
-			sim.latestReport.seatIncumbentMargins.push_back(project.seats().viewByIndex(index).tppMargin);
+		Seat const& seat = project.seats().viewByIndex(index);
+		sim.latestReport.seatName.push_back(seat.name);
+		sim.latestReport.seatIncumbents.push_back(seat.incumbent);
+		sim.latestReport.seatMargins.push_back(seat.tppMargin);
+		if (seat.incumbent == 0) {
+			sim.latestReport.seatIncumbentMargins.push_back(seat.tppMargin);
 		}
 		else if (project.seats().viewByIndex(index).incumbent == 1) {
-			sim.latestReport.seatIncumbentMargins.push_back(-project.seats().viewByIndex(index).tppMargin);
+			sim.latestReport.seatIncumbentMargins.push_back(-seat.tppMargin);
 		}
 		else {
-			sim.latestReport.seatIncumbentMargins.push_back(run.pastSeatResults[index].tcpVote.at(project.seats().viewByIndex(index).incumbent) - 50.0f);
+			float margin = run.pastSeatResults[index].tcpVote.at(seat.incumbent) - 50.0f;
+			if (seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
+				margin += seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation);
+			}
+			sim.latestReport.seatIncumbentMargins.push_back(margin);
 		}
 	}
 }
