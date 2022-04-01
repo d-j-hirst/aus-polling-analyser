@@ -489,6 +489,9 @@ def import_trend_file(filename):
 def print_smoothed_series(config, label, some_dict, file,
                           force_monotone=False,
                           bounds=[-math.inf, math.inf]):
+    # print(label)
+    # print(some_dict)
+    # print(file)
     x_orig, y = zip(*some_dict.items())
     x = range(0, len(x_orig))
     total_days = x_orig[len(x_orig) - 1]
@@ -584,8 +587,6 @@ def get_bias_data(inputs, poll_trend, party_group,
 class DayData:
     def __init__(self):
         self.mixed_errors = [[], []]
-        self.fundamentals_debiased_errors = []
-        self.poll_debiased_errors = []
         self.overall_poll_biases = []
         self.overall_fundamentals_biases = []
         self.final_mix_factor = 0
@@ -601,22 +602,19 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
     weights = [10 * 2 ** -(a / 6) for a in bias_data.poll_distance]
     fundamentals_bias = average(bias_data.fundamentals_errors)
     poll_bias = average(bias_data.poll_errors, weights=weights)
-    day_data.overall_fundamentals_biases.append(fundamentals_bias)
-    day_data.overall_poll_biases.append(poll_bias)
+    if studied_election == no_target_election_marker:
+        day_data.overall_fundamentals_biases = [fundamentals_bias]
+        day_data.overall_poll_biases = [poll_bias]
     if studied_election == no_target_election_marker:
         return
     if bias_data.studied_fundamentals_error is not None:
         previous_debiased_error = (bias_data.studied_fundamentals_error
                                    - fundamentals_bias)
-        if mix_limits == (0, 1):
-            day_data.fundamentals_debiased_errors.append(previous_debiased_error)
     if len(bias_data.studied_poll_errors) > 0:
         zipped_bias_data = zip(bias_data.studied_poll_errors,
                                bias_data.studied_poll_parties)
         for studied_poll_error, studied_poll_party in zipped_bias_data:
             poll_debiased_error = studied_poll_error - poll_bias
-            if mix_limits == (0, 1):
-                day_data.poll_debiased_errors.append(poll_debiased_error)
             party_code = ElectionPartyCode(studied_election,
                                            studied_poll_party)
             fundamentals = inputs.fundamentals[party_code]
@@ -670,6 +668,12 @@ def get_day_data(inputs, poll_trend, party_group, day):
                           + mix_limits[0] * window_factor,
                           mix_limits[1])
     day_data.final_mix_factor = statistics.mean(mix_limits)
+    # if "TPP" in party_group and day == 190:
+    #     print("final data:")
+    #     print(party_group)
+    #     print(day)
+    #     print(mix_limits)
+    #     print(day_data.overall_poll_biases)
     return day_data
 
 
@@ -695,9 +699,13 @@ def get_party_data(config, inputs, poll_trend, party_group):
                                 day=day)
         if day == 0:
             fundamentals_bias = smoothed_median(
-                day_data.fundamentals_debiased_errors, 2)
+                day_data.overall_fundamentals_biases, 2)
         poll_bias = smoothed_median(
             day_data.overall_poll_biases, 2)
+        # if "TPP" in party_group and day <= 200:
+        #     print("overall data for day:")
+        #     print(poll_bias)
+        #     print(day_data.overall_poll_biases)
         fundamentals_bias = smoothed_median(
             day_data.overall_fundamentals_biases, 2)
         mixed_bias = smoothed_median(day_data.mixed_errors[1], 2)

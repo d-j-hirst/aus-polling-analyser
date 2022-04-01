@@ -1,10 +1,10 @@
 
--add option to remove live 
+-shortening seat names so that they don't overlay winner bar
+-add option to remove live forecasts from archives
 -Script to auto-check seat betting odds.
 -glossary
+-options to filter by state
 -Restructure About page so it's not all in the same component?
--caching most recently loaded forecast
--options to sort in various ways by % chance, alphabetical, state, margin
 -Graph for prediction over time - for overall forecast and then maybe individual seats
 -cartogram, maybe map view depending on feasibility
 -Individual seats winner bar for 2cp scenarios (maybe?)
@@ -13,4 +13,3 @@
  -Start by organising past election data at booth-level
  -Need to load conversions between equivalent seats
  -Then organise the existing election data
-

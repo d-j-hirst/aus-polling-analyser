@@ -7,6 +7,8 @@ parser = argparse.ArgumentParser(
     description='Determine trend adjustment parameters')
 parser.add_argument('--local', action='store_true',
                     help='Upload to local server only (default)')
+parser.add_argument('--test', action='store_true',
+                    help='Upload to test server only')
 parser.add_argument('--remote', action='store_true',
                     help='Upload to remote server only')
 parser.add_argument('--all', action='store_true',
@@ -14,9 +16,10 @@ parser.add_argument('--all', action='store_true',
 parser.add_argument('--timeseries', action='store',
                     help='Update timeseries instead of uploading forecast')
 upload_local = parser.parse_args().local or parser.parse_args().all
+upload_test = parser.parse_args().test or parser.parse_args().all
 upload_remote = parser.parse_args().remote or parser.parse_args().all
 timeseries = parser.parse_args().timeseries
-if not (upload_local or upload_remote):
+if not (upload_local or upload_test or upload_remote):
     upload_local = True
 
 env = environ.Env()
@@ -47,7 +50,7 @@ if upload_local:
     response = requests.post(f'http://localhost:8000/forecast-api/{url_part}', headers=headers, data=data)
     print(response.content.decode())
 
-if upload_remote:
+if upload_test:
     print("Sending to remote test server:")
     response = requests.post('https://dendrite.pythonanywhere.com/auth-api/v1/auth/login/', data=login_data)
 
