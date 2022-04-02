@@ -83,7 +83,7 @@ class Config:
                             , default='no')
         parser.add_argument('--checkday', action='store', type=int,
                             help='Number of days out to check poll data.'
-                            ' Not use if --check is absent or set to "no".'
+                            ' Not used if --check is absent or set to "no".'
                             , default=300)
         parser.add_argument('--checkregion', action='store', type=str,
                             help='Filter for a region to check for'
@@ -205,6 +205,7 @@ class Inputs:
             } for avg_n in avg_counts}
         self.studied_elections = self.polled_elections + [no_target_election_marker]
         self.fundamentals = {}  # Filled in later
+        self.exclude = exclude
     
     def safe_prior_average(self, n_elections, e_p_c):
         if n_elections not in self.avg_prior_results:
@@ -550,9 +551,12 @@ class BiasData:
 def get_bias_data(inputs, poll_trend, party_group,
                   day, studied_election):
     bias_data = BiasData()
-    target_year = (max(inputs.polled_elections, key=lambda a: a.year()).year()
-        if studied_election == no_target_election_marker
-        else studied_election.year())
+    null_year = (max(inputs.polled_elections, key=lambda a: a.year()).year()
+                 if inputs.exclude == no_target_election_marker
+                 else inputs.exclude.year())
+    target_year = (null_year
+                   if studied_election == no_target_election_marker
+                   else studied_election.year())
     for other_election in inputs.polled_elections:
         for party in party_groups[party_group]:
             if party not in inputs.polled_parties[other_election]:
@@ -599,7 +603,7 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
                               party_group=party_group,
                               day=day,
                               studied_election=studied_election)
-    weights = [10 * 2 ** -(a / 6) for a in bias_data.poll_distance]
+    weights = [10 * 2 ** -(a / 4) for a in bias_data.poll_distance]
     fundamentals_bias = average(bias_data.fundamentals_errors)
     poll_bias = average(bias_data.poll_errors, weights=weights)
     if studied_election == no_target_election_marker:
