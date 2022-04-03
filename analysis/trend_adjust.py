@@ -110,10 +110,12 @@ class Config:
     def prepare_election_list(self):
         with open('./Data/polled-elections.csv', 'r') as f:
             elections = ElectionCode.load_elections_from_file(f)
+        with open('./Data/future-elections.csv', 'r') as f:
+            future_elections = ElectionCode.load_elections_from_file(f)
         if self.election_instructions == 'all':
-            self.elections = elections + [no_target_election_marker]
+            self.elections = elections + [no_target_election_marker] + future_elections
         elif self.election_instructions == 'none':
-            self.elections = [no_target_election_marker]
+            self.elections = [no_target_election_marker] + future_elections
         else:
             parts = self.election_instructions.split('-')
             if len(parts) != 2:
@@ -126,7 +128,7 @@ class Config:
                 raise ConfigError('Error in "elections" argument: first part '
                                   'of election name could not be converted '
                                   'into an integer')
-            if code not in elections:
+            if code not in elections and code not in future_elections:
                 raise ConfigError('Error in "elections" argument: given value '
                                   'value given did not match any election '
                                   'given in Data/polled-elections.csv ')
@@ -543,6 +545,7 @@ class BiasData:
         self.fundamentals_errors = []
         self.poll_errors = []
         self.poll_distance = []
+        self.relevance = []
         self.studied_fundamentals_error = None
         self.studied_poll_errors = []
         self.studied_poll_parties = []
@@ -579,12 +582,15 @@ def get_bias_data(inputs, poll_trend, party_group,
                 if polls is not None:
                     poll_error = transform_vote_share(polls) - result_t
                     year_distance = abs(target_year - other_election.year())
+                    relevance = (1 if inputs.exclude.region() == "fed"
+                        and other_election.region() == "fed" else 0)
                     if other_election == studied_election:
                         bias_data.studied_poll_errors.append(poll_error)
                         bias_data.studied_poll_parties.append(party)
                     else:
                         bias_data.poll_errors.append(poll_error)
                         bias_data.poll_distance.append(year_distance)
+                        bias_data.relevance.append(relevance)
     return bias_data
 
 
@@ -603,7 +609,9 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
                               party_group=party_group,
                               day=day,
                               studied_election=studied_election)
-    weights = [10 * 2 ** -(a / 4) for a in bias_data.poll_distance]
+    weights = [10 * 2 ** -(val / 4) * (1 + 2 * bias_data.relevance[n])
+               for n, val in enumerate(bias_data.poll_distance)]
+
     fundamentals_bias = average(bias_data.fundamentals_errors)
     poll_bias = average(bias_data.poll_errors, weights=weights)
     if studied_election == no_target_election_marker:

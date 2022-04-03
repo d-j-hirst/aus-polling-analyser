@@ -179,7 +179,7 @@ class AllElections:
             ElectionResults(f'{year} QLD Election',
             lambda: generic_download('qld', year))
             for year in qld_years})
-        sa_years = [2018, 2014, 2010, 2006, 2002, 1997]
+        sa_years = [2022, 2018, 2014, 2010, 2006, 2002, 1997]
         self.elections.update({
             ElectionCode(year=year, region='sa'): 
             ElectionResults(f'{year} SA Election',
@@ -221,7 +221,7 @@ class AllElections:
 
 def collect_seat_urls(seat_url_dict, url, pattern):
     content_category = str(requests.get(url).content)
-    content_category = content_category.split('div class="mw-category"')[1].split('<noscript>')[0]
+    content_category = content_category.split('div class="mw-category mw-category-columns"')[1].split('<noscript>')[0]
     matches_category = re.findall(pattern, content_category)
     for match in matches_category:
         name = match[1].split(" (")[0].replace('&#039;', "'")
@@ -276,7 +276,9 @@ def generic_download(state, year):
         for url in url_list:
             seat_results = SeatResults(seat_name)
             full_url = f'https://en.wikipedia.org/{url}'
-            content = str(requests.get(full_url).content)
+            # This lines makes sure we don't get old data
+            headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'}
+            content = str(requests.get(full_url, headers).content)
             content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
             content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
             content = content.replace('\\xe2\\x80\\x93', '-')
@@ -287,6 +289,9 @@ def generic_download(state, year):
                 continue
             print(f'Seat results found: {seat_name}')
             election_content = content.split(election_marker)[1].split('</table>')[0]
+            if seat_name == "Narungga":
+                print(url)
+                print(election_content)
             if '>Two-' in election_content:
                 fp_content = election_content.split('>Two-')[0]
                 tcp_content = election_content.split('>Two-')[-1]
