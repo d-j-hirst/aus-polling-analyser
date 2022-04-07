@@ -15,8 +15,11 @@ Config::Config(std::string const& filename)
 		auto values = splitString(line, "=");
 		if (values.size() != 2) continue;
 		try {
-			if (values[0] == "iNumThreads") {
-				numThreads = std::stoi(values[1]);
+			if (values[0] == "iModelThreads") {
+				modelThreads = std::stoi(values[1]);
+			}
+			if (values[0] == "iSimulationThreads") {
+				simulationThreads = std::stoi(values[1]);
 			}
 		} 
 		catch (std::invalid_argument) {

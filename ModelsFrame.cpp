@@ -255,7 +255,7 @@ void ModelsFrame::collectData() {
 	StanModel::Id modelId = project->models().indexToId(modelIndex);
 	StanModel& thisModel = project->models().access(modelId);
 	thisModel.loadData([](std::string s) {wxMessageBox(s); },
-		project->config().getNumThreads());
+		project->config().getModelThreads());
 	refreshDataTable();
 	refresher.refreshVisualiser();
 	project->invalidateProjectionsFromModel(modelId);

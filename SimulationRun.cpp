@@ -31,7 +31,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 		return;
 	}
 
-	int numThreads = project.config().getNumThreads(); // temporary, pull from settings later
+	int numThreads = project.config().getSimulationThreads();
 	std::vector<int> batchSizes;
 	int minBatchSize = sim.settings.numIterations / numThreads;
 	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);

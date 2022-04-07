@@ -109,7 +109,7 @@ public:
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
 	static T flexibleDist(T mean = T(0.0), T lower_sd = T(1.0), T upper_sd = T(1.0),
 		T lower_kurt = T(3.0), T upper_kurt = T(3.0)) {
-		// are we looking in the upper or lower helf of the distribution?
+		// are we looking in the upper or lower half of the distribution?
 		T quantile = uniform(0.0, 1.0);
 		T upperVal = 0.0;
 		if (upper_kurt <= T(3.0)) {
@@ -146,8 +146,6 @@ public:
 			}
 		}
 		T mixFactor = quantile;
-		//logger << " " << mean << " " << lower_sd << " " << upper_sd << " " << lower_kurt << " " << upper_kurt << " " << quantile << " " << upperVal << " " << lowerVal << " - flexibleDist variables\n";
-		//logger << upperVal * mixFactor + lowerVal * (T(1.0) - mixFactor) << "\n";
 		return upperVal * mixFactor + lowerVal * (T(1.0) - mixFactor);
 	}
 

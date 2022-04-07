@@ -78,7 +78,7 @@ std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*
 		}
 		else if (instruction.type == Instruction::Type::RunModel) {
 			project_.models().access(instruction.id).loadData([](std::string s) {},
-				project_.config().getNumThreads());
+				project_.config().getModelThreads());
 		}
 		else if (instruction.type == Instruction::Type::SetNowcast) {
 			project_.projections().access(instruction.id).setAsNowCast(project_.models());

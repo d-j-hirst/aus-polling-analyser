@@ -5,8 +5,10 @@
 class Config {
 public:
 	Config(std::string const& filename);
-	int getNumThreads() const { return numThreads; }
+	int getModelThreads() const { return modelThreads; }
+	int getSimulationThreads() const { return simulationThreads; }
 private:
 
-	int numThreads = 1;
+	int modelThreads = 1;
+	int simulationThreads = 1;
 };
