@@ -1475,30 +1475,31 @@ def analyse_region_swings():
         f.write(f'kurtosis,{kurtosis_params[0]},{kurtosis_params[1]}\n')
 
 
-majors = ['Liberal', 'National', 'Liberal National', 'Labor', 'National', 'Country Liberal']
+majors = ['Liberal', 'National', 'Liberal National', 'Labor', 'Country Liberal']
 
 
 def analyse_seat_swings(elections, seat_types, seat_regions):
     alp_swings = {}
-    federal = {}
-    margin = {}
-    incumbent_retirement_urban = {}
-    incumbent_retirement_regional = {}
-    sophomore_candidate_urban = {}
-    sophomore_candidate_regional = {}
-    sophomore_party_urban = {}
-    sophomore_party_regional = {}
+    federals = {}
+    margins = {}
+    incumbent_retirement_urbans = {}
+    incumbent_retirement_regionals = {}
+    sophomore_candidate_urbans = {}
+    sophomore_candidate_regionals = {}
+    sophomore_party_urbans = {}
+    sophomore_party_regionals = {}
+    previous_lnp_contests = {}
     previous_swings = {}
     names = {}
     for this_election, this_results in elections.items():
         previous_elections = elections.previous_elections(this_election)
-        if len(elections.previous_elections(this_election)) > 0:
-            previous_election = elections.previous_elections(this_election)[-1]
+        if len(previous_elections) > 0:
+            previous_election = previous_elections[-1]
             previous_results = elections[previous_election]
         else:
             previous_results = None
-        if len(elections.previous_elections(this_election)) > 1:
-            old_election = elections.previous_elections(this_election)[-2]
+        if len(previous_elections) > 1:
+            old_election = previous_elections[-2]
             old_results = elections[old_election]
         else:
             old_results = None
@@ -1566,26 +1567,28 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 this_seat_region = 'none'
             if this_election not in alp_swings:
                 alp_swings[this_election] = {}
-                federal[this_election] = {}
-                margin[this_election] = {}
-                incumbent_retirement_urban[this_election] = {}
-                incumbent_retirement_regional[this_election] = {}
-                sophomore_candidate_urban[this_election] = {}
-                sophomore_candidate_regional[this_election] = {}
-                sophomore_party_urban[this_election] = {}
-                sophomore_party_regional[this_election] = {}
+                federals[this_election] = {}
+                margins[this_election] = {}
+                incumbent_retirement_urbans[this_election] = {}
+                incumbent_retirement_regionals[this_election] = {}
+                sophomore_candidate_urbans[this_election] = {}
+                sophomore_candidate_regionals[this_election] = {}
+                sophomore_party_urbans[this_election] = {}
+                sophomore_party_regionals[this_election] = {}
+                previous_lnp_contests[this_election] = {}
                 previous_swings[this_election] = {}
                 names[this_election] = {}
             if this_seat_region not in alp_swings[this_election]:
                 alp_swings[this_election][this_seat_region] = []
-                federal[this_election][this_seat_region] = []
-                margin[this_election][this_seat_region] = []
-                incumbent_retirement_urban[this_election][this_seat_region] = []
-                incumbent_retirement_regional[this_election][this_seat_region] = []
-                sophomore_candidate_urban[this_election][this_seat_region] = []
-                sophomore_candidate_regional[this_election][this_seat_region] = []
-                sophomore_party_urban[this_election][this_seat_region] = []
-                sophomore_party_regional[this_election][this_seat_region] = []
+                federals[this_election][this_seat_region] = []
+                margins[this_election][this_seat_region] = []
+                incumbent_retirement_urbans[this_election][this_seat_region] = []
+                incumbent_retirement_regionals[this_election][this_seat_region] = []
+                sophomore_candidate_urbans[this_election][this_seat_region] = []
+                sophomore_candidate_regionals[this_election][this_seat_region] = []
+                sophomore_party_urbans[this_election][this_seat_region] = []
+                sophomore_party_regionals[this_election][this_seat_region] = []
+                previous_lnp_contests[this_election][this_seat_region] = []
                 previous_swings[this_election][this_seat_region] = []
                 names[this_election][this_seat_region] = []
 
@@ -1618,25 +1621,41 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                     temp_previous_swing = previous_seat_result.tcp[0].swing
                     if previous_seat_result.tcp[0].party != 'Labor':
                         temp_previous_swing *= -1
+
+            temp_lnp_contest = 0
+            if previous_seat_result is not None:
+                # exclude these states as the dynamics of three-cornered contests is different under OPV
+                if this_election.region() != 'qld' and this_election.region() != 'nsw':
+                    if ('National' in (a.party for a in this_seat_result.fp)
+                            and 'Liberal' in (a.party for a in this_seat_result.fp)):
+                        if ('National' not in (a.party for a in previous_seat_result.fp)
+                            or 'Liberal' not in (a.party for a in previous_seat_result.fp)):
+                            if this_election.region() != 'fed': continue
+                            third_party_result = min([a.percent for a in this_seat_result.fp
+                                if a.party == "Liberal" or a.party == "National"])
+                            print(f'New LNP contest in {this_seat_name} for election {this_election}, lower fp vote {third_party_result}')
+                            temp_lnp_contest = third_party_result
+            
             
             alp_swing = (this_seat_result.tcp[0].swing
                          if this_seat_result.tcp[0].party == 'Labor'
                          else -this_seat_result.tcp[0].swing)
             alp_swings[this_election][this_seat_region].append(alp_swing)
-            federal[this_election][this_seat_region].append(1 if this_election.region() == "fed" else 0)
-            margin[this_election][this_seat_region].append(abs(this_seat_result.tcp[0].percent - 50))
-            incumbent_retirement_urban[this_election][this_seat_region].append(temp_incumbent_retirement
+            federals[this_election][this_seat_region].append(1 if this_election.region() == "fed" else 0)
+            margins[this_election][this_seat_region].append(abs(this_seat_result.tcp[0].percent - 50))
+            incumbent_retirement_urbans[this_election][this_seat_region].append(temp_incumbent_retirement
                 if seat_types[(this_seat_name, this_election.region())] <= 1 else 0)
-            incumbent_retirement_regional[this_election][this_seat_region].append(temp_incumbent_retirement
+            incumbent_retirement_regionals[this_election][this_seat_region].append(temp_incumbent_retirement
                 if seat_types[(this_seat_name, this_election.region())] >= 2 else 0)
-            sophomore_candidate_urban[this_election][this_seat_region].append(temp_sophomore_candidate
+            sophomore_candidate_urbans[this_election][this_seat_region].append(temp_sophomore_candidate
                 if seat_types[(this_seat_name, this_election.region())] <= 1 else 0)
-            sophomore_candidate_regional[this_election][this_seat_region].append(temp_sophomore_candidate
+            sophomore_candidate_regionals[this_election][this_seat_region].append(temp_sophomore_candidate
                 if seat_types[(this_seat_name, this_election.region())] >= 2 else 0)
-            sophomore_party_urban[this_election][this_seat_region].append(temp_sophomore_party
+            sophomore_party_urbans[this_election][this_seat_region].append(temp_sophomore_party
                 if seat_types[(this_seat_name, this_election.region())] <= 1 else 0)
-            sophomore_party_regional[this_election][this_seat_region].append(temp_sophomore_party
+            sophomore_party_regionals[this_election][this_seat_region].append(temp_sophomore_party
                 if seat_types[(this_seat_name, this_election.region())] >= 2 else 0)
+            previous_lnp_contests[this_election][this_seat_region].append(temp_lnp_contest)
             previous_swings[this_election][this_seat_region].append(temp_previous_swing)
             names[this_election][this_seat_region].append(this_seat_name)
     region_averages = {election: {region: statistics.mean(x)
@@ -1674,6 +1693,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_candidate_regional_flat = []
     sophomore_party_urban_flat = []
     sophomore_party_regional_flat = []
+    previous_lnp_contest_flat = []
     previous_swing_deviations_flat = []
     names_flat = []
     election_regions_flat = []
@@ -1682,16 +1702,17 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         for region_code, region in election.items():
             alp_swings_flat += alp_swings[election_code][region_code]
             alp_deviations_flat += region
-            federal_flat += federal[election_code][region_code]
+            federal_flat += federals[election_code][region_code]
             region_swings_flat += region_swings[election_code][region_code]
-            margins_flat += margin[election_code][region_code]
-            incumbent_retirement_urban_flat += incumbent_retirement_urban[election_code][region_code]
-            incumbent_retirement_regional_flat += incumbent_retirement_regional[election_code][region_code]
-            sophomore_candidate_urban_flat += sophomore_candidate_urban[election_code][region_code]
-            sophomore_candidate_regional_flat += sophomore_candidate_regional[election_code][region_code]
-            sophomore_party_urban_flat += sophomore_party_urban[election_code][region_code]
-            sophomore_party_regional_flat += sophomore_party_regional[election_code][region_code]
+            margins_flat += margins[election_code][region_code]
+            incumbent_retirement_urban_flat += incumbent_retirement_urbans[election_code][region_code]
+            incumbent_retirement_regional_flat += incumbent_retirement_regionals[election_code][region_code]
+            sophomore_candidate_urban_flat += sophomore_candidate_urbans[election_code][region_code]
+            sophomore_candidate_regional_flat += sophomore_candidate_regionals[election_code][region_code]
+            sophomore_party_urban_flat += sophomore_party_urbans[election_code][region_code]
+            sophomore_party_regional_flat += sophomore_party_regionals[election_code][region_code]
             previous_swing_deviations_flat += previous_swing_deviations[election_code][region_code]
+            previous_lnp_contest_flat += previous_lnp_contests[election_code][region_code]
             names_flat += names[election_code][region_code]
             election_regions_flat += [election_code.region()] * len(region)
             regions_flat += [region_code] * len(region)
@@ -1704,7 +1725,8 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                                                 sophomore_candidate_regional_flat,
                                                 sophomore_party_urban_flat,
                                                 sophomore_party_regional_flat,
-                                                previous_swing_deviations_flat]))
+                                                previous_swing_deviations_flat,
+                                                previous_lnp_contest_flat]))
     results_array = numpy.array(alp_deviations_flat)
     reg = LinearRegression().fit(inputs_array, results_array)
     retirement_urban = reg.coef_[0]
@@ -1714,6 +1736,9 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urban = reg.coef_[4]
     sophomore_party_regional = reg.coef_[5]
     previous_swing_modifier = reg.coef_[6]
+    previous_lnp_contest = reg.coef_[7]
+
+    print(previous_lnp_contest)
 
     # Analysis of swing *magnitude* factors
     inputs_array = numpy.transpose(numpy.array([federal_flat, region_swings_flat, margins_flat]))
@@ -1738,6 +1763,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         f.write(f'sophomore-party-urban,{sophomore_party_urban}\n')
         f.write(f'sophomore-party-regional,{sophomore_party_regional}\n')
         f.write(f'previous-swing-modifier,{previous_swing_modifier}\n')
+        f.write(f'previous-lnp-contest,{previous_lnp_contest}\n')
 
     individual_infos = {}
     for i in range(0, len(names_flat)):

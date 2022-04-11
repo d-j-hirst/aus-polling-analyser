@@ -1,11 +1,8 @@
 
--shortening seat names so that they don't overlay winner bar
 -add option to remove live forecasts from archives
--Script to auto-check seat betting odds.
+-Tag selection for commentaries
 -glossary
--options to filter by state
--Restructure About page so it's not all in the same component?
--Graph for prediction over time - for overall forecast and then maybe individual seats
+-options to filter seats by state
 -cartogram, maybe map view depending on feasibility
 -Individual seats winner bar for 2cp scenarios (maybe?)
 -Anything non-critical above not done before release.
