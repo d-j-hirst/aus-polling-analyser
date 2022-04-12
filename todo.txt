@@ -1,11 +1,8 @@
 
--add option to remove live forecasts from archives
--Tag selection for commentaries
--glossary
 -options to filter seats by state
+-glossary
 -cartogram, maybe map view depending on feasibility
--Individual seats winner bar for 2cp scenarios (maybe?)
--Anything non-critical above not done before release.
+-add ability for retrospective forecasts
 -Advanced live simulations!
  -Start by organising past election data at booth-level
  -Need to load conversions between equivalent seats

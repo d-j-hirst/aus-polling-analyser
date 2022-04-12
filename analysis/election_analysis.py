@@ -1488,7 +1488,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_candidate_regionals = {}
     sophomore_party_urbans = {}
     sophomore_party_regionals = {}
-    previous_lnp_contests = {}
     previous_swings = {}
     names = {}
     for this_election, this_results in elections.items():
@@ -1575,7 +1574,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 sophomore_candidate_regionals[this_election] = {}
                 sophomore_party_urbans[this_election] = {}
                 sophomore_party_regionals[this_election] = {}
-                previous_lnp_contests[this_election] = {}
                 previous_swings[this_election] = {}
                 names[this_election] = {}
             if this_seat_region not in alp_swings[this_election]:
@@ -1588,7 +1586,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 sophomore_candidate_regionals[this_election][this_seat_region] = []
                 sophomore_party_urbans[this_election][this_seat_region] = []
                 sophomore_party_regionals[this_election][this_seat_region] = []
-                previous_lnp_contests[this_election][this_seat_region] = []
                 previous_swings[this_election][this_seat_region] = []
                 names[this_election][this_seat_region] = []
 
@@ -1622,19 +1619,24 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                     if previous_seat_result.tcp[0].party != 'Labor':
                         temp_previous_swing *= -1
 
-            temp_lnp_contest = 0
-            if previous_seat_result is not None:
-                # exclude these states as the dynamics of three-cornered contests is different under OPV
-                if this_election.region() != 'qld' and this_election.region() != 'nsw':
-                    if ('National' in (a.party for a in this_seat_result.fp)
-                            and 'Liberal' in (a.party for a in this_seat_result.fp)):
-                        if ('National' not in (a.party for a in previous_seat_result.fp)
-                            or 'Liberal' not in (a.party for a in previous_seat_result.fp)):
-                            if this_election.region() != 'fed': continue
-                            third_party_result = min([a.percent for a in this_seat_result.fp
-                                if a.party == "Liberal" or a.party == "National"])
-                            print(f'New LNP contest in {this_seat_name} for election {this_election}, lower fp vote {third_party_result}')
-                            temp_lnp_contest = third_party_result
+            # This code is here to look for movements to and from
+            # three-cornered ALP/Lib/Nat contests. It didn't find a strong
+            # enough connection to be worth using for now, except perhaps
+            # in NSW.
+
+            # temp_lnp_contest = 0
+            # if previous_seat_result is not None:
+            #     # exclude these states as the dynamics of three-cornered contests is different under OPV
+            #     if this_election.region() != 'qld' and this_election.region() != 'nsw':
+            #         if ('National' in (a.party for a in this_seat_result.fp)
+            #                 and 'Liberal' in (a.party for a in this_seat_result.fp)):
+            #             if ('National' not in (a.party for a in previous_seat_result.fp)
+            #                 or 'Liberal' not in (a.party for a in previous_seat_result.fp)):
+            #                 if this_election.region() != 'fed': continue
+            #                 third_party_result = min([a.percent for a in this_seat_result.fp
+            #                     if a.party == "Liberal" or a.party == "National"])
+            #                 print(f'New LNP contest in {this_seat_name} for election {this_election}, lower fp vote {third_party_result}')
+            #                 temp_lnp_contest = third_party_result
             
             
             alp_swing = (this_seat_result.tcp[0].swing
@@ -1693,7 +1695,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_candidate_regional_flat = []
     sophomore_party_urban_flat = []
     sophomore_party_regional_flat = []
-    previous_lnp_contest_flat = []
     previous_swing_deviations_flat = []
     names_flat = []
     election_regions_flat = []
@@ -1712,7 +1713,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             sophomore_party_urban_flat += sophomore_party_urbans[election_code][region_code]
             sophomore_party_regional_flat += sophomore_party_regionals[election_code][region_code]
             previous_swing_deviations_flat += previous_swing_deviations[election_code][region_code]
-            previous_lnp_contest_flat += previous_lnp_contests[election_code][region_code]
             names_flat += names[election_code][region_code]
             election_regions_flat += [election_code.region()] * len(region)
             regions_flat += [region_code] * len(region)
@@ -1725,8 +1725,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                                                 sophomore_candidate_regional_flat,
                                                 sophomore_party_urban_flat,
                                                 sophomore_party_regional_flat,
-                                                previous_swing_deviations_flat,
-                                                previous_lnp_contest_flat]))
+                                                previous_swing_deviations_flat]))
     results_array = numpy.array(alp_deviations_flat)
     reg = LinearRegression().fit(inputs_array, results_array)
     retirement_urban = reg.coef_[0]
@@ -1736,9 +1735,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urban = reg.coef_[4]
     sophomore_party_regional = reg.coef_[5]
     previous_swing_modifier = reg.coef_[6]
-    previous_lnp_contest = reg.coef_[7]
-
-    print(previous_lnp_contest)
 
     # Analysis of swing *magnitude* factors
     inputs_array = numpy.transpose(numpy.array([federal_flat, region_swings_flat, margins_flat]))
@@ -1763,7 +1759,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         f.write(f'sophomore-party-urban,{sophomore_party_urban}\n')
         f.write(f'sophomore-party-regional,{sophomore_party_regional}\n')
         f.write(f'previous-swing-modifier,{previous_swing_modifier}\n')
-        f.write(f'previous-lnp-contest,{previous_lnp_contest}\n')
 
     individual_infos = {}
     for i in range(0, len(names_flat)):
