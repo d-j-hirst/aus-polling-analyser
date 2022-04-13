@@ -876,7 +876,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
 				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ?
 					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
-					: 100.f - (-67.42f - 0.47f * voteShare - 0.0167f * (100.0f - partyOneCurrentTpp)));
+					: 100.f - (24.318f - 0.788f * voteShare + 1.0781f * (100.0f - partyOneCurrentTpp)));
+				preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
 				float upperPreferenceFlow = (previousAverage > 0.0f ? 
 					std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
 					std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
@@ -943,25 +944,21 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 				// Estimated ALP preference rate from historical results based on IND fp and ALP TPP.
 				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ? 
 					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
-					: 100.f - (-67.42f - 0.47f * voteShare - 0.016701355 * (100.0f - partyOneCurrentTpp)));
+					: 100.f - (24.318f - 0.788f * voteShare + 1.0781f * (100.0f - partyOneCurrentTpp)));
 				preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
-				float upperPreferenceFlow = std::clamp(50.0f + previousAverage * -6.0f, 5.0f, preferenceFlowCap);
+				float upperPreferenceFlow = (previousAverage > 0.0f ?
+					std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
+					std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
 				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
 				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
 				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
 					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
 					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
 				float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
-				if (!preferenceVariation.contains(partyIndex)) {
-					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
-				}
 				effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-				if (!preferenceVariation.contains(partyIndex)) {
-					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
-				}
 				float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
 				currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f;
-				//if (seat.name == "Shepparton") {
+				//if (seat.name == "Mackellar" || seat.name == "Fowler" || seat.name == "Nicholls") {
 				//	logger << "now\n";
 				//	PA_LOG_VAR(seat.name);
 				//	PA_LOG_VAR(partyIndex);

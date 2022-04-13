@@ -1,5 +1,4 @@
 
--options to filter seats by state
 -glossary
 -cartogram, maybe map view depending on feasibility
 -add ability for retrospective forecasts
