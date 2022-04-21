@@ -53,7 +53,7 @@ def analyse_greens(elections):
                     previous_results.seat_by_name(this_seat_name,
                                                     include_name_changes=True)
                 if (len(previous_seat_results.tcp) > 0 and
-                    previous_seat_results.tcp[0].party != party and 
+                    previous_seat_results.tcp[0].party != party and
                     this_seat_results.tcp[0].party == party):
                     sophomore = True
             if party in [a.party for a in this_seat_results.fp]:
@@ -69,7 +69,7 @@ def analyse_greens(elections):
             this_greens = transform_vote_share(this_greens)
             next_greens = transform_vote_share(next_greens)
             greens_change = next_greens - this_greens
-            this_bucket = next(a for a in this_buckets 
+            this_bucket = next(a for a in this_buckets
                                 if a[0] < this_greens
                                 and a[1] > this_greens)
             this_buckets[this_bucket].append(greens_change)
@@ -86,7 +86,7 @@ def analyse_greens(elections):
     bucket_upper_rmses = {}
     bucket_lower_kurtoses = {}
     bucket_upper_kurtoses = {}
-    
+
     for bucket, results in this_buckets.items():
         # Run regression between the seat swing and election swing
         # to find the relationship between the two for initial primary
@@ -106,7 +106,7 @@ def analyse_greens(elections):
         # from the median
         residuals = [results[index] -
                         (swing_coefficient * swings[index] +
-                        sophomore_coefficient * sophomores[index] 
+                        sophomore_coefficient * sophomores[index]
                         + overall_intercept)
                         for index in range(0, len(results))
         ]
@@ -120,7 +120,7 @@ def analyse_greens(elections):
         lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                             / (len(lower_errors) - 1))
         upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                            / (len(upper_errors) - 1))      
+                            / (len(upper_errors) - 1))
         lower_kurtosis = one_tail_kurtosis(lower_errors)
         upper_kurtosis = one_tail_kurtosis(upper_errors)
 
@@ -133,14 +133,14 @@ def analyse_greens(elections):
         bucket_upper_rmses[bucket] = upper_rmse
         bucket_lower_kurtoses[bucket] = lower_kurtosis
         bucket_upper_kurtoses[bucket] = upper_kurtosis
-    
+
     for bucket_index in range(len(ordered_buckets) - 2, -1, -1):
         bucket = ordered_buckets[bucket_index]
         if not 1 in sophomore_buckets[bucket]:
             next_bucket = ordered_buckets[bucket_index + 1]
             bucket_sophomore_coefficients[bucket] = \
                 bucket_sophomore_coefficients[next_bucket]
-    
+
     # for bucket in bucket_swing_coefficients.keys():
     #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
     #     print(f'Sample size: {bucket_counts[bucket]}')
@@ -153,7 +153,7 @@ def analyse_greens(elections):
     #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
     #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
     #     print('\n')
-    
+
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
                    bucket_base))
@@ -290,13 +290,13 @@ def analyse_existing_independents(elections):
                     and this_seat_results.tcp[0].name == highest.name
                     and (not effective_independent(previous_seat_results.tcp[0].party,
                                                 previous_results)
-                            or previous_seat_results.tcp[0].name != 
+                            or previous_seat_results.tcp[0].name !=
                             this_seat_results.tcp[0].name)):
                     sophomore = True
             incumbent = (this_seat_results.tcp[0].name == highest.name)
             this_fp = highest.percent
             this_fp = transform_vote_share(this_fp)
-            this_bucket = next(a for a in this_buckets 
+            this_bucket = next(a for a in this_buckets
                                 if a[0] < this_fp
                                 and a[1] > this_fp)
             matching_next = [a for a in next_seat_results.fp
@@ -328,7 +328,7 @@ def analyse_existing_independents(elections):
     # bucket_recontest_sophomores = {}
     bucket_recontest_incumbents = {}
     bucket_recontest_rates = {}
-    
+
     for bucket in ordered_buckets:
         # Run regression between the seat swing and election swing
         # to find the relationship between the two for initial primary
@@ -347,7 +347,7 @@ def analyse_existing_independents(elections):
         # a group above and below the median, measured by their distance
         # from the median
         residuals = [this_buckets[bucket][index] -
-                        (sophomore_coefficient * sophomores[index] 
+                        (sophomore_coefficient * sophomores[index]
                         + overall_intercept)
                         for index in range(0, len(this_buckets[bucket]))
         ]
@@ -361,7 +361,7 @@ def analyse_existing_independents(elections):
         lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                             / (len(lower_errors) - 1))
         upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                            / (len(upper_errors) - 1))      
+                            / (len(upper_errors) - 1))
         lower_kurtosis = one_tail_kurtosis(lower_errors)
         upper_kurtosis = one_tail_kurtosis(upper_errors)
 
@@ -386,7 +386,7 @@ def analyse_existing_independents(elections):
         recontest_intercept = reg.intercept_
         bucket_recontest_incumbents[bucket] = incumbent_recontest_coefficient
         bucket_recontest_rates[bucket] = recontest_intercept
-    
+
     for bucket_index in range(len(ordered_buckets) - 2, -1, -1):
         bucket = ordered_buckets[bucket_index]
         if not 1 in sophomore_buckets[bucket]:
@@ -411,7 +411,7 @@ def analyse_existing_independents(elections):
     #     print(f'Recontest rate: {bucket_recontest_rates[bucket]}')
     #     print(f'Recontest incumbent: {bucket_recontest_incumbents[bucket]}')
     #     print('\n')
-    
+
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
                    bucket_base))
@@ -580,7 +580,7 @@ def analyse_emerging_independents(elections, seat_types):
     # print(f'\nAverage extra vote (transformed): {average_extra_vote}')
     # print(f'\nUpper rmse: {upper_rmse}')
     # print(f'\nUpper kurtosis: {upper_kurtosis}')
-    
+
     filename = (f'./Seat Statistics/statistics_emerging_IND.csv')
     with open(filename, 'w') as f:
         f.write(f'{fp_threshold}\n')
@@ -627,8 +627,8 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
         if on_election_cands[key] == 0:
             continue
         on_election_average[key] = total / on_election_cands[key]
-    
-    
+
+
     avg_mult_seat = {}
     for region_name, region_results in on_results.items():
         for seat_name, seat_results in region_results.items():
@@ -660,7 +660,7 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
         test_year = test_setting[0]
         test_region = test_setting[1]
         test_party = test_setting[2]
-    
+
         test_election = elections[ElectionCode(test_year, test_region)]
         avg_mults = []
         vote_shares = []
@@ -684,7 +684,7 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
                 seat_names.append(seat_name)
 
         use_intercepts = False
-        
+
         inputs_array = numpy.transpose(numpy.array([avg_mults]))
         results_array = numpy.array(vote_shares)
         reg = LinearRegression(fit_intercept=use_intercepts).fit(inputs_array, results_array)
@@ -701,17 +701,17 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
         lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                             / (len(lower_errors) - 1))
         upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                            / (len(upper_errors) - 1))      
+                            / (len(upper_errors) - 1))
         lower_kurtosis = one_tail_kurtosis(lower_errors)
         upper_kurtosis = one_tail_kurtosis(upper_errors)
-    
+
     median_error = statistics.median(all_residuals)
     lower_errors = [a - median_error for a in all_residuals if a < median_error]
     upper_errors = [a - median_error for a in all_residuals if a >= median_error]
     lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                         / (len(lower_errors) - 1))
     upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                        / (len(upper_errors) - 1))      
+                        / (len(upper_errors) - 1))
     lower_kurtosis = one_tail_kurtosis(lower_errors)
     upper_kurtosis = one_tail_kurtosis(upper_errors)
 
@@ -750,7 +750,7 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
             provincial_seat[seat_id] = 1 if seat_type == 2 else 0
             outer_metro_seat[seat_id] = 1 if seat_type == 1 else 0
             home_state_seat[seat_id] = 1 if is_home_state else 0
-    
+
     avg_mult_list = [avg_mult_seat[key] for key in sorted(avg_mult_seat.keys())]
     rural_list = [rural_seat[key] for key in sorted(avg_mult_seat.keys())]
     provincial_list = [provincial_seat[key] for key in sorted(avg_mult_seat.keys())]
@@ -822,8 +822,8 @@ def analyse_centrist_minors(elections, seat_types, seat_regions):
         if dem_election_cands[key] == 0:
             continue
         dem_election_average[key] = total / dem_election_cands[key]
-    
-    
+
+
     avg_mult_seat = {}
     for region_name, region_results in dem_results.items():
         for seat_name, seat_results in region_results.items():
@@ -854,7 +854,7 @@ def analyse_centrist_minors(elections, seat_types, seat_regions):
         test_year = test_setting[0]
         test_region = test_setting[1]
         test_party = test_setting[2]
-    
+
         test_election = elections[ElectionCode(test_year, test_region)]
         avg_mults = []
         vote_shares = []
@@ -874,7 +874,7 @@ def analyse_centrist_minors(elections, seat_types, seat_regions):
                 seat_names.append(seat_name)
 
         use_intercepts = False
-        
+
         inputs_array = numpy.transpose(numpy.array([avg_mults]))
         results_array = numpy.array(vote_shares)
         reg = LinearRegression(fit_intercept=use_intercepts).fit(inputs_array, results_array)
@@ -891,17 +891,17 @@ def analyse_centrist_minors(elections, seat_types, seat_regions):
         lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                             / (len(lower_errors) - 1))
         upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                            / (len(upper_errors) - 1))      
+                            / (len(upper_errors) - 1))
         lower_kurtosis = one_tail_kurtosis(lower_errors)
         upper_kurtosis = one_tail_kurtosis(upper_errors)
-    
+
     median_error = statistics.median(all_residuals)
     lower_errors = [a - median_error for a in all_residuals if a < median_error]
     upper_errors = [a - median_error for a in all_residuals if a >= median_error]
     lower_rmse = math.sqrt(sum([a ** 2 for a in lower_errors])
                         / (len(lower_errors) - 1))
     upper_rmse = math.sqrt(sum([a ** 2 for a in upper_errors])
-                        / (len(upper_errors) - 1))      
+                        / (len(upper_errors) - 1))
     lower_kurtosis = one_tail_kurtosis(lower_errors)
     upper_kurtosis = one_tail_kurtosis(upper_errors)
 
@@ -940,7 +940,7 @@ def analyse_centrist_minors(elections, seat_types, seat_regions):
             provincial_seat[seat_id] = 1 if seat_type == 2 else 0
             outer_metro_seat[seat_id] = 1 if seat_type == 1 else 0
             home_state_seat[seat_id] = 1 if is_home_state else 0
-    
+
     avg_mult_list = [avg_mult_seat[key] for key in sorted(avg_mult_seat.keys())]
     rural_list = [rural_seat[key] for key in sorted(avg_mult_seat.keys())]
     provincial_list = [provincial_seat[key] for key in sorted(avg_mult_seat.keys())]
@@ -1037,7 +1037,7 @@ def analyse_others(elections):
             # disproportionate effect on results
             this_others = max(2, this_others)
             this_others = transform_vote_share(this_others)
-            this_bucket = next(a for a in this_buckets 
+            this_bucket = next(a for a in this_buckets
                                 if a[0] < this_others
                                 and a[1] > this_others)
             if next_others > 0:
@@ -1059,7 +1059,7 @@ def analyse_others(elections):
     bucket_lower_kurtoses = {}
     bucket_upper_kurtoses = {}
     bucket_recontest_rates = {}
-    
+
     for bucket, results in this_buckets.items():
         # Run regression between the seat swing and election swing
         # to find the relationship between the two for initial primary
@@ -1107,7 +1107,7 @@ def analyse_others(elections):
         bucket_upper_kurtoses[bucket] = upper_kurtosis
         bucket_recontest_rates[bucket] = (recontest_buckets[bucket].count(1)
                                         / len(recontest_buckets[bucket]))
-    
+
     # for bucket in bucket_swing_coefficients.keys():
     #     print(f'Primary vote bucket: {detransform_vote_share(bucket[0])} - {detransform_vote_share(bucket[1])}')
     #     print(f'Sample size: {bucket_counts[bucket]}')
@@ -1119,7 +1119,7 @@ def analyse_others(elections):
     #     print(f'Lower kurtosis: {bucket_lower_kurtoses[bucket]}')
     #     print(f'Upper kurtosis: {bucket_upper_kurtoses[bucket]}')
     #     print('\n')
-    
+
     x = list(range(int(bucket_min - bucket_base / 2),
                    bucket_max + bucket_base,
                    bucket_base))
@@ -1193,12 +1193,12 @@ def analyse_emerging_parties(elections):
     emergence_rate = party_count / election_count
     # print(f'Election count: {election_count}')
     # print(f'Emerging party count: {party_count}')
-    
+
     residuals = [a - transform_vote_share(fp_threshold) for a in vote_shares]
 
     # one-tailed RMSE and kurtosis equivalent
     rmse = math.sqrt(sum([a ** 2 for a in residuals])
-                        / (len(residuals) - 1))      
+                        / (len(residuals) - 1))
     kurtosis = one_tail_kurtosis(residuals)
 
     # print(f'Transformed threshold: {transform_vote_share(fp_threshold)}')
@@ -1225,7 +1225,7 @@ class RegionPolls:
         self.deviations = []
         self.population = 0
 
-    
+
     def __repr__(self):
         return (f'prev_tpp: {self.prev_tpp}, next_tpp: {self.next_tpp}, '
                 f'next_deviation: {self.next_deviation}, '
@@ -1237,7 +1237,7 @@ def regress_and_write_to_file(f, inputs, outputs, region):
     inputs_array = numpy.transpose(numpy.array([inputs]))
     results_array = numpy.array(outputs)
     reg = LinearRegression().fit(inputs_array, results_array)
-    residuals = [outputs[a] - 
+    residuals = [outputs[a] -
                  (reg.coef_[0] * inputs[a] + reg.intercept_)
                  for a in range(0,len(outputs))]
     rmse = math.sqrt(sum([a ** 2 for a in residuals])
@@ -1261,7 +1261,7 @@ def analyse_region_swings():
                 election_results[code] = results
             else:
                 state_results[(code, a[2])] = results
-    
+
     poll_lists = {}
     highest_poll_number = 0
 
@@ -1280,7 +1280,7 @@ def analyse_region_swings():
             if code not in poll_lists:
                 poll_lists[code] = {}
             poll_lists[code][region] = region_polls
-    
+
     next_overall_tpps = {}
     prev_overall_tpps = {}
     poll_overall_tpps = {}
@@ -1353,7 +1353,7 @@ def analyse_region_swings():
                     next_deviations[region] = []
                 poll_deviations[region].append(region_polls.deviations[poll_number])
                 next_deviations[region].append(region_polls.next_deviation)
-        
+
         if len(poll_deviations[region]) < 2:
             break
 
@@ -1399,7 +1399,7 @@ def analyse_region_swings():
                                             polled_raw_deviation +
                                             polled_intercept)
                     actual_overall_swing = next_overall_tpps[election] - prev_overall_tpps[election]
-                    actual_region_swing = (poll_lists[election][region].next_tpp - 
+                    actual_region_swing = (poll_lists[election][region].next_tpp -
                                            poll_lists[election][region].prev_tpp)
                     actual_deviation = actual_region_swing - actual_overall_swing
                     mixed_deviation = (polled_final_deviation * mix_factor +
@@ -1415,7 +1415,7 @@ def analyse_region_swings():
             mixed_rmses[mix_factor] = mixed_rmse
             mixed_kurtosis = one_tail_kurtosis(mixed_errors)
             mixed_kurtoses[mix_factor] = mixed_kurtosis
-        
+
         best_mix_factor = min(mixed_rmses, key=mixed_rmses.get)
         best_mix_factors.append(best_mix_factor)
         best_rmses.append(mixed_rmses[best_mix_factor])
@@ -1453,17 +1453,17 @@ def analyse_region_swings():
     x_list = list(range(0, len(best_mix_factors))) + [dummy_time]
     x = numpy.array(x_list)
 
-    mix_factor_dummy = (best_mix_factors[0] * (1 - dummy_time) + 
+    mix_factor_dummy = (best_mix_factors[0] * (1 - dummy_time) +
                         best_mix_factors[1] * dummy_time)
     y = numpy.array(best_mix_factors + [mix_factor_dummy])
     mix_factor_params, mix_factor_cov = curve_fit(func, x, y, [1, 1])
 
-    rmse_dummy = (best_rmses[0] * (1 - dummy_time) + 
+    rmse_dummy = (best_rmses[0] * (1 - dummy_time) +
                   best_rmses[1] * dummy_time)
     y = numpy.array(best_rmses + [rmse_dummy])
     rmse_params, rmse_cov = curve_fit(func2, x, y, [-1, 0.1, 2.5])
 
-    kurtosis_dummy = (best_kurtoses[0] * (1 - dummy_time) + 
+    kurtosis_dummy = (best_kurtoses[0] * (1 - dummy_time) +
                       best_kurtoses[1] * dummy_time)
     y = numpy.array(best_kurtoses + [kurtosis_dummy])
     kurtosis_params, kurtosis_cov = curve_fit(func3, x, y, [2, 1])
@@ -1594,7 +1594,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 previous_winner_name = previous_seat_result.tcp[0].name
                 if len([a for a in this_seat_result.fp if a.name == previous_winner_name]) == 0:
                     temp_incumbent_retirement = 1 if previous_seat_result.tcp[0].party == 'Labor' else -1
-            
+
             temp_sophomore_candidate = 0
             if (previous_seat_result is not None and old_seat_result is not None
                  and len(previous_seat_result.tcp) == 2 and len(old_seat_result.tcp)) == 2:
@@ -1603,7 +1603,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 if old_winner_name != previous_winner_name:
                     if len([a for a in this_seat_result.fp if a.name == previous_winner_name]) != 0:
                         temp_sophomore_candidate = 1 if previous_seat_result.tcp[0].party == 'Labor' else -1
-            
+
             temp_sophomore_party = 0
             if (previous_seat_result is not None and old_seat_result is not None
                  and len(previous_seat_result.tcp) == 2 and len(old_seat_result.tcp)) == 2:
@@ -1611,7 +1611,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 previous_winner_party = (previous_seat_result.tcp[0].party == 'Labor')
                 if old_winner_party != previous_winner_party:
                     temp_sophomore_party = 1 if previous_seat_result.tcp[0].party == 'Labor' else -1
-            
+
             temp_previous_swing = None
             if previous_seat_result is not None and len(previous_seat_result.tcp) == 2:
                 if previous_seat_result.tcp[0].swing is not None:
@@ -1637,8 +1637,8 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             #                     if a.party == "Liberal" or a.party == "National"])
             #                 print(f'New LNP contest in {this_seat_name} for election {this_election}, lower fp vote {third_party_result}')
             #                 temp_lnp_contest = third_party_result
-            
-            
+
+
             alp_swing = (this_seat_result.tcp[0].swing
                          if this_seat_result.tcp[0].party == 'Labor'
                          else -this_seat_result.tcp[0].swing)
@@ -1657,7 +1657,6 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 if seat_types[(this_seat_name, this_election.region())] <= 1 else 0)
             sophomore_party_regionals[this_election][this_seat_region].append(temp_sophomore_party
                 if seat_types[(this_seat_name, this_election.region())] >= 2 else 0)
-            previous_lnp_contests[this_election][this_seat_region].append(temp_lnp_contest)
             previous_swings[this_election][this_seat_region].append(temp_previous_swing)
             names[this_election][this_seat_region].append(this_seat_name)
     region_averages = {election: {region: statistics.mean(x)
@@ -1767,7 +1766,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         if key not in individual_infos:
             individual_infos[key] = []
         individual_infos[key].append(vals)
-    
+
     filename = (f'./Seat Statistics/individual-seat-factors.csv')
     with open(filename, 'w') as f:
         # mix_factor = 0.38
@@ -1791,7 +1790,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             # provided the optimum predictiveness for sample sizes of 10 and up.
             adjusted_elasticity = (elasticity - 1) * elasticity_factor + 1
             # High trend/low volatility values are likely artifacts of small
-            # sample sizes, so cap them 
+            # sample sizes, so cap them
             limited_trend = min(max(trend, -2.5), 2.5)
             limited_volatility = max(volatility, 2)
             f.write(f'{key[0]},{key[1]},{key[2]},{adjusted_elasticity},{limited_trend},{limited_volatility}\n')

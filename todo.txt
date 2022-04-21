@@ -1,5 +1,47 @@
 
 -glossary
+ *first preference vote (primary vote)
+ *margin
+ *tactical voting
+ *major party
+ *minor party
+ *seat (electorate)
+ *pollster (polling house)
+ *house effect
+ *poll
+ *voting intention
+ *anchoring pollster
+ *previous election preferences
+ *respondent allocated preferences
+ *two party preferred/two-candidate preferred
+ *hung parliament
+ *poll trend
+ *regular forecast
+ *nowcast
+ *live forecast
+ *swing
+ *redistribution
+ *sophomore surge
+ -retirement
+ -independent
+ -majority
+ -minority
+ -forecast
+ -projection
+ -prediction
+ -probabilistic forecast
+ -probability
+ -government
+ -lower house
+ -region
+ -scenario
+ -election
+ -state
+ -territory
+ -others
+ -undecided
+ -margin of error
+ -hindcast
 -cartogram, maybe map view depending on feasibility
 -add ability for retrospective forecasts
 -Advanced live simulations!

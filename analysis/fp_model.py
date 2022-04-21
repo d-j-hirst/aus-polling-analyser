@@ -219,6 +219,7 @@ def run_models():
                         # print(polled_percent)
                 # print(adjustments)
                 adjustment_series = pd.Series(data=adjustments)
+                df['Total'] = df['ALP FP'] + df['LIB FP' if 'LIB FP' in df else 'LNP FP']
                 # print(adjustment_series)
                 df['@TPP'] = df['ALP FP']
                 for column in df:
@@ -236,8 +237,11 @@ def run_models():
                     # print(column)
                     # print(pref_col)
                     df['@TPP'] += pref_col * preference_flow
+                    df['Total'] += pref_col
                 # print(df['@TPP'].to_string())
                 df['@TPP'] += adjustment_series
+                print(df['Total'])
+                df['@TPP'] /= (df['Total'] * 0.01)
                 # print(df['@TPP'].to_string())
                 if desired_election.region() == 'fed':
                     df['@TPP'] += 0.1  # leakage in LIB/NAT seats
@@ -374,7 +378,7 @@ def run_models():
                 # prior distribution for each day's vote share
                 'priorVoteShareSigma': 200.0,
 
-                # Bounds for the transition between 
+                # Bounds for the transition between
                 'houseEffectOld': houseEffectOld,
                 'houseEffectNew': houseEffectNew
             }
@@ -479,10 +483,10 @@ def run_models():
                 fp = df.loc[poll_index, party]
                 new_he = new_house_effects[df.loc[poll_index, 'House'] - 1]
                 old_he = old_house_effects[df.loc[poll_index, 'House'] - 1]
-                old_factor = ((days_ago - houseEffectNew) / 
+                old_factor = ((days_ago - houseEffectNew) /
                              (houseEffectOld - houseEffectNew))
                 old_factor = max(min(old_factor, 1), 0)
-                mixed_he = (old_factor * old_he + 
+                mixed_he = (old_factor * old_he +
                             (1 - old_factor) * new_he)
                 adjusted_fp = fp - mixed_he
                 polls_file.write(',' + str(fp))
