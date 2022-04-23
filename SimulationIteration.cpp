@@ -221,6 +221,19 @@ void SimulationIteration::determineMinorPartyContests()
 {
 	for (auto& [partyIndex, voteShare] : overallFpTarget) {
 		if (!(partyIndex >= 2 || partyIndex == EmergingPartyIndex)) continue;
+		seatContested[partyIndex] = std::vector<bool>(project.seats().count());
+		//bool candidatesKnown = false;
+		//if (partyIndex >= 0) {
+		//	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		//		Party const& party = project.parties().viewByIndex(partyIndex);
+		//		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		//		if (contains(seat.runningParties, party.abbreviation)) {
+		//			candidatesKnown = true;
+		//			seatContested[partyIndex][seatIndex] = true;
+		//		}
+		//	}
+		//	if (candidatesKnown) continue;
+		//}
 		typedef std::pair<int, float> Priority;
 		std::vector<Priority> seatPriorities;
 		std::vector<float> seatMods(project.seats().count());
@@ -235,11 +248,12 @@ void SimulationIteration::determineMinorPartyContests()
 		float estimatedSeats = 0.0f;
 		float totalSeats = float(project.seats().count());
 		if (partyIndex >= 0) {
+			Party const& party = project.parties().viewByIndex(partyIndex);
 			float HalfSeatsPrimary = 5.0f;
 			float seatProp = 2.0f - 2.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
 			// The seat total should adjust somewhat by the expected primary vote, but not entirely.
 			// The entered seat total corresponds to expected seat contests at 5% primary vote
-			estimatedSeats = std::clamp(project.parties().viewByIndex(partyIndex).seatTarget * seatProp, 0.0f, totalSeats);
+			estimatedSeats = std::clamp(party.seatTarget * seatProp, 0.0f, totalSeats);
 		}
 		else if (partyIndex == -3) {
 			float HalfSeatsPrimary = 4.0f;
@@ -255,7 +269,6 @@ void SimulationIteration::determineMinorPartyContests()
 		std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
 			[](Priority const& a, Priority const& b) {return a.second > b.second; });
 
-		seatContested[partyIndex] = std::vector<bool>(project.seats().count());
 		fpModificationAdjustment[partyIndex] = 0.0f;
 		for (int seatPlace = 0; seatPlace < actualSeats; ++seatPlace) {
 			seatContested[partyIndex][seatPriorities[seatPlace].first] = true;
@@ -646,12 +659,14 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 		voteShare = 0.0f;
 		return;
 	}
+
 	if (seatContested.contains(partyIndex)) {
 		if (!seatContested[partyIndex][seatIndex] && !prominent) {
 			voteShare = 0.0f;
 			return;
 		}
 	}
+
 	float seatModifier = calculateEffectiveSeatModifier(seatIndex, partyIndex);
 	float adjustedModifier = seatModifier * fpModificationAdjustment[partyIndex];
 	float modifiedFp1 = predictorCorrectorTransformedSwing(partyFp, partyFp * (adjustedModifier - 1.0f));
