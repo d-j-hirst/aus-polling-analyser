@@ -252,7 +252,10 @@ void SimulationCompletion::recordSeatFpVoteStats()
 						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
 						float exactFp = float(a) + exactFrac;
-						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
+						if (!a && run.seatPartyFpZeros[seatIndex].contains(partyIndex) &&
+							float(currentProbabilityBand) < float(run.seatPartyFpZeros[seatIndex][partyIndex]) / float(sim.settings.numIterations) * 100.0f) {
+							exactFp = 0.0f;
+						}
 						sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 						++currentProbabilityBand;
 					}

@@ -71,6 +71,7 @@ private:
 	void createPollsInput(int& y);
 	void createTcpChangeInput(int& y);
 	void createRunningPartiesInput(int& y);
+	void createPreviousIndRunningInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -114,6 +115,7 @@ private:
 	std::unique_ptr<CheckInput> previousDisendorsementInput;
 	std::unique_ptr<CheckInput> incumbentRecontestConfirmedInput;
 	std::unique_ptr<CheckInput> confirmedProminentIndependentInput;
+	std::unique_ptr<CheckInput> previousIndRunningInput;
 	std::unique_ptr<TextInput> prominentMinorsInput;
 	std::unique_ptr<TextInput> bettingOddsInput;
 	std::unique_ptr<TextInput> tcpChangeInput;

@@ -221,19 +221,6 @@ void SimulationIteration::determineMinorPartyContests()
 {
 	for (auto& [partyIndex, voteShare] : overallFpTarget) {
 		if (!(partyIndex >= 2 || partyIndex == EmergingPartyIndex)) continue;
-		seatContested[partyIndex] = std::vector<bool>(project.seats().count());
-		//bool candidatesKnown = false;
-		//if (partyIndex >= 0) {
-		//	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		//		Party const& party = project.parties().viewByIndex(partyIndex);
-		//		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		//		if (contains(seat.runningParties, party.abbreviation)) {
-		//			candidatesKnown = true;
-		//			seatContested[partyIndex][seatIndex] = true;
-		//		}
-		//	}
-		//	if (candidatesKnown) continue;
-		//}
 		typedef std::pair<int, float> Priority;
 		std::vector<Priority> seatPriorities;
 		std::vector<float> seatMods(project.seats().count());
@@ -245,36 +232,58 @@ void SimulationIteration::determineMinorPartyContests()
 			// Make sure this seat is able to be contested later on for this party
 			pastSeatResults[seatPriorities[seatIndex].first].fpVotePercent.insert({ partyIndex, 0.0f });
 		}
-		float estimatedSeats = 0.0f;
-		float totalSeats = float(project.seats().count());
+
+
+		int seatsKnown = 0;
+		seatContested[partyIndex] = std::vector<bool>(project.seats().count());
 		if (partyIndex >= 0) {
-			Party const& party = project.parties().viewByIndex(partyIndex);
-			float HalfSeatsPrimary = 5.0f;
-			float seatProp = 2.0f - 2.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
-			// The seat total should adjust somewhat by the expected primary vote, but not entirely.
-			// The entered seat total corresponds to expected seat contests at 5% primary vote
-			estimatedSeats = std::clamp(party.seatTarget * seatProp, 0.0f, totalSeats);
+			fpModificationAdjustment[partyIndex] = 0.0f;
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				Party const& party = project.parties().viewByIndex(partyIndex);
+				Seat const& seat = project.seats().viewByIndex(seatIndex);
+				if (contains(seat.runningParties, party.abbreviation)) {
+					++seatsKnown;
+					seatContested[partyIndex][seatIndex] = true;
+					fpModificationAdjustment[partyIndex] += seatMods[seatIndex];
+				}
+			}
 		}
-		else if (partyIndex == -3) {
-			float HalfSeatsPrimary = 4.0f;
-			float seatProp = 1.0f - 1.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
-			estimatedSeats = totalSeats * seatProp;
+
+		if (!seatsKnown) {
+			float estimatedSeats = 0.0f;
+			float totalSeats = float(project.seats().count());
+			if (partyIndex >= 0) {
+				Party const& party = project.parties().viewByIndex(partyIndex);
+				float HalfSeatsPrimary = 5.0f;
+				float seatProp = 2.0f - 2.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
+				// The seat total should adjust somewhat by the expected primary vote, but not entirely.
+				// The entered seat total corresponds to expected seat contests at 5% primary vote
+				estimatedSeats = std::clamp(party.seatTarget * seatProp, 0.0f, totalSeats);
+			}
+			else if (partyIndex == -3) {
+				float HalfSeatsPrimary = 4.0f;
+				float seatProp = 1.0f - 1.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
+				estimatedSeats = totalSeats * seatProp;
+			}
+			else {
+				logger << "Error: tried to determine minor party contest rate for a party category that hasn't been accounted for";
+			}
+			float lowerRmse = estimatedSeats * 0.3f;
+			float upperRmse = std::min((totalSeats - estimatedSeats) * 1.0f, estimatedSeats);
+			int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), std::max(7.0f, estimatedSeats * 0.4f), totalSeats)));
+			std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
+				[](Priority const& a, Priority const& b) {return a.second > b.second; });
+
+			fpModificationAdjustment[partyIndex] = 0.0f;
+			for (int seatPlace = 0; seatPlace < actualSeats; ++seatPlace) {
+				seatContested[partyIndex][seatPriorities[seatPlace].first] = true;
+				fpModificationAdjustment[partyIndex] += seatMods[seatPriorities[seatPlace].first];
+			}
+			fpModificationAdjustment[partyIndex] = totalSeats / fpModificationAdjustment[partyIndex];
 		}
 		else {
-			logger << "Error: tried to determine minor party contest rate for a party category that hasn't been accounted for";
+			fpModificationAdjustment[partyIndex] = seatsKnown / fpModificationAdjustment[partyIndex];
 		}
-		float lowerRmse = estimatedSeats * 0.3f;
-		float upperRmse = std::min((totalSeats - estimatedSeats) * 1.0f, estimatedSeats);
-		int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse), std::max(7.0f, estimatedSeats * 0.4f), totalSeats)));
-		std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
-			[](Priority const& a, Priority const& b) {return a.second > b.second; });
-
-		fpModificationAdjustment[partyIndex] = 0.0f;
-		for (int seatPlace = 0; seatPlace < actualSeats; ++seatPlace) {
-			seatContested[partyIndex][seatPriorities[seatPlace].first] = true;
-			fpModificationAdjustment[partyIndex] += seatMods[seatPriorities[seatPlace].first];
-		}
-		fpModificationAdjustment[partyIndex] = totalSeats / fpModificationAdjustment[partyIndex];
 	}
 }
 
@@ -578,6 +587,10 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		voteShare = 0.0f;
 		return;
 	}
+	if (seat.runningParties.size() && partyIndex == run.indPartyIndex && !seat.previousIndRunning && !seat.incumbentRecontestConfirmed && !seat.confirmedProminentIndependent) {
+		voteShare = 0.0f;
+		return;
+	}
 	if (seat.runningParties.size() && partyIndex == OthersIndex &&
 		!contains(seat.runningParties, OthersCode)) {
 		voteShare = 0.0f;
@@ -609,6 +622,14 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	else if (partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"))) {
 		// non-incumbent independents have a reverse effect: less likely to recontest as time passes
 		recontestRateMixed *= 1.0f - timeToElectionFactor;
+	}
+	if (seat.runningParties.size() && partyIndex >= Mp::Others &&
+		contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+		recontestRateMixed = 1.0f;
+	}
+	if (seat.runningParties.size() && partyIndex == OthersIndex &&
+		contains(seat.runningParties, OthersCode)) {
+		recontestRateMixed = 1.0f;
 	}
 	// also, should some day handle retirements for minor parties that would be expected to stay competitive
 	if (rng.uniform() > recontestRateMixed || (seat.retirement && partyIndex == seat.incumbent)) {
@@ -691,30 +712,38 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
 	}
 
+	//if (seat.name == "Bradfield" && partyIndex == 7) {
+	//	PA_LOG_VAR(seat.name);
+	//	PA_LOG_VAR(regularVoteShare);
+	//	PA_LOG_VAR(transformedFp);
+	//}
+
 	voteShare = regularVoteShare;
 }
 
 void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (seat.runningParties.size() && !contains(seat.runningParties, project.parties().viewByIndex(run.indPartyIndex).abbreviation)) {
+	bool ballotConfirmed = contains(seat.runningParties, project.parties().viewByIndex(run.indPartyIndex).abbreviation);
+	if (seat.runningParties.size() && !ballotConfirmed) {
 		return;
 	}
 	if (!seat.confirmedProminentIndependent) return;
-	float indEmergenceRate = run.indEmergence.baseRate;
+	float indContestRate = run.indEmergence.baseRate;
 	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
-	if (isFederal) indEmergenceRate += run.indEmergence.fedRateMod;
+	if (isFederal) indContestRate += run.indEmergence.fedRateMod;
 	typedef SimulationRun::SeatType ST;
 	bool isRural = run.seatTypes[seatIndex] == ST::Rural;
 	bool isProvincial = run.seatTypes[seatIndex] == ST::Provincial;
 	bool isOuterMetro = run.seatTypes[seatIndex] == ST::OuterMetro;
-	if (isRural) indEmergenceRate += run.indEmergence.ruralRateMod;
-	if (isProvincial) indEmergenceRate += run.indEmergence.provincialRateMod;
-	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
+	if (isRural) indContestRate += run.indEmergence.ruralRateMod;
+	if (isProvincial) indContestRate += run.indEmergence.provincialRateMod;
+	if (isOuterMetro) indContestRate += run.indEmergence.outerMetroRateMod;
 	float prevOthers = pastSeatResults[seatIndex].prevOthers;
-	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
-	indEmergenceRate = 0.9f + 0.1f * indEmergenceRate;
-	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
+	indContestRate += run.indEmergence.prevOthersRateMod * prevOthers;
+	indContestRate = 0.9f + 0.1f * indContestRate;
+	if (ballotConfirmed) indContestRate = 1.0f;
+	if (rng.uniform<float>() < std::max(0.01f, indContestRate)) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
 		float interceptSize = run.indEmergence.voteIntercept - run.indEmergence.fpThreshold;
@@ -765,7 +794,8 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (seat.runningParties.size() && !contains(seat.runningParties, std::string("IND"))) {
+	bool ballotConfirmed = contains(seat.runningParties, project.parties().viewByIndex(run.indPartyIndex).abbreviation);
+	if (seat.runningParties.size() && !ballotConfirmed) {
 		return;
 	}
 	float indEmergenceRate = run.indEmergence.baseRate;
@@ -1540,6 +1570,7 @@ void SimulationIteration::recordSeatFpVotes(int seatIndex)
 		run.cumulativeSeatPartyFpShare[seatIndex][partyIndex] += fpPercent;
 		int bucket = std::clamp(int(std::floor(fpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
 		++run.seatPartyFpDistribution[seatIndex][partyIndex][bucket];
+		if (!fpPercent) ++run.seatPartyFpZeros[seatIndex][partyIndex];
 	}
 }
 

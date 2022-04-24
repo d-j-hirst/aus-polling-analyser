@@ -79,6 +79,7 @@ public:
 	bool previousDisendorsement = false;
 	bool incumbentRecontestConfirmed = false;
 	bool confirmedProminentIndependent = false;
+	bool previousIndRunning = false; // Only used for independents who didn't win last time.
 
 	std::vector<std::string> prominentMinors;
 	std::vector<std::string> runningParties;

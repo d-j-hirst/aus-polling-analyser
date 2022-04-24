@@ -34,6 +34,7 @@ enum ControlId
 	PreviousDisendorsement,
 	IncumbentRecontestConfirmed,
 	ConfirmedProminentIndependent,
+	PreviousIndRunning,
 	ProminentMinors,
 	BettingOdds,
 	Polls,
@@ -84,6 +85,7 @@ void EditSeatFrame::createControls(int & y)
 	createPreviousDisendorsementInput(y);
 	createIncumbentRecontestConfirmedInput(y);
 	createConfirmedProminentIndependentInput(y);
+	createPreviousIndRunningInput(y);
 	createProminentMinorsInput(y);
 	createBettingOddsInput(y);
 	createPollsInput(y);
@@ -266,6 +268,14 @@ void EditSeatFrame::createConfirmedProminentIndependentInput(int& y)
 	confirmedProminentIndependentInput.reset(new CheckInput(this, ControlId::ConfirmedProminentIndependent, "Confirmed Prominent Independent", seat.confirmedProminentIndependent,
 		wxPoint(2, y), confirmedProminentIndependentCallback));
 	y += confirmedProminentIndependentInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createPreviousIndRunningInput(int& y)
+{
+	auto previousIndRunningCallback = [this](int i) -> void {seat.previousIndRunning = (i != 0); };
+	previousIndRunningInput.reset(new CheckInput(this, ControlId::PreviousIndRunning, "Previous Independent Running", seat.previousIndRunning,
+		wxPoint(2, y), previousIndRunningCallback));
+	y += previousIndRunningInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createProminentMinorsInput(int& y)

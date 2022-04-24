@@ -183,6 +183,7 @@ private:
 	std::vector<double> othersWinPercent;
 	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
 	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
+	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
 
 	// Store all potential TCP results found in iterations
 	// First index is seat
