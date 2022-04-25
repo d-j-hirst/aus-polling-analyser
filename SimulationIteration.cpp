@@ -376,31 +376,7 @@ void SimulationIteration::determineSeatInitialResults()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatTpp(seatIndex);
 	}
-	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-	//	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	//	if (seat.name == "Hasluck") {
-	//		PA_LOG_VAR(seat.name);
-	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-	//	}
-	//	if (seat.name == "Menzies") {
-	//		logger << "TPP pre-correction\n";
-	//		PA_LOG_VAR(seat.name);
-	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-	//	}
-	//}
 	correctSeatTppSwings();
-	//for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-	//	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	//	if (seat.name == "Hasluck") {
-	//		PA_LOG_VAR(seat.name);
-	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-	//	}
-	//	if (seat.name == "Menzies") {
-	//		logger << "TPP post-correction\n";
-	//		PA_LOG_VAR(seat.name);
-	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-	//	}
-	//}
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatInitialFp(seatIndex);
 	}
@@ -587,7 +563,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		voteShare = 0.0f;
 		return;
 	}
-	if (seat.runningParties.size() && partyIndex == run.indPartyIndex && !seat.previousIndRunning && !seat.incumbentRecontestConfirmed && !seat.confirmedProminentIndependent) {
+	if (seat.runningParties.size() && partyIndex == run.indPartyIndex && !seat.previousIndRunning && !seat.incumbentRecontestConfirmed) {
 		voteShare = 0.0f;
 		return;
 	}
@@ -787,6 +763,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			float pollFactor = MaxPollWeight * (1.0f - std::powf(PollWeightBase, sumOfWeights));
 			transformedVoteShare = mix(transformedVoteShare, transformedPollFp, pollFactor);
 		}
+
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(seatFpVoteShare[seatIndex][run.indPartyIndex], detransformVoteShare(transformedVoteShare));
 	}
 }
