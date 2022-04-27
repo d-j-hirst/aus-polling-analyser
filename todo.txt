@@ -1,31 +1,34 @@
 
 -glossary
- *first preference vote (primary vote)
- *margin
- *tactical voting
- *major party
- *minor party
- *seat (electorate)
- *pollster (polling house)
- *house effect
- *poll
- *voting intention
- *anchoring pollster
- *previous election preferences
- *respondent allocated preferences
- *two party preferred/two-candidate preferred
- *hung parliament
- *poll trend
- *regular forecast
- *nowcast
- *live forecast
- *swing
- *redistribution
- *sophomore surge
+ ^first preference vote (primary vote)
+ ^margin
+ ^tactical voting
+ ^major party
+ ^minor party
+ ^seat (electorate)
+ ^pollster (polling house)
+ ^house effect
+ ^bias
+ ^poll
+ ^voting intention
+ ^anchoring pollster
+ ^previous election preferences
+ ^respondent allocated preferences
+ ^two party preferred/two-candidate preferred
+ ^hung parliament
+ ^poll trend
+ ^regular forecast
+ ^nowcast
+ ^live forecast
+ ^swing
+ ^redistribution
+ ^sophomore surge
+ -informal/formal votes
  -retirement
  -independent
  -majority
  -minority
+ -Coalition
  -forecast
  -projection
  -prediction
