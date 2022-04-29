@@ -306,7 +306,8 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 	if (run.regionPollBehaviour.contains(regionIndex)) {
 		float pollRawDeviation = thisRegion.swingDeviation;
 		float pollCoeff = run.regionPollBehaviour[regionIndex].overallSwingCoeff;
-		float pollIntercept = run.regionPollBehaviour[regionIndex].baseSwingDeviation;
+		// Halve this as rough fudge factor for the fact it isn't backtested.
+		float pollIntercept = run.regionPollBehaviour[regionIndex].baseSwingDeviation * 0.5f;
 		float pollMedianDeviation = pollCoeff * pollRawDeviation + pollIntercept;
 		float naiveDeviation = medianNaiveSwing - iterationOverallSwing;
 		float mixCoeff = run.regionMixParameters.mixFactorA;
