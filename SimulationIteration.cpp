@@ -755,7 +755,9 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			for (auto poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
 				constexpr float QualityWeightBase = 0.6f;
 				float weight = myPow(QualityWeightBase, poll.second);
-				weightedSum += poll.first * weight;
+				float pollRaw = poll.first;
+				pollRaw = pollRaw * 0.503f + 15.59f;
+				weightedSum += pollRaw * weight;
 				sumOfWeights += weight;
 			}
 			float transformedPollFp = transformVoteShare(std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
