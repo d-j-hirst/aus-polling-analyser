@@ -1248,7 +1248,7 @@ void SimulationIteration::correctMajorPartyFpBias()
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
-
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	typedef std::pair<int, float> PartyVotes;
 	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
 
@@ -1296,8 +1296,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				}
 			}
 			std::vector<float> weights(accumulatedVoteShares.size());
+			int alpIndex = -1;
+			int indIndex = -1;
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
+				if (targetParty == 0) alpIndex = targetIndex;
+				if (targetParty == run.indPartyIndex || partyIdeologies[targetParty] == 2) indIndex = targetIndex;
 				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
 				if (bothMajorParties(sourceParty, targetParty)) ++ideologyDistance;
 				float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
@@ -1306,6 +1310,17 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				thisWeight *= randomFactor;
 				thisWeight *= std::sqrt(targetVoteShare);
 				weights[targetIndex] = thisWeight;
+			}
+			// Rather hacky way to handle GRN -> ALP/IND flows in cases where another candidate (usually LNP)
+			// is still in the running. Depends on ALP being party index 0 and greens being party index 2,
+			// which is the case by my convention but won't apply in an old election without Greens or
+			// if someone else makes their own file. Replace with a proper system when convenient.
+			if (alpIndex >= 0 && indIndex >= 0 && sourceParty == 2 &&
+				(seat.tppMargin < -5.0f || !isMajor(seat.incumbent))) {
+				float combinedWeights = weights[alpIndex] + weights[indIndex];
+				float indShare = rng.uniform(0.5f, 0.8f);
+				weights[indIndex] = combinedWeights * indShare;
+				weights[alpIndex] = combinedWeights * (1.0f - indShare);
 			}
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
