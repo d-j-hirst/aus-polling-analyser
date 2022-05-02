@@ -54,6 +54,7 @@ private:
 	void createPrevTermCodesInput(int& y);
 	void createLiveInput(int& y);
 	void createReportModeInput(int& y);
+	void createPreviousResultsUrlInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -79,6 +80,7 @@ private:
 	std::unique_ptr<TextInput> prevTermCodesInput;
 	std::unique_ptr<ChoiceInput> liveInput;
 	std::unique_ptr<ChoiceInput> reportModeInput;
+	std::unique_ptr<TextInput> previousResultsUrlInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

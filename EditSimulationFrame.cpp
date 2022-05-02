@@ -23,7 +23,8 @@ enum ControlId
 	PrevElection2pp,
 	PrevTermCodes,
 	Live,
-	ReportMode
+	ReportMode,
+	PreviousResultsUrl
 };
 
 EditSimulationFrame::EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings simulation)
@@ -47,6 +48,7 @@ void EditSimulationFrame::createControls(int & y)
 	createPrevTermCodesInput(y);
 	createLiveInput(y);
 	createReportModeInput(y);
+	createPreviousResultsUrlInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -132,6 +134,13 @@ void EditSimulationFrame::createReportModeInput(int& y)
 	reportModeInput.reset(new ChoiceInput(this, ControlId::ReportMode, "Report Mode:", reportModeArray, int(simulationSettings.reportMode),
 		wxPoint(2, y), reportModeCallback));
 	y += liveInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createPreviousResultsUrlInput(int& y)
+{
+	auto previousResultsUrlCallback = [this](std::string s) -> void {simulationSettings.previousResultsUrl = s; };
+	previousResultsUrlInput.reset(new TextInput(this, ControlId::PreviousResultsUrl, "Previous Results URL:", simulationSettings.previousResultsUrl, wxPoint(2, y), previousResultsUrlCallback));
+	y += nameInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createOkCancelButtons(int & y)

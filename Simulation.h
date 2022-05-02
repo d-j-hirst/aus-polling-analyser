@@ -59,6 +59,8 @@ public:
 		Projection::Id baseProjection = Projection::InvalidId;
 
 		float prevElection2pp = 50.0f;
+
+		std::string previousResultsUrl;
 	};
 
 	enum MajorParty {

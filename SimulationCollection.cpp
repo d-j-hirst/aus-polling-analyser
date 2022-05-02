@@ -64,10 +64,6 @@ void SimulationCollection::run(Simulation::Id id, SimulationRun::FeedbackFunc fe
 	auto simulationIt = simulations.find(id);
 	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
 	Simulation& simulation = simulationIt->second;
-	if (simulation.isLiveAutomatic()) {
-		feedback("Live-automatic simulations are not presently available.");
-		return;
-	}
 	simulation.run(project, feedback);
 }
 

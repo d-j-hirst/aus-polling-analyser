@@ -54,7 +54,8 @@
 // Version 47: UseTpp value for live-manual non-classic seats.
 // Version 48: tcpChange value for redistributed non-classic seats.
 // Version 49: Record seats where (non-incumbent) independent is re-running
-constexpr int VersionNum = 49;
+// Version 50: Save previous-results URL
+constexpr int VersionNum = 50;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -800,6 +801,7 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().prevTermCodes;
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().reportMode);
+		saveOutput << thisSimulation.getSettings().previousResultsUrl;
 		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
 		saveReport(saveOutput, thisSimulation.latestReport);
 		saveOutput.outputAsType<uint32_t>(thisSimulation.savedReports.size());
@@ -830,6 +832,9 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 		thisSettings.live = Simulation::Settings::Mode(saveInput.extract<int32_t>());
 		if (versionNum >= 38) {
 			thisSettings.reportMode = Simulation::Settings::ReportMode(saveInput.extract<int32_t>());
+		}
+		if (versionNum >= 50) {
+			saveInput >> thisSettings.previousResultsUrl;
 		}
 		Simulation thisSimulation = Simulation(thisSettings);
 		if (versionNum >= 12) {
