@@ -394,7 +394,7 @@ def run_models():
             print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
 
             # Stan model configuration
-            chains = 6
+            chains = 16
             iterations = desired_iterations[election_tuple]
 
             # Do model sampling. Time for diagnostic purposes
