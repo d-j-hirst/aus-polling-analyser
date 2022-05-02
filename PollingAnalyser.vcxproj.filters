@@ -564,6 +564,9 @@
     <ClInclude Include="MacroRunner.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
+    <ClInclude Include="Beep.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="bitmaps\plus.bmp" />

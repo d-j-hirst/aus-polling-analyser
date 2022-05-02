@@ -1,5 +1,6 @@
 #include "MacroRunner.h"
 
+#include "Beep.h"
 #include "General.h"
 #include "Log.h"
 #include "PollingProject.h"
@@ -91,7 +92,7 @@ std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*
 		}
 	}
 
-
+	if (project_.config().getBeepOnCompletion()) beep();
 
 	return std::optional<std::string>();
 }

@@ -1,5 +1,6 @@
 #include "ModelsFrame.h"
 
+#include "Beep.h"
 #include "EditModelFrame.h"
 #include "General.h"
 #include "Log.h"
@@ -120,7 +121,7 @@ void ModelsFrame::OnCollectData(wxCommandEvent&) {
 
 	int modelIndex = modelData->GetSelectedRow();
 
-	// If the button is somehow clicked when there is no poll selected, just stop.
+	// If the button is somehow clicked when there is no model selected, just stop.
 	if (modelIndex == -1) return;
 
 	try {
@@ -132,6 +133,8 @@ void ModelsFrame::OnCollectData(wxCommandEvent&) {
 
 	refresher.refreshProjectionData();
 
+	if (project->config().getBeepOnCompletion()) beep();
+
 	return;
 }
 
@@ -139,7 +142,7 @@ void ModelsFrame::OnShowResult(wxCommandEvent&) {
 
 	int modelIndex = modelData->GetSelectedRow();
 
-	// If the button is somehow clicked when there is no poll selected, just stop.
+	// If the button is somehow clicked when there is no model selected, just stop.
 	if (modelIndex == -1) return;
 
 	displayResults();

@@ -1,4 +1,6 @@
 #include "SimulationsFrame.h"
+
+#include "Beep.h"
 #include "General.h"
 
 using namespace std::placeholders; // for function object parameter binding
@@ -242,6 +244,7 @@ void SimulationsFrame::runSimulation() {
 	project->simulations().run(simulationId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
 	simulationData->Refresh();
+	if (project->config().getBeepOnCompletion()) beep();
 }
 
 void SimulationsFrame::updateInterface() {

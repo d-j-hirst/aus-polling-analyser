@@ -152,6 +152,16 @@ public:
 		return (incumbent == thisParty ? incumbentWinPercent : 100.0f - incumbentWinPercent);
 	}
 
+	void resetLiveData() {
+		livePartyOne = Party::InvalidId;
+		livePartyTwo = Party::InvalidId;
+		livePartyThree = Party::InvalidId;
+		partyTwoProb = 0.0f;
+		partyThreeProb = 0.0f;
+		overrideBettingOdds = false;
+		liveUseTpp = UseTpp::No;
+	}
+
 	std::string textReport(PartyCollection const& parties, RegionCollection const& regions) const {
 		std::stringstream report;
 		report << "Reporting Seat: \n";

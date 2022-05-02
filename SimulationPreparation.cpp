@@ -67,9 +67,6 @@ void SimulationPreparation::prepareForIterations()
 
 	resetPpvcBiasAggregates();
 
-	// This will also accumulate the PPVC bias aggregates
-	cacheBoothData();
-
 	determinePpvcBias();
 
 	determinePreviousVoteEnrolmentRatios();
@@ -223,14 +220,6 @@ void SimulationPreparation::resetPpvcBiasAggregates()
 	run.totalOldPpvcVotes = 0;
 }
 
-void SimulationPreparation::cacheBoothData()
-{
-	if (!sim.isLiveAutomatic()) return;
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		determineSeatCachedBoothData(seatIndex);
-	}
-}
-
 void SimulationPreparation::determinePpvcBias()
 {
 	if (!run.ppvcBiasDenominator) {
@@ -305,6 +294,9 @@ void SimulationPreparation::loadLiveManualResults()
 		run.liveSeatTppSwing[project.seats().idToIndex(outcome->seat)] = outcome->partyOneSwing;
 		run.liveSeatPcCounted[project.seats().idToIndex(outcome->seat)] = outcome->getPercentCountedEstimate();
 	}
+	run.liveRegionSwing.resize(project.regions().count());
+	run.liveRegionPercentCounted.resize(project.regions().count());
+	run.liveRegionClassicSeatCount.resize(project.regions().count());
 }
 
 void SimulationPreparation::calculateLiveAggregates()
@@ -340,14 +332,14 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (!seat.isClassic2pp()) return;
 	++run.classicSeatCount;
-	//Region& thisRegion = project.regions().access(seat.region);
-	//++thisRegion.classicSeatCount;
+	int regionIndex = project.regions().idToIndex(seat.region);
 	float percentCounted = run.liveSeatPcCounted[seatIndex];
 	float weightedSwing = run.liveSeatTppSwing[seatIndex] * percentCounted;
 	run.liveOverallSwing += weightedSwing;
-	//thisRegion.liveSwing += weightedSwing;
+	run.liveRegionSwing[regionIndex] += weightedSwing;
 	run.liveOverallPercent += percentCounted;
-	//thisRegion.livePercentCounted += percentCounted;
+	run.liveRegionPercentCounted[regionIndex] += percentCounted;
+	++run.liveRegionClassicSeatCount[regionIndex];
 	run.sampleRepresentativeness += std::min(2.0f, percentCounted) * 0.5f;
 	//run.total2cpVotes += seat.latestResults->total2cpVotes();
 	//run.totalEnrolment += seat.latestResults->enrolment;
@@ -359,12 +351,10 @@ void SimulationPreparation::finaliseLiveAggregates()
 	run.liveOverallPercent /= run.classicSeatCount;
 	run.sampleRepresentativeness /= run.classicSeatCount;
 	run.sampleRepresentativeness = std::sqrt(run.sampleRepresentativeness);
-	//for (auto& regionPair : project.regions()) {
-	//	Region& thisRegion = regionPair.second;
-	//	if (!thisRegion.livePercentCounted) continue;
-	//	thisRegion.liveSwing /= thisRegion.livePercentCounted;
-	//	thisRegion.livePercentCounted /= thisRegion.classicSeatCount;
-	//}
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		run.liveRegionSwing[regionIndex] /= run.liveRegionPercentCounted[regionIndex];
+		run.liveRegionPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
+	}
 }
 
 void SimulationPreparation::resetResultCounts()
@@ -384,20 +374,6 @@ void SimulationPreparation::determineIndependentPartyIndex()
 {
 	run.indPartyIndex = project.parties().indexByShortCode("IND");
 	if (run.indPartyIndex == -1) run.indPartyIndex = EmergingIndIndex;
-}
-
-void SimulationPreparation::determineSeatCachedBoothData(int seatIndex)
-{
-	seatIndex;
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-
-	//if (!seat.latestResults.has_value()) return;
-
-	//auto seatPartyPreferences = aggregateVoteData(seatIndex);
-
-	//calculatePreferenceFlows(seatIndex, seatPartyPreferences);
-
-	//accumulatePpvcBiasMeasures(seatIndex);
 }
 
 std::pair<int, int> SimulationPreparation::aggregateVoteData(int seatIndex)

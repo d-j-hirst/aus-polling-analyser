@@ -345,16 +345,14 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 
 void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
-	regionIndex;
-	//Region const& thisRegion = project.regions().viewByIndex(regionIndex);
-	//if (sim.isLive() && thisRegion.livePercentCounted) {
-	//	float liveSwing = thisRegion.liveSwing;
-	//	float liveStdDev = stdDevSingleSeat(thisRegion.livePercentCounted);
-	//	liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-	//	float priorWeight = 0.5f;
-	//	float liveWeight = 1.0f / (liveStdDev * liveStdDev);
-	//	regionSwing[regionIndex] = (regionSwing[regionIndex] * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
-	//}
+	if (sim.isLive() && run.liveRegionPercentCounted[regionIndex]) {
+		float liveSwing = run.liveRegionSwing[regionIndex];
+		float liveStdDev = stdDevSingleSeat(run.liveRegionPercentCounted[regionIndex]);
+		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+		float priorWeight = 0.5f;
+		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
+		regionSwing[regionIndex] = (regionSwing[regionIndex] * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+	}
 }
 
 void SimulationIteration::correctRegionalSwings()
@@ -467,11 +465,13 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		// Margin for this simulation is finalised, record it for later averaging
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
+
+	// *** remove and uncomment above section later!!!
+	partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 }
 
 void SimulationIteration::correctSeatTppSwings()
 {
-	if (sim.isLive()) return;
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		int regionId = project.regions().indexToId(regionIndex);
 		// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
@@ -1421,6 +1421,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)
 {
+	seatIndex;
 	if (!sim.isLiveManual()) return;
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// this verifies there's a non-classic result entered.

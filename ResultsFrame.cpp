@@ -1,5 +1,6 @@
 #include "ResultsFrame.h"
 
+#include "Beep.h"
 #include "EditPollFrame.h"
 #include "EditSimulationFrame.h"
 #include "Log.h"
@@ -93,6 +94,8 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 	refreshData();
 
 	refresher.refreshSeatData();
+
+	if (project->config().getBeepOnCompletion()) beep();
 }
 
 void ResultsFrame::OnAddResult(wxCommandEvent& WXUNUSED(event))
@@ -197,6 +200,7 @@ void ResultsFrame::OnClearAll(wxCommandEvent& WXUNUSED(even))
 	dlog.ShowModal();
 	if (dlog.GetValue() == "clear") {
 		project->outcomes().clear();
+		for (auto& seat : project->seats()) seat.second.resetLiveData();
 		refreshData();
 	}
 }

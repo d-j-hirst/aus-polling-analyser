@@ -1,5 +1,6 @@
 #include "ProjectionsFrame.h"
 #include "General.h"
+#include "Beep.h"
 
 using namespace std::placeholders; // for function object parameter binding
 
@@ -239,6 +240,7 @@ void ProjectionsFrame::runProjection() {
 	int projectionId = project->projections().indexToId(projectionIndex);
 	project->projections().run(projectionId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
+	if (project->config().getBeepOnCompletion()) beep();
 }
 
 // Sets the projection to be a "now-cast" (ends one day after the model ends)

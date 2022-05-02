@@ -33,7 +33,6 @@ private:
 	void loadSeatBettingOdds();
 	void loadSeatPolls();
 	void resetPpvcBiasAggregates();
-	void cacheBoothData();
 	void determinePpvcBias();
 	void determinePreviousVoteEnrolmentRatios();
 	void resizeRegionSeatCountOutputs();
@@ -43,7 +42,6 @@ private:
 	void finaliseLiveAggregates();
 	void resetResultCounts();
 	void determineIndependentPartyIndex();
-	void determineSeatCachedBoothData(int seatIndex);
 	SeatPartyPreferences aggregateVoteData(int seatIndex);
 	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
 	void accumulatePpvcBiasMeasures(int seatIndex);

@@ -224,6 +224,10 @@ private:
 	std::vector<float> liveSeatTppSwing;
 	std::vector<float> liveSeatPcCounted;
 
+	std::vector<float> liveRegionPercentCounted;
+	std::vector<float> liveRegionSwing;
+	std::vector<float> liveRegionClassicSeatCount;
+
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
 	SeatStatistics othSeatStatistics;

@@ -117,6 +117,7 @@
       <DisableSpecificWarnings>5054;4005;5232</DisableSpecificWarnings>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -363,6 +364,7 @@
   <ItemGroup>
     <ClInclude Include="AnalysisFrame.h" />
     <ClInclude Include="AnalysisFrameRenderer.h" />
+    <ClInclude Include="Beep.h" />
     <ClInclude Include="C:\C++ Libraries\TinyXml2\tinyxml2-master\tinyxml2.h" />
     <ClInclude Include="CheckInput.h" />
     <ClInclude Include="ChoiceInput.h" />
