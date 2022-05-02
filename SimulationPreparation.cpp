@@ -6,6 +6,7 @@
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
 
+#include <filesystem>
 #include <random>
 
 // Note: A large amount of code in this file is commented out as the "previous results"
@@ -334,10 +335,11 @@ void SimulationPreparation::calculateLiveAggregates()
 
 void SimulationPreparation::prepareLiveAutomatic()
 {
-	downloadPreviousElectionResults();
+	std::string previousResultsFilename = downloadPreviousElectionResults();
+	parsePreviousElectionResults(previousResultsFilename);
 }
 
-void SimulationPreparation::downloadPreviousElectionResults()
+std::string SimulationPreparation::downloadPreviousElectionResults()
 {
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
@@ -345,9 +347,20 @@ void SimulationPreparation::downloadPreviousElectionResults()
 	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
 	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
 	mangledName = "downloads/" + mangledName + ".xml";
-	resultsDownloader.loadZippedFile(sim.settings.previousResultsUrl, mangledName);
-	logger << "Downloaded file: " << sim.settings.previousResultsUrl << "\n";
-	logger << "and saved it as: " << mangledName << "\n";
+	std::filesystem::path mangledPath(mangledName);
+	if (std::filesystem::exists(mangledPath)) {
+		logger << "Already found previous results file at: " << mangledName << "\n";
+	}
+	else {
+		resultsDownloader.loadZippedFile(sim.settings.previousResultsUrl, mangledName);
+		logger << "Downloaded file: " << sim.settings.previousResultsUrl << "\n";
+		logger << "and saved it as: " << mangledName << "\n";
+	}
+	return mangledName;
+}
+
+void SimulationPreparation::parsePreviousElectionResults(std::string filename)
+{
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)

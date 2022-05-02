@@ -68,7 +68,9 @@ private:
 	void calculateLiveAggregates();
 
 	void prepareLiveAutomatic();
-	void downloadPreviousElectionResults();
+	// returns file name that contains the results
+	std::string downloadPreviousElectionResults();
+	void parsePreviousElectionResults(std::string filename);
 
 	std::string getTermCode();
 
