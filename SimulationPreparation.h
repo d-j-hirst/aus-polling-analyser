@@ -67,6 +67,9 @@ private:
 	void loadLiveManualResults();
 	void calculateLiveAggregates();
 
+	void prepareLiveAutomatic();
+	void downloadPreviousElectionResults();
+
 	std::string getTermCode();
 
 	std::vector<int> regionSeatCount;

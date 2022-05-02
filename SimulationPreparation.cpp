@@ -1,6 +1,7 @@
 #include "SimulationPreparation.h"
 
 #include "PollingProject.h"
+#include "ResultsDownloader.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
@@ -87,6 +88,10 @@ void SimulationPreparation::prepareForIterations()
 	calculateLiveAggregates();
 
 	resetResultCounts();
+
+	if (sim.isLiveAutomatic()) {
+		prepareLiveAutomatic();
+	}
 }
 
 void SimulationPreparation::resetLatestReport()
@@ -325,6 +330,24 @@ void SimulationPreparation::calculateLiveAggregates()
 	else {
 		sim.latestReport.total2cpPercentCounted = 0.0f;
 	}
+}
+
+void SimulationPreparation::prepareLiveAutomatic()
+{
+	downloadPreviousElectionResults();
+}
+
+void SimulationPreparation::downloadPreviousElectionResults()
+{
+	ResultsDownloader resultsDownloader;
+	std::string mangledName = sim.settings.previousResultsUrl;
+	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
+	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
+	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
+	mangledName = "downloads/" + mangledName + ".xml";
+	resultsDownloader.loadZippedFile(sim.settings.previousResultsUrl, mangledName);
+	logger << "Downloaded file: " << sim.settings.previousResultsUrl << "\n";
+	logger << "and saved it as: " << mangledName << "\n";
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)

@@ -323,3 +323,5 @@ __pycache__/
 /uploads/latest_json.dat
 /Federal Election 2022 v34 backup.pol2
 /live_scripts/output.csv
+/downloads/TempResults.zip
+/downloads/*.xml
