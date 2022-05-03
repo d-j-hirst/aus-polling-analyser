@@ -1,5 +1,9 @@
 #pragma once
 
+#include "ElectionData.h"
+
+#include "tinyxml2.h"
+
 #include <stdexcept>
 #include <vector>
 #include <utility>
@@ -69,12 +73,15 @@ private:
 
 	void prepareLiveAutomatic();
 	// returns file name that contains the results
-	std::string downloadPreviousElectionResults();
-	void parsePreviousElectionResults(std::string filename);
+	void downloadPreviousElectionResults();
+	void parsePreviousElectionResults();
 
 	std::string getTermCode();
 
 	std::vector<int> regionSeatCount;
+	std::string xmlFilename;
+	tinyxml2::XMLDocument xml;
+	Results2::Election previousElection;
 
 	PollingProject& project;
 	Simulation& sim;

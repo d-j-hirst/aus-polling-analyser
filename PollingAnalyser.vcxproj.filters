@@ -230,6 +230,9 @@
     <ClCompile Include="MacroRunner.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="ElectionData.cpp">
+      <Filter>Source Files\Data Objects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -285,6 +288,9 @@
     </Filter>
     <Filter Include="Source Files\Process Objects\Election Analyser">
       <UniqueIdentifier>{55417993-f94d-4d34-a1e9-84ad57661aa2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Data Objects">
+      <UniqueIdentifier>{7833fa88-b802-40ed-8a76-cc266dbde611}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

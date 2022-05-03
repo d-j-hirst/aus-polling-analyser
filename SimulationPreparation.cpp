@@ -6,6 +6,8 @@
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
 
+#include "tinyxml2.h"
+
 #include <filesystem>
 #include <random>
 
@@ -335,11 +337,11 @@ void SimulationPreparation::calculateLiveAggregates()
 
 void SimulationPreparation::prepareLiveAutomatic()
 {
-	std::string previousResultsFilename = downloadPreviousElectionResults();
-	parsePreviousElectionResults(previousResultsFilename);
+	downloadPreviousElectionResults();
+	parsePreviousElectionResults();
 }
 
-std::string SimulationPreparation::downloadPreviousElectionResults()
+void SimulationPreparation::downloadPreviousElectionResults()
 {
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
@@ -356,11 +358,13 @@ std::string SimulationPreparation::downloadPreviousElectionResults()
 		logger << "Downloaded file: " << sim.settings.previousResultsUrl << "\n";
 		logger << "and saved it as: " << mangledName << "\n";
 	}
-	return mangledName;
+	xmlFilename = mangledName;
 }
 
-void SimulationPreparation::parsePreviousElectionResults(std::string filename)
+void SimulationPreparation::parsePreviousElectionResults()
 {
+	xml.LoadFile(xmlFilename.c_str());
+	previousElection = Results2::Election(xml);
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)

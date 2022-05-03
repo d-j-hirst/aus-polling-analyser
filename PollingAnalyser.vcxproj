@@ -290,6 +290,7 @@
     <ClCompile Include="DisplayFrameRenderer.cpp" />
     <ClCompile Include="ElectionAnalyser.cpp" />
     <ClCompile Include="ElectionCollection.cpp" />
+    <ClCompile Include="ElectionData.cpp" />
     <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />

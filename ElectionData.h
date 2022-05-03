@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tinyxml2.h"
+
 #include <array>
 #include <unordered_map>
 #include <numeric>
@@ -101,6 +103,14 @@ namespace Results {
 }
 
 namespace Results2 {
+	enum class VoteType {
+		Ordinary,
+		Absent,
+		Provisional,
+		PrePoll,
+		Postal
+	};
+
 	struct Party {
 		int32_t id;
 		std::string name;
@@ -134,6 +144,10 @@ namespace Results2 {
 		std::string name;
 		int32_t enrolment;
 		std::vector<int32_t> booths;
+		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> fpVotes;
+		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tcpVotes;
+
+		// The below are obsolete, kept around for file compatibility purposes but not longer used
 		std::unordered_map<int32_t, int32_t> ordinaryVotesFp; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> absentVotesFp; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> provisionalVotesFp; // map candidate id -> vote count
@@ -149,12 +163,13 @@ namespace Results2 {
 	struct Election {
 		typedef int32_t Id;
 		std::string name;
-		int32_t id = 0;
+		Id id = 0;
 		std::unordered_map<int32_t, Party> parties; // map affiliation id -> affiliation info
 		std::unordered_map<int32_t, Candidate> candidates; // map candidate id -> candidate info
 		std::unordered_map<int32_t, Booth> booths; // map booth id -> booth info
 		std::unordered_map<int32_t, Seat> seats; // map seat id -> seat info
 
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
+		Election(tinyxml2::XMLDocument const& xml);
 	};
 }

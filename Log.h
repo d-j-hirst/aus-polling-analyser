@@ -3,6 +3,7 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // For debugging convenience only - do not leave in stable code
@@ -19,6 +20,11 @@ public:
 	template<typename T>
 	auto operator<<(const T& obj)
 		-> decltype(std::ofstream() << obj, *this)&;
+
+	template<typename T,
+		std::enable_if_t<std::is_enum<T>::value, int> = 0>
+	auto operator<<(const T& obj)
+		-> decltype(std::ofstream() << static_cast<int>(obj), *this)&;
 	
 	template<typename T>
 	auto operator<<(const T& obj)
@@ -29,6 +35,9 @@ public:
 
 	template<typename T, typename U>
 	Logger& operator<<(const std::map<T, U>& obj);
+
+	template<typename T, typename U>
+	Logger& operator<<(const std::unordered_map<T, U>& obj);
 
 	template<typename T, int X>
 	Logger& operator<<(const std::array<T, X>& obj);
@@ -63,6 +72,16 @@ auto Logger::operator<<(const T& obj)
 	return *this;
 }
 
+template<typename T,
+	std::enable_if_t<std::is_enum<T>::value, int>>
+auto Logger::operator<<(const T& obj)
+-> decltype(std::ofstream() << static_cast<int>(obj), *this)&
+{
+	fileStream_ << static_cast<int>(obj);
+	flushIf();
+	return *this;
+}
+
 template<typename T>
 auto Logger::operator<<(const T& obj)
 -> decltype(obj.FormatISODate(), *this)&
@@ -91,6 +110,23 @@ inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
+	fileStream_ << "{";
+	bool firstItem = true;
+	for (auto const& [key, val] : obj) {
+		if (!firstItem) fileStream_ << ", ";
+		*this << key << ": " << val;
+		firstItem = false;
+	}
+	fileStream_ << "}";
+	setFlushFlag(prevFlush);
+	flushIf();
+	return *this;
+}
+
+template<typename T, typename U>
+inline Logger& Logger::operator<<(const typename std::unordered_map<T, U>& obj) {
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	fileStream_ << "{";
