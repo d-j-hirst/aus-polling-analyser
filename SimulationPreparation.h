@@ -73,8 +73,12 @@ private:
 
 	void prepareLiveAutomatic();
 	// returns file name that contains the results
-	void downloadPreviousElectionResults();
-	void parsePreviousElectionResults();
+	void downloadPreviousResults();
+	void parsePreviousResults();
+	void downloadPreload();
+	void parsePreload();
+	void downloadCurrentResults();
+	void parseCurrentResults();
 
 	std::string getTermCode();
 
@@ -82,6 +86,7 @@ private:
 	std::string xmlFilename;
 	tinyxml2::XMLDocument xml;
 	Results2::Election previousElection;
+	Results2::Election currentElection;
 
 	PollingProject& project;
 	Simulation& sim;

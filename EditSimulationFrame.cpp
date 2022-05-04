@@ -24,7 +24,10 @@ enum ControlId
 	PrevTermCodes,
 	Live,
 	ReportMode,
-	PreviousResultsUrl
+	PreviousResultsUrl,
+	PreloadUrl,
+	CurrentTestUrl,
+	CurrentRealUrl
 };
 
 EditSimulationFrame::EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings simulation)
@@ -49,6 +52,9 @@ void EditSimulationFrame::createControls(int & y)
 	createLiveInput(y);
 	createReportModeInput(y);
 	createPreviousResultsUrlInput(y);
+	createPreloadUrlInput(y);
+	createCurrentTestUrlInput(y);
+	createCurrentRealUrlInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -140,6 +146,27 @@ void EditSimulationFrame::createPreviousResultsUrlInput(int& y)
 {
 	auto previousResultsUrlCallback = [this](std::string s) -> void {simulationSettings.previousResultsUrl = s; };
 	previousResultsUrlInput.reset(new TextInput(this, ControlId::PreviousResultsUrl, "Previous Results URL:", simulationSettings.previousResultsUrl, wxPoint(2, y), previousResultsUrlCallback));
+	y += nameInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createPreloadUrlInput(int& y)
+{
+	auto preloadUrlCallback = [this](std::string s) -> void {simulationSettings.preloadUrl = s; };
+	preloadUrlInput.reset(new TextInput(this, ControlId::PreloadUrl, "Preload URL:", simulationSettings.preloadUrl, wxPoint(2, y), preloadUrlCallback));
+	y += nameInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createCurrentTestUrlInput(int& y)
+{
+	auto currentTestUrlCallback = [this](std::string s) -> void {simulationSettings.currentTestUrl = s; };
+	currentTestUrlInput.reset(new TextInput(this, ControlId::CurrentTestUrl, "Current Test URL:", simulationSettings.currentTestUrl, wxPoint(2, y), currentTestUrlCallback));
+	y += nameInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createCurrentRealUrlInput(int& y)
+{
+	auto currentRealUrlCallback = [this](std::string s) -> void {simulationSettings.currentRealUrl = s; };
+	currentRealUrlInput.reset(new TextInput(this, ControlId::CurrentRealUrl, "Current Real URL:", simulationSettings.currentRealUrl, wxPoint(2, y), currentRealUrlCallback));
 	y += nameInput->Height + ControlPadding;
 }
 

@@ -55,7 +55,8 @@
 // Version 48: tcpChange value for redistributed non-classic seats.
 // Version 49: Record seats where (non-incumbent) independent is re-running
 // Version 50: Save previous-results URL
-constexpr int VersionNum = 50;
+// Version 51: Save preload URL
+constexpr int VersionNum = 51;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -802,6 +803,9 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().live);
 		saveOutput.outputAsType<int32_t>(thisSimulation.getSettings().reportMode);
 		saveOutput << thisSimulation.getSettings().previousResultsUrl;
+		saveOutput << thisSimulation.getSettings().preloadUrl;
+		saveOutput << thisSimulation.getSettings().currentTestUrl;
+		saveOutput << thisSimulation.getSettings().currentRealUrl;
 		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
 		saveReport(saveOutput, thisSimulation.latestReport);
 		saveOutput.outputAsType<uint32_t>(thisSimulation.savedReports.size());
@@ -835,6 +839,11 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 		}
 		if (versionNum >= 50) {
 			saveInput >> thisSettings.previousResultsUrl;
+		}
+		if (versionNum >= 51) {
+			saveInput >> thisSettings.preloadUrl;
+			saveInput >> thisSettings.currentTestUrl;
+			saveInput >> thisSettings.currentRealUrl;
 		}
 		Simulation thisSimulation = Simulation(thisSettings);
 		if (versionNum >= 12) {

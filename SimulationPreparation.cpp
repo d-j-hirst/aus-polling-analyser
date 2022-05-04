@@ -337,11 +337,15 @@ void SimulationPreparation::calculateLiveAggregates()
 
 void SimulationPreparation::prepareLiveAutomatic()
 {
-	downloadPreviousElectionResults();
-	parsePreviousElectionResults();
+	downloadPreviousResults();
+	parsePreviousResults();
+	downloadPreload();
+	parsePreload();
+	downloadCurrentResults();
+	parseCurrentResults();
 }
 
-void SimulationPreparation::downloadPreviousElectionResults()
+void SimulationPreparation::downloadPreviousResults()
 {
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
@@ -361,10 +365,62 @@ void SimulationPreparation::downloadPreviousElectionResults()
 	xmlFilename = mangledName;
 }
 
-void SimulationPreparation::parsePreviousElectionResults()
+void SimulationPreparation::parsePreviousResults()
 {
 	xml.LoadFile(xmlFilename.c_str());
 	previousElection = Results2::Election(xml);
+}
+
+void SimulationPreparation::downloadPreload()
+{
+	ResultsDownloader resultsDownloader;
+	std::string mangledName = sim.settings.preloadUrl;
+	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
+	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
+	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
+	mangledName = "downloads/" + mangledName + ".xml";
+	std::filesystem::path mangledPath(mangledName);
+	if (std::filesystem::exists(mangledPath)) {
+		logger << "Already found preload file at: " << mangledName << "\n";
+	}
+	else {
+		resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName, "preload");
+		logger << "Downloaded file: " << sim.settings.preloadUrl << "\n";
+		logger << "and saved it as: " << mangledName << "\n";
+	}
+	xmlFilename = mangledName;
+}
+
+void SimulationPreparation::parsePreload()
+{
+	xml.LoadFile(xmlFilename.c_str());
+	currentElection = Results2::Election(xml);
+}
+
+void SimulationPreparation::downloadCurrentResults()
+{
+	ResultsDownloader resultsDownloader;
+	std::string mangledName = sim.settings.currentTestUrl;
+	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
+	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
+	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
+	mangledName = "downloads/" + mangledName + ".xml";
+	std::filesystem::path mangledPath(mangledName);
+	if (std::filesystem::exists(mangledPath)) {
+		logger << "Already found currenttest file at: " << mangledName << "\n";
+	}
+	else {
+		resultsDownloader.loadZippedFile(sim.settings.currentTestUrl, mangledName);
+		logger << "Downloaded file: " << sim.settings.currentTestUrl << "\n";
+		logger << "and saved it as: " << mangledName << "\n";
+	}
+	xmlFilename = mangledName;
+}
+
+void SimulationPreparation::parseCurrentResults()
+{
+	xml.LoadFile(xmlFilename.c_str());
+	currentElection.update(xml);
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)

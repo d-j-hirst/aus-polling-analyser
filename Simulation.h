@@ -61,6 +61,9 @@ public:
 		float prevElection2pp = 50.0f;
 
 		std::string previousResultsUrl;
+		std::string preloadUrl;
+		std::string currentTestUrl; // used for testing, leave blank on the night
+		std::string currentRealUrl; // used on the night, leave blank for testing
 	};
 
 	enum MajorParty {

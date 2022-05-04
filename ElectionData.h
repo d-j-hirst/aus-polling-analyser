@@ -180,5 +180,7 @@ namespace Results2 {
 
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
 		Election(tinyxml2::XMLDocument const& xml);
+
+		void update(tinyxml2::XMLDocument const& xml);
 	};
 }
