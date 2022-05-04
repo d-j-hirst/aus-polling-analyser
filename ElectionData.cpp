@@ -6,31 +6,31 @@ Results2::Election::Election(tinyxml2::XMLDocument const& xml)
 {
 	auto results = xml.FirstChildElement("MediaFeed")->FirstChildElement("Results");
 	auto electionEl = results->FirstChildElement("eml:EventIdentifier");
-	electionEl->FindAttribute("Id")->QueryIntValue(&id);
+	id = electionEl->FindAttribute("Id")->IntValue();
 	name = electionEl->FirstChildElement("eml:EventName")->GetText();
-	PA_LOG_VAR(name);
-	PA_LOG_VAR(id);
 	auto contests = results->FirstChildElement("Election")->FirstChildElement("House")->FirstChildElement("Contests");
 	auto currentContest = contests->FirstChildElement("Contest");
+	logger << "==SEATS==\n";
 	while (currentContest) {
 		auto contestIdEl = currentContest->FirstChildElement("PollingDistrictIdentifier");
 		Seat seat;
-		contestIdEl->FindAttribute("Id")->QueryIntValue(&seat.id);
+		seat.id = contestIdEl->FindAttribute("Id")->IntValue();
 		seat.name = contestIdEl->FirstChildElement("Name")->GetText();
 		seat.enrolment = std::stoi(currentContest->FirstChildElement("Enrolment")->GetText());
 		PA_LOG_VAR(seat.name);
 		PA_LOG_VAR(seat.id);
 		PA_LOG_VAR(seat.enrolment);
+
 		auto firstPrefs = currentContest->FirstChildElement("FirstPreferences");
 		auto currentCandidate = firstPrefs->FirstChildElement("Candidate");
 		while (currentCandidate) {
 			Candidate candidate;
 			auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
-			candidateIdEl->FindAttribute("Id")->QueryIntValue(&candidate.id);
+			candidate.id = candidateIdEl->FindAttribute("Id")->IntValue();
 			candidate.name = candidateIdEl->FirstChildElement("eml:CandidateName")->GetText();
 			auto affiliationEl = currentCandidate->FirstChildElement("eml:AffiliationIdentifier");
 			if (affiliationEl) {
-				affiliationEl->FindAttribute("Id")->QueryIntValue(&candidate.party);
+				candidate.party = affiliationEl->FindAttribute("Id")->IntValue();
 				if (!parties.contains(candidate.party)) {
 					parties[candidate.party] = Party();
 					parties[candidate.party].id = candidate.party;
@@ -38,7 +38,7 @@ Results2::Election::Election(tinyxml2::XMLDocument const& xml)
 						currentCandidate->FirstChildElement("eml:AffiliationIdentifier")->FirstChildElement("eml:RegisteredName")->GetText();
 				}
 			}
-			else candidate.party = -1;
+			else candidate.party = Candidate::Independent;
 			candidates[candidate.id] = candidate;
 			auto votesByType = currentCandidate->FirstChildElement("VotesByType");
 			auto fpVoteType = votesByType->FirstChildElement("Votes");
@@ -55,12 +55,13 @@ Results2::Election::Election(tinyxml2::XMLDocument const& xml)
 
 			currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 		}
+
 		auto tcps = currentContest->FirstChildElement("TwoCandidatePreferred");
 		currentCandidate = tcps->FirstChildElement("Candidate");
 		while (currentCandidate) {
 			auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 			int candidateId = -1;
-			candidateIdEl->FindAttribute("Id")->QueryIntValue(&candidateId);
+			candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
 			auto votesByType = currentCandidate->FirstChildElement("VotesByType");
 			auto tcpVoteType = votesByType->FirstChildElement("Votes");
 			while (tcpVoteType) {
@@ -77,8 +78,74 @@ Results2::Election::Election(tinyxml2::XMLDocument const& xml)
 			currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 		}
 
+		auto tpps = currentContest->FirstChildElement("TwoPartyPreferred");
+		auto currentCoalition = tpps->FirstChildElement("Coalition");
+		while (currentCoalition) {
+			auto coalitionIdEl = currentCoalition->FirstChildElement("CoalitionIdentifier");
+			if (!coalitionIdEl) break;
+			Coalition coalition;
+			int coalitionId =  coalitionIdEl->FindAttribute("Id")->IntValue();
+			if (!coalitions.contains(coalitionId)) {
+				coalitions[coalitionId].id = coalitionId;
+				coalitions[coalitionId].shortCode = coalitionIdEl->FindAttribute("ShortCode")->Value();
+				coalitions[coalitionId].name =
+					coalitionIdEl->FirstChildElement("CoalitionName")->GetText();
+			}
+			int tppVotes = currentCoalition->FirstChildElement("Votes")->IntText();
+			seat.tppVotes[coalitionId] = tppVotes;
+
+			currentCoalition = currentCoalition->NextSiblingElement("Coalition");
+		}
+
+		auto boothsEl = currentContest->FirstChildElement("PollingPlaces");
+		auto currentBooth = boothsEl->FirstChildElement("PollingPlace");
+		while (currentBooth) {
+			auto boothIdEl = currentBooth->FirstChildElement("PollingPlaceIdentifier");
+			Booth booth;
+			booth.id = boothIdEl->FindAttribute("Id")->IntValue();
+			booth.name = boothIdEl->FindAttribute("Name")->Value();
+			auto classifierEl = boothIdEl->FindAttribute("Classification");
+			if (classifierEl) {
+				std::string classifier = classifierEl->Value();
+				if (classifier == "PrePollVotingCentre") booth.type = Booth::Type::Ppvc;
+				if (classifier == "PrisonMobile") booth.type = Booth::Type::Prison;
+				if (classifier == "SpecialHospital") booth.type = Booth::Type::Hospital;
+				if (classifier == "RemoteMobile") booth.type = Booth::Type::Remote;
+			}
+
+			auto fps = currentBooth->FirstChildElement("FirstPreferences");
+			currentCandidate = fps->FirstChildElement("Candidate");
+			while (currentCandidate) {
+				auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
+				int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
+				int votes = currentCandidate->FirstChildElement("Votes")->IntText();
+				booth.votesFp[candidateId] = votes;
+
+				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
+			}
+
+			tcps = currentBooth->FirstChildElement("TwoCandidatePreferred");
+			currentCandidate = tcps->FirstChildElement("Candidate");
+			while (currentCandidate) {
+				auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
+				int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
+				int votes = currentCandidate->FirstChildElement("Votes")->IntText();
+				booth.votesTcp[candidateId] = votes;
+
+				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
+			}
+
+			PA_LOG_VAR(booth.id);
+			PA_LOG_VAR(booth.name);
+			PA_LOG_VAR(booth.votesFp);
+			PA_LOG_VAR(booth.votesTcp);
+			PA_LOG_VAR(booth.type);
+			currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+		}
+
 		PA_LOG_VAR(seat.fpVotes);
 		PA_LOG_VAR(seat.tcpVotes);
+		PA_LOG_VAR(seat.tppVotes);
 		currentContest = currentContest->NextSiblingElement("Contest");
 	}
 	logger << "==CANDIDATES==\n";
@@ -98,4 +165,13 @@ Results2::Election::Election(tinyxml2::XMLDocument const& xml)
 		PA_LOG_VAR(party.second.name);
 		PA_LOG_VAR(party.second.shortCode);
 	}
+	logger << "==COALITIONS==\n";
+	for (auto const& coalition : coalitions) {
+		PA_LOG_VAR(coalition.second.id);
+		PA_LOG_VAR(coalition.second.name);
+		PA_LOG_VAR(coalition.second.shortCode);
+	}
+	logger << "==ELECTION==\n";
+	PA_LOG_VAR(name);
+	PA_LOG_VAR(id);
 }

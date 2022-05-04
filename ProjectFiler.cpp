@@ -907,7 +907,7 @@ void ProjectFiler::saveElections(SaveFileOutput& saveOutput)
 			saveOutput << thisBooth.name;
 			saveOutput << thisBooth.type;
 			saveOutput << thisBooth.votesFp;
-			saveOutput << thisBooth.votes2cp;
+			saveOutput << thisBooth.votesTcp;
 		}
 		saveOutput.outputAsType<int32_t>(thisElection.seats.size());
 		for (auto const& [key, thisSeat] : thisElection.seats) {
@@ -920,11 +920,11 @@ void ProjectFiler::saveElections(SaveFileOutput& saveOutput)
 			saveOutput << thisSeat.provisionalVotesFp;
 			saveOutput << thisSeat.prepollVotesFp;
 			saveOutput << thisSeat.postalVotesFp;
-			saveOutput << thisSeat.ordinaryVotes2cp;
-			saveOutput << thisSeat.absentVotes2cp;
-			saveOutput << thisSeat.provisionalVotes2cp;
-			saveOutput << thisSeat.prepollVotes2cp;
-			saveOutput << thisSeat.postalVotes2cp;
+			saveOutput << thisSeat.ordinaryVotesTcp;
+			saveOutput << thisSeat.absentVotesTcp;
+			saveOutput << thisSeat.provisionalVotesTcp;
+			saveOutput << thisSeat.prepollVotesTcp;
+			saveOutput << thisSeat.postalVotesTcp;
 		}
 	}
 }
@@ -959,7 +959,7 @@ void ProjectFiler::loadElections(SaveFileInput& saveInput, [[maybe_unused]] int 
 			saveInput >> thisBooth.name;
 			saveInput >> thisBooth.type;
 			saveInput >> thisBooth.votesFp;
-			saveInput >> thisBooth.votes2cp;
+			saveInput >> thisBooth.votesTcp;
 			thisElection.booths[thisBooth.id] = thisBooth;
 		}
 		auto seatCount = saveInput.extract<int32_t>();
@@ -974,11 +974,11 @@ void ProjectFiler::loadElections(SaveFileInput& saveInput, [[maybe_unused]] int 
 			saveInput >> thisSeat.provisionalVotesFp;
 			saveInput >> thisSeat.prepollVotesFp;
 			saveInput >> thisSeat.postalVotesFp;
-			saveInput >> thisSeat.ordinaryVotes2cp;
-			saveInput >> thisSeat.absentVotes2cp;
-			saveInput >> thisSeat.provisionalVotes2cp;
-			saveInput >> thisSeat.prepollVotes2cp;
-			saveInput >> thisSeat.postalVotes2cp;
+			saveInput >> thisSeat.ordinaryVotesTcp;
+			saveInput >> thisSeat.absentVotesTcp;
+			saveInput >> thisSeat.provisionalVotesTcp;
+			saveInput >> thisSeat.prepollVotesTcp;
+			saveInput >> thisSeat.postalVotesTcp;
 			thisElection.seats[thisSeat.id] = thisSeat;
 		}
 		project.electionCollection.add(thisElection);

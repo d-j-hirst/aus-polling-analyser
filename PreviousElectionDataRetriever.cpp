@@ -79,11 +79,11 @@ void load2cpForSeat(Results2::Seat& thisSeat, tinyxml2::XMLElement* currentCandi
 		else if (voteType == "Postal") postalVotes = thisVoteCount;
 		currentVoteType = currentVoteType->NextSiblingElement("Votes");
 	} while (currentVoteType);
-	thisSeat.ordinaryVotes2cp[candidateId] = ordinaryVotes;
-	thisSeat.absentVotes2cp[candidateId] = absentVotes;
-	thisSeat.provisionalVotes2cp[candidateId] = provisionalVotes;
-	thisSeat.prepollVotes2cp[candidateId] = prepollVotes;
-	thisSeat.postalVotes2cp[candidateId] = postalVotes;
+	thisSeat.ordinaryVotesTcp[candidateId] = ordinaryVotes;
+	thisSeat.absentVotesTcp[candidateId] = absentVotes;
+	thisSeat.provisionalVotesTcp[candidateId] = provisionalVotes;
+	thisSeat.prepollVotesTcp[candidateId] = prepollVotes;
+	thisSeat.postalVotesTcp[candidateId] = postalVotes;
 }
 
 void loadBoothForSeat(Results2::Election& election, Results2::Seat& thisSeat, tinyxml2::XMLElement* currentPollingPlace) {
@@ -112,7 +112,7 @@ void loadBoothForSeat(Results2::Election& election, Results2::Seat& thisSeat, ti
 		auto candidateIdElement = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 		auto candidateId = candidateIdElement->FindAttribute("Id")->IntValue();
 		auto votes = currentCandidate->FirstChildElement("Votes")->IntText();
-		thisBooth.votes2cp[candidateId] = votes;
+		thisBooth.votesTcp[candidateId] = votes;
 		currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 	} while (currentCandidate);
 	election.booths[pollingPlaceId] = thisBooth;
@@ -242,7 +242,7 @@ Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filena
 		}
 		if (!std::count(seat.booths.begin(), seat.booths.end(), boothId)) seat.booths.push_back(boothId);
 		auto& booth = election.booths.find(boothId)->second;
-		booth.votes2cp.insert({ candidateId, votes });
+		booth.votesTcp.insert({ candidateId, votes });
 		if (!partyCodeToId.count(partyCode)) {
 			partyCodeToId[partyCode] = partyIndex;
 			Results2::Party party;
@@ -380,13 +380,13 @@ Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Elect
 		alpCandidate.id = candidateIndex;
 		alpCandidate.party = 1;
 		election.candidates.insert({ candidateIndex, alpCandidate });
-		thisBooth.votes2cp.insert({ candidateIndex, alpVotes });
+		thisBooth.votesTcp.insert({ candidateIndex, alpVotes });
 		++candidateIndex;
 		Results2::Candidate lpCandidate;
 		lpCandidate.id = candidateIndex;
 		lpCandidate.party = 2;
 		election.candidates.insert({ candidateIndex, lpCandidate });
-		thisBooth.votes2cp.insert({ candidateIndex, lpVotes });
+		thisBooth.votesTcp.insert({ candidateIndex, lpVotes });
 		++candidateIndex;
 	} while (true);
 

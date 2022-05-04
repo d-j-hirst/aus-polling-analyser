@@ -27,7 +27,7 @@ ClusterAnalyser::ClusterAnalyser(ElectionCollection const& elections)
 
 inline int32_t findVote2cp(Results2::Election const& election, Results2::Booth const& booth, int32_t partyId) {
 	int votes = 0;
-	for (auto [candidate, thisVotes] : booth.votes2cp) {
+	for (auto [candidate, thisVotes] : booth.votesTcp) {
 		auto candidateData = election.candidates.at(candidate);
 		auto partyData = election.parties.at(candidateData.party);
 		if (partyData.id == partyId) {
@@ -56,7 +56,7 @@ inline float getSimilarityScore(ClusterAnalyser::Output::Cluster const& cluster1
 		auto cluster2e = cluster2.elections.find(cluster1e.first);
 		if (cluster2e == cluster2.elections.end()) continue;
 		if (!(cluster1e.second.alp2cp && cluster2e->second.alp2cp)) continue;
-		totalSignificance += std::sqrt(float(cluster1e.second.votes2cp.value()) * float(cluster2e->second.votes2cp.value()));
+		totalSignificance += std::sqrt(float(cluster1e.second.votesTcp.value()) * float(cluster2e->second.votesTcp.value()));
 		electionCount++;
 	}
 	totalSignificance /= electionCount;
@@ -66,7 +66,7 @@ inline float getSimilarityScore(ClusterAnalyser::Output::Cluster const& cluster1
 		auto cluster2e = cluster2.elections.find(cluster1e.first);
 		if (cluster2e == cluster2.elections.end()) continue;
 		if (!(cluster1e.second.alp2cp && cluster2e->second.alp2cp)) continue;
-		float significanceFactor = std::sqrt(float(cluster1e.second.votes2cp.value()) * float(cluster2e->second.votes2cp.value())) / totalSignificance;
+		float significanceFactor = std::sqrt(float(cluster1e.second.votesTcp.value()) * float(cluster2e->second.votesTcp.value())) / totalSignificance;
 		squaredErrorSum += float(std::pow((cluster1e.second.alp2cp.value() - cluster2e->second.alp2cp.value()) * 5.0f, 2)) * significanceFactor;
 		dataDensityCount += 0.25f * significanceFactor;
 		if (cluster1e.second.greenFp && cluster2e->second.greenFp) {
@@ -146,11 +146,11 @@ ClusterAnalyser::Output::Cluster ClusterAnalyser::mergeClusters(ClusterAnalyser:
 		auto const& election1 = cluster1.elections.at(electionKey);
 		auto const& election2 = cluster2.elections.at(electionKey);
 
-		int cluster1Votes2cp = election1.votes2cp.value_or(0);
-		int cluster2Votes2cp = election2.votes2cp.value_or(0);
+		int cluster1Votes2cp = election1.votesTcp.value_or(0);
+		int cluster2Votes2cp = election2.votesTcp.value_or(0);
 		if (!cluster1Votes2cp && !cluster2Votes2cp) continue;
 		float cluster1Proportion2cp = float(cluster1Votes2cp) / float(cluster1Votes2cp + cluster2Votes2cp);
-		election.votes2cp = cluster1Votes2cp + cluster2Votes2cp;
+		election.votesTcp = cluster1Votes2cp + cluster2Votes2cp;
 		election.alp2cp = election1.alp2cp.value_or(50.0f) * cluster1Proportion2cp +
 			election2.alp2cp.value_or(50.0f) * (1.0f - cluster1Proportion2cp);
 
@@ -191,7 +191,7 @@ std::string ClusterAnalyser::clusterName(ClusterAnalyser::Output::Cluster const&
 		clusterName += " + " + std::to_string(cluster.totalBooths - 2) + " others";
 	}
 	int totalVotes = std::accumulate(cluster.elections.begin(), cluster.elections.end(), 0,
-		[](int a, auto b) {return b.second.votes2cp.value_or(0) + a; });
+		[](int a, auto b) {return b.second.votesTcp.value_or(0) + a; });
 	clusterName += " (" + std::to_string(totalVotes) + ")";
 	return clusterName;
 }
@@ -240,7 +240,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			if (alpVotes && lpVotes) {
 				float alpProportion = (alpVotes && lpVotes ? float(alpVotes) / float(alpVotes + lpVotes) : 0.0f);
 				newVal.alp2cp = alpProportion;
-				newVal.votes2cp = alpVotes + lpVotes;
+				newVal.votesTcp = alpVotes + lpVotes;
 				if (grnFpVotes && alpVotes && lpVotes) newVal.greenFp = float(grnFpVotes) / float(alpVotes + lpVotes);
 				if (othFpVotes && alpVotes && lpVotes) newVal.othersFp = float(othFpVotes) / float(alpVotes + lpVotes);
 				outputBooth.maxBoothVotes = std::max(outputBooth.maxBoothVotes, alpVotes + lpVotes);
@@ -268,7 +268,7 @@ ClusterAnalyser::Output ClusterAnalyser::run()
 			if (generalSecondElection->first != secondElection->first) continue;
 			if (firstElection->second.alp2cp && secondElection->second.alp2cp) {
 				secondElection->second.alpSwing = secondElection->second.alp2cp.value() - firstElection->second.alp2cp.value();
-				secondElection->second.swingVotes = secondElection->second.votes2cp;
+				secondElection->second.swingVotes = secondElection->second.votesTcp;
 				swingElections++;
 			}
 		}
