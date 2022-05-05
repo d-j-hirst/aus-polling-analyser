@@ -1,62 +1,62 @@
 Barton,fed,0.5923
 Bendigo,fed,0.6884
-Blair,fed,2.4264
-Bonner,fed,0.1667
-Bowman,fed,0.6598
+Blair,fed,2.4166
+Bonner,fed,0.1570
+Bowman,fed,0.6501
 Braddon,fed,0.6607
 Brand,fed,1.1509
-Brisbane,fed,0.0591
+Brisbane,fed,0.0493
 Burt,fed,0.7285
 Canning,fed,1.1642
-Capricornia,fed,1.4551
+Capricornia,fed,1.4454
 Cook,fed,0.7327
 Monash,fed,0.9555
 Nicholls,fed,1.4157
 Cowan,fed,0.8470
 Curtin,fed,0.2919
-Dawson,fed,1.3338
-Dickson,fed,0.3787
+Dawson,fed,1.3241
+Dickson,fed,0.3690
 Durack,fed,1.1950
-Fadden,fed,0.8591
-Fairfax,fed,1.0393
-Fisher,fed,0.9733
-Flynn,fed,2.1228
-Forde,fed,1.3331
+Fadden,fed,0.8494
+Fairfax,fed,1.0296
+Fisher,fed,0.9636
+Flynn,fed,2.1131
+Forde,fed,1.3233
 Forrest,fed,1.2191
 Fremantle,fed,0.7321
 Grey,fed,1.2172
-Griffith,fed,0.1165
-Groom,fed,1.4063
+Griffith,fed,0.1068
+Groom,fed,1.3966
 Hasluck,fed,0.8861
-Herbert,fed,1.0921
-Hinkler,fed,1.5350
+Herbert,fed,1.0823
+Hinkler,fed,1.5253
 Hunter,fed,2.1572
 La Trobe,fed,0.5005
-Leichhardt,fed,0.8329
-Lilley,fed,0.4084
-Longman,fed,1.3875
+Leichhardt,fed,0.8232
+Lilley,fed,0.3986
+Longman,fed,1.3778
 Lyons,fed,0.8970
 Macarthur,fed,1.0907
-Maranoa,fed,1.9170
+Maranoa,fed,1.9072
 McEwen,fed,0.6536
 McMahon,fed,1.0345
-McPherson,fed,0.5783
-Moncrieff,fed,0.6223
+McPherson,fed,0.5686
+Moncrieff,fed,0.6126
 Moore,fed,0.6955
-Moreton,fed,0.2153
+Moreton,fed,0.2056
 O'Connor,fed,1.4685
-Oxley,fed,1.0512
+Oxley,fed,1.0414
 Paterson,fed,1.3779
 Pearce,fed,1.2757
 Perth,fed,0.6120
-Petrie,fed,0.6439
-Rankin,fed,0.8514
-Ryan,fed,0.0232
+Petrie,fed,0.6342
+Rankin,fed,0.8417
+Ryan,fed,0.0135
 Stirling,fed,0.5976
 Swan,fed,0.6010
 Tangney,fed,0.4905
-Wide Bay,fed,1.6014
-Wright,fed,1.4219
+Wide Bay,fed,1.5917
+Wright,fed,1.4121
 Dobell,fed,0.9356
 Richmond,fed,0.6964
 Charlton,fed,1.4000
@@ -79,8 +79,8 @@ Shortland,fed,1.0096
 Solomon,fed,0.6709
 Boothby,fed,0.6311
 Bruce,fed,0.3231
-Kalgoorlie,fed,0.9474
-Kennedy,fed,1.6456
+Kalgoorlie,fed,0.9376
+Kennedy,fed,1.6359
 Makin,fed,0.9802
 Wakefield,fed,1.6673
 Barker,fed,1.4202
@@ -364,36 +364,41 @@ Sunnybank,qld,0.6886
 Warwick,qld,1.1998
 Western Downs,qld,1.3661
 Yeronga,qld,0.5287
+Chaffey,sa,1.4681
+Badcoe,sa,0.4693
+Elizabeth,sa,1.4358
+Enfield,sa,0.7300
+Finniss,sa,0.9433
+Frome,sa,1.5377
+Giles,sa,1.0735
+Hammond,sa,1.2618
+Heysen,sa,0.6876
+Kaurna,sa,1.1862
+Kavel,sa,0.6768
+Light,sa,1.1138
+MacKillop,sa,1.1899
+Mawson,sa,1.0523
+Narungga,sa,0.8175
+Newland,sa,0.7145
+Schubert,sa,1.1966
+Stuart,sa,1.5757
+Taylor,sa,1.3985
 Ashford,sa,0.6620
 Goyder,sa,1.4067
-Hammond,sa,1.6963
-Kavel,sa,0.9102
-Newland,sa,0.9930
 Port Adelaide,sa,1.1585
 Adelaide,sa,0.2896
 Bragg,sa,0.3310
 Bright,sa,0.8275
-Chaffey,sa,1.4067
 Cheltenham,sa,0.8275
 Colton,sa,0.4551
 Croydon,sa,0.6206
 Davenport,sa,0.5379
 Elder,sa,0.5379
-Elizabeth,sa,1.1585
-Enfield,sa,0.8275
-Finniss,sa,1.4067
 Fisher,sa,0.6206
 Flinders,sa,1.3239
 Florey,sa,1.2826
-Frome,sa,1.2826
-Giles,sa,1.2826
 Hartley,sa,0.4551
-Heysen,sa,0.5792
-Kaurna,sa,1.0757
 Lee,sa,0.9516
-Light,sa,1.2826
-MacKillop,sa,1.1171
-Mawson,sa,1.1585
 Mitchell,sa,0.8275
 Morialta,sa,0.5792
 Morphett,sa,0.7861
@@ -403,9 +408,6 @@ Norwood,sa,0.4551
 Playford,sa,1.2826
 Ramsay,sa,1.4481
 Reynell,sa,1.1171
-Schubert,sa,1.5308
-Stuart,sa,3.0616
-Taylor,sa,1.5308
 Torrens,sa,0.8275
 Unley,sa,0.3310
 Waite,sa,0.4551
@@ -481,367 +483,365 @@ Nedlands,wa,0.2391
 Ningaloo,wa,1.3990
 Nollamara,wa,0.6641
 Roleystone,wa,1.0360
-Bean,fed,0.5449
-Calwell,fed,0.8931
-Clark,fed,0.5449
-Cooper,fed,0.5449
-Fenner,fed,0.5449
-Gorton,fed,0.8931
-Hawke,fed,1.0093
-Holt,fed,0.8931
-Macnamara,fed,0.5449
-Maribyrnong,fed,0.5449
-Melbourne,fed,0.5449
-Scullin,fed,0.8931
-Spence,fed,0.8931
-Whitlam,fed,1.0093
-Wills,fed,0.8931
-Balaclava,fed,0.5449
-Batman,fed,0.5449
-Bland,fed,1.2812
-Corinella,fed,0.8931
-Darling Downs,fed,1.2812
-Denison,fed,0.5449
-Diamond Valley,fed,0.8931
-Dundas,fed,0.5449
-Hawker,fed,0.8931
-Henty,fed,0.5449
-Namadgi,fed,0.5449
-Phillip,fed,0.5449
-Riverina-Darling,fed,1.2812
-St George,fed,0.5449
-Streeton,fed,0.8931
-Wilmot,fed,1.2812
-Balmain,nsw,0.5449
-Castle Hill,nsw,0.8931
-Cootamundra,nsw,0.5449
-Eden-Bombala,nsw,1.2812
-Leppington,nsw,0.8931
-Lismore,nsw,1.2812
-Newtown,nsw,0.5449
-Prospect,nsw,0.8931
-Seven Hills,nsw,0.5449
-Shellharbour,nsw,1.0093
-Summer Hill,nsw,0.5449
-Sydney,nsw,0.5449
-Terrigal,nsw,1.0093
-Wollongong,nsw,1.0093
-Woronora,nsw,0.8931
-Armidale,nsw,1.0093
-Ashfield,nsw,0.5449
-Badgerys Creek,nsw,0.8931
-Bass Hill,nsw,0.5449
-Bligh,nsw,0.5449
-Broken Hill,nsw,1.2812
-Bulli,nsw,1.0093
-Burragorang,nsw,1.2812
-Burrendong,nsw,1.2812
-Burwood,nsw,0.5449
-Byron,nsw,1.2812
-Carlingford,nsw,0.5449
-Castlereagh,nsw,1.2812
-Corrimal,nsw,1.0093
-Earlwood,nsw,0.5449
-Eastwood,nsw,0.5449
-Elizabeth,nsw,0.5449
-Ermington,nsw,0.5449
-Fuller,nsw,0.5449
-Gladesville,nsw,0.5449
-Gloucester,nsw,1.2812
-Gordon,nsw,0.5449
-Hurstville,nsw,0.5449
-Ingleburn,nsw,0.8931
-Kirribilli,nsw,0.5449
-Manning,nsw,1.2812
-McKell,nsw,0.5449
-Merrylands,nsw,0.5449
-Minchinbury,nsw,0.8931
-Moorebank,nsw,0.8931
-Mosman,nsw,0.5449
-Munmorah,nsw,1.0093
-Murwillumbah,nsw,1.2812
-Nepean,nsw,0.8931
-Northcott,nsw,0.5449
-Phillip,nsw,0.5449
-Pyrmont,nsw,0.5449
-Raleigh,nsw,1.2812
-St Marys,nsw,0.8931
-Sturt,nsw,1.2812
-Sutherland,nsw,0.8931
-Temora,nsw,1.2812
-Tenterfield,nsw,1.2812
-Toongabbie,nsw,0.8931
-Tuggerah,nsw,1.0093
-Waratah,nsw,1.0093
-Waverley,nsw,0.5449
-Woronara,nsw,0.8931
-Yaralla,nsw,0.5449
-Young,nsw,1.2812
-Albert Park,vic,0.5449
-Altona,vic,0.8931
-Bass,vic,1.2812
-Bayswater,vic,0.8931
-Bellarine,vic,1.0093
-Benambra,vic,1.0093
-Bendigo East,vic,1.0093
-Bendigo West,vic,1.0093
-Bentleigh,vic,0.5449
-Box Hill,vic,0.5449
-Brighton,vic,0.5449
-Broadmeadows,vic,0.8931
-Brunswick,vic,0.5449
-Bulleen,vic,0.5449
-Bundoora,vic,0.8931
-Buninyong,vic,1.0093
-Burwood,vic,0.5449
-Carrum,vic,0.8931
-Caulfield,vic,0.5449
-Clarinda,vic,0.8931
-Cranbourne,vic,0.8931
-Croydon,vic,0.8931
-Dandenong,vic,0.8931
-Eildon,vic,1.2812
-Eltham,vic,0.8931
-Essendon,vic,0.5449
-Euroa,vic,1.2812
-Evelyn,vic,0.8931
-Ferntree Gully,vic,0.8931
-Footscray,vic,0.5449
-Forest Hill,vic,0.5449
-Frankston,vic,0.8931
-Geelong,vic,1.0093
-Gembrook,vic,0.8931
-Gippsland South,vic,1.2812
-Hastings,vic,0.8931
-Hawthorn,vic,0.5449
-Ivanhoe,vic,0.8931
-Kew,vic,0.5449
-Keysborough,vic,0.8931
-Kororoit,vic,0.8931
-Lara,vic,1.0093
-Lowan,vic,1.2812
-Macedon,vic,1.0093
-Malvern,vic,0.5449
-Melbourne,vic,0.5449
-Melton,vic,0.8931
-Mildura,vic,1.0093
-Mill Park,vic,0.8931
-Monbulk,vic,0.8931
-Mordialloc,vic,0.8931
-Mornington,vic,0.8931
-Morwell,vic,1.0093
-Mount Waverley,vic,0.5449
-Mulgrave,vic,0.5449
-Murray Plains,vic,1.2812
-Narracan,vic,1.2812
-Narre Warren North,vic,0.8931
-Narre Warren South,vic,0.8931
-Nepean,vic,0.8931
-Niddrie,vic,0.8931
-Northcote,vic,0.5449
-Oakleigh,vic,0.5449
-Ovens Valley,vic,1.2812
-Pascoe Vale,vic,0.8931
-Polwarth,vic,1.2812
-Prahran,vic,0.5449
-Preston,vic,0.5449
-Richmond,vic,0.5449
-Ringwood,vic,0.8931
-Ripon,vic,1.2812
-Rowville,vic,0.8931
-St Albans,vic,0.8931
-Sandringham,vic,0.5449
-Shepparton,vic,1.0093
-South Barwon,vic,1.0093
-South-West Coast,vic,1.0093
-Sunbury,vic,0.8931
-Sydenham,vic,0.8931
-Tarneit,vic,0.8931
-Thomastown,vic,0.8931
-Warrandyte,vic,0.8931
-Wendouree,vic,1.0093
-Werribee,vic,0.8931
-Williamstown,vic,0.5449
-Yan Yean,vic,0.8931
-Yuroke,vic,0.8931
-Ascot Vale,vic,0.5449
-Ballarat East,vic,1.0093
-Ballarat North,vic,1.0093
-Ballarat South,vic,1.0093
-Ballarat West,vic,1.0093
-Balwyn,vic,0.5449
-Benalla,vic,1.2812
-Bendigo,vic,1.0093
-Bennettswood,vic,0.5449
-Berwick,vic,0.8931
-Clayton,vic,0.5449
-Coburg,vic,0.5449
-Dandenong North,vic,0.8931
-Derrimut,vic,0.8931
-Doncaster,vic,0.8931
-Dromana,vic,0.8931
-Frankston East,vic,0.8931
-Frankston North,vic,0.8931
-Frankston South,vic,0.8931
-Geelong East,vic,1.0093
-Geelong North,vic,1.0093
-Geelong West,vic,1.0093
-Gippsland West,vic,1.2812
-Gisborne,vic,1.2812
-Glen Waverley,vic,0.5449
-Glenhuntly,vic,0.5449
-Glenroy,vic,0.8931
-Greensborough,vic,0.8931
-Heatherton,vic,0.8931
-Keilor,vic,0.8931
-Kilsyth,vic,0.8931
-Knox,vic,0.5449
-Lyndhurst,vic,0.8931
-Mentone,vic,0.5449
-Midlands,vic,1.2812
-Mitcham,vic,0.8931
-Mooroolbark,vic,0.8931
-Murray Valley,vic,1.2812
-Noble Park,vic,0.8931
-Pakenham,vic,0.8931
-Portland,vic,1.2812
-Reservoir,vic,0.5449
-St Kilda,vic,0.5449
-Scoresby,vic,0.5449
-Seymour,vic,1.2812
-Springvale,vic,0.5449
-Sunshine,vic,0.5449
-Syndal,vic,0.5449
-Tullamarine,vic,0.8931
-Wantirna,vic,0.5449
-Warrnambool,vic,1.0093
-Westernport,vic,0.8931
-Whittlesea,vic,1.2812
-Hill,qld,1.2812
-Traeger,qld,1.2812
-Ashgrove,qld,0.8931
-Auburn,qld,1.2812
-Balonne,qld,1.2812
-Bowen,qld,1.2812
-Broadsound,qld,1.2812
-Carnarvon,qld,1.2812
-Cooroora,qld,1.2812
-Dalrymple,qld,1.2812
-Darling Downs,qld,1.2812
-Fassifern,qld,1.2812
-Flinders,qld,1.2812
-Isis,qld,1.2812
-Ithaca,qld,0.5449
-Kurilpa,qld,0.5449
-Landsborough,qld,1.0093
-Manly,qld,0.5449
-Merthyr,qld,0.5449
-Mount Coot-tha,qld,0.8931
-Mourilyan,qld,1.2812
-Nundah,qld,0.5449
-Peak Downs,qld,1.2812
-Port Curtis,qld,1.0093
-Robina,qld,1.0093
-Rockhampton North,qld,1.0093
-Rockhampton South,qld,1.0093
-Roma,qld,1.2812
-Salisbury,qld,0.5449
-Sherwood,qld,0.5449
-Somerset,qld,1.2812
-South Coast,qld,1.0093
-Toowong,qld,0.5449
-Townsville East,qld,1.0093
-Townsville South,qld,1.0093
-Townsville West,qld,1.0093
-Wavell,qld,0.5449
-Windsor,qld,0.5449
-Wolston,qld,0.8931
-Wynnum,qld,0.5449
-Yeerongpilly,qld,0.5449
-Balcatta,wa,0.5449
-Burns Beach,wa,0.8931
-Churchlands,wa,0.5449
-Landsdale,wa,0.8931
-South Perth,wa,0.5449
-West Swan,wa,0.8931
-Applecross,wa,0.5449
-Ascot,wa,0.5449
-Ashburton,wa,1.2812
-Balga,wa,0.5449
-Blackwood-Stirling,wa,1.2812
-Canning,wa,0.8931
-Capel,wa,1.2812
-Clontarf,wa,0.5449
-Dale,wa,1.2812
-Dianella,wa,0.8931
-East Melville,wa,0.5449
-Esperance-Dundas,wa,1.2812
-Floreat,wa,0.5449
-Gascoyne,wa,1.2812
-Glendalough,wa,0.5449
-Gosnells,wa,0.8931
-Helena,wa,0.8931
-Karrinyup,wa,0.5449
-Katanning,wa,1.2812
-Kenwick,wa,0.8931
-Marangaroo,wa,0.8931
-Marmion,wa,0.8931
-Melville,wa,0.5449
-Mindarie,wa,0.8931
-Mount Hawthorn,wa,0.5449
-Mount Leonora,wa,0.5449
-Mount Marshall,wa,1.2812
-Mundaring,wa,0.8931
-Murchison-Eyre,wa,1.2812
-Murdoch,wa,0.5449
-Narrogin,wa,1.2812
-Northern Rivers,wa,0.8931
-Ocean Reef,wa,0.8931
-Serpentine-Jarrahdale,wa,0.8931
-Subiaco,wa,0.5449
-Swan,wa,0.8931
-Wellington,wa,1.2812
-Welshpool,wa,0.5449
-Whitford,wa,0.8931
-Yilgarn-Dundas,wa,1.2812
-Badcoe,sa,0.5449
-Black,sa,0.8931
-Dunstan,sa,0.5449
-Gibson,sa,0.5449
-Hurtle Vale,sa,0.8931
-King,sa,0.8931
-Narungga,sa,1.2812
-Albert Park,sa,0.5449
-Alexandra,sa,1.2812
-Ascot Park,sa,0.5449
-Baudin,sa,0.8931
-Briggs,sa,0.8931
-Brighton,sa,0.8931
-Coles,sa,0.8931
-Custance,sa,1.2812
-Eyre,sa,1.2812
-Gawler,sa,0.8931
-Glenelg,sa,0.5449
-Gordon,sa,1.0093
-Hanson,sa,0.5449
-Hart,sa,0.8931
-Hayward,sa,0.8931
-Henley Beach,sa,0.5449
-Little Para,sa,0.8931
-Mallee,sa,1.2812
-Murray,sa,1.2812
-Murray-Mallee,sa,1.2812
-Peake,sa,0.5449
-Price,sa,0.5449
-Ridley,sa,1.2812
-Rocky River,sa,1.2812
-Ross Smith,sa,0.5449
-Salisbury,sa,0.8931
-Semaphore,sa,0.5449
-Spence,sa,0.5449
-Tea Tree Gully,sa,0.8931
-Todd,sa,0.8931
-Victoria,sa,1.2812
-Walsh,sa,0.5449
-Whyalla,sa,1.2812
-Wooroora,sa,1.2812
+Bean,fed,0.5433
+Calwell,fed,0.8919
+Clark,fed,0.5433
+Cooper,fed,0.5433
+Fenner,fed,0.5433
+Gorton,fed,0.8919
+Hawke,fed,1.0085
+Holt,fed,0.8919
+Macnamara,fed,0.5433
+Maribyrnong,fed,0.5433
+Melbourne,fed,0.5433
+Scullin,fed,0.8919
+Spence,fed,0.8919
+Whitlam,fed,1.0085
+Wills,fed,0.8919
+Balaclava,fed,0.5433
+Batman,fed,0.5433
+Bland,fed,1.2535
+Corinella,fed,0.8919
+Darling Downs,fed,1.2535
+Denison,fed,0.5433
+Diamond Valley,fed,0.8919
+Dundas,fed,0.5433
+Hawker,fed,0.8919
+Henty,fed,0.5433
+Namadgi,fed,0.5433
+Phillip,fed,0.5433
+Riverina-Darling,fed,1.2535
+St George,fed,0.5433
+Streeton,fed,0.8919
+Wilmot,fed,1.2535
+Balmain,nsw,0.5433
+Castle Hill,nsw,0.8919
+Cootamundra,nsw,0.5433
+Eden-Bombala,nsw,1.2535
+Leppington,nsw,0.8919
+Lismore,nsw,1.2535
+Newtown,nsw,0.5433
+Prospect,nsw,0.8919
+Seven Hills,nsw,0.5433
+Shellharbour,nsw,1.0085
+Summer Hill,nsw,0.5433
+Sydney,nsw,0.5433
+Terrigal,nsw,1.0085
+Wollongong,nsw,1.0085
+Woronora,nsw,0.8919
+Armidale,nsw,1.0085
+Ashfield,nsw,0.5433
+Badgerys Creek,nsw,0.8919
+Bass Hill,nsw,0.5433
+Bligh,nsw,0.5433
+Broken Hill,nsw,1.2535
+Bulli,nsw,1.0085
+Burragorang,nsw,1.2535
+Burrendong,nsw,1.2535
+Burwood,nsw,0.5433
+Byron,nsw,1.2535
+Carlingford,nsw,0.5433
+Castlereagh,nsw,1.2535
+Corrimal,nsw,1.0085
+Earlwood,nsw,0.5433
+Eastwood,nsw,0.5433
+Elizabeth,nsw,0.5433
+Ermington,nsw,0.5433
+Fuller,nsw,0.5433
+Gladesville,nsw,0.5433
+Gloucester,nsw,1.2535
+Gordon,nsw,0.5433
+Hurstville,nsw,0.5433
+Ingleburn,nsw,0.8919
+Kirribilli,nsw,0.5433
+Manning,nsw,1.2535
+McKell,nsw,0.5433
+Merrylands,nsw,0.5433
+Minchinbury,nsw,0.8919
+Moorebank,nsw,0.8919
+Mosman,nsw,0.5433
+Munmorah,nsw,1.0085
+Murwillumbah,nsw,1.2535
+Nepean,nsw,0.8919
+Northcott,nsw,0.5433
+Phillip,nsw,0.5433
+Pyrmont,nsw,0.5433
+Raleigh,nsw,1.2535
+St Marys,nsw,0.8919
+Sturt,nsw,1.2535
+Sutherland,nsw,0.8919
+Temora,nsw,1.2535
+Tenterfield,nsw,1.2535
+Toongabbie,nsw,0.8919
+Tuggerah,nsw,1.0085
+Waratah,nsw,1.0085
+Waverley,nsw,0.5433
+Woronara,nsw,0.8919
+Yaralla,nsw,0.5433
+Young,nsw,1.2535
+Albert Park,vic,0.5433
+Altona,vic,0.8919
+Bass,vic,1.2535
+Bayswater,vic,0.8919
+Bellarine,vic,1.0085
+Benambra,vic,1.0085
+Bendigo East,vic,1.0085
+Bendigo West,vic,1.0085
+Bentleigh,vic,0.5433
+Box Hill,vic,0.5433
+Brighton,vic,0.5433
+Broadmeadows,vic,0.8919
+Brunswick,vic,0.5433
+Bulleen,vic,0.5433
+Bundoora,vic,0.8919
+Buninyong,vic,1.0085
+Burwood,vic,0.5433
+Carrum,vic,0.8919
+Caulfield,vic,0.5433
+Clarinda,vic,0.8919
+Cranbourne,vic,0.8919
+Croydon,vic,0.8919
+Dandenong,vic,0.8919
+Eildon,vic,1.2535
+Eltham,vic,0.8919
+Essendon,vic,0.5433
+Euroa,vic,1.2535
+Evelyn,vic,0.8919
+Ferntree Gully,vic,0.8919
+Footscray,vic,0.5433
+Forest Hill,vic,0.5433
+Frankston,vic,0.8919
+Geelong,vic,1.0085
+Gembrook,vic,0.8919
+Gippsland South,vic,1.2535
+Hastings,vic,0.8919
+Hawthorn,vic,0.5433
+Ivanhoe,vic,0.8919
+Kew,vic,0.5433
+Keysborough,vic,0.8919
+Kororoit,vic,0.8919
+Lara,vic,1.0085
+Lowan,vic,1.2535
+Macedon,vic,1.0085
+Malvern,vic,0.5433
+Melbourne,vic,0.5433
+Melton,vic,0.8919
+Mildura,vic,1.0085
+Mill Park,vic,0.8919
+Monbulk,vic,0.8919
+Mordialloc,vic,0.8919
+Mornington,vic,0.8919
+Morwell,vic,1.0085
+Mount Waverley,vic,0.5433
+Mulgrave,vic,0.5433
+Murray Plains,vic,1.2535
+Narracan,vic,1.2535
+Narre Warren North,vic,0.8919
+Narre Warren South,vic,0.8919
+Nepean,vic,0.8919
+Niddrie,vic,0.8919
+Northcote,vic,0.5433
+Oakleigh,vic,0.5433
+Ovens Valley,vic,1.2535
+Pascoe Vale,vic,0.8919
+Polwarth,vic,1.2535
+Prahran,vic,0.5433
+Preston,vic,0.5433
+Richmond,vic,0.5433
+Ringwood,vic,0.8919
+Ripon,vic,1.2535
+Rowville,vic,0.8919
+St Albans,vic,0.8919
+Sandringham,vic,0.5433
+Shepparton,vic,1.0085
+South Barwon,vic,1.0085
+South-West Coast,vic,1.0085
+Sunbury,vic,0.8919
+Sydenham,vic,0.8919
+Tarneit,vic,0.8919
+Thomastown,vic,0.8919
+Warrandyte,vic,0.8919
+Wendouree,vic,1.0085
+Werribee,vic,0.8919
+Williamstown,vic,0.5433
+Yan Yean,vic,0.8919
+Yuroke,vic,0.8919
+Ascot Vale,vic,0.5433
+Ballarat East,vic,1.0085
+Ballarat North,vic,1.0085
+Ballarat South,vic,1.0085
+Ballarat West,vic,1.0085
+Balwyn,vic,0.5433
+Benalla,vic,1.2535
+Bendigo,vic,1.0085
+Bennettswood,vic,0.5433
+Berwick,vic,0.8919
+Clayton,vic,0.5433
+Coburg,vic,0.5433
+Dandenong North,vic,0.8919
+Derrimut,vic,0.8919
+Doncaster,vic,0.8919
+Dromana,vic,0.8919
+Frankston East,vic,0.8919
+Frankston North,vic,0.8919
+Frankston South,vic,0.8919
+Geelong East,vic,1.0085
+Geelong North,vic,1.0085
+Geelong West,vic,1.0085
+Gippsland West,vic,1.2535
+Gisborne,vic,1.2535
+Glen Waverley,vic,0.5433
+Glenhuntly,vic,0.5433
+Glenroy,vic,0.8919
+Greensborough,vic,0.8919
+Heatherton,vic,0.8919
+Keilor,vic,0.8919
+Kilsyth,vic,0.8919
+Knox,vic,0.5433
+Lyndhurst,vic,0.8919
+Mentone,vic,0.5433
+Midlands,vic,1.2535
+Mitcham,vic,0.8919
+Mooroolbark,vic,0.8919
+Murray Valley,vic,1.2535
+Noble Park,vic,0.8919
+Pakenham,vic,0.8919
+Portland,vic,1.2535
+Reservoir,vic,0.5433
+St Kilda,vic,0.5433
+Scoresby,vic,0.5433
+Seymour,vic,1.2535
+Springvale,vic,0.5433
+Sunshine,vic,0.5433
+Syndal,vic,0.5433
+Tullamarine,vic,0.8919
+Wantirna,vic,0.5433
+Warrnambool,vic,1.0085
+Westernport,vic,0.8919
+Whittlesea,vic,1.2535
+Hill,qld,1.2535
+Traeger,qld,1.2535
+Ashgrove,qld,0.8919
+Auburn,qld,1.2535
+Balonne,qld,1.2535
+Bowen,qld,1.2535
+Broadsound,qld,1.2535
+Carnarvon,qld,1.2535
+Cooroora,qld,1.2535
+Dalrymple,qld,1.2535
+Darling Downs,qld,1.2535
+Fassifern,qld,1.2535
+Flinders,qld,1.2535
+Isis,qld,1.2535
+Ithaca,qld,0.5433
+Kurilpa,qld,0.5433
+Landsborough,qld,1.0085
+Manly,qld,0.5433
+Merthyr,qld,0.5433
+Mount Coot-tha,qld,0.8919
+Mourilyan,qld,1.2535
+Nundah,qld,0.5433
+Peak Downs,qld,1.2535
+Port Curtis,qld,1.0085
+Robina,qld,1.0085
+Rockhampton North,qld,1.0085
+Rockhampton South,qld,1.0085
+Roma,qld,1.2535
+Salisbury,qld,0.5433
+Sherwood,qld,0.5433
+Somerset,qld,1.2535
+South Coast,qld,1.0085
+Toowong,qld,0.5433
+Townsville East,qld,1.0085
+Townsville South,qld,1.0085
+Townsville West,qld,1.0085
+Wavell,qld,0.5433
+Windsor,qld,0.5433
+Wolston,qld,0.8919
+Wynnum,qld,0.5433
+Yeerongpilly,qld,0.5433
+Balcatta,wa,0.5433
+Burns Beach,wa,0.8919
+Churchlands,wa,0.5433
+Landsdale,wa,0.8919
+South Perth,wa,0.5433
+West Swan,wa,0.8919
+Applecross,wa,0.5433
+Ascot,wa,0.5433
+Ashburton,wa,1.2535
+Balga,wa,0.5433
+Blackwood-Stirling,wa,1.2535
+Canning,wa,0.8919
+Capel,wa,1.2535
+Clontarf,wa,0.5433
+Dale,wa,1.2535
+Dianella,wa,0.8919
+East Melville,wa,0.5433
+Esperance-Dundas,wa,1.2535
+Floreat,wa,0.5433
+Gascoyne,wa,1.2535
+Glendalough,wa,0.5433
+Gosnells,wa,0.8919
+Helena,wa,0.8919
+Karrinyup,wa,0.5433
+Katanning,wa,1.2535
+Kenwick,wa,0.8919
+Marangaroo,wa,0.8919
+Marmion,wa,0.8919
+Melville,wa,0.5433
+Mindarie,wa,0.8919
+Mount Hawthorn,wa,0.5433
+Mount Leonora,wa,0.5433
+Mount Marshall,wa,1.2535
+Mundaring,wa,0.8919
+Murchison-Eyre,wa,1.2535
+Murdoch,wa,0.5433
+Narrogin,wa,1.2535
+Northern Rivers,wa,0.8919
+Ocean Reef,wa,0.8919
+Serpentine-Jarrahdale,wa,0.8919
+Subiaco,wa,0.5433
+Swan,wa,0.8919
+Wellington,wa,1.2535
+Welshpool,wa,0.5433
+Whitford,wa,0.8919
+Yilgarn-Dundas,wa,1.2535
+Black,sa,0.8919
+Dunstan,sa,0.5433
+Gibson,sa,0.5433
+Hurtle Vale,sa,0.8919
+King,sa,0.8919
+Albert Park,sa,0.5433
+Alexandra,sa,1.2535
+Ascot Park,sa,0.5433
+Baudin,sa,0.8919
+Briggs,sa,0.8919
+Brighton,sa,0.8919
+Coles,sa,0.8919
+Custance,sa,1.2535
+Eyre,sa,1.2535
+Gawler,sa,0.8919
+Glenelg,sa,0.5433
+Gordon,sa,1.0085
+Hanson,sa,0.5433
+Hart,sa,0.8919
+Hayward,sa,0.8919
+Henley Beach,sa,0.5433
+Little Para,sa,0.8919
+Mallee,sa,1.2535
+Murray,sa,1.2535
+Murray-Mallee,sa,1.2535
+Peake,sa,0.5433
+Price,sa,0.5433
+Ridley,sa,1.2535
+Rocky River,sa,1.2535
+Ross Smith,sa,0.5433
+Salisbury,sa,0.8919
+Semaphore,sa,0.5433
+Spence,sa,0.5433
+Tea Tree Gully,sa,0.8919
+Todd,sa,0.8919
+Victoria,sa,1.2535
+Walsh,sa,0.5433
+Whyalla,sa,1.2535
+Wooroora,sa,1.2535
