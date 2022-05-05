@@ -196,12 +196,16 @@ void SimulationCompletion::recordNames()
 		else if (project.seats().viewByIndex(index).incumbent == 1) {
 			sim.latestReport.seatIncumbentMargins.push_back(-seat.tppMargin);
 		}
-		else {
+		else if (run.pastSeatResults[index].tcpVote.contains(seat.incumbent)) {
 			float margin = run.pastSeatResults[index].tcpVote.at(seat.incumbent) - 50.0f;
 			if (seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
 				margin += seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation);
 			}
 			sim.latestReport.seatIncumbentMargins.push_back(margin);
+		}
+		else {
+			// incumbent is 3rd party and gained seat in by-election, just skip for now
+			sim.latestReport.seatIncumbentMargins.push_back(0);
 		}
 	}
 }
