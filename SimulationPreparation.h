@@ -79,6 +79,7 @@ private:
 	void parsePreload();
 	void downloadCurrentResults();
 	void parseCurrentResults();
+	void calculateBoothSwings();
 
 	std::string getTermCode();
 

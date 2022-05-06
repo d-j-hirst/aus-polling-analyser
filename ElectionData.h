@@ -142,8 +142,20 @@ namespace Results2 {
 		int32_t id;
 		std::string name;
 		Type type = Type::Normal;
+		int32_t parentSeat;
 		std::unordered_map<int32_t, int32_t> votesFp; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> votesTcp; // map candidate id -> vote count
+
+		std::unordered_map<int32_t, float> tcpSwing;
+
+		int totalVotesFp() const {
+			return std::accumulate(votesFp.begin(), votesFp.end(), 0,
+				[](int acc, decltype(votesFp)::value_type v) {return acc + v.second; });
+		}
+		int totalVotesTcp() const {
+			return std::accumulate(votesTcp.begin(), votesTcp.end(), 0,
+				[](int acc, decltype(votesTcp)::value_type v) {return acc + v.second; });
+		}
 	};
 
 	struct Seat {

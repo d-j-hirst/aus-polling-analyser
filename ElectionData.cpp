@@ -43,6 +43,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 					}
 				}
 				else candidate.party = Candidate::Independent;
+				parties[Candidate::Independent].id = Candidate::Independent;
+				parties[Candidate::Independent].shortCode = "IND";
+				parties[Candidate::Independent].name = "Independent";
 				candidates[candidate.id] = candidate;
 			}
 			auto votesByType = currentCandidate->FirstChildElement("VotesByType");
@@ -67,16 +70,17 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 			auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 			int candidateId = -1;
 			candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
+			int partyId = candidates.at(candidateId).party;
 			auto votesByType = currentCandidate->FirstChildElement("VotesByType");
 			auto tcpVoteType = votesByType->FirstChildElement("Votes");
 			while (tcpVoteType) {
 				std::string typeName = tcpVoteType->FindAttribute("Type")->Value();
 				int tcpCount = std::stoi(tcpVoteType->GetText());
-				if (typeName == "Ordinary") seat.tcpVotes[candidateId][VoteType::Ordinary] = tcpCount;
-				else if (typeName == "Absent") seat.tcpVotes[candidateId][VoteType::Absent] = tcpCount;
-				else if (typeName == "Provisional") seat.tcpVotes[candidateId][VoteType::Provisional] = tcpCount;
-				else if (typeName == "PrePoll") seat.tcpVotes[candidateId][VoteType::PrePoll] = tcpCount;
-				else if (typeName == "Postal") seat.tcpVotes[candidateId][VoteType::Postal] = tcpCount;
+				if (typeName == "Ordinary") seat.tcpVotes[partyId][VoteType::Ordinary] = tcpCount;
+				else if (typeName == "Absent") seat.tcpVotes[partyId][VoteType::Absent] = tcpCount;
+				else if (typeName == "Provisional") seat.tcpVotes[partyId][VoteType::Provisional] = tcpCount;
+				else if (typeName == "PrePoll") seat.tcpVotes[partyId][VoteType::PrePoll] = tcpCount;
+				else if (typeName == "Postal") seat.tcpVotes[partyId][VoteType::Postal] = tcpCount;
 				tcpVoteType = tcpVoteType->NextSiblingElement("Votes");
 			}
 
@@ -110,6 +114,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 			booth.id = boothIdEl->FindAttribute("Id")->IntValue();
 			if (booths.contains(booth.id)) booth = booths[booth.id]; // maintain already existing data
 			if (boothIdEl->FindAttribute("Name")) {
+				booth.parentSeat = seat.id;
 				booth.name = boothIdEl->FindAttribute("Name")->Value();
 				auto classifierEl = boothIdEl->FindAttribute("Classification");
 				if (classifierEl) {
@@ -138,8 +143,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 			while (currentCandidate) {
 				auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 				int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
+				int partyId = candidates.at(candidateId).party;
 				int votes = currentCandidate->FirstChildElement("Votes")->IntText();
-				booth.votesTcp[candidateId] = votes;
+				booth.votesTcp[partyId] = votes;
 
 				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 			}
@@ -153,47 +159,47 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 
 		currentContest = currentContest->NextSiblingElement("Contest");
 	}
-	logger << "==SEATS==\n";
-	for (auto const& [seatId, seat] : seats) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.id);
-		PA_LOG_VAR(seat.enrolment);
-		PA_LOG_VAR(seat.fpVotes);
-		PA_LOG_VAR(seat.tcpVotes);
-		PA_LOG_VAR(seat.tppVotes);
-		for (int boothId : seat.booths) {
-			auto const& booth = booths.at(boothId);
-			PA_LOG_VAR(booth.id);
-			PA_LOG_VAR(booth.name);
-			PA_LOG_VAR(booth.votesFp);
-			PA_LOG_VAR(booth.votesTcp);
-			PA_LOG_VAR(booth.type);
-		}
-	}
-	logger << "==CANDIDATES==\n";
-	for (auto const& candidate : candidates) {
-		PA_LOG_VAR(candidate.second.id);
-		PA_LOG_VAR(candidate.second.name);
-		if (candidate.second.party != -1) {
-			PA_LOG_VAR(parties[candidate.second.party].name);
-		}
-		else {
-			logger << "Independent\n";
-		}
-	}
-	logger << "==PARTIES==\n";
-	for (auto const& party : parties) {
-		PA_LOG_VAR(party.second.id);
-		PA_LOG_VAR(party.second.name);
-		PA_LOG_VAR(party.second.shortCode);
-	}
-	logger << "==COALITIONS==\n";
-	for (auto const& coalition : coalitions) {
-		PA_LOG_VAR(coalition.second.id);
-		PA_LOG_VAR(coalition.second.name);
-		PA_LOG_VAR(coalition.second.shortCode);
-	}
-	logger << "==ELECTION==\n";
-	PA_LOG_VAR(name);
-	PA_LOG_VAR(id);
+	//logger << "==SEATS==\n";
+	//for (auto const& [seatId, seat] : seats) {
+	//	PA_LOG_VAR(seat.name);
+	//	PA_LOG_VAR(seat.id);
+	//	PA_LOG_VAR(seat.enrolment);
+	//	PA_LOG_VAR(seat.fpVotes);
+	//	PA_LOG_VAR(seat.tcpVotes);
+	//	PA_LOG_VAR(seat.tppVotes);
+	//	for (int boothId : seat.booths) {
+	//		auto const& booth = booths.at(boothId);
+	//		PA_LOG_VAR(booth.id);
+	//		PA_LOG_VAR(booth.name);
+	//		PA_LOG_VAR(booth.votesFp);
+	//		PA_LOG_VAR(booth.votesTcp);
+	//		PA_LOG_VAR(booth.type);
+	//	}
+	//}
+	//logger << "==CANDIDATES==\n";
+	//for (auto const& candidate : candidates) {
+	//	PA_LOG_VAR(candidate.second.id);
+	//	PA_LOG_VAR(candidate.second.name);
+	//	if (candidate.second.party != -1) {
+	//		PA_LOG_VAR(parties[candidate.second.party].name);
+	//	}
+	//	else {
+	//		logger << "Independent\n";
+	//	}
+	//}
+	//logger << "==PARTIES==\n";
+	//for (auto const& party : parties) {
+	//	PA_LOG_VAR(party.second.id);
+	//	PA_LOG_VAR(party.second.name);
+	//	PA_LOG_VAR(party.second.shortCode);
+	//}
+	//logger << "==COALITIONS==\n";
+	//for (auto const& coalition : coalitions) {
+	//	PA_LOG_VAR(coalition.second.id);
+	//	PA_LOG_VAR(coalition.second.name);
+	//	PA_LOG_VAR(coalition.second.shortCode);
+	//}
+	//logger << "==ELECTION==\n";
+	//PA_LOG_VAR(name);
+	//PA_LOG_VAR(id);
 }

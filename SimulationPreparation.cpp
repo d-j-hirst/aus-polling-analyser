@@ -343,6 +343,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	parsePreload();
 	downloadCurrentResults();
 	parseCurrentResults();
+	calculateBoothSwings();
 }
 
 void SimulationPreparation::downloadPreviousResults()
@@ -421,6 +422,51 @@ void SimulationPreparation::parseCurrentResults()
 {
 	xml.LoadFile(xmlFilename.c_str());
 	currentElection.update(xml);
+}
+
+void SimulationPreparation::calculateBoothSwings()
+{
+	for (auto& [id, currentBooth] : currentElection.booths) {
+		if (!currentBooth.votesTcp.size()) continue;
+		if (previousElection.booths.contains(id)) {
+			auto const& previousBooth = previousElection.booths.at(id);
+			bool matched = true;
+			for (auto [affiliation, _] : currentBooth.votesTcp) {
+				if (!previousBooth.votesTcp.contains(affiliation)) {
+					matched = false;
+					break;
+				}
+			}
+			if (!matched) continue;
+			int currentTotal = currentBooth.totalVotesTcp();
+			if (!currentTotal) continue;
+			int previousTotal = previousBooth.totalVotesTcp();
+			for (auto [affiliation, votes] : currentBooth.votesTcp) {
+				float currentPercent = float(votes) / float(currentTotal);
+				float previousPercent = float(previousBooth.votesTcp.at(affiliation)) / float(previousTotal);
+				currentBooth.tcpSwing[affiliation] = currentPercent - previousPercent;
+				if (currentBooth.name == "Panania") {
+					PA_LOG_VAR(currentBooth.votesTcp);
+					PA_LOG_VAR(previousBooth.votesTcp);
+					PA_LOG_VAR(currentTotal);
+					PA_LOG_VAR(previousTotal);
+					PA_LOG_VAR(currentBooth.tcpSwing[affiliation]);
+				}
+			}
+		}
+	}
+	for (auto const& [id, seat] : currentElection.seats) {
+		logger << "Seat: " << seat.name << "\n";
+		for (auto boothId : seat.booths) {
+			auto const& booth = currentElection.booths.at(boothId);
+			if (!booth.tcpSwing.size()) continue;
+			logger << " Booth: " << currentElection.booths.at(boothId).name << "\n";;
+			for (auto [party, swing] : booth.tcpSwing) {
+				logger << "  Party: " << currentElection.parties.at(party).name
+					<< ", swing: " << swing << "\n";
+			}
+		}
+	}
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
