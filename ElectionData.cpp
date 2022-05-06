@@ -133,7 +133,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 				auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
 				int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
 				int votes = currentCandidate->FirstChildElement("Votes")->IntText();
-				booth.votesFp[candidateId] = votes;
+				booth.fpVotes[candidateId] = votes;
 
 				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 			}
@@ -145,7 +145,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 				int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
 				int partyId = candidates.at(candidateId).party;
 				int votes = currentCandidate->FirstChildElement("Votes")->IntText();
-				booth.votesTcp[partyId] = votes;
+				booth.tcpVotes[partyId] = votes;
 
 				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
 			}
@@ -171,8 +171,8 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 	//		auto const& booth = booths.at(boothId);
 	//		PA_LOG_VAR(booth.id);
 	//		PA_LOG_VAR(booth.name);
-	//		PA_LOG_VAR(booth.votesFp);
-	//		PA_LOG_VAR(booth.votesTcp);
+	//		PA_LOG_VAR(booth.fpVotes);
+	//		PA_LOG_VAR(booth.tcpVotes);
 	//		PA_LOG_VAR(booth.type);
 	//	}
 	//}

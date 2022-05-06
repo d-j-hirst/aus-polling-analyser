@@ -104,6 +104,7 @@ namespace Results {
 
 namespace Results2 {
 	enum class VoteType {
+		Invalid,
 		Ordinary,
 		Absent,
 		Provisional,
@@ -143,18 +144,18 @@ namespace Results2 {
 		std::string name;
 		Type type = Type::Normal;
 		int32_t parentSeat;
-		std::unordered_map<int32_t, int32_t> votesFp; // map candidate id -> vote count
-		std::unordered_map<int32_t, int32_t> votesTcp; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> tcpVotes; // map candidate id -> vote count
 
-		std::unordered_map<int32_t, float> tcpSwing;
+		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 
 		int totalVotesFp() const {
-			return std::accumulate(votesFp.begin(), votesFp.end(), 0,
-				[](int acc, decltype(votesFp)::value_type v) {return acc + v.second; });
+			return std::accumulate(fpVotes.begin(), fpVotes.end(), 0,
+				[](int acc, decltype(fpVotes)::value_type v) {return acc + v.second; });
 		}
 		int totalVotesTcp() const {
-			return std::accumulate(votesTcp.begin(), votesTcp.end(), 0,
-				[](int acc, decltype(votesTcp)::value_type v) {return acc + v.second; });
+			return std::accumulate(tcpVotes.begin(), tcpVotes.end(), 0,
+				[](int acc, decltype(tcpVotes)::value_type v) {return acc + v.second; });
 		}
 	};
 
@@ -166,6 +167,27 @@ namespace Results2 {
 		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> fpVotes; // map candidate id -> (vote type -> vote count)
 		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tcpVotes; // map candidate id -> (vote type -> vote count)
 		std::unordered_map<int32_t, int> tppVotes; // map coalition id -> vote count
+		float fpProgress; // as percentage
+		float tcpProgress; // as percentage
+		float tcpSwingProgress; // as percentage
+
+		int totalVotesFp(VoteType exclude = VoteType::Invalid) const {
+			return std::accumulate(fpVotes.begin(), fpVotes.end(), 0,
+				[&](int acc, decltype(fpVotes)::value_type val) {return acc + 
+				std::accumulate(val.second.begin(), val.second.end(), 0, 
+					[&](int acc, decltype(val.second)::value_type val2) {return val2.first != exclude ? acc + val2.second : acc;}
+				);}
+			);
+		}
+
+		int totalVotesTcp(VoteType exclude = VoteType::Invalid) const {
+			return std::accumulate(tcpVotes.begin(), tcpVotes.end(), 0,
+				[&](int acc, decltype(tcpVotes)::value_type val) {return acc +
+				std::accumulate(val.second.begin(), val.second.end(), 0,
+					[&](int acc, decltype(val.second)::value_type val2) {return val2.first != exclude ? acc + val2.second : acc; }
+			); }
+			);
+		}
 
 		// The below are obsolete, kept around for file compatibility purposes but not longer used
 		std::unordered_map<int32_t, int32_t> ordinaryVotesFp; // map candidate id -> vote count

@@ -80,6 +80,7 @@ private:
 	void downloadCurrentResults();
 	void parseCurrentResults();
 	void calculateBoothSwings();
+	void calculateCountProgress();
 
 	std::string getTermCode();
 

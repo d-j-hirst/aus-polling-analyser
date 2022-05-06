@@ -14,7 +14,7 @@ SwingAnalyser::SwingAnalyser(ElectionCollection const& elections)
 
 inline int32_t findVote2cp(Results2::Election const& election, Results2::Booth const& booth, int32_t partyId) {
 	int votes = 0;
-	for (auto [candidate, thisVotes] : booth.votesTcp) {
+	for (auto [candidate, thisVotes] : booth.tcpVotes) {
 		auto candidateData = election.candidates.at(candidate);
 		auto partyData = election.parties.at(candidateData.party);
 		if (partyData.id == partyId) {

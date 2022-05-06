@@ -16,7 +16,7 @@ public:
 			std::optional<float> alp2cp; // only for booths
 			std::optional<float> alpSwing;
 			std::optional<int> swingVotes; // only for clusters
-			std::optional<int> votesTcp;
+			std::optional<int> tcpVotes;
 			std::optional<float> greenFp;
 			std::optional<float> othersFp;
 		};

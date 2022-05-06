@@ -1,4 +1,19 @@
 
+-live simulations
+ -seatwide swing, % counted
+ -conversions between program and AEC party codes
+ -basic integration with existing forecast as for live-manual
+ -confirm ability to upload forecast accordingly (locally/to test site)
+ -account for possible systemic differences between different voting types and booth types including PPVCs
+ -fp to tcp conversion for booths not reporting tcp (if deemed necessary) incl. calculation of estimated preference flows nationally and per seat via regression
+ -publish new (unmatched) raw tcp estimates
+ -fp swings for parties (after logit transform)
+ -publish estimated fp results (may need 
+ -estimate non-tpp swings by comparing to previous tpp results with offset
+ -project onto uncounted booths via regression to improve seat estimate & uncertainty
+ -project existing results to uncounted seats to improve estimates for other seats
+ -projections for fp as well as tcp votes
+ 
 -glossary
  ^first preference vote (primary vote)
  ^margin
@@ -45,8 +60,6 @@
  -undecided
  -margin of error
  -hindcast
--cartogram, maybe map view depending on feasibility
--add ability for retrospective forecasts
 -Advanced live simulations!
  -Start by organising past election data at booth-level
  -Need to load conversions between equivalent seats

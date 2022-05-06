@@ -344,6 +344,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	downloadCurrentResults();
 	parseCurrentResults();
 	calculateBoothSwings();
+	calculateCountProgress();
 }
 
 void SimulationPreparation::downloadPreviousResults()
@@ -427,12 +428,12 @@ void SimulationPreparation::parseCurrentResults()
 void SimulationPreparation::calculateBoothSwings()
 {
 	for (auto& [id, currentBooth] : currentElection.booths) {
-		if (!currentBooth.votesTcp.size()) continue;
+		if (!currentBooth.tcpVotes.size()) continue;
 		if (previousElection.booths.contains(id)) {
 			auto const& previousBooth = previousElection.booths.at(id);
 			bool matched = true;
-			for (auto [affiliation, _] : currentBooth.votesTcp) {
-				if (!previousBooth.votesTcp.contains(affiliation)) {
+			for (auto [affiliation, _] : currentBooth.tcpVotes) {
+				if (!previousBooth.tcpVotes.contains(affiliation)) {
 					matched = false;
 					break;
 				}
@@ -441,22 +442,34 @@ void SimulationPreparation::calculateBoothSwings()
 			int currentTotal = currentBooth.totalVotesTcp();
 			if (!currentTotal) continue;
 			int previousTotal = previousBooth.totalVotesTcp();
-			for (auto [affiliation, votes] : currentBooth.votesTcp) {
-				float currentPercent = float(votes) / float(currentTotal);
-				float previousPercent = float(previousBooth.votesTcp.at(affiliation)) / float(previousTotal);
+			for (auto [affiliation, votes] : currentBooth.tcpVotes) {
+				float currentPercent = float(votes) * 100.0f / float(currentTotal);
+				float previousPercent = float(previousBooth.tcpVotes.at(affiliation)) * 100.0f / float(previousTotal);
 				currentBooth.tcpSwing[affiliation] = currentPercent - previousPercent;
-				if (currentBooth.name == "Panania") {
-					PA_LOG_VAR(currentBooth.votesTcp);
-					PA_LOG_VAR(previousBooth.votesTcp);
-					PA_LOG_VAR(currentTotal);
-					PA_LOG_VAR(previousTotal);
-					PA_LOG_VAR(currentBooth.tcpSwing[affiliation]);
-				}
 			}
 		}
 	}
+}
+
+void SimulationPreparation::calculateCountProgress()
+{
+	for (auto& [seatId, seat] : currentElection.seats) {
+		seat.fpProgress = float(seat.totalVotesFp()) * 100.0f / float(seat.enrolment);
+		seat.tcpProgress = float(seat.totalVotesTcp()) * 100.0f / float(seat.enrolment);
+		int totalTcpBoothVotes = std::accumulate(seat.booths.begin(), seat.booths.end(), 0,
+			[&](int acc, decltype(seat.booths)::value_type val) {
+				auto currentBooth = currentElection.booths[val];
+				if (!currentBooth.tcpSwing.size()) return acc;
+				return acc + currentElection.booths[val].totalVotesTcp();
+			});
+		int totalTcpSwingVotes = totalTcpBoothVotes + seat.totalVotesTcp(Results2::VoteType::Ordinary);
+		seat.tcpSwingProgress = float(totalTcpSwingVotes) * 100.0f / float(seat.enrolment);
+	}
 	for (auto const& [id, seat] : currentElection.seats) {
 		logger << "Seat: " << seat.name << "\n";
+		logger << " Fp progress: " << seat.fpProgress << "\n";
+		logger << " Tcp progress: " << seat.tcpProgress << "\n";
+		logger << " Tcp swing progress: " << seat.tcpSwingProgress << "\n";
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths.at(boothId);
 			if (!booth.tcpSwing.size()) continue;

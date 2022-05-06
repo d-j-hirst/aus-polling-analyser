@@ -915,8 +915,8 @@ void ProjectFiler::saveElections(SaveFileOutput& saveOutput)
 			saveOutput << thisBooth.id;
 			saveOutput << thisBooth.name;
 			saveOutput << thisBooth.type;
-			saveOutput << thisBooth.votesFp;
-			saveOutput << thisBooth.votesTcp;
+			saveOutput << thisBooth.fpVotes;
+			saveOutput << thisBooth.tcpVotes;
 		}
 		saveOutput.outputAsType<int32_t>(thisElection.seats.size());
 		for (auto const& [key, thisSeat] : thisElection.seats) {
@@ -967,8 +967,8 @@ void ProjectFiler::loadElections(SaveFileInput& saveInput, [[maybe_unused]] int 
 			saveInput >> thisBooth.id;
 			saveInput >> thisBooth.name;
 			saveInput >> thisBooth.type;
-			saveInput >> thisBooth.votesFp;
-			saveInput >> thisBooth.votesTcp;
+			saveInput >> thisBooth.fpVotes;
+			saveInput >> thisBooth.tcpVotes;
 			thisElection.booths[thisBooth.id] = thisBooth;
 		}
 		auto seatCount = saveInput.extract<int32_t>();
