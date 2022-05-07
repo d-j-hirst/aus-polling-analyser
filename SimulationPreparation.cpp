@@ -548,8 +548,11 @@ void SimulationPreparation::prepareLiveTppSwings()
 		if (!seat.isTpp) continue;
 		for (auto [party, swing] : seat.tcpSwing) {
 			if (aecPartyToSimParty[party] == 0) {
-				run.liveSeatTppSwing[aecSeatToSimSeat[seat.id]] = swing;
-				run.liveSeatPcCounted[aecSeatToSimSeat[seat.id]] = seat.tcpSwingProgress;
+				int seatIndex = aecSeatToSimSeat[seat.id];
+				run.liveSeatTppSwing[seatIndex] = swing;
+				run.liveSeatPcCounted[seatIndex] = seat.tcpSwingProgress;
+				int seatId = project.seats().indexToId(seatIndex);
+				project.outcomes().add(Outcome(seatId, swing, seat.tcpSwingProgress, 0, 0));
 				break;
 			}
 		}
