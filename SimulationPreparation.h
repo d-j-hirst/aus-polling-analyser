@@ -68,6 +68,8 @@ private:
 	void loadTppSwingFactors();
 	void loadIndividualSeatParameters();
 
+	void initializeGeneralLiveData();
+
 	void loadLiveManualResults();
 	void calculateLiveAggregates();
 
@@ -82,6 +84,8 @@ private:
 	void calculateCountProgress();
 	void calculateSeatSwings();
 	void determinePartyIdConversions();
+	void determineSeatIdConversions();
+	void prepareLiveTppSwings();
 
 	std::string getTermCode();
 
@@ -93,6 +97,9 @@ private:
 
 	// maps the AEC's party IDs to the simulation's party index
 	std::unordered_map<int, int> aecPartyToSimParty;
+
+	// maps the AEC's seat IDs to the simulation's seat index
+	std::unordered_map<int, int> aecSeatToSimSeat;
 
 	PollingProject& project;
 	Simulation& sim;

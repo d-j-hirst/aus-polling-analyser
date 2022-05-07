@@ -171,6 +171,7 @@ namespace Results2 {
 		float tcpProgress; // as percentage
 		float tcpSwingProgress; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
+		bool isTpp = true;
 
 		int totalVotesFp(VoteType exclude = VoteType::Invalid) const {
 			return std::accumulate(fpVotes.begin(), fpVotes.end(), 0,

@@ -450,7 +450,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	//}
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
-	if (sim.isLiveManual() && run.liveSeatPcCounted[seatIndex] > 0.0f) {
+	if (sim.isLive() && run.liveSeatPcCounted[seatIndex] > 0.0f) {
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
@@ -1421,7 +1421,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)
 {
-	seatIndex;
 	if (!sim.isLiveManual()) return;
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// this verifies there's a non-classic result entered.

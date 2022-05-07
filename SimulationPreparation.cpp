@@ -86,15 +86,13 @@ void SimulationPreparation::prepareForIterations()
 
 	calculateTotalPopulation();
 
-	loadLiveManualResults();
+	if (sim.isLive()) initializeGeneralLiveData();
+	if (sim.isLiveManual()) loadLiveManualResults();
+	if (sim.isLiveAutomatic()) prepareLiveAutomatic();
 
 	calculateLiveAggregates();
 
 	resetResultCounts();
-
-	if (sim.isLiveAutomatic()) {
-		prepareLiveAutomatic();
-	}
 }
 
 void SimulationPreparation::resetLatestReport()
@@ -296,15 +294,10 @@ void SimulationPreparation::calculateTotalPopulation()
 
 void SimulationPreparation::loadLiveManualResults()
 {
-	run.liveSeatTppSwing.resize(project.seats().count());
-	run.liveSeatPcCounted.resize(project.seats().count());
 	for (auto outcome = project.outcomes().rbegin(); outcome != project.outcomes().rend(); ++outcome) {
 		run.liveSeatTppSwing[project.seats().idToIndex(outcome->seat)] = outcome->partyOneSwing;
 		run.liveSeatPcCounted[project.seats().idToIndex(outcome->seat)] = outcome->getPercentCountedEstimate();
 	}
-	run.liveRegionSwing.resize(project.regions().count());
-	run.liveRegionPercentCounted.resize(project.regions().count());
-	run.liveRegionClassicSeatCount.resize(project.regions().count());
 }
 
 void SimulationPreparation::calculateLiveAggregates()
@@ -343,10 +336,12 @@ void SimulationPreparation::prepareLiveAutomatic()
 	parsePreload();
 	downloadCurrentResults();
 	parseCurrentResults();
+	determinePartyIdConversions();
+	determineSeatIdConversions();
 	calculateBoothSwings();
 	calculateCountProgress();
 	calculateSeatSwings();
-	determinePartyIdConversions();
+	prepareLiveTppSwings();
 }
 
 void SimulationPreparation::downloadPreviousResults()
@@ -483,6 +478,7 @@ void SimulationPreparation::calculateSeatSwings()
 			}
 		}
 		for (auto [party, swing] : weightedSwing) {
+			if (aecPartyToSimParty[party] < 0 || aecPartyToSimParty[party] > 1) seat.isTpp = false;
 			seat.tcpSwing[party] = float(swing / weightSum[party]);
 		}
 	}
@@ -525,7 +521,41 @@ void SimulationPreparation::determinePartyIdConversions()
 			aecPartyToSimParty[aecParty.id] = -1;
 		}
 	}
-	PA_LOG_VAR(aecPartyToSimParty);
+}
+
+void SimulationPreparation::determineSeatIdConversions()
+{
+	for (auto const& [_, aecSeat] : currentElection.seats) {
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			auto const& simSeat = project.seats().viewByIndex(seatIndex);
+			if (simSeat.name == aecSeat.name) {
+				aecSeatToSimSeat[aecSeat.id] = seatIndex;
+				break;
+			}
+		}
+		if (!aecSeatToSimSeat.contains(aecSeat.id)) {
+			logger << "No seat conversion found for " << aecSeat.name << " - needs to be fixed\n";
+			aecSeatToSimSeat[aecSeat.id] = -1;
+		}
+	}
+	PA_LOG_VAR(aecSeatToSimSeat);
+}
+
+void SimulationPreparation::prepareLiveTppSwings()
+{
+	for (auto const& [id, seat] : currentElection.seats) {
+		if (seat.tcpSwing.size() != 2) continue;
+		if (!seat.isTpp) continue;
+		for (auto [party, swing] : seat.tcpSwing) {
+			if (aecPartyToSimParty[party] == 0) {
+				run.liveSeatTppSwing[aecSeatToSimSeat[seat.id]] = swing;
+				run.liveSeatPcCounted[aecSeatToSimSeat[seat.id]] = seat.tcpSwingProgress;
+				break;
+			}
+		}
+	}
+	logger << run.liveSeatTppSwing;
+	logger << run.liveSeatPcCounted;
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
@@ -1230,6 +1260,15 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		}
 
 	} while (true);
+}
+
+void SimulationPreparation::initializeGeneralLiveData()
+{
+	run.liveSeatTppSwing.resize(project.seats().count());
+	run.liveSeatPcCounted.resize(project.seats().count());
+	run.liveRegionSwing.resize(project.regions().count());
+	run.liveRegionPercentCounted.resize(project.regions().count());
+	run.liveRegionClassicSeatCount.resize(project.regions().count());
 }
 
 std::string SimulationPreparation::getTermCode()
