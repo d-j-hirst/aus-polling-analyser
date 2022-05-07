@@ -72,7 +72,6 @@ private:
 	void calculateLiveAggregates();
 
 	void prepareLiveAutomatic();
-	// returns file name that contains the results
 	void downloadPreviousResults();
 	void parsePreviousResults();
 	void downloadPreload();
@@ -81,6 +80,8 @@ private:
 	void parseCurrentResults();
 	void calculateBoothSwings();
 	void calculateCountProgress();
+	void calculateSeatSwings();
+	void determinePartyIdConversions();
 
 	std::string getTermCode();
 
@@ -89,6 +90,9 @@ private:
 	tinyxml2::XMLDocument xml;
 	Results2::Election previousElection;
 	Results2::Election currentElection;
+
+	// maps the AEC's party IDs to the simulation's party index
+	std::unordered_map<int, int> aecPartyToSimParty;
 
 	PollingProject& project;
 	Simulation& sim;

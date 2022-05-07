@@ -40,6 +40,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 						parties[candidate.party].id = candidate.party;
 						parties[candidate.party].name =
 							currentCandidate->FirstChildElement("eml:AffiliationIdentifier")->FirstChildElement("eml:RegisteredName")->GetText();
+						parties[candidate.party].shortCode = affiliationEl->FindAttribute("ShortCode")->Value();
 					}
 				}
 				else candidate.party = Candidate::Independent;

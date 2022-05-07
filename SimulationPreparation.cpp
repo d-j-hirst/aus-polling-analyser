@@ -345,6 +345,8 @@ void SimulationPreparation::prepareLiveAutomatic()
 	parseCurrentResults();
 	calculateBoothSwings();
 	calculateCountProgress();
+	calculateSeatSwings();
+	determinePartyIdConversions();
 }
 
 void SimulationPreparation::downloadPreviousResults()
@@ -442,6 +444,7 @@ void SimulationPreparation::calculateBoothSwings()
 			int currentTotal = currentBooth.totalVotesTcp();
 			if (!currentTotal) continue;
 			int previousTotal = previousBooth.totalVotesTcp();
+			if (!previousTotal) continue;
 			for (auto [affiliation, votes] : currentBooth.tcpVotes) {
 				float currentPercent = float(votes) * 100.0f / float(currentTotal);
 				float previousPercent = float(previousBooth.tcpVotes.at(affiliation)) * 100.0f / float(previousTotal);
@@ -465,11 +468,36 @@ void SimulationPreparation::calculateCountProgress()
 		int totalTcpSwingVotes = totalTcpBoothVotes + seat.totalVotesTcp(Results2::VoteType::Ordinary);
 		seat.tcpSwingProgress = float(totalTcpSwingVotes) * 100.0f / float(seat.enrolment);
 	}
+}
+
+void SimulationPreparation::calculateSeatSwings()
+{
+	for (auto& [seatId, seat] : currentElection.seats) {
+		std::unordered_map<int, double> weightedSwing;
+		std::unordered_map<int, double> weightSum;
+		for (auto boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			for (auto [party, swing] : booth.tcpSwing) {
+				weightedSwing[party] += double(swing) * double(booth.totalVotesTcp());
+				weightSum[party] += double(booth.totalVotesTcp());
+			}
+		}
+		for (auto [party, swing] : weightedSwing) {
+			seat.tcpSwing[party] = float(swing / weightSum[party]);
+		}
+	}
 	for (auto const& [id, seat] : currentElection.seats) {
 		logger << "Seat: " << seat.name << "\n";
 		logger << " Fp progress: " << seat.fpProgress << "\n";
 		logger << " Tcp progress: " << seat.tcpProgress << "\n";
 		logger << " Tcp swing progress: " << seat.tcpSwingProgress << "\n";
+		if (seat.tcpSwing.size()) {
+			logger << " Tcp swings: ";
+			for (auto [party, swing] : seat.tcpSwing) {
+				logger << "  " << currentElection.parties.at(party).name <<
+					": " << swing << "\n";
+			}
+		}
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths.at(boothId);
 			if (!booth.tcpSwing.size()) continue;
@@ -480,6 +508,24 @@ void SimulationPreparation::calculateCountProgress()
 			}
 		}
 	}
+}
+
+void SimulationPreparation::determinePartyIdConversions()
+{
+	for (auto const& [_, aecParty] : currentElection.parties) {
+		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+			auto const& simParty = project.parties().viewByIndex(partyIndex);
+			if (contains(simParty.officialCodes, aecParty.shortCode)) {
+				aecPartyToSimParty[aecParty.id] = partyIndex;
+				break;
+			}
+		}
+		if (!aecPartyToSimParty.contains(aecParty.id)) {
+			logger << "No party conversion found for " << aecParty.name << " (" << aecParty.shortCode << ") - check this is ok\n";
+			aecPartyToSimParty[aecParty.id] = -1;
+		}
+	}
+	PA_LOG_VAR(aecPartyToSimParty);
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
