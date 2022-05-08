@@ -424,6 +424,41 @@ void SimulationPreparation::parseCurrentResults()
 
 void SimulationPreparation::calculateBoothSwings()
 {
+	// fp swings
+	for (auto& [id, currentBooth] : currentElection.booths) {
+		if (!currentBooth.fpVotes.size()) continue;
+		if (previousElection.booths.contains(id)) {
+			auto const& previousBooth = previousElection.booths.at(id);
+			int currentTotal = currentBooth.totalVotesFp();
+			if (!currentTotal) continue;
+			int previousTotal = previousBooth.totalVotesFp();
+			if (!previousTotal) continue;
+			for (auto [candidateId, votes] : currentBooth.fpVotes) {
+				int currentParty = currentElection.candidates[candidateId].party;
+				float currentPercent = float(votes) * 100.0f / float(currentTotal);
+				for (auto [prevCandidateId, prevVotes] : previousBooth.fpVotes) {
+					if (currentParty == Results2::Candidate::Independent) {
+						if (currentElection.candidates[candidateId].name == previousElection.candidates[prevCandidateId].name) {
+							float previousPercent = float(prevVotes) * 100.0f / float(previousTotal);
+							currentBooth.fpSwing[candidateId] = currentPercent - previousPercent;
+						}
+						else {
+							currentBooth.fpSwing[candidateId] = currentPercent;
+						}
+					}
+					else {
+						int previousParty = previousElection.candidates[prevCandidateId].party;
+						if (currentParty == previousParty) {
+							float previousPercent = float(prevVotes) * 100.0f / float(previousTotal);
+							currentBooth.fpSwing[candidateId] = currentPercent - previousPercent;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// tcp swings
 	for (auto& [id, currentBooth] : currentElection.booths) {
 		if (!currentBooth.tcpVotes.size()) continue;
 		if (previousElection.booths.contains(id)) {
@@ -454,6 +489,16 @@ void SimulationPreparation::calculateCountProgress()
 	for (auto& [seatId, seat] : currentElection.seats) {
 		seat.fpProgress = float(seat.totalVotesFp()) * 100.0f / float(seat.enrolment);
 		seat.tcpProgress = float(seat.totalVotesTcp()) * 100.0f / float(seat.enrolment);
+
+		int totalFpBoothVotes = std::accumulate(seat.booths.begin(), seat.booths.end(), 0,
+			[&](int acc, decltype(seat.booths)::value_type val) {
+				auto currentBooth = currentElection.booths[val];
+				if (!currentBooth.fpSwing.size()) return acc;
+				return acc + currentElection.booths[val].totalVotesFp();
+			});
+		int totalFpSwingVotes = totalFpBoothVotes + seat.totalVotesFp(Results2::VoteType::Ordinary);
+		seat.fpSwingProgress = float(totalFpSwingVotes) * 100.0f / float(seat.enrolment);
+
 		int totalTcpBoothVotes = std::accumulate(seat.booths.begin(), seat.booths.end(), 0,
 			[&](int acc, decltype(seat.booths)::value_type val) {
 				auto currentBooth = currentElection.booths[val];
@@ -467,6 +512,23 @@ void SimulationPreparation::calculateCountProgress()
 
 void SimulationPreparation::calculateSeatSwings()
 {
+	// fp swings
+	for (auto& [seatId, seat] : currentElection.seats) {
+		std::unordered_map<int, double> weightedSwing;
+		std::unordered_map<int, double> weightSum;
+		for (auto boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			for (auto [party, swing] : booth.fpSwing) {
+				weightedSwing[party] += double(swing) * double(booth.totalVotesFp());
+				weightSum[party] += double(booth.totalVotesFp());
+			}
+		}
+		for (auto [party, swing] : weightedSwing) {
+			seat.fpSwing[party] = float(swing / weightSum[party]);
+		}
+	}
+
+	// tcp swings
 	for (auto& [seatId, seat] : currentElection.seats) {
 		std::unordered_map<int, double> weightedSwing;
 		std::unordered_map<int, double> weightSum;
@@ -494,13 +556,35 @@ void SimulationPreparation::calculateSeatSwings()
 					": " << swing << "\n";
 			}
 		}
+		if (seat.fpSwing.size()) {
+			logger << " Fp swings: ";
+			for (auto [candidate, swing] : seat.fpSwing) {
+				logger << "  " << currentElection.candidates.at(candidate).name <<
+					" (" << currentElection.parties[currentElection.candidates.at(candidate).party].name <<
+					"): " << swing << "\n";
+			}
+		}
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths.at(boothId);
-			if (!booth.tcpSwing.size()) continue;
-			logger << " Booth: " << currentElection.booths.at(boothId).name << "\n";;
-			for (auto [party, swing] : booth.tcpSwing) {
-				logger << "  Party: " << currentElection.parties.at(party).name
-					<< ", swing: " << swing << "\n";
+			if (booth.fpSwing.size() || booth.tcpSwing.size()) {
+				logger << " Booth: " << currentElection.booths.at(boothId).name << "\n";
+			}
+			if (booth.tcpSwing.size()) {
+				if (booth.tcpSwing.size()) {
+					logger << "  Tcp swings: " << currentElection.booths.at(boothId).name << "\n";
+					for (auto [party, swing] : booth.tcpSwing) {
+						logger << "   Party: " << currentElection.parties.at(party).name
+							<< ", swing: " << swing << "\n";
+					}
+				}
+			}
+			if (booth.fpSwing.size()) {
+				logger << "  Fp swings: " << currentElection.booths.at(boothId).name << "\n";
+				for (auto [candidate, swing] : booth.fpSwing) {
+					logger << "   " << currentElection.candidates.at(candidate).name <<
+						" (" << currentElection.parties[currentElection.candidates.at(candidate).party].name <<
+						"): " << swing << "\n";
+				}
 			}
 		}
 	}

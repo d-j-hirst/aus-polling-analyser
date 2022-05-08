@@ -147,6 +147,7 @@ namespace Results2 {
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotes; // map candidate id -> vote count
 
+		std::unordered_map<int32_t, float> fpSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 
 		int totalVotesFp() const {
@@ -169,7 +170,9 @@ namespace Results2 {
 		std::unordered_map<int32_t, int> tppVotes; // map coalition id -> vote count
 		float fpProgress; // as percentage
 		float tcpProgress; // as percentage
+		float fpSwingProgress; // as percentage
 		float tcpSwingProgress; // as percentage
+		std::unordered_map<int32_t, float> fpSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 		bool isTpp = true;
 
