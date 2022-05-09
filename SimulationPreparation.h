@@ -80,6 +80,7 @@ private:
 	void parsePreload();
 	void downloadCurrentResults();
 	void parseCurrentResults();
+	void preparePartyCodeGroupings();
 	void calculateBoothSwings();
 	void calculateCountProgress();
 	void calculateSeatSwings();
@@ -100,6 +101,8 @@ private:
 
 	// maps the AEC's seat IDs to the simulation's seat index
 	std::unordered_map<int, int> aecSeatToSimSeat;
+
+	std::unordered_map<std::string, int> partyCodeGroupings;
 
 	PollingProject& project;
 	Simulation& sim;

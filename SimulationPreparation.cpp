@@ -336,6 +336,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	parsePreload();
 	downloadCurrentResults();
 	parseCurrentResults();
+	preparePartyCodeGroupings();
 	determinePartyIdConversions();
 	determineSeatIdConversions();
 	calculateBoothSwings();
@@ -422,6 +423,21 @@ void SimulationPreparation::parseCurrentResults()
 	currentElection.update(xml);
 }
 
+void SimulationPreparation::preparePartyCodeGroupings()
+{
+	for (auto [id, party] : project.parties()) {
+		for (auto shortCode : party.officialCodes) {
+			if (id == 1 && shortCode[0] == 'N') {
+				partyCodeGroupings[shortCode] = -4;
+			}
+			else {
+				partyCodeGroupings[shortCode] = project.parties().idToIndex(id);
+			}
+		}
+	}
+	PA_LOG_VAR(partyCodeGroupings);
+}
+
 void SimulationPreparation::calculateBoothSwings()
 {
 	// fp swings
@@ -436,24 +452,36 @@ void SimulationPreparation::calculateBoothSwings()
 			for (auto [candidateId, votes] : currentBooth.fpVotes) {
 				int currentParty = currentElection.candidates[candidateId].party;
 				float currentPercent = float(votes) * 100.0f / float(currentTotal);
+				bool matchFound = false;
 				for (auto [prevCandidateId, prevVotes] : previousBooth.fpVotes) {
 					if (currentParty == Results2::Candidate::Independent) {
 						if (currentElection.candidates[candidateId].name == previousElection.candidates[prevCandidateId].name) {
 							float previousPercent = float(prevVotes) * 100.0f / float(previousTotal);
 							currentBooth.fpSwing[candidateId] = currentPercent - previousPercent;
-						}
-						else {
-							currentBooth.fpSwing[candidateId] = currentPercent;
+							matchFound = true;
 						}
 					}
 					else {
 						int previousParty = previousElection.candidates[prevCandidateId].party;
-						if (currentParty == previousParty) {
+						bool shortCodeMatch = previousElection.parties[previousParty].shortCode ==
+							currentElection.parties[currentParty].shortCode;
+						bool nameMatch = previousElection.parties[previousParty].name ==
+							currentElection.parties[currentParty].name;
+						bool groupingMatch = partyCodeGroupings.contains(previousElection.parties[previousParty].shortCode)
+							&& partyCodeGroupings.contains(currentElection.parties[currentParty].shortCode) &&
+							partyCodeGroupings[previousElection.parties[previousParty].shortCode] ==
+							partyCodeGroupings[currentElection.parties[currentParty].shortCode];
+						bool idMatch = previousParty == currentParty;
+						bool partyMatch = shortCodeMatch || nameMatch || groupingMatch || idMatch;
+						if (partyMatch) {
 							float previousPercent = float(prevVotes) * 100.0f / float(previousTotal);
 							currentBooth.fpSwing[candidateId] = currentPercent - previousPercent;
+							matchFound = true;
+							break;
 						}
 					}
 				}
+				if (!matchFound) currentBooth.fpSwing[candidateId] = currentPercent;
 			}
 		}
 	}
@@ -550,14 +578,14 @@ void SimulationPreparation::calculateSeatSwings()
 		logger << " Tcp progress: " << seat.tcpProgress << "\n";
 		logger << " Tcp swing progress: " << seat.tcpSwingProgress << "\n";
 		if (seat.tcpSwing.size()) {
-			logger << " Tcp swings: ";
+			logger << " Tcp swings: \n";
 			for (auto [party, swing] : seat.tcpSwing) {
 				logger << "  " << currentElection.parties.at(party).name <<
 					": " << swing << "\n";
 			}
 		}
 		if (seat.fpSwing.size()) {
-			logger << " Fp swings: ";
+			logger << " Fp swings: \n";
 			for (auto [candidate, swing] : seat.fpSwing) {
 				logger << "  " << currentElection.candidates.at(candidate).name <<
 					" (" << currentElection.parties[currentElection.candidates.at(candidate).party].name <<
@@ -596,7 +624,12 @@ void SimulationPreparation::determinePartyIdConversions()
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			auto const& simParty = project.parties().viewByIndex(partyIndex);
 			if (contains(simParty.officialCodes, aecParty.shortCode)) {
-				aecPartyToSimParty[aecParty.id] = partyIndex;
+				if (partyIndex == 1 && aecParty.shortCode[0] == 'N') {
+					aecPartyToSimParty[aecParty.id] = -4;
+				}
+				else {
+					aecPartyToSimParty[aecParty.id] = partyIndex;
+				}
 				break;
 			}
 		}
@@ -605,6 +638,7 @@ void SimulationPreparation::determinePartyIdConversions()
 			aecPartyToSimParty[aecParty.id] = -1;
 		}
 	}
+	PA_LOG_VAR(aecPartyToSimParty);
 }
 
 void SimulationPreparation::determineSeatIdConversions()
@@ -641,8 +675,6 @@ void SimulationPreparation::prepareLiveTppSwings()
 			}
 		}
 	}
-	logger << run.liveSeatTppSwing;
-	logger << run.liveSeatPcCounted;
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
