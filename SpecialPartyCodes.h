@@ -12,4 +12,4 @@ inline bool isOthersCode(std::string code) {
 const int OthersIndex = -1;
 const int EmergingIndIndex = -2;
 const int EmergingPartyIndex = -3;
-const int NationalsIndex = -4; // Placeholder for live-automatic 
+const int CoalitionPartnerIndex = -4; // Placeholder for live-automatic 

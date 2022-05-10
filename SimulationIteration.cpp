@@ -450,14 +450,14 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	//}
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
-	if (sim.isLive() && run.liveSeatPcCounted[seatIndex] > 0.0f) {
+	if (sim.isLive() && run.liveSeatTcpCounted[seatIndex] > 0.0f) {
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
 		float liveTransformedTpp = transformVoteShare(tppLive);
-		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatPcCounted[seatIndex] * 0.2f)));
+		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpCounted[seatIndex] * 0.2f)));
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
-		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatPcCounted[seatIndex] * 0.2f);
+		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
 	}
@@ -547,6 +547,8 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	if (seat.confirmedProminentIndependent) determineSeatConfirmedInds(seatIndex);
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
+
+	if (sim.isLiveAutomatic()) incorporateLiveSeatFps(seatIndex);
 
 	// Helps to effect minor party crowding, i.e. if too many minor parties
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
@@ -820,6 +822,37 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	}
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
+}
+
+void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
+{
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	float countPercent = run.liveSeatFpCounted[seatIndex];
+	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.2f);
+	for (auto [partyIndex, swing] : run.liveSeatFpSwing[seatIndex]) {
+		// Ignore these for now
+		if (isMajor(partyIndex) || partyIndex == CoalitionPartnerIndex) continue;
+		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
+			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
+		if (partyIndex == run.indPartyIndex) {
+			if (project.seats().idToIndex(seat.incumbent) == run.indPartyIndex && seat.incumbentRecontestConfirmed) {
+				projectedFp += swing;
+			}
+			else {
+				projectedFp = swing;
+			}
+		}
+		else if (partyIndex == EmergingIndIndex) {
+			projectedFp = swing;
+		}
+		else {
+			// Conveniently, this one simple line works to either add the swing to past fp
+			// if it's actually a swing, or simply replace the zero "past" fp with the total vote.
+			projectedFp += swing;
+		}
+		float mixedFp = std::clamp(mix(seatFpVoteShare[seatIndex][partyIndex], projectedFp, liveFactor), 0.1f, 0.1f);
+		seatFpVoteShare[seatIndex][partyIndex] = mixedFp;
+	}
 }
 
 void SimulationIteration::prepareFpsForNormalisation(int seatIndex)

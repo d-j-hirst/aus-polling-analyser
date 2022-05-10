@@ -147,6 +147,7 @@ namespace Results2 {
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotes; // map candidate id -> vote count
 
+		std::unordered_map<int32_t, float> fpPercent; // as percentage
 		std::unordered_map<int32_t, float> fpSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 
@@ -172,16 +173,17 @@ namespace Results2 {
 		float tcpProgress; // as percentage
 		float fpSwingProgress; // as percentage
 		float tcpSwingProgress; // as percentage
+		std::unordered_map<int32_t, float> fpPercent; // total booth as percentage
 		std::unordered_map<int32_t, float> fpSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 		bool isTpp = true;
 
 		int totalVotesFp(VoteType exclude = VoteType::Invalid) const {
 			return std::accumulate(fpVotes.begin(), fpVotes.end(), 0,
-				[&](int acc, decltype(fpVotes)::value_type val) {return acc + 
-				std::accumulate(val.second.begin(), val.second.end(), 0, 
-					[&](int acc, decltype(val.second)::value_type val2) {return val2.first != exclude ? acc + val2.second : acc;}
-				);}
+				[&](int acc, decltype(fpVotes)::value_type val) {return acc +
+				std::accumulate(val.second.begin(), val.second.end(), 0,
+					[&](int acc, decltype(val.second)::value_type val2) {return val2.first != exclude ? acc + val2.second : acc; }
+			); }
 			);
 		}
 

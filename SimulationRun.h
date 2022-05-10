@@ -222,7 +222,9 @@ private:
 
 	// Live manual results
 	std::vector<float> liveSeatTppSwing;
-	std::vector<float> liveSeatPcCounted;
+	std::vector<float> liveSeatTcpCounted; // as percentage
+	std::vector<std::map<int, float>> liveSeatFpSwing;
+	std::vector<float> liveSeatFpCounted; // as percentage
 
 	std::vector<float> liveRegionPercentCounted;
 	std::vector<float> liveRegionSwing;

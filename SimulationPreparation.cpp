@@ -9,6 +9,7 @@
 #include "tinyxml2.h"
 
 #include <filesystem>
+#include <queue>
 #include <random>
 
 // Note: A large amount of code in this file is commented out as the "previous results"
@@ -296,7 +297,7 @@ void SimulationPreparation::loadLiveManualResults()
 {
 	for (auto outcome = project.outcomes().rbegin(); outcome != project.outcomes().rend(); ++outcome) {
 		run.liveSeatTppSwing[project.seats().idToIndex(outcome->seat)] = outcome->partyOneSwing;
-		run.liveSeatPcCounted[project.seats().idToIndex(outcome->seat)] = outcome->getPercentCountedEstimate();
+		run.liveSeatTcpCounted[project.seats().idToIndex(outcome->seat)] = outcome->getPercentCountedEstimate();
 	}
 }
 
@@ -343,6 +344,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	calculateCountProgress();
 	calculateSeatSwings();
 	prepareLiveTppSwings();
+	prepareLiveFpSwings();
 }
 
 void SimulationPreparation::downloadPreviousResults()
@@ -458,6 +460,7 @@ void SimulationPreparation::calculateBoothSwings()
 						if (currentElection.candidates[candidateId].name == previousElection.candidates[prevCandidateId].name) {
 							float previousPercent = float(prevVotes) * 100.0f / float(previousTotal);
 							currentBooth.fpSwing[candidateId] = currentPercent - previousPercent;
+							currentBooth.fpPercent[candidateId] = currentPercent;
 							matchFound = true;
 						}
 					}
@@ -476,12 +479,16 @@ void SimulationPreparation::calculateBoothSwings()
 						if (partyMatch) {
 							float previousPercent = float(prevVotes) * 100.0f / float(previousTotal);
 							currentBooth.fpSwing[candidateId] = currentPercent - previousPercent;
+							currentBooth.fpPercent[candidateId] = currentPercent;
 							matchFound = true;
 							break;
 						}
 					}
 				}
-				if (!matchFound) currentBooth.fpSwing[candidateId] = currentPercent;
+				if (!matchFound) {
+					currentBooth.fpSwing[candidateId] = currentPercent;
+					currentBooth.fpPercent[candidateId] = currentPercent;
+				}
 			}
 		}
 	}
@@ -543,16 +550,22 @@ void SimulationPreparation::calculateSeatSwings()
 	// fp swings
 	for (auto& [seatId, seat] : currentElection.seats) {
 		std::unordered_map<int, double> weightedSwing;
+		std::unordered_map<int, double> weightedPercent;
 		std::unordered_map<int, double> weightSum;
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths[boothId];
-			for (auto [party, swing] : booth.fpSwing) {
-				weightedSwing[party] += double(swing) * double(booth.totalVotesFp());
-				weightSum[party] += double(booth.totalVotesFp());
+			for (auto [candidate, swing] : booth.fpSwing) {
+				double total = double(booth.totalVotesFp());
+				weightedPercent[candidate] += double(booth.fpPercent.at(candidate)) * total;
+				weightedSwing[candidate] += double(swing) * total;
+				weightSum[candidate] += total;
 			}
 		}
 		for (auto [party, swing] : weightedSwing) {
 			seat.fpSwing[party] = float(swing / weightSum[party]);
+		}
+		for (auto [party, percent] : weightedPercent) {
+			seat.fpPercent[party] = float(percent / weightSum[party]);
 		}
 	}
 
@@ -581,15 +594,15 @@ void SimulationPreparation::calculateSeatSwings()
 			logger << " Tcp swings: \n";
 			for (auto [party, swing] : seat.tcpSwing) {
 				logger << "  " << currentElection.parties.at(party).name <<
-					": " << swing << "\n";
+					": " << formatFloat(swing, 2, true) << "\n";
 			}
 		}
 		if (seat.fpSwing.size()) {
-			logger << " Fp swings: \n";
+			logger << " Fp votes: \n";
 			for (auto [candidate, swing] : seat.fpSwing) {
 				logger << "  " << currentElection.candidates.at(candidate).name <<
 					" (" << currentElection.parties[currentElection.candidates.at(candidate).party].name <<
-					"): " << swing << "\n";
+					"): " << seat.fpPercent.at(candidate) << "% (" << formatFloat(swing, 2, true) << ")\n";
 			}
 		}
 		for (auto boothId : seat.booths) {
@@ -602,16 +615,16 @@ void SimulationPreparation::calculateSeatSwings()
 					logger << "  Tcp swings: " << currentElection.booths.at(boothId).name << "\n";
 					for (auto [party, swing] : booth.tcpSwing) {
 						logger << "   Party: " << currentElection.parties.at(party).name
-							<< ", swing: " << swing << "\n";
+							<< ", swing: " << formatFloat(swing, 2, true) << "\n";
 					}
 				}
 			}
 			if (booth.fpSwing.size()) {
-				logger << "  Fp swings: " << currentElection.booths.at(boothId).name << "\n";
+				logger << "  Fp votes: " << currentElection.booths.at(boothId).name << "\n";
 				for (auto [candidate, swing] : booth.fpSwing) {
 					logger << "   " << currentElection.candidates.at(candidate).name <<
 						" (" << currentElection.parties[currentElection.candidates.at(candidate).party].name <<
-						"): " << swing << "\n";
+						"): " << booth.fpPercent.at(candidate) << "% (" << formatFloat(swing, 2, true) << ")\n";
 				}
 			}
 		}
@@ -668,12 +681,84 @@ void SimulationPreparation::prepareLiveTppSwings()
 			if (aecPartyToSimParty[party] == 0) {
 				int seatIndex = aecSeatToSimSeat[seat.id];
 				run.liveSeatTppSwing[seatIndex] = swing;
-				run.liveSeatPcCounted[seatIndex] = seat.tcpSwingProgress;
+				run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
 				int seatId = project.seats().indexToId(seatIndex);
 				project.outcomes().add(Outcome(seatId, swing, seat.tcpSwingProgress, 0, 0));
 				break;
 			}
 		}
+	}
+}
+
+void SimulationPreparation::prepareLiveFpSwings()
+{
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		int seatIndex = aecSeatToSimSeat[seat.id];
+		run.liveSeatFpCounted[seatIndex] = seat.fpSwingProgress;
+		std::priority_queue<std::pair<float, float>> indFps; // percent, swing, candidate id
+		for (auto [candidate, swing] : seat.fpSwing) {
+			int partyIndex = aecPartyToSimParty[currentElection.candidates[candidate].party];
+			// in this section handle only parties that are unambiguously representable
+			if (partyIndex == OthersIndex) {
+				run.liveSeatFpSwing[seatIndex][partyIndex] += seat.fpPercent.at(candidate);
+			}
+			else if (partyIndex == run.indPartyIndex) {
+				indFps.push({seat.fpPercent.at(candidate), swing});
+			}
+			else {
+				run.liveSeatFpSwing[seatIndex][partyIndex] = swing;
+			}
+		}
+		// independents --
+		//  If independent is highest vote AND matches previous candidate, use swing
+		//  Otherwise, use first preferences of highest vote independent directly if fp > 8%.
+		//  2nd highest independent is rated as emerging if fp > 8%
+		//  All other independents added to generic others
+		//   - When running iterations, apply fp swing for main IND party if incumbent is independent and marked as recontesting
+		//	    and mix pre-projected emerging IND for with live emerging IND percentage (if they exist) -> merging IND
+		//   - Otherwise, if prominent IND, mix pre-projected IND vote with current IND live percentage -> IND
+		//	    and mix pre-projected emerging IND for with live emerging IND percentage (if they exist) -> merging IND
+		//   - If no prominent IND, mix pre-projected emerging IND number with current IND percent estimate -> IND
+		//      and use live emerging IND (if it exists) directly for emerging IND percent estimate
+		if (indFps.size()) {
+			auto highestInd = indFps.top();
+			float voteShare = highestInd.first;
+			float swing = highestInd.second;
+			if (swing < voteShare - 0.1f) { // implies candidate is matched
+				run.liveSeatFpSwing[seatIndex][run.indPartyIndex] = swing;
+			}
+			else if (voteShare > 8.0f) {
+				run.liveSeatFpSwing[seatIndex][run.indPartyIndex] = voteShare;
+			}
+			else {
+				run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
+			}
+			indFps.pop();
+		}
+		if (indFps.size()) {
+			auto secondInd = indFps.top();
+			float voteShare = secondInd.first;
+			if (voteShare > 8.0f) {
+				run.liveSeatFpSwing[seatIndex][EmergingIndIndex] = voteShare;
+			}
+			else {
+				run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
+			}
+			indFps.pop();
+		}
+		while (indFps.size()) {
+			auto otherInd = indFps.top();
+			float voteShare = otherInd.first;
+			run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
+			indFps.pop();
+		}
+		if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex) &&
+			!run.liveSeatFpSwing[seatIndex].contains(1)) {
+			run.liveSeatFpSwing[seatIndex][1] = run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex];
+			run.liveSeatFpSwing[seatIndex].erase(CoalitionPartnerIndex);
+		}
+		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+		PA_LOG_VAR(run.liveSeatFpSwing[seatIndex]);
 	}
 }
 
@@ -683,7 +768,7 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	if (!seat.isClassic2pp()) return;
 	++run.classicSeatCount;
 	int regionIndex = project.regions().idToIndex(seat.region);
-	float percentCounted = run.liveSeatPcCounted[seatIndex];
+	float percentCounted = run.liveSeatTcpCounted[seatIndex];
 	float weightedSwing = run.liveSeatTppSwing[seatIndex] * percentCounted;
 	run.liveOverallSwing += weightedSwing;
 	run.liveRegionSwing[regionIndex] += weightedSwing;
@@ -1384,7 +1469,9 @@ void SimulationPreparation::loadIndividualSeatParameters()
 void SimulationPreparation::initializeGeneralLiveData()
 {
 	run.liveSeatTppSwing.resize(project.seats().count());
-	run.liveSeatPcCounted.resize(project.seats().count());
+	run.liveSeatTcpCounted.resize(project.seats().count());
+	run.liveSeatFpSwing.resize(project.seats().count());
+	run.liveSeatFpCounted.resize(project.seats().count());
 	run.liveRegionSwing.resize(project.regions().count());
 	run.liveRegionPercentCounted.resize(project.regions().count());
 	run.liveRegionClassicSeatCount.resize(project.regions().count());
