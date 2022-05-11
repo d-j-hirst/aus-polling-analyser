@@ -828,7 +828,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float countPercent = run.liveSeatFpCounted[seatIndex];
-	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.2f);
+	float liveFactor = 1.0f - pow(2.0f, -countPercent * 50.0f);
 	for (auto [partyIndex, swing] : run.liveSeatFpSwing[seatIndex]) {
 		// Ignore these for now
 		if (isMajor(partyIndex) || partyIndex == CoalitionPartnerIndex) continue;
@@ -850,7 +850,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 			// if it's actually a swing, or simply replace the zero "past" fp with the total vote.
 			projectedFp += swing;
 		}
-		float mixedFp = std::clamp(mix(seatFpVoteShare[seatIndex][partyIndex], projectedFp, liveFactor), 0.1f, 0.1f);
+		float mixedFp = std::clamp(mix(seatFpVoteShare[seatIndex][partyIndex], projectedFp, liveFactor), 0.1f, 99.9f);
 		seatFpVoteShare[seatIndex][partyIndex] = mixedFp;
 	}
 }
@@ -1224,6 +1224,8 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					// prevent outlier seats from getting monster swings
 					float swingCap = std::max(0.0f, tempOverallFp[partyIndex] * (correctionFactor - 1.0f) * 3.0f);
 					float correctionSwing = std::min(swingCap, seatFpVoteShare[seatIndex][partyIndex] * (correctionFactor - 1.0f));
+					// don't re-adjust fps when we have a significant actual count
+					if (sim.isLiveAutomatic()) correctionSwing *= std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
 					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
 					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}
@@ -1243,6 +1245,8 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				if (!totalOthers) continue;
 				for (auto& [seatPartyIndex, voteShare] : categories) {
 					float additionalVotes = allocation * voteShare / totalOthers;
+					// don't re-adjust fps when we have a significant actual count
+					if (sim.isLiveAutomatic()) additionalVotes *= std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
 					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][seatPartyIndex], additionalVotes);
 					seatFpVoteShare[seatIndex][seatPartyIndex] = newValue;
 				}
@@ -1273,6 +1277,11 @@ void SimulationIteration::correctMajorPartyFpBias()
 	float partyOneAdjust = partyOneTarget / tempOverallFp[Mp::One];
 	float partyTwoAdjust = partyTwoTarget / tempOverallFp[Mp::Two];
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		// Don't readjust fps when there is a meaningful actual fp count
+		if (sim.isLiveAutomatic()) {
+			partyOneAdjust = mix(1.0f, partyOneAdjust, std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]));
+			partyTwoAdjust = mix(1.0f, partyTwoAdjust, std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]));
+		}
 		seatFpVoteShare[seatIndex][Mp::One] = seatFpVoteShare[seatIndex][Mp::One] * partyOneAdjust;
 		seatFpVoteShare[seatIndex][Mp::Two] = seatFpVoteShare[seatIndex][Mp::Two] * partyTwoAdjust;
 		normaliseSeatFp(seatIndex);
