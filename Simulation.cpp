@@ -63,6 +63,12 @@ Simulation::SavedReports const& Simulation::viewSavedReports() const
 	return savedReports;
 }
 
+void Simulation::deleteReport(int reportIndex)
+{
+	if (reportIndex < 0 || reportIndex >= int(savedReports.size())) return;
+	savedReports.erase(savedReports.begin() + reportIndex);
+}
+
 float Simulation::Report::getPartyMajorityPercent(int whichParty) const
 {
 	if (majorityPercent.contains(whichParty)) {

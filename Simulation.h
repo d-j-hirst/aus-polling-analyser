@@ -276,6 +276,8 @@ public:
 
 	SavedReports const& viewSavedReports() const;
 
+	void deleteReport(int reportIndex);
+
 	void replaceSettings(Simulation::Settings newSettings);
 
 	void saveReport(std::string label);

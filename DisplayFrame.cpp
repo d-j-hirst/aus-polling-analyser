@@ -15,7 +15,8 @@ enum ControlId {
 	SelectSimulation,
 	SaveReport,
 	SelectSavedReport,
-	UploadToServer
+	UploadToServer,
+	DeleteReport
 };
 
 // frame constructor
@@ -97,10 +98,8 @@ void DisplayFrame::OnUploadToServer(wxCommandEvent&)
 {
 	auto simIndex = project->simulations().indexToId(selectedSimulation);
 	if (selectedSaveReport == -1 && !project->simulations().viewByIndex(simIndex).isLive()) {
-		if (!project->simulations().viewByIndex(simIndex).isLive()) {
-			wxMessageBox("To minimise accidental additional updates, uploading \"Latest Forecast\" to the server is not allowed. Create a snapshot and upload that instead.");
-			return;
-		}
+		wxMessageBox("To minimise accidental additional updates, uploading \"Latest Forecast\" to the server is not allowed. Create a snapshot and upload that instead.");
+		return;
 	}
 	if (!project->getElectionName().size()) {
 		std::string electionName = wxGetTextFromUser("An election name has not yet been entered for this project. Enter a name for this election:", "Saved Report").ToStdString();
@@ -108,6 +107,25 @@ void DisplayFrame::OnUploadToServer(wxCommandEvent&)
 	}
 	project->simulations().uploadToServer(simIndex, selectedSaveReport);
 	wxMessageBox("Successfully prepared upload of report. Use Python script: uploads/upload_manager.py to upload to the server.");
+}
+
+void DisplayFrame::OnDeleteReport(wxCommandEvent&)
+{
+	auto simIndex = project->simulations().indexToId(selectedSimulation);
+	if (selectedSaveReport == -1) {
+		wxMessageBox("Can't delete the latest forecasts, only archived reports.");
+		return;
+	}
+	std::string deletion = wxGetTextFromUser("Enter \"delete\" to confirm deletion:", "Confirm Deletion").ToStdString();
+	if (deletion == "delete") {
+		project->simulations().deleteReport(simIndex, selectedSaveReport);
+		wxMessageBox("Successfully releted report.");
+		selectedSaveReport = -1;
+		refreshToolbar();
+	}
+	else {
+		wxMessageBox("Report was NOT deleted.");
+	}
 }
 
 // Handles the movement of the mouse in the display frame.
@@ -124,6 +142,7 @@ void DisplayFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &DisplayFrame::OnSaveReport, this, ControlId::SaveReport);
 	Bind(wxEVT_COMBOBOX, &DisplayFrame::OnSavedReportSelection, this, ControlId::SelectSavedReport);
 	Bind(wxEVT_TOOL, &DisplayFrame::OnUploadToServer, this, ControlId::UploadToServer);
+	Bind(wxEVT_TOOL, &DisplayFrame::OnDeleteReport, this, ControlId::DeleteReport);
 	dcPanel->Bind(wxEVT_MOTION, &DisplayFrame::OnMouseMove, this, ControlId::DcPanel);
 	dcPanel->Bind(wxEVT_PAINT, &DisplayFrame::OnPaint, this, ControlId::DcPanel);
 }
@@ -147,9 +166,10 @@ void DisplayFrame::refreshToolbar() {
 
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[2];
+	wxBitmap toolBarBitmaps[3];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\camera.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\web.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
 
 	// *** Simulation Combo Box *** //
 
@@ -180,6 +200,7 @@ void DisplayFrame::refreshToolbar() {
 	toolBar->AddTool(ControlId::SaveReport, "Save report", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "Save report");
 	toolBar->AddControl(selectSavedReportComboBox);
 	toolBar->AddTool(ControlId::UploadToServer, "Save to server", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Send to server");
+	toolBar->AddTool(ControlId::DeleteReport, "Delete report", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Delete report");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();

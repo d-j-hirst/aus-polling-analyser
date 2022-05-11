@@ -72,6 +72,8 @@ public:
 
 	void uploadToServer(Simulation::Id id, int reportIndex);
 
+	void deleteReport(Simulation::Id id, int reportIndex);
+
 	void startLoadingSimulation();
 
 	void finaliseLoadedSimulation();

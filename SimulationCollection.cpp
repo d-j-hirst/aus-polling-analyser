@@ -90,13 +90,24 @@ void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
 		reportUploader.upload();
 		return;
 	}
-	if (reportIndex <= -1 && reportIndex >= int(reports.size())) {
+	if (reportIndex <= -1 || reportIndex >= int(reports.size())) {
 		logger << "Invalid report!\n";
 		return;
 	}
 	auto const& report = reports[reportIndex];
 	auto reportUploader = ReportUploader(report, simulationIt->second, project);
 	reportUploader.upload();
+}
+
+void SimulationCollection::deleteReport(Simulation::Id id, int reportIndex)
+{
+	auto simulationIt = simulations.find(id);
+	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
+	if (reportIndex <= -1 || reportIndex >= int(simulationIt->second.viewSavedReports().size())) {
+		logger << "Invalid report!\n";
+		return;
+	}
+	simulationIt->second.deleteReport(reportIndex);
 }
 
 

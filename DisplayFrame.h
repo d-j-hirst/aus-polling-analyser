@@ -52,6 +52,9 @@ private:
 	// Save a permanent copy of the latest simulation report
 	void OnUploadToServer(wxCommandEvent&);
 
+	// Save a permanent copy of the latest simulation report
+	void OnDeleteReport(wxCommandEvent&);
+
 	// Repaints the display diagram
 	void OnPaint(wxPaintEvent& event);
 
