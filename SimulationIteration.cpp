@@ -554,7 +554,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
-	preferenceVariation.clear();
 	allocateMajorPartyFp(seatIndex);
 
 }
@@ -831,7 +830,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.5f);
 	for (auto [partyIndex, swing] : run.liveSeatFpSwing[seatIndex]) {
 		// Ignore these for now
-		if (isMajor(partyIndex) || partyIndex == CoalitionPartnerIndex) continue;
+		if (isMajor(partyIndex)) continue;
 		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
 		if (partyIndex == run.indPartyIndex) {
@@ -928,65 +927,71 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	}
 
 	float pastElectionPartyOnePrefEstimate = 0.0f;
+
+	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
-		if (!isMajor(partyIndex)) {
-			// *** Probably want to introduce some randomness into these - they assume
-			// an *exact* flow of preferences each time which is not realistic
-			if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
-				// Prominent independents and centrist candidates attract a lot
-				// of tactical voting from the less-favoured major party, so it's not accurate
-				// to give them the same share as the national vote
-				// We allocate the first 5% of the vote at national rates, the next 10% at a sliding scale
-				// up to the cap (see below), and the remained at the cap
-				// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
-				// by 0-5% at the previous two elections
-				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
-				// declines for >30%, according to formula given below for preferenceFlowCap
-				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
-				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ?
-					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
-					: 100.f - (24.318f - 0.788f * voteShare + 1.0781f * (100.0f - partyOneCurrentTpp)));
-				preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
-				float upperPreferenceFlow = (previousAverage > 0.0f ? 
-					std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
-					std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
-				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
-				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
-				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
-					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
-					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
-				float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
-				if (!preferenceVariation.contains(partyIndex)) {
-					preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
-				}
-				float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-				pastElectionPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f;
-				//if (seat.name == "Shepparton") {
-				//	logger << "past\n";
-				//	PA_LOG_VAR(seat.name);
-				//	PA_LOG_VAR(partyIndex);
-				//	PA_LOG_VAR(seat.tppMargin);
-				//	PA_LOG_VAR(seat.previousSwing);
-				//	PA_LOG_VAR(previousAverage);
-				//	PA_LOG_VAR(preferenceFlowCap);
-				//	PA_LOG_VAR(partyOneCurrentTpp);
-				//	PA_LOG_VAR(voteShare);
-				//	PA_LOG_VAR(upperPreferenceFlow);
-				//	PA_LOG_VAR(basePreferenceFlow);
-				//	PA_LOG_VAR(transitionPreferenceFlow);
-				//	PA_LOG_VAR(summedPreferenceFlow);
-				//	PA_LOG_VAR(preferenceVariation);
-				//	PA_LOG_VAR(effectivePreferenceFlow);
-				//	PA_LOG_VAR(preferenceVariation[partyIndex]);
-				//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
-				//	PA_LOG_VAR(randomisedPreferenceFlow);
-				//}
+		if (isMajor(partyIndex)) continue;
+		// *** Probably want to introduce some randomness into these - they assume
+		// an *exact* flow of preferences each time which is not realistic
+		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
+			// Prominent independents and centrist candidates attract a lot
+			// of tactical voting from the less-favoured major party, so it's not accurate
+			// to give them the same share as the national vote
+			// We allocate the first 5% of the vote at national rates, the next 10% at a sliding scale
+			// up to the cap (see below), and the remained at the cap
+			// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
+			// by 0-5% at the previous two elections
+			// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
+			// declines for >30%, according to formula given below for preferenceFlowCap
+			float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
+			float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ?
+				4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
+				: 100.f - (24.318f - 0.788f * voteShare + 1.0781f * (100.0f - partyOneCurrentTpp)));
+			preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
+			float upperPreferenceFlow = (previousAverage > 0.0f ? 
+				std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
+				std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
+			float basePreferenceFlow = previousPreferenceFlow[partyIndex];
+			float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
+			float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
+				transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
+				upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
+			float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
+			if (!preferenceVariation.contains(partyIndex)) {
+				preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
 			}
-			else {
-				pastElectionPartyOnePrefEstimate += voteShare * previousPreferenceFlow[partyIndex] * 0.01f;
-			}
-			previousNonMajorFpShare += voteShare;
+			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
+			pastElectionPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f;
+			//if (seat.name == "Shepparton") {
+			//	logger << "past\n";
+			//	PA_LOG_VAR(seat.name);
+			//	PA_LOG_VAR(partyIndex);
+			//	PA_LOG_VAR(seat.tppMargin);
+			//	PA_LOG_VAR(seat.previousSwing);
+			//	PA_LOG_VAR(previousAverage);
+			//	PA_LOG_VAR(preferenceFlowCap);
+			//	PA_LOG_VAR(partyOneCurrentTpp);
+			//	PA_LOG_VAR(voteShare);
+			//	PA_LOG_VAR(upperPreferenceFlow);
+			//	PA_LOG_VAR(basePreferenceFlow);
+			//	PA_LOG_VAR(transitionPreferenceFlow);
+			//	PA_LOG_VAR(summedPreferenceFlow);
+			//	PA_LOG_VAR(preferenceVariation);
+			//	PA_LOG_VAR(effectivePreferenceFlow);
+			//	PA_LOG_VAR(preferenceVariation[partyIndex]);
+			//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
+			//	PA_LOG_VAR(randomisedPreferenceFlow);
+			//}
 		}
+		else {
+			float previousPreferences = previousPreferenceFlow[partyIndex];
+			if (!preferenceVariation.contains(partyIndex)) {
+				preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+			}
+			float randomisedPreferenceFlow = basicTransformedSwing(previousPreferences, preferenceVariation[partyIndex]);
+			pastElectionPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f;
+		}
+		previousNonMajorFpShare += voteShare;
 	}
 	preferenceBias = previousPartyOneTpp - previousPartyOneFp - pastElectionPartyOnePrefEstimate;
 	// Amount by which actual TPP is higher than estimated TPP, per 1% of the vote
@@ -996,62 +1001,63 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentPartyOnePrefs = 0.0f;
 	float currentTotalPrefs = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
-		if (!isMajor(partyIndex)) {
-			// *** Probably want to introduce some randomness into these - they assume
-			// an *exact* flow of preferences each time which is not realistic
-			if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
-				// Prominent independents and centrist candidates attract a lot
-				// of tactical voting from the less-favoured major party, so it's not accurate
-				// to give them the same share as the national vote
-				// We allocate the first 5% of the vote at national rates, the next 10% at a sliding scale
-				// up to the cap (see below), and the remained at the cap
-				// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
-				// by 0-5% at the previous two elections
-				// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
-				// declines for >30%, according to formula given below for preferenceFlowCap
-				float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
-				// Estimated ALP preference rate from historical results based on IND fp and ALP TPP.
-				float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ? 
-					4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
-					: 100.f - (24.318f - 0.788f * voteShare + 1.0781f * (100.0f - partyOneCurrentTpp)));
-				preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
-				float upperPreferenceFlow = (previousAverage > 0.0f ?
-					std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
-					std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
-				float basePreferenceFlow = previousPreferenceFlow[partyIndex];
-				float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
-				float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
-					transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
-					upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
-				float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
-				effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-				float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-				currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f;
-				//if (seat.name == "Mackellar" || seat.name == "Fowler" || seat.name == "Nicholls") {
-				//	logger << "now\n";
-				//	PA_LOG_VAR(seat.name);
-				//	PA_LOG_VAR(partyIndex);
-				//	PA_LOG_VAR(seat.tppMargin);
-				//	PA_LOG_VAR(seat.previousSwing);
-				//	PA_LOG_VAR(previousAverage);
-				//	PA_LOG_VAR(preferenceFlowCap);
-				//	PA_LOG_VAR(partyOneCurrentTpp);
-				//	PA_LOG_VAR(voteShare);
-				//	PA_LOG_VAR(upperPreferenceFlow);
-				//	PA_LOG_VAR(basePreferenceFlow);
-				//	PA_LOG_VAR(transitionPreferenceFlow);
-				//	PA_LOG_VAR(summedPreferenceFlow);
-				//	PA_LOG_VAR(effectivePreferenceFlow);
-				//	PA_LOG_VAR(preferenceVariation[partyIndex]);
-				//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
-				//	PA_LOG_VAR(randomisedPreferenceFlow);
-				//}
-			}
-			else {
-				currentPartyOnePrefs += voteShare * overallPreferenceFlow[partyIndex] * 0.01f;
-			}
-			currentTotalPrefs += voteShare;
+		if (isMajor(partyIndex)) continue;
+		// *** Probably want to introduce some randomness into these - they assume
+		// an *exact* flow of preferences each time which is not realistic
+		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
+			// Prominent independents and centrist candidates attract a lot
+			// of tactical voting from the less-favoured major party, so it's not accurate
+			// to give them the same share as the national vote
+			// We allocate the first 5% of the vote at national rates, the next 10% at a sliding scale
+			// up to the cap (see below), and the remained at the cap
+			// The cap is defined as 80% at most, and also scales from 50% to 80% for the TPP side behind
+			// by 0-5% at the previous two elections
+			// Furthermore, due to subsequent research it is found that the ALP-preferencing share of IND fp
+			// declines for >30%, according to formula given below for preferenceFlowCap
+			float previousAverage = seat.tppMargin - seat.previousSwing * 0.5f;
+			// Estimated ALP preference rate from historical results based on IND fp and ALP TPP.
+			float preferenceFlowCap = (partyOneCurrentTpp <= 50.0f ? 
+				4.503f - 0.268f * voteShare + 1.344f * partyOneCurrentTpp
+				: 100.f - (24.318f - 0.788f * voteShare + 1.0781f * (100.0f - partyOneCurrentTpp)));
+			preferenceFlowCap = std::clamp(preferenceFlowCap, 5.0f, 95.0f);
+			float upperPreferenceFlow = (previousAverage > 0.0f ?
+				std::max(50.0f + previousAverage * -6.0f, 100.0f - preferenceFlowCap) :
+				std::min(50.0f + previousAverage * -6.0f, preferenceFlowCap));
+			float basePreferenceFlow = previousPreferenceFlow[partyIndex];
+			float transitionPreferenceFlow = mix(basePreferenceFlow, upperPreferenceFlow, std::min(voteShare - 5.0f, 10.0f) * 0.05f);
+			float summedPreferenceFlow = basePreferenceFlow * std::min(voteShare, 5.0f) +
+				transitionPreferenceFlow * std::clamp(voteShare - 5.0f, 0.0f, 10.0f) +
+				upperPreferenceFlow * std::max(voteShare - 15.0f, 0.0f);
+			float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
+			effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
+			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
+			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f;
+			//if (seat.name == "Mackellar" || seat.name == "Fowler" || seat.name == "Nicholls") {
+			//	logger << "now\n";
+			//	PA_LOG_VAR(seat.name);
+			//	PA_LOG_VAR(partyIndex);
+			//	PA_LOG_VAR(seat.tppMargin);
+			//	PA_LOG_VAR(seat.previousSwing);
+			//	PA_LOG_VAR(previousAverage);
+			//	PA_LOG_VAR(preferenceFlowCap);
+			//	PA_LOG_VAR(partyOneCurrentTpp);
+			//	PA_LOG_VAR(voteShare);
+			//	PA_LOG_VAR(upperPreferenceFlow);
+			//	PA_LOG_VAR(basePreferenceFlow);
+			//	PA_LOG_VAR(transitionPreferenceFlow);
+			//	PA_LOG_VAR(summedPreferenceFlow);
+			//	PA_LOG_VAR(effectivePreferenceFlow);
+			//	PA_LOG_VAR(preferenceVariation[partyIndex]);
+			//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
+			//	PA_LOG_VAR(randomisedPreferenceFlow);
+			//}
 		}
+		else {
+			float previousPreferences = previousPreferenceFlow[partyIndex];
+			float randomisedPreferenceFlow = basicTransformedSwing(previousPreferences, preferenceVariation[partyIndex]);
+			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f;
+		}
+		currentTotalPrefs += voteShare;
 	}
 	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
 
