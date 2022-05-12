@@ -430,7 +430,7 @@ void SimulationPreparation::preparePartyCodeGroupings()
 	for (auto [id, party] : project.parties()) {
 		for (auto shortCode : party.officialCodes) {
 			if (id == 1 && shortCode[0] == 'N') {
-				partyCodeGroupings[shortCode] = -4;
+				partyCodeGroupings[shortCode] = CoalitionPartnerIndex;
 			}
 			else {
 				partyCodeGroupings[shortCode] = project.parties().idToIndex(id);
@@ -638,7 +638,7 @@ void SimulationPreparation::determinePartyIdConversions()
 			auto const& simParty = project.parties().viewByIndex(partyIndex);
 			if (contains(simParty.officialCodes, aecParty.shortCode)) {
 				if (partyIndex == 1 && aecParty.shortCode[0] == 'N') {
-					aecPartyToSimParty[aecParty.id] = -4;
+					aecPartyToSimParty[aecParty.id] = CoalitionPartnerIndex;
 				}
 				else {
 					aecPartyToSimParty[aecParty.id] = partyIndex;
@@ -695,6 +695,8 @@ void SimulationPreparation::prepareLiveFpSwings()
 	for (auto const& [seatId, seat] : currentElection.seats) {
 		int seatIndex = aecSeatToSimSeat[seat.id];
 		run.liveSeatFpCounted[seatIndex] = seat.fpSwingProgress;
+		float coalitionMainPercent = 0.0f;
+		float coalitionPartnerPercent = 0.0f;
 		std::priority_queue<std::pair<float, float>> indFps; // percent, swing, candidate id
 		for (auto [candidate, swing] : seat.fpSwing) {
 			int partyIndex = aecPartyToSimParty[currentElection.candidates[candidate].party];
@@ -706,6 +708,8 @@ void SimulationPreparation::prepareLiveFpSwings()
 				indFps.push({seat.fpPercent.at(candidate), swing});
 			}
 			else {
+				if (partyIndex == CoalitionPartnerIndex) coalitionPartnerPercent = seat.fpPercent.at(candidate);
+				if (partyIndex == 1) coalitionMainPercent = seat.fpPercent.at(candidate);
 				run.liveSeatFpSwing[seatIndex][partyIndex] = swing;
 			}
 		}
@@ -752,10 +756,25 @@ void SimulationPreparation::prepareLiveFpSwings()
 			run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
 			indFps.pop();
 		}
+		// All this code ensures that (a) the main Coalition candidate (with highest current primary vote)
+		// in the seat is in index 1 and represented as a swing (or vote share only if didn't contest last time)
+		// (b) the coalition partner (with lower current primary vote), if any,
+		// is in index CoalitionPartnerIndex (-4) and represented as a raw vote share.
 		if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex) &&
 			!run.liveSeatFpSwing[seatIndex].contains(1)) {
 			run.liveSeatFpSwing[seatIndex][1] = run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex];
 			run.liveSeatFpSwing[seatIndex].erase(CoalitionPartnerIndex);
+		}
+		if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex) &&
+			run.liveSeatFpSwing[seatIndex].contains(1) && 
+			coalitionPartnerPercent > coalitionMainPercent) {
+			run.liveSeatFpSwing[seatIndex][1] = run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex];
+			run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex] = coalitionMainPercent;
+		}
+		else if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex)) {
+			// Coalition partner will always be used as an absolute percentage regardless
+			// of whether a swing can actually be calculated.
+			run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex] = coalitionPartnerPercent;
 		}
 		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 		PA_LOG_VAR(run.liveSeatFpSwing[seatIndex]);

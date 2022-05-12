@@ -1,7 +1,6 @@
 
 -live simulations
  -fp projections
-  -fix whatever's going on in Farrer
   -fix treatment of Nationals in Indi
   -apply swings under transform (only for actual swings)
   -uncertainty in recorded swings
