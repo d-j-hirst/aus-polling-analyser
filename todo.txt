@@ -1,5 +1,10 @@
 
 -live simulations
+ -fp projections
+  -fix whatever's going on in Farrer
+  -fix treatment of Nationals in Indi
+  -apply swings under transform (only for actual swings)
+  -uncertainty in recorded swings
  -seatwide swing
  -conversions between program and AEC party codes
  -basic integration with existing forecast as for live-manual
@@ -13,7 +18,6 @@
  -estimate non-tpp swings by comparing to previous tpp results with offset
  -project onto uncounted booths via regression to improve seat estimate & uncertainty
  -project existing results to uncounted seats to improve estimates for other seats
- -projections for fp as well as tcp votes
  
 -glossary
  ^first preference vote (primary vote)

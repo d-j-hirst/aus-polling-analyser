@@ -828,7 +828,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float countPercent = run.liveSeatFpCounted[seatIndex];
-	float liveFactor = 1.0f - pow(2.0f, -countPercent * 50.0f);
+	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.5f);
 	for (auto [partyIndex, swing] : run.liveSeatFpSwing[seatIndex]) {
 		// Ignore these for now
 		if (isMajor(partyIndex) || partyIndex == CoalitionPartnerIndex) continue;
@@ -858,21 +858,32 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 {
 	float maxPrevious = 0.0f;
+	float totalVotePercent = 0.0f;
 	for (auto& [party, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		if (!isMajor(party) && voteShare > maxPrevious) maxPrevious = voteShare;
 	}
 	float maxCurrent = 0.0f;
 	for (auto& [party, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (!isMajor(party) && voteShare > maxCurrent) maxCurrent = voteShare;
+		totalVotePercent += voteShare;
 	}
-	float diff = std::min(std::min(10.0f, seatFpVoteShare[seatIndex][0]), maxCurrent - maxPrevious);
-	if (diff > 0.0f) {
-		// The values for the majors (i.e. parties 0 and 1) are overwritten anyway,
-		// so this only has the effect of softening the normalisation.
-		// This ensures that the normalisation is only punishing to minor parties
-		// when more than one rises in votes (thus crowding each other out)
-		seatFpVoteShare[seatIndex][0] -= diff;
+	float diff = std::max(0.0f, std::min(std::min(10.0f, seatFpVoteShare[seatIndex][0]), maxCurrent - maxPrevious));
+	// In live sims, want to avoid reducing actual recorded vote tallies through normalisation
+	// so make sure the we adjust the major party vote to make normalisation have minimal effect,
+	// especially if more than a trivial amount of vote is counted.
+	if (sim.isLiveAutomatic()) {
+		float liveFactor = 1.0f - pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
+		diff = mix(diff, totalVotePercent - 100.0f, liveFactor);
 	}
+	// The values for the majors (i.e. parties 0 and 1) are overwritten anyway,
+	// so this only has the effect of softening effect of the normalisation.
+	// This ensures that the normalisation is only punishing to minor parties
+	// when more than one rises in votes (thus crowding each other out)
+	float partyOneProportion = seatFpVoteShare[seatIndex][0] / (seatFpVoteShare[seatIndex][0] + seatFpVoteShare[seatIndex][1]);
+	float partyOneAdjust = diff * partyOneProportion;
+	float partyTwoAdjust = diff * (1.0f - partyOneProportion);
+	seatFpVoteShare[seatIndex][0] -= partyOneAdjust;
+	seatFpVoteShare[seatIndex][1] -= partyTwoAdjust;
 }
 
 void SimulationIteration::determineSeatEmergingParties(int seatIndex)
@@ -1127,7 +1138,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float fixedVote)
 {
 	float totalVoteShare = 0.0f;
-	auto previousVoteShare = seatFpVoteShare[seatIndex];
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (partyIndex == fixedParty) continue;
 		totalVoteShare += voteShare;
@@ -1136,7 +1146,7 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 	float correctionFactor = totalTarget / totalVoteShare;
 	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (partyIndex == fixedParty) continue;
-		seatFpVoteShare[seatIndex][partyIndex] *= correctionFactor;
+		voteShare *= correctionFactor;
 	}
 }
 
@@ -1225,7 +1235,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					float swingCap = std::max(0.0f, tempOverallFp[partyIndex] * (correctionFactor - 1.0f) * 3.0f);
 					float correctionSwing = std::min(swingCap, seatFpVoteShare[seatIndex][partyIndex] * (correctionFactor - 1.0f));
 					// don't re-adjust fps when we have a significant actual count
-					if (sim.isLiveAutomatic()) correctionSwing *= std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
+					if (sim.isLiveAutomatic()) correctionSwing *= std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]);
 					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
 					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}
@@ -1246,7 +1256,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				for (auto& [seatPartyIndex, voteShare] : categories) {
 					float additionalVotes = allocation * voteShare / totalOthers;
 					// don't re-adjust fps when we have a significant actual count
-					if (sim.isLiveAutomatic()) additionalVotes *= std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
+					if (sim.isLiveAutomatic()) additionalVotes *= std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]);
 					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][seatPartyIndex], additionalVotes);
 					seatFpVoteShare[seatIndex][seatPartyIndex] = newValue;
 				}
@@ -1278,12 +1288,14 @@ void SimulationIteration::correctMajorPartyFpBias()
 	float partyTwoAdjust = partyTwoTarget / tempOverallFp[Mp::Two];
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		// Don't readjust fps when there is a meaningful actual fp count
+		float seatPartyOneAdjust = partyOneAdjust;
+		float seatPartyTwoAdjust = partyTwoAdjust;
 		if (sim.isLiveAutomatic()) {
-			partyOneAdjust = mix(1.0f, partyOneAdjust, std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]));
-			partyTwoAdjust = mix(1.0f, partyTwoAdjust, std::pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]));
+			seatPartyOneAdjust = mix(1.0f, seatPartyOneAdjust, std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]));
+			seatPartyTwoAdjust = mix(1.0f, seatPartyTwoAdjust, std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]));
 		}
-		seatFpVoteShare[seatIndex][Mp::One] = seatFpVoteShare[seatIndex][Mp::One] * partyOneAdjust;
-		seatFpVoteShare[seatIndex][Mp::Two] = seatFpVoteShare[seatIndex][Mp::Two] * partyTwoAdjust;
+		seatFpVoteShare[seatIndex][Mp::One] = seatFpVoteShare[seatIndex][Mp::One] * seatPartyOneAdjust;
+		seatFpVoteShare[seatIndex][Mp::Two] = seatFpVoteShare[seatIndex][Mp::Two] * seatPartyTwoAdjust;
 		normaliseSeatFp(seatIndex);
 	}
 }
