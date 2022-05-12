@@ -105,8 +105,10 @@ void SimulationIteration::determineOverallBehaviour()
 		if (sampleKey == UnnamedOthersCode) {
 			previousPreferenceFlow[OthersIndex] = project.parties().getOthersPreferenceFlow();
 			previousPreferenceFlow[EmergingIndIndex] = project.parties().getOthersPreferenceFlow();
+			previousPreferenceFlow[CoalitionPartnerIndex] = 15.0f;
 			overallPreferenceFlow[OthersIndex] = preferenceFlow;
 			overallPreferenceFlow[EmergingIndIndex] = preferenceFlow;
+			overallPreferenceFlow[CoalitionPartnerIndex] = 15.0f;
 			continue;
 		}
 		if (sampleKey == EmergingOthersCode) {
@@ -181,6 +183,8 @@ void SimulationIteration::decideMinorPartyPopulism()
 	}
 	partyIdeologies[EmergingIndIndex] = 2;
 	partyConsistencies[EmergingIndIndex] = 0;
+	partyIdeologies[CoalitionPartnerIndex] = 3;
+	partyConsistencies[CoalitionPartnerIndex] = 2;
 }
 
 void SimulationIteration::determineHomeRegions()
@@ -554,6 +558,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
+	preferenceVariation.clear();
 	allocateMajorPartyFp(seatIndex);
 
 }
@@ -863,6 +868,7 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 	}
 	float maxCurrent = 0.0f;
 	for (auto& [party, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (party == CoalitionPartnerIndex) continue;
 		if (!isMajor(party) && voteShare > maxCurrent) maxCurrent = voteShare;
 		totalVotePercent += voteShare;
 	}
@@ -903,10 +909,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//      with flattening as the party vote approaches 0/100%.
 	//  4 - Normalise so that the total votes equal to 100%.
 
+
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// In general the ALP TPP will correspond to the entered seat margin
-	// except when it's a LNP-incumbent classic 2pp seat,
-	// in which case reverse it
 	float partyOneCurrentTpp = 0.0f;
 	partyOneCurrentTpp = 50.0f + partyOneNewTppMargin[seatIndex];
 	float partyTwoCurrentTpp = 100.0f - partyOneCurrentTpp;
@@ -928,11 +933,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	float pastElectionPartyOnePrefEstimate = 0.0f;
 
-	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		if (isMajor(partyIndex)) continue;
-		// *** Probably want to introduce some randomness into these - they assume
-		// an *exact* flow of preferences each time which is not realistic
+		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			// Prominent independents and centrist candidates attract a lot
 			// of tactical voting from the less-favoured major party, so it's not accurate
@@ -1002,8 +1005,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentTotalPrefs = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (isMajor(partyIndex)) continue;
-		// *** Probably want to introduce some randomness into these - they assume
-		// an *exact* flow of preferences each time which is not realistic
+		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			// Prominent independents and centrist candidates attract a lot
 			// of tactical voting from the less-favoured major party, so it's not accurate
@@ -1131,7 +1133,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = newPartyTwoFp;
 
-
 	if (seat.incumbent >= Mp::Others && seatFpVoteShare[seatIndex][seat.incumbent]) {
 		// Maintain constant fp vote for non-major incumbents
 		normaliseSeatFp(seatIndex, seat.incumbent, seatFpVoteShare[seatIndex][seat.incumbent]);
@@ -1145,12 +1146,14 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 {
 	float totalVoteShare = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (partyIndex == fixedParty) continue;
 		totalVoteShare += voteShare;
 	}
 	float totalTarget = 100.0f - fixedVote;
 	float correctionFactor = totalTarget / totalVoteShare;
 	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (partyIndex == fixedParty) continue;
 		voteShare *= correctionFactor;
 	}
@@ -1182,6 +1185,7 @@ void SimulationIteration::calculateNewFpVoteTotals()
 			seatVoteCount += voteCount;
 		}
 		for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+			if (partyIndex == CoalitionPartnerIndex) continue;
 			float voteCount = voteShare * float(seatVoteCount) * 0.01f;
 			totalVoteCount += voteCount;
 			partyVoteCount[partyIndex] += voteCount;
@@ -1231,6 +1235,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 {
 	auto oldVoteShares = seatFpVoteShare;
 	for (auto [partyIndex, vote] : tempOverallFp) {
+		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (partyIndex != OthersIndex) {
 			if (isMajor(partyIndex)) continue;
 			if (!tempOverallFp[partyIndex]) continue; // avoid division by zero when we have non-existent emerging others
@@ -1316,6 +1321,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	std::vector<PartyVotes> originalVoteShares; // those still in the count
 	std::vector<PartyVotes> excludedVoteShares; // excluded from the count, original values
 	std::vector<PartyVotes> accumulatedVoteShares;
+	float coalitionPartnerFp = seatFpVoteShare[seatIndex].contains(CoalitionPartnerIndex) ? seatFpVoteShare[seatIndex][CoalitionPartnerIndex] : 0.0f;
 	for (auto val : seatFpVoteShare[seatIndex]) {
 		if (!val.second) continue; // don't add groups with no votes at all
 		if (val.first == OthersIndex) {
@@ -1323,6 +1329,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			excludedVoteShares.push_back(val);
 		}
 		else {
+			if (val.first == 1) val.second -= coalitionPartnerFp;
 			originalVoteShares.push_back(val);
 		}
 	}
@@ -1357,10 +1364,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			}
 			std::vector<float> weights(accumulatedVoteShares.size());
 			int alpIndex = -1;
+			int lnpIndex = -1;
 			int indIndex = -1;
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 				if (targetParty == 0) alpIndex = targetIndex;
+				if (targetParty == 1) lnpIndex = targetIndex;
 				if (targetParty == run.indPartyIndex || partyIdeologies[targetParty] == 2) indIndex = targetIndex;
 				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
 				if (bothMajorParties(sourceParty, targetParty)) ++ideologyDistance;
@@ -1383,6 +1392,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				weights[alpIndex] = combinedWeights * (1.0f - indShare);
 			}
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
+			if (sourceParty == CoalitionPartnerIndex && lnpIndex != -1) {
+				float totalWeightWithoutLnp = totalWeight - weights[lnpIndex];
+				weights[lnpIndex] = totalWeightWithoutLnp * 4.0f;
+				totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
+			}
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 			}
@@ -1439,10 +1453,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 
 	std::pair<PartyVotes, PartyVotes> topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);
+	if (topTwo.first.first == CoalitionPartnerIndex) topTwo.first.first = 1;
+	if (topTwo.second.first == CoalitionPartnerIndex) topTwo.second.first = 1;
 
 	// For non-standard Tcp scenarios, if it's a match to the previous tcp pair then compare with that
-	// and adjsut the current results to match.
-	if (!bothMajorParties(topTwo.first.first, topTwo.second.first)) {
+	// and adjust the current results to match.
+	if (!bothMajorParties(topTwo.first.first, topTwo.second.first) && !coalitionPartnerFp) {
 		auto const& prevResults = pastSeatResults[seatIndex];
 		if (prevResults.tcpVote.count(topTwo.first.first) && prevResults.tcpVote.count(topTwo.second.first)) {
 			// Allocate the previous elections fp votes as if it were now
