@@ -832,31 +832,20 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float countPercent = run.liveSeatFpCounted[seatIndex];
 	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.5f);
-	for (auto [partyIndex, swing] : run.liveSeatFpSwing[seatIndex]) {
+	for (auto [partyIndex, swing] : run.liveSeatFpTransformedSwing[seatIndex]) {
 		// Ignore major party fps for now
 		if (isMajor(partyIndex)) continue;
 		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
-		if (partyIndex == run.indPartyIndex) {
-			if (project.seats().idToIndex(seat.incumbent) == run.indPartyIndex && seat.incumbentRecontestConfirmed) {
-				projectedFp += swing;
-			}
-			else {
-				projectedFp = swing;
-			}
-		}
-		else if (partyIndex == EmergingIndIndex) {
-			projectedFp = swing;
+		if (std::isnan(swing)) {
+			projectedFp = run.liveSeatFpPercent[seatIndex][partyIndex];
 		}
 		else {
-			// Conveniently, this one simple line works to either add the swing to past fp
-			// if it's actually a swing, or simply replace the zero "past" fp with the total vote.
-			projectedFp += swing;
+			projectedFp = detransformVoteShare(transformVoteShare(projectedFp) + swing);
 		}
-		if (std::isnan(projectedFp)) projectedFp = run.liveSeatFpPercent[seatIndex][partyIndex];
 		float mixedFp = std::clamp(mix(seatFpVoteShare[seatIndex][partyIndex], projectedFp, liveFactor), 0.1f, 99.9f);
 		seatFpVoteShare[seatIndex][partyIndex] = mixedFp;
 	}

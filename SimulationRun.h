@@ -14,6 +14,8 @@ class SeatCollection;
 class Simulation;
 class Outcome;
 
+constexpr float BoothTransformCap = 4.0f;
+
 class SimulationRun {
 public:
 	friend class SimulationPreparation;
@@ -224,6 +226,7 @@ private:
 	std::vector<float> liveSeatTppSwing;
 	std::vector<float> liveSeatTcpCounted; // as percentage
 	std::vector<std::map<int, float>> liveSeatFpSwing;
+	std::vector<std::map<int, float>> liveSeatFpTransformedSwing;
 	std::vector<std::map<int, float>> liveSeatFpPercent;
 	std::vector<float> liveSeatFpCounted; // as percentage
 
