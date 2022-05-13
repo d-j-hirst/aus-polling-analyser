@@ -158,6 +158,7 @@ void SimulationPreparation::determineEffectiveSeatModifiers()
 		constexpr float PreviousDisendorsementMod = DisendorsementMod * -0.5f;
 		if (seat.disendorsement) run.seatPartyOneTppModifier[seatIndex] += DisendorsementMod * direction;
 		if (seat.previousDisendorsement) run.seatPartyOneTppModifier[seatIndex] += PreviousDisendorsementMod * direction;
+		run.seatPartyOneTppModifier[seatIndex] += seat.localModifier;
 	}
 }
 
@@ -486,7 +487,7 @@ void SimulationPreparation::calculateBoothSwings()
 					}
 				}
 				if (!matchFound) {
-					currentBooth.fpSwing[candidateId] = currentPercent;
+					currentBooth.fpSwing[candidateId] = std::numeric_limits<float>::quiet_NaN();
 					currentBooth.fpPercent[candidateId] = currentPercent;
 				}
 			}
@@ -551,21 +552,27 @@ void SimulationPreparation::calculateSeatSwings()
 	for (auto& [seatId, seat] : currentElection.seats) {
 		std::unordered_map<int, double> weightedSwing;
 		std::unordered_map<int, double> weightedPercent;
-		std::unordered_map<int, double> weightSum;
+		std::unordered_map<int, double> weightSwingSum;
+		std::unordered_map<int, double> weightPercentSum;
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths[boothId];
 			for (auto [candidate, swing] : booth.fpSwing) {
 				double total = double(booth.totalVotesFp());
 				weightedPercent[candidate] += double(booth.fpPercent.at(candidate)) * total;
+				weightPercentSum[candidate] += total;
+				if (std::isnan(swing)) continue;
 				weightedSwing[candidate] += double(swing) * total;
-				weightSum[candidate] += total;
+				weightSwingSum[candidate] += total;
 			}
 		}
-		for (auto [party, swing] : weightedSwing) {
-			seat.fpSwing[party] = float(swing / weightSum[party]);
-		}
 		for (auto [party, percent] : weightedPercent) {
-			seat.fpPercent[party] = float(percent / weightSum[party]);
+			seat.fpPercent[party] = float(percent / weightPercentSum[party]);
+			if (!weightedSwing.contains(party) || !weightSwingSum[party]) {
+				seat.fpSwing[party] = std::numeric_limits<float>::quiet_NaN();
+			}
+			else {
+				seat.fpSwing[party] = float(weightedSwing[party] / weightSwingSum[party]);
+			}
 		}
 	}
 
@@ -611,12 +618,10 @@ void SimulationPreparation::calculateSeatSwings()
 				logger << " Booth: " << currentElection.booths.at(boothId).name << "\n";
 			}
 			if (booth.tcpSwing.size()) {
-				if (booth.tcpSwing.size()) {
-					logger << "  Tcp swings: " << currentElection.booths.at(boothId).name << "\n";
-					for (auto [party, swing] : booth.tcpSwing) {
-						logger << "   Party: " << currentElection.parties.at(party).name
-							<< ", swing: " << formatFloat(swing, 2, true) << "\n";
-					}
+				logger << "  Tcp swings: " << currentElection.booths.at(boothId).name << "\n";
+				for (auto [party, swing] : booth.tcpSwing) {
+					logger << "   Party: " << currentElection.parties.at(party).name
+						<< ", swing: " << formatFloat(swing, 2, true) << "\n";
 				}
 			}
 			if (booth.fpSwing.size()) {
@@ -703,6 +708,7 @@ void SimulationPreparation::prepareLiveFpSwings()
 			// in this section handle only parties that are unambiguously representable
 			if (partyIndex == OthersIndex) {
 				run.liveSeatFpSwing[seatIndex][partyIndex] += seat.fpPercent.at(candidate);
+				run.liveSeatFpPercent[seatIndex][partyIndex] += seat.fpPercent.at(candidate);
 			}
 			else if (partyIndex == run.indPartyIndex) {
 				indFps.push({seat.fpPercent.at(candidate), swing});
@@ -711,6 +717,7 @@ void SimulationPreparation::prepareLiveFpSwings()
 				if (partyIndex == CoalitionPartnerIndex) coalitionPartnerPercent = seat.fpPercent.at(candidate);
 				if (partyIndex == 1) coalitionMainPercent = seat.fpPercent.at(candidate);
 				run.liveSeatFpSwing[seatIndex][partyIndex] = swing;
+				run.liveSeatFpPercent[seatIndex][partyIndex] += seat.fpPercent.at(candidate);
 			}
 		}
 		// independents --
@@ -730,12 +737,15 @@ void SimulationPreparation::prepareLiveFpSwings()
 			float swing = highestInd.second;
 			if (swing < voteShare - 0.1f) { // implies candidate is matched
 				run.liveSeatFpSwing[seatIndex][run.indPartyIndex] = swing;
+				run.liveSeatFpPercent[seatIndex][run.indPartyIndex] = voteShare;
 			}
 			else if (voteShare > 8.0f) {
 				run.liveSeatFpSwing[seatIndex][run.indPartyIndex] = voteShare;
+				run.liveSeatFpPercent[seatIndex][run.indPartyIndex] = voteShare;
 			}
 			else {
 				run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
+				run.liveSeatFpPercent[seatIndex][OthersIndex] += voteShare;
 			}
 			indFps.pop();
 		}
@@ -744,9 +754,11 @@ void SimulationPreparation::prepareLiveFpSwings()
 			float voteShare = secondInd.first;
 			if (voteShare > 8.0f) {
 				run.liveSeatFpSwing[seatIndex][EmergingIndIndex] = voteShare;
+				run.liveSeatFpPercent[seatIndex][EmergingIndIndex] = voteShare;
 			}
 			else {
 				run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
+				run.liveSeatFpPercent[seatIndex][OthersIndex] += voteShare;
 			}
 			indFps.pop();
 		}
@@ -754,6 +766,7 @@ void SimulationPreparation::prepareLiveFpSwings()
 			auto otherInd = indFps.top();
 			float voteShare = otherInd.first;
 			run.liveSeatFpSwing[seatIndex][OthersIndex] += voteShare;
+			run.liveSeatFpPercent[seatIndex][OthersIndex] += voteShare;
 			indFps.pop();
 		}
 		// All this code ensures that (a) the main Coalition candidate (with highest current primary vote)
@@ -763,21 +776,27 @@ void SimulationPreparation::prepareLiveFpSwings()
 		if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex) &&
 			!run.liveSeatFpSwing[seatIndex].contains(1)) {
 			run.liveSeatFpSwing[seatIndex][1] = run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex];
+			run.liveSeatFpPercent[seatIndex][1] = run.liveSeatFpPercent[seatIndex][CoalitionPartnerIndex];
 			run.liveSeatFpSwing[seatIndex].erase(CoalitionPartnerIndex);
+			run.liveSeatFpPercent[seatIndex].erase(CoalitionPartnerIndex);
 		}
 		if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex) &&
 			run.liveSeatFpSwing[seatIndex].contains(1) && 
 			coalitionPartnerPercent > coalitionMainPercent) {
 			run.liveSeatFpSwing[seatIndex][1] = run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex];
+			run.liveSeatFpPercent[seatIndex][1] = run.liveSeatFpPercent[seatIndex][CoalitionPartnerIndex];
 			run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex] = coalitionMainPercent;
+			run.liveSeatFpPercent[seatIndex][CoalitionPartnerIndex] = coalitionMainPercent;
 		}
 		else if (run.liveSeatFpSwing[seatIndex].contains(CoalitionPartnerIndex)) {
 			// Coalition partner will always be used as an absolute percentage regardless
 			// of whether a swing can actually be calculated.
 			run.liveSeatFpSwing[seatIndex][CoalitionPartnerIndex] = coalitionPartnerPercent;
+			run.liveSeatFpPercent[seatIndex][CoalitionPartnerIndex] = coalitionPartnerPercent;
 		}
 		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 		PA_LOG_VAR(run.liveSeatFpSwing[seatIndex]);
+		PA_LOG_VAR(run.liveSeatFpPercent[seatIndex]);
 	}
 }
 
@@ -1490,6 +1509,7 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveSeatTppSwing.resize(project.seats().count());
 	run.liveSeatTcpCounted.resize(project.seats().count());
 	run.liveSeatFpSwing.resize(project.seats().count());
+	run.liveSeatFpPercent.resize(project.seats().count());
 	run.liveSeatFpCounted.resize(project.seats().count());
 	run.liveRegionSwing.resize(project.regions().count());
 	run.liveRegionPercentCounted.resize(project.regions().count());

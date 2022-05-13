@@ -334,11 +334,13 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 		swingToTransform = iterationOverallSwing + totalDeviation;
 	}
 	else {
-		// Naive swing - the swing we get without any region polling information
+		// Naive swing - the swing we get without any region polling history
+		float pollRawDeviation = thisRegion.swingDeviation;
 		float rmse = run.regionBaseBehaviour[regionIndex].rmse;
 		float kurtosis = run.regionBaseBehaviour[regionIndex].kurtosis;
 		float randomVariation = rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis);
-		float naiveSwing = medianNaiveSwing + randomVariation;
+		// Use polled variation assuming correlation is about the same as worst performing state
+		float naiveSwing = medianNaiveSwing + pollRawDeviation * 0.3f + randomVariation;
 		swingToTransform = naiveSwing;
 	}
 
@@ -834,7 +836,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 	float countPercent = run.liveSeatFpCounted[seatIndex];
 	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.5f);
 	for (auto [partyIndex, swing] : run.liveSeatFpSwing[seatIndex]) {
-		// Ignore these for now
+		// Ignore major party fps for now
 		if (isMajor(partyIndex)) continue;
 		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
@@ -854,6 +856,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 			// if it's actually a swing, or simply replace the zero "past" fp with the total vote.
 			projectedFp += swing;
 		}
+		if (std::isnan(projectedFp)) projectedFp = run.liveSeatFpPercent[seatIndex][partyIndex];
 		float mixedFp = std::clamp(mix(seatFpVoteShare[seatIndex][partyIndex], projectedFp, liveFactor), 0.1f, 99.9f);
 		seatFpVoteShare[seatIndex][partyIndex] = mixedFp;
 	}

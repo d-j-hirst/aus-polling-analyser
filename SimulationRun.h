@@ -224,6 +224,7 @@ private:
 	std::vector<float> liveSeatTppSwing;
 	std::vector<float> liveSeatTcpCounted; // as percentage
 	std::vector<std::map<int, float>> liveSeatFpSwing;
+	std::vector<std::map<int, float>> liveSeatFpPercent;
 	std::vector<float> liveSeatFpCounted; // as percentage
 
 	std::vector<float> liveRegionPercentCounted;
