@@ -353,11 +353,12 @@ void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
 	if (sim.isLive() && run.liveRegionPercentCounted[regionIndex]) {
 		float liveSwing = run.liveRegionSwing[regionIndex];
-		float liveStdDev = stdDevSingleSeat(run.liveRegionPercentCounted[regionIndex]);
+		float liveStdDev = stdDevSingleSeat(run.liveRegionPercentCounted[regionIndex]) * 0.4f;
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-		float priorWeight = 0.5f;
+		float priorWeight = 0.03f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
-		regionSwing[regionIndex] = (regionSwing[regionIndex] * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+		float priorSwing = regionSwing[regionIndex];
+		regionSwing[regionIndex] = (priorSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 	}
 }
 
@@ -406,54 +407,6 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
-	//if (seat.name == "Menzies") {
-	//	PA_LOG_VAR(tppPrev);
-	//	PA_LOG_VAR(transformedTpp);
-	//	PA_LOG_VAR(elasticity);
-	//	PA_LOG_VAR(volatility);
-	//	PA_LOG_VAR(useVolatility);
-	//	PA_LOG_VAR(transformedTpp);
-	//	PA_LOG_VAR(regionSwing);
-	//	PA_LOG_VAR(seat.region);
-	//	PA_LOG_VAR(project.regions().idToIndex(seat.region));
-	//	PA_LOG_VAR(iterationOverallTpp);
-	//	PA_LOG_VAR(regionSwing[project.regions().idToIndex(seat.region)]);
-	//	static double vicSwing = 0.0;
-	//	vicSwing += regionSwing[project.regions().idToIndex(seat.region)];
-	//	static double vicSwingCount = double(regionSwing[project.regions().idToIndex(seat.region)]);
-	//	vicSwingCount += 1.0;
-	//	double avgVicSwing = vicSwing / vicSwingCount;
-	//	PA_LOG_VAR(avgVicSwing);
-	//	PA_LOG_VAR(run.seatPartyOneTppModifier[seatIndex]);
-	//	PA_LOG_VAR(run.regionLocalModifierAverage[seat.region]);
-	//	PA_LOG_VAR(run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier);
-	//	PA_LOG_VAR(swingDeviation);
-	//	PA_LOG_VAR(kurtosis);
-	//}
-	//if (seat.name == "Hasluck") {
-	//	PA_LOG_VAR(tppPrev);
-	//	PA_LOG_VAR(transformedTpp);
-	//	PA_LOG_VAR(elasticity);
-	//	PA_LOG_VAR(volatility);
-	//	PA_LOG_VAR(useVolatility);
-	//	PA_LOG_VAR(transformedTpp);
-	//	PA_LOG_VAR(regionSwing);
-	//	PA_LOG_VAR(seat.region);
-	//	PA_LOG_VAR(project.regions().idToIndex(seat.region));
-	//	PA_LOG_VAR(iterationOverallTpp);
-	//	PA_LOG_VAR(regionSwing[project.regions().idToIndex(seat.region)]);
-	//	static double waSwing = 0.0;
-	//	waSwing += regionSwing[project.regions().idToIndex(seat.region)];
-	//	static double waSwingCount = double(regionSwing[project.regions().idToIndex(seat.region)]);
-	//	waSwingCount += 1.0;
-	//	double avgWaSwing = waSwing / waSwingCount;
-	//	PA_LOG_VAR(avgWaSwing);
-	//	PA_LOG_VAR(run.seatPartyOneTppModifier[seatIndex]);
-	//	PA_LOG_VAR(run.regionLocalModifierAverage[seat.region]);
-	//	PA_LOG_VAR(run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier);
-	//	PA_LOG_VAR(swingDeviation);
-	//	PA_LOG_VAR(kurtosis);
-	//}
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
 	if (sim.isLive() && run.liveSeatTcpCounted[seatIndex] > 0.0f) {
@@ -466,14 +419,47 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
+
+		//if (seat.name == "Blair") {
+		//	PA_LOG_VAR(tppPrev);
+		//	PA_LOG_VAR(transformedTpp);
+		//	PA_LOG_VAR(elasticity);
+		//	PA_LOG_VAR(volatility);
+		//	PA_LOG_VAR(useVolatility);
+		//	PA_LOG_VAR(transformedTpp);
+		//	PA_LOG_VAR(regionSwing);
+		//	PA_LOG_VAR(seat.region);
+		//	PA_LOG_VAR(project.regions().idToIndex(seat.region));
+		//	PA_LOG_VAR(iterationOverallTpp);
+		//	PA_LOG_VAR(regionSwing[project.regions().idToIndex(seat.region)]);
+		//	static double waSwing = 0.0;
+		//	waSwing += regionSwing[project.regions().idToIndex(seat.region)];
+		//	static double waSwingCount = double(regionSwing[project.regions().idToIndex(seat.region)]);
+		//	waSwingCount += 1.0;
+		//	double avgWaSwing = waSwing / waSwingCount;
+		//	PA_LOG_VAR(avgWaSwing);
+		//	PA_LOG_VAR(run.seatPartyOneTppModifier[seatIndex]);
+		//	PA_LOG_VAR(run.regionLocalModifierAverage[seat.region]);
+		//	PA_LOG_VAR(run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier);
+		//	PA_LOG_VAR(run.tppSwingFactors.meanSwingDeviation);
+		//	PA_LOG_VAR(run.tppSwingFactors.federalModifier);
+		//	PA_LOG_VAR(volatility);
+		//	PA_LOG_VAR(useVolatility);
+		//	PA_LOG_VAR(swingDeviation);
+		//	PA_LOG_VAR(kurtosis);
+		//	PA_LOG_VAR(tppLive);
+		//	PA_LOG_VAR(liveTransformedTpp);
+		//	PA_LOG_VAR(liveSwingDeviation);
+		//	PA_LOG_VAR(liveTransformedTpp);
+		//	PA_LOG_VAR(liveFactor);
+		//	PA_LOG_VAR(mixedTransformedTpp);
+		//	PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+		//}
 	}
 	else {
 		// Margin for this simulation is finalised, record it for later averaging
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
-
-	// *** remove and uncomment above section later!!!
-	partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 }
 
 void SimulationIteration::correctSeatTppSwings()
