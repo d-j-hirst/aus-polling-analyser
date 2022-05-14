@@ -819,21 +819,30 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
 	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-	float countPercent = run.liveSeatFpCounted[seatIndex];
-	float liveFactor = 1.0f - pow(2.0f, -countPercent * 0.5f);
 	for (auto [partyIndex, swing] : run.liveSeatFpTransformedSwing[seatIndex]) {
 		// Ignore major party fps for now
 		if (isMajor(partyIndex)) continue;
 		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
+		float liveTransformedFp = transformVoteShare(projectedFp);
 		if (std::isnan(swing)) {
-			projectedFp = run.liveSeatFpPercent[seatIndex][partyIndex];
+			liveTransformedFp = transformVoteShare(run.liveSeatFpPercent[seatIndex][partyIndex]);
 		}
 		else {
-			projectedFp = detransformVoteShare(transformVoteShare(projectedFp) + swing);
+			liveTransformedFp += swing;
 		}
-		float mixedFp = std::clamp(mix(seatFpVoteShare[seatIndex][partyIndex], projectedFp, liveFactor), 0.1f, 99.9f);
-		seatFpVoteShare[seatIndex][partyIndex] = mixedFp;
+		float swingDeviation = run.tppSwingFactors.meanSwingDeviation * 2.0f; // placeholder value
+		float percentCounted = run.liveSeatFpCounted[seatIndex];
+		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(percentCounted * 0.2f)));
+		liveTransformedFp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
+		float liveFactor = 1.0f - pow(2.0f, -percentCounted * 0.5f);
+		float transformedPriorFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+		float mixedTransformedFp = mix(transformedPriorFp, liveTransformedFp, liveFactor);
+		float detransformedFp = detransformVoteShare(mixedTransformedFp);
+		seatFpVoteShare[seatIndex][partyIndex] = detransformedFp;
+		if (std::isnan(seatFpVoteShare[seatIndex][partyIndex])) {
+			logger << "NAN found!\n";
+		}
 	}
 }
 
@@ -1236,6 +1245,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				FloatByPartyIndex categories;
 				float totalOthers = 0.0f;
 				for (auto [seatPartyIndex, seatPartyVote] : seatFpVoteShare[seatIndex]) {
+					if (seatPartyIndex == run.indPartyIndex) continue;
 					if (seatPartyIndex == OthersIndex || !overallFpTarget.contains(seatPartyIndex)) {
 						categories[seatPartyIndex] = seatPartyVote;
 						totalOthers += seatPartyVote;
