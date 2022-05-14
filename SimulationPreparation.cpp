@@ -351,6 +351,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	calculateCountProgress();
 	calculateSeatSwings();
 	prepareLiveTppSwings();
+	prepareLiveTcpSwings();
 	prepareLiveFpSwings();
 }
 
@@ -515,15 +516,19 @@ void SimulationPreparation::calculateBoothSwings()
 					break;
 				}
 			}
-			if (!matched) continue;
 			int currentTotal = currentBooth.totalVotesTcp();
 			if (!currentTotal) continue;
 			int previousTotal = previousBooth.totalVotesTcp();
-			if (!previousTotal) continue;
 			for (auto [affiliation, votes] : currentBooth.tcpVotes) {
 				float currentPercent = float(votes) * 100.0f / float(currentTotal);
-				float previousPercent = float(previousBooth.tcpVotes.at(affiliation)) * 100.0f / float(previousTotal);
-				currentBooth.tcpSwing[affiliation] = currentPercent - previousPercent;
+				if (matched && previousTotal) {
+					float previousPercent = float(previousBooth.tcpVotes.at(affiliation)) * 100.0f / float(previousTotal);
+					currentBooth.tcpSwing[affiliation] = currentPercent - previousPercent;
+				}
+				else {
+					currentBooth.tcpSwing[affiliation] = std::numeric_limits<float>::quiet_NaN();
+				}
+				currentBooth.tcpPercent[affiliation] = currentPercent;
 			}
 		}
 	}
@@ -592,17 +597,20 @@ void SimulationPreparation::calculateSeatSwings()
 	// tcp swings
 	for (auto& [seatId, seat] : currentElection.seats) {
 		std::unordered_map<int, double> weightedSwing;
+		std::unordered_map<int, double> weightedPercent;
 		std::unordered_map<int, double> weightSum;
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths[boothId];
 			for (auto [party, swing] : booth.tcpSwing) {
 				weightedSwing[party] += double(swing) * double(booth.totalVotesTcp());
+				weightedPercent[party] += double(booth.tcpPercent.at(party)) * double(booth.totalVotesTcp());
 				weightSum[party] += double(booth.totalVotesTcp());
 			}
 		}
 		for (auto [party, swing] : weightedSwing) {
 			if (aecPartyToSimParty[party] < 0 || aecPartyToSimParty[party] > 1) seat.isTpp = false;
 			seat.tcpSwing[party] = float(swing / weightSum[party]);
+			seat.tcpPercent[party] = float(weightedPercent[party] / weightSum[party]);
 		}
 	}
 	for (auto const& [id, seat] : currentElection.seats) {
@@ -610,11 +618,11 @@ void SimulationPreparation::calculateSeatSwings()
 		logger << " Fp progress: " << seat.fpProgress << "\n";
 		logger << " Tcp progress: " << seat.tcpProgress << "\n";
 		logger << " Tcp swing progress: " << seat.tcpSwingProgress << "\n";
-		if (seat.tcpSwing.size()) {
-			logger << " Tcp swings: \n";
-			for (auto [party, swing] : seat.tcpSwing) {
+		if (seat.tcpPercent.size()) {
+			logger << " Tcp votes: \n";
+			for (auto [party, percent] : seat.tcpPercent) {
 				logger << "  " << currentElection.parties.at(party).name <<
-					": " << formatFloat(swing, 2, true) << "\n";
+					": " << percent << "%, (" << formatFloat(seat.tcpSwing.at(party), 2, true) << "%)\n";
 			}
 		}
 		if (seat.fpSwing.size()) {
@@ -695,11 +703,12 @@ void SimulationPreparation::determineSeatIdConversions()
 void SimulationPreparation::prepareLiveTppSwings()
 {
 	for (auto const& [id, seat] : currentElection.seats) {
+		int seatIndex = aecSeatToSimSeat[seat.id];
+		run.liveSeatTppSwing[seatIndex] = std::numeric_limits<float>::quiet_NaN();
 		if (seat.tcpSwing.size() != 2) continue;
 		if (!seat.isTpp) continue;
 		for (auto [party, swing] : seat.tcpSwing) {
 			if (aecPartyToSimParty[party] == 0) {
-				int seatIndex = aecSeatToSimSeat[seat.id];
 				run.liveSeatTppSwing[seatIndex] = swing;
 				run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
 				int seatId = project.seats().indexToId(seatIndex);
@@ -708,6 +717,24 @@ void SimulationPreparation::prepareLiveTppSwings()
 			}
 		}
 	}
+}
+
+void SimulationPreparation::prepareLiveTcpSwings()
+{
+	for (auto const& [id, seat] : currentElection.seats) {
+		if (seat.tcpPercent.size() != 2) continue;
+		if (seat.isTpp) continue;
+		auto firstCandidate = seat.tcpSwing.begin();
+		int seatIndex = aecSeatToSimSeat[seat.id];
+		run.liveSeatTcpParties[seatIndex] = { aecPartyToSimParty[firstCandidate->first], aecPartyToSimParty[std::next(firstCandidate)->first] };
+		run.liveSeatTcpSwing[seatIndex] = firstCandidate->second;
+		run.liveSeatTcpPercent[seatIndex] = seat.tcpPercent.at(firstCandidate->first);
+		run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
+	}
+	PA_LOG_VAR(run.liveSeatTcpParties);
+	PA_LOG_VAR(run.liveSeatTcpSwing);
+	PA_LOG_VAR(run.liveSeatTcpPercent);
+	PA_LOG_VAR(run.liveSeatTcpCounted);
 }
 
 void SimulationPreparation::prepareLiveFpSwings()
@@ -828,9 +855,11 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	++run.classicSeatCount;
 	int regionIndex = project.regions().idToIndex(seat.region);
 	float percentCounted = run.liveSeatTcpCounted[seatIndex];
-	float weightedSwing = run.liveSeatTppSwing[seatIndex] * percentCounted;
-	run.liveOverallSwing += weightedSwing;
-	run.liveRegionSwing[regionIndex] += weightedSwing;
+	if (!std::isnan(run.liveSeatTppSwing[seatIndex])) {
+		float weightedSwing = run.liveSeatTppSwing[seatIndex] * percentCounted;
+		run.liveOverallSwing += weightedSwing;
+		run.liveRegionSwing[regionIndex] += weightedSwing;
+	}
 	run.liveOverallPercent += percentCounted;
 	run.liveRegionPercentCounted[regionIndex] += percentCounted;
 	++run.liveRegionClassicSeatCount[regionIndex];
@@ -1533,6 +1562,9 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveSeatFpTransformedSwing.resize(project.seats().count());
 	run.liveSeatFpPercent.resize(project.seats().count());
 	run.liveSeatFpCounted.resize(project.seats().count());
+	run.liveSeatTcpParties.resize(project.seats().count());
+	run.liveSeatTcpSwing.resize(project.seats().count());
+	run.liveSeatTcpPercent.resize(project.seats().count());
 	run.liveRegionSwing.resize(project.regions().count());
 	run.liveRegionPercentCounted.resize(project.regions().count());
 	run.liveRegionClassicSeatCount.resize(project.regions().count());

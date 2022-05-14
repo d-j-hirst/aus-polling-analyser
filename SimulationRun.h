@@ -228,6 +228,9 @@ private:
 	std::vector<std::map<int, float>> liveSeatFpSwing;
 	std::vector<std::map<int, float>> liveSeatFpTransformedSwing;
 	std::vector<std::map<int, float>> liveSeatFpPercent;
+	std::vector<float> liveSeatTcpSwing; // swing to first entry in liveSeatTcpParties
+	std::vector<float> liveSeatTcpPercent; // percent for first entry in liveSeatTcpParties
+	std::vector<std::pair<int, int>> liveSeatTcpParties;
 	std::vector<float> liveSeatFpCounted; // as percentage
 
 	std::vector<float> liveRegionPercentCounted;

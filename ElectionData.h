@@ -150,6 +150,7 @@ namespace Results2 {
 		std::unordered_map<int32_t, float> fpPercent; // as percentage
 		std::unordered_map<int32_t, float> fpSwing; // as percentage
 		std::unordered_map<int32_t, float> fpTransformedSwing;
+		std::unordered_map<int32_t, float> tcpPercent; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 
 		int totalVotesFp() const {
@@ -177,6 +178,7 @@ namespace Results2 {
 		std::unordered_map<int32_t, float> fpPercent; // total booth as percentage
 		std::unordered_map<int32_t, float> fpSwing; // as percentage
 		std::unordered_map<int32_t, float> fpTransformedSwing; // as percentage
+		std::unordered_map<int32_t, float> tcpPercent; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 		bool isTpp = true;
 

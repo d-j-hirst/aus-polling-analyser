@@ -87,6 +87,7 @@ private:
 	void determinePartyIdConversions();
 	void determineSeatIdConversions();
 	void prepareLiveTppSwings();
+	void prepareLiveTcpSwings();
 	void prepareLiveFpSwings();
 
 	std::string getTermCode();
