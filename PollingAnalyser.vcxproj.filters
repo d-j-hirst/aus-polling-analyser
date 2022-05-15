@@ -233,6 +233,9 @@
     <ClCompile Include="ElectionData.cpp">
       <Filter>Source Files\Data Objects</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -572,6 +575,9 @@
     </ClInclude>
     <ClInclude Include="Beep.h">
       <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearRegression.h">
+      <Filter>Header Files\Data Processing</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

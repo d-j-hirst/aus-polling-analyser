@@ -81,8 +81,10 @@ private:
 	void downloadCurrentResults();
 	void parseCurrentResults();
 	void preparePartyCodeGroupings();
-	void estimateBoothTcps();
 	void calculateBoothFpSwings();
+	void calculateTppPreferenceFlows();
+	void calculateSeatPreferenceFlows();
+	void estimateBoothTcps();
 	void calculateBoothTcpSwings();
 	void calculateCountProgress();
 	void calculateSeatSwings();

@@ -1,16 +1,16 @@
 #include "SimulationPreparation.h"
 
+#include "LinearRegression.h"
 #include "PollingProject.h"
 #include "ResultsDownloader.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
 
-#include "tinyxml2.h"
-
 #include <filesystem>
 #include <queue>
 #include <random>
+#include <set>
 
 // Note: A large amount of code in this file is commented out as the "previous results"
 // was updated to a new (better) format but the "latest results" was not. Further architectural
@@ -351,6 +351,8 @@ void SimulationPreparation::prepareLiveAutomatic()
 	preparePartyCodeGroupings();
 	determinePartyIdConversions();
 	determineSeatIdConversions();
+	calculateTppPreferenceFlows();
+	calculateSeatPreferenceFlows();
 	calculateBoothFpSwings();
 	estimateBoothTcps();
 	calculateBoothTcpSwings();
@@ -454,6 +456,120 @@ void SimulationPreparation::preparePartyCodeGroupings()
 	PA_LOG_VAR(partyCodeGroupings);
 }
 
+void SimulationPreparation::calculateTppPreferenceFlows()
+{
+	std::map<int, int> partyIdToPos;
+	int pos = 0;
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		for (int boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			for (auto [candidateId, vote] : booth.fpVotes) {
+				int party = currentElection.candidates[candidateId].party;
+				if (!partyIdToPos.contains(party)) {
+					partyIdToPos[party] = pos;
+					++pos;
+				}
+			}
+		}
+	}
+	DataSet data;
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		if (seat.tcpVotes.size() != 2) continue;
+		bool firstPartyFound = false;
+		bool secondPartyFound = false;
+		int partyOneThisSeat = -1;
+		for (auto [party, votes] : seat.tcpVotes) {
+			int simParty = aecPartyToSimParty[party];
+			if (simParty == 0) {
+				firstPartyFound = true;
+				partyOneThisSeat = party;
+			}
+			else if (simParty == 1 || simParty == -4) {
+				secondPartyFound = true;
+			}
+		}
+		if (!firstPartyFound || !secondPartyFound) continue; // not classic 2cp
+		for (int boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			if (!booth.totalVotesTcp()) continue;
+			double totalFpVotes = double(booth.totalVotesFp());
+			double totalTcpVotes = double(booth.totalVotesTcp());
+			std::vector<double> fpData(partyIdToPos.size());
+			for (auto [candidateId, votes] : booth.fpVotes) {
+				int partyId = currentElection.candidates[candidateId].party;
+				fpData[partyIdToPos.at(partyId)] = double(votes) / totalFpVotes;
+			}
+			double tcpData = double(booth.tcpVotes.at(partyOneThisSeat)) / totalTcpVotes;
+			data.push_back({ fpData, tcpData });
+		}
+	}
+	// Fill with lots of dummy data to make sure that major party preferences are "forced" to what they should be
+	for (int i = 0; i < 2000; ++i) {
+		for (auto [party, partyPos] : partyIdToPos) {
+			int simParty = aecPartyToSimParty[party];
+			if (simParty == 0) {
+				std::vector<double> fpData(partyIdToPos.size());
+				fpData[partyPos] = 100;
+				double tcpData = 100;
+				data.push_back({ fpData, tcpData });
+			}
+			else if (simParty == 1 || simParty == -4) {
+				std::vector<double> fpData(partyIdToPos.size());
+				fpData[partyPos] = 100;
+				double tcpData = 0;
+				data.push_back({ fpData, tcpData });
+			}
+		}
+	}
+	auto weights = runLeastSquares(data);
+	for (auto const& [partyId, partyPos] : partyIdToPos) {
+		logger << "Party: " << currentElection.parties[partyId].name <<
+			" - current preference flow to ALP: " << formatFloat(weights[partyPos] * 100.0f, 2) << "%\n";
+	}
+
+}
+
+void SimulationPreparation::calculateSeatPreferenceFlows()
+{
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		if (!seat.tcpVotes.size()) continue;
+		std::map<int, int> candidateIdToPos;
+		int index = 0;
+		for (auto const& [candidateId, votes] : seat.fpVotes) {
+			candidateIdToPos[candidateId] = index;
+			++index;
+		}
+		int partyIdToUse = seat.tcpVotes.begin()->first;
+		DataSet data;
+		for (int boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			if (!booth.totalVotesTcp()) continue;
+			double totalFpVotes = double(booth.totalVotesFp());
+			double totalTcpVotes = double(booth.totalVotesTcp());
+			std::vector<double> fpData(index);
+			for (auto const& [candidateId, votes] : booth.fpVotes) {
+				fpData[candidateIdToPos.at(candidateId)] = double(votes) / totalFpVotes;
+			}
+			double tcpData = double(booth.tcpVotes.at(partyIdToUse)) / totalTcpVotes;
+			data.push_back({ fpData, tcpData });
+		}
+		// don't bother calculating for tiny data sets as it'll be worse than
+		// just using previous-election preferences
+		if (data.size() < 2) continue;
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(candidateIdToPos);
+		PA_LOG_VAR(partyIdToUse);
+		PA_LOG_VAR(currentElection.parties[partyIdToUse].name);
+		PA_LOG_VAR(data);
+		std::vector<std::string> partyNames;
+		for (auto const& [candidateId, votes] : seat.fpVotes) {
+			partyNames.push_back(currentElection.parties[currentElection.candidates[candidateId].party].name);
+		}
+		PA_LOG_VAR(partyNames);
+		runLeastSquares(data);
+	}
+}
+
 void SimulationPreparation::estimateBoothTcps()
 {
 	for (auto const& [seatId, seat] : currentElection.seats) {
@@ -470,13 +586,6 @@ void SimulationPreparation::estimateBoothTcps()
 		}
 		// for now don't estimate for confirmed non-classic tcp
 		if (!seatIsTpp) continue;
-		if (seat.name == "Cowper") {
-			PA_LOG_VAR(seat.name);
-			PA_LOG_VAR(seatIsTpp);
-			PA_LOG_VAR(seat.tcpPercent);
-			PA_LOG_VAR(aecPartyToSimParty[tcpParties.first]);
-			PA_LOG_VAR(aecPartyToSimParty[tcpParties.second]);
-		}
 		// Establish which AEC parties actually best represent the TPP here
 		int partyOneParty = -1;
 		int partyTwoParty = -1;
