@@ -81,7 +81,9 @@ private:
 	void downloadCurrentResults();
 	void parseCurrentResults();
 	void preparePartyCodeGroupings();
-	void calculateBoothSwings();
+	void estimateBoothTcps();
+	void calculateBoothFpSwings();
+	void calculateBoothTcpSwings();
 	void calculateCountProgress();
 	void calculateSeatSwings();
 	void determinePartyIdConversions();

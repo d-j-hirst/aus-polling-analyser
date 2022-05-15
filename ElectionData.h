@@ -152,6 +152,8 @@ namespace Results2 {
 		std::unordered_map<int32_t, float> fpTransformedSwing;
 		std::unordered_map<int32_t, float> tcpPercent; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
+		std::unordered_map<int32_t, float> tcpEstimate; // as percentage, for booths with fp but no tcp
+		std::unordered_map<int32_t, float> tcpEstimateSwing; // as percentage, for booths with fp but no tcp
 
 		int totalVotesFp() const {
 			return std::accumulate(fpVotes.begin(), fpVotes.end(), 0,
@@ -180,6 +182,7 @@ namespace Results2 {
 		std::unordered_map<int32_t, float> fpTransformedSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpPercent; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
+		float tcpSwingBasis; // indicates how much & how reliable data for the swing in this seat is
 		bool isTpp = true;
 
 		int totalVotesFp(VoteType exclude = VoteType::Invalid) const {

@@ -409,12 +409,12 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
-	if (sim.isLive() && run.liveSeatTcpCounted[seatIndex] > 0.0f && !std::isnan(run.liveSeatTppSwing[seatIndex])) {
+	if (sim.isLive() && run.liveSeatTcpBasis[seatIndex] > 0.0f && !std::isnan(run.liveSeatTppSwing[seatIndex])) {
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
 		float liveTransformedTpp = transformVoteShare(tppLive);
-		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpCounted[seatIndex] * 0.2f)));
+		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
 		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
