@@ -46,9 +46,6 @@ private:
 	void finaliseLiveAggregates();
 	void resetResultCounts();
 	void determineIndependentPartyIndex();
-	SeatPartyPreferences aggregateVoteData(int seatIndex);
-	void calculatePreferenceFlows(int seatIndex, SeatPartyPreferences majorPartyPreferences);
-	void accumulatePpvcBiasMeasures(int seatIndex);
 	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
 	void loadSeatTypes();
@@ -107,6 +104,8 @@ private:
 
 	// maps the AEC's seat IDs to the simulation's seat index
 	std::unordered_map<int, int> aecSeatToSimSeat;
+
+	std::unordered_map<int, float> updatedPreferenceFlows;
 
 	std::unordered_map<std::string, int> partyCodeGroupings;
 

@@ -554,11 +554,17 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 	}
 	auto weights = runLeastSquares(data);
 	for (auto const& [partyId, partyPos] : partyIdToPos) {
+		updatedPreferenceFlows[partyId] = std::clamp(float(weights[partyPos]) * 100.0f, 0.0f, 100.0f);
 		logger << "Party: " << currentElection.parties[partyId].name <<
 			" - current preference flow to ALP: " << formatFloat(weights[partyPos] * 100.0f, 2) << "%, " <<
 			partyIdFrequency[partyId] << "booths\n";
 	}
-
+	for (auto [partyId, party] : currentElection.parties) {
+		if (aecPartyToSimParty[partyId] == 2) {
+			updatedPreferenceFlows[partyId] = updatedPreferenceFlows[greensParty];
+		}
+	}
+	PA_LOG_VAR(updatedPreferenceFlows);
 }
 
 void SimulationPreparation::calculateSeatPreferenceFlows()
@@ -669,10 +675,12 @@ void SimulationPreparation::estimateBoothTcps()
 			if (!booth.totalVotesFp()) continue;
 			float partyOnePrefs = 0.0f;
 			for (auto const& [candidateId, percent] : booth.fpPercent) {
-				int partyIndex = aecPartyToSimParty[currentElection.candidates[candidateId].party];
+				int aecParty = currentElection.candidates[candidateId].party;
+				int partyIndex = aecPartyToSimParty[aecParty];
 				float prefFlow = 50.0f;
 				if (partyIndex == coalitionPartner) prefFlow = 20.0f;
 				else if (partyIndex == coalitionMain) prefFlow = 0.0f;
+				else if (updatedPreferenceFlows.contains(aecParty)) prefFlow = updatedPreferenceFlows.at(aecParty);
 				else if (partyIndex < 0) prefFlow = project.parties().getOthersPreferenceFlow();
 				else prefFlow = project.parties().viewByIndex(partyIndex).p1PreferenceFlow;
 				partyOnePrefs += percent * prefFlow * 0.01f;
@@ -1216,145 +1224,6 @@ void SimulationPreparation::determineIndependentPartyIndex()
 {
 	run.indPartyIndex = project.parties().indexByShortCode("IND");
 	if (run.indPartyIndex == -1) run.indPartyIndex = EmergingIndIndex;
-}
-
-std::pair<int, int> SimulationPreparation::aggregateVoteData(int seatIndex)
-{
-	seatIndex;
-	return { 0, 0 }; // temporary, remove when restoring this section
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-	//if (!seat.latestResults) return { 0, 0 };
-	//int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
-	//int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
-	//if (!firstCandidateId || !secondCandidateId) return { 0, 0 }; // maverick results mean we shouldn't try to estimate 2cp swings
-	//Party::Id firstSeatParty = project.results().getPartyByCandidate(firstCandidateId);
-	//run.seatTcpTally[seatIndex][0] = 0;
-	//run.seatTcpTally[seatIndex][1] = 0;
-	//int newComparisonVotes = 0;
-	//int oldComparisonVotes = 0;
-	//int seatFirstPartyPreferences = 0;
-	//int seatSecondPartyPreferences = 0;
-
-	//for (auto boothId : seat.latestResults->booths) {
-	//	Results::Booth const& booth = project.results().getBooth(boothId);
-	//	Party::Id firstBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
-	//	bool isInSeatOrder = firstBoothParty == firstSeatParty;
-	//	if (booth.hasNewResults()) {
-	//		run.seatTcpTally[seatIndex][0] += float(isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1]);
-	//		run.seatTcpTally[seatIndex][1] += float(isInSeatOrder ? booth.newTcpVote[1] : booth.newTcpVote[0]);
-	//	}
-	//	if (booth.hasOldAndNewResults()) {
-	//		oldComparisonVotes += booth.totalOldTcpVotes();
-	//		newComparisonVotes += booth.totalNewTcpVotes();
-	//	}
-	//	if (booth.hasValidPreferenceData()) {
-	//		int totalDistributedVotes = 0;
-	//		int firstPartyFpVotes = 0;
-	//		int firstPartyTcp = isInSeatOrder ? booth.newTcpVote[0] : booth.newTcpVote[1];
-	//		for (auto const& candidate : booth.fpCandidates) {
-	//			// need to use candidate IDs here since sometimes there may be two candidates
-	//			// standing for the same "party" (e.g. independents or Coalition)
-	//			// and we only want to match the one(s) that's actually in the 2cp
-	//			int candidateId = candidate.candidateId;
-	//			if (candidateId != firstCandidateId && candidateId != secondCandidateId) {
-	//				totalDistributedVotes += candidate.fpVotes;
-	//			}
-	//			else if (candidateId == firstCandidateId) {
-	//				firstPartyFpVotes = candidate.fpVotes;
-	//			}
-	//		}
-	//		int boothFirstPartyPreferences = firstPartyTcp - firstPartyFpVotes;
-	//		int boothSecondPartyPreferences = totalDistributedVotes - boothFirstPartyPreferences;
-	//		// We can't magically detect entry errors but if we're getting a negative preference total that's
-	//		// a pretty good sign that the Tcp has been flipped (as in Warilla THROSBY PPVC in 2016)
-	//		// and we shouldn't use the booth
-	//		if (boothFirstPartyPreferences >= 0 && boothSecondPartyPreferences >= 0) {
-	//			seatFirstPartyPreferences += boothFirstPartyPreferences;
-	//			seatSecondPartyPreferences += boothSecondPartyPreferences;
-	//		}
-	//	}
-	//}
-
-//run.seatIndividualBoothGrowth[seatIndex] = (oldComparisonVotes ? float(newComparisonVotes) / float(oldComparisonVotes) : 1);
-
-//return std::make_pair(seatFirstPartyPreferences, seatSecondPartyPreferences);
-}
-
-void SimulationPreparation::calculatePreferenceFlows(int seatIndex, SeatPartyPreferences seatPartyPreferences)
-{
-	seatIndex;
-	seatPartyPreferences;
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-	//if (!seat.latestResults.has_value()) return;
-	//int firstCandidateId = seat.latestResults->finalCandidates[0].candidateId;
-	//int secondCandidateId = seat.latestResults->finalCandidates[1].candidateId;
-	//Party::Id firstSeatParty = project.results().getPartyByCandidate(firstCandidateId);
-	//Party::Id secondSeatParty = project.results().getPartyByCandidate(secondCandidateId);
-	//if (seatPartyPreferences.first + seatPartyPreferences.second) {
-	//	float totalPreferences = float(seatPartyPreferences.first + seatPartyPreferences.second);
-	//	run.seatFirstPartyPreferenceFlow[seatIndex] = float(seatPartyPreferences.first) / totalPreferences;
-	//	run.seatPreferenceFlowVariation[seatIndex] = std::clamp(0.1f - totalPreferences / float(seat.latestResults->enrolment), 0.03f, 0.1f);
-
-	//	if (firstSeatParty != Party::InvalidId && secondSeatParty != Party::InvalidId) {
-	//		logger << seatPartyPreferences.first << " " << seatPartyPreferences.second << " " <<
-	//			run.seatFirstPartyPreferenceFlow[seatIndex] << " " << run.seatPreferenceFlowVariation[seatIndex] << " preference flow to " <<
-	//			project.parties().view(firstSeatParty).name << " vs " << project.parties().view(secondSeatParty).name << " - " << seat.name << "\n";
-	//	}
-	//}
-}
-
-void SimulationPreparation::accumulatePpvcBiasMeasures(int seatIndex) {
-	seatIndex;
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-	//if (!seat.latestResults.has_value()) return;
-
-	//float nonPpvcSwingNumerator = 0.0f;
-	//float nonPpvcSwingDenominator = 0.0f; // total number of votes in counted non-PPVC booths
-	//float ppvcSwingNumerator = 0.0f;
-	//float ppvcSwingDenominator = 0.0f; // total number of votes in counted PPVC booths
-
-	//for (auto boothId : seat.latestResults->booths) {
-	//	Results::Booth const& booth = project.results().getBooth(boothId);
-	//	Party::Id firstBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[0]);
-	//	Party::Id secondBoothParty = project.results().getPartyByCandidate(booth.tcpCandidateId[1]);
-	//	bool isPpvc = booth.isPPVC();
-	//	if (booth.hasOldResults()) {
-	//		if (isPpvc) run.totalOldPpvcVotes += booth.totalOldTcpVotes();
-	//	}
-	//	if (booth.hasOldAndNewResults()) {
-	//		bool directMatch = firstBoothParty == 0 && secondBoothParty == 1;
-	//		bool oppositeMatch = secondBoothParty == 0 && firstBoothParty == 1;
-	//		if (!isPpvc) {
-	//			if (directMatch) {
-	//				nonPpvcSwingNumerator += booth.rawSwing() * booth.totalNewTcpVotes();
-	//				nonPpvcSwingDenominator += booth.totalNewTcpVotes();
-	//			}
-	//			else if (oppositeMatch) {
-	//				nonPpvcSwingNumerator -= booth.rawSwing() * booth.totalNewTcpVotes();
-	//				nonPpvcSwingDenominator += booth.totalNewTcpVotes();
-	//			}
-	//		}
-	//		else {
-	//			if (directMatch) {
-	//				ppvcSwingNumerator += booth.rawSwing() * booth.totalNewTcpVotes();
-	//				ppvcSwingDenominator += booth.totalNewTcpVotes();
-	//			}
-	//			else if (oppositeMatch) {
-	//				ppvcSwingNumerator -= booth.rawSwing() * booth.totalNewTcpVotes();
-	//				ppvcSwingDenominator += booth.totalNewTcpVotes();
-	//			}
-	//		}
-	//	}
-	//}
-
-	//if (nonPpvcSwingDenominator && ppvcSwingDenominator) {
-	//	float nonPpvcSwing = nonPpvcSwingNumerator / nonPpvcSwingDenominator;
-	//	float ppvcSwing = ppvcSwingNumerator / ppvcSwingDenominator;
-	//	float ppvcSwingDiff = ppvcSwing - nonPpvcSwing;
-	//	float weightedSwing = ppvcSwingDiff * ppvcSwingDenominator;
-	//	run.ppvcBiasNumerator += weightedSwing;
-	//	run.ppvcBiasDenominator += ppvcSwingDenominator;
-	//}
 }
 
 void SimulationPreparation::loadNcPreferenceFlows()
