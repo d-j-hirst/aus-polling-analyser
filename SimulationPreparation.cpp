@@ -484,8 +484,16 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 		}
 	}
 	DataSet data;
+	std::map<int, int> partyIdFrequency;
 	for (auto const& [seatId, seat] : currentElection.seats) {
 		if (seat.tcpVotes.size() != 2) continue;
+		int numCoalition = 0;
+		for (auto [candidateId, votes] : seat.fpVotes) {
+			int aecPartyId = currentElection.candidates[candidateId].party;
+			if (aecPartyToSimParty[aecPartyId] == 1) ++numCoalition;
+			if (aecPartyToSimParty[aecPartyId] == CoalitionPartnerIndex) ++numCoalition;
+		}
+		if (numCoalition > 1) continue; // don't get preferences from intra-Coalition contests
 		bool firstPartyFound = false;
 		bool secondPartyFound = false;
 		int partyOneThisSeat = -1;
@@ -511,6 +519,7 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 				int partyId = currentElection.candidates[candidateId].party;
 				if (aecPartyToSimParty[partyId] == 2) partyId = greensParty;
 				fpData[partyIdToPos.at(partyId)] = double(votes) / totalFpVotes;
+				++partyIdFrequency[partyId];
 			}
 			double tcpData = double(booth.tcpVotes.at(partyOneThisSeat)) / totalTcpVotes;
 			for (double voteIncrement = 100.0; voteIncrement < totalTcpVotes; voteIncrement += 100.0) {
@@ -519,27 +528,35 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 		}
 	}
 	// Fill with lots of dummy data to make sure that major party preferences are "forced" to what they should be
-	for (int i = 0; i < 2000; ++i) {
-		for (auto [party, partyPos] : partyIdToPos) {
-			int simParty = aecPartyToSimParty[party];
-			if (simParty == 0) {
-				std::vector<double> fpData(partyIdToPos.size());
-				fpData[partyPos] = 100;
-				double tcpData = 100;
-				data.push_back({ fpData, tcpData });
-			}
-			else if (simParty == 1 || simParty == -4) {
-				std::vector<double> fpData(partyIdToPos.size());
-				fpData[partyPos] = 100;
-				double tcpData = 0;
-				data.push_back({ fpData, tcpData });
-			}
+	for (auto [party, partyPos] : partyIdToPos) {
+		int simParty = aecPartyToSimParty[party];
+		if (simParty == 0) {
+			std::vector<double> fpData(partyIdToPos.size());
+			fpData[partyPos] = 1000;
+			double tcpData = 1000;
+			data.push_back({ fpData, tcpData });
 		}
+		else if (simParty == 1 || simParty == -4) {
+			std::vector<double> fpData(partyIdToPos.size());
+			fpData[partyPos] = 1000;
+			double tcpData = 0;
+			data.push_back({ fpData, tcpData });
+		}
+	}
+	for (auto [partyId, frequency] : partyIdFrequency) {
+		int simParty = aecPartyToSimParty[partyId];
+		float priorPrefs = simParty >= 0 ? project.parties().viewByIndex(simParty).p1PreferenceFlow
+			: project.parties().getOthersPreferenceFlow();
+		std::vector<double> fpData(partyIdToPos.size());
+		fpData[partyIdToPos[partyId]] = 10;
+		double tcpData = priorPrefs * 0.1;
+		data.push_back({ fpData, tcpData });
 	}
 	auto weights = runLeastSquares(data);
 	for (auto const& [partyId, partyPos] : partyIdToPos) {
 		logger << "Party: " << currentElection.parties[partyId].name <<
-			" - current preference flow to ALP: " << formatFloat(weights[partyPos] * 100.0f, 2) << "%\n";
+			" - current preference flow to ALP: " << formatFloat(weights[partyPos] * 100.0f, 2) << "%, " <<
+			partyIdFrequency[partyId] << "booths\n";
 	}
 
 }
