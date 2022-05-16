@@ -17,9 +17,11 @@
 #include <array>
 #include <fstream>
 #include <iomanip>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 inline std::string formatFloat(float floatToFormat, int numDigits, bool addPlusToPositives = false, float nullValue = std::numeric_limits<float>::lowest()) {
 	if (floatToFormat == nullValue) return "";
@@ -200,6 +202,14 @@ bool contains(std::vector<T> const& vec, T find) {
 template<typename T>
 T mix(T lower, T upper, T upperFactor) {
 	return upper * upperFactor + lower * (T(1.0) - upperFactor);
+}
+
+// find value for "key" within "map" giving "defaultVal" if not found.
+template<typename T, typename U, typename V>
+U getAt(T map, U key, V defaultVal) {
+	auto it = map.find(key);
+	if (it == map.end()) return defaultVal;
+	return it->second;
 }
 
 namespace detail

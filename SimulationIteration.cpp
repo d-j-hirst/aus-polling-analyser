@@ -825,7 +825,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
 		float liveTransformedFp = transformVoteShare(projectedFp);
-		if (std::isnan(swing)) {
+		if (projectedFp == 0.0f || std::isnan(swing) || std::isnan(liveTransformedFp)) {
 			liveTransformedFp = transformVoteShare(run.liveSeatFpPercent[seatIndex][partyIndex]);
 		}
 		else {
@@ -837,7 +837,11 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		liveTransformedFp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
 		float liveFactor = 1.0f - pow(2.0f, -percentCounted * 0.5f);
 		float transformedPriorFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
-		float mixedTransformedFp = mix(transformedPriorFp, liveTransformedFp, liveFactor);
+		// Sometimes the live results will have an independent showing even if one
+		// wasn't expected prior. In these cases, the seat Fp vote share will be a 0,
+		// and its transformation will be NaN, so just ignore it and use the live value only.
+		float mixedTransformedFp = seatFpVoteShare[seatIndex][partyIndex] > 0.0f ? 
+			mix(transformedPriorFp, liveTransformedFp, liveFactor) : liveTransformedFp;
 		float detransformedFp = detransformVoteShare(mixedTransformedFp);
 		seatFpVoteShare[seatIndex][partyIndex] = detransformedFp;
 	}

@@ -14,7 +14,7 @@
 typedef std::pair<std::vector<double>, double> DataPoint;
 typedef std::vector<DataPoint> DataSet;
 
-std::vector<double> runLeastSquares(DataSet dataSet)
+std::vector<double> runLeastSquares(DataSet const& dataSet)
 {
     try
     {

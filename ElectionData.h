@@ -194,12 +194,24 @@ namespace Results2 {
 			);
 		}
 
+		int totalVotesFpCandidate(int candidate) const {
+			return std::accumulate(fpVotes.at(candidate).begin(), fpVotes.at(candidate).end(), 0,
+					[&](int acc, std::unordered_map<VoteType, int>::value_type val2) {return acc + val2.second; }
+			);
+		}
+
 		int totalVotesTcp(VoteType exclude = VoteType::Invalid) const {
 			return std::accumulate(tcpVotes.begin(), tcpVotes.end(), 0,
 				[&](int acc, decltype(tcpVotes)::value_type val) {return acc +
 				std::accumulate(val.second.begin(), val.second.end(), 0,
 					[&](int acc, decltype(val.second)::value_type val2) {return val2.first != exclude ? acc + val2.second : acc; }
 			); }
+			);
+		}
+
+		int totalVotesTcpParty(int party) const {
+			return std::accumulate(tcpVotes.at(party).begin(), tcpVotes.at(party).end(), 0,
+				[&](int acc, std::unordered_map<VoteType, int>::value_type val2) {return acc + val2.second; }
 			);
 		}
 
