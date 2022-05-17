@@ -162,8 +162,6 @@ private:
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
 
-	float liveOverallSwing = 0.0f; // swing to partyOne
-	float liveOverallPercent = 0.0f;
 	float classicSeatCount = 0.0f;
 	// A bunch of votes from one seat is less likely to be representative than from a wide variety of seats,
 	// so this factor is introduced to avoid a small number of seats from having undue influence early in the count
@@ -222,7 +220,15 @@ private:
 	std::vector<std::map<int, float>> seatBettingOdds;
 	std::vector<std::map<int, std::vector<std::pair<float, int>>>> seatPolls;
 
-	// Live manual results
+	// Live results
+	float liveOverallTppSwing = 0.0f; // swing to partyOne
+	float liveOverallTppPercentCounted = 0.0f;
+	float liveOverallFpPercentCounted = 0.0f;
+	std::map<int, float> liveOverallFpSwing; // transformed
+	std::map<int, float> liveOverallFpNew;
+	std::map<int, float> liveOverallFpSwingWeight;
+	std::map<int, float> liveOverallFpNewWeight;
+	std::map<int, float> liveOverallFpTarget;
 	std::vector<float> liveSeatTppSwing;
 	std::vector<float> liveSeatTcpCounted; // as percentage
 	std::vector<std::map<int, float>> liveSeatFpSwing;

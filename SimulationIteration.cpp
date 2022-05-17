@@ -46,12 +46,13 @@ void SimulationIteration::runIteration()
 {
 	loadPastSeatResults();
 	initialiseIterationSpecificCounts();
-	determineOverallBehaviour();
+	determineOverallTpp();
 	decideMinorPartyPopulism();
 	determineHomeRegions();
+	determineMinorPartyContests();
+	incorporateLiveOverallFps();
 	// determinePpvcBias();
 	determineRegionalSwings();
-	determineMinorPartyContests();
 	determineSeatInitialResults();
 
 	reconcileSeatAndOverallFp();
@@ -75,7 +76,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
 }
 
-void SimulationIteration::determineOverallBehaviour()
+void SimulationIteration::determineOverallTpp()
 {
 	// First, randomly determine the national swing for this particular simulation
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
@@ -144,14 +145,32 @@ void SimulationIteration::determineOverallBehaviour()
 		}
 	}
 
-	if (sim.isLive() && run.liveOverallPercent) {
-		float liveSwing = run.liveOverallSwing;
-		float liveStdDev = stdDevOverall(run.liveOverallPercent);
+	if (sim.isLive() && run.liveOverallTppPercentCounted) {
+		float liveSwing = run.liveOverallTppSwing;
+		float liveStdDev = stdDevOverall(run.liveOverallTppPercentCounted);
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 		float priorWeight = 0.5f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
 		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 		iterationOverallTpp = iterationOverallSwing + sim.settings.prevElection2pp;
+	}
+}
+
+void SimulationIteration::incorporateLiveOverallFps()
+{
+	if (sim.isLiveAutomatic() && run.liveOverallFpPercentCounted) {
+		for (auto [partyId, party] : project.parties()) {
+			int partyIndex = project.parties().idToIndex(partyId);
+			if (partyIndex <= 2) continue;
+			if (!overallFpTarget.contains(partyIndex)) continue;
+			float liveTarget = run.liveOverallFpTarget[partyIndex];
+			float liveStdDev = stdDevOverall(run.liveOverallFpPercentCounted);
+			liveTarget += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+			float priorWeight = 0.5f;
+			float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
+			overallFpTarget[partyIndex] = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight);
+			overallFpSwing[partyIndex] = overallFpTarget[partyIndex] - run.previousFpVoteShare[partyIndex];
+		}
 	}
 }
 
@@ -836,14 +855,22 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(percentCounted * 0.2f)));
 		liveTransformedFp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
 		float liveFactor = 1.0f - pow(2.0f, -percentCounted * 0.5f);
-		float transformedPriorFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+		float priorFp = seatFpVoteShare[seatIndex][partyIndex];
+		if (partyIndex == run.indPartyIndex && priorFp <= 0.0f) priorFp = seatFpVoteShare[seatIndex][EmergingIndIndex];
+		float transformedPriorFp = transformVoteShare(priorFp);
 		// Sometimes the live results will have an independent showing even if one
 		// wasn't expected prior. In these cases, the seat Fp vote share will be a 0,
 		// and its transformation will be NaN, so just ignore it and use the live value only.
-		float mixedTransformedFp = seatFpVoteShare[seatIndex][partyIndex] > 0.0f ? 
+		float mixedTransformedFp = priorFp > 0.0f ?
 			mix(transformedPriorFp, liveTransformedFp, liveFactor) : liveTransformedFp;
 		float detransformedFp = detransformVoteShare(mixedTransformedFp);
 		seatFpVoteShare[seatIndex][partyIndex] = detransformedFp;
+	}
+	if (!run.liveSeatFpTransformedSwing[seatIndex].contains(EmergingIndIndex)) {
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+	}
+	if (run.liveSeatFpCounted[seatIndex] > 5.0f) {
+		seatFpVoteShare[seatIndex][EmergingPartyIndex] = 0.0f;
 	}
 }
 

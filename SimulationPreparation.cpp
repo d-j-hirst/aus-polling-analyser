@@ -12,18 +12,12 @@
 #include <random>
 #include <set>
 
-// Note: A large amount of code in this file is commented out as the "previous results"
-// was updated to a new (better) format but the "latest results" was not. Further architectural
-// improvement, including removing cached election results from project seat data, cannot be
-// properly done unless this is fixed, and the fixing is decidedly non-trivial. In order to
-// expedite the initial web release, which does not require live election updating, these have
-// been disabled and code producing errors commented out and replaced with stubs,
-// until the project is prepared to work on restoring the live results.
-
 static std::random_device rd;
 static std::mt19937 gen;
 
 float cappedTransformedSwing(float previousPercent, float currentPercent, float capMultiplier) {
+	currentPercent = std::clamp(currentPercent, 0.001f, 99.999f);
+	currentPercent = std::clamp(currentPercent, 0.001f, 99.999f);
 	float transformedSwing = transformVoteShare(currentPercent) - transformVoteShare(previousPercent);
 	float cap = capMultiplier * std::abs(currentPercent - previousPercent);
 	return std::clamp(transformedSwing, -cap, cap);
@@ -316,8 +310,8 @@ void SimulationPreparation::loadLiveManualResults()
 
 void SimulationPreparation::calculateLiveAggregates()
 {
-	run.liveOverallSwing = 0.0f;
-	run.liveOverallPercent = 0.0f;
+	run.liveOverallTppSwing = 0.0f;
+	run.liveOverallTppPercentCounted = 0.0f;
 	run.classicSeatCount = 0.0f;
 	run.sampleRepresentativeness = 0.0f;
 	run.total2cpVotes = 0;
@@ -326,16 +320,15 @@ void SimulationPreparation::calculateLiveAggregates()
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			updateLiveAggregateForSeat(seatIndex);
 		}
-		if (run.liveOverallPercent) {
-			finaliseLiveAggregates();
-		}
+		finaliseLiveAggregates();
+		prepareOverallLiveFpSwings();
 	}
 
 	if (sim.isLiveAutomatic()) {
 		sim.latestReport.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f) * 100.0f;
 	}
 	else if (sim.isLiveManual()) {
-		sim.latestReport.total2cpPercentCounted = run.liveOverallPercent;
+		sim.latestReport.total2cpPercentCounted = run.liveOverallTppPercentCounted;
 	}
 	else {
 		sim.latestReport.total2cpPercentCounted = 0.0f;
@@ -455,7 +448,6 @@ void SimulationPreparation::preparePartyCodeGroupings()
 			}
 		}
 	}
-	PA_LOG_VAR(partyCodeGroupings);
 }
 
 void SimulationPreparation::calculateTppPreferenceFlows()
@@ -564,7 +556,6 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 			updatedPreferenceFlows[partyId] = updatedPreferenceFlows[greensParty];
 		}
 	}
-	PA_LOG_VAR(updatedPreferenceFlows);
 }
 
 void SimulationPreparation::calculateSeatPreferenceFlows()
@@ -595,16 +586,10 @@ void SimulationPreparation::calculateSeatPreferenceFlows()
 		// don't bother calculating for tiny data sets as it'll be worse than
 		// just using previous-election preferences
 		if (data.size() < 2) continue;
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(candidateIdToPos);
-		PA_LOG_VAR(partyIdToUse);
-		PA_LOG_VAR(currentElection.parties[partyIdToUse].name);
-		PA_LOG_VAR(data);
 		std::vector<std::string> partyNames;
 		for (auto const& [candidateId, votes] : seat.fpVotes) {
 			partyNames.push_back(currentElection.parties[currentElection.candidates[candidateId].party].name);
 		}
-		PA_LOG_VAR(partyNames);
 		runLeastSquares(data);
 	}
 }
@@ -628,31 +613,16 @@ void SimulationPreparation::estimateBoothTcps()
 		// Establish which AEC parties actually best represent the TPP here
 		int partyOneParty = -1;
 		int partyTwoParty = -1;
-		if (seat.name == "Barker") {
-			PA_LOG_VAR(seat.name);
-			PA_LOG_VAR(seat.tcpVotes);
-			PA_LOG_VAR(seat.fpVotes);
-		}
 		// First option - if we have an actual 2cp count then go with that
 		for (auto [partyId, votes] : seat.tcpVotes) {
 			if (aecPartyToSimParty[partyId] == 0) partyOneParty = partyId;
 			if (aecPartyToSimParty[partyId] == 1 || aecPartyToSimParty[partyId] == -4) partyTwoParty = partyId;
-			if (seat.name == "Barker") {
-				PA_LOG_VAR(partyId);
-				PA_LOG_VAR(aecPartyToSimParty[partyId]);
-			}
 		}
 		// Otherwise, find coalition candidate with highest fp vote
 		if (partyTwoParty == -1) {
 			int partyTwoVotes = 0;
 			for (auto [candidateId, votes] : seat.fpVotes) {
 				int voteCount = seat.totalVotesFpCandidate(candidateId);
-				if (seat.name == "Barker") {
-					PA_LOG_VAR(candidateId);
-					PA_LOG_VAR(votes);
-					PA_LOG_VAR(currentElection.candidates[candidateId].party);
-					PA_LOG_VAR(aecPartyToSimParty[currentElection.candidates[candidateId].party]);
-				}
 				if (aecPartyToSimParty[currentElection.candidates[candidateId].party] == 0) partyOneParty = currentElection.candidates[candidateId].party;
 				if (aecPartyToSimParty[currentElection.candidates[candidateId].party] == 1 ||
 					aecPartyToSimParty[currentElection.candidates[candidateId].party] == -4) {
@@ -662,10 +632,6 @@ void SimulationPreparation::estimateBoothTcps()
 					}
 				}
 			}
-		}
-		if (seat.name == "Barker") {
-			PA_LOG_VAR(partyOneParty);
-			PA_LOG_VAR(partyTwoParty);
 		}
 		int coalitionMain = aecPartyToSimParty[partyTwoParty];
 		int coalitionPartner = -3 - coalitionMain;
@@ -880,16 +846,13 @@ void SimulationPreparation::calculateSeatSwings()
 
 	// tcp swings
 	for (auto& [seatId, seat] : currentElection.seats) {
-		PA_LOG_VAR(seat.name);
 		std::unordered_map<int, double> weightedSwing;
 		std::unordered_map<int, double> weightedPercent;
 		std::unordered_map<int, double> weightSwingSum;
 		std::unordered_map<int, double> weightPercentSum;
 		for (auto boothId : seat.booths) {
 			auto const& booth = currentElection.booths[boothId];
-			PA_LOG_VAR(booth.name);
 			if (booth.tcpPercent.size()) {
-				PA_LOG_VAR(booth.tcpPercent);
 				for (auto [party, percent] : booth.tcpPercent) {
 					weightedPercent[party] += double(booth.tcpPercent.at(party)) * double(booth.totalVotesTcp());
 					weightPercentSum[party] += double(booth.totalVotesTcp());
@@ -900,9 +863,6 @@ void SimulationPreparation::calculateSeatSwings()
 				}
 			}
 			else if (booth.tcpEstimate.size()) {
-				PA_LOG_VAR(booth.tcpPercent);
-				PA_LOG_VAR(booth.tcpEstimate);
-				PA_LOG_VAR(booth.tcpEstimateSwing);
 				for (auto [party, percent] : booth.tcpEstimate) {
 					weightedPercent[party] += double(booth.tcpEstimate.at(party)) * double(booth.totalVotesFp()) * 0.5;
 					weightPercentSum[party] += double(booth.totalVotesFp()) * 0.5;
@@ -912,7 +872,6 @@ void SimulationPreparation::calculateSeatSwings()
 					weightSwingSum[party] += double(booth.totalVotesFp()) * 0.5;
 				}
 			}
-			logger << "Done with booth\n";
 		}
 		bool coalitionPartyPresent = false;
 		if (!weightedPercent.size()) {
@@ -930,7 +889,6 @@ void SimulationPreparation::calculateSeatSwings()
 		}
 		// 0.5f factor accounts for the fact the weightSwingSum is increased twice per booth, so needs to be halved here
 		seat.tcpSwingBasis = weightSwingSum.size() ? weightSwingSum.begin()->second * 100.0f / float(seat.enrolment) : 0.0f;
-		logger << "Done with seat\n";
 	}
 	for (auto const& [id, seat] : currentElection.seats) {
 		logger << "Seat: " << seat.name << "\n";
@@ -1059,10 +1017,6 @@ void SimulationPreparation::prepareLiveTcpSwings()
 		run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
 		run.liveSeatTcpBasis[seatIndex] = seat.tcpSwingBasis;
 	}
-	PA_LOG_VAR(run.liveSeatTcpParties);
-	PA_LOG_VAR(run.liveSeatTcpSwing);
-	PA_LOG_VAR(run.liveSeatTcpPercent);
-	PA_LOG_VAR(run.liveSeatTcpCounted);
 }
 
 void SimulationPreparation::prepareLiveFpSwings()
@@ -1169,10 +1123,53 @@ void SimulationPreparation::prepareLiveFpSwings()
 			run.liveSeatFpTransformedSwing[seatIndex][CoalitionPartnerIndex] = NaN;
 			run.liveSeatFpPercent[seatIndex][CoalitionPartnerIndex] = coalitionPartnerPercent;
 		}
-		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-		PA_LOG_VAR(run.liveSeatFpSwing[seatIndex]);
-		PA_LOG_VAR(run.liveSeatFpTransformedSwing[seatIndex]);
-		PA_LOG_VAR(run.liveSeatFpPercent[seatIndex]);
+	}
+}
+
+void SimulationPreparation::prepareOverallLiveFpSwings()
+{
+	for (auto [partyId, party] : project.parties()) {
+		int partyIndex = project.parties().idToIndex(partyId);
+		if (partyIndex < 2) continue;
+		int swingSeatsTurnout = 0;
+		int swingSeatsVotes = 0;
+		int totalPastTurnout = 0;
+		int newSeats = 0;
+		for (auto const& [seatId, seat] : currentElection.seats) {
+			int seatIndex = aecSeatToSimSeat[seat.id];
+			int pastTurnout = run.pastSeatResults[seatIndex].turnoutCount;
+			totalPastTurnout += pastTurnout;
+			for (auto [candidateId, votes] : seat.fpVotes) {
+				if (aecPartyToSimParty[currentElection.candidates[candidateId].party] == partyIndex) {
+					// the party is contesting this seat!
+					if (run.pastSeatResults[seatIndex].fpVoteCount.contains(partyIndex)) {
+						swingSeatsVotes += run.pastSeatResults[seatIndex].fpVoteCount[partyIndex];
+						swingSeatsTurnout += pastTurnout;
+					}
+					else {
+						++newSeats;
+					}
+				}
+			}
+		}
+		float swingSeatsPastPercent = float(swingSeatsVotes) / float(swingSeatsTurnout) * 100.0f;
+		float swingVoteExpected = swingSeatsPastPercent > 0 ?
+			detransformVoteShare(transformVoteShare(swingSeatsPastPercent) + run.liveOverallFpSwing[partyIndex]) : 0.0f;
+		swingVoteExpected *= float(swingSeatsTurnout) / float(totalPastTurnout);
+		float newVoteExpected = newSeats > 0 ? float(newSeats) * run.liveOverallFpNew[partyIndex] / float(project.seats().count()) : 0.0f;
+		run.liveOverallFpTarget[partyIndex] = swingVoteExpected + newVoteExpected;
+
+		PA_LOG_VAR(party.name);
+		PA_LOG_VAR(partyIndex);
+		PA_LOG_VAR(swingSeatsVotes);
+		PA_LOG_VAR(swingSeatsTurnout);
+		PA_LOG_VAR(swingSeatsPastPercent);
+		PA_LOG_VAR(newSeats);
+		PA_LOG_VAR(swingVoteExpected);
+		PA_LOG_VAR(run.liveOverallFpSwing[partyIndex]);
+		PA_LOG_VAR(newVoteExpected);
+		PA_LOG_VAR(run.liveOverallFpNew[partyIndex]);
+		PA_LOG_VAR(run.liveOverallFpTarget[partyIndex]);
 	}
 }
 
@@ -1182,30 +1179,56 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	if (!seat.isClassic2pp()) return;
 	++run.classicSeatCount;
 	int regionIndex = project.regions().idToIndex(seat.region);
-	float percentCounted = run.liveSeatTcpCounted[seatIndex];
+	float tppPercentCounted = run.liveSeatTcpCounted[seatIndex];
 	if (!std::isnan(run.liveSeatTppSwing[seatIndex])) {
-		float weightedSwing = run.liveSeatTppSwing[seatIndex] * percentCounted;
-		run.liveOverallSwing += weightedSwing;
+		float weightedSwing = run.liveSeatTppSwing[seatIndex] * tppPercentCounted;
+		run.liveOverallTppSwing += weightedSwing;
 		run.liveRegionSwing[regionIndex] += weightedSwing;
 	}
-	run.liveOverallPercent += percentCounted;
-	run.liveRegionPercentCounted[regionIndex] += percentCounted;
+	float fpPercentCounted = run.liveSeatFpCounted[seatIndex];
+	for (auto [party, vote] : run.liveSeatFpPercent[seatIndex]) {
+		if (!std::isnan(run.liveSeatFpTransformedSwing[seatIndex][party])) {
+			float weightedSwing = run.liveSeatFpTransformedSwing[seatIndex][party] * fpPercentCounted;
+			run.liveOverallFpSwing[party] += weightedSwing;
+			run.liveOverallFpSwingWeight[party] += fpPercentCounted;
+		}
+		else if (!run.pastSeatResults[seatIndex].fpVoteCount.contains(party) ||
+			run.pastSeatResults[seatIndex].fpVoteCount[party] == 0)
+		{
+			float weightedPercent = run.liveSeatFpPercent[seatIndex][party] * fpPercentCounted;
+			run.liveOverallFpNew[party] += weightedPercent;
+			run.liveOverallFpNewWeight[party] += fpPercentCounted;
+		}
+	}
+	run.liveOverallTppPercentCounted += tppPercentCounted;
+	run.liveOverallFpPercentCounted += fpPercentCounted;
+	run.liveRegionPercentCounted[regionIndex] += tppPercentCounted;
 	++run.liveRegionClassicSeatCount[regionIndex];
-	run.sampleRepresentativeness += std::min(2.0f, percentCounted) * 0.5f;
+	run.sampleRepresentativeness += std::min(2.0f, tppPercentCounted) * 0.5f;
 	//run.total2cpVotes += seat.latestResults->total2cpVotes();
 	//run.totalEnrolment += seat.latestResults->enrolment;
 }
 
 void SimulationPreparation::finaliseLiveAggregates()
 {
-	run.liveOverallSwing /= run.liveOverallPercent;
-	run.liveOverallPercent /= run.classicSeatCount;
-	run.sampleRepresentativeness /= run.classicSeatCount;
-	run.sampleRepresentativeness = std::sqrt(run.sampleRepresentativeness);
-	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		run.liveRegionSwing[regionIndex] /= run.liveRegionPercentCounted[regionIndex];
-		run.liveRegionPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
+	if (run.liveOverallTppPercentCounted) {
+		run.liveOverallTppSwing /= run.liveOverallTppPercentCounted;
+		run.liveOverallTppPercentCounted /= run.classicSeatCount;
+		run.sampleRepresentativeness /= run.classicSeatCount;
+		run.sampleRepresentativeness = std::sqrt(run.sampleRepresentativeness);
+		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+			run.liveRegionSwing[regionIndex] /= run.liveRegionPercentCounted[regionIndex];
+			run.liveRegionPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
+		}
 	}
+	for (auto& [partyIndex, vote] : run.liveOverallFpSwing) {
+		vote /= run.liveOverallFpSwingWeight[partyIndex];
+	}
+	for (auto& [partyIndex, vote] : run.liveOverallFpNew) {
+		vote /= run.liveOverallFpNewWeight[partyIndex];
+	}
+	PA_LOG_VAR(run.liveOverallFpSwing);
+	PA_LOG_VAR(run.liveOverallFpNew);
 }
 
 void SimulationPreparation::resetResultCounts()

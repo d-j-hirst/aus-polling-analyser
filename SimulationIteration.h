@@ -49,7 +49,8 @@ private:
 
 
 	void initialiseIterationSpecificCounts();
-	void determineOverallBehaviour();
+	void determineOverallTpp();
+	void incorporateLiveOverallFps();
 	void decideMinorPartyPopulism();
 	void determineHomeRegions();
 	void determineRegionalSwings();
