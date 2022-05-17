@@ -420,7 +420,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
 
-		//if (seat.name == "Blair") {
+		//if (seat.name == "Moreton") {
 		//	PA_LOG_VAR(tppPrev);
 		//	PA_LOG_VAR(transformedTpp);
 		//	PA_LOG_VAR(elasticity);

@@ -1037,6 +1037,7 @@ void SimulationPreparation::prepareLiveTppSwings()
 			if (aecPartyToSimParty[party] == 0) {
 				run.liveSeatTppSwing[seatIndex] = swing;
 				run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
+				run.liveSeatTcpBasis[seatIndex] = seat.tcpSwingBasis;
 				int seatId = project.seats().indexToId(seatIndex);
 				project.outcomes().add(Outcome(seatId, swing, seat.tcpSwingProgress, 0, 0));
 				break;
