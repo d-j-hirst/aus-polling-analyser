@@ -149,7 +149,7 @@ private:
 
 	float ppvcBiasNumerator = 0.0f;
 	float ppvcBiasDenominator = 0.0f; // should be the total number of PPVC votes counted
-	float ppvcBiasObserved = 0.0f;
+	float ppvcBiasObserved = 0.0f; // ppvc swing minus ordinary swing, so e.g. negative indicates ppvcs are worse for ALP
 	float ppvcBiasConfidence = 0.0f;
 	int totalOldPpvcVotes = 0;
 	std::string regionCode;
@@ -239,6 +239,7 @@ private:
 	std::vector<std::pair<int, int>> liveSeatTcpParties;
 	std::vector<float> liveSeatTcpBasis; // weight of evidence for tcp swing, including estimations and extrapolations
 	std::vector<float> liveSeatFpCounted; // as percentage
+	std::vector<float> liveSeatPpvcSensitivity;
 
 	std::vector<float> liveRegionPercentCounted;
 	std::vector<float> liveRegionSwing;

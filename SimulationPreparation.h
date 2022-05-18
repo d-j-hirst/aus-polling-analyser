@@ -36,8 +36,6 @@ private:
 	void accumulateRegionStaticInfo();
 	void loadSeatBettingOdds();
 	void loadSeatPolls();
-	void resetPpvcBiasAggregates();
-	void determinePpvcBias();
 	void determinePreviousVoteEnrolmentRatios();
 	void resizeRegionSeatCountOutputs();
 	void countInitialRegionSeatLeads();
@@ -84,7 +82,9 @@ private:
 	void estimateBoothTcps();
 	void calculateBoothTcpSwings();
 	void calculateCountProgress();
+	void determinePpvcBias();
 	void calculateSeatSwings();
+	void determinePpvcBiasSensitivity();
 	void determinePartyIdConversions();
 	void determineSeatIdConversions();
 	void prepareLiveTppSwings();

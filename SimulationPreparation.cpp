@@ -76,10 +76,6 @@ void SimulationPreparation::prepareForIterations()
 	loadSeatBettingOdds();
 	loadSeatPolls();
 
-	resetPpvcBiasAggregates();
-
-	determinePpvcBias();
-
 	determinePreviousVoteEnrolmentRatios();
 
 	resizeRegionSeatCountOutputs();
@@ -227,30 +223,6 @@ void SimulationPreparation::loadSeatPolls()
 	}
 }
 
-void SimulationPreparation::resetPpvcBiasAggregates()
-{
-	run.ppvcBiasNumerator = 0.0f;
-	run.ppvcBiasDenominator = 0.0f;
-	run.totalOldPpvcVotes = 0;
-}
-
-void SimulationPreparation::determinePpvcBias()
-{
-	if (!run.ppvcBiasDenominator) {
-		// whether or not this is a live simulation, if there hasn't been any PPVC votes recorded
-		// then we can set these to zero and it will be assumed there is no PPVC bias
-		// (with the usual random variation  per simulation)
-		run.ppvcBiasObserved = 0.0f;
-		run.ppvcBiasConfidence = 0.0f;
-		return;
-	}
-	run.ppvcBiasObserved = run.ppvcBiasNumerator / run.ppvcBiasDenominator;
-	run.ppvcBiasConfidence = std::clamp(run.ppvcBiasDenominator / float(run.totalOldPpvcVotes) * 5.0f, 0.0f, 1.0f);
-
-	//logger << run.ppvcBiasNumerator << " " << run.ppvcBiasDenominator << " " << run.ppvcBiasObserved << " " << run.totalOldPpvcVotes <<
-	//	" " << run.ppvcBiasConfidence << " - ppvc bias measures\n";
-}
-
 void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
 {
 	if (!sim.isLiveAutomatic()) return;
@@ -352,6 +324,8 @@ void SimulationPreparation::prepareLiveAutomatic()
 	estimateBoothTcps();
 	calculateBoothTcpSwings();
 	calculateCountProgress();
+	determinePpvcBiasSensitivity();
+	determinePpvcBias();
 	calculateSeatSwings();
 	prepareLiveTppSwings();
 	prepareLiveTcpSwings();
@@ -945,6 +919,58 @@ void SimulationPreparation::calculateSeatSwings()
 	}
 }
 
+void SimulationPreparation::determinePpvcBiasSensitivity()
+{
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		if (!seat.isTpp) {
+			run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]] = 0.0f;
+			continue;
+		}
+		double totalTcpOrdinaries = 0;
+		double totalTcpPpvc = 0;
+		for (auto boothId : seat.booths) {
+			auto const& booth = currentElection.booths.at(boothId);
+			if (booth.type == Results2::Booth::Type::Ppvc) {
+				totalTcpPpvc += double(booth.totalVotesTcp());
+			}
+			else {
+				totalTcpOrdinaries += double(booth.totalVotesTcp());
+			}
+		}
+		double formalProportionExpected = 0.9189;
+		double totalFormalVotesExpected = formalProportionExpected * double(seat.enrolment);
+		float ordinaryVotesExpected = 0.545 * totalFormalVotesExpected;
+		float ppvcVotesExpected = 0.282 * totalFormalVotesExpected;
+		float ordinaryCounted = std::clamp(float(totalTcpOrdinaries / ordinaryVotesExpected), 0.0f, 1.0f);
+		float prepollCounted = std::clamp(float(totalTcpPpvc / ppvcVotesExpected), 0.0f, 1.0f);
+		float a = ordinaryCounted; // as proportion of ordinaries
+		float c = ordinaryVotesExpected; // as proportion of total votes
+		float u = ppvcVotesExpected; // as proportion of total votes
+		float z = prepollCounted; // as proportion of prepolls
+		if (a == 0 && z == 0) {
+			run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]] = 0.0f;
+			continue;
+		}
+		float sensitivity = (a * c) / (a * c + u * z) - c / (c + u); // thanks to algebra
+		run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]] = sensitivity;
+		PA_LOG_VAR(totalTcpOrdinaries);
+		PA_LOG_VAR(totalTcpPpvc);
+		PA_LOG_VAR(formalProportionExpected);
+		PA_LOG_VAR(totalFormalVotesExpected);
+		PA_LOG_VAR(ordinaryVotesExpected);
+		PA_LOG_VAR(ppvcVotesExpected);
+		PA_LOG_VAR(ordinaryCounted);
+		PA_LOG_VAR(prepollCounted);
+		PA_LOG_VAR(ordinaryCounted);
+		PA_LOG_VAR(ordinaryVotesExpected);
+		PA_LOG_VAR(ppvcVotesExpected);
+		PA_LOG_VAR(prepollCounted);
+		PA_LOG_VAR(sensitivity);
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]]);
+	}
+}
+
 void SimulationPreparation::determinePartyIdConversions()
 {
 	for (auto const& [_, aecParty] : currentElection.parties) {
@@ -1126,6 +1152,64 @@ void SimulationPreparation::prepareLiveFpSwings()
 	}
 }
 
+void SimulationPreparation::determinePpvcBias()
+{
+	float totalBiasSum = 0.0f;
+	float totalBiasWeight = 0.0f;
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		int aecFirstParty = seat.tcpVotes.begin()->first;
+		int aecSecondParty = std::next(seat.tcpVotes.begin())->first;
+		int firstParty = simPartyIsTpp(aecPartyToSimParty[aecFirstParty]);
+		int secondParty = simPartyIsTpp(aecPartyToSimParty[aecSecondParty]);
+		if (!simPartyIsTpp(firstParty) || !simPartyIsTpp(secondParty)) continue;
+		if (firstParty + secondParty == -3) continue; // means they are both coalition parties
+		int aecAlp = firstParty == 0 ? aecFirstParty : aecSecondParty;
+		float ordinarySwingSum = 0.0f;
+		float ordinarySwingWeight = 0.0f;
+		float ppvcSwingSum = 0.0f;
+		float ppvcSwingWeight = 0.0f;
+		for (auto const& boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			if (booth.tcpSwing.size() != 2 || !booth.tcpSwing.contains(aecAlp)) continue;
+			float swing = booth.tcpSwing.at(aecAlp);
+			if (std::isnan(swing)) continue;
+			float weight = float(booth.totalVotesTcp());
+			if (booth.type == Results2::Booth::Type::Ppvc) {
+				PA_LOG_VAR(seat.name);
+				PA_LOG_VAR(booth.name);
+				PA_LOG_VAR(booth.type);
+				PA_LOG_VAR(booth.tcpVotes);
+				PA_LOG_VAR(booth.totalVotesTcp());
+				PA_LOG_VAR(booth.tcpSwing);
+				ppvcSwingSum += swing * weight;
+				ppvcSwingWeight += weight;
+			}
+			else {
+				ordinarySwingSum += swing * weight;
+				ordinarySwingWeight += weight;
+			}
+		}
+		if (!ordinarySwingWeight) continue;
+		if (!ppvcSwingWeight) continue;
+		float averageOrdinarySwing = ordinarySwingSum / ordinarySwingWeight;
+		float averagePPVCSwing = ppvcSwingSum / ppvcSwingWeight;
+		float bias = averagePPVCSwing - averageOrdinarySwing;
+		totalBiasSum += bias * ppvcSwingWeight;
+		totalBiasWeight += ppvcSwingWeight;
+	}
+	if (!totalBiasWeight) {
+		run.ppvcBiasObserved = 0.0f;
+		run.ppvcBiasConfidence = 0.0f;
+	}
+	else {
+		float finalBias = totalBiasSum / totalBiasWeight;
+		run.ppvcBiasObserved = finalBias;
+		run.ppvcBiasConfidence = totalBiasWeight;
+	}
+	PA_LOG_VAR(run.ppvcBiasObserved);
+	PA_LOG_VAR(run.ppvcBiasConfidence);
+}
+
 void SimulationPreparation::prepareOverallLiveFpSwings()
 {
 	for (auto [partyId, party] : project.parties()) {
@@ -1158,18 +1242,6 @@ void SimulationPreparation::prepareOverallLiveFpSwings()
 		swingVoteExpected *= float(swingSeatsTurnout) / float(totalPastTurnout);
 		float newVoteExpected = newSeats > 0 ? float(newSeats) * run.liveOverallFpNew[partyIndex] / float(project.seats().count()) : 0.0f;
 		run.liveOverallFpTarget[partyIndex] = swingVoteExpected + newVoteExpected;
-
-		PA_LOG_VAR(party.name);
-		PA_LOG_VAR(partyIndex);
-		PA_LOG_VAR(swingSeatsVotes);
-		PA_LOG_VAR(swingSeatsTurnout);
-		PA_LOG_VAR(swingSeatsPastPercent);
-		PA_LOG_VAR(newSeats);
-		PA_LOG_VAR(swingVoteExpected);
-		PA_LOG_VAR(run.liveOverallFpSwing[partyIndex]);
-		PA_LOG_VAR(newVoteExpected);
-		PA_LOG_VAR(run.liveOverallFpNew[partyIndex]);
-		PA_LOG_VAR(run.liveOverallFpTarget[partyIndex]);
 	}
 }
 
@@ -1781,6 +1853,7 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveRegionSwing.resize(project.regions().count());
 	run.liveRegionPercentCounted.resize(project.regions().count());
 	run.liveRegionClassicSeatCount.resize(project.regions().count());
+	run.liveSeatPpvcSensitivity.resize(project.regions().count(), 0.0f);
 }
 
 std::string SimulationPreparation::getTermCode()

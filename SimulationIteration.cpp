@@ -51,7 +51,7 @@ void SimulationIteration::runIteration()
 	determineHomeRegions();
 	determineMinorPartyContests();
 	incorporateLiveOverallFps();
-	// determinePpvcBias();
+	determinePpvcBias();
 	determineRegionalSwings();
 	determineSeatInitialResults();
 
@@ -172,6 +172,20 @@ void SimulationIteration::incorporateLiveOverallFps()
 			overallFpSwing[partyIndex] = overallFpTarget[partyIndex] - run.previousFpVoteShare[partyIndex];
 		}
 	}
+}
+
+void SimulationIteration::determinePpvcBias()
+{
+	constexpr float DefaultPpvcBiasStdDev = 1.8f;
+	float originalPpvcBias = rng.normal(0.0f, DefaultPpvcBiasStdDev);
+	float observedPpvcStdDev = DefaultPpvcBiasStdDev * std::pow(400000.0f / std::min(run.ppvcBiasConfidence, 0.1f), 0.6f);
+	float observedWeight = DefaultPpvcBiasStdDev / observedPpvcStdDev;
+	float originalWeight = 1.0f;
+	float mixFactor = observedWeight / (originalWeight + observedWeight);
+	float observedPpvcBias = rng.normal(run.ppvcBiasObserved, std::min(DefaultPpvcBiasStdDev, observedPpvcStdDev));
+	ppvcBias = mix(originalPpvcBias, observedPpvcBias, mixFactor);
+	PA_LOG_VAR(ppvcBias);
+	ppvcBias = 0.0f;
 }
 
 void SimulationIteration::decideMinorPartyPopulism()
@@ -432,6 +446,12 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(ppvcBias);
+		PA_LOG_VAR(run.liveSeatPpvcSensitivity[seatIndex]);
+		PA_LOG_VAR(tppLive);
+		//tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
+		PA_LOG_VAR(tppLive);
 		float liveTransformedTpp = transformVoteShare(tppLive);
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);

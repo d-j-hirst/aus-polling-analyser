@@ -124,6 +124,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 					if (classifier == "PrisonMobile") booth.type = Booth::Type::Prison;
 					if (classifier == "SpecialHospital") booth.type = Booth::Type::Hospital;
 					if (classifier == "RemoteMobile") booth.type = Booth::Type::Remote;
+					// These are technically PPVCs but they're very volatile and shouldn't be used as a proxy for normal PPVCs.
+					if (booth.name.find("Divisional Office") != std::string::npos) booth.type = Booth::Type::Other;
+					if (booth.name.find("BLV") != std::string::npos) booth.type = Booth::Type::Other;
 				}
 				seat.booths.push_back(booth.id);
 			}

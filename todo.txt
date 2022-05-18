@@ -1,6 +1,13 @@
 
 -live simulations
  -account for possible systemic differences between different voting types and booth types including PPVCs
+  -Have some estimate of ppvc bias + confidence/variation, randomly assign between simulations
+  -Determine PPVC sensitivity for each seat
+   -Expected PPVC votes = previous election PPVCs times some constant factor
+						  OR actual recorded pre-poll vote rate (maybe add later)
+						  +/- random factor, maybe
+   -Subtract number of votes remaining
+   -Possibly push result around a bit so that remaining pre-polls grow at similar rate to existing pre-polls
  -live-estimate changes in voting patterns (ordinary vs. ppvc, etc.)
  -estimate non-tpp swings by comparing to previous tpp results with offset
  -project onto uncounted booths via regression to improve seat estimate & uncertainty

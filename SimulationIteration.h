@@ -51,6 +51,7 @@ private:
 	void initialiseIterationSpecificCounts();
 	void determineOverallTpp();
 	void incorporateLiveOverallFps();
+	void determinePpvcBias();
 	void decideMinorPartyPopulism();
 	void determineHomeRegions();
 	void determineRegionalSwings();
@@ -133,6 +134,7 @@ private:
 	float overallFpError = 0.0f;
 	float nonMajorFpError = 0.0f;
 	float othersCorrectionFactor = 0.0f;
+	float ppvcBias = 0.0f;
 	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
 
 	std::array<int, 2> partySupport = std::array<int, 2>();

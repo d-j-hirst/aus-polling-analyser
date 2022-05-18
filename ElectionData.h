@@ -138,6 +138,7 @@ namespace Results2 {
 			Remote,
 			Prison,
 			Hospital,
+			Other,
 			Invalid
 		};
 		int32_t id;
