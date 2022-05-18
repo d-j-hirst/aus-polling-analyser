@@ -972,7 +972,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	for (auto [partyIndex, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
 		if (isMajor(partyIndex)) continue;
-		if (partyIndex == CoalitionPartnerIndex) continue;
+		if (partyIndex == CoalitionPartnerIndex) {
+			pastElectionPartyOnePrefEstimate += 0.15f * voteShare;
+			continue;
+		}
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			// Prominent independents and centrist candidates attract a lot
 			// of tactical voting from the less-favoured major party, so it's not accurate
@@ -1042,7 +1045,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentTotalPrefs = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (isMajor(partyIndex)) continue;
-		if (partyIndex == CoalitionPartnerIndex) continue;
+		if (partyIndex == CoalitionPartnerIndex) {
+			currentPartyOnePrefs += 0.15f * voteShare;
+			continue;
+		}
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			// Prominent independents and centrist candidates attract a lot
 			// of tactical voting from the less-favoured major party, so it's not accurate
@@ -1134,7 +1140,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Shepparton") {
+	//if (seat.name == "Mallee") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -1373,6 +1379,7 @@ void SimulationIteration::correctMajorPartyFpBias()
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
 {
+
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	typedef std::pair<int, float> PartyVotes;
 	auto partyVoteLess = [](PartyVotes a, PartyVotes b) {return a.second < b.second; };
@@ -1430,6 +1437,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 				if (targetParty == 0) alpIndex = targetIndex;
 				if (targetParty == 1) lnpIndex = targetIndex;
+				if (targetParty == -4) lnpIndex = targetIndex;
 				if (targetParty == run.indPartyIndex || partyIdeologies[targetParty] == 2) indIndex = targetIndex;
 				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
 				if (bothMajorParties(sourceParty, targetParty)) ++ideologyDistance;
@@ -1440,6 +1448,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				thisWeight *= std::sqrt(targetVoteShare);
 				weights[targetIndex] = thisWeight;
 			}
+
 			// Rather hacky way to handle GRN -> ALP/IND flows in cases where another candidate (usually LNP)
 			// is still in the running. Depends on ALP being party index 0 and greens being party index 2,
 			// which is the case by my convention but won't apply in an old election without Greens or
@@ -1452,7 +1461,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				weights[alpIndex] = combinedWeights * (1.0f - indShare);
 			}
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
-			if (sourceParty == CoalitionPartnerIndex && lnpIndex != -1) {
+			if ((sourceParty == CoalitionPartnerIndex || sourceParty == 1) && lnpIndex != -1) {
 				float totalWeightWithoutLnp = totalWeight - weights[lnpIndex];
 				weights[lnpIndex] = totalWeightWithoutLnp * 4.0f;
 				totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
@@ -1478,14 +1487,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 		if (finalTwoConfirmed) {
 			// Just use classic 2pp winner if labor/lib are the final two
-			if (accumulatedVoteShares[0].first == Mp::One && accumulatedVoteShares[1].first == Mp::Two) {
+			if (accumulatedVoteShares[0].first == Mp::One && (accumulatedVoteShares[1].first == Mp::Two || accumulatedVoteShares[1].first == CoalitionPartnerIndex)) {
 				accumulatedVoteShares[0].second = partyOneNewTppMargin[seatIndex] + 50.0f;
 				accumulatedVoteShares[1].second = 50.0f - partyOneNewTppMargin[seatIndex];
+				accumulatedVoteShares[1].first = Mp::Two;
 				break;
 			}
-			else if (accumulatedVoteShares[0].first == Mp::Two && accumulatedVoteShares[1].first == Mp::One) {
+			else if ((accumulatedVoteShares[0].first == Mp::Two || accumulatedVoteShares[0].first == CoalitionPartnerIndex) && accumulatedVoteShares[1].first == Mp::One) {
 				accumulatedVoteShares[0].second = 50.0f - partyOneNewTppMargin[seatIndex];
 				accumulatedVoteShares[1].second = partyOneNewTppMargin[seatIndex] + 50.0f;
+				accumulatedVoteShares[0].first = Mp::Two;
 				break;
 			}
 			// otherwise exclude any remaining votes and allocate 
@@ -1500,11 +1511,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			allocateVotes(accumulatedVoteShares, excludedVoteShares);
 			break;
 		}
-		if (seat.name == "Mallee") {
-			PA_LOG_VAR(accumulatedVoteShares);
-			PA_LOG_VAR(originalVoteShares);
-			PA_LOG_VAR(excludedVoteShares);
-		}
+
 		// Allocate preferences from excluded groups, then exclude the lowest and allocate those too
 		accumulatedVoteShares = originalVoteShares;
 		allocateVotes(accumulatedVoteShares, excludedVoteShares);
