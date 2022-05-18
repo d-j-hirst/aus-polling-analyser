@@ -184,8 +184,6 @@ void SimulationIteration::determinePpvcBias()
 	float mixFactor = observedWeight / (originalWeight + observedWeight);
 	float observedPpvcBias = rng.normal(run.ppvcBiasObserved, std::min(DefaultPpvcBiasStdDev, observedPpvcStdDev));
 	ppvcBias = mix(originalPpvcBias, observedPpvcBias, mixFactor);
-	PA_LOG_VAR(ppvcBias);
-	ppvcBias = 0.0f;
 }
 
 void SimulationIteration::decideMinorPartyPopulism()
@@ -446,12 +444,12 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(ppvcBias);
-		PA_LOG_VAR(run.liveSeatPpvcSensitivity[seatIndex]);
-		PA_LOG_VAR(tppLive);
-		//tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
-		PA_LOG_VAR(tppLive);
+		//PA_LOG_VAR(seat.name);
+		//PA_LOG_VAR(ppvcBias);
+		//PA_LOG_VAR(run.liveSeatPpvcSensitivity[seatIndex]);
+		//PA_LOG_VAR(tppLive);
+		tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
+		//PA_LOG_VAR(tppLive);
 		float liveTransformedTpp = transformVoteShare(tppLive);
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
@@ -524,6 +522,10 @@ void SimulationIteration::correctSeatTppSwings()
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			Seat const& seat = project.seats().viewByIndex(seatIndex);
 			if (seat.region != regionId) continue;
+			if (sim.isLive()) {
+				// If a seat has much live data, don't adjust it any more.
+				swingAdjust *= std::min(1.0f, 2.0f / run.liveSeatTcpCounted[seatIndex] - 0.2f);
+			}
 			partyOneNewTppMargin[seatIndex] += swingAdjust;
 		}
 	}
@@ -1196,6 +1198,17 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 
 void SimulationIteration::reconcileSeatAndOverallFp()
 {
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		for (auto [partyIndex, votes] : seatFpVoteShare[seatIndex]) {
+			if (std::isnan(votes)) {
+				PA_LOG_VAR(seat.name);
+				logger << "found nan before reconciling ...\n";
+				throw std::runtime_error("found nan before reconciling");
+			}
+		}
+	}
+		
 	constexpr int MaxReconciliationCycles = 5;
 	for (int i = 0; i < MaxReconciliationCycles; ++i) {
 		calculateNewFpVoteTotals();
@@ -1205,6 +1218,17 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 		if (i > 1) calculatePreferenceCorrections();
 		if (i == MaxReconciliationCycles - 1) break;
 		applyCorrectionsToSeatFps();
+	}
+
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
+		for (auto [partyIndex, votes] : seatFpVoteShare[seatIndex]) {
+			if (std::isnan(votes)) {
+				PA_LOG_VAR(seat.name);
+				logger << "found nan after reconciling ...\n";
+				throw std::runtime_error("found nan after reconciling");
+			}
+		}
 	}
 }
 
@@ -1475,6 +1499,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			accumulatedVoteShares = originalVoteShares;
 			allocateVotes(accumulatedVoteShares, excludedVoteShares);
 			break;
+		}
+		if (seat.name == "Mallee") {
+			PA_LOG_VAR(accumulatedVoteShares);
+			PA_LOG_VAR(originalVoteShares);
+			PA_LOG_VAR(excludedVoteShares);
 		}
 		// Allocate preferences from excluded groups, then exclude the lowest and allocate those too
 		accumulatedVoteShares = originalVoteShares;
@@ -1748,11 +1777,30 @@ void SimulationIteration::recordIterationResults()
 
 void SimulationIteration::recordVoteTotals()
 {
-	short tppBucket = short(floor(iterationOverallTpp * 10.0f));
+	double totalTpp = 0.0;
+	std::map<int, double> totalFp;
+	double totalTurnout = 0.0;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
+		double turnoutScaledTpp = double(partyOneNewTppMargin[seatIndex] + 50.0) * turnout;
+		for (auto [party, vote] : seatFpVoteShare[seatIndex]) {
+			if (tempOverallFp.contains(party)) {
+				totalFp[party] += vote * turnout;
+			}
+			else {
+				totalFp[-1] += vote * turnout;
+			}
+		}
+		totalTpp += turnoutScaledTpp;
+		totalTurnout += turnout;
+	}
+	totalTpp /= totalTurnout;
+	for (auto& [party, vote] : totalFp) vote /= totalTurnout;
+	short tppBucket = short(floor(totalTpp * 10.0f));
 	++sim.latestReport.tppFrequency[tppBucket];
 
 	float othersFp = 0.0f;
-	for (auto const& [partyIndex, fp]: tempOverallFp) {
+	for (auto const& [partyIndex, fp]: totalFp) {
 		if (partyIndex >= 0) {
 			short bucket = short(floor(fp * 10.0f));
 			++sim.latestReport.partyPrimaryFrequency[partyIndex][bucket];

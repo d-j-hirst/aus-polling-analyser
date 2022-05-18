@@ -953,21 +953,8 @@ void SimulationPreparation::determinePpvcBiasSensitivity()
 		}
 		float sensitivity = (a * c) / (a * c + u * z) - c / (c + u); // thanks to algebra
 		run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]] = sensitivity;
-		PA_LOG_VAR(totalTcpOrdinaries);
-		PA_LOG_VAR(totalTcpPpvc);
-		PA_LOG_VAR(formalProportionExpected);
-		PA_LOG_VAR(totalFormalVotesExpected);
-		PA_LOG_VAR(ordinaryVotesExpected);
-		PA_LOG_VAR(ppvcVotesExpected);
-		PA_LOG_VAR(ordinaryCounted);
-		PA_LOG_VAR(prepollCounted);
-		PA_LOG_VAR(ordinaryCounted);
-		PA_LOG_VAR(ordinaryVotesExpected);
-		PA_LOG_VAR(ppvcVotesExpected);
-		PA_LOG_VAR(prepollCounted);
-		PA_LOG_VAR(sensitivity);
 		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]]);
+		PA_LOG_VAR(sensitivity);
 	}
 }
 
@@ -1157,6 +1144,7 @@ void SimulationPreparation::determinePpvcBias()
 	float totalBiasSum = 0.0f;
 	float totalBiasWeight = 0.0f;
 	for (auto const& [seatId, seat] : currentElection.seats) {
+		if (seat.tcpVotes.size() != 2) continue;
 		int aecFirstParty = seat.tcpVotes.begin()->first;
 		int aecSecondParty = std::next(seat.tcpVotes.begin())->first;
 		int firstParty = simPartyIsTpp(aecPartyToSimParty[aecFirstParty]);
@@ -1175,12 +1163,6 @@ void SimulationPreparation::determinePpvcBias()
 			if (std::isnan(swing)) continue;
 			float weight = float(booth.totalVotesTcp());
 			if (booth.type == Results2::Booth::Type::Ppvc) {
-				PA_LOG_VAR(seat.name);
-				PA_LOG_VAR(booth.name);
-				PA_LOG_VAR(booth.type);
-				PA_LOG_VAR(booth.tcpVotes);
-				PA_LOG_VAR(booth.totalVotesTcp());
-				PA_LOG_VAR(booth.tcpSwing);
 				ppvcSwingSum += swing * weight;
 				ppvcSwingWeight += weight;
 			}
@@ -1840,20 +1822,20 @@ void SimulationPreparation::loadIndividualSeatParameters()
 
 void SimulationPreparation::initializeGeneralLiveData()
 {
-	run.liveSeatTppSwing.resize(project.seats().count());
-	run.liveSeatTcpCounted.resize(project.seats().count());
+	run.liveSeatTppSwing.resize(project.seats().count(), 0.0f);
+	run.liveSeatTcpCounted.resize(project.seats().count(), 0.0f);
 	run.liveSeatFpSwing.resize(project.seats().count());
 	run.liveSeatFpTransformedSwing.resize(project.seats().count());
 	run.liveSeatFpPercent.resize(project.seats().count());
-	run.liveSeatFpCounted.resize(project.seats().count());
+	run.liveSeatFpCounted.resize(project.seats().count(), 0.0f);
 	run.liveSeatTcpParties.resize(project.seats().count());
-	run.liveSeatTcpSwing.resize(project.seats().count());
-	run.liveSeatTcpPercent.resize(project.seats().count());
-	run.liveSeatTcpBasis.resize(project.seats().count());
-	run.liveRegionSwing.resize(project.regions().count());
-	run.liveRegionPercentCounted.resize(project.regions().count());
-	run.liveRegionClassicSeatCount.resize(project.regions().count());
-	run.liveSeatPpvcSensitivity.resize(project.regions().count(), 0.0f);
+	run.liveSeatTcpSwing.resize(project.seats().count(), 0.0f);
+	run.liveSeatTcpPercent.resize(project.seats().count(), 0.0f);
+	run.liveSeatTcpBasis.resize(project.seats().count(), 0.0f);
+	run.liveSeatPpvcSensitivity.resize(project.seats().count(), 0.0f);
+	run.liveRegionSwing.resize(project.regions().count(), 0.0f);
+	run.liveRegionPercentCounted.resize(project.regions().count(), 0.0f);
+	run.liveRegionClassicSeatCount.resize(project.regions().count(), 0.0f);
 }
 
 std::string SimulationPreparation::getTermCode()
