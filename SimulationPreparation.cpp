@@ -705,24 +705,27 @@ void SimulationPreparation::calculateBoothTcpSwings()
 		if (!currentBooth.tcpVotes.size()) continue;
 		int previousTotal = 0;
 		int currentTotal = currentBooth.totalVotesTcp();
+		PA_LOG_VAR(id);
+		PA_LOG_VAR(currentBooth.name);
 		if (currentTotal) {
-			bool matched = false;
 			Results2::Booth const* previousBooth = nullptr;
+			std::map<int, int> matchedAffiliation;
 			if (previousElection.booths.contains(id)) {
-				matched = true;
 				previousBooth = &previousElection.booths.at(id);
-				for (auto [affiliation, _] : currentBooth.tcpVotes) {
-					if (!previousBooth->tcpVotes.contains(affiliation)) {
-						matched = false;
-						break;
+				for (auto [affiliation, votes] : currentBooth.tcpVotes) {
+					for (auto [prevAffiliation, prevVotes] : previousBooth->tcpVotes) {
+						if (aecPartyToSimParty[affiliation] == aecPartyToSimParty[prevAffiliation] && aecPartyToSimParty[affiliation] != -1) {
+							matchedAffiliation[affiliation] = prevAffiliation;
+							break;
+						}
 					}
 				}
 				previousTotal = previousBooth->totalVotesTcp();
 			}
 			for (auto [affiliation, votes] : currentBooth.tcpVotes) {
 				float currentPercent = float(votes) * 100.0f / float(currentTotal);
-				if (matched && previousTotal && previousBooth) {
-					float previousPercent = float(previousBooth->tcpVotes.at(affiliation)) * 100.0f / float(previousTotal);
+				if (matchedAffiliation.size() == 2 && previousTotal && previousBooth) {
+					float previousPercent = float(previousBooth->tcpVotes.at(matchedAffiliation[affiliation])) * 100.0f / float(previousTotal);
 					currentBooth.tcpSwing[affiliation] = currentPercent - previousPercent;
 				}
 				else {
@@ -820,6 +823,89 @@ void SimulationPreparation::calculateSeatSwings()
 
 	// tcp swings
 	for (auto& [seatId, seat] : currentElection.seats) {
+		// start by working out how much of the ordinary vote is counted
+		int countedOrdinaryVotes = 0;
+		int matchedOrdinaryVotes = 0;
+		int matchedPreviousOrdinaryVotes = 0;
+		int uncountedPreviousOrdinaryVotes = 0;
+		int mysteryVotes = 0;
+		for (auto boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			int totalVotes = booth.totalVotesTcp();
+			countedOrdinaryVotes += totalVotes;
+			if (totalVotes && previousElection.booths.contains(boothId)) {
+				matchedOrdinaryVotes += totalVotes;
+				matchedPreviousOrdinaryVotes += previousElection.booths[boothId].totalVotesTcp();
+			}
+			else if (!totalVotes && previousElection.booths.contains(boothId)) {
+				uncountedPreviousOrdinaryVotes += previousElection.booths[boothId].totalVotesTcp();
+			}
+			else if (!totalVotes) {
+				if (booth.type == Results2::Booth::Type::Ppvc) {
+					mysteryVotes += 3000;
+				}
+				else if (booth.type == Results2::Booth::Type::Remote) {
+					mysteryVotes += 700;
+				}
+				else if (booth.type == Results2::Booth::Type::Other) {
+					mysteryVotes += 50;
+				}
+				else if (booth.type == Results2::Booth::Type::Hospital) {
+					mysteryVotes += 100;
+				}
+				else if (booth.type == Results2::Booth::Type::Prison) {
+					mysteryVotes += 100;
+				}
+				else {
+					mysteryVotes += 800;
+				}
+			}
+		}
+		float boothSizeChange = matchedPreviousOrdinaryVotes ? float(matchedOrdinaryVotes) / float(matchedPreviousOrdinaryVotes) : 1.0f;
+		float minExpectedVotes = float(countedOrdinaryVotes) + float(uncountedPreviousOrdinaryVotes) * boothSizeChange * 0.8f +
+			mysteryVotes * 0.4f;
+		float maxExpectedVotes = float(countedOrdinaryVotes) + float(uncountedPreviousOrdinaryVotes) * boothSizeChange * 1.2f +
+			mysteryVotes * 2.0f;
+		float minExpectedOrdinaryVoteCompletion = float(countedOrdinaryVotes) / maxExpectedVotes;
+		float maxExpectedOrdinaryVoteCompletion = float(countedOrdinaryVotes) / minExpectedVotes;
+		float avgExpectedOrdinaryVoteCompletion = (minExpectedOrdinaryVoteCompletion + maxExpectedOrdinaryVoteCompletion) * 0.5f;
+
+		std::map<int, float> prevDecVoteBias;
+		float decVoteProportion = 0.0f;
+		if (previousElection.seats.contains(seatId)) {
+			std::map<int, int> matchedAffiliation;
+			auto& previousSeat = previousElection.seats.at(seatId);
+			for (auto [affiliation, votes] : seat.tcpVotes) {
+				for (auto [prevAffiliation, prevVotes] : previousSeat.tcpVotes) {
+					if (aecPartyToSimParty[affiliation] == aecPartyToSimParty[prevAffiliation] && aecPartyToSimParty[affiliation] != -1) {
+						matchedAffiliation[affiliation] = prevAffiliation;
+						break;
+					}
+				}
+			}
+			std::map<int, float> ordinaryVotePercent;
+			std::map<int, float> decVotePercent;
+			float decVoteTotal = 0.0f;
+			float ordinaryVoteTotal = 0.0f;
+			if (matchedAffiliation.size() == 2) {
+				for (auto [affiliation, votes] : seat.tcpVotes) {
+					float ordinaryVotes = previousSeat.tcpVotes[matchedAffiliation[affiliation]][Results2::VoteType::Ordinary];
+					float allVotes = previousSeat.totalVotesTcpParty(matchedAffiliation[affiliation]);
+					float decVotes = allVotes - ordinaryVotes;
+					ordinaryVotePercent[affiliation] = float(ordinaryVotes);
+					decVotePercent[affiliation] = float(decVotes);
+					ordinaryVoteTotal += float(ordinaryVotes);
+					decVoteTotal += float(decVotes);
+				}
+			}
+			decVoteProportion = decVoteTotal / (decVoteTotal + ordinaryVoteTotal);
+			for (auto& [party, votes] : ordinaryVotePercent) votes /= ordinaryVoteTotal;
+			for (auto& [party, votes] : decVotePercent) {
+				votes /= decVoteTotal;
+				prevDecVoteBias[party] = (decVotePercent[party] - ordinaryVotePercent[party]);
+			}
+		}
+
 		std::unordered_map<int, double> weightedSwing;
 		std::unordered_map<int, double> weightedPercent;
 		std::unordered_map<int, double> weightSwingSum;
@@ -858,10 +944,16 @@ void SimulationPreparation::calculateSeatSwings()
 				if (coalitionPartyPresent) seat.isTpp = false;
 				else coalitionPartyPresent = true;
 			}
-			seat.tcpSwing[party] = float(weightedSwing[party] / weightSwingSum[party]);
 			seat.tcpPercent[party] = float(weightedPercent[party] / weightPercentSum[party]);
+			float boothSwing = float(weightedSwing[party] / weightSwingSum[party]);
+			float existingPercent = 0.0f;
+			auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
+			if (seat.isTpp && aecPartyToSimParty[party] == 0) existingPercent = 50.0f + simSeat.tppMargin;
+			else if (seat.isTpp) existingPercent = 50.0f - simSeat.tppMargin;
+			float overallSwing = seat.tcpPercent[party] + prevDecVoteBias[party] * decVoteProportion * 100.0f - existingPercent;
+			float overallMix = std::clamp((avgExpectedOrdinaryVoteCompletion - 0.7f) / 0.3f, 0.0f, 1.0f);
+			seat.tcpSwing[party] = mix(boothSwing, overallSwing, overallMix);
 		}
-		// 0.5f factor accounts for the fact the weightSwingSum is increased twice per booth, so needs to be halved here
 		seat.tcpSwingBasis = weightSwingSum.size() ? weightSwingSum.begin()->second * 100.0f / float(seat.enrolment) : 0.0f;
 	}
 	for (auto const& [id, seat] : currentElection.seats) {
@@ -961,6 +1053,25 @@ void SimulationPreparation::determinePpvcBiasSensitivity()
 void SimulationPreparation::determinePartyIdConversions()
 {
 	for (auto const& [_, aecParty] : currentElection.parties) {
+		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+			auto const& simParty = project.parties().viewByIndex(partyIndex);
+			if (contains(simParty.officialCodes, aecParty.shortCode)) {
+				if (partyIndex == 1 && aecParty.shortCode[0] == 'N') {
+					aecPartyToSimParty[aecParty.id] = CoalitionPartnerIndex;
+				}
+				else {
+					aecPartyToSimParty[aecParty.id] = partyIndex;
+				}
+				break;
+			}
+		}
+		if (!aecPartyToSimParty.contains(aecParty.id)) {
+			logger << "No party conversion found for " << aecParty.name << " (" << aecParty.shortCode << ") - check this is ok\n";
+			aecPartyToSimParty[aecParty.id] = -1;
+		}
+	}
+	for (auto const& [_, aecParty] : previousElection.parties) {
+		if (aecPartyToSimParty.contains(aecParty.id)) continue;
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			auto const& simParty = project.parties().viewByIndex(partyIndex);
 			if (contains(simParty.officialCodes, aecParty.shortCode)) {
