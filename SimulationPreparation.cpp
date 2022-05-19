@@ -705,8 +705,6 @@ void SimulationPreparation::calculateBoothTcpSwings()
 		if (!currentBooth.tcpVotes.size()) continue;
 		int previousTotal = 0;
 		int currentTotal = currentBooth.totalVotesTcp();
-		PA_LOG_VAR(id);
-		PA_LOG_VAR(currentBooth.name);
 		if (currentTotal) {
 			Results2::Booth const* previousBooth = nullptr;
 			std::map<int, int> matchedAffiliation;
@@ -954,7 +952,11 @@ void SimulationPreparation::calculateSeatSwings()
 			float overallMix = std::clamp((avgExpectedOrdinaryVoteCompletion - 0.7f) / 0.3f, 0.0f, 1.0f);
 			seat.tcpSwing[party] = mix(boothSwing, overallSwing, overallMix);
 		}
-		seat.tcpSwingBasis = weightSwingSum.size() ? weightSwingSum.begin()->second * 100.0f / float(seat.enrolment) : 0.0f;
+		if (weightSwingSum.size()) {
+			seat.tcpSwingBasis = weightSwingSum.begin()->second * 100.0f / float(seat.enrolment);
+		} else if (weightPercentSum.size()) {
+			seat.tcpSwingBasis = weightSwingSum.begin()->second * 50.0f / float(seat.enrolment);
+		}
 	}
 	for (auto const& [id, seat] : currentElection.seats) {
 		logger << "Seat: " << seat.name << "\n";
@@ -1939,7 +1941,7 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveSeatFpTransformedSwing.resize(project.seats().count());
 	run.liveSeatFpPercent.resize(project.seats().count());
 	run.liveSeatFpCounted.resize(project.seats().count(), 0.0f);
-	run.liveSeatTcpParties.resize(project.seats().count());
+	run.liveSeatTcpParties.resize(project.seats().count(), { -1000, -1000 });
 	run.liveSeatTcpSwing.resize(project.seats().count(), 0.0f);
 	run.liveSeatTcpPercent.resize(project.seats().count(), 0.0f);
 	run.liveSeatTcpBasis.resize(project.seats().count(), 0.0f);

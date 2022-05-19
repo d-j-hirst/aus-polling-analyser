@@ -396,12 +396,22 @@ void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 void SimulationIteration::correctRegionalSwings()
 {
 	// Adjust regional swings to keep the implied overall 2pp the same as that actually projected
-	float tempOverallSwing = 0.0f;
+	double weightedSwings = 0.0;
+	double weightSums = 0.0;
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		Region const& thisRegion = project.regions().viewByIndex(regionIndex);
-		tempOverallSwing += regionSwing[regionIndex] * thisRegion.population;
+		int regionId = project.regions().indexToId(regionIndex);
+		double regionTurnout = 0.0;
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			Seat const& seat = project.seats().viewByIndex(seatIndex);
+			if (seat.region != regionId) continue;
+			double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
+			regionTurnout += turnout;
+		}
+		weightedSwings += double(regionSwing[regionIndex]) * regionTurnout;
+		weightSums += double(regionTurnout);
 	}
-	tempOverallSwing /= run.totalPopulation;
+
+	float tempOverallSwing = float(weightedSwings / weightSums);
 	float regionSwingAdjustment = iterationOverallSwing - tempOverallSwing;
 	for (float& swing : regionSwing) {
 		swing += regionSwingAdjustment;
@@ -528,6 +538,24 @@ void SimulationIteration::correctSeatTppSwings()
 			}
 			partyOneNewTppMargin[seatIndex] += swingAdjust;
 		}
+	}
+	// Now fix seats to the nation tpp as the above calculation doesn't always do this
+	double totalTpp = 0.0;
+	double totalTurnout = 0.0;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
+		double turnoutScaledTpp = double(partyOneNewTppMargin[seatIndex] + 50.0) * turnout;
+		totalTpp += turnoutScaledTpp;
+		totalTurnout += turnout;
+	}
+	float averageTpp = float(totalTpp / totalTurnout);
+	float swingAdjust = iterationOverallTpp - averageTpp;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		if (sim.isLive()) {
+			// If a seat has much live data, don't adjust it any more.
+			swingAdjust *= std::min(1.0f, 2.0f / run.liveSeatTcpCounted[seatIndex] - 0.2f);
+		}
+		partyOneNewTppMargin[seatIndex] += swingAdjust;
 	}
 }
 
@@ -1600,6 +1628,27 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				topTwo.second.second = 100.0f - topTwo.first.second;
 			}
 		}
+	}
+
+	// incorporate non-classic live 2pp results
+	if (sim.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
+		float tcpLive = topTwo.first.second;
+		if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].first && topTwo.second.first == run.liveSeatTcpParties[seatIndex].second) {
+			tcpLive = run.liveSeatTcpPercent[seatIndex];
+		}
+		else if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].second && topTwo.second.first == run.liveSeatTcpParties[seatIndex].first) {
+			tcpLive = 100.0f - run.liveSeatTcpPercent[seatIndex];
+		}
+		float liveTransformedTcp = transformVoteShare(tcpLive);
+		float priorTransformedTcp = transformVoteShare(topTwo.first.second);
+		float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
+		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
+		liveTransformedTcp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
+		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
+		float mixedTransformedTcp = mix(priorTransformedTcp, liveTransformedTcp, liveFactor);
+		topTwo.first.second = detransformVoteShare(mixedTransformedTcp);
+		topTwo.second.second = 100.0f - topTwo.first.second;
+		if (topTwo.first.second > topTwo.second.second) std::swap(topTwo.first, topTwo.second);
 	}
 
 	seatWinner[seatIndex] = topTwo.second.first;
