@@ -1,14 +1,20 @@
 
 -live simulations
- -adjust for redistributions/new booths not being usable for swings
-  -while ordinary vote is only partially counted, use swings directly as already implemented
-  -once ordinary vote is fully counted, declaration vote can be assumed to follow same patterns as last time overall w/ uncertainty
-  -from 80% to 100% (estimated) of ordinary (incl. ppvc) votes counted, transition between the two
-  -for fully counted ordinary vote, calculate implied swing of dec vote (i.e. last election total tpp - ordinary tpp), estimate final ordinary swing based on that, and then work backward
-  
- -estimate non-tpp swings by comparing to previous tpp results with offset
- -project onto uncounted booths via regression to improve seat estimate & uncertainty
- -project existing results to uncounted seats to improve estimates for other seats
+ -account for dec vote bias
+ -input and use expected pre-poll + postal votes
+ -use file name to determine date on live forecasts
+ -activate live 2019 display on local host
+ -test previous elections in full, making changes as necessary, while ...
+ -incorporate final Newspoll and anything else
+ -announce live forecast
+ -incorporate actual per-division pre-poll/postal numbers when available
+ -make sure live feed setting is working properly (test using 2019 election with archive url)
+ -vote
+ 
+-Immediately before election night:
+ -turn on live forecast option on website after inputting dummy live-manual forecast
+ -Load up program, run regular forecasts, enter live feed url (when available)
+ -
  
 -glossary
  ^first preference vote (primary vote)

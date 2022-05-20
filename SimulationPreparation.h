@@ -85,6 +85,7 @@ private:
 	void determinePpvcBias();
 	void calculateSeatSwings();
 	void determinePpvcBiasSensitivity();
+	void determineDecVoteSensitivity();
 	void determineRegionalSwingBasis();
 	void determinePartyIdConversions();
 	void determineSeatIdConversions();

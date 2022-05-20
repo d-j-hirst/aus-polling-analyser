@@ -325,6 +325,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	calculateBoothTcpSwings();
 	calculateCountProgress();
 	determinePpvcBiasSensitivity();
+	determineDecVoteSensitivity();
 	determinePpvcBias();
 	calculateSeatSwings();
 	prepareLiveTppSwings();
@@ -1047,13 +1048,31 @@ void SimulationPreparation::determinePpvcBiasSensitivity()
 		}
 		float sensitivity = (a * c) / (a * c + u * z) - c / (c + u); // thanks to algebra
 		run.liveSeatPpvcSensitivity[aecSeatToSimSeat[seatId]] = sensitivity;
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(sensitivity);
 	}
 }
 
-void SimulationPreparation::determineRegionalSwingBasis()
+void SimulationPreparation::determineDecVoteSensitivity()
 {
+	for (auto const& [seatId, seat] : currentElection.seats) {
+		if (!seat.isTpp) {
+			run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = 0.0f;
+			continue;
+		}
+		if (!previousElection.seats.contains(seatId)) {
+			run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = 0.0f;
+			continue;
+		}
+		std::map<int, int> matchedAffiliation;
+		auto& previousSeat = previousElection.seats.at(seatId);
+		double totalVote = previousSeat.totalVotesTcp(); // despite what it looks like this EXCLUDES ordinary votes
+		double totalDecVote = previousSeat.totalVotesTcp(Results2::VoteType::Ordinary); // despite what it looks like this EXCLUDES ordinary votes
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(seatId);
+		PA_LOG_VAR(aecSeatToSimSeat[seatId]);
+		run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = totalDecVote / (totalDecVote + totalVote);
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]]);
+	}
 }
 
 void SimulationPreparation::determinePartyIdConversions()
@@ -1950,6 +1969,7 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveSeatTcpPercent.resize(project.seats().count(), 0.0f);
 	run.liveSeatTcpBasis.resize(project.seats().count(), 0.0f);
 	run.liveSeatPpvcSensitivity.resize(project.seats().count(), 0.0f);
+	run.liveSeatDecVoteSensitivity.resize(project.seats().count(), 0.0f);
 	run.liveRegionSwing.resize(project.regions().count(), 0.0f);
 	run.liveRegionPercentCounted.resize(project.regions().count(), 0.0f);
 	run.liveRegionClassicSeatCount.resize(project.regions().count(), 0.0f);

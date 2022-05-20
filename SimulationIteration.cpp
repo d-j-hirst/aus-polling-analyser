@@ -52,6 +52,7 @@ void SimulationIteration::runIteration()
 	determineMinorPartyContests();
 	incorporateLiveOverallFps();
 	determinePpvcBias();
+	determineDecVoteBias();
 	determineRegionalSwings();
 	determineSeatInitialResults();
 
@@ -176,14 +177,21 @@ void SimulationIteration::incorporateLiveOverallFps()
 
 void SimulationIteration::determinePpvcBias()
 {
-	constexpr float DefaultPpvcBiasStdDev = 1.8f;
-	float originalPpvcBias = rng.normal(0.0f, DefaultPpvcBiasStdDev);
+	constexpr float DefaultPpvcBiasStdDev = 2.5f;
+	float defaultPpvcBias = rng.normal(0.0f, DefaultPpvcBiasStdDev);
 	float observedPpvcStdDev = DefaultPpvcBiasStdDev * std::pow(400000.0f / std::min(run.ppvcBiasConfidence, 0.1f), 0.6f);
 	float observedWeight = DefaultPpvcBiasStdDev / observedPpvcStdDev;
 	float originalWeight = 1.0f;
 	float mixFactor = observedWeight / (originalWeight + observedWeight);
 	float observedPpvcBias = rng.normal(run.ppvcBiasObserved, std::min(DefaultPpvcBiasStdDev, observedPpvcStdDev));
-	ppvcBias = mix(originalPpvcBias, observedPpvcBias, mixFactor);
+	ppvcBias = mix(defaultPpvcBias, observedPpvcBias, mixFactor);
+}
+
+void SimulationIteration::determineDecVoteBias()
+{
+	constexpr float DefaultDecBiasStdDev = 3.0f;
+	float defaultDecVoteBias = rng.normal(0.0f, DefaultDecBiasStdDev);
+	decVoteBias = defaultDecVoteBias;
 }
 
 void SimulationIteration::decideMinorPartyPopulism()
@@ -459,6 +467,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		//PA_LOG_VAR(run.liveSeatPpvcSensitivity[seatIndex]);
 		//PA_LOG_VAR(tppLive);
 		tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
+		tppLive = basicTransformedSwing(tppLive, decVoteBias * run.liveSeatDecVoteSensitivity[seatIndex]);
 		//PA_LOG_VAR(tppLive);
 		float liveTransformedTpp = transformVoteShare(tppLive);
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));

@@ -240,6 +240,7 @@ private:
 	std::vector<float> liveSeatTcpBasis; // weight of evidence for tcp swing, including estimations and extrapolations
 	std::vector<float> liveSeatFpCounted; // as percentage
 	std::vector<float> liveSeatPpvcSensitivity;
+	std::vector<float> liveSeatDecVoteSensitivity;
 
 	std::vector<float> liveRegionPercentCounted;
 	std::vector<float> liveRegionSwing;
