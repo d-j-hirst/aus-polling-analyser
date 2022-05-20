@@ -177,7 +177,7 @@ void SimulationIteration::incorporateLiveOverallFps()
 
 void SimulationIteration::determinePpvcBias()
 {
-	constexpr float DefaultPpvcBiasStdDev = 2.5f;
+	constexpr float DefaultPpvcBiasStdDev = 4.0f;
 	float defaultPpvcBias = rng.normal(0.0f, DefaultPpvcBiasStdDev);
 	float observedPpvcStdDev = DefaultPpvcBiasStdDev * std::pow(400000.0f / std::min(run.ppvcBiasConfidence, 0.1f), 0.6f);
 	float observedWeight = DefaultPpvcBiasStdDev / observedPpvcStdDev;
@@ -462,13 +462,8 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
-		//PA_LOG_VAR(seat.name);
-		//PA_LOG_VAR(ppvcBias);
-		//PA_LOG_VAR(run.liveSeatPpvcSensitivity[seatIndex]);
-		//PA_LOG_VAR(tppLive);
 		tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
 		tppLive = basicTransformedSwing(tppLive, decVoteBias * run.liveSeatDecVoteSensitivity[seatIndex]);
-		//PA_LOG_VAR(tppLive);
 		float liveTransformedTpp = transformVoteShare(tppLive);
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);

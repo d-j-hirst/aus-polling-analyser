@@ -86,7 +86,6 @@ private:
 	void calculateSeatSwings();
 	void determinePpvcBiasSensitivity();
 	void determineDecVoteSensitivity();
-	void determineRegionalSwingBasis();
 	void determinePartyIdConversions();
 	void determineSeatIdConversions();
 	void prepareLiveTppSwings();

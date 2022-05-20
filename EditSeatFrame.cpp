@@ -285,7 +285,7 @@ void EditSeatFrame::createPreviousIndRunningInput(int& y)
 void EditSeatFrame::createKnownPrepollsInput(int& y)
 {
 	auto knownPrepollsCallback = [this](float f) -> void {seat.knownPrepollPercent = f; };
-	auto knownPrepollsValidator = [](float f) {return std::max(f, 1.0f); };
+	auto knownPrepollsValidator = [](float f) {return std::max(f, 0.0f); };
 	knownPrepollsInput.reset(new FloatInput(this, ControlId::KnownPrepolls, "Known prepoll %:", seat.knownPrepollPercent,
 		wxPoint(2, y), knownPrepollsCallback, knownPrepollsValidator));
 	y += knownPrepollsInput->Height + ControlPadding;
@@ -294,7 +294,7 @@ void EditSeatFrame::createKnownPrepollsInput(int& y)
 void EditSeatFrame::createKnownPostalsInput(int& y)
 {
 	auto knownPostalsCallback = [this](float f) -> void {seat.knownPostalPercent = f; };
-	auto knownPostalsValidator = [](float f) {return std::max(f, 1.0f); };
+	auto knownPostalsValidator = [](float f) {return std::max(f, 0.0f); };
 	knownPostalsInput.reset(new FloatInput(this, ControlId::KnownPostals, "Known postals %:", seat.knownPostalPercent,
 		wxPoint(2, y), knownPostalsCallback, knownPostalsValidator));
 	y += knownPostalsInput->Height + ControlPadding;

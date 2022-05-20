@@ -1036,6 +1036,10 @@ void SimulationPreparation::determinePpvcBiasSensitivity()
 		double totalFormalVotesExpected = formalProportionExpected * double(seat.enrolment);
 		float ordinaryVotesExpected = 0.545 * totalFormalVotesExpected;
 		float ppvcVotesExpected = 0.282 * totalFormalVotesExpected;
+		if (project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPrepollPercent) {
+			// Factor of 1.05f accounts for differences between formal votes and enrolment.
+			ppvcVotesExpected = totalFormalVotesExpected * project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPrepollPercent * 0.01f * 1.05f;
+		}
 		float ordinaryCounted = std::clamp(float(totalTcpOrdinaries / ordinaryVotesExpected), 0.0f, 1.0f);
 		float prepollCounted = std::clamp(float(totalTcpPpvc / ppvcVotesExpected), 0.0f, 1.0f);
 		float a = ordinaryCounted; // as proportion of ordinaries
@@ -1066,12 +1070,11 @@ void SimulationPreparation::determineDecVoteSensitivity()
 		auto& previousSeat = previousElection.seats.at(seatId);
 		double totalVote = previousSeat.totalVotesTcp(); // despite what it looks like this EXCLUDES ordinary votes
 		double totalDecVote = previousSeat.totalVotesTcp(Results2::VoteType::Ordinary); // despite what it looks like this EXCLUDES ordinary votes
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seatId);
-		PA_LOG_VAR(aecSeatToSimSeat[seatId]);
 		run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = totalDecVote / (totalDecVote + totalVote);
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]]);
+		if (project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPostalPercent) {
+			// Factor of 1.05f accounts for differences between formal votes and enrolment.
+			run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPostalPercent * 0.01f * 1.05f;
+		}
 	}
 }
 
