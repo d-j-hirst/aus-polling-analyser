@@ -139,7 +139,7 @@ void Projection::logRunStatistics()
 
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
-	settings.endDate = model.getEndDate() + wxDateSpan(0, 0, 0, 2);
+	settings.endDate = model.getEndDate() + wxDateSpan(0, 0, 0, 4);
 }
 
 StanModel::SeriesOutput Projection::viewPrimarySeries(std::string partyCode) const
