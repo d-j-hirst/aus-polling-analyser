@@ -952,10 +952,10 @@ void SimulationPreparation::calculateSeatSwings()
 			float overallMix = std::clamp((avgExpectedOrdinaryVoteCompletion - 0.7f) / 0.3f, 0.0f, 1.0f);
 			seat.tcpSwing[party] = mix(boothSwing, overallSwing, overallMix);
 		}
-		if (weightSwingSum.size()) {
+		if (weightSwingSum.size() && weightSwingSum.begin()->second) {
 			seat.tcpSwingBasis = weightSwingSum.begin()->second * 100.0f / float(seat.enrolment);
-		} else if (weightPercentSum.size()) {
-			seat.tcpSwingBasis = weightSwingSum.begin()->second * 50.0f / float(seat.enrolment);
+		} else if (weightPercentSum.size() && weightPercentSum.begin()->second) {
+			seat.tcpSwingBasis = weightPercentSum.begin()->second * 50.0f / float(seat.enrolment);
 		}
 	}
 	for (auto const& [id, seat] : currentElection.seats) {
@@ -1050,6 +1050,10 @@ void SimulationPreparation::determinePpvcBiasSensitivity()
 		PA_LOG_VAR(seat.name);
 		PA_LOG_VAR(sensitivity);
 	}
+}
+
+void SimulationPreparation::determineRegionalSwingBasis()
+{
 }
 
 void SimulationPreparation::determinePartyIdConversions()

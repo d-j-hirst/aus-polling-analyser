@@ -1641,7 +1641,13 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 		float liveTransformedTcp = transformVoteShare(tcpLive);
 		float priorTransformedTcp = transformVoteShare(topTwo.first.second);
-		float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
+		if (!isMajor(topTwo.first.first) && isMajor(topTwo.second.first)) {
+			liveTransformedTcp -= 0.8f; // lazy adjustment for poor performance of 3rd parties in declarations/postals
+		}
+		else if (isMajor(topTwo.first.first) && !isMajor(topTwo.second.first)) {
+			liveTransformedTcp += 0.8f; // lazy adjustment for poor performance of 3rd parties in declarations/postals
+		}
+		float swingDeviation = run.tppSwingFactors.meanSwingDeviation * 1.5f;
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
 		liveTransformedTcp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
 		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
