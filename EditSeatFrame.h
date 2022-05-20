@@ -72,6 +72,8 @@ private:
 	void createTcpChangeInput(int& y);
 	void createRunningPartiesInput(int& y);
 	void createPreviousIndRunningInput(int& y);
+	void createKnownPrepollsInput(int& y);
+	void createKnownPostalsInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -121,6 +123,8 @@ private:
 	std::unique_ptr<TextInput> tcpChangeInput;
 	std::unique_ptr<TextInput> pollsInput;
 	std::unique_ptr<TextInput> runningPartiesInput;
+	std::unique_ptr<FloatInput> knownPrepollsInput;
+	std::unique_ptr<FloatInput> knownPostalsInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

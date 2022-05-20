@@ -39,7 +39,9 @@ enum ControlId
 	BettingOdds,
 	Polls,
 	RunningParties,
-	TcpChange
+	TcpChange,
+	KnownPrepolls,
+	KnownPostals
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -91,6 +93,8 @@ void EditSeatFrame::createControls(int & y)
 	createPollsInput(y);
 	createRunningPartiesInput(y);
 	createTcpChangeInput(y);
+	createKnownPrepollsInput(y);
+	createKnownPostalsInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -276,6 +280,24 @@ void EditSeatFrame::createPreviousIndRunningInput(int& y)
 	previousIndRunningInput.reset(new CheckInput(this, ControlId::PreviousIndRunning, "Previous Independent Running", seat.previousIndRunning,
 		wxPoint(2, y), previousIndRunningCallback));
 	y += previousIndRunningInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createKnownPrepollsInput(int& y)
+{
+	auto knownPrepollsCallback = [this](float f) -> void {seat.knownPrepollPercent = f; };
+	auto knownPrepollsValidator = [](float f) {return std::max(f, 1.0f); };
+	knownPrepollsInput.reset(new FloatInput(this, ControlId::KnownPrepolls, "Known prepoll %:", seat.knownPrepollPercent,
+		wxPoint(2, y), knownPrepollsCallback, knownPrepollsValidator));
+	y += knownPrepollsInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createKnownPostalsInput(int& y)
+{
+	auto knownPostalsCallback = [this](float f) -> void {seat.knownPostalPercent = f; };
+	auto knownPostalsValidator = [](float f) {return std::max(f, 1.0f); };
+	knownPostalsInput.reset(new FloatInput(this, ControlId::KnownPostals, "Known postals %:", seat.knownPostalPercent,
+		wxPoint(2, y), knownPostalsCallback, knownPostalsValidator));
+	y += knownPostalsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createProminentMinorsInput(int& y)

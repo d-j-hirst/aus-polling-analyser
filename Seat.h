@@ -81,6 +81,9 @@ public:
 	bool confirmedProminentIndependent = false;
 	bool previousIndRunning = false; // Only used for independents who didn't win last time.
 
+	float knownPrepollPercent = 0.0f;
+	float knownPostalPercent = 0.0f;
+
 	std::vector<std::string> prominentMinors;
 	std::vector<std::string> runningParties;
 

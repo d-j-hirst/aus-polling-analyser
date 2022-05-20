@@ -56,7 +56,8 @@
 // Version 49: Record seats where (non-incumbent) independent is re-running
 // Version 50: Save previous-results URL
 // Version 51: Save preload URL
-constexpr int VersionNum = 51;
+// Version 52: prepoll and postal figures for seats
+constexpr int VersionNum = 52;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -512,6 +513,8 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.runningParties;
 		saveOutput << thisSeat.tcpChange;
 		saveOutput << thisSeat.previousIndRunning;
+		saveOutput << thisSeat.knownPrepollPercent;
+		saveOutput << thisSeat.knownPostalPercent;
 	}
 }
 
@@ -577,6 +580,10 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		}
 		if (versionNum >= 49) {
 			saveInput >> thisSeat.previousIndRunning;
+		}
+		if (versionNum >= 52) {
+			saveInput >> thisSeat.knownPrepollPercent;
+			saveInput >> thisSeat.knownPostalPercent;
 		}
 
 		project.seatCollection.add(thisSeat);
