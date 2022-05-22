@@ -165,9 +165,9 @@ void SimulationIteration::incorporateLiveOverallFps()
 			if (partyIndex <= 2) continue;
 			if (!overallFpTarget.contains(partyIndex)) continue;
 			float liveTarget = run.liveOverallFpTarget[partyIndex];
-			float liveStdDev = stdDevOverall(run.liveOverallFpPercentCounted);
+			float liveStdDev = stdDevOverall(run.liveOverallFpPercentCounted) * 1.8f;
 			liveTarget += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-			float priorWeight = 0.5f;
+			float priorWeight = 1.5f;
 			float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
 			overallFpTarget[partyIndex] = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight);
 			overallFpSwing[partyIndex] = overallFpTarget[partyIndex] - run.previousFpVoteShare[partyIndex];
@@ -177,10 +177,10 @@ void SimulationIteration::incorporateLiveOverallFps()
 
 void SimulationIteration::determinePpvcBias()
 {
-	constexpr float DefaultPpvcBiasStdDev = 4.0f;
+	constexpr float DefaultPpvcBiasStdDev = 3.0f;
 	float defaultPpvcBias = rng.normal(0.0f, DefaultPpvcBiasStdDev);
-	float observedPpvcStdDev = DefaultPpvcBiasStdDev * std::pow(400000.0f / std::min(run.ppvcBiasConfidence, 0.1f), 0.6f);
-	float observedWeight = DefaultPpvcBiasStdDev / observedPpvcStdDev;
+	float observedPpvcStdDev = DefaultPpvcBiasStdDev * std::pow(400000.0f / std::max(run.ppvcBiasConfidence, 0.1f), 0.6f);
+	float observedWeight = 1.0f / observedPpvcStdDev;
 	float originalWeight = 1.0f;
 	float mixFactor = observedWeight / (originalWeight + observedWeight);
 	float observedPpvcBias = rng.normal(run.ppvcBiasObserved, std::min(DefaultPpvcBiasStdDev, observedPpvcStdDev));
@@ -921,10 +921,10 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		seatFpVoteShare[seatIndex][partyIndex] = detransformedFp;
 	}
 	if (!run.liveSeatFpTransformedSwing[seatIndex].contains(EmergingIndIndex)) {
-		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+		seatFpVoteShare[seatIndex][EmergingIndIndex] *= std::min(1.0f, 2.0f / run.liveSeatFpCounted[seatIndex]);
 	}
 	if (run.liveSeatFpCounted[seatIndex] > 5.0f) {
-		seatFpVoteShare[seatIndex][EmergingPartyIndex] = 0.0f;
+		seatFpVoteShare[seatIndex][EmergingPartyIndex] *= std::min(1.0f, 2.0f / run.liveSeatFpCounted[seatIndex]);
 	}
 }
 
@@ -1420,7 +1420,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	std::vector<PartyVotes> originalVoteShares; // those still in the count
 	std::vector<PartyVotes> excludedVoteShares; // excluded from the count, original values
 	std::vector<PartyVotes> accumulatedVoteShares;
-	float coalitionPartnerFp = seatFpVoteShare[seatIndex].contains(CoalitionPartnerIndex) ? seatFpVoteShare[seatIndex][CoalitionPartnerIndex] : 0.0f;
+	if (seatFpVoteShare[seatIndex].contains(CoalitionPartnerIndex)) {
+		seatFpVoteShare[seatIndex][CoalitionPartnerIndex] = 0;
+	}
 	for (auto val : seatFpVoteShare[seatIndex]) {
 		if (!val.second) continue; // don't add groups with no votes at all
 		if (val.first == OthersIndex) {
@@ -1428,11 +1430,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			excludedVoteShares.push_back(val);
 		}
 		else {
-			if (val.first == 1) val.second -= coalitionPartnerFp;
 			originalVoteShares.push_back(val);
 		}
 	}
 	accumulatedVoteShares = originalVoteShares;
+
+	//if (seat.name == "Indi") {
+	//	PA_LOG_VAR(originalVoteShares);
+	//	PA_LOG_VAR(accumulatedVoteShares);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//}
 
 	// Set up reused functions...
 
@@ -1562,7 +1569,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	// For non-standard Tcp scenarios, if it's a match to the previous tcp pair then compare with that
 	// and adjust the current results to match.
-	if (!bothMajorParties(topTwo.first.first, topTwo.second.first) && !coalitionPartnerFp) {
+	if (!bothMajorParties(topTwo.first.first, topTwo.second.first)) {
 		auto const& prevResults = pastSeatResults[seatIndex];
 		if (prevResults.tcpVote.count(topTwo.first.first) && prevResults.tcpVote.count(topTwo.second.first)) {
 			// Allocate the previous elections fp votes as if it were now
@@ -1634,6 +1641,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 
+	//if (seat.name == "Indi") {
+	//	logger << "Indi";
+	//}
+
 	// incorporate non-classic live 2pp results
 	if (sim.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
 		float tcpLive = topTwo.first.second;
@@ -1671,7 +1682,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)
 {
-	if (!sim.isLiveManual()) return;
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// this verifies there's a non-classic result entered.
 	if (seat.livePartyOne != Party::InvalidId) {

@@ -6,6 +6,7 @@
 #include "Simulation.h"
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
+#include "LatestResultsDataRetriever.h"
 
 #include <filesystem>
 #include <queue>
@@ -313,7 +314,12 @@ void SimulationPreparation::prepareLiveAutomatic()
 	parsePreviousResults();
 	downloadPreload();
 	parsePreload();
-	downloadCurrentResults();
+	if (sim.settings.currentRealUrl.size()) {
+		downloadLatestResults();
+	}
+	else {
+		downloadCurrentResults();
+	}
 	parseCurrentResults();
 	preparePartyCodeGroupings();
 	determinePartyIdConversions();
@@ -324,6 +330,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 	estimateBoothTcps();
 	calculateBoothTcpSwings();
 	calculateCountProgress();
+	projectDeclarationVotes();
 	determinePpvcBiasSensitivity();
 	determineDecVoteSensitivity();
 	determinePpvcBias();
@@ -403,12 +410,34 @@ void SimulationPreparation::downloadCurrentResults()
 		logger << "and saved it as: " << mangledName << "\n";
 	}
 	xmlFilename = mangledName;
+
+	auto dotOffset = sim.settings.currentTestUrl.rfind('.');
+	auto subStr = sim.settings.currentTestUrl.substr(dotOffset - 14, 14);
+	sim.latestReport.dateCode = subStr;
 }
 
 void SimulationPreparation::parseCurrentResults()
 {
 	xml.LoadFile(xmlFilename.c_str());
 	currentElection.update(xml);
+}
+
+void SimulationPreparation::downloadLatestResults()
+{
+	ResultsDownloader resultsDownloader;
+	std::string directoryListing;
+	resultsDownloader.loadUrlToString(sim.settings.currentRealUrl, directoryListing);
+	std::string latestFileName = directoryListing.substr(directoryListing.rfind(" ") + 1);
+	latestFileName = latestFileName.substr(0, latestFileName.length() - 1);
+	std::string latestUrl = sim.settings.currentRealUrl + latestFileName;
+	resultsDownloader.loadZippedFile(latestUrl, LatestResultsDataRetriever::UnzippedFileName);
+	xmlFilename = LatestResultsDataRetriever::UnzippedFileName;
+	logger << "Downloaded file: " << latestUrl << "\n";
+	logger << "and saved it as: " << xmlFilename << "\n";
+
+	auto dotOffset = latestUrl.rfind('.');
+	auto subStr = latestUrl.substr(dotOffset - 14, 14);
+	sim.latestReport.dateCode = subStr;
 }
 
 void SimulationPreparation::preparePartyCodeGroupings()
@@ -431,28 +460,27 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 	int greensParty = -1;
 	int greensPos = -1;
 	int pos = 0;
-	for (auto const& [seatId, seat] : currentElection.seats) {
-		for (int boothId : seat.booths) {
-			auto const& booth = currentElection.booths[boothId];
-			for (auto [candidateId, vote] : booth.fpVotes) {
-				int party = currentElection.candidates[candidateId].party;
-				if (aecPartyToSimParty[party] == 2) {
-					if (greensPos != -1) continue;
-					partyIdToPos[party] = pos;
-					greensPos = pos;
-					greensParty = party;
-					++pos;
-				}
-				if (!partyIdToPos.contains(party)) {
-					partyIdToPos[party] = pos;
-					++pos;
-				}
-			}
+	for (auto const& [partyId, party] : currentElection.parties) {
+		if (aecPartyToSimParty[partyId] == 2) {
+			if (greensPos != -1) continue;
+			partyIdToPos[partyId] = pos;
+			greensPos = pos;
+			greensParty = partyId;
+			++pos;
+		}
+		if (!partyIdToPos.contains(partyId)) {
+			partyIdToPos[partyId] = pos;
+			++pos;
 		}
 	}
 	DataSet data;
 	std::map<int, int> partyIdFrequency;
 	for (auto const& [seatId, seat] : currentElection.seats) {
+		for (auto [candidateId, votes] : seat.fpVotes) {
+			int partyId = currentElection.candidates[candidateId].party;
+			if (aecPartyToSimParty[partyId] == 2) partyId = greensParty;
+			++partyIdFrequency[partyId];
+		}
 		if (seat.tcpVotes.size() != 2) continue;
 		int numCoalition = 0;
 		for (auto [candidateId, votes] : seat.fpVotes) {
@@ -515,7 +543,7 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 		float priorPrefs = simParty >= 0 ? project.parties().viewByIndex(simParty).p1PreferenceFlow
 			: project.parties().getOthersPreferenceFlow();
 		std::vector<double> fpData(partyIdToPos.size());
-		fpData[partyIdToPos[partyId]] = 10;
+		fpData[partyIdToPos.at(partyId)] = 10;
 		double tcpData = priorPrefs * 0.1;
 		data.push_back({ fpData, tcpData });
 	}
@@ -524,7 +552,7 @@ void SimulationPreparation::calculateTppPreferenceFlows()
 		updatedPreferenceFlows[partyId] = std::clamp(float(weights[partyPos]) * 100.0f, 0.0f, 100.0f);
 		logger << "Party: " << currentElection.parties[partyId].name <<
 			" - current preference flow to ALP: " << formatFloat(weights[partyPos] * 100.0f, 2) << "%, " <<
-			partyIdFrequency[partyId] << "booths\n";
+			partyIdFrequency[partyId] << "booths/seats\n";
 	}
 	for (auto [partyId, party] : currentElection.parties) {
 		if (aecPartyToSimParty[partyId] == 2) {
@@ -572,6 +600,7 @@ void SimulationPreparation::calculateSeatPreferenceFlows()
 void SimulationPreparation::estimateBoothTcps()
 {
 	for (auto const& [seatId, seat] : currentElection.seats) {
+		PA_LOG_VAR(seat.name);
 		std::pair<int, int> tcpParties;
 		// May or may not be a tcp pair recorded, if not assume classic 2CP
 		auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
@@ -734,6 +763,9 @@ void SimulationPreparation::calculateBoothTcpSwings()
 			}
 		}
 		else if (currentBooth.tcpEstimate.size()) {
+			if (currentBooth.name == "Cherrybrook PPVC") {
+				logger << "here\n";
+			}
 			Results2::Booth const* previousBooth = nullptr;
 			bool matched = false;
 			if (previousElection.booths.contains(id)) {
@@ -872,16 +904,8 @@ void SimulationPreparation::calculateSeatSwings()
 		std::map<int, float> prevDecVoteBias;
 		float decVoteProportion = 0.0f;
 		if (previousElection.seats.contains(seatId)) {
-			std::map<int, int> matchedAffiliation;
 			auto& previousSeat = previousElection.seats.at(seatId);
-			for (auto [affiliation, votes] : seat.tcpVotes) {
-				for (auto [prevAffiliation, prevVotes] : previousSeat.tcpVotes) {
-					if (aecPartyToSimParty[affiliation] == aecPartyToSimParty[prevAffiliation] && aecPartyToSimParty[affiliation] != -1) {
-						matchedAffiliation[affiliation] = prevAffiliation;
-						break;
-					}
-				}
-			}
+			std::map<int, int> matchedAffiliation = findMatchedParties(previousSeat, seat);
 			std::map<int, float> ordinaryVotePercent;
 			std::map<int, float> decVotePercent;
 			float decVoteTotal = 0.0f;
@@ -952,6 +976,15 @@ void SimulationPreparation::calculateSeatSwings()
 			float overallSwing = seat.tcpPercent[party] + prevDecVoteBias[party] * decVoteProportion * 100.0f - existingPercent;
 			float overallMix = std::clamp((avgExpectedOrdinaryVoteCompletion - 0.7f) / 0.3f, 0.0f, 1.0f);
 			seat.tcpSwing[party] = mix(boothSwing, overallSwing, overallMix);
+			PA_LOG_VAR(seat.name);
+			PA_LOG_VAR(currentElection.parties[party].name);
+			PA_LOG_VAR(seat.tcpSwing[party]);
+			PA_LOG_VAR(seatDecVoteSwing[seatId][party]);
+			PA_LOG_VAR(seatDecVoteSwingWeight[seatId]);
+			PA_LOG_VAR(seatDecVoteSwingBasis[seatId]);
+			seat.tcpPercent[party] = mix(seat.tcpPercent[party], seatDecVotePercent[seatId][party], seatDecVotePercentWeight[seatId]);
+			seat.tcpSwing[party] = mix(seat.tcpSwing[party], seatDecVoteSwing[seatId][party], seatDecVoteSwingWeight[seatId] * seatDecVoteSwingBasis[seatId]);
+			PA_LOG_VAR(seat.tcpSwing[party]);
 		}
 		if (weightSwingSum.size() && weightSwingSum.begin()->second) {
 			seat.tcpSwingBasis = weightSwingSum.begin()->second * 100.0f / float(seat.enrolment);
@@ -1014,6 +1047,104 @@ void SimulationPreparation::calculateSeatSwings()
 	}
 }
 
+void SimulationPreparation::projectDeclarationVotes()
+{
+	for (auto const& [seatId, seat] : currentElection.seats) {
+
+		typedef std::map<Results2::VoteType, int> TotalDecVotes;
+		auto getDecVotePercent = [&](Results2::Seat const& seat, TotalDecVotes& totalDecVotesByType)
+				-> std::map<int, std::map<Results2::VoteType, float>>
+		{
+
+			std::map<int, std::map<Results2::VoteType, float>> decVotePercent;
+
+			for (auto const& [partyId, votes] : seat.tcpVotes) {
+				for (auto [voteType, voteCount] : votes) {
+					if (voteType == Results2::VoteType::Ordinary || voteType == Results2::VoteType::Invalid) continue;
+					totalDecVotesByType[voteType] += voteCount;
+				}
+			}
+
+			for (auto const& [partyId, votes] : seat.tcpVotes) {
+				for (auto [voteType, voteCount] : votes) {
+					if (voteType == Results2::VoteType::Ordinary || voteType == Results2::VoteType::Invalid) continue;
+					if (!totalDecVotesByType[voteType]) continue;
+					decVotePercent[partyId][voteType] = float(voteCount) / float(totalDecVotesByType[voteType]) * 100.0f;
+				}
+			}
+			return decVotePercent;
+		};
+
+		TotalDecVotes currentDecVotesByType;
+		TotalDecVotes previousDecVotesByType;
+		logger << seat.name << "\n";
+		auto currentDecVotePercent = getDecVotePercent(seat, currentDecVotesByType);
+
+		std::map<int, float> overallDecVotePercent;
+		for (auto const& [partyId, votes] : currentDecVotePercent) {
+			logger << " " << partyId << ": " << currentElection.parties[partyId].name << "\n";
+			float weightedPercentSum = 0.0f;
+			float weightSum = 0.0f;
+			for (auto [voteType, votePercent] : currentDecVotePercent[partyId]) {
+				float weight = float(seat.tcpVotes.at(partyId).at(voteType));
+				weightedPercentSum += votePercent * weight;
+				weightSum += weight;
+			}
+
+			overallDecVotePercent[partyId] = weightedPercentSum / weightSum;
+		}
+
+		seatDecVoteSwingBasis[seatId] = 0;
+		seatDecVotePercent[seatId] = overallDecVotePercent;
+		float totalDecVotes = float(seat.totalVotesTcp(Results2::VoteType::Ordinary));
+		seatDecVotePercentWeight[seatId] = totalDecVotes / (seat.totalVotesTcp() - totalDecVotes);
+		logger << "FINAL DEC VOTE PERCENTAGES\n";
+		logger << " dec vote percent: " << seatDecVotePercent[seatId] << "\n";
+		logger << " dec vote percent weight: " << seatDecVotePercentWeight[seatId] << "\n";
+		if (!previousElection.seats.contains(seatId)) continue;
+		auto previousSeat = previousElection.seats.at(seatId);
+		auto matchedParties = findMatchedParties(previousSeat, seat);
+		if (matchedParties.size() != 2) continue;
+
+		auto previousDecVotePercent = getDecVotePercent(previousSeat, previousDecVotesByType);
+
+		std::map<int, std::map<Results2::VoteType, float>> currentDecVoteSwing;
+
+		std::map<int, float> overallDecVoteSwing;
+		float totalEstimatedDecVotes = 0.0f;
+		float totalCountedDecVotes = 0.0f;
+		for (auto const& [partyId, votes] : currentDecVotePercent) {
+			float weightedSwingSum = 0.0f;
+			float weightSum = 0.0f;
+			for (auto [voteType, votePercent] : previousDecVotePercent[matchedParties[partyId]]) {
+				float expectedVotes = float(previousDecVotesByType[voteType]);
+				auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
+				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalPercent) {
+					// Factor of 1.05f accounts for differences between formal votes and enrolment.
+					// Factor of 0.8f accounts for not all applied postals being returned along with some being rejected.
+					expectedVotes = simSeat.knownPostalPercent * 0.01f * 1.05f * 0.8f * float(seat.enrolment);
+				}
+				weightSum += expectedVotes;
+				if (!currentDecVotePercent[partyId].contains(voteType)) continue;
+				float swing = currentDecVotePercent[partyId][voteType] - previousDecVotePercent[matchedParties[partyId]][voteType];
+				currentDecVoteSwing[partyId][voteType] = swing;
+				weightedSwingSum += swing * expectedVotes;
+				totalEstimatedDecVotes += expectedVotes;
+				totalCountedDecVotes += float(seat.tcpVotes.at(partyId).at(voteType));
+			}
+
+			overallDecVoteSwing[partyId] = weightedSwingSum / weightSum;
+		}
+		seatDecVoteSwingBasis[seatId] = totalCountedDecVotes / totalEstimatedDecVotes;
+		seatDecVoteSwing[seatId] = overallDecVoteSwing;
+		seatDecVoteSwingWeight[seatId] = totalEstimatedDecVotes / (seat.totalVotesTcp() - totalDecVotes + totalEstimatedDecVotes);
+		logger << "FINAL DEC VOTE SWINGS\n";
+		logger << " dec vote swing basis: " << seatDecVoteSwingBasis[seatId] << "\n";
+		logger << " dec vote swing: " << seatDecVoteSwing[seatId] << "\n";
+		logger << " dec vote swing weight: " << seatDecVoteSwingWeight[seatId] << "\n";
+	}
+}
+
 void SimulationPreparation::determinePpvcBiasSensitivity()
 {
 	for (auto const& [seatId, seat] : currentElection.seats) {
@@ -1068,13 +1199,15 @@ void SimulationPreparation::determineDecVoteSensitivity()
 		}
 		std::map<int, int> matchedAffiliation;
 		auto& previousSeat = previousElection.seats.at(seatId);
-		double totalVote = previousSeat.totalVotesTcp(); // despite what it looks like this EXCLUDES ordinary votes
+		double totalVote = previousSeat.totalVotesTcp();
 		double totalDecVote = previousSeat.totalVotesTcp(Results2::VoteType::Ordinary); // despite what it looks like this EXCLUDES ordinary votes
 		run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = totalDecVote / (totalDecVote + totalVote);
 		if (project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPostalPercent) {
 			// Factor of 1.05f accounts for differences between formal votes and enrolment.
-			run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPostalPercent * 0.01f * 1.05f;
+			// Factor of 0.8f accounts for not all applied postals being returned along with some being rejected.
+			run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = project.seats().viewByIndex(aecSeatToSimSeat[seatId]).knownPostalPercent * 0.01f * 1.05f * 0.8f;
 		}
+		run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] = std::clamp(run.liveSeatDecVoteSensitivity[aecSeatToSimSeat[seatId]] - seatDecVotePercentWeight[seatId], 0.0f, 1.0f);
 	}
 }
 
@@ -1364,6 +1497,20 @@ void SimulationPreparation::prepareOverallLiveFpSwings()
 		float newVoteExpected = newSeats > 0 ? float(newSeats) * run.liveOverallFpNew[partyIndex] / float(project.seats().count()) : 0.0f;
 		run.liveOverallFpTarget[partyIndex] = swingVoteExpected + newVoteExpected;
 	}
+}
+
+std::map<int, int> SimulationPreparation::findMatchedParties(Results2::Seat const& previousSeat, Results2::Seat const& currentSeat)
+{
+	std::map<int, int> matchedAffiliation;
+	for (auto [affiliation, votes] : currentSeat.tcpVotes) {
+		for (auto [prevAffiliation, prevVotes] : previousSeat.tcpVotes) {
+			if (aecPartyToSimParty[affiliation] == aecPartyToSimParty[prevAffiliation] && aecPartyToSimParty[affiliation] != -1) {
+				matchedAffiliation[affiliation] = prevAffiliation;
+				break;
+			}
+		}
+	}
+	return matchedAffiliation;
 }
 
 void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)

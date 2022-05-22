@@ -86,6 +86,15 @@ void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
 		sReport.report = simulationIt->second.getLatestReport();
 		sReport.label = "New results";
 		sReport.dateSaved = wxDateTime::Now();
+		if (sReport.report.dateCode.size()) {
+			int year = std::stoi(sReport.report.dateCode.substr(0, 4));
+			int month = std::stoi(sReport.report.dateCode.substr(4, 2));
+			int day = std::stoi(sReport.report.dateCode.substr(6, 2));
+			int hour = std::stoi(sReport.report.dateCode.substr(8, 2));
+			int minute = std::stoi(sReport.report.dateCode.substr(10, 2));
+			int second = std::stoi(sReport.report.dateCode.substr(12, 2));
+			sReport.dateSaved = wxDateTime(day, wxDateTime::Month(month - 1), year, hour, minute, second);
+		}
 		auto reportUploader = ReportUploader(sReport, simulationIt->second, project);
 		reportUploader.upload();
 		return;

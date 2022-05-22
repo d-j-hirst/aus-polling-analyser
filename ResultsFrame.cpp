@@ -358,6 +358,7 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 
 wxColour ResultsFrame::decideSwingColour(Outcome const& thisResult)
 {
+	if (std::isnan(thisResult.partyOneSwing)) return wxColour(255, 255, 255);
 	Party::Colour swingPartyColour = (thisResult.partyOneSwing > 0.0f ?
 		project->parties().viewByIndex(0).colour : project->parties().viewByIndex(1).colour);
 	Party::Colour inverseColour = Party::Colour{ 255 - swingPartyColour.r, 255 - swingPartyColour.g, 255 - swingPartyColour.b };

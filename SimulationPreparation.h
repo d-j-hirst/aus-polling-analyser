@@ -4,6 +4,7 @@
 
 #include "tinyxml2.h"
 
+#include <map>
 #include <stdexcept>
 #include <vector>
 #include <utility>
@@ -74,6 +75,7 @@ private:
 	void downloadPreload();
 	void parsePreload();
 	void downloadCurrentResults();
+	void downloadLatestResults();
 	void parseCurrentResults();
 	void preparePartyCodeGroupings();
 	void calculateBoothFpSwings();
@@ -84,6 +86,7 @@ private:
 	void calculateCountProgress();
 	void determinePpvcBias();
 	void calculateSeatSwings();
+	void projectDeclarationVotes();
 	void determinePpvcBiasSensitivity();
 	void determineDecVoteSensitivity();
 	void determinePartyIdConversions();
@@ -92,6 +95,8 @@ private:
 	void prepareLiveTcpSwings();
 	void prepareLiveFpSwings();
 	void prepareOverallLiveFpSwings();
+
+	std::map<int, int> findMatchedParties(Results2::Seat const& previousSeat, Results2::Seat const& currentSeat);
 
 	std::string getTermCode();
 
@@ -108,6 +113,12 @@ private:
 	std::unordered_map<int, int> aecSeatToSimSeat;
 
 	std::unordered_map<int, float> updatedPreferenceFlows;
+
+	std::map<int, std::map<int, float>> seatDecVotePercent;
+	std::map<int, float> seatDecVotePercentWeight; // proportion to ordinary votes
+	std::map<int, std::map<int, float>> seatDecVoteSwing;
+	std::map<int, float> seatDecVoteSwingWeight; // proportion to ordinary votes
+	std::map<int, float> seatDecVoteSwingBasis; // number of votes actually counted
 
 	std::unordered_map<std::string, int> partyCodeGroupings;
 

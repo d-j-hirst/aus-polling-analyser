@@ -78,6 +78,8 @@ public:
 		typedef std::pair<std::pair<std::string, int>, std::array<float, 3>> SaveablePoll;
 		typedef std::map<std::string, std::vector<SaveablePoll>> SaveablePolls;
 
+		std::string dateCode;
+
 		// Proportion of times the party wins an absolute majority of seats
 		// including only itself and other parties that count as it
 		std::map<int, float> majorityPercent;

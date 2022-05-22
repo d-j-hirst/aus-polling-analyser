@@ -176,12 +176,15 @@ void SimulationCompletion::recordNames()
 	sim.latestReport.partyName[OthersIndex] = "Others";
 	sim.latestReport.partyName[EmergingIndIndex] = "Emerging Ind";
 	sim.latestReport.partyName[EmergingPartyIndex] = "Emerging Party";
+	sim.latestReport.partyName[CoalitionPartnerIndex] = "Liberal/National Coalition";
 	sim.latestReport.partyAbbr[OthersIndex] = "OTH";
 	sim.latestReport.partyAbbr[EmergingIndIndex] = "IND";
 	sim.latestReport.partyAbbr[EmergingPartyIndex] = "OTH";
+	sim.latestReport.partyAbbr[CoalitionPartnerIndex] = "LNP";
 	sim.latestReport.partyColour[OthersIndex] = Party::createColour(128, 128, 128);
 	sim.latestReport.partyColour[EmergingIndIndex] = Party::createColour(128, 128, 128);
 	sim.latestReport.partyColour[EmergingPartyIndex] = Party::createColour(64, 64, 64);
+	sim.latestReport.partyColour[CoalitionPartnerIndex] = Party::createColour(0, 0, 256);
 	for (int index = 0; index < project.regions().count(); ++index) {
 		sim.latestReport.regionName.push_back(project.regions().viewByIndex(index).name);
 	}

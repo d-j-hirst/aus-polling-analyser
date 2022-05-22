@@ -10,6 +10,7 @@ Results2::Election::Election(tinyxml2::XMLDocument const& xml)
 
 void Results2::Election::update(tinyxml2::XMLDocument const& xml)
 {
+	PA_LOG_VAR(xml.FirstChildElement()->Name());
 	auto results = xml.FirstChildElement("MediaFeed")->FirstChildElement("Results");
 	auto electionEl = results->FirstChildElement("eml:EventIdentifier");
 	id = electionEl->FindAttribute("Id")->IntValue();

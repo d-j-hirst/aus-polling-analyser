@@ -112,6 +112,13 @@ namespace Results2 {
 		Postal
 	};
 
+	inline std::string voteTypeName(VoteType v) {
+		static const auto nameMap = std::unordered_map<VoteType, std::string>{ {VoteType::Absent, "Absent"},
+			{VoteType::Invalid, "Invalid"}, {VoteType::Ordinary, "Ordinary"}, {VoteType::Postal, "Postal"},
+			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"} };
+		return nameMap.at(v);
+	}
+
 	struct Party {
 		int32_t id;
 		std::string name;
