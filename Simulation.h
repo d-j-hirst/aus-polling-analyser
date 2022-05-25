@@ -165,6 +165,8 @@ public:
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpScenarioPercent;
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpWinPercent;
 
+		std::vector<int> seatHideTcps;
+
 		std::vector<int> trendProbBands;
 		int trendPeriod;
 		int finalTrendValue;

@@ -57,7 +57,8 @@
 // Version 50: Save previous-results URL
 // Version 51: Save preload URL
 // Version 52: prepoll and postal figures for seats
-constexpr int VersionNum = 52;
+// Version 53: total declaration vote counts
+constexpr int VersionNum = 53;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -515,6 +516,10 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.previousIndRunning;
 		saveOutput << thisSeat.knownPrepollPercent;
 		saveOutput << thisSeat.knownPostalPercent;
+		saveOutput << thisSeat.knownAbsentCount;
+		saveOutput << thisSeat.knownProvisionalCount;
+		saveOutput << thisSeat.knownDecPrepollCount;
+		saveOutput << thisSeat.knownPostalCount;
 	}
 }
 
@@ -584,6 +589,12 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		if (versionNum >= 52) {
 			saveInput >> thisSeat.knownPrepollPercent;
 			saveInput >> thisSeat.knownPostalPercent;
+		}
+		if (versionNum >= 53) {
+			saveInput >> thisSeat.knownAbsentCount;
+			saveInput >> thisSeat.knownProvisionalCount;
+			saveInput >> thisSeat.knownDecPrepollCount;
+			saveInput >> thisSeat.knownPostalCount;
 		}
 
 		project.seatCollection.add(thisSeat);

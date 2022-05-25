@@ -74,6 +74,10 @@ private:
 	void createPreviousIndRunningInput(int& y);
 	void createKnownPrepollsInput(int& y);
 	void createKnownPostalsInput(int& y);
+	void createKnownAbsentCountInput(int& y);
+	void createKnownProvisionalCountInput(int& y);
+	void createKnownDecPrepollCountInput(int& y);
+	void createKnownPostalCountInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -125,6 +129,10 @@ private:
 	std::unique_ptr<TextInput> runningPartiesInput;
 	std::unique_ptr<FloatInput> knownPrepollsInput;
 	std::unique_ptr<FloatInput> knownPostalsInput;
+	std::unique_ptr<FloatInput> knownAbsentCountInput;
+	std::unique_ptr<FloatInput> knownProvisionalCountInput;
+	std::unique_ptr<FloatInput> knownDecPrepollCountInput;
+	std::unique_ptr<FloatInput> knownPostalCountInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;

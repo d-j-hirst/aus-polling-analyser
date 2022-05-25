@@ -41,7 +41,11 @@ enum ControlId
 	RunningParties,
 	TcpChange,
 	KnownPrepolls,
-	KnownPostals
+	KnownPostals,
+	KnownAbsentCount,
+	KnownProvisionalCount,
+	KnownDecPrepollCount,
+	KnownPostalCount
 };
 
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
@@ -95,6 +99,10 @@ void EditSeatFrame::createControls(int & y)
 	createTcpChangeInput(y);
 	createKnownPrepollsInput(y);
 	createKnownPostalsInput(y);
+	createKnownAbsentCountInput(y);
+	createKnownProvisionalCountInput(y);
+	createKnownDecPrepollCountInput(y);
+	createKnownPostalCountInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -285,7 +293,7 @@ void EditSeatFrame::createPreviousIndRunningInput(int& y)
 void EditSeatFrame::createKnownPrepollsInput(int& y)
 {
 	auto knownPrepollsCallback = [this](float f) -> void {seat.knownPrepollPercent = f; };
-	auto knownPrepollsValidator = [](float f) {return std::max(f, 0.0f); };
+	auto knownPrepollsValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	knownPrepollsInput.reset(new FloatInput(this, ControlId::KnownPrepolls, "Known prepoll %:", seat.knownPrepollPercent,
 		wxPoint(2, y), knownPrepollsCallback, knownPrepollsValidator));
 	y += knownPrepollsInput->Height + ControlPadding;
@@ -294,10 +302,46 @@ void EditSeatFrame::createKnownPrepollsInput(int& y)
 void EditSeatFrame::createKnownPostalsInput(int& y)
 {
 	auto knownPostalsCallback = [this](float f) -> void {seat.knownPostalPercent = f; };
-	auto knownPostalsValidator = [](float f) {return std::max(f, 0.0f); };
+	auto knownPostalsValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	knownPostalsInput.reset(new FloatInput(this, ControlId::KnownPostals, "Known postals %:", seat.knownPostalPercent,
 		wxPoint(2, y), knownPostalsCallback, knownPostalsValidator));
 	y += knownPostalsInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createKnownAbsentCountInput(int& y)
+{
+	auto knownAbsentCountCallback = [this](float f) -> void {seat.knownAbsentCount = f; };
+	auto knownAbsentCountValidator = [](float f) {return std::max(f, 0.0f); };
+	knownAbsentCountInput.reset(new FloatInput(this, ControlId::KnownAbsentCount, "Known absent count:", seat.knownAbsentCount,
+		wxPoint(2, y), knownAbsentCountCallback, knownAbsentCountValidator));
+	y += knownAbsentCountInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createKnownProvisionalCountInput(int& y)
+{
+	auto knownProvisionalCountCallback = [this](float f) -> void {seat.knownProvisionalCount = f; };
+	auto knownProvisionalCountValidator = [](float f) {return std::max(f, 0.0f); };
+	knownProvisionalCountInput.reset(new FloatInput(this, ControlId::KnownProvisionalCount, "Known provisional count:", seat.knownProvisionalCount,
+		wxPoint(2, y), knownProvisionalCountCallback, knownProvisionalCountValidator));
+	y += knownProvisionalCountInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createKnownDecPrepollCountInput(int& y)
+{
+	auto knownDecPrepollCountCallback = [this](float f) -> void {seat.knownDecPrepollCount = f; };
+	auto knownDecPrepollCountValidator = [](float f) {return std::max(f, 0.0f); };
+	knownDecPrepollCountInput.reset(new FloatInput(this, ControlId::KnownDecPrepollCount, "Known dec-prepoll count:", seat.knownDecPrepollCount,
+		wxPoint(2, y), knownDecPrepollCountCallback, knownDecPrepollCountValidator));
+	y += knownDecPrepollCountInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createKnownPostalCountInput(int& y)
+{
+	auto knownPostalCountCallback = [this](float f) -> void {seat.knownPostalCount = f; };
+	auto knownPostalCountValidator = [](float f) {return std::max(f, 0.0f); };
+	knownPostalCountInput.reset(new FloatInput(this, ControlId::KnownPostalCount, "Known postal count:", seat.knownPostalCount,
+		wxPoint(2, y), knownPostalCountCallback, knownPostalCountValidator));
+	y += knownPostalCountInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createProminentMinorsInput(int& y)

@@ -89,6 +89,7 @@ std::string ReportUploader::upload()
 	j["seatNames"] = thisReport.report.seatName;
 	j["seatIncumbents"] = thisReport.report.seatIncumbents;
 	j["seatMargins"] = thisReport.report.seatIncumbentMargins;
+	j["seatHideTcps"] = thisReport.report.seatHideTcps;
 	j["seatPartyWinFrequencies"] = thisReport.report.seatPartyWinPercent;
 	if (!isLiveManual) {
 		j["seatTcpScenarios"] = thisReport.report.seatTcpScenarioPercent;

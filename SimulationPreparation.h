@@ -119,6 +119,7 @@ private:
 	std::map<int, std::map<int, float>> seatDecVoteSwing;
 	std::map<int, float> seatDecVoteSwingWeight; // proportion to ordinary votes
 	std::map<int, float> seatDecVoteSwingBasis; // number of votes actually counted
+	std::map<int, std::map<int, float>> seatPostCountTcpEstimate; // full estimate of the postcount TCP
 
 	std::unordered_map<std::string, int> partyCodeGroupings;
 

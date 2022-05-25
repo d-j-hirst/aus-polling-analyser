@@ -976,15 +976,13 @@ void SimulationPreparation::calculateSeatSwings()
 			float overallSwing = seat.tcpPercent[party] + prevDecVoteBias[party] * decVoteProportion * 100.0f - existingPercent;
 			float overallMix = std::clamp((avgExpectedOrdinaryVoteCompletion - 0.7f) / 0.3f, 0.0f, 1.0f);
 			seat.tcpSwing[party] = mix(boothSwing, overallSwing, overallMix);
-			PA_LOG_VAR(seat.name);
-			PA_LOG_VAR(currentElection.parties[party].name);
-			PA_LOG_VAR(seat.tcpSwing[party]);
-			PA_LOG_VAR(seatDecVoteSwing[seatId][party]);
-			PA_LOG_VAR(seatDecVoteSwingWeight[seatId]);
-			PA_LOG_VAR(seatDecVoteSwingBasis[seatId]);
 			seat.tcpPercent[party] = mix(seat.tcpPercent[party], seatDecVotePercent[seatId][party], seatDecVotePercentWeight[seatId]);
 			seat.tcpSwing[party] = mix(seat.tcpSwing[party], seatDecVoteSwing[seatId][party], seatDecVoteSwingWeight[seatId] * seatDecVoteSwingBasis[seatId]);
-			PA_LOG_VAR(seat.tcpSwing[party]);
+			if (seat.isTpp && seatDecVoteSwingWeight[seatId] && seatPostCountTcpEstimate.contains(seatId) && seatPostCountTcpEstimate[seatId].contains(party)) {
+				float impliedPrevious = aecPartyToSimParty[party] == 0 ? 50.0f + simSeat.tppMargin : 50.0f - simSeat.tppMargin;
+				seat.tcpPercent[party] = seatPostCountTcpEstimate[seatId][party];
+				seat.tcpSwing[party] = seat.tcpPercent[party] - impliedPrevious;
+			}
 		}
 		if (weightSwingSum.size() && weightSwingSum.begin()->second) {
 			seat.tcpSwingBasis = weightSwingSum.begin()->second * 100.0f / float(seat.enrolment);
@@ -1060,14 +1058,14 @@ void SimulationPreparation::projectDeclarationVotes()
 
 			for (auto const& [partyId, votes] : seat.tcpVotes) {
 				for (auto [voteType, voteCount] : votes) {
-					if (voteType == Results2::VoteType::Ordinary || voteType == Results2::VoteType::Invalid) continue;
+					if (voteType == Results2::VoteType::Invalid) continue;
 					totalDecVotesByType[voteType] += voteCount;
 				}
 			}
 
 			for (auto const& [partyId, votes] : seat.tcpVotes) {
 				for (auto [voteType, voteCount] : votes) {
-					if (voteType == Results2::VoteType::Ordinary || voteType == Results2::VoteType::Invalid) continue;
+					if (voteType == Results2::VoteType::Invalid) continue;
 					if (!totalDecVotesByType[voteType]) continue;
 					decVotePercent[partyId][voteType] = float(voteCount) / float(totalDecVotesByType[voteType]) * 100.0f;
 				}
@@ -1086,6 +1084,7 @@ void SimulationPreparation::projectDeclarationVotes()
 			float weightedPercentSum = 0.0f;
 			float weightSum = 0.0f;
 			for (auto [voteType, votePercent] : currentDecVotePercent[partyId]) {
+				if (voteType == Results2::VoteType::Ordinary) continue;
 				float weight = float(seat.tcpVotes.at(partyId).at(voteType));
 				weightedPercentSum += votePercent * weight;
 				weightSum += weight;
@@ -1113,17 +1112,35 @@ void SimulationPreparation::projectDeclarationVotes()
 		std::map<int, float> overallDecVoteSwing;
 		float totalEstimatedDecVotes = 0.0f;
 		float totalCountedDecVotes = 0.0f;
+		auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
 		for (auto const& [partyId, votes] : currentDecVotePercent) {
 			float weightedSwingSum = 0.0f;
 			float weightSum = 0.0f;
+			float ordinariesSwing = currentDecVotePercent[partyId][Results2::VoteType::Ordinary] - previousDecVotePercent[partyId][Results2::VoteType::Ordinary];
+			float fullProjection = currentDecVotePercent[partyId][Results2::VoteType::Ordinary] * currentDecVotesByType[Results2::VoteType::Ordinary] * 0.01f;
 			for (auto [voteType, votePercent] : previousDecVotePercent[matchedParties[partyId]]) {
+				if (voteType == Results2::VoteType::Ordinary) continue;
 				float expectedVotes = float(previousDecVotesByType[voteType]);
-				auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
-				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalPercent) {
+				if (voteType == Results2::VoteType::Absent && simSeat.knownAbsentCount) expectedVotes = simSeat.knownAbsentCount;
+				if (voteType == Results2::VoteType::Provisional && simSeat.knownProvisionalCount) expectedVotes = simSeat.knownProvisionalCount * 0.3f;
+				if (voteType == Results2::VoteType::PrePoll && simSeat.knownDecPrepollCount) expectedVotes = simSeat.knownDecPrepollCount;
+				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalCount) expectedVotes = simSeat.knownPostalCount;
+				float currentVotes = currentDecVotesByType.contains(voteType) ? float(currentDecVotesByType[voteType]) : 0.0f;
+				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalPercent && !simSeat.knownPostalCount) {
 					// Factor of 1.05f accounts for differences between formal votes and enrolment.
 					// Factor of 0.8f accounts for not all applied postals being returned along with some being rejected.
 					expectedVotes = simSeat.knownPostalPercent * 0.01f * 1.05f * 0.8f * float(seat.enrolment);
 				}
+				float projectedVotes = (currentDecVotePercent[partyId].contains(voteType) ?
+					currentDecVotePercent[partyId][voteType] :
+					previousDecVotePercent[partyId][voteType] + ordinariesSwing)
+					* expectedVotes * 0.01f;
+				float safeCurrentDecVotePercent = currentDecVotePercent[partyId].contains(voteType) ? currentDecVotePercent[partyId][voteType] : 0.0f;
+				logger << "  " << voteTypeName(voteType) << " percentage: " << formatFloat(safeCurrentDecVotePercent, 2) <<
+					", previous percentage: " << formatFloat(previousDecVotePercent[matchedParties[partyId]][voteType], 2) <<
+					", expected votes: " << expectedVotes << ", current votes: " << currentVotes << ", projected votes: " << projectedVotes <<
+					", ordinaries swing: " << ordinariesSwing << "\n";
+				fullProjection += projectedVotes;
 				weightSum += expectedVotes;
 				if (!currentDecVotePercent[partyId].contains(voteType)) continue;
 				float swing = currentDecVotePercent[partyId][voteType] - previousDecVotePercent[matchedParties[partyId]][voteType];
@@ -1132,6 +1149,10 @@ void SimulationPreparation::projectDeclarationVotes()
 				totalEstimatedDecVotes += expectedVotes;
 				totalCountedDecVotes += float(seat.tcpVotes.at(partyId).at(voteType));
 			}
+
+			float totalExpectedVotes = weightSum + currentDecVotesByType[Results2::VoteType::Ordinary];
+			logger << " Full projection: " << fullProjection / totalExpectedVotes * 100.0f << "\n";
+			seatPostCountTcpEstimate[seatId][partyId] = fullProjection / totalExpectedVotes * 100.0f;
 
 			overallDecVoteSwing[partyId] = weightedSwingSum / weightSum;
 		}
