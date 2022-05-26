@@ -1129,7 +1129,7 @@ void SimulationPreparation::projectDeclarationVotes()
 				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalPercent && !simSeat.knownPostalCount) {
 					// Factor of 1.05f accounts for differences between formal votes and enrolment.
 					// Factor of 0.8f accounts for not all applied postals being returned along with some being rejected.
-					expectedVotes = simSeat.knownPostalPercent * 0.01f * 1.05f * 0.8f * float(seat.enrolment);
+					expectedVotes = simSeat.knownPostalPercent * 0.01f * 1.05f * 0.72f * float(seat.enrolment);
 				}
 				float projectedVotes = (currentDecVotePercent[partyId].contains(voteType) ?
 					currentDecVotePercent[partyId][voteType] :
