@@ -1,7 +1,9 @@
-import requests
-import environ
-import os
 import argparse
+import datetime
+import environ
+import json
+import os
+import requests
 
 parser = argparse.ArgumentParser(
     description='Determine trend adjustment parameters')
@@ -28,12 +30,16 @@ environ.Env.read_env(os.path.join(BASE_DIR, 'uploads/.env'))
 AUTO_EMAIL = env('AUTO_EMAIL')
 AUTO_PASSWORD = env('AUTO_PASSWORD')
 
+print(f'Upload initiated: {datetime.datetime.now()}')
+
 if timeseries:
     data = '{"termCode":"' + timeseries + '"}'
     url_part = 'submit-timeseries-update'
 else:
     with open("latest_json.dat") as f:
         data = f.read()
+        print(f"Report name: {json.loads(data)['reportLabel']}")
+        print(f"Report mode: {json.loads(data)['reportMode']}")
         url_part = 'submit-report'
 
 login_data = {'email': AUTO_EMAIL, 'password': AUTO_PASSWORD}
@@ -75,3 +81,5 @@ if upload_remote:
 
     response = requests.post(f'https://www.aeforecasts.com/forecast-api/{url_part}', headers=headers, data=data)
     print(response.content.decode())
+    
+print(f'Upload completed: {datetime.datetime.now()}')
