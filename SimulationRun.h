@@ -241,6 +241,7 @@ private:
 	std::vector<float> liveSeatFpCounted; // as percentage
 	std::vector<float> liveSeatPpvcSensitivity;
 	std::vector<float> liveSeatDecVoteSensitivity;
+	std::vector<float> liveEstDecVoteRemaining;
 
 	std::vector<float> liveRegionPercentCounted;
 	std::vector<float> liveRegionSwing;
