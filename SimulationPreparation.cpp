@@ -1132,10 +1132,16 @@ void SimulationPreparation::projectDeclarationVotes()
 					// Factor of 0.8f accounts for not all applied postals being returned along with some being rejected.
 					expectedVotes = simSeat.knownPostalPercent * 0.01f * 1.05f * 0.72f * float(seat.enrolment);
 				}
-				float projectedVotes = (currentDecVotePercent[partyId].contains(voteType) ?
-					currentDecVotePercent[partyId][voteType] :
-					previousDecVotePercent[partyId][voteType] + ordinariesSwing)
-					* expectedVotes * 0.01f;
+				float originalProjection = previousDecVotePercent[partyId][voteType] + ordinariesSwing;
+				float newProjection = (currentDecVotePercent[partyId].contains(voteType) ?
+					currentDecVotePercent[partyId][voteType] : originalProjection);
+				// smoothly transition from original projection to one based on actual count
+				// absent & dec pre-poll votes more uneven than other vote types
+				float votesDenom = voteType == Results2::VoteType::Absent || voteType == Results2::VoteType::PrePoll ? 2000.0f : 500.0f;
+				votesDenom = std::min(votesDenom, expectedVotes);
+				float mixFactor = std::clamp(currentDecVotesByType[voteType] / votesDenom, 0.0f, 1.0f);
+				float mixedProjection = mix(originalProjection, newProjection, mixFactor);
+				float projectedVotes = mixedProjection * expectedVotes * 0.01f;
 				float safeCurrentDecVotePercent = currentDecVotePercent[partyId].contains(voteType) ? currentDecVotePercent[partyId][voteType] : 0.0f;
 				logger << "  " << voteTypeName(voteType) << " percentage: " << formatFloat(safeCurrentDecVotePercent, 2) <<
 					", previous percentage: " << formatFloat(previousDecVotePercent[matchedParties[partyId]][voteType], 2) <<
