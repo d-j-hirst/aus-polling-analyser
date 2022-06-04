@@ -1124,7 +1124,7 @@ void SimulationPreparation::projectDeclarationVotes()
 				if (voteType == Results2::VoteType::Absent && simSeat.knownAbsentCount) expectedVotes = simSeat.knownAbsentCount * 0.96f;
 				if (voteType == Results2::VoteType::Provisional && simSeat.knownProvisionalCount) expectedVotes = simSeat.knownProvisionalCount * 0.3f;
 				if (voteType == Results2::VoteType::PrePoll && simSeat.knownDecPrepollCount) expectedVotes = simSeat.knownDecPrepollCount * 0.96f;
-				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalCount) expectedVotes = simSeat.knownPostalCount * 0.94f;
+				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalCount) expectedVotes = simSeat.knownPostalCount * 0.923f;
 				float currentVotes = currentDecVotesByType.contains(voteType) ? float(currentDecVotesByType[voteType]) : 0.0f;
 				expectedVotes = std::max(expectedVotes, currentVotes);
 				if (voteType == Results2::VoteType::Postal && simSeat.knownPostalPercent && !simSeat.knownPostalCount) {

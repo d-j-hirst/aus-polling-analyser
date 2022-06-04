@@ -547,7 +547,7 @@ void ResultsFrame::resetTableColumns()
 void ResultsFrame::addTableData()
 {
 	int numAdded = 0;
-	constexpr int MaxResultsShown = 1000;
+	constexpr int MaxResultsShown = 500;
 	for (int i = 0; i < project->outcomes().count(); ++i) {
 		Outcome thisResult = project->outcomes().get(i);
 		if (resultPassesFilter(thisResult)) {
