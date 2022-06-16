@@ -17,10 +17,13 @@ parser.add_argument('--all', action='store_true',
                     help='Upload to both local and remote server')
 parser.add_argument('--timeseries', action='store',
                     help='Update timeseries instead of uploading forecast')
+parser.add_argument('--results', action='store',
+                    help='Update results instead of uploading forecast')
 upload_local = parser.parse_args().local or parser.parse_args().all
 upload_test = parser.parse_args().test or parser.parse_args().all
 upload_remote = parser.parse_args().remote or parser.parse_args().all
 timeseries = parser.parse_args().timeseries
+results = parser.parse_args().results
 if not (upload_local or upload_test or upload_remote):
     upload_local = True
 
@@ -35,6 +38,9 @@ print(f'Upload initiated: {datetime.datetime.now()}')
 if timeseries:
     data = '{"termCode":"' + timeseries + '"}'
     url_part = 'submit-timeseries-update'
+elif results:
+    data = '{"termCode":"' + results + '"}'
+    url_part = 'submit-results-update'
 else:
     with open("latest_json.dat") as f:
         data = f.read()
