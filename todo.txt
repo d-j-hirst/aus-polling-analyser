@@ -1,45 +1,26 @@
 
--live simulations
- -account for dec vote bias
- -input and use expected pre-poll + postal votes
- -use file name to determine date on live forecasts
- -activate live 2019 display on local host
- -test previous elections in full, making changes as necessary, while ...
- -incorporate final Newspoll and anything else
- -announce live forecast
- -incorporate actual per-division pre-poll/postal numbers when available
- -make sure live feed setting is working properly (test using 2019 election with archive url)
- -vote
- 
--Immediately before election night:
- -turn on live forecast option on website after inputting dummy live-manual forecast
- -Load up program, run regular forecasts, enter live feed url (when available)
- -
- 
+-Post-election to-do:
+ -Publish final result comparisons with forecasts
+ -Post on website & twitter regarding above
+ -Further post with analysis of election forecast & also SA
+ -Fix Calare others issue (forecasts predicts others vote despite being entered with no valid OTH candidates)
+ -Look at Melton (very high others vote, even after accounting for a high vote there last time too)
+ -General refactor of frontend as there is currently a lot of code duplication
+ -More rigorous process for handling multiple independents
+ -Live forecasts:
+  -Overall fp vote estimates narrowed much too quickly last time, investigate
+  -Better estimate of major party fp votes
+  -More accurate distribution of preferences (OTH -> GRN (vs. LIB) perhaps too low in Ryan?)
+  -Investigate very high GRN chances in Macnamara/Richmond on election night
+ -Develop mechanism for making hindcasts and assigning an appropriate date for when they "would" have been done
+ -Check that all parts of the system sufficiently exclude an election from impacting its own forecast (for hindcasts)
+ -Overhaul mechanisms to count WA Nats as a separate party while maintaining TPP dynamics
+ -Overhaul mechanisms to account for exhaustion under OPV
+ -Prepare NSW forecast
+ -Create hindcasts for earlier parts of 2022fed and maybe 2022sa
+ -Create hindcasts for earlier elections
+
 -glossary
- ^first preference vote (primary vote)
- ^margin
- ^tactical voting
- ^major party
- ^minor party
- ^seat (electorate)
- ^pollster (polling house)
- ^house effect
- ^bias
- ^poll
- ^voting intention
- ^anchoring pollster
- ^previous election preferences
- ^respondent allocated preferences
- ^two party preferred/two-candidate preferred
- ^hung parliament
- ^poll trend
- ^regular forecast
- ^nowcast
- ^live forecast
- ^swing
- ^redistribution
- ^sophomore surge
  -informal/formal votes
  -retirement
  -independent
@@ -62,7 +43,3 @@
  -undecided
  -margin of error
  -hindcast
--Advanced live simulations!
- -Start by organising past election data at booth-level
- -Need to load conversions between equivalent seats
- -Then organise the existing election data
