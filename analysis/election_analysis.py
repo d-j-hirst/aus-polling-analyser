@@ -493,6 +493,7 @@ def analyse_emerging_independents(elections, seat_types):
             continue
         next_election = elections.next_elections(this_election)[0]
         next_results = elections[next_election]
+        weight = 1
         for this_seat_name in this_results.seat_names():
             this_seat_results = this_results.seat_by_name(this_seat_name)
             # ignore seats where candidates are unopposed
@@ -511,25 +512,26 @@ def analyse_emerging_independents(elections, seat_types):
                                 if effective_independent(a.party, next_results)
                                 and a.name not in old_names
                                 and a.percent > fp_threshold]
-            seat_ind_count.append(len(new_independents))
             fed = 1 if next_election.region() == 'fed' else 0
             this_others = sum([min(a.percent, fp_threshold) for a in this_seat_results.fp
                                if a.party not in ['Labor', 'Liberal', 'Greens', 'National']])
             others_indicator = max(2, this_others)
-            seat_fed.append(fed)
             seat_type = seat_types.get((this_seat_name, next_election.region()), -1)
-            seat_rural.append(1 if seat_type == 3 else 0)
-            seat_provincial.append(1 if seat_type == 2 else 0)
-            seat_outer_metro.append(1 if seat_type == 1 else 0)
-            seat_prev_others.append(others_indicator)
-            for candidate in new_independents:
-                # print(f'Found emerging independent - {candidate} in {this_seat_name}')
-                cand_fp_vote.append(transform_vote_share(candidate.percent))
-                cand_fed.append(fed)
-                cand_rural.append(1 if seat_type == 3 else 0)
-                cand_provincial.append(1 if seat_type == 2 else 0)
-                cand_outer_metro.append(1 if seat_type == 1 else 0)
-                cand_prev_others.append(others_indicator)
+            for i in range(0, weight):
+                seat_ind_count.append(len(new_independents))
+                seat_fed.append(fed)
+                seat_rural.append(1 if seat_type == 3 else 0)
+                seat_provincial.append(1 if seat_type == 2 else 0)
+                seat_outer_metro.append(1 if seat_type == 1 else 0)
+                seat_prev_others.append(others_indicator)
+                for candidate in new_independents:
+                    # print(f'Found emerging independent - {candidate} in {this_seat_name}')
+                    cand_fp_vote.append(transform_vote_share(candidate.percent))
+                    cand_fed.append(fed)
+                    cand_rural.append(1 if seat_type == 3 else 0)
+                    cand_provincial.append(1 if seat_type == 2 else 0)
+                    cand_outer_metro.append(1 if seat_type == 1 else 0)
+                    cand_prev_others.append(others_indicator)
 
     inputs_array = numpy.transpose(numpy.array([seat_fed, seat_rural, seat_provincial, seat_outer_metro, seat_prev_others]))
     results_array = numpy.array(seat_ind_count)

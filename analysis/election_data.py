@@ -152,7 +152,7 @@ class CandidateResult:
 class AllElections:
     def __init__(self):
         self.elections = {}
-        fed_years = [2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
+        fed_years = [2022, 2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
                     1993, 1990, 1987, 1984, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='fed'): 
@@ -298,6 +298,7 @@ def generic_download(state, year):
             else:
                 fp_content = election_content
                 tcp_content = None
+            fp_content = fp_content.split('Notional')[0]
             pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
                         + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
                         + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
