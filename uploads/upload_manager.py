@@ -5,6 +5,17 @@ import json
 import os
 import requests
 
+def handle_response(response):
+    decoded = response.content.decode()
+    if len(decoded) < 200:
+        print(decoded)
+    else:
+        decoded = decoded.replace('\\n', '\n')
+        decoded = decoded.replace('"', '')
+        with open('long_response.txt', mode='w') as f:
+            f.write(decoded)
+        print('Response too long, written to file long_response.txt')
+
 parser = argparse.ArgumentParser(
     description='Determine trend adjustment parameters')
 parser.add_argument('--local', action='store_true',
@@ -66,7 +77,7 @@ if upload_local:
     }
 
     response = requests.post(f'http://localhost:8000/forecast-api/{url_part}', headers=headers, data=data)
-    print(response.content.decode())
+    handle_response(response)
 
 if upload_test:
     print("Sending to remote test server:")
@@ -79,7 +90,7 @@ if upload_test:
     }
 
     response = requests.post(f'https://dendrite.pythonanywhere.com/forecast-api/{url_part}', headers=headers, data=data)
-    print(response.content.decode())
+    handle_response(response)
 
 if upload_remote:
     print("Sending to remote server:")
@@ -92,6 +103,6 @@ if upload_remote:
     }
 
     response = requests.post(f'https://www.aeforecasts.com/forecast-api/{url_part}', headers=headers, data=data)
-    print(response.content.decode())
+    handle_response(response)
     
 print(f'Upload completed: {datetime.datetime.now()}')
