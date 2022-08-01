@@ -2,6 +2,8 @@
 
 #include "Log.h"
 
+#include <boost/random/beta_distribution.hpp>
+
 #include <array>
 #include <cmath>
 #include <map>
@@ -66,6 +68,13 @@ public:
 		return mean + x;
 	}
 
+	template<typename T,
+		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+		static T beta(T alpha = T(1.0), T beta = T(1.0)) {
+		boost::random::beta_distribution dist(alpha, beta);
+		return dist(gen);
+	}
+
 	// Gets an quantile from the normalised t-dist distribution (scaled so that standard
 	// deviation is always 1) for a particular cumulative probability
 	// For example, if you want the median, use quantile=0.5, for 10% percentile use quantile=0.1
@@ -108,9 +117,9 @@ public:
 	template<typename T,
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
 	static T flexibleDist(T mean = T(0.0), T lower_sd = T(1.0), T upper_sd = T(1.0),
-		T lower_kurt = T(3.0), T upper_kurt = T(3.0)) {
+		T lower_kurt = T(3.0), T upper_kurt = T(3.0), T quantile = -1.0) {
 		// are we looking in the upper or lower half of the distribution?
-		T quantile = uniform(0.0, 1.0);
+		if (quantile < 0.0) quantile = uniform(0.0, 1.0);
 		T upperVal = 0.0;
 		if (upper_kurt <= T(3.0)) {
 			// use normal distribution for low kurtosis

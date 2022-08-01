@@ -73,7 +73,7 @@
     <OutDir>.\vc_mswu\</OutDir>
     <IntDir>.\vc_mswu\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>C:\C++ Libraries\boost\boost_1_79_0;C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
     <SourcePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
   </PropertyGroup>
@@ -91,7 +91,7 @@
     <OutDir>.\vc_mswud\</OutDir>
     <IntDir>.\vc_mswud\PollingAnalyser\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;E:\Anaconda\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\C++ Libraries\boost\boost_1_79_0;C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\include;E:\Anaconda\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\libcurl\builds\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\lib;E:\Anaconda\libs;$(LibraryPath)</LibraryPath>
     <SourcePath>C:\C++ Libraries\dlib-19.24;C:\C++ Libraries\TinyXml2\tinyxml2-master;$(SourcePath)</SourcePath>
   </PropertyGroup>

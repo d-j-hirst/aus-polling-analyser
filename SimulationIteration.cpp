@@ -51,6 +51,7 @@ void SimulationIteration::runIteration()
 	determineHomeRegions();
 	determineMinorPartyContests();
 	incorporateLiveOverallFps();
+	determineIndDistributionParameters();
 	determinePpvcBias();
 	determineDecVoteBias();
 	determineRegionalSwings();
@@ -171,6 +172,34 @@ void SimulationIteration::incorporateLiveOverallFps()
 			float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
 			overallFpTarget[partyIndex] = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight);
 			overallFpSwing[partyIndex] = overallFpTarget[partyIndex] - run.previousFpVoteShare[partyIndex];
+		}
+	}
+}
+
+void SimulationIteration::determineIndDistributionParameters()
+{
+	// All these are set up so that the distribution of quantiles
+	// for independent candidates are correlated via a beta distribution
+	// in any given single election while maintaining the original uniform
+	// distribution (approximately) across many simulations
+	if (rng.uniform() < 0.1f) {
+		if (rng.uniform() < 0.5f) {
+			indAlpha = 0.725f;
+			indBeta = 2.0f / std::pow(rng.uniform(), 0.6f);
+		}
+		else {
+			indAlpha = 2.0f / std::pow(rng.uniform(), 0.6f);
+			indBeta = 0.725f;
+		}
+	}
+	else {
+		if (rng.uniform() < 0.5f) {
+			indAlpha = 2.0f;
+			indBeta = 2.0f / std::pow(rng.uniform(), 0.84f);
+		}
+		else {
+			indAlpha = 2.0f / std::pow(rng.uniform(), 0.84f);
+			indBeta = 2.0f;
 		}
 	}
 }
@@ -698,8 +727,10 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
 		transformedFp += rng.uniform(0.0f, 15.0f);
 	}
-	transformedFp += rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed);
 
+	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) * 0.5f + 0.5f : rng.uniform();
+	float variableVote = rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
+	transformedFp += variableVote;
 	float regularVoteShare = detransformVoteShare(transformedFp);
 
 	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
@@ -757,12 +788,6 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
 	}
 
-	//if (seat.name == "Bradfield" && partyIndex == 7) {
-	//	PA_LOG_VAR(seat.name);
-	//	PA_LOG_VAR(regularVoteShare);
-	//	PA_LOG_VAR(transformedFp);
-	//}
-
 	voteShare = regularVoteShare;
 }
 
@@ -799,7 +824,9 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
 		rmse = (rmse * 0.5f + run.indEmergence.voteRmse * 0.5f) * 1.2f;
-		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
+		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
+		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
+		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
 		if (run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
 			// Exact values of odds above $15 don't generally mean much, so cap them at this level
 			constexpr float OddsCap = 15.0f;
@@ -860,7 +887,9 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
 	// Less chance of independents emerging when there's already a strong candidate
 	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) indEmergenceRate *= 0.3f;
-	if (rng.uniform<float>() < std::max(0.01f, indEmergenceRate)) {
+	// Beta distribution flipped because it's desired for the high rate of ind emergence
+	// to match high rate of ind voting
+	if (1.0f - rng.beta(indAlpha, indBeta) < std::max(0.01f, indEmergenceRate)) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
 		float interceptSize = run.indEmergence.voteIntercept - run.indEmergence.fpThreshold;
@@ -870,7 +899,12 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		if (isOuterMetro) rmse *= (1.0f + run.indEmergence.outerMetroVoteCoeff / interceptSize);
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
-		float transformedVoteShare = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis)) + run.indEmergence.fpThreshold;
+		// The quantile should only fall within the upper half of the distribution
+		// so that the correlation created using the beta distribution works
+		// as intended
+		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
+		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
+		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
 	}
 }
@@ -881,10 +915,10 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) {
 		return;
 	}
-	if (seat.name == "Calare") {
-		logger << "problem in Calare\n";
-		PA_LOG_VAR(seat.runningParties);
-	}
+	//if (seat.name == "Calare") {
+	//	logger << "problem in Calare\n";
+	//	PA_LOG_VAR(seat.runningParties);
+	//}
 	constexpr float MinPreviousOthFp = 2.0f;
 	float voteShare = MinPreviousOthFp;
 	if (pastSeatResults[seatIndex].fpVotePercent.contains(OthersIndex)) {
@@ -1241,17 +1275,6 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 
 void SimulationIteration::reconcileSeatAndOverallFp()
 {
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		for (auto [partyIndex, votes] : seatFpVoteShare[seatIndex]) {
-			if (std::isnan(votes)) {
-				PA_LOG_VAR(seat.name);
-				logger << "found nan before reconciling ...\n";
-				throw std::runtime_error("found nan before reconciling");
-			}
-		}
-	}
-		
 	constexpr int MaxReconciliationCycles = 5;
 	for (int i = 0; i < MaxReconciliationCycles; ++i) {
 		calculateNewFpVoteTotals();
@@ -1261,17 +1284,6 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 		if (i > 1) calculatePreferenceCorrections();
 		if (i == MaxReconciliationCycles - 1) break;
 		applyCorrectionsToSeatFps();
-	}
-
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		for (auto [partyIndex, votes] : seatFpVoteShare[seatIndex]) {
-			if (std::isnan(votes)) {
-				PA_LOG_VAR(seat.name);
-				logger << "found nan after reconciling ...\n";
-				throw std::runtime_error("found nan after reconciling");
-			}
-		}
 	}
 }
 
@@ -1439,12 +1451,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 	accumulatedVoteShares = originalVoteShares;
-
-	//if (seat.name == "Indi") {
-	//	PA_LOG_VAR(originalVoteShares);
-	//	PA_LOG_VAR(accumulatedVoteShares);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//}
 
 	// Set up reused functions...
 
