@@ -1461,7 +1461,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// Function for allocating votes from excluded parties. Used in several places in this loop only,
 	// so create once and use wherever needed
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
+		//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
+		//	PA_LOG_VAR(excludedVoteShares);
+		//	PA_LOG_VAR(accumulatedVoteShares);
+		//	logger << "-- initial --\n";
+		//}
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
+			//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
+			//	PA_LOG_VAR(sourceParty);
+			//	PA_LOG_VAR(sourceVoteShare);
+			//}
 			// if it's a final-two situation, check if we have 
 			if (int(accumulatedVoteShares.size() == 2)) {
 				if (run.ncPreferenceFlow.contains(sourceParty)) {
@@ -1475,6 +1484,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
 
+						//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
+						//	PA_LOG_VAR(flow);
+						//	PA_LOG_VAR(accumulatedVoteShares);
+						//}
 						continue;
 					}
 				}
@@ -1519,7 +1532,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 			}
+			//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
+			//	PA_LOG_VAR(accumulatedVoteShares);
+			//	PA_LOG_VAR(weights);
+			//	PA_LOG_VAR(totalWeight);
+			//}
 		}
+		//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
+		//	PA_LOG_VAR(accumulatedVoteShares);
+		//	logger << "-- end of seat --\n";
+		//}
 	};
 
 	// Actual method continues here
