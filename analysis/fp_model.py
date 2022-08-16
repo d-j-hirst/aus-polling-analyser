@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pystan
 import sys
+import statistics
 from time import perf_counter
 from datetime import timedelta
 from election_code import ElectionCode, no_target_election_marker
@@ -47,12 +48,14 @@ class Config:
                             'elections (for present-day forecasting) or "all" '
                             'to do it for all elections (including "none"). '
                             'Default is "none"', default='none')
-        parser.add_argument('-c', '--calibrate-pollsters', action='store_true',
+        parser.add_argument('-c', '--calibrate', action='store_true',
                             help='If set, will run in pollster calibration '
                             'mode. This will exclude each pollster from '
-                            'calculations so that their polls can be calibrated '
-                            'using the trend from the other polls.', default='none')
+                            'calculations so that their polls can be '
+                            'calibrated using the trend from the other polls.',
+                            default='none')
         self.election_instructions = parser.parse_args().election.lower()
+        self.calibrate_pollsters = parser.parse_args().calibrate == True
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -156,7 +159,7 @@ class ModellingData:
 
 
 class ElectionData:
-    def __init__(self, m_data, desired_election):
+    def __init__(self, config, m_data, desired_election):
         self.e_tuple = (str(desired_election.year()),
                           desired_election.region())           
         tup = self.e_tuple
@@ -188,9 +191,26 @@ class ElectionData:
 
         self.all_houses = self.base_df['Firm'].unique().tolist()
 
+        if config.calibrate_pollsters:
+            # Don't run calibration for any pollsters with only one poll
+            # in this election period as at least two polls are required
+            self.pollster_exclusions = \
+                [a for a in self.all_houses if
+                 list(self.base_df['Firm']).count(a) > 1]
+
+            self.pollster_exclusions += ['']
+
+            self.poll_calibrations = {}
+        else:
+            self.pollster_exclusions = ['']
+
         self.create_tpp_series(m_data=m_data, 
                                desired_election=desired_election, 
                                df=self.base_df)
+        
+        self.combine_others_parties()
+
+        self.create_day_series()
 
     def create_tpp_series(self, m_data, desired_election, df):
         df['old_tpp'] = df['@TPP']
@@ -222,7 +242,8 @@ class ElectionData:
                 # print(polled_percent)
         # print(adjustments)
         adjustment_series = pd.Series(data=adjustments)
-        df['Total'] = df['ALP FP'] + df['LIB FP' if 'LIB FP' in df else 'LNP FP']
+        df['Total'] = (df['ALP FP'] + df['LIB FP'
+                       if 'LIB FP' in df else 'LNP FP'])
         # print(adjustment_series)
         df['@TPP'] = df['ALP FP']
         for column in df:
@@ -247,11 +268,447 @@ class ElectionData:
             df['Total'] += pref_col
         # print(df['@TPP'].to_string())
         df['@TPP'] += adjustment_series
-        print(df['Total'])
         df['@TPP'] /= (df['Total'] * 0.01)
         # print(df['@TPP'].to_string())
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
+    
+    def combine_others_parties(self):
+        # push misc parties into Others, as explained above
+        for others_party in others_parties:
+            try:
+                # make sure any N/A values do not get
+                # propagated into the Others data
+                tempCol = self.base_df[others_party].fillna(0)
+                self.base_df['OTH FP'] = self.base_df['OTH FP'] + tempCol
+            except KeyError:
+                pass  # it's expected that some parties aren't in the file
+
+    def create_day_series(self):
+        # Convert "days" objects into raw numerical data
+        # that Stan can accept
+        for i in self.base_df.index:
+            self.base_df.loc[i, 'Day'] = self.base_df.loc[i, 'Day'].n + 1
+
+
+def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
+                        n_houses, output_probs, df):
+    exc_poll_data = [a for a in zip(exc_polls['Day'], exc_polls[party],
+                     exc_polls.axes[0], exc_polls['Firm'])]
+    if len(exc_poll_data) <= 1: return
+    print(f'Trend closeness statistics for {excluded_pollster}')
+    offset = e_data.n_days + n_houses * 2 - 1
+    median_col = 3 + output_probs.index(0.5)
+    diff_sum = {}
+    pollster_count = {}
+    house_effects = {}
+    for a in exc_poll_data:
+        day, vote, pollster = a[0], a[1], a[3]
+        table_index = day + offset
+        trend_value = summary[table_index][median_col]
+        if pollster not in diff_sum:
+            diff_sum[pollster] = 0
+            pollster_count[pollster] = 0
+        diff_sum[pollster] += vote - trend_value
+        pollster_count[pollster] += 1
+    for key in diff_sum.keys():
+        house_effects[key] = diff_sum[key] / pollster_count[key]
+        
+    deviations = []
+    prob_deviations = []
+    for a in exc_poll_data:
+        day, vote, poll_index, pollster = a[0], a[1], a[2], a[3]
+        table_index = day + offset
+        trend_median = summary[table_index][median_col]
+        print(house_effects)
+        eff_house_effect = house_effects[pollster]
+        adj_poll = vote - eff_house_effect
+        # for the case where the poll is higher than any
+        # probability threshold, have this as the default value
+        percentile = 0.999 
+        for index, upper_prob in enumerate(output_probs):
+            upper_value = summary[table_index][index + 3]
+            if adj_poll < upper_value:
+                if index == 0:
+                    percentile = 0.001
+                else:
+                    lower_value = summary[table_index][index + 2]
+                    lower_prob = output_probs[index - 1]
+                    lerp = ((adj_poll - lower_value) /
+                            (upper_value - lower_value))
+                    percentile = (lower_prob + lerp * 
+                                (upper_prob - lower_prob))
+                break
+            upper_value = summary[table_index][index + 3]
+        deviation = adj_poll - trend_median
+        prob_deviation = abs(percentile - 0.5)
+        neighbours = sum([min(1, 2 ** (-abs(day - other_day) / 20) * 0.5)
+                      for other_day in df['Day']
+                     ])
+        e_data.poll_calibrations[(excluded_pollster, day,
+                                  party, poll_index)] = \
+            (vote, trend_median, adj_poll, 
+             percentile, deviation, prob_deviation, neighbours)
+        deviations.append(deviation)
+        prob_deviations.append(prob_deviation)
+    std_dev = statistics.stdev(deviations)
+    prob_dev_avg = statistics.mean(prob_deviations)
+    print(f'Overall: standard deviation from trend median: {std_dev}'
+          f' average probability deviation: {prob_dev_avg}')
+    print(e_data.poll_calibrations)
+
+
+def run_individual_party(config, m_data, e_data,
+                         excluded_pollster, party):
+
+    df = e_data.base_df.copy()
+
+    # drop any rows with N/A values for the current party
+    df = df.dropna(subset=[party])
+
+    # If we're not excluding any pollster then we want to record
+    # calibration stats for all pollsters (so that they may be
+    # compared to those with pollsters excluded)
+    if excluded_pollster != '':
+        exc_polls = df[df.Firm == excluded_pollster]
+    elif config.calibrate_pollsters:
+        exc_polls = df
+
+    # if we're excluding a pollster for calibrations
+    # remove their polls now
+    df = df[df.Firm != excluded_pollster]
+    n_polls = len(df)
+
+    # Get the prior result, or a small vote share if
+    # the prior result is not given
+    if (e_data.e_tuple, party) in m_data.prior_results:
+        prior_result = max(0.25, m_data.prior_results[(e_data.e_tuple, party)])
+    elif party == '@TPP':
+        prior_result = 50  # placeholder TPP
+    else:
+        prior_result = 0.25  # percentage
+
+    # Get a series for any missing data
+    missing = df[party].apply(lambda x: 1 if np.isnan(x) else 0)
+    y = df[party].fillna(prior_result)
+    y = y.apply(lambda x: max(x, 0.01))
+
+    # We are excluding some houses
+    # from the sum to zero constraint because
+    # they have unusual or infrequent poll results compared
+    # with other pollsters
+    # Organise the polling houses so that the pollsters
+    # included in the sum-to-zero are first, and then the
+    # others follow
+    houses = e_data.all_houses.copy()
+    if config.calibrate_pollsters: houses.remove(excluded_pollster)
+    houseCounts = df['Firm'].value_counts()
+    whitelist = m_data.anchoring_pollsters[e_data.e_tuple]
+    if excluded_pollster == '':
+        exclusions = set([h for h in houses if h not in whitelist])
+    else: 
+        exclusions = set()
+    print(f'Pollsters included in anchoring: '
+          f'{[h for h in houses if h not in exclusions]}')
+    print(f'Pollsters not included in anchoring: {exclusions}')
+    for h in houses:
+        if h not in houseCounts or houseCounts[h] < 1:
+            exclusions.add(h)
+    remove_exclusions = []
+    for e in exclusions:
+        if e in houses:
+            houses.remove(e)
+        else:
+            remove_exclusions.append(e)
+    for e in remove_exclusions:
+        exclusions.remove(e)
+    houses = houses + list(exclusions)
+    house_map = dict(zip(houses, range(1, len(houses)+1)))
+    df['House'] = df['Firm'].map(house_map)
+    n_houses = len(df['House'].unique())
+    n_exclude = len(exclusions)
+
+    # Transform discontinuities from dates to raw numbers
+    discontinuities_filtered = m_data.discontinuities[e_data.e_tuple[1]]
+    discontinuities_filtered = \
+        [(pd.to_datetime(date).to_period('D') - e_data.start).n + 1
+            for date in discontinuities_filtered]
+
+    # Remove discontinuities outside of the election period
+    discontinuities_filtered = \
+        [date for date in discontinuities_filtered
+            if date >= 0 and date < e_data.n_days]
+
+    # Stan doesn't like zero-length arrays so put in a dummy value
+    # if there are no discontinuities
+    if not discontinuities_filtered:
+        discontinuities_filtered.append(0)
+
+    # quality adjustment for polls
+    sample_size = 1000  # treat good quality polls as being this size
+    # adjust effective sample size according to quality
+    sigmas = df['Quality Adjustment'].apply(
+        lambda x: np.sqrt((50 * 50) / (sample_size * 0.6 ** 
+        (0 if config.calibrate_pollsters else x))))
+    
+
+    houseEffectOld = 240
+    houseEffectNew = 120
+
+    # get the Stan model code
+    with open("./Models/fp_model.stan", "r") as f:
+        model = f.read()
+    
+    print(n_houses)
+    print(df['House'].values.tolist())
+
+    # Prepare the data for Stan to process
+    stan_data = {
+        'dayCount': e_data.n_days,
+        'pollCount': n_polls,
+        'houseCount': n_houses,
+        'discontinuityCount': len(discontinuities_filtered),
+        'priorResult': prior_result,
+
+        'pollObservations': y.values,
+        'missingObservations': missing.values,
+        'pollHouse': df['House'].values.tolist(),
+        'pollDay': df['Day'].values.tolist(),
+        'discontinuities': discontinuities_filtered,
+        'sigmas': sigmas.values,
+        'excludeCount': n_exclude,
+
+        'electionDay': e_data.election_day,
+
+        # distributions for the daily change in vote share
+        # higher values during campaigns, since it's more likely
+        # people are paying attention and changing their mind then
+        'dailySigma': 0.35,
+        'campaignSigma': 0.7,
+        'finalSigma': 1.2,
+
+        # prior distribution for each house effect
+        # modelled as a double exponential to avoid
+        # easily giving a large house effect, but
+        # still giving a big one when it's really warranted
+        'houseEffectSigma': 1.0,
+
+        # prior distribution for sum of house effects
+        # keep this very small, we will deal with systemic bias
+        # in the main program, so for now keep the sum of house
+        # effects at approximately zero
+        'houseEffectSumSigma': 0.001,
+
+        # prior distribution for each day's vote share
+        'priorVoteShareSigma': 200.0,
+
+        # Bounds for the transition between
+        'houseEffectOld': houseEffectOld,
+        'houseEffectNew': houseEffectNew
+    }
+
+    print(stan_data)
+
+    # encode the STAN model in C++ or retrieve it if already cached
+    sm = stan_cache(model_code=model)
+
+    # Report dates for model, this means we can easily check if new
+    # data has actually been saved without waiting for model to run
+    print('Beginning sampling for ' + party + ' ...')
+    end = e_data.start + timedelta(days=e_data.n_days)
+    print('Start date of model: ' + e_data.start.strftime('%Y-%m-%d\n'))
+    print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
+
+    # Stan model configuration
+    chains = 8
+    iterations = m_data.desired_iterations[e_data.e_tuple]
+
+    # Do model sampling. Time for diagnostic purposes
+    start_time = perf_counter()
+    fit = sm.sampling(data=stan_data,
+                        iter=iterations,
+                        chains=chains,
+                        control={'max_treedepth': 16,
+                                'adapt_delta': 0.8})
+    finish_time = perf_counter()
+    print('Time elapsed: ' + format(finish_time - start_time, '.2f')
+            + ' seconds')
+    print('Stan Finished ...')
+
+    # Check technical model diagnostics
+    import pystan.diagnostics as psd
+    print(psd.check_hmc_diagnostics(fit))
+
+    # construct the file names to output to
+    pollster_append = (f'_{excluded_pollster}' if 
+                       excluded_pollster != '' else '')
+    e_tag = ''.join(e_data.e_tuple)
+    calib_str = "Calibration/" if config.calibrate_pollsters else ""
+    folder = (f'./Outputs/{calib_str}')
+    output_trend = f'{folder}fp_trend_{e_tag}_{party}{pollster_append}.csv'
+    output_polls = f'{folder}fp_polls_{e_tag}_{party}{pollster_append}.csv'
+    output_house_effects = (f'{folder}fp_house_effects_{e_tag}_'
+        f'{party}{pollster_append}.csv')
+
+    if party in others_parties or party == 'GRN FP':
+        e_data.others_medians[party] = {}
+
+    # Extract trend data from model summary and write to file
+    probs_list = [0.001]
+    for i in range(1, 100):
+        probs_list.append(i * 0.01)
+    probs_list.append(0.999)
+    output_probs = tuple(probs_list)
+    summary = fit.summary(probs=output_probs)['summary']
+    trend_file = open(output_trend, 'w')
+    trend_file.write('Start date day,Month,Year\n')
+    trend_file.write(e_data.start.strftime('%d,%m,%Y\n'))
+    trend_file.write('Day,Party')
+    for prob in output_probs:
+        trend_file.write(',' + str(round(prob * 100)) + "%")
+    trend_file.write('\n')
+    # need to get past the centered values and house effects
+    # this is where the actual FP trend starts
+    offset = e_data.n_days + n_houses * 2
+    for summaryDay in range(0, e_data.n_days):
+        table_index = summaryDay + offset
+        trend_file.write(str(summaryDay) + ",")
+        trend_file.write(party + ",")
+        for col in range(3, 3+len(output_probs)-1):
+            trend_value = summary[table_index][col]
+            trend_file.write(str(trend_value) + ',')
+        if party in others_parties or party == 'GRN FP':
+            # Average of first and last
+            median_col = math.floor((4+len(output_probs)) / 2)
+            median_val = summary[table_index][median_col]
+            e_data.others_medians[party][summaryDay] = median_val
+        trend_file.write(
+            str(summary[table_index][3+len(output_probs)-1]) + '\n')
+    trend_file.close()
+    print('Saved trend file at ' + output_trend)
+
+    # Extract house effect data from model summary
+    new_house_effects = []
+    old_house_effects = []
+    offset = e_data.n_days
+    for house in range(0, n_houses):
+        new_house_effects.append(summary[offset + house, 0])
+        old_house_effects.append(summary[offset + n_houses + house, 0])
+
+    # Write poll data to file, giving both raw and
+    # house effect adjusted values
+    polls_file = open(output_polls, 'w')
+    polls_file.write('Firm,Day')
+    polls_file.write(',' + party)
+    polls_file.write(',' + party + ' adj')
+    if party == "@TPP":
+        polls_file.write(',' + party + ' reported')
+    polls_file.write('\n')
+    for poll_index in df.index:
+        polls_file.write(str(df.loc[poll_index, 'Firm']))
+        day = df.loc[poll_index, 'Day']
+        days_ago = e_data.n_days - day
+        polls_file.write(',' + str(day))
+        fp = df.loc[poll_index, party]
+        new_he = new_house_effects[df.loc[poll_index, 'House'] - 1]
+        old_he = old_house_effects[df.loc[poll_index, 'House'] - 1]
+        old_factor = ((days_ago - houseEffectNew) /
+                        (houseEffectOld - houseEffectNew))
+        old_factor = max(min(old_factor, 1), 0)
+        mixed_he = (old_factor * old_he +
+                    (1 - old_factor) * new_he)
+        adjusted_fp = fp - mixed_he
+        polls_file.write(',' + str(fp))
+        polls_file.write(',' + str(adjusted_fp))
+        if party == "@TPP":
+            polls_file.write(',' + str(df.loc[poll_index, 'old_tpp']))
+        polls_file.write('\n')
+    polls_file.close()
+    print('Saved polls file at ' + output_polls)
+
+    # Extract house effect data from model summary and write to file
+    probs_list = []
+    probs_list.append(0.001)
+    for i in range(1, 10):
+        probs_list.append(i * 0.1)
+    probs_list.append(0.999)
+    output_probs = tuple(probs_list)
+    summary = fit.summary(probs=output_probs)['summary']
+    house_effects_file = open(output_house_effects, 'w')
+    house_effects_file.write('House,Party')
+    for prob in output_probs:
+        house_effects_file.write(',' + str(round(prob * 100)) + "%")
+    house_effects_file.write('\n')
+    house_effects_file.write('New house effects\n')
+    offset = e_data.n_days
+    for house_index in range(0, n_houses):
+        house_effects_file.write(houses[house_index])
+        table_index = offset + house_index
+        house_effects_file.write("," + party)
+        for col in range(3, 3+len(output_probs)):
+            house_effects_file.write(
+                ',' + str(summary[table_index][col]))
+        house_effects_file.write('\n')
+    offset = e_data.n_days + n_houses
+    house_effects_file.write('Old house effects\n')
+    for house_index in range(0, n_houses):
+        house_effects_file.write(houses[house_index])
+        table_index = offset + house_index
+        house_effects_file.write("," + party)
+        for col in range(3, 3+len(output_probs)):
+            house_effects_file.write(
+                ',' + str(summary[table_index][col]))
+        house_effects_file.write('\n')
+
+    house_effects_file.close()
+    print('Saved house effects file at ' + output_house_effects)
+    
+    if config.calibrate_pollsters:
+        calibrate_pollsters(e_data=e_data,
+                            exc_polls=exc_polls,
+                            excluded_pollster=excluded_pollster,
+                            party=party,
+                            summary=summary,
+                            n_houses=n_houses,
+                            output_probs=output_probs,
+                            df=df
+                           )
+
+
+def finalise_calibrations(e_data):
+    for key, val in e_data.poll_calibrations.items():
+        print(f'{key}: {val}')
+    total_weight = {}
+    total_weighted_dev = {}
+    for key, val in e_data.poll_calibrations.items():
+        if (key[0] != ''):
+            full_val = e_data.poll_calibrations[('', key[1], key[2], key[3])]
+            cal_deviation = val[4]
+            full_deviation = full_val[4]
+            difference = abs(cal_deviation) - abs(full_deviation)
+            quotient = min(max(0.5, abs(full_deviation)) /
+                           max(0.5, abs(cal_deviation)),
+                           1)
+            neighbours_weight = val[6]
+            final_weight = min(quotient, neighbours_weight)
+            new_key = (key[0], key[2])
+            if new_key not in total_weight:
+                total_weight[new_key] = 0
+                total_weighted_dev[new_key] = 0
+            total_weight[new_key] += final_weight
+            total_weighted_dev[new_key] += final_weight * abs(cal_deviation)
+            print(f'{key}: Calibrated deviation: {cal_deviation},'
+                  f' full deviation: {full_deviation},'
+                  f' difference: {difference}\n '
+                  f' quotient weight: {quotient},'
+                  f' neighbours weight: {neighbours_weight},'
+                  f' final weight: {final_weight}')
+    for key, val in total_weighted_dev.items():
+        weight = total_weight[key]
+        if weight == 0: continue
+        weighted_average_deviation = val / min(weight / 2, weight - 1)
+        print(f'{key}: weighted avg deviation: {weighted_average_deviation}, '
+              f'total weight: {weight}')
 
 
 def run_models():
@@ -267,307 +724,33 @@ def run_models():
     print('Python version: {}'.format(sys.version))
     print('pystan version: {}'.format(pystan.__version__))
 
-    m_data = ModellingData(config)
+    m_data = ModellingData(config=config)
 
     # Load the list of election periods we want to model
     desired_elections = config.elections
 
     for desired_election in desired_elections:
 
-        e_data = ElectionData(m_data=m_data, desired_election=desired_election)
+        e_data = ElectionData(config=config,
+                              m_data=m_data,
+                              desired_election=desired_election)
 
-        for party in m_data.parties[e_data.e_tuple]:
+        for excluded_pollster in e_data.pollster_exclusions:
 
-            df = e_data.base_df.copy()
-
-            # drop any rows with N/A values for the current party
-            df = df.dropna(subset=[party])
-
-            # push misc parties into Others, as explained above
-            for others_party in others_parties:
-                try:
-                    # make sure any N/A values do not get
-                    # propagated into the Others data
-                    tempCol = df[others_party].fillna(0)
-                    df['OTH FP'] = df['OTH FP'] + tempCol
-                except KeyError:
-                    pass  # it's expected that some parties aren't in the file
-            n_polls = len(df)
-
-            # Get the prior result, or a small vote share if
-            # the prior result is not given
-            if (e_data.e_tuple, party) in m_data.prior_results:
-                prior_result = max(0.25, m_data.prior_results[(e_data.e_tuple, party)])
-            elif party == '@TPP':
-                prior_result = 50  # placeholder TPP
-            else:
-                prior_result = 0.25  # percentage
-
-            # Get a series for any missing data
-            missing = df[party].apply(lambda x: 1 if np.isnan(x) else 0)
-            y = df[party].fillna(prior_result)
-            y = y.apply(lambda x: max(x, 0.01))
-
-            # We are excluding some houses
-            # from the sum to zero constraint because
-            # they have unusual or infrequent poll results compared
-            # with other pollsters
-            # Organise the polling houses so that the pollsters
-            # included in the sum-to-zero are first, and then the
-            # others follow
-            houses = e_data.all_houses.copy()
-            houseCounts = df['Firm'].value_counts()
-            whitelist = m_data.anchoring_pollsters[e_data.e_tuple]
-            exclusions = set([h for h in houses if h not in whitelist])
-            print(f'Pollsters included in anchoring: {[h for h in houses if h not in exclusions]}')
-            print(f'Pollsters not included in anchoring: {exclusions}')
-            for h in houses:
-                if houseCounts[h] < 1:
-                    exclusions.add(h)
-            remove_exclusions = []
-            for e in exclusions:
-                if e in houses:
-                    houses.remove(e)
+            for party in m_data.parties[e_data.e_tuple]:
+                if excluded_pollster != '':
+                    print(f'Excluding pollster: {excluded_pollster}')
                 else:
-                    remove_exclusions.append(e)
-            for e in remove_exclusions:
-                exclusions.remove(e)
-            houses = houses + list(exclusions)
-            house_map = dict(zip(houses, range(1, len(houses)+1)))
-            df['House'] = df['Firm'].map(house_map)
-            n_houses = len(df['House'].unique())
-            n_exclude = len(exclusions)
+                    print('Not excluding any pollsters.')
 
-            # Convert "days" objects into raw numerical data
-            # that Stan can accept
-            for i in df.index:
-                df.loc[i, 'Day'] = df.loc[i, 'Day'].n + 1
+                run_individual_party(config=config,
+                                     m_data=m_data,
+                                     e_data=e_data,
+                                     excluded_pollster=excluded_pollster,
+                                     party=party)
 
-            # Transform discontinuities from dates to raw numbers
-            discontinuities_filtered = m_data.discontinuities[e_data.e_tuple[1]]
-            discontinuities_filtered = \
-                [(pd.to_datetime(date).to_period('D') - e_data.start).n + 1
-                 for date in discontinuities_filtered]
-
-            # Remove discontinuities outside of the election period
-            discontinuities_filtered = \
-                [date for date in discontinuities_filtered
-                 if date >= 0 and date < e_data.n_days]
-
-            # Stan doesn't like zero-length arrays so put in a dummy value
-            # if there are no discontinuities
-            if not discontinuities_filtered:
-                discontinuities_filtered.append(0)
-
-            # quality adjustment for polls
-            sample_size = 1000  # treat good quality polls as being this size
-            # adjust effective sample size according to quality
-            sigmas = df['Quality Adjustment'].apply(
-                lambda x: np.sqrt((50 * 50) / (sample_size * 0.6 ** x)))
-
-            houseEffectOld = 240
-            houseEffectNew = 120
-
-            # get the Stan model code
-            with open("./Models/fp_model.stan", "r") as f:
-                model = f.read()
-
-            # Prepare the data for Stan to process
-            stan_data = {
-                'dayCount': e_data.n_days,
-                'pollCount': n_polls,
-                'houseCount': n_houses,
-                'discontinuityCount': len(discontinuities_filtered),
-                'priorResult': prior_result,
-
-                'pollObservations': y.values,
-                'missingObservations': missing.values,
-                'pollHouse': df['House'].values.tolist(),
-                'pollDay': df['Day'].values.tolist(),
-                'discontinuities': discontinuities_filtered,
-                'sigmas': sigmas.values,
-                'excludeCount': n_exclude,
-
-                'electionDay': e_data.election_day,
-
-                # distributions for the daily change in vote share
-                # higher values during campaigns, since it's more likely
-                # people are paying attention and changing their mind then
-                'dailySigma': 0.35,
-                'campaignSigma': 0.7,
-                'finalSigma': 1.2,
-
-                # prior distribution for each house effect
-                # modelled as a double exponential to avoid
-                # easily giving a large house effect, but
-                # still giving a big one when it's really warranted
-                'houseEffectSigma': 1.0,
-
-                # prior distribution for sum of house effects
-                # keep this very small, we will deal with systemic bias
-                # in the main program, so for now keep the sum of house
-                # effects at approximately zero
-                'houseEffectSumSigma': 0.001,
-
-                # prior distribution for each day's vote share
-                'priorVoteShareSigma': 200.0,
-
-                # Bounds for the transition between
-                'houseEffectOld': houseEffectOld,
-                'houseEffectNew': houseEffectNew
-            }
-
-            # encode the STAN model in C++ or retrieve it if already cached
-            sm = stan_cache(model_code=model)
-
-            # Report dates for model, this means we can easily check if new
-            # data has actually been saved without waiting for model to run
-            print('Beginning sampling for ' + party + ' ...')
-            end = e_data.start + timedelta(days=e_data.n_days)
-            print('Start date of model: ' + e_data.start.strftime('%Y-%m-%d\n'))
-            print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
-
-            # Stan model configuration
-            chains = 8
-            iterations = m_data.desired_iterations[e_data.e_tuple]
-
-            # Do model sampling. Time for diagnostic purposes
-            start_time = perf_counter()
-            fit = sm.sampling(data=stan_data,
-                              iter=iterations,
-                              chains=chains,
-                              control={'max_treedepth': 16,
-                                       'adapt_delta': 0.8})
-            finish_time = perf_counter()
-            print('Time elapsed: ' + format(finish_time - start_time, '.2f')
-                  + ' seconds')
-            print('Stan Finished ...')
-
-            # Check technical model diagnostics
-            import pystan.diagnostics as psd
-            print(psd.check_hmc_diagnostics(fit))
-
-            # construct the file names to output to
-            output_trend = './Outputs/fp_trend_' + ''.join(e_data.e_tuple) \
-                + '_' + party + '.csv'
-            output_polls = './Outputs/fp_polls_' + ''.join(e_data.e_tuple) \
-                + '_' + party + '.csv'
-            output_house_effects = './Outputs/fp_house_effects_' + \
-                ''.join(e_data.e_tuple) + '_' + party + '.csv'
-
-            if party in others_parties or party == 'GRN FP':
-                e_data.others_medians[party] = {}
-
-            # Extract trend data from model summary and write to file
-            probs_list = [0.001]
-            for i in range(1, 100):
-                probs_list.append(i * 0.01)
-            probs_list.append(0.999)
-            output_probs = tuple(probs_list)
-            summary = fit.summary(probs=output_probs)['summary']
-            trend_file = open(output_trend, 'w')
-            trend_file.write('Start date day,Month,Year\n')
-            trend_file.write(e_data.start.strftime('%d,%m,%Y\n'))
-            trend_file.write('Day,Party')
-            for prob in output_probs:
-                trend_file.write(',' + str(round(prob * 100)) + "%")
-            trend_file.write('\n')
-            # need to get past the centered values and house effects
-            # this is where the actual FP trend starts
-            offset = e_data.n_days + n_houses * 2
-            for summaryDay in range(0, e_data.n_days):
-                table_index = summaryDay + offset
-                trend_file.write(str(summaryDay) + ",")
-                trend_file.write(party + ",")
-                for col in range(3, 3+len(output_probs)-1):
-                    trend_value = summary[table_index][col]
-                    trend_file.write(str(trend_value) + ',')
-                if party in others_parties or party == 'GRN FP':
-                    # Average of first and last
-                    median_col = math.floor((4+len(output_probs)) / 2)
-                    median_val = summary[table_index][median_col]
-                    e_data.others_medians[party][summaryDay] = median_val
-                trend_file.write(
-                    str(summary[table_index][3+len(output_probs)-1]) + '\n')
-            trend_file.close()
-            print('Saved trend file at ' + output_trend)
-
-            # Extract house effect data from model summary
-            new_house_effects = []
-            old_house_effects = []
-            offset = e_data.n_days
-            for house in range(0, n_houses):
-                new_house_effects.append(summary[offset + house, 0])
-                old_house_effects.append(summary[offset + n_houses + house, 0])
-
-            # Write poll data to file, giving both raw and
-            # house effect adjusted values
-            polls_file = open(output_polls, 'w')
-            polls_file.write('Firm,Day')
-            polls_file.write(',' + party)
-            polls_file.write(',' + party + ' adj')
-            if party == "@TPP":
-                polls_file.write(',' + party + ' reported')
-            polls_file.write('\n')
-            for poll_index in df.index:
-                polls_file.write(str(df.loc[poll_index, 'Firm']))
-                day = df.loc[poll_index, 'Day']
-                days_ago = e_data.n_days - day
-                polls_file.write(',' + str(day))
-                fp = df.loc[poll_index, party]
-                new_he = new_house_effects[df.loc[poll_index, 'House'] - 1]
-                old_he = old_house_effects[df.loc[poll_index, 'House'] - 1]
-                old_factor = ((days_ago - houseEffectNew) /
-                             (houseEffectOld - houseEffectNew))
-                old_factor = max(min(old_factor, 1), 0)
-                mixed_he = (old_factor * old_he +
-                            (1 - old_factor) * new_he)
-                adjusted_fp = fp - mixed_he
-                polls_file.write(',' + str(fp))
-                polls_file.write(',' + str(adjusted_fp))
-                if party == "@TPP":
-                    polls_file.write(',' + str(df.loc[poll_index, 'old_tpp']))
-                polls_file.write('\n')
-            polls_file.close()
-            print('Saved polls file at ' + output_polls)
-
-            # Extract house effect data from model summary and write to file
-            probs_list = []
-            probs_list.append(0.001)
-            for i in range(1, 10):
-                probs_list.append(i * 0.1)
-            probs_list.append(0.999)
-            output_probs = tuple(probs_list)
-            summary = fit.summary(probs=output_probs)['summary']
-            house_effects_file = open(output_house_effects, 'w')
-            house_effects_file.write('House,Party')
-            for prob in output_probs:
-                house_effects_file.write(',' + str(round(prob * 100)) + "%")
-            house_effects_file.write('\n')
-            house_effects_file.write('New house effects\n')
-            offset = e_data.n_days
-            for house_index in range(0, n_houses):
-                house_effects_file.write(houses[house_index])
-                table_index = offset + house_index
-                house_effects_file.write("," + party)
-                for col in range(3, 3+len(output_probs)):
-                    house_effects_file.write(
-                        ',' + str(summary[table_index][col]))
-                house_effects_file.write('\n')
-            offset = e_data.n_days + n_houses
-            house_effects_file.write('Old house effects\n')
-            for house_index in range(0, n_houses):
-                house_effects_file.write(houses[house_index])
-                table_index = offset + house_index
-                house_effects_file.write("," + party)
-                for col in range(3, 3+len(output_probs)):
-                    house_effects_file.write(
-                        ',' + str(summary[table_index][col]))
-                house_effects_file.write('\n')
-
-            house_effects_file.close()
-            print('Saved house effects file at ' + output_house_effects)
-
+        if config.calibrate_pollsters:
+            finalise_calibrations(e_data=e_data)
 
 if __name__ == '__main__':
     run_models()
