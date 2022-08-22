@@ -215,9 +215,7 @@ class ElectionData:
     def create_tpp_series(self, m_data, desired_election, df):
         df['old_tpp'] = df['@TPP']
         num_polls = len(df['@TPP'].values.tolist())
-        # print(num_polls)
         min_index = df.index.values.tolist()[0]
-        # print(min_index)
         adjustments = {a + min_index: 0 for a in range(0, num_polls)}
         for others_party in others_parties + ['GRN FP']:
             days = df['Day'].values.tolist()
@@ -230,21 +228,12 @@ class ElectionData:
                 for a in range(0, num_polls):
                     if math.isnan(polled_percent[a]):
                         day = days[a]
-                        # print(day.n)
                         estimated_fp = self.others_medians[others_party][day.n]
-                        # print(estimated_fp)
                         pref_adjust = estimated_fp * adj_flow
-                        # print(pref_adjust)
                         adjustments[a + min_index] += pref_adjust
-                        # print(a + min_index)
-                        # print(adjustments[a + min_index])
-                # print(others_party)
-                # print(polled_percent)
-        # print(adjustments)
         adjustment_series = pd.Series(data=adjustments)
         df['Total'] = (df['ALP FP'] + df['LIB FP'
                        if 'LIB FP' in df else 'LNP FP'])
-        # print(adjustment_series)
         df['@TPP'] = df['ALP FP']
         for column in df:
             pref_tuple = (self.e_tuple[0], self.e_tuple[1], column)
@@ -262,14 +251,10 @@ class ElectionData:
                     axis=1
                 )
             pref_col = df[column].fillna(0)
-            # print(column)
-            # print(pref_col)
             df['@TPP'] += pref_col * preference_flow
             df['Total'] += pref_col
-        # print(df['@TPP'].to_string())
         df['@TPP'] += adjustment_series
         df['@TPP'] /= (df['Total'] * 0.01)
-        # print(df['@TPP'].to_string())
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
     
@@ -320,7 +305,6 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
         day, vote, poll_index, pollster = a[0], a[1], a[2], a[3]
         table_index = day + offset
         trend_median = summary[table_index][median_col]
-        print(house_effects)
         eff_house_effect = house_effects[pollster]
         adj_poll = vote - eff_house_effect
         # for the case where the poll is higher than any
@@ -353,9 +337,9 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
         prob_deviations.append(prob_deviation)
     std_dev = statistics.stdev(deviations)
     prob_dev_avg = statistics.mean(prob_deviations)
-    print(f'Overall: standard deviation from trend median: {std_dev}'
+    print(f'Overall ({excluded_pollster}, {party}):'
+          f' standard deviation from trend median: {std_dev}'
           f' average probability deviation: {prob_dev_avg}')
-    print(e_data.poll_calibrations)
 
 
 def run_individual_party(config, m_data, e_data,
@@ -371,6 +355,10 @@ def run_individual_party(config, m_data, e_data,
     # compared to those with pollsters excluded)
     if excluded_pollster != '':
         exc_polls = df[df.Firm == excluded_pollster]
+        if exc_polls.empty:
+            print(f'No polls by {excluded_pollster} for {party}'
+                  f', skipping round')
+            return
     elif config.calibrate_pollsters:
         exc_polls = df
 
@@ -400,14 +388,13 @@ def run_individual_party(config, m_data, e_data,
     # Organise the polling houses so that the pollsters
     # included in the sum-to-zero are first, and then the
     # others follow
-    houses = e_data.all_houses.copy()
-    if config.calibrate_pollsters: houses.remove(excluded_pollster)
+    houses = df['Firm'].unique().tolist()
     houseCounts = df['Firm'].value_counts()
     whitelist = m_data.anchoring_pollsters[e_data.e_tuple]
-    if excluded_pollster == '':
-        exclusions = set([h for h in houses if h not in whitelist])
-    else: 
+    if config.calibrate_pollsters:
         exclusions = set()
+    else:
+        exclusions = set([h for h in houses if h not in whitelist])
     print(f'Pollsters included in anchoring: '
           f'{[h for h in houses if h not in exclusions]}')
     print(f'Pollsters not included in anchoring: {exclusions}')
@@ -458,9 +445,9 @@ def run_individual_party(config, m_data, e_data,
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:
         model = f.read()
-    
+
     print(n_houses)
-    print(df['House'].values.tolist())
+    print(n_exclude)
 
     # Prepare the data for Stan to process
     stan_data = {
@@ -506,8 +493,6 @@ def run_individual_party(config, m_data, e_data,
         'houseEffectOld': houseEffectOld,
         'houseEffectNew': houseEffectNew
     }
-
-    print(stan_data)
 
     # encode the STAN model in C++ or retrieve it if already cached
     sm = stan_cache(model_code=model)
@@ -676,8 +661,9 @@ def run_individual_party(config, m_data, e_data,
 
 
 def finalise_calibrations(e_data):
-    for key, val in e_data.poll_calibrations.items():
-        print(f'{key}: {val}')
+    polls_string = {}
+    # for key, val in e_data.poll_calibrations.items():
+    #     print(f'{key}: {val}')
     total_weight = {}
     total_weighted_dev = {}
     for key, val in e_data.poll_calibrations.items():
@@ -695,6 +681,7 @@ def finalise_calibrations(e_data):
             if new_key not in total_weight:
                 total_weight[new_key] = 0
                 total_weighted_dev[new_key] = 0
+                polls_string[new_key] = ''
             total_weight[new_key] += final_weight
             total_weighted_dev[new_key] += final_weight * abs(cal_deviation)
             print(f'{key}: Calibrated deviation: {cal_deviation},'
@@ -703,12 +690,20 @@ def finalise_calibrations(e_data):
                   f' quotient weight: {quotient},'
                   f' neighbours weight: {neighbours_weight},'
                   f' final weight: {final_weight}')
+            polls_string[new_key] += (f'{key[1]},{cal_deviation},{full_deviation},'
+                             f'{final_weight}\n')
     for key, val in total_weighted_dev.items():
         weight = total_weight[key]
         if weight == 0: continue
-        weighted_average_deviation = val / min(weight / 2, weight - 1)
+        weighted_average_deviation = val / max(weight / 2, weight - 1)
         print(f'{key}: weighted avg deviation: {weighted_average_deviation}, '
               f'total weight: {weight}')
+        filename = (f'./Outputs/Calibration/calib_'
+                    f'{e_data.e_tuple[0]}{e_data.e_tuple[1]}'
+                    f'{key[0]}_{key[1]}.csv')
+        with open(filename, 'w') as f:
+            f.write(f'{weighted_average_deviation},'
+                    f'{weight},\n{polls_string[key]}')
 
 
 def run_models():
@@ -738,6 +733,7 @@ def run_models():
         for excluded_pollster in e_data.pollster_exclusions:
 
             for party in m_data.parties[e_data.e_tuple]:
+
                 if excluded_pollster != '':
                     print(f'Excluding pollster: {excluded_pollster}')
                 else:
