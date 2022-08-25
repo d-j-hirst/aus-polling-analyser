@@ -925,6 +925,14 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 		voteShare = std::max(voteShare, pastSeatResults[seatIndex].fpVotePercent[OthersIndex]);
 	}
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
+
+	// Reduce others vote by the "others" parties already assigned vote share.
+	float existingVoteShare = 0.0f;
+	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) existingVoteShare += seatFpVoteShare[seatIndex][run.indPartyIndex];
+	if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) existingVoteShare += seatFpVoteShare[seatIndex][EmergingIndIndex];
+	if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) existingVoteShare += seatFpVoteShare[seatIndex][EmergingPartyIndex];
+	voteShare = basicTransformedSwing(voteShare, -existingVoteShare);
+
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
 }
 
@@ -1753,11 +1761,11 @@ void SimulationIteration::assignDirectWins()
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 		partyWins[partyIndex] = 0;
 	}
-	partyWins[EmergingIndIndex] = 0;
 	partyWins[EmergingPartyIndex] = 0;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		int partyIndex = seatWinner[seatIndex];
+		if (partyIndex == EmergingIndIndex) partyIndex = run.indPartyIndex;
 		if (!regionSeatCount.contains(partyIndex)) {
 			regionSeatCount[partyIndex] = std::vector<int>(project.regions().count());
 		}
@@ -1807,6 +1815,12 @@ void SimulationIteration::recordMajorityResult()
 	else if (partySupport[Mp::Two] >= minimumForMajority && partyWins[Mp::Two] > partySupport[Mp::Two] / 2) ++run.partyMinority[Mp::Two];
 	else {
 		std::vector<std::pair<int, int>> sortedPartyWins(partyWins.begin(), partyWins.end());
+		for (auto a = sortedPartyWins.begin(); a != sortedPartyWins.end(); ++a) {
+			if (a->first == run.indPartyIndex) {
+				sortedPartyWins.erase(a);
+				break;
+			}
+		}
 		std::sort(sortedPartyWins.begin(), sortedPartyWins.end(),
 			[](std::pair<int, int> lhs, std::pair<int, int> rhs) {return lhs.second > rhs.second; });
 		if (sortedPartyWins[0].second >= minimumForMajority) {

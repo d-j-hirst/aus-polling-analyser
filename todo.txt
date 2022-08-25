@@ -1,12 +1,17 @@
 
 -Post-election to-do:
- -Publish final result comparisons with forecasts
- -Post on website & twitter regarding above
- -Further post with analysis of election forecast & also SA
- -Fix Calare others issue (forecasts predicts others vote despite being entered with no valid OTH candidates)
+ -Reduce OTH prediction when IND gets a lot of votes
+ -Candidate names incl. independents
+  -Add ability to enter and same candidate names
+  -include in forecast report
+  -display names on frontend
+  -remove the "Emerging Independent" designation on frontend
+  -remove "Emerging IND" sorting options
  -Look at Melton (very high others vote, even after accounting for a high vote there last time too)
+ -Fix Calare others issue (forecasts predicts others vote despite being entered with no valid OTH candidates)
  -General refactor of frontend as there is currently a lot of code duplication
  -More rigorous process for handling multiple independents
+ -Further post with analysis of election forecast & also SA
  -Live forecasts:
   -Overall fp vote estimates narrowed much too quickly last time, investigate
   -Better estimate of major party fp votes

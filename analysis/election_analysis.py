@@ -226,7 +226,7 @@ def total_others_vote_share(election_results):
     votes = sum(votes for party, votes in election_results.fp_by_party.items()
                 if party not in larger_parties
                 and (election_results.total_fp_percentage_party(party) < 3
-                     or party == "Independent"))
+                     or party == "Independent" and votes <= 8))
     return votes / election_results.total_fp_votes() * 100
 
 
@@ -237,7 +237,8 @@ def analyse_existing_independents(elections):
     bucket_base = 15
     bucket_max = -5
     this_buckets = {(-10000, bucket_min): []}
-    this_buckets.update({(a, a + bucket_base): [] for a in range(bucket_min, bucket_max, bucket_base)})
+    this_buckets.update({(a, a + bucket_base): [] for a in
+                         range(bucket_min, bucket_max, bucket_base)})
     this_buckets.update({(bucket_max, 10000): []})
     sophomore_buckets = copy.deepcopy(this_buckets)
     incumbent_buckets = copy.deepcopy(this_buckets)
