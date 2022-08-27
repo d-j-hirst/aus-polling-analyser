@@ -699,7 +699,7 @@ def finalise_calibrations(e_data):
         print(f'{key}: weighted avg deviation: {weighted_average_deviation}, '
               f'total weight: {weight}')
         filename = (f'./Outputs/Calibration/calib_'
-                    f'{e_data.e_tuple[0]}{e_data.e_tuple[1]}'
+                    f'{e_data.e_tuple[0]}{e_data.e_tuple[1]}_'
                     f'{key[0]}_{key[1]}.csv')
         with open(filename, 'w') as f:
             f.write(f'{weighted_average_deviation},'

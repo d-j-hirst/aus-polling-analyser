@@ -924,7 +924,11 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	if (pastSeatResults[seatIndex].fpVotePercent.contains(OthersIndex)) {
 		voteShare = std::max(voteShare, pastSeatResults[seatIndex].fpVotePercent[OthersIndex]);
 	}
+
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
+
+	float swingAdjust = overallFpTarget[OthersIndex] - detransformVoteShare(-77.0f);
+	voteShare = basicTransformedSwing(voteShare, swingAdjust);
 
 	// Reduce others vote by the "others" parties already assigned vote share.
 	float existingVoteShare = 0.0f;
@@ -1290,6 +1294,7 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 
 		if (i > 2) correctMajorPartyFpBias();
 		if (i > 1) calculatePreferenceCorrections();
+
 		if (i == MaxReconciliationCycles - 1) break;
 		applyCorrectionsToSeatFps();
 	}
