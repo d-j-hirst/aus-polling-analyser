@@ -2,26 +2,26 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.diagnose import diagnose
 
-#URL = "https://www.abc.net.au/news/elections/qld/2020/results"
-URL = "https://www.abc.net.au/news/elections/sa/2022/results"
+#URL = 'https://www.abc.net.au/news/elections/qld/2020/results'
+URL = 'https://www.abc.net.au/news/elections/sa/2022/results'
 page = requests.get(URL)
 
-soup = BeautifulSoup(page.content, "html.parser")
+soup = BeautifulSoup(page.content, 'html.parser')
 
-seatEls = soup.find_all("div", class_="_3UHiz")
+seatEls = soup.find_all('div', class_='_3UHiz')
 
 results = {}
 for seatEl in seatEls:
-    name = seatEl.find("h2", class_="_1YbN5").text
-    if name[-1] == "*": name = name[:-2]
+    name = seatEl.find('h2', class_='_1YbN5').text
+    if name[-1] == '*': name = name[:-2]
     print('"' + name + '"')
-    swingEl = seatEl.find("span", class_="_1hdDp")
+    swingEl = seatEl.find('span', class_='_1hdDp')
     if swingEl is None: continue
-    swingParts = swingEl.text.split(" ")
+    swingParts = swingEl.text.split(' ')
     if len(swingParts) < 2: continue
     swing = float(swingParts[0][:-1])
     party = swingParts[-1]
-    if party != "ALP": swing = -swing
+    if party != 'ALP': swing = -swing
     results[name] = [swing]
 
 # electorates = ['alge', 'aspl', 'banc', 'barr', 'bonn', 'broa',
@@ -59,18 +59,18 @@ exclude = ['moun', 'kave', 'naru', 'wait', 'stua', 'finn', 'hamm', 'from']
 electorates = [a for a in electorates if a not in exclude]
 
 for electorate in electorates:
-    URL = "https://www.abc.net.au/news/elections/sa/2022/guide/" + electorate
+    URL = 'https://www.abc.net.au/news/elections/sa/2022/guide/' + electorate
     page = requests.get(URL)
-    soup = BeautifulSoup(page.content, "html.parser")
-    title = soup.find("h1").text
+    soup = BeautifulSoup(page.content, 'html.parser')
+    title = soup.find('h1').text
     title = title.split('(')[0].strip()
-    if title[-1] == "*": name = title[-2]
+    if title[-1] == '*': name = title[-2]
     print(f'Getting results from page {title}')
-    countedParent = soup.find("div", class_="_12fma")
+    countedParent = soup.find('div', class_='_12fma')
     if countedParent is None: continue
-    countedText = countedParent.find("strong").text
+    countedText = countedParent.find('strong').text
     try:
-        countedPercent = float(countedText.split("%")[0])
+        countedPercent = float(countedText.split('%')[0])
         results[title].append(countedPercent)
     except ValueError:
         print(f"Warning: couldn't parse % counted for seat {title}")
