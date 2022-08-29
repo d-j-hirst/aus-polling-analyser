@@ -58,7 +58,8 @@
 // Version 51: Save preload URL
 // Version 52: prepoll and postal figures for seats
 // Version 53: total declaration vote counts
-constexpr int VersionNum = 53;
+// Version 54: Store TPP swing transposed from other election (federal/state)
+constexpr int VersionNum = 54;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -488,6 +489,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.tppMargin;
 		saveOutput << thisSeat.previousSwing;
 		saveOutput << thisSeat.localModifier;
+		saveOutput << thisSeat.transposedTppSwing;
 		saveOutput << thisSeat.incumbentOdds;
 		saveOutput << thisSeat.challengerOdds;
 		saveOutput << thisSeat.challenger2Odds;
@@ -540,6 +542,7 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		saveInput >> thisSeat.tppMargin;
 		if (versionNum >= 34) saveInput >> thisSeat.previousSwing;
 		saveInput >> thisSeat.localModifier;
+		if (versionNum >= 54) saveInput >> thisSeat.transposedTppSwing;
 		saveInput >> thisSeat.incumbentOdds;
 		saveInput >> thisSeat.challengerOdds;
 		saveInput >> thisSeat.challenger2Odds;

@@ -24,6 +24,7 @@ enum ControlId
 	Margin,
 	PreviousSwing,
 	LocalModifier,
+	TransposedTppSwing,
 	IncumbentOdds,
 	ChallengerOdds,
 	Challenger2Odds,
@@ -51,7 +52,7 @@ enum ControlId
 EditSeatFrame::EditSeatFrame(Function function, OkCallback callback, PartyCollection const& parties,
 	RegionCollection const& regions, Seat seat)
 	: wxDialog(NULL, 0, (function == Function::New ? "New Seat" : "Edit Seat"), wxDefaultPosition, wxSize(500, 371)),
-	callback(callback), parties(parties), regions(regions), seat(seat)
+	okCallback(callback), parties(parties), regions(regions), seat(seat)
 {
 	validateSeatParties();
 	int currentY = ControlPadding;
@@ -81,6 +82,7 @@ void EditSeatFrame::createControls(int & y)
 	createMarginInput(y);
 	createPreviousSwingInput(y);
 	createLocalModifierInput(y);
+	createTransposedTppSwingInput(y);
 	createIncumbentOddsInput(y);
 	createChallengerOddsInput(y);
 	createChallenger2OddsInput(y);
@@ -109,22 +111,22 @@ void EditSeatFrame::createControls(int & y)
 
 void EditSeatFrame::createNameInput(int& y)
 {
-	auto nameCallback = [this](std::string s) -> void {seat.name = s; };
-	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", seat.name, wxPoint(2, y), nameCallback));
+	auto callback = [this](std::string s) -> void {seat.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", seat.name, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createPreviousNameInput(int & y)
 {
-	auto nameCallback = [this](std::string s) -> void {seat.previousName = s; };
-	previousNameInput.reset(new TextInput(this, ControlId::PreviousName, "Previous Name:", seat.previousName, wxPoint(2, y), nameCallback));
+	auto callback = [this](std::string s) -> void {seat.previousName = s; };
+	previousNameInput.reset(new TextInput(this, ControlId::PreviousName, "Previous Name:", seat.previousName, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createUseFpResultsInput(int& y)
 {
-	auto useFpResultsCallback = [this](std::string s) -> void {seat.useFpResults = s; };
-	useFpResultsInput.reset(new TextInput(this, ControlId::UseFpResults, "Use Fp Results From:", seat.useFpResults, wxPoint(2, y), useFpResultsCallback));
+	auto callback = [this](std::string s) -> void {seat.useFpResults = s; };
+	useFpResultsInput.reset(new TextInput(this, ControlId::UseFpResults, "Use Fp Results From:", seat.useFpResults, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
@@ -132,9 +134,9 @@ void EditSeatFrame::createIncumbentInput(int & y)
 {
 	int selectedIncumbent = parties.idToIndex(seat.incumbent);
 
-	auto incumbentCallback = [this](int i) {seat.incumbent = parties.indexToId(i); };
+	auto callback = [this](int i) {seat.incumbent = parties.indexToId(i); };
 	incumbentInput.reset(new ChoiceInput(this, ControlId::Incumbent, "Incumbent: ", collectPartyStrings(),
-		selectedIncumbent, wxPoint(2, y), incumbentCallback));
+		selectedIncumbent, wxPoint(2, y), callback));
 	y += incumbentInput->Height + ControlPadding;
 }
 
@@ -142,9 +144,9 @@ void EditSeatFrame::createChallengerInput(int & y)
 {
 	int selectedChallenger = parties.idToIndex(seat.challenger);
 
-	auto challengerCallback = [this](int i) {seat.challenger = parties.indexToId(i); };
+	auto callback = [this](int i) {seat.challenger = parties.indexToId(i); };
 	challengerInput.reset(new ChoiceInput(this, ControlId::Challenger, "Challenger: ", collectPartyStrings(),
-		selectedChallenger, wxPoint(2, y), challengerCallback));
+		selectedChallenger, wxPoint(2, y), callback));
 	y += challengerInput->Height + ControlPadding;
 }
 
@@ -152,9 +154,9 @@ void EditSeatFrame::createChallenger2Input(int & y)
 {
 	int selectedChallenger2 = parties.idToIndex(seat.challenger2);
 
-	auto challenger2Callback = [this](int i) {seat.challenger2 = parties.indexToId(i); };
+	auto callback = [this](int i) {seat.challenger2 = parties.indexToId(i); };
 	challenger2Input.reset(new ChoiceInput(this, ControlId::Challenger2, "Challenger 2: ", collectPartyStrings(),
-		selectedChallenger2, wxPoint(2, y), challenger2Callback));
+		selectedChallenger2, wxPoint(2, y), callback));
 	y += challenger2Input->Height + ControlPadding;
 }
 
@@ -166,181 +168,190 @@ void EditSeatFrame::createRegionInput(int & y)
 	}
 	int selectedRegion = regions.idToIndex(seat.region);
 
-	auto regionCallback = [this](int i) {seat.region = regions.indexToId(i); };
+	auto callback = [this](int i) {seat.region = regions.indexToId(i); };
 	regionInput.reset(new ChoiceInput(this, ControlId::Region, "Region: ", regionArray,
-		selectedRegion, wxPoint(2, y), regionCallback));
+		selectedRegion, wxPoint(2, y), callback));
 	y += regionInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createMarginInput(int & y)
 {
-	auto marginCallback = [this](float f) -> void {seat.tppMargin = f; };
-	auto marginValidator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	auto callback = [this](float f) -> void {seat.tppMargin = f; };
+	auto validator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
 	marginInput.reset(new FloatInput(this, ControlId::Margin, "Party One TPP Margin:", seat.tppMargin,
-		wxPoint(2, y), marginCallback, marginValidator));
+		wxPoint(2, y), callback, validator));
 	y += marginInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createPreviousSwingInput(int& y)
 {
-	auto previousSwingCallback = [this](float f) -> void {seat.previousSwing = f; };
-	auto previousSwingValidator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	auto callback = [this](float f) -> void {seat.previousSwing = f; };
+	auto validator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
 	previousSwingInput.reset(new FloatInput(this, ControlId::PreviousSwing, "Previous TPP swing:", seat.previousSwing,
-		wxPoint(2, y), previousSwingCallback, previousSwingValidator));
+		wxPoint(2, y), callback, validator));
 	y += previousSwingInput->Height + ControlPadding;
 }
 
-void EditSeatFrame::createLocalModifierInput(int & y)
+void EditSeatFrame::createLocalModifierInput(int& y)
 {
-	auto localModifierCallback = [this](float f) -> void {seat.localModifier = f; };
-	auto localModifierValidator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	auto callback = [this](float f) -> void {seat.localModifier = f; };
+	auto validator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
 	localModifierInput.reset(new FloatInput(this, ControlId::LocalModifier, "Local Modifier:", seat.localModifier,
-		wxPoint(2, y), localModifierCallback, localModifierValidator));
+		wxPoint(2, y), callback, validator));
 	y += localModifierInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createTransposedTppSwingInput(int& y)
+{
+	auto callback = [this](float f) -> void {seat.transposedTppSwing = f; };
+	auto validator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	transposedTppSwingInput.reset(new FloatInput(this, ControlId::TransposedTppSwing, "Transposed TPP Swing:", seat.transposedTppSwing,
+		wxPoint(2, y), callback, validator));
+	y += transposedTppSwingInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createIncumbentOddsInput(int & y)
 {
-	auto incumbentOddsCallback = [this](float f) -> void {seat.incumbentOdds = f; };
-	auto incumbentOddsValidator = [](float f) {return std::max(f, 1.0f); };
+	auto callback = [this](float f) -> void {seat.incumbentOdds = f; };
+	auto validator = [](float f) {return std::max(f, 1.0f); };
 	incumbentOddsInput.reset(new FloatInput(this, ControlId::IncumbentOdds, "Incumbent Odds:", seat.incumbentOdds,
-		wxPoint(2, y), incumbentOddsCallback, incumbentOddsValidator));
+		wxPoint(2, y), callback, validator));
 	y += incumbentOddsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createChallengerOddsInput(int & y)
 {
-	auto challengerOddsCallback = [this](float f) -> void {seat.challengerOdds = f; };
-	auto challengerOddsValidator = [](float f) {return std::max(f, 1.0f); };
+	auto callback = [this](float f) -> void {seat.challengerOdds = f; };
+	auto validator = [](float f) {return std::max(f, 1.0f); };
 	challengerOddsInput.reset(new FloatInput(this, ControlId::ChallengerOdds, "Challenger Odds:", seat.challengerOdds,
-		wxPoint(2, y), challengerOddsCallback, challengerOddsValidator));
+		wxPoint(2, y), callback, validator));
 	y += challengerOddsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createChallenger2OddsInput(int & y)
 {
-	auto challenger2OddsCallback = [this](float f) -> void {seat.challenger2Odds = f; };
-	auto challenger2OddsValidator = [](float f) {return std::max(f, 1.0f); };
+	auto callback = [this](float f) -> void {seat.challenger2Odds = f; };
+	auto validator = [](float f) {return std::max(f, 1.0f); };
 	challenger2OddsInput.reset(new FloatInput(this, ControlId::Challenger2Odds, "Challenger 2 Odds:", seat.challenger2Odds,
-		wxPoint(2, y), challenger2OddsCallback, challenger2OddsValidator));
+		wxPoint(2, y), callback, validator));
 	y += challenger2OddsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createSophomoreCandidateInput(int& y)
 {
-	auto sophomoreCandidateCallback = [this](int i) -> void {seat.sophomoreCandidate = (i != 0); };
+	auto callback = [this](int i) -> void {seat.sophomoreCandidate = (i != 0); };
 	sophomoreCandidateInput.reset(new CheckInput(this, ControlId::SophomoreCandidate, "Sophomore (candidate)", seat.sophomoreCandidate,
-		wxPoint(2, y), sophomoreCandidateCallback));
+		wxPoint(2, y), callback));
 	y += challenger2OddsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createSophomorePartyInput(int& y)
 {
-	auto sophomorePartyCallback = [this](int i) -> void {seat.sophomoreParty = (i != 0); };
+	auto callback = [this](int i) -> void {seat.sophomoreParty = (i != 0); };
 	sophomorePartyInput.reset(new CheckInput(this, ControlId::SophomoreParty, "Sophomore (party)", seat.sophomoreParty,
-		wxPoint(2, y), sophomorePartyCallback));
+		wxPoint(2, y), callback));
 	y += sophomorePartyInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createRetirementInput(int& y)
 {
-	auto retirementCallback = [this](int i) -> void {seat.retirement = (i != 0); };
+	auto callback = [this](int i) -> void {seat.retirement = (i != 0); };
 	retirementInput.reset(new CheckInput(this, ControlId::Retirement, "Retirement", seat.retirement,
-		wxPoint(2, y), retirementCallback));
+		wxPoint(2, y), callback));
 	y += retirementInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createDisendorsementInput(int& y)
 {
-	auto disendorsementCallback = [this](int i) -> void {seat.disendorsement = (i != 0); };
+	auto callback = [this](int i) -> void {seat.disendorsement = (i != 0); };
 	disendorsementInput.reset(new CheckInput(this, ControlId::Disendorsement, "Disendorsement", seat.disendorsement,
-		wxPoint(2, y), disendorsementCallback));
+		wxPoint(2, y), callback));
 	y += disendorsementInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createPreviousDisendorsementInput(int& y)
 {
-	auto previousDisendorsementCallback = [this](int i) -> void {seat.previousDisendorsement = (i != 0); };
+	auto callback = [this](int i) -> void {seat.previousDisendorsement = (i != 0); };
 	previousDisendorsementInput.reset(new CheckInput(this, ControlId::PreviousDisendorsement, "Previous Disendorsement", seat.previousDisendorsement,
-		wxPoint(2, y), previousDisendorsementCallback));
+		wxPoint(2, y), callback));
 	y += previousDisendorsementInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createIncumbentRecontestConfirmedInput(int& y)
 {
-	auto incumbentRecontestConfirmedCallback = [this](int i) -> void {seat.incumbentRecontestConfirmed = (i != 0); };
+	auto callback = [this](int i) -> void {seat.incumbentRecontestConfirmed = (i != 0); };
 	incumbentRecontestConfirmedInput.reset(new CheckInput(this, ControlId::IncumbentRecontestConfirmed, "Incumbent Recontest Confirmed", seat.incumbentRecontestConfirmed,
-		wxPoint(2, y), incumbentRecontestConfirmedCallback));
+		wxPoint(2, y), callback));
 	y += incumbentRecontestConfirmedInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createConfirmedProminentIndependentInput(int& y)
 {
-	auto confirmedProminentIndependentCallback = [this](int i) -> void {seat.confirmedProminentIndependent = (i != 0); };
+	auto callback = [this](int i) -> void {seat.confirmedProminentIndependent = (i != 0); };
 	confirmedProminentIndependentInput.reset(new CheckInput(this, ControlId::ConfirmedProminentIndependent, "Confirmed Prominent Independent", seat.confirmedProminentIndependent,
-		wxPoint(2, y), confirmedProminentIndependentCallback));
+		wxPoint(2, y), callback));
 	y += confirmedProminentIndependentInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createPreviousIndRunningInput(int& y)
 {
-	auto previousIndRunningCallback = [this](int i) -> void {seat.previousIndRunning = (i != 0); };
+	auto callback = [this](int i) -> void {seat.previousIndRunning = (i != 0); };
 	previousIndRunningInput.reset(new CheckInput(this, ControlId::PreviousIndRunning, "Previous Independent Running", seat.previousIndRunning,
-		wxPoint(2, y), previousIndRunningCallback));
+		wxPoint(2, y), callback));
 	y += previousIndRunningInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createKnownPrepollsInput(int& y)
 {
-	auto knownPrepollsCallback = [this](float f) -> void {seat.knownPrepollPercent = f; };
-	auto knownPrepollsValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	auto callback = [this](float f) -> void {seat.knownPrepollPercent = f; };
+	auto validator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	knownPrepollsInput.reset(new FloatInput(this, ControlId::KnownPrepolls, "Known prepoll %:", seat.knownPrepollPercent,
-		wxPoint(2, y), knownPrepollsCallback, knownPrepollsValidator));
+		wxPoint(2, y), callback, validator));
 	y += knownPrepollsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createKnownPostalsInput(int& y)
 {
-	auto knownPostalsCallback = [this](float f) -> void {seat.knownPostalPercent = f; };
-	auto knownPostalsValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	auto callback = [this](float f) -> void {seat.knownPostalPercent = f; };
+	auto validator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	knownPostalsInput.reset(new FloatInput(this, ControlId::KnownPostals, "Known postals %:", seat.knownPostalPercent,
-		wxPoint(2, y), knownPostalsCallback, knownPostalsValidator));
+		wxPoint(2, y), callback, validator));
 	y += knownPostalsInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createKnownAbsentCountInput(int& y)
 {
-	auto knownAbsentCountCallback = [this](float f) -> void {seat.knownAbsentCount = f; };
-	auto knownAbsentCountValidator = [](float f) {return std::max(f, 0.0f); };
+	auto callback = [this](float f) -> void {seat.knownAbsentCount = f; };
+	auto validator = [](float f) {return std::max(f, 0.0f); };
 	knownAbsentCountInput.reset(new FloatInput(this, ControlId::KnownAbsentCount, "Known absent count:", seat.knownAbsentCount,
-		wxPoint(2, y), knownAbsentCountCallback, knownAbsentCountValidator));
+		wxPoint(2, y), callback, validator));
 	y += knownAbsentCountInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createKnownProvisionalCountInput(int& y)
 {
-	auto knownProvisionalCountCallback = [this](float f) -> void {seat.knownProvisionalCount = f; };
-	auto knownProvisionalCountValidator = [](float f) {return std::max(f, 0.0f); };
+	auto callback = [this](float f) -> void {seat.knownProvisionalCount = f; };
+	auto validator = [](float f) {return std::max(f, 0.0f); };
 	knownProvisionalCountInput.reset(new FloatInput(this, ControlId::KnownProvisionalCount, "Known provisional count:", seat.knownProvisionalCount,
-		wxPoint(2, y), knownProvisionalCountCallback, knownProvisionalCountValidator));
+		wxPoint(2, y), callback, validator));
 	y += knownProvisionalCountInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createKnownDecPrepollCountInput(int& y)
 {
-	auto knownDecPrepollCountCallback = [this](float f) -> void {seat.knownDecPrepollCount = f; };
-	auto knownDecPrepollCountValidator = [](float f) {return std::max(f, 0.0f); };
+	auto callback = [this](float f) -> void {seat.knownDecPrepollCount = f; };
+	auto validator = [](float f) {return std::max(f, 0.0f); };
 	knownDecPrepollCountInput.reset(new FloatInput(this, ControlId::KnownDecPrepollCount, "Known dec-prepoll count:", seat.knownDecPrepollCount,
-		wxPoint(2, y), knownDecPrepollCountCallback, knownDecPrepollCountValidator));
+		wxPoint(2, y), callback, validator));
 	y += knownDecPrepollCountInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createKnownPostalCountInput(int& y)
 {
-	auto knownPostalCountCallback = [this](float f) -> void {seat.knownPostalCount = f; };
-	auto knownPostalCountValidator = [](float f) {return std::max(f, 0.0f); };
+	auto callback = [this](float f) -> void {seat.knownPostalCount = f; };
+	auto validator = [](float f) {return std::max(f, 0.0f); };
 	knownPostalCountInput.reset(new FloatInput(this, ControlId::KnownPostalCount, "Known postal count:", seat.knownPostalCount,
-		wxPoint(2, y), knownPostalCountCallback, knownPostalCountValidator));
+		wxPoint(2, y), callback, validator));
 	y += knownPostalCountInput->Height + ControlPadding;
 }
 
@@ -455,7 +466,7 @@ void EditSeatFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	callback(seat);
+	okCallback(seat);
 
 	// Then close this dialog.
 	Close();
