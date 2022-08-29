@@ -1,12 +1,15 @@
-from scipy.interpolate import UnivariateSpline
-from sklearn.linear_model import QuantileRegressor
-from numpy import array, transpose, dot, average
-import math
-import argparse
-import statistics
 from election_code import ElectionCode, no_target_election_marker
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
+
+from scipy.interpolate import UnivariateSpline
+from sklearn.linear_model import QuantileRegressor
+from numpy import array, transpose, dot, average
+
+import argparse
+import math
+import os
+import statistics
 
 poll_score_threshold = 3
 
@@ -299,6 +302,34 @@ class RegressionInputs:
 # Parties that shouldn't be included as part of the OTH FP
 # when calculating exclusive-others vote shares
 not_others = ['@TPP', 'ALP FP', 'LNP FP', 'LIB FP', 'NAT FP', 'GRN FP', 'OTH FP']
+
+
+def analyse_pollsters(config):
+    print("Analysing pollsters")
+    directory = 'Outputs/Calibration'
+    filenames = os.listdir(directory)
+    weighted_error_sums = {}
+    weight_sums = {}
+    for filename in filenames:
+        if (filename[:5]) != 'calib': continue
+        _, election, pollster, party = filename.split(".")[0].split('_')
+        key = (pollster, party)
+        with open(f'{directory}/{filename}', 'r') as f:
+            stat_strs = f.readlines()[0].split(',')[:2]
+            error, weight = float(stat_strs[0]), float(stat_strs[1])
+            if key not in weighted_error_sums:
+                weighted_error_sums[key] = 14
+                weight_sums[key] = 7
+            weighted_error_sums[key] += weight * error
+            weight_sums[key] += weight
+
+    for key in sorted(weight_sums.keys()):
+        weight_sum = weight_sums[key]
+        weighted_error_sum = weighted_error_sums[key]
+        error_average = weighted_error_sum / weight_sum
+        error_stddev = error_average / math.sqrt(2 / math.pi)
+        print(f'{key[0]} error standard deviation for {key[1]}: {error_stddev} (data strength: {weight_sum - 7})')
+
 
 
 def create_fundamentals_inputs(inputs, target_election, party, avg_len):
@@ -884,7 +915,13 @@ def trend_adjust():
         return
 
     if config.check != "only":
+        # Pollster analysis is meant to include current election anyway
+        # so no need to run it for each exclusion
+        # Might want to change this if we want to run proper hindcasts
+        analyse_pollsters(config)
+
         for exclude in config.elections:
+            print(f'Analysing pollsters for {exclude}')
             print(f'Beginning trend adjustment algorithm for: {exclude}')
             inputs = Inputs(exclude)
             poll_trend = PollTrend(inputs, config)

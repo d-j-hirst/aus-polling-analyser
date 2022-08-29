@@ -14,6 +14,9 @@ try:
 except FileNotFoundError:
     pass
 
+overall_greens_swing = 1.85
+overall_tpp_swing = 1.69
+
 if vic_results is None:
     URL = 'https://results.aec.gov.au/27966/Website/HouseDivisionalResults-27966.htm'
     page = requests.get(URL)
@@ -23,9 +26,6 @@ if vic_results is None:
     seat_els = soup.find_all('td', class_='filterDivision')
 
     current_state = 'VIC'
-
-    overall_greens_swing = 1.85
-    overall_tpp_swing = 1.69
 
     # Ignore Greens total in Melbourne due to disendorsement of previous member
     ignore_greens_seats = {'Goldstein', 'Kooyong', 'Melbourne'}
@@ -58,7 +58,9 @@ if vic_results is None:
             booth_page = requests.get(booth_URL)
             booth_soup = BeautifulSoup(booth_page.content, 'html.parser')
             fp_greens_el = booth_soup.find('td', headers='fpPty', string="The Greens")
+            fp_greens_pct = float(fp_greens_el.find_next_sibling('td', headers='fpPct').text)
             fp_greens_swing = float(fp_greens_el.find_next_sibling('td', headers='fpSwg').text)
+            if abs(fp_greens_swing - fp_greens_pct) < 0.02: continue
             formal_el = booth_soup.find('td', headers='fpCan', string="Formal")
             fp_formal_text = formal_el.find_next_sibling('td', headers='fpVot').text
             fp_formal_int = int(fp_formal_text.replace(',', ''))
@@ -109,10 +111,24 @@ for seat, booth_keys in seat_booths.items():
         weighted_greens_swings[seat] += greens_swing * vote_total
         weighted_tpp_swings[seat] += tpp_swing * vote_total
         total_weights[seat] += vote_total
+
+tpp_list = []
+grn_list = []
 for seat, weighted_greens_swing in weighted_greens_swings.items():
     total_weight = total_weights[seat]
     weighted_tpp_swing = weighted_tpp_swings[seat]
     greens_swing = weighted_greens_swing / total_weight
     tpp_swing = weighted_tpp_swing / total_weight
-    print(f'{seat} federal greens swing estimate: {greens_swing}')
-    print(f'{seat} federal tpp swing estimate: {tpp_swing}')
+    tpp_deviation = tpp_swing - overall_tpp_swing
+    greens_deviation = greens_swing - overall_greens_swing
+    print(f'{seat} federal greens deviation: {greens_deviation}')
+    print(f'{seat} federal tpp deviation: {tpp_deviation}')
+    tpp_list.append((seat, tpp_deviation))
+    grn_list.append((seat, greens_deviation))
+
+for seat_name, tpp_dev in sorted(tpp_list, key=lambda x: x[1]):
+    print(f'{seat_name} federal tpp deviation: {tpp_dev}')
+
+for seat_name, grn_dev in sorted(grn_list, key=lambda x: x[1]):
+    print(f'{seat_name} federal GRN deviation: {grn_dev}')
+
