@@ -157,6 +157,11 @@ class ModellingData:
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
+        with open('./Outputs/Calibration/summaries.csv', 'r') as f:
+            self.pollster_sigmas = {(a[0], a[1]): float(a[2])
+                            for a in [b.strip().split(',')
+                            for b in f.readlines()]}
+
 
 class ElectionData:
     def __init__(self, config, m_data, desired_election):
@@ -434,10 +439,11 @@ def run_individual_party(config, m_data, e_data,
     # quality adjustment for polls
     sample_size = 1000  # treat good quality polls as being this size
     # adjust effective sample size according to quality
-    sigmas = df['Quality Adjustment'].apply(
-        lambda x: np.sqrt((50 * 50) / (sample_size * 0.6 ** 
-        (0 if config.calibrate_pollsters else x))))
-    
+    sigmas = df['Firm'].apply(
+        lambda x: 0 if config.calibrate_pollsters else
+        m_data.pollster_sigmas[(x, party)] if
+        (x, party) in m_data.pollster_sigmas else 3
+    )
 
     houseEffectOld = 240
     houseEffectNew = 120
@@ -445,9 +451,6 @@ def run_individual_party(config, m_data, e_data,
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:
         model = f.read()
-
-    print(n_houses)
-    print(n_exclude)
 
     # Prepare the data for Stan to process
     stan_data = {
