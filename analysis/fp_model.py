@@ -54,8 +54,17 @@ class Config:
                             'calculations so that their polls can be '
                             'calibrated using the trend from the other polls.',
                             default='none')
+        parser.add_argument('-b', '--bias', action='store_true',
+                            help='If set, will run in bias calibration '
+                            'mode. This will record relative bias for each '
+                            'pollster that can then be used to calibrate '
+                            'the house effects in actual forecast runs. '
+                            'Ignored if --calibrate is also used.',
+                            default='none')
         self.election_instructions = parser.parse_args().election.lower()
         self.calibrate_pollsters = parser.parse_args().calibrate == True
+        self.calibrate_bias = (not self.calibrate_pollsters and 
+                               parser.parse_args().bias == True)
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -396,7 +405,7 @@ def run_individual_party(config, m_data, e_data,
     houses = df['Firm'].unique().tolist()
     houseCounts = df['Firm'].value_counts()
     whitelist = m_data.anchoring_pollsters[e_data.e_tuple]
-    if config.calibrate_pollsters:
+    if config.calibrate_pollsters or config.calibrate_bias:
         exclusions = set()
     else:
         exclusions = set([h for h in houses if h not in whitelist])
@@ -527,11 +536,16 @@ def run_individual_party(config, m_data, e_data,
     import pystan.diagnostics as psd
     print(psd.check_hmc_diagnostics(fit))
 
-    # construct the file names to output to
+    # construct the file names that the script will output results into
+    # put calibration files in calibration folder, with the file name
+    # appended with the pollster name if calibrated for a pollster's variance
+    # or "biascal" if calibrating for bias.
     pollster_append = (f'_{excluded_pollster}' if 
-                       excluded_pollster != '' else '')
+                       excluded_pollster != '' else
+                       f'_biascal' if config.calibrate_bias else '')
     e_tag = ''.join(e_data.e_tuple)
-    calib_str = "Calibration/" if config.calibrate_pollsters else ""
+    calib_str = ("Calibration/" if config.calibrate_pollsters
+                 or config.calibrate_bias else "")
     folder = (f'./Outputs/{calib_str}')
     output_trend = f'{folder}fp_trend_{e_tag}_{party}{pollster_append}.csv'
     output_polls = f'{folder}fp_polls_{e_tag}_{party}{pollster_append}.csv'
