@@ -147,7 +147,8 @@ def fetch_results(election):
                 tpp_alp_swing = float(tpp_alp_el.find_next_sibling(
                                         'td', headers='tcpSwg').text)
             
-            if abs(tpp_alp_swing - tpp_alp_pct) < 0.02: continue
+            if (abs(tpp_alp_swing - tpp_alp_pct) < 0.02 or
+                fp_formal_int == 0): continue
             booth_key = (seat_name, booth_name)
             results.greens_swings[booth_key] = fp_greens_swing
             results.tpp_swings[booth_key] = tpp_alp_swing
@@ -215,8 +216,9 @@ def add_weighted_swings(seat_booths, results, election):
             total_weights[seat] += vote_total
     unused_booths = [a for a, b in booth_usage.items() if b == 0
         and 'EAV' not in a[1] and ' Team' not in a[1] and
-        'Adelaide (' not in a[1] and not (('Adelaide ') in a[1]
-        and (' PPVC') in a[1])]
+        'Adelaide (' not in a[1] and 'Melbourne (' not in a[1]
+        and not (('Adelaide ') in a[1] and (' PPVC') in a[1])
+        and not (('Melbourne ') in a[1] and (' PPVC') in a[1])]
     duplicated_booths = [a for a, b in booth_usage.items() if b > 1]
     print(f'Unused booths: {unused_booths}')
     print(f'Duplicated booths: {duplicated_booths}')

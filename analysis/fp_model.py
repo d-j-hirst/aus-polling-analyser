@@ -44,23 +44,19 @@ class Config:
         parser.add_argument('--election', action='store', type=str,
                             help='Generate forecast trend for this election.'
                             'Enter as 1234-xxx format,'
-                            ' e.g. 2013-fed. Write "none" to exclude no '
-                            'elections (for present-day forecasting) or "all" '
-                            'to do it for all elections (including "none"). '
-                            'Default is "none"', default='none')
+                            ' e.g. 2013-fed. Write "all" '
+                            'to do it for all elections.')
         parser.add_argument('-c', '--calibrate', action='store_true',
                             help='If set, will run in pollster calibration '
                             'mode. This will exclude each pollster from '
                             'calculations so that their polls can be '
-                            'calibrated using the trend from the other polls.',
-                            default='none')
+                            'calibrated using the trend from the other polls.')
         parser.add_argument('-b', '--bias', action='store_true',
                             help='If set, will run in bias calibration '
                             'mode. This will record relative bias for each '
                             'pollster that can then be used to calibrate '
                             'the house effects in actual forecast runs. '
-                            'Ignored if --calibrate is also used.',
-                            default='none')
+                            'Ignored if --calibrate is also used.')
         self.election_instructions = parser.parse_args().election.lower()
         self.calibrate_pollsters = parser.parse_args().calibrate == True
         self.calibrate_bias = (not self.calibrate_pollsters and 
@@ -73,9 +69,7 @@ class Config:
         with open('./Data/future-elections.csv', 'r') as f:
             elections += ElectionCode.load_elections_from_file(f)
         if self.election_instructions == 'all':
-            self.elections = elections + [no_target_election_marker]
-        elif self.election_instructions == 'none':
-            self.elections = [no_target_election_marker]
+            self.elections = elections
         else:
             parts = self.election_instructions.split('-')
             if len(parts) < 2:
@@ -96,8 +90,7 @@ class Config:
                 self.elections = [code]
             elif parts[2] == 'onwards':
                 try:
-                    self.elections = (elections[elections.index(code):]
-                        + [no_target_election_marker])
+                    self.elections = (elections[elections.index(code):])
                 except ValueError:
                     raise ConfigError('Error in "elections" argument: '
                                   'value given did not match any election '
