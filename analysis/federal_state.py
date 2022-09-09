@@ -33,7 +33,7 @@ alp_name = {
 }
 
 
-tpp_results = {
+tpp_swings = {
     '2022sa': {'Adelaide': 7.1, 'Badcoe': 10.1, 'Black': 6.5, 'Bragg': 8.8,
                'Chaffey': 0.8, 'Cheltenham': 2.4, 'Colton': 1.4,
                'Croydon': 1.5, 'Davenport': 11.6, 'Dunstan': 6.9, 'Elder': 7.5,
@@ -79,6 +79,54 @@ tpp_results = {
                'Wagga Wagga': 5.38, 'Wakehurst': 4.24, 'Wallsend': 4.64,
                'Willoughby': 3.44, 'Wollondilly': 3.46, 'Wollongong': 7.93,
                'Wyong': 3.72}
+}
+
+grn_swings = {
+    '2022sa': {'Adelaide': 0.8, 'Badcoe': 3.9, 'Black': 5.2, 'Bragg': 4.1,
+               'Chaffey': 4, 'Cheltenham': 4.6, 'Colton': 5.6,
+               'Croydon': 4.6, 'Davenport': 2.2, 'Dunstan': 4.7, 'Elder': 2.3,
+               'Elizabeth': 1.2, 'Enfield': 2.4, 'Finniss': -0.9,
+               'Flinders': -2.1, 'Florey': 4.5, 'Gibson': 5.5,
+               'Giles': -0.2, 'Hammond': 0.5, 'Hartley': 6.3, 'Heysen': 8.7,
+               'Hurtle Vale': 1.2, 'Kaurna': 1.7, 'Kavel': -1, 'King': -0.2,
+               'Lee': 4, 'Light': -0.3, 'Mawson': 0.7,
+               'Morialta': 4.8, 'Morphett': 7.3,
+               'Newland': 0.2, 'Playford': 4.6,
+               'Port Adelaide': 4.4, 'Ramsay': 1.3, 'Reynell': 5.5,
+               'Schubert': 4.8, 'Stuart': -1, 'Taylor': -1, 'Torrens': 3.3,
+               'Unley': 9.6, 'Waite': 0.9, 'West Torrens': 5.8, 'Wright': 2.7},
+    '2019nsw': {'Albury': 3.6, 'Auburn': 1.4, 'Ballina': 4.7, 'Balmain': 5.3,
+               'Bankstown': 1.7, 'Barwon': -3.2, 'Bathurst': -3.6,
+               'Baulkham Hills': -0.1, 'Bega': -0.4, 'Blacktown': 0,
+               'Blue Mountains': -4.1, 'Cabramatta': -0.1, 'Camden': -1.5,
+               'Campbelltown': -0.4, 'Canterbury': 2.9, 'Castle Hill': 0.9,
+               'Cessnock': -2.7, 'Charlestown': -0.6, 'Clarence': -4.8,
+               'Coffs Harbour': -7, 'Coogee': -4.1, 'Cootamundra': -0.6,
+               'Cronulla': -1.7, 'Davidson': 0.1, 'Drummoyne': -1.6,
+               'Dubbo': -0.8, 'East Hills': -1.8, 'Epping': -3.7,
+               'Fairfield': 2.4, 'Gosford': 0.1, 'Goulburn': 0.2,
+               'Granville': -1.7, 'Hawkesbury': -1.2, 'Heathcote': -0.3,
+               'Heffron': -2, 'Holsworthy': 0, 'Hornsby': -1.6,
+               'Keira': 1.8, 'Kiama': 0.8, 'Kogarah': 0,
+               'Ku-ring-gai': -2.8, 'Lake Macquarie': 0.1, 'Lakemba': -2.9,
+               'Lane Cove': -4.1, 'Lismore': -2.1, 'Liverpool': 0.9,
+               'Londonderry': 0.2, 'Macquarie Fields': 0.5,
+               'Maitland': 0.1, 'Manly': 1.8, 'Maroubra': -1.6,
+               'Miranda': -0.2, 'Monaro': 0.1, 'Mount Druitt': 1.8,
+               'Mulgoa': 1.4, 'Murray': 0.4, 'Myall Lakes': -1,
+               'Newcastle': -1.9, 'Newtown': 0.5, 'North Shore': -3.3,
+               'Northern Tablelands': -1.4, 'Oatley': -1, 'Orange': -1.6,
+               'Oxley': -2.4, 'Parramatta': -0.9, 'Penrith': -0.5,
+               'Pittwater': -0.8, 'Port Macquarie': -1.1,
+               'Port Stephens': -2.9, 'Prospect': -1.8, 'Riverstone': 0.6,
+               'Rockdale': 1.1, 'Ryde': -2.8, 'Seven Hills': -0.7,
+               'Shellharbour': 0.1, 'South Coast': 0.3, 'Strathfield': -0.4,
+               'Summer Hill': -6.7, 'Swansea': 1.1, 'Sydney': -0.2,
+               'Tamworth': 0.6, 'Terrigal': -1.7, 'The Entrance': -1.7,
+               'Tweed': 0.6, 'Upper Hunter': -0.7, 'Vaucluse': -4.4,
+               'Wagga Wagga': -2.2, 'Wakehurst': -2, 'Wallsend': -1.5,
+               'Willoughby': -4.7, 'Wollondilly': -2.8, 'Wollongong': 3.3,
+               'Wyong': 2.8}
 }
 
 
@@ -317,9 +365,9 @@ def calculate_deviations(config, seat_booths, results, election):
     # for seat_name, grn_dev in sorted(grn_list, key=lambda x: x[1]):
     #     print(f'{seat_name} federal GRN deviation: {grn_dev}')
 
-    if election in tpp_results:
+    if election in tpp_swings:
         fed_tpps = [tpp for seat, tpp in tpp_list]
-        state_tpps = [tpp_results[election][seat] for seat, tpp in tpp_list]
+        state_tpps = [tpp_swings[election][seat] for seat, tpp in tpp_list]
 
         inputs_array = numpy.transpose(numpy.array([fed_tpps]))
         outputs_array = numpy.array(state_tpps)
@@ -327,6 +375,7 @@ def calculate_deviations(config, seat_booths, results, election):
         sm_inputs = sm.add_constant(inputs_array)
         mod = sm.OLS(outputs_array, sm_inputs)
         fii = mod.fit()
+        print(f'Statistics for federal-state TPP correlations - {election}')
         print(fii.summary())
 
         # for q in (0.1, 0.5, 0.9):
@@ -339,6 +388,21 @@ def calculate_deviations(config, seat_booths, results, election):
         #     print(q)
         #     print(q_coefficient)
         #     print(q_intercept)
+    
+    if election in grn_swings:
+        this_grns = grn_swings[election]
+        fed_grn = [grn for seat, grn in grn_list if seat in this_grns]
+        state_grn = [this_grns[seat] for seat, grn in grn_list 
+                     if seat in this_grns]
+
+        inputs_array = numpy.transpose(numpy.array([fed_grn]))
+        outputs_array = numpy.array(state_grn)
+
+        sm_inputs = sm.add_constant(inputs_array)
+        mod = sm.OLS(outputs_array, sm_inputs)
+        fii = mod.fit()
+        print(f'Statistics for federal-state GRN correlations - {election}')
+        print(fii.summary())
 
 
 def analyse_specific_election(config):
