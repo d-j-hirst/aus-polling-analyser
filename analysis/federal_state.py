@@ -4,19 +4,32 @@ import requests
 from bs4 import BeautifulSoup
 from sklearn.linear_model import LinearRegression, QuantileRegressor
 import numpy
+import statsmodels.api as sm
 
 class ConfigError(ValueError):
     pass
 
 
+warnings = ''
+
+
 overall_greens_swings = {'2022vic': 1.85,
-                         '2022sa': 3.16}
+                         '2022sa': 3.16,
+                         '2019nsw': -0.24}
 overall_tpp_swings = {'2022vic': 1.69,
-                      '2022sa': 3.26}
+                      '2022sa': 3.26,
+                      '2019nsw': -1.25}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
     '2022vic': 27966,
-    '2022sa': 27966
+    '2022sa': 27966,
+    '2019nsw': 24310
+}
+
+alp_name = {
+    '2022vic': 'Australian Labor Party',
+    '2022sa': 'Australian Labor Party',
+    '2019nsw': 'Labor',
 }
 
 
@@ -33,7 +46,39 @@ tpp_results = {
                'Narungga': 4.1, 'Newland': 5.4, 'Playford': -2.7,
                'Port Adelaide': 5, 'Ramsay': 1.4, 'Reynell': 7.3,
                'Schubert': 3.8, 'Stuart': 14.7, 'Taylor': 7.8, 'Torrens': 4.3,
-               'Unley': 9.4, 'Waite': 11.4, 'West Torrens': 4.5, 'Wright': 8.8}
+               'Unley': 9.4, 'Waite': 11.4, 'West Torrens': 4.5, 'Wright': 8.8},
+    '2019nsw': {'Albury': -2.75, 'Auburn': 3.2, 'Ballina': 1.28, 'Balmain': 4.7,
+               'Bankstown': -0.15, 'Barwon': 10.37, 'Bathurst': -2.08,
+               'Baulkham Hills': 3.11, 'Bega': 1.26, 'Blacktown': 4.55,
+               'Blue Mountains': 6.71, 'Cabramatta': 8.33, 'Camden': 10.72,
+               'Campbelltown': 9.68, 'Canterbury': -2.66, 'Castle Hill': 4.72,
+               'Cessnock': -2.67, 'Charlestown': -0.55, 'Clarence': -4.79,
+               'Coffs Harbour': 3.53, 'Coogee': 4.56, 'Cootamundra': -6.65,
+               'Cronulla': 1.32, 'Davidson': 3.52, 'Drummoyne': 3.78,
+               'Dubbo': 2.27, 'East Hills': -0.08, 'Epping': 3.85,
+               'Fairfield': 0.14, 'Gosford': 7.04, 'Goulburn': 2.89,
+               'Granville': 5.53, 'Hawkesbury': 0.3, 'Heathcote': 2.63,
+               'Heffron': 1.03, 'Holsworthy': 3.41, 'Hornsby': 2.64,
+               'Keira': 2.35, 'Kiama': -3.35, 'Kogarah': -5.09,
+               'Ku-ring-gai': 2.46, 'Lake Macquarie': -5.79, 'Lakemba': 0.86,
+               'Lane Cove': 3.47, 'Lismore': 1.57, 'Liverpool': -4.17,
+               'Londonderry': -2.37, 'Macquarie Fields': 6.66,
+               'Maitland': -0.62, 'Manly': 13.7, 'Maroubra': -2.38,
+               'Miranda': -1.61, 'Monaro': -9.08, 'Mount Druitt': 0.97,
+               'Mulgoa': -1.67, 'Murray': 0.29, 'Myall Lakes': -0.45,
+               'Newcastle': 10.33, 'Newtown': 3.24, 'North Shore': 4.07,
+               'Northern Tablelands': -5.77, 'Oatley': -3.93, 'Orange': 6.65,
+               'Oxley': -3.98, 'Parramatta': 2.21, 'Penrith': 4.9,
+               'Pittwater': 5.53, 'Port Macquarie': -1.32,
+               'Port Stephens': 1.03, 'Prospect': 7.26, 'Riverstone': 5.9,
+               'Rockdale': 4.8, 'Ryde': 2.55, 'Seven Hills': 2.39,
+               'Shellharbour': 1.3, 'South Coast': -0.93, 'Strathfield': 3.22,
+               'Summer Hill': 2.16, 'Swansea': -2.42, 'Sydney': 3.7,
+               'Tamworth': -0.53, 'Terrigal': -3.32, 'The Entrance': 4.84,
+               'Tweed': -1.78, 'Upper Hunter': -0.35, 'Vaucluse': 4.72,
+               'Wagga Wagga': 5.38, 'Wakehurst': 4.24, 'Wallsend': 4.64,
+               'Willoughby': 3.44, 'Wollondilly': 3.46, 'Wollongong': 7.93,
+               'Wyong': 3.72}
 }
 
 
@@ -43,7 +88,8 @@ def gen_fed_url(election):
 
 fed_results_urls = {
     '2022vic': (gen_fed_url("2022vic")),
-    '2022sa': (gen_fed_url("2022sa"))
+    '2022sa': (gen_fed_url("2022sa")),
+    '2019nsw': (gen_fed_url("2019nsw"))
 }
 ignore_greens_seats_election = {
     # Ignore Greens total in Melbourne due to disendorsement of previous member
@@ -51,7 +97,9 @@ ignore_greens_seats_election = {
     # natural vote
     '2022vic': {'Goldstein', 'Kooyong', 'Melbourne'},
     # Sharkie is already incumbent in Mayo so no need to exclude it
-    '2022sa': {}
+    '2022sa': {},
+    # Sharkie is already incumbent in Mayo so no need to exclude it
+    '2019nsw': {'Warringah'}
 }
 assume_tpp_seats_election = {
     # Melbourne and Isaacs are set to state average as the previous
@@ -65,7 +113,14 @@ assume_tpp_seats_election = {
                 'Nicholls': 2.88,
                 'Wannon': 1.13,
                 'Wills': 0.06},
-    '2022sa': {'Mayo': 4.13}
+    '2022sa': {'Mayo': 4.13},
+    '2019nsw': {'Cowper': 0.7, 
+                'Farrer': 0.7, 
+                'Grayndler': 1.47,
+                'New England': -1.21,
+                'Warringah': 8.97,
+                'Wentworth': 7.9,
+                'Whitlam': -2.81}
 }
 
 
@@ -77,7 +132,10 @@ class Config:
                             help='Generate federal comparisons for this state '
                             'election. Enter as 1234-xxx format,'
                             ' e.g. 2013-fed.')
+        parser.add_argument('--hideseats', action='store_true',
+                            help='Hide individual seat output')
         self.election = parser.parse_args().election.lower().replace('-', '')
+        self.hide_seats = parser.parse_args().hideseats
 
 
 class Results:
@@ -141,7 +199,7 @@ def fetch_results(election):
             else:
                 tpp_alp_el = booth_soup.find('td',
                                             headers='tcpPty',
-                                             text="Australian Labor Party")
+                                             text=alp_name[election])
                 tpp_alp_pct = float(tpp_alp_el.find_next_sibling(
                                         'td', headers='tcpPct').text)
                 tpp_alp_swing = float(tpp_alp_el.find_next_sibling(
@@ -193,6 +251,7 @@ def parse_booth_file(election):
 
 
 def add_weighted_swings(seat_booths, results, election):
+    global warnings
     weighted_greens_swings = {}
     weighted_tpp_swings = {}
     total_weights = {}
@@ -200,8 +259,8 @@ def add_weighted_swings(seat_booths, results, election):
     for seat, booth_keys in seat_booths.items():
         for booth_key in booth_keys:
             if booth_key not in results.vote_totals:
-                print(f'Warning: booth {booth_key[1]} '
-                      f'in seat {booth_key[0]} not found!')
+                warnings += (f'Warning: booth {booth_key[1]} '
+                             f'in seat {booth_key[0]} not found!\n')
                 continue
             booth_usage[booth_key] += 1
             greens_swing = results.greens_swings[booth_key]
@@ -215,17 +274,20 @@ def add_weighted_swings(seat_booths, results, election):
             weighted_tpp_swings[seat] += tpp_swing * vote_total
             total_weights[seat] += vote_total
     unused_booths = [a for a, b in booth_usage.items() if b == 0
-        and 'EAV' not in a[1] and ' Team' not in a[1] and
+        and 'EAV' not in a[1] and ' Team' not in a[1]
+        and 'Divisional Office' not in a[1] and 'BLV' not in a[1] and
         'Adelaide (' not in a[1] and 'Melbourne (' not in a[1]
+        and 'Sydney (' not in a[1]
         and not (('Adelaide ') in a[1] and (' PPVC') in a[1])
-        and not (('Melbourne ') in a[1] and (' PPVC') in a[1])]
+        and not (('Melbourne ') in a[1] and (' PPVC') in a[1])
+        and not (('Sydney ') in a[1] and (' PPVC') in a[1])]
     duplicated_booths = [a for a, b in booth_usage.items() if b > 1]
-    print(f'Unused booths: {unused_booths}')
-    print(f'Duplicated booths: {duplicated_booths}')
+    warnings += (f'Unused booths: {unused_booths}\n')
+    warnings += (f'Duplicated booths: {duplicated_booths}\n')
     return (weighted_greens_swings, weighted_tpp_swings, total_weights)
 
 
-def calculate_deviations(seat_booths, results, election):
+def calculate_deviations(config, seat_booths, results, election):
 
     weighted_greens_swings, weighted_tpp_swings, total_weights = \
         add_weighted_swings(seat_booths, results, election)
@@ -243,8 +305,9 @@ def calculate_deviations(seat_booths, results, election):
         tpp_swing = weighted_tpp_swing / total_weight
         tpp_deviation = tpp_swing - overall_tpp_swing
         greens_deviation = greens_swing - overall_greens_swing
-        print(f'{seat} federal greens deviation: {greens_deviation}')
-        print(f'{seat} federal tpp deviation: {tpp_deviation}')
+        if not config.hide_seats:
+            print(f'{seat} federal greens deviation: {greens_deviation}')
+            print(f'{seat} federal tpp deviation: {tpp_deviation}')
         tpp_list.append((seat, tpp_deviation))
         grn_list.append((seat, greens_deviation))
 
@@ -260,16 +323,11 @@ def calculate_deviations(seat_booths, results, election):
 
         inputs_array = numpy.transpose(numpy.array([fed_tpps]))
         outputs_array = numpy.array(state_tpps)
-        
-        reg = LinearRegression().fit(inputs_array, outputs_array)
-        
-        coefficient = reg.coef_[0]
-        intercept = reg.intercept_
-        score = reg.score(inputs_array, outputs_array)
 
-        print(coefficient)
-        print(intercept)
-        print(score)
+        sm_inputs = sm.add_constant(inputs_array)
+        mod = sm.OLS(outputs_array, sm_inputs)
+        fii = mod.fit()
+        print(fii.summary())
 
         # for q in (0.1, 0.5, 0.9):
         #     q_reg = (QuantileRegressor(alpha=0, quantile=q)
@@ -283,13 +341,14 @@ def calculate_deviations(seat_booths, results, election):
         #     print(q_intercept)
 
 
-def analyse_specific_election(election):
+def analyse_specific_election(config):
+    election = config.election
 
     results = obtain_results(election)
 
     seat_booths = parse_booth_file(election)
 
-    calculate_deviations(seat_booths, results, election)
+    calculate_deviations(config, seat_booths, results, election)
 
 
 def analyse():
@@ -299,7 +358,8 @@ def analyse():
         print('Could not process configuration due to the following issue:')
         print(str(e))
         return
-    analyse_specific_election(config.election)
+    analyse_specific_election(config)
+    print(warnings.strip())
 
 
 if __name__ == '__main__':
