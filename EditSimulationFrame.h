@@ -20,6 +20,7 @@ class FloatInput;
 class IntInput;
 class ProjectionCollection;
 class TextInput;
+class DateInput;
 
 // ----------------------------------------------------------------------------
 // constants
@@ -40,7 +41,7 @@ public:
 
 	// function: whether this is for a new projection or editing an existing projection
 	// callback: function to be called when the OK button is pressed
-	EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings settings = Simulation::Settings());
+	EditSimulationFrame(Function function, OkCallback okCallback, ProjectionCollection const& projections, Simulation::Settings settings = Simulation::Settings());
 
 private:
 
@@ -58,6 +59,7 @@ private:
 	void createPreloadUrlInput(int& y);
 	void createCurrentTestUrlInput(int& y);
 	void createCurrentRealUrlInput(int& y);
+	void createFedElectionDateInput(int& y);
 
 	void createOkCancelButtons(int& y);
 
@@ -87,10 +89,11 @@ private:
 	std::unique_ptr<TextInput> preloadUrlInput;
 	std::unique_ptr<TextInput> currentTestUrlInput;
 	std::unique_ptr<TextInput> currentRealUrlInput;
+	std::unique_ptr<DateInput> fedElectionDateInput;
 
 	wxButton* okButton;
 	wxButton* cancelButton;
 
 	// function to call back to once the user clicks OK.
-	OkCallback callback;
+	OkCallback okCallback;
 };

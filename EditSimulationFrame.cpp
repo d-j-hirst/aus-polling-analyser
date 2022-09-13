@@ -27,12 +27,13 @@ enum ControlId
 	PreviousResultsUrl,
 	PreloadUrl,
 	CurrentTestUrl,
-	CurrentRealUrl
+	CurrentRealUrl,
+	FedElectionDate
 };
 
-EditSimulationFrame::EditSimulationFrame(Function function, OkCallback callback, ProjectionCollection const& projections, Simulation::Settings simulation)
+EditSimulationFrame::EditSimulationFrame(Function function, OkCallback okCallback, ProjectionCollection const& projections, Simulation::Settings simulation)
 	: wxDialog(NULL, 0, (function == Function::New ? "New Simulation" : "Edit Simulation"), wxDefaultPosition, wxSize(500, 400)),
-	callback(callback), projections(projections), simulationSettings(simulation)
+	okCallback(okCallback), projections(projections), simulationSettings(simulation)
 {
 	// If a model has not been specified it should default to the first.
 	if (simulationSettings.baseProjection == Projection::InvalidId) this->simulationSettings.baseProjection = projections.indexToId(0);
@@ -55,14 +56,15 @@ void EditSimulationFrame::createControls(int & y)
 	createPreloadUrlInput(y);
 	createCurrentTestUrlInput(y);
 	createCurrentRealUrlInput(y);
+	createFedElectionDateInput(y);
 
 	createOkCancelButtons(y);
 }
 
 void EditSimulationFrame::createNameInput(int & y)
 {
-	auto nameCallback = [this](std::string s) -> void {simulationSettings.name = s; };
-	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", simulationSettings.name, wxPoint(2, y), nameCallback));
+	auto callback = [this](std::string s) -> void {simulationSettings.name = s; };
+	nameInput.reset(new TextInput(this, ControlId::Name, "Name:", simulationSettings.name, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
@@ -77,27 +79,27 @@ void EditSimulationFrame::createProjectionInput(int & y)
 		++count;
 	}
 
-	auto projectionCallback = [this](int i) {simulationSettings.baseProjection = projections.indexToId(i); };
+	auto callback = [this](int i) {simulationSettings.baseProjection = projections.indexToId(i); };
 	projectionInput.reset(new ChoiceInput(this, ControlId::BaseProjection, "Base projection: ", projectionArray, selectedProjection,
-		wxPoint(2, y), projectionCallback));
+		wxPoint(2, y), callback));
 	y += projectionInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createNumIterationsInput(int & y)
 {
-	auto numIterationsCallback = [this](int i) -> void {simulationSettings.numIterations = i; };
-	auto numIterationsValidator = [](int i) {return std::max(1, i); };
+	auto callback = [this](int i) -> void {simulationSettings.numIterations = i; };
+	auto validator = [](int i) {return std::max(1, i); };
 	numIterationsInput.reset(new IntInput(this, ControlId::NumIterations, "Number of Iterations:", simulationSettings.numIterations,
-		wxPoint(2, y), numIterationsCallback, numIterationsValidator));
+		wxPoint(2, y), callback, validator));
 	y += numIterationsInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createPrevElection2ppInput(int & y)
 {
-	auto prevElection2ppCallback = [this](float f) -> void {simulationSettings.prevElection2pp = f; };
-	auto prevElection2ppValidator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	auto callback = [this](float f) -> void {simulationSettings.prevElection2pp = f; };
+	auto validator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
 	prevElection2ppInput.reset(new FloatInput(this, ControlId::PrevElection2pp, "Previous election 2pp:", simulationSettings.prevElection2pp,
-		wxPoint(2, y), prevElection2ppCallback, prevElection2ppValidator));
+		wxPoint(2, y), callback, validator));
 	y += prevElection2ppInput->Height + ControlPadding;
 }
 
@@ -111,8 +113,8 @@ void EditSimulationFrame::createPrevTermCodesInput(int& y)
 		}
 	}
 
-	auto prevTermCodesCallback = std::bind(&EditSimulationFrame::updatePrevTermCodes, this, _1);
-	prevTermCodesInput.reset(new TextInput(this, ControlId::PrevTermCodes, "Previous Term Codes:", termCodes, wxPoint(2, y), prevTermCodesCallback));
+	auto callback = std::bind(&EditSimulationFrame::updatePrevTermCodes, this, _1);
+	prevTermCodesInput.reset(new TextInput(this, ControlId::PrevTermCodes, "Previous Term Codes:", termCodes, wxPoint(2, y), callback));
 	y += prevTermCodesInput->Height + ControlPadding;
 }
 
@@ -123,9 +125,9 @@ void EditSimulationFrame::createLiveInput(int & y)
 	liveArray.push_back("Manual input");
 	liveArray.push_back("Automatic downloading");
 
-	auto liveCallback = [this](int i) {simulationSettings.live = Simulation::Settings::Mode(i); };
+	auto callback = [this](int i) {simulationSettings.live = Simulation::Settings::Mode(i); };
 	liveInput.reset(new ChoiceInput(this, ControlId::Live, "Live status:", liveArray, int(simulationSettings.live),
-		wxPoint(2, y), liveCallback));
+		wxPoint(2, y), callback));
 	y += liveInput->Height + ControlPadding;
 }
 
@@ -136,38 +138,46 @@ void EditSimulationFrame::createReportModeInput(int& y)
 	reportModeArray.push_back("Live Forecast");
 	reportModeArray.push_back("Nowcast");
 
-	auto reportModeCallback = [this](int i) {simulationSettings.reportMode = Simulation::Settings::ReportMode(i); };
+	auto callback = [this](int i) {simulationSettings.reportMode = Simulation::Settings::ReportMode(i); };
 	reportModeInput.reset(new ChoiceInput(this, ControlId::ReportMode, "Report Mode:", reportModeArray, int(simulationSettings.reportMode),
-		wxPoint(2, y), reportModeCallback));
+		wxPoint(2, y), callback));
 	y += liveInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createPreviousResultsUrlInput(int& y)
 {
-	auto previousResultsUrlCallback = [this](std::string s) -> void {simulationSettings.previousResultsUrl = s; };
-	previousResultsUrlInput.reset(new TextInput(this, ControlId::PreviousResultsUrl, "Previous Results URL:", simulationSettings.previousResultsUrl, wxPoint(2, y), previousResultsUrlCallback));
+	auto callback = [this](std::string s) -> void {simulationSettings.previousResultsUrl = s; };
+	previousResultsUrlInput.reset(new TextInput(this, ControlId::PreviousResultsUrl, "Previous Results URL:", simulationSettings.previousResultsUrl, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createPreloadUrlInput(int& y)
 {
-	auto preloadUrlCallback = [this](std::string s) -> void {simulationSettings.preloadUrl = s; };
-	preloadUrlInput.reset(new TextInput(this, ControlId::PreloadUrl, "Preload URL:", simulationSettings.preloadUrl, wxPoint(2, y), preloadUrlCallback));
+	auto callback = [this](std::string s) -> void {simulationSettings.preloadUrl = s; };
+	preloadUrlInput.reset(new TextInput(this, ControlId::PreloadUrl, "Preload URL:", simulationSettings.preloadUrl, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createCurrentTestUrlInput(int& y)
 {
-	auto currentTestUrlCallback = [this](std::string s) -> void {simulationSettings.currentTestUrl = s; };
-	currentTestUrlInput.reset(new TextInput(this, ControlId::CurrentTestUrl, "Current Test URL:", simulationSettings.currentTestUrl, wxPoint(2, y), currentTestUrlCallback));
+	auto callback = [this](std::string s) -> void {simulationSettings.currentTestUrl = s; };
+	currentTestUrlInput.reset(new TextInput(this, ControlId::CurrentTestUrl, "Current Test URL:", simulationSettings.currentTestUrl, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createCurrentRealUrlInput(int& y)
 {
-	auto currentRealUrlCallback = [this](std::string s) -> void {simulationSettings.currentRealUrl = s; };
-	currentRealUrlInput.reset(new TextInput(this, ControlId::CurrentRealUrl, "Current Real URL:", simulationSettings.currentRealUrl, wxPoint(2, y), currentRealUrlCallback));
+	auto callback = [this](std::string s) -> void {simulationSettings.currentRealUrl = s; };
+	currentRealUrlInput.reset(new TextInput(this, ControlId::CurrentRealUrl, "Current Real URL:", simulationSettings.currentRealUrl, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createFedElectionDateInput(int& y)
+{
+	auto callback = [this](wxDateTime const& d) -> void {simulationSettings.fedElectionDate = d; };
+	fedElectionDateInput.reset(new DateInput(this, ControlId::FedElectionDate, "Federal Election Date: ", simulationSettings.fedElectionDate,
+		wxPoint(2, y), callback));
+	y += fedElectionDateInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createOkCancelButtons(int & y)
@@ -188,7 +198,7 @@ void EditSimulationFrame::setFinalWindowHeight(int y)
 
 void EditSimulationFrame::OnOK(wxCommandEvent& WXUNUSED(event))
 {
-	callback(simulationSettings);
+	okCallback(simulationSettings);
 	// Then close this dialog.
 	Close();
 }

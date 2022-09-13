@@ -58,6 +58,8 @@ public:
 
 		Projection::Id baseProjection = Projection::InvalidId;
 
+		wxDateTime fedElectionDate = wxInvalidDateTime;
+
 		float prevElection2pp = 50.0f;
 
 		std::string previousResultsUrl;

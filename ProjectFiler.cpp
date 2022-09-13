@@ -59,7 +59,8 @@
 // Version 52: prepoll and postal figures for seats
 // Version 53: total declaration vote counts
 // Version 54: Store TPP swing transposed from other election (federal/state)
-constexpr int VersionNum = 54;
+// Version 55: federal election date (for federal/state correlations)
+constexpr int VersionNum = 55;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -827,6 +828,7 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().preloadUrl;
 		saveOutput << thisSimulation.getSettings().currentTestUrl;
 		saveOutput << thisSimulation.getSettings().currentRealUrl;
+		saveOutput << thisSimulation.getSettings().fedElectionDate.GetJulianDayNumber();
 		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
 		saveReport(saveOutput, thisSimulation.latestReport);
 		saveOutput.outputAsType<uint32_t>(thisSimulation.savedReports.size());
@@ -865,6 +867,9 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 			saveInput >> thisSettings.preloadUrl;
 			saveInput >> thisSettings.currentTestUrl;
 			saveInput >> thisSettings.currentRealUrl;
+		}
+		if (versionNum >= 55) {
+			thisSettings.fedElectionDate = wxDateTime(saveInput.extract<double>());
 		}
 		Simulation thisSimulation = Simulation(thisSettings);
 		if (versionNum >= 12) {
