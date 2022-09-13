@@ -13,23 +13,34 @@ class ConfigError(ValueError):
 warnings = ''
 
 
-overall_greens_swings = {'2022vic': 1.85,
-                         '2022sa': 3.16,
-                         '2019nsw': -0.24}
 overall_tpp_swings = {'2022vic': 1.69,
                       '2022sa': 3.26,
-                      '2019nsw': -1.25}
+                      '2019nsw': -1.17,
+                      '2018vic': 1.31}
+overall_grn_swings = {'2022vic': 1.85,
+                      '2022sa': 3.16,
+                      '2019nsw': 0.17,
+                      '2018vic': -1.24}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
     '2022vic': 27966,
     '2022sa': 27966,
-    '2019nsw': 24310
+    '2019nsw': 24310,
+    '2018vic': 24310,
 }
 
 alp_name = {
     '2022vic': 'Australian Labor Party',
     '2022sa': 'Australian Labor Party',
     '2019nsw': 'Labor',
+    '2018vic': 'Australian Labor Party',
+}
+
+grn_name = {
+    '2022vic': 'The Greens',
+    '2022sa': 'The Greens',
+    '2019nsw': 'The Greens',
+    '2018vic': 'The Greens (VIC)',
 }
 
 
@@ -48,37 +59,68 @@ tpp_swings = {
                'Schubert': 3.8, 'Stuart': 14.7, 'Taylor': 7.8, 'Torrens': 4.3,
                'Unley': 9.4, 'Waite': 11.4, 'West Torrens': 4.5, 'Wright': 8.8},
     '2019nsw': {'Albury': -2.75, 'Auburn': 3.2, 'Ballina': 1.28, 'Balmain': 4.7,
-               'Bankstown': -0.15, 'Barwon': 10.37, 'Bathurst': -2.08,
-               'Baulkham Hills': 3.11, 'Bega': 1.26, 'Blacktown': 4.55,
-               'Blue Mountains': 6.71, 'Cabramatta': 8.33, 'Camden': 10.72,
-               'Campbelltown': 9.68, 'Canterbury': -2.66, 'Castle Hill': 4.72,
-               'Cessnock': -2.67, 'Charlestown': -0.55, 'Clarence': -4.79,
-               'Coffs Harbour': 3.53, 'Coogee': 4.56, 'Cootamundra': -6.65,
-               'Cronulla': 1.32, 'Davidson': 3.52, 'Drummoyne': 3.78,
-               'Dubbo': 2.27, 'East Hills': -0.08, 'Epping': 3.85,
-               'Fairfield': 0.14, 'Gosford': 7.04, 'Goulburn': 2.89,
-               'Granville': 5.53, 'Hawkesbury': 0.3, 'Heathcote': 2.63,
-               'Heffron': 1.03, 'Holsworthy': 3.41, 'Hornsby': 2.64,
-               'Keira': 2.35, 'Kiama': -3.35, 'Kogarah': -5.09,
-               'Ku-ring-gai': 2.46, 'Lake Macquarie': -5.79, 'Lakemba': 0.86,
-               'Lane Cove': 3.47, 'Lismore': 1.57, 'Liverpool': -4.17,
-               'Londonderry': -2.37, 'Macquarie Fields': 6.66,
-               'Maitland': -0.62, 'Manly': 13.7, 'Maroubra': -2.38,
-               'Miranda': -1.61, 'Monaro': -9.08, 'Mount Druitt': 0.97,
-               'Mulgoa': -1.67, 'Murray': 0.29, 'Myall Lakes': -0.45,
-               'Newcastle': 10.33, 'Newtown': 3.24, 'North Shore': 4.07,
-               'Northern Tablelands': -5.77, 'Oatley': -3.93, 'Orange': 6.65,
-               'Oxley': -3.98, 'Parramatta': 2.21, 'Penrith': 4.9,
-               'Pittwater': 5.53, 'Port Macquarie': -1.32,
-               'Port Stephens': 1.03, 'Prospect': 7.26, 'Riverstone': 5.9,
-               'Rockdale': 4.8, 'Ryde': 2.55, 'Seven Hills': 2.39,
-               'Shellharbour': 1.3, 'South Coast': -0.93, 'Strathfield': 3.22,
-               'Summer Hill': 2.16, 'Swansea': -2.42, 'Sydney': 3.7,
-               'Tamworth': -0.53, 'Terrigal': -3.32, 'The Entrance': 4.84,
-               'Tweed': -1.78, 'Upper Hunter': -0.35, 'Vaucluse': 4.72,
-               'Wagga Wagga': 5.38, 'Wakehurst': 4.24, 'Wallsend': 4.64,
-               'Willoughby': 3.44, 'Wollondilly': 3.46, 'Wollongong': 7.93,
-               'Wyong': 3.72}
+                'Bankstown': -0.15, 'Barwon': 10.37, 'Bathurst': -2.08,
+                'Baulkham Hills': 3.11, 'Bega': 1.26, 'Blacktown': 4.55,
+                'Blue Mountains': 6.71, 'Cabramatta': 8.33, 'Camden': 10.72,
+                'Campbelltown': 9.68, 'Canterbury': -2.66, 'Castle Hill': 4.72,
+                'Cessnock': -2.67, 'Charlestown': -0.55, 'Clarence': -4.79,
+                'Coffs Harbour': 3.53, 'Coogee': 4.56, 'Cootamundra': -6.65,
+                'Cronulla': 1.32, 'Davidson': 3.52, 'Drummoyne': 3.78,
+                'Dubbo': 2.27, 'East Hills': -0.08, 'Epping': 3.85,
+                'Fairfield': 0.14, 'Gosford': 7.04, 'Goulburn': 2.89,
+                'Granville': 5.53, 'Hawkesbury': 0.3, 'Heathcote': 2.63,
+                'Heffron': 1.03, 'Holsworthy': 3.41, 'Hornsby': 2.64,
+                'Keira': 2.35, 'Kiama': -3.35, 'Kogarah': -5.09,
+                'Ku-ring-gai': 2.46, 'Lake Macquarie': -5.79, 'Lakemba': 0.86,
+                'Lane Cove': 3.47, 'Lismore': 1.57, 'Liverpool': -4.17,
+                'Londonderry': -2.37, 'Macquarie Fields': 6.66,
+                'Maitland': -0.62, 'Manly': 13.7, 'Maroubra': -2.38,
+                'Miranda': -1.61, 'Monaro': -9.08, 'Mount Druitt': 0.97,
+                'Mulgoa': -1.67, 'Murray': 0.29, 'Myall Lakes': -0.45,
+                'Newcastle': 10.33, 'Newtown': 3.24, 'North Shore': 4.07,
+                'Northern Tablelands': -5.77, 'Oatley': -3.93, 'Orange': 6.65,
+                'Oxley': -3.98, 'Parramatta': 2.21, 'Penrith': 4.9,
+                'Pittwater': 5.53, 'Port Macquarie': -1.32,
+                'Port Stephens': 1.03, 'Prospect': 7.26, 'Riverstone': 5.9,
+                'Rockdale': 4.8, 'Ryde': 2.55, 'Seven Hills': 2.39,
+                'Shellharbour': 1.3, 'South Coast': -0.93, 'Strathfield': 3.22,
+                'Summer Hill': 2.16, 'Swansea': -2.42, 'Sydney': 3.7,
+                'Tamworth': -0.53, 'Terrigal': -3.32, 'The Entrance': 4.84,
+                'Tweed': -1.78, 'Upper Hunter': -0.35, 'Vaucluse': 4.72,
+                'Wagga Wagga': 5.38, 'Wakehurst': 4.24, 'Wallsend': 4.64,
+                'Willoughby': 3.44, 'Wollondilly': 3.46, 'Wollongong': 7.93,
+                'Wyong': 3.72},
+    '2018vic': {'Albert Park': 10.17, 'Altona': 2.01, 'Bass': 6.94,
+                'Bayswater': 5.01, 'Bellarine': 6.61, 'Benambra': 0.76,
+                'Bendigo East': 7.12, 'Bendigo West': 6.37, 'Bentleigh': 11.27,
+                'Box Hill': 7.8, 'Brighton': 8.66, 'Broadmeadows': 2.45,
+                'Brunswick': 4.98, 'Bulleen': 4.79, 'Bundoora': 5.2,
+                'Buninyong': 5.88, 'Burwood': 6.47, 'Carrum': 11.23,
+                'Caulfield': 4.61, 'Clarinda': 1.58, 'Cranbourne': 8.65,
+                'Croydon': 7.18, 'Dandenong': 11.05, 'Eildon': 1.32,
+                'Eltham': 6.37, 'Essendon': 7.2, 'Euroa': -0.97,
+                'Evelyn': 6.94, 'Ferntree Gully': 6.1, 'Footscray': 13.62,
+                'Forest Hill': 3.67, 'Frankston': 9.26, 'Geelong': 4.11,
+                'Gembrook': 8.16, 'Gippsland East': 0.32, 'Gippsland South': 0.34, 
+                'Hastings': 6.59, 'Hawthorn': 9.01, 'Ivanhoe': 8.96,
+                'Kew': 5.87, 'Keysborough': 2.95, 'Kororoit': 5.67,
+                'Lara': 2.03, 'Lowan': -2.22, 'Macedon': 9.4,
+                'Malvern': 10.15, 'Melbourne': 4.79, 'Melton': -6.93,
+                'Mildura': 14.61, 'Mill Park': 5.04, 'Monbulk': 3.65,
+                'Mordialloc': 10.87, 'Mornington': 7.61, 'Morwell': 4.21,
+                'Mount Waverley': 6.44, 'Mulgrave': 8.23, 'Murray Plains': -1.59,
+                'Narracan': 4.03, 'Narre Warren North': 5.19,
+                'Narre Warren South': 1.4, 'Nepean': 8.54, 'Niddrie': 4.88,
+                'Northcote': 3.41, 'Oakleigh': 7.6, 'Ovens Valley': 3.94,
+                'Pascoe Vale': 1.55, 'Polwarth': 5.24, 'Prahran': 7.58,
+                'Preston': 3.85, 'Richmond': 5.3, 'Ringwood': 7.89,
+                'Ripon': 0.99, 'Rowville': 2.72, 'Sandringham': 6.69,
+                'Shepparton': 1.56, 'South Barwon': 7.46, 'South-West Coast': 8.66,
+                'St Albans': 4.04, 'Sunbury': 10.03, 'Sydenham': 1.6,
+                'Tarneit': 3.44, 'Thomastown': -1.25, 'Warrandyte': 7.72,
+                'Wendouree': 4.47, 'Werribee': -3.1, 'Williamstown': 5.53,
+                'Yan Yean': 13.37, 'Yuroke': 1.74
+    }
 }
 
 grn_swings = {
@@ -126,7 +168,37 @@ grn_swings = {
                'Tweed': 0.6, 'Upper Hunter': -0.7, 'Vaucluse': -4.4,
                'Wagga Wagga': -2.2, 'Wakehurst': -2, 'Wallsend': -1.5,
                'Willoughby': -4.7, 'Wollondilly': -2.8, 'Wollongong': 3.3,
-               'Wyong': 2.8}
+               'Wyong': 2.8},
+    '2018vic': {'Albert Park': -0.21, 'Altona': -1.04, 'Bass': -3.41,
+                'Bayswater': -0.33, 'Bellarine': -0.43, 'Benambra': -5.31,
+                'Bendigo East': 0.76, 'Bendigo West': 1.3, 'Bentleigh': -3.05,
+                'Box Hill': 0.22, 'Brighton': -2.28, 'Broadmeadows': 2.49,
+                'Brunswick': 0.42, 'Bulleen': 1.55, 'Bundoora': -2.2,
+                'Buninyong': -1.77, 'Burwood': -0.8, 'Carrum': -1.71,
+                'Caulfield': -2.15, 'Clarinda': -0.76, 'Cranbourne': -0.24,
+                'Croydon': 0.31, 'Dandenong': -0.2, 'Eildon': -1.26,
+                'Eltham': -0.96, 'Essendon': -1.22, 'Euroa': 0.09,
+                'Evelyn': 3.44, 'Ferntree Gully': 0.49, 'Footscray': -0.46,
+                'Forest Hill': -0.08, 'Frankston': -0.4, 'Geelong': -2.51,
+                'Gembrook': 2.16, 'Gippsland East': -1.76, 'Gippsland South': 0.08, 
+                'Hastings': 1.23, 'Hawthorn': -3.07, 'Ivanhoe': -0.91,
+                'Kew': -0.94, 'Keysborough': -0.79, 'Kororoit': 1.21,
+                'Lara': -1.41, 'Lowan': -3.18, 'Macedon': -5.58,
+                'Malvern': -3.42, 'Melbourne': -2.59, 'Melton': -2.56,
+                'Mildura': 1.96, 'Mill Park': -1.63, 'Monbulk': 1.94,
+                'Mordialloc': -0.04, 'Mornington': -1.91, 'Morwell': -1.08,
+                'Mount Waverley': 0.67, 'Mulgrave': -0.82, 'Murray Plains': 0.22,
+                'Narracan': -2.99, 'Narre Warren North': 0.51,
+                'Narre Warren South': 0.43, 'Nepean': 0.18, 'Niddrie': -1.26,
+                'Northcote': 3.24, 'Oakleigh': -2.41, 'Ovens Valley': -5.54,
+                'Pascoe Vale': -3.34, 'Polwarth': -1.24, 'Prahran': 3.32,
+                'Preston': -1.05, 'Richmond': 2.77, 'Ringwood': 2.95,
+                'Ripon': -2.97, 'Rowville': 2.63, 'Sandringham': -5.62,
+                'Shepparton': -0.96, 'South Barwon': -3.7, 'South-West Coast': -3.61,
+                'St Albans': 3.13, 'Sunbury': -0.09, 'Sydenham': -0.71,
+                'Tarneit': -1.4, 'Thomastown': -0.95, 'Warrandyte': -0.07,
+                'Wendouree': -0.03, 'Werribee': -1.96, 'Williamstown': -4.67,
+                'Yan Yean': -0.42, 'Yuroke': 0.38},
 }
 
 
@@ -137,8 +209,10 @@ def gen_fed_url(election):
 fed_results_urls = {
     '2022vic': (gen_fed_url("2022vic")),
     '2022sa': (gen_fed_url("2022sa")),
-    '2019nsw': (gen_fed_url("2019nsw"))
+    '2019nsw': (gen_fed_url("2019nsw")),
+    '2018vic': (gen_fed_url("2018vic"))
 }
+
 ignore_greens_seats_election = {
     # Ignore Greens total in Melbourne due to disendorsement of previous member
     # and in Goldstein/Kooyong due to prominent independents distorting their
@@ -147,28 +221,172 @@ ignore_greens_seats_election = {
     # Sharkie is already incumbent in Mayo so no need to exclude it
     '2022sa': {},
     # Sharkie is already incumbent in Mayo so no need to exclude it
-    '2019nsw': {'Warringah'}
+    '2019nsw': {'Warringah'},
+    # Sharkie is already incumbent in Mayo so no need to exclude it
+    '2018vic': {}
 }
+
 assume_tpp_seats_election = {
     # Melbourne and Isaacs are set to state average as the previous
     # election's disendorsement distorts the result.
-    '2022vic': {'Cooper': -0.75,
-                'Goldstein': 2.99,
-                'Indi': 7.47,
-                'Isaacs': overall_tpp_swings['2022vic'],
-                'Kooyong': 2.21,
-                'Melbourne': overall_tpp_swings['2022vic'],
-                'Nicholls': 2.88,
-                'Wannon': 1.13,
-                'Wills': 0.06},
+    '2022vic': {
+        'Cooper': -0.75,
+        'Goldstein': 2.99,
+        'Indi': 7.47,
+        'Isaacs': overall_tpp_swings['2022vic'],
+        'Kooyong': 2.21,
+        'Melbourne': overall_tpp_swings['2022vic'],
+        'Nicholls': 2.88,
+        'Wannon': 1.13,
+        'Wills': 0.06
+    },
     '2022sa': {'Mayo': 4.13},
-    '2019nsw': {'Cowper': 0.7, 
-                'Farrer': 0.7, 
-                'Grayndler': 1.47,
-                'New England': -1.21,
-                'Warringah': 8.97,
-                'Wentworth': 7.9,
-                'Whitlam': -2.81}
+    '2019nsw': {
+        'Cowper': 0.7, 
+        'Farrer': 0.7, 
+        'Grayndler': 1.47,
+        'New England': -1.21,
+        'Warringah': 8.97,
+        'Wentworth': 7.9,
+        'Whitlam': -2.81
+    },
+    '2018vic': {
+        'Cooper': 4.23, 
+        'Indi': -7.72,
+        'Kooyong': 6.14,
+        'Wills': 4.18,
+        'Melbourne': 0.07,
+    }
+}
+
+adjust_tpp_state = {
+    '2022sa': {
+        'King': -1.96,
+        'Colton': -1.96,
+        'Elder': -1.96,
+        'Newland': -1.96,
+        'Croydon': 0.72,
+        'Croydon': 0.72,
+        'Badcoe': 0.72,
+        'Wright': 0.72,
+        'Playford': 0.72,
+        'Taylor': -1.22,
+        'Schubert': 1.3,
+        'Flinders': 1.3,
+        'Kavel': -0.72,
+        'Narungga': -0.72,
+        'Finniss': -0.72,
+        'Heysen': -0.72,
+        'Mackillop': -0.72,
+    },
+    '2019nsw': {
+        'Blue Mountains': 1.9,
+        'Gosford': 1.9,
+        'Campbelltown': 1.96,
+        'Granville': 1.96,
+        'Londonderry': 1.96,
+        'Rockdale': 1.96,
+        'Strathfield': 1.96,
+        'Maitland': 1.9,
+        'Port Stephens': 1.9,
+        'Swansea': 1.9,
+        'The Entrance': 1.9,
+        'Prospect': 1.96,
+        'Wyong': 1.9,
+        'Seven Hills': -1.96,
+        'Miranda': -1.96,
+        'Auburn': -1.22,
+        'Wollondilly': -1.3,
+        'Albury': 1.3,
+        'East Hills': 1.22,
+        'Goulburn': 1.3,
+        'Coffs Harbour': 1.3,
+        'Lismore': 1.3,
+        'Dubbo': 1.3,
+        'Barwon': 1.3,
+        'Camden': 1.22,
+        'Ku-ring-gai': -0.72,
+        'Epping': -0.72,
+        'Upper Hunter': -1.04,
+        'Oxley': -1.04,
+        'Terrigal': -1.04,
+        'Macquarie Fields': 0.72,
+        'Summer Hill': 0.72,
+        'Mount Druitt': 0.72,
+        'Kogarah': 0.72,
+        'Lakemba': 0.72,
+    },
+    '2018vic': {
+        'Bentleigh': 1.96,
+        'Carrum': 1.96,
+        'Mordialloc': 1.96,
+        'Frankston': 1.96,
+        'Ripon': 1.9,
+        'Narre Warren South': -1.22,
+        'Buninyong': -1.3,
+        'Wendouree': -1.3,
+        'Tarneit': -1.22,
+        'Clarinda': -1.22,
+        'Williamstown': -1.22,
+        'Cranbourne': -1.22,
+        'Footscray': -1.22,
+        'Melton': -1.22,
+        'Brighton': 1.22,
+        'Nepean': 1.22,
+        'Evelyn': 1.22,
+        'Sandringham': 1.22,
+        'Oakleigh': 0.72,
+        'Yuroke': 0.72,
+        'Pascoe Vale': 0.72,
+        'Essendon': 0.72,
+        'Dandenong': 0.72,
+        'Geelong': 0.72,
+        'Macedon': 1.04,
+        'Hawthorn': -0.72,
+        'Bulleen': -0.72,
+        'Kew': -0.72,
+        'Bass': -1.04,
+        'Lowan': -1.04,
+        'Benalla': -1.04,
+        'Yan Yean': 5,
+    }
+}
+
+adjust_tpp_federal = {
+    '2022sa': {
+        'Adelaide': 0.72,
+        'Sturt': -0.72,
+        'Boothby': 1.22,
+
+    },
+    '2019nsw': {
+        'Barton': 1.96,
+        'Macarthur': 1.96,
+        'Dobell': 1.9,
+        'Eden-Monaro': 1.9,
+        'Macquarie': 1.9,
+        'Paterson': 1.9,
+        'Lindsay': 1.2,
+        'Reid': 1.22,
+        'Gilmore': 1.3,
+        'Cowper': 1.3,
+        'Farrer': 2.5,
+    },
+    '2018vic': {
+        'Macnamara': -1.22,
+        'Higgins': 1.22,
+        'Mallee': 1.3,
+        'Jagajaga': -1.22,
+        'Isaacs': 5,
+        'Scullin': 5,
+        'Wills': 5,
+        'Melbourne': -5,
+        'Chisholm': -1.96,
+        'Dunkley': -0.72,
+        'Bruce': 0.72,
+        'Goldstein': -0.72,
+        'Nicholls': -1.04,
+    }
 }
 
 
@@ -208,7 +426,7 @@ def fetch_results(election):
 
     current_state = election[4:].upper()
 
-    overall_greens_swing = overall_greens_swings[election]
+    overall_greens_swing = overall_grn_swings[election]
     ignore_greens_seats = ignore_greens_seats_election[election]
     assume_tpp_seats = assume_tpp_seats_election[election]
 
@@ -232,7 +450,7 @@ def fetch_results(election):
             booth_page = requests.get(booth_URL)
             booth_soup = BeautifulSoup(booth_page.content, 'html.parser')
             fp_greens_el = booth_soup.find('td', headers='fpPty',
-                                            string="The Greens")
+                                            string=grn_name[election])
             fp_greens_swing = float(fp_greens_el.find_next_sibling(
                                     'td', headers='fpSwg').text)
             formal_el = booth_soup.find('td', headers='fpCan',
@@ -244,6 +462,7 @@ def fetch_results(election):
                 fp_greens_swing = overall_greens_swing
             if seat_name in assume_tpp_seats:
                 tpp_alp_swing = assume_tpp_seats[seat_name]
+                tpp_alp_pct = None
             else:
                 tpp_alp_el = booth_soup.find('td',
                                             headers='tcpPty',
@@ -252,11 +471,13 @@ def fetch_results(election):
                                         'td', headers='tcpPct').text)
                 tpp_alp_swing = float(tpp_alp_el.find_next_sibling(
                                         'td', headers='tcpSwg').text)
-            
-            if (abs(tpp_alp_swing - tpp_alp_pct) < 0.02 or
-                fp_formal_int == 0): continue
+            if tpp_alp_pct is not None:
+                if (abs(tpp_alp_swing - tpp_alp_pct) < 0.02 or
+                    fp_formal_int == 0): continue
             booth_key = (seat_name, booth_name)
             results.greens_swings[booth_key] = fp_greens_swing
+            if seat_name in adjust_tpp_federal[election]:
+                tpp_alp_swing -= adjust_tpp_federal[election][seat_name]
             results.tpp_swings[booth_key] = tpp_alp_swing
             results.vote_totals[booth_key] = fp_formal_int
         print(f'Downloaded booths for seat: {seat_name}')
@@ -330,6 +551,7 @@ def add_weighted_swings(seat_booths, results, election):
         and not (('Melbourne ') in a[1] and (' PPVC') in a[1])
         and not (('Sydney ') in a[1] and (' PPVC') in a[1])]
     duplicated_booths = [a for a, b in booth_usage.items() if b > 1]
+    #if election != '2018vic':
     warnings += (f'Unused booths: {unused_booths}\n')
     warnings += (f'Duplicated booths: {duplicated_booths}\n')
     return (weighted_greens_swings, weighted_tpp_swings, total_weights)
@@ -340,7 +562,7 @@ def calculate_deviations(config, seat_booths, results, election):
     weighted_greens_swings, weighted_tpp_swings, total_weights = \
         add_weighted_swings(seat_booths, results, election)
 
-    overall_greens_swing = overall_greens_swings[election]
+    overall_greens_swing = overall_grn_swings[election]
     overall_tpp_swing = overall_tpp_swings[election]
 
     seat_names = []
@@ -367,7 +589,11 @@ def calculate_deviations(config, seat_booths, results, election):
 
     if election in tpp_swings:
         fed_tpps = [tpp for seat, tpp in tpp_list]
-        state_tpps = [tpp_swings[election][seat] for seat, tpp in tpp_list]
+        state_tpps = [
+            tpp_swings[election][seat] - 
+            (adjust_tpp_state[election][seat] if
+             seat in adjust_tpp_state[election] else 0)
+            for seat, tpp in tpp_list]
 
         inputs_array = numpy.transpose(numpy.array([fed_tpps]))
         outputs_array = numpy.array(state_tpps)

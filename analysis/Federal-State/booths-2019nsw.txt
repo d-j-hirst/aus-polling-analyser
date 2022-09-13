@@ -2331,6 +2331,7 @@ Wentworth,Kings Cross Central (Wentworth)
 Wentworth,Kings Cross WENTWORTH PPVC
 Wentworth,Glebe WENTWORTH PPVC
 Wentworth,Paddington WENTWORTH PPVC
+Wentworth,Paddington Central PPVC
 Wentworth,Kings Cross (Wentworth)
 Wentworth,Darlinghurst South (Wentworth)
 Wentworth,Darlinghurst East (Wentworth)

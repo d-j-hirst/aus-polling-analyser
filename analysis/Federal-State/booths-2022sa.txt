@@ -31,7 +31,6 @@ Kingston,Brighton KINGSTON PPVC
 Kingston,Hallett Cove PPVC
 Kingston,Hallett Cove East
 Kingston,Hallett Cove South
-Kingston,Hallett Cove
 Kingston,Hallett Cove Central
 Kingston,Sheidow Park
 Kingston,Sheidow Park South
