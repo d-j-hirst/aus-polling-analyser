@@ -46,6 +46,7 @@ void SimulationIteration::runIteration()
 {
 	loadPastSeatResults();
 	initialiseIterationSpecificCounts();
+	determineFedStateCorrelation();
 	determineOverallTpp();
 	decideMinorPartyPopulism();
 	determineHomeRegions();
@@ -76,6 +77,19 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 {
 	partyOneNewTppMargin = std::vector<float>(project.seats().count(), 0.0f);
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
+}
+
+void SimulationIteration::determineFedStateCorrelation()
+{
+	auto fedElectionDate = sim.settings.fedElectionDate;
+	if (!fedElectionDate.IsValid()) {
+		fedStateCorrelation = 0.0f;
+		return;
+	}
+	auto projDate = project.projections().view(sim.settings.baseProjection).getSettings().endDate;
+	auto dateDiff = abs((projDate - fedElectionDate).GetDays());
+	float gammaMedian = 0.5555f * exp(-0.00294f * float(dateDiff));
+	fedStateCorrelation = rng.gamma(3.0f, 0.374f) * gammaMedian;
 }
 
 void SimulationIteration::determineOverallTpp()
@@ -481,6 +495,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	// Remove the average local modifier across the region
 	transformedTpp -= run.regionLocalModifierAverage[seat.region];
 	transformedTpp += run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
+	transformedTpp += fedStateCorrelation * seat.transposedTppSwing * logitDeriv(tppPrev);
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
@@ -545,32 +560,34 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 
 void SimulationIteration::correctSeatTppSwings()
 {
-	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		int regionId = project.regions().indexToId(regionIndex);
-		// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
-		double totalSwing = 0.0;
-		double totalTurnout = 0.0;
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.region != regionId) continue;
-			double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
-			double turnoutScaledSwing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin) * turnout;
-			totalSwing += turnoutScaledSwing;
-			totalTurnout += turnout;
-		}
-		// Theoretically this could cause the margin to fall outside valid bounds, but
-		// practically it's not close to ever happening so save a little computation time
-		// not bothering to check
-		double averageSwing = totalSwing / totalTurnout;
-		float swingAdjust = regionSwing[regionIndex] - float(averageSwing);
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.region != regionId) continue;
-			if (sim.isLive()) {
-				// If a seat has much live data, don't adjust it any more.
-				swingAdjust *= std::min(1.0f, 2.0f / run.liveSeatTcpCounted[seatIndex] - 0.2f);
+	if (run.regionCode == "fed") {
+		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+			int regionId = project.regions().indexToId(regionIndex);
+			// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
+			double totalSwing = 0.0;
+			double totalTurnout = 0.0;
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				Seat const& seat = project.seats().viewByIndex(seatIndex);
+				if (seat.region != regionId) continue;
+				double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
+				double turnoutScaledSwing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin) * turnout;
+				totalSwing += turnoutScaledSwing;
+				totalTurnout += turnout;
 			}
-			partyOneNewTppMargin[seatIndex] += swingAdjust;
+			// Theoretically this could cause the margin to fall outside valid bounds, but
+			// practically it's not close to ever happening so save a little computation time
+			// not bothering to check
+			double averageSwing = totalSwing / totalTurnout;
+			float swingAdjust = regionSwing[regionIndex] - float(averageSwing);
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				Seat const& seat = project.seats().viewByIndex(seatIndex);
+				if (seat.region != regionId) continue;
+				if (sim.isLive()) {
+					// If a seat has much live data, don't adjust it any more.
+					swingAdjust *= std::min(1.0f, 2.0f / run.liveSeatTcpCounted[seatIndex] - 0.2f);
+				}
+				partyOneNewTppMargin[seatIndex] += swingAdjust;
+			}
 		}
 	}
 	// Now fix seats to the nation tpp as the above calculation doesn't always do this

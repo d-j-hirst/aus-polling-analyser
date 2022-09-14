@@ -49,6 +49,7 @@ private:
 
 
 	void initialiseIterationSpecificCounts();
+	void determineFedStateCorrelation();
 	void determineOverallTpp();
 	void incorporateLiveOverallFps();
 	void determineIndDistributionParameters();
@@ -136,6 +137,7 @@ private:
 	float overallFpError = 0.0f;
 	float nonMajorFpError = 0.0f;
 	float othersCorrectionFactor = 0.0f;
+	float fedStateCorrelation = 0.0f;
 	float ppvcBias = 0.0f;
 	float decVoteBias = 0.0f;
 	float indAlpha = 1.0f;

@@ -75,6 +75,15 @@ public:
 		return dist(gen);
 	}
 
+	template<typename T,
+		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+		static T gamma(T alpha = T(1.0), T beta = T(1.0)) {
+		std::gamma_distribution dist(alpha, beta);
+		return dist(gen);
+	}
+
+
+
 	// Gets an quantile from the normalised t-dist distribution (scaled so that standard
 	// deviation is always 1) for a particular cumulative probability
 	// For example, if you want the median, use quantile=0.5, for 10% percentile use quantile=0.1
