@@ -3,6 +3,7 @@ import copy
 import math
 import numpy
 import statistics
+import statsmodels.api as sm
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
@@ -1460,8 +1461,49 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         # print(statistics.mean(mixed_errors))
 
 
-def analyse_green_independent_interactions(elections):
-    pass
+def analyse_green_independent_correlation(elections):
+    d = {
+        'greens_swings': [],
+        'ind_swings': [],
+        'party': 'Greens'
+    }
+    def func(d):
+        if 'Greens' in [a.party for a in d['this_seat_results'].fp]:
+            this_greens = sum(x.percent for x in d['this_seat_results'].fp
+                                if x.party == 'Greens')
+        else:
+            return
+        if 'Greens' in [a.party for a in d['next_seat_results'].fp]:
+            next_greens = sum(x.percent for x in d['next_seat_results'].fp
+                                if x.party == 'Greens')
+        else:
+            return
+        this_ind = sum(x.percent for x in d['this_seat_results'].fp
+                                if x.party == 'Independent')
+        next_ind = sum(x.percent for x in d['next_seat_results'].fp
+                                if x.party == 'Independent')
+        if this_ind == 0 and next_ind == 0:
+            return
+        greens_swing = (transform_vote_share(next_greens)
+                        - transform_vote_share(this_greens)
+                        - d['election_swing'])
+        # Can't run this under transformation as it may be zero
+        ind_swing = next_ind - this_ind
+        d['greens_swings'].append(greens_swing)
+        d['ind_swings'].append(ind_swing)
+    
+    collect_election_data(elections, d, func, use_previous = False)
+    
+    inputs_np = numpy.transpose(numpy.array([d['ind_swings']]))
+    results_np = numpy.array(d['greens_swings'])
+    mod = sm.OLS(results_np, inputs_np)
+    fit = mod.fit()
+    print(fit.summary2())
+
+    filename = (f'./Seat Statistics/GRN_IND_correlation.csv')
+    with open(filename, 'w') as f:
+        f.write(f'{fit.params[0]}')
+
 
 
 if __name__ == '__main__':
@@ -1477,5 +1519,5 @@ if __name__ == '__main__':
     analyse_emerging_parties(elections)
     analyse_region_swings()
     analyse_seat_swings(elections, seat_types, seat_regions)
-    analyse_green_independent_interactions(elections)
+    analyse_green_independent_correlation(elections)
     print("Analysis completed.")
