@@ -659,6 +659,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	if (seat.confirmedProminentIndependent) determineSeatConfirmedInds(seatIndex);
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
+	adjustForFpCorrelations(seatIndex);
 
 	if (sim.isLiveAutomatic()) incorporateLiveSeatFps(seatIndex);
 
@@ -841,6 +842,9 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
 		rmse = (rmse * 0.5f + run.indEmergence.voteRmse * 0.5f) * 1.2f;
+		// increased vote share prospect for "confirmed prominent" inds 
+		// (arbitrary factor for arbitrary classification, but what can you do)
+		rmse *= 1.5f;
 		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
 		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
@@ -955,6 +959,36 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	voteShare = basicTransformedSwing(voteShare, -existingVoteShare);
 
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
+}
+
+void SimulationIteration::adjustForFpCorrelations(int seatIndex)
+{
+	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+
+	// GRN/IND correlation, move to separate function if any other correlation is analysed.
+	if (!seatFpVoteShare[seatIndex].contains(run.grnPartyIndex)) return;
+	float currentInd = 0.0f;
+	if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) currentInd += seatFpVoteShare[seatIndex][EmergingIndIndex];
+	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) currentInd += seatFpVoteShare[seatIndex][run.indPartyIndex];
+	float pastInd = 0.0f;
+	if (pastSeatResults[seatIndex].fpVotePercent.contains(run.indPartyIndex)) pastInd += pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex];
+	float indSwing = currentInd - pastInd;
+	// Prevent minor inds (especially past ones from affecting the overall trend too much
+	float scaling = std::clamp(std::max(currentInd, pastInd) / 8.0f - 0.5f, 0.0f, 1.0f);
+	float projectedGrnEffect = -0.3981311670993329f * indSwing * scaling;
+	float transformedGrnFp = transformVoteShare(seatFpVoteShare[seatIndex][run.grnPartyIndex]);
+	transformedGrnFp += projectedGrnEffect;
+	seatFpVoteShare[seatIndex][run.grnPartyIndex] = detransformVoteShare(transformedGrnFp);
+
+	//if (seat.name == "Northcote") {
+	//	PA_LOG_VAR(projectedGrnEffect);
+	//	PA_LOG_VAR(indSwing);
+	//	PA_LOG_VAR(currentInd);
+	//	PA_LOG_VAR(pastInd);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//	PA_LOG_VAR(pastSeatResults[seatIndex].fpVotePercent);
+	//	logger << "------------------\n";
+	//}
 }
 
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)

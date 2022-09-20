@@ -155,7 +155,8 @@ private:
 	std::string regionCode;
 	std::string yearCode;
 
-	int indPartyIndex = 0;
+	int grnPartyIndex = -100000;
+	int indPartyIndex = -100000;
 
 	float totalPopulation = 0.0f;
 

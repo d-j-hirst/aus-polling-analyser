@@ -44,7 +44,7 @@ private:
 	void updateLiveAggregateForSeat(int seatIndex);
 	void finaliseLiveAggregates();
 	void resetResultCounts();
-	void determineIndependentPartyIndex();
+	void determineSpecificPartyIndices();
 	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
 	void loadSeatTypes();

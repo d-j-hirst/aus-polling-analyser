@@ -1482,7 +1482,7 @@ def analyse_green_independent_correlation(elections):
                                 if x.party == 'Independent')
         next_ind = sum(x.percent for x in d['next_seat_results'].fp
                                 if x.party == 'Independent')
-        if this_ind == 0 and next_ind == 0:
+        if max(this_ind == 0, next_ind) < 8:
             return
         greens_swing = (transform_vote_share(next_greens)
                         - transform_vote_share(this_greens)

@@ -72,6 +72,7 @@ private:
 	void determineSeatConfirmedInds(int seatIndex);
 	void determineSeatEmergingInds(int seatIndex);
 	void determineSeatOthers(int seatIndex);
+	void adjustForFpCorrelations(int seatIndex);
 	void incorporateLiveSeatFps(int seatIndex);
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);

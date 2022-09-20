@@ -76,7 +76,7 @@ public:
 	// Returns the party with index "partyIndex".
 	Party const& viewByIndex(Index partyIndex) const { return view(indexToId(partyIndex)); }
 
-	// Returns the party with index "partyIndex".
+	// Returns the party with index "partyIndex". Returns -1 if no such party exists.
 	int indexByShortCode(std::string shortCode) const;
 
 	Index idToIndex(Party::Id id) const;

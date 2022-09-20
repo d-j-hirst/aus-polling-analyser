@@ -46,7 +46,7 @@ void SimulationPreparation::prepareForIterations()
 	resetSeatSpecificOutput();
 
 	storeTermCode();
-	determineIndependentPartyIndex();
+	determineSpecificPartyIndices();
 
 	loadTppSwingFactors();
 
@@ -1618,10 +1618,12 @@ void SimulationPreparation::resetResultCounts()
 	sim.latestReport.partyOneSwing = 0.0;
 }
 
-void SimulationPreparation::determineIndependentPartyIndex()
+void SimulationPreparation::determineSpecificPartyIndices()
 {
 	run.indPartyIndex = project.parties().indexByShortCode("IND");
 	if (run.indPartyIndex == -1) run.indPartyIndex = EmergingIndIndex;
+	run.grnPartyIndex = project.parties().indexByShortCode("GRN");
+	if (run.grnPartyIndex == -1) run.indPartyIndex = InvalidPartyIndex;
 }
 
 void SimulationPreparation::loadNcPreferenceFlows()
