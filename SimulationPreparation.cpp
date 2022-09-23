@@ -75,6 +75,7 @@ void SimulationPreparation::prepareForIterations()
 	accumulateRegionStaticInfo();
 
 	loadSeatBettingOdds();
+	loadSeatMinorViability();
 	loadSeatPolls();
 
 	determinePreviousVoteEnrolmentRatios();
@@ -220,6 +221,17 @@ void SimulationPreparation::loadSeatPolls()
 		for (auto const& [partyCode, polls] : project.seats().viewByIndex(seatIndex).polls) {
 			int partyIndex = project.parties().indexByShortCode(partyCode);
 			run.seatPolls[seatIndex][partyIndex] = polls;
+		}
+	}
+}
+
+void SimulationPreparation::loadSeatMinorViability()
+{
+	run.seatMinorViability.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		for (auto const& [partyCode, minorViability] : project.seats().viewByIndex(seatIndex).minorViability) {
+			int partyIndex = project.parties().indexByShortCode(partyCode);
+			run.seatMinorViability[seatIndex][partyIndex] = minorViability;
 		}
 	}
 }

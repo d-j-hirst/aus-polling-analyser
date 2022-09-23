@@ -227,18 +227,15 @@ ignore_greens_seats_election = {
 }
 
 assume_tpp_seats_election = {
-    # Melbourne and Isaacs are set to state average as the previous
-    # election's disendorsement distorts the result.
     '2022vic': {
         'Cooper': -0.75,
         'Goldstein': 2.99,
         'Indi': 7.47,
-        'Isaacs': overall_tpp_swings['2022vic'],
         'Kooyong': 2.21,
-        'Melbourne': overall_tpp_swings['2022vic'],
+        'Melbourne': 7.61,
         'Nicholls': 2.88,
         'Wannon': 1.13,
-        'Wills': 0.06
+        'Wills': 2.56
     },
     '2022sa': {'Mayo': 4.13},
     '2019nsw': {
@@ -357,7 +354,6 @@ adjust_tpp_federal = {
         'Adelaide': 0.72,
         'Sturt': -0.72,
         'Boothby': 1.22,
-
     },
     '2019nsw': {
         'Barton': 1.96,
@@ -386,6 +382,24 @@ adjust_tpp_federal = {
         'Bruce': 0.72,
         'Goldstein': -0.72,
         'Nicholls': -1.04,
+    },
+    '2022vic': {
+        'Casey': 1.22,
+        'Chisholm': 0.72,
+        'Corangamite': 1.9,
+        'Dunkley': 1.96,
+        'Flinders': 1.3,
+        'Hawke': -1.22,
+        'Higgins': 0.72,
+        'Holt': -1.22,
+        'Isaacs': -2.5,
+        'Jagajaga': 0.72,
+        'Macnamara': 0.72,
+        'Mallee': -1.04,
+        'Melbourne': 2.5,
+        'Menzies': 1.22,
+        'Nicholls': 1.3,
+        'Scullin': -2.5,
     }
 }
 

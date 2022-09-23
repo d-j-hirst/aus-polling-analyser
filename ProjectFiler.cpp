@@ -60,7 +60,8 @@
 // Version 53: total declaration vote counts
 // Version 54: Store TPP swing transposed from other election (federal/state)
 // Version 55: federal election date (for federal/state correlations)
-constexpr int VersionNum = 55;
+// Version 56: minor candidate viability rating
+constexpr int VersionNum = 56;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -516,6 +517,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.polls;
 		saveOutput << thisSeat.runningParties;
 		saveOutput << thisSeat.tcpChange;
+		saveOutput << thisSeat.minorViability;
 		saveOutput << thisSeat.previousIndRunning;
 		saveOutput << thisSeat.knownPrepollPercent;
 		saveOutput << thisSeat.knownPostalPercent;
@@ -586,6 +588,9 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		}
 		if (versionNum >= 48) {
 			saveInput >> thisSeat.tcpChange;
+		}
+		if (versionNum >= 56) {
+			saveInput >> thisSeat.minorViability;
 		}
 		if (versionNum >= 49) {
 			saveInput >> thisSeat.previousIndRunning;

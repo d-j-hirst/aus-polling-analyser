@@ -71,6 +71,7 @@ private:
 	void createBettingOddsInput(int& y);
 	void createPollsInput(int& y);
 	void createTcpChangeInput(int& y);
+	void createMinorViabilityInput(int& y);
 	void createRunningPartiesInput(int& y);
 	void createPreviousIndRunningInput(int& y);
 	void createKnownPrepollsInput(int& y);
@@ -95,6 +96,7 @@ private:
 	void updatePolls(std::string pollsInput);
 	void updateRunningParties(std::string runningParties);
 	void updateTcpChange(std::string tcpChangeInput);
+	void updateMinorViability(std::string minorViabilityInput);
 
 	// Data container for the preliminary settings for the seat to be created.
 	Seat seat;
@@ -127,6 +129,7 @@ private:
 	std::unique_ptr<TextInput> prominentMinorsInput;
 	std::unique_ptr<TextInput> bettingOddsInput;
 	std::unique_ptr<TextInput> tcpChangeInput;
+	std::unique_ptr<TextInput> minorViabilityInput;
 	std::unique_ptr<TextInput> pollsInput;
 	std::unique_ptr<TextInput> runningPartiesInput;
 	std::unique_ptr<FloatInput> knownPrepollsInput;

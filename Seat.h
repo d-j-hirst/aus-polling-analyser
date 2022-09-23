@@ -100,6 +100,17 @@ public:
 	// expressed as the tcp change of the incumbent vs this candidate
 	std::map<std::string, float> tcpChange;
 
+	// Rating of minor/independent candidates' viability based on known factors
+	// 0 is default, positive number indicates increased viability
+	// Each of following increases viability by 1:
+	// - Previously ran as mayor/councillor
+	// - For independents, backing of a significant funding/mobilisation group
+	// - Candidates with major profile outside politics (*2 for being extremely well-known)
+	// - Previously stood as IND or pseudo-IND for state/federal seat with >10% vote
+	// These are meant to be a rought indicator and will be largely overridden by betting odds
+	// and/or polls once available.
+	std::map<std::string, float> minorViability;
+
 	// outer string = party abbr, inner float = fp, inner int = credibility as for national poll
 	std::map<std::string, std::vector<std::pair<float, int>>> polls;
 

@@ -41,6 +41,7 @@ enum ControlId
 	Polls,
 	RunningParties,
 	TcpChange,
+	MinorViability,
 	KnownPrepolls,
 	KnownPostals,
 	KnownAbsentCount,
@@ -99,6 +100,7 @@ void EditSeatFrame::createControls(int & y)
 	createPollsInput(y);
 	createRunningPartiesInput(y);
 	createTcpChangeInput(y);
+	createMinorViabilityInput(y);
 	createKnownPrepollsInput(y);
 	createKnownPostalsInput(y);
 	createKnownAbsentCountInput(y);
@@ -432,6 +434,21 @@ void EditSeatFrame::createTcpChangeInput(int& y)
 	y += tcpChangeInput->Height + ControlPadding;
 }
 
+void EditSeatFrame::createMinorViabilityInput(int& y)
+{
+	std::string minorViability = "";
+	bool firstDone = false;
+	for (auto [shortCode, change] : seat.minorViability) {
+		if (firstDone) minorViability += ";";
+		minorViability += shortCode + "," + formatFloat(change, 2);
+		firstDone = true;
+	}
+
+	auto callback = std::bind(&EditSeatFrame::updateMinorViability, this, _1);
+	minorViabilityInput.reset(new TextInput(this, ControlId::MinorViability, "Minor candidate viability:", minorViability, wxPoint(2, y), callback));
+	y += minorViabilityInput->Height + ControlPadding;
+}
+
 void EditSeatFrame::createOkCancelButtons(int & y)
 {
 	okButton = new wxButton(this, ControlId::Ok, "OK", wxPoint(67, y), wxSize(100, 24));
@@ -477,22 +494,27 @@ void EditSeatFrame::updateProminentMinors(std::string prominentMinors)
 	seat.prominentMinors = splitString(prominentMinors, ",");
 }
 
-void EditSeatFrame::updateBettingOdds(std::string bettingOdds)
-{
-	seat.bettingOdds.clear();
-	auto oddsVec = splitString(bettingOdds, ";");
-	for (auto odds : oddsVec) {
-		auto singleOdds = splitString(odds, ",");
-		if (singleOdds.size() < 2) continue;
-		std::string party = singleOdds[0];
+// Helper function for a recurring process
+void partyFloatUpdate(std::string input, std::map<std::string, float>& storedValue) {
+	storedValue.clear();
+	auto vec = splitString(input, ";");
+	for (auto odds : vec) {
+		auto item = splitString(odds, ",");
+		if (item.size() < 2) continue;
+		std::string party = item[0];
 		try {
-			float oddsVal = std::stof(singleOdds[1]);
-			seat.bettingOdds[party] = oddsVal;
+			float val = std::stof(item[1]);
+			storedValue[party] = val;
 		}
 		catch (std::invalid_argument) {
 			continue;
 		}
 	}
+}
+
+void EditSeatFrame::updateBettingOdds(std::string bettingOdds)
+{
+	partyFloatUpdate(bettingOdds, seat.bettingOdds);
 }
 
 void EditSeatFrame::updatePolls(std::string pollStr)
@@ -521,18 +543,10 @@ void EditSeatFrame::updateRunningParties(std::string runningParties)
 
 void EditSeatFrame::updateTcpChange(std::string tcpChange)
 {
-	seat.tcpChange.clear();
-	auto changeVec = splitString(tcpChange, ";");
-	for (auto change : changeVec) {
-		auto singleChange = splitString(change, ",");
-		if (singleChange.size() < 2) continue;
-		std::string party = singleChange[0];
-		try {
-			float changeVal = std::stof(singleChange[1]);
-			seat.tcpChange[party] = changeVal;
-		}
-		catch (std::invalid_argument) {
-			continue;
-		}
-	}
+	partyFloatUpdate(tcpChange, seat.tcpChange);
+}
+
+void EditSeatFrame::updateMinorViability(std::string minorViability)
+{
+	partyFloatUpdate(minorViability, seat.minorViability);
 }

@@ -37,6 +37,7 @@ private:
 	void accumulateRegionStaticInfo();
 	void loadSeatBettingOdds();
 	void loadSeatPolls();
+	void loadSeatMinorViability();
 	void determinePreviousVoteEnrolmentRatios();
 	void resizeRegionSeatCountOutputs();
 	void countInitialRegionSeatLeads();

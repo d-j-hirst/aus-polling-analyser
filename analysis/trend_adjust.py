@@ -238,6 +238,7 @@ class Inputs:
                 self.polled_parties[e].append(unnamed_others_code)
 
 
+
 class PollTrend:
     def __init__(self, inputs, config):
         self._data = {}
@@ -266,6 +267,7 @@ class PollTrend:
         unnamed_others_base = 3
         for day in range(0, len(self._data[
                 ElectionPartyCode(election, party_list[0])])):
+                
             median = 0  # Median values for minor parties
             for party in party_list:
                 if party not in not_others:

@@ -842,9 +842,10 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		float prevOthersCoeff = run.indEmergence.prevOthersVoteCoeff * prevOthers;
 		rmse *= (1.0f + prevOthersCoeff / interceptSize);
 		rmse = (rmse * 0.5f + run.indEmergence.voteRmse * 0.5f) * 1.2f;
-		// increased vote share prospect for "confirmed prominent" inds 
-		// (arbitrary factor for arbitrary classification, but what can you do)
-		rmse *= 1.5f;
+		// increased vote share prospect for inds with more viability
+		if (run.seatMinorViability[seatIndex].contains(run.indPartyIndex)) {
+			rmse *= 1.0f + (0.4f * run.seatMinorViability[seatIndex][run.indPartyIndex]);
+		}
 		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
 		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
