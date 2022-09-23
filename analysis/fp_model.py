@@ -159,7 +159,7 @@ class ModellingData:
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
-        with open('./Outputs/Calibration/summaries.csv', 'r') as f:
+        with open('./Outputs/Calibration/variability.csv', 'r') as f:
             self.pollster_sigmas = {(a[0], a[1]): float(a[2])
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
