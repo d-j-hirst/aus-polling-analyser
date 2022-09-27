@@ -16,10 +16,9 @@ data {
     // dummy value of 0 is used to indicate no discontinuities since Stan doesn't like zero-size arrays
     int<lower=0, upper=dayCount> discontinuities[discontinuityCount]; 
     
+    real<lower=0.0> heWeights[houseCount]; // house effect weightings, for the sum-to-zero contraint
+    real<lower=-100.0, upper=100.0> biases[houseCount]; // previously observed biases for each house count
     real<lower=0.0> sigmas[pollCount]; // poll quality adjustment
-
-    //exclude final n parties from the sum-to-zero constraint for houseEffects
-    int<lower=0> excludeCount;
     
     int<lower=1> electionDay;
     
@@ -40,20 +39,21 @@ data {
 
 transformed data {
     real adjustedPriorResult = priorResult;
-    int<lower=1> includeCount = (houseCount - excludeCount);
-    int<lower=0> housePollCount[includeCount] = rep_array(0, includeCount);
-    vector<lower=0.0, upper=1.0>[includeCount] houseWeight;
-    real totalHouseWeight;
+    int<lower=0> housePollCount[houseCount] = rep_array(0, houseCount);
+    vector<lower=0.0, upper=1.0>[houseCount] houseWeight;
+    real totalHouseWeight = 0.0;
+    real weightedBiasSum = 0.0;
+    real<lower=-100.0, upper=100.0> weightedBias;
     for (poll in 1:pollCount) {
-        if (pollHouse[poll] <= includeCount) {
-            housePollCount[pollHouse[poll]] = housePollCount[pollHouse[poll]] + 1;
-        }
+        housePollCount[pollHouse[poll]] = housePollCount[pollHouse[poll]] + 1;
     }
-    for (house in 1:includeCount) {
-        houseWeight[house] = min([1.0, housePollCount[house] * 0.2]);
+    for (house in 1:houseCount) {
+        houseWeight[house] = min([1.0, housePollCount[house] * 0.2]) * heWeights[house];
+        weightedBiasSum += biases[house] * houseWeight[house];
     }
     totalHouseWeight = sum(houseWeight);
     houseWeight = houseWeight / totalHouseWeight;
+    weightedBias = weightedBiasSum / totalHouseWeight;
     if (priorResult < 0.5) {
         adjustedPriorResult = log(priorResult * 2.0) + 0.5;
     }
@@ -68,13 +68,13 @@ parameters {
 model {
     // using this distribution encourages house effects not to be too large but
     // doesn't penalise too heavily if a large house effect is really called for
-    pHouseEffects ~ double_exponential(0.0, houseEffectSigma);
-    pOldHouseEffects ~ double_exponential(0.0, houseEffectSigma);
+    pHouseEffects ~ double_exponential(weightedBias, houseEffectSigma);
+    pOldHouseEffects ~ double_exponential(weightedBias, houseEffectSigma);
     // Tend to keep old and new house effects similar, but not too much
     pHouseEffects ~ double_exponential(pOldHouseEffects, houseEffectSigma * 2.0);
     // keep sum of house effects constrained to zero, or near enough
-    sum(pHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, houseEffectSumSigma);
-    sum(pOldHouseEffects[1:includeCount] .* houseWeight) ~ normal(0.0, houseEffectSumSigma);
+    sum(pHouseEffects[1:houseCount] .* houseWeight) ~ normal(weightedBias, houseEffectSumSigma);
+    sum(pOldHouseEffects[1:houseCount] .* houseWeight) ~ normal(weightedBias, houseEffectSumSigma);
     // very broad prior distribution, this shouldn't affect the model much unless
     // there is absolutely no data nearby
     preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, priorVoteShareSigma);

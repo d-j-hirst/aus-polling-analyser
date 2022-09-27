@@ -191,16 +191,20 @@ void SimulationCompletion::recordNames()
 	for (int index = 0; index < project.seats().count(); ++index) {
 		Seat const& seat = project.seats().viewByIndex(index);
 		sim.latestReport.seatName.push_back(seat.name);
+		int effectiveIncumbent = seat.incumbent;
+		if (seat.incumbent == run.indPartyIndex && seat.retirement == true) {
+			effectiveIncumbent = seat.tppMargin > 0 ? 0 : 1;
+		}
 		sim.latestReport.seatIncumbents.push_back(seat.incumbent);
 		sim.latestReport.seatMargins.push_back(seat.tppMargin);
-		if (seat.incumbent == 0) {
+		if (effectiveIncumbent == 0) {
 			sim.latestReport.seatIncumbentMargins.push_back(seat.tppMargin);
 		}
-		else if (project.seats().viewByIndex(index).incumbent == 1) {
+		else if (effectiveIncumbent == 1) {
 			sim.latestReport.seatIncumbentMargins.push_back(-seat.tppMargin);
 		}
-		else if (run.pastSeatResults[index].tcpVote.contains(seat.incumbent)) {
-			float margin = run.pastSeatResults[index].tcpVote.at(seat.incumbent) - 50.0f;
+		else if (run.pastSeatResults[index].tcpVote.contains(effectiveIncumbent)) {
+			float margin = run.pastSeatResults[index].tcpVote.at(effectiveIncumbent) - 50.0f;
 			if (seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
 				margin += seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation);
 			}

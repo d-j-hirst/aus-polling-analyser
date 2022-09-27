@@ -164,6 +164,16 @@ class ModellingData:
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
+        with open('./Outputs/Calibration/he_weighting.csv', 'r') as f:
+            self.pollster_he_weights = {(a[0], a[1]): float(a[2])
+                            for a in [b.strip().split(',')
+                            for b in f.readlines()]}
+
+        with open('./Outputs/Calibration/biases.csv', 'r') as f:
+            self.pollster_biases = {((a[0], a[1]), a[2], a[3]): float(a[4])
+                            for a in [b.strip().split(',')
+                            for b in f.readlines()]}
+
 
 class ElectionData:
     def __init__(self, config, m_data, desired_election):
@@ -396,6 +406,7 @@ def run_individual_party(config, m_data, e_data,
     # included in the sum-to-zero are first, and then the
     # others follow
     houses = df['Firm'].unique().tolist()
+    # !!! remove everything from here ...
     houseCounts = df['Firm'].value_counts()
     whitelist = m_data.anchoring_pollsters[e_data.e_tuple]
     if config.calibrate_pollsters or config.calibrate_bias:
@@ -417,6 +428,8 @@ def run_individual_party(config, m_data, e_data,
     for e in remove_exclusions:
         exclusions.remove(e)
     houses = houses + list(exclusions)
+    # !!! to here, and also remove the anchoring pollsters file
+    # and the bit of the code that reads it above
     house_map = dict(zip(houses, range(1, len(houses)+1)))
     df['House'] = df['Firm'].map(house_map)
     n_houses = len(df['House'].unique())
@@ -438,14 +451,36 @@ def run_individual_party(config, m_data, e_data,
     if not discontinuities_filtered:
         discontinuities_filtered.append(0)
 
-    # quality adjustment for polls
-    sample_size = 1000  # treat good quality polls as being this size
-    # adjust effective sample size according to quality
+    # Have a standard sigma for calibrating pollsters,
+    # otherwise used the observed sigmas
+    sample_size = 1000
+    calibration_sigma = np.sqrt((50 * 50) / (sample_size))
     sigmas = df['Firm'].apply(
-        lambda x: 0 if config.calibrate_pollsters else
+        lambda x: calibration_sigma if config.calibrate_pollsters else
         m_data.pollster_sigmas[(x, party)] if
         (x, party) in m_data.pollster_sigmas else 3
     )
+
+    # Equal weights for house effects when calibrating,
+    # use determined house effect weights when running forecasts
+    he_weights = [
+        1 if config.calibrate_pollsters or config.calibrate_bias else
+        m_data.pollster_he_weights[(x, party)] if
+        (x, party) in m_data.pollster_he_weights else 0.4
+        for x in houses
+    ]
+
+    # Equal weights for house effects when calibrating,
+    # use determined house effect weights when running forecasts
+    biases = [
+        0 if config.calibrate_pollsters or config.calibrate_bias else
+        m_data.pollster_biases[(e_data.e_tuple, x, party)] if
+        (e_data.e_tuple, x, party) in m_data.pollster_biases else 0
+        for x in houses
+    ]
+
+    print(houses)
+    print(biases)
 
     houseEffectOld = 240
     houseEffectNew = 120
@@ -468,7 +503,8 @@ def run_individual_party(config, m_data, e_data,
         'pollDay': df['Day'].values.tolist(),
         'discontinuities': discontinuities_filtered,
         'sigmas': sigmas.values,
-        'excludeCount': n_exclude,
+        'heWeights': he_weights,
+        'biases': biases,
 
         'electionDay': e_data.election_day,
 

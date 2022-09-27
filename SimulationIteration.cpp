@@ -683,6 +683,11 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		voteShare = 0.0f;
 		return;
 	}
+	if (partyIndex == run.indPartyIndex && seat.confirmedProminentIndependent) {
+		// this case will be handled by the "confirmed independent" logic instead
+		voteShare = 0.0f;
+		return;
+	}
 	if (seat.runningParties.size() && partyIndex == OthersIndex &&
 		!contains(seat.runningParties, OthersCode)) {
 		voteShare = 0.0f;
@@ -749,6 +754,12 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) * 0.5f + 0.5f : rng.uniform();
 	float variableVote = rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
 	transformedFp += variableVote;
+	// Model can't really deal with the libs not existing (=> large OTH vote) in Richmond 2018
+	// so likely underestimates GRN fp support here. This is a temporary workaround to bring in line
+	// with other seats expecting a small ~3% TCP swing to greens, hopefully will find a better fix for this later.
+	if (partyIndex == 2 && seat.name == "Richmond" && project.getElectionName() == "2022 Victorian State Election") {
+		transformedFp += 4.5f;
+	}
 	float regularVoteShare = detransformVoteShare(transformedFp);
 
 	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
@@ -757,7 +768,14 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
 	}
 
-	voteShare = regularVoteShare;
+	if (partyIndex == run.indPartyIndex && seat.incumbent != run.indPartyIndex) {
+		// Add potential re-runs under "Emerging Independent" instead
+		voteShare = 0.0f;
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = regularVoteShare;
+	}
+	else {
+		voteShare = regularVoteShare;
+	}
 }
 
 void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
@@ -909,6 +927,8 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
 	// Less chance of independents emerging when there's already a strong candidate
 	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) indEmergenceRate *= 0.3f;
+	// Re-running challengers also count as a strong candidate, so reduce chance of further independents when they are running
+	if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) indEmergenceRate *= 0.3f;
 	// Beta distribution flipped because it's desired for the high rate of ind emergence
 	// to match high rate of ind voting
 	if (1.0f - rng.beta(indAlpha, indBeta) < std::max(0.01f, indEmergenceRate)) {
@@ -927,7 +947,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
 		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
-		seatFpVoteShare[seatIndex][EmergingIndIndex] = detransformVoteShare(transformedVoteShare);
+		seatFpVoteShare[seatIndex][EmergingIndIndex] += detransformVoteShare(transformedVoteShare);
 	}
 }
 
@@ -1033,6 +1053,17 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 
 void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 {
+	// Subsequent to this procedure, fp vote shares for this seat will
+	// be normalised such that their sum equals 100. For for seats with
+	// (especially large) increases in a minor party's FP vote, this would result in
+	// a decrease in the size of this increase which is not desired.
+	// On the other hand, if multiple minor parties are increasing
+	// they will crowd each other out to some extent (which is desired)
+	// The objective here is to adjust the first preferences such that
+	// an increase in only one minor party would not hinder their vote,
+	// and this is achieved by lowering the combined fp vote share for the
+	// major parties by the same amount as the minor party increased,
+	// and maintaining the crowding effect that this normalisation achieves.
 	float maxPrevious = 0.0f;
 	float totalVotePercent = 0.0f;
 	for (auto& [party, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
@@ -1044,7 +1075,14 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 		if (!isMajor(party) && voteShare > maxCurrent) maxCurrent = voteShare;
 		totalVotePercent += voteShare;
 	}
-	float diff = std::max(0.0f, std::min(std::min(10.0f, seatFpVoteShare[seatIndex][0]), maxCurrent - maxPrevious));
+	// Adjustment to prevent high OTH vote from crowding out other minor parties
+	// Crowding should only occur between defined parties
+	if (seatFpVoteShare[seatIndex][OthersIndex] > pastSeatResults[seatIndex].fpVotePercent[OthersIndex]) {
+		maxCurrent += seatFpVoteShare[seatIndex][OthersIndex] - pastSeatResults[seatIndex].fpVotePercent[OthersIndex];
+	}
+	// Some sanity checks here to make sure major party votes aren't reduced below zero or actually increased
+	float diffCeiling = std::min(30.0f, 0.8f * (seatFpVoteShare[seatIndex][0] + seatFpVoteShare[seatIndex][1]));
+	float diff = std::max(0.0f, std::min(diffCeiling, maxCurrent - maxPrevious));
 	// In live sims, want to avoid reducing actual recorded vote tallies through normalisation
 	// so make sure the we adjust the major party vote to make normalisation have minimal effect,
 	// especially if more than a trivial amount of vote is counted.
@@ -1322,6 +1360,20 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float fixedVote)
 {
+	// By default - assume that the largest non-major non-OTH's primary vote is
+	// real, and fix it. If it's really that high preference flows will probably
+	// change a bit to accomodate the major party vote anyway
+	if (!fixedVote) {
+		for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
+			if (partyIndex < Mp::Others) continue;
+			if (partyIndex == run.indPartyIndex) continue;
+			if (voteShare > fixedVote) {
+				fixedVote = voteShare;
+				fixedParty = partyIndex;
+			}
+		}
+	}
+
 	float totalVoteShare = 0.0f;
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (partyIndex == CoalitionPartnerIndex) continue;
@@ -1330,6 +1382,7 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 	}
 	float totalTarget = 100.0f - fixedVote;
 	float correctionFactor = totalTarget / totalVoteShare;
+
 	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (partyIndex == fixedParty) continue;
@@ -1560,12 +1613,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			std::vector<float> weights(accumulatedVoteShares.size());
 			int alpIndex = -1;
 			int lnpIndex = -1;
+			int grnIndex = -1;
 			int indIndex = -1;
+			int othIndex = -1;
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 				if (targetParty == 0) alpIndex = targetIndex;
 				if (targetParty == 1) lnpIndex = targetIndex;
 				if (targetParty == -4) lnpIndex = targetIndex;
+				if (targetParty == -1) othIndex = targetIndex;
+				if (targetParty == run.grnPartyIndex) grnIndex = targetIndex;
 				if (targetParty == run.indPartyIndex || partyIdeologies[targetParty] == 2) indIndex = targetIndex;
 				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
 				if (bothMajorParties(sourceParty, targetParty)) ++ideologyDistance;
@@ -1578,16 +1635,25 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			}
 
 			// Rather hacky way to handle GRN -> ALP/IND flows in cases where another candidate (usually LNP)
-			// is still in the running. Depends on ALP being party index 0 and greens being party index 2,
+			// is still in the running. Depends on ALP being party index 0,
 			// which is the case by my convention but won't apply in an old election without Greens or
 			// if someone else makes their own file. Replace with a proper system when convenient.
-			if (alpIndex >= 0 && indIndex >= 0 && sourceParty == 2 &&
+			if (alpIndex >= 0 && indIndex >= 0 && sourceParty == run.grnPartyIndex &&
 				(seat.tppMargin < -5.0f || !isMajor(seat.incumbent))) {
 				float combinedWeights = weights[alpIndex] + weights[indIndex];
 				float indShare = rng.uniform(0.5f, 0.8f);
 				weights[indIndex] = combinedWeights * indShare;
 				weights[alpIndex] = combinedWeights * (1.0f - indShare);
 			}
+
+			// Same deal with OTH -> ALP/GRN
+			if (alpIndex >= 0 && grnIndex >= 0 && sourceParty == -1) {
+				float combinedWeights = weights[alpIndex] + weights[grnIndex];
+				float grnShare = rng.uniform(0.55f, 0.75f);
+				weights[grnIndex] = combinedWeights * grnShare;
+				weights[alpIndex] = combinedWeights * (1.0f - grnShare);
+			}
+
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
 			if ((sourceParty == CoalitionPartnerIndex || sourceParty == 1) && lnpIndex != -1) {
 				float totalWeightWithoutLnp = totalWeight - weights[lnpIndex];
@@ -1597,16 +1663,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
 			}
-			//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
-			//	PA_LOG_VAR(accumulatedVoteShares);
-			//	PA_LOG_VAR(weights);
-			//	PA_LOG_VAR(totalWeight);
-			//}
 		}
-		//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
-		//	PA_LOG_VAR(accumulatedVoteShares);
-		//	logger << "-- end of seat --\n";
-		//}
 	};
 
 	// Actual method continues here

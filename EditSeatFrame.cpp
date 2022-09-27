@@ -298,7 +298,7 @@ void EditSeatFrame::createConfirmedProminentIndependentInput(int& y)
 void EditSeatFrame::createPreviousIndRunningInput(int& y)
 {
 	auto callback = [this](int i) -> void {seat.previousIndRunning = (i != 0); };
-	previousIndRunningInput.reset(new CheckInput(this, ControlId::PreviousIndRunning, "Previous Independent Running", seat.previousIndRunning,
+	previousIndRunningInput.reset(new CheckInput(this, ControlId::PreviousIndRunning, "(don't use)", seat.previousIndRunning,
 		wxPoint(2, y), callback));
 	y += previousIndRunningInput->Height + ControlPadding;
 }
