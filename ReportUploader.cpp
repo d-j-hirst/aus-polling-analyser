@@ -97,7 +97,13 @@ std::string ReportUploader::upload()
 		j["seatTcpBands"] = thisReport.report.seatTcpProbabilityBand;
 		j["polls"] = thisReport.report.modelledPolls;
 	}
+	j["seatCandidateNames"] = thisReport.report.seatCandidateNames;
 	std::ofstream file2("uploads/latest_json.dat");
-	file2 << std::setw(4) << j;
+	try {
+		file2 << std::setw(4) << j;
+	}
+	catch (nlohmann::detail::type_error& e) {
+		logger << "caught error in value upload, message: " << e.what();
+	}
 	return "ok";
 }

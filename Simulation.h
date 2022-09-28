@@ -170,6 +170,8 @@ public:
 		std::vector<int> seatHideTcps;
 
 		std::vector<int> trendProbBands;
+
+		std::vector<std::map<int, std::string>> seatCandidateNames;
 		int trendPeriod;
 		int finalTrendValue;
 		std::string trendStartDate;

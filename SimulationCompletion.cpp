@@ -214,7 +214,14 @@ void SimulationCompletion::recordNames()
 			// incumbent is 3rd party and gained seat in by-election, just skip for now
 			sim.latestReport.seatIncumbentMargins.push_back(0);
 		}
+		std::map<int, std::string> candidateNames;
+		for (auto [name, party] : seat.candidateNames) {
+			int partyIndex = project.parties().indexByShortCode(party);
+			candidateNames[partyIndex] = name;
+		}
+		sim.latestReport.seatCandidateNames.push_back(candidateNames);
 	}
+	PA_LOG_VAR(sim.latestReport.seatCandidateNames);
 }
 
 void SimulationCompletion::recordSeatPartyWinPercentages()

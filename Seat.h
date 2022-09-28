@@ -114,6 +114,10 @@ public:
 	// outer string = party abbr, inner float = fp, inner int = credibility as for national poll
 	std::map<std::string, std::vector<std::pair<float, int>>> polls;
 
+	// Known candidate names (doesn't have do be 100% guaranteed, just confirmed as running
+	// for now, or the incumbent if they haven't announced retirement etc.)
+	std::map<std::string, std::string> candidateNames;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (tppMargin > 0.0f ? 0 : 1);

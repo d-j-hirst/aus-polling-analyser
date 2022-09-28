@@ -42,6 +42,7 @@ enum ControlId
 	RunningParties,
 	TcpChange,
 	MinorViability,
+	CandidateNames,
 	KnownPrepolls,
 	KnownPostals,
 	KnownAbsentCount,
@@ -101,6 +102,7 @@ void EditSeatFrame::createControls(int & y)
 	createRunningPartiesInput(y);
 	createTcpChangeInput(y);
 	createMinorViabilityInput(y);
+	createCandidateNamesInput(y);
 	createKnownPrepollsInput(y);
 	createKnownPostalsInput(y);
 	createKnownAbsentCountInput(y);
@@ -423,9 +425,9 @@ void EditSeatFrame::createTcpChangeInput(int& y)
 {
 	std::string tcpChange = "";
 	bool firstDone = false;
-	for (auto [shortCode, change] : seat.tcpChange) {
+	for (auto [shortCode, value] : seat.tcpChange) {
 		if (firstDone) tcpChange += ";";
-		tcpChange += shortCode + "," + formatFloat(change, 2);
+		tcpChange += shortCode + "," + formatFloat(value, 2);
 		firstDone = true;
 	}
 
@@ -438,15 +440,30 @@ void EditSeatFrame::createMinorViabilityInput(int& y)
 {
 	std::string minorViability = "";
 	bool firstDone = false;
-	for (auto [shortCode, change] : seat.minorViability) {
+	for (auto [shortCode, value] : seat.minorViability) {
 		if (firstDone) minorViability += ";";
-		minorViability += shortCode + "," + formatFloat(change, 2);
+		minorViability += shortCode + "," + formatFloat(value, 2);
 		firstDone = true;
 	}
 
 	auto callback = std::bind(&EditSeatFrame::updateMinorViability, this, _1);
 	minorViabilityInput.reset(new TextInput(this, ControlId::MinorViability, "Minor candidate viability:", minorViability, wxPoint(2, y), callback));
 	y += minorViabilityInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createCandidateNamesInput(int& y)
+{
+	std::string candidateNames = "";
+	bool firstDone = false;
+	for (auto [shortCode, value] : seat.candidateNames) {
+		if (firstDone) candidateNames += ";";
+		candidateNames += shortCode + "," + value;
+		firstDone = true;
+	}
+
+	auto callback = std::bind(&EditSeatFrame::updateCandidateNames, this, _1);
+	candidateNamesInput.reset(new TextInput(this, ControlId::CandidateNames, "Candidate names:", candidateNames, wxPoint(2, y), callback));
+	y += candidateNamesInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createOkCancelButtons(int & y)
@@ -512,6 +529,24 @@ void partyFloatUpdate(std::string input, std::map<std::string, float>& storedVal
 	}
 }
 
+// Helper function for a recurring process
+void partyStringUpdate(std::string input, std::map<std::string, std::string>& storedValue) {
+	storedValue.clear();
+	auto vec = splitString(input, ";");
+	for (auto odds : vec) {
+		auto item = splitString(odds, ",");
+		if (item.size() < 2) continue;
+		std::string party = item[0];
+		try {
+			std::string val = item[1];
+			storedValue[party] = val;
+		}
+		catch (std::invalid_argument) {
+			continue;
+		}
+	}
+}
+
 void EditSeatFrame::updateBettingOdds(std::string bettingOdds)
 {
 	partyFloatUpdate(bettingOdds, seat.bettingOdds);
@@ -549,4 +584,9 @@ void EditSeatFrame::updateTcpChange(std::string tcpChange)
 void EditSeatFrame::updateMinorViability(std::string minorViability)
 {
 	partyFloatUpdate(minorViability, seat.minorViability);
+}
+
+void EditSeatFrame::updateCandidateNames(std::string candidateNames)
+{
+	partyStringUpdate(candidateNames, seat.candidateNames);
 }
