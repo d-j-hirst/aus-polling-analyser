@@ -57,10 +57,16 @@ class Config:
                             'pollster that can then be used to calibrate '
                             'the house effects in actual forecast runs. '
                             'Ignored if --calibrate is also used.')
+        parser.add_argument('--cutoff', action='store', type=int,
+                            help='Exclude polls occurring fewer than this many'
+                            'days before an election. Useful for creating'
+                            'hindcasts for previous elections.', 
+                            default=0)
         self.election_instructions = parser.parse_args().election.lower()
         self.calibrate_pollsters = parser.parse_args().calibrate == True
         self.calibrate_bias = (not self.calibrate_pollsters and 
                                parser.parse_args().bias == True)
+        self.cutoff = parser.parse_args().cutoff
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -188,10 +194,11 @@ class ElectionData:
         # drop data not in range of this election period
         self.base_df['MidDate'] = [pd.Period(date, freq='D')
                             for date in self.base_df['MidDate']]
-        self.base_df = self.base_df[self.base_df['MidDate'] >=
-                                    m_data.election_cycles[tup][0]]
-        self.base_df = self.base_df[self.base_df['MidDate'] <=
-                                    m_data.election_cycles[tup][1]]
+        start_date = m_data.election_cycles[tup][0]
+        end_date = (m_data.election_cycles[tup][1] - 
+                    pd.to_timedelta(config.cutoff, unit="D"))
+        self.base_df = self.base_df[self.base_df['MidDate'] >= start_date]
+        self.base_df = self.base_df[self.base_df['MidDate'] <= end_date]
 
         # convert dates to days from start
         # do this before removing polls with N/A values so that
@@ -576,10 +583,14 @@ def run_individual_party(config, m_data, e_data,
     calib_str = ("Calibration/" if config.calibrate_pollsters
                  or config.calibrate_bias else "")
     folder = (f'./Outputs/{calib_str}')
-    output_trend = f'{folder}fp_trend_{e_tag}_{party}{pollster_append}.csv'
-    output_polls = f'{folder}fp_polls_{e_tag}_{party}{pollster_append}.csv'
+    cutoff_append = f'_{config.cutoff}d' if config.cutoff > 0 else ''
+
+    output_trend = (f'{folder}fp_trend_{e_tag}_{party}{pollster_append}'
+                    f'{cutoff_append}.csv')
+    output_polls = (f'{folder}fp_polls_{e_tag}_{party}{pollster_append}'
+                    f'{cutoff_append}.csv')
     output_house_effects = (f'{folder}fp_house_effects_{e_tag}_'
-        f'{party}{pollster_append}.csv')
+        f'{party}{pollster_append}{cutoff_append}.csv')
 
     if party in others_parties or party == 'GRN FP':
         e_data.others_medians[party] = {}
