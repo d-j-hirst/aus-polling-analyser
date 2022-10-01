@@ -221,7 +221,6 @@ void SimulationCompletion::recordNames()
 		}
 		sim.latestReport.seatCandidateNames.push_back(candidateNames);
 	}
-	PA_LOG_VAR(sim.latestReport.seatCandidateNames);
 }
 
 void SimulationCompletion::recordSeatPartyWinPercentages()

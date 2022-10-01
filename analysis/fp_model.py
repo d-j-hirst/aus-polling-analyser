@@ -390,6 +390,11 @@ def run_individual_party(config, m_data, e_data,
     # remove their polls now
     df = df[df.Firm != excluded_pollster]
     n_polls = len(df)
+    # It's possible for there to actually be no polls at all if
+    # the party hasn't been polled before the cutoff date
+    if n_polls == 0:
+        print(f'No polls for party {party} at all, skipping round')
+        return
 
     # Get the prior result, or a small vote share if
     # the prior result is not given

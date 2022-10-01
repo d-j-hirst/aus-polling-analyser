@@ -160,6 +160,8 @@ private:
 
 	float totalPopulation = 0.0f;
 
+	float indEmergenceModifier = 1.0f; // modifier calculated from rate of already confirmed independents
+
 	float previousOrdinaryVoteEnrolmentRatio = 1.0f;
 	float previousDeclarationVoteEnrolmentRatio = 1.0f;
 

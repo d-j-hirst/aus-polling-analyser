@@ -90,6 +90,7 @@ void SimulationPreparation::prepareForIterations()
 	loadOverallRegionMixParameters();
 
 	calculateTotalPopulation();
+	calculateIndEmergenceModifier();
 
 	if (sim.isLive()) initializeGeneralLiveData();
 	if (sim.isLiveManual()) loadLiveManualResults();
@@ -2152,6 +2153,18 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		}
 
 	} while (true);
+}
+
+void SimulationPreparation::calculateIndEmergenceModifier()
+{
+	// More independents should be expected to emerge if more
+	// are already confirmed relative to the usual number.
+	int numConfirmed = std::count_if(project.seats().begin(), project.seats().end(),
+		[](const decltype(project.seats().begin())::value_type& seatPair) {return seatPair.second.confirmedProminentIndependent; });
+	int daysToElection = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models()).daysToElection;
+	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
+	run.indEmergenceModifier = (float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f);
+	PA_LOG_VAR(run.indEmergenceModifier);
 }
 
 void SimulationPreparation::initializeGeneralLiveData()

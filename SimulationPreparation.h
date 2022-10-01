@@ -64,6 +64,7 @@ private:
 	void loadOverallRegionMixParameters();
 	void loadTppSwingFactors();
 	void loadIndividualSeatParameters();
+	void calculateIndEmergenceModifier();
 
 	void initializeGeneralLiveData();
 

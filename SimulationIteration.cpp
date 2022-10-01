@@ -659,6 +659,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	if (seat.confirmedProminentIndependent) determineSeatConfirmedInds(seatIndex);
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
+
 	adjustForFpCorrelations(seatIndex);
 
 	if (sim.isLiveAutomatic()) incorporateLiveSeatFps(seatIndex);
@@ -669,7 +670,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	normaliseSeatFp(seatIndex);
 	preferenceVariation.clear();
 	allocateMajorPartyFp(seatIndex);
-
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
@@ -801,7 +801,7 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	}
 
 	float seatModifier = calculateEffectiveSeatModifier(seatIndex, partyIndex);
-	float adjustedModifier = seatModifier * fpModificationAdjustment[partyIndex];
+	float adjustedModifier = std::max(0.2f, seatModifier * fpModificationAdjustment[partyIndex]);
 	float modifiedFp1 = predictorCorrectorTransformedSwing(partyFp, partyFp * (adjustedModifier - 1.0f));
 	float modifiedFp2 = partyFp * adjustedModifier;
 	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
@@ -927,6 +927,8 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
 	// Less chance of independents emerging when there's already a strong candidate
 	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) indEmergenceRate *= 0.3f;
+	// but in other situations we want ind running chance to be affected by the presence of other confirmed independents
+	else indEmergenceRate *= run.indEmergenceModifier;
 	// Re-running challengers also count as a strong candidate, so reduce chance of further independents when they are running
 	if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) indEmergenceRate *= 0.3f;
 	// Beta distribution flipped because it's desired for the high rate of ind emergence
@@ -1000,16 +1002,6 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 	float transformedGrnFp = transformVoteShare(seatFpVoteShare[seatIndex][run.grnPartyIndex]);
 	transformedGrnFp += projectedGrnEffect;
 	seatFpVoteShare[seatIndex][run.grnPartyIndex] = detransformVoteShare(transformedGrnFp);
-
-	//if (seat.name == "Northcote") {
-	//	PA_LOG_VAR(projectedGrnEffect);
-	//	PA_LOG_VAR(indSwing);
-	//	PA_LOG_VAR(currentInd);
-	//	PA_LOG_VAR(pastInd);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(pastSeatResults[seatIndex].fpVotePercent);
-	//	logger << "------------------\n";
-	//}
 }
 
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
@@ -1119,7 +1111,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//      with flattening as the party vote approaches 0/100%.
 	//  4 - Normalise so that the total votes equal to 100%.
 
-
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// In general the ALP TPP will correspond to the entered seat margin
 	float partyOneCurrentTpp = 0.0f;
@@ -1178,26 +1169,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			}
 			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
 			pastElectionPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f;
-			//if (seat.name == "Shepparton") {
-			//	logger << "past\n";
-			//	PA_LOG_VAR(seat.name);
-			//	PA_LOG_VAR(partyIndex);
-			//	PA_LOG_VAR(seat.tppMargin);
-			//	PA_LOG_VAR(seat.previousSwing);
-			//	PA_LOG_VAR(previousAverage);
-			//	PA_LOG_VAR(preferenceFlowCap);
-			//	PA_LOG_VAR(partyOneCurrentTpp);
-			//	PA_LOG_VAR(voteShare);
-			//	PA_LOG_VAR(upperPreferenceFlow);
-			//	PA_LOG_VAR(basePreferenceFlow);
-			//	PA_LOG_VAR(transitionPreferenceFlow);
-			//	PA_LOG_VAR(summedPreferenceFlow);
-			//	PA_LOG_VAR(preferenceVariation);
-			//	PA_LOG_VAR(effectivePreferenceFlow);
-			//	PA_LOG_VAR(preferenceVariation[partyIndex]);
-			//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
-			//	PA_LOG_VAR(randomisedPreferenceFlow);
-			//}
 		}
 		else {
 			float previousPreferences = previousPreferenceFlow[partyIndex];
@@ -1209,6 +1180,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		}
 		previousNonMajorFpShare += voteShare;
 	}
+
 	preferenceBias = previousPartyOneTpp - previousPartyOneFp - pastElectionPartyOnePrefEstimate;
 	// Amount by which actual TPP is higher than estimated TPP, per 1% of the vote
 	// If we don't have a previous TPP to go off, just leave it at zero - assume preferences are same as nation wide
@@ -1250,25 +1222,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			effectivePreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
 			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
 			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f;
-			//if (seat.name == "Mackellar" || seat.name == "Fowler" || seat.name == "Nicholls") {
-			//	logger << "now\n";
-			//	PA_LOG_VAR(seat.name);
-			//	PA_LOG_VAR(partyIndex);
-			//	PA_LOG_VAR(seat.tppMargin);
-			//	PA_LOG_VAR(seat.previousSwing);
-			//	PA_LOG_VAR(previousAverage);
-			//	PA_LOG_VAR(preferenceFlowCap);
-			//	PA_LOG_VAR(partyOneCurrentTpp);
-			//	PA_LOG_VAR(voteShare);
-			//	PA_LOG_VAR(upperPreferenceFlow);
-			//	PA_LOG_VAR(basePreferenceFlow);
-			//	PA_LOG_VAR(transitionPreferenceFlow);
-			//	PA_LOG_VAR(summedPreferenceFlow);
-			//	PA_LOG_VAR(effectivePreferenceFlow);
-			//	PA_LOG_VAR(preferenceVariation[partyIndex]);
-			//	PA_LOG_VAR(basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]));
-			//	PA_LOG_VAR(randomisedPreferenceFlow);
-			//}
 		}
 		else {
 			float previousPreferences = previousPreferenceFlow[partyIndex];
@@ -1277,6 +1230,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		}
 		currentTotalPrefs += voteShare;
 	}
+
 	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentTotalPrefs;
 
 	float overallAdjustedPartyOnePrefs = biasAdjustedPartyOnePrefs + prefCorrection * currentTotalPrefs;
@@ -1313,7 +1267,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Mallee") {
+	//if (std::isnan(newPartyOneFp)) {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -1394,10 +1348,12 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 {
 	constexpr int MaxReconciliationCycles = 5;
 	for (int i = 0; i < MaxReconciliationCycles; ++i) {
+
 		calculateNewFpVoteTotals();
 		if (overallFpError < 0.3f) break;
 
 		if (i > 2) correctMajorPartyFpBias();
+
 		if (i > 1) calculatePreferenceCorrections();
 
 		if (i == MaxReconciliationCycles - 1) break;
@@ -1579,16 +1535,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// Function for allocating votes from excluded parties. Used in several places in this loop only,
 	// so create once and use wherever needed
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
-		//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
-		//	PA_LOG_VAR(excludedVoteShares);
-		//	PA_LOG_VAR(accumulatedVoteShares);
-		//	logger << "-- initial --\n";
-		//}
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
-			//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
-			//	PA_LOG_VAR(sourceParty);
-			//	PA_LOG_VAR(sourceVoteShare);
-			//}
 			// if it's a final-two situation, check if we have 
 			if (int(accumulatedVoteShares.size() == 2)) {
 				if (run.ncPreferenceFlow.contains(sourceParty)) {
@@ -1601,11 +1548,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						flow = detransformVoteShare(transformedFlow);
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
-
-						//if (seat.name == "Melbourne" && accumulatedVoteShares.size() == 2) {
-						//	PA_LOG_VAR(flow);
-						//	PA_LOG_VAR(accumulatedVoteShares);
-						//}
 						continue;
 					}
 				}
