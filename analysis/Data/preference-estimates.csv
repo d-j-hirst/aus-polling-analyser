@@ -86,15 +86,15 @@
 2021,wa,GRN FP,83.2
 2021,wa,ONP FP,34.8
 2021,wa,OTH FP,44.3
-2021,wa,NAT FP,15.0
+2021,wa,NAT FP,5.0,#Takes into account that while leakage to LIB is higher than this, most NAT vote goes directly to the TPP in their seat anyway
 2017,wa,GRN FP,81.94
 2017,wa,ONP FP,45.0
 2017,wa,UAP FP,46.97
 2017,wa,OTH FP,49.25
-2017,wa,NAT FP,15.0
+2017,wa,NAT FP,5.0,#Takes into account that while leakage to LIB is higher than this, most NAT vote goes directly to the TPP in their seat anyway
 2013,wa,GRN FP,83.03
 2013,wa,OTH FP,46.97
-2013,wa,NAT FP,15.0
+2013,wa,NAT FP,5.0,#Takes into account that while leakage to LIB is higher than this, most NAT vote goes directly to the TPP in their seat anyway
 2008,wa,GRN FP,79.69
 2008,wa,ONP FP,44.1
 2008,wa,OTH FP,44.62

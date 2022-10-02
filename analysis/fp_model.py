@@ -277,10 +277,15 @@ class ElectionData:
             pref_col = df[column].fillna(0)
             df['@TPP'] += pref_col * preference_flow
             df['Total'] += pref_col
+            print(pref_col)
+            print(preference_flow)
+            print(df['@TPP'])
+            print(df['Total'])
         df['@TPP'] += adjustment_series
         df['@TPP'] /= (df['Total'] * 0.01)
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
+        print(df['@TPP'])
     
     def combine_others_parties(self):
         # push misc parties into Others, as explained above

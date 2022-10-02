@@ -650,6 +650,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			tempPastResults.erase(partyIndex);
 			continue;
 		}
+		if (partyIndex == OthersIndex) {
+			if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) continue;
+		}
 		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
 	}
@@ -959,10 +962,6 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 	if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) {
 		return;
 	}
-	//if (seat.name == "Calare") {
-	//	logger << "problem in Calare\n";
-	//	PA_LOG_VAR(seat.runningParties);
-	//}
 	constexpr float MinPreviousOthFp = 2.0f;
 	float voteShare = MinPreviousOthFp;
 	if (pastSeatResults[seatIndex].fpVotePercent.contains(OthersIndex)) {
