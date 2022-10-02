@@ -1738,10 +1738,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 
-	//if (seat.name == "Indi") {
-	//	logger << "Indi";
-	//}
-
 	// incorporate non-classic live 2pp results
 	if (sim.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
 		float tcpLive = topTwo.first.second;
@@ -1774,7 +1770,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 
-	applyLiveManualOverrides(seatIndex);
+	if (sim.isLive()) applyLiveManualOverrides(seatIndex);
 }
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)
