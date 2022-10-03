@@ -242,6 +242,7 @@ void SimulationCompletion::recordSeatFpVoteStats()
 	sim.latestReport.seatFpProbabilityBand.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		for (auto [partyIndex, cumulativePercent] : run.cumulativeSeatPartyFpShare[seatIndex]) {
+			if (!cumulativePercent) continue;
 			sim.latestReport.seatPartyMeanFpShare[seatIndex][partyIndex] = cumulativePercent / double(sim.settings.numIterations);
 		}
 

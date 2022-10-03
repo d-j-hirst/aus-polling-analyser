@@ -1513,6 +1513,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (seatFpVoteShare[seatIndex].contains(CoalitionPartnerIndex)) {
 		seatFpVoteShare[seatIndex][CoalitionPartnerIndex] = 0;
 	}
+	if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex) && seatFpVoteShare[seatIndex][EmergingIndIndex] < detransformVoteShare(run.indEmergence.fpThreshold)) {
+		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+	}
 	for (auto val : seatFpVoteShare[seatIndex]) {
 		if (!val.second) continue; // don't add groups with no votes at all
 		if (val.first == OthersIndex) {
