@@ -763,6 +763,29 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	if (partyIndex == 2 && seat.name == "Richmond" && project.getElectionName() == "2022 Victorian State Election") {
 		transformedFp += 4.5f;
 	}
+
+	if (partyIndex == run.indPartyIndex && run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
+		// Exact values of odds above $15 don't generally mean much, so cap them at this level
+		constexpr float OddsCap = 15.0f;
+		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
+		// the last part of this line compensates for the typical bookmaker's margin
+		float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.85f));
+		// significant adjustment downwards to adjust for longshot bias.
+		// this number isn't really treated as a probability from here on so it's ok for
+		// it to become negative.
+		if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
+		float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
+		constexpr float range = 42.0f;
+		float voteShareCenter = pivot + range * (impliedChance - 0.5f);
+		constexpr float variation = 20.0f;
+		float transformedBettingFp = rng.normal(voteShareCenter, variation);
+		// If the betting odds are very favourable to the independent, tend to stick with
+		// the existing estimate as the betting estimate would probably be an underestimate
+		// for very popular independents
+		float mixFactor = std::min(5.0f - 5.0f * impliedChance, 0.5f);
+		transformedFp = mix(transformedFp, transformedBettingFp, mixFactor);
+	}
+
 	float regularVoteShare = detransformVoteShare(transformedFp);
 
 	if (seat.prominentMinors.size() && partyIndex >= Mp::Others && contains(seat.prominentMinors, project.parties().viewByIndex(partyIndex).abbreviation)) {
@@ -880,7 +903,10 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			// this number isn't really treated as a probability from here on so it's ok for
 			// it to become negative.
 			if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
-			const float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
+			float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
+			// Adjust for ALP tpp margin, otherwise this formula primarily intended for LNP seats
+			// doesn't work well for safe ALP seats
+			pivot += std::clamp(seat.tppMargin / 2.0f, 0.0f, 8.0f);
 			constexpr float range = 42.0f;
 			float voteShareCenter = pivot + range * (impliedChance - 0.5f);
 			constexpr float variation = 20.0f;
