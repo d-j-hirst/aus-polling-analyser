@@ -515,42 +515,6 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
-
-		//if (seat.name == "Moreton") {
-		//	PA_LOG_VAR(tppPrev);
-		//	PA_LOG_VAR(transformedTpp);
-		//	PA_LOG_VAR(elasticity);
-		//	PA_LOG_VAR(volatility);
-		//	PA_LOG_VAR(useVolatility);
-		//	PA_LOG_VAR(transformedTpp);
-		//	PA_LOG_VAR(regionSwing);
-		//	PA_LOG_VAR(seat.region);
-		//	PA_LOG_VAR(project.regions().idToIndex(seat.region));
-		//	PA_LOG_VAR(iterationOverallTpp);
-		//	PA_LOG_VAR(regionSwing[project.regions().idToIndex(seat.region)]);
-		//	static double waSwing = 0.0;
-		//	waSwing += regionSwing[project.regions().idToIndex(seat.region)];
-		//	static double waSwingCount = double(regionSwing[project.regions().idToIndex(seat.region)]);
-		//	waSwingCount += 1.0;
-		//	double avgWaSwing = waSwing / waSwingCount;
-		//	PA_LOG_VAR(avgWaSwing);
-		//	PA_LOG_VAR(run.seatPartyOneTppModifier[seatIndex]);
-		//	PA_LOG_VAR(run.regionLocalModifierAverage[seat.region]);
-		//	PA_LOG_VAR(run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier);
-		//	PA_LOG_VAR(run.tppSwingFactors.meanSwingDeviation);
-		//	PA_LOG_VAR(run.tppSwingFactors.federalModifier);
-		//	PA_LOG_VAR(volatility);
-		//	PA_LOG_VAR(useVolatility);
-		//	PA_LOG_VAR(swingDeviation);
-		//	PA_LOG_VAR(kurtosis);
-		//	PA_LOG_VAR(tppLive);
-		//	PA_LOG_VAR(liveTransformedTpp);
-		//	PA_LOG_VAR(liveSwingDeviation);
-		//	PA_LOG_VAR(liveTransformedTpp);
-		//	PA_LOG_VAR(liveFactor);
-		//	PA_LOG_VAR(mixedTransformedTpp);
-		//	PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-		//}
 	}
 	else {
 		// Margin for this simulation is finalised, record it for later averaging
@@ -769,7 +733,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		constexpr float OddsCap = 15.0f;
 		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
 		// the last part of this line compensates for the typical bookmaker's margin
-		float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.85f));
+		float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
 		// significant adjustment downwards to adjust for longshot bias.
 		// this number isn't really treated as a probability from here on so it's ok for
 		// it to become negative.
@@ -784,6 +748,25 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		// for very popular independents
 		float mixFactor = std::min(5.0f - 5.0f * impliedChance, 0.5f);
 		transformedFp = mix(transformedFp, transformedBettingFp, mixFactor);
+	} else if (partyIndex == run.grnPartyIndex && run.seatBettingOdds[seatIndex].contains(run.grnPartyIndex)) {
+		// Exact values of odds above $15 don't generally mean much, so cap them at this level
+		constexpr float OddsCap = 15.0f;
+		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.grnPartyIndex], OddsCap);
+		// the last part of this line compensates for the typical bookmaker's margin
+		float impliedChance = 1.0f / ((cappedOdds - 1.0f) * (1.0f / 0.88f) + 1.0f);
+		// No longshot bias adjustment for Greens
+		float prevLibFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(1) ?
+			run.pastSeatResults[seatIndex].fpVotePercent[1] : 10.0f;
+		// First step establishes the mean at a position that historically relates to this
+		// % chance of winning
+		float grnFpCenter = std::clamp(15.456f * impliedChance - 0.3062f * prevLibFp + 36.57f, 1.0f, 99.0f);
+		// This step takes into account the variation so that the actual % chance *after variation*
+		// lines up with the historical % chance of winning.
+		grnFpCenter += (impliedChance - 0.5f) * 10.0f;
+		float transformedCenter = transformVoteShare(grnFpCenter);
+		const float variation = 10.0f * (1.0f - 0.75f * std::abs(impliedChance - 0.5f));
+		float transformedBettingFp = rng.normal(transformedCenter, variation);
+		transformedFp = mix(transformedFp, transformedBettingFp, 0.5f);
 	}
 
 	float regularVoteShare = detransformVoteShare(transformedFp);
@@ -898,7 +881,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			constexpr float OddsCap = 15.0f;
 			float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
 			// the last part of this line compensates for the typical bookmaker's margin
-			float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.85f));
+			float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
 			// significant adjustment downwards to adjust for longshot bias.
 			// this number isn't really treated as a probability from here on so it's ok for
 			// it to become negative.
