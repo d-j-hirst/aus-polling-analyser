@@ -1,13 +1,5 @@
 
 -Post-election to-do:
- -Fixing issue with OTH pushing GRN out in e.g. Northcote
- -Fix Calare others issue (forecasts predicts others vote despite being entered with no valid OTH candidates)
- -Candidate names incl. independents
-  -Add ability to enter and same candidate names
-  -include in forecast report
-  -display names on frontend
-  -remove the "Emerging Independent" designation on frontend
-  -remove "Emerging IND" sorting options
  -Release forecast officially here!
  -Indicators on front-end for factors involved in a seat's TPP (and maybe other components)
  *** SHOULD REACH HERE BY THE START OF VICTORIAN CAMPAIGN ***

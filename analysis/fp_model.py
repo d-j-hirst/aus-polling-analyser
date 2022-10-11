@@ -151,20 +151,6 @@ class ModellingData:
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
-        # Load the list of credentialled pollsters for each election
-        # The house-effect sum-to-zero constraint will only apply
-        # for these pollsters
-        # Membership is based on track record of having similar or
-        # better results than the consensus, no notable house
-        # effect (including minor party effects), and compliance with
-        # any industry standards
-        # Rules may be relaxed somewhat while there are very few
-        # pollsters covering a race (e.g. ResolvePM for NSW-2023)
-        with open('./Data/anchoring-pollsters.csv', 'r') as f:
-            self.anchoring_pollsters = {(a[0], a[1]): a[2:]
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
-
         with open('./Outputs/Calibration/variability.csv', 'r') as f:
             self.pollster_sigmas = {(a[0], a[1]): float(a[2])
                             for a in [b.strip().split(',')
@@ -176,7 +162,7 @@ class ModellingData:
                             for b in f.readlines()]}
 
         with open('./Outputs/Calibration/biases.csv', 'r') as f:
-            self.pollster_biases = {((a[0], a[1]), a[2], a[3]): float(a[4])
+            self.pollster_biases = {((a[0], a[1]), a[2], a[3]): (float(a[4]), float(a[5]))
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
@@ -423,34 +409,9 @@ def run_individual_party(config, m_data, e_data,
     # included in the sum-to-zero are first, and then the
     # others follow
     houses = df['Firm'].unique().tolist()
-    # !!! remove everything from here ...
-    houseCounts = df['Firm'].value_counts()
-    whitelist = m_data.anchoring_pollsters[e_data.e_tuple]
-    if config.calibrate_pollsters or config.calibrate_bias:
-        exclusions = set()
-    else:
-        exclusions = set([h for h in houses if h not in whitelist])
-    print(f'Pollsters included in anchoring: '
-          f'{[h for h in houses if h not in exclusions]}')
-    print(f'Pollsters not included in anchoring: {exclusions}')
-    for h in houses:
-        if h not in houseCounts or houseCounts[h] < 1:
-            exclusions.add(h)
-    remove_exclusions = []
-    for e in exclusions:
-        if e in houses:
-            houses.remove(e)
-        else:
-            remove_exclusions.append(e)
-    for e in remove_exclusions:
-        exclusions.remove(e)
-    houses = houses + list(exclusions)
-    # !!! to here, and also remove the anchoring pollsters file
-    # and the bit of the code that reads it above
     house_map = dict(zip(houses, range(1, len(houses)+1)))
     df['House'] = df['Firm'].map(house_map)
     n_houses = len(df['House'].unique())
-    n_exclude = len(exclusions)
 
     # Transform discontinuities from dates to raw numbers
     discontinuities_filtered = m_data.discontinuities[e_data.e_tuple[1]]
@@ -482,8 +443,8 @@ def run_individual_party(config, m_data, e_data,
     # use determined house effect weights when running forecasts
     he_weights = [
         1 if config.calibrate_pollsters or config.calibrate_bias else
-        m_data.pollster_he_weights[(x, party)] if
-        (x, party) in m_data.pollster_he_weights else 0.4
+        4 / (m_data.pollster_biases[(e_data.e_tuple, x, party)][1] ** 2) if
+        (e_data.e_tuple, x, party) in m_data.pollster_biases else 0.05
         for x in houses
     ]
 
@@ -491,12 +452,13 @@ def run_individual_party(config, m_data, e_data,
     # use determined house effect weights when running forecasts
     biases = [
         0 if config.calibrate_pollsters or config.calibrate_bias else
-        m_data.pollster_biases[(e_data.e_tuple, x, party)] if
+        m_data.pollster_biases[(e_data.e_tuple, x, party)][0] if
         (e_data.e_tuple, x, party) in m_data.pollster_biases else 0
         for x in houses
     ]
 
     print(houses)
+    print(he_weights)
     print(biases)
 
     houseEffectOld = 240

@@ -1,6 +1,8 @@
 from mailbox import linesep
 import os
 import math
+import numpy as np
+from statsmodels.stats.weightstats import DescrStatsW
 
 directory = 'Outputs/Calibration'
 
@@ -165,13 +167,13 @@ def analyse_bias():
     
     target_elections = elections + future_elections
     
-    biases = []
+    bias_infos = []
     # Cycle through elections to exclude
     # so that these can be used for that election's forecast
     # without the actual result for that election impacting it in any way.
     for target_election in target_elections:
-        summed_bias = {}
-        summed_weights = {}
+        bias_list = {}
+        weight_list = {}
         for election in elections:
             # Elections before 2022 may use only pre-2022 elections
             # (except themselves) and elections from 2022 onwards
@@ -203,29 +205,28 @@ def analyse_bias():
                         weight = (min(math.log(this_n_polls + 1), 3) *
                                   min(math.log(all_n_polls + 1), 4) / 12)
                         target_key = (pollster, party)
-                        if target_key not in summed_bias:
-                            summed_bias[target_key] = 0
-                            summed_weights[target_key] = 1
-                        summed_bias[target_key] += bias * weight
-                        summed_weights[target_key] += weight
-        for target_key in sorted(summed_bias.keys()):
-            bias_sum = summed_bias[target_key]
-            weights_sum = summed_weights[target_key]
-            mean_bias = bias_sum / weights_sum
-            biases.append((target_election[0], target_election[1],
-                           target_key[0], target_key[1], mean_bias))
+                        if target_key not in bias_list:
+                            bias_list[target_key] = []
+                            weight_list[target_key] = []
+                        bias_list[target_key].append(bias)
+                        weight_list[target_key].append(weight)
+        for target_key in sorted(bias_list.keys()):
+            bias_arr = np.array(bias_list[target_key] + [4, -4])
+            weight_arr = np.array(weight_list[target_key] + [0.5, 0.5])
+            desc = DescrStatsW(bias_arr, weights=weight_arr)
+            if target_key[1] == "@TPP":
+                print(target_key)
+                print(desc.mean)
+                print(desc.std)
+            bias_infos.append((target_election[0], target_election[1],
+                           target_key[0], target_key[1], desc.mean, desc.std))
         print(f'Performed bias analysis for {target_election}')
 
     with open(f'{directory}/biases.csv', 'w') as f:
-        for bias in biases:
-            print(bias)
-            f.write(','.join(str(a) for a in bias) + '\n')
+        for bias_info in bias_infos:
+            f.write(','.join(str(a) for a in bias_info) + '\n')
 
     print('Bias analysis successfully completed')
-
-
-
-
 
 
 if __name__ == '__main__':

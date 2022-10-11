@@ -1130,9 +1130,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float previousNonMajorFpShare = 0.0f;
 	float previousPartyOneTpp = 0.0f;
 	float previousPartyOneFp = pastSeatResults[seatIndex].fpVotePercent[Mp::One];
-	// ternary operator for situtations where party two didn't previously run, e.g. Richmond (vic) 2018
-	float previousPartyTwoFp = (pastSeatResults[seatIndex].fpVotePercent.contains(Mp::Two) ?
-		pastSeatResults[seatIndex].fpVotePercent[Mp::Two] : DefaultPartyTwoPrimary);
+	bool previousPartyTwoExists = pastSeatResults[seatIndex].fpVotePercent.contains(Mp::Two);
+	float previousPartyTwoFp = (previousPartyTwoExists ? pastSeatResults[seatIndex].fpVotePercent[Mp::Two] : DefaultPartyTwoPrimary);
 	if (pastSeatResults[seatIndex].tcpVote.contains(Mp::One) && pastSeatResults[seatIndex].tcpVote.contains(Mp::Two)) {
 		previousPartyOneTpp = pastSeatResults[seatIndex].tcpVote[Mp::One];
 	}
@@ -1192,7 +1191,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	preferenceBias = previousPartyOneTpp - previousPartyOneFp - pastElectionPartyOnePrefEstimate;
 	// Amount by which actual TPP is higher than estimated TPP, per 1% of the vote
 	// If we don't have a previous TPP to go off, just leave it at zero - assume preferences are same as nation wide
-	float preferenceBiasRate = (previousNonMajorFpShare > 0.0f ? preferenceBias / previousNonMajorFpShare : 0.0f);
+	float preferenceBiasRate = (previousNonMajorFpShare > 0.0f && previousPartyTwoExists ? preferenceBias / previousNonMajorFpShare : 0.0f);
 
 	float currentPartyOnePrefs = 0.0f;
 	float currentTotalPrefs = 0.0f;
@@ -1275,7 +1274,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (std::isnan(newPartyOneFp)) {
+	//if (seat.name == "Richmond") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
