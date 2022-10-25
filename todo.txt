@@ -4,7 +4,6 @@
  -Indicators on front-end for factors involved in a seat's TPP (and maybe other components)
  *** SHOULD REACH HERE BY THE START OF VICTORIAN CAMPAIGN ***
  -Condense past elections to dropdown menu
- -General refactor of frontend as there is currently a lot of code duplication
  -Live forecasts:
   -Investigate methods for getting live VIC booth data
   -Overall fp vote estimates narrowed much too quickly last time, investigate
@@ -13,12 +12,15 @@
   -Investigate very high GRN chances in Macnamara/Richmond on election night
   -More info about e.g. % counted, actual results (if time permits)
  *** SHOULD REACH HERE BY VIC ELECTION NIGHT ***
- -Further post with analysis of election forecast & also SA
+ -
+ -Further post with analysis of election forecast & also SA (or maybe leave this until after NSW?)
  -Develop systems for handling OPV preference flows in NSW
- -Develop mechanism for making hindcasts and assigning an appropriate date for when they "would" have been done
- -Check that all parts of the system sufficiently exclude an election from impacting its own forecast (for hindcasts)
  -Overhaul mechanisms to account for exhaustion under OPV
  -Prepare NSW forecast
+ *** SHOULD REACH HERE BY THE START OF NSW CAMPAIGN ***
+ -General refactor of frontend as there is currently a lot of code duplication
+ -Develop mechanism for making hindcasts and assigning an appropriate date for when they "would" have been done
+ -Check that all parts of the system sufficiently exclude an election from impacting its own forecast (for hindcasts)
  -Overhaul mechanisms to count WA Nats as a separate party while maintaining TPP dynamics
  -Create hindcasts for earlier parts of 2022fed and maybe 2022sa
  -Create hindcasts for earlier elections
