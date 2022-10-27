@@ -160,7 +160,7 @@ void SimulationPreparation::determineEffectiveSeatModifiers()
 			if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.retirementUrban * direction;
 		}
 		constexpr float DisendorsementMod = 3.0f;
-		constexpr float PreviousDisendorsementMod = DisendorsementMod * -0.5f;
+		constexpr float PreviousDisendorsementMod = DisendorsementMod * -1.0f;
 		if (seat.disendorsement) run.seatPartyOneTppModifier[seatIndex] += DisendorsementMod * direction;
 		if (seat.previousDisendorsement) run.seatPartyOneTppModifier[seatIndex] += PreviousDisendorsementMod * direction;
 		run.seatPartyOneTppModifier[seatIndex] += seat.localModifier;

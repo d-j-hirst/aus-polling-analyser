@@ -149,7 +149,7 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 	auto splitLine = splitString(line, ",");
 	std::map<int, std::string> partyNames;
 	std::map<int, int> partyIds;
-	for (int heading = 4; heading < int(splitLine.size()); ++heading) {
+	for (int heading = 3; heading < int(splitLine.size()); ++heading) {
 		auto splitHeading = splitString(splitLine[heading], " ");
 		if (splitHeading.size() != 2) continue;
 		if (splitHeading[1] == "FP") {
@@ -180,9 +180,9 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 		auto dateParts = splitStringI(splitLine[0], "-");
 		pollInfo.date = wxDateTime(dateParts[2], wxDateTime::Month(dateParts[1] - 1), dateParts[0]);
 		if (pollInfo.date > cutoffDate) continue;
-		std::string pollsterName = splitLine[2];
+		std::string pollsterName = splitLine[1];
 		try {
-			pollInfo.tpp = std::stof(splitLine[3]);
+			pollInfo.tpp = std::stof(splitLine[2]);
 		}
 		catch (std::invalid_argument) {
 			// N/A value, just silently ignore as it's not actually an error

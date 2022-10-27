@@ -558,7 +558,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 {
-	constexpr static int NumIterations = 1000;
+	constexpr static int NumIterations = 3000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
 	try {
 		int seriesLength = rawSupport.begin()->second.timePoint.size();
@@ -613,7 +613,7 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 			}
 		}
 
-		const int ModelSmoothingDays = 21;
+		const int ModelSmoothingDays = 7;
 		for (auto& [key, party] : adjustedSupport) {
 			party.smooth(ModelSmoothingDays); // also automatically calculates expectations
 		}
