@@ -7,14 +7,6 @@
 #include "Simulation.h"
 #include "SimulationRun.h"
 
-// Note: A large amount of code in this file is commented out as the "previous results"
-// was updated to a new (better) format but the "latest results" was not. Further architectural
-// improvement, including removing cached election results from project seat data, cannot be
-// properly done unless this is fixed, and the fixing is decidedly non-trivial. In order to
-// expedite the initial web release, which does not require live election updating, these have
-// been disabled and code producing errors commented out and replaced with stubs,
-// until the project is prepared to work on restoring the live results.
-
 using Mp = Simulation::MajorParty;
 
 static std::random_device rd;
@@ -98,6 +90,12 @@ void SimulationIteration::determineOverallTpp()
 	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
+	if (sim.settings.forceTpp.has_value()) {
+		float tppChange = sim.settings.forceTpp.value() - iterationOverallTpp;
+		iterationOverallTpp = sim.settings.forceTpp.value();
+		projectedSample.voteShare["ALP"] = predictorCorrectorTransformedSwing(projectedSample.voteShare["ALP"], tppChange);
+		projectedSample.voteShare["LNP"] = predictorCorrectorTransformedSwing(projectedSample.voteShare["LNP"], -tppChange);
+	}
 	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
 
 	for (auto const& [sampleKey, partySample] : projectedSample.voteShare) {

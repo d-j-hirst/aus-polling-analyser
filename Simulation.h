@@ -62,6 +62,8 @@ public:
 
 		float prevElection2pp = 50.0f;
 
+		std::optional<float> forceTpp;
+
 		std::string previousResultsUrl;
 		std::string preloadUrl;
 		std::string currentTestUrl; // used for testing, leave blank on the night

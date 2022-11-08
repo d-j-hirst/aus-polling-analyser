@@ -28,7 +28,8 @@ enum ControlId
 	PreloadUrl,
 	CurrentTestUrl,
 	CurrentRealUrl,
-	FedElectionDate
+	FedElectionDate,
+	ForceTpp
 };
 
 EditSimulationFrame::EditSimulationFrame(Function function, OkCallback okCallback, ProjectionCollection const& projections, Simulation::Settings simulation)
@@ -57,6 +58,7 @@ void EditSimulationFrame::createControls(int & y)
 	createCurrentTestUrlInput(y);
 	createCurrentRealUrlInput(y);
 	createFedElectionDateInput(y);
+	createForceTppInput(y);
 
 	createOkCancelButtons(y);
 }
@@ -178,6 +180,15 @@ void EditSimulationFrame::createFedElectionDateInput(int& y)
 	fedElectionDateInput.reset(new DateInput(this, ControlId::FedElectionDate, "Federal Election Date: ", simulationSettings.fedElectionDate,
 		wxPoint(2, y), callback));
 	y += fedElectionDateInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createForceTppInput(int& y)
+{
+	auto callback = [this](float f) -> void {if (f > 0) simulationSettings.forceTpp = f; else simulationSettings.forceTpp.reset(); };
+	auto validator = [](float f) {return std::clamp(f, 0.0f, 100.0f); };
+	forceTppInput.reset(new FloatInput(this, ControlId::ForceTpp, "Force TPP (not saved):", simulationSettings.forceTpp.value_or(0),
+		wxPoint(2, y), callback, validator));
+	y += forceTppInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createOkCancelButtons(int & y)

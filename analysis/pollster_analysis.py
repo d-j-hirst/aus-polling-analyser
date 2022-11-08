@@ -214,10 +214,6 @@ def analyse_bias():
             bias_arr = np.array(bias_list[target_key] + [4, -4])
             weight_arr = np.array(weight_list[target_key] + [0.5, 0.5])
             desc = DescrStatsW(bias_arr, weights=weight_arr)
-            if target_key[1] == "@TPP":
-                print(target_key)
-                print(desc.mean)
-                print(desc.std)
             bias_infos.append((target_election[0], target_election[1],
                            target_key[0], target_key[1], desc.mean, desc.std))
         print(f'Performed bias analysis for {target_election}')
