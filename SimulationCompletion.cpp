@@ -206,7 +206,7 @@ void SimulationCompletion::recordNames()
 		else if (run.pastSeatResults[index].tcpVote.contains(effectiveIncumbent)) {
 			float margin = run.pastSeatResults[index].tcpVote.at(effectiveIncumbent) - 50.0f;
 			if (seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
-				margin += seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation);
+				margin -= seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation);
 			}
 			sim.latestReport.seatIncumbentMargins.push_back(margin);
 		}

@@ -582,11 +582,11 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			// reduce incumbent fp by the tcp-change vs challenger (to account for redistributions)
 			if (partyIndex == project.parties().idToIndex(seat.incumbent) &&
 				seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
-				voteShare = predictorCorrectorTransformedSwing(voteShare, seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
+				voteShare = predictorCorrectorTransformedSwing(voteShare, -seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
 			}
 			else if (partyIndex == project.parties().idToIndex(seat.challenger) &&
 				seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
-				voteShare = predictorCorrectorTransformedSwing(voteShare, -seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
+				voteShare = predictorCorrectorTransformedSwing(voteShare, seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
 			}
 		}
 		bool effectiveGreen = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
@@ -599,7 +599,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		if (effectiveGreen) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
-		else if (effectiveIndependent) {
+		else if (effectiveIndependent && project.parties().idToIndex(seat.incumbent) == run.indPartyIndex) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -644,9 +644,11 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		voteShare = 0.0f;
 		return;
 	}
-	if (seat.runningParties.size() && partyIndex == run.indPartyIndex && !seat.previousIndRunning && !seat.incumbentRecontestConfirmed) {
-		voteShare = 0.0f;
-		return;
+	if (seat.runningParties.size() && partyIndex == run.indPartyIndex && !seat.incumbentRecontestConfirmed) {
+		if (!contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+			voteShare = 0.0f;
+			return;
+		}
 	}
 	if (partyIndex == run.indPartyIndex && seat.confirmedProminentIndependent) {
 		// this case will be handled by the "confirmed independent" logic instead
@@ -871,6 +873,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		if (run.seatMinorViability[seatIndex].contains(run.indPartyIndex)) {
 			rmse *= 1.0f + (0.4f * run.seatMinorViability[seatIndex][run.indPartyIndex]);
 		}
+		if (seat.incumbent == 0) rmse *= 1.1f;
 		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
 		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
@@ -879,17 +882,20 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			constexpr float OddsCap = 15.0f;
 			float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
 			// the last part of this line compensates for the typical bookmaker's margin
-			float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
+			const float origImpliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
+			float impliedChance = origImpliedChance;
 			// significant adjustment downwards to adjust for longshot bias.
 			// this number isn't really treated as a probability from here on so it's ok for
 			// it to become negative.
-			if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
+			if (impliedChance < 0.35f) impliedChance -= 0.5f * (0.35f - impliedChance);
+			if (impliedChance < 0.25f) impliedChance -= 0.5f * (0.25f - impliedChance);
 			float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
 			// Adjust for ALP tpp margin, otherwise this formula primarily intended for LNP seats
 			// doesn't work well for safe ALP seats
-			pivot += std::clamp(seat.tppMargin / 2.0f, 0.0f, 8.0f);
+			pivot += std::clamp(seat.tppMargin * std::pow(origImpliedChance, 1.5f) * 8.0f, 0.0f, 40.0f);
 			constexpr float range = 42.0f;
 			float voteShareCenter = pivot + range * (impliedChance - 0.5f);
+			//if (seat.tppMargin > 3.0f) voteShareCenter += 12.0f; // bandaid fix for the ALP candidates having a harder time with same fp
 			constexpr float variation = 20.0f;
 			float transformedBettingFp = rng.normal(voteShareCenter, variation);
 			transformedVoteShare = mix(transformedVoteShare, transformedBettingFp, 0.7f);
@@ -1545,7 +1551,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// so create once and use wherever needed
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
-			// if it's a final-two situation, check if we have 
+			// if it's a final-two situation, check if we have known preference flows
 			if (int(accumulatedVoteShares.size() == 2)) {
 				if (run.ncPreferenceFlow.contains(sourceParty)) {
 					auto const& item = run.ncPreferenceFlow[sourceParty];
@@ -1555,8 +1561,8 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						float transformedFlow = transformVoteShare(flow);
 						transformedFlow += rng.normal(0.0f, 10.0f);
 						flow = detransformVoteShare(transformedFlow);
-						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * item.at(targetParties);
-						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - item.at(targetParties));
+						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * flow;
+						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - flow);
 						continue;
 					}
 				}
@@ -1603,6 +1609,14 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				float grnShare = rng.uniform(0.55f, 0.75f);
 				weights[grnIndex] = combinedWeights * grnShare;
 				weights[alpIndex] = combinedWeights * (1.0f - grnShare);
+			}
+
+			// and OTH -> GRN/LIB
+			if (lnpIndex >= 0 && grnIndex >= 0 && sourceParty == -1) {
+				float combinedWeights = weights[lnpIndex] + weights[grnIndex];
+				float grnShare = rng.uniform(0.35f, 0.65f);
+				weights[grnIndex] = combinedWeights * grnShare;
+				weights[lnpIndex] = combinedWeights * (1.0f - grnShare);
 			}
 
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
@@ -1676,33 +1690,33 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// For non-standard Tcp scenarios, if it's a match to the previous tcp pair then compare with that
 	// and adjust the current results to match.
 	if (!bothMajorParties(topTwo.first.first, topTwo.second.first)) {
-		auto const& prevResults = pastSeatResults[seatIndex];
-		if (prevResults.tcpVote.count(topTwo.first.first) && prevResults.tcpVote.count(topTwo.second.first)) {
-			// Allocate the previous elections fp votes as if it were now
-			std::vector<PartyVotes> pseudoAccumulated;
-			std::vector<PartyVotes> pseudoExcluded;
-			for (auto [party, voteShare] : prevResults.fpVotePercent) {
-				if (prevResults.tcpVote.count(party)) {
-					pseudoAccumulated.push_back({ party, voteShare });
-				}
-				else {
-					pseudoExcluded.push_back({ party, voteShare });
-				}
+		//auto const& prevResults = pastSeatResults[seatIndex];
+		//if (prevResults.tcpVote.count(topTwo.first.first) && prevResults.tcpVote.count(topTwo.second.first)) {
+		//	// Allocate the previous elections fp votes as if it were now
+		//	std::vector<PartyVotes> pseudoAccumulated;
+		//	std::vector<PartyVotes> pseudoExcluded;
+		//	for (auto [party, voteShare] : prevResults.fpVotePercent) {
+		//		if (prevResults.tcpVote.count(party)) {
+		//			pseudoAccumulated.push_back({ party, voteShare });
+		//		}
+		//		else {
+		//			pseudoExcluded.push_back({ party, voteShare });
+		//		}
 
-			}
-			if (pseudoAccumulated[0].first != topTwo.first.first) std::swap(pseudoAccumulated[0], pseudoAccumulated[1]);
-			allocateVotes(pseudoAccumulated, pseudoExcluded);
-			float bias = pseudoAccumulated[0].second - prevResults.tcpVote.at(topTwo.first.first);
-			float totalAllocatedPrev = std::accumulate(pseudoExcluded.begin(), pseudoExcluded.end(), 0.0f,
-				[](float acc, PartyVotes const& votes) {return acc + votes.second; });
-			float biasRate = bias / totalAllocatedPrev;
-			float totalAllocatedNow = std::accumulate(excludedVoteShares.begin(), excludedVoteShares.end(), 0.0f,
-				[](float acc, PartyVotes const& votes) {return acc + votes.second; });
-			topTwo.first.second -= biasRate * totalAllocatedNow;
-			topTwo.second.second += biasRate * totalAllocatedNow;
+		//	}
+		//	if (pseudoAccumulated[0].first != topTwo.first.first) std::swap(pseudoAccumulated[0], pseudoAccumulated[1]);
+		//	allocateVotes(pseudoAccumulated, pseudoExcluded);
+		//	float bias = pseudoAccumulated[0].second - prevResults.tcpVote.at(topTwo.first.first);
+		//	float totalAllocatedPrev = std::accumulate(pseudoExcluded.begin(), pseudoExcluded.end(), 0.0f,
+		//		[](float acc, PartyVotes const& votes) {return acc + votes.second; });
+		//	float biasRate = bias / totalAllocatedPrev;
+		//	float totalAllocatedNow = std::accumulate(excludedVoteShares.begin(), excludedVoteShares.end(), 0.0f,
+		//		[](float acc, PartyVotes const& votes) {return acc + votes.second; });
+		//	topTwo.first.second -= biasRate * totalAllocatedNow;
+		//	topTwo.second.second += biasRate * totalAllocatedNow;
 
-			if (topTwo.second.second < topTwo.first.second) std::swap(topTwo.first, topTwo.second);
-		}
+		//	if (topTwo.second.second < topTwo.first.second) std::swap(topTwo.first, topTwo.second);
+		//}
 
 		// if we're live, do further adjustments ...
 		if (sim.isLiveAutomatic()) {
@@ -1778,6 +1792,13 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
+
+	//if (seat.name == "Northcote") {
+	//	PA_LOG_VAR(seatTcpVoteShare[seatIndex]);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//	logger << "-----\n";
+	//}
 
 	if (sim.isLive()) applyLiveManualOverrides(seatIndex);
 }

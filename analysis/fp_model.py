@@ -464,6 +464,21 @@ def run_individual_party(config, m_data, e_data,
     houseEffectOld = 240
     houseEffectNew = 120
 
+    # Print an estimate for the expected house effect sum
+    # (doesn't have any impact on subsequent calculations)
+    weightedBiasSum = 0
+    housePollCount = [0 for a in houses]
+    houseWeight = [0 for a in houses]
+    houseList = df['House'].values.tolist()
+    for poll in range(0, n_polls):
+        housePollCount[houseList[poll] - 1] = housePollCount[houseList[poll] - 1] + 1
+    for house in range(0, n_houses):
+        houseWeight[house] = min(1, housePollCount[house] * 0.2) * he_weights[house]
+        weightedBiasSum += biases[house] * houseWeight[house]
+    totalHouseWeight = sum(houseWeight)
+    weightedBias = weightedBiasSum / totalHouseWeight
+    print(f'Expected house effect sum: {weightedBias}')
+
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:
         model = f.read()
@@ -498,7 +513,7 @@ def run_individual_party(config, m_data, e_data,
         # modelled as a double exponential to avoid
         # easily giving a large house effect, but
         # still giving a big one when it's really warranted
-        'houseEffectSigma': 1.0,
+        'houseEffectSigma': 2.0,
 
         # prior distribution for sum of house effects
         # keep this very small, we will deal with systemic bias
