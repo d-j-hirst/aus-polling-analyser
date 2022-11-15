@@ -32,7 +32,7 @@ private:
 	void resetRegionSpecificOutput();
 	void resetSeatSpecificOutput();
 	void storeTermCode();
-	void determineEffectiveSeatModifiers();
+	void determineEffectiveSeatTppModifiers();
 	void determinePreviousSwingDeviations();
 	void accumulateRegionStaticInfo();
 	void loadSeatBettingOdds();

@@ -188,6 +188,14 @@ private:
 	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
 
+	// Keep track of swing factors
+	std::vector<double> seatRegionSwingSums;
+	std::vector<double> seatElasticitySwingSums;
+	std::vector<double> seatLocalEffectsSums;
+	std::vector<double> seatPreviousSwingEffectSums;
+	std::vector<double> seatFederalSwingEffectSums;
+	std::vector<std::vector<std::pair<std::string, double>>> seatLocalEffects;
+
 	// Store all potential TCP results found in iterations
 	// First index is seat
 	// Second index is a pair containing the two parties involved in ascending order

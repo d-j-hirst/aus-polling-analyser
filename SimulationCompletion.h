@@ -25,6 +25,7 @@ private:
 	void recordSeatPartyWinPercentages();
 	void recordSeatFpVoteStats();
 	void recordSeatTcpVoteStats();
+	void recordSeatSwingFactors();
 	void recordTrends();
 	void recordTcpTrend();
 	void recordFpTrends();

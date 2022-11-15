@@ -119,7 +119,7 @@ void DisplayFrame::OnDeleteReport(wxCommandEvent&)
 	std::string deletion = wxGetTextFromUser("Enter \"delete\" to confirm deletion:", "Confirm Deletion").ToStdString();
 	if (deletion == "delete") {
 		project->simulations().deleteReport(simIndex, selectedSaveReport);
-		wxMessageBox("Successfully releted report.");
+		wxMessageBox("Successfully deleted report.");
 		selectedSaveReport = -1;
 		refreshToolbar();
 	}
@@ -213,7 +213,7 @@ void DisplayFrame::refreshSavedReports()
 	wxArrayString saveReportArray;
 	saveReportArray.push_back("Latest Report");
 	if (selectedSimulation >= 0 && selectedSimulation < project->simulations().count()) {
-		auto thisSimulation = project->simulations().viewByIndex(selectedSimulation);
+		auto const& thisSimulation = project->simulations().viewByIndex(selectedSimulation);
 		for (auto const& savedReport : thisSimulation.viewSavedReports()) {
 			std::string label = savedReport.label + " - " + savedReport.dateSaved.FormatISODate().ToStdString();
 			saveReportArray.push_back(label);

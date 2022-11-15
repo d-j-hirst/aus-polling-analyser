@@ -69,7 +69,7 @@ void SimulationPreparation::prepareForIterations()
 
 	loadPastSeatResults();
 
-	determineEffectiveSeatModifiers();
+	determineEffectiveSeatTppModifiers();
 	determinePreviousSwingDeviations();
 
 	accumulateRegionStaticInfo();
@@ -129,6 +129,13 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPartyFpDistribution.resize(project.seats().count());
 	run.seatPartyFpZeros.resize(project.seats().count());
 	run.seatTcpDistribution.resize(project.seats().count());
+
+	run.seatRegionSwingSums.resize(project.seats().count(), 0.0);
+	run.seatElasticitySwingSums.resize(project.seats().count(), 0.0);
+	run.seatLocalEffectsSums.resize(project.seats().count(), 0.0);
+	run.seatPreviousSwingEffectSums.resize(project.seats().count(), 0.0);
+	run.seatFederalSwingEffectSums.resize(project.seats().count(), 0.0);
+	run.seatLocalEffects.resize(project.seats().count());
 }
 
 void SimulationPreparation::storeTermCode()
@@ -138,7 +145,7 @@ void SimulationPreparation::storeTermCode()
 	run.regionCode = termCode.substr(4);
 }
 
-void SimulationPreparation::determineEffectiveSeatModifiers()
+void SimulationPreparation::determineEffectiveSeatTppModifiers()
 {
 	run.seatPartyOneTppModifier.resize(project.seats().count(), 0.0f);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -150,19 +157,51 @@ void SimulationPreparation::determineEffectiveSeatModifiers()
 		bool isRegional = type == ST::Provincial || type == ST::Rural;
 		float direction = (seat.incumbent ? -1.0f : 1.0f);
 		if (isRegional) {
-			if (seat.sophomoreCandidate) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomoreCandidateRegional * direction;
-			if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomorePartyRegional * direction;
-			if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.retirementRegional * direction;
+			if (seat.sophomoreCandidate) {
+				float effectSize = run.tppSwingFactors.sophomoreCandidateRegional * direction;
+				run.seatPartyOneTppModifier[seatIndex] += effectSize;
+				run.seatLocalEffects[seatIndex].push_back({ "Candidate sophomore effect", effectSize });
+			}
+			if (seat.sophomoreParty) {
+				float effectSize = run.tppSwingFactors.sophomorePartyRegional * direction;
+				run.seatPartyOneTppModifier[seatIndex] += effectSize;
+				run.seatLocalEffects[seatIndex].push_back({ "Party sophomore effect", effectSize });
+			}
+			if (seat.retirement) {
+				float effectSize = run.tppSwingFactors.retirementRegional * direction;
+				run.seatPartyOneTppModifier[seatIndex] += effectSize;
+				run.seatLocalEffects[seatIndex].push_back({ "Retirement effect", effectSize });
+			}
 		}
 		else {
-			if (seat.sophomoreCandidate) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomoreCandidateUrban * direction;
-			if (seat.sophomoreParty) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.sophomorePartyUrban * direction;
-			if (seat.retirement) run.seatPartyOneTppModifier[seatIndex] += run.tppSwingFactors.retirementUrban * direction;
+			if (seat.sophomoreCandidate) {
+				float effectSize = run.tppSwingFactors.sophomoreCandidateUrban * direction;
+				run.seatPartyOneTppModifier[seatIndex] += effectSize;
+				run.seatLocalEffects[seatIndex].push_back({ "Candidate sophomore effect", effectSize });
+			}
+			if (seat.sophomoreParty) {
+				float effectSize = run.tppSwingFactors.sophomorePartyUrban * direction;
+				run.seatPartyOneTppModifier[seatIndex] += effectSize;
+				run.seatLocalEffects[seatIndex].push_back({ "Party sophomore effect", effectSize });
+			}
+			if (seat.retirement) {
+				float effectSize = run.tppSwingFactors.retirementRegional * direction;
+				run.seatPartyOneTppModifier[seatIndex] += effectSize;
+				run.seatLocalEffects[seatIndex].push_back({ "Retirement effect", effectSize });
+			}
 		}
-		constexpr float DisendorsementMod = 3.0f;
+		constexpr float DisendorsementMod = 3.2f;
 		constexpr float PreviousDisendorsementMod = DisendorsementMod * -1.0f;
-		if (seat.disendorsement) run.seatPartyOneTppModifier[seatIndex] += DisendorsementMod * direction;
-		if (seat.previousDisendorsement) run.seatPartyOneTppModifier[seatIndex] += PreviousDisendorsementMod * direction;
+		if (seat.disendorsement) {
+			float effectSize = DisendorsementMod * direction;
+			run.seatPartyOneTppModifier[seatIndex] += DisendorsementMod * direction;
+			run.seatLocalEffects[seatIndex].push_back({ "Disendorsement", effectSize });
+		}
+		if (seat.previousDisendorsement) {
+			float effectSize = PreviousDisendorsementMod * direction;
+			run.seatPartyOneTppModifier[seatIndex] += PreviousDisendorsementMod * direction;
+			run.seatLocalEffects[seatIndex].push_back({ "Recovery from previous disendorsement", effectSize });
+		}
 		run.seatPartyOneTppModifier[seatIndex] += seat.localModifier;
 	}
 }
@@ -2136,9 +2175,6 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		std::string electionRegion = values[1];
 		if (electionRegion != run.regionCode) continue;
 		std::string seatName = values[0];
-		std::string subRegion = values[2];
-		int regionId = project.regions().findbyAnalysisCode(subRegion).first;
-		if (regionId == Region::InvalidId) continue;
 		try {
 			int seatId = project.seats().accessByName(seatName, true).first;
 			int seatIndex = project.seats().idToIndex(seatId);

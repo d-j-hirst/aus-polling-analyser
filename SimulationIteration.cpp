@@ -69,6 +69,11 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 {
 	partyOneNewTppMargin = std::vector<float>(project.seats().count(), 0.0f);
 	seatWinner = std::vector<Party::Id>(project.seats().count(), Party::InvalidId);
+	seatRegionSwing = std::vector<double>(project.seats().count(), 0.0);
+	seatElasticitySwing = std::vector<double>(project.seats().count(), 0.0);
+	seatLocalEffects = std::vector<double>(project.seats().count(), 0.0);
+	seatPreviousSwingEffect = std::vector<double>(project.seats().count(), 0.0);
+	seatFederalSwingEffect = std::vector<double>(project.seats().count(), 0.0);
 }
 
 void SimulationIteration::determineFedStateCorrelation()
@@ -481,19 +486,25 @@ void SimulationIteration::determineSeatInitialResults()
 void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	float tppPrev = seat.tppMargin + 50.0f;
+	const float tppPrev = seat.tppMargin + 50.0f;
 	float transformedTpp = transformVoteShare(tppPrev);
-	float elasticity = run.seatParameters[seatIndex].elasticity;
+	const float elasticity = run.seatParameters[seatIndex].elasticity;
 	// float trend = run.seatParameters[seatIndex].trend;
-	float volatility = run.seatParameters[seatIndex].volatility;
-	bool useVolatility = run.seatParameters[seatIndex].loaded;
-	transformedTpp += regionSwing[project.regions().idToIndex(seat.region)] * elasticity;
+	const float volatility = run.seatParameters[seatIndex].volatility;
+	const bool useVolatility = run.seatParameters[seatIndex].loaded;
+	// Save effects so we can record them for the display
+	const float thisRegionSwing = regionSwing[project.regions().idToIndex(seat.region)];
+	const float elasticitySwing = (elasticity - 1.0f) * thisRegionSwing;
+	const float localEffects = run.seatPartyOneTppModifier[seatIndex];
+	const float previousSwingEffect = run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
+	const float federalSwingEffect = fedStateCorrelation * seat.transposedTppSwing * logitDeriv(tppPrev);
+	transformedTpp += thisRegionSwing + elasticitySwing;
 	// Add modifiers for known local effects
-	transformedTpp += run.seatPartyOneTppModifier[seatIndex];
+	transformedTpp += localEffects;
 	// Remove the average local modifier across the region
 	transformedTpp -= run.regionLocalModifierAverage[seat.region];
-	transformedTpp += run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
-	transformedTpp += fedStateCorrelation * seat.transposedTppSwing * logitDeriv(tppPrev);
+	transformedTpp += previousSwingEffect;
+	transformedTpp += federalSwingEffect;
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
@@ -518,6 +529,15 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		// Margin for this simulation is finalised, record it for later averaging
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
+
+	const float totalFixedEffects = thisRegionSwing + elasticitySwing + localEffects + previousSwingEffect + federalSwingEffect;
+	const float fixedSwingSize = detransformVoteShare(transformVoteShare(tppPrev) + totalFixedEffects) - tppPrev;
+	const float transformFactor = fixedSwingSize / totalFixedEffects;
+	seatRegionSwing[seatIndex] += double(thisRegionSwing * transformFactor);
+	seatElasticitySwing[seatIndex] += double(elasticitySwing * transformFactor);
+	seatLocalEffects[seatIndex] += double(localEffects * transformFactor);
+	seatPreviousSwingEffect[seatIndex] += double(previousSwingEffect * transformFactor);
+	seatFederalSwingEffect[seatIndex] += double(federalSwingEffect * transformFactor);
 }
 
 void SimulationIteration::correctSeatTppSwings()
@@ -1976,6 +1996,7 @@ void SimulationIteration::recordIterationResults()
 	}
 	recordVoteTotals();
 	recordSwings();
+	recordSwingFactors();
 	recordMajorityResult();
 	recordPartySeatWinCounts();
 }
@@ -2022,6 +2043,17 @@ void SimulationIteration::recordSwings()
 {
 	// this will be used to determine the estimated 2pp swing (for live results) later
 	sim.latestReport.partyOneSwing += double(iterationOverallSwing);
+}
+
+void SimulationIteration::recordSwingFactors()
+{
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		run.seatRegionSwingSums[seatIndex] += seatRegionSwing[seatIndex];
+		run.seatElasticitySwingSums[seatIndex] += seatElasticitySwing[seatIndex];
+		run.seatLocalEffectsSums[seatIndex] += seatLocalEffects[seatIndex];
+		run.seatPreviousSwingEffectSums[seatIndex] += seatPreviousSwingEffect[seatIndex];
+		run.seatFederalSwingEffectSums[seatIndex] += seatFederalSwingEffect[seatIndex];
+	}
 }
 
 SimulationIteration::OddsInfo SimulationIteration::calculateOddsInfo(Seat const& thisSeat)

@@ -97,6 +97,7 @@ private:
 	void recordIterationResults();
 	void recordVoteTotals();
 	void recordSwings();
+	void recordSwingFactors();
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
 	
@@ -134,6 +135,13 @@ private:
 	std::map<Party::Id, int> partyConsistencies;
 	FloatByPartyIndex fpModificationAdjustment;
 	FloatByPartyIndex tempOverallFp;
+
+	std::vector<double> seatRegionSwing;
+	std::vector<double> seatElasticitySwing;
+	std::vector<double> seatLocalEffects;
+	std::vector<double> seatPreviousSwingEffect;
+	std::vector<double> seatFederalSwingEffect;
+
 	float prefCorrection = 0.0f;
 	float overallFpError = 0.0f;
 	float nonMajorFpError = 0.0f;

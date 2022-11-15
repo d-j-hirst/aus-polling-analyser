@@ -98,6 +98,7 @@ std::string ReportUploader::upload()
 		j["polls"] = thisReport.report.modelledPolls;
 	}
 	j["seatCandidateNames"] = thisReport.report.seatCandidateNames;
+	j["seatSwingFactors"] = thisReport.report.swingFactors;
 	std::ofstream file2("uploads/latest_json.dat");
 	try {
 		file2 << std::setw(4) << j;

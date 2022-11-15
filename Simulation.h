@@ -159,6 +159,8 @@ public:
 
 		std::vector<std::map<int, float>> seatPartyMeanFpShare;
 
+		std::vector<std::vector<std::string>> swingFactors;
+
 		static const std::vector<float> CurrentlyUsedProbabilityBands;
 
 		std::vector<float> probabilityBands;
@@ -314,7 +316,8 @@ private:
 
 	SavedReports savedReports;
 
-	std::optional<SimulationRun> latestRun;
+	//std::unique_ptr<SimulationRun> latestRun;
+	std::shared_ptr<SimulationRun> latestRun;
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;

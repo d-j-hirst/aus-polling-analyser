@@ -1414,7 +1414,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         # predicted_errors = []
         # mixed_errors = []
         for key, values in individual_infos.items():
-            if len(values) < 10:
+            if (len(values) < 10 and key[1] != 'vic') or len(values) < 7:
                 continue
             inputs_array = numpy.transpose(numpy.array(
                 [[a[1] for a in values]]))

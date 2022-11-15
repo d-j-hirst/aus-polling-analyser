@@ -34,6 +34,7 @@ void SimulationCompletion::completeRun()
 
 	recordSeatFpVoteStats();
 	recordSeatTcpVoteStats();
+	recordSeatSwingFactors();
 
 	createClassicSeatsList();
 
@@ -351,6 +352,35 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 			logger << "   Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
 		}
 		if (project.seats().access(project.seats().indexToId(seatIndex)).livePartyOne != Party::InvalidId) sim.latestReport.seatHideTcps[seatIndex] = true;
+	}
+}
+
+void SimulationCompletion::recordSeatSwingFactors()
+{
+	sim.latestReport.swingFactors.resize(project.seats().count());
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		const float seatRegionSwingAverage = run.seatRegionSwingSums[seatIndex] / double(sim.settings.numIterations);
+		const float seatElasticitySwingAverage = run.seatElasticitySwingSums[seatIndex] / double(sim.settings.numIterations);
+		const float seatLocalEffectsAverage = run.seatLocalEffectsSums[seatIndex] / double(sim.settings.numIterations);
+		const float seatPreviousSwingEffectAverage = run.seatPreviousSwingEffectSums[seatIndex] / double(sim.settings.numIterations);
+		const float seatFederalSwingEffectAverage = run.seatFederalSwingEffectSums[seatIndex] / double(sim.settings.numIterations);
+		logger << " " << project.seats().viewByIndex(seatIndex).name << "\n";
+		sim.latestReport.swingFactors[seatIndex].push_back(
+			"Base region swing;" + std::to_string(seatRegionSwingAverage));
+		sim.latestReport.swingFactors[seatIndex].push_back(
+			"Elasticity adjustment;" + std::to_string(seatElasticitySwingAverage));
+		sim.latestReport.swingFactors[seatIndex].push_back(
+			"Reversion from previous swing;" + std::to_string(seatPreviousSwingEffectAverage));
+		sim.latestReport.swingFactors[seatIndex].push_back(
+			"Correlation with federal swing;" + std::to_string(seatFederalSwingEffectAverage));
+		float totalLocalEffects = 0.0f;
+		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) totalLocalEffects += impact;
+		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) {
+			float scaledEffect = impact * seatLocalEffectsAverage / totalLocalEffects;
+			sim.latestReport.swingFactors[seatIndex].push_back(
+				name + ";" + std::to_string(scaledEffect));
+		}
+		PA_LOG_VAR(sim.latestReport.swingFactors[seatIndex]);
 	}
 }
 

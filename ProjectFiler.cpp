@@ -62,7 +62,8 @@
 // Version 55: federal election date (for federal/state correlations)
 // Version 56: minor candidate viability rating
 // Version 57: candidate names
-constexpr int VersionNum = 57;
+// Version 58: seat swing factors
+constexpr int VersionNum = 58;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -653,6 +654,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.prevElection2pp;
 	saveOutput << report.partyPrimaryFrequency;
 	saveOutput << report.tppFrequency;
+	saveOutput << report.swingFactors;
 	saveOutput << report.trendProbBands;
 	saveOutput << report.trendPeriod;
 	saveOutput << report.finalTrendValue;
@@ -806,6 +808,9 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 			}
 		}
 		saveInput >> report.tppFrequency;
+	}
+	if (versionNum >= 58) {
+		saveInput >> report.swingFactors;
 	}
 	if (versionNum >= 42) {
 		saveInput >> report.trendProbBands;
