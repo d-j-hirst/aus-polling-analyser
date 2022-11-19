@@ -342,10 +342,12 @@ void SimulationPreparation::calculateLiveAggregates()
 	run.total2cpVotes = 0;
 	run.totalEnrolment = 0;
 	if (sim.isLive()) {
+		logger << "preparing live aggregates\n";
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			updateLiveAggregateForSeat(seatIndex);
 		}
 		finaliseLiveAggregates();
+		logger << "finished preparing live aggregates\n";
 		prepareOverallLiveFpSwings();
 	}
 
@@ -652,7 +654,6 @@ void SimulationPreparation::calculateSeatPreferenceFlows()
 void SimulationPreparation::estimateBoothTcps()
 {
 	for (auto const& [seatId, seat] : currentElection.seats) {
-		PA_LOG_VAR(seat.name);
 		std::pair<int, int> tcpParties;
 		// May or may not be a tcp pair recorded, if not assume classic 2CP
 		auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
@@ -1030,7 +1031,7 @@ void SimulationPreparation::calculateSeatSwings()
 			seat.tcpSwing[party] = mix(boothSwing, overallSwing, overallMix);
 			seat.tcpPercent[party] = mix(seat.tcpPercent[party], seatDecVotePercent[seatId][party], seatDecVotePercentWeight[seatId]);
 			seat.tcpSwing[party] = mix(seat.tcpSwing[party], seatDecVoteSwing[seatId][party], seatDecVoteSwingWeight[seatId] * seatDecVoteSwingBasis[seatId]);
-			if (seat.isTpp && seatDecVoteSwingWeight[seatId] && seatPostCountTcpEstimate.contains(seatId) && seatPostCountTcpEstimate[seatId].contains(party)) {
+			if (seat.isTpp && seatDecVoteSwingBasis[seatId] && seatPostCountTcpEstimate.contains(seatId) && seatPostCountTcpEstimate[seatId].contains(party)) {
 				float impliedPrevious = aecPartyToSimParty[party] == 0 ? 50.0f + simSeat.tppMargin : 50.0f - simSeat.tppMargin;
 				seat.tcpPercent[party] = seatPostCountTcpEstimate[seatId][party];
 				seat.tcpSwing[party] = seat.tcpPercent[party] - impliedPrevious;
@@ -1227,7 +1228,6 @@ void SimulationPreparation::projectDeclarationVotes()
 		logger << " dec vote swing: " << seatDecVoteSwing[seatId] << "\n";
 		logger << " dec vote swing weight: " << seatDecVoteSwingWeight[seatId] << "\n";
 		logger << " estimated dec votes remaining: " << estimatedRemainingDecVotes << "\n";
-		PA_LOG_VAR(run.liveEstDecVoteRemaining);
 	}
 }
 
@@ -1646,6 +1646,9 @@ void SimulationPreparation::finaliseLiveAggregates()
 			run.liveRegionSwing[regionIndex] /= run.liveRegionPercentCounted[regionIndex];
 			run.liveRegionPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
 		}
+		PA_LOG_VAR(run.liveOverallTppSwing);
+		PA_LOG_VAR(run.liveOverallTppPercentCounted);
+		PA_LOG_VAR(run.sampleRepresentativeness);
 	}
 	for (auto& [partyIndex, vote] : run.liveOverallFpSwing) {
 		vote /= run.liveOverallFpSwingWeight[partyIndex];
@@ -2200,7 +2203,6 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 	int daysToElection = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models()).daysToElection;
 	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
 	run.indEmergenceModifier = (float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f);
-	PA_LOG_VAR(run.indEmergenceModifier);
 }
 
 void SimulationPreparation::initializeGeneralLiveData()

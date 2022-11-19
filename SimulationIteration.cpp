@@ -745,7 +745,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	// so likely underestimates GRN fp support here. This is a temporary workaround to bring in line
 	// with other seats expecting a small ~3% TCP swing to greens, hopefully will find a better fix for this later.
 	if (partyIndex == 2 && seat.name == "Richmond" && project.getElectionName() == "2022 Victorian State Election") {
-		transformedFp += 4.5f;
+		transformedFp += 5.5f;
 	}
 
 	if (partyIndex == run.indPartyIndex && run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
@@ -777,16 +777,37 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		// No longshot bias adjustment for Greens
 		float prevLibFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(1) ?
 			run.pastSeatResults[seatIndex].fpVotePercent[1] : 10.0f;
+		float prevAlpFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(0) ?
+			run.pastSeatResults[seatIndex].fpVotePercent[0] : 10.0f;
+		float prevGrnFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(2) ?
+			run.pastSeatResults[seatIndex].fpVotePercent[2] : 10.0f;
+		float prevOthFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(-1) ?
+			run.pastSeatResults[seatIndex].fpVotePercent[-1] : 10.0f;
 		// First step establishes the mean at a position that historically relates to this
 		// % chance of winning
-		float grnFpCenter = std::clamp(15.456f * impliedChance - 0.3062f * prevLibFp + 36.57f, 1.0f, 99.0f);
-		// This step takes into account the variation so that the actual % chance *after variation*
-		// lines up with the historical % chance of winning.
-		grnFpCenter += (impliedChance - 0.5f) * 10.0f;
+		if (seat.name == "Pascoe Vale") {
+			prevLibFp += 14.0f; // Account for previous independent taking most votes
+		}
+		// First approach: GRN-ALP contest. Suitable for ALP margin >20%. LIBs preferences considered
+		const float assumedLibPrefFlow = 0.75f;
+		const float estimatedLibPrefs = prevLibFp * assumedLibPrefFlow;
+		const float estimatedOthPrefs = prevOthFp * 0.5f;
+		const float requiredGrnVotes1 = 50.0f - estimatedLibPrefs - estimatedOthPrefs;
+		const float grnFpCenter1 = requiredGrnVotes1 + 18.0f * (impliedChance - 0.5f);
+
+		// Second approach: GRN-LIB contest. Suitable for ALP margin <12%. Just need to get ahead of ALP
+		// Assumes chance of LIB win is small (adjust if we get a race where this isn't the case)
+		const float prevLeftFp = prevAlpFp + prevGrnFp;
+		const float requiredGrnVotes2 = prevLeftFp * 0.5f;
+		const float grnFpCenter2 = requiredGrnVotes2 + 18.0f * (impliedChance - 0.5f);
+
+		const float grnFpCenter = mix(grnFpCenter2, grnFpCenter1, 
+			std::clamp((seat.tppMargin - 12.0f) / 8.0f, 0.0f, 1.0f));
+
 		float transformedCenter = transformVoteShare(grnFpCenter);
 		const float variation = 10.0f * (1.0f - 0.75f * std::abs(impliedChance - 0.5f));
 		float transformedBettingFp = rng.normal(transformedCenter, variation);
-		transformedFp = mix(transformedFp, transformedBettingFp, 0.5f);
+		transformedFp = mix(transformedFp, transformedBettingFp, 0.6f);
 	}
 
 	float regularVoteShare = detransformVoteShare(transformedFp);
@@ -1159,6 +1180,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	if (pastSeatResults[seatIndex].tcpVote.contains(Mp::One) && pastSeatResults[seatIndex].tcpVote.contains(Mp::Two)) {
 		previousPartyOneTpp = pastSeatResults[seatIndex].tcpVote[Mp::One];
 	}
+	// *** Of course, this shouldn't be like this: Need to have a pre-redistribution TPP for each seat, but don't want to spend time on that just right now.
+	else if (seat.name == "Prahran") {
+		previousPartyOneTpp = 57.55f;
+	}
 	else {
 		previousPartyOneTpp = 50.0f + seat.tppMargin;
 	}
@@ -1298,7 +1323,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Richmond") {
+	//if (seat.name == "Prahran") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);

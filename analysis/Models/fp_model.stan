@@ -48,7 +48,8 @@ transformed data {
         housePollCount[pollHouse[poll]] = housePollCount[pollHouse[poll]] + 1;
     }
     for (house in 1:houseCount) {
-        houseWeight[house] = min([1.0, housePollCount[house] * 0.2]) * heWeights[house];
+        //houseWeight[house] = min([1.0, housePollCount[house] * 0.2]) * heWeights[house];
+        houseWeight[house] = heWeights[house];
         weightedBiasSum += biases[house] * houseWeight[house];
     }
     totalHouseWeight = sum(houseWeight);
