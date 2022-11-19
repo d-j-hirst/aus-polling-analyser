@@ -165,6 +165,10 @@ public:
 
 		std::vector<float> probabilityBands;
 
+		std::vector<float> tppProbabilityBand;
+
+		std::vector<std::vector<float>> fpProbabilityBand;
+
 		std::vector<std::map<int, std::vector<float>>> seatFpProbabilityBand;
 
 		std::vector<std::map<std::pair<int, int>, std::vector<float>>> seatTcpProbabilityBand;

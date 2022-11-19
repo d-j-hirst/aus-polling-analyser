@@ -19,6 +19,7 @@ private:
 	void calculatePartyWinExpectations();
 	void calculatePartyWinMedians();
 	void calculateRegionPartyWinExpectations();
+	void recordVoteTotalStats();
 	void recordProbabilityBands();
 	void createClassicSeatsList();
 	void recordNames();

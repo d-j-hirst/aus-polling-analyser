@@ -136,6 +136,8 @@ private:
 	FloatByPartyIndex fpModificationAdjustment;
 	FloatByPartyIndex tempOverallFp;
 
+	std::map<Party::Id, float> postCountFpShift;
+
 	std::vector<double> seatRegionSwing;
 	std::vector<double> seatElasticitySwing;
 	std::vector<double> seatLocalEffects;

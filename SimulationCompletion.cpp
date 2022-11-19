@@ -28,6 +28,8 @@ void SimulationCompletion::completeRun()
 
 	calculateRegionPartyWinExpectations();
 
+	recordVoteTotalStats();
+
 	recordProbabilityBands();
 
 	recordSeatPartyWinPercentages();
@@ -126,6 +128,36 @@ void SimulationCompletion::calculateRegionPartyWinExpectations()
 			}
 			sim.latestReport.regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(sim.settings.numIterations);
 		}
+	}
+}
+
+void SimulationCompletion::recordVoteTotalStats()
+{
+	// Note: for now this method doesn't actually save anything, just prints debug info
+	// It's recalculated in identical fashion in ReportUploader.cpp
+	// Obviously, this should be refactored when time permits
+	const std::vector<float> thresholds = { 0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f };
+	//j["voteTotalThresholds"] = thresholds;
+	typedef std::vector<float> VF;
+	std::vector<float> tppFrequencies = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
+		[this](VF v, float percentile) {
+			v.push_back(sim.latestReport.getTppSamplePercentile(percentile));
+			return v;
+		});
+	PA_LOG_VAR(tppFrequencies);
+	if (!sim.isLiveManual()) {
+		std::map<int, VF> fpFrequencies;
+		for (auto [partyIndex, frequencies] : sim.latestReport.partyPrimaryFrequency) {
+			if (sim.latestReport.getFpSampleExpectation(partyIndex) > 0.0f) {
+				VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
+					[this, partyIndex](VF v, float percentile) {
+						v.push_back(sim.latestReport.getFpSamplePercentile(partyIndex, percentile));
+						return v;
+					});
+				fpFrequencies[partyIndex] = partyThresholds;
+			}
+		}
+		PA_LOG_VAR(fpFrequencies);
 	}
 }
 
@@ -380,7 +412,6 @@ void SimulationCompletion::recordSeatSwingFactors()
 			sim.latestReport.swingFactors[seatIndex].push_back(
 				name + ";" + std::to_string(scaledEffect));
 		}
-		PA_LOG_VAR(sim.latestReport.swingFactors[seatIndex]);
 	}
 }
 

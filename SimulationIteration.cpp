@@ -178,16 +178,18 @@ void SimulationIteration::determineOverallTpp()
 void SimulationIteration::incorporateLiveOverallFps()
 {
 	if (sim.isLiveAutomatic() && run.liveOverallFpPercentCounted) {
-		for (auto [partyId, party] : project.parties()) {
-			int partyIndex = project.parties().idToIndex(partyId);
-			if (partyIndex <= 2) continue;
-			if (!overallFpTarget.contains(partyIndex)) continue;
+		for (auto [partyIndex, _] : overallFpTarget) {
+			if (partyIndex == 0 || partyIndex == 1) continue;
 			float liveTarget = run.liveOverallFpTarget[partyIndex];
 			float liveStdDev = stdDevOverall(run.liveOverallFpPercentCounted) * 1.8f;
 			liveTarget += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 			float priorWeight = 1.5f;
-			float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
-			overallFpTarget[partyIndex] = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight);
+			float liveWeight = 4.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
+			float targetShift = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight) - overallFpTarget[partyIndex];
+			// just guesswork, minors on average fall slightly in postcount
+			postCountFpShift[partyIndex] = std::normal_distribution<float>(-0.3f, partyIndex == -1 ? 3.0f : 1.5f)(gen);
+			targetShift += postCountFpShift[partyIndex];
+			overallFpTarget[partyIndex] = predictorCorrectorTransformedSwing(overallFpTarget[partyIndex], targetShift);
 			overallFpSwing[partyIndex] = overallFpTarget[partyIndex] - run.previousFpVoteShare[partyIndex];
 		}
 	}
@@ -436,9 +438,9 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 
 void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
-	if (sim.isLive() && run.liveRegionPercentCounted[regionIndex]) {
+	if (sim.isLive() && run.liveRegionTppPercentCounted[regionIndex]) {
 		float liveSwing = run.liveRegionSwing[regionIndex];
-		float liveStdDev = stdDevSingleSeat(run.liveRegionPercentCounted[regionIndex]) * 0.4f;
+		float liveStdDev = stdDevSingleSeat(run.liveRegionTppPercentCounted[regionIndex]) * 0.4f;
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 		float priorWeight = 0.03f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
@@ -1049,7 +1051,7 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 	float pastInd = 0.0f;
 	if (pastSeatResults[seatIndex].fpVotePercent.contains(run.indPartyIndex)) pastInd += pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex];
 	float indSwing = currentInd - pastInd;
-	// Prevent minor inds (especially past ones from affecting the overall trend too much
+	// Prevent minor inds (especially past ones) from affecting the overall trend too much
 	float scaling = std::clamp(std::max(currentInd, pastInd) / 8.0f - 0.5f, 0.0f, 1.0f);
 	float projectedGrnEffect = -0.3981311670993329f * indSwing * scaling;
 	float transformedGrnFp = transformVoteShare(seatFpVoteShare[seatIndex][run.grnPartyIndex]);
@@ -1076,6 +1078,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		float percentCounted = run.liveSeatFpCounted[seatIndex];
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(percentCounted * 0.2f)));
 		liveTransformedFp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
+		if (postCountFpShift.contains(partyIndex)) liveTransformedFp += postCountFpShift[partyIndex];
 		float liveFactor = 1.0f - pow(2.0f, -percentCounted * 0.5f);
 		float priorFp = seatFpVoteShare[seatIndex][partyIndex];
 		if (partyIndex == run.indPartyIndex && priorFp <= 0.0f) priorFp = seatFpVoteShare[seatIndex][EmergingIndIndex];

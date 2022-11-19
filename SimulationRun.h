@@ -255,7 +255,7 @@ private:
 	std::vector<float> liveSeatDecVoteSensitivity;
 	std::vector<float> liveEstDecVoteRemaining;
 
-	std::vector<float> liveRegionPercentCounted;
+	std::vector<float> liveRegionTppPercentCounted;
 	std::vector<float> liveRegionSwing;
 	std::vector<float> liveRegionClassicSeatCount;
 

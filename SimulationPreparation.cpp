@@ -1628,7 +1628,7 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	}
 	run.liveOverallTppPercentCounted += tppPercentCounted;
 	run.liveOverallFpPercentCounted += fpPercentCounted;
-	run.liveRegionPercentCounted[regionIndex] += tppPercentCounted;
+	run.liveRegionTppPercentCounted[regionIndex] += tppPercentCounted;
 	++run.liveRegionClassicSeatCount[regionIndex];
 	run.sampleRepresentativeness += std::min(2.0f, tppPercentCounted) * 0.5f;
 	//run.total2cpVotes += seat.latestResults->total2cpVotes();
@@ -1640,11 +1640,12 @@ void SimulationPreparation::finaliseLiveAggregates()
 	if (run.liveOverallTppPercentCounted) {
 		run.liveOverallTppSwing /= run.liveOverallTppPercentCounted;
 		run.liveOverallTppPercentCounted /= run.classicSeatCount;
+		run.liveOverallFpPercentCounted /= project.seats().count();
 		run.sampleRepresentativeness /= run.classicSeatCount;
 		run.sampleRepresentativeness = std::sqrt(run.sampleRepresentativeness);
 		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-			run.liveRegionSwing[regionIndex] /= run.liveRegionPercentCounted[regionIndex];
-			run.liveRegionPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
+			run.liveRegionSwing[regionIndex] /= run.liveRegionTppPercentCounted[regionIndex];
+			run.liveRegionTppPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
 		}
 		PA_LOG_VAR(run.liveOverallTppSwing);
 		PA_LOG_VAR(run.liveOverallTppPercentCounted);
@@ -2221,7 +2222,7 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveSeatDecVoteSensitivity.resize(project.seats().count(), 0.0f);
 	run.liveEstDecVoteRemaining.resize(project.seats().count(), 0.0f);
 	run.liveRegionSwing.resize(project.regions().count(), 0.0f);
-	run.liveRegionPercentCounted.resize(project.regions().count(), 0.0f);
+	run.liveRegionTppPercentCounted.resize(project.regions().count(), 0.0f);
 	run.liveRegionClassicSeatCount.resize(project.regions().count(), 0.0f);
 }
 
