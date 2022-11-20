@@ -331,3 +331,5 @@ __pycache__/
 /analysis/Data/7BD6DF80
 /Beta distributions.xlsx
 /VIC State Election 2022 debug.pol2
+/analysis/fetch_election_data.env
+/analysis/Booth Results/2018vic.json
