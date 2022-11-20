@@ -1062,6 +1062,11 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
 	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	if (!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
+		seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][run.indPartyIndex];
+		seatFpVoteShare[seatIndex][run.indPartyIndex] = 0.0f;
+	}
 	for (auto [partyIndex, swing] : run.liveSeatFpTransformedSwing[seatIndex]) {
 		// Ignore major party fps for now
 		if (isMajor(partyIndex)) continue;
@@ -1841,13 +1846,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 
-	//if (seat.name == "Northcote") {
-	//	PA_LOG_VAR(seatTcpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	logger << "-----\n";
-	//}
-
 	if (sim.isLive()) applyLiveManualOverrides(seatIndex);
 }
 
@@ -2008,6 +2006,7 @@ void SimulationIteration::recordSeatFpVotes(int seatIndex)
 
 void SimulationIteration::recordSeatTcpVotes(int seatIndex)
 {
+
 	auto parties = seatTcpVoteShare[seatIndex].first;
 	float tcpPercent = seatTcpVoteShare[seatIndex].second;
 	int bucket = std::clamp(int(std::floor(tcpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);

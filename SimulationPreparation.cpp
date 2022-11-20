@@ -1143,7 +1143,7 @@ void SimulationPreparation::projectDeclarationVotes()
 				weightSum += weight;
 			}
 
-			overallDecVotePercent[partyId] = weightedPercentSum / weightSum;
+			overallDecVotePercent[partyId] = weightSum > 0.0f ? weightedPercentSum / weightSum : 0.0f;
 		}
 
 		seatDecVoteSwingBasis[seatId] = 0;
