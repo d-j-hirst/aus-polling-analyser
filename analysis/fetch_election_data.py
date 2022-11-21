@@ -128,7 +128,7 @@ for seat_index in range(0, 88):
     seats_list_div = seats_list_header.find_element(By.XPATH, value='..')
     seats_list = seats_list_div.find_elements(By.TAG_NAME, 'a')
 
-    seat_name = seats_list[seat_index].text.split('District')[0]
+    seat_name = seats_list[seat_index].text.split(' District')[0]
     print(seat_name)
     seats_list[seat_index].click()
 

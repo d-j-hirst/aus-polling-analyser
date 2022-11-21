@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tinyxml2.h"
+#include "json.h"
 
 #include <array>
 #include <unordered_map>
@@ -247,7 +248,9 @@ namespace Results2 {
 		std::unordered_map<int32_t, Seat> seats; // map seat id -> seat info
 
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
-		Election(tinyxml2::XMLDocument const& xml);
+		Election(tinyxml2::XMLDocument const& xml); // AEC format
+		Election(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
+			tinyxml2::XMLDocument const& input_booths); // VEC past election format
 
 		void update(tinyxml2::XMLDocument const& xml);
 	};

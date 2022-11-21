@@ -366,6 +366,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 {
 	downloadPreviousResults();
 	parsePreviousResults();
+	if (getTermCode() == "2022vic") return;
 	downloadPreload();
 	parsePreload();
 	if (sim.settings.currentRealUrl.size()) {
@@ -398,6 +399,10 @@ void SimulationPreparation::downloadPreviousResults()
 {
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
+	if (mangledName.substr(0, 6) == "local:") {
+		xmlFilename = mangledName.substr(6);
+		return;
+	}
 	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
 	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
 	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
@@ -416,8 +421,19 @@ void SimulationPreparation::downloadPreviousResults()
 
 void SimulationPreparation::parsePreviousResults()
 {
-	xml.LoadFile(xmlFilename.c_str());
-	previousElection = Results2::Election(xml);
+	if (getTermCode() == "2022fed") {
+		xml.LoadFile(xmlFilename.c_str());
+		previousElection = Results2::Election(xml);
+	}
+	else if (getTermCode() == "2022vic") {
+		tinyxml2::XMLDocument candidatesXml;
+		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates.xml").c_str());
+		tinyxml2::XMLDocument boothsXml;
+		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths.xml").c_str());
+		std::ifstream f("analysis/Booth Results/2018vic.json");
+		nlohmann::json resultsJson = nlohmann::json::parse(f);
+		previousElection = Results2::Election(resultsJson, candidatesXml, boothsXml);
+	}
 }
 
 void SimulationPreparation::downloadPreload()
