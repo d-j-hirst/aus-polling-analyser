@@ -19,6 +19,8 @@ public:
 	// with name matching "match" into the file named "newFileName"
 	void loadZippedFile(std::string url, std::string newFileName, std::string match = "");
 
+	void unzipFile(std::string fileName, std::string newFileName, std::string match = "");
+
 	// loads the file or directory listing from "url" into "outputString"
 	void loadUrlToString(std::string url, std::string& outputString);
 

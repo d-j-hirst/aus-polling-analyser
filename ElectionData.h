@@ -110,7 +110,8 @@ namespace Results2 {
 		Absent,
 		Provisional,
 		PrePoll,
-		Postal
+		Postal,
+		Early
 	};
 
 	inline std::string voteTypeName(VoteType v) {
@@ -247,11 +248,22 @@ namespace Results2 {
 		std::unordered_map<int32_t, Booth> booths; // map booth id -> booth info
 		std::unordered_map<int32_t, Seat> seats; // map seat id -> seat info
 
+		enum class Format {
+			AEC,
+			VEC
+		};
+
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
 		Election(tinyxml2::XMLDocument const& xml); // AEC format
 		Election(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths); // VEC past election format
+		Election(tinyxml2::XMLDocument const& input_candidates,
+			tinyxml2::XMLDocument const& input_booths); // VEC present election format (preload only)
 
-		void update(tinyxml2::XMLDocument const& xml);
+		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
+		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
+			tinyxml2::XMLDocument const& input_booths);
+		void preload2022Vic(tinyxml2::XMLDocument const& input_candidates,
+			tinyxml2::XMLDocument const& input_booths);
 	};
 }

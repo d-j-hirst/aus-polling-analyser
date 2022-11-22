@@ -366,7 +366,6 @@ void SimulationPreparation::prepareLiveAutomatic()
 {
 	downloadPreviousResults();
 	parsePreviousResults();
-	if (getTermCode() == "2022vic") return;
 	downloadPreload();
 	parsePreload();
 	if (sim.settings.currentRealUrl.size()) {
@@ -397,6 +396,7 @@ void SimulationPreparation::prepareLiveAutomatic()
 
 void SimulationPreparation::downloadPreviousResults()
 {
+	if (getTermCode() == "2022vic") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
 	if (mangledName.substr(0, 6) == "local:") {
@@ -438,6 +438,7 @@ void SimulationPreparation::parsePreviousResults()
 
 void SimulationPreparation::downloadPreload()
 {
+	if (getTermCode() == "2022vic") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.preloadUrl;
 	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
@@ -458,38 +459,75 @@ void SimulationPreparation::downloadPreload()
 
 void SimulationPreparation::parsePreload()
 {
-	xml.LoadFile(xmlFilename.c_str());
-	currentElection = Results2::Election(xml);
+	if (getTermCode() == "2022fed") {
+		xml.LoadFile(xmlFilename.c_str());
+		currentElection = Results2::Election(xml);
+	}
+	else if (getTermCode() == "2022vic") {
+		tinyxml2::XMLDocument candidatesXml;
+		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates.xml").c_str());
+		tinyxml2::XMLDocument boothsXml;
+		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths.xml").c_str());
+		previousElection = Results2::Election(candidatesXml, boothsXml);
+	}
 }
 
 void SimulationPreparation::downloadCurrentResults()
 {
 	ResultsDownloader resultsDownloader;
-	std::string mangledName = sim.settings.currentTestUrl;
-	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
-	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
-	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
-	mangledName = "downloads/" + mangledName + ".xml";
-	std::filesystem::path mangledPath(mangledName);
-	if (std::filesystem::exists(mangledPath)) {
-		logger << "Already found currenttest file at: " << mangledName << "\n";
-	}
-	else {
-		resultsDownloader.loadZippedFile(sim.settings.currentTestUrl, mangledName);
-		logger << "Downloaded file: " << sim.settings.currentTestUrl << "\n";
-		logger << "and saved it as: " << mangledName << "\n";
-	}
-	xmlFilename = mangledName;
+	if (getTermCode() == "2022fed") {
+		std::string mangledName = sim.settings.currentTestUrl;
+		std::replace(mangledName.begin(), mangledName.end(), '/', '$');
+		std::replace(mangledName.begin(), mangledName.end(), '.', '$');
+		std::replace(mangledName.begin(), mangledName.end(), ':', '$');
+		mangledName = "downloads/" + mangledName + ".xml";
+		std::filesystem::path mangledPath(mangledName);
+		if (std::filesystem::exists(mangledPath)) {
+			logger << "Already found currenttest file at: " << mangledName << "\n";
+		}
+		else {
+			resultsDownloader.loadZippedFile(sim.settings.currentTestUrl, mangledName);
+			logger << "Downloaded file: " << sim.settings.currentTestUrl << "\n";
+			logger << "and saved it as: " << mangledName << "\n";
+		}
+		xmlFilename = mangledName;
 
-	auto dotOffset = sim.settings.currentTestUrl.rfind('.');
-	auto subStr = sim.settings.currentTestUrl.substr(dotOffset - 14, 14);
-	sim.latestReport.dateCode = subStr;
+		auto dotOffset = sim.settings.currentTestUrl.rfind('.');
+		auto subStr = sim.settings.currentTestUrl.substr(dotOffset - 14, 14);
+		sim.latestReport.dateCode = subStr;
+	}
+	else if (getTermCode() == "2022vic") {
+		std::filesystem::path downloadsPath("../../../Downloads");
+		int bestDate = 0;
+		int bestTime = 0;
+		std::string bestFilename;
+		for (const auto& entry : std::filesystem::directory_iterator(downloadsPath)) {
+			auto entryStr = entry.path().string();
+			if (entryStr.find("State2022mediafilelitepplh_") != std::string::npos) {
+				std::string dateStamp = splitString(entryStr, "_")[1];
+				std::string timeStamp = splitString(splitString(entryStr, "_")[2], ".")[0];
+				int date = std::stoi(dateStamp);
+				int time = std::stoi(timeStamp);
+				if (date > bestDate || (date == bestDate && time > bestTime)) {
+					bestFilename = entryStr;
+				}
+			}
+		}
+		xmlFilename = "downloads/2022vic_latest.xml";
+		resultsDownloader.unzipFile(bestFilename, xmlFilename);
+		PA_LOG_VAR(bestFilename);
+		PA_LOG_VAR(xmlFilename);
+	}
 }
 
 void SimulationPreparation::parseCurrentResults()
 {
 	xml.LoadFile(xmlFilename.c_str());
-	currentElection.update(xml);
+	Results2::Election::Format format;
+	if (getTermCode() == "2022fed") format = Results2::Election::Format::AEC;
+	else if (getTermCode() == "2022vic") format = Results2::Election::Format::VEC;
+	else format = Results2::Election::Format::AEC;
+	currentElection.update(xml, format);
 }
 
 void SimulationPreparation::downloadLatestResults()

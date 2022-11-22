@@ -76,13 +76,16 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName,
 	if (ftpfile.stream)
 		fclose(ftpfile.stream); /* close the local file */
 
-	// Now extract the xml file
+	unzipFile(TempZipFileName, newFileName, match);
+}
 
+void ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName, std::string match)
+{
 	std::wstring matchL(match.begin(), match.end());
-	HZIP hz = OpenZip(_T(TempZipFileName.c_str()), 0);
+	HZIP hz = OpenZip(std::wstring(sourceFileName.begin(), sourceFileName.end()).c_str(), 0);
 	// -1 gives overall information about the zipfile
 	ZIPENTRY ze; GetZipItem(hz, -1, &ze); int numitems = ze.index;
-	for (int zi = 0; zi<numitems; zi++)
+	for (int zi = 0; zi < numitems; zi++)
 	{
 		GetZipItem(hz, zi, &ze);
 		std::wstring zippedName = ze.name;
@@ -94,8 +97,6 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName,
 		}
 	}
 	CloseZip(hz);
-
-	return;
 }
 
 void ResultsDownloader::loadUrlToString(std::string url, std::string& outputString)
