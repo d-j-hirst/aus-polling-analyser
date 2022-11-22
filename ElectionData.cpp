@@ -158,12 +158,27 @@ Results2::Election::Election(nlohmann::json const& results, tinyxml2::XMLDocumen
 			}
 		}
 		for (auto const& [boothName, boothValue] : seatValue["booths"].items()) {
-			if (boothName == "Postal Votes") continue; // don't worry about this yet
-			if (boothName == "Absent Votes") continue; // don't worry about this yet
-			if (boothName == "Marked As Voted Votes") continue; // don't worry about this yet
-			if (boothName == "Early Votes") continue; // don't worry about this yet
-			if (boothName == "Provisional Votes") continue; // don't worry about this yet
-			if (boothName == "All Votes Votes") continue; // don't know why this even exists
+			if (boothName.find("Votes") != std::string::npos) {
+				VoteType voteType = VoteType::Invalid;
+				if (boothName == "Postal Votes") voteType = VoteType::Postal;
+				if (boothName == "Absent Votes") voteType = VoteType::Absent;
+				if (boothName == "Early Votes") voteType = VoteType::PrePoll;
+				if (boothName == "Provisional Votes") voteType = VoteType::Provisional;
+				if (voteType == VoteType::Invalid) continue;
+				auto fps = boothValue["fp"];
+				for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
+					int fpCandIndexI = std::stoi(fpCandIndex);
+					int fpCandId = indexToId[fpCandIndexI];
+					seats[seatId].fpVotes[fpCandId][voteType] = fpVotes;
+				}
+				auto tcps = boothValue["tcp"];
+				for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
+					int tcpCandIndexI = std::stoi(tcpCandIndex);
+					int tcpCandId = indexToId[tcpCandIndexI];
+					seats[seatId].tcpVotes[tcpCandId][voteType] = tcpVotes;
+				}
+				continue;
+			}
 			int boothId = dummyBoothId;
 			if (boothNameToId.contains(boothName)) {
 				boothId = boothNameToId[boothName];
@@ -215,12 +230,14 @@ Results2::Election::Election(nlohmann::json const& results, tinyxml2::XMLDocumen
 				int fpCandIndexI = std::stoi(fpCandIndex);
 				int fpCandId = indexToId[fpCandIndexI];
 				booth.fpVotes[fpCandId] = fpVotes;
+				if (seatId > 0) seats[seatId].fpVotes[fpCandId][VoteType::Ordinary] += fpVotes;
 			}
 			auto tcps = boothValue["tcp"];
 			for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
 				int tcpCandIndexI = std::stoi(tcpCandIndex);
 				int tcpCandId = indexToId[tcpCandIndexI];
 				booth.tcpVotes[tcpCandId] = tcpVotes;
+				if (seatId > 0) seats[seatId].tcpVotes[tcpCandId][VoteType::Ordinary] += tcpVotes;
 			}
 			if (seatId > 0) {
 				seats[seatId].booths.push_back(booth.id);
@@ -233,6 +250,9 @@ Results2::Election::Election(nlohmann::json const& results, tinyxml2::XMLDocumen
 		PA_LOG_VAR(seat.name);
 		PA_LOG_VAR(seat.id);
 		PA_LOG_VAR(seat.enrolment);
+		PA_LOG_VAR(seat.fpVotes);
+		PA_LOG_VAR(seat.tcpVotes);
+		PA_LOG_VAR(seat.tppVotes);
 		for (int boothId : seat.booths) {
 			PA_LOG_VAR(boothId);
 			auto const& booth = booths.at(boothId);
