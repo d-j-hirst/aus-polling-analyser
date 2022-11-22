@@ -21,6 +21,7 @@ public:
 	friend class SimulationPreparation;
 	friend class SimulationIteration;
 	friend class SimulationCompletion;
+	friend class LivePreparation;
 
 	struct PastSeatResult {
 		std::map<int, float> fpVotePercent; // map from party index -> percentage

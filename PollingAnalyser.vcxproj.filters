@@ -236,6 +236,9 @@
     <ClCompile Include="..\..\..\..\..\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LivePreparation.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -578,6 +581,9 @@
     </ClInclude>
     <ClInclude Include="LinearRegression.h">
       <Filter>Header Files\Data Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="LivePreparation.h">
+      <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

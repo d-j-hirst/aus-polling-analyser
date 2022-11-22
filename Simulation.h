@@ -312,6 +312,7 @@ private:
 
 	friend class SimulationCompletion;
 	friend class SimulationPreparation;
+	friend class LivePreparation;
 	friend class SimulationIteration;
 
 	Settings settings;
