@@ -789,19 +789,24 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		// % chance of winning
 		if (seat.name == "Pascoe Vale") {
 			prevLibFp += 14.0f; // Account for previous independent taking most votes
+			prevOthFp -= 14.0f; // Account for previous independent taking most votes
 		}
 		// First approach: GRN-ALP contest. Suitable for ALP margin >20%. LIBs preferences considered
 		const float assumedLibPrefFlow = 0.75f;
 		const float estimatedLibPrefs = prevLibFp * assumedLibPrefFlow;
 		const float estimatedOthPrefs = prevOthFp * 0.5f;
 		const float requiredGrnVotes1 = 50.0f - estimatedLibPrefs - estimatedOthPrefs;
-		const float grnFpCenter1 = requiredGrnVotes1 + 18.0f * (impliedChance - 0.5f);
+		const float grnFpCenter1 = std::clamp(requiredGrnVotes1 + 80.0f * 
+			(impliedChance >= 0.5f ? std::pow(impliedChance - 0.5f, 1.6f) : -0.6f * std::pow(0.5f - impliedChance, 1.6f)),
+		10.0f, 80.0f);
 
 		// Second approach: GRN-LIB contest. Suitable for ALP margin <12%. Just need to get ahead of ALP
 		// Assumes chance of LIB win is small (adjust if we get a race where this isn't the case)
 		const float prevLeftFp = prevAlpFp + prevGrnFp;
 		const float requiredGrnVotes2 = prevLeftFp * 0.5f;
-		const float grnFpCenter2 = requiredGrnVotes2 + 18.0f * (impliedChance - 0.5f);
+		const float grnFpCenter2 = std::clamp(requiredGrnVotes2 + 40.0f *
+			(impliedChance >= 0.5f ? std::pow(impliedChance - 0.5f, 1.6f) : -0.75f * -std::pow(0.5f - impliedChance, 1.6f)),
+			10.0f, 80.0f);
 
 		const float grnFpCenter = mix(grnFpCenter2, grnFpCenter1, 
 			std::clamp((seat.tppMargin - 12.0f) / 8.0f, 0.0f, 1.0f));
@@ -809,7 +814,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		float transformedCenter = transformVoteShare(grnFpCenter);
 		const float variation = 10.0f * (1.0f - 0.75f * std::abs(impliedChance - 0.5f));
 		float transformedBettingFp = rng.normal(transformedCenter, variation);
-		transformedFp = mix(transformedFp, transformedBettingFp, 0.6f);
+		transformedFp = mix(transformedFp, transformedBettingFp, 0.7f);
 	}
 
 	float regularVoteShare = detransformVoteShare(transformedFp);
@@ -1062,7 +1067,8 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
 	//Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
+	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
+		!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
 		seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
 		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][run.indPartyIndex];
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = 0.0f;

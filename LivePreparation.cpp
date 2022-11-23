@@ -617,6 +617,7 @@ void LivePreparation::calculateSeatSwings()
 				weightSwingSum[candidate] += total;
 			}
 		}
+		// *** add VEC "early" votes here. And maybe dec votes too?
 		for (auto [party, percent] : weightedPercent) {
 			seat.fpPercent[party] = float(percent / weightPercentSum[party]);
 			if (!weightedSwing.contains(party) || !weightSwingSum[party]) {
@@ -649,6 +650,7 @@ void LivePreparation::calculateSeatSwings()
 			else if (!totalVotes && previousElection.booths.contains(boothId)) {
 				uncountedPreviousOrdinaryVotes += previousElection.booths[boothId].totalVotesTcp();
 			}
+			// *** adjust this to match vic situation?
 			else if (!totalVotes) {
 				if (booth.type == Results2::Booth::Type::Ppvc) {
 					mysteryVotes += 3000;
@@ -670,6 +672,7 @@ void LivePreparation::calculateSeatSwings()
 				}
 			}
 		}
+		// *** Add "early" votes here. Should probably count them "as if" they are ordinary votes.
 		float boothSizeChange = matchedPreviousOrdinaryVotes ? float(matchedOrdinaryVotes) / float(matchedPreviousOrdinaryVotes) : 1.0f;
 		float minExpectedVotes = float(countedOrdinaryVotes) + float(uncountedPreviousOrdinaryVotes) * boothSizeChange * 0.8f +
 			mysteryVotes * 0.4f;
@@ -691,6 +694,8 @@ void LivePreparation::calculateSeatSwings()
 			if (matchedAffiliation.size() == 2) {
 				for (auto [affiliation, votes] : seat.tcpVotes) {
 					float ordinaryVotes = previousSeat.tcpVotes[matchedAffiliation[affiliation]][Results2::VoteType::Ordinary];
+					// *** Probably want to not count VEC "early" votes as dec votes?
+					// if (previousSeat.tcpVotes[matchedAffiliation[affiliation]].contains(Results2::VoteType::Early)
 					float allVotes = previousSeat.totalVotesTcpParty(matchedAffiliation[affiliation]);
 					float decVotes = allVotes - ordinaryVotes;
 					ordinaryVotePercent[affiliation] = float(ordinaryVotes);
@@ -747,6 +752,7 @@ void LivePreparation::calculateSeatSwings()
 			}
 			seat.tcpPercent[party] = float(weightedPercent[party] / weightPercentSum[party]);
 			float boothSwing = float(weightedSwing[party] / weightSwingSum[party]);
+			// *** need something here for "early" votes
 			float existingPercent = 0.0f;
 			auto const& simSeat = project.seats().viewByIndex(aecSeatToSimSeat[seatId]);
 			if (seat.isTpp && aecPartyToSimParty[party] == 0) existingPercent = 50.0f + simSeat.tppMargin;
@@ -864,6 +870,7 @@ void LivePreparation::projectDeclarationVotes()
 			float weightSum = 0.0f;
 			for (auto [voteType, votePercent] : currentDecVotePercent[partyId]) {
 				if (voteType == Results2::VoteType::Ordinary) continue;
+				// *** Remove "early" votes ?
 				float weight = float(seat.tcpVotes.at(partyId).at(voteType));
 				weightedPercentSum += votePercent * weight;
 				weightSum += weight;
