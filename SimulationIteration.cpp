@@ -1111,8 +1111,33 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
 		!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
 		seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+		// we had a confirmed independent but they didn't meet the threshold, move votes to OTH
 		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][run.indPartyIndex];
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = 0.0f;
+	}
+	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
+		!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
+		seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) {
+		// we had an emerging independent but they didn't meet the threshold, move votes to OTH
+		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+	}
+	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
+		run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
+		seatFpVoteShare[seatIndex].contains(EmergingIndIndex) &&
+		!seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+		// we had an emerging independent and no confirmed independent and an independent vote meets
+		// the threshold, move them to independent
+		seatFpVoteShare[seatIndex][run.indPartyIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+	}
+	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
+		!run.liveSeatFpTransformedSwing[seatIndex].contains(EmergingIndIndex) &&
+		seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) {
+		// we still have an emerging ind (so wasn't promoted), and there's no other ind meeting the
+		// threshold, so switch to others
+		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
+		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
 	}
 	for (auto [partyIndex, swing] : run.liveSeatFpTransformedSwing[seatIndex]) {
 		// Ignore major party fps for now

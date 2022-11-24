@@ -844,6 +844,13 @@ void LivePreparation::projectOrdinaryVoteTotals()
 					if (std::isnan(booth.tcpEstimateSwing.at(party))) continue;
 					weightedSwing[party] += double(booth.tcpEstimateSwing.at(party)) * double(booth.totalVotesFp()) * 0.5;
 					weightSwingSum[party] += double(booth.totalVotesFp()) * 0.5;
+
+					if (seat.name == "Leichhardt") {
+						PA_LOG_VAR(boothId);
+						PA_LOG_VAR(double(booth.tcpEstimateSwing.at(party)));
+						PA_LOG_VAR(weightedSwing[party]);
+						PA_LOG_VAR(weightSwingSum[party]);
+					}
 				}
 			}
 		}

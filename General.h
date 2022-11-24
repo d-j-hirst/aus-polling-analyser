@@ -209,7 +209,7 @@ T mix(T lower, T upper, T upperFactor) {
 
 // find value for "key" within "map" giving "defaultVal" if not found.
 template<typename T, typename U, typename V>
-U getAt(T map, U key, V defaultVal) {
+V getAt(T map, U key, V defaultVal) {
 	auto it = map.find(key);
 	if (it == map.end()) return defaultVal;
 	return it->second;
