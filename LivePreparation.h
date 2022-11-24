@@ -33,6 +33,7 @@ private:
 	void downloadCurrentResults();
 	void downloadLatestResults();
 	void parseCurrentResults();
+	void doMiscellaneousUpdates();
 	void preparePartyCodeGroupings();
 	void calculateBoothFpSwings();
 	void calculateTppPreferenceFlows();
@@ -42,8 +43,9 @@ private:
 	void calculateCountProgress();
 	void determinePpvcBias();
 	void calculateSeatSwings();
-	void projectDeclarationVotes();
 	void determinePpvcBiasSensitivity();
+	void projectOrdinaryVoteTotals();
+	void projectDeclarationVotes();
 	void determineDecVoteSensitivity();
 	void determinePartyIdConversions();
 	void determineSeatIdConversions();
@@ -54,6 +56,7 @@ private:
 
 	std::string getTermCode();
 
+	Results2::Seat const& findBestMatchingPreviousSeat(int currentSeatId);
 	std::map<int, int> findMatchedParties(Results2::Seat const& previousSeat, Results2::Seat const& currentSeat);
 
 	std::string xmlFilename;
@@ -69,11 +72,16 @@ private:
 
 	std::unordered_map<int, float> updatedPreferenceFlows;
 
+	std::map<int, int> seatOrdinaryVotesCountedFp; // actual number of votes
+	std::map<int, int> seatOrdinaryVotesCountedTcp; // actual number of votes
+	std::map<int, int> seatOrdinaryVotesProjection; // actual number of votes
+	std::map<int, std::map<int, float>> seatOrdinaryTcpPercent; // seatId, then party Id
+	std::map<int, std::map<int, float>> seatOrdinaryTcpSwing; // seatId, then party Id
 	std::map<int, std::map<int, float>> seatDecVotePercent;
-	std::map<int, float> seatDecVotePercentWeight; // proportion to ordinary votes
-	std::map<int, std::map<int, float>> seatDecVoteSwing;
-	std::map<int, float> seatDecVoteSwingWeight; // proportion to ordinary votes
-	std::map<int, float> seatDecVoteSwingBasis; // number of votes actually counted
+	std::map<int, float> seatDecVotePercentOfCounted; // proportion to ordinary votes
+	std::map<int, std::map<int, float>> seatDecVoteTcpSwing;
+	std::map<int, float> seatDecVoteProjectedProportion; // proportion to ordinary votes
+	std::map<int, float> seatDecVoteSwingBasis; // proportion of counted dec votes out of estimated total
 	std::map<int, std::map<int, float>> seatPostCountTcpEstimate; // full estimate of the postcount TCP
 
 	std::unordered_map<std::string, int> partyCodeGroupings;

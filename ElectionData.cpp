@@ -17,10 +17,10 @@ Results2::Election::Election(nlohmann::json const& results, tinyxml2::XMLDocumen
 
 Results2::Election::Election(tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths)
 {
-	preload2022Vic(input_candidates, input_booths);
+	preload2022Vic(input_candidates, input_booths, true);
 }
 
-void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths)
+void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths, bool includeSeatBooths)
 {
 	const std::map<std::string, std::string> shortCodes = {
 		{"The Australian Greens - Victoria", "GRN"},
@@ -83,6 +83,9 @@ void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candi
 			booth.parentSeat = seatId;
 			booths[booth.id] = booth;
 			currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+			if (includeSeatBooths) {
+				seats[seatId].booths.push_back(booth.id);
+			}
 		}
 		currentPollingDistrict = currentPollingDistrict->NextSiblingElement("PollingDistrict");
 	}
@@ -182,7 +185,7 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
 				VoteType voteType = VoteType::Invalid;
 				if (boothName == "Postal Votes") voteType = VoteType::Postal;
 				if (boothName == "Absent Votes") voteType = VoteType::Absent;
-				if (boothName == "Early Votes") voteType = VoteType::PrePoll;
+				if (boothName == "Early Votes") voteType = VoteType::Early;
 				if (boothName == "Provisional Votes") voteType = VoteType::Provisional;
 				if (voteType == VoteType::Invalid) continue;
 				auto fps = boothValue["fp"];
@@ -195,7 +198,8 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
 				for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
 					int tcpCandIndexI = std::stoi(tcpCandIndex);
 					int tcpCandId = indexToId[tcpCandIndexI];
-					seats[seatId].tcpVotes[tcpCandId][voteType] = tcpVotes;
+					int tcpAffiliation = candidates[tcpCandId].party;
+					seats[seatId].tcpVotes[tcpAffiliation][voteType] = tcpVotes;
 				}
 				continue;
 			}
@@ -255,8 +259,9 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
 			for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
 				int tcpCandIndexI = std::stoi(tcpCandIndex);
 				int tcpCandId = indexToId[tcpCandIndexI];
-				booth.tcpVotes[tcpCandId] = tcpVotes;
-				if (seatId > 0) seats[seatId].tcpVotes[tcpCandId][VoteType::Ordinary] += tcpVotes;
+				int tcpAffiliation = candidates[tcpCandId].party;
+				booth.tcpVotes[tcpAffiliation] = tcpVotes;
+				if (seatId > 0) seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
 			}
 			if (seatId > 0) {
 				seats[seatId].booths.push_back(booth.id);
@@ -466,15 +471,17 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 			}
 
 			tcps = currentBooth->FirstChildElement("TwoCandidatePreferred");
-			currentCandidate = tcps->FirstChildElement("Candidate");
-			while (currentCandidate) {
-				auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
-				int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
-				int partyId = candidates.at(candidateId).party;
-				int votes = currentCandidate->FirstChildElement("Votes")->IntText();
-				booth.tcpVotes[partyId] = votes;
+			if (tcps) {
+				currentCandidate = tcps->FirstChildElement("Candidate");
+				while (currentCandidate) {
+					auto candidateIdEl = currentCandidate->FirstChildElement("eml:CandidateIdentifier");
+					int candidateId = candidateIdEl->FindAttribute("Id")->IntValue();
+					int partyId = candidates.at(candidateId).party;
+					int votes = currentCandidate->FirstChildElement("Votes")->IntText();
+					booth.tcpVotes[partyId] = votes;
 
-				currentCandidate = currentCandidate->NextSiblingElement("Candidate");
+					currentCandidate = currentCandidate->NextSiblingElement("Candidate");
+				}
 			}
 
 			booths[booth.id] = booth;

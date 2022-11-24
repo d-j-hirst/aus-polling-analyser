@@ -47,7 +47,7 @@ private:
 		bool hasMysteryBooths() { return std::accumulate(mysteryBoothCounts.begin(), mysteryBoothCounts.end(), 0); }
 	};
 
-
+	bool checkForNans(std::string const& loc);
 	void initialiseIterationSpecificCounts();
 	void determineFedStateCorrelation();
 	void determineOverallTpp();

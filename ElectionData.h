@@ -117,7 +117,7 @@ namespace Results2 {
 	inline std::string voteTypeName(VoteType v) {
 		static const auto nameMap = std::unordered_map<VoteType, std::string>{ {VoteType::Absent, "Absent"},
 			{VoteType::Invalid, "Invalid"}, {VoteType::Ordinary, "Ordinary"}, {VoteType::Postal, "Postal"},
-			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"} };
+			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"}, {VoteType::Early, "Early"} };
 		return nameMap.at(v);
 	}
 
@@ -210,11 +210,14 @@ namespace Results2 {
 			);
 		}
 
-		int totalVotesTcp(VoteType exclude = VoteType::Invalid) const {
+		int totalVotesTcp(std::vector<VoteType> const& exclude) const {
 			return std::accumulate(tcpVotes.begin(), tcpVotes.end(), 0,
 				[&](int acc, decltype(tcpVotes)::value_type val) {return acc +
 				std::accumulate(val.second.begin(), val.second.end(), 0,
-					[&](int acc, decltype(val.second)::value_type val2) {return val2.first != exclude ? acc + val2.second : acc; }
+					[&](int acc, decltype(val.second)::value_type val2) {
+						return std::find(exclude.begin(), exclude.end(), val2.first) != exclude.end() ? 
+							acc + val2.second : acc;
+					}
 			); }
 			);
 		}
@@ -264,6 +267,6 @@ namespace Results2 {
 		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths);
 		void preload2022Vic(tinyxml2::XMLDocument const& input_candidates,
-			tinyxml2::XMLDocument const& input_booths);
+			tinyxml2::XMLDocument const& input_booths, bool includeSeatBooths = false);
 	};
 }

@@ -140,7 +140,7 @@ void Projection::logRunStatistics()
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
 	// Now-cast now 
-	settings.endDate = std::max(model.getEndDate() + wxDateSpan(0, 0, 0, 4), wxDateTime::Now());
+	settings.endDate = std::max(model.getEndDate() + wxDateSpan(0, 0, 0, MinDaysBeforeElection), wxDateTime::Now());
 }
 
 StanModel::SeriesOutput Projection::viewPrimarySeries(std::string partyCode) const
@@ -183,6 +183,7 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 		}
 	}
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
+	daysAfterModelEnd = std::max(daysAfterModelEnd, MinDaysBeforeElection);
 	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd);
 	return sample;
 }

@@ -34,32 +34,73 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 {
 }
 
+bool SimulationIteration::checkForNans(std::string const& loc) {
+	auto report = [&](int seatIndex) {
+		std::lock_guard<std::mutex> lock(recordMutex);
+		logger << "Warning: A vote share for seat " << project.seats().viewByIndex(seatIndex).name << "was Nan!\n";
+		logger << "At simulation location " << loc << "\n";
+		logger << "Simulation iteration aborted to prevent a freeze, trying to redo.\n";
+		PA_LOG_VAR(run.liveOverallTppSwing);
+		PA_LOG_VAR(iterationOverallTpp);
+		PA_LOG_VAR(run.liveOverallFpSwing);
+		PA_LOG_VAR(run.liveSeatTppSwing);
+		PA_LOG_VAR(run.liveSeatTcpSwing);
+		PA_LOG_VAR(run.liveSeatFpSwing);
+		PA_LOG_VAR(overallFpTarget);
+		PA_LOG_VAR(overallFpSwing);
+		PA_LOG_VAR(regionSwing);
+		PA_LOG_VAR(partyOneNewTppMargin);
+		return true;
+	};
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		if (int(seatFpVoteShare.size()) > seatIndex) {
+			for (auto [party, voteShare] : seatFpVoteShare[seatIndex]) {
+				if (std::isnan(voteShare)) {
+					if (report(seatIndex)) return true;
+				}
+			}
+		}
+		if (std::isnan(partyOneNewTppMargin[seatIndex])) {
+			if (report(seatIndex)) return true;
+		}
+	}
+	return false;
+}
+
 void SimulationIteration::runIteration()
 {
-	loadPastSeatResults();
-	initialiseIterationSpecificCounts();
-	determineFedStateCorrelation();
-	determineOverallTpp();
-	decideMinorPartyPopulism();
-	determineHomeRegions();
-	determineMinorPartyContests();
-	incorporateLiveOverallFps();
-	determineIndDistributionParameters();
-	determinePpvcBias();
-	determineDecVoteBias();
-	determineRegionalSwings();
-	determineSeatInitialResults();
+	bool gotValidResult = false;
+	while (!gotValidResult) {
+		loadPastSeatResults();
+		initialiseIterationSpecificCounts();
+		determineFedStateCorrelation();
+		determineOverallTpp();
+		decideMinorPartyPopulism();
+		determineHomeRegions();
+		determineMinorPartyContests();
+		incorporateLiveOverallFps();
+		determineIndDistributionParameters();
+		determinePpvcBias();
+		determineDecVoteBias();
+		determineRegionalSwings();
+		determineSeatInitialResults();
 
-	reconcileSeatAndOverallFp();
+		if (checkForNans("Before reconciling")) continue;
 
-	seatTcpVoteShare.resize(project.seats().count());
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		determineSeatFinalResult(seatIndex);
+		reconcileSeatAndOverallFp();
+
+		if (checkForNans("After reconciling")) continue;
+
+		seatTcpVoteShare.resize(project.seats().count());
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			determineSeatFinalResult(seatIndex);
+		}
+
+		assignDirectWins();
+		assignCountAsPartyWins();
+		assignSupportsPartyWins();
+		gotValidResult = true;
 	}
-
-	assignDirectWins();
-	assignCountAsPartyWins();
-	assignSupportsPartyWins();
 
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
@@ -1337,7 +1378,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		newPartyTwoFp += addPartyTwoFp;
 	}
 
-	//if (seat.name == "Prahran") {
+	//if (seat.name == "Frankston") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -1372,6 +1413,11 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//}
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = newPartyTwoFp;
+
+	//if (seat.name == "Frankston") {
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex][Mp::One]);
+	//	PA_LOG_VAR(seatFpVoteShare[seatIndex][Mp::Two]);
+	//}
 
 	if (seat.incumbent >= Mp::Others && seatFpVoteShare[seatIndex][seat.incumbent]) {
 		// Maintain constant fp vote for non-major incumbents
