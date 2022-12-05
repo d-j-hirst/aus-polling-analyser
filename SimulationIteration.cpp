@@ -35,9 +35,9 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 }
 
 bool SimulationIteration::checkForNans(std::string const& loc) {
-	auto report = [&](int seatIndex) {
+	auto report = [&](int seatIndex, std::string type) {
 		std::lock_guard<std::mutex> lock(recordMutex);
-		logger << "Warning: A vote share for seat " << project.seats().viewByIndex(seatIndex).name << "was Nan!\n";
+		logger << "Warning: A " << type << " vote share for seat " << project.seats().viewByIndex(seatIndex).name << "was Nan!\n";
 		logger << "At simulation location " << loc << "\n";
 		logger << "Simulation iteration aborted to prevent a freeze, trying to redo.\n";
 		PA_LOG_VAR(run.liveOverallTppSwing);
@@ -56,12 +56,12 @@ bool SimulationIteration::checkForNans(std::string const& loc) {
 		if (int(seatFpVoteShare.size()) > seatIndex) {
 			for (auto [party, voteShare] : seatFpVoteShare[seatIndex]) {
 				if (std::isnan(voteShare)) {
-					if (report(seatIndex)) return true;
+					if (report(seatIndex, "fp")) return true;
 				}
 			}
 		}
 		if (std::isnan(partyOneNewTppMargin[seatIndex])) {
-			if (report(seatIndex)) return true;
+			if (report(seatIndex, "tcp")) return true;
 		}
 	}
 	return false;
@@ -85,11 +85,19 @@ void SimulationIteration::runIteration()
 		determineRegionalSwings();
 		determineSeatInitialResults();
 
-		if (checkForNans("Before reconciling")) continue;
+		if (checkForNans("Before reconciling")) {
+			seatFpVoteShare.clear();
+			partyOneNewTppMargin.clear();
+			continue;
+		}
 
 		reconcileSeatAndOverallFp();
 
-		if (checkForNans("After reconciling")) continue;
+		if (checkForNans("After reconciling")) {
+			seatFpVoteShare.clear();
+			partyOneNewTppMargin.clear();
+			continue;
+		}
 
 		seatTcpVoteShare.resize(project.seats().count());
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -224,12 +232,12 @@ void SimulationIteration::incorporateLiveOverallFps()
 			float liveTarget = run.liveOverallFpTarget[partyIndex];
 			float liveStdDev = stdDevOverall(run.liveOverallFpPercentCounted) * 1.8f;
 			liveTarget += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-			float priorWeight = 1.5f;
-			float liveWeight = 4.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
-			float targetShift = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight) - overallFpTarget[partyIndex];
 			// just guesswork, minors on average fall slightly in postcount
 			postCountFpShift[partyIndex] = std::normal_distribution<float>(-0.3f, partyIndex == -1 ? 3.0f : 1.5f)(gen);
-			targetShift += postCountFpShift[partyIndex];
+			liveTarget += postCountFpShift[partyIndex];
+			float priorWeight = 1.5f;
+			float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
+			float targetShift = (overallFpTarget[partyIndex] * priorWeight + liveTarget * liveWeight) / (priorWeight + liveWeight) - overallFpTarget[partyIndex];
 			overallFpTarget[partyIndex] = predictorCorrectorTransformedSwing(overallFpTarget[partyIndex], targetShift);
 			overallFpSwing[partyIndex] = overallFpTarget[partyIndex] - run.previousFpVoteShare[partyIndex];
 		}
@@ -662,7 +670,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		if (effectiveGreen) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
-		else if (effectiveIndependent && project.parties().idToIndex(seat.incumbent) == run.indPartyIndex) {
+		else if (effectiveIndependent && project.parties().idToIndex(seat.incumbent) == partyIndex) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -829,8 +837,8 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		// First step establishes the mean at a position that historically relates to this
 		// % chance of winning
 		if (seat.name == "Pascoe Vale") {
-			prevLibFp += 14.0f; // Account for previous independent taking most votes
-			prevOthFp -= 14.0f; // Account for previous independent taking most votes
+			// Account for previous independent taking most votes
+			prevLibFp += 7.0f;
 		}
 		// First approach: GRN-ALP contest. Suitable for ALP margin >20%. LIBs preferences considered
 		const float assumedLibPrefFlow = 0.75f;
@@ -856,6 +864,28 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		const float variation = 10.0f * (1.0f - 0.75f * std::abs(impliedChance - 0.5f));
 		float transformedBettingFp = rng.normal(transformedCenter, variation);
 		transformedFp = mix(transformedFp, transformedBettingFp, 0.7f);
+	}
+	// treat other parties like independent I guess
+	else if (run.seatBettingOdds[seatIndex].contains(partyIndex)) {
+		// Exact values of odds above $15 don't generally mean much, so cap them at this level
+		constexpr float OddsCap = 15.0f;
+		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][partyIndex], OddsCap);
+		// the last part of this line compensates for the typical bookmaker's margin
+		float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
+		// significant adjustment downwards to adjust for longshot bias.
+		// this number isn't really treated as a probability from here on so it's ok for
+		// it to become negative.
+		if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
+		float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
+		constexpr float range = 42.0f;
+		float voteShareCenter = pivot + range * (impliedChance - 0.5f);
+		constexpr float variation = 20.0f;
+		float transformedBettingFp = rng.normal(voteShareCenter, variation);
+		// If the betting odds are very favourable to the independent, tend to stick with
+		// the existing estimate as the betting estimate would probably be an underestimate
+		// for very popular independents
+		float mixFactor = std::min(5.0f - 5.0f * impliedChance, 0.5f);
+		transformedFp = mix(transformedFp, transformedBettingFp, mixFactor);
 	}
 
 	float regularVoteShare = detransformVoteShare(transformedFp);
@@ -1107,7 +1137,7 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
-	//Seat const& seat = project.seats().viewByIndex(seatIndex);
+	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
 	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
 		!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
 		seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
@@ -1139,9 +1169,12 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
 	}
+	seatFpVoteShare[seatIndex][OthersIndex] = std::clamp(seatFpVoteShare[seatIndex][OthersIndex], 0.0f, 99.9f);
+	seatFpVoteShare[seatIndex][run.indPartyIndex] = std::clamp(seatFpVoteShare[seatIndex][run.indPartyIndex], 0.0f, 99.9f);
 	for (auto [partyIndex, swing] : run.liveSeatFpTransformedSwing[seatIndex]) {
 		// Ignore major party fps for now
 		if (isMajor(partyIndex)) continue;
+		[[maybe_unused]] auto prevFpVoteShare = seatFpVoteShare[seatIndex];
 		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
 		float liveTransformedFp = transformVoteShare(projectedFp);
@@ -1587,7 +1620,9 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				FloatByPartyIndex categories;
 				float totalOthers = 0.0f;
 				for (auto [seatPartyIndex, seatPartyVote] : seatFpVoteShare[seatIndex]) {
+					// protect independents and quasi-independents from having their votes squashed here
 					if (seatPartyIndex == run.indPartyIndex) continue;
+					if (!overallFpSwing.contains(seatPartyIndex) && seatPartyIndex >= 2) continue;
 					if (seatPartyIndex == OthersIndex || !overallFpTarget.contains(seatPartyIndex)) {
 						categories[seatPartyIndex] = seatPartyVote;
 						totalOthers += seatPartyVote;

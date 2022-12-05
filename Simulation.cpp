@@ -6,6 +6,7 @@
 #include "PollingProject.h"
 #include "Projection.h"
 #include "Region.h"
+#include "SpecialPartyCodes.h"
 #include <algorithm>
 
 #undef min
@@ -24,6 +25,62 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 	latestRun.reset(new SimulationRun(project, *this));
 	//latestRun.emplace(project, *this);
 	latestRun->run(feedback);
+	checkLiveSeats(project, feedback);
+}
+
+void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback)
+{
+	typedef std::tuple<int, int, float> Change;
+	std::vector<Change> changes; // seat, party, change
+	if (previousLiveSeats.size() < latestReport.seatPartyWinPercent.size()) {
+		previousLiveSeats.resize(latestReport.seatPartyWinPercent.size());
+	}
+	int indPartyIndex = project.parties().indexByShortCode("IND");
+	for (int seatIndex = 0; seatIndex < int(latestReport.seatPartyWinPercent.size()); ++seatIndex) {
+		for (auto const& [partyIndex, winFrequency] : latestReport.seatPartyWinPercent[seatIndex]) {
+			if (partyIndex == indPartyIndex && !previousLiveSeats[seatIndex].contains(indPartyIndex) &&
+				previousLiveSeats[seatIndex].contains(EmergingIndIndex)) {
+				// Special case where an emerging ind gets promoted to a normal ind, can handle this
+				float percentShift = winFrequency - previousLiveSeats[seatIndex][EmergingIndIndex];
+				if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, partyIndex, percentShift });
+				continue;
+			}
+			else if (!previousLiveSeats[seatIndex].contains(partyIndex)) {
+				if (previousLiveSeats[seatIndex].size()) {
+					float percentShift = winFrequency;
+					if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, partyIndex, percentShift });
+				}
+				continue;
+			}
+			float percentShift = winFrequency - previousLiveSeats[seatIndex][partyIndex];
+			if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, partyIndex, percentShift });
+		}
+		if (previousLiveSeats[seatIndex].contains(indPartyIndex) &&	!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
+			// Special case where an emerging ind gets promoted to a normal ind, can handle this
+			float percentShift = -previousLiveSeats[seatIndex][indPartyIndex];
+			if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
+			continue;
+		}
+		if (previousLiveSeats[seatIndex].contains(EmergingIndIndex) &&
+			!previousLiveSeats[seatIndex].contains(indPartyIndex) &&
+			!latestReport.seatPartyWinPercent[seatIndex].contains(EmergingIndIndex) &&
+			!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
+			// Special case where an emerging ind gets promoted to a normal ind, can handle this
+			float percentShift = -previousLiveSeats[seatIndex][EmergingIndIndex];
+			if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
+			continue;
+		}
+	}
+	previousLiveSeats = latestReport.seatPartyWinPercent;
+	PA_LOG_VAR(latestReport.seatPartyWinPercent);
+	std::sort(changes.begin(), changes.end(), [](Change a, Change b) {return abs(std::get<2>(a)) > abs(std::get<2>(b)); });
+	std::stringstream messages;
+	for (auto change : changes) {
+		messages << project.seats().viewByIndex(std::get<0>(change)).name;
+		messages << ": " << formatFloat(std::get<2>(change), 1, true);
+		messages << " to " << project.parties().viewByIndex(std::get<1>(change)).name << "\n";
+	}
+	feedback(messages.str());
 }
 
 void Simulation::replaceSettings(Simulation::Settings newSettings)

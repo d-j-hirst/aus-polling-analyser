@@ -33,7 +33,6 @@ private:
 	void downloadCurrentResults();
 	void downloadLatestResults();
 	void parseCurrentResults();
-	void doMiscellaneousUpdates();
 	void preparePartyCodeGroupings();
 	void calculateBoothFpSwings();
 	void calculateTppPreferenceFlows();
@@ -80,6 +79,7 @@ private:
 	std::map<int, std::map<int, float>> seatDecVotePercent;
 	std::map<int, float> seatDecVotePercentOfCounted; // proportion to ordinary votes
 	std::map<int, std::map<int, float>> seatDecVoteTcpSwing;
+	std::map<int, std::map<int, float>> seatDecVoteTcpAdjustment;
 	std::map<int, float> seatDecVoteProjectedProportion; // proportion to ordinary votes
 	std::map<int, float> seatDecVoteSwingBasis; // proportion of counted dec votes out of estimated total
 	std::map<int, std::map<int, float>> seatPostCountTcpEstimate; // full estimate of the postcount TCP

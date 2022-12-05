@@ -457,10 +457,6 @@ def run_individual_party(config, m_data, e_data,
         for x in houses
     ]
 
-    print(houses)
-    print(he_weights)
-    print(biases)
-
     houseEffectOld = 240
     houseEffectNew = 120
 

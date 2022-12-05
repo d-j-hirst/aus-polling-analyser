@@ -215,7 +215,7 @@ namespace Results2 {
 				[&](int acc, decltype(tcpVotes)::value_type val) {return acc +
 				std::accumulate(val.second.begin(), val.second.end(), 0,
 					[&](int acc, decltype(val.second)::value_type val2) {
-						return std::find(exclude.begin(), exclude.end(), val2.first) != exclude.end() ? 
+						return std::find(exclude.begin(), exclude.end(), val2.first) == exclude.end() ? 
 							acc + val2.second : acc;
 					}
 			); }

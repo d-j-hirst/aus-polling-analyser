@@ -282,6 +282,8 @@ public:
 
 	void run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 
+	void checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
+
 	Settings const& getSettings() const { return settings; }
 
 	std::string getLastUpdatedString() const;
@@ -320,6 +322,8 @@ private:
 	Report latestReport;
 
 	SavedReports savedReports;
+
+	std::vector<std::map<int, float>> previousLiveSeats;
 
 	//std::unique_ptr<SimulationRun> latestRun;
 	std::shared_ptr<SimulationRun> latestRun;
