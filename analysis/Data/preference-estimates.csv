@@ -1,10 +1,14 @@
+2025,fed,GRN FP,85.7
+2025,fed,UAP FP,38.1
+2025,fed,ONP FP,35.7
+2025,fed,OTH FP,50.7
 2022,fed,GRN FP,82.2
 2022,fed,UAP FP,34.9
 2022,fed,ONP FP,34.8
 2022,fed,OTH FP,50.7
 2019,fed,GRN FP,81.94
 2019,fed,ONP FP,40.0,#Average of fed and QLD elections = 42.0
-2019,fed,UAP FP,40.0, #Previous 46.97
+2019,fed,UAP FP,40.0,#Previous 46.97
 2019,fed,NXT FP,50
 2019,fed,OTH FP,49.25
 2016,fed,GRN FP,83.03
@@ -22,10 +26,10 @@
 2004,fed,ONP FP,44.1
 2004,fed,OTH FP,45.6
 2015,fed,GRN FP,74.8
-2023,nsw,GRN FP,70.0,#Copy from 2019 for now
-2023,nsw,SFF FP,40,#Copy from 2019 for now
-2023,nsw,ONP FP,42.0,#Copy from 2019 for now
-2023,nsw,OTH FP,48.6,##Copy from 2019 for now
+2023,nsw,GRN FP,85.7,44.1,#Copy from 2019 for now
+2023,nsw,SFF FP,40,60.4,#Copy from 2019 for now
+2023,nsw,ONP FP,42.0,60.4,#Copy from 2019 for now
+2023,nsw,OTH FP,48.6,60.4,##Copy from 2019 for now
 2019,nsw,GRN FP,70.0,#Effective preference flow calculated by treating exhausted preferences as 50-50
 2019,nsw,SFF FP,40
 2019,nsw,ONP FP,42.0

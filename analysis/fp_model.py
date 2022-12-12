@@ -118,8 +118,9 @@ class ModellingData:
 
         with open('./Data/preference-estimates.csv', 'r') as f:
             self.preference_flows = {
-                (a[0], a[1], a[2]): float(a[3]) * 0.01 for a in
-                [b.strip().split(',') for b in f.readlines()]}
+                (a[0], a[1], a[2]): (float(a[3]) * 0.01,
+                float(a[4]) * 0.01 if len(a) > 4 and a[4][0] != "#" else 0)
+                for a in [b.strip().split(',') for b in f.readlines()]}
 
         # Load the file containing prior results for each election
         with open('./Data/prior-results.csv', 'r') as f:
@@ -233,8 +234,8 @@ class ElectionData:
                 pref_tuple = (self.e_tuple[0], self.e_tuple[1], others_party)
                 oth_tuple = (self.e_tuple[0], self.e_tuple[1], 'OTH FP')
                 polled_percent = df[others_party].values.tolist()
-                adj_flow = (m_data.preference_flows[pref_tuple] -
-                            m_data.preference_flows[oth_tuple])
+                adj_flow = (m_data.preference_flows[pref_tuple][0] -
+                            m_data.preference_flows[oth_tuple][0])
                 for a in range(0, num_polls):
                     if math.isnan(polled_percent[a]):
                         day = days[a]
@@ -249,7 +250,8 @@ class ElectionData:
             pref_tuple = (self.e_tuple[0], self.e_tuple[1], column)
             if pref_tuple not in m_data.preference_flows:
                 continue
-            preference_flow = m_data.preference_flows[pref_tuple]
+            preference_flow = m_data.preference_flows[pref_tuple][0]
+            preference_survival = 1 - m_data.preference_flows[pref_tuple][1]
             if column == 'OTH FP':
                 lnp_col = 'LIB FP' if 'LIB FP' in df else 'LNP FP'
                 df['OTH FP'] = df.apply(
@@ -261,10 +263,11 @@ class ElectionData:
                     axis=1
                 )
             pref_col = df[column].fillna(0)
-            df['@TPP'] += pref_col * preference_flow
-            df['Total'] += pref_col
+            df['@TPP'] += pref_col * preference_flow * preference_survival
+            df['Total'] += pref_col * preference_survival
             print(pref_col)
             print(preference_flow)
+            print(preference_survival)
             print(df['@TPP'])
             print(df['Total'])
         df['@TPP'] += adjustment_series
