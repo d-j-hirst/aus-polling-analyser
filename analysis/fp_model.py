@@ -472,11 +472,12 @@ def run_individual_party(config, m_data, e_data,
     for poll in range(0, n_polls):
         housePollCount[houseList[poll] - 1] = housePollCount[houseList[poll] - 1] + 1
     for house in range(0, n_houses):
-        houseWeight[house] = min(1, housePollCount[house] * 0.2) * he_weights[house]
+        houseWeight[house] = he_weights[house]
         weightedBiasSum += biases[house] * houseWeight[house]
     totalHouseWeight = sum(houseWeight)
     weightedBias = weightedBiasSum / totalHouseWeight
     print(f'Expected house effect sum: {weightedBias}')
+    print(f'House effect weights: {houseWeight} for {houses}')
 
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:

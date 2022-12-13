@@ -4,7 +4,7 @@ from sample_kurtosis import one_tail_kurtosis
 
 from scipy.interpolate import UnivariateSpline
 from sklearn.linear_model import QuantileRegressor
-from numpy import array, transpose, dot, average
+from numpy import array, transpose, dot, average, amax, amin, median
 
 import argparse
 import math
@@ -205,7 +205,8 @@ class Inputs:
         avg_counts = list(range(1, 9))
         self.avg_prior_results = {
             avg_n: {
-                k: sum(v[:avg_n]) / avg_n
+                k: median(v[:avg_n])
+                if avg_n < 5  else sum(sorted(v[:avg_n])[1:-1]) / (avg_n - 2)
                 for k, v in self.prior_results.items()
             } for avg_n in avg_counts}
         self.studied_elections = self.polled_elections + [no_target_election_marker]
@@ -410,14 +411,22 @@ def run_fundamentals_regression(config, inputs):
                                 ])
             input_array = transpose(input_array)
             dependent_array = array(result_deviations)
-            reg = QuantileRegressor(alpha=0, quantile=0.5).fit(input_array, dependent_array)
+            if amax(input_array) > 0 or amin(input_array) < 0:
+                reg = QuantileRegressor(alpha=0, quantile=0.5).fit(input_array, dependent_array)
+                coefs = reg.coef_
+                intercept = reg.intercept_
+            else:
+                # Simplified procedure when no inputs
+                # (which is usually the case for minor parties)
+                coefs = [0 for _ in input_array[0]]
+                intercept = average(dependent_array)
             if config.show_fundamentals:
                 # print(f'{input_array}')
                 # print(f'{dependent_array}')
                 # print(f'Quantile regressor:')
                 # print(f'Election/party: {studied_election.short()}, '
-                #       f'{party_group_code}\n Coeffs: {reg_q.coef_}\n '
-                #       f'Intercept: {reg_q.intercept_}')
+                #       f'{party_group_code}\n Coeffs: {coefs}\n '
+                #       f'Intercept: {intercept}')
                 pass
             # Test with studied election information:
             for party in inputs.all_parties[studied_election] + [unnamed_others_code]:
@@ -429,7 +438,7 @@ def run_fundamentals_regression(config, inputs):
                                                          avg_len)
                 e_p_c = ElectionPartyCode(studied_election, party)
                 prediction = (inputs.safe_prior_average(avg_len, e_p_c) +
-                            dot(input_array, reg.coef_) + reg.intercept_)
+                            dot(input_array, coefs) + intercept)
                 eventual_results = (inputs.eventual_results[e_p_c]
                                     if e_p_c in inputs.eventual_results else 0)
                 previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
