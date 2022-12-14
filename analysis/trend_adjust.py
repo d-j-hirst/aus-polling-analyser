@@ -806,87 +806,95 @@ def test_procedure(config, inputs, poll_trend, exclude):
 
 
 def check_poll_predictiveness(config):
-    baseline_errors = []
-    poll_errors = []
-    fundamentals_errors = []
-    mixed_errors = []
-    poll_day = config.check_day
-    for election in config.elections:
-        if election == no_target_election_marker:
-            continue
-        if config.check_region == "nofed" and election.region() == "fed":
-            continue
-        elif (config.check_region != "" and config.check_region != "nofed"
-              and election.region() != config.check_region):
-            continue
-        party_group = "TPP"
-        party = "@TPP"
-        adjust_filename = (f'./Adjustments/adjust_{election.year()}'
-                    f'{election.region()}_{party_group}.csv')
-        with open(adjust_filename, 'r') as f:
-            poll_bias = float(f.readline().split(',')[poll_day])
-            fund_bias = float(f.readline().split(',')[poll_day])
-            mixed_bias = float(f.readline().split(',')[poll_day])
-            lower_error = float(f.readline().split(',')[poll_day])
-            upper_error = float(f.readline().split(',')[poll_day])
-            lower_kurtosis = float(f.readline().split(',')[poll_day])
-            upper_kurtosis = float(f.readline().split(',')[poll_day])
-            mix_factor = float(f.readline().split(',')[poll_day])
-        trend_filename = (f'./Outputs/fp_trend_{election.year()}'
-                        f'{election.region()}_{party}.csv')
-        trend_data = import_trend_file(trend_filename)
-        # print(f"election: {election}")
+    poll_days = [int((n * n + n) / 2) for n in range(0, 45)]
+    print(poll_days)
+    for poll_day in poll_days:
+        baseline_errors = []
+        poll_errors = []
+        fundamentals_errors = []
+        mixed_errors = []
+        for election in config.elections:
+            if election == no_target_election_marker:
+                continue
+            if config.check_region == "nofed" and election.region() == "fed":
+                continue
+            elif (config.check_region != "" and config.check_region != "nofed"
+                and election.region() != config.check_region):
+                continue
+            party_group = "TPP"
+            party = "@TPP"
+            adjust_filename = (f'./Adjustments/adjust_{election.year()}'
+                        f'{election.region()}_{party_group}.csv')
+            with open(adjust_filename, 'r') as f:
+                poll_bias = float(f.readline().split(',')[poll_day])
+                fund_bias = float(f.readline().split(',')[poll_day])
+                mixed_bias = float(f.readline().split(',')[poll_day])
+                lower_error = float(f.readline().split(',')[poll_day])
+                upper_error = float(f.readline().split(',')[poll_day])
+                lower_kurtosis = float(f.readline().split(',')[poll_day])
+                upper_kurtosis = float(f.readline().split(',')[poll_day])
+                mix_factor = float(f.readline().split(',')[poll_day])
+            trend_filename = (f'./Outputs/fp_trend_{election.year()}'
+                            f'{election.region()}_{party}.csv')
+            try:
+                trend_data = import_trend_file(trend_filename)
+            except FileNotFoundError:
+                continue
+            # print(f"election: {election}")
+            try:
+                poll_trend = trend_data[poll_day][50]
+            except IndexError:
+                continue
+            fundamentals_filename = (f'./Fundamentals/fundamentals_{election.year()}'
+                        f'{election.region()}.csv')
+            with open(fundamentals_filename, 'r') as f:
+                fundamentals = next(float(obj.split(',')[1]) for obj in f.readlines()
+                                    if obj.split(',')[0] == "@TPP")
+            poll_adjusted = poll_trend - poll_bias
+            fund_adjusted = fundamentals - fund_bias
+            mixed = poll_adjusted * mix_factor + fund_adjusted * (1 - mix_factor) - mixed_bias
+            try:
+                with open('./Data/eventual-results.csv', 'r') as f:
+                    eventual_result = next(float(a.split(",")[3]) for a in f.readlines()
+                                        if int(a.split(",")[0]) == election.year()
+                                        and a.split(",")[1] == election.region()
+                                        and a.split(",")[2] == party)
+            except StopIteration:
+                continue
+            baseline_errors.append(50 - eventual_result)
+            poll_errors.append(poll_trend - eventual_result)
+            fundamentals_errors.append(fundamentals - eventual_result)
+            mixed_errors.append(mixed - eventual_result)
+            # print(party_group)
+            # print(f"poll_bias: {poll_bias}")
+            # print(f"fund_bias: {fund_bias}")
+            # print(f"mixed_bias: {mixed_bias}")
+            # print(f"lower_error: {lower_error}")
+            # print(f"upper_error: {upper_error}")
+            # print(f"lower_kurtosis: {lower_kurtosis}")
+            # print(f"upper_kurtosis: {upper_kurtosis}")
+            # print(f"mix_factor: {mix_factor}")
+            # print(f"poll trend: {poll_trend}")
+            # print(f"fundamentals: {fundamentals}")
+            # print(f"mixed: {mixed}")
+            # print(f"eventual_result: {eventual_result}")
+        
         try:
-            poll_trend = trend_data[poll_day][50]
-        except IndexError:
-            continue
-        fundamentals_filename = (f'./Fundamentals/fundamentals_{election.year()}'
-                    f'{election.region()}.csv')
-        with open(fundamentals_filename, 'r') as f:
-            fundamentals = next(float(obj.split(',')[1]) for obj in f.readlines()
-                                if obj.split(',')[0] == "@TPP")
-        poll_adjusted = poll_trend - poll_bias
-        fund_adjusted = fundamentals - fund_bias
-        mixed = poll_adjusted * mix_factor + fund_adjusted * (1 - mix_factor) - mixed_bias
-        with open('./Data/eventual-results.csv', 'r') as f:
-            eventual_result = next(float(a.split(",")[3]) for a in f.readlines()
-                                if int(a.split(",")[0]) == election.year()
-                                and a.split(",")[1] == election.region()
-                                and a.split(",")[2] == party)
-        baseline_errors.append(50 - eventual_result)
-        poll_errors.append(poll_trend - eventual_result)
-        fundamentals_errors.append(fundamentals - eventual_result)
-        mixed_errors.append(mixed - eventual_result)
-        # print(party_group)
-        # print(f"poll_bias: {poll_bias}")
-        # print(f"fund_bias: {fund_bias}")
-        # print(f"mixed_bias: {mixed_bias}")
-        # print(f"lower_error: {lower_error}")
-        # print(f"upper_error: {upper_error}")
-        # print(f"lower_kurtosis: {lower_kurtosis}")
-        # print(f"upper_kurtosis: {upper_kurtosis}")
-        # print(f"mix_factor: {mix_factor}")
-        # print(f"poll trend: {poll_trend}")
-        # print(f"fundamentals: {fundamentals}")
-        # print(f"mixed: {mixed}")
-        # print(f"eventual_result: {eventual_result}")
-    
-    try:
-        print(f"poll day: {poll_day}")
-        print(f"Average baseline error:      {statistics.mean([abs(a) for a in baseline_errors])}")
-        print(f"Average poll error:          {statistics.mean([abs(a) for a in poll_errors])}")
-        print(f"Average fundamentals error:  {statistics.mean([abs(a) for a in fundamentals_errors])}")
-        print(f"Average mixed error:         {statistics.mean([abs(a) for a in mixed_errors])}")
-        print(f"Median baseline error:      {statistics.median([abs(a) for a in baseline_errors])}")
-        print(f"Median poll error:          {statistics.median([abs(a) for a in poll_errors])}")
-        print(f"Median fundamentals error:  {statistics.median([abs(a) for a in fundamentals_errors])}")
-        print(f"Median mixed error:         {statistics.median([abs(a) for a in mixed_errors])}")
-        print(f"baseline RMSE:      {math.sqrt(statistics.mean([abs(a) ** 2 for a in baseline_errors]))}")
-        print(f"poll RMSE:          {math.sqrt(statistics.mean([abs(a) ** 2 for a in poll_errors]))}")
-        print(f"fundamentals RMSE:  {math.sqrt(statistics.mean([abs(a) ** 2 for a in fundamentals_errors]))}")
-        print(f"mixed RMSE:         {math.sqrt(statistics.mean([abs(a) ** 2 for a in mixed_errors]))}")
-    except statistics.StatisticsError:
-        print("Could not check statistics as there were no data. Make sure you use --election all so that the program uses all available elections")
+            print(f"poll day: {poll_day}")
+            print(f"Average baseline error:      {statistics.mean([abs(a) for a in baseline_errors])}")
+            print(f"Average poll error:          {statistics.mean([abs(a) for a in poll_errors])}")
+            print(f"Average fundamentals error:  {statistics.mean([abs(a) for a in fundamentals_errors])}")
+            print(f"Average mixed error:         {statistics.mean([abs(a) for a in mixed_errors])}")
+            print(f"Median baseline error:      {statistics.median([abs(a) for a in baseline_errors])}")
+            print(f"Median poll error:          {statistics.median([abs(a) for a in poll_errors])}")
+            print(f"Median fundamentals error:  {statistics.median([abs(a) for a in fundamentals_errors])}")
+            print(f"Median mixed error:         {statistics.median([abs(a) for a in mixed_errors])}")
+            print(f"baseline RMSE:      {math.sqrt(statistics.mean([abs(a) ** 2 for a in baseline_errors]))}")
+            print(f"poll RMSE:          {math.sqrt(statistics.mean([abs(a) ** 2 for a in poll_errors]))}")
+            print(f"fundamentals RMSE:  {math.sqrt(statistics.mean([abs(a) ** 2 for a in fundamentals_errors]))}")
+            print(f"mixed RMSE:         {math.sqrt(statistics.mean([abs(a) ** 2 for a in mixed_errors]))}")
+        except statistics.StatisticsError:
+            print("Could not check statistics as there were no data. Make sure you use --election all so that the program uses all available elections")
 
 
 

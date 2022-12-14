@@ -304,24 +304,65 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 	return true;
 }
 
+void StanModel::loadPreferenceFlows(FeedbackFunc feedback)
+{
+	const std::string filename = "analysis/Data/preference-estimates.csv";
+	auto file = std::ifstream(filename);
+	if (!file) {
+		feedback("Could not load preference estimates file: " + filename);
+		throw Exception("Could not load preference flows from file!");
+	}
+	preferenceFlowMap.clear();
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() < 4) break;
+		std::string electionYear = values[0];
+		if (electionYear != termCode.substr(0, 4)) continue;
+		std::string electionRegion = values[1];
+		if (electionRegion != termCode.substr(4)) continue;
+		std::string party = splitString(values[2], " ")[0];
+		float thisPreferenceFlow = std::stof(values[3]);
+		preferenceFlowMap[party] = thisPreferenceFlow;
+		if (values.size() >= 5 && values[4][0] != '#') {
+			float thisExhaustRate = std::stof(values[4]);
+			preferenceExhaustMap[party] = thisExhaustRate;
+		}
+		else {
+			preferenceExhaustMap[party] = 0.0f;
+		}
+	} while (true);
+	preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
+	preferenceFlowMap[UnnamedOthersCode] = preferenceFlowMap[OthersCode];
+	preferenceExhaustMap[EmergingOthersCode] = preferenceExhaustMap[OthersCode];
+	preferenceExhaustMap[UnnamedOthersCode] = preferenceExhaustMap[OthersCode];
+	preferenceFlowMap[partyCodeVec[0]] = 100.0f;
+	preferenceFlowMap[partyCodeVec[1]] = 0.0f;
+	preferenceExhaustMap[partyCodeVec[0]] = 0.0f;
+	preferenceExhaustMap[partyCodeVec[1]] = 0.0f;
+}
+
 bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 {
 	// partyCodeVec is already created by loadData
 	partyCodeVec = splitString(partyCodes, ",");
 	if (!partyCodeVec.size()) throw Exception("No party codes in this model!");
 	try {
-		auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
+		loadPreferenceFlows(feedback);
+		//auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
 		auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
 		auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
-		bool validSizes = preferenceFlowVec.size() == partyCodeVec.size() &&
+		bool validSizes = 
 			preferenceDeviationVec.size() == partyCodeVec.size() &&
 			preferenceSamplesVec.size() == partyCodeVec.size();
 		if (!validSizes) throw Exception("Party codes and parameter lines do not match!");
-		preferenceFlowMap.clear();
+		//preferenceFlowMap.clear();
 		preferenceDeviationMap.clear();
 		preferenceSamplesMap.clear();
 		for (int index = 0; index < int(partyCodeVec.size()); ++index) {
-			preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
+			//preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
 			preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
 			preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
 		}
@@ -330,9 +371,11 @@ bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 		feedback("One or more model paramater lists could not be converted to floats!");
 		return false;
 	}
-	preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
+	//preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
 	preferenceDeviationMap[EmergingOthersCode] = preferenceDeviationMap[OthersCode];
 	preferenceSamplesMap[EmergingOthersCode] = preferenceSamplesMap[OthersCode];
+	PA_LOG_VAR(preferenceFlowMap);
+	PA_LOG_VAR(preferenceExhaustMap);
 	return true;
 }
 

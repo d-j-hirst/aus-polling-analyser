@@ -164,6 +164,9 @@ private:
 
 	// Not actually needed for running trend adjustment but will eventually need to be queried for simulation reports
 	bool loadModelledPolls(FeedbackFunc feedback);
+	
+	// Load preference flows from a file.
+	void loadPreferenceFlows(FeedbackFunc feedback);
 
 	// Generates maps between parties and parameters for their preference flows
 	bool generatePreferenceMaps(FeedbackFunc feedback);
@@ -207,6 +210,7 @@ private:
 	std::string termCode;
 	std::string partyCodes;
 	std::string preferenceFlow;
+	std::string preferenceExhaust;
 	std::string preferenceDeviation;
 	std::string preferenceSamples;
 	wxDateTime startDate = wxInvalidDateTime;
@@ -233,6 +237,7 @@ private:
 
 	PartyCodes partyCodeVec;
 	PartyParameters preferenceFlowMap;
+	PartyParameters preferenceExhaustMap;
 	PartyParameters preferenceDeviationMap;
 	PartyParameters preferenceSamplesMap;
 };
