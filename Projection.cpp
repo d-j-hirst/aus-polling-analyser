@@ -139,8 +139,11 @@ void Projection::logRunStatistics()
 
 void Projection::setAsNowCast(ModelCollection const& models) {
 	auto model = models.view(settings.baseModel);
-	// Now-cast now 
-	settings.endDate = std::max(model.getEndDate() + wxDateSpan(0, 0, 0, MinDaysBeforeElection), wxDateTime::Now());
+	// Make sure the nowcast doesn't go past the end of the election period
+	auto electionPeriodLines = extractElectionDataFromFile("analysis/Data/election-cycles.csv", model.getTermCode());
+	wxDateTime parsedDate;
+	parsedDate.ParseDate(electionPeriodLines[0][3]);
+	settings.endDate = std::min(parsedDate, std::max(model.getEndDate() + wxDateSpan(0, 0, 0, MinDaysBeforeElection), wxDateTime::Now()));
 }
 
 StanModel::SeriesOutput Projection::viewPrimarySeries(std::string partyCode) const

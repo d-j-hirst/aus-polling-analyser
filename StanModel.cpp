@@ -306,34 +306,22 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 
 void StanModel::loadPreferenceFlows(FeedbackFunc feedback)
 {
-	const std::string filename = "analysis/Data/preference-estimates.csv";
-	auto file = std::ifstream(filename);
-	if (!file) {
-		feedback("Could not load preference estimates file: " + filename);
-		throw Exception("Could not load preference flows from file!");
-	}
 	preferenceFlowMap.clear();
-	do {
-		std::string line;
-		std::getline(file, line);
-		if (!file) break;
-		auto values = splitString(line, ",");
-		if (values.size() < 4) break;
-		std::string electionYear = values[0];
-		if (electionYear != termCode.substr(0, 4)) continue;
-		std::string electionRegion = values[1];
-		if (electionRegion != termCode.substr(4)) continue;
-		std::string party = splitString(values[2], " ")[0];
-		float thisPreferenceFlow = std::stof(values[3]);
+	preferenceExhaustMap.clear();
+	auto lines = extractElectionDataFromFile("analysis/Data/preference-estimates.csv", termCode);
+	for (auto const& line : lines) {
+		std::string party = splitString(line[2], " ")[0];
+		float thisPreferenceFlow = std::stof(line[3]);
 		preferenceFlowMap[party] = thisPreferenceFlow;
-		if (values.size() >= 5 && values[4][0] != '#') {
-			float thisExhaustRate = std::stof(values[4]);
+		if (line.size() >= 5 && line[4][0] != '#') {
+			float thisExhaustRate = std::stof(line[4]);
 			preferenceExhaustMap[party] = thisExhaustRate;
 		}
 		else {
 			preferenceExhaustMap[party] = 0.0f;
 		}
-	} while (true);
+	}
+
 	preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
 	preferenceFlowMap[UnnamedOthersCode] = preferenceFlowMap[OthersCode];
 	preferenceExhaustMap[EmergingOthersCode] = preferenceExhaustMap[OthersCode];

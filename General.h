@@ -246,3 +246,29 @@ inline float myPow(float b, unsigned int e) {
 			return b * myPow(b, e / 2) * myPow(b, e / 2);
 	}
 };
+
+class FileNotFoundException : public std::invalid_argument {
+public:
+	FileNotFoundException(std::string what) : std::invalid_argument(what) {}
+};
+
+inline std::vector<std::vector<std::string>> extractElectionDataFromFile(std::string const& filename, std::string const& termCode) {
+	auto file = std::ifstream(filename);
+	std::vector<std::vector<std::string>> matchedData;
+	if (!file) {
+		throw FileNotFoundException("Could not load preference flows from file: " + filename);
+	}
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() < 4) break;
+		std::string electionYear = values[0];
+		if (electionYear != termCode.substr(0, 4)) continue;
+		std::string electionRegion = values[1];
+		if (electionRegion != termCode.substr(4)) continue;
+		matchedData.push_back(values);
+	} while (true);
+	return matchedData;
+}
