@@ -45,6 +45,7 @@ public:
 	struct SupportSample {
 		std::map<std::string, float> voteShare;
 		std::map<std::string, float> preferenceFlow;
+		std::map<std::string, float> exhaustRate;
 		int daysToElection;
 	};
 

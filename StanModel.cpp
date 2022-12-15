@@ -726,7 +726,8 @@ void StanModel::normaliseSample(StanModel::SupportSample& sample)
 
 void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 {
-	float tpp = 0.0f;
+	float partyOneTpp = 0.0f;
+	float totalTpp = 0.0f;
 	for (auto [key, support] : sample.voteShare) {
 		if (key == OthersCode) continue;
 		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) continue;
@@ -737,15 +738,18 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
 			: flow);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		tpp += support * randomisedFlow;
+		sample.exhaustRate.insert({ key, exhaustRate * 100.0f });
+		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
+		totalTpp += support * (1.0f - exhaustRate);
 	}
-	sample.voteShare[TppCode] = tpp;
+	sample.voteShare[TppCode] = partyOneTpp * (100.0f / totalTpp);
 }
 
 void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 {
-	float tpp = 0.0f;
+	float partyOneTpp = 0.0f;
 	float totalFp = 0.0f;
 	// First add up all party-one preference from minor parties
 	for (auto [key, support] : sample.voteShare) {
@@ -759,15 +763,19 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
 			: flow);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		tpp += support * randomisedFlow;
+		sample.exhaustRate.insert({ key, exhaustRate * 100.0f });
+		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
 		totalFp += support;
 	}
 	sample.preferenceFlow[partyCodeVec[0]] = 100.0f;
 	sample.preferenceFlow[partyCodeVec[1]] = 0.0f;
+	sample.exhaustRate[partyCodeVec[0]] = 0.0f;
+	sample.exhaustRate[partyCodeVec[1]] = 0.0f;
 	// Now we have the contribution to tpp from minors, so the difference between this and the total tpp gives the party-one fp
 	float targetTpp = sample.voteShare[TppCode];
-	float partyOneFp = sample.voteShare[TppCode] - tpp;
+	float partyOneFp = sample.voteShare[TppCode] - partyOneTpp;
 	float partyTwoFp = 100.0f - (totalFp + partyOneFp);
 	float minMajorFp = std::min(partyOneFp, partyTwoFp);
 	if (minMajorFp >= 1.0f) {
