@@ -335,3 +335,6 @@ __pycache__/
 /analysis/Booth Results/2018vic.json
 /VIC State Election 2022 live testing.pol2
 /VIC State Election 2022 live.pol2
+/analysis/Archived/Outputs/*_83d.csv
+/analysis/Archived/Outputs/Calibration/fp_*.csv
+/analysis/Archived/Outputs/Calibration/calib_*.csv
