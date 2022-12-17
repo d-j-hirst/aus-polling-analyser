@@ -558,6 +558,31 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 		run.totalPreviousTurnout += results.turnoutCount;
 	}
+
+	// SFF -> IND seats
+	if (getTermCode() == "2023nsw") {
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			if (project.seats().viewByIndex(seatIndex).name == "Barwon") {
+				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 15218;
+				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 32.96f;
+				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 5873;
+				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 12.72f;
+			}
+			else if (project.seats().viewByIndex(seatIndex).name == "Murray") {
+				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 18305;
+				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 38.75f;
+				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 6920;
+				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 14.65f;
+			}
+			else if (project.seats().viewByIndex(seatIndex).name == "Orange") {
+				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 24718;
+				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 49.15f;
+				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 4849;
+				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 9.64f;
+			}
+		}
+		logger << "adding SFF -> IND seats\n";
+	}
 }
 
 void SimulationPreparation::loadSeatTypes()

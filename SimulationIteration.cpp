@@ -767,7 +767,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		recontestRateMixed = 1.0f;
 	}
 	// also, should some day handle retirements for minor parties that would be expected to stay competitive
-	if (rng.uniform() > recontestRateMixed || (seat.retirement && partyIndex == seat.incumbent)) {
+	if (rng.uniform() > recontestRateMixed || (seat.retirement && partyIndex == seat.incumbent && !overallFpTarget.contains(partyIndex))) {
 		voteShare = 0.0f;
 		return;
 	}

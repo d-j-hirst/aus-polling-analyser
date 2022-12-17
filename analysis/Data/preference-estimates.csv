@@ -30,10 +30,10 @@
 2023,nsw,SFF FP,40,60.4
 2023,nsw,ONP FP,42.0,60.4
 2023,nsw,OTH FP,48.6,60.4
-2019,nsw,GRN FP,70.0,#Effective preference flow calculated by treating exhausted preferences as 50-50
-2019,nsw,SFF FP,40
-2019,nsw,ONP FP,42.0
-2019,nsw,OTH FP,48.6,#Effective preference flow, combining previous CD/NLT/OTH preferences
+2019,nsw,GRN FP,85.7,44.1
+2019,nsw,SFF FP,40,60.4
+2019,nsw,ONP FP,42.0,60.4
+2019,nsw,OTH FP,48.6,60.4
 2015,nsw,GRN FP,64.3
 2015,nsw,OTH FP,48.5
 2011,nsw,GRN FP,64.3

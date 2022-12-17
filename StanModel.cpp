@@ -751,6 +751,7 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 {
 	float partyOneTpp = 0.0f;
 	float totalFp = 0.0f;
+	float exhaustedFp = 0.0f;
 	// First add up all party-one preference from minor parties
 	for (auto [key, support] : sample.voteShare) {
 		if (key == OthersCode) continue;
@@ -768,6 +769,7 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 		sample.exhaustRate.insert({ key, exhaustRate * 100.0f });
 		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
 		totalFp += support;
+		exhaustedFp += support * exhaustRate;
 	}
 	sample.preferenceFlow[partyCodeVec[0]] = 100.0f;
 	sample.preferenceFlow[partyCodeVec[1]] = 0.0f;
@@ -775,7 +777,7 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 	sample.exhaustRate[partyCodeVec[1]] = 0.0f;
 	// Now we have the contribution to tpp from minors, so the difference between this and the total tpp gives the party-one fp
 	float targetTpp = sample.voteShare[TppCode];
-	float partyOneFp = sample.voteShare[TppCode] - partyOneTpp;
+	float partyOneFp = (sample.voteShare[TppCode] - partyOneTpp) * (100.0f - exhaustedFp) / 100.0f;
 	float partyTwoFp = 100.0f - (totalFp + partyOneFp);
 	float minMajorFp = std::min(partyOneFp, partyTwoFp);
 	if (minMajorFp >= 1.0f) {
