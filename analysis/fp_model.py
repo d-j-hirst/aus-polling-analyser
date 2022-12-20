@@ -513,7 +513,7 @@ def run_individual_party(config, m_data, e_data,
         # modelled as a double exponential to avoid
         # easily giving a large house effect, but
         # still giving a big one when it's really warranted
-        'houseEffectSigma': 2,
+        'houseEffectSigma': 1.5,
 
         # prior distribution for sum of house effects
         # keep this very small, we will deal with systemic bias

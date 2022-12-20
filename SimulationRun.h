@@ -26,7 +26,8 @@ public:
 	struct PastSeatResult {
 		std::map<int, float> fpVotePercent; // map from party index -> percentage
 		std::map<int, int> fpVoteCount; // map from party index -> number
-		std::map<int, float> tcpVote; // map from party index -> percentage
+		std::map<int, float> tcpVotePercent; // map from party index -> percentage
+		std::map<int, float> tcpVoteCount; // map from party index -> number
 		int turnoutCount;
 		float prevOthers = 0.0f; // Special variable for calculating emergence of independents
 	};
@@ -219,6 +220,8 @@ private:
 	std::vector<float> seatPartyOneTppModifier;
 	std::vector<IndividualSeatParameters> seatParameters;
 	std::map<int, float> previousFpVoteShare;
+	std::map<int, float> previousPreferenceFlow;
+	std::map<int, float> previousExhaustRate; // as proportion, i.e. in range 0-1
 	std::map<int, std::map<std::pair<int, int>, float>> ncPreferenceFlow;
 
 	std::vector<float> regionLocalModifierAverage;

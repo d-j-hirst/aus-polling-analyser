@@ -734,13 +734,13 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
-		float randomisedFlow = (historicalSamples >= 2
-			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
-			: flow);
-		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
+		float randomVariation = historicalSamples >= 2
+			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, 0.0f, deviation)
+			: 0.0f;
+		float randomisedFlow = basicTransformedSwing(flow, randomVariation);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		sample.exhaustRate.insert({ key, exhaustRate * 100.0f });
+		sample.exhaustRate.insert({ key, exhaustRate });
 		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
 		totalTpp += support * (1.0f - exhaustRate);
 	}
@@ -760,13 +760,14 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
-		float randomisedFlow = (historicalSamples >= 2
-			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, flow, deviation)
-			: flow);
+		float randomVariation = historicalSamples >= 2
+			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, 0.0f, deviation)
+			: 0.0f;
+		float randomisedFlow = basicTransformedSwing(flow, randomVariation);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		sample.exhaustRate.insert({ key, exhaustRate * 100.0f });
+		sample.exhaustRate.insert({ key, exhaustRate });
 		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
 		totalFp += support;
 		exhaustedFp += support * exhaustRate;

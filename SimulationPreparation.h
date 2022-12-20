@@ -45,6 +45,7 @@ private:
 	void finaliseLiveAggregates();
 	void resetResultCounts();
 	void determineSpecificPartyIndices();
+	void loadPreviousPreferenceFlows();
 	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
 	void loadSeatTypes();

@@ -126,7 +126,6 @@ private:
 	int daysToElection = 0;
 	FloatByPartyIndex overallFpTarget;
 	FloatByPartyIndex overallFpSwing;
-	FloatByPartyIndex previousPreferenceFlow;
 	FloatByPartyIndex overallPreferenceFlow;
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;

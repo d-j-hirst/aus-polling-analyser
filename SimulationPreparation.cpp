@@ -37,6 +37,7 @@ void SimulationPreparation::prepareForIterations()
 
 	loadTppSwingFactors();
 
+	loadPreviousPreferenceFlows();
 	loadNcPreferenceFlows();
 
 	loadPreviousElectionBaselineVotes();
@@ -434,6 +435,50 @@ void SimulationPreparation::determineSpecificPartyIndices()
 	if (run.grnPartyIndex == -1) run.indPartyIndex = InvalidPartyIndex;
 }
 
+void SimulationPreparation::loadPreviousPreferenceFlows() {
+	run.previousPreferenceFlow.clear();
+	run.previousExhaustRate.clear();
+	auto lines = extractElectionDataFromFile("analysis/Data/preference-estimates.csv", getTermCode());
+	for (auto const& line : lines) {
+		std::string party = splitString(line[2], " ")[0];
+		int partyIndex = project.parties().indexByShortCode(party);
+		float thisPreferenceFlow = std::stof(line[3]);
+		run.previousPreferenceFlow[partyIndex] = thisPreferenceFlow;
+		if (line.size() >= 5 && line[4][0] != '#') {
+			float thisExhaustRate = std::stof(line[4]);
+			run.previousExhaustRate[partyIndex] = thisExhaustRate * 0.01f;
+		}
+		else {
+			run.previousExhaustRate[partyIndex] = 0.0f;
+		}
+	}
+
+	run.previousPreferenceFlow[EmergingPartyIndex] = run.previousPreferenceFlow[OthersIndex];
+	run.previousExhaustRate[EmergingPartyIndex] = run.previousExhaustRate[OthersIndex];
+	run.previousPreferenceFlow[0] = 100.0f;
+	run.previousPreferenceFlow[1] = 0.0f;
+	run.previousExhaustRate[0] = 0.0f;
+	run.previousExhaustRate[1] = 0.0f;
+	run.previousPreferenceFlow[CoalitionPartnerIndex] = 15.0f;
+	run.previousExhaustRate[CoalitionPartnerIndex] = 0.25f;
+
+	// Ensure any other named parties without a specified preference flow
+	// have the same as Others
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		if (!run.previousPreferenceFlow.contains(partyIndex)) {
+			run.previousPreferenceFlow[partyIndex] = run.previousPreferenceFlow[OthersIndex];
+			run.previousExhaustRate[partyIndex] = run.previousExhaustRate[OthersIndex];
+		}
+	}
+	// This needs to be done last so the preceding step can fill out the IND
+	// preference flows if they weren't already specifid
+	run.previousPreferenceFlow[EmergingIndIndex] = run.previousPreferenceFlow[run.indPartyIndex];
+	run.previousExhaustRate[EmergingIndIndex] = run.previousExhaustRate[run.indPartyIndex];
+
+	PA_LOG_VAR(run.previousPreferenceFlow);
+	PA_LOG_VAR(run.previousExhaustRate);
+}
+
 void SimulationPreparation::loadNcPreferenceFlows()
 {
 	for (auto const& [partyIndex, party] : project.parties()) {
@@ -523,7 +568,8 @@ void SimulationPreparation::loadPastSeatResults()
 				run.pastSeatResults[currentSeat].fpVotePercent[partyId] += votePercent;
 			}
 			else {
-				run.pastSeatResults[currentSeat].tcpVote[partyId] += votePercent;
+				run.pastSeatResults[currentSeat].tcpVoteCount[partyId] += voteCount;
+				run.pastSeatResults[currentSeat].tcpVotePercent[partyId] += votePercent;
 			}
 		}
 	} while (true);

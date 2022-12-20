@@ -1534,45 +1534,45 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = newPartyTwoFp;
 
-	//if (checkForNans("after setting seatFpVoteShares")) {
-	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-	//	PA_LOG_VAR(partyOneCurrentTpp);
-	//	PA_LOG_VAR(partyTwoCurrentTpp);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(currentNonMajorFpShare);
-	//	PA_LOG_VAR(previousNonMajorFpShare);
-	//	PA_LOG_VAR(previousPartyOneFp);
-	//	PA_LOG_VAR(previousPartyOnePrefEstimate);
-	//	PA_LOG_VAR(previousExhaustRateEstimate);
-	//	PA_LOG_VAR(previousExhuastDenominator);
-	//	PA_LOG_VAR(preferenceBiasRate);
-	//	PA_LOG_VAR(majorTcp);
-	//	PA_LOG_VAR(overallPreferenceFlow);
-	//	PA_LOG_VAR(currentPartyOnePrefs);
-	//	PA_LOG_VAR(currentNonMajorFpShare);
-	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//	PA_LOG_VAR(overallAdjustedPartyOnePrefs);
-	//	PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
-	//	PA_LOG_VAR(partyOneEstimate);
-	//	PA_LOG_VAR(partyTwoEstimate);
-	//	PA_LOG_VAR(partyOneSwing);
-	//	PA_LOG_VAR(partyTwoSwing);
-	//	PA_LOG_VAR(predictorCorrectorTransformedSwing(previousPartyOneFp, partyOneSwing));
-	//	PA_LOG_VAR(previousPartyOneFp);
-	//	PA_LOG_VAR(previousPartyTwoFp);
-	//	PA_LOG_VAR(newPartyOneTpp);
-	//	PA_LOG_VAR(newPartyTwoTpp);
-	//	PA_LOG_VAR(totalTpp);
-	//	PA_LOG_VAR(addPartyOneFp);
-	//	PA_LOG_VAR(partyOneEstimate);
-	//	PA_LOG_VAR(partyTwoEstimate);
-	//	PA_LOG_VAR(newPartyOneFp);
-	//	PA_LOG_VAR(newPartyTwoFp);
-	//	PA_LOG_VAR(majorFpShare);
-	//	PA_LOG_VAR(nonExhaustedPercent);
-	//	PA_LOG_VAR(adjustmentFactor);
-	//	throw 1;
-	//}
+	if (checkForNans("after setting seatFpVoteShares")) {
+		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+		PA_LOG_VAR(partyOneCurrentTpp);
+		PA_LOG_VAR(partyTwoCurrentTpp);
+		PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+		PA_LOG_VAR(currentNonMajorFpShare);
+		PA_LOG_VAR(previousNonMajorFpShare);
+		PA_LOG_VAR(previousPartyOneFp);
+		PA_LOG_VAR(previousPartyOnePrefEstimate);
+		PA_LOG_VAR(previousExhaustRateEstimate);
+		PA_LOG_VAR(previousExhuastDenominator);
+		PA_LOG_VAR(preferenceBiasRate);
+		PA_LOG_VAR(majorTcp);
+		PA_LOG_VAR(overallPreferenceFlow);
+		PA_LOG_VAR(currentPartyOnePrefs);
+		PA_LOG_VAR(currentNonMajorFpShare);
+		PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+		PA_LOG_VAR(overallAdjustedPartyOnePrefs);
+		PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
+		PA_LOG_VAR(partyOneEstimate);
+		PA_LOG_VAR(partyTwoEstimate);
+		PA_LOG_VAR(partyOneSwing);
+		PA_LOG_VAR(partyTwoSwing);
+		PA_LOG_VAR(predictorCorrectorTransformedSwing(previousPartyOneFp, partyOneSwing));
+		PA_LOG_VAR(previousPartyOneFp);
+		PA_LOG_VAR(previousPartyTwoFp);
+		PA_LOG_VAR(newPartyOneTpp);
+		PA_LOG_VAR(newPartyTwoTpp);
+		PA_LOG_VAR(totalTpp);
+		PA_LOG_VAR(addPartyOneFp);
+		PA_LOG_VAR(partyOneEstimate);
+		PA_LOG_VAR(partyTwoEstimate);
+		PA_LOG_VAR(newPartyOneFp);
+		PA_LOG_VAR(newPartyTwoFp);
+		PA_LOG_VAR(majorFpShare);
+		PA_LOG_VAR(nonExhaustedPercent);
+		PA_LOG_VAR(adjustmentFactor);
+		throw 1;
+	}
 
 	if (seat.incumbent >= Mp::Others && seatFpVoteShare[seatIndex][seat.incumbent]) {
 		// Maintain constant fp vote for non-major incumbents
