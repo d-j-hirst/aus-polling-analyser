@@ -233,11 +233,11 @@
     <ClCompile Include="ElectionData.cpp">
       <Filter>Source Files\Data Objects</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="LivePreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

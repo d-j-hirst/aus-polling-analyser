@@ -1348,6 +1348,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	// the preference bias, so just leave it at zero. (Maybe interpolate from similar seats eventually?)
 	bool previousPartyTwoExists = pastSeatResults[seatIndex].fpVotePercent.contains(Mp::Two);
 	float preferenceBiasRate = 0.0f;
+	float exhaustBiasRate = 0.0f;
 	bool majorTcp = pastSeatResults[seatIndex].tcpVotePercent.contains(Mp::One) && pastSeatResults[seatIndex].tcpVotePercent.contains(Mp::Two);
 	// Need to calculate:
 	// (a) from estimate: % of non-exhausting vote reaching party one
@@ -1360,13 +1361,18 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		auto const& fpCounts = pastSeatResults[seatIndex].fpVoteCount;
 		auto const& tcpCounts = pastSeatResults[seatIndex].tcpVoteCount;
 		auto prevTcpSum = std::accumulate(tcpCounts.begin(), tcpCounts.end(), 0, [](int acc, const auto& el) {return acc + el.second; });
+		auto prevFpSum = std::accumulate(fpCounts.begin(), fpCounts.end(), 0, [](int acc, const auto& el) {return acc + el.second; });
 		auto prevPartyOneTcpCount = 0;
 		auto majorFpSum = fpCounts.at(Mp::One) + fpCounts.at(Mp::Two);
 		if (majorTcp) {
 			previousPartyOneTppPercent = pastSeatResults[seatIndex].tcpVotePercent[Mp::One];
 			prevPartyOneTcpCount = tcpCounts.at(Mp::One);
 			// Note, this can theoretically be below 0 in intra-coalition contests
-			//previousExhaustRate = float(prevFpSum - majorFpSum) / float(prevTcpSum - majorFpSum);
+			float previousExhaustRate = 1.0f - float(prevTcpSum - majorFpSum) / float(prevFpSum - majorFpSum);
+			// account for somewhat inconsistent TCP/FP counts in CPV elections
+			// especially Sydenham 2018-vic, where about 300 absent votes missed the TCP count
+			if (previousExhaustRate < 0.08f) previousExhaustRate = 0.0f;
+			exhaustBiasRate = previousExhaustRate - previousExhaustRateEstimate;
 		}
 		// *** Of course, this shouldn't be hard-coded like this: Need to have a pre-redistribution
 		// TPP for each seat, but don't want to spend time on that just right now for one special case
@@ -1434,6 +1440,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		currentExhuastDenominator += voteShare;
 	}
 	currentExhaustRateEstimate /= currentExhuastDenominator;
+	currentExhaustRateEstimate = std::clamp(currentExhaustRateEstimate + exhaustBiasRate, 0.0f, 1.0f);
 
 	// Step 4: Adjust the current flow estimate according the bias the previous flow estimate had
 
@@ -1451,8 +1458,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	// adjust everything that's still being used to be scaled so that the total non-exhausted votes is equal to 100%
 	float majorFpShare = seatFpVoteShare[seatIndex][0] + seatFpVoteShare[seatIndex][1];
-	float nonExhaustedPercent = mix(1.0f, majorFpShare, currentExhaustRateEstimate);
-	float adjustmentFactor = 1.0f / nonExhaustedPercent;
+	float nonExhaustedProportion = mix(1.0f, majorFpShare * 0.01f, currentExhaustRateEstimate * 1.0f);
+	float adjustmentFactor = 1.0f / nonExhaustedProportion;
 	partyOneCurrentTpp *= adjustmentFactor;
 	overallAdjustedPartyOnePrefs *= adjustmentFactor;
 	overallAdjustedPartyTwoPrefs *= adjustmentFactor;
@@ -1495,7 +1502,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	newPartyOneFp /= adjustmentFactor;
 	newPartyTwoFp /= adjustmentFactor;
 
-	//if (seat.name == "Northcote") {
+	//if (seat.name == "St Albans") {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 	//	PA_LOG_VAR(partyOneCurrentTpp);
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
@@ -1508,7 +1515,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(previousExhuastDenominator);
 	//	PA_LOG_VAR(preferenceBiasRate);
 	//	PA_LOG_VAR(majorTcp);
-	//  PA_LOG_VAR(overallPreferenceFlow);
+	//	PA_LOG_VAR(overallPreferenceFlow);
 	//	PA_LOG_VAR(currentPartyOnePrefs);
 	//	PA_LOG_VAR(currentNonMajorFpShare);
 	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
@@ -1529,6 +1536,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(partyTwoEstimate);
 	//	PA_LOG_VAR(newPartyOneFp);
 	//	PA_LOG_VAR(newPartyTwoFp);
+	//	PA_LOG_VAR(majorFpShare);
+	//	PA_LOG_VAR(nonExhaustedProportion);
+	//	PA_LOG_VAR(adjustmentFactor);
 	//}
 
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;

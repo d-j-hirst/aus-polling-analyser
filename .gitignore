@@ -259,6 +259,7 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+
 /Federal Election 2016 version 2.pol
 /Federal Election 2016 version 9.pol
 /Federal Election 2016 version 8.pol
