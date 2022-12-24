@@ -25,6 +25,11 @@ constexpr float ProminentMinorBonusMax = 35.0f;
 // How strongly preferences align with ideology based on the "consistency" property of a party
 constexpr std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.4f, 1.8f };
 
+const std::set<std::pair<std::string, std::string>> IgnoreExhaust = {
+	{"2022vic", "St Albans"},
+	{"2022vic", "Sydenham"},
+};
+
 bool isMajor(int partyIndex) {
 	return partyIndex == Mp::One || partyIndex == Mp::Two;
 }
@@ -35,8 +40,11 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 }
 
 bool SimulationIteration::checkForNans(std::string const& loc) {
+	static bool alreadyLogged = false;
 	auto report = [&](int seatIndex, std::string type) {
 		std::lock_guard<std::mutex> lock(recordMutex);
+		if (alreadyLogged) return;
+		alreadyLogged = true;
 		logger << "Warning: A " << type << " vote share for seat " << project.seats().viewByIndex(seatIndex).name << "was Nan!\n";
 		logger << "At simulation location " << loc << "\n";
 		logger << "Simulation iteration aborted to prevent a freeze, trying to redo.\n";
@@ -50,18 +58,20 @@ bool SimulationIteration::checkForNans(std::string const& loc) {
 		PA_LOG_VAR(overallFpSwing);
 		PA_LOG_VAR(regionSwing);
 		PA_LOG_VAR(partyOneNewTppMargin);
-		return true;
+		return;
 	};
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		if (int(seatFpVoteShare.size()) > seatIndex) {
 			for (auto [party, voteShare] : seatFpVoteShare[seatIndex]) {
 				if (std::isnan(voteShare)) {
-					if (report(seatIndex, "fp")) return true;
+					report(seatIndex, "fp");
+					return true;
 				}
 			}
 		}
 		if (std::isnan(partyOneNewTppMargin[seatIndex])) {
-			if (report(seatIndex, "tcp")) return true;
+			report(seatIndex, "tcp");
+			return true;
 		}
 	}
 	return false;
@@ -962,7 +972,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 	}
 	if (!seat.confirmedProminentIndependent) return;
 	float indContestRate = run.indEmergence.baseRate;
-	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
+	bool isFederal = run.regionCode == "fed";
 	if (isFederal) indContestRate += run.indEmergence.fedRateMod;
 	typedef SimulationRun::SeatType ST;
 	bool isRural = run.seatTypes[seatIndex] == ST::Rural;
@@ -1047,7 +1057,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		return;
 	}
 	float indEmergenceRate = run.indEmergence.baseRate;
-	bool isFederal = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode().substr(4) == "fed";
+	bool isFederal = run.regionCode == "fed";
 	if (isFederal) indEmergenceRate += run.indEmergence.fedRateMod;
 	typedef SimulationRun::SeatType ST;
 	bool isRural = run.seatTypes[seatIndex] == ST::Rural;
@@ -1369,9 +1379,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			prevPartyOneTcpCount = tcpCounts.at(Mp::One);
 			// Note, this can theoretically be below 0 in intra-coalition contests
 			float previousExhaustRate = 1.0f - float(prevTcpSum - majorFpSum) / float(prevFpSum - majorFpSum);
-			// account for somewhat inconsistent TCP/FP counts in CPV elections
-			// especially Sydenham 2018-vic, where about 300 absent votes missed the TCP count
-			if (previousExhaustRate < 0.08f) previousExhaustRate = 0.0f;
+			if (previousExhaustRate < 0.04f || IgnoreExhaust.contains({run.getTermCode(), seat.name})) previousExhaustRate = 0.0f;
 			exhaustBiasRate = previousExhaustRate - previousExhaustRateEstimate;
 		}
 		// *** Of course, this shouldn't be hard-coded like this: Need to have a pre-redistribution
@@ -1441,6 +1449,12 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	}
 	currentExhaustRateEstimate /= currentExhuastDenominator;
 	currentExhaustRateEstimate = std::clamp(currentExhaustRateEstimate + exhaustBiasRate, 0.0f, 1.0f);
+
+	static bool ProducedExhaustRateWarning = false;
+	if (currentExhaustRateEstimate && run.previousExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
+		logger << "Warning: A exhaust rate was produced for an election that appears to be for compulsory preferential voting. Seat concerned: " + seat.name + ", observed exhaust rate: " + std::to_string(currentExhaustRateEstimate) << "\n";
+		ProducedExhaustRateWarning = true;
+	}
 
 	// Step 4: Adjust the current flow estimate according the bias the previous flow estimate had
 

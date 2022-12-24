@@ -61,3 +61,8 @@ void SimulationRun::run(FeedbackFunc feedback) {
 
 	sim.lastUpdated = wxDateTime::Now();
 }
+
+std::string SimulationRun::getTermCode() const
+{
+	return yearCode + regionCode;
+}

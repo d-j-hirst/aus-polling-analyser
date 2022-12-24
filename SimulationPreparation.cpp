@@ -438,7 +438,7 @@ void SimulationPreparation::determineSpecificPartyIndices()
 void SimulationPreparation::loadPreviousPreferenceFlows() {
 	run.previousPreferenceFlow.clear();
 	run.previousExhaustRate.clear();
-	auto lines = extractElectionDataFromFile("analysis/Data/preference-estimates.csv", getTermCode());
+	auto lines = extractElectionDataFromFile("analysis/Data/preference-estimates.csv", run.getTermCode());
 	for (auto const& line : lines) {
 		std::string party = splitString(line[2], " ")[0];
 		int partyIndex = project.parties().indexByShortCode(party);
@@ -606,7 +606,7 @@ void SimulationPreparation::loadPastSeatResults()
 	}
 
 	// SFF -> IND seats
-	if (getTermCode() == "2023nsw") {
+	if (run.getTermCode() == "2023nsw") {
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			if (project.seats().viewByIndex(seatIndex).name == "Barwon") {
 				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 15218;
@@ -827,7 +827,7 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 
 void SimulationPreparation::loadRegionBaseBehaviours()
 {
-	std::string fileName = "analysis/Regional/" + getTermCode() + "-regions-base.csv";
+	std::string fileName = "analysis/Regional/" + run.getTermCode() + "-regions-base.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -856,7 +856,7 @@ void SimulationPreparation::loadRegionBaseBehaviours()
 
 void SimulationPreparation::loadRegionPollBehaviours()
 {
-	std::string fileName = "analysis/Regional/" + getTermCode() + "-regions-polled.csv";
+	std::string fileName = "analysis/Regional/" + run.getTermCode() + "-regions-polled.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -887,7 +887,7 @@ void SimulationPreparation::loadRegionPollBehaviours()
 
 void SimulationPreparation::loadRegionMixBehaviours()
 {
-	std::string fileName = "analysis/Regional/" + getTermCode() + "-mix-regions.csv";
+	std::string fileName = "analysis/Regional/" + run.getTermCode() + "-mix-regions.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -913,7 +913,7 @@ void SimulationPreparation::loadRegionMixBehaviours()
 
 void SimulationPreparation::loadOverallRegionMixParameters()
 {
-	std::string fileName = "analysis/Regional/" + getTermCode() + "-mix-parameters.csv";
+	std::string fileName = "analysis/Regional/" + run.getTermCode() + "-mix-parameters.csv";
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -1047,9 +1047,4 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveRegionSwing.resize(project.regions().count(), 0.0f);
 	run.liveRegionTppPercentCounted.resize(project.regions().count(), 0.0f);
 	run.liveRegionClassicSeatCount.resize(project.regions().count(), 0.0f);
-}
-
-std::string SimulationPreparation::getTermCode()
-{
-	return run.yearCode + run.regionCode;
 }

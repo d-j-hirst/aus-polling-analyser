@@ -141,6 +141,8 @@ public:
 	SimulationRun operator=(SimulationRun const& otherRun) { return SimulationRun(otherRun.project, otherRun.sim); }
 
 	void run(FeedbackFunc feedback = [](std::string) {});
+
+	std::string getTermCode() const;
 private:
 
 	PollingProject& project;

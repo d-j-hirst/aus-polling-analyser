@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -32,6 +33,9 @@ public:
 
 	template<typename T>
 	Logger& operator<<(const std::vector<T>& obj);
+
+	template<typename T, typename U>
+	Logger& operator<<(const std::set<T, U>& obj);
 
 	template<typename T, typename U>
 	Logger& operator<<(const std::map<T, U>& obj);
@@ -103,6 +107,23 @@ inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 		firstItem = false;
 	}
 	fileStream_ << "]";
+	setFlushFlag(prevFlush);
+	flushIf();
+	return *this;
+}
+
+template<typename T, typename U>
+inline Logger& Logger::operator<<(const typename std::set<T, U>& obj) {
+	bool prevFlush = doFlush_;
+	setFlushFlag(false);
+	fileStream_ << "{";
+	bool firstItem = true;
+	for (auto const& val : obj) {
+		if (!firstItem) fileStream_ << ", ";
+		*this << val;
+		firstItem = false;
+	}
+	fileStream_ << "}";
 	setFlushFlag(prevFlush);
 	flushIf();
 	return *this;

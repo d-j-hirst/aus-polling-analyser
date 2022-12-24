@@ -71,8 +71,6 @@ private:
 	void loadLiveManualResults();
 	std::vector<int> regionSeatCount;
 
-	std::string getTermCode();
-
 	PollingProject& project;
 	Simulation& sim;
 	SimulationRun& run;
