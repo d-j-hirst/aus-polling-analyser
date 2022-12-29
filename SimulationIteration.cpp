@@ -200,15 +200,47 @@ void SimulationIteration::determineOverallTpp()
 		}
 	}
 
+	for (auto const& [sampleKey, exhaustRate] : projectedSample.exhaustRate) {
+		if (sampleKey == UnnamedOthersCode) {
+			overallExhaustRate[OthersIndex] = exhaustRate;
+			overallExhaustRate[EmergingIndIndex] = exhaustRate;
+			overallExhaustRate[CoalitionPartnerIndex] = 0.25f;
+			continue;
+		}
+		if (sampleKey == EmergingOthersCode) {
+			overallExhaustRate[EmergingPartyIndex] = exhaustRate;
+			continue;
+		}
+		for (auto const& [id, party] : project.parties()) {
+			if (contains(party.officialCodes, sampleKey)) {
+				int partyIndex = project.parties().idToIndex(id);
+				overallExhaustRate[partyIndex] = exhaustRate;
+				break;
+			}
+		}
+	}
+
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 		// Give any party without a sampled preference flow (e.g. Independents) a preference flow relative to generic others
 		if (run.previousPreferenceFlow.contains(partyIndex)) {
-			overallPreferenceFlow[partyIndex] = overallPreferenceFlow[OthersIndex] + 
+			overallPreferenceFlow[partyIndex] = overallPreferenceFlow[OthersIndex] +
 				run.previousPreferenceFlow[partyIndex] - run.previousPreferenceFlow[OthersIndex];
 		}
 		// if it isn't in the file, then just assume equal to overall others.
 		else {
 			overallPreferenceFlow[partyIndex] = overallPreferenceFlow[OthersIndex];
+		}
+	}
+
+	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		// Give any party without a sampled exhaust rate (e.g. Independents) an exhaust rate relative to generic others
+		if (run.previousExhaustRate.contains(partyIndex)) {
+			overallExhaustRate[partyIndex] = overallExhaustRate[OthersIndex] +
+				run.previousExhaustRate[partyIndex] - run.previousExhaustRate[OthersIndex];
+		}
+		// if it isn't in the file, then just assume equal to overall others.
+		else {
+			overallExhaustRate[partyIndex] = overallExhaustRate[OthersIndex];
 		}
 	}
 
@@ -1311,8 +1343,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		return effectivePreferenceFlow;
 	};
 
-	auto calculateEffectiveExhaustRate = [&](int partyIndex) {
-		return run.previousExhaustRate[partyIndex];
+	auto calculateEffectiveExhaustRate = [&](int partyIndex, bool isCurrent) {
+		float baseExhaustRate = isCurrent ? overallExhaustRate[partyIndex] : run.previousExhaustRate[partyIndex];
+		return baseExhaustRate;
 	};
 
 	// Step 1: get an estimate of preference flows from the previous election
@@ -1328,7 +1361,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			previousPartyOnePrefEstimate += 0.15f * voteShare;
 			continue;
 		}
-		float exhaustRate = calculateEffectiveExhaustRate(partyIndex);
+		float exhaustRate = calculateEffectiveExhaustRate(partyIndex, false);
 		// Use a special formula for IND-like preference flows that accounts for tactical voting
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, false);
@@ -1432,7 +1465,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			currentPartyOnePrefs += 0.15f * voteShare;
 			continue;
 		}
-		float exhaustRate = calculateEffectiveExhaustRate(partyIndex);
+		float exhaustRate = calculateEffectiveExhaustRate(partyIndex, true);
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, true);
 			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
@@ -1451,7 +1484,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	currentExhaustRateEstimate = std::clamp(currentExhaustRateEstimate + exhaustBiasRate, 0.0f, 1.0f);
 
 	static bool ProducedExhaustRateWarning = false;
-	if (currentExhaustRateEstimate && run.previousExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
+	if (currentExhaustRateEstimate && overallExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
+		PA_LOG_VAR(overallExhaustRate);
 		logger << "Warning: A exhaust rate was produced for an election that appears to be for compulsory preferential voting. Seat concerned: " + seat.name + ", observed exhaust rate: " + std::to_string(currentExhaustRateEstimate) << "\n";
 		ProducedExhaustRateWarning = true;
 	}
@@ -1705,7 +1739,7 @@ void SimulationIteration::calculatePreferenceCorrections()
 	float totalPrefs = 0.0f;
 	for (auto [partyIndex, prefFlow] : tempOverallFp) {
 		estTppSeats += overallPreferenceFlow[partyIndex] * tempOverallFp[partyIndex] * 0.01f;
-		if (!isMajor(partyIndex)) totalPrefs += tempOverallFp[partyIndex];
+		if (!isMajor(partyIndex)) totalPrefs += tempOverallFp[partyIndex] * (1.0f - overallExhaustRate[partyIndex]);
 	}
 	float prefError = estTppSeats - iterationOverallTpp;
 	// Since, for each sample/seat reconciliation cycle, the previous pref correction is already built

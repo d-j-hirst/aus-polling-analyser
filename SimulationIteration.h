@@ -127,6 +127,7 @@ private:
 	FloatByPartyIndex overallFpTarget;
 	FloatByPartyIndex overallFpSwing;
 	FloatByPartyIndex overallPreferenceFlow;
+	FloatByPartyIndex overallExhaustRate; // for TPP distribution
 	std::map<Party::Id, int> homeRegion;
 	std::map<Party::Id, std::vector<bool>> seatContested;
 	FloatByPartyIndex centristPopulistFactor; // e.g. 1 = full populist, 0 = full centrist
