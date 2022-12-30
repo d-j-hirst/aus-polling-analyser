@@ -16,17 +16,20 @@ warnings = ''
 overall_tpp_swings = {'2022vic': 1.69,
                       '2022sa': 3.26,
                       '2019nsw': -1.17,
-                      '2018vic': 1.31}
+                      '2018vic': 1.31,
+                      '2018sa': -1.56}
 overall_grn_swings = {'2022vic': 1.85,
                       '2022sa': 3.16,
                       '2019nsw': 0.17,
-                      '2018vic': -1.24}
+                      '2018vic': -1.24,
+                      '2018sa': 3.4}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
     '2022vic': 27966,
     '2022sa': 27966,
     '2019nsw': 24310,
     '2018vic': 24310,
+    '2018sa': 24310,
 }
 
 alp_name = {
@@ -34,6 +37,7 @@ alp_name = {
     '2022sa': 'Australian Labor Party',
     '2019nsw': 'Labor',
     '2018vic': 'Australian Labor Party',
+    '2018sa': 'Australian Labor Party',
 }
 
 grn_name = {
@@ -41,6 +45,7 @@ grn_name = {
     '2022sa': 'The Greens',
     '2019nsw': 'The Greens',
     '2018vic': 'The Greens (VIC)',
+    '2018sa': 'The Greens',
 }
 
 
@@ -101,7 +106,7 @@ tpp_swings = {
                 'Eltham': 6.37, 'Essendon': 7.2, 'Euroa': -0.97,
                 'Evelyn': 6.94, 'Ferntree Gully': 6.1, 'Footscray': 13.62,
                 'Forest Hill': 3.67, 'Frankston': 9.26, 'Geelong': 4.11,
-                'Gembrook': 8.16, 'Gippsland East': 0.32, 'Gippsland South': 0.34, 
+                'Gembrook': 8.16, 'Gippsland East': 0.32, 'Gippsland South': 0.34,
                 'Hastings': 6.59, 'Hawthorn': 9.01, 'Ivanhoe': 8.96,
                 'Kew': 5.87, 'Keysborough': 2.95, 'Kororoit': 5.67,
                 'Lara': 2.03, 'Lowan': -2.22, 'Macedon': 9.4,
@@ -120,7 +125,20 @@ tpp_swings = {
                 'Tarneit': 3.44, 'Thomastown': -1.25, 'Warrandyte': 7.72,
                 'Wendouree': 4.47, 'Werribee': -3.1, 'Williamstown': 5.53,
                 'Yan Yean': 13.37, 'Yuroke': 1.74
-    }
+    },
+    '2018sa': {'Adelaide': 2, 'Badcoe': 1.4, 'Black': -6.4, 'Bragg': -0.3,
+               'Chaffey': 6.7, 'Cheltenham': 1.5, 'Colton': -4,
+               'Croydon': 3.2, 'Davenport': 0.7, 'Dunstan': -2.5, 'Elder': -0.3,
+               'Elizabeth': 3.3, 'Enfield': 2.3, 'Finniss': -1.1,
+               'Flinders': 2.6, 'Florey': 1.9, 'Frome': -1.3, 'Gibson': -5.6,
+               'Giles': 10, 'Hammond': -2.7, 'Hartley': -4.7, 'Heysen': 3.8,
+               'Hurtle Vale': 4, 'Kaurna': 5.7, 'Kavel': -1, 'King': -0.7,
+               'Lee': 2.3, 'Light': 5.9, 'Mackillop': 1.7, 'Mawson': 4.5,
+               'Morialta': 1.5, 'Morphett': -2.6, 'Mount Gambier': 2.9,
+               'Narungga': -3.3, 'Newland': -1.8, 'Playford': 4.6,
+               'Port Adelaide': 2.8, 'Ramsay': 1.2, 'Reynell': 3.4,
+               'Schubert': 2, 'Stuart': -3, 'Taylor': 2.3, 'Torrens': 2.1,
+               'Unley': -2.4, 'Waite': 2.3, 'West Torrens': 0.9, 'Wright': -0.8},
 }
 
 grn_swings = {
@@ -180,7 +198,7 @@ grn_swings = {
                 'Eltham': -0.96, 'Essendon': -1.22, 'Euroa': 0.09,
                 'Evelyn': 3.44, 'Ferntree Gully': 0.49, 'Footscray': -0.46,
                 'Forest Hill': -0.08, 'Frankston': -0.4, 'Geelong': -2.51,
-                'Gembrook': 2.16, 'Gippsland East': -1.76, 'Gippsland South': 0.08, 
+                'Gembrook': 2.16, 'Gippsland East': -1.76, 'Gippsland South': 0.08,
                 'Hastings': 1.23, 'Hawthorn': -3.07, 'Ivanhoe': -0.91,
                 'Kew': -0.94, 'Keysborough': -0.79, 'Kororoit': 1.21,
                 'Lara': -1.41, 'Lowan': -3.18, 'Macedon': -5.58,
@@ -199,6 +217,19 @@ grn_swings = {
                 'Tarneit': -1.4, 'Thomastown': -0.95, 'Warrandyte': -0.07,
                 'Wendouree': -0.03, 'Werribee': -1.96, 'Williamstown': -4.67,
                 'Yan Yean': -0.42, 'Yuroke': 0.38},
+    '2018sa': {'Adelaide': 0.7, 'Badcoe': -3.9, 'Black': -0.8, 'Bragg': -2.1,
+               'Chaffey': -3.6, 'Cheltenham': -2.5, 'Colton': -1.7,
+               'Croydon': -3.3, 'Davenport': -0.2, 'Dunstan': -2.7, 'Elder': -3.5,
+               'Elizabeth': -0.7, 'Enfield': 0, 'Finniss': -4.3,
+               'Flinders': 0.9, 'Florey': -1.8, 'Gibson': -3,
+               'Giles': -1.3, 'Hammond': -1.3, 'Hartley': -3.1, 'Heysen': -8.3,
+               'Hurtle Vale': -1.8, 'Kaurna': 1.7, 'Kavel': -7.2, 'King': -0.6,
+               'Lee': -1.6, 'Light': 1.3, 'MacKillop': -3.3, 'Mawson': -3.4,
+               'Morialta': -4.3, 'Morphett': -4.9,
+               'Newland': -2, 'Playford': -1.1,
+               'Port Adelaide': -4, 'Ramsay': -2.6, 'Reynell': -2.3,
+               'Schubert': -4.2, 'Stuart': 2.4, 'Taylor': -0.5, 'Torrens': -1.7,
+               'Unley': -2, 'Waite': -5, 'West Torrens': -0.1, 'Wright': -1.2},
 }
 
 
@@ -210,7 +241,8 @@ fed_results_urls = {
     '2022vic': (gen_fed_url("2022vic")),
     '2022sa': (gen_fed_url("2022sa")),
     '2019nsw': (gen_fed_url("2019nsw")),
-    '2018vic': (gen_fed_url("2018vic"))
+    '2018vic': (gen_fed_url("2018vic")),
+    '2018sa': (gen_fed_url("2018sa"))
 }
 
 ignore_greens_seats_election = {
@@ -220,10 +252,9 @@ ignore_greens_seats_election = {
     '2022vic': {'Goldstein', 'Kooyong', 'Melbourne'},
     # Sharkie is already incumbent in Mayo so no need to exclude it
     '2022sa': {},
-    # Sharkie is already incumbent in Mayo so no need to exclude it
     '2019nsw': {'Warringah'},
-    # Sharkie is already incumbent in Mayo so no need to exclude it
-    '2018vic': {}
+    '2018vic': {},
+    '2018sa': {},
 }
 
 assume_tpp_seats_election = {
@@ -239,8 +270,8 @@ assume_tpp_seats_election = {
     },
     '2022sa': {'Mayo': 4.13},
     '2019nsw': {
-        'Cowper': 0.7, 
-        'Farrer': 0.7, 
+        'Cowper': 0.7,
+        'Farrer': 0.7,
         'Grayndler': 1.47,
         'New England': -1.21,
         'Warringah': 8.97,
@@ -248,12 +279,13 @@ assume_tpp_seats_election = {
         'Whitlam': -2.81
     },
     '2018vic': {
-        'Cooper': 4.23, 
+        'Cooper': 4.23,
         'Indi': -7.72,
         'Kooyong': 6.14,
         'Wills': 4.18,
         'Melbourne': 0.07,
-    }
+    },
+    '2018sa': {'Mayo': 0.73},
 }
 
 adjust_tpp_state = {
@@ -346,6 +378,27 @@ adjust_tpp_state = {
         'Lowan': -1.04,
         'Benalla': -1.04,
         'Yan Yean': 5,
+    },
+    '2018sa': {
+        'Croydon': -1.22,
+        'Colton': -1.22,
+        'Ashford': -1.22,
+        'Wright': -1.22,
+        'Playford': -1.22,
+        'Taylor': -1.22,
+        'Kavel': 1.22,
+        'Goyder': 1.22,
+        'Finniss': 1.22,
+        'Heysen': 1.22,
+        'MacKillop': 1.22,
+        'Giles': 0.72,
+        'Elder': 0.72,
+        'Torrens': 0.72,
+        'Kaurna': 0.72,
+        'Napier': 0.72,
+        'Reynell': 0.72,
+        'Lee': 0.72,
+        'Schubert': -0.72,
     }
 }
 
@@ -400,7 +453,12 @@ adjust_tpp_federal = {
         'Menzies': 1.22,
         'Nicholls': 1.3,
         'Scullin': -2.5,
-    }
+    },
+    '2018sa': {
+        'Adelaide': -1.22,
+        'Sturt': 1.22,
+        'Boothby': -0.72,
+    },
 }
 
 
@@ -604,7 +662,7 @@ def calculate_deviations(config, seat_booths, results, election):
     if election in tpp_swings:
         fed_tpps = [tpp for seat, tpp in tpp_list]
         state_tpps = [
-            tpp_swings[election][seat] - 
+            tpp_swings[election][seat] -
             (adjust_tpp_state[election][seat] if
              seat in adjust_tpp_state[election] else 0)
             for seat, tpp in tpp_list]
@@ -621,18 +679,18 @@ def calculate_deviations(config, seat_booths, results, election):
         # for q in (0.1, 0.5, 0.9):
         #     q_reg = (QuantileRegressor(alpha=0, quantile=q)
         #                               .fit(inputs_array, outputs_array))
-            
+
         #     q_coefficient = q_reg.coef_[0]
         #     q_intercept = q_reg.intercept_
 
         #     print(q)
         #     print(q_coefficient)
         #     print(q_intercept)
-    
+
     if election in grn_swings:
         this_grns = grn_swings[election]
         fed_grn = [grn for seat, grn in grn_list if seat in this_grns]
-        state_grn = [this_grns[seat] for seat, grn in grn_list 
+        state_grn = [this_grns[seat] for seat, grn in grn_list
                      if seat in this_grns]
 
         inputs_array = numpy.transpose(numpy.array([fed_grn]))

@@ -1,44 +1,47 @@
 #Adelaide
 Adelaide,Prospect
 Adelaide,Prospect West
+Adelaide,Walkerville (Adelaide)
 Adelaide,Walkerville North
-Adelaide,Walkerville
 Adelaide,North Adelaide
-Adelaide,Lower North Adelaide
 Adelaide,Adelaide ADELAIDE PPVC
 Adelaide,Adelaide (Adelaide)
 Adelaide,Adelaide East
 Adelaide,Adelaide South
 Adelaide,Adelaide West
+Sturt,Walkerville (Sturt)
 #Badcoe
+Adelaide,Kurralta Park
 Adelaide,Keswick
-Adelaide,Plympton (Adelaide)
 Adelaide,Black Forest (Adelaide)
-Adelaide,Glenelg ADELAIDE PPVC
-Hindmarsh,Plympton (Hindmarsh)
 Boothby,Plympton Park
-Boothby,South Plympton North
 Boothby,Black Forest (Boothby)
 Boothby,Black Forest East
 Boothby,Edwardstown
 Boothby,South Plympton
+Boothby,Clarence Park
+Boothby,Ascot Park
+Boothby,Forbes
 #Black
 Boothby,Seaview Downs
-Boothby,Brighton South
 Boothby,Seacliff
 Boothby,Marino
+Boothby,Seacombe Heights
 Kingston,Brighton KINGSTON PPVC
-Kingston,Hallett Cove PPVC
+Kingston,Hallett Cove
 Kingston,Hallett Cove East
 Kingston,Hallett Cove South
 Kingston,Hallett Cove Central
 Kingston,Sheidow Park
-Kingston,Sheidow Park South
+Kingston,O'Halloran Hill North
+Kingston,Trott Park
 #Bragg
+Sturt,Kensington
+Sturt,Kensington Park
+Sturt,Kensington Gardens
 Sturt,Rose Park
 Sturt,Dulwich
 Sturt,Tusmore
-Sturt,Glenunga
 Sturt,Myrtle Bank STURT PPVC
 Sturt,Linden Park
 Sturt,Glen Osmond
@@ -46,12 +49,7 @@ Sturt,Beaumont
 Sturt,Burnside
 Sturt,Stonyfell
 #Chaffey
-Barker,Cambrai
 Barker,Sedan
-Barker,Purnong
-Barker,Karoonda
-Barker,Walker Flat
-Barker,Nildottie
 Barker,Swan Reach
 Barker,Blanchetown
 Barker,Morgan
@@ -74,6 +72,7 @@ Barker,Renmark West
 Barker,Renmark North
 Barker,Paringa
 #Cheltenham
+Hindmarsh,Albert Park
 Hindmarsh,Findon
 Hindmarsh,Findon West
 Hindmarsh,Woodville South
@@ -93,48 +92,49 @@ Hindmarsh,Fulham Gardens
 Hindmarsh,Henley South
 Hindmarsh,Henley Beach
 Hindmarsh,Grange Beach
-Hindmarsh,Grange
 Hindmarsh,Kidman Park
 Hindmarsh,Kidman Park North
+Hindmarsh,Glenelg North (Hindmarsh)
+Boothby,Glenelg North (Boothby)
 #Croydon
 Adelaide,Brompton
 Adelaide,Renown Park
 Adelaide,Croydon
 Adelaide,West Croydon
 Adelaide,Kilkenny (Adelaide)
+Adelaide,Kilkenny North (Adelaide)
 Adelaide,Croydon Park
-Adelaide,Kilkenny North
 Adelaide,Regency Park
 Adelaide,Woodville Gardens (Adelaide)
 Adelaide,Mansfield Park (Adelaide)
-Adelaide,Kilburn
 Adelaide,Port Adelaide ADELAIDE PPVC
-Adelaide,West Lakes ADELAIDE PPVC
+Hindmarsh,Kilkenny North (Hindmarsh)
+Hindmarsh,Allenby Gardens (Hindmarsh)
+Adelaide,Allenby Gardens (Adelaide)
 #Davenport
-Boothby,Seacombe Heights
 Kingston,Flagstaff Hill
 Kingston,Flagstaff Hill East (Kingston)
 Kingston,Aberfoyle Park North
 Kingston,Aberfoyle Park Central
 Kingston,Aberfoyle Park
+Kingston,Aberfoyle Park PPVC
 Kingston,Aberfoyle Park South
-Kingston,Happy Valley West
-Kingston,O'Halloran Hill North
+Kingston,O'Halloran Hill
+Boothby,Bellevue Heights
 #Dunstan
+Adelaide,Kent Town (Adelaide)
+Sturt,Kent Town (Sturt)
 Sturt,Payneham STURT PPVC
 Sturt,Marden
 Sturt,St Peters East
 Sturt,St Peters
 Sturt,Trinity Gardens
 Sturt,Maylands
-Sturt,Kent Town
 Sturt,Norwood West
 Sturt,Norwood
-Sturt,Kensington
-Sturt,Kensington Park
-Sturt,Kensington Gardens
+Sturt,Glynde
+Sturt,Felixstow
 #Elder
-Boothby,Clarence Park
 Boothby,Westbourne Park
 Boothby,Melrose Park
 Boothby,Colonel Light Gardens BOOTHBY PPVC
@@ -142,9 +142,9 @@ Boothby,Daw Park
 Boothby,Colonel Light Gardens
 Boothby,Pasadena
 Boothby,St Marys
-Boothby,Ascot Park
 Boothby,Mitchell Park
-Boothby,Mitchell Park South
+Boothby,Panorama
+Boothby,Tonsley Park
 #Elizabeth
 Spence,Elizabeth South
 Spence,Elizabeth Grove
@@ -158,23 +158,20 @@ Spence,Craigmore North
 Spence,Blakeview
 Spence,Blakeview South
 #Enfield
+Adelaide,Kilburn
 Adelaide,Nailsworth
 Adelaide,Prospect South
 Adelaide,Broadview
 Adelaide,Enfield
+Adelaide,Enfield North
 Adelaide,Prospect North
 Adelaide,Blair Athol
-Adelaide,Prospect PPVC
-Adelaide,Modbury ADELAIDE PPVC
-Adelaide,Clearview
 Adelaide,Northfield
 Adelaide,Northgate (Adelaide)
-Makin,Walkley Heights
 #Finniss
 Mayo,Currency Creek
 Mayo,Goolwa
 Mayo,Goolwa Central
-Mayo,Goolwa PPVC
 Mayo,Middleton
 Mayo,Milang
 Mayo,Mount Compass
@@ -182,12 +179,11 @@ Mayo,Port Elliot
 Mayo,Victor Harbor
 Mayo,Victor Harbor East
 Mayo,Victor Harbor PPVC
+Mayo,Victor Harbor Election Day PPVC
 Mayo,Victor Harbor South
 #Flinders
-Grey,Cowell
 Grey,Cleve
 Grey,Arno Bay
-Grey,Kimba
 Grey,Darke Peak
 Grey,Lock
 Grey,Port Neill
@@ -211,27 +207,22 @@ Grey,Wirrulla
 Grey,Smoky Bay
 Grey,Ceduna
 #Florey
-Makin,Mawson Lakes North
-Makin,Mawson Lakes
-Makin,Mawson Lakes MAKIN PPVC
 Makin,Pooraka North
 Makin,Pooraka
 Makin,Ingle Farm
 Makin,Ingle Farm North
 Makin,Para Vista
 Makin,Para Vista North
-Makin,Para Hills East
-Makin,Para Hills West
-Makin,Para Hills
+Makin,Walkley Heights
+Makin,Valley View
+Makin,Modbury West
+Makin,Modbury Central
+Makin,Modbury North
 #Frome
 Grey,Two Wells
-Grey,Angle Vale North (Grey)
 Grey,Angle Vale (Grey)
 Grey,Gawler GREY PPVC
 Grey,Roseworthy
-Grey,Wasleys
-Grey,Mallala
-Grey,Dublin
 Grey,Balaklava
 Grey,Owen
 Grey,Hamley Bridge
@@ -239,35 +230,34 @@ Grey,Tarlee
 Grey,Riverton
 Grey,Saddleworth
 Grey,Marrabel
-Grey,Eudunda
-Grey,Point Pass
-Grey,Robertstown
 Grey,Manoora
 Grey,Auburn
 Grey,Watervale
 Grey,Clare
 Grey,Farrell Flat
-Grey,Burra
-Grey,Booborowie
-Grey,Spalding
-Grey,Hallett
-Grey,Jamestown
-Grey,Terowie
-Barker,Kapunda
-Barker,Freeling
+Grey,Redhill
+Grey,Brinkworth
+Grey,Blyth
+Grey,Port Pirie PPVC
+Grey,Port Pirie West
+Grey,Solomontown
+Grey,Risdon Park East
+Grey,Risdon Park South
+Grey,Napperby
+Grey,Georgetown
+Grey,Crystal Brook
 #Gibson
 Boothby,Brighton North
 Boothby,Brighton West
 Boothby,Brighton BOOTHBY PPVC
 Boothby,Brighton
+Boothby,Brighton South
 Boothby,Warradale
 Boothby,Oaklands Park
 Boothby,Seacombe Gardens
 Boothby,Sturt
 Boothby,Marion
-Boothby,Somerton Park East
 #Giles
-Grey,Port Augusta West
 Grey,Hawker
 Grey,Quorn
 Grey,Woomera
@@ -283,7 +273,14 @@ Grey,Whyalla Norrie North
 Grey,Whyalla Norrie South
 Grey,Whyalla Stuart West
 Grey,Iron Knob
+Grey,Cowell
+Grey,Kimba
 #Hammond
+Barker,Tailem Bend
+Barker,Pinnaroo
+Barker,Lameroo
+Barker,Coomandook
+Barker,Peake
 Barker,Palmer
 Barker,Mannum
 Barker,Ponde
@@ -296,18 +293,18 @@ Barker,Murray Bridge
 Barker,Woods Point
 Barker,Jervois
 Barker,Wellington
+Barker,Purnong
+Barker,Karoonda
+Barker,Nildottie
+Barker,Walker Flat
+Barker,Cambrai
 Mayo,Callington
 Mayo,Langhorne Creek
-Mayo,Strathalbyn
-Mayo,Strathalbyn PPVC
 Mayo,Woodchester
 #Hartley
-Sturt,Dernancourt
 Sturt,Paradise
 Sturt,Campbelltown
 Sturt,Hectorville
-Sturt,Glynde
-Sturt,Felixstow
 Sturt,Tranmere
 #Heysen
 Mayo,Aldgate
@@ -318,52 +315,54 @@ Mayo,Cherry Gardens
 Mayo,Clarendon
 Mayo,Crafers
 Mayo,Echunga
-Mayo,Hahndorf
 Mayo,Kangarilla
 Mayo,Longwood
 Mayo,Macclesfield
 Mayo,Meadows
 Mayo,Morphett Vale MAYO PPVC
 Mayo,Mylor
-Mayo,Norton Summit
 Mayo,Stirling East
 Mayo,Stirling West
 Mayo,Summertown
 Mayo,Upper Sturt
 Mayo,Uraidla
+Mayo,Strathalbyn
+Mayo,Strathalbyn PPVC
 #Hurtle Vale
-Kingston,Hackham West
 Kingston,Hackham East
-Kingston,Huntfield Heights
 Kingston,Woodcroft
 Kingston,Reynella East
 Kingston,Happy Valley
+Kingston,Reynella
+Kingston,Pimpala
+Kingston,Woodcroft South
+Kingston,Woodcroft PPVC
+Kingston,Morphett Vale East
+Kingston,Morphett Vale Central
+Kingston,Onkaparinga Hills
 #Kaurna
-Kingston,Christies Beach PPVC
-Kingston,Christies Beach
-Kingston,Port Noarlunga
-Kingston,Christie Downs
-Kingston,Christie Downs East
+Kingston,Maslin Beach
 Kingston,Noarlunga Downs
-Kingston,Port Noarlunga South
 Kingston,Old Noarlunga
+Kingston,Seaford
 Kingston,Seaford Meadows
-Kingston,Seaford Central
 Kingston,Seaford Rise
+Kingston,Hackham South
+Kingston,Moana
 #Kavel
 Mayo,Brukunga
 Mayo,Charleston
 Mayo,Lenswood
 Mayo,Littlehampton
-Mayo,Lobethal
 Mayo,Mount Barker
 Mayo,Mount Barker Central
 Mayo,Mount Barker East
 Mayo,Mount Barker PPVC
-Mayo,Mount Barker South
 Mayo,Nairne
 Mayo,Oakbank
 Mayo,Woodside
+Mayo,Hahndorf
+Mayo,Piccadilly
 #King
 Makin,Salisbury East Estate
 Makin,Salisbury Heights
@@ -378,15 +377,15 @@ Spence,Hillbank
 Spence,One Tree Hill
 Spence,Salisbury Park
 #Lee
+Hindmarsh,Grange
 Hindmarsh,Seaton
 Hindmarsh,Seaton West
 Hindmarsh,Seaton Park
-Hindmarsh,Albert Park
 Hindmarsh,Woodville West
 Hindmarsh,Royal Park
 Hindmarsh,Royal Park South
-Hindmarsh,West Lakes HINDMARSH PPVC
 Hindmarsh,West Lakes Shore
+Hindmarsh,West Lakes PPVC
 Hindmarsh,Semaphore Park
 #Light
 Spence,Munno Para West
@@ -402,12 +401,8 @@ Spence,Gawler East
 Spence,Willaston
 Spence,Hewett
 #Mackillop
-Barker,Pinnaroo
-Barker,Lameroo
-Barker,Peake
-Barker,Tailem Bend
-Barker,Coomandook
 Barker,Meningie
+Barker,Narrung
 Barker,Coonalpyn
 Barker,Tintinara
 Barker,Keith
@@ -438,7 +433,6 @@ Barker,Nangwarry
 Barker,Penola
 Barker,Coonawarra
 #Mawson
-Kingston,Maslin Beach
 Mayo,Aldinga Beach
 Mayo,Aldinga Beach West
 Mayo,Aldinga Beach PPVC
@@ -458,26 +452,27 @@ Mayo,Yankalilla
 #Morialta
 Sturt,Highbury South
 Sturt,Highbury West
-Sturt,Athelstone PPVC
 Sturt,Athelstone
 Sturt,Athelstone West
 Sturt,Athelstone East
 Sturt,Newton
 Sturt,Rostrevor
 Sturt,Rostrevor South
-Sturt,Magill
+Mayo,Norton Summit
+Mayo,Lobethal
 #Morphett
-Boothby,Glenelg North (Boothby)
+Adelaide,Plympton (Adelaide)
+Hindmarsh,Plympton (Hindmarsh)
 Boothby,Glenelg BOOTHBY PPVC
 Boothby,Glenelg
 Boothby,Glenelg Central
 Boothby,Glenelg East
 Boothby,Glenelg South
 Boothby,Glengowrie
+Boothby,Somerton Park East
 Boothby,Park Holme
 Boothby,Park Holme South
 Hindmarsh,Glenelg HINDMARSH PPVC
-Hindmarsh,Glenelg North (Hindmarsh)
 Hindmarsh,Novar Gardens
 Hindmarsh,Plympton West
 #Mount Gambier
@@ -518,20 +513,15 @@ Grey,Moonta
 Grey,Wallaroo
 Grey,Wallaroo Mines
 Grey,Kadina
-Grey,Kadina PPVC
 Grey,Alford
 Grey,Bute
 Grey,Lochiel
 Grey,Snowtown
-Grey,Blyth
-Grey,Brinkworth
-Grey,Redhill
 Grey,Corny Point
 Grey,Port Broughton
+Grey,Mallala
+Grey,Dublin
 #Newland
-Makin,Modbury West
-Makin,Modbury East
-Makin,Modbury Central
 Makin,Modbury MAKIN PPVC
 Makin,St Agnes
 Makin,St Agnes West
@@ -539,17 +529,20 @@ Makin,Tea Tree Gully
 Makin,Ridgehaven
 Makin,Banksia Park
 Makin,Fairview Park
+Makin,Hope Valley West
 Sturt,Highbury East
 #Playford
+Makin,Mawson Lakes North
+Makin,Mawson Lakes
+Makin,Mawson Lakes PPVC
+Makin,Para Hills East
+Makin,Para Hills West
+Makin,Para Hills
 Makin,Parafield Gardens
 Makin,Parafield Gardens Central (Makin)
 Makin,Parafield Gardens North West (Makin)
 Spence,Parafield Gardens Central (Spence)
 Spence,Parafield Gardens North West (Spence)
-Spence,Salisbury Downs
-Spence,Salisbury Downs West
-Spence,Paralowie South
-Spence,Paralowie West
 #Port Adelaide
 Hindmarsh,Port Adelaide HINDMARSH PPVC
 Hindmarsh,Port Adelaide
@@ -564,33 +557,34 @@ Hindmarsh,Taperoo
 Hindmarsh,Taperoo East
 Hindmarsh,North Haven
 #Ramsay
-Spence,Burton
+Spence,Salisbury Downs
+Spence,Salisbury Downs West
+Spence,Paralowie South
+Spence,Paralowie West
 Spence,Direk
 Spence,Paralowie
 Spence,Salisbury North
 Spence,Salisbury
-Spence,Brahma Lodge
 Spence,Elizabeth Vale
-Spence,Mawson Lakes SPENCE PPVC
-Spence,Modbury SPENCE PPVC
 #Reynell
-Kingston,Reynella
 Kingston,Reynella South
 Kingston,Morphett Vale
-Kingston,Morphett Vale East
 Kingston,Morphett Vale North
-Kingston,Morphett Vale Central
+Kingston,Morphett Vale South
 Kingston,Morphett Vale KINGSTON PPVC
 Kingston,O'Sullivan Beach
-Kingston,Pimpala
-Kingston,Woodcroft South
+Kingston,Hackham
+Kingston,Christies Beach
+Kingston,Port Noarlunga
+Kingston,Christie Downs
 #Schubert
+Grey,Wasleys
+Barker,Freeling
 Barker,Gawler BARKER PPVC
 Barker,Greenock
 Barker,Nuriootpa PPVC
 Barker,Nuriootpa
 Barker,Stockwell
-Barker,Truro
 Barker,Moculta
 Barker,Angaston
 Barker,Tanunda
@@ -609,16 +603,9 @@ Mayo,Kersbrook
 Mayo,Mount Torrens
 Mayo,Paracombe
 #Stuart
-Grey,Georgetown
-Grey,Crystal Brook
+Grey,Port Augusta West
 Grey,Gladstone
 Grey,Laura
-Grey,Napperby
-Grey,Port Pirie PPVC
-Grey,Solomontown
-Grey,Port Pirie
-Grey,Risdon Park East
-Grey,Risdon Park South
 Grey,Port Germein
 Grey,Wirrabara
 Grey,Booleroo Centre
@@ -631,14 +618,27 @@ Grey,Port Augusta PPVC
 Grey,Peterborough
 Grey,Orroroo
 Grey,Leigh Creek
+Grey,Jamestown
+Grey,Terowie
+Grey,Hallett
+Grey,Booborowie
+Grey,Spalding
+Grey,Burra
+Grey,Robertstown
+Grey,Eudunda
+Grey,Point Pass
+Barker,Truro
+Barker,Kapunda
 #Taylor
+Spence,Burton
 Spence,Elizabeth North
 Spence,Davoren Park
 Spence,Smithfield Plains
+Spence,Smithfield
 Spence,Munno Para PPVC
 Spence,Andrews Farm
 Spence,Angle Vale (Spence)
-Spence,Angle Vale North (Spence)
+Spence,Angle Vale North
 Spence,Virginia
 #Torrens
 Adelaide,Greenacres
@@ -650,37 +650,39 @@ Sturt,Holden Hill
 Sturt,Windsor Gardens East
 Sturt,Windsor Gardens West
 Sturt,Klemzig
+Sturt,Dernancourt
 Sturt,Vale Park (Sturt)
 Sturt,Modbury STURT PPVC
 Adelaide,Payneham ADELAIDE PPVC
 #Unley
 Sturt,Myrtle Bank
+Sturt,Glenunga
+Adelaide,Hyde Park
 Adelaide,Parkside
 Adelaide,Unley
 Adelaide,Malvern
 Adelaide,Fullarton
-Adelaide,Myrtle Bank ADELAIDE PPVC
-Adelaide,Unley Park
 Adelaide,Colonel Light Gardens ADELAIDE PPVC
 Adelaide,Goodwood Park
 Adelaide,Goodwood
 Boothby,Hawthorn West
+#Waite
+Boothby,Hawthorndene (Boothby)
 Boothby,Kingswood
 Boothby,Netherby
-#Waite
 Boothby,Mitcham
-Boothby,Clapham
 Boothby,Belair
 Boothby,Belair North
-Boothby,Blackwood Central
 Boothby,Eden Hills
 Boothby,Blackwood (Boothby)
-Boothby,Bellevue Heights
-Boothby,Myrtle Bank BOOTHBY PPVC
-Mayo,Hawthorndene
+Boothby,Blackwood Central (Boothby)
+Mayo,Hawthorndene (Mayo)
+Mayo,Blackwood Central (Mayo)
 Mayo,Coromandel Valley
 Mayo,Flagstaff Hill East (Mayo)
 Mayo,Blackwood (Mayo)
+Mayo,Magill (Mayo)
+Sturt,Magill (Sturt)
 #West Torrens
 Hindmarsh,Richmond (Hindmarsh)
 Hindmarsh,Cowandilla (Hindmarsh)
@@ -689,21 +691,20 @@ Hindmarsh,Lockleys
 Hindmarsh,Brooklyn Park South
 Hindmarsh,Lockleys North
 Hindmarsh,Flinders Park (Hindmarsh)
-Hindmarsh,Allenby Gardens (Hindmarsh)
+Hindmarsh,Netley
 Adelaide,Richmond (Adelaide)
 Adelaide,Cowandilla (Adelaide)
 Adelaide,Mile End
 Adelaide,Torrensville
-Adelaide,Allenby Gardens (Adelaide)
 Adelaide,Flinders Park (Adelaide)
 Adelaide,Brooklyn Park (Adelaide)
 #Wright
+Spence,Brahma Lodge
 Makin,Salisbury East
 Makin,Salisbury East Central
 Makin,Wynn Vale
 Makin,Wynn Vale West
 Makin,Wynn Vale East
 Makin,Modbury Heights
-Makin,Modbury North
 Makin,Redwood Park
 Makin,Surrey Downs
