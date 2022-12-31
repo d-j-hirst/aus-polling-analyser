@@ -13,18 +13,21 @@ class ConfigError(ValueError):
 warnings = ''
 
 
-overall_tpp_swings = {'2022vic': 1.69,
+overall_tpp_swings = {'2023nsw': 3.2,
+                      '2022vic': 1.69,
                       '2022sa': 3.26,
                       '2019nsw': -1.17,
                       '2018vic': 1.31,
                       '2018sa': -1.56}
-overall_grn_swings = {'2022vic': 1.85,
+overall_grn_swings = {'2023nsw': 1.31,
+                      '2022vic': 1.85,
                       '2022sa': 3.16,
                       '2019nsw': 0.17,
                       '2018vic': -1.24,
                       '2018sa': 3.4}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
+    '2023nsw': 27966,
     '2022vic': 27966,
     '2022sa': 27966,
     '2019nsw': 24310,
@@ -33,6 +36,7 @@ aec_election_code = {
 }
 
 alp_name = {
+    '2023nsw': 'Labor',
     '2022vic': 'Australian Labor Party',
     '2022sa': 'Australian Labor Party',
     '2019nsw': 'Labor',
@@ -41,6 +45,7 @@ alp_name = {
 }
 
 grn_name = {
+    '2023nsw': 'The Greens',
     '2022vic': 'The Greens',
     '2022sa': 'The Greens',
     '2019nsw': 'The Greens',
@@ -238,6 +243,7 @@ def gen_fed_url(election):
             f'HouseDivisionalResults-{aec_election_code[election]}.htm')
 
 fed_results_urls = {
+    '2023nsw': (gen_fed_url("2023nsw")),
     '2022vic': (gen_fed_url("2022vic")),
     '2022sa': (gen_fed_url("2022sa")),
     '2019nsw': (gen_fed_url("2019nsw")),
@@ -246,6 +252,9 @@ fed_results_urls = {
 }
 
 ignore_greens_seats_election = {
+    # Ignore Greens totals in these seats due to new prominent independents distorting their
+    # natural vote
+    '2023nsw': {'North Sydney', 'Mackellar', 'Bradfield', 'Cowper', 'Calare'},
     # Ignore Greens total in Melbourne due to disendorsement of previous member
     # and in Goldstein/Kooyong due to prominent independents distorting their
     # natural vote
@@ -258,6 +267,18 @@ ignore_greens_seats_election = {
 }
 
 assume_tpp_seats_election = {
+    '2023nsw': {
+        'Bradfield': 10.01,
+        'Calare': -2.16,
+        'Cowper': 2.41,
+        'Fowler': -8.27,
+        'Grayndler': 5.02,
+        'Mackellar': 4.62,
+        'North Sydney': 8.01,
+        'Sydney': 6.9,
+        'Warringah': 0.69,
+        'Wentworth': 3.93,
+    },
     '2022vic': {
         'Cooper': -0.75,
         'Goldstein': 2.99,
@@ -403,6 +424,35 @@ adjust_tpp_state = {
 }
 
 adjust_tpp_federal = {
+    '2023nsw': {
+        'Cunningham': -1.3,
+        'Hunter': -1.3,
+        'Fowler': -1.22,
+        'Parramatta': -1.22,
+        'Bennelong': 1.22,
+        'Gilmore': 1.9,
+        'Lindsay': -1.96,
+        'Reid': -0.72,
+        'Cowper': -0.72,
+    },
+    '2022vic': {
+        'Casey': 1.22,
+        'Chisholm': 0.72,
+        'Corangamite': 1.9,
+        'Dunkley': 1.96,
+        'Flinders': 1.3,
+        'Hawke': -1.22,
+        'Higgins': 0.72,
+        'Holt': -1.22,
+        'Isaacs': -2.5,
+        'Jagajaga': 0.72,
+        'Macnamara': 0.72,
+        'Mallee': -1.04,
+        'Melbourne': 2.5,
+        'Menzies': 1.22,
+        'Nicholls': 1.3,
+        'Scullin': -2.5,
+    },
     '2022sa': {
         'Adelaide': 0.72,
         'Sturt': -0.72,
@@ -435,24 +485,6 @@ adjust_tpp_federal = {
         'Bruce': 0.72,
         'Goldstein': -0.72,
         'Nicholls': -1.04,
-    },
-    '2022vic': {
-        'Casey': 1.22,
-        'Chisholm': 0.72,
-        'Corangamite': 1.9,
-        'Dunkley': 1.96,
-        'Flinders': 1.3,
-        'Hawke': -1.22,
-        'Higgins': 0.72,
-        'Holt': -1.22,
-        'Isaacs': -2.5,
-        'Jagajaga': 0.72,
-        'Macnamara': 0.72,
-        'Mallee': -1.04,
-        'Melbourne': 2.5,
-        'Menzies': 1.22,
-        'Nicholls': 1.3,
-        'Scullin': -2.5,
     },
     '2018sa': {
         'Adelaide': -1.22,
@@ -623,9 +655,9 @@ def add_weighted_swings(seat_booths, results, election):
         and not (('Melbourne ') in a[1] and (' PPVC') in a[1])
         and not (('Sydney ') in a[1] and (' PPVC') in a[1])]
     duplicated_booths = [a for a, b in booth_usage.items() if b > 1]
-    #if election != '2018vic':
-    warnings += (f'Unused booths: {unused_booths}\n')
-    warnings += (f'Duplicated booths: {duplicated_booths}\n')
+    if election != '2023nsw':
+        warnings += (f'Unused booths: {unused_booths}\n')
+        warnings += (f'Duplicated booths: {duplicated_booths}\n')
     return (weighted_greens_swings, weighted_tpp_swings, total_weights)
 
 
