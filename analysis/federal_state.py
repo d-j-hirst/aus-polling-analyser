@@ -653,11 +653,12 @@ def add_weighted_swings(seat_booths, results, election):
         and 'Sydney (' not in a[1]
         and not (('Adelaide ') in a[1] and (' PPVC') in a[1])
         and not (('Melbourne ') in a[1] and (' PPVC') in a[1])
-        and not (('Sydney ') in a[1] and (' PPVC') in a[1])]
+        and not (('Sydney ') in a[1] and (' PPVC') in a[1])
+        and not (('Haymarket ') in a[1] and (' PPVC') in a[1])]
     duplicated_booths = [a for a, b in booth_usage.items() if b > 1]
-    if election != '2023nsw':
-        warnings += (f'Unused booths: {unused_booths}\n')
-        warnings += (f'Duplicated booths: {duplicated_booths}\n')
+    warnings += (f'Duplicated booths: {duplicated_booths}\n')
+    #if election != '2023nsw':
+    warnings += (f'Unused booths: {unused_booths}\n')
     return (weighted_greens_swings, weighted_tpp_swings, total_weights)
 
 
