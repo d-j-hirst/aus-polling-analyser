@@ -1871,6 +1871,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	// so create once and use wherever needed
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
+			// This is a fallback estimate for parties without a specified within-party exahust rate
+			float survivalRate = 1.0f - overallExhaustRate[sourceParty];
+			// Fallback figure for major parties when OPV is in force
+			if (isMajor(sourceParty) && overallExhaustRate[OthersIndex] > 0.01f) survivalRate = 0.4f;
+
 			// if it's a final-two situation, check if we have known preference flows
 			if (int(accumulatedVoteShares.size() == 2)) {
 				if (run.ncPreferenceFlow.contains(sourceParty)) {
@@ -1881,8 +1886,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						float transformedFlow = transformVoteShare(flow);
 						transformedFlow += rng.normal(0.0f, 10.0f);
 						flow = detransformVoteShare(transformedFlow);
-						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * flow;
-						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - flow);
+						// later, include custom exhaust rate for known nc preference flows
+						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * flow * survivalRate;
+						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - flow) * survivalRate;
 						continue;
 					}
 				}
@@ -1893,6 +1899,8 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			int grnIndex = -1;
 			int indIndex = -1;
 			int othIndex = -1;
+			// Ideally this calculation should also estimate exhaustion rates
+			// replacing the above fallback values
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				auto [targetParty, targetVoteShare] = accumulatedVoteShares[targetIndex];
 				if (targetParty == 0) alpIndex = targetIndex;
@@ -1946,7 +1954,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
 			}
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
-				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight;
+				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight * survivalRate;
 			}
 		}
 	};
@@ -1988,6 +1996,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			}
 			accumulatedVoteShares = originalVoteShares;
 			allocateVotes(accumulatedVoteShares, excludedVoteShares);
+			float adjustmentFactor = 100.0f / (accumulatedVoteShares[0].second + accumulatedVoteShares[1].second);
+			accumulatedVoteShares[0].second *= adjustmentFactor;
+			accumulatedVoteShares[1].second *= adjustmentFactor;
 			break;
 		}
 
@@ -2003,7 +2014,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		allocateVotes(accumulatedVoteShares, excludedVoteShares);
 	}
 
-	std::pair<PartyVotes, PartyVotes> topTwo = std::minmax(accumulatedVoteShares[Mp::One], accumulatedVoteShares[Mp::Two], partyVoteLess);
+	std::pair<PartyVotes, PartyVotes> topTwo = std::minmax(accumulatedVoteShares[0], accumulatedVoteShares[1], partyVoteLess);
 	if (topTwo.first.first == CoalitionPartnerIndex) topTwo.first.first = 1;
 	if (topTwo.second.first == CoalitionPartnerIndex) topTwo.second.first = 1;
 
