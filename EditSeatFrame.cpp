@@ -6,6 +6,8 @@
 #include "General.h"
 #include "TextInput.h"
 
+#include "Log.h"
+
 using namespace std::placeholders; // for function object parameter binding
 
 constexpr int ControlPadding = 4;
@@ -508,12 +510,17 @@ void EditSeatFrame::OnOK(wxCommandEvent& WXUNUSED(event)) {
 
 void EditSeatFrame::updateProminentMinors(std::string prominentMinors)
 {
+	if (!prominentMinors.size()) {
+		seat.prominentMinors.clear();
+		return;
+	}
 	seat.prominentMinors = splitString(prominentMinors, ",");
 }
 
 // Helper function for a recurring process
 void partyFloatUpdate(std::string input, std::map<std::string, float>& storedValue) {
 	storedValue.clear();
+	if (!input.size()) return;
 	auto vec = splitString(input, ";");
 	for (auto odds : vec) {
 		auto item = splitString(odds, ",");
@@ -532,6 +539,7 @@ void partyFloatUpdate(std::string input, std::map<std::string, float>& storedVal
 // Helper function for a recurring process
 void partyStringUpdate(std::string input, std::map<std::string, std::string>& storedValue) {
 	storedValue.clear();
+	if (!input.size()) return;
 	auto vec = splitString(input, ";");
 	for (auto odds : vec) {
 		auto item = splitString(odds, ",");
@@ -573,6 +581,10 @@ void EditSeatFrame::updatePolls(std::string pollStr)
 
 void EditSeatFrame::updateRunningParties(std::string runningParties)
 {
+	if (!runningParties.size()) {
+		seat.runningParties.clear();
+		return;
+	}
 	seat.runningParties = splitString(runningParties, ",");
 }
 
