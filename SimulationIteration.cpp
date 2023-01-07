@@ -39,6 +39,53 @@ SimulationIteration::SimulationIteration(PollingProject& project, Simulation& si
 {
 }
 
+void SimulationIteration::reset()
+{
+	pastSeatResults.clear();
+	regionSeatCount.clear();
+	partyWins.clear();
+	regionSwing.clear();
+	partyOneNewTppMargin.clear();
+	seatWinner.clear();
+	seatFpVoteShare.clear();
+	seatTcpVoteShare.clear();
+	iterationOverallTpp = 0.0f;
+	iterationOverallSwing = 0.0f;
+	daysToElection = 0;
+	overallFpTarget.clear();
+	overallFpSwing.clear();
+	overallPreferenceFlow.clear();
+	overallExhaustRate.clear();
+	homeRegion.clear();
+	seatContested.clear();
+	centristPopulistFactor.clear();
+	partyIdeologies.clear();
+	partyConsistencies.clear();
+	fpModificationAdjustment.clear();
+	tempOverallFp.clear();
+
+	postCountFpShift.clear();
+
+	seatRegionSwing.clear();
+	seatElasticitySwing.clear();
+	seatLocalEffects.clear();
+	seatPreviousSwingEffect.clear();
+	seatFederalSwingEffect.clear();
+
+	prefCorrection = 0.0f;
+	overallFpError = 0.0f;
+	nonMajorFpError = 0.0f;
+	othersCorrectionFactor = 0.0f;
+	fedStateCorrelation = 0.0f;
+	ppvcBias = 0.0f;
+	decVoteBias = 0.0f;
+	indAlpha = 1.0f;
+	indBeta = 1.0f;
+	preferenceVariation.clear();
+
+	partySupport = std::array<int, 2>();
+}
+
 bool SimulationIteration::checkForNans(std::string const& loc) {
 	static bool alreadyLogged = false;
 	auto report = [&](int seatIndex, std::string type) {
@@ -97,16 +144,14 @@ void SimulationIteration::runIteration()
 		determineSeatInitialResults();
 
 		if (checkForNans("Before reconciling")) {
-			seatFpVoteShare.clear();
-			partyOneNewTppMargin.clear();
+			reset();
 			continue;
 		}
 
 		reconcileSeatAndOverallFp();
 
 		if (checkForNans("After reconciling")) {
-			seatFpVoteShare.clear();
-			partyOneNewTppMargin.clear();
+			reset();
 			continue;
 		}
 
@@ -1370,17 +1415,17 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, false);
 			if (!preferenceVariation.contains(partyIndex)) {
 				preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+				//preferenceVariation[partyIndex] = rng.normal(0.0f, 0.0f); // Use this line when debugging pref flows to make things clearer
 			}
-			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-			previousPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - exhaustRate);
+			previousPartyOnePrefEstimate += voteShare * effectivePreferenceFlow * 0.01f * (1.0f - exhaustRate);
 		}
 		else {
 			float previousPreferences = run.previousPreferenceFlow[partyIndex];
 			if (!preferenceVariation.contains(partyIndex)) {
 				preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+				//preferenceVariation[partyIndex] = rng.normal(0.0f, 0.0f); // Use this line when debugging pref flows to make things clearer
 			}
-			float randomisedPreferenceFlow = basicTransformedSwing(previousPreferences, preferenceVariation[partyIndex]);
-			previousPartyOnePrefEstimate += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - exhaustRate);
+			previousPartyOnePrefEstimate += voteShare * previousPreferences * 0.01f * (1.0f - exhaustRate);
 		}
 		previousNonMajorFpShare += voteShare * (1.0f - exhaustRate);
 		previousExhaustRateEstimate += exhaustRate * voteShare;
@@ -1479,12 +1524,13 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			float randomisedPreferenceFlow = basicTransformedSwing(currentPreferences, preferenceVariation[partyIndex]);
 			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - exhaustRate);
 		}
-		currentNonMajorFpShare += voteShare * (1.0f - exhaustRate);
+		currentNonMajorFpShare += voteShare;
 		currentExhaustRateEstimate += exhaustRate * voteShare;
 		currentExhuastDenominator += voteShare;
 	}
 	currentExhaustRateEstimate /= currentExhuastDenominator;
 	currentExhaustRateEstimate = std::clamp(currentExhaustRateEstimate + exhaustBiasRate, 0.0f, 1.0f);
+	float currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - currentExhaustRateEstimate);
 
 	static bool ProducedExhaustRateWarning = false;
 	if (currentExhaustRateEstimate && overallExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
@@ -1495,27 +1541,26 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	// Step 4: Adjust the current flow estimate according the bias the previous flow estimate had
 
-	float biasAdjustedPartyOnePrefs = currentPartyOnePrefs + preferenceBiasRate * currentNonMajorFpShare;
+	float biasAdjustedPartyOnePrefs = basicTransformedSwing(currentPartyOnePrefs, preferenceBiasRate * currentNonMajorTppShare);
 
 	// If it's been determined that the overall preference flow needs a correction, do that here.
-	float overallAdjustedPartyOnePrefs = biasAdjustedPartyOnePrefs + prefCorrection * currentNonMajorFpShare;
-	float overallAdjustedPartyTwoPrefs = currentNonMajorFpShare - overallAdjustedPartyOnePrefs;
+	float overallAdjustedPartyOnePrefs = biasAdjustedPartyOnePrefs + prefCorrection * currentNonMajorTppShare;
+	float overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
 
 	// Step 5: Actually esimate the major party fps based on these adjusted flows
 
 	// adjust everything that's still being used to be scaled so that the total non-exhausted votes is equal to 100%
-	float majorFpShare = seatFpVoteShare[seatIndex][0] + seatFpVoteShare[seatIndex][1];
+	float majorFpShare = 100.0f - currentNonMajorFpShare;
 	float nonExhaustedProportion = mix(1.0f, majorFpShare * 0.01f, currentExhaustRateEstimate * 1.0f);
-	float adjustmentFactor = 1.0f / nonExhaustedProportion;
-	overallAdjustedPartyOnePrefs *= adjustmentFactor;
-	overallAdjustedPartyTwoPrefs *= adjustmentFactor;
 
 	float partyTwoCurrentTpp = 100.0f - partyOneCurrentTpp;
 
 	// Estimate Fps by removing expected preferences from expected tpp, but keeping it above zero
 	// (as high 3rd-party fps can combine with a low tpp to push this below zero)
-	float newPartyOneFp = predictorCorrectorTransformedSwing(partyOneCurrentTpp, -overallAdjustedPartyOnePrefs);
-	float newPartyTwoFp = predictorCorrectorTransformedSwing(partyTwoCurrentTpp, -overallAdjustedPartyTwoPrefs);
+	float partyOneScaledTpp = partyOneCurrentTpp * nonExhaustedProportion;
+	float partyTwoScaledTpp = partyTwoCurrentTpp * nonExhaustedProportion;
+	float newPartyOneFp = predictorCorrectorTransformedSwing(partyOneScaledTpp, -overallAdjustedPartyOnePrefs);
+	float newPartyTwoFp = predictorCorrectorTransformedSwing(partyTwoScaledTpp, -overallAdjustedPartyTwoPrefs);
 
 	float newPartyOneTpp = overallAdjustedPartyOnePrefs + newPartyOneFp;
 	float newPartyTwoTpp = overallAdjustedPartyTwoPrefs + newPartyTwoFp;
@@ -1528,50 +1573,60 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	alp_add = (alp_tpp * fp_sum - alp_sum) / (1 - alp_tpp)
 	// If alp_add is below zero, then need to add LNP votes instead using equivalent formula
 	float addPartyOneFp = (partyOneCurrentTpp * totalTpp * 0.01f - newPartyOneTpp) / (1.0f - partyOneCurrentTpp * 0.01f);
+	float addPartyTwoFp = (partyTwoCurrentTpp * totalTpp * 0.01f - newPartyTwoTpp) / (1.0f - partyTwoCurrentTpp * 0.01f);
+	float finalPartyOneFp = newPartyOneFp;
+	float finalPartyTwoFp = newPartyTwoFp;
 	if (addPartyOneFp >= 0.0f) {
-		newPartyOneFp += addPartyOneFp;
+		finalPartyOneFp += addPartyOneFp;
 	}
 	else {
-		float addPartyTwoFp = (partyTwoCurrentTpp * totalTpp * 0.01f - newPartyTwoTpp) / (100.0f - partyTwoCurrentTpp * 0.01f);
-		newPartyTwoFp += addPartyTwoFp;
+		finalPartyTwoFp += addPartyTwoFp;
 	}
 
-	// Re-scale back to numbers including exhuasted votes
-	newPartyOneFp /= adjustmentFactor;
-	newPartyTwoFp /= adjustmentFactor;
-
-	//if (seat.name == "Northern Tablelands") {
-	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-	//	PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-	//	PA_LOG_VAR(partyOneCurrentTpp);
-	//	PA_LOG_VAR(partyTwoCurrentTpp);
-	//	PA_LOG_VAR(oldFpVotes);
-	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(currentNonMajorFpShare);
-	//	PA_LOG_VAR(previousNonMajorFpShare);
-	//	PA_LOG_VAR(previousPartyOnePrefEstimate);
-	//	PA_LOG_VAR(previousExhaustRateEstimate);
-	//	PA_LOG_VAR(previousExhuastDenominator);
-	//	PA_LOG_VAR(preferenceBiasRate);
-	//	PA_LOG_VAR(majorTcp);
-	//	PA_LOG_VAR(overallPreferenceFlow);
-	//	PA_LOG_VAR(currentPartyOnePrefs);
-	//	PA_LOG_VAR(currentNonMajorFpShare);
-	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//	PA_LOG_VAR(overallAdjustedPartyOnePrefs);
-	//	PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
-	//	PA_LOG_VAR(newPartyOneTpp);
-	//	PA_LOG_VAR(newPartyTwoTpp);
-	//	PA_LOG_VAR(totalTpp);
-	//	PA_LOG_VAR(addPartyOneFp);
-	//	PA_LOG_VAR(newPartyOneFp);
-	//	PA_LOG_VAR(newPartyTwoFp);
-	//	PA_LOG_VAR(majorFpShare);
-	//	PA_LOG_VAR(nonExhaustedProportion);
-	//	PA_LOG_VAR(adjustmentFactor);
-	//	PA_LOG_VAR(currentExhaustRateEstimate);
-	//	PA_LOG_VAR(currentExhuastDenominator);
-	//	PA_LOG_VAR(exhaustBiasRate);
+	//if (seat.name == "Terrigal") {
+	//	static int timesWritten = 0;
+	//	if (timesWritten < 10000) {
+	//		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+	//		PA_LOG_VAR(partyOneCurrentTpp);
+	//		PA_LOG_VAR(partyTwoCurrentTpp);
+	//		PA_LOG_VAR(oldFpVotes);
+	//		PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+	//		PA_LOG_VAR(previousNonMajorFpShare);
+	//		PA_LOG_VAR(previousPartyOnePrefEstimate);
+	//		PA_LOG_VAR(previousExhaustRateEstimate);
+	//		PA_LOG_VAR(previousExhuastDenominator);
+	//		PA_LOG_VAR(preferenceBiasRate);
+	//		PA_LOG_VAR(exhaustBiasRate);
+	//		PA_LOG_VAR(majorTcp);
+	//		PA_LOG_VAR(overallPreferenceFlow);
+	//		PA_LOG_VAR(overallExhaustRate);
+	//		PA_LOG_VAR(currentPartyOnePrefs);
+	//		PA_LOG_VAR(currentNonMajorFpShare);
+	//		PA_LOG_VAR(currentNonMajorTppShare);
+	//		PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+	//		PA_LOG_VAR(preferenceVariation);
+	//		PA_LOG_VAR(prefCorrection);
+	//		PA_LOG_VAR(overallAdjustedPartyOnePrefs);
+	//		PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
+	//		PA_LOG_VAR(partyOneScaledTpp);
+	//		PA_LOG_VAR(partyTwoScaledTpp);
+	//		PA_LOG_VAR(newPartyOneTpp);
+	//		PA_LOG_VAR(newPartyTwoTpp);
+	//		PA_LOG_VAR(totalTpp);
+	//		PA_LOG_VAR(addPartyOneFp);
+	//		PA_LOG_VAR(addPartyTwoFp);
+	//		PA_LOG_VAR(newPartyOneFp);
+	//		PA_LOG_VAR(newPartyTwoFp);
+	//		PA_LOG_VAR(majorFpShare);
+	//		PA_LOG_VAR(nonExhaustedProportion);
+	//		PA_LOG_VAR(currentExhaustRateEstimate);
+	//		PA_LOG_VAR(currentExhuastDenominator);
+	//		PA_LOG_VAR(exhaustBiasRate);
+	//		PA_LOG_VAR(finalPartyOneFp);
+	//		PA_LOG_VAR(finalPartyTwoFp);
+	//		++timesWritten;
+	//	}
 	//}
 
 	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
@@ -1584,31 +1639,39 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	PA_LOG_VAR(partyTwoCurrentTpp);
 	//	PA_LOG_VAR(oldFpVotes);
 	//	PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//	PA_LOG_VAR(currentNonMajorFpShare);
 	//	PA_LOG_VAR(previousNonMajorFpShare);
 	//	PA_LOG_VAR(previousPartyOnePrefEstimate);
 	//	PA_LOG_VAR(previousExhaustRateEstimate);
 	//	PA_LOG_VAR(previousExhuastDenominator);
 	//	PA_LOG_VAR(preferenceBiasRate);
+	//	PA_LOG_VAR(exhaustBiasRate);
 	//	PA_LOG_VAR(majorTcp);
 	//	PA_LOG_VAR(overallPreferenceFlow);
+	//	PA_LOG_VAR(overallExhaustRate);
 	//	PA_LOG_VAR(currentPartyOnePrefs);
 	//	PA_LOG_VAR(currentNonMajorFpShare);
+	//	PA_LOG_VAR(currentNonMajorTppShare);
 	//	PA_LOG_VAR(biasAdjustedPartyOnePrefs);
+	//	PA_LOG_VAR(preferenceVariation);
+	//	PA_LOG_VAR(prefCorrection);
 	//	PA_LOG_VAR(overallAdjustedPartyOnePrefs);
 	//	PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
+	//	PA_LOG_VAR(partyOneScaledTpp);
+	//	PA_LOG_VAR(partyTwoScaledTpp);
 	//	PA_LOG_VAR(newPartyOneTpp);
 	//	PA_LOG_VAR(newPartyTwoTpp);
 	//	PA_LOG_VAR(totalTpp);
 	//	PA_LOG_VAR(addPartyOneFp);
+	//	PA_LOG_VAR(addPartyTwoFp);
 	//	PA_LOG_VAR(newPartyOneFp);
 	//	PA_LOG_VAR(newPartyTwoFp);
 	//	PA_LOG_VAR(majorFpShare);
 	//	PA_LOG_VAR(nonExhaustedProportion);
-	//	PA_LOG_VAR(adjustmentFactor);
 	//	PA_LOG_VAR(currentExhaustRateEstimate);
 	//	PA_LOG_VAR(currentExhuastDenominator);
 	//	PA_LOG_VAR(exhaustBiasRate);
+	//	PA_LOG_VAR(finalPartyOneFp);
+	//	PA_LOG_VAR(finalPartyTwoFp);
 	//	throw 1;
 	//}
 
@@ -1719,10 +1782,14 @@ void SimulationIteration::calculatePreferenceCorrections()
 {
 	float estTppSeats = 0.0f;
 	float totalPrefs = 0.0f;
+	float totalNonExhaust = 0.0f;
 	for (auto [partyIndex, prefFlow] : tempOverallFp) {
-		estTppSeats += overallPreferenceFlow[partyIndex] * tempOverallFp[partyIndex] * 0.01f;
-		if (!isMajor(partyIndex)) totalPrefs += tempOverallFp[partyIndex] * (1.0f - overallExhaustRate[partyIndex]);
+		float voteSize = tempOverallFp[partyIndex] * (1.0f - overallExhaustRate[partyIndex]);
+		estTppSeats += overallPreferenceFlow[partyIndex] * voteSize * 0.01f;
+		totalNonExhaust += voteSize;
+		if (!isMajor(partyIndex)) totalPrefs += voteSize;
 	}
+	estTppSeats /= (totalNonExhaust * 0.01f);
 	float prefError = estTppSeats - iterationOverallTpp;
 	// Since, for each sample/seat reconciliation cycle, the previous pref correction is already built
 	// into the preferences for each seat, so add the current bias from the present number

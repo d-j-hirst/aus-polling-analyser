@@ -47,6 +47,7 @@ private:
 		bool hasMysteryBooths() { return std::accumulate(mysteryBoothCounts.begin(), mysteryBoothCounts.end(), 0); }
 	};
 
+	void reset();
 	bool checkForNans(std::string const& loc);
 	void initialiseIterationSpecificCounts();
 	void determineFedStateCorrelation();
@@ -100,11 +101,11 @@ private:
 	void recordSwingFactors();
 
 	OddsInfo calculateOddsInfo(Seat const& thisSeat);
-	
-	struct SeatCandidate { int vote; Party::Id partyId; float weight; };
-	typedef std::vector<SeatCandidate> SeatCandidates;
 
 	float calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const;
+
+	struct SeatCandidate { int vote; Party::Id partyId; float weight; };
+	typedef std::vector<SeatCandidate> SeatCandidates;
 
 	PollingProject & project;
 	Simulation& sim;
@@ -113,6 +114,7 @@ private:
 	typedef std::map<int, float> FloatByPartyIndex;
 
 	// iteration-specific variables
+	// *** IMPORTANT NOTE: Add all new variables to this class's reset() function *** //
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::map<int, std::vector<int>> regionSeatCount; // party, then region
 	std::map<int, int> partyWins;
@@ -156,4 +158,5 @@ private:
 	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
 
 	std::array<int, 2> partySupport = std::array<int, 2>();
+	// *** IMPORTANT NOTE: see above *** //
 };
