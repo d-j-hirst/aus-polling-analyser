@@ -734,13 +734,16 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
-		float randomVariation = historicalSamples >= 2
+		float randomPreferenceVariation = historicalSamples >= 2
 			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, 0.0f, deviation)
 			: 0.0f;
-		float randomisedFlow = basicTransformedSwing(flow, randomVariation);
+		float randomisedFlow = basicTransformedSwing(flow, randomPreferenceVariation);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
+		// distribution approximately taken from NSW elections
+		float randomExhaustVariation = rng.scaledTdist(6, 0.0f, 0.054f);
+		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		sample.exhaustRate.insert({ key, exhaustRate });
+		sample.exhaustRate.insert({ key, randomisedExhaustRate });
 		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
 		totalTpp += support * (1.0f - exhaustRate);
 	}
