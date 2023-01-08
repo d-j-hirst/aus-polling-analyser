@@ -82,6 +82,7 @@ void SimulationIteration::reset()
 	indAlpha = 1.0f;
 	indBeta = 1.0f;
 	preferenceVariation.clear();
+	exhaustVariation.clear();
 
 	partySupport = std::array<int, 2>();
 }
@@ -791,6 +792,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
 	preferenceVariation.clear();
+	exhaustVariation.clear();
 	allocateMajorPartyFp(seatIndex);
 }
 
@@ -875,7 +877,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp += rng.uniform(0.0f, 15.0f);
 	}
 
-	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) * 0.5f + 0.5f : rng.uniform();
+	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) : rng.uniform();
 	float variableVote = rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
 	transformedFp += variableVote;
 	// Model can't really deal with the libs not existing (=> large OTH vote) in Richmond 2018
@@ -1125,6 +1127,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(seatFpVoteShare[seatIndex][run.indPartyIndex], detransformVoteShare(transformedVoteShare));
 	}
+
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
@@ -1413,18 +1416,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		// Use a special formula for IND-like preference flows that accounts for tactical voting
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, false);
-			if (!preferenceVariation.contains(partyIndex)) {
-				preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
-				//preferenceVariation[partyIndex] = rng.normal(0.0f, 0.0f); // Use this line when debugging pref flows to make things clearer
-			}
 			previousPartyOnePrefEstimate += voteShare * effectivePreferenceFlow * 0.01f * (1.0f - exhaustRate);
 		}
 		else {
 			float previousPreferences = run.previousPreferenceFlow[partyIndex];
-			if (!preferenceVariation.contains(partyIndex)) {
-				preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
-				//preferenceVariation[partyIndex] = rng.normal(0.0f, 0.0f); // Use this line when debugging pref flows to make things clearer
-			}
 			previousPartyOnePrefEstimate += voteShare * previousPreferences * 0.01f * (1.0f - exhaustRate);
 		}
 		previousNonMajorFpShare += voteShare * (1.0f - exhaustRate);
@@ -1514,18 +1509,21 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 			continue;
 		}
 		float exhaustRate = calculateEffectiveExhaustRate(partyIndex, true);
+		if (!preferenceVariation.contains(partyIndex)) preferenceVariation[partyIndex] = rng.normal(0.0f, 15.0f);
+		if (!exhaustVariation.contains(partyIndex)) exhaustVariation[partyIndex] = rng.normal(0.0f, 0.15f);
+		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, exhaustVariation[partyIndex]) : 0.0f;
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, true);
 			float randomisedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceVariation[partyIndex]);
-			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - exhaustRate);
+			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - randomisedExhaustRate);
 		}
 		else {
 			float currentPreferences = overallPreferenceFlow[partyIndex];
 			float randomisedPreferenceFlow = basicTransformedSwing(currentPreferences, preferenceVariation[partyIndex]);
-			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - exhaustRate);
+			currentPartyOnePrefs += voteShare * randomisedPreferenceFlow * 0.01f * (1.0f - randomisedExhaustRate);
 		}
 		currentNonMajorFpShare += voteShare;
-		currentExhaustRateEstimate += exhaustRate * voteShare;
+		currentExhaustRateEstimate += randomisedExhaustRate * voteShare;
 		currentExhuastDenominator += voteShare;
 	}
 	currentExhaustRateEstimate /= currentExhuastDenominator;
@@ -1928,9 +1926,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
 			// This is a fallback estimate for parties without a specified within-party exahust rate
-			float survivalRate = 1.0f - overallExhaustRate[sourceParty];
-			// Fallback figure for major parties when OPV is in force
-			if (isMajor(sourceParty) && overallExhaustRate[OthersIndex] > 0.01f) survivalRate = 0.4f;
+			// Typically non-classic exhaust rates are a bit higher than classic ones
+			float survivalRate = (1.0f - overallExhaustRate[sourceParty]) * 0.85f;
+			// Fallback figure for major parties when OPV is in force. Past observations suggest a somewhat lower
+			// exhaust rate for ALP votes than other parties
+			if (sourceParty == 0 && overallExhaustRate[OthersIndex] > 0.01f) survivalRate = 0.5f;
+			else if (sourceParty == 1 && overallExhaustRate[OthersIndex] > 0.01f) survivalRate = 0.4f;
 
 			// if it's a final-two situation, check if we have known preference flows
 			if (int(accumulatedVoteShares.size() == 2)) {
@@ -1940,8 +1941,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 					if (item.contains(targetParties)) {
 						float flow = item.at(targetParties);
 						float transformedFlow = transformVoteShare(flow);
-						transformedFlow += rng.normal(0.0f, 10.0f);
+						// Higher variation in preference flow under OPV
+						transformedFlow += rng.normal(0.0f, 10.0f + 10.0f * (1.0f - survivalRate));
 						flow = detransformVoteShare(transformedFlow);
+						float transformedSurvival = transformVoteShare(survivalRate);
+						transformedSurvival += rng.normal(0.0f, 15.0f);
+						survivalRate = detransformVoteShare(transformedSurvival);
 						// later, include custom exhaust rate for known nc preference flows
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * flow * survivalRate;
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - flow) * survivalRate;

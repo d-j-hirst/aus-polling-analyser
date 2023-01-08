@@ -156,6 +156,7 @@ private:
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;
 	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
+	std::map<int, float> exhaustVariation;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();
 	// *** IMPORTANT NOTE: see above *** //

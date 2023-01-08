@@ -744,8 +744,8 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
 		sample.exhaustRate.insert({ key, randomisedExhaustRate });
-		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
-		totalTpp += support * (1.0f - exhaustRate);
+		partyOneTpp += support * randomisedFlow * (1.0f - randomisedExhaustRate);
+		totalTpp += support * (1.0f - randomisedExhaustRate);
 	}
 	sample.voteShare[TppCode] = partyOneTpp * (100.0f / totalTpp);
 }
@@ -769,11 +769,14 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 		float randomisedFlow = basicTransformedSwing(flow, randomVariation);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
+		// distribution approximately taken from NSW elections
+		float randomExhaustVariation = rng.scaledTdist(6, 0.0f, 0.054f);
+		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		sample.exhaustRate.insert({ key, exhaustRate });
-		partyOneTpp += support * randomisedFlow * (1.0f - exhaustRate);
+		sample.exhaustRate.insert({ key, randomisedExhaustRate });
+		partyOneTpp += support * randomisedFlow * (1.0f - randomisedExhaustRate);
 		totalFp += support;
-		exhaustedFp += support * exhaustRate;
+		exhaustedFp += support * randomisedExhaustRate;
 	}
 	sample.preferenceFlow[partyCodeVec[0]] = 100.0f;
 	sample.preferenceFlow[partyCodeVec[1]] = 0.0f;
