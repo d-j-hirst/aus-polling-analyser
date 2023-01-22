@@ -609,26 +609,28 @@ void SimulationPreparation::loadPastSeatResults()
 	if (run.getTermCode() == "2023nsw") {
 		// Due to the circumstances of these candidates leaving SFF and becoming independents,
 		// a special adjustment needs to be made (there is no appropriate historical precedent.)
-		// Two-thirds of the SFF candidate's former vote is transferred to IND and the rest
-		// is added to the OTH vote.
+		// The SFF vote is treated as if it were independent.
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			if (project.seats().viewByIndex(seatIndex).name == "Barwon") {
 				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 15218;
 				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 32.96f;
 				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 5873;
 				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 12.72f;
+				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] = 56.6f;
 			}
 			else if (project.seats().viewByIndex(seatIndex).name == "Murray") {
 				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 18305;
 				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 38.75f;
 				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 6919;
 				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 14.65f;
+				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] = 53.54f;
 			}
 			else if (project.seats().viewByIndex(seatIndex).name == "Orange") {
 				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 24718;
 				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 49.15f;
 				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 4849;
 				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 9.64f;
+				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] = 65.18f;
 			}
 		}
 		logger << "adding SFF -> IND seats\n";
