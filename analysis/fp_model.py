@@ -446,8 +446,8 @@ def run_individual_party(config, m_data, e_data,
     # use determined house effect weights when running forecasts
     he_weights = [
         1 if config.calibrate_pollsters or config.calibrate_bias else
-        4 / (m_data.pollster_biases[(e_data.e_tuple, x, party)][1] ** 2) if
-        (e_data.e_tuple, x, party) in m_data.pollster_biases else 0.05
+        m_data.pollster_he_weights[(x, party)] ** 2 if
+        (x, party) in m_data.pollster_he_weights else 0.05
         for x in houses
     ]
 
@@ -513,7 +513,7 @@ def run_individual_party(config, m_data, e_data,
         # modelled as a double exponential to avoid
         # easily giving a large house effect, but
         # still giving a big one when it's really warranted
-        'houseEffectSigma': 1.5,
+        'houseEffectSigma': 1.2,
 
         # prior distribution for sum of house effects
         # keep this very small, we will deal with systemic bias
@@ -634,7 +634,12 @@ def run_individual_party(config, m_data, e_data,
         polls_file.write(',' + party + ' reported')
     polls_file.write('\n')
     for poll_index in df.index:
-        polls_file.write(str(df.loc[poll_index, 'Firm']))
+        if 'Brand' in df and isinstance(df.loc[poll_index, 'Brand'], str) and len(df.loc[poll_index, 'Brand']) > 0:
+            print("Writing brand")
+            polls_file.write(str(df.loc[poll_index, 'Brand']))
+        else:
+            print("Writing firm")
+            polls_file.write(str(df.loc[poll_index, 'Firm']))
         day = df.loc[poll_index, 'Day']
         days_ago = e_data.n_days - day
         polls_file.write(',' + str(day))
