@@ -640,7 +640,8 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	// Add modifiers for known local effects
 	transformedTpp += localEffects;
 	// Remove the average local modifier across the region
-	transformedTpp -= run.regionLocalModifierAverage[seat.region];
+	// Only do this for federal election since we don't have regional swing estimates otherwise
+	if (run.regionCode == "fed") transformedTpp -= run.regionLocalModifierAverage[seat.region];
 	transformedTpp += previousSwingEffect;
 	transformedTpp += federalSwingEffect;
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;

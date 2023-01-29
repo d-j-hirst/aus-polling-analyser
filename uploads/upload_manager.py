@@ -27,11 +27,14 @@ parser.add_argument('--remote', action='store_true',
 parser.add_argument('--all', action='store_true',
                     help='Upload to both local and remote server')
 parser.add_argument('--timeseries', action='store',
-                    help='Update timeseries instead of uploading forecast')
+                    help='Update timeseries instead of uploading forecast. '
+                         'Include argument e.g. 2022fed')
 parser.add_argument('--results', action='store',
-                    help='Update results instead of uploading forecast')
+                    help='Update results instead of uploading forecast. '
+                         'Include argument e.g. 2022fed')
 parser.add_argument('--review', action='store',
-                    help='Review results instead of uploading forecast')
+                    help='Review results instead of uploading forecast. '
+                         'Include argument e.g. 2022fed')
 upload_local = parser.parse_args().local or parser.parse_args().all
 upload_test = parser.parse_args().test or parser.parse_args().all
 upload_remote = parser.parse_args().remote or parser.parse_args().all
