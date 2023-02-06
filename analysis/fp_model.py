@@ -62,11 +62,17 @@ class Config:
                             'days before an election. Useful for creating'
                             'hindcasts for previous elections.', 
                             default=0)
+        parser.add_argument('--pure', action='store_true',
+                            help="Only use primary voting intention results, "
+                            'not approval ratings, TPP-only polls or other '
+                            'measures. Outputs with _pure suffix.', 
+                            default=0)
         self.election_instructions = parser.parse_args().election.lower()
         self.calibrate_pollsters = parser.parse_args().calibrate == True
         self.calibrate_bias = (not self.calibrate_pollsters and 
                                parser.parse_args().bias == True)
         self.cutoff = parser.parse_args().cutoff
+        self.pure = parser.parse_args().pure == True
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -215,16 +221,17 @@ class ElectionData:
         else:
             self.pollster_exclusions = ['']
 
+        self.create_day_series()
+
         self.create_tpp_series(m_data=m_data, 
                                desired_election=desired_election, 
                                df=self.base_df)
         
         self.combine_others_parties()
 
-        self.create_day_series()
-
     def create_tpp_series(self, m_data, desired_election, df):
-        df['old_tpp'] = df['@TPP']
+        if 'old_tpp' not in df:
+            df['old_tpp'] = df['@TPP']
         num_polls = len(df['@TPP'].values.tolist())
         min_index = df.index.values.tolist()[0]
         adjustments = {a + min_index: 0 for a in range(0, num_polls)}
@@ -265,16 +272,10 @@ class ElectionData:
             pref_col = df[column].fillna(0)
             df['@TPP'] += pref_col * preference_flow * preference_survival
             df['Total'] += pref_col * preference_survival
-            print(pref_col)
-            print(preference_flow)
-            print(preference_survival)
-            print(df['@TPP'])
-            print(df['Total'])
         df['@TPP'] += adjustment_series
         df['@TPP'] /= (df['Total'] * 0.01)
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
-        print(df['@TPP'])
     
     def combine_others_parties(self):
         # push misc parties into Others, as explained above
@@ -291,12 +292,12 @@ class ElectionData:
         # Convert "days" objects into raw numerical data
         # that Stan can accept
         for i in self.base_df.index:
-            self.base_df.loc[i, 'Day'] = self.base_df.loc[i, 'Day'].n + 1
+            self.base_df.loc[i, 'DayNum'] = int(self.base_df.loc[i, 'Day'].n + 1)
 
 
 def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
                         n_houses, output_probs, df):
-    exc_poll_data = [a for a in zip(exc_polls['Day'], exc_polls[party],
+    exc_poll_data = [a for a in zip(exc_polls['DayNum'], exc_polls[party],
                      exc_polls.axes[0], exc_polls['Firm'])]
     if len(exc_poll_data) <= 1: return
     print(f'Trend closeness statistics for {excluded_pollster}')
@@ -345,7 +346,7 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
         deviation = adj_poll - trend_median
         prob_deviation = abs(percentile - 0.5)
         neighbours = sum([min(1, 2 ** (-abs(day - other_day) / 20) * 0.5)
-                      for other_day in df['Day']
+                      for other_day in df['DayNum']
                      ])
         e_data.poll_calibrations[(excluded_pollster, day,
                                   party, poll_index)] = \
@@ -494,7 +495,7 @@ def run_individual_party(config, m_data, e_data,
         'pollObservations': y.values,
         'missingObservations': missing.values,
         'pollHouse': df['House'].values.tolist(),
-        'pollDay': df['Day'].values.tolist(),
+        'pollDay': [int(a) for a in df['DayNum'].values],
         'discontinuities': discontinuities_filtered,
         'sigmas': sigmas.values,
         'heWeights': he_weights,
@@ -570,14 +571,15 @@ def run_individual_party(config, m_data, e_data,
     calib_str = ("Calibration/" if config.calibrate_pollsters
                  or config.calibrate_bias else "")
     folder = (f'./Outputs/{calib_str}')
+    pure_append = f'_pure' if config.pure else ''
     cutoff_append = f'_{config.cutoff}d' if config.cutoff > 0 else ''
 
     output_trend = (f'{folder}fp_trend_{e_tag}_{party}{pollster_append}'
-                    f'{cutoff_append}.csv')
+                    f'{pure_append}{cutoff_append}.csv')
     output_polls = (f'{folder}fp_polls_{e_tag}_{party}{pollster_append}'
-                    f'{cutoff_append}.csv')
+                    f'{pure_append}{cutoff_append}.csv')
     output_house_effects = (f'{folder}fp_house_effects_{e_tag}_'
-        f'{party}{pollster_append}{cutoff_append}.csv')
+        f'{party}{pollster_append}{pure_append}{cutoff_append}.csv')
 
     if party in others_parties or party == 'GRN FP':
         e_data.others_medians[party] = {}
@@ -640,7 +642,7 @@ def run_individual_party(config, m_data, e_data,
         else:
             print("Writing firm")
             polls_file.write(str(df.loc[poll_index, 'Firm']))
-        day = df.loc[poll_index, 'Day']
+        day = df.loc[poll_index, 'DayNum']
         days_ago = e_data.n_days - day
         polls_file.write(',' + str(day))
         fp = df.loc[poll_index, party]
@@ -782,6 +784,11 @@ def run_models():
         for excluded_pollster in e_data.pollster_exclusions:
 
             for party in m_data.parties[e_data.e_tuple]:
+
+                if party == "@TPP":
+                    e_data.create_tpp_series(m_data,
+                                             desired_election,
+                                             e_data.base_df)
 
                 if excluded_pollster != '':
                     print(f'Excluding pollster: {excluded_pollster}')
