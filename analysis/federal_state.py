@@ -2,7 +2,6 @@ import pickle
 import argparse
 import requests
 from bs4 import BeautifulSoup
-from sklearn.linear_model import LinearRegression, QuantileRegressor
 import numpy
 import statsmodels.api as sm
 
