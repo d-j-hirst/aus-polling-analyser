@@ -14,9 +14,6 @@ def report(df):
     byelection_swing = np.array(df['byelecswing'].tolist())
     swing_dev = np.array(df['swingdev'].tolist())
 
-    print(byelection_swing)
-    print(swing_dev)
-
     ols_model = sm.OLS(swing_dev, byelection_swing)
     ols_results = ols_model.fit()
     print(ols_results.summary())

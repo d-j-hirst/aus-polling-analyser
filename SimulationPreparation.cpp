@@ -126,6 +126,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatLocalEffectsSums.resize(project.seats().count(), 0.0);
 	run.seatPreviousSwingEffectSums.resize(project.seats().count(), 0.0);
 	run.seatFederalSwingEffectSums.resize(project.seats().count(), 0.0);
+	run.seatByElectionEffectSums.resize(project.seats().count(), 0.0);
 	run.seatLocalEffects.resize(project.seats().count());
 }
 
@@ -989,6 +990,9 @@ void SimulationPreparation::loadTppSwingFactors()
 		}
 		else if (values[0] == "previous-swing-modifier") {
 			run.tppSwingFactors.previousSwingModifier = std::stof(values[1]);
+		}
+		else if (values[0] == "by-election-modifier") {
+			run.tppSwingFactors.byElectionSwingModifier = std::stof(values[1]);
 		}
 	} while (true);
 }

@@ -393,6 +393,13 @@ def load_seat_regions():
         seat_regions = {(a[0], a[1]): a[2] for a in linelists}
     return seat_regions
 
+def load_by_elections():
+    with open('Data/by-elections.csv', 'r') as f:
+        linelists = [b.strip().split(',') for b in f.readlines()]
+        by_elections = {(int(a[7]), a[0]): float(a[3]) for a in linelists[1:]}
+    return by_elections
+
+
 
 def analyse_emerging_independents(elections, seat_types):
     d = {
@@ -1117,7 +1124,7 @@ def analyse_region_swings():
 majors = ['Liberal', 'National', 'Liberal National', 'Labor', 'Country Liberal']
 
 
-def analyse_seat_swings(elections, seat_types, seat_regions):
+def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
     alp_swings = {}
     federals = {}
     margins = {}
@@ -1128,6 +1135,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urbans = {}
     sophomore_party_regionals = {}
     previous_swings = {}
+    by_election_swings = {}
     names = {}
     for this_election, this_results in elections.items():
         previous_elections = elections.previous_elections(this_election)
@@ -1152,9 +1160,10 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 continue
             this_seat_result = this_results.seat_by_name(this_seat_name)
             # These automatically gives None if no seat is found
-            previous_seat_result = (previous_results.seat_by_name(this_seat_name,
-                                    include_name_changes=True)
-                                    if previous_results is not None else None)
+            previous_seat_result = (previous_results.seat_by_name(
+                this_seat_name,
+                include_name_changes=True
+            ) if previous_results is not None else None)
             old_seat_result = (old_results.seat_by_name(this_seat_name,
                                include_name_changes=True)
                                if old_results is not None else None)
@@ -1214,6 +1223,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 sophomore_party_urbans[this_election] = {}
                 sophomore_party_regionals[this_election] = {}
                 previous_swings[this_election] = {}
+                by_election_swings[this_election] = {}
                 names[this_election] = {}
             if this_seat_region not in alp_swings[this_election]:
                 alp_swings[this_election][this_seat_region] = []
@@ -1226,6 +1236,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                 sophomore_party_urbans[this_election][this_seat_region] = []
                 sophomore_party_regionals[this_election][this_seat_region] = []
                 previous_swings[this_election][this_seat_region] = []
+                by_election_swings[this_election][this_seat_region] = []
                 names[this_election][this_seat_region] = []
 
             temp_incumbent_retirement = 0
@@ -1257,6 +1268,11 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                     temp_previous_swing = previous_seat_result.tcp[0].swing
                     if previous_seat_result.tcp[0].party != 'Labor':
                         temp_previous_swing *= -1
+
+            temp_by_election_swing = 0
+            by_election_tag = (this_election.year(), this_seat_name)
+            if by_election_tag in by_elections:
+                temp_by_election_swing = by_elections[by_election_tag]
 
             # This code is here to look for movements to and from
             # three-cornered ALP/Lib/Nat contests. It didn't find a strong
@@ -1297,6 +1313,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             sophomore_party_regionals[this_election][this_seat_region].append(temp_sophomore_party
                 if seat_types[(this_seat_name, this_election.region())] >= 2 else 0)
             previous_swings[this_election][this_seat_region].append(temp_previous_swing)
+            by_election_swings[this_election][this_seat_region].append(temp_by_election_swing)
             names[this_election][this_seat_region].append(this_seat_name)
     region_averages = {election: {region: statistics.mean(x)
                                   for region, x in a.items()}
@@ -1334,6 +1351,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urban_flat = []
     sophomore_party_regional_flat = []
     previous_swing_deviations_flat = []
+    by_election_swing_flat = []
     names_flat = []
     election_regions_flat = []
     regions_flat = []
@@ -1351,6 +1369,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
             sophomore_party_urban_flat += sophomore_party_urbans[election_code][region_code]
             sophomore_party_regional_flat += sophomore_party_regionals[election_code][region_code]
             previous_swing_deviations_flat += previous_swing_deviations[election_code][region_code]
+            by_election_swing_flat += by_election_swings[election_code][region_code]
             names_flat += names[election_code][region_code]
             election_regions_flat += [election_code.region()] * len(region)
             regions_flat += [region_code] * len(region)
@@ -1363,7 +1382,8 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
                                                 sophomore_candidate_regional_flat,
                                                 sophomore_party_urban_flat,
                                                 sophomore_party_regional_flat,
-                                                previous_swing_deviations_flat]))
+                                                previous_swing_deviations_flat,
+                                                by_election_swing_flat]))
     results_array = numpy.array(alp_deviations_flat)
     reg = LinearRegression().fit(inputs_array, results_array)
     retirement_urban = reg.coef_[0]
@@ -1373,6 +1393,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
     sophomore_party_urban = reg.coef_[4]
     sophomore_party_regional = reg.coef_[5]
     previous_swing_modifier = reg.coef_[6]
+    by_election_modifier = reg.coef_[7]
 
     # Analysis of swing *magnitude* factors
     inputs_array = numpy.transpose(numpy.array([federal_flat, region_swings_flat, margins_flat]))
@@ -1397,6 +1418,7 @@ def analyse_seat_swings(elections, seat_types, seat_regions):
         f.write(f'sophomore-party-urban,{sophomore_party_urban}\n')
         f.write(f'sophomore-party-regional,{sophomore_party_regional}\n')
         f.write(f'previous-swing-modifier,{previous_swing_modifier}\n')
+        f.write(f'by-election-modifier,{by_election_modifier}\n')
 
     individual_infos = {}
     for i in range(0, len(names_flat)):
@@ -1510,6 +1532,8 @@ if __name__ == '__main__':
     elections = get_checked_elections()
     seat_types = load_seat_types()
     seat_regions = load_seat_regions()
+    by_elections = load_by_elections()
+    print(by_elections)
     analyse_greens(elections)
     analyse_existing_independents(elections)
     analyse_emerging_independents(elections, seat_types)
@@ -1518,6 +1542,6 @@ if __name__ == '__main__':
     analyse_others(elections)
     analyse_emerging_parties(elections)
     analyse_region_swings()
-    analyse_seat_swings(elections, seat_types, seat_regions)
+    analyse_seat_swings(elections, seat_types, seat_regions, by_elections)
     analyse_green_independent_correlation(elections)
     print("Analysis completed.")

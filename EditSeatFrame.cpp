@@ -27,6 +27,7 @@ enum ControlId
 	PreviousSwing,
 	LocalModifier,
 	TransposedTppSwing,
+	ByElectionSwing,
 	IncumbentOdds,
 	ChallengerOdds,
 	Challenger2Odds,
@@ -87,6 +88,7 @@ void EditSeatFrame::createControls(int & y)
 	createPreviousSwingInput(y);
 	createLocalModifierInput(y);
 	createTransposedTppSwingInput(y);
+	createByElectionSwingInput(y);
 	createIncumbentOddsInput(y);
 	createChallengerOddsInput(y);
 	createChallenger2OddsInput(y);
@@ -214,6 +216,15 @@ void EditSeatFrame::createTransposedTppSwingInput(int& y)
 	transposedTppSwingInput.reset(new FloatInput(this, ControlId::TransposedTppSwing, "Transposed TPP Swing:", seat.transposedTppSwing,
 		wxPoint(2, y), callback, validator));
 	y += transposedTppSwingInput->Height + ControlPadding;
+}
+
+void EditSeatFrame::createByElectionSwingInput(int& y)
+{
+	auto callback = [this](float f) -> void {seat.byElectionSwing = f; };
+	auto validator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
+	byElectionSwingInput.reset(new FloatInput(this, ControlId::ByElectionSwing, "By-Election Swing:", seat.byElectionSwing,
+		wxPoint(2, y), callback, validator));
+	y += byElectionSwingInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createIncumbentOddsInput(int & y)

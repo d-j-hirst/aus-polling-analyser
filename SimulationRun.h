@@ -117,6 +117,7 @@ public:
 		float sophomorePartyUrban;
 		float sophomorePartyRegional;
 		float previousSwingModifier;
+		float byElectionSwingModifier;
 	};
 
 	struct IndividualSeatParameters {
@@ -198,6 +199,7 @@ private:
 	std::vector<double> seatLocalEffectsSums;
 	std::vector<double> seatPreviousSwingEffectSums;
 	std::vector<double> seatFederalSwingEffectSums;
+	std::vector<double> seatByElectionEffectSums;
 	std::vector<std::vector<std::pair<std::string, double>>> seatLocalEffects;
 
 	// Store all potential TCP results found in iterations

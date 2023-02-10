@@ -63,7 +63,8 @@
 // Version 56: minor candidate viability rating
 // Version 57: candidate names
 // Version 58: seat swing factors
-constexpr int VersionNum = 58;
+// Version 59: by-election swings
+constexpr int VersionNum = 59;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -494,6 +495,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput << thisSeat.previousSwing;
 		saveOutput << thisSeat.localModifier;
 		saveOutput << thisSeat.transposedTppSwing;
+		saveOutput << thisSeat.byElectionSwing;
 		saveOutput << thisSeat.incumbentOdds;
 		saveOutput << thisSeat.challengerOdds;
 		saveOutput << thisSeat.challenger2Odds;
@@ -549,6 +551,7 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		if (versionNum >= 34) saveInput >> thisSeat.previousSwing;
 		saveInput >> thisSeat.localModifier;
 		if (versionNum >= 54) saveInput >> thisSeat.transposedTppSwing;
+		if (versionNum >= 59) saveInput >> thisSeat.byElectionSwing;
 		saveInput >> thisSeat.incumbentOdds;
 		saveInput >> thisSeat.challengerOdds;
 		saveInput >> thisSeat.challenger2Odds;

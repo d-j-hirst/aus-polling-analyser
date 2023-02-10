@@ -63,6 +63,8 @@ public:
 
 	float transposedTppSwing = 0.0f;
 
+	float byElectionSwing = 0.0f;
+
 	// Party one probability is calculated as being 1 - the other two parties,
 	// which allows for conveniently adding a party as certain to win a seat without needing any other input
 	int livePartyOne = Party::InvalidId;

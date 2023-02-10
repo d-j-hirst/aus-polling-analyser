@@ -57,6 +57,7 @@ private:
 	void createPreviousSwingInput(int& y);
 	void createLocalModifierInput(int& y);
 	void createTransposedTppSwingInput(int& y);
+	void createByElectionSwingInput(int& y);
 	void createIncumbentOddsInput(int& y);
 	void createChallengerOddsInput(int& y);
 	void createChallenger2OddsInput(int& y);
@@ -117,6 +118,7 @@ private:
 	std::unique_ptr<FloatInput> previousSwingInput;
 	std::unique_ptr<FloatInput> localModifierInput;
 	std::unique_ptr<FloatInput> transposedTppSwingInput;
+	std::unique_ptr<FloatInput> byElectionSwingInput;
 	std::unique_ptr<FloatInput> incumbentOddsInput;
 	std::unique_ptr<FloatInput> challengerOddsInput;
 	std::unique_ptr<FloatInput> challenger2OddsInput;
