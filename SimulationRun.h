@@ -200,6 +200,7 @@ private:
 	std::vector<double> seatPreviousSwingEffectSums;
 	std::vector<double> seatFederalSwingEffectSums;
 	std::vector<double> seatByElectionEffectSums;
+	std::vector<double> seatThirdPartyExhaustEffectSums;
 	std::vector<std::vector<std::pair<std::string, double>>> seatLocalEffects;
 
 	// Store all potential TCP results found in iterations

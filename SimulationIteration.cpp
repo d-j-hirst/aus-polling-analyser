@@ -72,6 +72,7 @@ void SimulationIteration::reset()
 	seatPreviousSwingEffect.clear();
 	seatFederalSwingEffect.clear();
 	seatByElectionEffect.clear();
+	seatThirdPartyExhaustEffect.clear();
 
 	prefCorrection = 0.0f;
 	overallFpError = 0.0f;
@@ -82,8 +83,6 @@ void SimulationIteration::reset()
 	decVoteBias = 0.0f;
 	indAlpha = 1.0f;
 	indBeta = 1.0f;
-	preferenceVariation.clear();
-	exhaustVariation.clear();
 
 	partySupport = std::array<int, 2>();
 }
@@ -182,6 +181,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatPreviousSwingEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatFederalSwingEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatByElectionEffect = std::vector<double>(project.seats().count(), 0.0);
+	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
 }
 
 void SimulationIteration::determineFedStateCorrelation()
@@ -615,11 +615,14 @@ void SimulationIteration::correctRegionalSwings()
 void SimulationIteration::determineSeatInitialResults()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		determineSeatInitialFp(seatIndex);
+	}
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatTpp(seatIndex);
 	}
 	correctSeatTppSwings();
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		determineSeatInitialFp(seatIndex);
+		allocateMajorPartyFp(seatIndex);
 	}
 }
 
@@ -639,6 +642,19 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	const float previousSwingEffect = run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
 	const float federalSwingEffect = fedStateCorrelation * seat.transposedTppSwing * logitDeriv(tppPrev);
 	const float byElectionEffect = run.tppSwingFactors.byElectionSwingModifier * seat.byElectionSwing * logitDeriv(tppPrev);
+	float thirdPartyExhaustEffect = 0.0f;
+	// Adjust the TPP to take into account exhaustion under OPV from aligned 3rd-party candidates
+	// This code should at some point be adjusted to generalise for other seats
+	if (seat.name == "Kiama" && run.getTermCode() == "2023nsw") {
+		const float indShare = seatFpVoteShare[seatIndex][run.indPartyIndex];
+		// Assumes that this IND takes votes 80/20 from LNP/ALP and 50% then exhaust
+		float bias = basicTransformedSwing(0.8f, rng.normal(0.0f, 0.15f));
+		float exhaustRate = basicTransformedSwing(0.5f, rng.normal(0.0f, 0.15f));
+		const float alpBase = tppPrev - indShare * ((1.0f - bias) * exhaustRate);
+		const float lnpBase = (100.0f - tppPrev) - indShare * (bias * exhaustRate);
+		const float alpNew = alpBase / (alpBase + lnpBase) * 100.0f;
+		thirdPartyExhaustEffect = alpNew - tppPrev;
+	}
 	transformedTpp += thisRegionSwing + elasticitySwing;
 	// Add modifiers for known local effects
 	transformedTpp += localEffects;
@@ -648,6 +664,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	transformedTpp += previousSwingEffect;
 	transformedTpp += federalSwingEffect;
 	transformedTpp += byElectionEffect;
+	transformedTpp += thirdPartyExhaustEffect;
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
@@ -673,7 +690,8 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
 
-	const float totalFixedEffects = thisRegionSwing + elasticitySwing + localEffects + previousSwingEffect + federalSwingEffect + byElectionEffect;
+	const float totalFixedEffects = thisRegionSwing + elasticitySwing + localEffects + previousSwingEffect +
+		federalSwingEffect + byElectionEffect + thirdPartyExhaustEffect;
 	const float fixedSwingSize = detransformVoteShare(transformVoteShare(tppPrev) + totalFixedEffects) - tppPrev;
 	const float transformFactor = fixedSwingSize / totalFixedEffects;
 	seatRegionSwing[seatIndex] += double(thisRegionSwing * transformFactor);
@@ -682,6 +700,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	seatPreviousSwingEffect[seatIndex] += double(previousSwingEffect * transformFactor);
 	seatFederalSwingEffect[seatIndex] += double(federalSwingEffect * transformFactor);
 	seatByElectionEffect[seatIndex] += double(byElectionEffect * transformFactor);
+	seatThirdPartyExhaustEffect[seatIndex] += double(thirdPartyExhaustEffect * transformFactor);
 }
 
 void SimulationIteration::correctSeatTppSwings()
@@ -797,9 +816,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
-	preferenceVariation.clear();
-	exhaustVariation.clear();
-	allocateMajorPartyFp(seatIndex);
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
@@ -1365,6 +1381,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 
+
 	[[maybe_unused]] auto oldFpVotes = seatFpVoteShare[seatIndex]; // for debug purposes, since this gets changed later on
 
 	// Step 0: Prepare preference flow calculation functions
@@ -1507,6 +1524,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentNonMajorFpShare = 0.0f;
 	float currentExhaustRateEstimate = 0.0f;
 	float currentExhuastDenominator = 0.0f;
+	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
+	std::map<int, float> exhaustVariation;
 
 	for (auto [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (isMajor(partyIndex)) continue;
@@ -2426,6 +2445,7 @@ void SimulationIteration::recordSwingFactors()
 		run.seatPreviousSwingEffectSums[seatIndex] += seatPreviousSwingEffect[seatIndex];
 		run.seatFederalSwingEffectSums[seatIndex] += seatFederalSwingEffect[seatIndex];
 		run.seatByElectionEffectSums[seatIndex] += seatByElectionEffect[seatIndex];
+		run.seatThirdPartyExhaustEffectSums[seatIndex] += seatThirdPartyExhaustEffect[seatIndex];
 	}
 }
 

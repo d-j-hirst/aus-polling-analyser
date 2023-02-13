@@ -1,23 +1,22 @@
 
--Post-election to-do:
- -Release forecast officially here!
- -Indicators on front-end for factors involved in a seat's TPP (and maybe other components)
- *** SHOULD REACH HERE BY THE START OF VICTORIAN CAMPAIGN ***
- -Condense past elections to dropdown menu
- -Live forecasts:
-  -Investigate methods for getting live VIC booth data
-  -Overall fp vote estimates narrowed much too quickly last time, investigate
-  -Better estimate of major party fp votes
-  -More accurate distribution of preferences (OTH -> GRN (vs. LIB) perhaps too low in Ryan?)
-  -Investigate very high GRN chances in Macnamara/Richmond on election night
-  -More info about e.g. % counted, actual results (if time permits)
- *** SHOULD REACH HERE BY VIC ELECTION NIGHT ***
- -
- -Further post with analysis of election forecast & also SA (or maybe leave this until after NSW?)
- -Develop systems for handling OPV preference flows in NSW
- -Overhaul mechanisms to account for exhaustion under OPV
- -Prepare NSW forecast
- *** SHOULD REACH HERE BY THE START OF NSW CAMPAIGN ***
+-Finish bits of NSW forecast not yet complete.
+ -Kiama stuff (IND interference under OPV).
+ -Add new sections to forecast guide for by-election swings and Kiama stuff.
+ -Prepare seat betting code. Do a number of test simulation runs to calibrate the odds and use that for the actual election.
+ -Maybe write an update post?
+-Fed 
+ -Add all remaining fed (and maybe state) approval ratings. Check Essential Report dates for each year.
+ -Create weighted regressions to convert approval ratings -> TPPs.
+ -Use this to create synthetic TPP series
+ -During creation of past TPP trends, further create synthetic major party FPs according to the minor party FPs and synthetic TPPs.
+ -Use these to extend pollster analysis for synthetic TPPs.
+ -Reorganise poll trend generation to put minor party FPs first ...
+ -So that we can generate provisional synthetic FPs for major parties
+ -Use the synthetic FPs and TPPs in their respective poll trend generators.
+ -Get everything else in the forecast ready
+ -Write release post
+ -Publish
+
  -General refactor of frontend as there is currently a lot of code duplication
  -Develop mechanism for making hindcasts and assigning an appropriate date for when they "would" have been done
  -Check that all parts of the system sufficiently exclude an election from impacting its own forecast (for hindcasts)

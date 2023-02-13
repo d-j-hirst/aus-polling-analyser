@@ -397,6 +397,7 @@ void SimulationCompletion::recordSeatSwingFactors()
 		const float seatPreviousSwingEffectAverage = run.seatPreviousSwingEffectSums[seatIndex] / double(sim.settings.numIterations);
 		const float seatFederalSwingEffectAverage = run.seatFederalSwingEffectSums[seatIndex] / double(sim.settings.numIterations);
 		const float seatByElectionEffectAverage = run.seatByElectionEffectSums[seatIndex] / double(sim.settings.numIterations);
+		const float seatThirdPartyExhaustEffectAverage = run.seatThirdPartyExhaustEffectSums[seatIndex] / double(sim.settings.numIterations);
 		sim.latestReport.swingFactors[seatIndex].push_back(
 			"Base region swing;" + std::to_string(seatRegionSwingAverage));
 		sim.latestReport.swingFactors[seatIndex].push_back(
@@ -407,6 +408,8 @@ void SimulationCompletion::recordSeatSwingFactors()
 			"Correlation with federal swing;" + std::to_string(seatFederalSwingEffectAverage));
 		sim.latestReport.swingFactors[seatIndex].push_back(
 			"By-election result adjustment;" + std::to_string(seatByElectionEffectAverage));
+		sim.latestReport.swingFactors[seatIndex].push_back(
+			"Exhaustion from aligned non-major candidates;" + std::to_string(seatThirdPartyExhaustEffectAverage));
 		float totalLocalEffects = 0.0f;
 		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) totalLocalEffects += impact;
 		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) {

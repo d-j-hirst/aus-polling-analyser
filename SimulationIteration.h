@@ -146,6 +146,7 @@ private:
 	std::vector<double> seatPreviousSwingEffect;
 	std::vector<double> seatFederalSwingEffect;
 	std::vector<double> seatByElectionEffect;
+	std::vector<double> seatThirdPartyExhaustEffect;
 
 	float prefCorrection = 0.0f;
 	float overallFpError = 0.0f;
@@ -156,8 +157,6 @@ private:
 	float decVoteBias = 0.0f;
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;
-	std::map<int, float> preferenceVariation; // in minor -> major preferences, after transformation
-	std::map<int, float> exhaustVariation;
 
 	std::array<int, 2> partySupport = std::array<int, 2>();
 	// *** IMPORTANT NOTE: see above *** //

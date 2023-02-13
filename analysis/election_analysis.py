@@ -1533,7 +1533,6 @@ if __name__ == '__main__':
     seat_types = load_seat_types()
     seat_regions = load_seat_regions()
     by_elections = load_by_elections()
-    print(by_elections)
     analyse_greens(elections)
     analyse_existing_independents(elections)
     analyse_emerging_independents(elections, seat_types)
