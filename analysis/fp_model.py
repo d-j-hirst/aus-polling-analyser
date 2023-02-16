@@ -570,7 +570,8 @@ def run_individual_party(config, m_data, e_data,
     e_tag = ''.join(e_data.e_tuple)
     calib_str = ("Calibration/" if config.calibrate_pollsters
                  or config.calibrate_bias else "")
-    folder = (f'./Outputs/{calib_str}')
+    cutoff_str = "Cutoffs/" if config.cutoff > 0 else ""
+    folder = (f'./Outputs/{calib_str}{cutoff_str}')
     pure_append = f'_pure' if config.pure else ''
     cutoff_append = f'_{config.cutoff}d' if config.cutoff > 0 else ''
 
@@ -603,18 +604,19 @@ def run_individual_party(config, m_data, e_data,
     offset = e_data.n_days + n_houses * 2
     for summaryDay in range(0, e_data.n_days):
         table_index = summaryDay + offset
-        trend_file.write(str(summaryDay) + ",")
-        trend_file.write(party + ",")
+        to_write = str(summaryDay) + ","
+        to_write += party + ","
         for col in range(3, 3+len(output_probs)-1):
             trend_value = summary[table_index][col]
-            trend_file.write(str(trend_value) + ',')
+            to_write += str(trend_value) + ','
         if party in others_parties or party == 'GRN FP':
             # Average of first and last
             median_col = math.floor((4+len(output_probs)) / 2)
             median_val = summary[table_index][median_col]
             e_data.others_medians[party][summaryDay] = median_val
-        trend_file.write(
-            str(summary[table_index][3+len(output_probs)-1]) + '\n')
+        to_write += str(summary[table_index][3+len(output_probs)-1]) + '\n'
+        if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
+        trend_file.write(to_write)
     trend_file.close()
     print('Saved trend file at ' + output_trend)
 

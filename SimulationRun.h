@@ -53,29 +53,29 @@ public:
 	};
 
 	struct PopulistStatistics {
-		float lowerRmse;
-		float upperRmse;
-		float lowerKurtosis;
-		float upperKurtosis;
-		float homeStateCoefficient;
+		float lowerRmse = 1.0f;
+		float upperRmse = 1.0f;
+		float lowerKurtosis = 1.0f;
+		float upperKurtosis = 1.0f;
+		float homeStateCoefficient = 0.0f;
 	};
 
 	struct IndEmergence {
-		float fpThreshold;
-		float baseRate;
-		float fedRateMod;
-		float ruralRateMod;
-		float provincialRateMod;
-		float outerMetroRateMod;
-		float prevOthersRateMod;
-		float voteRmse;
-		float voteKurtosis;
-		float fedVoteCoeff;
-		float ruralVoteCoeff;
-		float provincialVoteCoeff;
-		float outerMetroVoteCoeff;
-		float prevOthersVoteCoeff;
-		float voteIntercept;
+		float fpThreshold = 1.0f;
+		float baseRate = 1.0f;
+		float fedRateMod = 1.0f;
+		float ruralRateMod = 1.0f;
+		float provincialRateMod = 1.0f;
+		float outerMetroRateMod = 1.0f;
+		float prevOthersRateMod = 1.0f;
+		float voteRmse = 1.0f;
+		float voteKurtosis = 1.0f;
+		float fedVoteCoeff = 1.0f;
+		float ruralVoteCoeff = 1.0f;
+		float provincialVoteCoeff = 1.0f;
+		float outerMetroVoteCoeff = 1.0f;
+		float prevOthersVoteCoeff = 1.0f;
+		float voteIntercept = 1.0f;
 	};
 
 	// Default values for any region not found in a file
@@ -139,16 +139,20 @@ public:
 	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
 
 	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim) {}
-	SimulationRun operator=(SimulationRun const& otherRun) { return SimulationRun(otherRun.project, otherRun.sim); }
+	SimulationRun& operator=(SimulationRun const& otherRun) = default;
 
 	void run(FeedbackFunc feedback = [](std::string) {});
 
 	std::string getTermCode() const;
 private:
 
+	void runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});
+
 	PollingProject& project;
 
 	Simulation& sim;
+
+	bool doingBettingOddsCalibrations = false;
 
 	int currentIteration = 0;
 
