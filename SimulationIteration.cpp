@@ -899,103 +899,23 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp += rng.uniform(0.0f, 15.0f);
 	}
 
+	constexpr float OddsWeight = 0.6f;
+	if (run.oddsCalibrationMeans.contains({ seatIndex, partyIndex })) {
+		transformedFp = run.oddsCalibrationMeans[{seatIndex, partyIndex}];
+	}
+	else if (run.oddsFinalMeans.contains({ seatIndex, partyIndex })) {
+		transformedFp = mix(transformedFp, run.oddsFinalMeans[{seatIndex, partyIndex}], OddsWeight);
+	}
+
 	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) : rng.uniform();
 	float variableVote = rng.flexibleDist(0.0f, lowerRmseMixed, upperRmseMixed, lowerKurtosisMixed, upperKurtosisMixed, quantile);
 	transformedFp += variableVote;
+
 	// Model can't really deal with the libs not existing (=> large OTH vote) in Richmond 2018
 	// so likely underestimates GRN fp support here. This is a temporary workaround to bring in line
 	// with other seats expecting a small ~3% TCP swing to greens, hopefully will find a better fix for this later.
-	if (partyIndex == 2 && seat.name == "Richmond" && project.getElectionName() == "2022 Victorian State Election") {
+	if (partyIndex == 2 && seat.name == "Richmond" && run.getTermCode() == "2022vic") {
 		transformedFp += 5.5f;
-	}
-
-	if (partyIndex == run.indPartyIndex && run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
-		// Exact values of odds above $15 don't generally mean much, so cap them at this level
-		constexpr float OddsCap = 15.0f;
-		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
-		// the last part of this line compensates for the typical bookmaker's margin
-		float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
-		// significant adjustment downwards to adjust for longshot bias.
-		// this number isn't really treated as a probability from here on so it's ok for
-		// it to become negative.
-		if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
-		float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
-		constexpr float range = 42.0f;
-		float voteShareCenter = pivot + range * (impliedChance - 0.5f);
-		constexpr float variation = 20.0f;
-		float transformedBettingFp = rng.normal(voteShareCenter, variation);
-		// If the betting odds are very favourable to the independent, tend to stick with
-		// the existing estimate as the betting estimate would probably be an underestimate
-		// for very popular independents
-		float mixFactor = std::min(5.0f - 5.0f * impliedChance, 0.5f);
-		transformedFp = mix(transformedFp, transformedBettingFp, mixFactor);
-	} else if (partyIndex == run.grnPartyIndex && run.seatBettingOdds[seatIndex].contains(run.grnPartyIndex)) {
-		// Exact values of odds above $15 don't generally mean much, so cap them at this level
-		constexpr float OddsCap = 15.0f;
-		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.grnPartyIndex], OddsCap);
-		// the last part of this line compensates for the typical bookmaker's margin
-		float impliedChance = 1.0f / ((cappedOdds - 1.0f) * (1.0f / 0.88f) + 1.0f);
-		// No longshot bias adjustment for Greens
-		float prevLibFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(1) ?
-			run.pastSeatResults[seatIndex].fpVotePercent[1] : 10.0f;
-		float prevAlpFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(0) ?
-			run.pastSeatResults[seatIndex].fpVotePercent[0] : 10.0f;
-		float prevGrnFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(2) ?
-			run.pastSeatResults[seatIndex].fpVotePercent[2] : 10.0f;
-		float prevOthFp = run.pastSeatResults[seatIndex].fpVotePercent.contains(-1) ?
-			run.pastSeatResults[seatIndex].fpVotePercent[-1] : 10.0f;
-		// First step establishes the mean at a position that historically relates to this
-		// % chance of winning
-		if (seat.name == "Pascoe Vale") {
-			// Account for previous independent taking most votes
-			prevLibFp += 7.0f;
-		}
-		// First approach: GRN-ALP contest. Suitable for ALP margin >20%. LIBs preferences considered
-		const float assumedLibPrefFlow = 0.75f;
-		const float estimatedLibPrefs = prevLibFp * assumedLibPrefFlow;
-		const float estimatedOthPrefs = prevOthFp * 0.5f;
-		const float requiredGrnVotes1 = 50.0f - estimatedLibPrefs - estimatedOthPrefs;
-		const float grnFpCenter1 = std::clamp(requiredGrnVotes1 + 80.0f * 
-			(impliedChance >= 0.5f ? std::pow(impliedChance - 0.5f, 1.6f) : -0.6f * std::pow(0.5f - impliedChance, 1.6f)),
-		10.0f, 80.0f);
-
-		// Second approach: GRN-LIB contest. Suitable for ALP margin <12%. Just need to get ahead of ALP
-		// Assumes chance of LIB win is small (adjust if we get a race where this isn't the case)
-		const float prevLeftFp = prevAlpFp + prevGrnFp;
-		const float requiredGrnVotes2 = prevLeftFp * 0.5f;
-		const float grnFpCenter2 = std::clamp(requiredGrnVotes2 + 40.0f *
-			(impliedChance >= 0.5f ? std::pow(impliedChance - 0.5f, 1.6f) : -0.75f * -std::pow(0.5f - impliedChance, 1.6f)),
-			10.0f, 80.0f);
-
-		const float grnFpCenter = mix(grnFpCenter2, grnFpCenter1, 
-			std::clamp((seat.tppMargin - 12.0f) / 8.0f, 0.0f, 1.0f));
-
-		float transformedCenter = transformVoteShare(grnFpCenter);
-		const float variation = 10.0f * (1.0f - 0.75f * std::abs(impliedChance - 0.5f));
-		float transformedBettingFp = rng.normal(transformedCenter, variation);
-		transformedFp = mix(transformedFp, transformedBettingFp, 0.7f);
-	}
-	// treat other parties like independent I guess
-	else if (run.seatBettingOdds[seatIndex].contains(partyIndex)) {
-		// Exact values of odds above $15 don't generally mean much, so cap them at this level
-		constexpr float OddsCap = 15.0f;
-		float cappedOdds = std::min(run.seatBettingOdds[seatIndex][partyIndex], OddsCap);
-		// the last part of this line compensates for the typical bookmaker's margin
-		float impliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
-		// significant adjustment downwards to adjust for longshot bias.
-		// this number isn't really treated as a probability from here on so it's ok for
-		// it to become negative.
-		if (impliedChance < 0.4f) impliedChance -= 1.3f * (0.4f - impliedChance);
-		float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
-		constexpr float range = 42.0f;
-		float voteShareCenter = pivot + range * (impliedChance - 0.5f);
-		constexpr float variation = 20.0f;
-		float transformedBettingFp = rng.normal(voteShareCenter, variation);
-		// If the betting odds are very favourable to the independent, tend to stick with
-		// the existing estimate as the betting estimate would probably be an underestimate
-		// for very popular independents
-		float mixFactor = std::min(5.0f - 5.0f * impliedChance, 0.5f);
-		transformedFp = mix(transformedFp, transformedBettingFp, mixFactor);
 	}
 
 	float regularVoteShare = detransformVoteShare(transformedFp);
@@ -1106,50 +1026,43 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		float quantile = rng.beta(indAlpha, indBeta) * 0.5f + 0.5f;
 		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
-		if (run.seatBettingOdds[seatIndex].contains(run.indPartyIndex)) {
-			// Exact values of odds above $15 don't generally mean much, so cap them at this level
-			constexpr float OddsCap = 15.0f;
-			float cappedOdds = std::min(run.seatBettingOdds[seatIndex][run.indPartyIndex], OddsCap);
-			// the last part of this line compensates for the typical bookmaker's margin
-			const float origImpliedChance = 1.0f / (cappedOdds * (2.0f / 1.88f));
-			float impliedChance = origImpliedChance;
-			// significant adjustment downwards to adjust for longshot bias.
-			// this number isn't really treated as a probability from here on so it's ok for
-			// it to become negative.
-			if (impliedChance < 0.35f) impliedChance -= 0.5f * (0.35f - impliedChance);
-			if (impliedChance < 0.25f) impliedChance -= 0.5f * (0.25f - impliedChance);
-			float pivot = transformVoteShare(32.0f); // fp vote expected for 50% chance of winning
-			// Adjust for ALP tpp margin, otherwise this formula primarily intended for LNP seats
-			// doesn't work well for safe ALP seats
-			pivot += std::clamp(seat.tppMargin * std::pow(origImpliedChance, 1.5f) * 8.0f, 0.0f, 40.0f);
-			constexpr float range = 42.0f;
-			float voteShareCenter = pivot + range * (impliedChance - 0.5f);
-			//if (seat.tppMargin > 3.0f) voteShareCenter += 12.0f; // bandaid fix for the ALP candidates having a harder time with same fp
-			constexpr float variation = 20.0f;
-			float transformedBettingFp = rng.normal(voteShareCenter, variation);
-			transformedVoteShare = mix(transformedVoteShare, transformedBettingFp, 0.7f);
+
+		constexpr float OddsWeight = 0.6f;
+		constexpr float oddsBasedVariation = 20.0f;
+		if (run.oddsCalibrationMeans.contains({ seatIndex, run.indPartyIndex })) {
+			const float voteShareCenter = run.oddsCalibrationMeans[{seatIndex, run.indPartyIndex}];
+			transformedVoteShare = rng.normal(voteShareCenter, oddsBasedVariation);
 		}
-		if (run.seatPolls[seatIndex].contains(run.indPartyIndex)) {
-			float weightedSum = 0.0f;
-			float sumOfWeights = 0.0f;
-			for (auto poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
-				constexpr float QualityWeightBase = 0.6f;
-				float weight = myPow(QualityWeightBase, poll.second);
-				float pollRaw = poll.first;
-				pollRaw = pollRaw * 0.503f + 15.59f;
-				weightedSum += pollRaw * weight;
-				sumOfWeights += weight;
+		// else, because if we're calibrating betting results we don't want seat polls to interfere with that 
+		else {
+			if (run.oddsFinalMeans.contains({ seatIndex, run.indPartyIndex })) {
+				if (rng.uniform() < OddsWeight) {
+					const float voteShareCenter = run.oddsFinalMeans[{seatIndex, run.indPartyIndex}];
+					float oddsBasedVoteShare = rng.normal(voteShareCenter, oddsBasedVariation);
+					transformedVoteShare = oddsBasedVoteShare;
+				}
 			}
-			float transformedPollFp = transformVoteShare(std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
-			constexpr float MaxPollWeight = 0.8f;
-			constexpr float PollWeightBase = 0.6f;
-			float pollFactor = MaxPollWeight * (1.0f - std::powf(PollWeightBase, sumOfWeights));
-			transformedVoteShare = mix(transformedVoteShare, transformedPollFp, pollFactor);
+			if (run.seatPolls[seatIndex].contains(run.indPartyIndex)) {
+				float weightedSum = 0.0f;
+				float sumOfWeights = 0.0f;
+				for (auto poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
+					constexpr float QualityWeightBase = 0.6f;
+					float weight = myPow(QualityWeightBase, poll.second);
+					float pollRaw = poll.first;
+					pollRaw = pollRaw * 0.503f + 15.59f;
+					weightedSum += pollRaw * weight;
+					sumOfWeights += weight;
+				}
+				float transformedPollFp = transformVoteShare(std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
+				constexpr float MaxPollWeight = 0.8f;
+				constexpr float PollWeightBase = 0.6f;
+				float pollFactor = MaxPollWeight * (1.0f - std::powf(PollWeightBase, sumOfWeights));
+				transformedVoteShare = mix(transformedVoteShare, transformedPollFp, pollFactor);
+			}
 		}
 
 		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(seatFpVoteShare[seatIndex][run.indPartyIndex], detransformVoteShare(transformedVoteShare));
 	}
-
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)

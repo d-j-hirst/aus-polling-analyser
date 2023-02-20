@@ -8,8 +8,10 @@ class StanModel;
 
 class SimulationCompletion {
 public:
-	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run);
+	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations);
 
+	// cycleIterations needs to be given as an argument as it will
+	// be different for calibration runs.
 	void completeRun();
 private:
 
@@ -36,6 +38,8 @@ private:
 	StanModel const& baseModel();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
+
+	int iterations;
 
 	PollingProject & project;
 	Simulation& sim;

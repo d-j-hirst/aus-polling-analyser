@@ -99,8 +99,8 @@ void SimulationPreparation::resetLatestReport()
 
 void SimulationPreparation::resetRegionSpecificOutput()
 {
-	run.regionLocalModifierAverage.resize(project.regions().count());
-	regionSeatCount.resize(project.regions().count());
+	run.regionLocalModifierAverage.resize(project.regions().count(), 0.0f);
+	regionSeatCount.resize(project.regions().count(), 0);
 	run.regionPartyWins.resize(project.regions().count());
 }
 
@@ -476,9 +476,6 @@ void SimulationPreparation::loadPreviousPreferenceFlows() {
 	// preference flows if they weren't already specifid
 	run.previousPreferenceFlow[EmergingIndIndex] = run.previousPreferenceFlow[run.indPartyIndex];
 	run.previousExhaustRate[EmergingIndIndex] = run.previousExhaustRate[run.indPartyIndex];
-
-	PA_LOG_VAR(run.previousPreferenceFlow);
-	PA_LOG_VAR(run.previousExhaustRate);
 }
 
 void SimulationPreparation::loadNcPreferenceFlows()
@@ -543,7 +540,7 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 			catch (SeatDoesntExistException) {
 				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
-				logger << "Could not find a match for seat " + values[1] + "\n";
+				if (!run.doingBettingOddsCalibrations) logger << "Could not find a match for seat " + values[1] + "\n";
 				currentSeat = -1;
 			}
 		}
@@ -635,7 +632,6 @@ void SimulationPreparation::loadPastSeatResults()
 				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] = 65.18f;
 			}
 		}
-		logger << "adding SFF -> IND seats\n";
 	}
 }
 
@@ -839,7 +835,7 @@ void SimulationPreparation::loadRegionBaseBehaviours()
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
-		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
 		return;
 	}
 	do {
@@ -868,7 +864,7 @@ void SimulationPreparation::loadRegionPollBehaviours()
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
-		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
 		return;
 	}
 	do {
@@ -899,7 +895,7 @@ void SimulationPreparation::loadRegionMixBehaviours()
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
-		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
 		return;
 	}
 	do {
@@ -925,7 +921,7 @@ void SimulationPreparation::loadOverallRegionMixParameters()
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
-		logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
 		return;
 	}
 	do {

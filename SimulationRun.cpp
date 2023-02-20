@@ -21,14 +21,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 		return;
 	}
 
-	// *** Here we need to do some preparations from the betting odds calibrations
-	// and then run repeatedly run the iterations until they have converged
-	// put this in a separate procedure
-	// maybe create a separate class (inherited from this) to do this?
-
-	auto newRun = SimulationRun(project, sim);
-
-	newRun.runBettingOddsCalibrations();
+	runBettingOddsCalibrations();
 
 	SimulationPreparation preparations(project, sim, *this);
 	try {
@@ -42,9 +35,11 @@ void SimulationRun::run(FeedbackFunc feedback) {
 
 	int numThreads = project.config().getSimulationThreads();
 	std::vector<int> batchSizes;
-	int minBatchSize = sim.settings.numIterations / numThreads;
+
+	const int cycleIterations = sim.settings.numIterations;
+	int minBatchSize = cycleIterations / numThreads;
 	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
-	int extraIterations = sim.settings.numIterations - minBatchSize * numThreads;
+	int extraIterations = cycleIterations - minBatchSize * numThreads;
 	for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
 
 	std::vector<std::thread> threads;
@@ -65,7 +60,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 		if (threads[thread].joinable()) threads[thread].join();
 	}
 
-	SimulationCompletion completion(project, sim, *this);
+	SimulationCompletion completion(project, sim, *this, cycleIterations);
 	completion.completeRun();
 
 	sim.lastUpdated = wxDateTime::Now();
@@ -98,16 +93,6 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 
 	logger << "*** Doing betting odds calibrations ***\n";
 
-	SimulationPreparation preparations(project, sim, *this);
-	try {
-		preparations.prepareForIterations();
-	}
-	catch (SimulationPreparation::Exception const& e) {
-
-		feedback("Could not run betting odds calibrations due to the following issue: \n" + std::string(e.what()));
-		return;
-	}
-
 	// key is (seatIndex, partyIndex)
 	std::map<std::pair<int, int>, float> impliedChances;
 	for (auto const& [seatId, seat] : project.seats()) {
@@ -124,32 +109,84 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	}
 	PA_LOG_VAR(impliedChances);
 
-	int numThreads = project.config().getSimulationThreads();
-	std::vector<int> batchSizes;
-	const int CycleIterationsDivisor = 20;
-	int cycleIterations = sim.settings.numIterations / CycleIterationsDivisor;
-	int minBatchSize = cycleIterations / numThreads;
-	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
-	int extraIterations = cycleIterations - minBatchSize * numThreads;
-	for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
+	oddsCalibrationMeans.clear();
+	std::map<std::pair<int, int>, float> previouslyHigh;
+	std::map<std::pair<int, int>, float> currentIncrement;
+	float initialValue = transformVoteShare(20.0f);
+	for (auto const [identifier, chance] : impliedChances) {
+		oddsCalibrationMeans[identifier] = initialValue;
+		previouslyHigh[identifier] = false;
+		currentIncrement[identifier] = 20.0f;
+	}
 
-	std::vector<std::thread> threads;
-	threads.resize(numThreads);
-
-	auto runIterations = [&](int numIterations) {
-		for (int i = 0; i < numIterations; ++i) {
-			SimulationIteration iteration(project, sim, *this);
-			iteration.runIteration();
+	constexpr int NumRevisionRounds = 20;
+	for (int a = 0; a < NumRevisionRounds; ++a) {
+		auto newRun = SimulationRun(project, sim, true);
+		SimulationPreparation preparations(project, sim, newRun);
+		try {
+			preparations.prepareForIterations();
 		}
-	};
+		catch (SimulationPreparation::Exception const& e) {
 
-	for (int thread = 0; thread < numThreads; ++thread) {
-		threads[thread] = std::thread(runIterations, batchSizes[thread]);
+			feedback("Could not run betting odds calibrations due to the following issue: \n" + std::string(e.what()));
+			return;
+		}
+		newRun.oddsCalibrationMeans = oddsCalibrationMeans;
+
+		int numThreads = project.config().getSimulationThreads();
+		std::vector<int> batchSizes;
+		const int CycleIterationsDivisor = 20;
+		int cycleIterations = sim.settings.numIterations / CycleIterationsDivisor;
+		int minBatchSize = cycleIterations / numThreads;
+		for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
+		int extraIterations = cycleIterations - minBatchSize * numThreads;
+		for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
+
+		std::vector<std::thread> threads;
+		threads.resize(numThreads);
+
+		auto runIterations = [&](int numIterations) {
+			for (int i = 0; i < numIterations; ++i) {
+				SimulationIteration iteration(project, sim, newRun);
+				iteration.runIteration();
+			}
+		};
+
+		for (int thread = 0; thread < numThreads; ++thread) {
+			threads[thread] = std::thread(runIterations, batchSizes[thread]);
+		}
+
+		for (int thread = 0; thread < numThreads; ++thread) {
+			if (threads[thread].joinable()) threads[thread].join();
+		}
+
+		SimulationCompletion completion(project, sim, newRun, cycleIterations);
+		completion.completeRun();
+
+		for (auto const [identifier, chance] : impliedChances) {
+			float winPercent = sim.latestReport.seatPartyWinPercent[identifier.first][identifier.second];
+			if (a == NumRevisionRounds - 1) {
+				PA_LOG_VAR(project.seats().viewByIndex(identifier.first).name);
+				PA_LOG_VAR(identifier);
+				PA_LOG_VAR(oddsCalibrationMeans[identifier]);
+				PA_LOG_VAR(impliedChances[identifier]);
+				PA_LOG_VAR(winPercent);
+			}
+			if (winPercent * 0.01f < impliedChances[identifier]) {
+				if (a && previouslyHigh[identifier]) currentIncrement[identifier] *= 0.4f;
+				oddsCalibrationMeans[identifier] += currentIncrement[identifier];
+				previouslyHigh[identifier] = false;
+			}
+			else {
+				if (a && !previouslyHigh[identifier]) currentIncrement[identifier] *= 0.4f;
+				oddsCalibrationMeans[identifier] -= currentIncrement[identifier];
+				previouslyHigh[identifier] = true;
+			}
+		}
 	}
 
-	for (int thread = 0; thread < numThreads; ++thread) {
-		if (threads[thread].joinable()) threads[thread].join();
-	}
+	oddsFinalMeans = oddsCalibrationMeans;
+	oddsCalibrationMeans.clear();
 
 	logger << "*** Finished betting odds calibrations ***\n";
 

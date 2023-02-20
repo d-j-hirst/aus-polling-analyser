@@ -107,17 +107,17 @@ public:
 	};
 
 	struct TppSwingFactors {
-		float meanSwingDeviation;
-		float swingKurtosis;
-		float federalModifier;
-		float retirementUrban;
-		float retirementRegional;
-		float sophomoreCandidateUrban;
-		float sophomoreCandidateRegional;
-		float sophomorePartyUrban;
-		float sophomorePartyRegional;
-		float previousSwingModifier;
-		float byElectionSwingModifier;
+		float meanSwingDeviation = 0.0f;
+		float swingKurtosis = 0.0f;
+		float federalModifier = 0.0f;
+		float retirementUrban = 0.0f;
+		float retirementRegional = 0.0f;
+		float sophomoreCandidateUrban = 0.0f;
+		float sophomoreCandidateRegional = 0.0f;
+		float sophomorePartyUrban = 0.0f;
+		float sophomorePartyRegional = 0.0f;
+		float previousSwingModifier = 0.0f;
+		float byElectionSwingModifier = 0.0f;
 	};
 
 	struct IndividualSeatParameters {
@@ -136,9 +136,11 @@ public:
 
 	typedef std::function<void(std::string)> FeedbackFunc;
 
-	SimulationRun(PollingProject& project, Simulation& simulation) : project(project), sim(simulation) {}
+	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false) :
+		project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations) {}
 
-	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim) {}
+	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim),
+		doingBettingOddsCalibrations(otherRun.doingBettingOddsCalibrations) {}
 	SimulationRun& operator=(SimulationRun const& otherRun) = default;
 
 	void run(FeedbackFunc feedback = [](std::string) {});
@@ -153,6 +155,8 @@ private:
 	Simulation& sim;
 
 	bool doingBettingOddsCalibrations = false;
+	std::map<std::pair<int, int>, float> oddsCalibrationMeans; // transformed
+	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
 
 	int currentIteration = 0;
 

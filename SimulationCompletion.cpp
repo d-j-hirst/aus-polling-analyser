@@ -9,8 +9,8 @@ using Mp = Simulation::MajorParty;
 
 constexpr std::array<int, NumProbabilityBoundIndices> ProbabilityBounds = { 1, 5, 20, 50, 150, 180, 195,199 };
 
-SimulationCompletion::SimulationCompletion(PollingProject & project, Simulation & sim, SimulationRun & run)
-	: project(project), run(run), sim(sim)
+SimulationCompletion::SimulationCompletion(PollingProject & project, Simulation & sim, SimulationRun & run, int iterations)
+	: project(project), run(run), sim(sim), iterations(iterations)
 {
 }
 
@@ -55,40 +55,40 @@ void SimulationCompletion::calculateIndividualSeatStatistics()
 	sim.latestReport.othersWinPercent.resize(project.seats().count(), 0.0);
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		sim.latestReport.seatPartyOneMarginAverage[seatIndex] = float(run.seatPartyOneMarginSum[seatIndex] / double(sim.settings.numIterations));
-		sim.latestReport.partyOneWinPercent[seatIndex] = float(run.partyOneWinPercent[seatIndex] / double(sim.settings.numIterations));
-		sim.latestReport.partyTwoWinPercent[seatIndex] = float(run.partyTwoWinPercent[seatIndex] / double(sim.settings.numIterations));
-		sim.latestReport.othersWinPercent[seatIndex] = float(run.othersWinPercent[seatIndex] / double(sim.settings.numIterations));
+		sim.latestReport.seatPartyOneMarginAverage[seatIndex] = float(run.seatPartyOneMarginSum[seatIndex] / double(iterations));
+		sim.latestReport.partyOneWinPercent[seatIndex] = float(run.partyOneWinPercent[seatIndex] / double(iterations));
+		sim.latestReport.partyTwoWinPercent[seatIndex] = float(run.partyTwoWinPercent[seatIndex] / double(iterations));
+		sim.latestReport.othersWinPercent[seatIndex] = float(run.othersWinPercent[seatIndex] / double(iterations));
 	}
 }
 
 void SimulationCompletion::calculateWholeResultStatistics()
 {
-	logger << "Party majorities:\n";
+	if (!run.doingBettingOddsCalibrations) logger << "Party majorities:\n";
 	for (auto [partyIndex, result] : run.partyMajority) {
-		sim.latestReport.majorityPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
-		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.majorityPercent[partyIndex] << "%\n";
+		sim.latestReport.majorityPercent[partyIndex] = float(result) / float(iterations) * 100.0f;
+		if (!run.doingBettingOddsCalibrations) logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.majorityPercent[partyIndex] << "%\n";
 	}
 	if (!sim.latestReport.majorityPercent.contains(0)) sim.latestReport.majorityPercent[0] = 0;
 	if (!sim.latestReport.majorityPercent.contains(1)) sim.latestReport.majorityPercent[1] = 0;
-	logger << "Party minorities:\n";
+	if (!run.doingBettingOddsCalibrations) logger << "Party minorities:\n";
 	for (auto [partyIndex, result] : run.partyMinority) {
-		sim.latestReport.minorityPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
-		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.minorityPercent[partyIndex] << "%\n";
+		sim.latestReport.minorityPercent[partyIndex] = float(result) / float(iterations) * 100.0f;
+		if (!run.doingBettingOddsCalibrations) logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.minorityPercent[partyIndex] << "%\n";
 	}
 	if (!sim.latestReport.minorityPercent.contains(0)) sim.latestReport.minorityPercent[0] = 0;
 	if (!sim.latestReport.minorityPercent.contains(1)) sim.latestReport.minorityPercent[1] = 0;
-	logger << "Party most-seats:\n";
+	if (!run.doingBettingOddsCalibrations) logger << "Party most-seats:\n";
 	for (auto [partyIndex, result] : run.partyMostSeats) {
-		sim.latestReport.mostSeatsPercent[partyIndex] = float(result) / float(sim.settings.numIterations) * 100.0f;
-		logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.mostSeatsPercent[partyIndex] << "%\n";
+		sim.latestReport.mostSeatsPercent[partyIndex] = float(result) / float(iterations) * 100.0f;
+		if (!run.doingBettingOddsCalibrations) logger << " " << sim.latestReport.partyAbbr[partyIndex] << " - " << sim.latestReport.mostSeatsPercent[partyIndex] << "%\n";
 	}
 	if (!sim.latestReport.mostSeatsPercent.contains(0)) sim.latestReport.mostSeatsPercent[0] = 0;
 	if (!sim.latestReport.mostSeatsPercent.contains(1)) sim.latestReport.mostSeatsPercent[1] = 0;
-	sim.latestReport.tiedPercent = float(run.tiedParliament) / float(sim.settings.numIterations) * 100.0f;
+	sim.latestReport.tiedPercent = float(run.tiedParliament) / float(iterations) * 100.0f;
 
-	logger << "Tied: - " << sim.latestReport.tiedPercent << "%\n";
-	sim.latestReport.partyOneSwing = sim.latestReport.partyOneSwing / double(sim.settings.numIterations);
+	if (!run.doingBettingOddsCalibrations) logger << "Tied: - " << sim.latestReport.tiedPercent << "%\n";
+	sim.latestReport.partyOneSwing = sim.latestReport.partyOneSwing / double(iterations);
 }
 
 void SimulationCompletion::calculatePartyWinExpectations()
@@ -98,7 +98,7 @@ void SimulationCompletion::calculatePartyWinExpectations()
 		for (int seatNum = 1; seatNum < project.seats().count(); ++seatNum) {
 			totalSeats += seatNum * frequency[seatNum];
 		}
-		sim.latestReport.partyWinExpectation[partyIndex] = float(totalSeats) / float(sim.settings.numIterations);
+		sim.latestReport.partyWinExpectation[partyIndex] = float(totalSeats) / float(iterations);
 	}
 }
 
@@ -108,7 +108,7 @@ void SimulationCompletion::calculatePartyWinMedians()
 		int runningTotal = 0;
 		for (int seatNum = 0; seatNum < int(frequency.size()); ++seatNum) {
 			runningTotal += frequency[seatNum];
-			if (runningTotal > sim.settings.numIterations / 2) {
+			if (runningTotal > iterations / 2) {
 				sim.latestReport.partyWinMedian[partyIndex] = seatNum;
 				break;
 			}
@@ -126,7 +126,7 @@ void SimulationCompletion::calculateRegionPartyWinExpectations()
 			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][partyIndex].size()); ++seatNum) {
 				totalSeats += seatNum * run.regionPartyWins[regionIndex][partyIndex][seatNum];
 			}
-			sim.latestReport.regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(sim.settings.numIterations);
+			sim.latestReport.regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(iterations);
 		}
 	}
 }
@@ -144,7 +144,6 @@ void SimulationCompletion::recordVoteTotalStats()
 			v.push_back(sim.latestReport.getTppSamplePercentile(percentile));
 			return v;
 		});
-	PA_LOG_VAR(tppFrequencies);
 	if (!sim.isLiveManual()) {
 		std::map<int, VF> fpFrequencies;
 		for (auto [partyIndex, frequencies] : sim.latestReport.partyPrimaryFrequency) {
@@ -157,7 +156,6 @@ void SimulationCompletion::recordVoteTotalStats()
 				fpFrequencies[partyIndex] = partyThresholds;
 			}
 		}
-		PA_LOG_VAR(fpFrequencies);
 	}
 }
 
@@ -261,9 +259,13 @@ void SimulationCompletion::recordSeatPartyWinPercentages()
 	sim.latestReport.seatPartyWinPercent.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		for (auto [partyIndex, count] : run.seatPartyWins[seatIndex]) {
-			float percent = float(count) / float(sim.settings.numIterations) * 100.0f;
+			float percent = float(count) / float(iterations) * 100.0f;
 			sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] = percent;
-			logger << sim.latestReport.seatName[seatIndex] << ", " << sim.latestReport.partyName[partyIndex] << ": " << sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
+			if (!run.doingBettingOddsCalibrations) {
+				logger << sim.latestReport.seatName[seatIndex] << ", " <<
+					sim.latestReport.partyName[partyIndex] << ": " <<
+					sim.latestReport.seatPartyWinPercent[seatIndex][partyIndex] << "%\n";
+			}
 		}
 	}
 }
@@ -276,48 +278,56 @@ void SimulationCompletion::recordSeatFpVoteStats()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		for (auto [partyIndex, cumulativePercent] : run.cumulativeSeatPartyFpShare[seatIndex]) {
 			if (!cumulativePercent) continue;
-			sim.latestReport.seatPartyMeanFpShare[seatIndex][partyIndex] = cumulativePercent / double(sim.settings.numIterations);
+			sim.latestReport.seatPartyMeanFpShare[seatIndex][partyIndex] = cumulativePercent / double(iterations);
 		}
 
-		logger << project.seats().viewByIndex(seatIndex).name << "\n";
-		logger << " Fp percent:\n";
+		if (!run.doingBettingOddsCalibrations) {
+			logger << project.seats().viewByIndex(seatIndex).name << "\n";
+			logger << " Fp percent:\n";
+		}
 		for (auto const& [partyIndex, fpVoteShare] : sim.latestReport.seatPartyMeanFpShare[seatIndex]) {
-			logger << "  ";
-			if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
-			else if (partyIndex == -1) logger << "Others";
-			else if (partyIndex == -2) logger << "Emerging Ind";
-			else if (partyIndex == -3) logger << "Emerging Party";
-			logger << ": " << fpVoteShare << ", " << "distribution: ";
+			if (!run.doingBettingOddsCalibrations) {
+				logger << "  ";
+				if (partyIndex >= 0) logger << project.parties().viewByIndex(partyIndex).name;
+				else if (partyIndex == -1) logger << "Others";
+				else if (partyIndex == -2) logger << "Emerging Ind";
+				else if (partyIndex == -3) logger << "Emerging Party";
+				logger << ": " << fpVoteShare << ", " << "distribution: ";
+			}
 			auto const& distribution = run.seatPartyFpDistribution[seatIndex][partyIndex];
-			int cumulative = sim.settings.numIterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+			int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
 			sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex].resize(sim.latestReport.probabilityBands.size());
 			int currentProbabilityBand = 0;
 			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
 				if (distribution[a] > 0) {
-					float lowerPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
+					float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
 					cumulative += distribution[a];
-					float upperPercentile = float(cumulative) / float(sim.settings.numIterations) * 100.0f;
+					float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
 					while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
-						float(cumulative) / float(sim.settings.numIterations) * 100.0f)
+						float(cumulative) / float(iterations) * 100.0f)
 					{
 						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
 						float exactFp = float(a) + exactFrac;
 						if (!a && run.seatPartyFpZeros[seatIndex].contains(partyIndex) &&
-							float(currentProbabilityBand) < float(run.seatPartyFpZeros[seatIndex][partyIndex]) / float(sim.settings.numIterations) * 100.0f) {
+							float(currentProbabilityBand) < float(run.seatPartyFpZeros[seatIndex][partyIndex]) / float(iterations) * 100.0f) {
 							exactFp = 0.0f;
 						}
 						sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 						++currentProbabilityBand;
 					}
-					logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
-					logger << "-";
-					logger << distribution[a];
-					logger << ", ";
+					if (!run.doingBettingOddsCalibrations) {
+						logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
+						logger << "-";
+						logger << distribution[a];
+						logger << ", ";
+					}
 				}
 			}
-			logger << "\n";
-			logger << "Probability bands: " << sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex] << "\n";
+			if (!run.doingBettingOddsCalibrations) {
+				logger << "\n";
+				logger << "Probability bands: " << sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex] << "\n";
+			}
 		}
 	}
 }
@@ -330,25 +340,32 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 	sim.latestReport.seatTcpWinPercent.resize(project.seats().count());
 	sim.latestReport.seatHideTcps.resize(project.seats().count(), false);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		logger << project.seats().viewByIndex(seatIndex).name << "\n";
-		logger << " Tcp percent:\n";
+		if (!run.doingBettingOddsCalibrations) {
+			logger << project.seats().viewByIndex(seatIndex).name << "\n";
+			logger << " Tcp percent:\n";
+		}
 		for (auto const& [parties, distribution] : run.seatTcpDistribution[seatIndex]) {
 			int total = std::accumulate(distribution.begin(), distribution.end(), 0);
-			if (total < sim.settings.numIterations / 1000) continue;
-			logger << "  ";
-			if (parties.first >= 0) logger << project.parties().viewByIndex(parties.first).name;
-			else if (parties.first == -1) logger << "Others";
-			else if (parties.first == -2) logger << "Emerging Ind";
-			else if (parties.first == -3) logger << "Emerging Party";
-			logger << " vs ";
-			if (parties.second >= 0) logger << project.parties().viewByIndex(parties.second).name;
-			else if (parties.second == -1) logger << "Others";
-			else if (parties.second == -2) logger << "Emerging Ind";
-			else if (parties.second == -3) logger << "Emerging Party";
-			float scenarioPercent = float(total) / float(sim.settings.numIterations);
+			if (total < iterations / 1000) continue;
+			if (!run.doingBettingOddsCalibrations) {
+				logger << "  ";
+				if (parties.first >= 0) logger << project.parties().viewByIndex(parties.first).name;
+				else if (parties.first == -1) logger << "Others";
+				else if (parties.first == -2) logger << "Emerging Ind";
+				else if (parties.first == -3) logger << "Emerging Party";
+				logger << " vs ";
+				if (parties.second >= 0) logger << project.parties().viewByIndex(parties.second).name;
+				else if (parties.second == -1) logger << "Others";
+				else if (parties.second == -2) logger << "Emerging Ind";
+				else if (parties.second == -3) logger << "Emerging Party";
+			}
+			float scenarioPercent = float(total) / float(iterations);
 			sim.latestReport.seatTcpScenarioPercent[seatIndex][parties] = scenarioPercent;
 			sim.latestReport.seatTcpProbabilityBand[seatIndex][parties].resize(sim.latestReport.probabilityBands.size());
-			logger << " - scenario frequency: " << scenarioPercent << " - distribution: ";
+
+			if (!run.doingBettingOddsCalibrations) {
+				logger << " - scenario frequency: " << scenarioPercent << " - distribution: ";
+			}
 			int cumulative = 0;
 			int currentProbabilityBand = 0;
 			float winPercent = 0.0f;
@@ -372,16 +389,20 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 						sim.latestReport.seatTcpProbabilityBand[seatIndex][parties][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 						++currentProbabilityBand;
 					}
-					logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
-					logger << "-";
-					logger << distribution[a];
-					logger << ", ";
+					if (!run.doingBettingOddsCalibrations) {
+						logger << float(a) / float(SimulationRun::FpBucketCount) * 100.0f;
+						logger << "-";
+						logger << distribution[a];
+						logger << ", ";
+					}
 				}
 			}
-			logger << "\n";
-			logger << "   Win rate: " << winPercent << "%\n";
-			sim.latestReport.seatTcpWinPercent[seatIndex][parties] = winPercent;
-			logger << "   Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
+			if (!run.doingBettingOddsCalibrations) {
+				logger << "\n";
+				logger << "   Win rate: " << winPercent << "%\n";
+				sim.latestReport.seatTcpWinPercent[seatIndex][parties] = winPercent;
+				logger << "   Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
+			}
 		}
 		if (project.seats().access(project.seats().indexToId(seatIndex)).livePartyOne != Party::InvalidId) sim.latestReport.seatHideTcps[seatIndex] = true;
 	}
@@ -391,13 +412,13 @@ void SimulationCompletion::recordSeatSwingFactors()
 {
 	sim.latestReport.swingFactors.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		const float seatRegionSwingAverage = run.seatRegionSwingSums[seatIndex] / double(sim.settings.numIterations);
-		const float seatElasticitySwingAverage = run.seatElasticitySwingSums[seatIndex] / double(sim.settings.numIterations);
-		const float seatLocalEffectsAverage = run.seatLocalEffectsSums[seatIndex] / double(sim.settings.numIterations);
-		const float seatPreviousSwingEffectAverage = run.seatPreviousSwingEffectSums[seatIndex] / double(sim.settings.numIterations);
-		const float seatFederalSwingEffectAverage = run.seatFederalSwingEffectSums[seatIndex] / double(sim.settings.numIterations);
-		const float seatByElectionEffectAverage = run.seatByElectionEffectSums[seatIndex] / double(sim.settings.numIterations);
-		const float seatThirdPartyExhaustEffectAverage = run.seatThirdPartyExhaustEffectSums[seatIndex] / double(sim.settings.numIterations);
+		const float seatRegionSwingAverage = run.seatRegionSwingSums[seatIndex] / double(iterations);
+		const float seatElasticitySwingAverage = run.seatElasticitySwingSums[seatIndex] / double(iterations);
+		const float seatLocalEffectsAverage = run.seatLocalEffectsSums[seatIndex] / double(iterations);
+		const float seatPreviousSwingEffectAverage = run.seatPreviousSwingEffectSums[seatIndex] / double(iterations);
+		const float seatFederalSwingEffectAverage = run.seatFederalSwingEffectSums[seatIndex] / double(iterations);
+		const float seatByElectionEffectAverage = run.seatByElectionEffectSums[seatIndex] / double(iterations);
+		const float seatThirdPartyExhaustEffectAverage = run.seatThirdPartyExhaustEffectSums[seatIndex] / double(iterations);
 		sim.latestReport.swingFactors[seatIndex].push_back(
 			"Base region swing;" + std::to_string(seatRegionSwingAverage));
 		sim.latestReport.swingFactors[seatIndex].push_back(
@@ -485,5 +506,5 @@ StanModel const& SimulationCompletion::baseModel()
 
 void SimulationCompletion::updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int & bound)
 {
-	if (float(partyCount) > float(sim.settings.numIterations) * 0.005f * float(probThreshold) && bound == -1) bound = numSeats;
+	if (float(partyCount) > float(iterations) * 0.005f * float(probThreshold) && bound == -1) bound = numSeats;
 }
