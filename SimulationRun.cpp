@@ -91,8 +91,6 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 {
 	doingBettingOddsCalibrations = true;
 
-	logger << "*** Doing betting odds calibrations ***\n";
-
 	// key is (seatIndex, partyIndex)
 	std::map<std::pair<int, int>, float> impliedChances;
 	for (auto const& [seatId, seat] : project.seats()) {
@@ -107,9 +105,19 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 			impliedChances[{seatIndex, partyIndex}] = thisImpliedChance;
 		}
 	}
-	PA_LOG_VAR(impliedChances);
 
 	oddsCalibrationMeans.clear();
+	oddsFinalMeans.clear();
+
+	if (!impliedChances.size()) {
+		logger << "*** Skipping betting odds calibrations are there are no odds currently entered ***\n";
+		doingBettingOddsCalibrations = false;
+		return;
+	}
+
+	logger << "*** Doing betting odds calibrations ***\n";
+	PA_LOG_VAR(impliedChances);
+
 	std::map<std::pair<int, int>, float> previouslyHigh;
 	std::map<std::pair<int, int>, float> currentIncrement;
 	float initialValue = transformVoteShare(20.0f);

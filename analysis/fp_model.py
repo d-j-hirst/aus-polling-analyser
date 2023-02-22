@@ -234,10 +234,10 @@ class ElectionData:
             df['old_tpp'] = df['@TPP']
         num_polls = len(df['@TPP'].values.tolist())
         min_index = df.index.values.tolist()[0]
-        adjustments = {a + min_index: 0 for a in range(0, num_polls)}
+        adjustments = {a: 0 for a in df.index.values}
         for others_party in others_parties + ['GRN FP']:
-            days = df['Day'].values.tolist()
             if others_party in df and others_party in self.others_medians:
+                days = df['Day'].values.tolist()
                 pref_tuple = (self.e_tuple[0], self.e_tuple[1], others_party)
                 oth_tuple = (self.e_tuple[0], self.e_tuple[1], 'OTH FP')
                 polled_percent = df[others_party].values.tolist()
@@ -257,6 +257,7 @@ class ElectionData:
             pref_tuple = (self.e_tuple[0], self.e_tuple[1], column)
             if pref_tuple not in m_data.preference_flows:
                 continue
+            print(column)
             preference_flow = m_data.preference_flows[pref_tuple][0]
             preference_survival = 1 - m_data.preference_flows[pref_tuple][1]
             if column == 'OTH FP':
@@ -638,7 +639,8 @@ def run_individual_party(config, m_data, e_data,
         polls_file.write(',' + party + ' reported')
     polls_file.write('\n')
     for poll_index in df.index:
-        if 'Brand' in df and isinstance(df.loc[poll_index, 'Brand'], str) and len(df.loc[poll_index, 'Brand']) > 0:
+        if ('Brand' in df and isinstance(df.loc[poll_index, 'Brand'], str)
+            and len(df.loc[poll_index, 'Brand']) > 0):
             print("Writing brand")
             polls_file.write(str(df.loc[poll_index, 'Brand']))
         else:
