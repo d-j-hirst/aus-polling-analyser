@@ -232,23 +232,19 @@ class ElectionData:
     def create_tpp_series(self, m_data, desired_election, df):
         if 'old_tpp' not in df:
             df['old_tpp'] = df['@TPP']
-        num_polls = len(df['@TPP'].values.tolist())
-        min_index = df.index.values.tolist()[0]
         adjustments = {a: 0 for a in df.index.values}
         for others_party in others_parties + ['GRN FP']:
             if others_party in df and others_party in self.others_medians:
-                days = df['Day'].values.tolist()
                 pref_tuple = (self.e_tuple[0], self.e_tuple[1], others_party)
                 oth_tuple = (self.e_tuple[0], self.e_tuple[1], 'OTH FP')
-                polled_percent = df[others_party].values.tolist()
                 adj_flow = (m_data.preference_flows[pref_tuple][0] -
                             m_data.preference_flows[oth_tuple][0])
-                for a in range(0, num_polls):
-                    if math.isnan(polled_percent[a]):
-                        day = days[a]
+                for a in adjustments.keys():
+                    if math.isnan(df.loc[a, others_party]):
+                        day = df.loc[a, 'Day']
                         estimated_fp = self.others_medians[others_party][day.n]
                         pref_adjust = estimated_fp * adj_flow
-                        adjustments[a + min_index] += pref_adjust
+                        adjustments[a] += pref_adjust
         adjustment_series = pd.Series(data=adjustments)
         df['Total'] = (df['ALP FP'] + df['LIB FP'
                        if 'LIB FP' in df else 'LNP FP'])
