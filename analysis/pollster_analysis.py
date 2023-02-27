@@ -204,6 +204,16 @@ def analyse_bias():
                         # frequently polled election gets a weight of 1
                         weight = (min(math.log(this_n_polls + 1), 3) *
                                   min(math.log(all_n_polls + 1), 4) / 12)
+                        # Elections in closer proximity should have more weight
+                        weight *= 2 ** -((
+                            int(election[0]) - int(target_election[0])
+                        ) / 4)
+                        # Weight according to whether both elections are
+                        # federal or not (federal elections have
+                        # different bias patterns)
+                        if ((election[1] == 'fed') !=
+                            (target_election[1] == 'fed')):
+                            weight *= 0.4
                         target_key = (pollster, party)
                         if target_key not in bias_list:
                             bias_list[target_key] = []

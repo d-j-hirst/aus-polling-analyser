@@ -304,7 +304,7 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
     pollster_count = {}
     house_effects = {}
     for a in exc_poll_data:
-        day, vote, pollster = a[0], a[1], a[3]
+        day, vote, pollster = int(a[0]), a[1], a[3]
         table_index = day + offset
         trend_value = summary[table_index][median_col]
         if pollster not in diff_sum:
@@ -318,7 +318,7 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
     deviations = []
     prob_deviations = []
     for a in exc_poll_data:
-        day, vote, poll_index, pollster = a[0], a[1], a[2], a[3]
+        day, vote, poll_index, pollster = int(a[0]), a[1], a[2], a[3]
         table_index = day + offset
         trend_median = summary[table_index][median_col]
         eff_house_effect = house_effects[pollster]
