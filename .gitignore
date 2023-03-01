@@ -339,4 +339,5 @@ __pycache__/
 /analysis/Archived/Outputs/*_83d.csv
 /analysis/Archived/Outputs/Calibration/fp_*.csv
 /analysis/Archived/Outputs/Calibration/calib_*.csv
+/analysis/Synthetic TPPs
 /NSW State Election 2023 testing.pol2

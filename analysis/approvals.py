@@ -119,6 +119,13 @@ class Data:
             self.leaderships[election[1]]
             if (a[0] - self.start_dates[election]).days < day
         ][-1][1] != 'ALP')
+
+    def get_leader(self, election, day):
+        return ([
+            a for a in 
+            self.leaderships[election[1]]
+            if (a[0] - self.start_dates[election]).days < day
+        ][-1][2])
     
     def regression(
         self,
@@ -127,26 +134,57 @@ class Data:
         observation,
         obs_date
     ):
-        # Regress poll trend (for government) vs. approval rating
+        # This project only uses information "from the future"
+        # up to the end of 2021 (so that a large enough sample)
+        # size can be obtained)
+        threshold = datetime.date.fromisoformat('2022-01-01')
         y = []
         x = []
         w = []
+        obs_leader = self.get_leader(
+            target_election,
+            (obs_date - self.start_dates[target_election]).days
+        )
+        # Regress poll trend (for government) vs. approval rating
         for election, approvals in self.approvals.items():
             for day, pollster, netapp, weight in approvals:
-                if (self.start_dates[election] + datetime.timedelta(day) 
-                    >= obs_date): continue
+                date = (self.start_dates[election] + datetime.timedelta(day))
+                day_diff = (obs_date - date).days
+                same_area = election[1] == target_election[1]
+                # Don't use dates from the future if they're from the same
+                # area or they're after the date threshold (end 2021)
+                if (day_diff <= 0 and (same_area or
+                    (date - threshold).days <= 0)): continue
                 x.append(netapp)
                 # Get last leader who entered office before this poll
                 is_coalition = self.is_coalition(election, day)
+                poll_leader = self.get_leader(election, day)
                 alp_trend = self.trends[election][day]
                 gov_trend = 100 - alp_trend if is_coalition else alp_trend
                 if not election == target_election:
                     weight *= 0.1
-                if not election[1] == target_election[1]:
+                if not same_area:
                     weight *= 0.5
+                if not obs_leader == poll_leader:
+                    weight *= 0.2
                 if not pollster == target_pollster:
                     weight *= 0.1
-                # *** check if it's the same leader too
+                if same_area and obs_leader == poll_leader:
+                    recent_threshold = 60
+                    recent_weighting = 100
+                    long_term_halflife = 730  # two years
+                    if day_diff < recent_threshold:
+                        weight *= 0.01 + 0.9 * (
+                            recent_weighting **
+                            (-abs(day_diff) / recent_threshold)
+                        )
+                    else:
+                        weight *= 0.01 + 0.9 * (
+                            2 ** (-(abs(day_diff) - recent_threshold) /
+                            long_term_halflife) / recent_weighting
+                        )
+                else:
+                    weight *= 0.01
                 y.append(gov_trend-50)
                 w.append(weight)
         y = np.array(y)
@@ -165,19 +203,30 @@ class Data:
         return predictions[0]
 
     def create_synthetic_tpps(self):
-        #for election, approvals in self.approvals.items():
-        election = ('2025', 'fed')
-        for day, pollster, netapp, weight in self.approvals[election]:
-            date = self.start_dates[election] + datetime.timedelta(day)
-            synthetic_tpp = self.regression(
-                target_election=election,
-                target_pollster=pollster,
-                observation=netapp,
-                obs_date=date
-            )
-            if self.is_coalition(election, day):
-                synthetic_tpp = 100 - synthetic_tpp
-            print(str(date) + ' ' + pollster + ' ' + str(synthetic_tpp))
+        files = {}
+        for election in sorted(self.approvals.keys(), key=lambda x: x[0]):
+            print(election)
+            if len(self.approvals[election]) == 0:
+                print('No approvals for this election')
+                continue
+
+            for day, pollster, netapp, weight in self.approvals[election]:
+                date = self.start_dates[election] + datetime.timedelta(day)
+                synthetic_tpp = self.regression(
+                    target_election=election,
+                    target_pollster=pollster,
+                    observation=netapp,
+                    obs_date=date
+                )
+                if self.is_coalition(election, day):
+                    synthetic_tpp = 100 - synthetic_tpp
+                if not election[1] in files: files[election[1]] = []
+                files[election[1]].append((date, pollster, synthetic_tpp))
+        for area, approvals in files.items():
+            with open(f'Synthetic TPPs/{area}.csv', 'w') as f:
+                for date, pollster, tpp in approvals:
+                    f.write(f'{date.isoformat()},{pollster},{tpp}\n')
+
 
 
 
