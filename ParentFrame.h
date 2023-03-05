@@ -38,24 +38,27 @@ private:
 	// Calls on the frame to display an "About" message dialog.
 	void OnAbout(wxCommandEvent& event);
 
-	// Calls on the frame to open the dialog for a new project, if appropriate.
+	// Calls on the frame to open the dialog for a new project, if appropriate
 	void OnNew(wxCommandEvent& event);
 
-	// Calls on the frame to open the dialog for a existing project, if appropriate.
+	// Calls on the frame to open the dialog for a existing project, if appropriate
 	void OnOpen(wxCommandEvent& event);
 
 	// Calls on the frame to save the current project under the existing filename
 	// (or use the save project dialog, if possible)
 	void OnSave(wxCommandEvent& event);
 
-	// Calls on the frame to open the dialog for saving a project, if appropriate.
+	// Calls on the frame to open the dialog for saving a project, if appropriate
 	void OnSaveAs(wxCommandEvent& event);
 
-	// Calls on the frame to open the dialog for running a macro.
+	// Calls on the frame to open the dialog for running a macro
 	void OnRunMacro(wxCommandEvent& event);
 
-	// Calls on the frame to open the dialog for updating a macro.
+	// Calls on the frame to open the dialog for updating a macro
 	void OnUpdateMacro(wxCommandEvent& event);
+
+	// Calls on the frame to open the dialog for editing general settings
+	void OnGeneralSettings(wxCommandEvent& event);
 
 	// Calls on the frame to initialize a new project and its notebook control using the given new project data
 	void createNotebook(NewProjectData newProjectData);

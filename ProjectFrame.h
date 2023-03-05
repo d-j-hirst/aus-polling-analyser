@@ -16,6 +16,7 @@
 #include "GenericChildFrame.h"
 #include "PollingProject.h"
 #include "NewProjectFrame.h"
+#include "GeneralSettingsFrame.h"
 #include "ParentFrame.h"
 
 #include "wx/bookctrl.h"
@@ -95,6 +96,9 @@ public:
 	// Update the stored macro without running it
 	void updateMacro();
 
+	// Edit general settings for the project
+	void editGeneralSettings();
+
 private:
 
 	// Base constructor, should not actually be called as it does not create a project.
@@ -122,6 +126,9 @@ private:
 
 	// Cancel construction from an invalid file, displaying an error message to the user
 	void cancelConstructionFromFile();
+
+	// does everything required to replace the currently selected poll with "poll".
+	void replaceGeneralSettings(GeneralSettingsData data);
 
 	// all data internal to the project (which is to be saved).
 	std::unique_ptr<PollingProject> project;

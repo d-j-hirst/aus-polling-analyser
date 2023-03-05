@@ -45,7 +45,6 @@ struct PartySettingsData {
 class PartySettingsFrame : public wxDialog
 {
 public:
-	// parent: Parent frame for this (must be a PartiesFrame).
 	// partySettingsData: Party Settings data to be used.
 	PartySettingsFrame(PartySettingsData partySettingsData, std::function<void(PartySettingsData)> callback);
 

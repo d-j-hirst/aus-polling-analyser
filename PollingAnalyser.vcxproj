@@ -290,6 +290,7 @@
     <ClCompile Include="ElectionCollection.cpp" />
     <ClCompile Include="ElectionData.cpp" />
     <ClCompile Include="FloatInput.cpp" />
+    <ClCompile Include="GeneralSettingsFrame.cpp" />
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="LivePreparation.cpp" />
@@ -377,6 +378,7 @@
     <ClInclude Include="ElectionCollection.h" />
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="FloatInput.h" />
+    <ClInclude Include="GeneralSettingsFrame.h" />
     <ClInclude Include="json.h" />
     <ClInclude Include="LinearRegression.h" />
     <ClInclude Include="LivePreparation.h" />

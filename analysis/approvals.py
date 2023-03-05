@@ -8,12 +8,12 @@ import statsmodels.api as sm
 poll_files = ['fed','nsw','vic','qld','wa','sa']
 
 
-def generate_synthetic_tpps():
-    Approvals()
+def generate_synthetic_tpps(display_analysis=False):
+    Approvals(display_analysis)
 
 
 class Approvals:
-    def __init__(self, display_analysis=False):
+    def __init__(self, display_analysis):
         self.load_data()
         self.create_synthetic_tpps()
         if (display_analysis): self.analyse_synthetic_tpps()

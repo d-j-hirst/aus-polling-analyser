@@ -239,6 +239,9 @@
     <ClCompile Include="C:\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GeneralSettingsFrame.cpp">
+      <Filter>Source Files\Dialog Boxes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -584,6 +587,9 @@
     </ClInclude>
     <ClInclude Include="LivePreparation.h">
       <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneralSettingsFrame.h">
+      <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

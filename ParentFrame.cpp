@@ -38,6 +38,7 @@ enum class Tool
 	New = wxID_NEW,
 	Open = wxID_OPEN,
 	Save = wxID_SAVE,
+	GeneralSettings = 101,
 };
 
 // ----------------------------------------------------------------------------
@@ -141,6 +142,13 @@ void ParentFrame::OnUpdateMacro(wxCommandEvent&)
 	}
 }
 
+void ParentFrame::OnGeneralSettings(wxCommandEvent&)
+{
+	if (notebook) {
+		notebook->editGeneralSettings();
+	}
+}
+
 void ParentFrame::createNotebook(NewProjectData newProjectData) {
 	createNotebookPanel();
 	notebook.reset(new ProjectFrame(this, newProjectData));
@@ -199,6 +207,7 @@ void ParentFrame::setupToolBar()
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\new.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\open.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\save.png", wxBITMAP_TYPE_PNG);
+	toolBarBitmaps[3] = wxBitmap("bitmaps\\tools.png", wxBITMAP_TYPE_PNG);
 
 	toolBar = CreateToolBar();
 
@@ -206,6 +215,7 @@ void ParentFrame::setupToolBar()
 	toolBar->AddTool(int(Tool::New), "New Project", toolBarBitmaps[0], wxNullBitmap, wxITEM_NORMAL, "New Project");
 	toolBar->AddTool(int(Tool::Open), "Open Project", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Open Project");
 	toolBar->AddTool(int(Tool::Save), "Save Project", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Save Project");
+	toolBar->AddTool(int(Tool::GeneralSettings), "General Project Settings", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "General Project Settings");
 
 	// Realize the toolbar, so that the tools actually display.
 	toolBar->Realize();
@@ -227,6 +237,7 @@ void ParentFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ParentFrame::OnNew, this, int(Tool::New));
 	Bind(wxEVT_TOOL, &ParentFrame::OnOpen, this, int(Tool::Open));
 	Bind(wxEVT_TOOL, &ParentFrame::OnSave, this, int(Tool::Save));
+	Bind(wxEVT_TOOL, &ParentFrame::OnGeneralSettings, this, int(Tool::GeneralSettings));
 }
 
 void ParentFrame::updateInterface() {

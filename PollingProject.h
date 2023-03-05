@@ -41,6 +41,7 @@ class PreviousElectionDataRetriever;
 class PollingProject {
 public:
 	friend class ProjectFiler;
+	friend class GeneralSettingsFrame;
 
 	// Initializes the polling project using the project data
 	// selected on the New Project screen.

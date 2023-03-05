@@ -14,6 +14,7 @@
 #include "DownloadFrame.h"
 #include "AnalysisFrame.h"
 #include "MapFrame.h"
+#include "GeneralSettingsFrame.h"
 
 enum TabsEnum {
 	Tab_Parties,
@@ -171,6 +172,21 @@ void ProjectFrame::updateMacro()
 	if (result == wxID_CANCEL) return;
 	std::string newMacro = std::string(dialog.GetValue());
 	project->updateMacro(newMacro);
+}
+
+void ProjectFrame::editGeneralSettings()
+{
+	GeneralSettingsData data(project->getElectionName());
+	auto callback = [=](GeneralSettingsData data) {project->setElectionName(data.electionName);};
+
+	// Create the new project frame (where initial settings for the new project are chosen).
+	GeneralSettingsFrame* frame = new GeneralSettingsFrame(callback, data);
+
+	// Show the frame.
+	frame->ShowModal();
+
+	// This is needed to avoid a memory leak.
+	delete frame;
 }
 
 // Constructor for the ProjectFrame without creating a project. Only used as a delegate for the above constructors.
