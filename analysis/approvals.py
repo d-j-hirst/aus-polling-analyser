@@ -1,15 +1,22 @@
 import math
 import datetime
+import statistics
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
 poll_files = ['fed','nsw','vic','qld','wa','sa']
 
-class Data:
-    def __init__(self):
+
+def generate_synthetic_tpps():
+    Approvals()
+
+
+class Approvals:
+    def __init__(self, display_analysis=False):
         self.load_data()
         self.create_synthetic_tpps()
+        if (display_analysis): self.analyse_synthetic_tpps()
     
     def load_data(self):
         self.trends = {}
@@ -153,8 +160,8 @@ class Data:
                 same_area = election[1] == target_election[1]
                 # Don't use dates from the future if they're from the same
                 # area or they're after the date threshold (end 2021)
-                if (day_diff <= 0 and (same_area or
-                    (date - threshold).days <= 0)): continue
+                if (day_diff <= 12 and (same_area or
+                    (date - threshold).days >= 0)): continue
                 x.append(netapp)
                 # Get last leader who entered office before this poll
                 is_coalition = self.is_coalition(election, day)
@@ -190,9 +197,20 @@ class Data:
         y = np.array(y)
         x = np.array(x)
 
-        x = sm.add_constant(x)
-        wls_model = sm.WLS(y, x, weights=w)
-        wls_results = wls_model.fit()
+        param_ratio = 0
+        while param_ratio < 0.7:
+            x = sm.add_constant(x)
+            wls_model = sm.WLS(y, x, weights=w)
+            wls_results = wls_model.fit()
+
+            alt_weights = [a ** 0 for a in w]
+
+            alt_wls_model = sm.WLS(y, x, weights=alt_weights)
+            alt_wls_results = alt_wls_model.fit()
+            param_ratio = wls_results.params[1] / alt_wls_results.params[1]
+            if (param_ratio < 0.7): w = [a ** 0.8 for a in w]
+
+        weight_sum = sum(w)
 
         # The extra zero prevents this array from being implicitly
         # converted into something which would prevent the prediction from
@@ -200,19 +218,16 @@ class Data:
         pred = np.array([observation, 0])
         pred = sm.add_constant(pred)
         predictions = [a + 50 for a in wls_results.predict(pred)]
-        return predictions[0]
+        return (predictions[0], weight_sum)
 
     def create_synthetic_tpps(self):
         files = {}
+        self.synthetic_tpps = {}
         for election in sorted(self.approvals.keys(), key=lambda x: x[0]):
-            print(election)
-            if len(self.approvals[election]) == 0:
-                print('No approvals for this election')
-                continue
 
             for day, pollster, netapp, weight in self.approvals[election]:
                 date = self.start_dates[election] + datetime.timedelta(day)
-                synthetic_tpp = self.regression(
+                synthetic_tpp, weight_sum = self.regression(
                     target_election=election,
                     target_pollster=pollster,
                     observation=netapp,
@@ -221,18 +236,32 @@ class Data:
                 if self.is_coalition(election, day):
                     synthetic_tpp = 100 - synthetic_tpp
                 if not election[1] in files: files[election[1]] = []
-                files[election[1]].append((date, pollster, synthetic_tpp))
+                stpp_item = (date, pollster, synthetic_tpp, weight_sum)
+                files[election[1]].append(stpp_item)
+                if not election in self.synthetic_tpps:
+                    self.synthetic_tpps[election] = []
+                self.synthetic_tpps[election].append(stpp_item)
         for area, approvals in files.items():
             with open(f'Synthetic TPPs/{area}.csv', 'w') as f:
-                for date, pollster, tpp in approvals:
-                    f.write(f'{date.isoformat()},{pollster},{tpp}\n')
-
-
-
-
-
-                
-
+                for date, pollster, tpp, weight_sum in approvals:
+                    f.write(f'{date.isoformat()},{pollster},{tpp},{weight_sum}\n')
+    
+    def analyse_synthetic_tpps(self):
+        errors = []
+        for threshold in [0.02, 0.1, 0.25, 0.5, 1, 2, 10000]:
+            for election, stpp_items in self.synthetic_tpps.items():
+                stpp_items = self.synthetic_tpps[election]
+                for stpp_item in stpp_items:
+                    if (stpp_item[3] > threshold): continue
+                    day = (stpp_item[0] - self.start_dates[election]).days
+                    trend_val = self.trends[election][day]
+                    error = trend_val - stpp_item[2]
+                    errors.append(error)
+            print(threshold)
+            print(f'{statistics.mean(errors)}')
+            print(f'{statistics.mean(abs(a) for a in errors)}')
+            print(f'{statistics.stdev(errors)}')
+    
 
 if __name__ == "__main__":
-    data = Data()
+    generate_synthetic_tpps(True)

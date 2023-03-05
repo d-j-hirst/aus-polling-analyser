@@ -182,7 +182,7 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 		if (pollInfo.date > cutoffDate) continue;
 		std::string pollsterName = splitLine[1];
 		try {
-			pollInfo.tpp = std::stof(splitLine[2]);
+			pollInfo.tpp = std::stof(splitLine[3]);
 		}
 		catch (std::invalid_argument) {
 			// N/A value, just silently ignore as it's not actually an error
@@ -206,6 +206,10 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 			catch (std::invalid_argument) {
 				// N/A value, just silently ignore as it's not actually an error
 			}
+		}
+		// approval-only poll, don't add it
+		if (!pollInfo.results.contains(0) && std::isnan(pollInfo.tpp)) {
+			continue;
 		}
 		pollInfos.push_back(pollInfo);
 	} while (true);

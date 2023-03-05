@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import math
 import numpy as np
 import pandas as pd
@@ -7,6 +8,7 @@ import sys
 import statistics
 from time import perf_counter
 from datetime import timedelta
+from approvals import generate_synthetic_tpps
 from election_code import ElectionCode, no_target_election_marker
 
 from stan_cache import stan_cache
@@ -31,6 +33,8 @@ data_source = {
 # minor parties from the OTH value to get the true exclusive-others value
 others_parties = ['ONP FP', 'UAP FP', 'SFF FP', 'CA FP',
                 'KAP FP', 'SAB FP', 'DEM FP', 'FF FP']
+
+major_parties = ['ALP FP', 'LNP FP', 'LIB FP']
 
 
 class ConfigError(ValueError):
@@ -111,6 +115,13 @@ class Config:
                 raise ConfigError('Invalid instruction in "elections"'
                                   'argument.')
 
+    def use_approvals(self):
+        return (
+            not self.calibrate_pollsters
+            and not self.calibrate_bias
+            and not self.pure
+        )
+
 
 class ModellingData:
     def __init__(self, config):
@@ -152,11 +163,15 @@ class ModellingData:
         # Load the dates of next and previous elections
         # We will only model polls between those two dates
         with open('./Data/election-cycles.csv', 'r') as f:
-            self.election_cycles = {(a[0], a[1]):
-                            (pd.Period(a[2], freq='D'),
-                                pd.Period(a[3], freq='D'))
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
+            self.election_cycles = {
+                (a[0], a[1]):
+                (
+                    pd.Timestamp(a[2]),
+                    pd.Timestamp(a[3])
+                )
+                for a in [b.strip().split(',')
+                for b in f.readlines()]
+            }
 
         with open('./Outputs/Calibration/variability.csv', 'r') as f:
             self.pollster_sigmas = {(a[0], a[1]): float(a[2])
@@ -185,7 +200,7 @@ class ElectionData:
         self.base_df = pd.read_csv(data_source[tup[1]])
 
         # drop data not in range of this election period
-        self.base_df['MidDate'] = [pd.Period(date, freq='D')
+        self.base_df['MidDate'] = [pd.Timestamp(date)
                             for date in self.base_df['MidDate']]
         start_date = m_data.election_cycles[tup][0]
         end_date = (m_data.election_cycles[tup][1] - 
@@ -196,15 +211,15 @@ class ElectionData:
         # convert dates to days from start
         # do this before removing polls with N/A values so that
         # start times are consistent amongst series
-        # (otherwise, a poll missing some parties could cause inconsistent
-        # date indexing)
+        # (otherwise, a poll missing some parties, or with only approval ratings,
+        # could cause inconsistent date indexing)
         self.start = self.base_df['MidDate'].min()  # day zero
         # day number for each poll
-        self.base_df['Day'] = self.base_df['MidDate'] - self.start
-        self.n_days = self.base_df['Day'].max().n + 1
+        self.base_df['Day'] = (self.base_df['MidDate'] - self.start).dt.days
+        self.n_days = self.base_df['Day'].max() + 1
 
         # store the election day for when the model needs it later
-        self.election_day = (m_data.election_cycles[tup][1] - self.start).n
+        self.election_day = (m_data.election_cycles[tup][1] - self.start).days
 
         self.all_houses = self.base_df['Firm'].unique().tolist()
 
@@ -242,7 +257,7 @@ class ElectionData:
                 for a in adjustments.keys():
                     if math.isnan(df.loc[a, others_party]):
                         day = df.loc[a, 'Day']
-                        estimated_fp = self.others_medians[others_party][day.n]
+                        estimated_fp = self.others_medians[others_party][day]
                         pref_adjust = estimated_fp * adj_flow
                         adjustments[a] += pref_adjust
         adjustment_series = pd.Series(data=adjustments)
@@ -253,7 +268,6 @@ class ElectionData:
             pref_tuple = (self.e_tuple[0], self.e_tuple[1], column)
             if pref_tuple not in m_data.preference_flows:
                 continue
-            print(column)
             preference_flow = m_data.preference_flows[pref_tuple][0]
             preference_survival = 1 - m_data.preference_flows[pref_tuple][1]
             if column == 'OTH FP':
@@ -289,7 +303,7 @@ class ElectionData:
         # Convert "days" objects into raw numerical data
         # that Stan can accept
         for i in self.base_df.index:
-            self.base_df.loc[i, 'DayNum'] = int(self.base_df.loc[i, 'Day'].n + 1)
+            self.base_df.loc[i, 'DayNum'] = int(self.base_df.loc[i, 'Day'] + 1)
 
 
 def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
@@ -417,7 +431,7 @@ def run_individual_party(config, m_data, e_data,
     # Transform discontinuities from dates to raw numbers
     discontinuities_filtered = m_data.discontinuities[e_data.e_tuple[1]]
     discontinuities_filtered = \
-        [(pd.to_datetime(date).to_period('D') - e_data.start).n + 1
+        [(pd.Timestamp(date) - e_data.start).days + 1
             for date in discontinuities_filtered]
 
     # Remove discontinuities outside of the election period
@@ -477,9 +491,78 @@ def run_individual_party(config, m_data, e_data,
     print(f'Expected house effect sum: {weightedBias}')
     print(f'House effect weights: {houseWeight} for {houses}')
 
-    # get the Stan model code
-    with open("./Models/fp_model.stan", "r") as f:
-        model = f.read()
+    # convert columns to list
+    pollObs = y.values.tolist()
+    missingObs = missing.values.tolist()
+    pollHouses = df['House'].values.tolist()
+    pollDays = [int(a) for a in df['DayNum'].values]
+    sigmasList = sigmas.values.tolist()
+
+    # Add synthetic data (from approval ratings)
+    # for TPP and major party primaries
+    if config.use_approvals():
+        if party == "@TPP" or party in major_parties:
+            with open(f'Synthetic TPPs/{e_data.e_tuple[1]}.csv') as f:
+                approvals = [
+                    line.strip().split(',')
+                    for line in f.readlines()
+                ]
+            start_date = m_data.election_cycles[e_data.e_tuple][0]
+            end_date = m_data.election_cycles[e_data.e_tuple][1]
+            approvals = [
+                (   #date, tpp, info weight
+                    pd.Timestamp(line[0]),
+                    float(line[2]), float(line[3])
+                )
+                for line in approvals
+                if (pd.Timestamp(line[0]) >= start_date
+                    and pd.Timestamp(line[0]) <= end_date)
+            ]
+            
+            # Go through each approval and remove the part of the TPP
+            # that comes from preferences, leaving an estimate of the
+            # major party FP
+            if party == 'ALP FP':
+                for oth_party in others_parties + ['GRN FP', 'NAT FP', 'OTH FP']:
+                    if oth_party in e_data.others_medians:
+                        pref_tuple = (e_data.e_tuple[0], e_data.e_tuple[1], oth_party)
+                        flow = m_data.preference_flows[pref_tuple][0]
+                        approvals = [
+                            (
+                                a, 
+                                b - flow *
+                                e_data.others_medians[oth_party][(a - e_data.start).days],
+                                c
+                            )
+                            for a, b, c in approvals
+                        ]
+            elif party in ['LNP FP', 'LIB FP']:
+                # Convert to LNP TPP
+                approvals = [(a, 100 - b, c) for a, b, c in approvals]
+                for oth_party in others_parties + ['GRN FP', 'NAT FP', 'OTH FP']:
+                    if oth_party in e_data.others_medians:
+                        pref_tuple = (e_data.e_tuple[0], e_data.e_tuple[1], oth_party)
+                        flow = m_data.preference_flows[pref_tuple][0]
+                        approvals = [
+                            (
+                                a,
+                                b - (1 - flow) *
+                                e_data.others_medians[oth_party][(a - e_data.start).days],
+                                c
+                            )
+                            for a, b, c in approvals
+                        ]
+
+            n_polls += len(approvals)
+            n_houses += 1
+            houses += ['Approvals']
+            pollObs += [a[1] for a in approvals]
+            missingObs += [0 for a in approvals]
+            pollHouses += [len(houses) - 1 for a in approvals]
+            pollDays += [(a[0] - e_data.start).days + 1 for a in approvals]
+            sigmasList += [max(3, 4 - a[2]) for a in approvals]
+            he_weights += [0]
+            biases += [0]
 
     # Prepare the data for Stan to process
     stan_data = {
@@ -489,12 +572,12 @@ def run_individual_party(config, m_data, e_data,
         'discontinuityCount': len(discontinuities_filtered),
         'priorResult': prior_result,
 
-        'pollObservations': y.values,
-        'missingObservations': missing.values,
-        'pollHouse': df['House'].values.tolist(),
-        'pollDay': [int(a) for a in df['DayNum'].values],
+        'pollObservations': pollObs,
+        'missingObservations': missingObs,
+        'pollHouse': pollHouses,
+        'pollDay': pollDays,
         'discontinuities': discontinuities_filtered,
-        'sigmas': sigmas.values,
+        'sigmas': sigmasList,
         'heWeights': he_weights,
         'biases': biases,
 
@@ -514,12 +597,14 @@ def run_individual_party(config, m_data, e_data,
         'houseEffectSigma': 1.2,
 
         # prior distribution for sum of house effects
-        # keep this very small, we will deal with systemic bias
-        # in the main program, so for now keep the sum of house
+        # keep this very small, will deal with systemic bias variability
+        # in the main program, so for now keep the variance of house
         # effects at approximately zero
         'houseEffectSumSigma': 0.001,
 
         # prior distribution for each day's vote share
+        # very weak prior, want to avoid pulling extreme vote shares
+        # towards the center since that historically harms accuracy
         'priorVoteShareSigma': 200.0,
 
         # Bounds for the transition between
@@ -527,13 +612,17 @@ def run_individual_party(config, m_data, e_data,
         'houseEffectNew': houseEffectNew
     }
 
+    # get the Stan model code
+    with open("./Models/fp_model.stan", "r") as f:
+        model = f.read()
+
     # encode the STAN model in C++ or retrieve it if already cached
     sm = stan_cache(model_code=model)
 
     # Report dates for model, this means we can easily check if new
     # data has actually been saved without waiting for model to run
     print('Beginning sampling for ' + party + ' ...')
-    end = e_data.start + timedelta(days=e_data.n_days)
+    end = e_data.start + timedelta(days=int(e_data.n_days))
     print('Start date of model: ' + e_data.start.strftime('%Y-%m-%d\n'))
     print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
 
@@ -579,7 +668,7 @@ def run_individual_party(config, m_data, e_data,
     output_house_effects = (f'{folder}fp_house_effects_{e_tag}_'
         f'{party}{pollster_append}{pure_append}{cutoff_append}.csv')
 
-    if party in others_parties or party == 'GRN FP':
+    if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
         e_data.others_medians[party] = {}
 
     # Extract trend data from model summary and write to file
@@ -606,11 +695,19 @@ def run_individual_party(config, m_data, e_data,
         for col in range(3, 3+len(output_probs)-1):
             trend_value = summary[table_index][col]
             to_write += str(trend_value) + ','
-        if party in others_parties or party == 'GRN FP':
+        if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
             # Average of first and last
             median_col = math.floor((4+len(output_probs)) / 2)
             median_val = summary[table_index][median_col]
             e_data.others_medians[party][summaryDay] = median_val
+            # The others-median should exclude "others" parties that already
+            # have trend medians recorded, otherwise they will be double
+            # counted.
+            if party == 'OTH FP':
+                for oth_party in e_data.others_medians.keys():
+                    if oth_party in others_parties:
+                        e_data.others_medians[party][summaryDay] -= \
+                            e_data.others_medians[oth_party][summaryDay]
         to_write += str(summary[table_index][3+len(output_probs)-1]) + '\n'
         if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
         trend_file.write(to_write)
@@ -637,10 +734,8 @@ def run_individual_party(config, m_data, e_data,
     for poll_index in df.index:
         if ('Brand' in df and isinstance(df.loc[poll_index, 'Brand'], str)
             and len(df.loc[poll_index, 'Brand']) > 0):
-            print("Writing brand")
             polls_file.write(str(df.loc[poll_index, 'Brand']))
         else:
-            print("Writing firm")
             polls_file.write(str(df.loc[poll_index, 'Firm']))
         day = df.loc[poll_index, 'DayNum']
         days_ago = e_data.n_days - day
@@ -769,6 +864,8 @@ def run_models():
     # check version information
     print('Python version: {}'.format(sys.version))
     print('pystan version: {}'.format(pystan.__version__))
+
+    if config.use_approvals(): generate_synthetic_tpps()
 
     m_data = ModellingData(config=config)
 
