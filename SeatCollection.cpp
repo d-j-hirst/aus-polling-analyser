@@ -107,8 +107,72 @@ void SeatCollection::adjustAfterPartyRemoval(PartyCollection::Index, Party::Id p
 				seat.second.challenger = project.parties().indexToId(0);
 			}
 		}
-		if (seat.second.challenger2 == partyId) {
-			seat.second.challenger2 = project.parties().indexToId(0);
-		}
+	}
+}
+
+void SeatCollection::resetLocalModifiers()
+{
+	for (auto& [id, seat] : seats) {
+		seat.localModifier = 0.0f;
+	}
+}
+
+void SeatCollection::resetBettingOdds()
+{
+	for (auto& [id, seat] : seats) {
+		seat.bettingOdds.clear();
+	}
+}
+
+void SeatCollection::exportInfo() const
+{
+	logger << "should be exporting here\n";
+	std::string termCode = project.models().viewByIndex(0).getTermCode();
+	std::ofstream os("analysis/seats/" + termCode + ".txt");
+	for (auto const& [id, seat] : seats) {
+		os << "#Seat=" << seat.name << "\n";
+		if (seat.previousName.size()) os << "sPreviousName=" << seat.previousName << "\n";
+		if (seat.useFpResults.size()) os << "sUseFpResults=" << seat.useFpResults << "\n";
+		os << "sIncumbent=" << project.parties().view(seat.incumbent).abbreviation << "\n";
+		os << "sChallenger=" << project.parties().view(seat.challenger).abbreviation << "\n";
+		os << "sRegion=" << project.regions().view(seat.region).name << "\n";
+		os << "fTppMargin=" << seat.tppMargin << "\n";
+		os << "fPreviousTppSwing=" << seat.previousSwing << "\n";
+		if (seat.localModifier) os << "fMiscTppModifier=" << seat.localModifier << "\n";
+		if (seat.transposedTppSwing) os << "fTransposedFederalSwing=" << seat.transposedTppSwing << "\n";
+		if (seat.transposedTppSwing) os << "fByElectionSwing=" << seat.byElectionSwing << "\n";
+		if (seat.sophomoreCandidate) os << "bSophomoreCandidate=" << seat.sophomoreCandidate << "\n";
+		if (seat.sophomoreParty) os << "bSophomoreCandidate=" << seat.sophomoreParty << "\n";
+		if (seat.retirement) os << "bRetirement=" << seat.retirement << "\n";
+		if (seat.disendorsement) os << "bDisendorsement=" << seat.disendorsement << "\n";
+		if (seat.previousDisendorsement) os << "bPreviousDisendorsement=" << seat.previousDisendorsement << "\n";
+		if (seat.incumbentRecontestConfirmed) os << "bIncumbentRecontestConfirmed=" << seat.incumbentRecontestConfirmed << "\n";
+		if (seat.confirmedProminentIndependent) os << "bConfirmedProminentIndependent=" << seat.confirmedProminentIndependent << "\n";
+		if (seat.prominentMinors.size()) os << "sProminentMinors=" << joinString(seat.prominentMinors, ";") << "\n";
+
+		auto stringFloatConversion = [&](decltype(seat.bettingOdds)::value_type a) {return a.first + "," + formatFloat(a.second, 2); };
+		auto bettingOddsTransformed = mapTransform<std::string>(seat.bettingOdds, stringFloatConversion);
+		if (seat.bettingOdds.size()) os << "sBettingOdds=" << joinString(bettingOddsTransformed, ";") << "\n";
+
+		auto pollConversion = [&](decltype(seat.polls)::value_type a) {
+			auto itemConversion = [&](decltype(a.second)::value_type b) {return a.first + "," + formatFloat(b.first, 1) + "," + std::to_string(b.second); };
+			return joinString(vecTransform<std::string>(a.second, itemConversion), ";");
+		};
+		auto pollsTransformed = mapTransform<std::string>(seat.polls, pollConversion);
+		if (seat.polls.size()) os << "sPolls=" << joinString(pollsTransformed, ";") << "\n";
+		if (seat.runningParties.size()) os << "sRunningParties=" << joinString(seat.runningParties, ",") << "\n";
+		auto tcpChangeTransformed = mapTransform<std::string>(seat.tcpChange, stringFloatConversion);
+		if (seat.tcpChange.size()) os << "sTcpChange=" << joinString(tcpChangeTransformed, ";") << "\n";
+		auto minorViabilityTransformed = mapTransform<std::string>(seat.minorViability, stringFloatConversion);
+		if (seat.minorViability.size()) os << "sMinorViability=" << joinString(minorViabilityTransformed, ";") << "\n";
+		auto twoStringsConversion = [&](decltype(seat.candidateNames)::value_type a) {return a.first + "," + a.second; };
+		auto candidateNamesTransformed = mapTransform<std::string>(seat.candidateNames, twoStringsConversion);
+		if (seat.candidateNames.size()) os << "sMinorViability=" << joinString(candidateNamesTransformed, ";") << "\n";
+		if (seat.knownPrepollPercent) os << "fKnownPrepollPercent=" << seat.knownPrepollPercent << "\n";
+		if (seat.knownPostalPercent) os << "fKnownPostalPercent=" << seat.knownPostalPercent << "\n";
+		if (seat.knownAbsentCount) os << "iKnownAbsentCount=" << seat.knownAbsentCount << "\n";
+		if (seat.knownProvisionalCount) os << "iKnownProvisionalCount=" << seat.knownProvisionalCount << "\n";
+		if (seat.knownDecPrepollCount) os << "iKnownDecPrepollCount=" << seat.knownDecPrepollCount << "\n";
+		if (seat.knownPostalCount) os << "iKnownPostalCount=" << seat.knownPostalCount << "\n";
 	}
 }

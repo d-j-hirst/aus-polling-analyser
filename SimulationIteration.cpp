@@ -2362,21 +2362,6 @@ void SimulationIteration::recordSwingFactors()
 	}
 }
 
-SimulationIteration::OddsInfo SimulationIteration::calculateOddsInfo(Seat const& thisSeat)
-{
-	float incumbentOdds = (thisSeat.incumbentOdds > LongshotOddsThreshold ?
-		pow(thisSeat.incumbentOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat.incumbentOdds);
-	float challengerOdds = (thisSeat.challengerOdds > LongshotOddsThreshold ?
-		pow(thisSeat.challengerOdds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat.challengerOdds);
-	float challenger2Odds = (thisSeat.challenger2Odds > LongshotOddsThreshold ?
-		pow(thisSeat.challenger2Odds, 3) / pow(LongshotOddsThreshold, 2) : thisSeat.challenger2Odds);
-	// Calculate incumbent chance based on adjusted odds
-	float totalChance = (1.0f / incumbentOdds + 1.0f / challengerOdds + 1.0f / challenger2Odds);
-	float incumbentChance = (1.0f / incumbentOdds) / totalChance;
-	float topTwoChance = (1.0f / challengerOdds) / totalChance + incumbentChance;
-	return OddsInfo{ incumbentChance, topTwoChance };
-}
-
 float SimulationIteration::calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const
 {
 	float populism = centristPopulistFactor.at(partyIndex);

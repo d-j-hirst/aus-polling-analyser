@@ -162,7 +162,6 @@ void PollingProject::adjustSeatsAfterPartyRemoval(PartyCollection::Index, Party:
 		Seat& seat = seatPair.second;
 		if (seat.incumbent == partyId) seat.incumbent = (seat.challenger ? 0 : 1);
 		if (seat.challenger == partyId) seat.challenger = (seat.incumbent ? 0 : 1);
-		if (seat.challenger2 == partyId) seat.challenger2 = 0;
 	}
 }
 

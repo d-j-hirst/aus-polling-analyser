@@ -100,8 +100,6 @@ private:
 	void recordSwings();
 	void recordSwingFactors();
 
-	OddsInfo calculateOddsInfo(Seat const& thisSeat);
-
 	float calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const;
 
 	struct SeatCandidate { int vote; Party::Id partyId; float weight; };

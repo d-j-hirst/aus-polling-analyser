@@ -41,7 +41,7 @@ public:
 
 	Party::Id incumbent = Party::InvalidId;
 	Party::Id challenger = Party::InvalidId;
-	Party::Id challenger2 = Party::InvalidId;
+	Party::Id challenger2 = Party::InvalidId; // deprecated, do not use
 	Region::Id region = Region::InvalidId;
 
 	// Margin by which Party One is favoured on TPP.
@@ -53,13 +53,12 @@ public:
 	// Previous TPP swing in this seat, to Party One.
 	float previousSwing = 0.0f;
 
-	// Betting odds on the incumbent and challenger - only necessary for non-classic seats
-	float incumbentOdds = 2.0f;
-	float challengerOdds = 2.0f;
-	float challenger2Odds = 1000.0f;
+	float incumbentOdds = 2.0f; // deprecated, do not use
+	float challengerOdds = 2.0f; // deprecated, do not use
+	float challenger2Odds = 1000.0f; // deprecated, do not use
 
-	float incumbentWinPercent = 0.0f;
-	float tippingPointPercent = 0.0f;
+	float incumbentWinPercent = 0.0f; // deprecated, do not use
+	float tippingPointPercent = 0.0f; // deprecated, do not use
 
 	float transposedTppSwing = 0.0f;
 
@@ -175,10 +174,6 @@ public:
 		//return incumbent + challenger == 1;
 	}
 
-	float getMajorPartyWinRate(Party::Id thisParty) const {
-		return (incumbent == thisParty ? incumbentWinPercent : 100.0f - incumbentWinPercent);
-	}
-
 	void resetLiveData() {
 		livePartyOne = Party::InvalidId;
 		livePartyTwo = Party::InvalidId;
@@ -196,15 +191,9 @@ public:
 		report << " Previous Name: " << previousName << "\n";
 		report << " Incumbent Party: " << parties.view(incumbent).name << "\n";
 		report << " Challenger Party: " << parties.view(challenger).name << "\n";
-		if (challenger2 != Party::InvalidId) report << " Challenger Party 2: " << parties.view(challenger2).name << "\n";
 		report << " Last election 2pp: " << regions.view(region).name << "\n";
 		report << " Margin: " << tppMargin << "\n";
 		report << " Local Modifier: " << localModifier << "\n";
-		report << " Incumbent Betting Odds: " << incumbentOdds << "\n";
-		report << " Challenger Betting Odds: " << challengerOdds << "\n";
-		report << " Challenger 2 Betting Odds: " << challenger2Odds << "\n";
-		report << " Incumbent Win %: " << incumbentWinPercent << "\n";
-		report << " Tipping Point %: " << tippingPointPercent << "\n";
 		if (livePartyOne != Party::InvalidId) report << " Live Party One: " << parties.view(livePartyOne).name << "\n";
 		if (livePartyTwo != Party::InvalidId) report << " Live Party Two: " << parties.view(livePartyTwo).name << "\n";
 		if (livePartyThree != Party::InvalidId) report << " Live Party Three: " << parties.view(livePartyThree).name << "\n";

@@ -38,8 +38,6 @@ void SimulationCompletion::completeRun()
 	recordSeatTcpVoteStats();
 	recordSeatSwingFactors();
 
-	createClassicSeatsList();
-
 	recordTrends();
 
 	recordModelledPolls();
@@ -180,21 +178,6 @@ void SimulationCompletion::recordProbabilityBands()
 				ProbabilityBounds[probBoundIndex], sim.latestReport.othersProbabilityBounds[probBoundIndex]);
 		}
 	}
-}
-
-void SimulationCompletion::createClassicSeatsList()
-{
-	// Get a list of classic seats and list the in order of Coalition win %
-	sim.latestReport.classicSeatIndices.clear();
-	for (auto const&[key, seat] : project.seats()) {
-		if (seat.isClassic2pp()) {
-			sim.latestReport.classicSeatIndices.push_back(project.seats().idToIndex(key));
-		}
-	}
-	std::sort(sim.latestReport.classicSeatIndices.begin(), sim.latestReport.classicSeatIndices.end(),
-		[this](Seat::Id seatA, Seat::Id seatB)
-	{return project.seats().view(seatA).getMajorPartyWinRate(1) > project.seats().view(seatB).getMajorPartyWinRate(1); });
-
 }
 
 void SimulationCompletion::recordNames()

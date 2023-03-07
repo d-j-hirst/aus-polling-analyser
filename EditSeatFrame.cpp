@@ -21,16 +21,12 @@ enum ControlId
 	UseFpResults,
 	Incumbent,
 	Challenger,
-	Challenger2,
 	Region,
 	Margin,
 	PreviousSwing,
 	LocalModifier,
 	TransposedTppSwing,
 	ByElectionSwing,
-	IncumbentOdds,
-	ChallengerOdds,
-	Challenger2Odds,
 	SophomoreCandidate,
 	SophomoreParty,
 	Retirement,
@@ -71,7 +67,6 @@ void EditSeatFrame::validateSeatParties()
 	// If a model has not been specified it should default to the first.
 	if (this->seat.incumbent == Party::InvalidId) this->seat.incumbent = 0;
 	if (this->seat.challenger == Party::InvalidId) this->seat.challenger = std::min(1, partyCount - 1);
-	if (this->seat.challenger2 == Party::InvalidId) this->seat.challenger2 = partyCount - 1;
 	if (this->seat.region == Region::InvalidId) this->seat.region = regions.indexToId(0);
 }
 
@@ -82,16 +77,12 @@ void EditSeatFrame::createControls(int & y)
 	createUseFpResultsInput(y);
 	createIncumbentInput(y);
 	createChallengerInput(y);
-	createChallenger2Input(y);
 	createRegionInput(y);
 	createMarginInput(y);
 	createPreviousSwingInput(y);
 	createLocalModifierInput(y);
 	createTransposedTppSwingInput(y);
 	createByElectionSwingInput(y);
-	createIncumbentOddsInput(y);
-	createChallengerOddsInput(y);
-	createChallenger2OddsInput(y);
 	createSophomoreCandidateInput(y);
 	createSophomorePartyInput(y);
 	createRetirementInput(y);
@@ -158,16 +149,6 @@ void EditSeatFrame::createChallengerInput(int & y)
 	y += challengerInput->Height + ControlPadding;
 }
 
-void EditSeatFrame::createChallenger2Input(int & y)
-{
-	int selectedChallenger2 = parties.idToIndex(seat.challenger2);
-
-	auto callback = [this](int i) {seat.challenger2 = parties.indexToId(i); };
-	challenger2Input.reset(new ChoiceInput(this, ControlId::Challenger2, "Challenger 2: ", collectPartyStrings(),
-		selectedChallenger2, wxPoint(2, y), callback));
-	y += challenger2Input->Height + ControlPadding;
-}
-
 void EditSeatFrame::createRegionInput(int & y)
 {
 	wxArrayString regionArray;
@@ -227,39 +208,12 @@ void EditSeatFrame::createByElectionSwingInput(int& y)
 	y += byElectionSwingInput->Height + ControlPadding;
 }
 
-void EditSeatFrame::createIncumbentOddsInput(int & y)
-{
-	auto callback = [this](float f) -> void {seat.incumbentOdds = f; };
-	auto validator = [](float f) {return std::max(f, 1.0f); };
-	incumbentOddsInput.reset(new FloatInput(this, ControlId::IncumbentOdds, "Incumbent Odds:", seat.incumbentOdds,
-		wxPoint(2, y), callback, validator));
-	y += incumbentOddsInput->Height + ControlPadding;
-}
-
-void EditSeatFrame::createChallengerOddsInput(int & y)
-{
-	auto callback = [this](float f) -> void {seat.challengerOdds = f; };
-	auto validator = [](float f) {return std::max(f, 1.0f); };
-	challengerOddsInput.reset(new FloatInput(this, ControlId::ChallengerOdds, "Challenger Odds:", seat.challengerOdds,
-		wxPoint(2, y), callback, validator));
-	y += challengerOddsInput->Height + ControlPadding;
-}
-
-void EditSeatFrame::createChallenger2OddsInput(int & y)
-{
-	auto callback = [this](float f) -> void {seat.challenger2Odds = f; };
-	auto validator = [](float f) {return std::max(f, 1.0f); };
-	challenger2OddsInput.reset(new FloatInput(this, ControlId::Challenger2Odds, "Challenger 2 Odds:", seat.challenger2Odds,
-		wxPoint(2, y), callback, validator));
-	y += challenger2OddsInput->Height + ControlPadding;
-}
-
 void EditSeatFrame::createSophomoreCandidateInput(int& y)
 {
 	auto callback = [this](int i) -> void {seat.sophomoreCandidate = (i != 0); };
 	sophomoreCandidateInput.reset(new CheckInput(this, ControlId::SophomoreCandidate, "Sophomore (candidate)", seat.sophomoreCandidate,
 		wxPoint(2, y), callback));
-	y += challenger2OddsInput->Height + ControlPadding;
+	y += sophomoreCandidateInput->Height + ControlPadding;
 }
 
 void EditSeatFrame::createSophomorePartyInput(int& y)

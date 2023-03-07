@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iomanip>
 #include <map>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -52,6 +53,29 @@ inline void transferFileToString(std::ifstream& file, std::string& string) {
 	string = std::string(size, ' ');
 	file.seekg(0);
 	file.read(&string[0], size);
+}
+
+template<typename T, typename U, typename Predicate>
+inline std::vector<T> vecTransform(std::vector<U> collection, Predicate func) {
+	std::vector<T> output;
+	std::transform(collection.begin(), collection.end(), std::back_inserter(output), func);
+	return output;
+}
+
+template<typename T, typename U, typename V, typename Predicate>
+inline std::vector<T> mapTransform(std::map<U, V> collection, Predicate func) {
+	std::vector<T> output;
+	std::transform(collection.begin(), collection.end(), std::back_inserter(output) , func);
+	return output;
+}
+
+inline std::string joinString(std::vector<std::string> s, std::string const& delimiter) {
+	if (!s.size()) return "";
+	return std::accumulate(std::next(s.begin()), s.end(), s.front(),
+		[&](std::string const& acc, std::string const& val) {
+			return acc + delimiter + val;
+		}
+	);
 }
 
 inline std::vector<std::string> splitString(std::string s, std::string const& delimiter) {

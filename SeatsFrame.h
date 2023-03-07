@@ -64,14 +64,14 @@ private:
 	// Opens the dialog that allows the user to remove an existing seat.
 	void OnRemoveSeat(wxCommandEvent& event);
 
-	// Opens the dialog that allows the user to remove an existing seat.
-	void OnSeatResults(wxCommandEvent& event);
-
 	// updates the interface after a change in item selection.
 	void OnSelectionChange(wxDataViewEvent& event);
 
 	// resets election-specific info for the seat (local modifier, betting odds)
 	void OnResetSeats(wxCommandEvent&);
+
+	// Exports the data in the entered seats to a text file
+	void OnExport(wxCommandEvent&);
 
 	// does everything required to add the seat "seat".
 	void addSeat(Seat seat);
@@ -84,9 +84,6 @@ private:
 
 	// does everything required to remove the currently selected seat, if possible.
 	void removeSeat();
-
-	// Show message boxes that summarize the results of the seat at the last election
-	void showSeatResults();
 
 	// updates the interface for any changes, such as enabled/disabled buttons.
 	void updateInterface();

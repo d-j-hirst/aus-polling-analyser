@@ -81,6 +81,17 @@ public:
 	// If a party is removed, seats need to be adjusted to deal with this
 	void adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);
 
+	// Reset all local modifiers to zero
+	void resetLocalModifiers();
+
+	// Reset all local modifiers to default values
+	void resetBettingOdds();
+
+	// Export all seat info to a text file
+	// (Eventually all seat data will be taken directly from text
+	// files; this function will help to ease the transition)
+	void exportInfo() const;
+
 	Seat& back() { return std::prev(seats.end())->second; }
 
 	// Gets the begin iterator for the seat list.

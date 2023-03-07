@@ -124,13 +124,13 @@ public:
 		float total2cpPercentCounted = 0.0f;
 
 		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
-		std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds;
+		std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds{};
 
 		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
-		std::array<int, NumProbabilityBoundIndices> partyTwoProbabilityBounds;
+		std::array<int, NumProbabilityBoundIndices> partyTwoProbabilityBounds{};
 
 		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
-		std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds;
+		std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds{};
 
 		std::map<int, std::string> partyAbbr;
 		std::map<int, std::string> partyName;
@@ -150,8 +150,7 @@ public:
 		std::vector<float> partyTwoWinPercent;
 		std::vector<float> othersWinPercent;
 
-		// gives the indices of classic seats
-		std::vector<Seat::Id> classicSeatIndices;
+		std::vector<Seat::Id> classicSeatIndices; // deprecated, do not use
 
 		std::vector<std::vector<int>> regionPartyIncuments;
 
@@ -180,8 +179,8 @@ public:
 		std::vector<int> trendProbBands;
 
 		std::vector<std::map<int, std::string>> seatCandidateNames;
-		int trendPeriod;
-		int finalTrendValue;
+		int trendPeriod = 0;
+		int finalTrendValue = 0;
 		std::string trendStartDate;
 
 		std::vector<std::vector<float>> tppTrend; // outer: time point, inner: prob band
@@ -194,9 +193,6 @@ public:
 		float getPartyMajorityPercent(int whichParty) const;
 		float getPartyMinorityPercent(int whichParty) const;
 		float getHungPercent() const;
-
-		int classicSeatCount() const;
-		Seat::Id classicSeatIndex(int index) const;
 
 		int internalRegionCount() const;
 
@@ -230,11 +226,7 @@ public:
 
 		double getPartyOne2pp() const;
 
-		float getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const;
-
 		int getProbabilityBound(int bound, Simulation::MajorParty whichParty) const;
-
-		int findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) const;
 
 		int getFpSampleCount(int partyIndex) const;
 

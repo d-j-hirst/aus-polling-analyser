@@ -154,16 +154,6 @@ float Simulation::Report::getHungPercent() const
 	return mostSeatsSum + tiedPercent;
 }
 
-int Simulation::Report::classicSeatCount() const
-{
-	return classicSeatIndices.size();
-}
-
-Seat::Id Simulation::Report::classicSeatIndex(int index) const
-{
-	return classicSeatIndices[index];
-}
-
 int Simulation::Report::internalRegionCount() const
 {
 	return regionPartyWinExpectation.size();
@@ -218,11 +208,6 @@ float Simulation::Report::getPartySeatWinFrequency(int partyIndex, int seatIndex
 float Simulation::Report::getOthersWinFrequency(int seatIndex) const
 {
 	return othersWinFrequency[seatIndex];
-}
-
-float Simulation::Report::getClassicSeatMajorPartyWinRate(int classicSeatIndex, int partyIndex) const {
-	return (partyIndex ? 100.0f - partyOneWinPercent[classicSeatIndices[classicSeatIndex]] :
-		partyOneWinPercent[classicSeatIndices[classicSeatIndex]]);
 }
 
 int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) const
@@ -333,22 +318,6 @@ int Simulation::Report::getModalSeatFrequencyCount(int partyIndex) const
 double Simulation::Report::getPartyOne2pp() const
 {
 	return partyOneSwing + prevElection2pp;
-}
-
-int Simulation::Report::findBestSeatDisplayCenter(Party::Id partySorted, int numSeatsDisplayed) const {
-	// aim here is to find the range of seats with the greatest difference between most and least likely for "partySorted" to wion
-	float bestProbRange = 50.0f;
-	int bestCenter = int(classicSeatIndices.size()) / 2;
-	for (int lastSeatIndex = numSeatsDisplayed - 1; lastSeatIndex < int(classicSeatIndices.size()); ++lastSeatIndex) {
-		float lastSeatProb = getClassicSeatMajorPartyWinRate(lastSeatIndex, partySorted);
-		float firstSeatProb = getClassicSeatMajorPartyWinRate(lastSeatIndex - numSeatsDisplayed + 1, partySorted);
-		float probRange = abs(50.0f - (lastSeatProb + firstSeatProb) / 2);
-		if (probRange < bestProbRange) {
-			bestProbRange = probRange;
-			bestCenter = lastSeatIndex - numSeatsDisplayed / 2;
-		}
-	}
-	return bestCenter;
 }
 
 // This process for the following functions is inefficient as the result could be cached upon first use or saved in the save file.
