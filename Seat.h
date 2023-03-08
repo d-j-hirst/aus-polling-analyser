@@ -48,7 +48,7 @@ public:
 	float tppMargin = 0.0f;
 
 	// Local modifier to the 2pp vote (towards the incumbent).
-	float localModifier = 0.0f;
+	float miscTppModifier = 0.0f;
 
 	// Previous TPP swing in this seat, to Party One.
 	float previousSwing = 0.0f;
@@ -193,7 +193,7 @@ public:
 		report << " Challenger Party: " << parties.view(challenger).name << "\n";
 		report << " Last election 2pp: " << regions.view(region).name << "\n";
 		report << " Margin: " << tppMargin << "\n";
-		report << " Local Modifier: " << localModifier << "\n";
+		report << " Local Modifier: " << miscTppModifier << "\n";
 		if (livePartyOne != Party::InvalidId) report << " Live Party One: " << parties.view(livePartyOne).name << "\n";
 		if (livePartyTwo != Party::InvalidId) report << " Live Party Two: " << parties.view(livePartyTwo).name << "\n";
 		if (livePartyThree != Party::InvalidId) report << " Live Party Three: " << parties.view(livePartyThree).name << "\n";

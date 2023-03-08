@@ -92,6 +92,9 @@ public:
 	// files; this function will help to ease the transition)
 	void exportInfo() const;
 
+	// Import seat info from the appropriate text file
+	void importInfo();
+
 	Seat& back() { return std::prev(seats.end())->second; }
 
 	// Gets the begin iterator for the seat list.

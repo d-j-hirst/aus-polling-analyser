@@ -493,7 +493,7 @@ void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 		saveOutput.outputAsType<int32_t>(project.regions().idToIndex(thisSeat.region));
 		saveOutput << thisSeat.tppMargin;
 		saveOutput << thisSeat.previousSwing;
-		saveOutput << thisSeat.localModifier;
+		saveOutput << thisSeat.miscTppModifier;
 		saveOutput << thisSeat.transposedTppSwing;
 		saveOutput << thisSeat.byElectionSwing;
 		saveOutput << thisSeat.incumbentOdds;
@@ -549,7 +549,7 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 		thisSeat.region = saveInput.extract<int32_t>();
 		saveInput >> thisSeat.tppMargin;
 		if (versionNum >= 34) saveInput >> thisSeat.previousSwing;
-		saveInput >> thisSeat.localModifier;
+		saveInput >> thisSeat.miscTppModifier;
 		if (versionNum >= 54) saveInput >> thisSeat.transposedTppSwing;
 		if (versionNum >= 59) saveInput >> thisSeat.byElectionSwing;
 		saveInput >> thisSeat.incumbentOdds;

@@ -40,6 +40,14 @@ Party const& PartyCollection::view(Party::Id id) const {
 	return parties.at(id);
 }
 
+int PartyCollection::idByAbbreviation(std::string abbreviation) const
+{
+	for (auto const& [id, party] : parties) {
+		if (party.abbreviation == abbreviation) return id;
+	}
+	return Party::InvalidId;
+}
+
 int PartyCollection::indexByShortCode(std::string shortCode) const
 {
 	for (auto const& [id, party] : parties) {

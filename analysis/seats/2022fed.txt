@@ -1,4 +1,4 @@
-#Seat=Banks
+#Banks
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -12,7 +12,7 @@ iKnownAbsentCount=3156
 iKnownProvisionalCount=1106
 iKnownDecPrepollCount=3084
 iKnownPostalCount=12060
-#Seat=Barton
+#Barton
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -26,7 +26,7 @@ iKnownAbsentCount=4592
 iKnownProvisionalCount=1503
 iKnownDecPrepollCount=2970
 iKnownPostalCount=9480
-#Seat=Bennelong
+#Bennelong
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -41,7 +41,7 @@ iKnownAbsentCount=3020
 iKnownProvisionalCount=1041
 iKnownDecPrepollCount=2833
 iKnownPostalCount=16650
-#Seat=Berowra
+#Berowra
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -55,7 +55,7 @@ iKnownAbsentCount=3187
 iKnownProvisionalCount=715
 iKnownDecPrepollCount=2636
 iKnownPostalCount=13040
-#Seat=Blaxland
+#Blaxland
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -69,7 +69,7 @@ iKnownAbsentCount=3922
 iKnownProvisionalCount=1841
 iKnownDecPrepollCount=2633
 iKnownPostalCount=9986
-#Seat=Bradfield
+#Bradfield
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -85,7 +85,7 @@ iKnownAbsentCount=2827
 iKnownProvisionalCount=602
 iKnownDecPrepollCount=2266
 iKnownPostalCount=14939
-#Seat=Calare
+#Calare
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -101,7 +101,7 @@ iKnownAbsentCount=2460
 iKnownProvisionalCount=950
 iKnownDecPrepollCount=3155
 iKnownPostalCount=7355
-#Seat=Chifley
+#Chifley
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -115,7 +115,7 @@ iKnownAbsentCount=3617
 iKnownProvisionalCount=1876
 iKnownDecPrepollCount=4430
 iKnownPostalCount=11161
-#Seat=Cook
+#Cook
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -129,7 +129,7 @@ iKnownAbsentCount=3257
 iKnownProvisionalCount=1123
 iKnownDecPrepollCount=2556
 iKnownPostalCount=10728
-#Seat=Cowper
+#Cowper
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -146,7 +146,7 @@ iKnownAbsentCount=2519
 iKnownProvisionalCount=813
 iKnownDecPrepollCount=4257
 iKnownPostalCount=9639
-#Seat=Cunningham
+#Cunningham
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -161,7 +161,7 @@ iKnownAbsentCount=2876
 iKnownProvisionalCount=853
 iKnownDecPrepollCount=3028
 iKnownPostalCount=9303
-#Seat=Dobell
+#Dobell
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -175,7 +175,7 @@ iKnownAbsentCount=3486
 iKnownProvisionalCount=1588
 iKnownDecPrepollCount=2846
 iKnownPostalCount=12498
-#Seat=Eden-Monaro
+#Eden-Monaro
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -190,7 +190,7 @@ iKnownAbsentCount=1508
 iKnownProvisionalCount=750
 iKnownDecPrepollCount=3822
 iKnownPostalCount=13472
-#Seat=Farrer
+#Farrer
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -205,7 +205,7 @@ iKnownAbsentCount=1104
 iKnownProvisionalCount=1052
 iKnownDecPrepollCount=5662
 iKnownPostalCount=11286
-#Seat=Fowler
+#Fowler
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -222,7 +222,7 @@ iKnownAbsentCount=3575
 iKnownProvisionalCount=1551
 iKnownDecPrepollCount=2838
 iKnownPostalCount=9771
-#Seat=Gilmore
+#Gilmore
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -230,7 +230,7 @@ fTppMargin=2.6
 fPreviousTppSwing=3.34
 fMiscTppModifier=-1.11
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 bConfirmedProminentIndependent=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,OTH,IND
 fKnownPrepollPercent=44.7
@@ -239,7 +239,7 @@ iKnownAbsentCount=2384
 iKnownProvisionalCount=795
 iKnownDecPrepollCount=4720
 iKnownPostalCount=14371
-#Seat=Grayndler
+#Grayndler
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -253,7 +253,7 @@ iKnownAbsentCount=3664
 iKnownProvisionalCount=795
 iKnownDecPrepollCount=2872
 iKnownPostalCount=11175
-#Seat=Greenway
+#Greenway
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -267,7 +267,7 @@ iKnownAbsentCount=3789
 iKnownProvisionalCount=1381
 iKnownDecPrepollCount=2440
 iKnownPostalCount=13605
-#Seat=Hughes
+#Hughes
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -284,7 +284,7 @@ iKnownAbsentCount=3080
 iKnownProvisionalCount=748
 iKnownDecPrepollCount=2903
 iKnownPostalCount=10693
-#Seat=Hume
+#Hume
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -300,7 +300,7 @@ iKnownAbsentCount=3897
 iKnownProvisionalCount=1312
 iKnownDecPrepollCount=3529
 iKnownPostalCount=11390
-#Seat=Hunter
+#Hunter
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -317,7 +317,7 @@ iKnownAbsentCount=2165
 iKnownProvisionalCount=907
 iKnownDecPrepollCount=5186
 iKnownPostalCount=14899
-#Seat=Kingsford Smith
+#Kingsford Smith
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -331,7 +331,7 @@ iKnownAbsentCount=2947
 iKnownProvisionalCount=1157
 iKnownDecPrepollCount=3464
 iKnownPostalCount=11751
-#Seat=Lindsay
+#Lindsay
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -339,7 +339,7 @@ fTppMargin=-5
 fPreviousTppSwing=-6.15
 fMiscTppModifier=0.47
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,OTH
 fKnownPrepollPercent=33.8
 fKnownPostalPercent=11.7
@@ -347,7 +347,7 @@ iKnownAbsentCount=2934
 iKnownProvisionalCount=1377
 iKnownDecPrepollCount=2692
 iKnownPostalCount=12225
-#Seat=Lyne
+#Lyne
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -361,7 +361,7 @@ iKnownAbsentCount=3180
 iKnownProvisionalCount=789
 iKnownDecPrepollCount=3532
 iKnownPostalCount=9846
-#Seat=Mackellar
+#Mackellar
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -378,7 +378,7 @@ iKnownAbsentCount=3097
 iKnownProvisionalCount=727
 iKnownDecPrepollCount=3376
 iKnownPostalCount=12568
-#Seat=Macquarie
+#Macquarie
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -392,7 +392,7 @@ iKnownAbsentCount=2873
 iKnownProvisionalCount=826
 iKnownDecPrepollCount=2590
 iKnownPostalCount=11350
-#Seat=McMahon
+#McMahon
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -406,7 +406,7 @@ iKnownAbsentCount=4521
 iKnownProvisionalCount=1679
 iKnownDecPrepollCount=2651
 iKnownPostalCount=10409
-#Seat=Mitchell
+#Mitchell
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -420,7 +420,7 @@ iKnownAbsentCount=4149
 iKnownProvisionalCount=1028
 iKnownDecPrepollCount=3867
 iKnownPostalCount=14440
-#Seat=New England
+#New England
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -434,7 +434,7 @@ iKnownAbsentCount=2227
 iKnownProvisionalCount=924
 iKnownDecPrepollCount=2977
 iKnownPostalCount=8279
-#Seat=Newcastle
+#Newcastle
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -448,7 +448,7 @@ iKnownAbsentCount=3378
 iKnownProvisionalCount=975
 iKnownDecPrepollCount=3716
 iKnownPostalCount=12814
-#Seat=North Sydney
+#North Sydney
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -465,7 +465,7 @@ iKnownAbsentCount=3116
 iKnownProvisionalCount=983
 iKnownDecPrepollCount=3035
 iKnownPostalCount=14319
-#Seat=Page
+#Page
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -481,7 +481,7 @@ iKnownAbsentCount=2472
 iKnownProvisionalCount=1398
 iKnownDecPrepollCount=3544
 iKnownPostalCount=9843
-#Seat=Parkes
+#Parkes
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -495,7 +495,7 @@ iKnownAbsentCount=2483
 iKnownProvisionalCount=1099
 iKnownDecPrepollCount=3744
 iKnownPostalCount=8143
-#Seat=Parramatta
+#Parramatta
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -510,7 +510,7 @@ iKnownAbsentCount=4674
 iKnownProvisionalCount=1791
 iKnownDecPrepollCount=2820
 iKnownPostalCount=14156
-#Seat=Paterson
+#Paterson
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -524,7 +524,7 @@ iKnownAbsentCount=3093
 iKnownProvisionalCount=1022
 iKnownDecPrepollCount=2934
 iKnownPostalCount=13011
-#Seat=Reid
+#Reid
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -540,7 +540,7 @@ iKnownAbsentCount=3683
 iKnownProvisionalCount=1122
 iKnownDecPrepollCount=4458
 iKnownPostalCount=14849
-#Seat=Richmond
+#Richmond
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -555,7 +555,7 @@ iKnownAbsentCount=1590
 iKnownProvisionalCount=1377
 iKnownDecPrepollCount=4414
 iKnownPostalCount=11630
-#Seat=Macarthur
+#Macarthur
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -569,7 +569,7 @@ iKnownAbsentCount=4340
 iKnownProvisionalCount=1653
 iKnownDecPrepollCount=4294
 iKnownPostalCount=11651
-#Seat=Riverina
+#Riverina
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -585,7 +585,7 @@ iKnownAbsentCount=2264
 iKnownProvisionalCount=862
 iKnownDecPrepollCount=3396
 iKnownPostalCount=7436
-#Seat=Robertson
+#Robertson
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -599,7 +599,7 @@ iKnownAbsentCount=3212
 iKnownProvisionalCount=1020
 iKnownDecPrepollCount=2688
 iKnownPostalCount=12123
-#Seat=Shortland
+#Shortland
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -613,7 +613,7 @@ iKnownAbsentCount=3568
 iKnownProvisionalCount=1056
 iKnownDecPrepollCount=3226
 iKnownPostalCount=13470
-#Seat=Sydney
+#Sydney
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -627,7 +627,7 @@ iKnownAbsentCount=5465
 iKnownProvisionalCount=1204
 iKnownDecPrepollCount=5739
 iKnownPostalCount=12927
-#Seat=Warringah
+#Warringah
 sIncumbent=IND
 sChallenger=LNP
 sRegion=NSW
@@ -643,7 +643,7 @@ iKnownAbsentCount=3388
 iKnownProvisionalCount=782
 iKnownDecPrepollCount=3059
 iKnownPostalCount=11422
-#Seat=Watson
+#Watson
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -657,7 +657,7 @@ iKnownAbsentCount=4359
 iKnownProvisionalCount=1440
 iKnownDecPrepollCount=2215
 iKnownPostalCount=10148
-#Seat=Wentworth
+#Wentworth
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=NSW
@@ -674,7 +674,7 @@ iKnownAbsentCount=2825
 iKnownProvisionalCount=742
 iKnownDecPrepollCount=3037
 iKnownPostalCount=13039
-#Seat=Werriwa
+#Werriwa
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -688,7 +688,7 @@ iKnownAbsentCount=4401
 iKnownProvisionalCount=1897
 iKnownDecPrepollCount=6616
 iKnownPostalCount=11890
-#Seat=Whitlam
+#Whitlam
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NSW
@@ -702,7 +702,7 @@ iKnownAbsentCount=2911
 iKnownProvisionalCount=1027
 iKnownDecPrepollCount=2890
 iKnownPostalCount=8056
-#Seat=Aston
+#Aston
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -715,7 +715,7 @@ iKnownAbsentCount=3344
 iKnownProvisionalCount=854
 iKnownDecPrepollCount=3472
 iKnownPostalCount=17802
-#Seat=Ballarat
+#Ballarat
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -729,7 +729,7 @@ iKnownAbsentCount=2688
 iKnownProvisionalCount=1055
 iKnownDecPrepollCount=3819
 iKnownPostalCount=14984
-#Seat=Cooper
+#Cooper
 sPreviousName=Batman
 sIncumbent=ALP
 sChallenger=LNP
@@ -744,7 +744,7 @@ iKnownAbsentCount=4794
 iKnownProvisionalCount=1056
 iKnownDecPrepollCount=3706
 iKnownPostalCount=15120
-#Seat=Bendigo
+#Bendigo
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -758,7 +758,7 @@ iKnownAbsentCount=2242
 iKnownProvisionalCount=894
 iKnownDecPrepollCount=3496
 iKnownPostalCount=13776
-#Seat=Bruce
+#Bruce
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -772,7 +772,7 @@ iKnownAbsentCount=4747
 iKnownProvisionalCount=791
 iKnownDecPrepollCount=4386
 iKnownPostalCount=19137
-#Seat=Calwell
+#Calwell
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -786,7 +786,7 @@ iKnownAbsentCount=3980
 iKnownProvisionalCount=1643
 iKnownDecPrepollCount=3314
 iKnownPostalCount=14954
-#Seat=Casey
+#Casey
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -803,7 +803,7 @@ iKnownAbsentCount=3795
 iKnownProvisionalCount=997
 iKnownDecPrepollCount=3524
 iKnownPostalCount=18667
-#Seat=Chisholm
+#Chisholm
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -818,7 +818,7 @@ iKnownAbsentCount=3619
 iKnownProvisionalCount=905
 iKnownDecPrepollCount=3501
 iKnownPostalCount=22071
-#Seat=Corangamite
+#Corangamite
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -826,7 +826,7 @@ fTppMargin=1
 fPreviousTppSwing=1.04
 fMiscTppModifier=0.18
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,OTH
 fKnownPrepollPercent=32.5
 fKnownPostalPercent=20.5
@@ -834,7 +834,7 @@ iKnownAbsentCount=3884
 iKnownProvisionalCount=681
 iKnownDecPrepollCount=4436
 iKnownPostalCount=20362
-#Seat=Corio
+#Corio
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -848,7 +848,7 @@ iKnownAbsentCount=3676
 iKnownProvisionalCount=1096
 iKnownDecPrepollCount=3518
 iKnownPostalCount=17610
-#Seat=Deakin
+#Deakin
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -862,7 +862,7 @@ iKnownAbsentCount=4002
 iKnownProvisionalCount=818
 iKnownDecPrepollCount=4020
 iKnownPostalCount=20801
-#Seat=Dunkley
+#Dunkley
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -870,7 +870,7 @@ fTppMargin=2.7
 fPreviousTppSwing=1.71
 fMiscTppModifier=0.13
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,OTH,IND
 fKnownPrepollPercent=29.7
 fKnownPostalPercent=19.9
@@ -878,7 +878,7 @@ iKnownAbsentCount=3780
 iKnownProvisionalCount=1042
 iKnownDecPrepollCount=3762
 iKnownPostalCount=19457
-#Seat=Flinders
+#Flinders
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -895,7 +895,7 @@ iKnownAbsentCount=3245
 iKnownProvisionalCount=782
 iKnownDecPrepollCount=4686
 iKnownPostalCount=19082
-#Seat=Gellibrand
+#Gellibrand
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -909,7 +909,7 @@ iKnownAbsentCount=3611
 iKnownProvisionalCount=1313
 iKnownDecPrepollCount=3935
 iKnownPostalCount=16447
-#Seat=Goldstein
+#Goldstein
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -925,7 +925,7 @@ iKnownAbsentCount=3699
 iKnownProvisionalCount=963
 iKnownDecPrepollCount=3255
 iKnownPostalCount=18129
-#Seat=Gorton
+#Gorton
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -939,7 +939,7 @@ iKnownAbsentCount=3671
 iKnownProvisionalCount=1664
 iKnownDecPrepollCount=5804
 iKnownPostalCount=17735
-#Seat=Higgins
+#Higgins
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -957,7 +957,7 @@ iKnownAbsentCount=4764
 iKnownProvisionalCount=922
 iKnownDecPrepollCount=4183
 iKnownPostalCount=18626
-#Seat=Holt
+#Holt
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -972,7 +972,7 @@ iKnownAbsentCount=4599
 iKnownProvisionalCount=1819
 iKnownDecPrepollCount=4090
 iKnownPostalCount=14186
-#Seat=Hotham
+#Hotham
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -986,7 +986,7 @@ iKnownAbsentCount=4704
 iKnownProvisionalCount=1421
 iKnownDecPrepollCount=3699
 iKnownPostalCount=19284
-#Seat=Indi
+#Indi
 sIncumbent=IND
 sChallenger=LNP
 sRegion=VIC
@@ -1003,7 +1003,7 @@ iKnownAbsentCount=2165
 iKnownProvisionalCount=907
 iKnownDecPrepollCount=5186
 iKnownPostalCount=14899
-#Seat=Isaacs
+#Isaacs
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1018,7 +1018,7 @@ iKnownAbsentCount=4216
 iKnownProvisionalCount=1014
 iKnownDecPrepollCount=3008
 iKnownPostalCount=18691
-#Seat=Jagajaga
+#Jagajaga
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1033,7 +1033,7 @@ iKnownAbsentCount=4029
 iKnownProvisionalCount=868
 iKnownDecPrepollCount=4601
 iKnownPostalCount=15960
-#Seat=Kooyong
+#Kooyong
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -1049,7 +1049,7 @@ iKnownAbsentCount=3927
 iKnownProvisionalCount=833
 iKnownDecPrepollCount=4716
 iKnownPostalCount=19762
-#Seat=La Trobe
+#La Trobe
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -1063,7 +1063,7 @@ iKnownAbsentCount=4820
 iKnownProvisionalCount=667
 iKnownDecPrepollCount=3751
 iKnownPostalCount=17819
-#Seat=Lalor
+#Lalor
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1077,7 +1077,7 @@ iKnownAbsentCount=3303
 iKnownProvisionalCount=1499
 iKnownDecPrepollCount=4292
 iKnownPostalCount=14680
-#Seat=Mallee
+#Mallee
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -1093,7 +1093,7 @@ iKnownAbsentCount=2142
 iKnownProvisionalCount=1262
 iKnownDecPrepollCount=4212
 iKnownPostalCount=11857
-#Seat=Maribyrnong
+#Maribyrnong
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1107,7 +1107,7 @@ iKnownAbsentCount=3771
 iKnownProvisionalCount=1167
 iKnownDecPrepollCount=5604
 iKnownPostalCount=18454
-#Seat=McEwen
+#McEwen
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1121,7 +1121,7 @@ iKnownAbsentCount=5436
 iKnownProvisionalCount=1356
 iKnownDecPrepollCount=4365
 iKnownPostalCount=17820
-#Seat=Monash
+#Monash
 sPreviousName=McMillan
 sIncumbent=LNP
 sChallenger=ALP
@@ -1138,7 +1138,7 @@ iKnownAbsentCount=3071
 iKnownProvisionalCount=982
 iKnownDecPrepollCount=4612
 iKnownPostalCount=14905
-#Seat=Melbourne
+#Melbourne
 sIncumbent=GRN
 sChallenger=ALP
 sRegion=VIC
@@ -1152,7 +1152,7 @@ iKnownAbsentCount=7237
 iKnownProvisionalCount=1223
 iKnownDecPrepollCount=7777
 iKnownPostalCount=15589
-#Seat=Macnamara
+#Macnamara
 sPreviousName=Melbourne Ports
 sIncumbent=ALP
 sChallenger=LNP
@@ -1168,7 +1168,7 @@ iKnownAbsentCount=5460
 iKnownProvisionalCount=1067
 iKnownDecPrepollCount=5196
 iKnownPostalCount=20247
-#Seat=Menzies
+#Menzies
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -1183,7 +1183,7 @@ iKnownAbsentCount=3914
 iKnownProvisionalCount=792
 iKnownDecPrepollCount=3584
 iKnownPostalCount=20796
-#Seat=Nicholls
+#Nicholls
 sPreviousName=Murray
 sIncumbent=LNP
 sChallenger=ALP
@@ -1201,7 +1201,7 @@ iKnownAbsentCount=2405
 iKnownProvisionalCount=1073
 iKnownDecPrepollCount=4276
 iKnownPostalCount=10698
-#Seat=Scullin
+#Scullin
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1216,7 +1216,7 @@ iKnownAbsentCount=4454
 iKnownProvisionalCount=1397
 iKnownDecPrepollCount=2714
 iKnownPostalCount=17325
-#Seat=Wannon
+#Wannon
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -1232,7 +1232,7 @@ iKnownAbsentCount=2608
 iKnownProvisionalCount=952
 iKnownDecPrepollCount=4000
 iKnownPostalCount=12614
-#Seat=Wills
+#Wills
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -1248,7 +1248,7 @@ iKnownAbsentCount=4830
 iKnownProvisionalCount=1102
 iKnownDecPrepollCount=6603
 iKnownPostalCount=15780
-#Seat=Blair
+#Blair
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=QLD
@@ -1262,7 +1262,7 @@ iKnownAbsentCount=4046
 iKnownProvisionalCount=1466
 iKnownDecPrepollCount=4381
 iKnownPostalCount=21367
-#Seat=Bonner
+#Bonner
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1276,7 +1276,7 @@ iKnownAbsentCount=3859
 iKnownProvisionalCount=912
 iKnownDecPrepollCount=2408
 iKnownPostalCount=22237
-#Seat=Bowman
+#Bowman
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1291,7 +1291,7 @@ iKnownAbsentCount=2543
 iKnownProvisionalCount=631
 iKnownDecPrepollCount=3140
 iKnownPostalCount=19600
-#Seat=Brisbane
+#Brisbane
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1306,7 +1306,7 @@ iKnownAbsentCount=6410
 iKnownProvisionalCount=1270
 iKnownDecPrepollCount=7345
 iKnownPostalCount=23268
-#Seat=Capricornia
+#Capricornia
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1320,7 +1320,7 @@ iKnownAbsentCount=3132
 iKnownProvisionalCount=811
 iKnownDecPrepollCount=3011
 iKnownPostalCount=14337
-#Seat=Dawson
+#Dawson
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1335,7 +1335,7 @@ iKnownAbsentCount=3059
 iKnownProvisionalCount=909
 iKnownDecPrepollCount=3600
 iKnownPostalCount=11406
-#Seat=Dickson
+#Dickson
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1349,7 +1349,7 @@ iKnownAbsentCount=3958
 iKnownProvisionalCount=816
 iKnownDecPrepollCount=3163
 iKnownPostalCount=22835
-#Seat=Fadden
+#Fadden
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1363,7 +1363,7 @@ iKnownAbsentCount=4133
 iKnownProvisionalCount=1659
 iKnownDecPrepollCount=3855
 iKnownPostalCount=20161
-#Seat=Fairfax
+#Fairfax
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1377,7 +1377,7 @@ iKnownAbsentCount=3506
 iKnownProvisionalCount=896
 iKnownDecPrepollCount=4288
 iKnownPostalCount=17230
-#Seat=Fisher
+#Fisher
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1391,7 +1391,7 @@ iKnownAbsentCount=3880
 iKnownProvisionalCount=938
 iKnownDecPrepollCount=4015
 iKnownPostalCount=18528
-#Seat=Flynn
+#Flynn
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1406,7 +1406,7 @@ iKnownAbsentCount=3395
 iKnownProvisionalCount=1066
 iKnownDecPrepollCount=4159
 iKnownPostalCount=15627
-#Seat=Forde
+#Forde
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1421,7 +1421,7 @@ iKnownAbsentCount=4665
 iKnownProvisionalCount=1464
 iKnownDecPrepollCount=3860
 iKnownPostalCount=20905
-#Seat=Griffith
+#Griffith
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=QLD
@@ -1436,7 +1436,7 @@ iKnownAbsentCount=5414
 iKnownProvisionalCount=992
 iKnownDecPrepollCount=4734
 iKnownPostalCount=20533
-#Seat=Groom
+#Groom
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1453,7 +1453,7 @@ iKnownAbsentCount=2354
 iKnownProvisionalCount=773
 iKnownDecPrepollCount=2316
 iKnownPostalCount=21831
-#Seat=Herbert
+#Herbert
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1461,7 +1461,7 @@ fTppMargin=-8.4
 fPreviousTppSwing=-8.38
 fMiscTppModifier=-0.58
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,KAP,OTH,IND
 fKnownPrepollPercent=32.8
 fKnownPostalPercent=15
@@ -1469,7 +1469,7 @@ iKnownAbsentCount=2558
 iKnownProvisionalCount=1140
 iKnownDecPrepollCount=3246
 iKnownPostalCount=14524
-#Seat=Hinkler
+#Hinkler
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1485,7 +1485,7 @@ iKnownAbsentCount=2077
 iKnownProvisionalCount=810
 iKnownDecPrepollCount=3551
 iKnownPostalCount=16106
-#Seat=Kennedy
+#Kennedy
 sIncumbent=KAP
 sChallenger=LNP
 sRegion=QLD
@@ -1500,7 +1500,7 @@ iKnownAbsentCount=3307
 iKnownProvisionalCount=1320
 iKnownDecPrepollCount=3698
 iKnownPostalCount=9464
-#Seat=Leichhardt
+#Leichhardt
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1514,7 +1514,7 @@ iKnownAbsentCount=2426
 iKnownProvisionalCount=1265
 iKnownDecPrepollCount=4146
 iKnownPostalCount=12110
-#Seat=Lilley
+#Lilley
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=QLD
@@ -1529,7 +1529,7 @@ iKnownAbsentCount=4482
 iKnownProvisionalCount=1056
 iKnownDecPrepollCount=3406
 iKnownPostalCount=20895
-#Seat=Longman
+#Longman
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1537,7 +1537,7 @@ fTppMargin=-3.3
 fPreviousTppSwing=-4.07
 fMiscTppModifier=-0.24
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,OTH
 fKnownPrepollPercent=38.7
 fKnownPostalPercent=20.4
@@ -1545,7 +1545,7 @@ iKnownAbsentCount=3323
 iKnownProvisionalCount=872
 iKnownDecPrepollCount=4569
 iKnownPostalCount=22613
-#Seat=Maranoa
+#Maranoa
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1559,7 +1559,7 @@ iKnownAbsentCount=2952
 iKnownProvisionalCount=910
 iKnownDecPrepollCount=3286
 iKnownPostalCount=20961
-#Seat=McPherson
+#McPherson
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1573,7 +1573,7 @@ iKnownAbsentCount=3339
 iKnownProvisionalCount=1081
 iKnownDecPrepollCount=5901
 iKnownPostalCount=16728
-#Seat=Moncrieff
+#Moncrieff
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1588,7 +1588,7 @@ iKnownAbsentCount=4148
 iKnownProvisionalCount=1369
 iKnownDecPrepollCount=4061
 iKnownPostalCount=17884
-#Seat=Moreton
+#Moreton
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=QLD
@@ -1602,7 +1602,7 @@ iKnownAbsentCount=4196
 iKnownProvisionalCount=1275
 iKnownDecPrepollCount=4741
 iKnownPostalCount=22547
-#Seat=Oxley
+#Oxley
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=QLD
@@ -1616,7 +1616,7 @@ iKnownAbsentCount=3989
 iKnownProvisionalCount=1334
 iKnownDecPrepollCount=3204
 iKnownPostalCount=19753
-#Seat=Petrie
+#Petrie
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1630,7 +1630,7 @@ iKnownAbsentCount=4132
 iKnownProvisionalCount=933
 iKnownDecPrepollCount=5732
 iKnownPostalCount=22492
-#Seat=Rankin
+#Rankin
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=QLD
@@ -1644,7 +1644,7 @@ iKnownAbsentCount=3521
 iKnownProvisionalCount=1371
 iKnownDecPrepollCount=2521
 iKnownPostalCount=20116
-#Seat=Ryan
+#Ryan
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1660,7 +1660,7 @@ iKnownAbsentCount=4492
 iKnownProvisionalCount=834
 iKnownDecPrepollCount=4003
 iKnownPostalCount=21511
-#Seat=Wide Bay
+#Wide Bay
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1674,7 +1674,7 @@ iKnownAbsentCount=2774
 iKnownProvisionalCount=878
 iKnownDecPrepollCount=4521
 iKnownPostalCount=16896
-#Seat=Wright
+#Wright
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
@@ -1688,7 +1688,7 @@ iKnownAbsentCount=5613
 iKnownProvisionalCount=1158
 iKnownDecPrepollCount=5340
 iKnownPostalCount=22756
-#Seat=Brand
+#Brand
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=WA
@@ -1702,7 +1702,7 @@ iKnownAbsentCount=4243
 iKnownProvisionalCount=1121
 iKnownDecPrepollCount=3927
 iKnownPostalCount=15938
-#Seat=Burt
+#Burt
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=WA
@@ -1716,7 +1716,7 @@ iKnownAbsentCount=5193
 iKnownProvisionalCount=993
 iKnownDecPrepollCount=3436
 iKnownPostalCount=15290
-#Seat=Canning
+#Canning
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1730,7 +1730,7 @@ iKnownAbsentCount=4773
 iKnownProvisionalCount=992
 iKnownDecPrepollCount=3940
 iKnownPostalCount=14751
-#Seat=Cowan
+#Cowan
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=WA
@@ -1744,7 +1744,7 @@ iKnownAbsentCount=6316
 iKnownProvisionalCount=1735
 iKnownDecPrepollCount=4985
 iKnownPostalCount=18536
-#Seat=Curtin
+#Curtin
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1762,7 +1762,7 @@ iKnownAbsentCount=4864
 iKnownProvisionalCount=1020
 iKnownDecPrepollCount=3903
 iKnownPostalCount=19451
-#Seat=Durack
+#Durack
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1776,7 +1776,7 @@ iKnownAbsentCount=4451
 iKnownProvisionalCount=1557
 iKnownDecPrepollCount=6152
 iKnownPostalCount=12035
-#Seat=Forrest
+#Forrest
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1790,7 +1790,7 @@ iKnownAbsentCount=4062
 iKnownProvisionalCount=814
 iKnownDecPrepollCount=3219
 iKnownPostalCount=13240
-#Seat=Fremantle
+#Fremantle
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=WA
@@ -1804,7 +1804,7 @@ iKnownAbsentCount=5419
 iKnownProvisionalCount=1004
 iKnownDecPrepollCount=3359
 iKnownPostalCount=15779
-#Seat=Hasluck
+#Hasluck
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1818,7 +1818,7 @@ iKnownAbsentCount=5481
 iKnownProvisionalCount=1301
 iKnownDecPrepollCount=4682
 iKnownPostalCount=17169
-#Seat=Moore
+#Moore
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1832,7 +1832,7 @@ iKnownAbsentCount=5108
 iKnownProvisionalCount=978
 iKnownDecPrepollCount=4825
 iKnownPostalCount=17874
-#Seat=O'Connor
+#O'Connor
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1846,7 +1846,7 @@ iKnownAbsentCount=4297
 iKnownProvisionalCount=1363
 iKnownDecPrepollCount=3896
 iKnownPostalCount=14196
-#Seat=Pearce
+#Pearce
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1861,7 +1861,7 @@ iKnownAbsentCount=5147
 iKnownProvisionalCount=1166
 iKnownDecPrepollCount=4043
 iKnownPostalCount=18666
-#Seat=Perth
+#Perth
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=WA
@@ -1875,7 +1875,7 @@ iKnownAbsentCount=6821
 iKnownProvisionalCount=1362
 iKnownDecPrepollCount=7134
 iKnownPostalCount=17103
-#Seat=Swan
+#Swan
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1890,7 +1890,7 @@ iKnownAbsentCount=6692
 iKnownProvisionalCount=920
 iKnownDecPrepollCount=5822
 iKnownPostalCount=18232
-#Seat=Tangney
+#Tangney
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=WA
@@ -1904,7 +1904,7 @@ iKnownAbsentCount=5123
 iKnownProvisionalCount=1006
 iKnownDecPrepollCount=4510
 iKnownPostalCount=19682
-#Seat=Adelaide
+#Adelaide
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=SA
@@ -1919,7 +1919,7 @@ iKnownAbsentCount=6755
 iKnownProvisionalCount=1545
 iKnownDecPrepollCount=3093
 iKnownPostalCount=19924
-#Seat=Barker
+#Barker
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=SA
@@ -1933,7 +1933,7 @@ iKnownAbsentCount=2948
 iKnownProvisionalCount=1147
 iKnownDecPrepollCount=2766
 iKnownPostalCount=14091
-#Seat=Boothby
+#Boothby
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=SA
@@ -1951,7 +1951,7 @@ iKnownAbsentCount=4909
 iKnownProvisionalCount=968
 iKnownDecPrepollCount=3243
 iKnownPostalCount=21271
-#Seat=Grey
+#Grey
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=SA
@@ -1967,7 +1967,7 @@ iKnownAbsentCount=3007
 iKnownProvisionalCount=999
 iKnownDecPrepollCount=3518
 iKnownPostalCount=15593
-#Seat=Hindmarsh
+#Hindmarsh
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=SA
@@ -1982,7 +1982,7 @@ iKnownAbsentCount=4417
 iKnownProvisionalCount=1142
 iKnownDecPrepollCount=2933
 iKnownPostalCount=20403
-#Seat=Kingston
+#Kingston
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=SA
@@ -1996,7 +1996,7 @@ iKnownAbsentCount=4159
 iKnownProvisionalCount=839
 iKnownDecPrepollCount=3162
 iKnownPostalCount=20226
-#Seat=Makin
+#Makin
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=SA
@@ -2010,7 +2010,7 @@ iKnownAbsentCount=5168
 iKnownProvisionalCount=1223
 iKnownDecPrepollCount=2437
 iKnownPostalCount=18598
-#Seat=Mayo
+#Mayo
 sIncumbent=CA
 sChallenger=LNP
 sRegion=SA
@@ -2025,7 +2025,7 @@ iKnownAbsentCount=4108
 iKnownProvisionalCount=893
 iKnownDecPrepollCount=4699
 iKnownPostalCount=16408
-#Seat=Sturt
+#Sturt
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=SA
@@ -2040,7 +2040,7 @@ iKnownAbsentCount=5028
 iKnownProvisionalCount=1029
 iKnownDecPrepollCount=3278
 iKnownPostalCount=21523
-#Seat=Spence
+#Spence
 sPreviousName=Wakefield
 sIncumbent=ALP
 sChallenger=LNP
@@ -2056,7 +2056,7 @@ iKnownAbsentCount=4716
 iKnownProvisionalCount=1683
 iKnownDecPrepollCount=2799
 iKnownPostalCount=18550
-#Seat=Bass
+#Bass
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=TAS
@@ -2064,7 +2064,7 @@ fTppMargin=-0.3
 fPreviousTppSwing=-5.83
 fMiscTppModifier=0.59
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sRunningParties=LNP,ALP,GRN,UAP,ONP,OTH,IND
 fKnownPrepollPercent=21.2
 fKnownPostalPercent=17.4
@@ -2072,7 +2072,7 @@ iKnownAbsentCount=1518
 iKnownProvisionalCount=802
 iKnownDecPrepollCount=1557
 iKnownPostalCount=12009
-#Seat=Braddon
+#Braddon
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=TAS
@@ -2080,7 +2080,7 @@ fTppMargin=-3.1
 fPreviousTppSwing=-4.82
 fMiscTppModifier=0.23
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 bConfirmedProminentIndependent=1
 sBettingOdds=IND,91.00
 sPolls=IND,2.4,1
@@ -2091,7 +2091,7 @@ iKnownAbsentCount=1109
 iKnownProvisionalCount=644
 iKnownDecPrepollCount=1596
 iKnownPostalCount=8650
-#Seat=Clark
+#Clark
 sPreviousName=Denison
 sIncumbent=IND
 sChallenger=ALP
@@ -2107,7 +2107,7 @@ iKnownAbsentCount=2766
 iKnownProvisionalCount=741
 iKnownDecPrepollCount=2776
 iKnownPostalCount=10807
-#Seat=Franklin
+#Franklin
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=TAS
@@ -2121,7 +2121,7 @@ iKnownAbsentCount=2534
 iKnownProvisionalCount=815
 iKnownDecPrepollCount=2398
 iKnownPostalCount=11882
-#Seat=Lyons
+#Lyons
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=TAS
@@ -2136,7 +2136,7 @@ iKnownAbsentCount=3846
 iKnownProvisionalCount=1033
 iKnownDecPrepollCount=1607
 iKnownPostalCount=12897
-#Seat=Lingiari
+#Lingiari
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NT
@@ -2151,7 +2151,7 @@ iKnownAbsentCount=996
 iKnownProvisionalCount=806
 iKnownDecPrepollCount=2330
 iKnownPostalCount=2402
-#Seat=Solomon
+#Solomon
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=NT
@@ -2165,7 +2165,7 @@ iKnownAbsentCount=1108
 iKnownProvisionalCount=517
 iKnownDecPrepollCount=3333
 iKnownPostalCount=3626
-#Seat=Canberra
+#Canberra
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=ACT
@@ -2181,7 +2181,7 @@ iKnownAbsentCount=1870
 iKnownProvisionalCount=926
 iKnownDecPrepollCount=3606
 iKnownPostalCount=9395
-#Seat=Fenner
+#Fenner
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=ACT
@@ -2195,7 +2195,7 @@ iKnownAbsentCount=1769
 iKnownProvisionalCount=947
 iKnownDecPrepollCount=2471
 iKnownPostalCount=8420
-#Seat=Gippsland
+#Gippsland
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=VIC
@@ -2209,7 +2209,7 @@ iKnownAbsentCount=1894
 iKnownProvisionalCount=1084
 iKnownDecPrepollCount=4299
 iKnownPostalCount=8878
-#Seat=Bean
+#Bean
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=ACT
@@ -2217,7 +2217,7 @@ fTppMargin=7.5
 fPreviousTppSwing=-1.33
 fMiscTppModifier=0.43
 bSophomoreCandidate=1
-bSophomoreCandidate=1
+bSophomoreParty=1
 sBettingOdds=IND,34.00
 sRunningParties=LNP,ALP,GRN,UAP,ONP,IND
 fKnownPrepollPercent=33.1
@@ -2226,7 +2226,7 @@ iKnownAbsentCount=1860
 iKnownProvisionalCount=932
 iKnownDecPrepollCount=2644
 iKnownPostalCount=8830
-#Seat=Fraser
+#Fraser
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
@@ -2240,7 +2240,7 @@ iKnownAbsentCount=4629
 iKnownProvisionalCount=1592
 iKnownDecPrepollCount=3968
 iKnownPostalCount=16409
-#Seat=Hawke
+#Hawke
 sUseFpResults=Gorton
 sIncumbent=ALP
 sChallenger=LNP

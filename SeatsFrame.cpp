@@ -218,7 +218,7 @@ void SeatsFrame::addSeatToSeatData(Seat seat) {
 	data.push_back(wxVariant(project->parties().view(seat.challenger).name));
 	data.push_back(wxVariant(project->regions().view(seat.region).name));
 	data.push_back(wxVariant(formatFloat(seat.tppMargin, 2)));
-	data.push_back(wxVariant(formatFloat(seat.localModifier, 2)));
+	data.push_back(wxVariant(formatFloat(seat.miscTppModifier, 2)));
 
 	seatData->AppendItem(data);
 }

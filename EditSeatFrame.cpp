@@ -183,9 +183,9 @@ void EditSeatFrame::createPreviousSwingInput(int& y)
 
 void EditSeatFrame::createLocalModifierInput(int& y)
 {
-	auto callback = [this](float f) -> void {seat.localModifier = f; };
+	auto callback = [this](float f) -> void {seat.miscTppModifier = f; };
 	auto validator = [](float f) {return std::clamp(f, -50.0f, 50.0f); };
-	localModifierInput.reset(new FloatInput(this, ControlId::LocalModifier, "Local Modifier:", seat.localModifier,
+	localModifierInput.reset(new FloatInput(this, ControlId::LocalModifier, "Local Modifier:", seat.miscTppModifier,
 		wxPoint(2, y), callback, validator));
 	y += localModifierInput->Height + ControlPadding;
 }

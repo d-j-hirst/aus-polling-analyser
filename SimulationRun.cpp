@@ -21,6 +21,8 @@ void SimulationRun::run(FeedbackFunc feedback) {
 		return;
 	}
 
+	project.seats().importInfo();
+
 	runBettingOddsCalibrations();
 
 	SimulationPreparation preparations(project, sim, *this);

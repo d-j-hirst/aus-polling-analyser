@@ -195,8 +195,8 @@ void SimulationPreparation::determineEffectiveSeatTppModifiers()
 			run.seatPartyOneTppModifier[seatIndex] += PreviousDisendorsementMod * direction;
 			run.seatLocalEffects[seatIndex].push_back({ "Recovery from previous disendorsement", effectSize });
 		}
-		run.seatPartyOneTppModifier[seatIndex] += seat.localModifier;
-		run.seatLocalEffects[seatIndex].push_back({ "Extraordinary circumstances (treat with extra caution)", seat.localModifier });
+		run.seatPartyOneTppModifier[seatIndex] += seat.miscTppModifier;
+		run.seatLocalEffects[seatIndex].push_back({ "Extraordinary circumstances (treat with extra caution)", seat.miscTppModifier });
 	}
 }
 

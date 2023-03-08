@@ -1,0 +1,366 @@
+#Mawson
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner Rural
+fTppMargin=0.7
+fPreviousTppSwing=4.5
+sRunningParties=ALP,LNP,GRN,OTH
+#Wright
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=3.1
+fPreviousTppSwing=-0.8
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH
+#Badcoe
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro South
+fTppMargin=4.6
+fPreviousTppSwing=1.4
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH
+#Lee
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=4.6
+fPreviousTppSwing=2.3
+sRunningParties=ALP,LNP,GRN,OTH
+#Torrens
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=5.7
+fPreviousTppSwing=2.1
+sRunningParties=ALP,LNP,GRN,OTH
+#Enfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=6.2
+fPreviousTppSwing=2.3
+sRunningParties=ALP,LNP,GRN,OTH
+#Hurtle Vale
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro South
+fTppMargin=8.4
+fPreviousTppSwing=4
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Light
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Outer North
+fTppMargin=8.4
+fPreviousTppSwing=5.9
+sRunningParties=ALP,LNP,GRN,OTH
+#Reynell
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro South
+fTppMargin=9.4
+fPreviousTppSwing=3.4
+sRunningParties=ALP,LNP,GRN,OTH
+#Taylor
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Outer North
+fTppMargin=11.9
+fPreviousTppSwing=2.3
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#West Torrens
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=14.2
+fPreviousTppSwing=0.9
+sRunningParties=ALP,LNP,GRN
+#Giles
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer Rural
+fTppMargin=14.9
+fPreviousTppSwing=10
+sRunningParties=ALP,LNP,GRN,OTH,SAB
+#Kaurna
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro South
+fTppMargin=16
+fPreviousTppSwing=5.7
+sRunningParties=ALP,LNP,GRN,OTH
+#Cheltenham
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=16.7
+fPreviousTppSwing=1.5
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Port Adelaide
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=16.8
+fPreviousTppSwing=2.8
+sRunningParties=ALP,LNP,GRN,OTH
+#Elizabeth
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Outer North
+fTppMargin=17.2
+fPreviousTppSwing=6.6
+sRunningParties=ALP,LNP,GRN,OTH
+#Ramsay
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Outer North
+fTppMargin=18.5
+fPreviousTppSwing=1.2
+sRunningParties=ALP,LNP,GRN,OTH
+#Playford
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Outer North
+fTppMargin=18.6
+fPreviousTppSwing=4.6
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Croydon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Inner North
+fTppMargin=23.3
+fPreviousTppSwing=3.2
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH
+#Newland
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner Rural
+fTppMargin=-0.1
+fPreviousTppSwing=-1.8
+bSophomoreCandidate=1
+bSophomoreParty=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,6.00
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#King
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Outer North
+fTppMargin=-0.7
+fPreviousTppSwing=-0.7
+bSophomoreCandidate=1
+bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,OTH
+#Adelaide
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Inner North
+fTppMargin=-1
+fPreviousTppSwing=2
+sRunningParties=ALP,LNP,GRN,OTH
+#Elder
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-2
+fPreviousTppSwing=-0.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,OTH
+#Colton
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Inner North
+fTppMargin=-6.1
+fPreviousTppSwing=-4
+bSophomoreCandidate=1
+bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN
+#Hartley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Inner North
+fTppMargin=-6.7
+fPreviousTppSwing=-4.7
+sRunningParties=ALP,LNP,GRN
+#Dunstan
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Inner North
+fTppMargin=-7.4
+fPreviousTppSwing=-2.5
+sRunningParties=ALP,LNP,GRN,OTH
+#Heysen
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner Rural
+fTppMargin=-7.6
+fPreviousTppSwing=3.8
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH
+#Davenport
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-8.1
+fPreviousTppSwing=0.7
+sRunningParties=ALP,LNP,GRN,IND
+#Finniss
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner Rural
+fTppMargin=-14.5
+fPreviousTppSwing=-1.1
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Morialta
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner Rural
+fTppMargin=-9.3
+fPreviousTppSwing=1.5
+sRunningParties=ALP,LNP,GRN,OTH
+#Black
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-9.4
+fPreviousTppSwing=-6.4
+sRunningParties=ALP,LNP,GRN
+#Gibson
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-10
+fPreviousTppSwing=-5.6
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Morphett
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-11
+fPreviousTppSwing=-2.6
+sRunningParties=ALP,LNP,GRN
+#Unley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-11.5
+fPreviousTppSwing=-2.4
+sRunningParties=ALP,LNP,GRN
+#Stuart
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer Rural
+fTppMargin=-11.7
+fPreviousTppSwing=-3
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,3.25
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Kavel
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Inner North
+fTppMargin=-14.5
+fPreviousTppSwing=-1
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,1.05
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Schubert
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner Rural
+fTppMargin=-15.6
+fPreviousTppSwing=-2
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Hammond
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer Rural
+fTppMargin=-16.9
+fPreviousTppSwing=-2.7
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Bragg
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-16.9
+fPreviousTppSwing=-0.3
+sRunningParties=ALP,LNP,GRN,OTH
+#Chaffey
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer Rural
+fTppMargin=-18
+fPreviousTppSwing=6.7
+sRunningParties=ALP,LNP,GRN,OTH
+#MacKillop
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer Rural
+fTppMargin=-25.2
+fPreviousTppSwing=1.7
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,OTH
+#Flinders
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer Rural
+fTppMargin=-26.1
+fPreviousTppSwing=2.6
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Florey
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Metro Outer North
+fTppMargin=13.3
+fPreviousTppSwing=1.9
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Waite
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro South
+fTppMargin=-7.4
+fPreviousTppSwing=2.3
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,1.45
+sRunningParties=ALP,LNP,GRN,OTH,IND
+#Frome
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer Rural
+fTppMargin=-17.6
+fPreviousTppSwing=-1.3
+bRetirement=1
+sRunningParties=ALP,LNP,OTH,IND
+#Mount Gambier
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Outer Rural
+fTppMargin=-18.5
+fPreviousTppSwing=2.9
+bSophomoreCandidate=1
+bSophomoreParty=1
+bIncumbentRecontestConfirmed=1
+sBettingOdds=IND,1.10
+sRunningParties=ALP,LNP,OTH,IND
+#Narungga
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Metro Inner North
+fTppMargin=-18.2
+fPreviousTppSwing=-3.3
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,1.05
+sRunningParties=ALP,LNP,OTH,IND
