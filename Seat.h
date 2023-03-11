@@ -119,6 +119,9 @@ public:
 	// for now, or the incumbent if they haven't announced retirement etc.)
 	std::map<std::string, std::string> candidateNames;
 
+	// Store date (in string form) and TPP
+	std::vector<std::pair<std::string, float>> tppPolls;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (tppMargin > 0.0f ? 0 : 1);

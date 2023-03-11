@@ -209,6 +209,7 @@ private:
 	std::vector<double> seatFederalSwingEffectSums;
 	std::vector<double> seatByElectionEffectSums;
 	std::vector<double> seatThirdPartyExhaustEffectSums;
+	std::vector<double> seatPollEffectSums;
 	std::vector<std::vector<std::pair<std::string, double>>> seatLocalEffects;
 
 	// Store all potential TCP results found in iterations
@@ -245,9 +246,14 @@ private:
 	RegionPollBehaviour generalPollBehaviour;
 	TppSwingFactors tppSwingFactors;
 
+	std::vector<int> indCount;
+	std::vector<int> othCount;
+	std::vector<std::vector<std::string>> runningParties;
+
 	std::vector<std::map<int, float>> seatBettingOdds;
 	std::vector<std::map<int, float>> seatMinorViability;
 	std::vector<std::map<int, std::vector<std::pair<float, int>>>> seatPolls;
+	std::vector<float> seatTppPolls; // combined estimate
 
 	// Live results
 	float liveOverallTppSwing = 0.0f; // swing to partyOne

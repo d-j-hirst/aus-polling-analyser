@@ -35,6 +35,7 @@ private:
 	void accumulateRegionStaticInfo();
 	void loadSeatBettingOdds();
 	void loadSeatPolls();
+	void loadSeatTppPolls();
 	void loadSeatMinorViability();
 	void determinePreviousVoteEnrolmentRatios();
 	void resizeRegionSeatCountOutputs();
@@ -64,6 +65,7 @@ private:
 	void loadOverallRegionMixParameters();
 	void loadTppSwingFactors();
 	void loadIndividualSeatParameters();
+	void prepareRunningParties();
 	void calculateIndEmergenceModifier();
 
 	void initializeGeneralLiveData();

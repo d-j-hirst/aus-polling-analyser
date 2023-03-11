@@ -482,55 +482,8 @@ void ProjectFiler::loadRegions(SaveFileInput& saveInput, int versionNum)
 
 void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 {
-	saveOutput.outputAsType<int32_t>(project.seatCollection.count());
-	for (auto const& [key, thisSeat] : project.seatCollection) {
-		saveOutput << thisSeat.name;
-		saveOutput << thisSeat.previousName;
-		saveOutput << thisSeat.useFpResults;
-		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.incumbent));
-		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger));
-		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.challenger2));
-		saveOutput.outputAsType<int32_t>(project.regions().idToIndex(thisSeat.region));
-		saveOutput << thisSeat.tppMargin;
-		saveOutput << thisSeat.previousSwing;
-		saveOutput << thisSeat.miscTppModifier;
-		saveOutput << thisSeat.transposedTppSwing;
-		saveOutput << thisSeat.byElectionSwing;
-		saveOutput << thisSeat.incumbentOdds;
-		saveOutput << thisSeat.challengerOdds;
-		saveOutput << thisSeat.challenger2Odds;
-		saveOutput << thisSeat.incumbentWinPercent;
-		saveOutput << thisSeat.tippingPointPercent;
-		saveOutput << 0.0;
-		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyOne));
-		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyTwo));
-		saveOutput.outputAsType<int32_t>(project.partyCollection.idToIndex(thisSeat.livePartyThree));
-		saveOutput << thisSeat.partyTwoProb;
-		saveOutput << thisSeat.partyThreeProb;
-		saveOutput << thisSeat.overrideBettingOdds;
-		saveOutput.outputAsType<int32_t>(thisSeat.liveUseTpp);
-		saveOutput << thisSeat.sophomoreCandidate;
-		saveOutput << thisSeat.sophomoreParty;
-		saveOutput << thisSeat.retirement;
-		saveOutput << thisSeat.disendorsement;
-		saveOutput << thisSeat.previousDisendorsement;
-		saveOutput << thisSeat.incumbentRecontestConfirmed;
-		saveOutput << thisSeat.confirmedProminentIndependent;
-		saveOutput << thisSeat.prominentMinors;
-		saveOutput << thisSeat.bettingOdds;
-		saveOutput << thisSeat.polls;
-		saveOutput << thisSeat.runningParties;
-		saveOutput << thisSeat.tcpChange;
-		saveOutput << thisSeat.minorViability;
-		saveOutput << thisSeat.candidateNames;
-		saveOutput << thisSeat.previousIndRunning;
-		saveOutput << thisSeat.knownPrepollPercent;
-		saveOutput << thisSeat.knownPostalPercent;
-		saveOutput << thisSeat.knownAbsentCount;
-		saveOutput << thisSeat.knownProvisionalCount;
-		saveOutput << thisSeat.knownDecPrepollCount;
-		saveOutput << thisSeat.knownPostalCount;
-	}
+	// No need to save seats as they're now loaded from a file
+	saveOutput.outputAsType<int32_t>(0);
 }
 
 void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)

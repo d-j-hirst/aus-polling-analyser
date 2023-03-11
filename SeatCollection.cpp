@@ -144,6 +144,7 @@ constexpr std::string_view ConfirmedProminentIndependent = "bConfirmedProminentI
 constexpr std::string_view ProminentMinors = "sProminentMinors";
 constexpr std::string_view BettingOdds = "sBettingOdds";
 constexpr std::string_view Polls = "sPolls";
+constexpr std::string_view TppPolls = "sTppPolls";
 constexpr std::string_view RunningParties = "sRunningParties";
 constexpr std::string_view TcpChange = "sTcpChange";
 constexpr std::string_view MinorViability = "sMinorViability";
@@ -266,7 +267,14 @@ void SeatCollection::importInfo()
 			auto splitByParty = splitString(val, ";");
 			for (auto party : splitByParty) {
 				auto vals = splitString(party, ",");
-				seat.polls[vals[0]].push_back({std::stof(vals[1]), std::stoi(vals[2])});
+				seat.polls[vals[0]].push_back({ std::stof(vals[1]), std::stoi(vals[2]) });
+			}
+		}
+		if (tag == TppPolls) {
+			auto splitByPoll = splitString(val, ";");
+			for (auto poll : splitByPoll) {
+				auto vals = splitString(poll, ",");
+				seat.tppPolls.push_back({ vals[0], std::stof(vals[2]) });
 			}
 		}
 		if (tag == RunningParties) seat.runningParties = splitString(val, ",");

@@ -65,6 +65,7 @@ void SimulationPreparation::prepareForIterations()
 	loadSeatBettingOdds();
 	loadSeatMinorViability();
 	loadSeatPolls();
+	loadSeatTppPolls();
 
 	determinePreviousVoteEnrolmentRatios();
 
@@ -79,6 +80,8 @@ void SimulationPreparation::prepareForIterations()
 
 	calculateTotalPopulation();
 	calculateIndEmergenceModifier();
+
+	prepareRunningParties();
 
 	if (sim.isLive()) initializeGeneralLiveData();
 	if (sim.isLiveManual()) loadLiveManualResults();
@@ -128,6 +131,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatFederalSwingEffectSums.resize(project.seats().count(), 0.0);
 	run.seatByElectionEffectSums.resize(project.seats().count(), 0.0);
 	run.seatThirdPartyExhaustEffectSums.resize(project.seats().count(), 0.0);
+	run.seatPollEffectSums.resize(project.seats().count(), 0.0);
 	run.seatLocalEffects.resize(project.seats().count());
 }
 
@@ -255,6 +259,19 @@ void SimulationPreparation::loadSeatPolls()
 		for (auto const& [partyCode, polls] : project.seats().viewByIndex(seatIndex).polls) {
 			int partyIndex = project.parties().indexByShortCode(partyCode);
 			run.seatPolls[seatIndex][partyIndex] = polls;
+		}
+	}
+}
+
+void SimulationPreparation::loadSeatTppPolls()
+{
+	run.seatTppPolls.resize(project.seats().count(), 0.0f);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto& polls = project.seats().viewByIndex(seatIndex).tppPolls;
+		if (polls.size()) {
+			float sum = std::accumulate(polls.begin(), polls.end(), 0.0f,
+				[](float acc, std::pair<std::string, float> const& val) {return acc + val.second; });
+			run.seatTppPolls[seatIndex] = sum / float(polls.size());
 		}
 	}
 }
@@ -1024,6 +1041,29 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		}
 
 	} while (true);
+}
+
+void SimulationPreparation::prepareRunningParties()
+{
+	std::size_t seatCount = project.seats().count();
+	const std::string indAbbrev = project.parties().viewByIndex(run.indPartyIndex).abbreviation;
+	run.runningParties.resize(seatCount);
+	run.indCount.resize(seatCount);
+	run.othCount.resize(seatCount);
+	run.runningParties.resize(seatCount);
+	for (int seatIndex = 0; seatIndex < int(seatCount); ++seatIndex) {
+		for (auto const& code : project.seats().viewByIndex(seatIndex).runningParties) {
+			auto asteriskSplit = splitString(code, "*");
+			auto partyCode = asteriskSplit[0];
+			run.runningParties[seatIndex].push_back(partyCode);
+			if (partyCode == indAbbrev) {
+				run.indCount[seatIndex] = asteriskSplit.size();
+			} 
+			else if (partyCode == OthersCode) {
+				run.othCount[seatIndex] = asteriskSplit.size();
+			}
+		}
+	}
 }
 
 void SimulationPreparation::calculateIndEmergenceModifier()

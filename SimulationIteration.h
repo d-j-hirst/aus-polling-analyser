@@ -145,6 +145,7 @@ private:
 	std::vector<double> seatFederalSwingEffect;
 	std::vector<double> seatByElectionEffect;
 	std::vector<double> seatThirdPartyExhaustEffect;
+	std::vector<double> seatPollEffect;
 
 	float prefCorrection = 0.0f;
 	float overallFpError = 0.0f;

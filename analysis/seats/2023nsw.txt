@@ -1,160 +1,24 @@
-#East Hills
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Sydney
-fTppMargin=-0.1
-fPreviousTppSwing=-0.08
-fTransposedFederalSwing=-2.7
-bSophomoreCandidate=1
-sCandidateNames=Kylie Wilkinson,ALP;Natalie Hanna,GRN;Wendy Lindsay,LNP
-#Upper Hunter
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northern Inland
-fTppMargin=-0.5
-fPreviousTppSwing=-0.35
-fTransposedFederalSwing=-1.8
-fByElectionSwing=-3.26
-sCandidateNames=Dave Layzell,LNP;Peree Watson,ALP;Tony Lonergan,GRN
-#Monaro
+#Albury
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=Southern Inland
-fTppMargin=-11.6
-fPreviousTppSwing=-9.08
-fTransposedFederalSwing=5
-fByElectionSwing=6.41
-sCandidateNames=Jenny Goldie,GRN;Nichole Overall,LNP;Steve Whan,ALP
-#Lismore
+fTppMargin=-15.9
+fPreviousTppSwing=-2.75
+fTransposedFederalSwing=2.1
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH***
+sCandidateNames=Eli Davern,GRN;Justin Clancy,LNP;Marcus Rowland,ALP
+#Auburn
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=North Coast
-fTppMargin=2
-fPreviousTppSwing=1.57
-fTransposedFederalSwing=-3.1
+sRegion=Inner West Sydney
+fTppMargin=13.7
+fPreviousTppSwing=3.2
+fTransposedFederalSwing=-1.1
 bSophomoreCandidate=1
-bSophomoreParty=1
-sBettingOdds=GRN,3.28
-sCandidateNames=Adam Guise,GRN;Alexander Rubin,LNP;Janelle Saffin,ALP
-#Coogee
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southeast Sydney
-fTppMargin=2.3
-fPreviousTppSwing=4.56
-fTransposedFederalSwing=2.5
-bSophomoreCandidate=1
-bSophomoreParty=1
-sCandidateNames=Kylie Von Muenster,LNP;Marjorie O'Neill,ALP;Rafaela Pandolfini,GRN
-#Tweed
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=North Coast
-fTppMargin=-5
-fPreviousTppSwing=-1.78
-fTransposedFederalSwing=1.1
-sCandidateNames=Ciara Denham,GRN;Craig Elliot,ALP;Geoff Provest,LNP
-#Penrith
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Outer West Sydney
-fTppMargin=-0.6
-fPreviousTppSwing=4.9
-fTransposedFederalSwing=-1.5
-sCandidateNames=Karen McKeown,ALP;Minoo Toussi,GRN;Stuart Ayres,LNP
-#Goulburn
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Inland
-fTppMargin=-3.1
-fPreviousTppSwing=2.89
-fTransposedFederalSwing=3
-bSophomoreCandidate=1
-sCandidateNames=Gregory John Olsen,GRN;Michael Pilbrow,ALP;Wendy Tuckerman,LNP
-#Oatley
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Sydney
-fTppMargin=-6.8
-fPreviousTppSwing=-3.93
-fTransposedFederalSwing=2
-sCandidateNames=Ashvini Ambihaipahar,ALP;Mark Coure,LNP;Taylor Vandijk,GRN
-#Holsworthy
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Sydney
-fTppMargin=-6
-fPreviousTppSwing=3.41
-fTransposedFederalSwing=-1.9
-bRetirement=1
-sCandidateNames=Faten "Tina" Ayyad,LNP;Michael Moroney,ALP
-#Heathcote
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Sydney
-fTppMargin=1.7
-fPreviousTppSwing=2.63
-fTransposedFederalSwing=-0.9
-sCandidateNames=Cooper Riach,GRN;Lee Evans,LNP;Maryanne Stuart,ALP
-#Bega
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=South Coast
-fTppMargin=-6.9
-fPreviousTppSwing=1.26
-fTransposedFederalSwing=-0.8
-fByElectionSwing=11.99
-bSophomoreCandidate=1
-bSophomoreParty=1
-sCandidateNames=Cathy Griff,GRN;Michael Holland,ALP;Russell Fitzpatrick,LNP
-#Kiama
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=South Coast
-fTppMargin=-12
-fPreviousTppSwing=-3.35
-fMiscTppModifier=5
-fTransposedFederalSwing=-6
-bRetirement=1
-bConfirmedProminentIndependent=1
-sBettingOdds=IND,2.12
-sMinorViability=IND,1.00
-sCandidateNames=Gareth Ward,IND;Katelin McInerney,ALP;Tonia Gray,GRN
-#Winston Hills
-sPreviousName=Seven Hills
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Outer West Sydney
-fTppMargin=-5.7
-fPreviousTppSwing=2.39
-fTransposedFederalSwing=2.6
-sCandidateNames=Damien Atkins,GRN;Mark Taylor,LNP;Sameer Pandey,ALP
-#Myall Lakes
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=North Coast
-fTppMargin=-9.3
-fPreviousTppSwing=-0.45
-fTransposedFederalSwing=-1.7
-bRetirement=1
-sCandidateNames=Ellie Spence,GRN;Mark Vanstone,ALP;Tanya Thompson,LNP
-#Terrigal
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Central Coast
-fTppMargin=-12.3
-fPreviousTppSwing=-3.32
-fTransposedFederalSwing=2.9
-sCandidateNames=Adam Crouch,LNP;Imogen da Silva,GRN;Sam Boughton,ALP
-#South Coast
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=South Coast
-fTppMargin=-10.6
-fPreviousTppSwing=-0.93
-fTransposedFederalSwing=-7.8
-bRetirement=1
-sCandidateNames=Amanda Findley,GRN;Liza Butler,ALP;Luke Sikora,LNP
+bDisendorsement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Lynda Voltz,ALP;Masoomeh Asgari,GRN;Mohammed Zaman,LNP
 #Badgerys Creek
 sPreviousName=Mulgoa
 sIncumbent=LNP
@@ -163,73 +27,41 @@ sRegion=Southwest Sydney
 fTppMargin=-9.7
 fPreviousTppSwing=-1.67
 fTransposedFederalSwing=-1.2
-sCandidateNames=Garion Thain,ALP;Tanya Davies,LNP
-#Clarence
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=North Coast
-fTppMargin=-14.5
-fPreviousTppSwing=-4.79
-fTransposedFederalSwing=-5.4
-bRetirement=1
-sCandidateNames=Greg Clancy,GRN;Leon Ankersmit,ALP;Richard Williamson,LNP
-#Tamworth
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northern Inland
-fTppMargin=-28
-fPreviousTppSwing=-0.53
-fTransposedFederalSwing=-1.5
-bRetirement=1
-sCandidateNames=Kate McGrath,ALP;Kevin Anderson,LNP;Ryan Brooke,GRN
-#Oxley
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=North Coast
-fTppMargin=-15.4
-fPreviousTppSwing=-3.98
-fTransposedFederalSwing=0.1
-bRetirement=1
-sCandidateNames=Dominic King,GRN;Michael Kemp,LNP
-#Ryde
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-8.9
-fPreviousTppSwing=2.55
-fTransposedFederalSwing=3.5
-bRetirement=1
-sCandidateNames=Jordan Lane,LNP;Lyndal Howison,ALP;Sophie Edington,GRN
-#Riverstone
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Outer West Sydney
-fTppMargin=-6.2
-fPreviousTppSwing=5.9
-fTransposedFederalSwing=8.7
-bRetirement=1
-sCandidateNames=Mohit Kumar,LNP;Rob Vail,GRN;Warren Kirby,ALP
-#Parramatta
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Inner West Sydney
-fTppMargin=-6.5
-fPreviousTppSwing=2.21
-fTransposedFederalSwing=0.6
-bRetirement=1
-sCandidateNames=Ben Hammond,GRN;Donna Davis,ALP;Katie Mullins,LNP
-#Wagga Wagga
-sIncumbent=IND
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Garion Thain,ALP;Tanya Davies,LNP;Nick Best,GRN
+#Ballina
+sIncumbent=GRN
 sChallenger=LNP
-sRegion=Southern Inland
-fTppMargin=-7.51
-fPreviousTppSwing=5.38
-fTransposedFederalSwing=3.5
-bSophomoreCandidate=1
-bSophomoreParty=1
+sRegion=North Coast
+fTppMargin=3.9
+fPreviousTppSwing=1.28
+fTransposedFederalSwing=0.3
 bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,1.01
-sCandidateNames=Andriana Benjamin,LNP;Joe McGirr,IND;Keryn Foley,ALP;Ray Goodlass,GRN
+sBettingOdds=GRN,1.14
+sTcpChange=LNP,0.50
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Andrew Broadley,ALP;Josh Booyens,LNP;Tamara Smith,GRN
+#Balmain
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Southeast Sydney
+fTppMargin=20.5
+fPreviousTppSwing=4.7
+fTransposedFederalSwing=2.5
+bRetirement=1
+sBettingOdds=GRN,1.35
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Freya Leach,LNP;Kobi Shetty,GRN;Philippa Scott,ALP
+#Bankstown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=20.5
+fPreviousTppSwing=-0.15
+fTransposedFederalSwing=-3.9
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH***
+sCandidateNames=Isaac Nasedra,GRN;Jihad Dib,ALP;Nathan Taleb,LNP
 #Barwon
 sIncumbent=IND
 sChallenger=LNP
@@ -240,24 +72,124 @@ fTransposedFederalSwing=-7.6
 bSophomoreCandidate=1
 bIncumbentRecontestConfirmed=1
 sBettingOdds=IND,1.30
-sCandidateNames=Annette Turner,LNP;Joshua Roberts-Garnsey,ALP;Roy Butler,IND
-#Miranda
+sRunningParties=ALP,LNP,GRN,IND*,OTH**
+sCandidateNames=Annette Turner,LNP;Joshua Roberts-Garnsey,ALP;Roy Butler,IND;Pat Schultz,GRN
+#Bathurst
 sIncumbent=LNP
 sChallenger=ALP
-sRegion=Southern Sydney
-fTppMargin=-14.4
-fPreviousTppSwing=-1.61
-fTransposedFederalSwing=1.8
-sCandidateNames=Eleni Petinos,LNP;Martin Moore,GRN;Simon Earle,ALP
-#Albury
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Inland
-fTppMargin=-15.9
-fPreviousTppSwing=-2.75
-fTransposedFederalSwing=2.1
+sRegion=Northern Inland
+fTppMargin=-17.9
+fPreviousTppSwing=-2.08
+fTransposedFederalSwing=-5.4
+sRunningParties=ALP,LNP,GRN,IND,OTH***
+sCandidateNames=Cameron Shaw,ALP;Kay Nankervis,GRN;Paul Toole,LNP
+#Bega
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=South Coast
+fTppMargin=-6.9
+fPreviousTppSwing=1.26
+fTransposedFederalSwing=-0.8
+fByElectionSwing=11.99
 bSophomoreCandidate=1
-sCandidateNames=Eli Davern,GRN;Justin Clancy,LNP;Marcus Rowland,ALP
+bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Cathy Griff,GRN;Michael Holland,ALP;Russell Fitzpatrick,LNP
+#Blacktown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=16.7
+fPreviousTppSwing=4.55
+fTransposedFederalSwing=-0.9
+sRunningParties=ALP,LNP,GRN,OTH***
+sCandidateNames=Allan Green,LNP;Len Hobbs,GRN;Stephen Bali,ALP
+#Blue Mountains
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=13.6
+fPreviousTppSwing=6.71
+fTransposedFederalSwing=3.7
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Jenna Condie,GRN;Trish Doyle,ALP;Sophie-Anne Bruce,LNP
+#Cabramatta
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=19.3
+fPreviousTppSwing=8.33
+fTransposedFederalSwing=-10.3
+bRetirement=1
+sBettingOdds=IND,9.00
+sMinorViability=IND,1.50
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Courtney Nguyen,LNP;Tri Vo,ALP;Roz Chia Davis,GRN
+#Camden
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southwest Sydney
+fTppMargin=-7.3
+fPreviousTppSwing=10.72
+fTransposedFederalSwing=2.5
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Emily Rivera,GRN;Peter Sidgreaves,LNP;Sally Quinnell,ALP
+#Campbelltown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=16
+fPreviousTppSwing=9.68
+fTransposedFederalSwing=-2.6
+sRunningParties=ALP,LNP,GRN,IND,OTH***
+sCandidateNames=Greg Warren,ALP;Gypshouna Paudel,LNP;Jayden Rivera,GRN
+#Canterbury
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=15.3
+fPreviousTppSwing=-2.66
+fTransposedFederalSwing=-1.1
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Bradley Schott,GRN;Sophie Cotsis,ALP;Nemr Boumansour,LNP
+#Castle Hill
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-22.4
+fPreviousTppSwing=4.72
+fTransposedFederalSwing=4.8
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Mark Hodges,LNP;Tina Cartwright,ALP;Tina Kordrostan,GRN
+#Cessnock
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=19.7
+fPreviousTppSwing=-2.67
+fTransposedFederalSwing=-0.9
+sRunningParties=ALP,LNP,GRN,OTH***
+sCandidateNames=Asher Barnham,LNP;Clayton Barr,ALP;Llynda Nairn,GRN
+#Charlestown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=13.1
+fPreviousTppSwing=-0.55
+fTransposedFederalSwing=1.3
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Greg Watkinson,GRN;Jodie Harrison,ALP;Jack Antcliff,LNP
+#Clarence
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-14.5
+fPreviousTppSwing=-4.79
+fTransposedFederalSwing=-5.4
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND**,OTH*
+sCandidateNames=Greg Clancy,GRN;Leon Ankersmit,ALP;Richard Williamson,LNP
 #Coffs Harbour
 sIncumbent=LNP
 sChallenger=ALP
@@ -266,15 +198,77 @@ fTppMargin=-10.8
 fPreviousTppSwing=3.53
 fTransposedFederalSwing=-0.8
 bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,IND,OTH**
 sCandidateNames=Anthony Judge,ALP;Gurmesh Singh,LNP;Tim Nott,GRN
-#Bathurst
+#Coogee
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=2.3
+fPreviousTppSwing=4.56
+fTransposedFederalSwing=2.5
+bSophomoreCandidate=1
+bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Kylie Von Muenster,LNP;Marjorie O'Neill,ALP;Rafaela Pandolfini,GRN
+#Cootamundra
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-26.6
+fPreviousTppSwing=-6.65
+fTransposedFederalSwing=0.3
+sRunningParties=ALP,LNP,GRN,IND*,OTH*
+sCandidateNames=Chris Dahlitz,ALP;Jeff Passlow,GRN;Steph Cooke,LNP
+#Cronulla
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-19.6
+fPreviousTppSwing=1.32
+fTransposedFederalSwing=3.2
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Catherine Dyson,GRN;Mark Speakman,LNP;Paul Constance,ALP
+#Davidson
+sIncumbent=LNP
+sChallenger=GRN
+sRegion=Northeast Sydney
+fTppMargin=-24.8
+fPreviousTppSwing=3.52
+fTransposedFederalSwing=5.9
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Caroline Atkinson,GRN;Karyn Edelstein,ALP;Matt Cross,LNP
+#Drummoyne
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=-13.6
+fPreviousTppSwing=3.78
+fTransposedFederalSwing=3.6
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Charles Jago,GRN;Julia Little,ALP;Stephanie Di Pasqua,LNP
+#Dubbo
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=Northern Inland
-fTppMargin=-17.9
-fPreviousTppSwing=-2.08
-fTransposedFederalSwing=-5.4
-sCandidateNames=Cameron Shaw,ALP;Kay Nankervis,GRN;Paul Toole,LNP
+fTppMargin=-18.1
+fPreviousTppSwing=2.27
+fTransposedFederalSwing=-2.7
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Dugald Saunders,LNP;Julia Little,ALP;Robyn Thomas,GRN
+#East Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-0.1
+fPreviousTppSwing=-0.08
+fTransposedFederalSwing=-2.7
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,IND
+sCandidateNames=Kylie Wilkinson,ALP;Natalie Hanna,GRN;Wendy Lindsay,LNP
 #Epping
 sIncumbent=LNP
 sChallenger=ALP
@@ -282,18 +276,46 @@ sRegion=Northeast Sydney
 fTppMargin=-11.3
 fPreviousTppSwing=3.85
 fTransposedFederalSwing=3.9
+sRunningParties=ALP,LNP,GRN,IND,OTH*
 sCandidateNames=Alan Mascarenhas,ALP;Dominic Perrottet,LNP;Phil Bradley,GRN
-#Wollondilly
+#Fairfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=16.8
+fPreviousTppSwing=0.14
+fTransposedFederalSwing=-6.6
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND*,OTH*
+sCandidateNames=David Saliba,ALP;Aaryen Pillai,LNP;Monika Ball,GRN
+#Gosford
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=7.1
+fPreviousTppSwing=7.04
+fTransposedFederalSwing=3.6
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Deanna Bocking,LNP;Hilary van Haren,GRN;Liesl Tesch,ALP
+#Goulburn
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=Southern Inland
-fTppMargin=-14.2
-fPreviousTppSwing=3.46
-fTransposedFederalSwing=1.5
-bConfirmedProminentIndependent=1
-sBettingOdds=IND,2.72
-sMinorViability=IND,1.00
-sCandidateNames=Angus Braiden,ALP;Jason Webster,GRN;Judith Hannan,IND;Nathaniel Smith,LNP
+fTppMargin=-3.1
+fPreviousTppSwing=2.89
+fTransposedFederalSwing=3
+bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Gregory John Olsen,GRN;Michael Pilbrow,ALP;Wendy Tuckerman,LNP
+#Granville
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=9.4
+fPreviousTppSwing=5.53
+fTransposedFederalSwing=-1.3
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Julia Finn,ALP;Anm Masum,LNP;Janet Castle,GRN
 #Hawkesbury
 sIncumbent=LNP
 sChallenger=ALP
@@ -301,7 +323,99 @@ sRegion=Outer West Sydney
 fTppMargin=-16.6
 fPreviousTppSwing=0.3
 fTransposedFederalSwing=5.9
-sCandidateNames=Amanda Kotlash,ALP;Robyn Preston,LNP
+sRunningParties=ALP,LNP,GRN,IND*,OTH**
+sCandidateNames=Amanda Kotlash,ALP;Robyn Preston,LNP;Danielle Wheeler,GRN
+#Heathcote
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=1.7
+fPreviousTppSwing=2.63
+fTransposedFederalSwing=-0.9
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Cooper Riach,GRN;Lee Evans,LNP;Maryanne Stuart,ALP
+#Heffron
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=15.3
+fPreviousTppSwing=1.03
+fTransposedFederalSwing=2.3
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Philipa Veitch,GRN;Ron Hoenig,ALP;Francis Devine,LNP
+#Holsworthy
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-6
+fPreviousTppSwing=3.41
+fTransposedFederalSwing=-1.9
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Tina Ayyad,LNP;Mick Moroney,ALP;Chris Kerle,GRN
+#Hornsby
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-16.9
+fPreviousTppSwing=2.64
+fTransposedFederalSwing=2.8
+sRunningParties=ALP,LNP,GRN,IND*,OTH**
+sCandidateNames=Matt Kean,LNP;Melissa Holie,ALP;Tania Salitra,GRN
+#Keira
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=18.2
+fPreviousTppSwing=2.35
+fTransposedFederalSwing=-0.2
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Kit Docker,GRN;Ryan Park,ALP;Noah Shipp,LNP
+#Kellyville
+sPreviousName=Baulkham Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-23.1
+fPreviousTppSwing=3.11
+fTransposedFederalSwing=4.9
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Alex Karki,ALP;Ray Williams,LNP;Thelma Ghayyem,GRN
+#Kiama
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=South Coast
+fTppMargin=-12
+fPreviousTppSwing=-3.35
+fMiscTppModifier=5
+fTransposedFederalSwing=-6
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.275
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Gareth Ward,IND;Katelin McInerney,ALP;Tonia Gray,GRN;Melanie Gibbons,LNP
+#Kogarah
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=0.1
+fPreviousTppSwing=-5.09
+fTransposedFederalSwing=4.9
+sRunningParties=ALP,LNP,GRN,IND
+sCandidateNames=Chris Minns,ALP;Tracy Yuen,GRN;Craig Chung,LNP
+#Lake Macquarie
+sIncumbent=IND
+sChallenger=ALP
+sRegion=Central Coast
+fTppMargin=6.5
+fPreviousTppSwing=-5.79
+fTransposedFederalSwing=-1
+bIncumbentRecontestConfirmed=1
+sTcpChange=ALP,-1.10
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Greg Piper,IND;Kim Grierson,GRN;Stephen Ryan,ALP;Joshua Beer,LNP
 #Lane Cove
 sIncumbent=LNP
 sChallenger=ALP
@@ -312,97 +426,116 @@ fTransposedFederalSwing=3.9
 bConfirmedProminentIndependent=1
 sBettingOdds=IND,5.00
 sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH
 sCandidateNames=Anthony Roberts,LNP;Heather Armstrong,GRN;Penny Pedersen,ALP;Victoria Davidson,IND
-#Camden
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southwest Sydney
-fTppMargin=-7.3
-fPreviousTppSwing=10.72
-fTransposedFederalSwing=2.5
-bSophomoreCandidate=1
-sCandidateNames=Emily Rivera,GRN;Peter Sidgreaves,LNP;Sally Quinnell,ALP
-#Drummoyne
-sIncumbent=LNP
-sChallenger=ALP
+#Leppington
+sUseFpResults=Liverpool
+sIncumbent=ALP
+sChallenger=LNP
 sRegion=Inner West Sydney
-fTppMargin=-13.6
-fPreviousTppSwing=3.78
-fTransposedFederalSwing=3.6
+fTppMargin=1.5
+fPreviousTppSwing=0
+fTransposedFederalSwing=-2.9
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Nathan Hagarty,ALP;Therese Fedeli,LNP;Apurva Shukla,GRN
+#Lismore
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=North Coast
+fTppMargin=2
+fPreviousTppSwing=1.57
+fTransposedFederalSwing=-3.1
+bSophomoreCandidate=1
+bSophomoreParty=1
+sBettingOdds=GRN,3.625
+sRunningParties=ALP,LNP,GRN,IND*,OTH**
+sCandidateNames=Adam Guise,GRN;Alexander Rubin,LNP;Janelle Saffin,ALP
+#Liverpool
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=17.4
+fPreviousTppSwing=-4.17
+fTransposedFederalSwing=-6.7
 bRetirement=1
-sCandidateNames=Charles Jago,GRN;Julia Little,ALP;Stephanie Di Pasqua,LNP
-#Hornsby
+sRunningParties=ALP,LNP,GRN,IND*,OTH
+sCandidateNames=Charishma Kaliyanda,ALP;Richard Ammoun,LNP;Amy Croft,GRN
+#Londonderry
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=3
+fPreviousTppSwing=-2.37
+fTransposedFederalSwing=-1.7
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Prue Car,ALP;Snigdha "Samantha" Talakola,LNP;David Maurice,GRN
+#Macquarie Fields
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=14.9
+fPreviousTppSwing=6.66
+fTransposedFederalSwing=-3.4
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Anoulack Chanthivong,ALP;Khairul Chowdhury,LNP;Seamus Lee,GRN
+#Maitland
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=14.7
+fPreviousTppSwing=-0.62
+fTransposedFederalSwing=-5.1
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Campbell Knox,GRN;Jenny Aitchison,ALP;Michael Cooper,LNP
+#Manly
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=Northeast Sydney
-fTppMargin=-16.9
-fPreviousTppSwing=2.64
-fTransposedFederalSwing=2.8
-sCandidateNames=Matt Kean,LNP;Melissa Holie,ALP;Tania Salitra,GRN
-#Port Macquarie
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=North Coast
-fTppMargin=-20.1
-fPreviousTppSwing=-1.32
-fTransposedFederalSwing=-0.8
-sBettingOdds=IND,1.01
-sCandidateNames=Keith McMullan,ALP;Leslie Williams,LNP;Stuart Watson,GRN
-#Cootamundra
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Southern Inland
-fTppMargin=-26.6
-fPreviousTppSwing=-6.65
-fTransposedFederalSwing=0.3
-sCandidateNames=Chris Dahlitz,ALP;Jeff Passlow,GRN;Steph Cooke,LNP
-#Dubbo
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northern Inland
-fTppMargin=-18.1
-fPreviousTppSwing=2.27
-fTransposedFederalSwing=-2.7
-bSophomoreCandidate=1
-sCandidateNames=Dugald Saunders,LNP;Julia Little,ALP
-#Cronulla
+fTppMargin=-14.6
+fPreviousTppSwing=13.7
+fTransposedFederalSwing=-2.3
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.42
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND*,OTH*
+sCandidateNames=James Griffin,LNP;Jasper Thatcher,ALP;Joeline Hackman,IND;Terry Le Roux,GRN
+#Maroubra
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=8.46
+fPreviousTppSwing=-2.38
+fTransposedFederalSwing=2.6
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Bill Burst,LNP;Kym Chapple,GRN;Michael Daley,ALP
+#Miranda
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=Southern Sydney
-fTppMargin=-19.6
-fPreviousTppSwing=1.32
-fTransposedFederalSwing=3.2
-sCandidateNames=Catherine Dyson,GRN;Mark Speakman,LNP
-#North Shore
+fTppMargin=-14.4
+fPreviousTppSwing=-1.61
+fTransposedFederalSwing=1.8
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Eleni Petinos,LNP;Martin Moore,GRN;Simon Earle,ALP
+#Monaro
 sIncumbent=LNP
 sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-17.8
-fPreviousTppSwing=4.07
-bConfirmedProminentIndependent=1
-sBettingOdds=IND,2.50
-sMinorViability=IND,1.00
-sCandidateNames=Felicity Wilson,LNP;Godfrey Santer,ALP;Helen Conway,IND;James Mullan,GRN
-#Orange
-sIncumbent=IND
+sRegion=Southern Inland
+fTppMargin=-11.6
+fPreviousTppSwing=-9.08
+fTransposedFederalSwing=5
+fByElectionSwing=6.41
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Jenny Goldie,GRN;Nichole Overall,LNP;Steve Whan,ALP
+#Mount Druitt
+sIncumbent=ALP
 sChallenger=LNP
-sRegion=Northern Inland
-fTppMargin=-15.05
-fPreviousTppSwing=6.65
-fTransposedFederalSwing=-3.8
-bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,1.22
-sCandidateNames=David Mallard,GRN;Heather Dunn,ALP;Philip Donato,IND;Tony Mileto,LNP
-#Kellyville
-sPreviousName=Baulkham Hills
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-23.1
-fPreviousTppSwing=3.11
-fTransposedFederalSwing=4.9
-bRetirement=1
-sCandidateNames=Alex Karki,ALP;Ray Williams,LNP;Thelma Ghayyem,GRN
+sRegion=Outer West Sydney
+fTppMargin=18.5
+fPreviousTppSwing=0.97
+fTransposedFederalSwing=-1.3
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Asm Mahbub Morshed,GRN;Edmond Atalla,ALP;Kandathil Sunil Jayadevan,LNP
 #Murray
 sIncumbent=IND
 sChallenger=LNP
@@ -414,7 +547,288 @@ bSophomoreCandidate=1
 bIncumbentRecontestConfirmed=1
 sBettingOdds=IND,1.60
 sTcpChange=LNP,0.70
-sCandidateNames=Helen Dalton,IND;Peta Betts,LNP
+sRunningParties=ALP,LNP,GRN,IND**,OTH***
+sCandidateNames=Helen Dalton,IND;Peta Betts,LNP;Amelia King,GRN;Virsad Buljubasic,ALP
+#Myall Lakes
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-9.3
+fPreviousTppSwing=-0.45
+fTransposedFederalSwing=-1.7
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Ellie Spence,GRN;Mark Vanstone,ALP;Tanya Thompson,LNP
+#Newcastle
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=17.5
+fPreviousTppSwing=10.33
+fTransposedFederalSwing=1.9
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=John Mackenzie,GRN;Thomas Triebsees,LNP;Tim Crakanthorp,ALP
+#Newtown
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=28.3
+fPreviousTppSwing=3.24
+fTransposedFederalSwing=2.9
+bIncumbentRecontestConfirmed=1
+sBettingOdds=GRN,1.15
+sTcpChange=ALP,2.40
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=David Hetherington,ALP;Fiona Douskou,LNP;Jenny Leong,GRN
+#Northern Tablelands
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-33.2
+fPreviousTppSwing=-5.77
+fTransposedFederalSwing=-1.1
+sRunningParties=ALP,LNP,GRN,IND*,OTH****
+sCandidateNames=Adam Marshall,LNP;Elizabeth O'Hara,GRN;Yvonne Langenberg,ALP
+#North Shore
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-17.8
+fPreviousTppSwing=4.07
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.25
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND*,OTH*
+sCandidateNames=Felicity Wilson,LNP;Godfrey Santer,ALP;Helen Conway,IND;James Mullan,GRN
+#Oatley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-6.8
+fPreviousTppSwing=-3.93
+fTransposedFederalSwing=2
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Ashvini Ambihaipahar,ALP;Mark Coure,LNP;Taylor Vandijk,GRN
+#Orange
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Northern Inland
+fTppMargin=-15.05
+fPreviousTppSwing=6.65
+fTransposedFederalSwing=-3.8
+bIncumbentRecontestConfirmed=1
+sBettingOdds=IND,1.22
+sRunningParties=ALP,LNP,GRN,IND,OTH***
+sCandidateNames=David Mallard,GRN;Heather Dunn,ALP;Philip Donato,IND;Tony Mileto,LNP
+#Oxley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-15.4
+fPreviousTppSwing=-3.98
+fTransposedFederalSwing=0.1
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND*,OTH*
+sCandidateNames=Dominic King,GRN;Michael Kemp,LNP;Gregory Vigors,ALP
+#Parramatta
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=-6.5
+fPreviousTppSwing=2.21
+fTransposedFederalSwing=0.6
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH*
+sTppPolls=Redbridge,2023-03-01,57
+sCandidateNames=Ben Hammond,GRN;Donna Davis,ALP;Katie Mullins,LNP
+#Penrith
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-0.6
+fPreviousTppSwing=4.9
+fTransposedFederalSwing=-1.5
+sRunningParties=ALP,LNP,GRN,OTH***
+sTppPolls=Redbridge,2023-03-01,51
+sCandidateNames=Karen McKeown,ALP;Minoo Toussi,GRN;Stuart Ayres,LNP
+#Pittwater
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-22.4
+fPreviousTppSwing=5.53
+fTransposedFederalSwing=1.4
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.175
+sPolls=IND,30.0,1
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Hilary Green,GRN;Jacqui Scruby,IND;Jeffrey Quinn,ALP;Rory Amon,LNP
+#Port Macquarie
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-20.1
+fPreviousTppSwing=-1.32
+fTransposedFederalSwing=-0.8
+sBettingOdds=IND,1.01
+sRunningParties=ALP,LNP,GRN,OTH****
+sCandidateNames=Keith McMullan,ALP;Leslie Williams,LNP;Stuart Watson,GRN
+#Port Stephens
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=5.8
+fPreviousTppSwing=1.03
+fTransposedFederalSwing=-4.1
+sRunningParties=ALP,LNP,GRN,IND,OTH***
+sCandidateNames=Jordan Jensen,GRN;Kate Washington,ALP;Nathan Errington,LNP
+#Prospect
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=8.6
+fPreviousTppSwing=7.26
+fTransposedFederalSwing=-0.3
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Hugh McDermott,ALP;Sujan Selventhiran,GRN;Kalvin Biag,LNP
+#Riverstone
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-6.2
+fPreviousTppSwing=5.9
+fTransposedFederalSwing=8.7
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sTppPolls=Freshwater,2023-03-05,54
+sCandidateNames=Mohit Kumar,LNP;Rob Vail,GRN;Warren Kirby,ALP
+#Rockdale
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=10
+fPreviousTppSwing=4.8
+fTransposedFederalSwing=2
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Peter Strong,GRN;Steve Kamper,ALP;Muhammad Rana,LNP
+#Ryde
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-8.9
+fPreviousTppSwing=2.55
+fTransposedFederalSwing=3.5
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Jordan Lane,LNP;Lyndal Howison,ALP;Sophie Edington,GRN
+#Shellharbour
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=18.4
+fPreviousTppSwing=1.3
+fTransposedFederalSwing=-4.9
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Anna Watson,ALP;Jamie Dixon,GRN;Mikayla Barnes,LNP
+#South Coast
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=South Coast
+fTppMargin=-10.6
+fPreviousTppSwing=-0.93
+fTransposedFederalSwing=-7.8
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Amanda Findley,GRN;Liza Butler,ALP;Luke Sikora,LNP
+#Strathfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=5.2
+fPreviousTppSwing=3.22
+fTransposedFederalSwing=6.2
+fByElectionSwing=0.81
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Courtney Buckley,GRN;Jason Yat-Sen Li,ALP;John-Paul Baladi,LNP
+#Summer Hill
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=21.6
+fPreviousTppSwing=2.16
+fTransposedFederalSwing=1.8
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Izabella Antoniou,GRN;Jo Haylen,ALP;Bowen Cheng,LNP
+#Swansea
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=10.6
+fPreviousTppSwing=-2.42
+fTransposedFederalSwing=-2.7
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=Heather Foord,GRN;Yasmin Catley,ALP;Paul Jackson,LNP
+#Sydney
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=0.5
+fPreviousTppSwing=3.7
+fTransposedFederalSwing=2.9
+bIncumbentRecontestConfirmed=1
+sBettingOdds=IND,1.15
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Alex Greenwich,IND;Nick Ward,GRN;Phyllisse Stanton,LNP;Skye Tito,ALP
+#Tamworth
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-28
+fPreviousTppSwing=-0.53
+fTransposedFederalSwing=-1.5
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,IND,OTH***
+sCandidateNames=Kate McGrath,ALP;Kevin Anderson,LNP;Ryan Brooke,GRN
+#Terrigal
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Central Coast
+fTppMargin=-12.3
+fPreviousTppSwing=-3.32
+fTransposedFederalSwing=2.9
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Adam Crouch,LNP;Imogen da Silva,GRN;Sam Boughton,ALP
+#The Entrance
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=5.3
+fPreviousTppSwing=4.84
+fTransposedFederalSwing=2
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=David Mehan,ALP;Nathan Bracken,LNP;Ralph Stephenson,GRN
+#Tweed
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-5
+fPreviousTppSwing=-1.78
+fTransposedFederalSwing=1.1
+sRunningParties=ALP,LNP,GRN,OTH**
+sCandidateNames=Ciara Denham,GRN;Craig Elliot,ALP;Geoff Provest,LNP
+#Upper Hunter
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-0.5
+fPreviousTppSwing=-0.35
+fTransposedFederalSwing=-1.8
+fByElectionSwing=-3.26
+sRunningParties=ALP,LNP,GRN,IND,OTH**
+sCandidateNames=Dave Layzell,LNP;Peree Watson,ALP;Tony Lonergan,GRN
 #Vaucluse
 sIncumbent=LNP
 sChallenger=ALP
@@ -425,7 +839,21 @@ fTransposedFederalSwing=0.7
 bRetirement=1
 bConfirmedProminentIndependent=1
 sBettingOdds=IND,14.00
+sRunningParties=ALP,LNP,GRN,IND,OTH**
 sCandidateNames=Dominic Wy Kanak,GRN;Karen Freyer,IND;Kellie Sloane,LNP;Margaret Merten,ALP
+#Wagga Wagga
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Southern Inland
+fTppMargin=-7.51
+fPreviousTppSwing=5.38
+fTransposedFederalSwing=3.5
+bSophomoreCandidate=1
+bSophomoreParty=1
+bIncumbentRecontestConfirmed=1
+sBettingOdds=IND,1.01
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Andriana Benjamin,LNP;Joe McGirr,IND;Keryn Foley,ALP;Ray Goodlass,GRN
 #Wahroonga
 sPreviousName=Ku-ring-gai
 sIncumbent=LNP
@@ -434,29 +862,8 @@ sRegion=Northeast Sydney
 fTppMargin=-19
 fPreviousTppSwing=2.46
 fTransposedFederalSwing=6.2
-sCandidateNames=Alister Henskens,LNP;Tim Dashwood,GRN
-#Willoughby
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-20.7
-fPreviousTppSwing=3.44
-fTransposedFederalSwing=5.1
-bConfirmedProminentIndependent=1
-sBettingOdds=IND,2.15
-sMinorViability=IND,1.00
-sCandidateNames=Edmund McGrath,GRN;Larissa Penn,IND;Sarah Griffin,ALP;Tim James,LNP
-#Manly
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-14.6
-fPreviousTppSwing=13.7
-fTransposedFederalSwing=-2.3
-bConfirmedProminentIndependent=1
-sBettingOdds=IND,2.42
-sMinorViability=IND,1.00
-sCandidateNames=James Griffin,LNP;Jasper Thatcher,ALP;Joeline Hackman,IND;Terry Le Roux,GRN
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Alister Henskens,LNP;Tim Dashwood,GRN;Parisa Abedini,ALP
 #Wakehurst
 sIncumbent=LNP
 sChallenger=ALP
@@ -468,294 +875,8 @@ bRetirement=1
 bConfirmedProminentIndependent=1
 sBettingOdds=IND,2.08
 sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH*
 sCandidateNames=Ethan Hrnjak,GRN;Michael Regan,IND;Sue Wright,ALP;Toby Williams,LNP
-#Pittwater
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-22.4
-fPreviousTppSwing=5.53
-fTransposedFederalSwing=1.4
-bRetirement=1
-bConfirmedProminentIndependent=1
-sBettingOdds=IND,2.17
-sPolls=IND,30.0,1
-sMinorViability=IND,1.00
-sCandidateNames=Hilary Green,GRN;Jacqui Scruby,IND;Jeffrey Quinn,ALP;Rory Amon,LNP
-#Northern Tablelands
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northern Inland
-fTppMargin=-33.2
-fPreviousTppSwing=-5.77
-fTransposedFederalSwing=-1.1
-sCandidateNames=Adam Marshall,LNP;Elizabeth O'Hara,GRN;Yvonne Langenberg,ALP
-#Davidson
-sIncumbent=LNP
-sChallenger=GRN
-sRegion=Northeast Sydney
-fTppMargin=-24.8
-fPreviousTppSwing=3.52
-fTransposedFederalSwing=5.9
-bRetirement=1
-sCandidateNames=Caroline Atkinson,GRN;Karyn Edelstein,ALP;Matt Cross,LNP
-#Castle Hill
-sIncumbent=LNP
-sChallenger=ALP
-sRegion=Northeast Sydney
-fTppMargin=-22.4
-fPreviousTppSwing=4.72
-fTransposedFederalSwing=4.8
-sCandidateNames=Mark Hodges,LNP;Tina Cartwright,ALP;Tina Kordrostan,GRN
-#Gosford
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=7.1
-fPreviousTppSwing=7.04
-fTransposedFederalSwing=3.6
-sCandidateNames=Deanna Bocking,LNP;Hilary van Haren,GRN;Liesl Tesch,ALP
-#The Entrance
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=5.3
-fPreviousTppSwing=4.84
-fTransposedFederalSwing=2
-sCandidateNames=David Mehan,ALP;Nathan Bracken,LNP;Ralph Stephenson,GRN
-#Strathfield
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=5.2
-fPreviousTppSwing=3.22
-fTransposedFederalSwing=6.2
-fByElectionSwing=0.81
-sCandidateNames=Courtney Buckley,GRN;Jason Yat-Sen Li,ALP
-#Granville
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=9.4
-fPreviousTppSwing=5.53
-fTransposedFederalSwing=-1.3
-sCandidateNames=Julia Finn,ALP
-#Prospect
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Outer West Sydney
-fTppMargin=8.6
-fPreviousTppSwing=7.26
-fTransposedFederalSwing=-0.3
-sCandidateNames=Hugh McDermott,ALP;Sujan Selventhiran,GRN
-#Port Stephens
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=5.8
-fPreviousTppSwing=1.03
-fTransposedFederalSwing=-4.1
-sCandidateNames=Jordan Jensen,GRN;Kate Washington,ALP
-#Rockdale
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southern Sydney
-fTppMargin=10
-fPreviousTppSwing=4.8
-fTransposedFederalSwing=2
-sCandidateNames=Peter Strong,GRN;Steve Kamper,ALP
-#Auburn
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=13.7
-fPreviousTppSwing=3.2
-fTransposedFederalSwing=-1.1
-bSophomoreCandidate=1
-bDisendorsement=1
-sCandidateNames=Lynda Voltz,ALP;Masoomeh Asgari,GRN
-#Kogarah
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southern Sydney
-fTppMargin=0.1
-fPreviousTppSwing=-5.09
-fTransposedFederalSwing=4.9
-sCandidateNames=Chris Minns,ALP;Tracy Yuen,GRN
-#Campbelltown
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southwest Sydney
-fTppMargin=16
-fPreviousTppSwing=9.68
-fTransposedFederalSwing=-2.6
-sCandidateNames=Greg Warren,ALP;Gypshouna Paudel,LNP;Jayden Rivera,GRN
-#Newcastle
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=17.5
-fPreviousTppSwing=10.33
-fTransposedFederalSwing=1.9
-sCandidateNames=John Mackenzie,GRN;Thomas Triebsees,LNP;Tim Crakanthorp,ALP
-#Blue Mountains
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Outer West Sydney
-fTppMargin=13.6
-fPreviousTppSwing=6.71
-fTransposedFederalSwing=3.7
-sCandidateNames=Jenna Condie,GRN;Trish Doyle,ALP
-#Macquarie Fields
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southwest Sydney
-fTppMargin=14.9
-fPreviousTppSwing=6.66
-fTransposedFederalSwing=-3.4
-sCandidateNames=Anoulack Chanthivong,ALP
-#Wyong
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=12.9
-fPreviousTppSwing=3.72
-fTransposedFederalSwing=1.8
-sCandidateNames=David Harris,ALP;Doug Williamson,GRN
-#Londonderry
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Outer West Sydney
-fTppMargin=3
-fPreviousTppSwing=-2.37
-fTransposedFederalSwing=-1.7
-sCandidateNames=Prue Car,ALP;Snigdha "Samantha" Talakola,LNP
-#Wollongong
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Illawarra
-fTppMargin=22.9
-fPreviousTppSwing=7.93
-fTransposedFederalSwing=-1.2
-sCandidateNames=Cath Blakey,GRN;Paul Scully,ALP
-#Summer Hill
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=21.6
-fPreviousTppSwing=2.16
-fTransposedFederalSwing=1.8
-sCandidateNames=Izabella Antoniou,GRN;Jo Haylen,ALP
-#Maroubra
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southeast Sydney
-fTppMargin=8.46
-fPreviousTppSwing=-2.38
-fTransposedFederalSwing=2.6
-sCandidateNames=Bill Burst,LNP;Kym Chapple,GRN;Michael Daley,ALP
-#Charlestown
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=13.1
-fPreviousTppSwing=-0.55
-fTransposedFederalSwing=1.3
-sCandidateNames=Greg Watkinson,GRN;Jodie Harrison,ALP
-#Swansea
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=10.6
-fPreviousTppSwing=-2.42
-fTransposedFederalSwing=-2.7
-bRetirement=1
-sCandidateNames=Heather Foord,GRN;Yasmin Catley,ALP
-#Blacktown
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Outer West Sydney
-fTppMargin=16.7
-fPreviousTppSwing=4.55
-fTransposedFederalSwing=-0.9
-sCandidateNames=Allan Green,LNP;Len Hobbs,GRN;Stephen Bali,ALP
-#Maitland
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Central Coast
-fTppMargin=14.7
-fPreviousTppSwing=-0.62
-fTransposedFederalSwing=-5.1
-sCandidateNames=Campbell Knox,GRN;Jenny Aitchison,ALP;Michael Cooper,LNP
-#Bankstown
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=20.5
-fPreviousTppSwing=-0.15
-fTransposedFederalSwing=-3.9
-sMinorViability=IND,1.00
-sCandidateNames=Isaac Nasedra,GRN;Jihad Dib,ALP
-#Heffron
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southeast Sydney
-fTppMargin=15.3
-fPreviousTppSwing=1.03
-fTransposedFederalSwing=2.3
-sCandidateNames=Philipa Veitch,GRN;Ron Hoenig,ALP
-#Mount Druitt
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Outer West Sydney
-fTppMargin=18.5
-fPreviousTppSwing=0.97
-fTransposedFederalSwing=-1.3
-sCandidateNames=Asm Mahbub Morshed,GRN;Edmond Atalla,ALP
-#Canterbury
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=15.3
-fPreviousTppSwing=-2.66
-fTransposedFederalSwing=-1.1
-sCandidateNames=Bradley Schott,GRN;Sophie Cotsis,ALP
-#Shellharbour
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Illawarra
-fTppMargin=18.4
-fPreviousTppSwing=1.3
-fTransposedFederalSwing=-4.9
-sCandidateNames=Anna Watson,ALP;Jamie Dixon,GRN
-#Cabramatta
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southwest Sydney
-fTppMargin=19.3
-fPreviousTppSwing=8.33
-fTransposedFederalSwing=-10.3
-bRetirement=1
-sBettingOdds=IND,9.00
-sMinorViability=IND,1.50
-sCandidateNames=Courtney Nguyen,LNP;Tri Vo,ALP
-#Keira
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Illawarra
-fTppMargin=18.2
-fPreviousTppSwing=2.35
-fTransposedFederalSwing=-0.2
-sCandidateNames=Kit Docker,GRN;Ryan Park,ALP
-#Fairfield
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Southwest Sydney
-fTppMargin=16.8
-fPreviousTppSwing=0.14
-fTransposedFederalSwing=-6.6
-bRetirement=1
-sCandidateNames=David Saliba,ALP
 #Wallsend
 sIncumbent=ALP
 sChallenger=LNP
@@ -763,82 +884,57 @@ sRegion=Central Coast
 fTppMargin=25.8
 fPreviousTppSwing=4.64
 fTransposedFederalSwing=-0.4
+sRunningParties=ALP,LNP,GRN,IND,OTH**
 sCandidateNames=Callum Pull,LNP;Rebecca Watkins,GRN;Sonia Hornery,ALP
-#Liverpool
+#Willoughby
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-20.7
+fPreviousTppSwing=3.44
+fTransposedFederalSwing=5.1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.35
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH
+sCandidateNames=Edmund McGrath,GRN;Larissa Penn,IND;Sarah Griffin,ALP;Tim James,LNP
+#Winston Hills
+sPreviousName=Seven Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-5.7
+fPreviousTppSwing=2.39
+fTransposedFederalSwing=2.6
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Damien Atkins,GRN;Mark Taylor,LNP;Sameer Pandey,ALP
+#Wollondilly
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-14.2
+fPreviousTppSwing=3.46
+fTransposedFederalSwing=1.5
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.7
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,IND,OTH*
+sCandidateNames=Angus Braiden,ALP;Jason Webster,GRN;Judith Hannan,IND;Nathaniel Smith,LNP
+#Wollongong
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=Southwest Sydney
-fTppMargin=17.4
-fPreviousTppSwing=-4.17
-fTransposedFederalSwing=-6.7
-bRetirement=1
-sCandidateNames=Charishma Kaliyanda,ALP;Richard Ammoun,LNP
-#Leppington
-sUseFpResults=Liverpool
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=Inner West Sydney
-fTppMargin=1.5
-fPreviousTppSwing=0
-fTransposedFederalSwing=-2.9
-sCandidateNames=Nathan Hagarty,ALP;Therese Fedeli,LNP
-#Cessnock
+sRegion=Illawarra
+fTppMargin=22.9
+fPreviousTppSwing=7.93
+fTransposedFederalSwing=-1.2
+sRunningParties=ALP,LNP,GRN,OTH
+sCandidateNames=Cath Blakey,GRN;Paul Scully,ALP;Joel Johnson,LNP
+#Wyong
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=Central Coast
-fTppMargin=19.7
-fPreviousTppSwing=-2.67
-fTransposedFederalSwing=-0.9
-sCandidateNames=Asher Barnham,LNP;Clayton Barr,ALP;Llynda Nairn,GRN
-#Ballina
-sIncumbent=GRN
-sChallenger=LNP
-sRegion=North Coast
-fTppMargin=3.9
-fPreviousTppSwing=1.28
-fTransposedFederalSwing=0.3
-bIncumbentRecontestConfirmed=1
-sBettingOdds=GRN,1.14
-sTcpChange=LNP,0.50
-sCandidateNames=Andrew Broadley,ALP;Josh Booyens,LNP;Tamara Smith,GRN
-#Balmain
-sIncumbent=GRN
-sChallenger=ALP
-sRegion=Southeast Sydney
-fTppMargin=20.5
-fPreviousTppSwing=4.7
-fTransposedFederalSwing=2.5
-bRetirement=1
-sBettingOdds=GRN,1.35
-sCandidateNames=Freya Leach,LNP;Kobi Shetty,GRN;Philippa Scott,ALP
-#Sydney
-sIncumbent=IND
-sChallenger=LNP
-sRegion=Southeast Sydney
-fTppMargin=0.5
-fPreviousTppSwing=3.7
-fTransposedFederalSwing=2.9
-bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,1.15
-sCandidateNames=Alex Greenwich,IND;Nick Ward,GRN;Phyllisse Stanton,LNP;Skye Tito,ALP
-#Newtown
-sIncumbent=GRN
-sChallenger=ALP
-sRegion=Inner West Sydney
-fTppMargin=28.3
-fPreviousTppSwing=3.24
-fTransposedFederalSwing=2.9
-bIncumbentRecontestConfirmed=1
-sBettingOdds=GRN,1.15
-sTcpChange=ALP,2.40
-sCandidateNames=David Hetherington,ALP;Fiona Douskou,LNP;Jenny Leong,GRN
-#Lake Macquarie
-sIncumbent=IND
-sChallenger=ALP
-sRegion=Central Coast
-fTppMargin=6.5
-fPreviousTppSwing=-5.79
-fTransposedFederalSwing=-1
-bIncumbentRecontestConfirmed=1
-sTcpChange=ALP,-1.10
-sCandidateNames=Greg Piper,IND;Kim Grierson,GRN;Stephen Ryan,ALP
+fTppMargin=12.9
+fPreviousTppSwing=3.72
+fTransposedFederalSwing=1.8
+sRunningParties=ALP,LNP,GRN,OTH*
+sCandidateNames=David Harris,ALP;Doug Williamson,GRN;Matt Squires,LNP

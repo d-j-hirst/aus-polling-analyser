@@ -73,6 +73,7 @@ void SimulationIteration::reset()
 	seatFederalSwingEffect.clear();
 	seatByElectionEffect.clear();
 	seatThirdPartyExhaustEffect.clear();
+	seatPollEffect.clear();
 
 	prefCorrection = 0.0f;
 	overallFpError = 0.0f;
@@ -182,6 +183,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatFederalSwingEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatByElectionEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
+	seatPollEffect = std::vector<double>(project.seats().count(), 0.0);
 }
 
 void SimulationIteration::determineFedStateCorrelation()
@@ -469,8 +471,7 @@ void SimulationIteration::determineMinorPartyContests()
 			fpModificationAdjustment[partyIndex] = 0.0f;
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				Party const& party = project.parties().viewByIndex(partyIndex);
-				Seat const& seat = project.seats().viewByIndex(seatIndex);
-				if (contains(seat.runningParties, party.abbreviation)) {
+				if (contains(run.runningParties[seatIndex], party.abbreviation)) {
 					++seatsKnown;
 					seatContested[partyIndex][seatIndex] = true;
 					fpModificationAdjustment[partyIndex] += seatMods[seatIndex];
@@ -642,6 +643,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	const float previousSwingEffect = run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
 	const float federalSwingEffect = fedStateCorrelation * seat.transposedTppSwing * logitDeriv(tppPrev);
 	const float byElectionEffect = run.tppSwingFactors.byElectionSwingModifier * seat.byElectionSwing * logitDeriv(tppPrev);
+
 	float thirdPartyExhaustEffect = 0.0f;
 	// Adjust the TPP to take into account exhaustion under OPV from aligned 3rd-party candidates
 	// This code should at some point be adjusted to generalise for other seats
@@ -665,6 +667,11 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	transformedTpp += federalSwingEffect;
 	transformedTpp += byElectionEffect;
 	transformedTpp += thirdPartyExhaustEffect;
+	// All non-polling factors taken into account, so now adjust towards available seat polls
+	constexpr float PollWeight = 0.35f;
+	float pollEffect = PollWeight * (run.seatTppPolls[seatIndex] ? run.seatTppPolls[seatIndex] - detransformVoteShare(transformedTpp) : 0.0f);
+	transformedTpp += pollEffect;
+	// All fixed factors taken to account, add random factors
 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation;
 	if (run.regionCode == "fed") swingDeviation += run.tppSwingFactors.federalModifier;
 	if (useVolatility) swingDeviation = 0.75f * volatility + 0.25f * swingDeviation;
@@ -686,9 +693,9 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
 	}
 	else {
-		// Margin for this simulation is finalised, record it for later averaging
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
+
 
 	const float totalFixedEffects = thisRegionSwing + elasticitySwing + localEffects + previousSwingEffect +
 		federalSwingEffect + byElectionEffect + thirdPartyExhaustEffect;
@@ -701,6 +708,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	seatFederalSwingEffect[seatIndex] += double(federalSwingEffect * transformFactor);
 	seatByElectionEffect[seatIndex] += double(byElectionEffect * transformFactor);
 	seatThirdPartyExhaustEffect[seatIndex] += double(thirdPartyExhaustEffect * transformFactor);
+	seatPollEffect[seatIndex] += double(pollEffect * transformFactor);
 }
 
 void SimulationIteration::correctSeatTppSwings()
@@ -796,7 +804,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 			continue;
 		}
 		if (partyIndex == OthersIndex) {
-			if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) continue;
+			if (run.runningParties[seatIndex].size() && !contains(run.runningParties[seatIndex], OthersCode)) continue;
 		}
 		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] = voteShare;
@@ -804,7 +812,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 	pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = tempPastResults[OthersIndex];
 	determineSeatEmergingParties(seatIndex);
+
 	if (seat.confirmedProminentIndependent) determineSeatConfirmedInds(seatIndex);
+
 	determineSeatEmergingInds(seatIndex);
 	determineSeatOthers(seatIndex);
 
@@ -820,24 +830,19 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (seat.runningParties.size() && partyIndex >= Mp::Others &&
-		!contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
+		!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 		voteShare = 0.0f;
 		return;
 	}
-	if (seat.runningParties.size() && partyIndex == run.indPartyIndex && !seat.incumbentRecontestConfirmed) {
-		if (!contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+	if (run.runningParties[seatIndex].size() && partyIndex == run.indPartyIndex && !seat.incumbentRecontestConfirmed) {
+		if (!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 			voteShare = 0.0f;
 			return;
 		}
 	}
 	if (partyIndex == run.indPartyIndex && seat.confirmedProminentIndependent) {
 		// this case will be handled by the "confirmed independent" logic instead
-		voteShare = 0.0f;
-		return;
-	}
-	if (seat.runningParties.size() && partyIndex == OthersIndex &&
-		!contains(seat.runningParties, OthersCode)) {
 		voteShare = 0.0f;
 		return;
 	}
@@ -868,12 +873,12 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		// non-incumbent independents have a reverse effect: less likely to recontest as time passes
 		recontestRateMixed *= 1.0f - timeToElectionFactor;
 	}
-	if (seat.runningParties.size() && partyIndex >= Mp::Others &&
-		contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
+		contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 		recontestRateMixed = 1.0f;
 	}
-	if (seat.runningParties.size() && partyIndex == OthersIndex &&
-		contains(seat.runningParties, OthersCode)) {
+	if (run.runningParties[seatIndex].size() && partyIndex == OthersIndex &&
+		contains(run.runningParties[seatIndex], OthersCode) || contains(run.runningParties[seatIndex], std::string("IND"))) {
 		recontestRateMixed = 1.0f;
 	}
 	// also, should some day handle retirements for minor parties that would be expected to stay competitive
@@ -939,8 +944,8 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, float& voteShare)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (seat.runningParties.size() && partyIndex >= Mp::Others &&
-		!contains(seat.runningParties, project.parties().viewByIndex(partyIndex).abbreviation)) {
+	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
+		!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 		voteShare = 0.0f;
 		return;
 	}
@@ -988,8 +993,8 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	bool ballotConfirmed = contains(seat.runningParties, project.parties().viewByIndex(run.indPartyIndex).abbreviation);
-	if (seat.runningParties.size() && !ballotConfirmed) {
+	bool ballotConfirmed = contains(run.runningParties[seatIndex], project.parties().viewByIndex(run.indPartyIndex).abbreviation);
+	if (run.runningParties[seatIndex].size() && !ballotConfirmed) {
 		return;
 	}
 	if (!seat.confirmedProminentIndependent) return;
@@ -1067,11 +1072,16 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	bool ballotConfirmed = contains(seat.runningParties, project.parties().viewByIndex(run.indPartyIndex).abbreviation);
-	if (seat.runningParties.size() && !ballotConfirmed) {
+	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
+	// For an emerging ind to be allowed must have one of the following:
+	//  -final ballot is not available yet
+	//  -at least two inds in the seat
+	//  -one ind that isn't confirmed
+	bool ballotConfirmed = run.indCount[seatIndex] >= 2 || (run.indCount[seatIndex] >= 1 && !seatFpVoteShare[seatIndex].contains(run.indPartyIndex));
+	if (run.runningParties[seatIndex].size() && !ballotConfirmed) {
 		return;
 	}
+
 	float indEmergenceRate = run.indEmergence.baseRate;
 	bool isFederal = run.regionCode == "fed";
 	if (isFederal) indEmergenceRate += run.indEmergence.fedRateMod;
@@ -1088,8 +1098,8 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) indEmergenceRate *= 0.3f;
 	// but in other situations we want ind running chance to be affected by the presence of other confirmed independents
 	else indEmergenceRate *= run.indEmergenceModifier;
-	// Re-running challengers also count as a strong candidate, so reduce chance of further independents when they are running
-	if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) indEmergenceRate *= 0.3f;
+	// If a notable independent hasn't emerged by the time candidacy is confirmed, much less likely they will
+	if (run.runningParties[seatIndex].size()) indEmergenceRate *= 0.1f;
 	// Beta distribution flipped because it's desired for the high rate of ind emergence
 	// to match high rate of ind voting
 	if (1.0f - rng.beta(indAlpha, indBeta) < std::max(0.01f, indEmergenceRate)) {
@@ -1114,10 +1124,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 
 void SimulationIteration::determineSeatOthers(int seatIndex)
 {
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	if (seat.runningParties.size() && !contains(seat.runningParties, OthersCode)) {
-		return;
-	}
+	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
 	constexpr float MinPreviousOthFp = 2.0f;
 	float voteShare = MinPreviousOthFp;
 	if (pastSeatResults[seatIndex].fpVotePercent.contains(OthersIndex)) {
@@ -1126,15 +1133,37 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 
 	determineSpecificPartyFp(seatIndex, OthersIndex, voteShare, run.othSeatStatistics);
 
-	float swingAdjust = overallFpTarget[OthersIndex] - detransformVoteShare(-77.0f);
-	voteShare = basicTransformedSwing(voteShare, swingAdjust);
+	if (run.runningParties[seatIndex].size()) {
+		bool emergingPartyPresent = seatFpVoteShare[seatIndex].contains(EmergingPartyIndex) && seatFpVoteShare[seatIndex][EmergingPartyIndex] > 0;
+		bool emergingIndPresent = seatFpVoteShare[seatIndex].contains(EmergingIndIndex) && seatFpVoteShare[seatIndex][EmergingIndIndex] > 0;
+		bool confirmedIndPresent = seatFpVoteShare[seatIndex].contains(run.indPartyIndex) && seatFpVoteShare[seatIndex][run.indPartyIndex] > 0;
+		int othersCount = run.othCount[seatIndex] - (emergingPartyPresent ? 1 : 0) +
+			run.indCount[seatIndex] - (emergingIndPresent ? 1 : 0) - (confirmedIndPresent ? 1 : 0);
 
+		if (!othersCount) {
+			return;
+		}
+
+		// keep total others vote capped below the amount that would mean
+		// that emerging inds/parties would need to be present
+		voteShare *= 1.5f - 1.5f * pow(1.5f, -othersCount);
+		const float voteCap = detransformVoteShare(run.indEmergence.fpThreshold) * othersCount;
+		constexpr float CapLowThreshold = 0.75f;
+		constexpr float CapThresholdSize = 1.0f - CapLowThreshold;
+		const float lowThreshold = voteCap * CapLowThreshold;
+		if (voteShare > lowThreshold) {
+			// smoothly cap the vote share so that it asymptotically approaches the vote cap as original vote share increases
+			voteShare = lowThreshold + (voteCap - voteCap / ((voteShare - lowThreshold) / (voteCap / CapThresholdSize) + 1)) * CapThresholdSize;
+		}
+	}
 	// Reduce others vote by the "others" parties already assigned vote share.
 	float existingVoteShare = 0.0f;
 	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) existingVoteShare += seatFpVoteShare[seatIndex][run.indPartyIndex];
 	if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) existingVoteShare += seatFpVoteShare[seatIndex][EmergingIndIndex];
 	if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) existingVoteShare += seatFpVoteShare[seatIndex][EmergingPartyIndex];
-	voteShare = basicTransformedSwing(voteShare, -existingVoteShare);
+	if (run.runningParties[seatIndex].size()) existingVoteShare *= 0.5f;
+	// This effect shouldn't overwhelm the vote share in seats with very high IND votes
+	voteShare = basicTransformedSwing(voteShare, -std::min(voteShare * 0.6f, existingVoteShare));
 
 	seatFpVoteShare[seatIndex][OthersIndex] = voteShare;
 }
@@ -1285,6 +1314,7 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 
 void SimulationIteration::determineSeatEmergingParties(int seatIndex)
 {
+	if (!run.othCount[seatIndex]) return;
 	float voteShare = 0.0f;
 	determinePopulistFp(seatIndex, EmergingPartyIndex, voteShare);
 	seatFpVoteShare[seatIndex][EmergingPartyIndex] = voteShare;
@@ -2359,6 +2389,7 @@ void SimulationIteration::recordSwingFactors()
 		run.seatFederalSwingEffectSums[seatIndex] += seatFederalSwingEffect[seatIndex];
 		run.seatByElectionEffectSums[seatIndex] += seatByElectionEffect[seatIndex];
 		run.seatThirdPartyExhaustEffectSums[seatIndex] += seatThirdPartyExhaustEffect[seatIndex];
+		run.seatPollEffectSums[seatIndex] += seatPollEffect[seatIndex];
 	}
 }
 
