@@ -209,6 +209,10 @@ void ResultsFrame::addResultToResultData(Outcome result)
 {
 	auto const* report = latestReport();
 	wxVector<wxVariant> data;
+	// Since seats are now only loaded when simulations are run,
+	// we need to make sure that the seats actually exist before
+	// trying to display them
+	if (result.seat >= project->seats().count() || result.seat < 0) return;
 	auto seat = project->seats().viewByIndex(result.seat);
 	wxColour swingColour = decideSwingColour(result);
 	float percentCounted = result.getPercentCountedEstimate();
