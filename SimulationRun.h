@@ -222,6 +222,7 @@ private:
 	// region, then party, then seat count
 	std::vector<std::map<int, std::vector<int>>> regionPartyWins;
 
+	std::vector<std::vector<int>> seatProminentMinors;
 	std::vector<float> seatPreviousTppSwing;
 	std::vector<float> seatFirstPartyPreferenceFlow;
 	std::vector<float> seatPreferenceFlowVariation;

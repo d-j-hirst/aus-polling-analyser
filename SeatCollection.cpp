@@ -48,6 +48,11 @@ std::pair<Seat::Id, Seat&> SeatCollection::accessByName(std::string name, bool u
 	return { seatIt->first, seatIt->second };
 }
 
+int SeatCollection::indexByName(std::string name, bool usePreviousNames)
+{
+	return idToIndex(accessByName(name, usePreviousNames).first);
+}
+
 SeatCollection::Index SeatCollection::idToIndex(Seat::Id id) const
 {
 	auto foundIt = seats.find(id);

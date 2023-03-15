@@ -81,6 +81,7 @@ void SimulationPreparation::prepareForIterations()
 	calculateTotalPopulation();
 	calculateIndEmergenceModifier();
 
+	prepareProminentMinors();
 	prepareRunningParties();
 
 	if (sim.isLive()) initializeGeneralLiveData();
@@ -1041,6 +1042,18 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		}
 
 	} while (true);
+}
+
+void SimulationPreparation::prepareProminentMinors()
+{
+	std::size_t seatCount = project.seats().count();
+	const std::string indAbbrev = project.parties().viewByIndex(run.indPartyIndex).abbreviation;
+	run.seatProminentMinors.resize(seatCount);
+	for (int seatIndex = 0; seatIndex < int(seatCount); ++seatIndex) {
+		for (auto const& code : project.seats().viewByIndex(seatIndex).prominentMinors) {
+			run.seatProminentMinors[seatIndex].push_back(project.parties().indexByShortCode(code));
+		}
+	}
 }
 
 void SimulationPreparation::prepareRunningParties()

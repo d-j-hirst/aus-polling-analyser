@@ -146,7 +146,7 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		int numThreads = project.config().getSimulationThreads();
 		std::vector<int> batchSizes;
 		const int CycleIterationsDivisor = 20;
-		int cycleIterations = sim.settings.numIterations / CycleIterationsDivisor;
+		int cycleIterations = std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
 		int minBatchSize = cycleIterations / numThreads;
 		for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
 		int extraIterations = cycleIterations - minBatchSize * numThreads;

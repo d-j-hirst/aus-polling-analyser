@@ -589,7 +589,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 {
-	constexpr static int NumIterations = 3000;
+	constexpr static int NumIterations = 1000; // *** change back to 3000!
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
 	try {
 		int seriesLength = rawSupport.begin()->second.timePoint.size();

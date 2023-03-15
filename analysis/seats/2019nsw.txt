@@ -1,0 +1,637 @@
+#Albury
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-13.2
+fPreviousTppSwing=13.9
+bRetirement=1
+#Auburn
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=5.9
+fPreviousTppSwing=-1.3
+bSophomoreCandidate=1
+#Ballina
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=3
+fPreviousTppSwing=27.7
+bSophomoreCandidate=1
+bSophomoreParty=1
+sBettingOdds=GRN,3.75
+#Balmain
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Southeast Sydney
+fTppMargin=15.7
+fPreviousTppSwing=11.1
+sBettingOdds=GRN,1.44
+#Bankstown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=14
+fPreviousTppSwing=3.4
+#Barwon
+sIncumbent=LNP
+sChallenger=SFF
+sRegion=Northern Inland
+fTppMargin=-12.9
+sProminentMinors=SFF
+sBettingOdds=SFF,1.7
+fPreviousTppSwing=13.1
+bRetirement=1
+#Bathurst
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-15.8
+fPreviousTppSwing=7.9
+#Baulkham Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-21.8
+fPreviousTppSwing=6.6
+#Bega
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=South Coast
+fTppMargin=-8.2
+fPreviousTppSwing=10.3
+#Blacktown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=13.2
+fPreviousTppSwing=9
+#Blue Mountains
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=8.1
+fPreviousTppSwing=13.5
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Cabramatta
+sIncumbent=ALP
+sChallenger=IND
+sRegion=Southwest Sydney
+fTppMargin=17.2
+fPreviousTppSwing=15.3
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,6
+sMinorViability=IND,1.00
+#Camden
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southwest Sydney
+fTppMargin=-18.3
+fPreviousTppSwing=4.5
+bRetirement=1
+#Campbelltown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=7.3
+fPreviousTppSwing=14.1
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Canterbury
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=15.7
+fPreviousTppSwing=8.3
+#Castle Hill
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-29.4
+fPreviousTppSwing=5.3
+#Cessnock
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=22
+fPreviousTppSwing=18.1
+#Charlestown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=12.9
+fPreviousTppSwing=22.1
+#Clarence
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-9.7
+fPreviousTppSwing=22.2
+#Coffs Harbour
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-14.3
+fPreviousTppSwing=13
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,5
+sMinorViability=IND,0.00
+#Coogee
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southeast Sydney
+fTppMargin=-2.9
+fPreviousTppSwing=5.4
+#Cootamundra
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-20.4
+fPreviousTppSwing=9.9
+#Cronulla
+sIncumbent=LNP
+sChallenger=IND
+sRegion=Southern Sydney
+fTppMargin=-20.9
+fPreviousTppSwing=3.9
+#Davidson
+sIncumbent=LNP
+sChallenger=GRN
+sRegion=Northeast Sydney
+fTppMargin=-29
+fPreviousTppSwing=7.2
+#Drummoyne
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=-18.8
+fPreviousTppSwing=-1.7
+#Dubbo
+sIncumbent=LNP
+sChallenger=IND
+sRegion=Northern Inland
+fTppMargin=-20.4
+fPreviousTppSwing=10.9
+bRetirement=1
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,2.75
+sMinorViability=IND,1.00
+#East Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-0.4
+fPreviousTppSwing=-0.2
+bRetirement=1
+#Epping
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-16.2
+fPreviousTppSwing=11.3
+bSophomoreCandidate=1
+#Fairfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=17.8
+fPreviousTppSwing=15.5
+#Gosford
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=0.2
+fPreviousTppSwing=12.2
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Goulburn
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-6.6
+fPreviousTppSwing=43.4
+bRetirement=1
+#Granville
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=2.1
+fPreviousTppSwing=5.9
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Hawkesbury
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-17.8
+fPreviousTppSwing=10.6
+#Heathcote
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-7.6
+fPreviousTppSwing=11.4
+#Heffron
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=14.1
+fPreviousTppSwing=8.9
+#Holsworthy
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-6.7
+fPreviousTppSwing=4
+#Hornsby
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-18.9
+fPreviousTppSwing=7.5
+#Keira
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=17.4
+fPreviousTppSwing=14.5
+#Kiama
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=South Coast
+fTppMargin=-8.7
+fPreviousTppSwing=-0.1
+#Kogarah
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=6.9
+fPreviousTppSwing=1.5
+bSophomoreCandidate=1
+#Ku-ring-gai
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-23
+fPreviousTppSwing=13.9
+bSophomoreCandidate=1
+#Lake Macquarie
+sIncumbent=IND
+sChallenger=ALP
+sRegion=Central Coast
+fTppMargin=13.2
+fPreviousTppSwing=20.6
+#Lakemba
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=21.6
+fPreviousTppSwing=14.2
+bSophomoreCandidate=1
+#Lane Cove
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-17.8
+fPreviousTppSwing=9.5
+#Lismore
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-0.2
+fPreviousTppSwing=49.8
+bRetirement=1
+sBettingOdds=GRN,3.5
+#Liverpool
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=20.9
+fPreviousTppSwing=6.9
+#Londonderry
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=8.8
+fPreviousTppSwing=14.2
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Macquarie Fields
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=8.1
+fPreviousTppSwing=9.9
+bSophomoreCandidate=1
+#Maitland
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=13.8
+fPreviousTppSwing=18.8
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Manly
+sIncumbent=LNP
+sChallenger=GRN
+sRegion=Northeast Sydney
+fTppMargin=-28.4
+fPreviousTppSwing=-1.4
+#Maroubra
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=10.8
+fPreviousTppSwing=8.6
+#Miranda
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-13
+fPreviousTppSwing=10
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Monaro
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-2.5
+fPreviousTppSwing=-0.5
+#Mount Druitt
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=15.4
+fPreviousTppSwing=9.5
+bSophomoreCandidate=1
+#Mulgoa
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southwest Sydney
+fTppMargin=-9.7
+fPreviousTppSwing=2.7
+#Murray
+sIncumbent=LNP
+sChallenger=SFF
+sRegion=Southern Inland
+fTppMargin=-25.2
+fPreviousTppSwing=5.7
+sProminentMinors=SFF
+sBettingOdds=SFF,2.9
+#Myall Lakes
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-8.7
+fPreviousTppSwing=19.9
+#Newcastle
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=7.4
+fPreviousTppSwing=9.8
+#Newtown
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=24.4
+fPreviousTppSwing=10.4
+sBettingOdds=GRN,1.14
+#Northern Tablelands
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-27.1
+fPreviousTppSwing=0.6
+#North Shore
+sIncumbent=LNP
+sChallenger=IND
+sRegion=Northeast Sydney
+fTppMargin=-21.9
+fPreviousTppSwing=8.5
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,5
+sMinorViability=IND,0.00
+#Oatley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-6.6
+fPreviousTppSwing=-2.8
+#Orange
+sIncumbent=SFF
+sChallenger=LNP
+sRegion=Northern Inland
+fTppMargin=-21.7
+fPreviousTppSwing=5.4
+sProminentMinors=SFF
+sBettingOdds=SFF,1.25
+#Oxley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-10.9
+fPreviousTppSwing=17.9
+bSophomoreCandidate=1
+#Parramatta
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=-12.9
+fPreviousTppSwing=-0.3
+#Penrith
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-6.2
+fPreviousTppSwing=9.9
+#Pittwater
+sIncumbent=LNP
+sChallenger=GRN
+sRegion=Northeast Sydney
+fTppMargin=-27.9
+fPreviousTppSwing=22.1
+#Port Macquarie
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-19
+fPreviousTppSwing=9.8
+#Port Stephens
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=4.7
+fPreviousTppSwing=19.5
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Prospect
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=3.4
+fPreviousTppSwing=4.5
+#Riverstone
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-12.2
+fPreviousTppSwing=7.8
+#Rockdale
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=4.8
+fPreviousTppSwing=8.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Ryde
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-11.5
+fPreviousTppSwing=13.7
+#Seven Hills
+sPreviousName=Toongabbie
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-8.7
+fPreviousTppSwing=0
+bSophomoreCandidate=1
+#Shellharbour
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=17
+fPreviousTppSwing=9.2
+#South Coast
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=South Coast
+fTppMargin=-9.6
+fPreviousTppSwing=10.5
+#Strathfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=1.8
+fPreviousTppSwing=8.2
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Summer Hill
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=20.1
+fPreviousTppSwing=7.5
+#Swansea
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=13
+fPreviousTppSwing=13.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Sydney
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=-6.7
+fPreviousTppSwing=11.3
+#Tamworth
+sIncumbent=LNP
+sChallenger=IND
+sRegion=Northern Inland
+fTppMargin=-28.9
+fPreviousTppSwing=1.8
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,8
+sMinorViability=IND,0.00
+#Terrigal
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Central Coast
+fTppMargin=-9
+fPreviousTppSwing=14.6
+bSophomoreCandidate=1
+#The Entrance
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=0.4
+fPreviousTppSwing=12.1
+bSophomoreCandidate=1
+bSophomoreParty=1
+#Tweed
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-3.2
+fPreviousTppSwing=18.5
+#Upper Hunter
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-2.2
+fPreviousTppSwing=20.8
+bSophomoreCandidate=1
+#Vaucluse
+sIncumbent=LNP
+sChallenger=GRN
+sRegion=Southeast Sydney
+fTppMargin=-25.3
+fPreviousTppSwing=6.1
+#Wagga Wagga
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Southern Inland
+fTppMargin=-12.9
+fPreviousTppSwing=14.9
+bConfirmedProminentIndependent=1
+sMinorViability=IND,4.00
+sBettingOdds=IND,1.27
+#Wakehurst
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-25.2
+fPreviousTppSwing=5.3
+#Wallsend
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=20.8
+fPreviousTppSwing=14.5
+#Willoughby
+sIncumbent=LNP
+sChallenger=GRN
+sRegion=Northeast Sydney
+fTppMargin=-23.8
+fPreviousTppSwing=6.6
+#Wollondilly
+sIncumbent=LNP
+sChallenger=IND
+sRegion=Southern Inland
+fTppMargin=-17.3
+fPreviousTppSwing=4.3
+bConfirmedProminentIndependent=1
+sBettingOdds=IND,3.00
+sMinorViability=IND,1.00
+#Wollongong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=13.4
+fPreviousTppSwing=4.2
+#Wyong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=8.7
+fPreviousTppSwing=13.3
+bSophomoreCandidate=1
+bSophomoreParty=1
