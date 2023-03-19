@@ -21,7 +21,12 @@ env = environ.Env(
 # reading .env file
 environ.Env.read_env('fetch_election_data.env')
 
-url = 'https://pastvtr.elections.nsw.gov.au/SGE2015/la-home.htm'
+election = '2019nsw'
+
+urls = {
+    '2015nsw': 'https://pastvtr.elections.nsw.gov.au/SGE2015/la-home.htm',
+    '2019nsw': 'https://pastvtr.elections.nsw.gov.au/sg1901/la/results',
+}
 
 options = Options()
 options.add_argument('headless')
@@ -37,52 +42,85 @@ driver = webdriver.Chrome(service=webdriver_service, options=options)
 
 skip_booths = [
     'Polling Places',
+    'Voting Centres',
     'Total Polling Place Ordinary Votes',
+    'Total Voting Centre Ordinary Votes',
     'Pre-Poll Venues',
+    'Early Voting Centres',
     'Total Pre-Poll Ordinary Votes',
+    'Total Early Voting Centre Ordinary Votes',
     'Declaration Votes',
     'Total Declaration Votes',
     'Total Votes / Ballot Papers',
     '% of Formal Votes / Ballot Papers',
     '% of Total Votes / Ballot Papers',
     'Total Votes',
-    '% of Candidate Votes'
+    '% of Candidate Votes',
 ]
 
-tcps_2015 = {
-    'Ballina': ('NP', 'GRN'),
-    'Balmain': ('LAB', 'GRN'),
-    'Davidson': ('LIB', 'GRN'),
-    'Lake Macquarie': ('LAB', 'PIPER Greg'),
-    'Lismore': ('NP', 'GRN'),
-    'Manly': ('LIB', 'GRN'),
-    'Murray': ('NP', 'DALTON Helen'),
-    'Newtown': ('LAB', 'GRN'),
-    'North Shore': ('LIB', 'GRN'),
-    'Pittwater': ('LIB', 'GRN'),
-    'Summer Hill': ('LAB', 'GRN'),
-    'Sydney': ('LIB', 'GREENWICH Alex'),
-    'Tamworth': ('NP', 'DRAPER Peter'),
-    'Vaucluse': ('LIB', 'GRN'),
-    'Willoughby': ('LIB', 'GRN'),
-    'Wollongong': ('LAB', 'RORRIS Arthur'),
+tcps = {
+    '2015nsw': {
+        'Ballina': ('NP', 'GRN'),
+        'Balmain': ('LAB', 'GRN'),
+        'Davidson': ('LIB', 'GRN'),
+        'Lake Macquarie': ('LAB', 'PIPER Greg'),
+        'Lismore': ('NP', 'GRN'),
+        'Manly': ('LIB', 'GRN'),
+        'Murray': ('NP', 'DALTON Helen'),
+        'Newtown': ('LAB', 'GRN'),
+        'North Shore': ('LIB', 'GRN'),
+        'Pittwater': ('LIB', 'GRN'),
+        'Summer Hill': ('LAB', 'GRN'),
+        'Sydney': ('LIB', 'GREENWICH Alex'),
+        'Tamworth': ('NP', 'DRAPER Peter'),
+        'Vaucluse': ('LIB', 'GRN'),
+        'Willoughby': ('LIB', 'GRN'),
+        'Wollongong': ('LAB', 'RORRIS Arthur'),
+    },
+    '2019nsw': {
+        'Ballina': ('NAT', 'GRN'),
+        'Balmain': ('LAB', 'GRN'),
+        'Barwon': ('NAT', 'SFF'),
+        'Cabramatta': ('LAB', 'LE Dai'),
+        'Coffs Harbour': ('NAT', 'TOWNLEY Sally'),
+        'Davidson': ('LIB', 'GRN'),
+        'Dubbo': ('NAT', 'DICKERSON Mathew'),
+        'Lake Macquarie': ('LAB', 'PIPER Greg'),
+        'Lismore': ('NP', 'GRN'),
+        'Manly': ('LIB', 'GRN'),
+        'Murray': ('NAT', 'SFF'),
+        'Newtown': ('LAB', 'GRN'),
+        'North Shore': ('LIB', 'CORRIGAN Carolyn'),
+        'Orange': ('NAT', 'SFF'),
+        'Pittwater': ('LIB', 'GRN'),
+        'Sydney': ('LIB', 'GREENWICH Alex'),
+        'Tamworth': ('NAT', 'RODDA Mark'),
+        'Vaucluse': ('LIB', 'GRN'),
+        'Wagga Wagga': ('NAT', 'McGIRR Joe'),
+        'Wollondilly': ('LAB', 'HANNAN Judy'),
+    }
 }
 
-
-all_results = {}
+prcc_report_name = {
+    '2015nsw': 'prcc-report',
+    '2019nsw': 'prccReport',
+}
 
 def get_fp_list():
-    driver.get(url)
+    driver.get(urls[election])
     links = driver.find_elements(By.LINK_TEXT, 'LA FP')
     return [link.get_attribute('href') for link in links]
 
 def get_fps(link):
     driver.get(link)
-    prcc = driver.find_element(By.ID, 'prcc-report')
+    prcc = driver.find_element(By.ID, prcc_report_name[election])
     heading = prcc.find_element(By.TAG_NAME, 'h2')
-    seat_name = heading.text.split(' of ')[1]
+    seat_name = heading.text.split(' of ')[1].strip()
     print(f'Loading FP results for {seat_name}')
-    votes_table = prcc.find_element(By.CLASS_NAME, 'cc-votes')
+    if election == '2015nsw':
+        votes_table = prcc.find_element(By.CLASS_NAME, 'cc-votes')
+    elif election == '2019nsw':
+        votes_table = prcc.find_elements(By.TAG_NAME, 'table')[1]
     votes_rows = votes_table.find_elements(By.TAG_NAME, 'tr')
     candidates = []
     booths = {}
@@ -111,22 +149,19 @@ def get_fps(link):
     } for a in index_to_candidate}
     seat_info = {"candidates": cand_info, "booths": booths}
     return (seat_name, seat_info)
-    
-all_results = {}
-fp_links = get_fp_list()
-for fp_link in fp_links:
-    seat_name, seat_info = get_fps(fp_link)
-    all_results[seat_name] = seat_info
 
 def get_tcp_list():
-    driver.get(url)
+    driver.get(urls[election])
     links = driver.find_elements(By.LINK_TEXT, 'LA TCP')
     return [link.get_attribute('href') for link in links]
 
 def add_tcps(tcp_link):
     driver.get(tcp_link)
-    district_title = driver.find_element(By.ID, 'election-title')
-    name_element = district_title.find_element(By.TAG_NAME, 'h3')
+    if election == '2015nsw':
+        upper_section = driver.find_element(By.ID, 'election-title')
+    elif election == '2019nsw':
+        upper_section = driver.find_element(By.ID, 'tcpCandidates')
+    name_element = upper_section.find_element(By.TAG_NAME, 'h3')
     seat_name = name_element.text.split(' of ')[1]
     print(seat_name)
     selector = driver.find_element(By.TAG_NAME, 'select')
@@ -137,17 +172,17 @@ def add_tcps(tcp_link):
         types = []
         if (
             ("(LAB)" in text or "(CLP)" in text) and
-            ("(LIB)" in text or "(NP)" in text)
+            ("(LIB)" in text or "(NP)" in text or "(NAT)" in text)
         ):
             types.append('tpp')
-        if seat_name in tcps_2015 and (
-            (tcps_2015[seat_name][0] in text) and
-            (tcps_2015[seat_name][1] in text)
+        if seat_name in tcps[election] and (
+            (tcps[election][seat_name][0] in text) and
+            (tcps[election][seat_name][1] in text)
         ):
             types.append('tcp')
-        elif seat_name not in tcps_2015 and (
+        elif seat_name not in tcps[election] and (
             ("(LAB)" in text or "(CLP)" in text) and
-            ("(LIB)" in text or "(NP)" in text)
+            ("(LIB)" in text or "(NP)" in text or "(NAT)" in text)
         ):
             types.append('tcp')
         if len(types) == 0: continue
@@ -163,7 +198,13 @@ def add_tcps(tcp_link):
             texts = [cell.text.replace(',', '') for cell in cells]
             # The replacement is for "Provisional/Silent"
             # which is formatted differently for tcp vs. fp
-            name = texts[0].replace('Provisional/Silent','Provisional / Silent')
+            name = texts[0].replace(
+                'Provisional/Silent',
+                'Provisional / Silent'
+            ).replace(
+                'Enrolment/Provisional',
+                'Enrolment / Provisional'
+            )
             if name in skip_booths: continue
             if name not in booths: booths[name] = {'tcp': {}, 'tpp': {}}
             print(all_results[seat_name]['candidates'])
@@ -171,8 +212,10 @@ def add_tcps(tcp_link):
             for type in types:
                 candidate_nums = [
                     next(
-                        num for num, a in all_results[seat_name]['candidates'].items()
-                        if a["name"].upper() in candidate.upper() and a["party"] in candidate
+                        num for num, a
+                        in all_results[seat_name]['candidates'].items()
+                        if a["name"].upper() in candidate.upper()
+                        and a["party"] in candidate
                     )
                     for candidate in candidates
                 ]
@@ -182,12 +225,16 @@ def add_tcps(tcp_link):
     for booth_name, booth in booths.items():
         all_results[seat_name]['booths'][booth_name]['tcp'] = booth['tcp']
         all_results[seat_name]['booths'][booth_name]['tpp'] = booth['tpp']
-       
 
+all_results = {}
+fp_links = get_fp_list()
+for fp_link in fp_links:
+    seat_name, seat_info = get_fps(fp_link)
+    all_results[seat_name] = seat_info
+       
 tcp_links = get_tcp_list()
 for tcp_link in tcp_links:
     add_tcps(tcp_link)
 
-
-with open('Booth Results/2015nsw.json', 'w') as f:
+with open(f'Booth Results/{election}.json', 'w') as f:
     json.dump(all_results, f, indent=4)
