@@ -800,7 +800,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		if (effectiveGreen) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.greensSeatStatistics);
 		}
-		else if (effectiveIndependent) {
+		// only continue to apply independent votes if they're an incumbent
+		// assume re-runs don't happen unless explicitly confirmed
+		else if (effectiveIndependent && project.parties().idToIndex(seat.incumbent) == partyIndex) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -920,7 +922,8 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp = run.oddsCalibrationMeans[{seatIndex, partyIndex}];
 	}
 	else if (run.oddsFinalMeans.contains({ seatIndex, partyIndex })) {
-		transformedFp = mix(transformedFp, run.oddsFinalMeans[{seatIndex, partyIndex}], OddsWeight);
+		float adjustedWeight = seat.name == "Kiama" && run.getTermCode() == "2023nsw" && partyIndex == run.indPartyIndex ? 1.0f : OddsWeight;
+		transformedFp = mix(transformedFp, run.oddsFinalMeans[{seatIndex, partyIndex}], adjustedWeight);
 	}
 
 	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) : rng.uniform();
@@ -1938,6 +1941,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						float transformedSurvival = transformVoteShare(survivalRate);
 						transformedSurvival += rng.normal(0.0f, 15.0f);
 						survivalRate = detransformVoteShare(transformedSurvival);
+						if (seat.name == "Kiama" && run.getTermCode() == "2023nsw" && sourceParty == 0) {
+							flow = 50.0f;
+							survivalRate = 0.2f;
+						}
 						// later, include custom exhaust rate for known nc preference flows
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * flow * survivalRate;
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - flow) * survivalRate;
