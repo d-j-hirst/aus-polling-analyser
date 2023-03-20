@@ -587,8 +587,8 @@ def run_individual_party(config, m_data, e_data,
         # higher values during campaigns, since it's more likely
         # people are paying attention and changing their mind then
         'dailySigma': 0.35,
-        'campaignSigma': 0.7,
-        'finalSigma': 1.2,
+        'campaignSigma': 0.5,
+        'finalSigma': 0.8,
 
         # prior distribution for each house effect
         # modelled as a double exponential to avoid

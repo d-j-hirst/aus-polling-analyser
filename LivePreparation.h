@@ -30,7 +30,7 @@ private:
 	void parsePreviousResults();
 	void downloadPreload();
 	void parsePreload();
-	void downloadCurrentResults();
+	void acquireCurrentResults();
 	void downloadLatestResults();
 	void parseCurrentResults();
 	void preparePartyCodeGroupings();

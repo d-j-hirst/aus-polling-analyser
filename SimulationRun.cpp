@@ -73,6 +73,16 @@ std::string SimulationRun::getTermCode() const
 	return yearCode + regionCode;
 }
 
+bool SimulationRun::isLiveAutomatic() const
+{
+	return sim.isLiveAutomatic() && !doingBettingOddsCalibrations;
+}
+
+bool SimulationRun::isLiveManual() const
+{
+	return sim.isLiveManual() && !doingBettingOddsCalibrations;
+}
+
 // Converts a betting odds (e.g. $1.65) into an implied chance.
 // Takes optional parameters for the rake and cap on odds.
 template<typename T,

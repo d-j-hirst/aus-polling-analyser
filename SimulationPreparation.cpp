@@ -84,9 +84,9 @@ void SimulationPreparation::prepareForIterations()
 	prepareProminentMinors();
 	prepareRunningParties();
 
-	if (sim.isLive()) initializeGeneralLiveData();
-	if (sim.isLiveManual()) loadLiveManualResults();
-	if (sim.isLiveAutomatic()) {
+	if (run.isLive()) initializeGeneralLiveData();
+	if (run.isLiveManual()) loadLiveManualResults();
+	if (run.isLiveAutomatic()) {
 		auto livePreparation = LivePreparation(project, sim, run);
 		livePreparation.prepareLiveAutomatic();
 	}
@@ -290,7 +290,7 @@ void SimulationPreparation::loadSeatMinorViability()
 
 void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
 {
-	if (!sim.isLiveAutomatic()) return;
+	if (!run.isLiveAutomatic()) return;
 
 	// Calculating ordinary and declaration vote totals as a proportion of total enrolment
 	// Will be used to estimate turnout in seats without a previous result to extrapolate from
@@ -353,7 +353,7 @@ void SimulationPreparation::calculateLiveAggregates()
 	run.sampleRepresentativeness = 0.0f;
 	run.total2cpVotes = 0;
 	run.totalEnrolment = 0;
-	if (sim.isLive()) {
+	if (run.isLive()) {
 		logger << "preparing live aggregates\n";
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			updateLiveAggregateForSeat(seatIndex);
@@ -362,10 +362,10 @@ void SimulationPreparation::calculateLiveAggregates()
 		logger << "finished preparing live aggregates\n";
 	}
 
-	if (sim.isLiveAutomatic()) {
+	if (run.isLiveAutomatic()) {
 		sim.latestReport.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f) * 100.0f;
 	}
-	else if (sim.isLiveManual()) {
+	else if (run.isLiveManual()) {
 		sim.latestReport.total2cpPercentCounted = run.liveOverallTppPercentCounted;
 	}
 	else {

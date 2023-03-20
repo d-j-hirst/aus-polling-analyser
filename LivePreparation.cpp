@@ -42,7 +42,7 @@ void LivePreparation::prepareLiveAutomatic()
 		downloadLatestResults();
 	}
 	else {
-		downloadCurrentResults();
+		acquireCurrentResults();
 	}
 	parseCurrentResults();
 	preparePartyCodeGroupings();
@@ -68,7 +68,8 @@ void LivePreparation::prepareLiveAutomatic()
 
 void LivePreparation::downloadPreviousResults()
 {
-	if (getTermCode() == "2022vic") return;
+	if (run.regionCode == "vic") return;
+	if (run.regionCode == "nsw") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
 	if (mangledName.substr(0, 6) == "local:") {
@@ -93,24 +94,32 @@ void LivePreparation::downloadPreviousResults()
 
 void LivePreparation::parsePreviousResults()
 {
-	if (getTermCode() == "2022fed") {
+	if (run.regionCode == "fed") {
 		xml.LoadFile(xmlFilename.c_str());
-		previousElection = Results2::Election(xml);
+		previousElection = Results2::Election::createAec(xml);
 	}
-	else if (getTermCode() == "2022vic") {
+	else if (run.regionCode == "vic") {
 		tinyxml2::XMLDocument candidatesXml;
 		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates.xml").c_str());
 		tinyxml2::XMLDocument boothsXml;
 		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths.xml").c_str());
-		std::ifstream f("analysis/Booth Results/2018vic.json");
+		std::ifstream f("analysis/Booth Results/" + getTermCode() + ".json");
 		nlohmann::json resultsJson = nlohmann::json::parse(f);
-		previousElection = Results2::Election(resultsJson, candidatesXml, boothsXml);
+		previousElection = Results2::Election::createVec(resultsJson, candidatesXml, boothsXml);
+	}
+	else if (run.regionCode == "nsw") {
+		tinyxml2::XMLDocument zerosXml;
+		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
+		std::ifstream f("analysis/Booth Results/" + getTermCode() + ".json");
+		nlohmann::json resultsJson = nlohmann::json::parse(f);
+		previousElection = Results2::Election::createNswec(resultsJson, zerosXml);
 	}
 }
 
 void LivePreparation::downloadPreload()
 {
-	if (getTermCode() == "2022vic") return;
+	if (run.regionCode == "vic") return;
+	if (run.regionCode == "nsw") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.preloadUrl;
 	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
@@ -131,23 +140,28 @@ void LivePreparation::downloadPreload()
 
 void LivePreparation::parsePreload()
 {
-	if (getTermCode() == "2022fed") {
+	if (run.regionCode == "fed") {
 		xml.LoadFile(xmlFilename.c_str());
-		currentElection = Results2::Election(xml);
+		currentElection = Results2::Election::createAec(xml);
 	}
-	else if (getTermCode() == "2022vic") {
+	else if (run.regionCode == "vic") {
 		tinyxml2::XMLDocument candidatesXml;
 		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates.xml").c_str());
 		tinyxml2::XMLDocument boothsXml;
 		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths.xml").c_str());
-		currentElection = Results2::Election(candidatesXml, boothsXml);
+		currentElection = Results2::Election::createVec(candidatesXml, boothsXml);
+	}
+	else if (run.regionCode == "nsw") {
+		tinyxml2::XMLDocument zerosXml;
+		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
+		currentElection = Results2::Election::createNswec(nlohmann::json(), zerosXml);
 	}
 }
 
-void LivePreparation::downloadCurrentResults()
+void LivePreparation::acquireCurrentResults()
 {
 	ResultsDownloader resultsDownloader;
-	if (getTermCode() == "2022fed") {
+	if (run.regionCode == "fed") {
 		std::string mangledName = sim.settings.currentTestUrl;
 		std::replace(mangledName.begin(), mangledName.end(), '/', '$');
 		std::replace(mangledName.begin(), mangledName.end(), '.', '$');
@@ -168,14 +182,14 @@ void LivePreparation::downloadCurrentResults()
 		auto subStr = sim.settings.currentTestUrl.substr(dotOffset - 14, 14);
 		sim.latestReport.dateCode = subStr;
 	}
-	else if (getTermCode() == "2022vic") {
+	else {
 		std::filesystem::path downloadsPath("../../../Downloads");
 		int bestDate = 0;
 		int bestTime = 0;
 		std::string bestFilename;
 		for (const auto& entry : std::filesystem::directory_iterator(downloadsPath)) {
 			auto entryStr = entry.path().string();
-			if (entryStr.find("State2022mediafilelitepplh_") != std::string::npos) {
+			if (run.regionCode == "vic" && entryStr.find("mediafilelitepplh_") != std::string::npos) {
 				std::string dateStamp = splitString(entryStr, "_")[1];
 				std::string timeStamp = splitString(splitString(entryStr, "_")[2], ".")[0];
 				int date = std::stoi(dateStamp);
@@ -184,11 +198,22 @@ void LivePreparation::downloadCurrentResults()
 					bestFilename = entryStr;
 				}
 			}
+			else if (run.regionCode == "nsw" && entryStr.find("-SG") != std::string::npos) {
+				// Strictly speaking not really dates and times in NSW's case but they serve the same function
+				std::string fileString = splitString(entryStr, "\\")[1];
+				std::string dateStamp = splitString(fileString, "-")[1].substr(2);
+				std::string timeStamp = splitString(fileString, "-")[0];
+				int date = std::stoi(dateStamp);
+				int time = std::stoi(timeStamp);
+				if (date > bestDate || (date == bestDate && time > bestTime)) {
+					bestFilename = entryStr;
+				}
+			}
 		}
-		xmlFilename = "downloads/2022vic_latest.xml";
-		resultsDownloader.unzipFile(bestFilename, xmlFilename);
 		PA_LOG_VAR(bestFilename);
 		PA_LOG_VAR(xmlFilename);
+		xmlFilename = "downloads/" + run.getTermCode() + "_latest.xml";
+		resultsDownloader.unzipFile(bestFilename, xmlFilename);
 	}
 }
 
@@ -196,8 +221,9 @@ void LivePreparation::parseCurrentResults()
 {
 	xml.LoadFile(xmlFilename.c_str());
 	Results2::Election::Format format;
-	if (getTermCode() == "2022fed") format = Results2::Election::Format::AEC;
-	else if (getTermCode() == "2022vic") format = Results2::Election::Format::VEC;
+	if (run.regionCode == "fed") format = Results2::Election::Format::AEC;
+	else if (run.regionCode == "vic") format = Results2::Election::Format::VEC;
+	else if (run.regionCode == "nsw") format = Results2::Election::Format::NSWEC;
 	else format = Results2::Election::Format::AEC;
 	currentElection.update(xml, format);
 }

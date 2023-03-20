@@ -304,7 +304,7 @@ void SimulationIteration::determineOverallTpp()
 		}
 	}
 
-	if (sim.isLive() && run.liveOverallTppPercentCounted) {
+	if (run.isLive() && run.liveOverallTppPercentCounted) {
 		float liveSwing = run.liveOverallTppSwing;
 		float liveStdDev = stdDevOverall(run.liveOverallTppPercentCounted);
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
@@ -317,7 +317,7 @@ void SimulationIteration::determineOverallTpp()
 
 void SimulationIteration::incorporateLiveOverallFps()
 {
-	if (sim.isLiveAutomatic() && run.liveOverallFpPercentCounted) {
+	if (run.isLiveAutomatic() && run.liveOverallFpPercentCounted) {
 		for (auto [partyIndex, _] : overallFpTarget) {
 			if (partyIndex == 0 || partyIndex == 1) continue;
 			float liveTarget = run.liveOverallFpTarget[partyIndex];
@@ -577,7 +577,7 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 
 void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
-	if (sim.isLive() && run.liveRegionTppPercentCounted[regionIndex]) {
+	if (run.isLive() && run.liveRegionTppPercentCounted[regionIndex]) {
 		float liveSwing = run.liveRegionSwing[regionIndex];
 		float liveStdDev = stdDevSingleSeat(run.liveRegionTppPercentCounted[regionIndex]) * 0.4f;
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
@@ -681,7 +681,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
-	if (sim.isLive() && run.liveSeatTcpBasis[seatIndex] > 0.0f && !std::isnan(run.liveSeatTppSwing[seatIndex])) {
+	if (run.isLive() && run.liveSeatTcpBasis[seatIndex] > 0.0f && !std::isnan(run.liveSeatTppSwing[seatIndex])) {
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
@@ -738,7 +738,7 @@ void SimulationIteration::correctSeatTppSwings()
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				Seat const& seat = project.seats().viewByIndex(seatIndex);
 				if (seat.region != regionId) continue;
-				if (sim.isLive()) {
+				if (run.isLive()) {
 					// If a seat has much live data, don't adjust it any more.
 					swingAdjust *= std::min(1.0f, 2.0f / run.liveSeatTcpCounted[seatIndex] - 0.2f);
 				}
@@ -758,7 +758,7 @@ void SimulationIteration::correctSeatTppSwings()
 	float averageTpp = float(totalTpp / totalTurnout);
 	float swingAdjust = iterationOverallTpp - averageTpp;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		if (sim.isLive()) {
+		if (run.isLive()) {
 			// If a seat has much live data, don't adjust it any more.
 			swingAdjust *= std::min(1.0f, 2.0f / run.liveSeatTcpCounted[seatIndex] - 0.2f);
 		}
@@ -832,7 +832,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 	adjustForFpCorrelations(seatIndex);
 
-	if (sim.isLiveAutomatic()) incorporateLiveSeatFps(seatIndex);
+	if (run.isLiveAutomatic()) incorporateLiveSeatFps(seatIndex);
 
 	// Helps to effect minor party crowding, i.e. if too many minor parties
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
@@ -1322,7 +1322,7 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 	// In live sims, want to avoid reducing actual recorded vote tallies through normalisation
 	// so make sure the we adjust the major party vote to make normalisation have minimal effect,
 	// especially if more than a trivial amount of vote is counted.
-	if (sim.isLiveAutomatic()) {
+	if (run.isLiveAutomatic()) {
 		float liveFactor = 1.0f - pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
 		diff = mix(diff, totalVotePercent - 100.0f, liveFactor);
 	}
@@ -1805,7 +1805,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					float swingCap = std::max(0.0f, tempOverallFp[partyIndex] * (correctionFactor - 1.0f) * 3.0f);
 					float correctionSwing = std::min(swingCap, seatFpVoteShare[seatIndex][partyIndex] * (correctionFactor - 1.0f));
 					// don't re-adjust fps when we have a significant actual count
-					if (sim.isLiveAutomatic()) correctionSwing *= std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]);
+					if (run.isLiveAutomatic()) correctionSwing *= std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]);
 					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][partyIndex], correctionSwing);
 					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}
@@ -1832,7 +1832,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				for (auto& [seatPartyIndex, voteShare] : categories) {
 					float additionalVotes = allocation * voteShare / totalOthers;
 					// don't re-adjust fps when we have a significant actual count
-					if (sim.isLiveAutomatic()) additionalVotes *= std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]);
+					if (run.isLiveAutomatic()) additionalVotes *= std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]);
 					float newValue = predictorCorrectorTransformedSwing(seatFpVoteShare[seatIndex][seatPartyIndex], additionalVotes);
 					seatFpVoteShare[seatIndex][seatPartyIndex] = newValue;
 				}
@@ -1869,7 +1869,7 @@ void SimulationIteration::correctMajorPartyFpBias()
 		// Don't readjust fps when there is a meaningful actual fp count
 		float seatPartyOneAdjust = partyOneAdjust;
 		float seatPartyTwoAdjust = partyTwoAdjust;
-		if (sim.isLiveAutomatic()) {
+		if (run.isLiveAutomatic()) {
 			seatPartyOneAdjust = mix(1.0f, seatPartyOneAdjust, std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]));
 			seatPartyTwoAdjust = mix(1.0f, seatPartyTwoAdjust, std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]));
 		}
@@ -2109,10 +2109,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		//}
 
 		// if we're live, do further adjustments ...
-		if (sim.isLiveAutomatic()) {
+		if (run.isLiveAutomatic()) {
 			bool matched = false;
 			float firstTcp = 0.0f;
-			if (sim.isLiveAutomatic() && topTwo.first.first == run.liveSeatTcpParties[seatIndex].first
+			if (run.isLiveAutomatic() && topTwo.first.first == run.liveSeatTcpParties[seatIndex].first
 				&& topTwo.second.first == run.liveSeatTcpParties[seatIndex].second)
 			{
 				matched = true;
@@ -2125,7 +2125,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 					firstTcp = run.liveSeatTcpPercent[seatIndex];
 				}
 			}
-			else if (sim.isLiveAutomatic() && topTwo.first.first == run.liveSeatTcpParties[seatIndex].second
+			else if (run.isLiveAutomatic() && topTwo.first.first == run.liveSeatTcpParties[seatIndex].second
 				&& topTwo.second.first == run.liveSeatTcpParties[seatIndex].first)
 			{
 				matched = true;
@@ -2152,7 +2152,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 
 	// incorporate non-classic live 2pp results
-	if (sim.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
+	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
 		float tcpLive = topTwo.first.second;
 		if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].first && topTwo.second.first == run.liveSeatTcpParties[seatIndex].second) {
 			tcpLive = run.liveSeatTcpPercent[seatIndex];
@@ -2183,7 +2183,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 
-	if (sim.isLive()) applyLiveManualOverrides(seatIndex);
+	if (run.isLive()) applyLiveManualOverrides(seatIndex);
 }
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)

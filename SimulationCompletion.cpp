@@ -142,7 +142,7 @@ void SimulationCompletion::recordVoteTotalStats()
 			v.push_back(sim.latestReport.getTppSamplePercentile(percentile));
 			return v;
 		});
-	if (!sim.isLiveManual()) {
+	if (!run.isLiveManual()) {
 		std::map<int, VF> fpFrequencies;
 		for (auto [partyIndex, frequencies] : sim.latestReport.partyPrimaryFrequency) {
 			if (sim.latestReport.getFpSampleExpectation(partyIndex) > 0.0f) {

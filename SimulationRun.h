@@ -146,6 +146,11 @@ public:
 	void run(FeedbackFunc feedback = [](std::string) {});
 
 	std::string getTermCode() const;
+
+	bool isLiveAutomatic() const;
+	bool isLiveManual() const;
+	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
+
 private:
 
 	void runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});

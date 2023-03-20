@@ -111,7 +111,8 @@ namespace Results2 {
 		Provisional,
 		PrePoll,
 		Postal,
-		Early
+		Early,
+		IVote
 	};
 
 	inline std::string voteTypeName(VoteType v) {
@@ -253,20 +254,31 @@ namespace Results2 {
 
 		enum class Format {
 			AEC,
-			VEC
+			VEC,
+			NSWEC
 		};
 
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
-		Election(tinyxml2::XMLDocument const& xml); // AEC format
-		Election(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
-			tinyxml2::XMLDocument const& input_booths); // VEC past election format
-		Election(tinyxml2::XMLDocument const& input_candidates,
-			tinyxml2::XMLDocument const& input_booths); // VEC present election format (preload only)
+
+		static Election createAec(tinyxml2::XMLDocument const& xml);
+		static Election createVec(
+			nlohmann::json const& results,
+			tinyxml2::XMLDocument const& input_candidates,
+			tinyxml2::XMLDocument const& input_booths
+		);
+		static Election createVec(
+			tinyxml2::XMLDocument const& input_candidates,
+			tinyxml2::XMLDocument const& input_booths
+		);
+		static Election createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
+
 		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths);
 		void preload2022Vic(tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths, bool includeSeatBooths = false);
+
+		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
 	};
 }
