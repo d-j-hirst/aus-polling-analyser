@@ -21,7 +21,7 @@ env = environ.Env(
 # reading .env file
 environ.Env.read_env('fetch_election_data.env')
 
-election = '2019nsw'
+election = '2015nsw'
 
 urls = {
     '2015nsw': 'https://pastvtr.elections.nsw.gov.au/SGE2015/la-home.htm',
@@ -56,6 +56,18 @@ skip_booths = [
     '% of Total Votes / Ballot Papers',
     'Total Votes',
     '% of Candidate Votes',
+]
+
+append_booths = [
+    'Sydney Town Hall Pre-Poll',
+    'Declared Facility',
+]
+
+append_votes = [
+    'Absent',
+    'Postal',
+    'Provisional',
+    'iVote',
 ]
 
 tcps = {
@@ -106,6 +118,65 @@ prcc_report_name = {
     '2019nsw': 'prccReport',
 }
 
+def process_booth_name(booth_name):
+    if booth_name == 'Enrolment': return 'Provisional Votes'
+    booth_name = booth_name.replace(
+        'Provisional/Silent',
+        'Provisional'
+    ).replace(
+        'Provisional / Silent',
+        'Provisional'
+    ).replace(
+        'Enrolment/Provisional',
+        'Provisional'
+    ).replace(
+        'Enrolment / Provisional',
+        'Provisional'
+    ).replace(
+        'RO Pre-Poll',
+        'EM Office'
+    ).replace(
+        'Pre-Poll',
+        'EVC'
+    ).replace(
+        'Sydney Town Hall EVC',
+        'Sydney Town Hall Pre-Poll'
+    ).replace(
+        'Declared Institution',
+        'Declared Facility'
+    )
+    if booth_name in append_votes:
+        booth_name = f'{booth_name} Votes'
+    return booth_name
+
+def get_dop_list():
+    driver.get(urls[election])
+    links = driver.find_elements(By.LINK_TEXT, 'LA DoP')
+    return [link.get_attribute('href') for link in links]
+
+def get_candidate_names(link):
+    driver.get(link)
+    content = driver.find_element(By.ID, prcc_report_name[election])
+    heading = content.find_element(By.TAG_NAME, 'h2')
+    seat_name = heading.text.split(' of ')[1].strip()
+    print(f'Loading full candidate names for {seat_name}')
+    rows = content.find_elements(By.TAG_NAME, 'tr')
+    names = []
+    for row in rows[1:]:
+        cell = row.find_element(By.TAG_NAME, 'td')
+        candidate_name = cell.text.strip()
+        if 'Candidates' in candidate_name or len(candidate_name) == 0: continue
+        if 'Total' in candidate_name: break
+        names.append((candidate_name[:-3].strip(), candidate_name[-3:]))
+    return seat_name, names
+
+def extract_full_name(seat_name, name, party):
+    return next((
+        full_name for full_name, full_party
+        in candidate_map[seat_name]
+        if party == full_party and name in full_name
+    ), name)
+
 def get_fp_list():
     driver.get(urls[election])
     links = driver.find_elements(By.LINK_TEXT, 'LA FP')
@@ -113,14 +184,14 @@ def get_fp_list():
 
 def get_fps(link):
     driver.get(link)
-    prcc = driver.find_element(By.ID, prcc_report_name[election])
-    heading = prcc.find_element(By.TAG_NAME, 'h2')
+    content = driver.find_element(By.ID, prcc_report_name[election])
+    heading = content.find_element(By.TAG_NAME, 'h2')
     seat_name = heading.text.split(' of ')[1].strip()
     print(f'Loading FP results for {seat_name}')
     if election == '2015nsw':
-        votes_table = prcc.find_element(By.CLASS_NAME, 'cc-votes')
+        votes_table = content.find_element(By.CLASS_NAME, 'cc-votes')
     elif election == '2019nsw':
-        votes_table = prcc.find_elements(By.TAG_NAME, 'table')[1]
+        votes_table = content.find_elements(By.TAG_NAME, 'table')[1]
     votes_rows = votes_table.find_elements(By.TAG_NAME, 'tr')
     candidates = []
     booths = {}
@@ -131,7 +202,8 @@ def get_fps(link):
         else:
             name, party = cell.text.split(' (')
             party = party.split(')')[0]
-        candidates.append((name, party))
+        actual_name = extract_full_name(seat_name, name, party)
+        candidates.append((actual_name, party))
     index_to_candidate = {a: b for a, b in enumerate(candidates)}
     candidate_to_index = {b: a for a, b in enumerate(candidates)}
     for vote_row in votes_rows[1:]:
@@ -139,6 +211,8 @@ def get_fps(link):
         if not len(cells): continue
         booth_name = cells[0].text
         if booth_name in skip_booths: continue
+        booth_name = process_booth_name(booth_name)
+        if booth_name in append_booths: booth_name += f' ({seat_name})'
         booths[booth_name] = {"fp": {}, "tcp": {}}
         for cell, candidate in zip(cells[1:len(candidates) + 1], candidates):
             votes = int(cell.text.replace(',',''))
@@ -163,7 +237,7 @@ def add_tcps(tcp_link):
         upper_section = driver.find_element(By.ID, 'tcpCandidates')
     name_element = upper_section.find_element(By.TAG_NAME, 'h3')
     seat_name = name_element.text.split(' of ')[1]
-    print(seat_name)
+    print(f'Loading TCP/TPP results for {seat_name}')
     selector = driver.find_element(By.TAG_NAME, 'select')
     options = selector.find_elements(By.TAG_NAME, 'option')
     booths = {}
@@ -196,37 +270,43 @@ def add_tcps(tcp_link):
         for row in rows:
             cells = row.find_elements(By.TAG_NAME, 'td')
             texts = [cell.text.replace(',', '') for cell in cells]
+            if texts[0] in skip_booths: continue
             # The replacement is for "Provisional/Silent"
             # which is formatted differently for tcp vs. fp
-            name = texts[0].replace(
-                'Provisional/Silent',
-                'Provisional / Silent'
-            ).replace(
-                'Enrolment/Provisional',
-                'Enrolment / Provisional'
-            )
-            if name in skip_booths: continue
+            name = process_booth_name(texts[0])
+            if name in append_booths: name += f' ({seat_name})'
             if name not in booths: booths[name] = {'tcp': {}, 'tpp': {}}
-            print(all_results[seat_name]['candidates'])
-            print(candidates)
             for type in types:
                 candidate_nums = [
+                    # "upper" required because NSWEC is inconsistent
+                    # for names like "McDONALD"
                     next(
                         num for num, a
                         in all_results[seat_name]['candidates'].items()
-                        if a["name"].upper() in candidate.upper()
+                        if candidate.split('(')[0].strip().upper()
+                        in a["name"].upper()
                         and a["party"] in candidate
                     )
                     for candidate in candidates
                 ]
-                booths[name][type][candidate_nums[0]] = int(texts[1])
-                booths[name][type][candidate_nums[1]] = int(texts[2])
-    print(booths)
+                if candidate_nums[0] not in booths[name][type]:
+                    booths[name][type][candidate_nums[0]] = 0
+                if candidate_nums[1] not in booths[name][type]:
+                    booths[name][type][candidate_nums[1]] = 0
+                booths[name][type][candidate_nums[0]] += int(texts[1])
+                booths[name][type][candidate_nums[1]] += int(texts[2])
     for booth_name, booth in booths.items():
         all_results[seat_name]['booths'][booth_name]['tcp'] = booth['tcp']
         all_results[seat_name]['booths'][booth_name]['tpp'] = booth['tpp']
 
 all_results = {}
+candidate_map = {}
+
+dop_links = get_dop_list()
+for dop_link in dop_links:
+    seat_name, candidates = get_candidate_names(dop_link)
+    candidate_map[seat_name] = candidates
+
 fp_links = get_fp_list()
 for fp_link in fp_links:
     seat_name, seat_info = get_fps(fp_link)

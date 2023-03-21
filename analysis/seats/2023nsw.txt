@@ -49,7 +49,7 @@ fTppMargin=20.5
 fPreviousTppSwing=4.7
 fTransposedFederalSwing=2.5
 bRetirement=1
-sBettingOdds=GRN,1.255
+sBettingOdds=GRN,1.25
 sRunningParties=ALP,LNP,GRN,OTH*
 sCandidateNames=Freya Leach,LNP;Kobi Shetty,GRN;Philippa Scott,ALP
 #Bankstown
@@ -580,7 +580,7 @@ fTppMargin=28.3
 fPreviousTppSwing=3.24
 fTransposedFederalSwing=2.9
 bIncumbentRecontestConfirmed=1
-sBettingOdds=GRN,1.15
+sBettingOdds=GRN,1.11
 sTcpChange=ALP,2.40
 sRunningParties=ALP,LNP,GRN,OTH
 sCandidateNames=David Hetherington,ALP;Fiona Douskou,LNP;Jenny Leong,GRN
@@ -784,7 +784,7 @@ fTppMargin=0.5
 fPreviousTppSwing=3.7
 fTransposedFederalSwing=2.9
 bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,1.1
+sBettingOdds=IND,1.07
 sRunningParties=ALP,LNP,GRN,IND,OTH
 sCandidateNames=Alex Greenwich,IND;Nick Ward,GRN;Phyllisse Stanton,LNP;Skye Tito,ALP
 #Tamworth

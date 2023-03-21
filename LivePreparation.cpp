@@ -110,7 +110,7 @@ void LivePreparation::parsePreviousResults()
 	else if (run.regionCode == "nsw") {
 		tinyxml2::XMLDocument zerosXml;
 		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
-		std::ifstream f("analysis/Booth Results/" + getTermCode() + ".json");
+		std::ifstream f("analysis/Booth Results/" + sim.settings.prevTermCodes.at(0) + ".json");
 		nlohmann::json resultsJson = nlohmann::json::parse(f);
 		previousElection = Results2::Election::createNswec(resultsJson, zerosXml);
 	}
@@ -282,11 +282,14 @@ void LivePreparation::calculateTppPreferenceFlows()
 	DataSet data;
 	std::map<int, int> partyIdFrequency;
 	for (auto const& [seatId, seat] : currentElection.seats) {
+		PA_LOG_VAR(seat.name);
+		logger << "Checkpoint A\n";
 		for (auto [candidateId, votes] : seat.fpVotes) {
 			int partyId = currentElection.candidates[candidateId].party;
 			if (aecPartyToSimParty[partyId] == 2) partyId = greensParty;
 			++partyIdFrequency[partyId];
 		}
+		logger << "Checkpoint B\n";
 		if (seat.tcpVotes.size() != 2) continue;
 		int numCoalition = 0;
 		for (auto [candidateId, votes] : seat.fpVotes) {
@@ -294,6 +297,7 @@ void LivePreparation::calculateTppPreferenceFlows()
 			if (aecPartyToSimParty[aecPartyId] == 1) ++numCoalition;
 			if (aecPartyToSimParty[aecPartyId] == CoalitionPartnerIndex) ++numCoalition;
 		}
+		logger << "Checkpoint C\n";
 		if (numCoalition > 1) continue; // don't get preferences from intra-Coalition contests
 		bool firstPartyFound = false;
 		bool secondPartyFound = false;
@@ -308,24 +312,30 @@ void LivePreparation::calculateTppPreferenceFlows()
 				secondPartyFound = true;
 			}
 		}
+		logger << "Checkpoint D\n";
 		if (!firstPartyFound || !secondPartyFound) continue; // not classic 2cp
 		for (int boothId : seat.booths) {
+			logger << "Checkpoint D1\n";
 			auto const& booth = currentElection.booths[boothId];
 			if (!booth.totalVotesTcp()) continue;
 			if (!booth.totalVotesFp()) continue;
 			double totalFpVotes = double(booth.totalVotesFp());
 			double totalTcpVotes = double(booth.totalVotesTcp());
 			std::vector<double> fpData(partyIdToPos.size());
+			logger << "Checkpoint D2\n";
 			for (auto [candidateId, votes] : booth.fpVotes) {
 				int partyId = currentElection.candidates[candidateId].party;
 				if (aecPartyToSimParty[partyId] == 2) partyId = greensParty;
 				fpData[partyIdToPos.at(partyId)] = double(votes) / totalFpVotes;
 				++partyIdFrequency[partyId];
 			}
+			logger << "Checkpoint D3\n";
+			PA_LOG_VAR(totalTcpVotes);
 			double tcpData = double(booth.tcpVotes.at(partyOneThisSeat)) / totalTcpVotes;
 			for (double voteIncrement = 100.0; voteIncrement < totalTcpVotes; voteIncrement += 100.0) {
 				data.push_back({ fpData, tcpData });
 			}
+			logger << "Checkpoint D4\n";
 		}
 	}
 	// Fill with lots of dummy data to make sure that major party preferences are "forced" to what they should be

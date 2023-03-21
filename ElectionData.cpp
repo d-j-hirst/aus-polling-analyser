@@ -205,14 +205,14 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
 				for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
 					int fpCandIndexI = std::stoi(fpCandIndex);
 					int fpCandId = indexToId[fpCandIndexI];
-					seats[seatId].fpVotes[fpCandId][voteType] = fpVotes;
+					seats[seatId].fpVotes[fpCandId][voteType] += fpVotes;
 				}
 				auto tcps = boothValue["tcp"];
 				for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
 					int tcpCandIndexI = std::stoi(tcpCandIndex);
 					int tcpCandId = indexToId[tcpCandIndexI];
 					int tcpAffiliation = candidates[tcpCandId].party;
-					seats[seatId].tcpVotes[tcpAffiliation][voteType] = tcpVotes;
+					seats[seatId].tcpVotes[tcpAffiliation][voteType] += tcpVotes;
 				}
 				continue;
 			}
@@ -334,8 +334,8 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 		->FirstChildElement("House")
 		->FirstChildElement("Contests");
 	auto currentContest = contests->FirstChildElement("Contest");
-	int seatIdCounter = 0;
-	int candidateIdCounter = 0;
+	int seatIdCounter = 1;
+	int candidateIdCounter = 1;
 	while (currentContest) {
 		Seat seat;
 		auto seatIdentifier = currentContest->FirstChildElement("PollingDistrictIdentifier");
@@ -394,7 +394,231 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 		currentContest = currentContest->NextSiblingElement("Contest");
 	}
 	if (!results.is_null()) {
-		logger << "Would do something with results here\n";
+		// A lot of this is just a straight up copy of the Victorian Election
+		// In summary, the purpose is to match past booth data to current booth data
+		// The length of the code is primarily to deal with various types of ambiguities
+		// that can result from booths with the same name under redistributions
+		// (and can therefore take on vastly different character depening on the
+		// boundary changes) so these are largely removed unless the booth
+		// changed cleanly from one seat to another.
+		std::map<std::string, int> seatNameToId;
+		for (auto [seatId, seat] : seats) {
+			if (seatNameToId.contains(seat.name)) {
+				logger << "Warning: duplicate name for " << seat.name << "!\n";
+			}
+			else {
+				seatNameToId[seat.name] = seatId;
+			}
+		}
+		std::map<std::string, int> candidateNameToId;
+		for (auto [candidateId, candidate] : candidates) {
+			if (candidateNameToId.contains(candidate.name)) {
+				logger << "Warning: duplicate name for " << candidate.name << "!\n";
+			}
+			else {
+				candidateNameToId[candidate.name] = candidateId;
+			}
+		}
+		std::set<std::string> seenBooths;
+		std::set<std::string> ambiguousBooths;
+		for (auto [boothId, booth] : booths) {
+			if (seenBooths.contains(booth.name)) {
+				ambiguousBooths.emplace(booth.name);
+			}
+			else {
+				seenBooths.emplace(booth.name);
+			}
+		}
+		std::map<std::string, int> boothNameToId;
+		std::map<std::pair<std::string, std::string>, int> ambiguousBoothNameToId;
+		for (auto [boothId, booth] : booths) {
+			if (ambiguousBooths.contains(booth.name)) {
+				ambiguousBoothNameToId[{booth.name, seats[booth.parentSeat].name}] = boothId;
+			}
+			else {
+				boothNameToId[booth.name] = boothId;
+			}
+		}
+		//PA_LOG_VAR(boothNameToId);
+		//PA_LOG_VAR(ambiguousBoothNameToId);
+		int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
+		int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
+		// Not worth soft-coding this
+		const std::map<std::string, int> partyIds = {
+			{"LAB", 2},
+			{"CDP", 4},
+			{"LIB", 7},
+			{"GRN", 16},
+			{"CLP", 5},
+			{"NAT", 8},
+			{"NP", 8},
+			{"SFF", 17},
+			{"SA", 14},
+			{"KSO", 979},
+			{"SAP", 857},
+			{"AJP", 376},
+			{"LDP", 310},
+			{"AC", 837},
+			{"PHON", 937},
+			{"UP", -1},
+			{"ORP", -1},
+			{"NLT", -1},
+			{"ACP", -1},
+			{"IND", -1}
+		};
+		std::set<int> matchedIds;
+		for (auto const& [seatName, seatValue] : results.items()) {
+			int seatId = -1;
+			if (seatNameToId.contains(seatName)) {
+				seatId = seatNameToId[seatName];
+			}
+			std::map<int, int> indexToId;
+			for (auto const& [candIndex, candValue] : seatValue["candidates"].items()) {
+				int candIndexI = std::stoi(candIndex);
+				auto candidateName = candValue["name"];
+				auto party = candValue["party"];
+				// *** json file only contains the surname, need to fix
+				// (DoP file has the full name)
+				if (candidateNameToId.contains(candidateName)) {
+					indexToId[candIndexI] = candidateNameToId[candidateName];
+				}
+				else {
+					indexToId[candIndexI] = dummyCandidateId;
+					Candidate candidate;
+					candidate.id = dummyCandidateId;
+					candidate.name = candidateName;
+					if (!partyIds.contains(party)) PA_LOG_VAR(seatName);
+					if (!partyIds.contains(party)) PA_LOG_VAR(party);
+					candidate.party = partyIds.at(party);
+					candidates[candidate.id] = candidate;
+					--dummyCandidateId;
+				}
+			}
+			for (auto const& [boothName, boothValue] : seatValue["booths"].items()) {
+				if (boothName.find("Votes") != std::string::npos) {
+					VoteType voteType = VoteType::Invalid;
+					if (boothName == "Postal Votes") voteType = VoteType::Postal;
+					if (boothName == "Absent Votes") voteType = VoteType::Absent;
+					if (boothName == "Provisional Votes") voteType = VoteType::Provisional;
+					if (boothName == "iVote Votes") voteType = VoteType::IVote;
+					if (voteType == VoteType::Invalid) continue;
+					auto fps = boothValue["fp"];
+					for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
+						int fpCandIndexI = std::stoi(fpCandIndex);
+						int fpCandId = indexToId[fpCandIndexI];
+						seats[seatId].fpVotes[fpCandId][voteType] += fpVotes;
+					}
+					auto tcps = boothValue["tcp"];
+					for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
+						int tcpCandIndexI = std::stoi(tcpCandIndex);
+						int tcpCandId = indexToId[tcpCandIndexI];
+						int tcpAffiliation = candidates[tcpCandId].party;
+						seats[seatId].tcpVotes[tcpAffiliation][voteType] += tcpVotes;
+					}
+					continue;
+				}
+				int boothId = dummyBoothId;
+				if (boothNameToId.contains(boothName)) {
+					boothId = boothNameToId[boothName];
+				}
+				else if (ambiguousBoothNameToId.contains({ boothName, seatName })) {
+					boothId = ambiguousBoothNameToId[{ boothName, seatName }];
+				}
+				else {
+					Booth booth;
+					booth.name = boothName;
+					booth.id = dummyBoothId;
+					booths[booth.id] = booth;
+					--dummyBoothId;
+				}
+				if (matchedIds.contains(boothId)) {
+					// If two "old" booths match to one "new" booth then we don't know
+					// which "old" booth to actually compare to
+					// so ... make new booths that won't match to either
+					if (booths.contains(boothId)) {
+						auto boothData = booths[boothId];
+						boothData.id = dummyBoothId;
+						booths.erase(boothId);
+						booths[dummyBoothId] = boothData;
+						auto& parent = seats[booths[dummyBoothId].parentSeat];
+						//PA_LOG_VAR(parent.name);
+						//PA_LOG_VAR(parent.booths);
+						//PA_LOG_VAR(boothId);
+						//PA_LOG_VAR(dummyBoothId);
+						auto foundBoothId = std::find(parent.booths.begin(), parent.booths.end(), boothId);
+						if (foundBoothId != parent.booths.end()) *foundBoothId = dummyBoothId;
+						//PA_LOG_VAR(parent.booths);
+						//logger << "Detached old ambiguous booth: " << booths[dummyBoothId].name << "\n";
+						--dummyBoothId;
+					}
+					boothId = dummyBoothId;
+					//logger << "Detached ambiguous booth: " << boothName << "\n";
+					--dummyBoothId;
+				}
+				matchedIds.insert(boothId);
+				Booth& booth = booths[boothId];
+				// the parent seat refers to the seat this booth is in for the new election,
+				// but it should the the one it is in for this (old) election
+				booth.parentSeat = seatId;
+				booth.id = boothId;
+				booth.name = boothName;
+				auto fps = boothValue["fp"];
+				for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
+					int fpCandIndexI = std::stoi(fpCandIndex);
+					int fpCandId = indexToId[fpCandIndexI];
+					booth.fpVotes[fpCandId] = fpVotes;
+					if (seatId > 0) seats[seatId].fpVotes[fpCandId][VoteType::Ordinary] += fpVotes;
+				}
+				auto tcps = boothValue["tcp"];
+				for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
+					int tcpCandIndexI = std::stoi(tcpCandIndex);
+					int tcpCandId = indexToId[tcpCandIndexI];
+					int tcpAffiliation = candidates[tcpCandId].party;
+					booth.tcpVotes[tcpAffiliation] = tcpVotes;
+					if (seatId > 0) seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
+				}
+				if (seatId > 0) {
+					seats[seatId].booths.push_back(booth.id);
+				}
+			}
+		}
+
+		logger << "==SEATS==\n";
+		for (auto const& [seatId, seat] : seats) {
+			PA_LOG_VAR(seat.name);
+			PA_LOG_VAR(seat.id);
+			PA_LOG_VAR(seat.enrolment);
+			PA_LOG_VAR(seat.fpVotes);
+			PA_LOG_VAR(seat.tcpVotes);
+			PA_LOG_VAR(seat.tppVotes);
+			for (int boothId : seat.booths) {
+				PA_LOG_VAR(boothId);
+				auto const& booth = booths.at(boothId);
+				PA_LOG_VAR(booth.id);
+				PA_LOG_VAR(booth.name);
+				PA_LOG_VAR(booth.fpVotes);
+				PA_LOG_VAR(booth.tcpVotes);
+				PA_LOG_VAR(booth.type);
+			}
+		}
+		logger << "==CANDIDATES==\n";
+		for (auto const& candidate : candidates) {
+			PA_LOG_VAR(candidate.second.id);
+			PA_LOG_VAR(candidate.second.name);
+			if (candidate.second.party != -1) {
+				PA_LOG_VAR(parties[candidate.second.party].name);
+			}
+			else {
+				logger << "Independent\n";
+			}
+		}
+		logger << "==PARTIES==\n";
+		for (auto const& party : parties) {
+			PA_LOG_VAR(party.second.id);
+			PA_LOG_VAR(party.second.name);
+			PA_LOG_VAR(party.second.shortCode);
+		}
+		logger << "Appeared to successfully load past election data\n";
 	}
 }
 
