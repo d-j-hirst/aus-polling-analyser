@@ -12,6 +12,7 @@ using Mp = Simulation::MajorParty;
 static std::random_device rd;
 static std::mt19937 gen;
 static std::mutex recordMutex;
+static std::mutex debugMutex;
 
 RandomGenerator rng;
 
@@ -81,6 +82,7 @@ void SimulationIteration::reset()
 	othersCorrectionFactor = 0.0f;
 	fedStateCorrelation = 0.0f;
 	ppvcBias = 0.0f;
+	liveSystemicBias = 0.0f;
 	decVoteBias = 0.0f;
 	indAlpha = 1.0f;
 	indBeta = 1.0f;
@@ -307,11 +309,25 @@ void SimulationIteration::determineOverallTpp()
 	if (run.isLive() && run.liveOverallTcpPercentCounted) {
 		float liveSwing = run.liveOverallTppSwing;
 		float liveStdDev = stdDevOverall(run.liveOverallTcpPercentCounted);
-		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+		liveSystemicBias = std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+		liveSwing += liveSystemicBias;
 		float priorWeight = 0.5f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
 		iterationOverallSwing = (iterationOverallSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
 		iterationOverallTpp = iterationOverallSwing + sim.settings.prevElection2pp;
+		//{
+		//	std::lock_guard<std::mutex> lock(debugMutex);
+		//	PA_LOG_VAR(run.liveOverallTcpPercentCounted);
+		//	PA_LOG_VAR(liveStdDev);
+		//	PA_LOG_VAR(liveSwing);
+		//	PA_LOG_VAR(priorWeight);
+		//	PA_LOG_VAR(liveWeight);
+		//	PA_LOG_VAR(run.liveOverallTppSwing);
+		//	PA_LOG_VAR(iterationOverallSwing);
+		//	PA_LOG_VAR(iterationOverallTpp);
+		//	PA_LOG_VAR(sim.settings.prevElection2pp);
+		//	PA_LOG_VAR(run.sampleRepresentativeness);
+		//}
 	}
 }
 
@@ -373,6 +389,24 @@ void SimulationIteration::determinePpvcBias()
 	float mixFactor = observedWeight / (originalWeight + observedWeight);
 	float observedPpvcBias = rng.normal(run.ppvcBiasObserved, std::min(DefaultPpvcBiasStdDev, observedPpvcStdDev));
 	ppvcBias = mix(defaultPpvcBias, observedPpvcBias, mixFactor);
+	//if (run.isLive()) {
+	//	std::lock_guard<std::mutex> lock(debugMutex);
+	//	PA_LOG_VAR(defaultPpvcBias);
+	//	PA_LOG_VAR(run.ppvcBiasConfidence);
+	//	PA_LOG_VAR(run.ppvcBiasObserved);
+	//	PA_LOG_VAR(observedPpvcStdDev);
+	//	PA_LOG_VAR(observedWeight);
+	//	PA_LOG_VAR(originalWeight);
+	//	PA_LOG_VAR(mixFactor);
+	//	PA_LOG_VAR(std::min(DefaultPpvcBiasStdDev, observedPpvcStdDev));
+	//	PA_LOG_VAR(observedPpvcBias);
+	//	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+	//		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+	//		PA_LOG_VAR(run.liveSeatPpvcSensitivity[seatIndex]);
+	//		PA_LOG_VAR(run.liveSeatDecVoteSensitivity[seatIndex]);
+	//		PA_LOG_VAR(run.liveEstDecVoteRemaining[seatIndex]);
+	//	}
+	//}
 }
 
 void SimulationIteration::determineDecVoteBias()
@@ -579,8 +613,10 @@ void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
 	if (run.isLive() && run.liveRegionTppBasis[regionIndex]) {
 		float liveSwing = run.liveRegionSwing[regionIndex];
-		float liveStdDev = stdDevSingleSeat(run.liveRegionTppBasis[regionIndex]) * 0.4f;
+		//float liveStdDev = stdDevSingleSeat(run.liveRegionTppBasis[regionIndex]) * 0.4f;
+		float liveStdDev = stdDevSingleSeat(run.liveRegionTppBasis[regionIndex]) * 1.0f;
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
+		liveSwing += liveSystemicBias;
 		float priorWeight = 1.0f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
 		float priorSwing = regionSwing[regionIndex];
@@ -685,11 +721,12 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
-		tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
-		tppLive = basicTransformedSwing(tppLive, decVoteBias * run.liveSeatDecVoteSensitivity[seatIndex]);
+		//tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
+		//tppLive = basicTransformedSwing(tppLive, decVoteBias * run.liveSeatDecVoteSensitivity[seatIndex]);
 		float liveTransformedTpp = transformVoteShare(tppLive);
+		liveTransformedTpp += liveSystemicBias;
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTppBasis[seatIndex] * 0.2f)));
-		if (run.liveSeatTppBasis[seatIndex] > 0.6f) liveSwingDeviation = std::min(liveSwingDeviation, run.liveEstDecVoteRemaining[seatIndex] * 0.05f);
+		//if (run.liveSeatTppBasis[seatIndex] > 0.6f) liveSwingDeviation = std::min(liveSwingDeviation, run.liveEstDecVoteRemaining[seatIndex] * 0.05f);
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
 		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTppBasis[seatIndex] * 0.2f);
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);

@@ -461,10 +461,12 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 			{"LDP", 310},
 			{"AC", 837},
 			{"PHON", 937},
+			{"SBP", 957},
 			{"UP", -1},
 			{"ORP", -1},
 			{"NLT", -1},
 			{"ACP", -1},
+			{"FLUX", -1},
 			{"IND", -1}
 		};
 		std::set<int> matchedIds;

@@ -153,6 +153,7 @@ private:
 	float othersCorrectionFactor = 0.0f;
 	float fedStateCorrelation = 0.0f;
 	float ppvcBias = 0.0f;
+	float liveSystemicBias = 0.0f;
 	float decVoteBias = 0.0f;
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;

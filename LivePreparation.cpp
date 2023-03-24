@@ -1141,12 +1141,13 @@ void LivePreparation::projectDeclarationVotes()
 				currentDecVoteSwing[partyId][voteType] = expectedSwing;
 				weightedSwingSum += expectedSwing * expectedVotes;
 				weightedPercentSum += safeCurrentDecVotePercent * expectedVotes;
-				totalCountedDecVotes += float(seat.tcpVotes.at(partyId).at(voteType));
+				if (seat.tcpVotes.at(partyId).contains(voteType)) {
+					totalCountedDecVotes += float(seat.tcpVotes.at(partyId).at(voteType));
+				}
 			}
 			std::map<Results2::VoteType, float> voteTypePercentOfTotal;
 			for (auto [voteType, votePercent] : previousTcpPercentByVoteType[matchedParties[partyId]]) {
 			}
-
 			float totalExpectedVotes = weightSum + currentTcpVotesByType[Results2::VoteType::Ordinary];
 			logger << " Full projection: " << fullProjection / totalExpectedVotes * 100.0f << "\n";
 			seatPostCountTcpEstimate[seatId][partyId] = fullProjection / totalExpectedVotes * 100.0f;

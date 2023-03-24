@@ -72,10 +72,10 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 		}
 	}
 	previousLiveSeats = latestReport.seatPartyWinPercent;
-	PA_LOG_VAR(latestReport.seatPartyWinPercent);
 	std::sort(changes.begin(), changes.end(), [](Change a, Change b) {return abs(std::get<2>(a)) > abs(std::get<2>(b)); });
 	std::stringstream messages;
 	for (auto change : changes) {
+		if (std::get<1>(change) < 0) continue; // band-aid fix for a crash bug, just skip messages like this for now
 		messages << project.seats().viewByIndex(std::get<0>(change)).name;
 		messages << ": " << formatFloat(std::get<2>(change), 1, true);
 		messages << " to " << project.parties().viewByIndex(std::get<1>(change)).name << "\n";
