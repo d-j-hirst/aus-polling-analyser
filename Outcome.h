@@ -12,12 +12,13 @@ class Seat;
 class Outcome {
 public:
 	Outcome() {}
-	Outcome(Seat::Id seat, double partyOneSwing, double percentCounted, std::size_t boothsIn, std::size_t totalBooths)
-		: seat(seat), partyOneSwing(partyOneSwing), percentCounted(percentCounted),
+	Outcome(Seat::Id seat, double partyOneSwing, double percentCounted, double tcpSwingBasis, std::size_t boothsIn, std::size_t totalBooths)
+		: seat(seat), partyOneSwing(partyOneSwing), percentCounted(percentCounted), tcpSwingBasis(tcpSwingBasis),
 		boothsIn(boothsIn), totalBooths(totalBooths), updateTime(wxDateTime::Now()) {}
 	Seat::Id seat = -1;
 	double partyOneSwing = 0.0;
 	double percentCounted = 0.0;
+	double tcpSwingBasis = 0.0;
 	int boothsIn = 0;
 	int totalBooths = 0;
 	wxDateTime updateTime;

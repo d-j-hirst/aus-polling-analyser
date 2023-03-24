@@ -381,6 +381,7 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 		while (currentBooth) {
 			Booth booth;
 			booth.id = currentBooth->FirstChildElement("PollingPlaceIdentifier")->IntAttribute("Id");
+			booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
 			booth.name = currentBooth->FirstChildElement("PollingPlaceIdentifier")->Attribute("Name");
 			booth.parentSeat = seat.id;
 			booths[booth.id] = booth;
@@ -558,7 +559,7 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 				matchedIds.insert(boothId);
 				Booth& booth = booths[boothId];
 				// the parent seat refers to the seat this booth is in for the new election,
-				// but it should the the one it is in for this (old) election
+				// but it should be the one it is in for this (old) election
 				booth.parentSeat = seatId;
 				booth.id = boothId;
 				booth.name = boothName;
@@ -576,6 +577,14 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 					int tcpAffiliation = candidates[tcpCandId].party;
 					booth.tcpVotes[tcpAffiliation] = tcpVotes;
 					if (seatId > 0) seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
+				}
+				auto tpps = boothValue["tpp"];
+				for (auto const& [tppCandIndex, tppVotes] : tpps.items()) {
+					int tppCandIndexI = std::stoi(tppCandIndex);
+					int tppCandId = indexToId[tppCandIndexI];
+					int tppAffiliation = candidates[tppCandId].party;
+					booth.tppVotes[tppAffiliation] = tppVotes;
+					if (seatId > 0) seats[seatId].tppVotes[tppAffiliation][VoteType::Ordinary] += tppVotes;
 				}
 				if (seatId > 0) {
 					seats[seatId].booths.push_back(booth.id);
@@ -656,8 +665,8 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 	auto currentContest = contests->FirstChildElement("Contest");
 
 	// For elections (like NSW) where seats and candidates aren't given their own id numbers
-	int seatIdCounter = 0;
-	int candidateIdCounter = 0;
+	int seatIdCounter = 1;
+	int candidateIdCounter = 1;
 	std::map<std::string, int> candidateNameToId;
 	std::string candidateIdElName = format == Format::NSWEC ? "CandidateIdentifier" : "eml:CandidateIdentifier";
 
@@ -792,37 +801,27 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 			}
 		}
 
-		auto tpps = currentContest->FirstChildElement("TwoPartyPreferred");
-		if (tpps) {
-			auto currentCoalition = tpps->FirstChildElement("Coalition");
-			while (currentCoalition) {
-				auto coalitionIdEl = currentCoalition->FirstChildElement("CoalitionIdentifier");
-				if (!coalitionIdEl) break;
-				Coalition coalition;
-				int coalitionId = coalitionIdEl->FindAttribute("Id")->IntValue();
-				if (!coalitions.contains(coalitionId)) {
-					coalitions[coalitionId].id = coalitionId;
-					coalitions[coalitionId].shortCode = coalitionIdEl->FindAttribute("ShortCode")->Value();
-					coalitions[coalitionId].name =
-						coalitionIdEl->FirstChildElement("CoalitionName")->GetText();
-				}
-				int tppVotes = currentCoalition->FirstChildElement("Votes")->IntText();
-				seat.tppVotes[coalitionId] = tppVotes;
-
-				currentCoalition = currentCoalition->NextSiblingElement("Coalition");
-			}
-		}
-
 		auto boothsEl = currentContest->FirstChildElement("PollingPlaces");
 		auto currentBooth = boothsEl->FirstChildElement("PollingPlace");
 		while (currentBooth) {
 			auto boothIdEl = currentBooth->FirstChildElement("PollingPlaceIdentifier");
 			Booth booth;
 			booth.id = boothIdEl->FindAttribute("Id")->IntValue();
+			if (format == Format::NSWEC) booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
 			if (booths.contains(booth.id)) booth = booths[booth.id]; // maintain already existing data
 			if (boothIdEl->FindAttribute("Name")) {
 				booth.parentSeat = seat.id;
 				booth.name = boothIdEl->FindAttribute("Name")->Value();
+				if (booth.name == "Absent" || booth.name == "Enrolment/Provisional" ||
+					booth.name == "Postal" || booth.name == "iVote")
+				{
+					currentBooth = currentBooth->NextSiblingElement("PollingPlace");
+					continue;
+				}
+				if (booth.name == "Declared Facility" || booth.name == "Sydney Town Hall") {
+					booth.name += " (" + seat.name + ")";
+				}
+
 				auto classifierEl = boothIdEl->FindAttribute("Classification");
 				if (classifierEl) {
 					std::string classifier = classifierEl->Value();
@@ -883,6 +882,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 			PA_LOG_VAR(booth.name);
 			PA_LOG_VAR(booth.fpVotes);
 			PA_LOG_VAR(booth.tcpVotes);
+			PA_LOG_VAR(booth.tppVotes);
 			PA_LOG_VAR(booth.type);
 		}
 	}

@@ -127,6 +127,13 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		return;
 	}
 
+	if (sim.isLive() && sim.cachedOddsFinalMeans.size()) {
+		logger << "*** Skipping betting odds calibrations for a live forecast as there are already cached results ***";
+		oddsFinalMeans = sim.cachedOddsFinalMeans;
+		doingBettingOddsCalibrations = false;
+		return;
+	}
+
 	logger << "*** Doing betting odds calibrations ***\n";
 	PA_LOG_VAR(impliedChances);
 
@@ -207,6 +214,7 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 
 	oddsFinalMeans = oddsCalibrationMeans;
 	oddsCalibrationMeans.clear();
+	sim.cachedOddsFinalMeans = oddsFinalMeans;
 
 	logger << "*** Finished betting odds calibrations ***\n";
 

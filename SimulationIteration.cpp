@@ -304,9 +304,9 @@ void SimulationIteration::determineOverallTpp()
 		}
 	}
 
-	if (run.isLive() && run.liveOverallTppPercentCounted) {
+	if (run.isLive() && run.liveOverallTcpPercentCounted) {
 		float liveSwing = run.liveOverallTppSwing;
-		float liveStdDev = stdDevOverall(run.liveOverallTppPercentCounted);
+		float liveStdDev = stdDevOverall(run.liveOverallTcpPercentCounted);
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
 		float priorWeight = 0.5f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev) * run.sampleRepresentativeness;
@@ -577,14 +577,14 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 
 void SimulationIteration::modifyLiveRegionalSwing(int regionIndex)
 {
-	if (run.isLive() && run.liveRegionTppPercentCounted[regionIndex]) {
+	if (run.isLive() && run.liveRegionTppBasis[regionIndex]) {
 		float liveSwing = run.liveRegionSwing[regionIndex];
-		float liveStdDev = stdDevSingleSeat(run.liveRegionTppPercentCounted[regionIndex]) * 0.4f;
+		float liveStdDev = stdDevSingleSeat(run.liveRegionTppBasis[regionIndex]) * 0.4f;
 		liveSwing += std::normal_distribution<float>(0.0f, liveStdDev)(gen);
-		float priorWeight = 0.03f;
+		float priorWeight = 1.0f;
 		float liveWeight = 1.0f / (liveStdDev * liveStdDev);
 		float priorSwing = regionSwing[regionIndex];
-		regionSwing[regionIndex] = (priorSwing * priorWeight + liveSwing * liveWeight) / (priorWeight + liveWeight);
+		regionSwing[regionIndex] = mix(priorSwing, liveSwing, liveWeight / (priorWeight + liveWeight));
 	}
 }
 
@@ -681,17 +681,17 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	float kurtosis = run.tppSwingFactors.swingKurtosis;
 	// Add random noise to the new margin of this seat
 	transformedTpp += rng.flexibleDist(0.0f, swingDeviation, swingDeviation, kurtosis, kurtosis);
-	if (run.isLive() && run.liveSeatTcpBasis[seatIndex] > 0.0f && !std::isnan(run.liveSeatTppSwing[seatIndex])) {
+	if (run.isLive() && run.liveSeatTppBasis[seatIndex] > 0.0f && !std::isnan(run.liveSeatTppSwing[seatIndex])) {
 		float tppLive = (tppPrev + run.liveSeatTppSwing[seatIndex] > 10.0f ?
 			tppPrev + run.liveSeatTppSwing[seatIndex] :
 			predictorCorrectorTransformedSwing(tppPrev, run.liveSeatTppSwing[seatIndex]));
 		tppLive = basicTransformedSwing(tppLive, ppvcBias * run.liveSeatPpvcSensitivity[seatIndex]);
 		tppLive = basicTransformedSwing(tppLive, decVoteBias * run.liveSeatDecVoteSensitivity[seatIndex]);
 		float liveTransformedTpp = transformVoteShare(tppLive);
-		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
-		if (run.liveSeatTcpBasis[seatIndex] > 0.6f) liveSwingDeviation = std::min(liveSwingDeviation, run.liveEstDecVoteRemaining[seatIndex] * 0.05f);
+		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTppBasis[seatIndex] * 0.2f)));
+		if (run.liveSeatTppBasis[seatIndex] > 0.6f) liveSwingDeviation = std::min(liveSwingDeviation, run.liveEstDecVoteRemaining[seatIndex] * 0.05f);
 		liveTransformedTpp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
-		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
+		float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTppBasis[seatIndex] * 0.2f);
 		float mixedTransformedTpp = mix(transformedTpp, liveTransformedTpp, liveFactor);
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(mixedTransformedTpp) - 50.0f;
 	}
@@ -922,8 +922,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp = run.oddsCalibrationMeans[{seatIndex, partyIndex}];
 	}
 	else if (run.oddsFinalMeans.contains({ seatIndex, partyIndex })) {
-		float adjustedWeight = seat.name == "Kiama" && run.getTermCode() == "2023nsw" && partyIndex == run.indPartyIndex ? 1.0f : OddsWeight;
-		transformedFp = mix(transformedFp, run.oddsFinalMeans[{seatIndex, partyIndex}], adjustedWeight);
+		transformedFp = mix(transformedFp, run.oddsFinalMeans[{seatIndex, partyIndex}], OddsWeight);
 	}
 
 	float quantile = partyIndex == run.indPartyIndex ? rng.beta(indAlpha, indBeta) : rng.uniform();
@@ -1057,6 +1056,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
 
 		constexpr float OddsWeight = 0.6f;
+		float adjustedWeight = seat.name == "Kiama" && run.getTermCode() == "2023nsw" ? 1.0f : OddsWeight;
 		constexpr float oddsBasedVariation = 20.0f;
 		if (run.oddsCalibrationMeans.contains({ seatIndex, run.indPartyIndex })) {
 			const float voteShareCenter = run.oddsCalibrationMeans[{seatIndex, run.indPartyIndex}];
@@ -1065,7 +1065,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		// else, because if we're calibrating betting results we don't want seat polls to interfere with that 
 		else {
 			if (run.oddsFinalMeans.contains({ seatIndex, run.indPartyIndex })) {
-				if (rng.uniform() < OddsWeight) {
+				if (rng.uniform() < adjustedWeight) {
 					const float voteShareCenter = run.oddsFinalMeans[{seatIndex, run.indPartyIndex}];
 					float oddsBasedVoteShare = rng.normal(voteShareCenter, oddsBasedVariation);
 					transformedVoteShare = oddsBasedVoteShare;
@@ -1232,34 +1232,59 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
 		run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
 		seatFpVoteShare[seatIndex].contains(EmergingIndIndex) &&
-		!seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+		!seatFpVoteShare[seatIndex].contains(run.indPartyIndex) &&
+		run.liveSeatFpPercent[seatIndex][run.indPartyIndex] > (20.0f / (run.liveSeatFpCounted[seatIndex] + 0.1f))) {
 		// we had an emerging independent and no confirmed independent and an independent vote meets
 		// the threshold, move them to independent
+		// in order for this to happen we need the fp to be above a certain level depending on the %
+		// counted - don't want big changes because an IND scraped above 8% in a tiny booth
 		seatFpVoteShare[seatIndex][run.indPartyIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
 	}
 	if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
 		!run.liveSeatFpTransformedSwing[seatIndex].contains(EmergingIndIndex) &&
-		seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) {
+		seatFpVoteShare[seatIndex].contains(EmergingIndIndex) &&
+		run.liveSeatFpCounted[seatIndex] > 0.5f) {
 		// we still have an emerging ind (so wasn't promoted), and there's no other ind meeting the
 		// threshold, so switch to others
+		// Also make sure we don't have a completely miniscule vote as this can cause a step change
 		seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
 	}
-	seatFpVoteShare[seatIndex][OthersIndex] = std::clamp(seatFpVoteShare[seatIndex][OthersIndex], 0.0f, 99.9f);
-	seatFpVoteShare[seatIndex][run.indPartyIndex] = std::clamp(seatFpVoteShare[seatIndex][run.indPartyIndex], 0.0f, 99.9f);
+	if (seatFpVoteShare[seatIndex].contains(OthersIndex)) {
+		seatFpVoteShare[seatIndex][OthersIndex] = std::clamp(seatFpVoteShare[seatIndex][OthersIndex], 0.0f, 99.9f);
+	}
+	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::clamp(seatFpVoteShare[seatIndex][run.indPartyIndex], 0.0f, 99.9f);
+	}
 	for (auto [partyIndex, swing] : run.liveSeatFpTransformedSwing[seatIndex]) {
 		// Ignore major party fps for now
 		if (isMajor(partyIndex)) continue;
 		[[maybe_unused]] auto prevFpVoteShare = seatFpVoteShare[seatIndex];
-		float projectedFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
+		float pastFp = (pastSeatResults[seatIndex].fpVotePercent.contains(partyIndex) ? 
 			pastSeatResults[seatIndex].fpVotePercent.at(partyIndex) : 0.0f);
-		float liveTransformedFp = transformVoteShare(projectedFp);
-		if (projectedFp == 0.0f || std::isnan(swing) || std::isnan(liveTransformedFp)) {
-			liveTransformedFp = transformVoteShare(run.liveSeatFpPercent[seatIndex][partyIndex]);
+		// Prevent independents from being generated from tiny proportions of the vote.
+		if ((partyIndex == run.indPartyIndex || partyIndex == EmergingIndIndex) &&
+			run.liveSeatFpPercent[seatIndex][partyIndex] <= (20.0f / (run.liveSeatFpCounted[seatIndex] + 0.1f)))
+		{
+			continue;
 		}
-		else {
-			liveTransformedFp += swing;
+		float pastTransformedFp = transformVoteShare(pastFp);
+		float liveTransformedFp = transformVoteShare(std::max(0.1f, run.liveSeatFpPercent[seatIndex][partyIndex]));
+		if (pastFp != 0.0f && !std::isnan(swing) && !std::isnan(liveTransformedFp)) {
+			// Mix the "swung" and "straight" estimations of the party's fp vote,
+			// giving a higher weight to "swung" since it's usually more accurate
+			// but favouring "straight" in situations where the past vote is much smaller
+			// (e.g. 2% -> 20% swing) since the transformation distorts the result heavily in those situations.
+			float swungFp = pastTransformedFp + swing;
+			float swungDiff = abs(swungFp - pastTransformedFp);
+			// the std::min is here so that seats with more than about 30% have to earn it rather than just being extrapolated
+			float straightDiff = std::min(10.0f, abs(liveTransformedFp - pastTransformedFp));
+			float intermediate = std::pow(swungDiff / (straightDiff * 3.0f), 3.0f);
+			float swungWeight = 1.0f - intermediate / (intermediate + 1.0f);
+			// the "swung" weight is only for extrapolating off incomplete of booths, when getting close to a complete count should just be using straight results
+			swungWeight = std::clamp(swungWeight, 0.0f, (80.0f - run.liveSeatFpCounted[seatIndex]) / 40.0f);
+			liveTransformedFp = mix(liveTransformedFp, swungFp, swungWeight);
 		}
 		float swingDeviation = run.tppSwingFactors.meanSwingDeviation * 2.0f; // placeholder value
 		float percentCounted = run.liveSeatFpCounted[seatIndex];
@@ -2151,7 +2176,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 
-	// incorporate non-classic live 2pp results
+	// incorporate non-classic live 2cp results
 	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
 		float tcpLive = topTwo.first.second;
 		if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].first && topTwo.second.first == run.liveSeatTcpParties[seatIndex].second) {

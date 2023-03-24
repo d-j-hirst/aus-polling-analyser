@@ -263,7 +263,8 @@ private:
 
 	// Live results
 	float liveOverallTppSwing = 0.0f; // swing to partyOne
-	float liveOverallTppPercentCounted = 0.0f;
+	float liveOverallTppBasis = 0.0f;
+	float liveOverallTcpPercentCounted = 0.0f;
 	float liveOverallFpPercentCounted = 0.0f;
 	std::map<int, float> liveOverallFpSwing; // transformed
 	std::map<int, float> liveOverallFpNew;
@@ -271,6 +272,7 @@ private:
 	std::map<int, float> liveOverallFpNewWeight;
 	std::map<int, float> liveOverallFpTarget;
 	std::vector<float> liveSeatTppSwing;
+	std::vector<float> liveSeatTppBasis; // weight of evidence for tpp swing, including estimations and extrapolations
 	std::vector<float> liveSeatTcpCounted; // as percentage
 	std::vector<std::map<int, float>> liveSeatFpSwing;
 	std::vector<std::map<int, float>> liveSeatFpTransformedSwing;
@@ -284,7 +286,8 @@ private:
 	std::vector<float> liveSeatDecVoteSensitivity;
 	std::vector<float> liveEstDecVoteRemaining;
 
-	std::vector<float> liveRegionTppPercentCounted;
+	std::vector<float> liveRegionTcpPercentCounted;
+	std::vector<float> liveRegionTppBasis;
 	std::vector<float> liveRegionSwing;
 	std::vector<float> liveRegionClassicSeatCount;
 

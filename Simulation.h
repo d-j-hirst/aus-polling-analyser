@@ -146,9 +146,9 @@ public:
 
 		std::vector<float> seatIncumbentMargins;
 
-		std::vector<float> partyOneWinPercent;
-		std::vector<float> partyTwoWinPercent;
-		std::vector<float> othersWinPercent;
+		std::vector<float> partyOneWinProportion;
+		std::vector<float> partyTwoWinProportion;
+		std::vector<float> othersWinProportion;
 
 		std::vector<Seat::Id> classicSeatIndices; // deprecated, do not use
 
@@ -316,6 +316,8 @@ private:
 	SavedReports savedReports;
 
 	std::vector<std::map<int, float>> previousLiveSeats;
+
+	std::map<std::pair<int, int>, float> cachedOddsFinalMeans; // store this so it doesn't have to be recalculated live
 
 	//std::unique_ptr<SimulationRun> latestRun;
 	std::shared_ptr<SimulationRun> latestRun;

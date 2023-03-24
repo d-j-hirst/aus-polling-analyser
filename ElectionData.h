@@ -118,7 +118,8 @@ namespace Results2 {
 	inline std::string voteTypeName(VoteType v) {
 		static const auto nameMap = std::unordered_map<VoteType, std::string>{ {VoteType::Absent, "Absent"},
 			{VoteType::Invalid, "Invalid"}, {VoteType::Ordinary, "Ordinary"}, {VoteType::Postal, "Postal"},
-			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"}, {VoteType::Early, "Early"} };
+			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"}, {VoteType::Early, "Early"},
+			{VoteType::IVote, "iVote"} };
 		return nameMap.at(v);
 	}
 
@@ -156,7 +157,8 @@ namespace Results2 {
 		Type type = Type::Normal;
 		int32_t parentSeat;
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
-		std::unordered_map<int32_t, int32_t> tcpVotes; // map candidate id -> vote count
+		std::unordered_map<int32_t, int32_t> tcpVotes; // map affiliation id -> vote count
+		std::unordered_map<int32_t, int32_t> tppVotes; // map affiliation id -> vote count
 
 		std::unordered_map<int32_t, float> fpPercent; // as percentage
 		std::unordered_map<int32_t, float> fpSwing; // as percentage
@@ -165,6 +167,8 @@ namespace Results2 {
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpEstimate; // as percentage, for booths with fp but no tcp
 		std::unordered_map<int32_t, float> tcpEstimateSwing; // as percentage, for booths with fp but no tcp
+		std::unordered_map<int32_t, float> tppEstimate; // as percentage
+		std::unordered_map<int32_t, float> tppSwing; // as percentage (either =tcp or an estimate)
 
 		int totalVotesFp() const {
 			return std::accumulate(fpVotes.begin(), fpVotes.end(), 0,
@@ -174,6 +178,10 @@ namespace Results2 {
 			return std::accumulate(tcpVotes.begin(), tcpVotes.end(), 0,
 				[](int acc, decltype(tcpVotes)::value_type v) {return acc + v.second; });
 		}
+		int totalVotesTpp() const {
+			return std::accumulate(tppVotes.begin(), tppVotes.end(), 0,
+				[](int acc, decltype(tppVotes)::value_type v) {return acc + v.second; });
+		}
 	};
 
 	struct Seat {
@@ -182,8 +190,8 @@ namespace Results2 {
 		int32_t enrolment;
 		std::vector<int32_t> booths;
 		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> fpVotes; // map candidate id -> (vote type -> vote count)
-		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tcpVotes; // map candidate id -> (vote type -> vote count)
-		std::unordered_map<int32_t, int> tppVotes; // map coalition id -> vote count
+		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tcpVotes; // map party id -> (vote type -> vote count)
+		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tppVotes; // map party id -> vote count
 		float fpProgress; // as percentage
 		float tcpProgress; // as percentage
 		float fpSwingProgress; // as percentage
@@ -193,7 +201,10 @@ namespace Results2 {
 		std::unordered_map<int32_t, float> fpTransformedSwing; // as percentage
 		std::unordered_map<int32_t, float> tcpPercent; // as percentage
 		std::unordered_map<int32_t, float> tcpSwing; // as percentage
-		float tcpSwingBasis; // indicates how much & how reliable data for the swing in this seat is
+		std::unordered_map<int32_t, float> tppPercent; // as percentage
+		std::unordered_map<int32_t, float> tppSwing; // as percentage
+		float tcpSwingBasis = 0.0f; // indicates how much & how reliable data for the tcp swing in this seat is
+		float tppSwingBasis = 0.0f; // indicates how much & how reliable data for the tpp swing in this seat is
 		bool isTpp = true;
 
 		int totalVotesFp(VoteType exclude = VoteType::Invalid) const {

@@ -91,7 +91,7 @@ private:
 	// Gets the backgroundcolour for the cell showing this result's swing
 	wxColour decideSwingColour(Outcome const& thisResult);
 
-	wxColour decidePercentCountedColour(Outcome const& thisResult);
+	wxColour decidePercentCountedColour(float percentCounted);
 
 	std::string decideProjectedMarginString(Outcome const& thisResult);
 

@@ -151,7 +151,8 @@ void ResultsFrame::OnAddFromScript(wxCommandEvent& WXUNUSED(event))
 		for (auto const& result : tempResults) {
 			try {
 				auto [seatId, seat] = project->seats().accessByName(result.first);
-				Outcome outcome = Outcome(seatId, result.second.first, result.second.second, 0, 0);
+				auto seatIndex = project->seats().idToIndex(seatId);
+				Outcome outcome = Outcome(seatIndex, result.second.first, result.second.second, result.second.second, 0, 0);
 				project->outcomes().add(outcome);
 			}
 			catch (SeatDoesntExistException) {
@@ -216,7 +217,8 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	auto seat = project->seats().viewByIndex(result.seat);
 	wxColour swingColour = decideSwingColour(result);
 	float percentCounted = result.getPercentCountedEstimate();
-	wxColour percentCountedColour = decidePercentCountedColour(result);
+	wxColour percentCountedColour = decidePercentCountedColour(result.getPercentCountedEstimate());
+	wxColour swingBasisColour = decidePercentCountedColour(result.tcpSwingBasis);
 	std::string projectedMarginString = decideProjectedMarginString(result);
 	wxColour projectedMarginColour = decideProjectedMarginColour(result);
 	std::string statusString = decideStatusString(result);
@@ -229,21 +231,23 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	resultsData->SetCellBackgroundColour(row, 1, swingColour);
 	resultsData->SetCellValue(row, 2, formatFloat(percentCounted, 1));
 	resultsData->SetCellBackgroundColour(row, 2, percentCountedColour);
-	resultsData->SetCellValue(row, 3, result.updateTime.FormatISOTime());
-	resultsData->SetCellValue(row, 4, projectedMarginString);
-	resultsData->SetCellBackgroundColour(row, 4, projectedMarginColour);
-	if (report && report->partyOneWinPercent.size()) {
-		resultsData->SetCellValue(row, 5, formatFloat(report->partyOneWinPercent[result.seat] * 100.0f, 2));
-		resultsData->SetCellValue(row, 6, formatFloat(report->partyTwoWinPercent[result.seat] * 100.0f, 2));
-		resultsData->SetCellValue(row, 7, formatFloat(report->othersWinPercent[result.seat] * 100.0f, 2));
+	resultsData->SetCellValue(row, 3, formatFloat(result.tcpSwingBasis, 1));
+	resultsData->SetCellBackgroundColour(row, 3, percentCountedColour);
+	resultsData->SetCellValue(row, 4, result.updateTime.FormatISOTime());
+	resultsData->SetCellValue(row, 5, projectedMarginString);
+	resultsData->SetCellBackgroundColour(row, 5, projectedMarginColour);
+	if (report && report->partyOneWinProportion.size()) {
+		resultsData->SetCellValue(row, 6, formatFloat(report->partyOneWinProportion[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, 7, formatFloat(report->partyTwoWinProportion[result.seat] * 100.0f, 2));
+		resultsData->SetCellValue(row, 8, formatFloat(report->othersWinProportion[result.seat] * 100.0f, 2));
 	}
 	else {
-		resultsData->SetCellValue(row, 5, "");
 		resultsData->SetCellValue(row, 6, "");
 		resultsData->SetCellValue(row, 7, "");
+		resultsData->SetCellValue(row, 8, "");
 	}
-	resultsData->SetCellValue(row, 8, statusString);
-	resultsData->SetCellBackgroundColour(row, 8, statusColour);
+	resultsData->SetCellValue(row, 9, statusString);
+	resultsData->SetCellBackgroundColour(row, 9, statusColour);
 	resultsData->Refresh();
 }
 
@@ -338,8 +342,7 @@ void ResultsFrame::refreshTable()
 bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 {
 	if (filter == Filter::AllResults) return true;
-	Seat const& seat = project->seats().view(thisResult.seat);
-	// if (seat.outcome && seat.outcome->updateTime != thisResult.updateTime) return false;
+	Seat const& seat = project->seats().viewByIndex(thisResult.seat);
 	if (filter == Filter::LatestResults) return true;
 
 	float significance = 0.0f;
@@ -352,6 +355,7 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 		// this can be detected by the simulated tpp average and previous margin having opposite signs
 		if (simulatedMarginAverage * seat.tppMargin < 0.0f) significance += 5.0f;
 	}
+	significance += std::max(0.0f, (0.5f - abs(0.5f - report->othersWinProportion[thisResult.seat])) * 30.0f);
 
 	if (filter == Filter::SignificantResults) return significance > 1.5f;
 	if (filter == Filter::KeyResults) return significance > 5.0f;
@@ -370,9 +374,8 @@ wxColour ResultsFrame::decideSwingColour(Outcome const& thisResult)
 	return wxColour(255 - int(inverseColour.r * incSw), 255 - int(inverseColour.g * incSw), 255 - int(inverseColour.b * incSw));
 }
 
-wxColour ResultsFrame::decidePercentCountedColour(Outcome const & thisResult)
+wxColour ResultsFrame::decidePercentCountedColour(float percentCounted)
 {
-	float percentCounted = thisResult.getPercentCountedEstimate();
 	return wxColour(255 - std::min(255, int(percentCounted * 2.55f)), 255, 255 - std::min(255, int(percentCounted * 2.55f)));
 }
 
@@ -383,7 +386,7 @@ std::string ResultsFrame::decideProjectedMarginString(Outcome const& thisResult)
 	auto const* report = latestReport();
 	if (!report || !report->seatPartyOneMarginAverage.size()) return "";
 	double simulatedMarginAverage = report->seatPartyOneMarginAverage[thisResult.seat];
-	Seat const& seat = project->seats().view(thisResult.seat);
+	Seat const& seat = project->seats().viewByIndex(thisResult.seat);
 	float projectedSwing = simulatedMarginAverage - seat.tppMargin;
 	return formatFloat(simulatedMarginAverage, 2) + " (" +
 		(projectedSwing >= 0 ? "+" : "") + formatFloat(projectedSwing, 2) + ")";
@@ -407,10 +410,10 @@ wxColour ResultsFrame::decideProjectedMarginColour(Outcome const& thisResult)
 std::string ResultsFrame::decideLeadingPartyName(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinPercent.size()) return "";
-	float p1 = float(report->partyOneWinPercent[thisResult.seat]);
-	float p2 = float(report->partyTwoWinPercent[thisResult.seat]);
-	float p3 = float(report->othersWinPercent[thisResult.seat]);
+	if (!report || !report->partyOneWinProportion.size()) return "";
+	float p1 = float(report->partyOneWinProportion[thisResult.seat]);
+	float p2 = float(report->partyTwoWinProportion[thisResult.seat]);
+	float p3 = float(report->othersWinProportion[thisResult.seat]);
 	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
 	std::string leadingPartyName = (thisParty != Party::InvalidId ? project->parties().view(thisParty).abbreviation : "OTH");
 	return leadingPartyName;
@@ -419,10 +422,10 @@ std::string ResultsFrame::decideLeadingPartyName(Outcome const& thisResult)
 float ResultsFrame::decideLeaderProbability(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinPercent.size()) return 0.0f;
-	float p1 = float(report->partyOneWinPercent[thisResult.seat]);
-	float p2 = float(report->partyTwoWinPercent[thisResult.seat]);
-	float p3 = float(report->othersWinPercent[thisResult.seat]);
+	if (!report || !report->partyOneWinProportion.size()) return 0.0f;
+	float p1 = float(report->partyOneWinProportion[thisResult.seat]);
+	float p2 = float(report->partyTwoWinProportion[thisResult.seat]);
+	float p3 = float(report->othersWinProportion[thisResult.seat]);
 	float leaderProb = std::max(p1 * 100.0f, std::max(p2 * 100.0f, p3 * 100.0f));
 	return leaderProb;
 }
@@ -448,10 +451,10 @@ std::string ResultsFrame::decideStatusString(Outcome const& thisResult)
 wxColour ResultsFrame::decideStatusColour(Outcome const& thisResult)
 {
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinPercent.size()) return *wxWHITE;
-	float p1 = float(report->partyOneWinPercent[thisResult.seat]);
-	float p2 = float(report->partyTwoWinPercent[thisResult.seat]);
-	float p3 = float(report->othersWinPercent[thisResult.seat]);
+	if (!report || !report->partyOneWinProportion.size()) return *wxWHITE;
+	float p1 = float(report->partyOneWinProportion[thisResult.seat]);
+	float p2 = float(report->partyTwoWinProportion[thisResult.seat]);
+	float p3 = float(report->othersWinProportion[thisResult.seat]);
 	float leaderProb = std::max(p1 * 100.0f, std::max(p2 * 100.0f, p3 * 100.0f));
 	Party::Id thisParty = (p1 > p2 && p1 > p3 ? 0 : (p2 > p3 ? 1 : -1));
 	int likelihoodRating = (leaderProb < 60.0f ? 0 : (leaderProb < 75.0f ? 1 : (leaderProb < 90.0f ? 2 : (
@@ -485,7 +488,7 @@ void ResultsFrame::addEnteredOutcome(Seat::Id seatId)
 	long totalBooths; totalBoothCountTextCtrl->GetLineText(0).ToLong(&totalBooths);
 
 	if (percentCounted < 0.001) percentCounted = 0.0;
-	Outcome outcome = Outcome(seatId, swing, percentCounted, boothsIn, totalBooths);
+	Outcome outcome = Outcome(seatId, swing, percentCounted, percentCounted, boothsIn, totalBooths);
 
 	project->outcomes().add(outcome);
 }
@@ -495,7 +498,7 @@ std::string ResultsFrame::decideSummaryString()
 	std::string party1 = project->parties().view(0).abbreviation;
 	std::string party2 = project->parties().view(1).abbreviation;
 	auto const* report = latestReport();
-	if (!report || !report->partyOneWinPercent.size()) return "";
+	if (!report || !report->partyOneWinProportion.size()) return "";
 	std::string summaryString = party1 + " win chance: " + formatFloat(report->getPartyOverallWinPercent(Simulation::MajorParty::One), 2) +
 		"   Projected 2PP: " + party1 + " " + formatFloat(float(report->getPartyOne2pp()), 2) +
 		"   Seats: " + party1 + " " + formatFloat(report->getPartyWinExpectation(0), 2) + " " +
@@ -523,25 +526,27 @@ Simulation::Report const* ResultsFrame::latestReport()
 void ResultsFrame::resetTableColumns()
 {
 	if (!resultsData->GetNumberCols()) {
-		resultsData->CreateGrid(0, int(9), wxGrid::wxGridSelectCells);
+		resultsData->CreateGrid(0, int(10), wxGrid::wxGridSelectCells);
 		resultsData->SetColLabelValue(0, "Seat Name");
 		resultsData->SetColLabelValue(1, "ALP Swing");
 		resultsData->SetColLabelValue(2, "Count %");
-		resultsData->SetColLabelValue(3, "Updated");
-		resultsData->SetColLabelValue(4, "Proj. Margin");
-		resultsData->SetColLabelValue(5, "ALP prob.");
-		resultsData->SetColLabelValue(6, "LNP prob.");
-		resultsData->SetColLabelValue(7, "Other prob.");
-		resultsData->SetColLabelValue(8, "Status");
+		resultsData->SetColLabelValue(3, "Tcp Basis");
+		resultsData->SetColLabelValue(4, "Updated");
+		resultsData->SetColLabelValue(5, "Proj. Margin");
+		resultsData->SetColLabelValue(6, "ALP prob.");
+		resultsData->SetColLabelValue(7, "LNP prob.");
+		resultsData->SetColLabelValue(8, "Other prob.");
+		resultsData->SetColLabelValue(9, "Status");
 		resultsData->SetColSize(0, 100);
 		resultsData->SetColSize(1, 40);
 		resultsData->SetColSize(2, 60);
 		resultsData->SetColSize(3, 60);
-		resultsData->SetColSize(4, 85);
-		resultsData->SetColSize(5, 70);
+		resultsData->SetColSize(4, 60);
+		resultsData->SetColSize(5, 85);
 		resultsData->SetColSize(6, 70);
 		resultsData->SetColSize(7, 70);
-		resultsData->SetColSize(8, 150);
+		resultsData->SetColSize(8, 70);
+		resultsData->SetColSize(9, 150);
 		resultsData->SetRowLabelSize(0);
 	}
 
@@ -550,10 +555,18 @@ void ResultsFrame::resetTableColumns()
 
 void ResultsFrame::addTableData()
 {
+	PA_LOG_VAR("Adding table data\n");
+	std::vector<bool> seenSeat;
+	seenSeat.resize(project->seats().count(), false);
 	int numAdded = 0;
 	constexpr int MaxResultsShown = 1000;
 	for (int i = 0; i < project->outcomes().count(); ++i) {
 		Outcome thisResult = project->outcomes().get(i);
+		if (filter != Filter::AllResults) {
+			if (seenSeat[thisResult.seat]) continue;
+			seenSeat[thisResult.seat] = true;
+		}
+
 		if (resultPassesFilter(thisResult)) {
 			addResultToResultData(thisResult);
 			++numAdded;

@@ -21,7 +21,7 @@ env = environ.Env(
 # reading .env file
 environ.Env.read_env('fetch_election_data.env')
 
-election = '2015nsw'
+election = '2019nsw'
 
 urls = {
     '2015nsw': 'https://pastvtr.elections.nsw.gov.au/SGE2015/la-home.htm',
@@ -132,6 +132,9 @@ def process_booth_name(booth_name):
     ).replace(
         'Enrolment / Provisional',
         'Provisional'
+    ).replace(
+        'Pre-poll',
+        'Pre-Poll'
     ).replace(
         'RO Pre-Poll',
         'EM Office'

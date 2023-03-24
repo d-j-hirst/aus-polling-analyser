@@ -282,14 +282,11 @@ void LivePreparation::calculateTppPreferenceFlows()
 	DataSet data;
 	std::map<int, int> partyIdFrequency;
 	for (auto const& [seatId, seat] : currentElection.seats) {
-		PA_LOG_VAR(seat.name);
-		logger << "Checkpoint A\n";
 		for (auto [candidateId, votes] : seat.fpVotes) {
 			int partyId = currentElection.candidates[candidateId].party;
 			if (aecPartyToSimParty[partyId] == 2) partyId = greensParty;
 			++partyIdFrequency[partyId];
 		}
-		logger << "Checkpoint B\n";
 		if (seat.tcpVotes.size() != 2) continue;
 		int numCoalition = 0;
 		for (auto [candidateId, votes] : seat.fpVotes) {
@@ -297,7 +294,6 @@ void LivePreparation::calculateTppPreferenceFlows()
 			if (aecPartyToSimParty[aecPartyId] == 1) ++numCoalition;
 			if (aecPartyToSimParty[aecPartyId] == CoalitionPartnerIndex) ++numCoalition;
 		}
-		logger << "Checkpoint C\n";
 		if (numCoalition > 1) continue; // don't get preferences from intra-Coalition contests
 		bool firstPartyFound = false;
 		bool secondPartyFound = false;
@@ -312,30 +308,24 @@ void LivePreparation::calculateTppPreferenceFlows()
 				secondPartyFound = true;
 			}
 		}
-		logger << "Checkpoint D\n";
 		if (!firstPartyFound || !secondPartyFound) continue; // not classic 2cp
 		for (int boothId : seat.booths) {
-			logger << "Checkpoint D1\n";
 			auto const& booth = currentElection.booths[boothId];
 			if (!booth.totalVotesTcp()) continue;
 			if (!booth.totalVotesFp()) continue;
 			double totalFpVotes = double(booth.totalVotesFp());
 			double totalTcpVotes = double(booth.totalVotesTcp());
 			std::vector<double> fpData(partyIdToPos.size());
-			logger << "Checkpoint D2\n";
 			for (auto [candidateId, votes] : booth.fpVotes) {
 				int partyId = currentElection.candidates[candidateId].party;
 				if (aecPartyToSimParty[partyId] == 2) partyId = greensParty;
 				fpData[partyIdToPos.at(partyId)] = double(votes) / totalFpVotes;
 				++partyIdFrequency[partyId];
 			}
-			logger << "Checkpoint D3\n";
-			PA_LOG_VAR(totalTcpVotes);
 			double tcpData = double(booth.tcpVotes.at(partyOneThisSeat)) / totalTcpVotes;
 			for (double voteIncrement = 100.0; voteIncrement < totalTcpVotes; voteIncrement += 100.0) {
 				data.push_back({ fpData, tcpData });
 			}
-			logger << "Checkpoint D4\n";
 		}
 	}
 	// Fill with lots of dummy data to make sure that major party preferences are "forced" to what they should be
@@ -427,8 +417,6 @@ void LivePreparation::estimateBoothTcps()
 			seatIsTpp = (simPartyIsTpp(tcpSimParties.first) && simPartyIsTpp(tcpSimParties.second));
 			if (tcpSimParties.first != 0 && tcpSimParties.second != 0) seatIsTpp = false;
 		}
-		// for now don't estimate for confirmed non-classic tcp
-		if (!seatIsTpp) continue;
 		// Establish which AEC parties actually best represent the TPP here
 		int partyOneParty = -1;
 		int partyTwoParty = -1;
@@ -438,7 +426,7 @@ void LivePreparation::estimateBoothTcps()
 			if (aecPartyToSimParty[partyId] == 1 || aecPartyToSimParty[partyId] == -4) partyTwoParty = partyId;
 		}
 		// Otherwise, find coalition candidate with highest fp vote
-		if (partyTwoParty == -1) {
+		if (partyTwoParty == -1 || partyOneParty == -1) {
 			int partyTwoVotes = 0;
 			for (auto [candidateId, votes] : seat.fpVotes) {
 				int voteCount = seat.totalVotesFpCandidate(candidateId);
@@ -470,8 +458,38 @@ void LivePreparation::estimateBoothTcps()
 				else prefFlow = project.parties().viewByIndex(partyIndex).p1PreferenceFlow;
 				partyOnePrefs += percent * prefFlow * 0.01f;
 			}
-			booth.tcpEstimate[partyOneParty] = partyOnePrefs;
-			booth.tcpEstimate[partyTwoParty] = 100.0f - partyOnePrefs;
+			if (previousElection.booths.contains(boothId) && previousElection.booths[boothId].tppVotes.size()) {
+				// Use preference flow from previous election to refine our estimate
+				// This helps with calibrating OPV flows even without actually calculating exhaustion
+				float pastPartyOnePrefs = 0.0f;
+				auto const& pastBooth = previousElection.booths[boothId];
+				for (auto const& [candidateId, votes] : pastBooth.fpVotes) {
+					float percent = float(votes) / float(pastBooth.totalVotesFp()) * 100.0f;
+					int aecParty = previousElection.candidates[candidateId].party;
+					int partyIndex = aecPartyToSimParty[aecParty];
+					float prefFlow = 50.0f;
+					if (partyIndex == coalitionPartner) prefFlow = 20.0f;
+					else if (partyIndex == coalitionMain) prefFlow = 0.0f;
+					else if (updatedPreferenceFlows.contains(aecParty)) prefFlow = updatedPreferenceFlows.at(aecParty);
+					else if (partyIndex < 0) prefFlow = project.parties().getOthersPreferenceFlow();
+					else prefFlow = project.parties().viewByIndex(partyIndex).p1PreferenceFlow;
+					pastPartyOnePrefs += percent * prefFlow * 0.01f;
+				}
+				float prevBias = 0.0f;
+				for (auto const& [partyId, partyTpp] : pastBooth.tppVotes) {
+					if (aecPartyToSimParty[partyId] == 0) {
+						float pastTppPercent = float(partyTpp) / float(pastBooth.totalVotesTpp()) * 100.0f;
+						prevBias = pastPartyOnePrefs - pastTppPercent;
+					}
+				}
+				partyOnePrefs = std::clamp(partyOnePrefs - prevBias, 0.1f, 99.9f);
+			}
+			if (seatIsTpp) {
+				booth.tcpEstimate[partyOneParty] = partyOnePrefs;
+				booth.tcpEstimate[partyTwoParty] = 100.0f - partyOnePrefs;
+			}
+			booth.tppEstimate[partyOneParty] = partyOnePrefs;
+			booth.tppEstimate[partyTwoParty] = 100.0f - partyOnePrefs;
 		}
 	}
 }
@@ -547,57 +565,67 @@ void LivePreparation::calculateBoothTcpSwings()
 {
 	// tcp swings
 	for (auto& [id, currentBooth] : currentElection.booths) {
-		int previousTotal = 0;
 		int currentTotal = currentBooth.totalVotesTcp();
 		if (currentTotal) {
-			Results2::Booth const* previousBooth = nullptr;
-			std::map<int, int> matchedAffiliation;
-			if (previousElection.booths.contains(id)) {
-				previousBooth = &previousElection.booths.at(id);
-				for (auto [affiliation, votes] : currentBooth.tcpVotes) {
-					for (auto [prevAffiliation, prevVotes] : previousBooth->tcpVotes) {
+			for (auto [affiliation, votes] : currentBooth.tcpVotes) {
+				currentBooth.tcpPercent[affiliation] = float(votes) * 100.0f / float(currentTotal);
+			}
+		}
+		auto& currentPercent = currentTotal ? currentBooth.tcpPercent : currentBooth.tcpEstimate;
+		auto& currentSwing = currentTotal ? currentBooth.tcpSwing : currentBooth.tcpEstimateSwing;
+		Results2::Booth const* previousBooth = nullptr;
+		std::map<int, int> matchedTcpAffiliation;
+		std::map<int, int> matchedTppAffiliation;
+		bool useTpp = false;
+		int previousTcpTotal = 0;
+		int previousTppTotal = 0;
+		if (previousElection.booths.contains(id)) {
+			previousBooth = &previousElection.booths.at(id);
+			for (auto [affiliation, votes] : currentPercent) {
+				for (auto [prevAffiliation, prevVotes] : previousBooth->tcpVotes) {
+					if (aecPartyToSimParty[affiliation] == aecPartyToSimParty[prevAffiliation] && aecPartyToSimParty[affiliation] != -1) {
+						matchedTcpAffiliation[affiliation] = prevAffiliation;
+						break;
+					}
+				}
+			}
+			previousTcpTotal = previousBooth->totalVotesTcp();
+			if (previousBooth->tppVotes.size()) {
+				for (auto [affiliation, votes] : currentBooth.tppEstimate) {
+					for (auto [prevAffiliation, prevVotes] : previousBooth->tppVotes) {
 						if (aecPartyToSimParty[affiliation] == aecPartyToSimParty[prevAffiliation] && aecPartyToSimParty[affiliation] != -1) {
-							matchedAffiliation[affiliation] = prevAffiliation;
+							matchedTppAffiliation[affiliation] = prevAffiliation;
 							break;
 						}
 					}
 				}
-				previousTotal = previousBooth->totalVotesTcp();
+				previousTppTotal = previousBooth->totalVotesTpp();
 			}
-			for (auto [affiliation, votes] : currentBooth.tcpVotes) {
-				float currentPercent = float(votes) * 100.0f / float(currentTotal);
-				if (matchedAffiliation.size() == 2 && previousTotal && previousBooth) {
-					float previousPercent = float(previousBooth->tcpVotes.at(matchedAffiliation[affiliation])) * 100.0f / float(previousTotal);
-					currentBooth.tcpSwing[affiliation] = currentPercent - previousPercent;
+			if (matchedTcpAffiliation.size() != 2 && matchedTppAffiliation.size() == 2) {
+				useTpp = true;
+				// Make sure these seats are classic seats
+				for (auto [affiliation, votes] : currentPercent) {
+					if (aecPartyToSimParty[affiliation] != 0 && aecPartyToSimParty[affiliation] != 1) useTpp = false;
 				}
-				else {
-					currentBooth.tcpSwing[affiliation] = NaN;
-				}
-				currentBooth.tcpPercent[affiliation] = currentPercent;
 			}
 		}
-		else if (currentBooth.tcpEstimate.size()) {
-			Results2::Booth const* previousBooth = nullptr;
-			bool matched = false;
-			if (previousElection.booths.contains(id)) {
-				matched = true;
-				previousBooth = &previousElection.booths.at(id);
-				for (auto [affiliation, _] : currentBooth.tcpEstimate) {
-					if (!previousBooth->tcpVotes.contains(affiliation)) {
-						matched = false;
-						break;
-					}
+		for (auto [affiliation, percent] : currentPercent) {
+			if (previousBooth) {
+				if (useTpp && previousTppTotal) {
+					float previousPercent = float(previousBooth->tppVotes.at(matchedTppAffiliation[affiliation])) * 100.0f / float(previousTppTotal);
+					currentSwing[affiliation] = percent - previousPercent;
 				}
-				previousTotal = previousBooth->totalVotesTcp();
+				else if (matchedTcpAffiliation.size() == 2 && previousTcpTotal) {
+					float previousPercent = float(previousBooth->tcpVotes.at(matchedTcpAffiliation[affiliation])) * 100.0f / float(previousTcpTotal);
+					currentSwing[affiliation] = percent - previousPercent;
+				}
 			}
-			for (auto [affiliation, currentPercent] : currentBooth.tcpEstimate) {
-				if (matched && previousTotal && previousBooth) {
-					float previousPercent = float(previousBooth->tcpVotes.at(affiliation)) * 100.0f / float(previousTotal);
-					currentBooth.tcpEstimateSwing[affiliation] = currentPercent - previousPercent;
-				}
-				else {
-					currentBooth.tcpEstimateSwing[affiliation] = NaN;
-				}
+			if (!currentBooth.tcpSwing.contains(affiliation)) currentBooth.tcpSwing[affiliation] = NaN;
+		}
+		if (matchedTppAffiliation.size() == 2 && previousTppTotal) {
+			for (auto [affiliation, percent] : currentBooth.tppEstimate) {
+				float previousPercent = float(previousBooth->tppVotes.at(matchedTppAffiliation[affiliation])) * 100.0f / float(previousTppTotal);
+				currentBooth.tppSwing[affiliation] = percent - previousPercent;
 			}
 		}
 	}
@@ -677,6 +705,19 @@ void LivePreparation::calculateSeatSwings()
 				else coalitionPartyPresent = true;
 			}
 		}
+		// Check booths to see if they aren't tpp, as the previous options won't work if there hasn't been a tcp swing recorded
+		if (seat.isTpp) {
+			for (auto booth : seat.booths) {
+				for (auto [party, _] : currentElection.booths[booth].tcpPercent) {
+					int simParty = aecPartyToSimParty[party];
+					if (!simPartyIsTpp(simParty)) {
+						seat.isTpp = false;
+						break;
+					}
+				}
+				if (!seat.isTpp) break;
+			}
+		}
 
 		for (auto [party, percent] : seatOrdinaryTcpPercent[seatId]) {
 			float boothSwing = seatOrdinaryTcpSwing[seatId][party];
@@ -696,7 +737,12 @@ void LivePreparation::calculateSeatSwings()
 				if (simParty == 0) seat.tcpPercent[party] = 50.0f + simSeat.tppMargin + seat.tcpSwing[party];
 				else if (simParty == 1 || simParty == CoalitionPartnerIndex) seat.tcpPercent[party] = 50.0f - simSeat.tppMargin + seat.tcpSwing[party];
 			} else if (seatOrdinaryTcpPercent[seatId][party] > 0) {
-				seat.tcpPercent[party] = mix(seatOrdinaryTcpPercent[seatId][party], seatDecVotePercent[seatId][party], seatDecVoteProjectedProportion[seatId]);
+				if (seatDecVotePercent[seatId][party]) {
+					seat.tcpPercent[party] = mix(seatOrdinaryTcpPercent[seatId][party], seatDecVotePercent[seatId][party], seatDecVoteProjectedProportion[seatId]);
+				}
+				else {
+					seat.tcpPercent[party] = seatOrdinaryTcpPercent[seatId][party];
+				}
 			}
 		}
 	}
@@ -706,12 +752,19 @@ void LivePreparation::calculateSeatSwings()
 		logger << " Tcp progress: " << seat.tcpProgress << "\n";
 		logger << " Tcp swing progress: " << seat.tcpSwingProgress << "\n";
 		logger << " Tcp swing basis: " << seat.tcpSwingBasis << "\n";
+		logger << " Tpp swing basis: " << seat.tppSwingBasis << "\n";
 		logger << " Seat is TPP: " << seat.isTpp << "\n";
 		if (seat.tcpPercent.size()) {
 			logger << " Tcp votes: \n";
 			for (auto [party, percent] : seat.tcpPercent) {
 				logger << "  " << currentElection.parties.at(party).name <<
 					": " << percent << "%, (" << formatFloat(seat.tcpSwing.at(party), 2, true) << "%)\n";
+			}
+		}
+		if (seat.tppSwing.size()) {
+			logger << " Tpp swings: \n";
+			for (auto [party, swing] : seat.tppSwing) {
+				logger << "  " << currentElection.parties.at(party).name << ": " << swing << "%\n";
 			}
 		}
 		if (seat.fpSwing.size()) {
@@ -740,6 +793,13 @@ void LivePreparation::calculateSeatSwings()
 				for (auto [party, percent] : booth.tcpEstimate) {
 					logger << "   Party: " << currentElection.parties.at(party).name <<
 						": " << percent << "%, (" << formatFloat(getAt(booth.tcpEstimateSwing, party, NaN), 2, true) << "%)\n";
+				}
+			}
+			if (booth.tppEstimate.size()) {
+				logger << "  Tpp estimates: " << currentElection.booths.at(boothId).name << "\n";
+				for (auto [party, percent] : booth.tppEstimate) {
+					logger << "   Party: " << currentElection.parties.at(party).name <<
+						": " << percent << "%, (" << formatFloat(getAt(booth.tppSwing, party, NaN), 2, true) << "%)\n";
 				}
 			}
 			if (booth.fpSwing.size()) {
@@ -855,8 +915,7 @@ void LivePreparation::projectOrdinaryVoteTotals()
 				for (auto [party, percent] : booth.tcpPercent) {
 					weightedPercent[party] += double(booth.tcpPercent.at(party)) * double(booth.totalVotesTcp());
 					weightPercentSum[party] += double(booth.totalVotesTcp());
-					if (!booth.tcpSwing.contains(party)) continue;
-					if (std::isnan(booth.tcpSwing.at(party))) continue;
+					if (!booth.tcpSwing.contains(party) || std::isnan(booth.tcpSwing.at(party))) continue;
 					weightedSwing[party] += double(booth.tcpSwing.at(party)) * double(booth.totalVotesTcp());
 					weightSwingSum[party] += double(booth.totalVotesTcp());
 				}
@@ -865,8 +924,7 @@ void LivePreparation::projectOrdinaryVoteTotals()
 				for (auto [party, percent] : booth.tcpEstimate) {
 					weightedPercent[party] += double(booth.tcpEstimate.at(party)) * double(booth.totalVotesFp()) * 0.5;
 					weightPercentSum[party] += double(booth.totalVotesFp()) * 0.5;
-					if (!booth.tcpEstimateSwing.contains(party)) continue;
-					if (std::isnan(booth.tcpEstimateSwing.at(party))) continue;
+					if (!booth.tcpEstimateSwing.contains(party) || std::isnan(booth.tcpEstimateSwing.at(party))) continue;
 					weightedSwing[party] += double(booth.tcpEstimateSwing.at(party)) * double(booth.totalVotesFp()) * 0.5;
 					weightSwingSum[party] += double(booth.totalVotesFp()) * 0.5;
 				}
@@ -879,8 +937,27 @@ void LivePreparation::projectOrdinaryVoteTotals()
 		if (weightSwingSum.size() && weightSwingSum.begin()->second) {
 			seat.tcpSwingBasis = weightSwingSum.begin()->second * 100.0f / float(seat.enrolment);
 		}
-		else if (weightPercentSum.size() && weightPercentSum.begin()->second) {
-			seat.tcpSwingBasis = weightPercentSum.begin()->second * 50.0f / float(seat.enrolment);
+	}
+
+	// tpp swings
+	for (auto& [seatId, seat] : currentElection.seats) {
+		std::unordered_map<int, double> weightedSwing;
+		std::unordered_map<int, double> weightSwingSum;
+		for (auto boothId : seat.booths) {
+			auto const& booth = currentElection.booths[boothId];
+			if (booth.tppSwing.size()) {
+				for (auto [party, percent] : booth.tppSwing) {
+					if (!booth.tppSwing.contains(party) || std::isnan(booth.tppSwing.at(party))) continue;
+					weightedSwing[party] += double(booth.tppSwing.at(party)) * double(booth.totalVotesFp()) * 0.5;
+					weightSwingSum[party] += double(booth.totalVotesFp()) * 0.5;
+				}
+			}
+		}
+		for (auto [party, _] : weightedSwing) {
+			seat.tppSwing[party] = float(weightedSwing[party] / weightSwingSum[party]);
+		}
+		if (weightSwingSum.size() && weightSwingSum.begin()->second) {
+			seat.tppSwingBasis = weightSwingSum.begin()->second * 100.0f / float(seat.enrolment);
 		}
 	}
 }
@@ -1282,18 +1359,30 @@ void LivePreparation::prepareLiveTppSwings()
 	for (auto const& [id, seat] : currentElection.seats) {
 		int seatIndex = aecSeatToSimSeat[seat.id];
 		run.liveSeatTppSwing[seatIndex] = NaN;
-		if (seat.tcpSwing.size() != 2) continue;
-		if (!seat.isTpp) continue;
-		for (auto [party, swing] : seat.tcpSwing) {
-			if (aecPartyToSimParty[party] == 0) {
-				run.liveSeatTppSwing[seatIndex] = swing;
-				run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
-				run.liveSeatTcpBasis[seatIndex] = seat.tcpSwingBasis;
-				if (seat.fpProgress) {
-					int seatId = project.seats().indexToId(seatIndex);
-					project.outcomes().add(Outcome(seatId, swing, seat.tcpSwingProgress, 0, 0));
+		if (seat.isTpp && seat.tcpSwing.size()) {
+			for (auto [party, swing] : seat.tcpSwing) {
+				if (aecPartyToSimParty[party] == 0) {
+					run.liveSeatTppSwing[seatIndex] = swing;
+					run.liveSeatTcpCounted[seatIndex] = seat.tcpSwingProgress;
+					run.liveSeatTcpBasis[seatIndex] = seat.tcpSwingBasis;
+					run.liveSeatTppBasis[seatIndex] = seat.tcpSwingBasis;
+					if (seat.tcpSwingBasis > 0.01f) {
+						project.outcomes().add(Outcome(seatIndex, swing, seat.tcpSwingProgress, seat.tcpSwingBasis, 0, 0));
+					}
+					break;
 				}
-				break;
+			}
+		}
+		else if (seat.tppSwing.size()) {
+			for (auto [party, swing] : seat.tppSwing) {
+				if (aecPartyToSimParty[party] == 0) {
+					run.liveSeatTppSwing[seatIndex] = swing;
+					run.liveSeatTppBasis[seatIndex] = seat.tppSwingBasis;
+					if (seat.tppSwingBasis > 0.01f) {
+						project.outcomes().add(Outcome(seatIndex, swing, 0.0f, seat.tppSwingBasis, 0, 0));
+					}
+					break;
+				}
 			}
 		}
 	}

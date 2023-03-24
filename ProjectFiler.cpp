@@ -596,9 +596,9 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.seatMargins;
 	saveOutput << report.seatIncumbentMargins;
 	saveOutput << report.seatPartyOneMarginAverage;
-	saveOutput << report.partyOneWinPercent;
-	saveOutput << report.partyTwoWinPercent;
-	saveOutput << report.othersWinPercent;
+	saveOutput << report.partyOneWinProportion;
+	saveOutput << report.partyTwoWinProportion;
+	saveOutput << report.othersWinProportion;
 	saveOutput << report.seatPartyWinPercent;
 	saveOutput << report.probabilityBands;
 	saveOutput << report.seatFpProbabilityBand;
@@ -700,29 +700,29 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 		std::vector<float> tempObj;
 		saveInput >> tempObj;
 		if (versionNum <= 18) {
-			report.partyOneWinPercent.resize(report.seatName.size());
-			for (int seatIndex = 0; seatIndex < int(report.partyOneWinPercent.size()); ++seatIndex) {
+			report.partyOneWinProportion.resize(report.seatName.size());
+			for (int seatIndex = 0; seatIndex < int(report.partyOneWinProportion.size()); ++seatIndex) {
 				if (report.seatIncumbents[seatIndex] == 1) {
-					report.partyOneWinPercent[seatIndex] = 100.0f - tempObj[seatIndex];
+					report.partyOneWinProportion[seatIndex] = 100.0f - tempObj[seatIndex];
 				}
 				else {
-					report.partyOneWinPercent[seatIndex] = tempObj[seatIndex];
+					report.partyOneWinProportion[seatIndex] = tempObj[seatIndex];
 				}
 			}
 		}
 	}
 	if (versionNum >= 19) {
 		saveInput >> report.seatPartyOneMarginAverage;
-		saveInput >> report.partyOneWinPercent;
-		saveInput >> report.partyTwoWinPercent;
-		saveInput >> report.othersWinPercent;
+		saveInput >> report.partyOneWinProportion;
+		saveInput >> report.partyTwoWinProportion;
+		saveInput >> report.othersWinProportion;
 		saveInput >> report.seatPartyWinPercent;
 	}
 	if (!report.seatPartyOneMarginAverage.size()) {
 		report.seatPartyOneMarginAverage.resize(report.seatName.size());
-		report.partyOneWinPercent.resize(report.seatName.size());
-		report.partyTwoWinPercent.resize(report.seatName.size());
-		report.othersWinPercent.resize(report.seatName.size());
+		report.partyOneWinProportion.resize(report.seatName.size());
+		report.partyTwoWinProportion.resize(report.seatName.size());
+		report.othersWinProportion.resize(report.seatName.size());
 		report.seatPartyWinPercent.resize(report.seatName.size());
 	}
 

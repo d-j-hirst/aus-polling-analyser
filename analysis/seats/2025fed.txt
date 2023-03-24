@@ -266,8 +266,8 @@ fTppMargin=3.31
 fPreviousTppSwing=-1.73
 sCandidateNames=Meryl Swanson,ALP
 #Reid
-sIncumbent=LNP
-sChallenger=ALP
+sIncumbent=ALP
+sChallenger=LNP
 sRegion=NSW
 fTppMargin=5.19
 fPreviousTppSwing=8.37

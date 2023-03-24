@@ -348,7 +348,8 @@ void SimulationPreparation::loadLiveManualResults()
 void SimulationPreparation::calculateLiveAggregates()
 {
 	run.liveOverallTppSwing = 0.0f;
-	run.liveOverallTppPercentCounted = 0.0f;
+	run.liveOverallTcpPercentCounted = 0.0f;
+	run.liveOverallTppBasis = 0.0f;
 	run.classicSeatCount = 0.0f;
 	run.sampleRepresentativeness = 0.0f;
 	run.total2cpVotes = 0;
@@ -366,7 +367,7 @@ void SimulationPreparation::calculateLiveAggregates()
 		sim.latestReport.total2cpPercentCounted = (float(run.totalEnrolment) ? float(run.total2cpVotes) / float(run.totalEnrolment) : 0.0f) * 100.0f;
 	}
 	else if (run.isLiveManual()) {
-		sim.latestReport.total2cpPercentCounted = run.liveOverallTppPercentCounted;
+		sim.latestReport.total2cpPercentCounted = run.liveOverallTcpPercentCounted;
 	}
 	else {
 		sim.latestReport.total2cpPercentCounted = 0.0f;
@@ -379,11 +380,15 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 	if (!seat.isClassic2pp()) return;
 	++run.classicSeatCount;
 	int regionIndex = project.regions().idToIndex(seat.region);
-	float tppPercentCounted = run.liveSeatTcpCounted[seatIndex];
+	float tcpPercentCounted = run.liveSeatTcpBasis[seatIndex];
+	float tppBasis = run.liveSeatTppBasis[seatIndex];
 	if (!std::isnan(run.liveSeatTppSwing[seatIndex])) {
-		float weightedSwing = run.liveSeatTppSwing[seatIndex] * tppPercentCounted;
+		float weight = 100.0f - 100.0f / (1.0f + tppBasis * tppBasis * 0.02f);
+		float weightedSwing = run.liveSeatTppSwing[seatIndex] * weight;
 		run.liveOverallTppSwing += weightedSwing;
+		run.liveOverallTppBasis += weight;
 		run.liveRegionSwing[regionIndex] += weightedSwing;
+		run.liveRegionTppBasis[regionIndex] += weight;
 	}
 	float fpPercentCounted = run.liveSeatFpCounted[seatIndex];
 	for (auto [party, vote] : run.liveSeatFpPercent[seatIndex]) {
@@ -400,29 +405,31 @@ void SimulationPreparation::updateLiveAggregateForSeat(int seatIndex)
 			run.liveOverallFpNewWeight[party] += fpPercentCounted;
 		}
 	}
-	run.liveOverallTppPercentCounted += tppPercentCounted;
+	run.liveOverallTcpPercentCounted += tcpPercentCounted;
 	run.liveOverallFpPercentCounted += fpPercentCounted;
-	run.liveRegionTppPercentCounted[regionIndex] += tppPercentCounted;
+	run.liveRegionTcpPercentCounted[regionIndex] += tcpPercentCounted;
 	++run.liveRegionClassicSeatCount[regionIndex];
-	run.sampleRepresentativeness += std::min(2.0f, tppPercentCounted) * 0.5f;
+	run.sampleRepresentativeness += std::min(2.0f, tcpPercentCounted) * 0.5f;
 	//run.total2cpVotes += seat.latestResults->total2cpVotes();
 	//run.totalEnrolment += seat.latestResults->enrolment;
 }
 
 void SimulationPreparation::finaliseLiveAggregates()
 {
-	if (run.liveOverallTppPercentCounted) {
-		run.liveOverallTppSwing /= run.liveOverallTppPercentCounted;
-		run.liveOverallTppPercentCounted /= run.classicSeatCount;
+	if (run.liveOverallTcpPercentCounted) {
+		run.liveOverallTppSwing /= run.liveOverallTppBasis;
+		run.liveOverallTppBasis /= project.seats().count();
+		run.liveOverallTcpPercentCounted /= project.seats().count();
 		run.liveOverallFpPercentCounted /= project.seats().count();
 		run.sampleRepresentativeness /= run.classicSeatCount;
 		run.sampleRepresentativeness = std::sqrt(run.sampleRepresentativeness);
 		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-			run.liveRegionSwing[regionIndex] /= run.liveRegionTppPercentCounted[regionIndex];
-			run.liveRegionTppPercentCounted[regionIndex] /= run.liveRegionClassicSeatCount[regionIndex];
+			run.liveRegionSwing[regionIndex] /= run.liveRegionTppBasis[regionIndex];
+			run.liveRegionTppBasis[regionIndex] /= regionSeatCount[regionIndex];
+			run.liveRegionTcpPercentCounted[regionIndex] /= regionSeatCount[regionIndex];
 		}
 		PA_LOG_VAR(run.liveOverallTppSwing);
-		PA_LOG_VAR(run.liveOverallTppPercentCounted);
+		PA_LOG_VAR(run.liveOverallTcpPercentCounted);
 		PA_LOG_VAR(run.sampleRepresentativeness);
 	}
 	for (auto& [partyIndex, vote] : run.liveOverallFpSwing) {
@@ -1102,10 +1109,12 @@ void SimulationPreparation::initializeGeneralLiveData()
 	run.liveSeatTcpSwing.resize(project.seats().count(), 0.0f);
 	run.liveSeatTcpPercent.resize(project.seats().count(), 0.0f);
 	run.liveSeatTcpBasis.resize(project.seats().count(), 0.0f);
+	run.liveSeatTppBasis.resize(project.seats().count(), 0.0f);
 	run.liveSeatPpvcSensitivity.resize(project.seats().count(), 0.0f);
 	run.liveSeatDecVoteSensitivity.resize(project.seats().count(), 0.0f);
 	run.liveEstDecVoteRemaining.resize(project.seats().count(), 0.0f);
 	run.liveRegionSwing.resize(project.regions().count(), 0.0f);
-	run.liveRegionTppPercentCounted.resize(project.regions().count(), 0.0f);
+	run.liveRegionTcpPercentCounted.resize(project.regions().count(), 0.0f);
+	run.liveRegionTppBasis.resize(project.regions().count(), 0.0f);
 	run.liveRegionClassicSeatCount.resize(project.regions().count(), 0.0f);
 }

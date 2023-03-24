@@ -43,20 +43,22 @@ void SimulationCompletion::completeRun()
 	recordModelledPolls();
 
 	recordReportSettings();
+
+	logger << "Simulation successfully completed.\n";
 }
 
 void SimulationCompletion::calculateIndividualSeatStatistics()
 {
 	sim.latestReport.seatPartyOneMarginAverage.resize(project.seats().count(), 0.0);
-	sim.latestReport.partyOneWinPercent.resize(project.seats().count(), 0.0);
-	sim.latestReport.partyTwoWinPercent.resize(project.seats().count(), 0.0);
-	sim.latestReport.othersWinPercent.resize(project.seats().count(), 0.0);
+	sim.latestReport.partyOneWinProportion.resize(project.seats().count(), 0.0);
+	sim.latestReport.partyTwoWinProportion.resize(project.seats().count(), 0.0);
+	sim.latestReport.othersWinProportion.resize(project.seats().count(), 0.0);
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		sim.latestReport.seatPartyOneMarginAverage[seatIndex] = float(run.seatPartyOneMarginSum[seatIndex] / double(iterations));
-		sim.latestReport.partyOneWinPercent[seatIndex] = float(run.partyOneWinPercent[seatIndex] / double(iterations));
-		sim.latestReport.partyTwoWinPercent[seatIndex] = float(run.partyTwoWinPercent[seatIndex] / double(iterations));
-		sim.latestReport.othersWinPercent[seatIndex] = float(run.othersWinPercent[seatIndex] / double(iterations));
+		sim.latestReport.partyOneWinProportion[seatIndex] = float(run.partyOneWinPercent[seatIndex] / double(iterations));
+		sim.latestReport.partyTwoWinProportion[seatIndex] = float(run.partyTwoWinPercent[seatIndex] / double(iterations));
+		sim.latestReport.othersWinProportion[seatIndex] = float(run.othersWinPercent[seatIndex] / double(iterations));
 	}
 }
 
