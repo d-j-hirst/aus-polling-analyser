@@ -28,7 +28,7 @@ StanModel::StanModel(std::string name, std::string termCode, std::string partyCo
 wxDateTime StanModel::getEndDate() const
 {
 	if (!adjustedSeriesCount()) return startDate;
-	return startDate + wxDateSpan::Days(adjustedSupport.begin()->second.timePoint.size() - 1);
+	return startDate + wxTimeSpan(4) + wxDateSpan::Days(adjustedSupport.begin()->second.timePoint.size() - 1);
 }
 
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
@@ -455,8 +455,8 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	int seriesLength = rawSupport.begin()->second.timePoint.size();
 	if (!seriesLength) return SupportSample();
 	int dayOffset = rawSupport.begin()->second.timePoint.size() - 1;
-	if (date.IsValid()) dayOffset = std::min(dayOffset, (date - startDate).GetDays());
-	if (dayOffset < 0) dayOffset = 0;
+	if (date.IsValid()) dayOffset = std::min(dayOffset, date.Subtract(startDate).GetDays());
+	//if (dayOffset < 0) dayOffset = 0;
 	SupportSample sample;
 	for (auto [key, support] : rawSupport) {
 		if (key == EmergingOthersCode) {
@@ -481,6 +481,8 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 	float upperVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket + 1];
 	float sampledVote = mix(lowerVote, upperVote, upperMix);
 	sample.voteShare.insert({ TppCode, sampledVote });
+
+
 
 	updateOthersValue(sample);
 
@@ -522,14 +524,15 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 {
 	constexpr int MinDays = 0;
 	// the "days" parameter used for trend adjustment calculation is the number of days to the end
-	// of the series, not the election itself - and the typical series ends 2 days before the election proper
-	// So, reduce the number of days by 2 so that it's approximating the "end of series" since that's what the
-	// adjustment model is trained on
-	constexpr int DaysOffset = 2;
+	// of the series, not the election itself - and the typical series ends 3 days before the election proper
+	// So, reduce the number of days by 3 so that it's approximating the "end of series" since that's what the
+	// adjustment model is trained on (in the average case)
+	constexpr int DaysOffset = 4;
 	days = std::clamp(days - DaysOffset, MinDays, numDays - 1);
 	auto sample = rawSupportSample;
 	constexpr float TppFirstChance = 0.5f;
-	const bool tppFirst = rng.uniform() < TppFirstChance;
+	bool tppFirst = rng.uniform() < TppFirstChance;
+	constexpr bool IncludeVariation = true;
 	for (auto& [key, voteShare] : sample.voteShare) {
 		if (key == EmergingOthersCode) continue;
 		if (tppFirst && (key == partyCodeVec[0] || key == partyCodeVec[1])) continue;
@@ -537,14 +540,14 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		double transformedPolls = transformVoteShare(double(voteShare));
 
 		const std::string partyGroup = reversePartyGroups.at(key);
-		
+
 		// remove systemic bias in poll results
 		const double pollBiasToday = parameters.at(partyGroup)[days][int(InputParameters::PollBias)];
 		const double debiasedPolls = transformedPolls - pollBiasToday;
 
 		// remove systemic bias in previous-election average
 		const double fundamentalsPrediction = transformVoteShare(fundamentals.at(key));
-		const double fundamentalsBiasToday = parameters.at(partyGroup)[days][int(InputParameters::FundamentalsBias)];
+		const double fundamentalsBiasToday = 1.0f;// parameters.at(partyGroup)[days][int(InputParameters::FundamentalsBias)];
 		const double debiasedFundamentalsAverage = fundamentalsPrediction - fundamentalsBiasToday;
 
 		// mix poll and previous values
@@ -555,16 +558,23 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		const double mixedBiasToday = parameters.at(partyGroup)[days][int(InputParameters::MixedBias)];
 		const double mixedDebiasedVote = mixedVoteShare - mixedBiasToday;
 
-		// Get parameters for spread
-		const double lowerError = parameters.at(partyGroup)[days][int(InputParameters::LowerError)];
-		const double upperError = parameters.at(partyGroup)[days][int(InputParameters::UpperError)];
-		const double lowerKurtosis = parameters.at(partyGroup)[days][int(InputParameters::LowerKurtosis)];
-		const double upperKurtosis = parameters.at(partyGroup)[days][int(InputParameters::UpperKurtosis)];
-		const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis);
-		const double voteWithVariation = mixedDebiasedVote + additionalVariation;
+		// for debugging purposes we often want to avoid adding additional variation here
+		if (IncludeVariation) {
+			// Get parameters for spread
+			const double lowerError = parameters.at(partyGroup)[days][int(InputParameters::LowerError)];
+			const double upperError = parameters.at(partyGroup)[days][int(InputParameters::UpperError)];
+			const double lowerKurtosis = parameters.at(partyGroup)[days][int(InputParameters::LowerKurtosis)];
+			const double upperKurtosis = parameters.at(partyGroup)[days][int(InputParameters::UpperKurtosis)];
+			const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis);
+			const double voteWithVariation = mixedDebiasedVote + additionalVariation;
 
-		double newVoteShare = detransformVoteShare(voteWithVariation);
-		voteShare = float(newVoteShare);
+			double newVoteShare = detransformVoteShare(voteWithVariation);
+			voteShare = float(newVoteShare);
+		}
+		else {
+			double newVoteShare = detransformVoteShare(mixedDebiasedVote);
+			voteShare = float(newVoteShare);
+		}
 	}
 
 	addEmergingOthers(sample, days);
@@ -605,7 +615,8 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
 					wxDateTime thisDate = startDate;
-					thisDate.Add(wxDateSpan(0, 0, 0, time));
+					// Add 12 hours to avoid DST related shenanigans
+					thisDate.Add(wxTimeSpan(4)).Add(wxDateSpan(0, 0, 0, time));
 					std::vector<std::array<float, NumIterations>> samples(partyCodeVec.size());
 					std::array<float, NumIterations> tppSamples;
 					for (int iteration = 0; iteration < NumIterations; ++iteration) {

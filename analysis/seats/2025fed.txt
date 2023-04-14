@@ -347,11 +347,14 @@ fTppMargin=10.07
 fPreviousTppSwing=-0.84
 sCandidateNames=Stephen Jones,ALP
 #Aston
-sIncumbent=LNP
-sChallenger=ALP
+sIncumbent=ALP
+sChallenger=LNP
 sRegion=VIC
 fTppMargin=-2.81
 fPreviousTppSwing=7.32
+fByElectionSwing=6.4
+bSophomoreCandidate=1
+bSophomoreParty=1
 #Ballarat
 sIncumbent=ALP
 sChallenger=LNP

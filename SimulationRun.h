@@ -147,6 +147,10 @@ public:
 
 	std::string getTermCode() const;
 
+	// These functions return false while doing betting odds calibrations
+	// even if the forecast is in fact live
+	// Betting odds calibrations are done for the pre-election baseline
+	// and should be performed *as if* there was no live data.
 	bool isLiveAutomatic() const;
 	bool isLiveManual() const;
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
@@ -285,6 +289,9 @@ private:
 	std::vector<float> liveSeatPpvcSensitivity;
 	std::vector<float> liveSeatDecVoteSensitivity;
 	std::vector<float> liveEstDecVoteRemaining;
+	std::vector<float> liveSeatPrefFlow; // to partyOne
+	std::vector<float> liveSeatExhaustRate; // as percentage
+	std::vector<float> liveSeatMajorFpDiff; // as percentage, for seats where TPP prefs can't be estimated directly
 
 	std::vector<float> liveRegionTcpPercentCounted;
 	std::vector<float> liveRegionTppBasis;

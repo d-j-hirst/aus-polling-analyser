@@ -323,6 +323,7 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
 void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths)
 {
 	const std::map<std::string, std::string> shortCodes = {
+		{"Shooters, Fishers and Farmers Party (NSW) Incorporated", "SFF"},
 		{"The Greens NSW", "GRN"},
 		{"Australian Labor Party (NSW Branch)", "ALP"},
 		{"Country Labor Party", "ALP"},

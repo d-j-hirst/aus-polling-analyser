@@ -55,8 +55,6 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
-					wxDateTime thisDate = startDate;
-					thisDate.Add(wxDateSpan(0, 0, 0, time));
 					std::vector<std::array<float, NumIterations>> samples(model.partyCodeVec.size());
 					std::unique_ptr<std::array<float, NumIterations>> tppSamples; // on heap to avoid 
 					tppSamples.reset(new std::array<float, NumIterations>());
@@ -185,6 +183,7 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			}
 		}
 	}
+	date += wxTimeSpan(4);
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
 	daysAfterModelEnd = std::max(daysAfterModelEnd, MinDaysBeforeElection);
 	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd);

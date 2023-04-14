@@ -49,9 +49,9 @@ void LivePreparation::prepareLiveAutomatic()
 	determinePartyIdConversions();
 	determineSeatIdConversions();
 	calculateTppPreferenceFlows();
-	calculateSeatPreferenceFlows();
 	calculateBoothFpSwings();
 	estimateBoothTcps();
+	calculateSeatPreferenceFlows();
 	calculateBoothTcpSwings();
 	calculateCountProgress();
 	projectOrdinaryVoteTotals();
@@ -369,37 +369,80 @@ void LivePreparation::calculateTppPreferenceFlows()
 
 void LivePreparation::calculateSeatPreferenceFlows()
 {
+	run.liveSeatPrefFlow.resize(project.seats().count(), std::numeric_limits<float>::quiet_NaN());
+	run.liveSeatExhaustRate.resize(project.seats().count(), std::numeric_limits<float>::quiet_NaN());
+	run.liveSeatMajorFpDiff.resize(project.seats().count(), std::numeric_limits<float>::quiet_NaN());
 	for (auto const& [seatId, seat] : currentElection.seats) {
 		if (!seat.tcpVotes.size()) continue;
 		std::map<int, int> candidateIdToPos;
-		int index = 0;
-		for (auto const& [candidateId, votes] : seat.fpVotes) {
-			candidateIdToPos[candidateId] = index;
-			++index;
+		int partyOneId = -1;
+		int partyTwoId = -1;
+		for (auto const& [partyId, votes] : seat.tcpVotes) {
+			if (aecPartyToSimParty[partyId] == 0) partyOneId = partyId;
+			if (aecPartyToSimParty[partyId] == 1) partyTwoId = partyId;
 		}
-		int partyIdToUse = seat.tcpVotes.begin()->first;
-		DataSet data;
-		for (int boothId : seat.booths) {
-			auto const& booth = currentElection.booths[boothId];
-			if (!booth.totalVotesTcp()) continue;
-			if (!booth.totalVotesFp()) continue;
-			double totalFpVotes = double(booth.totalVotesFp());
-			double totalTcpVotes = double(booth.totalVotesTcp());
-			std::vector<double> fpData(index);
-			for (auto const& [candidateId, votes] : booth.fpVotes) {
-				fpData[candidateIdToPos.at(candidateId)] = double(votes) / totalFpVotes;
+		// If there is a classic TCP count, use that only, otherwise use tpp estimates
+		if (partyOneId == -1 || partyTwoId == -1) {
+			// Just record difference between ALP and LNP first preferences
+			int totalPartyOneFp = 0;
+			int totalPartyTwoFp = 0;
+			int totalFp = 0;
+			for (auto const boothId : seat.booths) {
+				auto const& booth = currentElection.booths[boothId];
+				for (auto const& [candidate, votes] : booth.fpVotes) {
+					totalFp += votes;
+					int simParty = aecPartyToSimParty[currentElection.candidates[candidate].party];
+					if (simParty == 0) {
+						totalPartyOneFp += votes;
+					}
+					else if (simParty == 1) {
+						totalPartyTwoFp += votes;
+					}
+					else if (simParty == CoalitionPartnerIndex) {
+						totalPartyTwoFp += votes;
+					}
+				}
 			}
-			double tcpData = double(booth.tcpVotes.at(partyIdToUse)) / totalTcpVotes;
-			data.push_back({ fpData, tcpData });
+			float majorFpDiff = (float(totalPartyOneFp) - float(totalPartyTwoFp)) / float(totalFp) * 100.0f;
+			run.liveSeatMajorFpDiff[aecSeatToSimSeat[seatId]] = majorFpDiff;
+			logger << "Observed major party difference for seat " << seat.name << ": " << majorFpDiff << "%\n";
+		} else {
+			int totalPrefVotes = 0;
+			int totalPartyOnePrefVotes = 0;
+			int totalNonMajorVotes = 0;
+			for (auto const boothId : seat.booths) {
+				auto const& booth = currentElection.booths[boothId];
+				if (!booth.tcpVotes.size()) continue;
+				int prefVotes = booth.totalVotesTcp();
+				int nonMajorVotes = booth.totalVotesFp();
+				int partyOneFp = 0;
+				for (auto const& [candidate, votes] : booth.fpVotes) {
+					if (currentElection.candidates[candidate].party == partyOneId) {
+						nonMajorVotes -= votes;
+						prefVotes -= votes;
+						partyOneFp = votes;
+					}
+					else if (currentElection.candidates[candidate].party == partyTwoId) {
+						nonMajorVotes -= votes;
+						prefVotes -= votes;
+					}
+					else if (aecPartyToSimParty[currentElection.candidates[candidate].party] == CoalitionPartnerIndex) {
+						nonMajorVotes -= votes;
+						prefVotes -= votes;
+					}
+				}
+				int partyOnePrefVotes = booth.tcpVotes.at(partyOneId) - partyOneFp;
+				totalPrefVotes += prefVotes;
+				totalNonMajorVotes += nonMajorVotes;
+				totalPartyOnePrefVotes += partyOnePrefVotes;
+			}
+			if (!totalPrefVotes) continue;
+			float observedPrefFlow = float(totalPartyOnePrefVotes) / float(totalPrefVotes) * 100.0f;
+			float observedExhaustRate = 1.0f - float(totalPrefVotes) / float(totalNonMajorVotes);
+			logger << "Observed preference flows for seat " << seat.name << ": " << observedPrefFlow << " to Labor, exhaust rate " << observedExhaustRate * 100.0f << "%\n";
+			run.liveSeatPrefFlow[aecSeatToSimSeat[seatId]] = observedPrefFlow;
+			run.liveSeatExhaustRate[aecSeatToSimSeat[seatId]] = observedExhaustRate;
 		}
-		// don't bother calculating for tiny data sets as it'll be worse than
-		// just using previous-election preferences
-		if (data.size() < 2) continue;
-		std::vector<std::string> partyNames;
-		for (auto const& [candidateId, votes] : seat.fpVotes) {
-			partyNames.push_back(currentElection.parties[currentElection.candidates[candidateId].party].name);
-		}
-		runLeastSquares(data);
 	}
 }
 

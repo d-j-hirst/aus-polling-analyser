@@ -879,6 +879,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+
 	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
 		!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 		voteShare = 0.0f;
@@ -1328,7 +1329,7 @@ void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 		float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(percentCounted * 0.2f)));
 		liveTransformedFp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
 		if (postCountFpShift.contains(partyIndex)) liveTransformedFp += postCountFpShift[partyIndex];
-		float liveFactor = 1.0f - pow(2.0f, -percentCounted * 0.5f);
+		float liveFactor = 1.0f - pow(2.0f, -percentCounted * 0.2f);
 		float priorFp = seatFpVoteShare[seatIndex][partyIndex];
 		if (partyIndex == run.indPartyIndex && priorFp <= 0.0f) priorFp = seatFpVoteShare[seatIndex][EmergingIndIndex];
 		float transformedPriorFp = transformVoteShare(priorFp);
@@ -1528,24 +1529,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		float previousPrefRate = float(prevPartyOneTcpCount - fpCounts.at(Mp::One)) / float(prevTcpSum - majorFpSum);
 		// Amount by which actual TPP is higher than estimated TPP, per 1% of the non-exhausted vote
 		preferenceBiasRate = previousPrefRate - previousPrefRateEstimate;
-
-		//if (seat.name == "Northcote") {
-		//	PA_LOG_VAR(majorTcp);
-		//	PA_LOG_VAR(fpCounts);
-		//	PA_LOG_VAR(tcpCounts);
-		//	PA_LOG_VAR(prevTcpSum);
-		//	PA_LOG_VAR(prevPartyOneTcpCount);
-		//	PA_LOG_VAR(majorFpSum);
-		//	PA_LOG_VAR(previousPartyOneTppPercent);
-		//	PA_LOG_VAR(prevPartyOneTcpCount);
-		//	PA_LOG_VAR(previousNonMajorFpShare);
-		//	PA_LOG_VAR(previousPartyOnePrefEstimate);
-		//	PA_LOG_VAR(prevPartyOneTcpCount - fpCounts.at(Mp::One));
-		//	PA_LOG_VAR(prevTcpSum - majorFpSum);
-		//	PA_LOG_VAR(previousPrefRateEstimate);
-		//	PA_LOG_VAR(previousPrefRate);
-		//	PA_LOG_VAR(preferenceBiasRate);
-		//}
 	}
 
 	// Step 3: Get an estimate for the *current* election
@@ -1583,6 +1566,8 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	}
 	currentExhaustRateEstimate /= currentExhuastDenominator;
 	currentExhaustRateEstimate = std::clamp(currentExhaustRateEstimate + exhaustBiasRate, 0.0f, 1.0f);
+
+
 	float currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - currentExhaustRateEstimate);
 
 	static bool ProducedExhaustRateWarning = false;
@@ -1600,7 +1585,24 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float overallAdjustedPartyOnePrefs = biasAdjustedPartyOnePrefs + prefCorrection * currentNonMajorTppShare;
 	float overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
 
-	// Step 5: Actually esimate the major party fps based on these adjusted flows
+	// Step 4a: Integrate live forecast preference flow estimates (if applicable)
+
+	if (run.isLive() && !std::isnan(run.liveSeatPrefFlow[seatIndex]) && !std::isnan(run.liveSeatExhaustRate[seatIndex])) {
+		if (seat.name == "Sydney") logger << "Shouldn't be here!\n";
+		float livePrefFlow = run.liveSeatPrefFlow[seatIndex];
+		float liveExhaustRate = run.liveSeatExhaustRate[seatIndex];
+		float liveWeight = 1.0f - 100.0f / (100.0f + run.liveSeatTcpCounted[seatIndex] * run.liveSeatTcpCounted[seatIndex]);
+		float currentPrefFlow = overallAdjustedPartyOnePrefs / currentNonMajorTppShare;
+		float currentExhaustRate = currentNonMajorTppShare / currentNonMajorFpShare;
+		float mixedExhaustRate = mix(currentExhaustRate, liveExhaustRate, liveWeight);
+		float mixedPrefFlow = mix(currentPrefFlow, livePrefFlow, liveWeight);
+		currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - mixedExhaustRate);
+		overallAdjustedPartyOnePrefs = currentNonMajorTppShare * mixedPrefFlow * 0.01f;
+		overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
+		currentExhaustRateEstimate = mixedExhaustRate;
+	}
+
+	// Step 5: Actually estimate the major party fps based on these adjusted flows
 
 	// adjust everything that's still being used to be scaled so that the total non-exhausted votes is equal to 100%
 	float majorFpShare = 100.0f - currentNonMajorFpShare;
@@ -1682,8 +1684,16 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	//	}
 	//}
 
-	seatFpVoteShare[seatIndex][Mp::One] = newPartyOneFp;
-	seatFpVoteShare[seatIndex][Mp::Two] = newPartyTwoFp;
+	if (run.isLive() && !std::isnan(run.liveSeatMajorFpDiff[seatIndex])) {
+		float finalMajorFpShare = finalPartyOneFp + finalPartyTwoFp;
+		float liveWeight = 1.0f - 100.0f / (100.0f + run.liveSeatFpCounted[seatIndex] * run.liveSeatFpCounted[seatIndex]);
+		float majorFpDiff = std::clamp(run.liveSeatMajorFpDiff[seatIndex], finalMajorFpShare * -0.9f, finalMajorFpShare * 0.9f);
+		finalPartyOneFp = mix(finalPartyOneFp, (finalMajorFpShare + majorFpDiff) * 0.5f, liveWeight);
+		finalPartyTwoFp = mix(finalPartyTwoFp, (finalMajorFpShare - majorFpDiff) * 0.5f, liveWeight);
+	}
+
+	seatFpVoteShare[seatIndex][Mp::One] = finalPartyOneFp;
+	seatFpVoteShare[seatIndex][Mp::Two] = finalPartyTwoFp;
 
 	//if (checkForNans("after setting seatFpVoteShares")) {
 	//	PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
@@ -2253,6 +2263,7 @@ void SimulationIteration::applyLiveManualOverrides(int seatIndex)
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// this verifies there's a non-classic result entered.
 	if (seat.livePartyOne != Party::InvalidId) {
+		PA_LOG_VAR(seat.name);
 		float prob = rng.uniform();
 		float firstThreshold = seat.partyOneProb();
 		float secondThreshold = firstThreshold + seat.partyTwoProb;
