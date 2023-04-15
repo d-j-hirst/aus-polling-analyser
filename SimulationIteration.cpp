@@ -204,7 +204,8 @@ void SimulationIteration::determineFedStateCorrelation()
 void SimulationIteration::determineOverallTpp()
 {
 	// First, randomly determine the national swing for this particular simulation
-	auto projectedSample = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models());
+	auto const& projection = project.projections().view(0);
+	auto projectedSample = projection.generateNowcastSupportSample(project.models(), project.projections().view(sim.settings.baseProjection).getSettings().endDate);
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
 	if (sim.settings.forceTpp.has_value()) {

@@ -42,7 +42,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 	constexpr static int NumIterations = 5000;
 	projectedSupport.clear(); // do this first as it should not be left with previous data
 	try {
-		int seriesLength = (settings.endDate - startDate).GetDays();
+		int seriesLength = (settings.endDate - startDate).GetDays() + 1;
 		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
 			std::string partyName = model.partyCodeVec[partyIndex];
 			projectedSupport[partyName] = StanModel::Series();
@@ -96,7 +96,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 			}
 		}
 
-		const int ProjectionSmoothingDays = 21;
+		const int ProjectionSmoothingDays = 1;
 		for (auto& [key, party] : projectedSupport) {
 			party.smooth(ProjectionSmoothingDays); // also automatically calculates expectations
 		}
@@ -156,6 +156,48 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 	return &std::next(projectedSupport.begin(), index)->second;
 }
 
+StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, wxDateTime date) const
+{
+	// Get an as-if-election-now sample
+	auto electionNowSupportSample = generateSupportSample(models, date);
+	// convert dates to projection indices, adding 4 additional hours to smooth over any DST etc. related issues
+	int sampleProjIndex = (date - startDate).GetDays();
+	int endProjIndex = (settings.endDate - startDate).GetDays();
+	sampleProjIndex = std::clamp(sampleProjIndex, 0, endProjIndex);
+
+	// an invalid date indicates forecasting an actual election
+	// (possibly for a range of different election dates)
+	// so don't interpret as a now-cast
+	// similarly, if we're at the projection end date, also assume it's for an actual election
+	if (!date.IsValid() || (date - settings.endDate).GetDays() == 0) {
+		return electionNowSupportSample;
+	}
+	
+	// Test that the projected support trend actually exists and extends to the
+	// projection end date. If not, return the "election-now" sample
+	// It is assumed that the other parties and TPP will also be projected to the same point (or more)
+	if (endProjIndex >= std::ssize(tppSupport.timePoint)) {
+		return electionNowSupportSample;
+	}
+
+	int inverseProjIndex = endProjIndex - sampleProjIndex;
+	for (auto [party, voteShare] : electionNowSupportSample.voteShare) {
+		// It is important that the expectation (rather than median) is used here
+		// as this guarantees that the resultant adjusted sample will still add to 100 without needing adjustments
+		float inverseExpectation = party == TppCode ? tppSupport.timePoint.at(inverseProjIndex).expectation : projectedSupport.at(party).timePoint.at(inverseProjIndex).expectation;
+		float finalExpectation = party == TppCode ? tppSupport.timePoint.at(endProjIndex).expectation : projectedSupport.at(party).timePoint.at(endProjIndex).expectation;
+		float sampleExpectation = party == TppCode ? tppSupport.timePoint.at(sampleProjIndex).expectation : projectedSupport.at(party).timePoint.at(sampleProjIndex).expectation;
+		float initialExpectation = party == TppCode ? tppSupport.timePoint.at(0).expectation : projectedSupport.at(party).timePoint.at(0).expectation;
+		float adjustment = initialExpectation - sampleExpectation + finalExpectation - inverseExpectation;
+		logger << (party + " " + std::to_string(adjustment) + " " + std::to_string(inverseExpectation) + " " + std::to_string(finalExpectation) + " " + std::to_string(sampleExpectation) + " " + std::to_string(initialExpectation) + " - adjusted support sample\n");
+		electionNowSupportSample.voteShare[party] = predictorCorrectorTransformedSwing(electionNowSupportSample.voteShare[party], adjustment);
+	}
+	// due to the transformations required to keep vote shares in (0, 100),
+	// the sample might not quite add to 100, so normalise it now
+	StanModel::normaliseSample(electionNowSupportSample);
+	return electionNowSupportSample;
+}
+
 StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
 {
 	auto const& model = getBaseModel(models);
@@ -183,10 +225,11 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			}
 		}
 	}
-	date += wxTimeSpan(4);
+	date += wxTimeSpan(4); // adding four hours to make sure date comparisons are consistent
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
 	daysAfterModelEnd = std::max(daysAfterModelEnd, MinDaysBeforeElection);
 	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd);
+
 	return sample;
 }
 
