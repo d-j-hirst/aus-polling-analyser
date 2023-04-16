@@ -189,7 +189,6 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 		float sampleExpectation = party == TppCode ? tppSupport.timePoint.at(sampleProjIndex).expectation : projectedSupport.at(party).timePoint.at(sampleProjIndex).expectation;
 		float initialExpectation = party == TppCode ? tppSupport.timePoint.at(0).expectation : projectedSupport.at(party).timePoint.at(0).expectation;
 		float adjustment = initialExpectation - sampleExpectation + finalExpectation - inverseExpectation;
-		logger << (party + " " + std::to_string(adjustment) + " " + std::to_string(inverseExpectation) + " " + std::to_string(finalExpectation) + " " + std::to_string(sampleExpectation) + " " + std::to_string(initialExpectation) + " - adjusted support sample\n");
 		electionNowSupportSample.voteShare[party] = predictorCorrectorTransformedSwing(electionNowSupportSample.voteShare[party], adjustment);
 	}
 	// due to the transformations required to keep vote shares in (0, 100),

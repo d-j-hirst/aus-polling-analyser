@@ -894,7 +894,7 @@ def regress_and_write_to_file(f, inputs, outputs, region):
 
 
 def analyse_region_swings():
-    target_year = 2022
+    target_year = 2025
     election_results = {}
     state_results = {}
     filename = './Data/tpp-fed-regions.csv'

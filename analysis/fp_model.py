@@ -22,7 +22,7 @@ data_source = {
     'qld': './Data/poll-data-qld.csv',
     'wa': './Data/poll-data-wa.csv',
     'sa': './Data/poll-data-sa.csv',
-    }
+}
 
 
 # N.B. The "Others" (OTH) "party" values include votes for these other
@@ -124,7 +124,7 @@ class Config:
 
 
 class ModellingData:
-    def __init__(self, config):
+    def __init__(self):
             
         # Load the file containing a list of significant parties for each election
         # and arrange the data for the rest of the program to efficiently use
