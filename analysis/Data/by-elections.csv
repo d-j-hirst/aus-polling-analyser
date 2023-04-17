@@ -1,4 +1,8 @@
 ﻿Seat,Year,Government,By-elec swing,Eventual swing,Statewide swing,Party change,Next election year
+Monaro,2022,LNP,6.41,13.9,5.9,FALSE,2023
+Bega,2022,LNP,11.99,17.3,5.9,TRUE,2023
+Strathfield,2022,LNP,0.81,7.8,5.9,FALSE,2023
+Upper Hunter,2022,LNP,-3.26,-3.3,5.9,FALSE,2023
 Groom,2020,LNP,3.29,6.31,4.39,FALSE,2022
 Eden-Monaro,2020,LNP,-0.46,7.35,3.2,FALSE,2022
 Wentworth,2018,LNP,7,7.9,-1.25,TRUE,2019

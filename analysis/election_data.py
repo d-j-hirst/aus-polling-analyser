@@ -166,7 +166,7 @@ class AllElections:
             ElectionResults(f'{year} NSW Election',
             lambda: generic_download('nsw', year))
             for year in nsw_years})
-        vic_years = [2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992]
+        vic_years = [2022, 2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992]
         self.elections.update({
             ElectionCode(year=year, region='vic'): 
             ElectionResults(f'{year} VIC Election',
@@ -255,6 +255,13 @@ def fetch_seat_urls_state(state):
         collect_seat_urls(seat_urls,
                           f'https://en.wikipedia.org/w/index.php?title=Category:New_South_Wales_state_electoral_results_by_district&pagefrom=Marrickville',
                           state_pattern)
+    elif state == 'vic':
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(Australia)_state_electoral_results_by_district',
+                          state_pattern)
+        collect_seat_urls(seat_urls,
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(Australia)_state_electoral_results_by_district&pagefrom=Rainbow%0AElectoral+results+for+the+district+of+Rainbow#mw-pages',
+                          state_pattern)
     else:
         collect_seat_urls(seat_urls,
                           f'https://en.wikipedia.org/wiki/Category:{state_page[state]}_state_electoral_results_by_district',
@@ -263,7 +270,7 @@ def fetch_seat_urls_state(state):
 
 
 def generic_download(state, year):
-    filename = f'{year}{state}_results.pkl'
+    filename = f'elections/{year}{state}_results.pkl'
     try:
         with open(filename, 'rb') as pkl:
             all_results = pickle.load(pkl)
@@ -277,7 +284,10 @@ def generic_download(state, year):
             seat_results = SeatResults(seat_name)
             full_url = f'https://en.wikipedia.org/{url}'
             # This lines makes sure we don't get old data
-            headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'}
+            headers = {
+                'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36',
+                'Cache-Control': 'no-cache'
+            }
             content = str(requests.get(full_url, headers).content)
             content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
             content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')

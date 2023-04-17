@@ -1025,7 +1025,7 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 		effectivePartyFp = detransformVoteShare(mix(ProminentPopulistBaseFp, run.oddsFinalMeans[{seatIndex, partyIndex}], OddsWeight));
 	}
 
-	float seatModifier = partyFp ? calculateEffectiveSeatModifier(seatIndex, partyIndex) :1.0f;
+	float seatModifier = partyFp ? calculateEffectiveSeatModifier(seatIndex, partyIndex) : 1.0f;
 	float adjustedModifier = std::max(0.2f, seatModifier * fpModificationAdjustment.contains(partyIndex) ? fpModificationAdjustment[partyIndex] : 1.0f);
 	float modifiedFp1 = predictorCorrectorTransformedSwing(effectivePartyFp, effectivePartyFp * (adjustedModifier - 1.0f));
 	float modifiedFp2 = effectivePartyFp * adjustedModifier;
@@ -2499,9 +2499,9 @@ void SimulationIteration::recordSwingFactors()
 
 float SimulationIteration::calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const
 {
+	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float populism = centristPopulistFactor.at(partyIndex);
 	float seatModifier = mix(run.seatCentristModifiers[seatIndex], run.seatPopulistModifiers[seatIndex], populism);
-	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	int regionIndex = project.regions().idToIndex(seat.region);
 	float homeStateCoefficient = mix(run.centristStatistics.homeStateCoefficient, run.populistStatistics.homeStateCoefficient, populism);
 	if (homeRegion.contains(partyIndex) && homeRegion.at(partyIndex) == regionIndex) seatModifier += homeStateCoefficient;

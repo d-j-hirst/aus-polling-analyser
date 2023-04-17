@@ -867,7 +867,7 @@ def run_models():
 
     if config.use_approvals(): generate_synthetic_tpps()
 
-    m_data = ModellingData(config=config)
+    m_data = ModellingData()
 
     # Load the list of election periods we want to model
     desired_elections = config.elections

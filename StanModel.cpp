@@ -34,7 +34,7 @@ wxDateTime StanModel::getEndDate() const
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	prepareForRun(feedback);
+	if (!prepareForRun(feedback)) return;
 	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	updateAdjustedData(feedback, numThreads);
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
@@ -253,6 +253,10 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 	}
 	if (!contains(partyCodeVec, UnnamedOthersCode)) {
 		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
+		return false;
+	}
+	if (!contains(partyCodeVec, EmergingOthersCode)) {
+		feedback("No party corresponding to Emerging Others was given. The model needs a party with code " + EmergingOthersCode + " to run properly.");
 		return false;
 	}
 	modelledPolls.clear();
@@ -547,7 +551,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 		// remove systemic bias in previous-election average
 		const double fundamentalsPrediction = transformVoteShare(fundamentals.at(key));
-		const double fundamentalsBiasToday = 1.0f;// parameters.at(partyGroup)[days][int(InputParameters::FundamentalsBias)];
+		const double fundamentalsBiasToday = parameters.at(partyGroup)[days][int(InputParameters::FundamentalsBias)];
 		const double debiasedFundamentalsAverage = fundamentalsPrediction - fundamentalsBiasToday;
 
 		// mix poll and previous values
@@ -572,6 +576,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 			voteShare = float(newVoteShare);
 		}
 		else {
+
 			double newVoteShare = detransformVoteShare(mixedDebiasedVote);
 			voteShare = float(newVoteShare);
 		}
@@ -688,19 +693,7 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days) co
 	double emergingOthersFpTargetTransformed = transformedThreshold + abs(rng.flexibleDist(0.0, rmse, rmse, kurtosis, kurtosis));
 	double emergingOthersFpTarget = detransformVoteShare(emergingOthersFpTargetTransformed);
 	// The normalisation procedure will reduce the value of 
-	double correctedFp = 100.0 * emergingOthersFpTarget / (100.0 - emergingOthersFpTarget) ;
-	//PA_LOG_VAR(sample);
-	//PA_LOG_VAR(days);
-	//PA_LOG_VAR(threshold);
-	//PA_LOG_VAR(transformedThreshold);
-	//PA_LOG_VAR(baseEmergenceRate);
-	//PA_LOG_VAR(baseEmergenceRmse);
-	//PA_LOG_VAR(kurtosis);
-	//PA_LOG_VAR(emergenceChance);
-	//PA_LOG_VAR(rmse);
-	//PA_LOG_VAR(emergingOthersFpTargetTransformed);
-	//PA_LOG_VAR(emergingOthersFpTarget);
-	//PA_LOG_VAR(correctedFp);
+	double correctedFp = 100.0 * emergingOthersFpTarget / (100.0 - emergingOthersFpTarget);
 	sample.voteShare[EmergingOthersCode] = correctedFp;
 }
 
@@ -813,6 +806,7 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample) const
 			partyTwoFp = 1.0f;
 			partyOneFp += deficit * (targetTpp / (100.0f - targetTpp));
 		}
+
 		sample.voteShare[partyCodeVec[0]] = partyOneFp;
 		sample.voteShare[partyCodeVec[1]] = partyTwoFp;
 		normaliseSample(sample);
