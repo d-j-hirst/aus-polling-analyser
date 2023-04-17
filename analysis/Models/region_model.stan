@@ -52,7 +52,7 @@ model {
     // poll observations
     for (poll in 1:pollCount) {
       int daysBeforePresent = dayCount - pollDay[poll];
-      real distSigma = 2.5 / sqrt(pollSize[poll]);
+      real distSigma = 4.0 / sqrt(pollSize[poll]);
       
       nswSwingDevPoll[poll] ~ normal(nswSwingDev[pollDay[poll]], distSigma);
       vicSwingDevPoll[poll] ~ normal(vicSwingDev[pollDay[poll]], distSigma * 1.114);

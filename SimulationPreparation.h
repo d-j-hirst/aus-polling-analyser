@@ -63,6 +63,7 @@ private:
 	void loadRegionPollBehaviours();
 	void loadRegionMixBehaviours();
 	void loadOverallRegionMixParameters();
+	void loadRegionSwingDeviations();
 	void loadTppSwingFactors();
 	void loadIndividualSeatParameters();
 	void prepareProminentMinors();

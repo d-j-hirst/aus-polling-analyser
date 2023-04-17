@@ -77,6 +77,7 @@ void SimulationPreparation::prepareForIterations()
 	loadRegionPollBehaviours();
 	loadRegionMixBehaviours();
 	loadOverallRegionMixParameters();
+	loadRegionSwingDeviations();
 
 	calculateTotalPopulation();
 	calculateIndEmergenceModifier();
@@ -971,6 +972,36 @@ void SimulationPreparation::loadOverallRegionMixParameters()
 		}
 
 	} while (true);
+}
+
+void SimulationPreparation::loadRegionSwingDeviations()
+{
+	std::string fileName = "analysis/Regional/" + run.getTermCode() + "-swing-deviations.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) {
+		// Not finding a file is fine, but log a message in case this isn't intended behaviour
+		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+		return;
+	}
+	do {
+		std::string line;
+		std::getline(file, line);
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		int index = 0;
+		for (auto value : values) {
+			run.regionSwingDeviations[index] = std::stof(value);
+			if (index == 5) { // TAS, ACT and NT are all bundled together
+				run.regionSwingDeviations[6] = std::stof(value);
+				run.regionSwingDeviations[7] = std::stof(value);
+				break;
+			}
+			++index;
+		}
+
+	} while (true);
+	PA_LOG_VAR(run.regionSwingDeviations);
 }
 
 void SimulationPreparation::loadTppSwingFactors()

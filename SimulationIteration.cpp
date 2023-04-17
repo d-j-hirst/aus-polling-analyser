@@ -569,7 +569,7 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 	float medianNaiveSwing = overallSwingCoeff * iterationOverallSwing + baseSwingDeviation;
 	float swingToTransform = 0.0f;
 	if (run.regionPollBehaviour.contains(regionIndex)) {
-		float pollRawDeviation = thisRegion.swingDeviation;
+		float pollRawDeviation = run.regionSwingDeviations[regionIndex];
 		float pollCoeff = run.regionPollBehaviour[regionIndex].overallSwingCoeff;
 		// Halve this as rough fudge factor for the fact it isn't backtested.
 		float pollIntercept = run.regionPollBehaviour[regionIndex].baseSwingDeviation * 0.5f;
@@ -596,7 +596,7 @@ void SimulationIteration::determineBaseRegionalSwing(int regionIndex)
 	}
 	else {
 		// Naive swing - the swing we get without any region polling history
-		float pollRawDeviation = thisRegion.swingDeviation;
+		float pollRawDeviation = run.regionSwingDeviations[regionIndex];
 		float rmse = run.regionBaseBehaviour[regionIndex].rmse;
 		float kurtosis = run.regionBaseBehaviour[regionIndex].kurtosis;
 		float randomVariation = rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis);

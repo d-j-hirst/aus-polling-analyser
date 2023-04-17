@@ -255,6 +255,7 @@ private:
 	RegionMixParameters regionMixParameters;
 	RegionPollBehaviour generalPollBehaviour;
 	TppSwingFactors tppSwingFactors;
+	std::map<int, float> regionSwingDeviations;
 
 	std::vector<int> indCount;
 	std::vector<int> othCount;

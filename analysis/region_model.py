@@ -146,7 +146,9 @@ class ElectionData:
     # Convert "days" objects into raw numerical data
     # that Stan can accept
     for i in self.base_df.index:
+      self.base_df.loc[i, 'StartDayNum'] = int(self.base_df.loc[i, 'StartDay'] + 1)
       self.base_df.loc[i, 'MidDayNum'] = int(self.base_df.loc[i, 'MidDay'] + 1)
+      self.base_df.loc[i, 'EndDayNum'] = int(self.base_df.loc[i, 'EndDay'] + 1)
 
 
 def run_model(config, m_data, e_data):
@@ -159,20 +161,24 @@ def run_model(config, m_data, e_data):
       df[f'{region}'] - e_data.previous_results[f'{region}'] - df['NatSwing']
     )
 
-  pollDays = [int(a) for a in df['MidDayNum'].values]
+  pollDays = (
+    [int(a) for a in df['StartDayNum'].values] +
+    [int(a) for a in df['MidDayNum'].values] +
+    [int(a) for a in df['EndDayNum'].values]
+  )
   df.fillna(-10000, inplace=True)
 
   stan_data = {
-    'pollCount': df.shape[0],
+    'pollCount': df.shape[0] * 3,
     'dayCount': e_data.n_days,
     'pollDay': pollDays,
-    'nswSwingDevPoll': df['NSW_SwingDev'].tolist(),
-    'vicSwingDevPoll': df['VIC_SwingDev'].tolist(),
-    'qldSwingDevPoll': df['QLD_SwingDev'].tolist(),
-    'waSwingDevPoll': df['WA_SwingDev'].tolist(),
-    'saSwingDevPoll': df['SA_SwingDev'].tolist(),
-    'wstanSwingDevPoll': df['WSTAN_SwingDev'].tolist(),
-    'pollSize': df['Size'].tolist(),
+    'nswSwingDevPoll': df['NSW_SwingDev'].tolist() * 3,
+    'vicSwingDevPoll': df['VIC_SwingDev'].tolist() * 3,
+    'qldSwingDevPoll': df['QLD_SwingDev'].tolist() * 3,
+    'waSwingDevPoll': df['WA_SwingDev'].tolist() * 3,
+    'saSwingDevPoll': df['SA_SwingDev'].tolist() * 3,
+    'wstanSwingDevPoll': df['WSTAN_SwingDev'].tolist() * 3,
+    'pollSize': df['Size'].tolist() * 3,
   }
 
   # get the Stan model code
@@ -198,7 +204,7 @@ def run_model(config, m_data, e_data):
   fit = sm.sampling(data=stan_data,
                       iter=iterations,
                       chains=chains,
-                      control={'max_treedepth': 16,
+                      control={'max_treedepth': 18,
                               'adapt_delta': 0.8})
   finish_time = perf_counter()
   print('Time elapsed: ' + format(finish_time - start_time, '.2f')
@@ -217,10 +223,14 @@ def run_model(config, m_data, e_data):
   output_probs = tuple(probs_list)
   summary = fit.summary(probs=output_probs)
 
-  colnames = summary['summary_colnames']
   required_rows = [e_data.n_days * a - 1 for a in range(1, 7)]
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
+  with open(
+    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations.csv', 'w'
+  ) as f:
+    f.write('nsw,vic,qld,wa,sa,tan\n')
+    f.write(','.join([str(a) for a in state_vals]))
 
 
 def run_models():
@@ -248,7 +258,7 @@ def run_models():
     run_model(
       config=config,
       m_data=m_data,
-      e_data=e_data
+      e_data=e_data,
     )
 
 
