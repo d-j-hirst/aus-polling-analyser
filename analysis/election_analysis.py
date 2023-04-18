@@ -1520,7 +1520,6 @@ def analyse_green_independent_correlation(elections):
     results_np = numpy.array(d['greens_swings'])
     mod = sm.OLS(results_np, inputs_np)
     fit = mod.fit()
-    print(fit.summary2())
 
     filename = (f'./Seat Statistics/GRN_IND_correlation.csv')
     with open(filename, 'w') as f:
