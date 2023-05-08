@@ -752,7 +752,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-3.44
 fPreviousTppSwing=0.73
-sCandidateNames=Warren Entsch,LNP
+bRetirement=1
 #Lilley
 sIncumbent=ALP
 sChallenger=LNP
@@ -780,7 +780,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-9.34
 fPreviousTppSwing=2.86
-sCandidateNames=Karen Andrews,LNP
+bRetirement=1
 #Moncrieff
 sIncumbent=LNP
 sChallenger=ALP

@@ -91,7 +91,7 @@ public:
 
 	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
 
-	StanModel::SupportSample generateNowcastSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime) const;
+	StanModel::SupportSample generateNowcastSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime);
 
 	StanModel::SupportSample generateSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime) const;
 
@@ -103,6 +103,9 @@ public:
 
 private:
 
+	void createTimePoint(int time, ModelCollection const& models);
+
+	std::vector<bool> detailCreated;
 	StanModel::PartySupport projectedSupport;
 	StanModel::Series tppSupport; // For whatever party is first in the user-defined party list
 

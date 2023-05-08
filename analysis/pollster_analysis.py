@@ -45,12 +45,12 @@ def get_n_polls(filenames):
         election = (election[:4], election[4:])
         with open(f'{directory}/{filename}', 'r') as f:
             lines = f.readlines()[1:]
-            final_day = max(int(a.split(',')[1]) for a in lines)
+            final_day = max(int(float(a.split(',')[1]) + 0.01) for a in lines)
             # Only count polls that would contribute to "new" house effect
             start_day = final_day - 183
             for line in lines:
                 pollster = line.split(',')[0]
-                if int(line.split(',')[1]) < start_day: continue
+                if int(float(line.split(',')[1]) + 0.01) < start_day: continue
                 key = (election, pollster, party)
                 if key not in n_polls:
                     n_polls[key] = 0

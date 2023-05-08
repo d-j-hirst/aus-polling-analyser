@@ -14,6 +14,8 @@ constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
 
+std::mutex debugMutex;
+
 RandomGenerator StanModel::rng = RandomGenerator();
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
@@ -539,7 +541,6 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 	constexpr bool IncludeVariation = true;
 	for (auto& [key, voteShare] : sample.voteShare) {
 		if (key == EmergingOthersCode) continue;
-		if (tppFirst && (key == partyCodeVec[0] || key == partyCodeVec[1])) continue;
 		if (!tppFirst && key == TppCode) continue;
 		double transformedPolls = transformVoteShare(double(voteShare));
 
@@ -576,24 +577,61 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 			voteShare = float(newVoteShare);
 		}
 		else {
-
 			double newVoteShare = detransformVoteShare(mixedDebiasedVote);
 			voteShare = float(newVoteShare);
+
+			//if ((key == "ALP" || key == "LNP") && days == 0) {
+			//	std::lock_guard lock(debugMutex);
+			//	PA_LOG_VAR(days);
+			//	PA_LOG_VAR(voteShare);
+			//	PA_LOG_VAR(partyGroup);
+			//	PA_LOG_VAR(transformedPolls);
+			//	PA_LOG_VAR(pollBiasToday);
+			//	PA_LOG_VAR(debiasedPolls);
+			//	PA_LOG_VAR(fundamentalsPrediction);
+			//	PA_LOG_VAR(fundamentalsBiasToday);
+			//	PA_LOG_VAR(debiasedFundamentalsAverage);
+			//	PA_LOG_VAR(mixFactor);
+			//	PA_LOG_VAR(mixedVoteShare);
+			//	PA_LOG_VAR(mixedBiasToday);
+			//	PA_LOG_VAR(mixedDebiasedVote);
+			//	PA_LOG_VAR(newVoteShare);
+			//	PA_LOG_VAR(voteShare);
+			//}
 		}
 	}
 
 	addEmergingOthers(sample, days);
 	if (!tppFirst) {
+		//if (days == 0) {
+		//	std::lock_guard lock(debugMutex);
+		//	PA_LOG_VAR("Checkpoint A");
+		//	PA_LOG_VAR(sample.voteShare["ALP"]);
+		//	PA_LOG_VAR(sample.voteShare["LNP"]);
+		//}
 		normaliseSample(sample);
+		//if (days == 0) {
+		//	std::lock_guard lock(debugMutex);
+		//	PA_LOG_VAR("Checkpoint A");
+		//	PA_LOG_VAR(sample.voteShare["ALP"]);
+		//	PA_LOG_VAR(sample.voteShare["LNP"]);
+		//}
 		updateOthersValue(sample);
+		//if (days == 0) {
+		//	std::lock_guard lock(debugMutex);
+		//	PA_LOG_VAR("Checkpoint A");
+		//	PA_LOG_VAR(sample.voteShare["ALP"]);
+		//	PA_LOG_VAR(sample.voteShare["LNP"]);
+		//}
 		generateTppForSample(sample);
+		//if (days == 0) {
+		//	std::lock_guard lock(debugMutex);
+		//	PA_LOG_VAR("Checkpoint A");
+		//	PA_LOG_VAR(sample.voteShare["ALP"]);
+		//	PA_LOG_VAR(sample.voteShare["LNP"]);
+		//}
 	}
 	else {
-		// Add rough approximations for major party fps so that normalisation works properly
-		// Normalisation is needed so that high-rating minor parties crowd each other out as you'd expect
-		for (int partyIndex = 0; partyIndex < 2; ++partyIndex) {
-			sample.voteShare[partyCodeVec[partyIndex]] = fundamentals.at(reversePartyGroups.at(partyCodeVec[partyIndex]));
-		}
 		normaliseSample(sample);
 		generateMajorFpForSample(sample);
 		updateOthersValue(sample);
@@ -604,7 +642,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 
 void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 {
-	constexpr static int NumIterations = 1000; // *** change back to 3000!
+	int numIterations = 2000;
 	adjustedSupport.clear(); // do this first as it should not be left with previous data
 	try {
 		int seriesLength = rawSupport.begin()->second.timePoint.size();
@@ -622,9 +660,11 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 					wxDateTime thisDate = startDate;
 					// Add 12 hours to avoid DST related shenanigans
 					thisDate.Add(wxTimeSpan(4)).Add(wxDateSpan(0, 0, 0, time));
-					std::vector<std::array<float, NumIterations>> samples(partyCodeVec.size());
-					std::array<float, NumIterations> tppSamples;
-					for (int iteration = 0; iteration < NumIterations; ++iteration) {
+					// Extra accuracy for the final data point, since it's much more important than the rest
+					int localIterations = time == seriesLength - 1 ? numIterations * 100 : numIterations;
+					std::vector<std::vector<float>> samples(partyCodeVec.size(), std::vector<float>(localIterations));
+					std::vector<float> tppSamples(localIterations);
+					for (int iteration = 0; iteration < localIterations; ++iteration) {
 						auto sample = generateAdjustedSupportSample(thisDate);
 						for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 							std::string partyName = partyCodeVec[partyIndex];
@@ -640,13 +680,13 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 						std::string partyName = partyCodeVec[partyIndex];
 						std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
 						for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-							int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
+							int sampleIndex = std::min(localIterations - 1, percentile * localIterations / int(Spread::Size));
 							adjustedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
 						}
 					}
 					std::sort(tppSamples.begin(), tppSamples.end());
 					for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-						int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(Spread::Size));
+						int sampleIndex = std::min(localIterations - 1, percentile * localIterations / int(Spread::Size));
 						tppSupport.timePoint[time].values[percentile] = tppSamples[sampleIndex];
 					}
 				}

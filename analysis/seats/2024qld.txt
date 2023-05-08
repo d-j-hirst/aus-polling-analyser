@@ -234,6 +234,7 @@ sChallenger=LNP
 sRegion=Brisbane
 fTppMargin=14.35
 fPreviousTppSwing=1.9
+bRetirement=1
 #Jordan
 sIncumbent=ALP
 sChallenger=LNP

@@ -204,7 +204,7 @@ void SimulationIteration::determineFedStateCorrelation()
 void SimulationIteration::determineOverallTpp()
 {
 	// First, randomly determine the national swing for this particular simulation
-	auto const& projection = project.projections().view(0);
+	auto& projection = project.projections().access(0);
 	auto projectedSample = projection.generateNowcastSupportSample(project.models(), project.projections().view(sim.settings.baseProjection).getSettings().endDate);
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
@@ -1572,9 +1572,9 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - currentExhaustRateEstimate);
 
 	static bool ProducedExhaustRateWarning = false;
-	if (currentExhaustRateEstimate && overallExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
+	if (currentExhaustRateEstimate && !std::isnan(currentExhaustRateEstimate) && overallExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
 		PA_LOG_VAR(overallExhaustRate);
-		logger << "Warning: A exhaust rate was produced for an election that appears to be for compulsory preferential voting. Seat concerned: " + seat.name + ", observed exhaust rate: " + std::to_string(currentExhaustRateEstimate) << "\n";
+		logger << "Warning: An exhaust rate was produced for an election that appears to be for compulsory preferential voting. Seat concerned: " + seat.name + ", observed exhaust rate: " + std::to_string(currentExhaustRateEstimate) << "\n";
 		ProducedExhaustRateWarning = true;
 	}
 
@@ -2042,7 +2042,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				if (targetParty == run.grnPartyIndex) grnIndex = targetIndex;
 				if (targetParty == run.indPartyIndex || partyIdeologies[targetParty] == 2) indIndex = targetIndex;
 				int ideologyDistance = abs(partyIdeologies[sourceParty] - partyIdeologies[targetParty]);
-				if (bothMajorParties(sourceParty, targetParty)) ++ideologyDistance;
+				if (isMajor(targetParty)) ++ideologyDistance;
 				float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
 				float thisWeight = std::pow(consistencyBase, -ideologyDistance);
 				float randomFactor = rng.uniform(0.6f, 1.4f);

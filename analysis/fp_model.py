@@ -586,9 +586,9 @@ def run_individual_party(config, m_data, e_data,
         # distributions for the daily change in vote share
         # higher values during campaigns, since it's more likely
         # people are paying attention and changing their mind then
-        'dailySigma': 0.35,
-        'campaignSigma': 0.5,
-        'finalSigma': 0.8,
+        'dailySigma': 0.25,
+        'campaignSigma': 0.45,
+        'finalSigma': 0.7,
 
         # prior distribution for each house effect
         # modelled as a double exponential to avoid
@@ -737,7 +737,7 @@ def run_individual_party(config, m_data, e_data,
             polls_file.write(str(df.loc[poll_index, 'Brand']))
         else:
             polls_file.write(str(df.loc[poll_index, 'Firm']))
-        day = df.loc[poll_index, 'DayNum']
+        day = int(df.loc[poll_index, 'DayNum'])
         days_ago = e_data.n_days - day
         polls_file.write(',' + str(day))
         fp = df.loc[poll_index, party]

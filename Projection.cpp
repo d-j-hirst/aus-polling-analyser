@@ -16,6 +16,8 @@
 
 #undef max
 
+std::mutex detailCreationMutex;
+
 Projection::Projection(SaveData saveData)
 	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
 	projection(saveData.projection)
@@ -26,6 +28,43 @@ void Projection::replaceSettings(Settings newSettings)
 {
 	settings = newSettings;
 	lastUpdated = wxInvalidDateTime;
+}
+
+void Projection::createTimePoint(int time, ModelCollection const& models)
+{
+	auto const& model = getBaseModel(models);
+	std::vector<std::vector<float>> samples(model.partyCodeVec.size(), std::vector<float>(settings.numIterations));
+	std::unique_ptr<std::vector<float>> tppSamples; // on heap to avoid 
+	tppSamples.reset(new std::vector<float>(std::vector<float>(settings.numIterations)));
+	for (int iteration = 0; iteration < settings.numIterations; ++iteration) {
+		auto projectedDate = startDate + wxDateSpan::Days(time);
+		auto sample = generateSupportSample(models, projectedDate);
+		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
+			std::string partyName = model.partyCodeVec[partyIndex];
+			if (sample.voteShare.count(partyName)) {
+				samples[partyIndex][iteration] = sample.voteShare[partyName];
+			}
+			if (sample.voteShare.count(TppCode)) {
+				(*tppSamples)[iteration] = sample.voteShare[TppCode];
+			}
+		}
+
+	}
+	for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
+		std::string partyName = model.partyCodeVec[partyIndex];
+		std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
+		for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
+			int sampleIndex = std::min(settings.numIterations - 1, percentile * settings.numIterations / int(StanModel::Spread::Size));
+			projectedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
+		}
+		projectedSupport[partyName].timePoint[time].calculateExpectation();
+	}
+	std::sort(tppSamples->begin(), tppSamples->end());
+	for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
+		int sampleIndex = std::min(settings.numIterations - 1, percentile * settings.numIterations / int(StanModel::Spread::Size));
+		tppSupport.timePoint[time].values[percentile] = (*tppSamples)[sampleIndex];
+	}
+	tppSupport.timePoint[time].calculateExpectation();
 }
 
 void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int numThreads) {
@@ -39,7 +78,10 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 
 	logger << "Starting projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
 
-	constexpr static int NumIterations = 5000;
+	// Initial run is only for visual purposes so don't do too many iterations for that.
+	constexpr static int PreliminaryIterations = 300;
+	int iterationsMemory = settings.numIterations;
+	settings.numIterations = PreliminaryIterations;
 	projectedSupport.clear(); // do this first as it should not be left with previous data
 	try {
 		int seriesLength = (settings.endDate - startDate).GetDays() + 1;
@@ -49,42 +91,13 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 			projectedSupport[partyName].timePoint.resize(seriesLength);
 		}
 		tppSupport.timePoint.resize(seriesLength);
-
+		detailCreated.resize(seriesLength, false);
 
 		constexpr int BatchSize = 10;
 		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
-					std::vector<std::array<float, NumIterations>> samples(model.partyCodeVec.size());
-					std::unique_ptr<std::array<float, NumIterations>> tppSamples; // on heap to avoid 
-					tppSamples.reset(new std::array<float, NumIterations>());
-					for (int iteration = 0; iteration < NumIterations; ++iteration) {
-						auto projectedDate = startDate + wxDateSpan::Days(time);
-						auto sample = generateSupportSample(models, projectedDate);
-						for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
-							std::string partyName = model.partyCodeVec[partyIndex];
-							if (sample.voteShare.count(partyName)) {
-								samples[partyIndex][iteration] = sample.voteShare[partyName];
-							}
-							if (sample.voteShare.count(TppCode)) {
-								(*tppSamples)[iteration] = sample.voteShare[TppCode];
-							}
-						}
-
-					}
-					for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
-						std::string partyName = model.partyCodeVec[partyIndex];
-						std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
-						for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
-							int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(StanModel::Spread::Size));
-							projectedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
-						}
-					}
-					std::sort(tppSamples->begin(), tppSamples->end());
-					for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
-						int sampleIndex = std::min(NumIterations - 1, percentile * NumIterations / int(StanModel::Spread::Size));
-						tppSupport.timePoint[time].values[percentile] = (*tppSamples)[sampleIndex];
-					}
+					createTimePoint(time, models);
 				}
 			};
 			std::vector<std::thread> threads;
@@ -107,6 +120,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 			"Specific information: " + e.what());
 		return;
 	}
+	settings.numIterations = iterationsMemory;
 
 	logger << "Completed projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
 
@@ -156,7 +170,7 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 	return &std::next(projectedSupport.begin(), index)->second;
 }
 
-StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, wxDateTime date) const
+StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, wxDateTime date)
 {
 	// Get an as-if-election-now sample
 	auto electionNowSupportSample = generateSupportSample(models, date);
@@ -181,6 +195,29 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 	}
 
 	int inverseProjIndex = endProjIndex - sampleProjIndex;
+
+	auto createDetailIfNeeded = [&](int index) {
+		if (!detailCreated[index]) {
+			logger << "Detailed projection:\n";
+			PA_LOG_VAR(index);
+			createTimePoint(index, models);
+			PA_LOG_VAR(tppSupport.timePoint.at(index).values[50]);
+			for (auto [party, series] : projectedSupport) {
+				PA_LOG_VAR(party);
+				PA_LOG_VAR(series.timePoint.at(index).values[50]);
+			}
+			detailCreated[index] = true;
+		}
+	};
+
+	{
+		std::lock_guard lock(detailCreationMutex);
+		createDetailIfNeeded(inverseProjIndex);
+		createDetailIfNeeded(endProjIndex);
+		createDetailIfNeeded(sampleProjIndex);
+		createDetailIfNeeded(0);
+	}
+
 	for (auto [party, voteShare] : electionNowSupportSample.voteShare) {
 		// It is important that the expectation (rather than median) is used here
 		// as this guarantees that the resultant adjusted sample will still add to 100 without needing adjustments
