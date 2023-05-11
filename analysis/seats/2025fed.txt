@@ -189,7 +189,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=-8.6
 fPreviousTppSwing=4.62
-sCandidateNames=Sophie Scamps,ALP
+sCandidateNames=Sophie Scamps,IND
 bSophomoreParty=1
 bSophomoreCandidate=1
 #Macquarie
@@ -679,7 +679,6 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-10.63
 fPreviousTppSwing=3.55
-sCandidateNames=Stuart Robert,LNP
 #Fairfax
 sIncumbent=LNP
 sChallenger=ALP
@@ -919,7 +918,7 @@ sChallenger=ALP
 sRegion=WA
 fTppMargin=-6.97
 fPreviousTppSwing=8.44
-sCandidateNames=Rick Wilson,ALP
+sCandidateNames=Rick Wilson,LNP
 #Pearce
 sIncumbent=ALP
 sChallenger=LNP
@@ -1068,6 +1067,7 @@ sChallenger=LNP
 sRegion=NT
 fTppMargin=0.95
 fPreviousTppSwing=-4.51
+bSophomoreCandidate=1
 sCandidateNames=Marion Scrymgour,ALP
 #Solomon
 sIncumbent=ALP

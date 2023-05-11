@@ -655,7 +655,13 @@ def get_single_election_data(inputs, poll_trend, party_group, day_data, day,
                 mixed = (debiased_polls * mix_factor
                          + debiased_fundamentals * (1 - mix_factor))
                 mixed_error = mixed - result_t
-                day_data.mixed_errors[mix_index].append(mixed_error)
+                # Adding the error to the list multiple times effectively
+                # increases the weight of the error in the average
+                # This is needed in order to down-weight the errors from
+                # a very low base that would create unrealistically high
+                # variation for higher poll trend levels
+                for _ in range(int((min(10, polls) / 10) ** 2 * 20)):
+                    day_data.mixed_errors[mix_index].append(mixed_error)
 
 
 def get_day_data(inputs, poll_trend, party_group, day):

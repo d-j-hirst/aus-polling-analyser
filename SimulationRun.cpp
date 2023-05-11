@@ -103,6 +103,7 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 {
 	doingBettingOddsCalibrations = true;
 
+	logger << "Beginning simulation part 5\n";
 	// key is (seatIndex, partyIndex)
 	std::map<std::pair<int, int>, float> impliedChances;
 	for (auto const& [seatId, seat] : project.seats()) {

@@ -23,7 +23,6 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 	}
 	lastUpdated = wxInvalidDateTime;
 	latestRun.reset(new SimulationRun(project, *this));
-	//latestRun.emplace(project, *this);
 	latestRun->run(feedback);
 	checkLiveSeats(project, feedback);
 }
