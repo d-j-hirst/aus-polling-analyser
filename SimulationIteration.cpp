@@ -1009,7 +1009,7 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	}
 
 	if (seatContested.contains(partyIndex)) {
-		if (!seatContested[partyIndex][seatIndex] && !prominent) {
+		if (!seatContested[partyIndex][seatIndex] && !prominent && project.parties().idToIndex(seat.incumbent) != partyIndex) {
 			voteShare = 0.0f;
 			return;
 		}
@@ -1029,8 +1029,9 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	float adjustedModifier = std::max(0.2f, seatModifier * fpModificationAdjustment.contains(partyIndex) ? fpModificationAdjustment[partyIndex] : 1.0f);
 	float modifiedFp1 = predictorCorrectorTransformedSwing(effectivePartyFp, effectivePartyFp * (adjustedModifier - 1.0f));
 	float modifiedFp2 = effectivePartyFp * adjustedModifier;
-	// Choosing the lower of these two values prevents the fp from being >= 100.0f in some scenarios
-	float modifiedFp = std::min(modifiedFp1, modifiedFp2);
+	float incumbentFp = project.parties().idToIndex(seat.incumbent) == partyIndex ? voteShare : 0.0f;
+	// Choosing the lower of modifiedFp1 and modifiedFp2 prevents the fp from being >= 100.0f in some scenarios
+	float modifiedFp = std::clamp(modifiedFp1, incumbentFp, modifiedFp2);
 	float transformedFp = transformVoteShare(modifiedFp);
 
 	float populism = centristPopulistFactor[partyIndex];
@@ -1873,6 +1874,8 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 			if (!tempOverallFp[partyIndex] || !overallFpTarget[partyIndex]) continue; // avoid division by zero when we have non-existent emerging others
 			float correctionFactor = overallFpTarget[partyIndex] / tempOverallFp[partyIndex];
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				Seat const& seat = project.seats().viewByIndex(seatIndex);
+				if (partyIndex == seat.incumbent) continue;
 				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
 					// prevent outlier seats from getting monster swings
 					float swingCap = std::max(0.0f, tempOverallFp[partyIndex] * (correctionFactor - 1.0f) * 3.0f);
@@ -1896,6 +1899,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					// protect independents and quasi-independents from having their votes squashed here
 					if (seatPartyIndex == run.indPartyIndex) continue;
 					if (!overallFpSwing.contains(seatPartyIndex) && seatPartyIndex >= 2) continue;
+					if (seatPartyIndex == seat.incumbent) continue;
 					if (seatPartyIndex == OthersIndex || !overallFpTarget.contains(seatPartyIndex)) {
 						categories[seatPartyIndex] = seatPartyVote;
 						totalOthers += seatPartyVote;
@@ -2007,6 +2011,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 					std::pair<int, int> targetParties = { accumulatedVoteShares[0].first, accumulatedVoteShares[1].first };
 					if (item.contains(targetParties)) {
 						float flow = item.at(targetParties);
+						// Based on previous elections Mirani ONP member gets better flows than expected for an ONP candidate
+						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.first == 4) flow += 10.0f;
+						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.second == 4) flow -= 10.0f;
 						float transformedFlow = transformVoteShare(flow);
 						// Higher variation in preference flow under OPV
 						transformedFlow += rng.normal(0.0f, 10.0f + 10.0f * (1.0f - survivalRate));

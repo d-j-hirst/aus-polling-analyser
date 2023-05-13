@@ -205,6 +205,7 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 			for (auto [party, series] : projectedSupport) {
 				PA_LOG_VAR(party);
 				PA_LOG_VAR(series.timePoint.at(index).values[50]);
+				PA_LOG_VAR(series.timePoint.at(index).expectation);
 			}
 			detailCreated[index] = true;
 		}
@@ -218,13 +219,12 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 		createDetailIfNeeded(0);
 	}
 
+
 	for (auto [party, voteShare] : electionNowSupportSample.voteShare) {
-		// It is important that the expectation (rather than median) is used here
-		// as this guarantees that the resultant adjusted sample will still add to 100 without needing adjustments
-		float inverseExpectation = party == TppCode ? tppSupport.timePoint.at(inverseProjIndex).expectation : projectedSupport.at(party).timePoint.at(inverseProjIndex).expectation;
-		float finalExpectation = party == TppCode ? tppSupport.timePoint.at(endProjIndex).expectation : projectedSupport.at(party).timePoint.at(endProjIndex).expectation;
-		float sampleExpectation = party == TppCode ? tppSupport.timePoint.at(sampleProjIndex).expectation : projectedSupport.at(party).timePoint.at(sampleProjIndex).expectation;
-		float initialExpectation = party == TppCode ? tppSupport.timePoint.at(0).expectation : projectedSupport.at(party).timePoint.at(0).expectation;
+		float inverseExpectation = party == TppCode ? tppSupport.timePoint.at(inverseProjIndex).values[50] : projectedSupport.at(party).timePoint.at(inverseProjIndex).values[50];
+		float finalExpectation = party == TppCode ? tppSupport.timePoint.at(endProjIndex).values[50] : projectedSupport.at(party).timePoint.at(endProjIndex).values[50];
+		float sampleExpectation = party == TppCode ? tppSupport.timePoint.at(sampleProjIndex).values[50] : projectedSupport.at(party).timePoint.at(sampleProjIndex).values[50];
+		float initialExpectation = party == TppCode ? tppSupport.timePoint.at(0).values[50] : projectedSupport.at(party).timePoint.at(0).values[50];
 		float adjustment = initialExpectation - sampleExpectation + finalExpectation - inverseExpectation;
 		electionNowSupportSample.voteShare[party] = predictorCorrectorTransformedSwing(electionNowSupportSample.voteShare[party], adjustment);
 	}

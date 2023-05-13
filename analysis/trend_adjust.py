@@ -513,8 +513,8 @@ def print_smoothed_series(config, label, some_dict, file,
     x_orig, y = zip(*some_dict.items())
     x = range(0, len(x_orig))
     total_days = x_orig[len(x_orig) - 1]
-    w = [10 if a == 0 else 1 for a in x]
-    spline = UnivariateSpline(x=x, y=y, w=w, s=10)
+    w = [100 if a == 0 else 1 for a in x]
+    spline = UnivariateSpline(x=x, y=y, w=w, s=100)
     full_spline = spline(x)
     full_spline = {x_orig[a]: b for a, b in enumerate(full_spline)}
     if config.show_parameters:

@@ -457,6 +457,7 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) const
 {
+	thread_local static std::map<std::string, float> mirroring;
 	if (!rawSupport.size()) return SupportSample();
 	int seriesLength = rawSupport.begin()->second.timePoint.size();
 	if (!seriesLength) return SupportSample();
@@ -469,9 +470,19 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 			sample.voteShare.insert({ key, 0.0 });
 			continue;
 		}
-		float uniform = rng.uniform(0.0, 1.0);
-		int lowerBucket = std::clamp(int(floor(uniform * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
-		float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
+		// Mirroring ensures the underlying uniform distribution is symmetric, so that the
+		// median never deviates as a result of random variation.
+		float quantile = 0.0f;
+		if (mirroring.contains(key)) {
+			quantile = mirroring[key];
+			mirroring.erase(key);
+		}
+		else {
+			quantile = rng.uniform(0.0f, 1.0f);
+			mirroring[key] = 1.0f - quantile;
+		}
+		int lowerBucket = std::clamp(int(floor(quantile * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
+		float upperMix = std::fmod(quantile * float(Spread::Size - 1), 1.0f);
 		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
 		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1];
 		float sampledVote = mix(lowerVote, upperVote, upperMix);
@@ -480,9 +491,17 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date) co
 
 	// This "raw TPP" may not be congruent with the primary votes above, but the adjustment
 	// process will only use one or the other, so that doesn't matter
-	float uniform = rng.uniform(0.0, 1.0);
-	int lowerBucket = std::clamp(int(floor(uniform * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
-	float upperMix = std::fmod(uniform * float(Spread::Size - 1), 1.0f);
+	float quantile = 0.0f;
+	if (mirroring.contains(TppCode)) {
+		quantile = mirroring[TppCode];
+		mirroring.erase(TppCode);
+	}
+	else {
+		quantile = rng.uniform(0.0f, 1.0f);
+		mirroring[TppCode] = 1.0f - quantile;
+	}
+	int lowerBucket = std::clamp(int(floor(quantile * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
+	float upperMix = std::fmod(quantile * float(Spread::Size - 1), 1.0f);
 	float lowerVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket];
 	float upperVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket + 1];
 	float sampledVote = mix(lowerVote, upperVote, upperMix);
@@ -528,6 +547,7 @@ void StanModel::generateUnnamedOthersSeries()
 
 StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample, int days) const
 {
+	thread_local static std::map<std::string, double> mirroring;
 	constexpr int MinDays = 0;
 	// the "days" parameter used for trend adjustment calculation is the number of days to the end
 	// of the series, not the election itself - and the typical series ends 3 days before the election proper
@@ -570,7 +590,18 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 			const double upperError = parameters.at(partyGroup)[days][int(InputParameters::UpperError)];
 			const double lowerKurtosis = parameters.at(partyGroup)[days][int(InputParameters::LowerKurtosis)];
 			const double upperKurtosis = parameters.at(partyGroup)[days][int(InputParameters::UpperKurtosis)];
-			const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis);
+
+			double quantile = 0.0;
+			if (mirroring.contains(key)) {
+				quantile = mirroring[key];
+				mirroring.erase(key);
+			}
+			else {
+				quantile = rng.uniform(0.0, 1.0);
+				mirroring[key] = 1.0 - quantile;
+			}
+
+			const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis, quantile);
 			const double voteWithVariation = mixedDebiasedVote + additionalVariation;
 
 			double newVoteShare = detransformVoteShare(voteWithVariation);
