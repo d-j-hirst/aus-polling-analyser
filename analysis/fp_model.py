@@ -47,7 +47,7 @@ class Config:
             description='Determine trend adjustment parameters')
         parser.add_argument('--election', action='store', type=str,
                             help='Generate forecast trend for this election.'
-                            'Enter as 1234-xxx format,'
+                            ' Enter as 1234-xxx format,'
                             ' e.g. 2013-fed. Write "all" '
                             'to do it for all elections.')
         parser.add_argument('-c', '--calibrate', action='store_true',
@@ -63,8 +63,8 @@ class Config:
                             'Ignored if --calibrate is also used.')
         parser.add_argument('--cutoff', action='store', type=int,
                             help='Exclude polls occurring fewer than this many'
-                            'days before an election. Useful for creating'
-                            'hindcasts for previous elections.', 
+                            ' days before an election. Useful for creating'
+                            ' hindcasts for previous elections.', 
                             default=0)
         parser.add_argument('--pure', action='store_true',
                             help="Only use primary voting intention results, "
@@ -202,11 +202,11 @@ class ElectionData:
         # drop data not in range of this election period
         self.base_df['MidDate'] = [pd.Timestamp(date)
                             for date in self.base_df['MidDate']]
-        start_date = m_data.election_cycles[tup][0]
-        end_date = (m_data.election_cycles[tup][1] - 
+        self.start_date = m_data.election_cycles[tup][0]
+        self.end_date = (m_data.election_cycles[tup][1] - 
                     pd.to_timedelta(config.cutoff, unit="D"))
-        self.base_df = self.base_df[self.base_df['MidDate'] >= start_date]
-        self.base_df = self.base_df[self.base_df['MidDate'] <= end_date]
+        self.base_df = self.base_df[self.base_df['MidDate'] >= self.start_date]
+        self.base_df = self.base_df[self.base_df['MidDate'] <= self.end_date]
 
         # convert dates to days from start
         # do this before removing polls with N/A values so that
@@ -507,16 +507,14 @@ def run_individual_party(config, m_data, e_data,
                     line.strip().split(',')
                     for line in f.readlines()
                 ]
-            start_date = m_data.election_cycles[e_data.e_tuple][0]
-            end_date = m_data.election_cycles[e_data.e_tuple][1]
             approvals = [
                 (   #date, tpp, info weight
                     pd.Timestamp(line[0]),
                     float(line[2]), float(line[3])
                 )
                 for line in approvals
-                if (pd.Timestamp(line[0]) >= start_date
-                    and pd.Timestamp(line[0]) <= end_date)
+                if (pd.Timestamp(line[0]) >= e_data.start_date
+                    and pd.Timestamp(line[0]) <= e_data.end_date)
             ]
             
             # Go through each approval and remove the part of the TPP
@@ -547,7 +545,12 @@ def run_individual_party(config, m_data, e_data,
                             (
                                 a,
                                 b - (1 - flow) *
-                                e_data.others_medians[oth_party][(a - e_data.start).days],
+                                # if the other party's trend doesn't reach this
+                                # point, just use the last value
+                                e_data.others_medians[oth_party][min(
+                                    (a - e_data.start).days,
+                                    len(e_data.others_medians[oth_party]) - 1
+                                )],
                                 c
                             )
                             for a, b, c in approvals
