@@ -96,6 +96,10 @@
 2006,sa,DEM FP,60
 2006,sa,FF FP,30
 2006,sa,OTH FP,44.2
+2025,wa,GRN FP,83.2,#2021 election was so extreme, use the pref flows from 2017
+2025,wa,ONP FP,34.8
+2025,wa,OTH FP,44.3
+2025,wa,NAT FP,5.0,#Takes into account that while leakage to LIB is higher than this, most NAT vote goes directly to the TPP in their seat anyway
 2021,wa,GRN FP,83.2
 2021,wa,ONP FP,34.8
 2021,wa,OTH FP,44.3
