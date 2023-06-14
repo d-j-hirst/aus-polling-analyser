@@ -35,12 +35,16 @@ parser.add_argument('--results', action='store',
 parser.add_argument('--review', action='store',
                     help='Review results instead of uploading forecast. '
                          'Include argument e.g. 2022fed')
+parser.add_argument('--clearcache', action='store_true',
+                    help='Clear cache. Useful if an incorrect forecast '
+                         'has been uploaded.')
 upload_local = parser.parse_args().local or parser.parse_args().all
 upload_test = parser.parse_args().test or parser.parse_args().all
 upload_remote = parser.parse_args().remote or parser.parse_args().all
 timeseries = parser.parse_args().timeseries
 results = parser.parse_args().results
 review = parser.parse_args().review
+clear_cache = parser.parse_args().clearcache
 if not (upload_local or upload_test or upload_remote):
     upload_local = True
 
@@ -61,6 +65,10 @@ elif results:
 elif review:
     data = '{"termCode":"' + review + '"}'
     url_part = 'submit-review'
+elif clear_cache:
+    review = '2022fed'
+    data = '{"termCode":"' + review + '"}'
+    url_part = 'reset-cache'
 else:
     with open("latest_json.dat") as f:
         data = f.read()
