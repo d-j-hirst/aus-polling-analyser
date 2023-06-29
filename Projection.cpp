@@ -80,6 +80,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 
 	// Initial run is only for visual purposes so don't do too many iterations for that.
 	constexpr static int PreliminaryIterations = 300;
+	//constexpr static int PreliminaryIterations = 3000;
 	int iterationsMemory = settings.numIterations;
 	settings.numIterations = PreliminaryIterations;
 	projectedSupport.clear(); // do this first as it should not be left with previous data
@@ -91,6 +92,7 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 			projectedSupport[partyName].timePoint.resize(seriesLength);
 		}
 		tppSupport.timePoint.resize(seriesLength);
+		detailCreated.clear();
 		detailCreated.resize(seriesLength, false);
 
 		constexpr int BatchSize = 10;
