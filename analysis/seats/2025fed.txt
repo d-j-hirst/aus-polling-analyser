@@ -678,6 +678,7 @@ sIncumbent=LNP
 sChallenger=ALP
 sRegion=QLD
 fTppMargin=-10.63
+fByElectionSwing=-2.72
 fPreviousTppSwing=3.55
 #Fairfax
 sIncumbent=LNP
