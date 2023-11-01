@@ -162,6 +162,10 @@ class Approvals:
                 # area or they're after the date threshold (end 2021)
                 if (day_diff <= 12 and (same_area or
                     (date - threshold).days >= 0)): continue
+                # Treat "future" dates as if they're 18 years ago
+                # This makes sure that the regression isn't more
+                # heavily sampled than it would have been at the time
+                if day_diff < 0: day_diff += 365 * 18
                 x.append(netapp)
                 # Get last leader who entered office before this poll
                 is_coalition = self.is_coalition(election, day)
@@ -194,10 +198,26 @@ class Approvals:
                     weight *= 0.01
                 y.append(gov_trend-50)
                 w.append(weight)
+
         y = np.array(y)
         x = np.array(x)
 
+        if target_pollster == "Morning Consult" and target_election[0] == '2025':
+            if str(obs_date) == "2023-10-21" or str(obs_date) == "2023-10-14":
+                print("initial weight sum")
+                print(sum(w))
+
+        # This process makes sure that the relationship between approvals
+        # and trends for a specific poll is not far below the historical
+        # relationship overall. If this relationship is too low, it is
+        # a sign that the weightings are too high and the regression
+        # will not extrapolate well.
+        # It is also a sign that the approval is not a good indicator
+        # of 2pp, so remember the initial ratio and use it to scale
+        # the final weight sum
+        initial_weights = [a for a in w]
         param_ratio = 0
+        initial_param_ratio = 0
         while param_ratio < 0.7:
             x = sm.add_constant(x)
             wls_model = sm.WLS(y, x, weights=w)
@@ -208,9 +228,26 @@ class Approvals:
             alt_wls_model = sm.WLS(y, x, weights=alt_weights)
             alt_wls_results = alt_wls_model.fit()
             param_ratio = wls_results.params[1] / alt_wls_results.params[1]
-            if (param_ratio < 0.7): w = [a ** 0.8 for a in w]
+            if initial_param_ratio == 0:
+                initial_param_ratio = param_ratio
 
-        weight_sum = sum(w)
+            if target_pollster == "Morning Consult" and target_election[0] == '2025':
+                if str(obs_date) == "2023-10-21" or str(obs_date) == "2023-10-14":
+                    print("param ratio")
+                    print(wls_results.params[1])
+                    print(alt_wls_results.params[1])
+                    print(param_ratio)
+
+            w_sum = sum(w)
+
+            if (param_ratio < 0.7): w = [a ** 0.9 for a in w]
+
+        weight_sum = sum(initial_weights) * min(1, (initial_param_ratio + 0.3)) ** 2
+
+        if target_pollster == "Morning Consult" and target_election[0] == '2025':
+            if str(obs_date) == "2023-10-21" or str(obs_date) == "2023-10-14":
+                print("final weight sum")
+                print(sum(w))
 
         # The extra zero prevents this array from being implicitly
         # converted into something which would prevent the prediction from
@@ -233,6 +270,14 @@ class Approvals:
                     observation=netapp,
                     obs_date=date
                 )
+                if pollster == "Morning Consult":
+                    print(day)
+                    print(pollster)
+                    print(netapp)
+                    print(synthetic_tpp)
+                    print(weight_sum)
+                    print(election)
+                    print(date)
                 if self.is_coalition(election, day):
                     synthetic_tpp = 100 - synthetic_tpp
                 if not election[1] in files: files[election[1]] = []

@@ -563,7 +563,11 @@ def run_individual_party(config, m_data, e_data,
             missingObs += [0 for a in approvals]
             pollHouses += [len(houses) - 1 for a in approvals]
             pollDays += [(a[0] - e_data.start).days + 1 for a in approvals]
-            sigmasList += [max(3, 4 - a[2]) for a in approvals]
+            # Sigma of approval rating-derived TPP will be between 3 and 5
+            # depending on the weight of the approval rating
+            # Even at the lowest end this is similar to a "bad" poll
+            # and overwhelmed by a good poll
+            sigmasList += [max(3, 5 - a[2]) for a in approvals]
             he_weights += [0]
             biases += [0]
 

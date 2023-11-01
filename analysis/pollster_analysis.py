@@ -204,9 +204,19 @@ def analyse_bias():
                         # frequently polled election gets a weight of 1
                         weight = (min(math.log(this_n_polls + 1), 3) *
                                   min(math.log(all_n_polls + 1), 4) / 12)
+                        # "Future" elections to be used for calibration
+                        # are treated as if they were held 18 years earlier
+                        # to ensure that the total weighting of all elections
+                        # is not unduly increased due to having too many
+                        # "recent" elections
+                        effective_year = (
+                            int(election[0])
+                            if int(election[0]) <= int(target_election[0])
+                            else int(election[0]) - 18
+                        )
                         # Elections in closer proximity should have more weight
                         weight *= 2 ** -(abs(
-                            int(election[0]) - int(target_election[0])
+                            int(target_election[0]) - effective_year
                         ) / 6)
                         # Downweight polls from federal elections
                         # if the target election is not federal
