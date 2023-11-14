@@ -202,11 +202,6 @@ class Approvals:
         y = np.array(y)
         x = np.array(x)
 
-        if target_pollster == "Morning Consult" and target_election[0] == '2025':
-            if str(obs_date) == "2023-10-21" or str(obs_date) == "2023-10-14":
-                print("initial weight sum")
-                print(sum(w))
-
         # This process makes sure that the relationship between approvals
         # and trends for a specific poll is not far below the historical
         # relationship overall. If this relationship is too low, it is
@@ -231,23 +226,11 @@ class Approvals:
             if initial_param_ratio == 0:
                 initial_param_ratio = param_ratio
 
-            if target_pollster == "Morning Consult" and target_election[0] == '2025':
-                if str(obs_date) == "2023-10-21" or str(obs_date) == "2023-10-14":
-                    print("param ratio")
-                    print(wls_results.params[1])
-                    print(alt_wls_results.params[1])
-                    print(param_ratio)
-
             w_sum = sum(w)
 
             if (param_ratio < 0.7): w = [a ** 0.9 for a in w]
 
         weight_sum = sum(initial_weights) * min(1, (initial_param_ratio + 0.3)) ** 2
-
-        if target_pollster == "Morning Consult" and target_election[0] == '2025':
-            if str(obs_date) == "2023-10-21" or str(obs_date) == "2023-10-14":
-                print("final weight sum")
-                print(sum(w))
 
         # The extra zero prevents this array from being implicitly
         # converted into something which would prevent the prediction from
@@ -270,14 +253,6 @@ class Approvals:
                     observation=netapp,
                     obs_date=date
                 )
-                if pollster == "Morning Consult":
-                    print(day)
-                    print(pollster)
-                    print(netapp)
-                    print(synthetic_tpp)
-                    print(weight_sum)
-                    print(election)
-                    print(date)
                 if self.is_coalition(election, day):
                     synthetic_tpp = 100 - synthetic_tpp
                 if not election[1] in files: files[election[1]] = []
@@ -289,7 +264,7 @@ class Approvals:
         for area, approvals in files.items():
             with open(f'Synthetic TPPs/{area}.csv', 'w') as f:
                 for date, pollster, tpp, weight_sum in approvals:
-                    f.write(f'{date.isoformat()},{pollster},{tpp},{weight_sum}\n')
+                    f.write(f'{date.isoformat()},{pollster},{round(tpp, 3)},{round(weight_sum, 4)}\n')
     
     def analyse_synthetic_tpps(self):
         errors = []

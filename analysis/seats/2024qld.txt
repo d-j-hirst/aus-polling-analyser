@@ -450,6 +450,7 @@ sChallenger=LNP
 sRegion=Regional
 fTppMargin=8.62
 fPreviousTppSwing=1.9
+bRetirement=1
 #Sandgate
 sIncumbent=ALP
 sChallenger=LNP

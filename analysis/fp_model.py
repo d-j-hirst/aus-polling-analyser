@@ -701,7 +701,9 @@ def run_individual_party(config, m_data, e_data,
         to_write += party + ","
         for col in range(3, 3+len(output_probs)-1):
             trend_value = summary[table_index][col]
-            to_write += str(trend_value) + ','
+            to_write += str(round(trend_value, 3)) + ','
+
+        # Prepare others-medians, this isn't related to the trend file
         if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
             # Average of first and last
             median_col = math.floor((4+len(output_probs)) / 2)
@@ -715,7 +717,7 @@ def run_individual_party(config, m_data, e_data,
                     if oth_party in others_parties:
                         e_data.others_medians[party][summaryDay] -= \
                             e_data.others_medians[oth_party][summaryDay]
-        to_write += str(summary[table_index][3+len(output_probs)-1]) + '\n'
+        to_write += str(round(summary[table_index][3+len(output_probs)-1], 3)) + '\n'
         if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
         trend_file.write(to_write)
     trend_file.close()
@@ -756,10 +758,10 @@ def run_individual_party(config, m_data, e_data,
         mixed_he = (old_factor * old_he +
                     (1 - old_factor) * new_he)
         adjusted_fp = fp - mixed_he
-        polls_file.write(',' + str(fp))
-        polls_file.write(',' + str(adjusted_fp))
+        polls_file.write(',' + str(round(fp, 3)))
+        polls_file.write(',' + str(round(adjusted_fp, 3)))
         if party == "@TPP":
-            polls_file.write(',' + str(df.loc[poll_index, 'old_tpp']))
+            polls_file.write(',' + str(round(df.loc[poll_index, 'old_tpp'], 3)))
         polls_file.write('\n')
     polls_file.close()
     print('Saved polls file at ' + output_polls)
@@ -785,7 +787,7 @@ def run_individual_party(config, m_data, e_data,
         house_effects_file.write("," + party)
         for col in range(3, 3+len(output_probs)):
             house_effects_file.write(
-                ',' + str(summary[table_index][col]))
+                ',' + str(round(summary[table_index][col], 3)))
         house_effects_file.write('\n')
     offset = e_data.n_days + n_houses
     house_effects_file.write('Old house effects\n')
@@ -795,7 +797,7 @@ def run_individual_party(config, m_data, e_data,
         house_effects_file.write("," + party)
         for col in range(3, 3+len(output_probs)):
             house_effects_file.write(
-                ',' + str(summary[table_index][col]))
+                ',' + str(round(summary[table_index][col], 3)))
         house_effects_file.write('\n')
 
     house_effects_file.close()
