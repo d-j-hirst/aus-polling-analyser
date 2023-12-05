@@ -72,6 +72,7 @@ class Approvals:
         filename = f'Data/poll-data-{poll_file}.csv'
         cols = ['MidDate', 'Firm', 'GLApp', 'GLDis']
         df = pd.read_csv(filename, usecols=cols)
+        print(filename)
         approvals = [
             (
                 datetime.date.fromisoformat(date),
