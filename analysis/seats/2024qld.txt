@@ -72,6 +72,7 @@ sChallenger=ALP
 sRegion=Coasts
 fTppMargin=-1.21
 fPreviousTppSwing=3.65
+bRetirement=1
 #Burnett
 sIncumbent=LNP
 sChallenger=ALP
@@ -190,6 +191,7 @@ sChallenger=ALP
 sRegion=Regional
 fTppMargin=-17.25
 fPreviousTppSwing=1.9
+bRetirement=1
 #Gympie
 sIncumbent=LNP
 sChallenger=ALP
@@ -222,6 +224,7 @@ sChallenger=LNP
 sRegion=Brisbane
 fTppMargin=28.17
 fPreviousTppSwing=2.07
+bRetirement=1
 #Ipswich
 sIncumbent=ALP
 sChallenger=LNP
@@ -418,6 +421,7 @@ sChallenger=ALP
 sRegion=Brisbane
 fTppMargin=-4.48
 fPreviousTppSwing=2.76
+bRetirement=1
 #Pine Rivers
 sIncumbent=ALP
 sChallenger=LNP
@@ -457,6 +461,7 @@ sChallenger=LNP
 sRegion=Brisbane
 fTppMargin=17.3
 fPreviousTppSwing=3.82
+bRetirement=1
 #Scenic Rim
 sIncumbent=LNP
 sChallenger=ALP
