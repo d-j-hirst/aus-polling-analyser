@@ -1,21 +1,11 @@
 
--Finish bits of NSW forecast not yet complete.
- -Kiama stuff (IND interference under OPV).
- -Add new sections to forecast guide for by-election swings and Kiama stuff.
- -Prepare seat betting code. Do a number of test simulation runs to calibrate the odds and use that for the actual election.
- -Maybe write an update post?
--Fed 
- -Add all remaining fed (and maybe state) approval ratings. Check Essential Report dates for each year.
- -Create weighted regressions to convert approval ratings -> TPPs.
- -Use this to create synthetic TPP series
- -During creation of past TPP trends, further create synthetic major party FPs according to the minor party FPs and synthetic TPPs.
- -Use these to extend pollster analysis for synthetic TPPs.
- -Reorganise poll trend generation to put minor party FPs first ...
- -So that we can generate provisional synthetic FPs for major parties
- -Use the synthetic FPs and TPPs in their respective poll trend generators.
- -Get everything else in the forecast ready
- -Write release post
- -Publish
+ -Rework pollster analysis to strictly exclude future polls and generate separate data for any given date/election combination. (Will create a lot of files, but should be small individually)
+ -Ensure poll trend generation can deal with missing GRN and/or OTH votes (probably just drop polls that don't specify OTH, and treat GRN same as other minor parties)
+ -Run all poll trends that have enough previous pollster data (assess how much after completing previous points)
+ -(Wait for above to complete)
+ -Rework trend adjust to strictly avoid using future elections and re-run for all elections past a certain date (this creates the baseline for comparison with the next step)
+ -Overhaul trend adjust to use bayesian aggregation to determine best bias adjustment for each party type
+ -
 
  -General refactor of frontend as there is currently a lot of code duplication
  -Develop mechanism for making hindcasts and assigning an appropriate date for when they "would" have been done
