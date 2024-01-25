@@ -1,30 +1,157 @@
-from mailbox import linesep
-import os
+import argparse
 import math
 import numpy as np
+import os
+import pandas as pd
+from mailbox import linesep
+from election_code import ElectionCode
 from statsmodels.stats.weightstats import DescrStatsW
 
 directory = 'Outputs/Calibration'
 
-def analyse_variability():
+
+class ConfigError(ValueError):
+    pass
+
+
+class Config:
+    def __init__(self):
+        parser = argparse.ArgumentParser(
+            description='Determine trend adjustment parameters')
+        parser.add_argument('--election', action='store', type=str,
+                            help='Generate forecast trend for this election.'
+                            ' Enter as 1234-xxx format,'
+                            ' e.g. 2013-fed. Write "all" '
+                            'to do it for all elections.')
+        self.election_instructions = parser.parse_args().election.lower()
+        self.prepare_election_list()
+
+    def prepare_election_list(self):
+        with open('./Data/polled-elections.csv', 'r') as f:
+            elections = ElectionCode.load_elections_from_file(f)
+        with open('./Data/future-elections.csv', 'r') as f:
+            elections += ElectionCode.load_elections_from_file(f)
+        if self.election_instructions == 'all':
+            self.elections = elections
+        else:
+            parts = self.election_instructions.split('-')
+            if len(parts) < 2:
+                raise ConfigError('Error in "elections" argument: given value '
+                                  'did not have two parts separated '
+                                  'by a hyphen (e.g. 2013-fed)')
+            try:
+                code = ElectionCode(parts[0], parts[1])
+            except ValueError:
+                raise ConfigError('Error in "elections" argument: first part '
+                                  'of election name could not be converted '
+                                  'into an integer')
+            if code not in elections:
+                raise ConfigError('Error in "elections" argument: '
+                                  'value given did not match any election '
+                                  'given in Data/polled-elections.csv')
+            if len(parts) == 2:
+                self.elections = [code]
+            elif parts[2] == 'onwards':
+                try:
+                    self.elections = (elections[elections.index(code):])
+                except ValueError:
+                    raise ConfigError('Error in "elections" argument: '
+                                  'value given did not match any election '
+                                  'given in Data/polled-elections.csv')
+            else:
+                raise ConfigError('Invalid instruction in "elections"'
+                                  'argument.')
+
+
+def get_election_cycles():
+    # Load the dates of each election cycle
+    # to ensure that we don't use any data from the future
+    with open('./Data/election-cycles.csv', 'r') as f:
+        election_cycles = {
+            (int(a[0]), a[1]):
+            (
+                pd.Timestamp(a[2]),
+                pd.Timestamp(a[3])
+            )
+            for a in [b.strip().split(',')
+            for b in f.readlines()]
+        }
+        return election_cycles
+
+
+def analyse_variability(target_election, cycles):
+    # The trend calibration process for each prior election has to be done
+    # before performing this analysis (via fp_model.py --calibrate)
     print("Analysing variability")
     filenames = os.listdir(directory)
+    # This dictionary will contain the weighted error sums for each
+    # pollster/party combination, i.e. one value for each election
     weighted_error_sums = {}
+    # This dictionary will contain the weight sums for each pollster/party
+    # combination, i.e. one value for each election
     weight_sums = {}
+
+    # Get all the different pollster/party combinations
+    # that are actually needed for this election
+    # and establish a prior expectation for each
     for filename in filenames:
-        if (filename[:5]) != 'calib': continue
-        _, election, pollster, party = filename.split(".")[0].split('_')
-        key = (pollster, party)
+        if 'biascal' not in filename or 'polls' not in filename: continue
+        election = filename.split('.')[0].split('_')[2]
+        year = int(election[:4])
+        region = election[4:]
+        if year != target_election.year(): continue
+        if region != target_election.region(): continue
+        party = filename.split('.')[0].split('_')[3]
         with open(f'{directory}/{filename}', 'r') as f:
-            stat_strs = f.readlines()[0].split(',')[:2]
-            error, weight = float(stat_strs[0]), float(stat_strs[1])
-            if key not in weighted_error_sums:
+            data = f.readlines()[1:]
+            for line in data:
+                pollster = line.split(',')[0]
+                key = (pollster, party)
+                # Add a small amount to the weight when a new pollster/party is
+                # encountered to establish prior expectation and avoid
+                # overfitting to the first few data points
                 weighted_error_sums[key] = 14
                 weight_sums[key] = 7
+
+
+    for filename in filenames:
+        if (filename[:5]) != 'calib': continue
+        # The file we have excludes a particular pollster from the calibration
+        # so that we can see the variability of that pollster from the trend
+        # line created from all other pollsters
+        _, election, pollster, party = filename.split(".")[0].split('_')
+        year = int(election[:4])
+        # Don't use elections from the future
+        if year > target_election.year(): continue
+        if year == target_election.year():
+            # If we're in the same year, make sure that the election is earlier
+            # than the target election (i.e. don't use the target election itself
+            # or any future election in the same year)
+            # (Later, add some logic for partial series of a parallel election cycle
+            # when that series is before the target election)
+            region = election[4:]
+            # Check the end dates of the corresponding election period
+            if cycles[(year, region)][1] > cycles[(target_election.year(), target_election.region())][1]:
+                continue
+        print(f'Analysing {election} {pollster} {party}')
+        key = (pollster, party)
+        with open(f'{directory}/{filename}', 'r') as f:
+            # The first line of the file contains the weighted error and weight
+            # The rest of the file is not required for this analysis
+            # (it contains the deviations and weights for each poll)
+            stat_strs = f.readlines()[0].split(',')[:2]
+            error, weight = float(stat_strs[0]), float(stat_strs[1])
+            # If this pollster/party isn't in the dictionary, skip it
+            # as we don't need it for the target election
+            if key not in weighted_error_sums:
+                continue
+            # Add the weighted error and weight to the dictionaries
             weighted_error_sums[key] += weight * error
             weight_sums[key] += weight
 
-    with open(f'{directory}/variability.csv', 'w') as f:
+    with open(f'{directory}/variability-{target_election.year()}{target_election.region()}.csv', 'w') as f:
+        # Store the standard deviation in error and sum of weights
+        # for each pollster/party combination
         for key in sorted(weight_sums.keys()):
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
@@ -248,6 +375,18 @@ def analyse_bias():
 
 
 if __name__ == '__main__':
-    analyse_variability()
-    analyse_house_effects()
-    analyse_bias()
+
+    try:
+        config = Config()
+        cycles = get_election_cycles()
+        for election in config.elections:
+            analyse_variability(election, cycles)
+        #analyse_house_effects()
+        #analyse_bias()
+        with open(f'itsdone.txt', 'w') as f:
+            f.write('1')
+    except ConfigError as e:
+        print('Could not process configuration due to the following issue:')
+        print(str(e))
+        with open(f'itsdone.txt', 'w') as f:
+            f.write('2')

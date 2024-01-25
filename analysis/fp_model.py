@@ -1,4 +1,5 @@
 import argparse
+import chime
 import datetime
 import math
 import numpy as np
@@ -6,10 +7,10 @@ import pandas as pd
 import pystan
 import sys
 import statistics
-from time import perf_counter
-from datetime import timedelta
 from approvals import generate_synthetic_tpps
-from election_code import ElectionCode, no_target_election_marker
+from datetime import timedelta
+from election_code import ElectionCode
+from time import perf_counter
 
 from stan_cache import stan_cache
 
@@ -218,6 +219,10 @@ class ElectionData:
         self.base_df['Day'] = (self.base_df['MidDate'] - self.start).dt.days
         self.n_days = self.base_df['Day'].max() + 1
 
+        # drop data without a defined OTH FP (since that would indicate
+        # that we don't know if undecided were excluded)
+        self.base_df.dropna(subset=['OTH FP'], inplace=True)
+
         # store the election day for when the model needs it later
         self.election_day = (m_data.election_cycles[tup][1] - self.start).days
 
@@ -230,8 +235,6 @@ class ElectionData:
                 [a for a in self.all_houses if
                  list(self.base_df['Firm']).count(a) > 1]
 
-            self.pollster_exclusions += ['']
-
             self.poll_calibrations = {}
         else:
             self.pollster_exclusions = ['']
@@ -242,6 +245,8 @@ class ElectionData:
                                desired_election=desired_election, 
                                df=self.base_df)
         
+        # This order is important: do not want to overwrite
+        # the OTH FP column until after the TPP has been calculated
         self.combine_others_parties()
 
     def create_tpp_series(self, m_data, desired_election, df):
@@ -298,6 +303,27 @@ class ElectionData:
                 self.base_df['OTH FP'] = self.base_df['OTH FP'] + tempCol
             except KeyError:
                 pass  # it's expected that some parties aren't in the file
+
+        # remove imputed Greens vote from OTH (if it exists)
+        # This occurs in cases where the Greens are considered a
+        # significant party but a poll doesn't report their vote
+        # in which case they are included among "Others"
+        # In order to make sure that "Others" has the same meaning for
+        # each poll, we need to remove the imputed Greens vote from it
+        # as estimated from the Greens poll trend
+        if 'GRN FP' in self.base_df and 'GRN FP' in self.others_medians:
+            # create dict with imputed GRN values
+            adjustments = {a: 0 for a in self.base_df.index.values}
+            for a in adjustments.keys():
+                if math.isnan(self.base_df.loc[a, 'GRN FP']):
+                    day = self.base_df.loc[a, 'Day']
+                    estimated_fp = self.others_medians['GRN FP'][day]
+                    adjustments[a] += estimated_fp
+                    adjustments[a] = min(self.base_df.loc[a, 'OTH FP'], adjustments[a])
+            adjustment_series = pd.Series(data=adjustments)
+            # Subtract imputed GRN values from OTH
+            self.base_df['OTH FP'] -= adjustment_series
+
 
     def create_day_series(self):
         # Convert "days" objects into raw numerical data
@@ -704,6 +730,7 @@ def run_individual_party(config, m_data, e_data,
             to_write += str(round(trend_value, 3)) + ','
 
         # Prepare others-medians, this isn't related to the trend file
+        # but it's needed for the runs of other parties
         if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
             # Average of first and last
             median_col = math.floor((4+len(output_probs)) / 2)
@@ -868,47 +895,58 @@ def run_models():
     except ConfigError as e:
         print('Could not process configuration due to the following issue:')
         print(str(e))
+        with open(f'itsdone.txt', 'w') as f:
+            f.write('2')
         return
 
-    # check version information
-    print('Python version: {}'.format(sys.version))
-    print('pystan version: {}'.format(pystan.__version__))
+    try:
+        # check version information
+        print('Python version: {}'.format(sys.version))
+        print('pystan version: {}'.format(pystan.__version__))
 
-    if config.use_approvals(): generate_synthetic_tpps()
+        if config.use_approvals(): generate_synthetic_tpps()
 
-    m_data = ModellingData()
+        m_data = ModellingData()
 
-    # Load the list of election periods we want to model
-    desired_elections = config.elections
+        # Load the list of election periods we want to model
+        desired_elections = config.elections
 
-    for desired_election in desired_elections:
+        for desired_election in desired_elections:
 
-        e_data = ElectionData(config=config,
-                              m_data=m_data,
-                              desired_election=desired_election)
+            e_data = ElectionData(config=config,
+                                m_data=m_data,
+                                desired_election=desired_election)
 
-        for excluded_pollster in e_data.pollster_exclusions:
+            for excluded_pollster in e_data.pollster_exclusions:
 
-            for party in m_data.parties[e_data.e_tuple]:
+                for party in m_data.parties[e_data.e_tuple]:
 
-                if party == "@TPP":
-                    e_data.create_tpp_series(m_data,
-                                             desired_election,
-                                             e_data.base_df)
+                    if party == "@TPP":
+                        e_data.create_tpp_series(m_data,
+                                                desired_election,
+                                                e_data.base_df)
 
-                if excluded_pollster != '':
-                    print(f'Excluding pollster: {excluded_pollster}')
-                else:
-                    print('Not excluding any pollsters.')
+                    if excluded_pollster != '':
+                        print(f'Excluding pollster: {excluded_pollster}')
+                    else:
+                        print('Not excluding any pollsters.')
 
-                run_individual_party(config=config,
-                                     m_data=m_data,
-                                     e_data=e_data,
-                                     excluded_pollster=excluded_pollster,
-                                     party=party)
+                    run_individual_party(config=config,
+                                        m_data=m_data,
+                                        e_data=e_data,
+                                        excluded_pollster=excluded_pollster,
+                                        party=party)
 
-        if config.calibrate_pollsters:
-            finalise_calibrations(e_data=e_data)
+            if config.calibrate_pollsters:
+                finalise_calibrations(e_data=e_data)
+    except Exception as e:
+        with open(f'itsdone.txt', 'w') as f:
+            f.write('2')
+        raise
+    
+    with open(f'itsdone.txt', 'w') as f:
+        f.write('1')
+
 
 if __name__ == '__main__':
     run_models()
