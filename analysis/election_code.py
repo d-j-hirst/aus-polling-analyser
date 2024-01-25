@@ -14,6 +14,9 @@ class ElectionCode:
     def region(self):
         return self._internal[1]
 
+    def pair(self):
+        return (self.year(), self.region())
+
     def __repr__(self):
         return f'ElectionCode({self.year()}, {self.region()})'
     
