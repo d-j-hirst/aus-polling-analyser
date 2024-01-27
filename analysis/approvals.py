@@ -25,6 +25,7 @@ class Approvals:
         self.start_dates = {}
         self.end_dates = {}
         self.leaderships = {}
+        ## Need to adjust this so that only "previous" elections are used
         with open('Data/polled-elections.csv', 'r') as f:
             self.elections = {
                 (a[0], a[1])

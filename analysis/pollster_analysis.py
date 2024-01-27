@@ -129,6 +129,7 @@ def analyse_variability(target_election, cycles, links):
     # This dictionary will contain the weight sums for each pollster/party
     # combination
     weight_sums = {}
+    lib = False
 
     # Get all the different pollster/party combinations
     # that are actually needed for this election
@@ -141,6 +142,7 @@ def analyse_variability(target_election, cycles, links):
         if year != target_election.year(): continue
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
+        if party == "LIB FP": party = "LNP FP"; lib = True
         with open(f'{directory}/{filename}', 'r') as f:
             data = f.readlines()[1:]
             for line in data:
@@ -159,6 +161,7 @@ def analyse_variability(target_election, cycles, links):
         # so that we can see the variability of that pollster from the trend
         # line created from all other pollsters
         _, election, pollster, party = filename.split(".")[0].split('_')
+        if party == "LIB FP": party = "LNP FP"
         election = ElectionCode(int(election[:4]), election[4:])
         # Don't use elections from the future
         if not check_dates(election, target_election, cycles, equals=True): continue
@@ -196,6 +199,7 @@ def analyse_variability(target_election, cycles, links):
                     link_weight = 21
                     weight_sums[linked_key] += link_weight
                     weighted_error_sums[linked_key] += error_average * link_weight
+            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
             f.write(f'{key[0]},{key[1]},{error_stddev},{weight_sum - 7}\n')
         for key in sorted(weight_sums.keys()):
             # Non-linked pollsters have already been done
@@ -204,6 +208,7 @@ def analyse_variability(target_election, cycles, links):
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum
             error_stddev = error_average / math.sqrt(2 / math.pi)
+            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
             f.write(f'{key[0]},{key[1]},{error_stddev},{weight_sum - 7}\n')
     
     print('Variability analysis successfully completed')
@@ -259,6 +264,7 @@ def analyse_house_effects(target_election, cycles, links):
     # pollster/party combination, i.e. one value for each election
     abs_he_sums = {}
     abs_he_weights = {}
+    lib = False
 
     # Get all the different pollster/party combinations
     # that are actually needed for this election
@@ -271,6 +277,7 @@ def analyse_house_effects(target_election, cycles, links):
         if year != target_election.year(): continue
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
+        if party == "LIB FP": party = "LNP FP"; lib = True
         with open(f'{directory}/{filename}', 'r') as f:
             data = f.readlines()[1:]
             for line in data:
@@ -286,6 +293,7 @@ def analyse_house_effects(target_election, cycles, links):
         if (filename[:4]) != 'fp_h': continue
         if 'biascal' not in filename: continue
         election, party = filename.split(".")[0].split('_')[3:5]
+        if party == "LIB FP": party = "LNP FP"
         election = ElectionCode(int(election[:4]), election[4:])
         if not check_dates(election, target_election, cycles, equals=True): continue
         # Load the relevant data as (pollster:median house effect) dict pairs
@@ -334,12 +342,14 @@ def analyse_house_effects(target_election, cycles, links):
                     link_weight = 1.2
                     abs_he_weights[linked_key] += link_weight
                     abs_he_sums[linked_key] += average_he * link_weight
+            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
             f.write(f'{key[0]},{key[1]},{weighting}\n')
         for key in sorted(abs_he_sums.keys()):
             # Non-linked pollsters have already been done
             if key[0] not in sum(links.values(), []): continue
             average_he = abs_he_sums[key] / abs_he_weights[key]
             weighting = 1 / average_he
+            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
             f.write(f'{key[0]},{key[1]},{weighting}\n')
     
     print('House effect analysis successfully completed')
@@ -388,6 +398,7 @@ def analyse_bias(target_election, cycles, links):
     bias_list = {}
     weight_list = {}
     filenames = os.listdir(directory)
+    lib = False
     # Get all the different pollster/party combinations
     # that are actually needed for this election
     # and establish a prior expectation for each
@@ -399,6 +410,7 @@ def analyse_bias(target_election, cycles, links):
         if year != target_election.year(): continue
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
+        if party == "LIB FP": party = "LNP FP"; lib = True
         with open(f'{directory}/{filename}', 'r') as f:
             data = f.readlines()[1:]
             for line in data:
@@ -420,6 +432,7 @@ def analyse_bias(target_election, cycles, links):
             file_marker = f'fp_house_effects_{election.year()}{election.region()}'
             if (file_marker in filename and 'biascal' in filename):
                 party = filename.split('_')[4]
+                if party == "LIB FP": party = "LNP FP"
                 with open(f'{directory}/{filename}', 'r') as f:
                     data = load_new_house_effects(f)
                 key = (election, party)
@@ -473,6 +486,7 @@ def analyse_bias(target_election, cycles, links):
                 print(desc.std)
                 print(weight_list[linked_key])
                 print(bias_list[linked_key])
+        if target_key[1] == "LNP FP" and lib: target_key = (target_key[0], "LIB FP")
         bias_infos.append((target_key[0], target_key[1], desc.mean, desc.std))
     for target_key in sorted(bias_list.keys()):
         # Non-linked pollsters have already been done
@@ -480,6 +494,7 @@ def analyse_bias(target_election, cycles, links):
         bias_arr = np.array(bias_list[target_key])
         weight_arr = np.array(weight_list[target_key])
         desc = DescrStatsW(bias_arr, weights=weight_arr)
+        if target_key[1] == "LNP FP" and lib: target_key = (target_key[0], "LIB FP")
         bias_infos.append((target_key[0], target_key[1], desc.mean, desc.std))
 
     with open(f'{directory}/biases-{target_election.year()}{target_election.region()}.csv', 'w') as f:

@@ -174,21 +174,6 @@ class ModellingData:
                 for b in f.readlines()]
             }
 
-        with open('./Outputs/Calibration/variability.csv', 'r') as f:
-            self.pollster_sigmas = {(a[0], a[1]): float(a[2])
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
-
-        with open('./Outputs/Calibration/he_weighting.csv', 'r') as f:
-            self.pollster_he_weights = {(a[0], a[1]): float(a[2])
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
-
-        with open('./Outputs/Calibration/biases.csv', 'r') as f:
-            self.pollster_biases = {((a[0], a[1]), a[2], a[3]): (float(a[4]), float(a[5]))
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
-
 
 class ElectionData:
     def __init__(self, config, m_data, desired_election):
@@ -196,6 +181,9 @@ class ElectionData:
                           desired_election.region())           
         tup = self.e_tuple
         self.others_medians = {}
+
+        if not (config.calibrate_pollsters or config.calibrate_bias):
+            self.get_pollster_analysis(desired_election)
 
         # collect the model data
         self.base_df = pd.read_csv(data_source[tup[1]])
@@ -234,6 +222,8 @@ class ElectionData:
             self.pollster_exclusions = \
                 [a for a in self.all_houses if
                  list(self.base_df['Firm']).count(a) > 1]
+            
+            self.pollster_exclusions += ['']
 
             self.poll_calibrations = {}
         else:
@@ -324,12 +314,29 @@ class ElectionData:
             # Subtract imputed GRN values from OTH
             self.base_df['OTH FP'] -= adjustment_series
 
-
     def create_day_series(self):
         # Convert "days" objects into raw numerical data
         # that Stan can accept
         for i in self.base_df.index:
             self.base_df.loc[i, 'DayNum'] = int(self.base_df.loc[i, 'Day'] + 1)
+    
+    def get_pollster_analysis(self, desired_election):
+        code = desired_election.short()
+        with open(f'./Outputs/Calibration/variability-{code}.csv', 'r') as f:
+            self.pollster_sigmas = {(a[0], a[1]): float(a[2])
+                            for a in [b.strip().split(',')
+                            for b in f.readlines()]}
+
+        with open(f'./Outputs/Calibration/he_weighting-{code}.csv', 'r') as f:
+            self.pollster_he_weights = {(a[0], a[1]): float(a[2])
+                            for a in [b.strip().split(',')
+                            for b in f.readlines()]}
+
+        with open(f'./Outputs/Calibration/biases-{code}.csv', 'r') as f:
+            print(f.readlines())
+            self.pollster_biases = {((a[0], a[1]), a[2], a[3]): (float(a[4]), float(a[5]))
+                            for a in [b.strip().split(',')
+                            for b in f.readlines()]}
 
 
 def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
@@ -475,17 +482,19 @@ def run_individual_party(config, m_data, e_data,
     sample_size = 1000
     calibration_sigma = np.sqrt((50 * 50) / (sample_size))
     sigmas = df['Firm'].apply(
-        lambda x: calibration_sigma if config.calibrate_pollsters else
-        m_data.pollster_sigmas[(x, party)] if
-        (x, party) in m_data.pollster_sigmas else 3
+        lambda x: calibration_sigma if (
+            config.calibrate_pollsters or config.calibrate_bias
+        ) else
+        e_data.pollster_sigmas[(x, party)] if
+        (x, party) in e_data.pollster_sigmas else 3
     )
 
     # Equal weights for house effects when calibrating,
     # use determined house effect weights when running forecasts
     he_weights = [
         1 if config.calibrate_pollsters or config.calibrate_bias else
-        m_data.pollster_he_weights[(x, party)] ** 2 if
-        (x, party) in m_data.pollster_he_weights else 0.05
+        e_data.pollster_he_weights[(x, party)] ** 2 if
+        (x, party) in e_data.pollster_he_weights else 0.05
         for x in houses
     ]
 
@@ -493,8 +502,8 @@ def run_individual_party(config, m_data, e_data,
     # use determined house effect weights when running forecasts
     biases = [
         0 if config.calibrate_pollsters or config.calibrate_bias else
-        m_data.pollster_biases[(e_data.e_tuple, x, party)][0] if
-        (e_data.e_tuple, x, party) in m_data.pollster_biases else 0
+        e_data.pollster_biases[(e_data.e_tuple, x, party)][0] if
+        (e_data.e_tuple, x, party) in e_data.pollster_biases else 0
         for x in houses
     ]
 
@@ -918,6 +927,12 @@ def run_models():
                                 desired_election=desired_election)
 
             for excluded_pollster in e_data.pollster_exclusions:
+
+                # Don't waste time calculating the no-pollster-excluded trend
+                # if there are no pollster-excluded trends to compare it to
+                # (and that is the only purpose for which it is calculated)
+                if config.calibrate_pollsters and excluded_pollster == '' and \
+                    len(e_data.poll_calibrations) == 0: continue
 
                 for party in m_data.parties[e_data.e_tuple]:
 
