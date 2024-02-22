@@ -3,6 +3,7 @@ import chime
 import datetime
 import math
 import numpy as np
+import os
 import pandas as pd
 import pystan
 import sys
@@ -203,9 +204,11 @@ class ElectionData:
         # (otherwise, a poll missing some parties, or with only approval ratings,
         # could cause inconsistent date indexing)
         self.start = self.base_df['MidDate'].min()  # day zero
+        self.end = self.base_df['MidDate'].max()
         # day number for each poll
         self.base_df['Day'] = (self.base_df['MidDate'] - self.start).dt.days
         self.n_days = self.base_df['Day'].max() + 1
+        self.days_to_election = (m_data.election_cycles[tup][1] - self.end).days
 
         # drop data without a defined OTH FP (since that would indicate
         # that we don't know if undecided were excluded)
@@ -333,8 +336,7 @@ class ElectionData:
                             for b in f.readlines()]}
 
         with open(f'./Outputs/Calibration/biases-{code}.csv', 'r') as f:
-            print(f.readlines())
-            self.pollster_biases = {((a[0], a[1]), a[2], a[3]): (float(a[4]), float(a[5]))
+            self.pollster_biases = {(desired_election.pair(), a[0], a[1]): (float(a[2]), float(a[3]))
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
@@ -403,6 +405,34 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
     print(f'Overall ({excluded_pollster}, {party}):'
           f' standard deviation from trend median: {std_dev}'
           f' average probability deviation: {prob_dev_avg}')
+
+
+def output_filename(config, e_data, party, excluded_pollster, file_type):
+
+    # construct the file names that the script will output results into -
+    # put calibration files in calibration folder, with the file name
+    # appended with the pollster name if calibrated for a pollster's variance
+    # or "biascal" if calibrating for bias.
+    pollster_append = (
+        f'_{excluded_pollster}' if 
+        excluded_pollster != '' else
+        f'_biascal' if config.calibrate_bias else ''
+    )
+    e_tag = ''.join(e_data.e_tuple)
+    calib_str = (
+        "Calibration/" if config.calibrate_pollsters
+        or config.calibrate_bias else ""
+    )
+    cutoff = e_data.days_to_election
+    cutoff_str = "Cutoffs/" if config.cutoff > 0 else ""
+    folder = (f'./Outputs/{calib_str}{cutoff_str}')
+    pure_append = f'_pure' if config.pure else ''
+    cutoff_append = f'_{cutoff}d' if config.cutoff > 0 else ''
+
+    return (
+        f'{folder}fp_{file_type}_{e_tag}_{party}{pollster_append}'
+        f'{pure_append}{cutoff_append}.csv'
+    )
 
 
 def run_individual_party(config, m_data, e_data,
@@ -688,27 +718,9 @@ def run_individual_party(config, m_data, e_data,
     import pystan.diagnostics as psd
     print(psd.check_hmc_diagnostics(fit))
 
-    # construct the file names that the script will output results into
-    # put calibration files in calibration folder, with the file name
-    # appended with the pollster name if calibrated for a pollster's variance
-    # or "biascal" if calibrating for bias.
-    pollster_append = (f'_{excluded_pollster}' if 
-                       excluded_pollster != '' else
-                       f'_biascal' if config.calibrate_bias else '')
-    e_tag = ''.join(e_data.e_tuple)
-    calib_str = ("Calibration/" if config.calibrate_pollsters
-                 or config.calibrate_bias else "")
-    cutoff_str = "Cutoffs/" if config.cutoff > 0 else ""
-    folder = (f'./Outputs/{calib_str}{cutoff_str}')
-    pure_append = f'_pure' if config.pure else ''
-    cutoff_append = f'_{config.cutoff}d' if config.cutoff > 0 else ''
-
-    output_trend = (f'{folder}fp_trend_{e_tag}_{party}{pollster_append}'
-                    f'{pure_append}{cutoff_append}.csv')
-    output_polls = (f'{folder}fp_polls_{e_tag}_{party}{pollster_append}'
-                    f'{pure_append}{cutoff_append}.csv')
-    output_house_effects = (f'{folder}fp_house_effects_{e_tag}_'
-        f'{party}{pollster_append}{pure_append}{cutoff_append}.csv')
+    output_trend = output_filename(config, e_data, party, excluded_pollster, 'trend')
+    output_polls = output_filename(config, e_data, party, excluded_pollster, 'polls')
+    output_house_effects = output_filename(config, e_data, party, excluded_pollster, 'house_effects')
 
     if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
         e_data.others_medians[party] = {}
@@ -926,6 +938,7 @@ def run_models():
                                 m_data=m_data,
                                 desired_election=desired_election)
 
+
             for excluded_pollster in e_data.pollster_exclusions:
 
                 # Don't waste time calculating the no-pollster-excluded trend
@@ -935,6 +948,15 @@ def run_models():
                     len(e_data.poll_calibrations) == 0: continue
 
                 for party in m_data.parties[e_data.e_tuple]:
+                    
+                    # Avoid unnecessary duplication of effort for cutoffs that would be identical
+                    if config.cutoff > 0:
+                        trend_filename = output_filename(config, e_data, party, excluded_pollster, 'trend')
+                        print(trend_filename)
+
+                        if os.path.exists(trend_filename):
+                            print(f'Trend file for {party} in election {desired_election.short()} already exists, skipping')
+                            continue
 
                     if party == "@TPP":
                         e_data.create_tpp_series(m_data,

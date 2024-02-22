@@ -1,6 +1,6 @@
 
  -Rework pollster analysis to strictly exclude future polls and generate separate data for any given date/election combination. (Will create a lot of files, but should be small individually)
- -Ensure poll trend generation can deal with missing GRN and/or OTH votes (probably just drop polls that don't specify OTH, and treat GRN same as other minor parties)
+ -Setup 6-monthly calibration updates for in-progress polls and set pollster analyses to use these where possible
  -Run all poll trends that have enough previous pollster data (assess how much after completing previous points)
  -(Wait for above to complete)
  -Rework trend adjust to strictly avoid using future elections and re-run for all elections past a certain date (this creates the baseline for comparison with the next step)
@@ -13,6 +13,14 @@
  -Overhaul mechanisms to count WA Nats as a separate party while maintaining TPP dynamics
  -Create hindcasts for earlier parts of 2022fed and maybe 2022sa
  -Create hindcasts for earlier elections
+ 
+Workflow:
+ -run trend models with --bias, --calibrate
+ -run pollster analyses (must wait for all trend models with overlapping time to do --bias and --calibrate)
+ -run "pure" analyses (pollster analysis for this election (only) must be complete)
+ -run full analyses (pure analysis for all previous and overlapping times must be complete)
+ -run analyses w/cutoffs (can be done as soon as previous/overlapping pure trends are done)
+ -run trend adjustment (need cutoffs up to and including this election to be complete)
 
 -glossary
  -informal/formal votes

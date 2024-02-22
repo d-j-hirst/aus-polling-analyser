@@ -912,6 +912,7 @@ sChallenger=ALP
 sRegion=WA
 fTppMargin=-0.66
 fPreviousTppSwing=10.96
+bRetirement=1
 sCandidateNames=Ian Goodenough,LNP
 #O'Connor
 sIncumbent=LNP

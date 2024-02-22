@@ -24,9 +24,12 @@ class ElectionCode:
         return f'{self.year()}{self.region()}'
 
     @staticmethod
-    def load_elections_from_file(file):
+    def load_elections_from_file(file, exclude=None):
         split_lines = [line.strip().split(',') for line in file.readlines()]
-        return [ElectionCode(int(a[0]), a[1]) for a in split_lines]
+        codes = [ElectionCode(int(a[0]), a[1]) for a in split_lines]
+        if exclude is not None and exclude in codes:
+            codes = codes[:codes.index(exclude)]
+        return codes
 
 
 no_target_election_marker = ElectionCode(0, 'none')

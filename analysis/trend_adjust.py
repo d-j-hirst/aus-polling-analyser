@@ -143,59 +143,64 @@ class Inputs:
         # Only elections with usable polling data
         # [0] year of election, [1] region of election
         with open('./Data/polled-elections.csv', 'r') as f:
-            self.polled_elections = ElectionCode.load_elections_from_file(f)
-        self.polled_elections = [a for a in self.polled_elections if a != exclude]
+            self.polled_elections = ElectionCode.load_elections_from_file(f, exclude=exclude)
         # Old elections without enough polling data, but still useful
         # for determining fundamentals forecasts
         # [0] year of election, [1] region of election
         with open('./Data/old-elections.csv', 'r') as f:
-            old_elections = ElectionCode.load_elections_from_file(f)
+            old_elections = ElectionCode.load_elections_from_file(f, exclude=exclude)
         old_elections = [a for a in old_elections if a != exclude]
         self.past_elections = self.polled_elections + old_elections
-        # Future elections that may differ in terms of their fundamentals
-        # forecasts. This includes the excluded election (if any) and
-        # should ONLY be used as a target for forecasting
-        # [0] year of election, [1] region of election
-        with open('./Data/future-elections.csv', 'r') as f:
-            future_elections = ElectionCode.load_elections_from_file(f)
-        future_elections = [a for a in future_elections if a != exclude]
-        self.all_elections = self.past_elections + future_elections + [exclude]
+        # We need data for the current election
+        self.all_elections = self.past_elections + [exclude]
         # key: [0] year of election, [1] region of election
         # value: list of significant party codes modelled in that election
         with open('./Data/significant-parties.csv', 'r') as f:
-            parties = {ElectionCode(a[0], a[1]): a[2:] for a in
-                       [b.strip().split(',') for b in f.readlines()]}
+            parties = {
+                ElectionCode(a[0], a[1]): a[2:]
+                for a in [b.strip().split(',') for b in f.readlines()]
+                if ElectionCode(a[0], a[1]) in self.all_elections
+            }
         # key: [0] year of election, [1] region of election, [2] party code
         # value: primary vote recorded in this election
+        # avoid storing eventual results for current election since that shouldn't
+        # be used for predicting it
         with open('./Data/eventual-results.csv', 'r') as f:
             self.eventual_results = {
                 ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]): float(a[3])
-                for a in [b.strip().split(',') for b in f.readlines()]}
+                for a in [b.strip().split(',') for b in f.readlines()]
+                if ElectionCode(a[0], a[1]) in self.past_elections
+            }
         # key: [0] year of election, [1] region of election, [2] party code
         # value: primary vote recorded in the previous election
         with open('./Data/prior-results.csv', 'r') as f:
             linelists = [b.strip().split(',') for b in f.readlines()]
             self.prior_results = {
                 ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]):
-                [float(x) for x in a[3:]] for a in linelists}
-
-        # Note: These two inputs aren't currently used, but leaving them here
-        # in case they are found to be useful again.
+                [float(x) for x in a[3:]]
+                for a in linelists
+                if ElectionCode(a[0], a[1]) in self.all_elections
+            }
 
         # stores: first incumbent party, then main opposition party,
         # finally years incumbent party has been in power
         with open('./Data/incumbency.csv', 'r') as f:
             self.incumbency = {
-                ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4])) for a in
-                [b.strip().split(',') for b in f.readlines()]}
+                ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4]))
+                for a in [b.strip().split(',') for b in f.readlines()]
+                if ElectionCode(a[0], a[1]) in self.all_elections
+            }
         # stores: party corresponding to federal government,
         # then party opposing federal government,
         # then the chance the federal government is still in power at this election,
         # given in the file as a percentage (defaults to 100 if not given)
         with open('./Data/federal-situation.csv', 'r') as f:
             self.federal_situation = {
-                ElectionCode(a[0], a[1]): (a[2], a[3], float(a[4]) / 100 if len(a) >= 5 else 1)
-                for a in [b.strip().split(',') for b in f.readlines()]}
+                ElectionCode(a[0], a[1]):
+                (a[2], a[3], float(a[4]) / 100 if len(a) >= 5 else 1)
+                for a in [b.strip().split(',') for b in f.readlines()]
+                if ElectionCode(a[0], a[1]) in self.all_elections
+            }
 
         # Trim party list so that we only store it for completed elections
         self.polled_parties = {e: parties[e] for e in self.polled_elections}
@@ -356,10 +361,7 @@ def run_fundamentals_regression(config, inputs):
         prediction_errors = []
         baseline_errors = []
         avg_len = average_length[party_group_code]
-        for studied_election in inputs.all_elections:
-            if studied_election == no_target_election_marker:
-                continue
-
+        for studied_election in inputs.past_elections + [inputs.exclude]:
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -372,11 +374,10 @@ def run_fundamentals_regression(config, inputs):
                     continue
 
                 # Maybe remove this, or not?
-                if (election.region() == 'fed' and 
-                    party_group_code in ['TPP', 'ALP', 'LNP']):
-                    continue
+                # if (election.region() == 'fed' and 
+                #     party_group_code in ['TPP', 'ALP', 'LNP']):
+                #     continue
 
-                
                 for party in inputs.past_parties[election] + [unnamed_others_code]:
                     if party not in party_group_list:
                         continue
@@ -411,6 +412,17 @@ def run_fundamentals_regression(config, inputs):
                                 ])
             input_array = transpose(input_array)
             dependent_array = array(result_deviations)
+            if len(input_array) == 0:
+                # No data for this party group, so can't do regression
+                # If this is the excluded election, save a dummy file
+                # based on the fact that a significant party should be getting
+                # at least 3% of the vote to be included in analysis in the
+                # first place
+                if studied_election not in inputs.past_elections:
+                    if studied_election not in to_file:
+                        to_file[studied_election] = {}
+                    to_file[studied_election][party] = 3
+                continue
             if amax(input_array) > 0 or amin(input_array) < 0:
                 reg = QuantileRegressor(alpha=0, quantile=0.5).fit(input_array, dependent_array)
                 coefs = reg.coef_
@@ -419,7 +431,9 @@ def run_fundamentals_regression(config, inputs):
                 # Simplified procedure when no inputs
                 # (which is usually the case for minor parties)
                 coefs = [0 for _ in input_array[0]]
-                intercept = average(dependent_array)
+                # Add a couple of zeros to the dependent array to make the
+                # intercept calculation less sensitive in small sample sizes
+                intercept = statistics.mean(result_deviations + [0, 0])
             if config.show_fundamentals:
                 # print(f'{input_array}')
                 # print(f'{dependent_array}')
@@ -439,34 +453,44 @@ def run_fundamentals_regression(config, inputs):
                 e_p_c = ElectionPartyCode(studied_election, party)
                 prediction = (inputs.safe_prior_average(avg_len, e_p_c) +
                             dot(input_array, coefs) + intercept)
-                eventual_results = (inputs.eventual_results[e_p_c]
-                                    if e_p_c in inputs.eventual_results else 0)
-                previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
-                                    - eventual_results)
-                baseline_errors.append((50 if party_group_code == "TPP" else 0)
-                                    - eventual_results)
-                # Fundamentals regression is significantly worse for federal
-                # results than a 50-50 baseline, so just use that instead there:
-                if (party_group_code == "TPP" 
-                    and studied_election.region() == "fed"):
-                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
-                if (party_group_code == "ALP" 
-                    and studied_election.region() == "fed"):
-                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
-                if (party_group_code == "LNP" 
-                    and studied_election.region() == "fed"):
-                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
-                prediction_errors.append(prediction - eventual_results)
-                inputs.fundamentals[e_p_c] = prediction
+                if studied_election in inputs.past_elections:
+                    eventual_results = (inputs.eventual_results[e_p_c]
+                                        if e_p_c in inputs.eventual_results else 0)
+                    previous_errors.append(inputs.safe_prior_average(avg_len, e_p_c)
+                                        - eventual_results)
+                    baseline_errors.append((50 if party_group_code == "TPP" else 0)
+                                        - eventual_results)
+                    if party_group_code == "TPP":
+                        print(e_p_c)
+                        print(prediction)
+                        print(inputs.safe_prior_average(avg_len, e_p_c))
+                        print(input_array)
+                        print(coefs)
+                        print(intercept)
+                    prediction_errors.append(prediction - eventual_results)
+                    # Fundamentals regression is significantly worse for federal
+                    # results than a 50-50 baseline, so just use that instead there:
+                    # if (party_group_code == "TPP"
+                    #     and studied_election.region() == "fed"):
+                    #     prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                    # if (party_group_code == "ALP" 
+                    #     and studied_election.region() == "fed"):
+                    #     prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                    # if (party_group_code == "LNP" 
+                    #     and studied_election.region() == "fed"):
+                    #     prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                    inputs.fundamentals[e_p_c] = prediction
                 if studied_election not in inputs.past_elections:
-                    # This means it's either the excluded election or a future
-                    # election - either way, want to save the fundamentals
-                    # forecast for the main program to use
+                    # This means it's the excluded election, so want to
+                    # save the fundamentals forecast for the main program to use
                     if studied_election not in to_file:
                         to_file[studied_election] = {}
                     to_file[studied_election][party] = prediction
 
         if config.show_fundamentals:
+            if len(previous_errors) == 0:
+                print(f'No data for {party_group_code}')
+                continue
             print(f'Party group: {party_group_code}')
             previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
                                     / (len(previous_errors) - 1))
@@ -924,6 +948,7 @@ def trend_adjust():
             # of poll_trend
             inputs.determine_eventual_others_results()
             run_fundamentals_regression(config, inputs)
+            quit()
 
             test_procedure(config, inputs, poll_trend, exclude)
             print(f'Completed trend adjustment algorithm for: {exclude}')

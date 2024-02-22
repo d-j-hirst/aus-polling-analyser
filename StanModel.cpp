@@ -29,14 +29,15 @@ StanModel::StanModel(std::string name, std::string termCode, std::string partyCo
 
 wxDateTime StanModel::getEndDate() const
 {
-	if (!adjustedSeriesCount()) return startDate;
-	return startDate + wxTimeSpan(4) + wxDateSpan::Days(adjustedSupport.begin()->second.timePoint.size() - 1);
+	if (!rawSeriesCount()) return startDate;
+	return startDate + wxTimeSpan(4) + wxDateSpan::Days(rawSupport.begin()->second.timePoint.size() - 1);
 }
 
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	if (!prepareForRun(feedback)) return;
+	logger << "Model end date: " << getEndDate().FormatISOCombined() << "\n";
 	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	updateAdjustedData(feedback, numThreads);
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
@@ -451,6 +452,8 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 					= std::stof(trendVals[percentile + 2]);
 			}
 		} while (true);
+		PA_LOG_VAR(startDate.FormatISOCombined());
+		PA_LOG_VAR(series.timePoint.size());
 	}
 	return true;
 }

@@ -4,19 +4,27 @@ import statistics
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from election_code import ElectionCode
 
 poll_files = ['fed','nsw','vic','qld','wa','sa']
 
 
+# This script is used to generate synthetic TPPs from approval ratings.
+# It uses a regression model to predict the trend TPP at each individual
+# approval poll based on the approval rating and other factors.
+# In each case, only data prior to the poll by >=14 days is used to generate the
+# synthetic TPP.
 def generate_synthetic_tpps(display_analysis=False):
     Approvals(display_analysis)
 
 
 class Approvals:
     def __init__(self, display_analysis):
+        print("Generating synthetic TPPs")
         self.load_data()
         self.create_synthetic_tpps()
         if (display_analysis): self.analyse_synthetic_tpps()
+        print("Finished generating synthetic TPPs")
     
     def load_data(self):
         self.trends = {}
@@ -25,7 +33,20 @@ class Approvals:
         self.start_dates = {}
         self.end_dates = {}
         self.leaderships = {}
-        ## Need to adjust this so that only "previous" elections are used
+
+        # Load the dates of next and previous elections
+        # We will only use data prior to the end of the target election
+        with open('./Data/election-cycles.csv', 'r') as f:
+            self.election_cycles = {
+                (a[0], a[1]):
+                (
+                    pd.Timestamp(a[2]),
+                    pd.Timestamp(a[3])
+                )
+                for a in [b.strip().split(',')
+                for b in f.readlines()]
+            }
+
         with open('Data/polled-elections.csv', 'r') as f:
             self.elections = {
                 (a[0], a[1])
@@ -47,8 +68,15 @@ class Approvals:
     def load_election(self, election):
         el_tag = f'{election[0]}{election[1]}'
         trend_filename = f'Outputs/fp_trend_{el_tag}_@TPP_pure.csv'
-        with open(trend_filename, 'r') as f:
-            lines = [b.strip().split(',') for b in f.readlines()]
+        try:
+            with open(trend_filename, 'r') as f:
+                lines = [b.strip().split(',') for b in f.readlines()]
+        except FileNotFoundError:
+            # This is expected in the period while some previous poll
+            # trends have not yet been generated. Eventually this
+            # will be removed once all those poll trends have been generated
+            # and a sample of the output data is uploaded as a repository.
+            return
         self.trends[election] = {
             int(a[0]): float(a[52])
             for a in lines[3:]
@@ -86,6 +114,7 @@ class Approvals:
         ]
         for election in self.elections:
             if election[1] != poll_file: continue
+            if election not in self.start_dates: continue
             self.approvals[election] = [
                 (
                     (date - self.start_dates[election]).days,
@@ -97,7 +126,12 @@ class Approvals:
                 and date < self.end_dates[election]
             ]
     
+    # This function calculates a weight for each approval poll
+    # based on the number of polls in the same election, and how close
+    # in time the poll is to the other polls.
     def weight_approvals(self, election):
+        if election not in self.approvals: return
+        
         def weight(date):
             return min(1, sum(
                 0.3333 * 2 ** -(abs(date - poll) / 14)
@@ -136,6 +170,7 @@ class Approvals:
             if (a[0] - self.start_dates[election]).days < day
         ][-1][2])
     
+    # Use a regression to create a prediction for a specific poll
     def regression(
         self,
         target_election,
@@ -146,7 +181,6 @@ class Approvals:
         # This project only uses information "from the future"
         # up to the end of 2021 (so that a large enough sample)
         # size can be obtained)
-        threshold = datetime.date.fromisoformat('2022-01-01')
         y = []
         x = []
         w = []
@@ -160,14 +194,9 @@ class Approvals:
                 date = (self.start_dates[election] + datetime.timedelta(day))
                 day_diff = (obs_date - date).days
                 same_area = election[1] == target_election[1]
-                # Don't use dates from the future if they're from the same
-                # area or they're after the date threshold (end 2021)
-                if (day_diff <= 12 and (same_area or
-                    (date - threshold).days >= 0)): continue
-                # Treat "future" dates as if they're 18 years ago
-                # This makes sure that the regression isn't more
-                # heavily sampled than it would have been at the time
-                if day_diff < 0: day_diff += 365 * 18
+                # Don't use dates very close to the poll, as the eventual trend
+                # at that point would be too influenced by future polls
+                if day_diff <= 12: continue
                 x.append(netapp)
                 # Get last leader who entered office before this poll
                 is_coalition = self.is_coalition(election, day)
@@ -203,6 +232,9 @@ class Approvals:
 
         y = np.array(y)
         x = np.array(x)
+
+        if len(x) < 2:
+            return (50, 0)
 
         # This process makes sure that the relationship between approvals
         # and trends for a specific poll is not far below the historical
@@ -264,7 +296,8 @@ class Approvals:
                     self.synthetic_tpps[election] = []
                 self.synthetic_tpps[election].append(stpp_item)
         for area, approvals in files.items():
-            with open(f'Synthetic TPPs/{area}.csv', 'w') as f:
+            filename = f'Synthetic TPPs/{area}.csv'
+            with open(filename, 'w') as f:
                 for date, pollster, tpp, weight_sum in approvals:
                     f.write(f'{date.isoformat()},{pollster},{round(tpp, 3)},{round(weight_sum, 4)}\n')
     
