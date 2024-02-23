@@ -84,8 +84,9 @@ class Config:
     def prepare_election_list(self):
         with open('./Data/polled-elections.csv', 'r') as f:
             elections = ElectionCode.load_elections_from_file(f)
-        with open('./Data/future-elections.csv', 'r') as f:
-            elections += ElectionCode.load_elections_from_file(f)
+        if self.cutoff == 0:
+            with open('./Data/future-elections.csv', 'r') as f:
+                elections += ElectionCode.load_elections_from_file(f)
         if self.election_instructions == 'all':
             self.elections = elections
         else:
