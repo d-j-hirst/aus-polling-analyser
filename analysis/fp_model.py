@@ -34,7 +34,8 @@ data_source = {
 # other "others" under OTH, and then (in the main program) subtract the
 # minor parties from the OTH value to get the true exclusive-others value
 others_parties = ['ONP FP', 'UAP FP', 'SFF FP', 'CA FP',
-                'KAP FP', 'SAB FP', 'DEM FP', 'FF FP']
+                'KAP FP', 'SAB FP', 'DEM FP', 'FF FP',
+                'DLP FP']
 
 major_parties = ['ALP FP', 'LNP FP', 'LIB FP']
 
@@ -235,15 +236,16 @@ class ElectionData:
 
         self.create_day_series()
 
+        if len(self.base_df.index) == 0: return
+
+        self.base_df['OTH base'] = self.base_df['OTH FP']
+
         self.create_tpp_series(m_data=m_data, 
                                desired_election=desired_election, 
                                df=self.base_df)
-        
-        # This order is important: do not want to overwrite
-        # the OTH FP column until after the TPP has been calculated
-        self.combine_others_parties()
 
     def create_tpp_series(self, m_data, desired_election, df):
+        self.base_df['OTH FP'] = self.base_df['OTH base']
         if 'old_tpp' not in df:
             df['old_tpp'] = df['@TPP']
         adjustments = {a: 0 for a in df.index.values}
@@ -286,6 +288,14 @@ class ElectionData:
         df['@TPP'] /= (df['Total'] * 0.01)
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
+        
+        # This order is important: do not want to overwrite
+        # the OTH FP column until after the TPP has been calculated
+        self.combine_others_parties()
+
+        print(desired_election)
+        print("Note: TPP values will not be accurate until the contribution others-medians are calculated.")
+        print(self.base_df)
     
     def combine_others_parties(self):
         # push misc parties into Others, as explained above
@@ -939,6 +949,9 @@ def run_models():
                                 m_data=m_data,
                                 desired_election=desired_election)
 
+            if len(e_data.base_df) == 0:
+                print(f'No polls for election {desired_election.short()} in the requested time range, skipping')
+                continue
 
             for excluded_pollster in e_data.pollster_exclusions:
 
@@ -959,10 +972,11 @@ def run_models():
                             print(f'Trend file for {party} in election {desired_election.short()} already exists, skipping')
                             continue
 
-                    if party == "@TPP":
+                    if party == "@TPP" or party == "OTH FP":
                         e_data.create_tpp_series(m_data,
                                                 desired_election,
                                                 e_data.base_df)
+                        
 
                     if excluded_pollster != '':
                         print(f'Excluding pollster: {excluded_pollster}')
