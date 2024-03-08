@@ -350,7 +350,7 @@ class ElectionData:
                             for b in f.readlines()]}
 
         with open(f'./Outputs/Calibration/biases-{code}.csv', 'r') as f:
-            self.pollster_biases = {(desired_election.pair(), a[0], a[1]): (float(a[2]), float(a[3]))
+            self.pollster_biases = {(a[0], a[1]): (float(a[2]), float(a[3]))
                             for a in [b.strip().split(',')
                             for b in f.readlines()]}
 
