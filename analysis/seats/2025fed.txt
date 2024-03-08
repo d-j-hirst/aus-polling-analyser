@@ -432,9 +432,10 @@ sCandidateNames=Michael Sukkar,LNP
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=VIC
+fByElectionSwing=-3.5
 fTppMargin=6.27
 fPreviousTppSwing=3.53
-sCandidateNames=Peta Murphy,ALP
+sCandidateNames=Jodie Belyea,ALP
 #Flinders
 sIncumbent=LNP
 sChallenger=ALP

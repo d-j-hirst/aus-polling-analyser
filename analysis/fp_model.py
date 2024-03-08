@@ -191,6 +191,9 @@ class ElectionData:
         # collect the model data
         self.base_df = pd.read_csv(data_source[tup[1]])
 
+        # Drop this column to make debug output more useful
+        self.base_df.drop('Comments', axis=1)
+
         # drop data not in range of this election period
         self.base_df['MidDate'] = [pd.Timestamp(date)
                             for date in self.base_df['MidDate']]
@@ -543,8 +546,8 @@ def run_individual_party(config, m_data, e_data,
     # use determined house effect weights when running forecasts
     biases = [
         0 if config.calibrate_pollsters or config.calibrate_bias else
-        e_data.pollster_biases[(e_data.e_tuple, x, party)][0] if
-        (e_data.e_tuple, x, party) in e_data.pollster_biases else 0
+        e_data.pollster_biases[(x, party)][0] if
+        (x, party) in e_data.pollster_biases else 0
         for x in houses
     ]
 
