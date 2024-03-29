@@ -1,0 +1,648 @@
+#Frankston
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Frankston Line
+fTppMargin=8.7
+fPreviousTppSwing=-1.5
+sCandidateNames=Paul Edbrooke,ALP
+#Carrum
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Frankston Line
+fTppMargin=9.8
+fPreviousTppSwing=-2.2
+sCandidateNames=Sonya Kilkenny,ALP
+#Bentleigh
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Frankston Line
+fTppMargin=8
+fPreviousTppSwing=-3.4
+sCandidateNames=Nick Staikos,ALP
+#Richmond
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Inner Melbourne
+fTppMargin=24.1
+fPreviousTppSwing=-7.1
+sCandidateNames=Gabrielle de Vietri,GRN
+#Mordialloc
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Frankston Line
+fTppMargin=8.2
+fPreviousTppSwing=-5.2
+sCandidateNames=Tim Richardson,ALP
+#Brunswick
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Inner Melbourne
+fTppMargin=34.1
+fPreviousTppSwing=0.5
+sCandidateNames=Tim Read,GRN
+#Cranbourne
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=9.0
+fPreviousTppSwing=-0.3
+sCandidateNames=Pauline Richards,ALP
+#Eltham
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=9.0
+fPreviousTppSwing=-1.5
+sCandidateNames=Vicki Ward,ALP
+#Albert Park
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner Melbourne
+fTppMargin=11.2
+fPreviousTppSwing=-1.9
+sCandidateNames=Nina Taylor,ALP
+#Ivanhoe
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=12.8
+fPreviousTppSwing=0.4
+sCandidateNames=Anthony Carbines,ALP
+#Yan Yean
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=4.3
+fPreviousTppSwing=-12.7
+bSophomoreCandidate=1
+sCandidateNames=Lauren Kathage,ALP
+#Macedon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Ballarat & Bendigo
+fTppMargin=9.5
+fPreviousTppSwing=-3.8
+sCandidateNames=Mary-Anne Thomas,ALP
+#Sunbury
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=6.4
+fPreviousTppSwing=-8.1
+sCandidateNames=Josh Bull,ALP
+#Mulgrave
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=10.2
+fPreviousTppSwing=-5.6
+fByElectionSwing=-5.53
+sCandidateNames=Eden Foster,ALP
+#Narre Warren North
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=8.7
+fPreviousTppSwing=-1.7
+bSophomoreCandidate=1
+sCandidateNames=Belinda Wilson,ALP
+#Bellarine
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Geelong
+fTppMargin=8.5
+fPreviousTppSwing=-3.0
+bSophomoreCandidate=1
+sCandidateNames=Alison Marchant,ALP
+#Bendigo East
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Ballarat & Bendigo
+fTppMargin=10.8
+fPreviousTppSwing=-1.3
+sCandidateNames=Jacinta Allan,ALP
+#Monbulk
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer East Melbourne
+fTppMargin=7.6
+fPreviousTppSwing=0.5
+bSophomoreCandidate=1
+sCandidateNames=Daniela De Martino,ALP
+#Narre Warren South
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=8.3
+fPreviousTppSwing=-2.1
+sCandidateNames=Gary Maas,ALP
+#Wendouree
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Ballarat & Bendigo
+fTppMargin=11.9
+fPreviousTppSwing=0.9
+sCandidateNames=Juliana Addison,ALP
+#Geelong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Geelong
+fTppMargin=14.7
+fPreviousTppSwing=4.4
+sCandidateNames=Christine Couzens,ALP
+#Eureka
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Ballarat & Bendigo
+fTppMargin=7.2
+fPreviousTppSwing=-2.4
+sCandidateNames=Michaela Settle,ALP
+#Niddrie
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=6.7
+fPreviousTppSwing=-5.8
+sCandidateNames=Ben Carroll,ALP
+#Oakleigh
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=13.5
+fPreviousTppSwing=-2.6
+sCandidateNames=Steve Dimopoulos,ALP
+#Essendon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=12.5
+fPreviousTppSwing=-3.4
+sCandidateNames=Danny Pearson,ALP
+#Melton
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=4.6
+fPreviousTppSwing=-0.4
+sCandidateNames=Steve McGhie,ALP
+#Bendigo West
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Ballarat & Bendigo
+fTppMargin=14.6
+fPreviousTppSwing=-4.0
+sCandidateNames=Maree Edwards,ALP
+#Bundoora
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=12.7
+fPreviousTppSwing=-3.6
+sCandidateNames=Colin Brooks,ALP
+#Point Cook
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=8.3
+fPreviousTppSwing=-4.4
+bSophomoreCandidate=1
+sCandidateNames=Mathew Hilakari,ALP
+#Dandenong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=18.3
+fPreviousTppSwing=-4.8
+sCandidateNames=Gabrielle Williams,ALP
+#Footscray
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=25.7
+fPreviousTppSwing=-3.0
+sCandidateNames=Katie Hall,ALP
+#Tarneit
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=12.3
+fPreviousTppSwing=-5.6
+bSophomoreCandidate=1
+sCandidateNames=Dylan Wright,ALP
+#Werribee
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=10.9
+fPreviousTppSwing=-2.4
+sCandidateNames=Tim Pallas,ALP
+#Clarinda
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=10.2
+fPreviousTppSwing=-4.7
+sCandidateNames=Meng Heang Tak,ALP
+#Sydenham
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=8.8
+fPreviousTppSwing=-8.9
+sCandidateNames=Natalie Hutchins,ALP
+#Williamstown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=13.4
+fPreviousTppSwing=-6.5
+sCandidateNames=Melissa Horne,ALP
+#Pascoe Vale
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=22.2
+fPreviousTppSwing=0.0
+sCandidateNames=Anthony Cianflone,ALP
+#Lara
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Geelong
+fTppMargin=15.9
+fPreviousTppSwing=-3.3
+bSophomoreCandidate=1
+sCandidateNames=Ella George,ALP
+#St Albans
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=9.6
+fPreviousTppSwing=-12.4
+sCandidateNames=Natalie Suleyman,ALP
+#Mill Park
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=11.6
+fPreviousTppSwing=-13.3
+sCandidateNames=Lily D'Ambrosio,ALP
+#Kororoit
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=14.5
+fPreviousTppSwing=-10.8
+bSophomoreCandidate=1
+sCandidateNames=Luba Grigorovitch,ALP
+#Preston
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=19.7
+fPreviousTppSwing=-8.6
+bSophomoreCandidate=1
+sCandidateNames=Nathan Lambert,ALP
+#Broadmeadows
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=15.5
+fPreviousTppSwing=-0.7
+bSophomoreCandidate=1
+sCandidateNames=Kathleen Matthews-Ward,ALP
+#Thomastown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=15.8
+fPreviousTppSwing=-11.6
+sCandidateNames=Bronwyn Halfpenny,ALP
+#Ripon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Ballarat & Bendigo
+fTppMargin=3.0
+fPreviousTppSwing=0.2
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Martha Haylett,ALP
+#Morwell
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Gippsland
+fTppMargin=-4.4
+fPreviousTppSwing=-8.4
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Martin Cameron,LNP
+#South Barwon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Geelong
+fTppMargin=9.8
+fPreviousTppSwing=6.8
+sCandidateNames=Darren Cheeseman,ALP
+#Ashwood
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner East Melbourne
+fTppMargin=6.2
+fPreviousTppSwing=4.2
+sCandidateNames=Matt Fregon,ALP
+#Eildon
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural North & East
+fTppMargin=-7.0
+fPreviousTppSwing=-5.9
+sCandidateNames=Cindy McLeish,LNP
+#Bass
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Gippsland
+fTppMargin=0.2
+fPreviousTppSwing=0.9
+fTransposedFederalSwing=0.9
+sCandidateNames=Jordan Crugnale,ALP
+#Bayswater
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer East Melbourne
+fTppMargin=4.2
+fPreviousTppSwing=4.8
+sCandidateNames=Jackson Taylor,ALP
+#Glen Waverley
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer East Melbourne
+fTppMargin=3.3
+fPreviousTppSwing=4.2
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=John Mullahy,ALP
+#Caulfield
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=2.1
+fPreviousTppSwing=-2.0
+sCandidateNames=David Southwick,LNP
+#Ringwood
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer East Melbourne
+fTppMargin=7.5
+fPreviousTppSwing=4.3
+#Box Hill
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner East Melbourne
+fTppMargin=7.2
+fPreviousTppSwing=4.1
+sCandidateNames=Paul Hamer,ALP
+#Sandringham
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=-5.0
+fPreviousTppSwing=-4.6
+sCandidateNames=Brad Rowswell,LNP
+#Hastings
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Mornington Peninsula
+fTppMargin=1.4
+fPreviousTppSwing=1.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Paul Mercurio,ALP
+#Nepean
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Mornington Peninsula
+fTppMargin=-6.4
+fPreviousTppSwing=-7.1
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Sam Groth,LNP
+#Mildura
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural Outer West
+fTppMargin=-14.1
+fPreviousTppSwing=-8.0
+sCandidateNames=Jade Benham,LNP
+#Rowville
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer East Melbourne
+fTppMargin=-3.7
+fPreviousTppSwing=1.8
+sCandidateNames=Kim Wells,LNP
+#Hawthorn
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=-1.7
+fPreviousTppSwing=-2.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=John Pesutto,LNP
+#Berwick
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Pakenham Line
+fTppMargin=-4.7
+fPreviousTppSwing=-3.4
+sCandidateNames=Brad Battin,LNP
+#Croydon
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer East Melbourne
+fTppMargin=-1.4
+fPreviousTppSwing=-0.4
+sCandidateNames=David Hodgett,LNP
+#Evelyn
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer East Melbourne
+fTppMargin=-5.4
+fPreviousTppSwing=-3.6
+sCandidateNames=Bridget Vallence,LNP
+#Benambra
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural North & East
+fTppMargin=-13.3
+fPreviousTppSwing=-4.0
+sCandidateNames=Bill Tilley,LNP
+#Brighton
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=-5.1
+fPreviousTppSwing=-4.6
+sCandidateNames=James Newbury,LNP
+#Bulleen
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=-5.9
+fPreviousTppSwing=-0.4
+sCandidateNames=Matthew Guy,LNP
+#Kew
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=-4.0
+fPreviousTppSwing=0.7
+bSophomoreCandidate=1
+sCandidateNames=Jess Wilson,LNP
+#Polwarth
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural Outer West
+fTppMargin=-1.8
+fPreviousTppSwing=0.2
+sCandidateNames=Richard Riordan,LNP
+#South-West Coast
+sIncumbent=LNP
+sChallenger=IND
+sRegion=Rural Outer West
+fTppMargin=-8.0
+fPreviousTppSwing=-4.8
+sCandidateNames=Roma Britnell,LNP
+#Narracan
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Gippsland
+fTppMargin=-13.0
+fPreviousTppSwing=-3.0
+bSophomoreCandidate=1
+sCandidateNames=Wayne Farnham,LNP
+#Warrandyte
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer East Melbourne
+fTppMargin=-4.3
+fPreviousTppSwing=-0.5
+sCandidateNames=Ryan Smith,LNP
+#Mornington
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Mornington Peninsula
+fTppMargin=-8.28
+fPreviousTppSwing=-3.28
+bSophomoreCandidate=1
+sCandidateNames=Chris Crewther,LNP
+#Euroa
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural North & East
+fTppMargin=-9.9
+fPreviousTppSwing=5.4
+bSophomoreCandidate=1
+sCandidateNames=Annabelle Cleeland,LNP
+#Gippsland South
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Gippsland
+fTppMargin=-15.6
+fPreviousTppSwing=-1.6
+sCandidateNames=Danny O'Brien,LNP
+#Malvern
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner East Melbourne
+fTppMargin=-8.1
+fPreviousTppSwing=-2.0
+sCandidateNames=Michael O'Brien,LNP
+#Ovens Valley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural North & East
+fTppMargin=-17.8
+fPreviousTppSwing=-5.7
+sCandidateNames=Tim McCurdy,LNP
+#Gippsland East
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Gippsland
+fTppMargin=-24.6
+fPreviousTppSwing=-7.0
+sCandidateNames=Tim Bull,LNP
+#Lowan
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural Outer West
+fTppMargin=-21.6
+fPreviousTppSwing=-0.5
+sCandidateNames=Emma Kealy,LNP
+#Murray Plains
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural North & East
+fTppMargin=-23.4
+fPreviousTppSwing=0.5
+sCandidateNames=Peter Walsh,LNP
+#Prahran
+sIncumbent=GRN
+sChallenger=LNP
+sRegion=Inner Melbourne
+fTppMargin=11.1
+fPreviousTppSwing=2.4
+sCandidateNames=Sam Hibbins,GRN
+#Melbourne
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Inner Melbourne
+fTppMargin=25
+fPreviousTppSwing=0.6
+sCandidateNames=Ellen Sandell,GRN
+#Northcote
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner Melbourne
+fTppMargin=31.7
+fPreviousTppSwing=-1.5
+sCandidateNames=Campbell Gome,GRN
+#Shepparton
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Rural North & East
+fTppMargin=-12.62
+fPreviousTppSwing=-12.62
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Kim O'Keeffe,LNP
+#Greenvale
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=7.1
+fPreviousTppSwing=-14.9
+bSophomoreCandidate=1
+sCandidateNames=Iwan Walters,ALP
+#Kalkallo
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Northern Melbourne
+fTppMargin=16.5
+fPreviousTppSwing=-4.4
+sCandidateNames=Ros Spence,ALP
+#Laverton
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Western Melbourne
+fTppMargin=18.4
+fPreviousTppSwing=-5.0
+bSophomoreCandidate=1
+sCandidateNames=Sarah Connolly,ALP
+#Pakenham
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Pakenham Line
+fTppMargin=0.4
+fPreviousTppSwing=-1.8
+bSophomoreCandidate=1
+sCandidateNames=Emma Vulin,ALP
