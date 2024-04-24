@@ -222,7 +222,7 @@ fPreviousTppSwing=1.9
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=Brisbane
-fByElectionSwing=-21.6
+fByElectionSwing=-21.5
 fTppMargin=28.17
 fPreviousTppSwing=2.07
 #Ipswich
@@ -235,7 +235,7 @@ fPreviousTppSwing=1.9
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=Brisbane
-fByElectionSwing=-18.0
+fByElectionSwing=-17.8
 fTppMargin=14.35
 fPreviousTppSwing=1.9
 bSophomoreCandidate=1

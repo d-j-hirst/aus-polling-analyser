@@ -8,6 +8,7 @@ import pandas as pd
 import pystan
 import sys
 import statistics
+import time
 from approvals import generate_synthetic_tpps
 from datetime import timedelta
 from election_code import ElectionCode
@@ -923,6 +924,20 @@ def finalise_calibrations(e_data):
                     f'{weight},\n{polls_string[key]}')
 
 
+def check_suspension():
+    message_seen = False
+    while True:
+        if not os.path.exists(os.path.join(os.getcwd(), f'suspend.txt')): break
+        with open(f'suspend.txt', 'r') as f:
+            a = f.read()
+            if a != '1':
+                break
+        if not message_seen:
+            message_seen = True
+            print('Suspended, waiting for resume')
+        time.sleep(60)
+
+
 def run_models():
 
     try:
@@ -965,6 +980,8 @@ def run_models():
                     len(e_data.poll_calibrations) == 0: continue
 
                 for party in m_data.parties[e_data.e_tuple]:
+
+                    check_suspension()
                     
                     # Avoid unnecessary duplication of effort for cutoffs that would be identical
                     if config.cutoff > 0:
