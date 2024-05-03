@@ -75,12 +75,16 @@ class Config:
                             'not approval ratings, TPP-only polls or other '
                             'measures. Outputs with _pure suffix.', 
                             default=0)
+        parser.add_argument('--priority', action='store_true',
+                            help="Never suspend this model.",
+                            default=0)
         self.election_instructions = parser.parse_args().election.lower()
         self.calibrate_pollsters = parser.parse_args().calibrate == True
         self.calibrate_bias = (not self.calibrate_pollsters and 
                                parser.parse_args().bias == True)
         self.cutoff = parser.parse_args().cutoff
         self.pure = parser.parse_args().pure == True
+        self.priority = parser.parse_args().priority == True
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -981,7 +985,7 @@ def run_models():
 
                 for party in m_data.parties[e_data.e_tuple]:
 
-                    check_suspension()
+                    if not config.priority: check_suspension()
                     
                     # Avoid unnecessary duplication of effort for cutoffs that would be identical
                     if config.cutoff > 0:
