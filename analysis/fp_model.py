@@ -984,8 +984,6 @@ def run_models():
                     len(e_data.poll_calibrations) == 0: continue
 
                 for party in m_data.parties[e_data.e_tuple]:
-
-                    if not config.priority: check_suspension()
                     
                     # Avoid unnecessary duplication of effort for cutoffs that would be identical
                     if config.cutoff > 0:
@@ -995,6 +993,8 @@ def run_models():
                         if os.path.exists(trend_filename):
                             print(f'Trend file for {party} in election {desired_election.short()} already exists, skipping')
                             continue
+
+                    if not config.priority: check_suspension()
 
                     if party == "@TPP" or party == "OTH FP":
                         e_data.create_tpp_series(m_data,

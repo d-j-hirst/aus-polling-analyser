@@ -116,10 +116,16 @@ void DisplayFrame::OnDeleteReport(wxCommandEvent&)
 		wxMessageBox("Can't delete the latest forecasts, only archived reports.");
 		return;
 	}
-	std::string deletion = wxGetTextFromUser("Enter \"delete\" to confirm deletion:", "Confirm Deletion").ToStdString();
+	std::string deletion = wxGetTextFromUser("Enter \"delete\" to confirm deletion, or \"delete all\" to delete *all* simulations:", "Confirm Deletion").ToStdString();
 	if (deletion == "delete") {
 		project->simulations().deleteReport(simIndex, selectedSaveReport);
 		wxMessageBox("Successfully deleted report.");
+		selectedSaveReport = -1;
+		refreshToolbar();
+	}
+	else if (deletion == "delete all") {
+		project->simulations().deleteAllReports(simIndex);
+		wxMessageBox("Successfully deleted *all* reports.");
 		selectedSaveReport = -1;
 		refreshToolbar();
 	}

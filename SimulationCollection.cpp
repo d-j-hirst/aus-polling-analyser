@@ -119,6 +119,14 @@ void SimulationCollection::deleteReport(Simulation::Id id, int reportIndex)
 	simulationIt->second.deleteReport(reportIndex);
 }
 
+void SimulationCollection::deleteAllReports(Simulation::Id id)
+{
+	auto simulationIt = simulations.find(id);
+	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
+	while (simulationIt->second.viewSavedReports().size() > 0) {
+		simulationIt->second.deleteReport(0);
+	}
+}
 
 void SimulationCollection::startLoadingSimulation()
 {

@@ -74,6 +74,8 @@ public:
 
 	void deleteReport(Simulation::Id id, int reportIndex);
 
+	void deleteAllReports(Simulation::Id id);
+
 	void startLoadingSimulation();
 
 	void finaliseLoadedSimulation();
