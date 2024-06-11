@@ -265,6 +265,7 @@ void SeatCollection::importInfo()
 			auto splitByParty = splitString(val, ";");
 			for (auto party : splitByParty) {
 				auto vals = splitString(party, ",");
+				if (vals.size() < 2) continue;
 				seat.bettingOdds[vals[0]] = std::stof(vals[1]);
 			}
 		}
@@ -272,6 +273,7 @@ void SeatCollection::importInfo()
 			auto splitByParty = splitString(val, ";");
 			for (auto party : splitByParty) {
 				auto vals = splitString(party, ",");
+				if (vals.size() < 2) continue;
 				seat.polls[vals[0]].push_back({ std::stof(vals[1]), std::stoi(vals[2]) });
 			}
 		}
@@ -279,6 +281,7 @@ void SeatCollection::importInfo()
 			auto splitByPoll = splitString(val, ";");
 			for (auto poll : splitByPoll) {
 				auto vals = splitString(poll, ",");
+				if (vals.size() < 2) continue;
 				seat.tppPolls.push_back({ vals[0], std::stof(vals[2]) });
 			}
 		}
@@ -287,6 +290,7 @@ void SeatCollection::importInfo()
 			auto splitByParty = splitString(val, ";");
 			for (auto party : splitByParty) {
 				auto vals = splitString(party, ",");
+				if (vals.size() < 2) continue;
 				seat.tcpChange[vals[0]] = std::stof(vals[1]);
 			}
 		}
@@ -294,6 +298,7 @@ void SeatCollection::importInfo()
 			auto splitByParty = splitString(val, ";");
 			for (auto party : splitByParty) {
 				auto vals = splitString(party, ",");
+				if (vals.size() < 2) continue;
 				seat.minorViability[vals[0]] = std::stof(vals[1]);
 			}
 		}
@@ -301,6 +306,7 @@ void SeatCollection::importInfo()
 			auto splitByParty = splitString(val, ";");
 			for (auto party : splitByParty) {
 				auto vals = splitString(party, ",");
+				if (vals.size() < 2) continue;
 				seat.candidateNames[vals[0]] = vals[1];
 			}
 		}

@@ -1,4 +1,5 @@
 import argparse
+import math
 import numpy as np
 import pandas as pd
 import pystan
@@ -168,10 +169,14 @@ def run_model(config, m_data, e_data):
   )
   df.fillna(-10000, inplace=True)
 
+  # Modify poll "days" to be more efficient
+  modified_day_count = max(math.floor(e_data.n_days / 5), 1)
+  modified_poll_days = [min(modified_day_count, max(1, math.floor(a / 5))) for a in pollDays]
+
   stan_data = {
     'pollCount': df.shape[0] * 3,
-    'dayCount': e_data.n_days,
-    'pollDay': pollDays,
+    'dayCount': modified_day_count, # scale for efficiency
+    'pollDay': modified_poll_days,
     'nswSwingDevPoll': df['NSW_SwingDev'].tolist() * 3,
     'vicSwingDevPoll': df['VIC_SwingDev'].tolist() * 3,
     'qldSwingDevPoll': df['QLD_SwingDev'].tolist() * 3,
@@ -180,6 +185,8 @@ def run_model(config, m_data, e_data):
     'wstanSwingDevPoll': df['WSTAN_SwingDev'].tolist() * 3,
     'pollSize': df['Size'].tolist() * 3,
   }
+
+  print(stan_data)
 
   # get the Stan model code
   with open("./Models/region_model.stan", "r") as f:
@@ -196,8 +203,8 @@ def run_model(config, m_data, e_data):
   print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
 
   # Stan model configuration
-  chains = 8
-  iterations = 500
+  chains = 6
+  iterations = 300
 
   # Do model sampling. Time for diagnostic purposes
   start_time = perf_counter()
@@ -223,7 +230,7 @@ def run_model(config, m_data, e_data):
   output_probs = tuple(probs_list)
   summary = fit.summary(probs=output_probs)
 
-  required_rows = [e_data.n_days * a - 1 for a in range(1, 7)]
+  required_rows = [modified_day_count * a - 1 for a in range(1, 7)]
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
   with open(
@@ -231,6 +238,11 @@ def run_model(config, m_data, e_data):
   ) as f:
     f.write('nsw,vic,qld,wa,sa,tan\n')
     f.write(','.join([str(a) for a in state_vals]))
+
+  for offset in reversed(range(0, 5)):
+    required_rows = [modified_day_count * a - offset for a in range(1, 7)]
+    state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
+    print(state_vals)
 
 
 def run_models():
