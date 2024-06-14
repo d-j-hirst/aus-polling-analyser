@@ -16,8 +16,6 @@ using Mp = Simulation::MajorParty;
 void SimulationRun::run(FeedbackFunc feedback) {
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 
-	logger << "Starting simulation\n";
-
 	if (int(thisProjection.getProjectionLength()) == 0) {
 		feedback("Base projection has not yet been run. Run the simulation's base projection before running the simulation itself.");
 		return;
@@ -55,8 +53,6 @@ void SimulationRun::run(FeedbackFunc feedback) {
 			iteration.runIteration();
 		}
 	};
-
-	logger << "Running iterations\n";
 
 	for (int thread = 0; thread < numThreads; ++thread) {
 		threads[thread] = std::thread(runIterations, batchSizes[thread]);
