@@ -75,6 +75,7 @@ void SimulationIteration::reset()
 	seatByElectionEffect.clear();
 	seatThirdPartyExhaustEffect.clear();
 	seatPollEffect.clear();
+	seatMrpPollEffect.clear();
 
 	prefCorrection = 0.0f;
 	overallFpError = 0.0f;
@@ -185,7 +186,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatFederalSwingEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatByElectionEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
-	seatPollEffect = std::vector<double>(project.seats().count(), 0.0);
+	seatMrpPollEffect = std::vector<double>(project.seats().count(), 0.0);
 }
 
 void SimulationIteration::determineFedStateCorrelation()
@@ -708,6 +709,9 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	transformedTpp += byElectionEffect;
 	transformedTpp += thirdPartyExhaustEffect;
 	// All non-polling factors taken into account, so now adjust towards available seat polls
+	const float MrpPollWeight = 0.1f;
+	float mrpPollEffect = MrpPollWeight * (run.seatTppMrpPolls[seatIndex] ? run.seatTppMrpPolls[seatIndex] - detransformVoteShare(transformedTpp) : 0.0f);
+	transformedTpp += mrpPollEffect;
 	const float PollWeight = (run.regionCode == "fed") ? 0.23f : 0.345f;
 	float pollEffect = PollWeight * (run.seatTppPolls[seatIndex] ? run.seatTppPolls[seatIndex] - detransformVoteShare(transformedTpp) : 0.0f);
 	transformedTpp += pollEffect;
@@ -750,6 +754,7 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	seatByElectionEffect[seatIndex] += double(byElectionEffect * transformFactor);
 	seatThirdPartyExhaustEffect[seatIndex] += double(thirdPartyExhaustEffect * transformFactor);
 	seatPollEffect[seatIndex] += double(pollEffect * transformFactor);
+	seatMrpPollEffect[seatIndex] += double(mrpPollEffect * transformFactor);
 }
 
 void SimulationIteration::correctSeatTppSwings()
@@ -2501,6 +2506,7 @@ void SimulationIteration::recordSwingFactors()
 		run.seatByElectionEffectSums[seatIndex] += seatByElectionEffect[seatIndex];
 		run.seatThirdPartyExhaustEffectSums[seatIndex] += seatThirdPartyExhaustEffect[seatIndex];
 		run.seatPollEffectSums[seatIndex] += seatPollEffect[seatIndex];
+		run.seatMrpPollEffectSums[seatIndex] += seatMrpPollEffect[seatIndex];
 	}
 }
 

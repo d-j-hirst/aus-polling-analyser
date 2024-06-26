@@ -122,6 +122,9 @@ public:
 	// Store date (in string form) and TPP
 	std::vector<std::pair<std::string, float>> tppPolls;
 
+	// Store date (in string form) and TPP
+	std::vector<std::pair<std::string, float>> tppMrpPolls;
+
 	Party::Id getLeadingParty() const {
 		if (isClassic2pp()) {
 			return (tppMargin > 0.0f ? 0 : 1);

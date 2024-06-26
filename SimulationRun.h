@@ -219,6 +219,7 @@ private:
 	std::vector<double> seatByElectionEffectSums;
 	std::vector<double> seatThirdPartyExhaustEffectSums;
 	std::vector<double> seatPollEffectSums;
+	std::vector<double> seatMrpPollEffectSums;
 	std::vector<std::vector<std::pair<std::string, double>>> seatLocalEffects;
 
 	// Store all potential TCP results found in iterations
@@ -264,7 +265,8 @@ private:
 	std::vector<std::map<int, float>> seatBettingOdds;
 	std::vector<std::map<int, float>> seatMinorViability;
 	std::vector<std::map<int, std::vector<std::pair<float, int>>>> seatPolls;
-	std::vector<float> seatTppPolls; // combined estimate
+	std::vector<float> seatTppPolls; // combined estimate of all polls
+	std::vector<float> seatTppMrpPolls; // combined estimate of all polls
 
 	// Live results
 	float liveOverallTppSwing = 0.0f; // swing to partyOne

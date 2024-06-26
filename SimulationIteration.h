@@ -146,6 +146,7 @@ private:
 	std::vector<double> seatByElectionEffect;
 	std::vector<double> seatThirdPartyExhaustEffect;
 	std::vector<double> seatPollEffect;
+	std::vector<double> seatMrpPollEffect;
 
 	float prefCorrection = 0.0f;
 	float overallFpError = 0.0f;

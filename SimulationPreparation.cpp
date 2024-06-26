@@ -276,6 +276,15 @@ void SimulationPreparation::loadSeatTppPolls()
 			run.seatTppPolls[seatIndex] = sum / float(polls.size());
 		}
 	}
+	run.seatTppMrpPolls.resize(project.seats().count(), 0.0f);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto& polls = project.seats().viewByIndex(seatIndex).tppMrpPolls;
+		if (polls.size()) {
+			float sum = std::accumulate(polls.begin(), polls.end(), 0.0f,
+				[](float acc, std::pair<std::string, float> const& val) {return acc + val.second; });
+			run.seatTppMrpPolls[seatIndex] = sum / float(polls.size());
+		}
+	}
 }
 
 void SimulationPreparation::loadSeatMinorViability()
