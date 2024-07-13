@@ -144,6 +144,8 @@ def analyse_variability(target_election, cycles, links):
         party = filename.split('.')[0].split('_')[3]
         if party == "LIB FP": party = "LNP FP"; lib = True
         with open(f'{directory}/{filename}', 'r') as f:
+            print("opening biascal file")
+            print(filename)
             data = f.readlines()[1:]
             for line in data:
                 pollster = line.split(',')[0]
@@ -183,9 +185,13 @@ def analyse_variability(target_election, cycles, links):
     with open(f'{directory}/variability-{target_election.year()}{target_election.region()}.csv', 'w') as f:
         # Store the standard deviation in error and sum of weights
         # for each pollster/party combination
+        print(links)
+        print(weight_sums)
         for key in sorted(weight_sums.keys()):
             # Don't do linked pollsters yet
             if key[0] in sum(links.values(), []): continue
+            print("Doing non-linked")
+            print(key)
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum
@@ -204,6 +210,8 @@ def analyse_variability(target_election, cycles, links):
         for key in sorted(weight_sums.keys()):
             # Non-linked pollsters have already been done
             if key[0] not in sum(links.values(), []): continue
+            print("Doing linked")
+            print(key)
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum

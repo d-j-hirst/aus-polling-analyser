@@ -134,6 +134,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatByElectionEffectSums.resize(project.seats().count(), 0.0);
 	run.seatThirdPartyExhaustEffectSums.resize(project.seats().count(), 0.0);
 	run.seatPollEffectSums.resize(project.seats().count(), 0.0);
+	run.seatMrpPollEffectSums.resize(project.seats().count(), 0.0);
 	run.seatLocalEffects.resize(project.seats().count());
 }
 

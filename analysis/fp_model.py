@@ -726,7 +726,7 @@ def run_individual_party(config, m_data, e_data,
     fit = sm.sampling(data=stan_data,
                         iter=iterations,
                         chains=chains,
-                        control={'max_treedepth': 16,
+                        control={'max_treedepth': 18,
                                 'adapt_delta': 0.8})
     finish_time = perf_counter()
     print('Time elapsed: ' + format(finish_time - start_time, '.2f')

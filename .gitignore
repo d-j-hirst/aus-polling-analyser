@@ -346,3 +346,4 @@ __pycache__/
 analysis/itsdone.txt
 analysis/analysis.zip
 analysis/suspend.txt
+*.zip

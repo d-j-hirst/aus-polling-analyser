@@ -186,6 +186,7 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 	seatFederalSwingEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatByElectionEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatThirdPartyExhaustEffect = std::vector<double>(project.seats().count(), 0.0);
+	seatPollEffect = std::vector<double>(project.seats().count(), 0.0);
 	seatMrpPollEffect = std::vector<double>(project.seats().count(), 0.0);
 }
 
