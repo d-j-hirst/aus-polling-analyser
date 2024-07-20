@@ -1,5 +1,4 @@
 import argparse
-import chime
 import datetime
 import math
 import numpy as np
@@ -655,9 +654,18 @@ def run_individual_party(config, m_data, e_data,
             he_weights += [0]
             biases += [0]
 
+    # Transform series to smaller number of days for more efficient processing
+    tFactor = 2
+    tDayCount = (e_data.n_days - 1) // tFactor + 1
+    tPollDays = [(day - 1) // tFactor + 1 for day in pollDays]
+    tDiscontinuities = [(day - 1) // tFactor + 1 for day in discontinuities_filtered]
+    tElectionDay = e_data.election_day // tFactor
+    tHouseEffectNew = houseEffectNew // tFactor
+    tHouseEffectOld = houseEffectOld // tFactor
+
     # Prepare the data for Stan to process
     stan_data = {
-        'dayCount': e_data.n_days,
+        'dayCount': tDayCount,
         'pollCount': n_polls,
         'houseCount': n_houses,
         'discontinuityCount': len(discontinuities_filtered),
@@ -666,20 +674,20 @@ def run_individual_party(config, m_data, e_data,
         'pollObservations': pollObs,
         'missingObservations': missingObs,
         'pollHouse': pollHouses,
-        'pollDay': pollDays,
-        'discontinuities': discontinuities_filtered,
+        'pollDay': tPollDays,
+        'discontinuities': tDiscontinuities,
         'sigmas': sigmasList,
         'heWeights': he_weights,
         'biases': biases,
 
-        'electionDay': e_data.election_day,
+        'electionDay': tElectionDay,
 
         # distributions for the daily change in vote share
         # higher values during campaigns, since it's more likely
         # people are paying attention and changing their mind then
-        'dailySigma': 0.25,
-        'campaignSigma': 0.45,
-        'finalSigma': 0.7,
+        'dailySigma': 0.25 * math.sqrt(tFactor),
+        'campaignSigma': 0.45 * math.sqrt(tFactor),
+        'finalSigma': 0.7 * math.sqrt(tFactor),
 
         # prior distribution for each house effect
         # modelled as a double exponential to avoid
@@ -698,10 +706,12 @@ def run_individual_party(config, m_data, e_data,
         # towards the center since that historically harms accuracy
         'priorVoteShareSigma': 200.0,
 
-        # Bounds for the transition between
-        'houseEffectOld': houseEffectOld,
-        'houseEffectNew': houseEffectNew
+        # Bounds for the transition between old and new house effects
+        'houseEffectOld': tHouseEffectOld,
+        'houseEffectNew': tHouseEffectNew
     }
+
+    print(stan_data)
 
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:
@@ -760,40 +770,43 @@ def run_individual_party(config, m_data, e_data,
     trend_file.write('\n')
     # need to get past the centered values and house effects
     # this is where the actual FP trend starts
-    offset = e_data.n_days + n_houses * 2
-    for summaryDay in range(0, e_data.n_days):
-        table_index = summaryDay + offset
-        to_write = str(summaryDay) + ","
-        to_write += party + ","
-        for col in range(3, 3+len(output_probs)-1):
-            trend_value = summary[table_index][col]
-            to_write += str(round(trend_value, 3)) + ','
+    offset = tDayCount + n_houses * 2
+    for summaryDay in range(0, tDayCount):
+        for duplicateNum in range(0, tFactor):
+            effectiveDay = summaryDay * tFactor + duplicateNum
+            if effectiveDay >= e_data.n_days: break
+            table_index = summaryDay + offset
+            to_write = str(effectiveDay) + ","
+            to_write += party + ","
+            for col in range(3, 3+len(output_probs)-1):
+                trend_value = summary[table_index][col]
+                to_write += str(round(trend_value, 3)) + ','
 
-        # Prepare others-medians, this isn't related to the trend file
-        # but it's needed for the runs of other parties
-        if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
-            # Average of first and last
-            median_col = math.floor((4+len(output_probs)) / 2)
-            median_val = summary[table_index][median_col]
-            e_data.others_medians[party][summaryDay] = median_val
-            # The others-median should exclude "others" parties that already
-            # have trend medians recorded, otherwise they will be double
-            # counted.
-            if party == 'OTH FP':
-                for oth_party in e_data.others_medians.keys():
-                    if oth_party in others_parties:
-                        e_data.others_medians[party][summaryDay] -= \
-                            e_data.others_medians[oth_party][summaryDay]
-        to_write += str(round(summary[table_index][3+len(output_probs)-1], 3)) + '\n'
-        if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
-        trend_file.write(to_write)
+            # Prepare others-medians, this isn't related to the trend file
+            # but it's needed for the runs of other parties
+            if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
+                # Average of first and last
+                median_col = math.floor((4+len(output_probs)) / 2)
+                median_val = summary[table_index][median_col]
+                e_data.others_medians[party][effectiveDay] = median_val
+                # The others-median should exclude "others" parties that already
+                # have trend medians recorded, otherwise they will be double
+                # counted.
+                if party == 'OTH FP':
+                    for oth_party in e_data.others_medians.keys():
+                        if oth_party in others_parties:
+                            e_data.others_medians[party][effectiveDay] -= \
+                                e_data.others_medians[oth_party][effectiveDay]
+            to_write += str(round(summary[table_index][3+len(output_probs)-1], 3)) + '\n'
+            if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
+            trend_file.write(to_write)
     trend_file.close()
     print('Saved trend file at ' + output_trend)
 
     # Extract house effect data from model summary
     new_house_effects = []
     old_house_effects = []
-    offset = e_data.n_days
+    offset = tDayCount
     for house in range(0, n_houses):
         new_house_effects.append(summary[offset + house, 0])
         old_house_effects.append(summary[offset + n_houses + house, 0])
@@ -847,7 +860,7 @@ def run_individual_party(config, m_data, e_data,
         house_effects_file.write(',' + str(round(prob * 100)) + "%")
     house_effects_file.write('\n')
     house_effects_file.write('New house effects\n')
-    offset = e_data.n_days
+    offset = tDayCount
     for house_index in range(0, n_houses):
         house_effects_file.write(houses[house_index])
         table_index = offset + house_index
@@ -856,7 +869,7 @@ def run_individual_party(config, m_data, e_data,
             house_effects_file.write(
                 ',' + str(round(summary[table_index][col], 3)))
         house_effects_file.write('\n')
-    offset = e_data.n_days + n_houses
+    offset = tDayCount + n_houses
     house_effects_file.write('Old house effects\n')
     for house_index in range(0, n_houses):
         house_effects_file.write(houses[house_index])
