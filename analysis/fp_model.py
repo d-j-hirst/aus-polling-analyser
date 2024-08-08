@@ -359,21 +359,19 @@ class ElectionData:
                             for b in f.readlines()]}
 
 
-def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
-                        n_houses, output_probs, df):
+def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, day_data,
+                        output_probs, df):
     exc_poll_data = [a for a in zip(exc_polls['DayNum'], exc_polls[party],
                      exc_polls.axes[0], exc_polls['Firm'])]
     if len(exc_poll_data) <= 1: return
     print(f'Trend closeness statistics for {excluded_pollster}')
-    offset = e_data.n_days + n_houses * 2 - 1
-    median_col = 3 + output_probs.index(0.5)
+    median_col = output_probs.index(0.5)
     diff_sum = {}
     pollster_count = {}
     house_effects = {}
     for a in exc_poll_data:
-        day, vote, pollster = int(a[0]), a[1], a[3]
-        table_index = day + offset
-        trend_value = summary[table_index][median_col]
+        day, vote, pollster = int(a[0]) - 1, a[1], a[3]
+        trend_value = day_data[day][median_col]
         if pollster not in diff_sum:
             diff_sum[pollster] = 0
             pollster_count[pollster] = 0
@@ -385,28 +383,26 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, summary,
     deviations = []
     prob_deviations = []
     for a in exc_poll_data:
-        day, vote, poll_index, pollster = int(a[0]), a[1], a[2], a[3]
-        table_index = day + offset
-        trend_median = summary[table_index][median_col]
+        day, vote, poll_index, pollster = int(a[0]) - 1, a[1], a[2], a[3]
+        trend_median = day_data[day][median_col]
         eff_house_effect = house_effects[pollster]
         adj_poll = vote - eff_house_effect
         # for the case where the poll is higher than any
         # probability threshold, have this as the default value
         percentile = 0.999 
         for index, upper_prob in enumerate(output_probs):
-            upper_value = summary[table_index][index + 3]
+            upper_value = day_data[day][index]
             if adj_poll < upper_value:
                 if index == 0:
                     percentile = 0.001
                 else:
-                    lower_value = summary[table_index][index + 2]
+                    lower_value = day_data[day][index - 1]
                     lower_prob = output_probs[index - 1]
                     lerp = ((adj_poll - lower_value) /
                             (upper_value - lower_value))
                     percentile = (lower_prob + lerp * 
                                 (upper_prob - lower_prob))
                 break
-            upper_value = summary[table_index][index + 3]
         deviation = adj_poll - trend_median
         prob_deviation = abs(percentile - 0.5)
         neighbours = sum([min(1, 2 ** (-abs(day - other_day) / 20) * 0.5)
@@ -711,8 +707,6 @@ def run_individual_party(config, m_data, e_data,
         'houseEffectNew': tHouseEffectNew
     }
 
-    print(stan_data)
-
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:
         model = f.read()
@@ -759,18 +753,19 @@ def run_individual_party(config, m_data, e_data,
     for i in range(1, 100):
         probs_list.append(i * 0.01)
     probs_list.append(0.999)
-    output_probs = tuple(probs_list)
-    summary = fit.summary(probs=output_probs)['summary']
+    output_probs_t = tuple(probs_list)
+    summary = fit.summary(probs=output_probs_t)['summary']
     trend_file = open(output_trend, 'w')
     trend_file.write('Start date day,Month,Year\n')
     trend_file.write(e_data.start.strftime('%d,%m,%Y\n'))
     trend_file.write('Day,Party')
-    for prob in output_probs:
+    for prob in output_probs_t:
         trend_file.write(',' + str(round(prob * 100)) + "%")
     trend_file.write('\n')
     # need to get past the centered values and house effects
     # this is where the actual FP trend starts
     offset = tDayCount + n_houses * 2
+    day_data = []
     for summaryDay in range(0, tDayCount):
         for duplicateNum in range(0, tFactor):
             effectiveDay = summaryDay * tFactor + duplicateNum
@@ -778,15 +773,18 @@ def run_individual_party(config, m_data, e_data,
             table_index = summaryDay + offset
             to_write = str(effectiveDay) + ","
             to_write += party + ","
-            for col in range(3, 3+len(output_probs)-1):
+            day_infos = []
+            for col in range(3, 3+len(output_probs_t)):
                 trend_value = summary[table_index][col]
                 to_write += str(round(trend_value, 3)) + ','
+                day_infos.append(trend_value)
+            day_data.append(day_infos)
 
             # Prepare others-medians, this isn't related to the trend file
             # but it's needed for the runs of other parties
             if party in others_parties or party in ['GRN FP', 'NAT FP', 'OTH FP']:
                 # Average of first and last
-                median_col = math.floor((4+len(output_probs)) / 2)
+                median_col = math.floor((4+len(output_probs_t)) / 2)
                 median_val = summary[table_index][median_col]
                 e_data.others_medians[party][effectiveDay] = median_val
                 # The others-median should exclude "others" parties that already
@@ -797,7 +795,7 @@ def run_individual_party(config, m_data, e_data,
                         if oth_party in others_parties:
                             e_data.others_medians[party][effectiveDay] -= \
                                 e_data.others_medians[oth_party][effectiveDay]
-            to_write += str(round(summary[table_index][3+len(output_probs)-1], 3)) + '\n'
+            to_write += '\n'
             if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
             trend_file.write(to_write)
     trend_file.close()
@@ -852,11 +850,11 @@ def run_individual_party(config, m_data, e_data,
     for i in range(1, 10):
         probs_list.append(i * 0.1)
     probs_list.append(0.999)
-    output_probs = tuple(probs_list)
-    summary = fit.summary(probs=output_probs)['summary']
+    output_probs_he = tuple(probs_list)
+    summary = fit.summary(probs=output_probs_he)['summary']
     house_effects_file = open(output_house_effects, 'w')
     house_effects_file.write('House,Party')
-    for prob in output_probs:
+    for prob in output_probs_he:
         house_effects_file.write(',' + str(round(prob * 100)) + "%")
     house_effects_file.write('\n')
     house_effects_file.write('New house effects\n')
@@ -865,7 +863,7 @@ def run_individual_party(config, m_data, e_data,
         house_effects_file.write(houses[house_index])
         table_index = offset + house_index
         house_effects_file.write("," + party)
-        for col in range(3, 3+len(output_probs)):
+        for col in range(3, 3+len(output_probs_he)):
             house_effects_file.write(
                 ',' + str(round(summary[table_index][col], 3)))
         house_effects_file.write('\n')
@@ -875,7 +873,7 @@ def run_individual_party(config, m_data, e_data,
         house_effects_file.write(houses[house_index])
         table_index = offset + house_index
         house_effects_file.write("," + party)
-        for col in range(3, 3+len(output_probs)):
+        for col in range(3, 3+len(output_probs_he)):
             house_effects_file.write(
                 ',' + str(round(summary[table_index][col], 3)))
         house_effects_file.write('\n')
@@ -888,10 +886,9 @@ def run_individual_party(config, m_data, e_data,
                             exc_polls=exc_polls,
                             excluded_pollster=excluded_pollster,
                             party=party,
-                            summary=summary,
-                            n_houses=n_houses,
-                            output_probs=output_probs,
-                            df=df
+                            day_data=day_data,
+                            output_probs=output_probs_t,
+                            df=df,
                            )
 
 

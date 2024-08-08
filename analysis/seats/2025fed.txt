@@ -15,7 +15,8 @@ fTppMargin=12.0
 fPreviousTppSwing=6.13
 sPolls=GRN,14,4
 sTppMrpPolls=Redbridge,2024-04-01,61.5
-sCandidateNames=Linda Burney,ALP
+bRetirement=1
+sCandidateNames=
 #Bennelong
 sIncumbent=ALP
 sChallenger=LNP
@@ -603,6 +604,7 @@ fTppMargin=10.0
 fPreviousTppSwing=-4.27
 sPolls=GRN,11,4
 sTppMrpPolls=Redbridge,2024-04-01,61
+bRetirement=1
 sCandidateNames=Brendan O'Connor,ALP
 #Hawke
 sIncumbent=ALP

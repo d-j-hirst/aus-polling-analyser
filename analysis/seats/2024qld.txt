@@ -300,6 +300,7 @@ sChallenger=LNP
 sRegion=Regional
 fTppMargin=6.72
 fPreviousTppSwing=-1.61
+bRetirement=1
 #Maiwar
 sIncumbent=GRN
 sChallenger=LNP
