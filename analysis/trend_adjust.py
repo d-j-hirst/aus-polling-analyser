@@ -3,7 +3,7 @@ from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
 
 from scipy.interpolate import UnivariateSpline
-from sklearn.linear_model import QuantileRegressor
+from sklearn.linear_model import ElasticNetCV
 from numpy import array, transpose, dot, average, amax, amin, median
 
 import argparse
@@ -361,7 +361,7 @@ def run_fundamentals_regression(config, inputs):
         prediction_errors = []
         baseline_errors = []
         avg_len = average_length[party_group_code]
-        for studied_election in inputs.past_elections + [inputs.exclude]:
+        for studied_election in inputs.past_elections:
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -371,6 +371,13 @@ def run_fundamentals_regression(config, inputs):
             federal_opposites = []
             for election in inputs.past_elections:
                 if election == studied_election:
+                    continue
+                
+                if (election.region() == 'fed'
+                    and studied_election.region() != 'fed'):
+                    continue
+                if (election.region() != 'fed'
+                    and studied_election.region() == 'fed'):
                     continue
 
                 # Maybe remove this, or not?
@@ -424,7 +431,8 @@ def run_fundamentals_regression(config, inputs):
                     to_file[studied_election][party] = 3
                 continue
             if amax(input_array) > 0 or amin(input_array) < 0:
-                reg = QuantileRegressor(alpha=0, quantile=0.5).fit(input_array, dependent_array)
+                # reg = QuantileRegressor(alpha=0, quantile=0.5).fit(input_array, dependent_array)
+                reg = ElasticNetCV().fit(input_array, dependent_array)
                 coefs = reg.coef_
                 intercept = reg.intercept_
             else:
@@ -492,6 +500,7 @@ def run_fundamentals_regression(config, inputs):
                 print(f'No data for {party_group_code}')
                 continue
             print(f'Party group: {party_group_code}')
+            print(previous_errors)
             previous_rmse = math.sqrt(sum([a ** 2 for a in previous_errors])
                                     / (len(previous_errors) - 1))
             prediction_rmse = math.sqrt(sum([a ** 2 for a in prediction_errors])

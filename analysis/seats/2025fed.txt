@@ -1010,6 +1010,7 @@ fTppMargin=9.09
 fPreviousTppSwing=7.19
 sPolls=GRN,21,4
 sTppMrpPolls=Redbridge,2024-04-01,62
+bRetirement=1
 sCandidateNames=Graham Perrett,ALP
 #Oxley
 sIncumbent=ALP
