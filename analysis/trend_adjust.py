@@ -354,14 +354,14 @@ def save_fundamentals(results):
                  f.write(f'{party},{prediction}\n')
 
 
-def run_fundamentals_regression(config, inputs):
+def run_fundamentals_regression(config, inputs, excluded_election):
     to_file = {}
     for party_group_code, party_group_list in party_groups.items():
         previous_errors = []
         prediction_errors = []
         baseline_errors = []
         avg_len = average_length[party_group_code]
-        for studied_election in inputs.past_elections:
+        for studied_election in inputs.past_elections + [excluded_election]:
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -373,17 +373,16 @@ def run_fundamentals_regression(config, inputs):
                 if election == studied_election:
                     continue
                 
+                # Make sure that federal elections are only used to predict
+                # federal elections, and state elections are only used to
+                # predict state elections
+                # This gives the best results in validation
                 if (election.region() == 'fed'
                     and studied_election.region() != 'fed'):
                     continue
                 if (election.region() != 'fed'
                     and studied_election.region() == 'fed'):
                     continue
-
-                # Maybe remove this, or not?
-                # if (election.region() == 'fed' and 
-                #     party_group_code in ['TPP', 'ALP', 'LNP']):
-                #     continue
 
                 for party in inputs.past_parties[election] + [unnamed_others_code]:
                     if party not in party_group_list:
@@ -459,8 +458,26 @@ def run_fundamentals_regression(config, inputs):
                                                          party,
                                                          avg_len)
                 e_p_c = ElectionPartyCode(studied_election, party)
-                prediction = (inputs.safe_prior_average(avg_len, e_p_c) +
+                # If the party is TPP, use a 50-50 baseline as that performs better in validation
+                # on 2 out of 3 criteria
+                prediction = ((inputs.safe_prior_average(avg_len, e_p_c) if party_group_code != "TPP" else 50) +
                             dot(input_array, coefs) + intercept)
+                # Fundamentals regression is worse for federal
+                # results than a 50-50 baseline, so just use that instead there:
+                if (party_group_code == "TPP"
+                    and studied_election.region() == "fed"):
+                    prediction = 50
+                # Fundamentals regression is worse for LNP
+                # results than an average of the past results, so just use that instead there:
+                # Note that ALP is actually slightly better with fundamentals regression,
+                # so we don't override that
+                if ((party_group_code == "LNP")
+                    and studied_election.region() == "fed"):
+                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                # Fundamentals regression is worse for OTH than the most recent past results,
+                # so just use that instead there:
+                if (party_group_code == "OTH" or party_group_code == "xOTH"):
+                    prediction = inputs.safe_prior_average(avg_len, e_p_c)
                 if studied_election in inputs.past_elections:
                     eventual_results = (inputs.eventual_results[e_p_c]
                                         if e_p_c in inputs.eventual_results else 0)
@@ -468,25 +485,20 @@ def run_fundamentals_regression(config, inputs):
                                         - eventual_results)
                     baseline_errors.append((50 if party_group_code == "TPP" else 0)
                                         - eventual_results)
-                    if party_group_code == "TPP":
-                        print(e_p_c)
-                        print(prediction)
-                        print(inputs.safe_prior_average(avg_len, e_p_c))
-                        print(input_array)
-                        print(coefs)
-                        print(intercept)
-                    prediction_errors.append(prediction - eventual_results)
-                    # Fundamentals regression is significantly worse for federal
-                    # results than a 50-50 baseline, so just use that instead there:
-                    # if (party_group_code == "TPP"
-                    #     and studied_election.region() == "fed"):
-                    #     prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                    # if party_group_code == "TPP":
+                    #     print(e_p_c)
+                    #     print(prediction)
+                    #     print(inputs.safe_prior_average(avg_len, e_p_c))
+                    #     print(input_array)
+                    #     print(coefs)
+                    #     print(intercept)
                     # if (party_group_code == "ALP" 
                     #     and studied_election.region() == "fed"):
                     #     prediction = inputs.safe_prior_average(avg_len, e_p_c)
                     # if (party_group_code == "LNP" 
                     #     and studied_election.region() == "fed"):
                     #     prediction = inputs.safe_prior_average(avg_len, e_p_c)
+                    prediction_errors.append(prediction - eventual_results)
                     inputs.fundamentals[e_p_c] = prediction
                 if studied_election not in inputs.past_elections:
                     # This means it's the excluded election, so want to
@@ -956,7 +968,7 @@ def trend_adjust():
             # Leave this until now so it doesn't interfere with initialization
             # of poll_trend
             inputs.determine_eventual_others_results()
-            run_fundamentals_regression(config, inputs)
+            run_fundamentals_regression(config, inputs, exclude)
             quit()
 
             test_procedure(config, inputs, poll_trend, exclude)
