@@ -366,7 +366,7 @@
 2023-12-13,uComms,,48,38.2,34,11.9,7.8,3.3,#N/A,4.8,38.4,25.9,
 2023-12-22,uComms,,49,38,34.4,13.3,7.3,4,#N/A,3,42.7,27.6,#most primaries sourced from changes in subsequent poll
 2024-02-20,uComms,,50,37.3,34.2,12.2,7.7,3.9,#N/A,4.7,44.2,25.2,"#Date estimated, 6.2% undecided redistributed among minor party voters"
-2024-03-10,Newspoll2,,46,42,30,13,8,#N/A,#N/A,7,38,49,
+2024-03-10,Newspoll3,Newspoll,46,42,30,13,8,#N/A,#N/A,7,38,49,
 2024-04-15,uComms,,#N/A,39,29.88888889,14.44444444,11.11111111,#N/A,#N/A,5.555555556,,,"#Date estimated (""an earlier poll in April"")"
 2024-04-13,YouGov2,,44,44,27,15,10,#N/A,#N/A,4,25,47,
 2024-04-05,ResolvePM,,#N/A,43,26,13,8,1,#N/A,9,,,
@@ -374,3 +374,6 @@
 2024-05-14,uComms,,#N/A,40.11904762,35.71428571,12.97619048,6.19047619,#N/A,#N/A,5,,,
 2024-07-12,YouGov2,,43,43,26,14,13,1,#N/A,3,31,44,
 2024-08-18,Wolf&Smith,,43,42,24,12,8,3,#N/A,10,,,
+2024-07-20,ResolvePM,,#N/A,44,23,12,8,#N/A,#N/A,13,,,"#""June through September"""
+2024-07-06,Redbridge,,45.5,42,29,11,#N/A,#N/A,#N/A,18,,,
+2024-09-15,Newspoll3,Newspoll,45,42,30,12,8,#N/A,#N/A,8,41,51,

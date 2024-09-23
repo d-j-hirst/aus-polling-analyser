@@ -771,12 +771,12 @@ def run_individual_party(config, m_data, e_data,
             effectiveDay = summaryDay * tFactor + duplicateNum
             if effectiveDay >= e_data.n_days: break
             table_index = summaryDay + offset
-            to_write = str(effectiveDay) + ","
-            to_write += party + ","
+            to_write = str(effectiveDay)
+            to_write += "," + party
             day_infos = []
             for col in range(3, 3+len(output_probs_t)):
                 trend_value = summary[table_index][col]
-                to_write += str(round(trend_value, 3)) + ','
+                to_write += "," + str(round(trend_value, 3))
                 day_infos.append(trend_value)
             day_data.append(day_infos)
 
@@ -796,7 +796,7 @@ def run_individual_party(config, m_data, e_data,
                             e_data.others_medians[party][effectiveDay] -= \
                                 e_data.others_medians[oth_party][effectiveDay]
             to_write += '\n'
-            if config.cutoff > 0 and summaryDay < e_data.n_days - 1: continue
+            if config.cutoff > 0 and effectiveDay < e_data.n_days - 1: continue
             trend_file.write(to_write)
     trend_file.close()
     print('Saved trend file at ' + output_trend)

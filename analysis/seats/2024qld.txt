@@ -373,6 +373,7 @@ sChallenger=LNP
 sRegion=Regional
 fTppMargin=12.24
 fPreviousTppSwing=1.32
+bRetirement=1
 #Mundingburra
 sIncumbent=ALP
 sChallenger=LNP
