@@ -345,13 +345,13 @@ class PollTrend:
 
 class HyperparamSet:
     def __init__(self, average_error=10, median_error=10, rmse=10):
-        self.sigma_prior = 0.607
-        self.federal_state_difference_sigma = 0.428
-        self.poll_weight_change_sigma = 0.022
-        self.sigma_change_sigma = 0.719
-        self.bias_change_sigma = 0.02
-        self.recency_bias_half_life = 1.455
-        self.sample_weight = 5
+        self.sigma_prior = 0.5
+        self.federal_state_difference_sigma = 1
+        self.poll_weight_change_sigma = 0.195
+        self.sigma_change_sigma = 0.057
+        self.bias_change_sigma = 0.0247
+        self.recency_bias_half_life = 2.114
+        self.sample_weight = 3
 
         self.average_error = 10
         self.median_error = 10
@@ -372,7 +372,7 @@ class HyperparamSet:
         self.recency_bias_half_life = min(100, self.recency_bias_half_life)
         self.sample_weight = math.floor(self.sample_weight + 0.5)
         self.sample_weight = max(2, self.sample_weight)
-        self.sample_weight = min(50, self.sample_weight)
+        self.sample_weight = min(20, self.sample_weight)
     
     def energy(self):
         # High sample weight is time-consuming and theoretically questionable,
@@ -1103,12 +1103,12 @@ def check_poll_predictiveness(config):
             print("Could not check statistics as there were no data. Make sure you use --election all so that the program uses all available elections")
 
 
-def temp_run_stan(config, inputs, poll_trend, validation, exclude):
+def temp_run_stan(config, inputs, poll_trend, validation, party, exclude):
     eventual_results = {}
     for code, result in inputs.eventual_results.items():
         if code.year() < backtest_limit:
             continue
-        if code.party() != "@TPP":
+        if code.party() != party:
             continue
         eventual_results[code] = result
         
@@ -1135,7 +1135,7 @@ def temp_run_stan(config, inputs, poll_trend, validation, exclude):
     for code, cutoffs in poll_trend.cutoff_data.items():
         if code.year() < backtest_limit:
             continue
-        if code.party() != "@TPP":
+        if code.party() != party:
             continue
         if not cutoffs:
             continue
@@ -1233,26 +1233,24 @@ def temp_run_stan(config, inputs, poll_trend, validation, exclude):
     output_probs_t = tuple(probs_list)
     summary = fit.summary(probs=output_probs_t)['summary']
 
-    # if (exclude.year() > 2023):
-    #     print("Bias prior sigma: ", stan_data["obsPriorSigma"])
-    #     for i in range(0, time_points):
-    #         print(f"Median poll weight day {from_triangular(i)}: ", summary[i][0])
-    #     for i in range(0, time_points):
-    #         print(f"Median sigma day {from_triangular(i)}: ", summary[time_points + i][0])
-    #     for i in range(0, time_points):
-    #         print(f"Median federal poll weight day {from_triangular(i)}: ", summary[2 * time_points + i][0])
-    #     for i in range(0, time_points):
-    #         print(f"Median federal sigma day {from_triangular(i)}: ", summary[3 * time_points + i][0])
-    #     for i in range(0, time_points):
-    #         print(f"Median bias day {from_triangular(i)}: ", summary[4 * time_points + i][0])
-    #     for i in range(0, time_points):
-    #         print(f"Median federal bias day {from_triangular(i)}: ", summary[5 * time_points + i][0])
-
-    # for i in range(0, max(days_list_t)):
-    #     print(f"Median incumbency bias day {i*(i+1)/2}: ", summary[6 * max(days_list_t) + i][0])
+    if (exclude.year() == 2024):
+        print("Bias prior sigma: ", stan_data["obsPriorSigma"])
+        for i in range(0, time_points):
+            print(f"Median poll weight day {from_triangular(i)}: ", summary[i][0])
+        for i in range(0, time_points):
+            print(f"Median sigma day {from_triangular(i)}: ", summary[time_points + i][0])
+        for i in range(0, time_points):
+            print(f"Median federal poll weight day {from_triangular(i)}: ", summary[2 * time_points + i][0])
+        for i in range(0, time_points):
+            print(f"Median federal sigma day {from_triangular(i)}: ", summary[3 * time_points + i][0])
+        for i in range(0, time_points):
+            print(f"Median bias day {from_triangular(i)}: ", summary[4 * time_points + i][0])
+        for i in range(0, time_points):
+            print(f"Median federal bias day {from_triangular(i)}: ", summary[5 * time_points + i][0])
+        # for i in range(0, time_points):
+        #     print(f"Median incumbency bias dayfrom_triangular(i)}: ", summary[6 * time_points + i][0])
 
     election = exclude
-    party = "@TPP"
     with open('./Data/eventual-results.csv', 'r') as f:
         exclude_results_all = {
             ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]): float(a[3])
@@ -1300,6 +1298,12 @@ def temp_run_stan(config, inputs, poll_trend, validation, exclude):
             exclude_poll_weight = this_federal_poll_weight if exclude_federal else this_poll_weight
             exclude_effective_sigma = this_federal_sigma if exclude_federal else this_sigma
             exclude_final_estimate = exclude_trend_estimate * exclude_poll_weight + exclude_fundamentals * (1 - exclude_poll_weight)
+            
+            # print(f"num_days: {num_days}")
+            # print(f"exclude_fundamentals: {exclude_fundamentals}")
+            # print(f"this_poll_weight: {this_poll_weight}, this_sigma: {this_sigma}, this_federal_poll_weight: {this_federal_poll_weight}, this_federal_sigma: {this_federal_sigma}, this_bias: {this_bias}, this_federal_bias: {this_federal_bias}")
+            # print(f"exclude_trend_estimate: {exclude_trend_estimate}, exclude_poll_weight: {exclude_poll_weight}, exclude_effective_sigma: {exclude_effective_sigma}, exclude_final_estimate: {exclude_final_estimate}")
+
             # print(f"{election}, {num_days} days remaining: "
             #       f"Final Estimate: {exclude_final_estimate:.2f}, "
             #       f"actual: {exclude_results:.2f}, "
@@ -1328,7 +1332,11 @@ def trend_adjust():
         print(str(e))
         return
     
-    validation = Validation()
+    validation_parties = ['ALP FP']
+    
+    validations = {}
+    for party in validation_parties:
+        validations[party] = Validation()
 
     if config.check != "only":
         for i in range(1, 100):
@@ -1350,17 +1358,22 @@ def trend_adjust():
                 print(f'Determining fundamentals for: {exclude}')
                 run_fundamentals_regression(config, inputs, exclude)
 
-                print(f'Beginning trend adjustment algorithm for: {exclude}')
-                temp_run_stan(config, inputs, poll_trend, validation, exclude)
+                for party in validation_parties:
+                    print(f'Beginning trend adjustment algorithm for: {party} in {exclude}')
+                    temp_run_stan(config, inputs, poll_trend, validations[party], party, exclude)
 
                 # test_procedure(config, inputs, poll_trend, exclude)
                 print(f'Completed trend adjustment algorithm for: {exclude}')
 
-            validation.analyse()
-
-            validation.next_hyperparam_set()
+            for party in validation_parties:
+                print(f'Analysing results for: {party}')
+                validations[party].analyse()
+                print(f'Next hyperparam set for: {party}')
+                validations[party].next_hyperparam_set()
     
-    complete_validation(config, validation)
+    for party in validation_parties:
+        print(f'Final analysis for: {party}')
+        complete_validation(config, validations[party])
 
     # if config.check == "only" or config.check == "yes":
     #     check_poll_predictiveness(config)

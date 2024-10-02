@@ -338,7 +338,7 @@ sRegion=Brisbane
 fTppMargin=13.82
 fPreviousTppSwing=5.64
 #Mirani
-sIncumbent=IND
+sIncumbent=KAP
 sChallenger=ALP
 sRegion=Regional
 fTppMargin=6.9
