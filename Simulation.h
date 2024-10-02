@@ -152,7 +152,7 @@ public:
 
 		std::vector<Seat::Id> classicSeatIndices; // deprecated, do not use
 
-		std::vector<std::vector<int>> regionPartyIncuments;
+		std::vector<std::vector<int>> regionPartyIncumbents;
 
 		std::vector<std::map<int, float>> seatPartyWinPercent;
 

@@ -340,8 +340,8 @@ void DisplayFrameRenderer::drawRegionsBoxRowListItem(RegionCollection::Index reg
 	float seats[3] = { simulation.getRegionPartyWinExpectation(regionIndex, 0) ,
 		simulation.getRegionPartyWinExpectation(regionIndex, 1) ,
 		simulation.getRegionOthersWinExpectation(regionIndex) };
-	float change[3] = { seats[0] - simulation.regionPartyIncuments[regionIndex][0] ,
-		seats[1] - simulation.regionPartyIncuments[regionIndex][1],
+	float change[3] = { seats[0] - simulation.regionPartyIncumbents[regionIndex][0] ,
+		seats[1] - simulation.regionPartyIncumbents[regionIndex][1],
 		seats[2] - simulation.getOthersLeading(regionIndex) };
 	wxRect elementRect = rowNameRect;
 	dc.DrawLabel(simulation.regionName[regionIndex], elementRect, wxALIGN_CENTRE);

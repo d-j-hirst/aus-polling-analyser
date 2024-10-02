@@ -322,9 +322,9 @@ void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
 
 void SimulationPreparation::resizeRegionSeatCountOutputs()
 {
-	sim.latestReport.regionPartyIncuments.resize(project.regions().count());
+	sim.latestReport.regionPartyIncumbents.resize(project.regions().count());
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		sim.latestReport.regionPartyIncuments[regionIndex].resize(project.parties().count());
+		sim.latestReport.regionPartyIncumbents[regionIndex].resize(project.parties().count());
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
 			run.regionPartyWins[regionIndex][partyIndex] = std::vector<int>(regionSeatCount[regionIndex] + 1);
 		}
@@ -334,7 +334,9 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		++sim.latestReport.regionPartyIncuments[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
+		PA_LOG_VAR(seat.region);
+		PA_LOG_VAR(sim.latestReport.regionPartyIncumbents);
+		++sim.latestReport.regionPartyIncumbents[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
 	}
 }
 

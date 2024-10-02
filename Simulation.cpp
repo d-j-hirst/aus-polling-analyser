@@ -402,8 +402,8 @@ float Simulation::Report::getTppSamplePercentile(float percentile) const
 
 int Simulation::Report::getOthersLeading(int regionIndex) const
 {
-	if (regionPartyIncuments[regionIndex].size() < 3) return 0;
-	return std::accumulate(regionPartyIncuments[regionIndex].begin() + 2, regionPartyIncuments[regionIndex].end(), 0);
+	if (regionPartyIncumbents[regionIndex].size() < 3) return 0;
+	return std::accumulate(regionPartyIncumbents[regionIndex].begin() + 2, regionPartyIncumbents[regionIndex].end(), 0);
 }
 
 Simulation::Report::SaveablePolls Simulation::Report::getSaveablePolls() const

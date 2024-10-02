@@ -606,7 +606,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.seatTcpScenarioPercent;
 	saveOutput << report.seatTcpWinPercent;
 	saveOutput << report.classicSeatIndices;
-	saveOutput << report.regionPartyIncuments;
+	saveOutput << report.regionPartyIncumbents;
 	saveOutput << report.prevElection2pp;
 	saveOutput << report.partyPrimaryFrequency;
 	saveOutput << report.tppFrequency;
@@ -751,7 +751,7 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 		saveInput >> report.seatTcpWinPercent;
 	}
 	saveInput >> report.classicSeatIndices;
-	saveInput >> report.regionPartyIncuments;
+	saveInput >> report.regionPartyIncumbents;
 	saveInput >> report.prevElection2pp;
 	if (versionNum >= 18) {
 		if (versionNum >= 27) {
