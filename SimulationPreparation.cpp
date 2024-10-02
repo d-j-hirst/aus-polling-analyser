@@ -672,11 +672,11 @@ void SimulationPreparation::loadPastSeatResults()
 	} else if (run.getTermCode() == "2024qld") {
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			if (project.seats().viewByIndex(seatIndex).name == "Mirani") {
-				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 9320;
-				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 31.66f;
+				run.pastSeatResults[seatIndex].fpVoteCount[3] = 9320;
+				run.pastSeatResults[seatIndex].fpVotePercent[3] = 31.66f;
 				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 1871;
 				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 6.36f;
-				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] = 58.98f;
+				run.pastSeatResults[seatIndex].tcpVotePercent[3] = 58.98f;
 			}
 		}
 	}

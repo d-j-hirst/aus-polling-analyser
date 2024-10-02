@@ -2017,9 +2017,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 					std::pair<int, int> targetParties = { accumulatedVoteShares[0].first, accumulatedVoteShares[1].first };
 					if (item.contains(targetParties)) {
 						float flow = item.at(targetParties);
-						// Based on previous elections Mirani ONP member gets better flows than expected for an ONP candidate
-						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.first == 4) flow += 10.0f;
-						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.second == 4) flow -= 10.0f;
+						// Based on previous elections Mirani ONP member got better flows than expected for an ONP candidate, expect this to continue as KAP to some extent
+						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.first == 3) flow += 5.0f;
+						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.second == 3) flow -= 5.0f;
 						float transformedFlow = transformVoteShare(flow);
 						// Higher variation in preference flow under OPV
 						transformedFlow += rng.normal(0.0f, 10.0f + 10.0f * (1.0f - survivalRate));
