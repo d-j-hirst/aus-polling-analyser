@@ -4,48 +4,64 @@ sChallenger=LNP
 sRegion=os
 fTppMargin=17.77
 fPreviousTppSwing=3.35
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Leeanne Enoch,ALP;Jitendra Prasad,LNP;Andrea Wildin,GRN;George Maris,ONP
 #Aspley
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=5.16
 fPreviousTppSwing=3.99
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Bart Mellish,ALP;Amanda Cooper,LNP;Fiona Hawkins,GRN;Allan Hall,ONP
 #Bancroft
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=12.8
 fPreviousTppSwing=6.59
+sRunningParties=ALP,LNP,GRN,ONP,IND
+sCandidateNames=Chris Whiting,ALP;Rob Barridge,LNP;Gabrielle Unverzagt,GRN;Matthew Langfield,ONP
 #Barron River
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=fnre
 fTppMargin=3.06
 fPreviousTppSwing=1.2
+sRunningParties=ALP,LNP,GRN,ONP,KAP
+sCandidateNames=Craig Crawford,ALP;Bree James,LNP;Maja Chodorowski,GRN;Peter Eicens,ONP;Ben Campbell,KAP
 #Bonney
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-10.07
 fPreviousTppSwing=-8.38
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Kyle Kelly-Collins,ALP;Sam O'Connor,LNP;Amin Javanmard,GRN;Scott Philip,ONP
 #Broadwater
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-16.57
 fPreviousTppSwing=1.41
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Tamika Hicks,ALP;David Crisafulli,LNP;Simon Margan,GRN;Steven Whitehead,ONP
 #Buderim
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-5.29
 fPreviousTppSwing=6.12
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Adrian Burke,ALP;Brent Mickelberg,LNP;Deborah Moseley,GRN;Ryan Beall,ONP
 #Bulimba
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=11.39
 fPreviousTppSwing=0.61
+sRunningParties=ALP,LNP,GRN,ONP,IND
+sCandidateNames=Di Farmer,ALP;Laura Wong,LNP;Linda Barry,GRN;Jonathon Andrade,ONP
 #Bundaberg
 sIncumbent=ALP
 sChallenger=LNP
@@ -54,18 +70,24 @@ fTppMargin=0.01
 fPreviousTppSwing=4.21
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,ONP,IND*,OTH
+sCandidateNames=Tom Smith,ALP;Bree Watson,LNP;Nat Baker,GRN;Alberto Carvalho,ONP
 #Bundamba
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=21.2
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH**
+sCandidateNames=Lance McCallum,ALP;Carl Mutzelburg,LNP;Tracey Nayler,GRN;Kelvin Brown,ONP
 #Burdekin
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=fnru
 fTppMargin=-7.05
 fPreviousTppSwing=-6.25
+sRunningParties=ALP,LNP,GRN,ONP,KAP,OTH
+sCandidateNames=Anne Baker,ALP;Dale Last,LNP;Andrew Elborne,ONP;Daniel Carroll,KAP;Ben Watkin,GRN
 #Burleigh
 sIncumbent=LNP
 sChallenger=ALP
@@ -73,18 +95,24 @@ sRegion=core
 fTppMargin=-1.21
 fPreviousTppSwing=3.65
 bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sCandidateNames=Claire Carlin,ALP;Hermann Vorster,LNP;Hunter Grove-McGrath,GRN;Eliot Tasses,ONP
 #Burnett
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=ceru
 fTppMargin=-10.79
 fPreviousTppSwing=-0.14
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Stephen Bennett,LNP;Esther Vale,GRN;Arno Blank,ONP;Kerri Morgan,ALP;Paul Hudson,KAP
 #Cairns
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=fnre
 fTppMargin=5.59
 fPreviousTppSwing=2.2
+sRunningParties=ALP,LNP,GRN,ONP,IND
+sCandidateNames=Michael Healy,ALP;Yolonde Entsch,LNP;Josh Holt,GRN;Geena Court,ONP
 #Callide
 sIncumbent=LNP
 sChallenger=ALP
@@ -92,6 +120,8 @@ sRegion=core
 fTppMargin=-15.83
 fPreviousTppSwing=1.9
 fByElectionSwing=-5.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Samantha Dendle,ALP;Bryson Head,LNP;Matthew Passant,GRN;Christopher O'Callaghan,ONP
 #Caloundra
 sIncumbent=ALP
 sChallenger=LNP
@@ -100,42 +130,56 @@ fTppMargin=2.51
 fPreviousTppSwing=5.92
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
+sCandidateNames=Jason Hunt,ALP;Kendall Morton,LNP;Peta Higgs,GRN;Ben Storch,ONP
 #Capalaba
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=9.81
 fPreviousTppSwing=1.95
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Don Brown,ALP;Russell Field,LNP;Donna Weston,GRN;David Schmid,ONP
 #Chatsworth
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=is
 fTppMargin=-1.29
 fPreviousTppSwing=1.62
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Lisa O'Donnell,ALP;Steve Minnikin,LNP;James Smart,GRN;Jasmine Harte,ONP
 #Clayfield
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=is
 fTppMargin=-1.55
 fPreviousTppSwing=0.86
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Belle Brookfield,ALP;Tim Nicholls,LNP;Jaimyn Mayer,GRN;Michelle Wilde,ONP
 #Condamine
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=ceru
 fTppMargin=-19.2
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Ben Whibley-Faulkner,ALP;Pat Weir,LNP;Ellisa Parker,GRN;Clay Harland,ONP
 #Cook
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=fnru
 fTppMargin=6.26
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,KAP
+sCandidateNames=Cynthia Lui,ALP;David Kempton,LNP;Troy Miller,GRN;Peter Campion,ONP;Duane Amos,KAP
 #Coomera
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-1.08
 fPreviousTppSwing=2.4
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Chris Johnson,ALP;Michael Crandon,LNP;Stuart Fletcher,GRN;Nick Muir,ONP
 #Cooper
 sIncumbent=ALP
 sChallenger=LNP
@@ -143,48 +187,64 @@ sRegion=is
 fTppMargin=10.49
 fPreviousTppSwing=-0.16
 bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Jonty Bush,ALP;Raewyn Bailey,LNP;Katinka Winston-Allom,GRN;Susan Ventnor,ONP
 #Currumbin
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-0.52
 fPreviousTppSwing=2.79
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
+sCandidateNames=Nathan Fleury,ALP;Laura Gerber,LNP;Braden Smith,GRN;Angela Gunson,ONP
 #Everton
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=os
 fTppMargin=-2.24
 fPreviousTppSwing=2.71
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Michelle Byard,ALP;Tim Mander,LNP;Brent McDowall,GRN;Alan Buchbach,ONP
 #Ferny Grove
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=10.97
 fPreviousTppSwing=6.34
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Mark Furner,ALP;Nelson Savanh,LNP;Elizabeth McAulay,GRN;Leonie Swanner,ONP
 #Gaven
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=core
 fTppMargin=7.75
 fPreviousTppSwing=7.04
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Meaghan Scanlon,ALP;Bianca Stone,LNP;Sally Spain,GRN;Sandy Roach,ONP
 #Gladstone
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=cere
 fTppMargin=23.49
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
+sCandidateNames=Glenn Butcher,ALP;Steve Askew,LNP;Beau Pett,GRN;Andrew Jackson,ONP
 #Glass House
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-1.58
 fPreviousTppSwing=1.84
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Humphrey Caspersz,ALP;Andrew Powell,LNP;Andrew McLean,GRN;Adam Farr,ONP
 #Greenslopes
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=13.2
 fPreviousTppSwing=3.07
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Joe Kelly,ALP;Andrew Newbold,LNP;Rebecca White,GRN;Hugh Dickson,ONP
 #Gregory
 sIncumbent=LNP
 sChallenger=ALP
@@ -192,12 +252,16 @@ sRegion=ceru
 fTppMargin=-17.25
 fPreviousTppSwing=1.9
 bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Rebecca Humphreys,ALP;Sean Dillon,LNP;Ell-Leigh Ackerman,GRN;Michael Ellison,ONP
 #Gympie
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=cere
 fTppMargin=-8.49
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Lachlan Anderson,ALP;Tony Perrett,LNP;Emma Buhse,GRN;Katy McCallum,ONP
 #Hervey Bay
 sIncumbent=ALP
 sChallenger=LNP
@@ -206,18 +270,24 @@ fTppMargin=2.02
 fPreviousTppSwing=11.12
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Adrian Tantari,ALP;David Lee,LNP;Pat Walsh,GRN;Quinn Hendry,ONP
 #Hill
 sIncumbent=KAP
 sChallenger=LNP
 sRegion=fnru
 fTppMargin=-9.7
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,KAP
+sCandidateNames=Michael Hodgkins,ALP;Cameron McCollum,LNP;Brenda Turner,ONP;Shane Knuth,KAP;Jennifer Cox,GRN
 #Hinchinbrook
 sIncumbent=KAP
 sChallenger=LNP
 sRegion=fnru
 fTppMargin=-5.9
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,KAP,OTH
+sCandidateNames=Annette Swaine,LNP;Jon Kowski,GRN;Ric Daubert,ONP;Nick Dametto,KAP;Ina Pryor,ALP
 #Inala
 sIncumbent=ALP
 sChallenger=LNP
@@ -225,12 +295,16 @@ sRegion=is
 fByElectionSwing=-21.5
 fTppMargin=28.17
 fPreviousTppSwing=2.07
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Margie Nightingale,ALP;Trang Yen,LNP;Linh Nguyen,GRN;Carl Cassin,ONP
 #Ipswich
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=16.52
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Jennifer Howard,ALP;Damian Culpeper,LNP;Amanda Holly,GRN;Mathew Riesenweber,ONP
 #Ipswich West
 sIncumbent=LNP
 sChallenger=ALP
@@ -238,62 +312,74 @@ sRegion=is
 fByElectionSwing=-17.8
 fTppMargin=14.35
 fPreviousTppSwing=1.9
-bSophomoreCandidate=1
 bSophomoreParty=1
+bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sCandidateNames=Wendy Bourne,ALP;Georgia Toft,LNP;Mark Delaney,GRN;Brad Trussell,ONP
 #Jordan
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=17.1
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Charis Mullen,ALP;Kevin Burns,LNP;Dung Tran,GRN;Sabeh Abou Chahla,ONP
 #Kawana
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-9.31
 fPreviousTppSwing=3.76
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Jim Dawson,ALP;Jarrod Bleijie,LNP;Ian Simons,GRN;Peter Hinton,ONP
 #Keppel
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=ceru
 fTppMargin=5.63
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Brittany Lauga,ALP;Nigel Hutton,LNP;James Ashby,ONP;Clancy Mullbrick,GRN
 #Kurwongbah
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=13.15
 fPreviousTppSwing=6.15
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Shane King,ALP;Tanya McKewen,LNP;Jordan Martin,GRN;Christopher Leech,ONP
 #Lockyer
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=seru
 fTppMargin=-11.52
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Euan Tiernan,ALP;Jim McDonald,LNP;Paul Toner,GRN;Corey West,ONP
 #Logan
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=13.39
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Linus Power,ALP;Mathew Owens,LNP;Joshua Riethmuller,GRN;Aaron Abraham,ONP
 #Lytton
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=13.35
 fPreviousTppSwing=1.33
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Joan Pease,ALP;Chad Gardiner,LNP;Jade Whitla,GRN;David White,ONP
 #Macalister
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=9.54
 fPreviousTppSwing=2.09
-#McConnel
-sIncumbent=ALP
-sChallenger=LNP
-sRegion=is
-fTppMargin=11.06
-fPreviousTppSwing=3.2
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Melissa McMahon,ALP;Rob Van Manen,LNP;Liam Johns,GRN;Cheree Cooper,ONP
 #Mackay
 sIncumbent=ALP
 sChallenger=LNP
@@ -301,72 +387,104 @@ sRegion=fnre
 fTppMargin=6.72
 fPreviousTppSwing=-1.61
 bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Belinda Hassan,ALP;Nigel Dalton,LNP;Paula Creen,GRN;Kylee Stanton,ONP
 #Maiwar
 sIncumbent=GRN
 sChallenger=LNP
 sRegion=is
 fTppMargin=4.2
 fPreviousTppSwing=4.7
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Susan Irvine,ALP;Natasha Winters,LNP;Michael Berkman,GRN;Grant Sport,ONP
 #Mansfield
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=6.8
 fPreviousTppSwing=5.18
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Corrine McMillan,ALP;Pinky Singh,LNP;Wen Li,GRN;Katrina Coleman,ONP
 #Maroochydore
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-9.12
 fPreviousTppSwing=-0.6
+sRunningParties=ALP,LNP,GRN,ONP,IND
+sCandidateNames=Naomi McQueen,ALP;Fiona Simpson,LNP;Heinrich Koekemoer,GRN;Kyle Haley,ONP
 #Maryborough
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=cere
 fTppMargin=11.89
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND*,OTH
+sCandidateNames=Bruce Saunders,ALP;John Barounis,LNP;Lauren Granger-Brown,GRN;Taryn Gillard,ONP
+#McConnel
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=is
+fTppMargin=11.06
+fPreviousTppSwing=3.2
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Grace Grace,ALP;Christien Duffey,LNP;Holstein Wong,GRN;Gavin Jones,ONP
 #Mermaid Beach
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-4.39
 fPreviousTppSwing=1.87
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Joseph Shiels,ALP;Ray Stevens,LNP;Lauren Granger-Brown,GRN;Taryn Gillard,ONP
 #Miller
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=13.82
 fPreviousTppSwing=5.64
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Mark Bailey,ALP;Clio Padayachee,LNP;Liam Flenady,GRN;Ashley Pettit,ONP
 #Mirani
 sIncumbent=KAP
 sChallenger=ALP
 sRegion=ceru
 fTppMargin=-3.2
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,KAP,OTH
+sCandidateNames=Susan Teder,ALP;Glen Kelly,LNP;Maria Carty,GRN;Brettlyn Neal,ONP;Stephen Andrew,KAP
 #Moggill
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=os
 fTppMargin=-3.59
 fPreviousTppSwing=1.44
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Eric Richman,ALP;Christian Rowan,LNP;Andrew Kidd,GRN;Cheryl Wood,ONP
 #Morayfield
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=16.73
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Mark Ryan,ALP;Sarah Ross,LNP;Mark Jessup,GRN;Rodney Hansen,ONP
 #Mount Ommaney
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=12.61
 fPreviousTppSwing=6.85
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Jessica Pugh,ALP;Lisa Baillie,LNP;Chris Richardson,GRN;Thorold Cusack,ONP
 #Mudgeeraba
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-10.09
 fPreviousTppSwing=-0.24
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Sophie Lynch,ALP;Ros Bates,LNP;Scott Turner,GRN;Carl Mocnik,ONP
 #Mulgrave
 sIncumbent=ALP
 sChallenger=LNP
@@ -374,6 +492,8 @@ sRegion=fnre
 fTppMargin=12.24
 fPreviousTppSwing=1.32
 bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP,KAP,IND**,OTH*
+sCandidateNames=Richie Bates,ALP;Terry James,LNP;Michael McInnes,ONP;Steven Lesina,KAP;Peter Everett,GRN
 #Mundingburra
 sIncumbent=ALP
 sChallenger=LNP
@@ -381,18 +501,24 @@ sRegion=fnre
 fTppMargin=3.93
 fPreviousTppSwing=2.8
 bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,ONP,KAP
+sCandidateNames=Les Walker,ALP;Janelle Poole,LNP;Rebecca Haley,GRN;Michael Pugh,KAP;Mick Olsen,ONP
 #Murrumba
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=11.33
 fPreviousTppSwing=1.81
+sRunningParties=ALP,LNP,GRN,ONP,IND**,OTH*
+sCandidateNames=Steven Miles,ALP;Gary Fulton,LNP;Deklan Green,GRN;Duncan Geldenhuys,ONP
 #Nanango
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=seru
 fTppMargin=-12.21
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND*,OTH*
+sCandidateNames=Val Heward,ALP;Deb Frecklington,LNP;Angus Ryan,GRN;Adam Maslen,ONP
 #Nicklin
 sIncumbent=ALP
 sChallenger=LNP
@@ -401,24 +527,32 @@ fTppMargin=0.14
 fPreviousTppSwing=5.42
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
+sCandidateNames=Robert Skelton,ALP;Marty Hunt,LNP;Sue Etheridge,GRN;Rebecca McCosker,ONP
 #Ninderry
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-4.11
 fPreviousTppSwing=4.27
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Jo Justo,ALP;Dan Purdie,LNP;Tom Carden,GRN;Michael Stewart,ONP
 #Noosa
 sIncumbent=IND
 sChallenger=LNP
 sRegion=core
 fTppMargin=-1.6
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Mark Denham,ALP;Clare Stewart,LNP;Rhonda Prescott,GRN;Sandy Bolton,IND;Darrel Hinson,ONP
 #Nudgee
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=15.09
 fPreviousTppSwing=0.76
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Leanne Linard,ALP;Robert Wilson,LNP;Jim Davies,GRN;Joshua Baer,ONP
 #Oodgeroo
 sIncumbent=LNP
 sChallenger=ALP
@@ -426,12 +560,16 @@ sRegion=os
 fTppMargin=-4.48
 fPreviousTppSwing=2.76
 bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Irene Henley,ALP;Amanda Stoker,LNP;Callen Sorensen Karklis,GRN;Justin Sheil,ONP
 #Pine Rivers
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=6.7
 fPreviousTppSwing=0.52
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Nikki Boyd,ALP;Dean Clements,LNP;Sonja Gerdsen,GRN;Matthew Robinson,ONP
 #Pumicestone
 sIncumbent=ALP
 sChallenger=LNP
@@ -440,25 +578,35 @@ fTppMargin=5.27
 fPreviousTppSwing=6.11
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Ali King,ALP;Ariana Doolan,LNP;Richard Ogden,GRN;Samuel Beaton,ONP
 #Redcliffe
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=6.11
 fPreviousTppSwing=1.25
+sRunningParties=ALP,LNP,GRN,ONP,IND
+sCandidateNames=Kassandra Hall,ALP;Kerri-Anne Dooley,LNP;Will Simon,GRN;Simon Salloum,ONP
 #Redlands
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=3.9
 fPreviousTppSwing=0.84
+sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sCandidateNames=Kim Richards,ALP;Rebecca Young,LNP;Kristie Lockhart,GRN;Gary Williamson,ONP
 #Rockhampton
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=cere
 fTppMargin=8.62
 fPreviousTppSwing=1.9
+bConfirmedProminentIndependent=1
 bRetirement=1
+sMinorViability=IND,1.00
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
+sCandidateNames=Craig Marshall,ALP;Donna Kirkland,LNP;Mick Jones,GRN;David Bond,ONP;Margaret Strelow,IND
 #Sandgate
 sIncumbent=ALP
 sChallenger=LNP
@@ -466,12 +614,16 @@ sRegion=os
 fTppMargin=17.3
 fPreviousTppSwing=3.82
 bRetirement=1
+sRunningParties=ALP,LNP,GRN,ONP,IND*,OTH
+sCandidateNames=Bisma Asif,ALP;Chris Mangan,LNP;Rachel Kennedy,GRN;Glen Barry,ONP
 #Scenic Rim
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=seru
 fTppMargin=-11.45
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Shireen Casey,ALP;Jon Krause,LNP;Nicole Thompson,GRN;Wayne Ziebarth,ONP
 #South Brisbane
 sIncumbent=GRN
 sChallenger=ALP
@@ -480,24 +632,32 @@ fTppMargin=18.6
 fPreviousTppSwing=1.9
 bSophomoreCandidate=1
 bSophomoreParty=1
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Barbara O'Shea,ALP;Marita Parkinson,LNP;Amy MacMahon,GRN;Richard Henderson,ONP
 #Southern Downs
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=ceru
 fTppMargin=-14.09
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=James Lister,LNP;David Newport,GRN;Liz Suduk,ONP;Greg Johnson,ALP
 #Southport
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-5.41
 fPreviousTppSwing=1.83
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Letitia Del Fabbro,ALP;Rob Molhoek,LNP;Mitch McCausland,GRN;David Vaughan,ONP
 #Springwood
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=8.3
 fPreviousTppSwing=4.71
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Mick de Brenni,ALP;Susanna Damianopoulos,LNP;Ben Harry,GRN;Glen Cookson,ONP
 #Stafford
 sIncumbent=ALP
 sChallenger=LNP
@@ -505,6 +665,8 @@ sRegion=is
 fTppMargin=11.88
 fPreviousTppSwing=-0.22
 bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Jimmy Sullivan,ALP;Fiona Hammond,LNP;Jessica Lane,GRN;Stuart Andrews,ONP
 #Stretton
 sIncumbent=ALP
 sChallenger=LNP
@@ -512,66 +674,88 @@ sRegion=os
 fTppMargin=14.82
 fPreviousTppSwing=4.93
 fByElectionSwing=-0.87
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=James Martin,ALP;Freya Ostapovitch,LNP;Ahmed Abdulhamed,GRN;Stephen Strong,ONP
 #Surfers Paradise
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-16.22
 fPreviousTppSwing=3.57
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=James Knight,ALP;John-Paul Langbroek,LNP;Steven Everson,GRN;Mark Jaric,ONP
 #Theodore
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=core
 fTppMargin=-3.33
 fPreviousTppSwing=0.4
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Rita Anwari,ALP;Mark Boothman,LNP;Andrew Stimson,GRN;Cassandra Duffill,ONP
 #Thuringowa
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=fnre
 fTppMargin=3.25
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH
+sCandidateNames=Aaron Harper,ALP;Natalie Marr,LNP;Roxanne Kennedy-Perriman,GRN;Steven Clare,ONP;Reuben Richardson,KAP
 #Toohey
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=is
 fTppMargin=14.52
 fPreviousTppSwing=4.5
+sRunningParties=ALP,LNP,GRN,ONP
+sCandidateNames=Peter Russo,ALP;Taylor Hull,LNP;Melissa McArdle,GRN;Hayden O'Brien,ONP
 #Toowoomba North
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=cere
 fTppMargin=-7.32
 fPreviousTppSwing=-1.6
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=James Green,ALP;Trevor Watts,LNP;Thom Roker,GRN;Sebastian Lund,ONP
 #Toowoomba South
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=cere
 fTppMargin=-10.22
 fPreviousTppSwing=-0.24
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Susan Krause,ALP;David Janetzki,LNP;Wren Beith,GRN;Eaton Haines,ONP
 #Townsville
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=fnre
 fTppMargin=3.12
 fPreviousTppSwing=2.74
+sRunningParties=ALP,LNP,GRN,ONP,KAP,IND,OTH
+sCandidateNames=Scott Stewart,ALP;Adam Baillie,LNP;Benjamin Tiley,GRN;Margie Ryder,KAP;Alan Butt,ONP
 #Traeger
 sIncumbent=KAP
 sChallenger=LNP
 sRegion=fnru
 fTppMargin=-1.2
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,KAP
+sCandidateNames=Georgia Heath,ALP;Yvonne Tunney,LNP;Robbie Katter,KAP;Louise Raynaud,GRN;Peter Rawle,ONP
 #Warrego
 sIncumbent=LNP
 sChallenger=ALP
 sRegion=ceru
 fTppMargin=-23.15
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
+sCandidateNames=Ann Leahy,LNP;Ian Mazlin,GRN;Jack Hargreaves,ALP;Hayley Titmarsh,ONP
 #Waterford
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=16.02
 fPreviousTppSwing=1.9
+sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sCandidateNames=Shannon Fentiman,ALP;Jacob Heremaia,LNP;Kirsty Petersen,GRN;Callum Whatmore,ONP
 #Whitsunday
 sIncumbent=LNP
 sChallenger=ALP
@@ -579,9 +763,13 @@ sRegion=fnru
 fTppMargin=-3.6
 fPreviousTppSwing=-2.58
 bSophomoreCandidate=1
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Bauke Hovinga,ALP;Amanda Camm,LNP;Elena Quirk,GRN;Julie Hall,ONP
 #Woodridge
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=os
 fTppMargin=26.25
 fPreviousTppSwing=-0.12
+sRunningParties=ALP,LNP,GRN,ONP,OTH
+sCandidateNames=Cameron Dick,ALP;Paul Darwen,LNP;Ansary Muhammed,GRN;Zoran Kazovic,ONP

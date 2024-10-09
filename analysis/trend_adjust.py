@@ -1261,10 +1261,15 @@ def temp_run_stan(config, inputs, poll_trend, validation, party, exclude):
         exclude_results = exclude_results_all[ElectionPartyCode(election, party)]
 
     with open(f'./Fundamentals/fundamentals_{election.year()}{election.region()}.csv', 'r') as f:
-        exclude_fundamentals = {
+        print(f'{election.year()}{election.region()}')
+        lines = f.readlines()
+        exclude_fundamentals_all = {
             a[0]: float(a[1])
-            for a in [b.strip().split(',') for b in f.readlines()]
-        }[party]
+            for a in [b.strip().split(',') for b in lines]
+        }
+        if party not in exclude_fundamentals_all:
+            return  # can't use this election to validate
+        exclude_fundamentals = exclude_fundamentals_all[party]
 
     exclude_federal = 1 if election.region() == "fed" else 0
 
@@ -1332,7 +1337,7 @@ def trend_adjust():
         print(str(e))
         return
     
-    validation_parties = ['ALP FP']
+    validation_parties = ['GRN FP']
     
     validations = {}
     for party in validation_parties:
