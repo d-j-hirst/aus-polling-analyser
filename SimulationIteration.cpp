@@ -822,6 +822,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 	}
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
+
 	for (auto [partyIndex, voteShare] : tempPastResults) {
 		if (partyIndex != 0 && partyIndex != 1 && seat.tcpChange.size()) {
 			// reduce incumbent fp by the tcp-change vs challenger (to account for redistributions)
@@ -846,7 +847,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		// only continue to apply independent votes if they're an incumbent
 		// assume re-runs don't happen unless explicitly confirmed
-		else if (effectiveIndependent && project.parties().idToIndex(seat.incumbent) == partyIndex) {
+		else if (effectiveIndependent && (
+			project.parties().idToIndex(seat.incumbent) == partyIndex || contains(run.seatProminentMinors[seatIndex], partyIndex)
+		)) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -903,7 +906,10 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		voteShare = 0.0f;
 		return;
 	}
-	float transformedFp = transformVoteShare(voteShare);
+	float modifiedVoteShare = voteShare;
+	float minorViability = run.seatMinorViability[seatIndex][partyIndex];
+	modifiedVoteShare *= 1.0f + (0.4f * minorViability);
+	float transformedFp = transformVoteShare(modifiedVoteShare);
 	float seatStatisticsExact = (std::clamp(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
 		- seatStatistics.scaleLow) / seatStatistics.scaleStep;
 	int seatStatisticsLower = int(std::floor(seatStatisticsExact));
@@ -984,9 +990,14 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	float regularVoteShare = detransformVoteShare(transformedFp);
 
 	if (partyIndex >= Mp::Others && contains(run.seatProminentMinors[seatIndex], partyIndex)) {
-		regularVoteShare += (1.0f - std::clamp(regularVoteShare / ProminentMinorFlatBonusThreshold, 0.0f, 1.0f)) * ProminentMinorFlatBonus;
 		regularVoteShare = predictorCorrectorTransformedSwing(
-			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax);
+			regularVoteShare,
+			(1.0f - std::clamp(regularVoteShare / ProminentMinorFlatBonusThreshold, 0.0f, 1.0f))
+			* ProminentMinorFlatBonus * minorViability
+		);
+		regularVoteShare = predictorCorrectorTransformedSwing(
+			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax * minorViability
+		);
 	}
 
 	if (partyIndex == run.indPartyIndex && seat.incumbent != run.indPartyIndex) {
@@ -2277,7 +2288,6 @@ void SimulationIteration::applyLiveManualOverrides(int seatIndex)
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// this verifies there's a non-classic result entered.
 	if (seat.livePartyOne != Party::InvalidId) {
-		PA_LOG_VAR(seat.name);
 		float prob = rng.uniform();
 		float firstThreshold = seat.partyOneProb();
 		float secondThreshold = firstThreshold + seat.partyTwoProb;

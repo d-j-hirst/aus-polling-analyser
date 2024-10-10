@@ -334,8 +334,6 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		PA_LOG_VAR(seat.region);
-		PA_LOG_VAR(sim.latestReport.regionPartyIncumbents);
 		++sim.latestReport.regionPartyIncumbents[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
 	}
 }
@@ -1023,7 +1021,6 @@ void SimulationPreparation::loadRegionSwingDeviations()
 		}
 
 	} while (true);
-	PA_LOG_VAR(run.regionSwingDeviations);
 }
 
 void SimulationPreparation::loadTppSwingFactors()
