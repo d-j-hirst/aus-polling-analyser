@@ -818,7 +818,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// also keep a record of the party indices.
 	for (auto const& minorParty : run.seatProminentMinors[seatIndex]) {
 		if (!pastSeatResults[seatIndex].fpVotePercent.contains(minorParty)) {
-			pastSeatResults[seatIndex].fpVotePercent[minorParty] = 0.0f;
+			// make sure a prominent candidate clears the threshold to not be counted as
+			// a generic populist if the party didn't run here before.
+			pastSeatResults[seatIndex].fpVotePercent[minorParty] = detransformVoteShare(run.indEmergence.fpThreshold + 0.01f);
 		}
 	}
 	auto tempPastResults = pastSeatResults[seatIndex].fpVotePercent;
@@ -908,7 +910,8 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	}
 	float modifiedVoteShare = voteShare;
 	float minorViability = run.seatMinorViability[seatIndex][partyIndex];
-	modifiedVoteShare *= 1.0f + (0.4f * minorViability);
+	float minorVoteMod = 1.0f + (0.4f * minorViability);
+	modifiedVoteShare *= minorVoteMod;
 	float transformedFp = transformVoteShare(modifiedVoteShare);
 	float seatStatisticsExact = (std::clamp(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
 		- seatStatistics.scaleLow) / seatStatistics.scaleStep;
@@ -993,10 +996,10 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		regularVoteShare = predictorCorrectorTransformedSwing(
 			regularVoteShare,
 			(1.0f - std::clamp(regularVoteShare / ProminentMinorFlatBonusThreshold, 0.0f, 1.0f))
-			* ProminentMinorFlatBonus * minorViability
+			* ProminentMinorFlatBonus * minorVoteMod
 		);
 		regularVoteShare = predictorCorrectorTransformedSwing(
-			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax * minorViability
+			regularVoteShare, rng.uniform() * rng.uniform() * ProminentMinorBonusMax * minorVoteMod * minorVoteMod
 		);
 	}
 

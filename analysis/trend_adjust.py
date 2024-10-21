@@ -1337,7 +1337,7 @@ def trend_adjust():
         print(str(e))
         return
     
-    validation_parties = ['GRN FP']
+    validation_parties = ['ONP FP']
     
     validations = {}
     for party in validation_parties:

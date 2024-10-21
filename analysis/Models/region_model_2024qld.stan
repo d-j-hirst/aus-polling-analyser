@@ -14,6 +14,7 @@ data {
     real fnSwingDevPoll[pollCount]; // poll data
     real rexSwingDevPoll[pollCount]; // poll data
     real ruSwingDevPoll[pollCount]; // poll data
+    real prSwingDevPoll[pollCount]; // poll data
 }
 
 transformed data {
@@ -109,6 +110,12 @@ model {
       if (ruSwingDevPoll[poll] > -100) {
         ruSwingDevPoll[poll] ~ normal(
           seruSwingDev[day] * 0.1765 + ceruSwingDev[day] * 0.4706 + fnruSwingDev[day] * 0.3529,
+          distSigma
+        );
+      }
+      if (prSwingDevPoll[poll] > -100) {
+        prSwingDevPoll[poll] ~ normal(
+          cereSwingDev[day] * 0.5333 + fnreSwingDev[day] * 0.4667,
           distSigma
         );
       }

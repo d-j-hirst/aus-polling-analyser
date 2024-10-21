@@ -1,5 +1,6 @@
-﻿StartDate,EndDate,Firm,Size,State,Inner Suburbs,Outer Suburbs,Coasts,Regional,C+R,SE,Central,Far North,Regional ex-rural,Rural
-2023-08-26,2023-09-06,Redbridge,1,45,#N/A,#N/A,#N/A,#N/A,#N/A,47,37,45,#N/A,#N/A
-2024-02-01,2024-05-15,Redbridge,1,43,49,43,39,45,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A
-2024-05-15,2024-08-27,Redbridge,1,45.5,63,45,#N/A,#N/A,42,#N/A,#N/A,#N/A,#N/A,#N/A
-2024-08-06,2024-08-29,Wolf+Smith,2,43,49,44.5,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,43,39
+﻿StartDate,EndDate,Firm,Size,State,Inner Suburbs,Outer Suburbs,Coasts,Regional,C+R,SE,Central,Far North,Regional ex-rural,Rural,Pure Regional
+2023-08-26,2023-09-06,Redbridge,1,45,#N/A,#N/A,#N/A,#N/A,#N/A,47,37,45,#N/A,#N/A,#N/A
+2024-02-01,2024-05-15,Redbridge,1,43,49,43,39,45,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A
+2024-05-15,2024-08-27,Redbridge,1,45.5,63,45,#N/A,#N/A,42,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A
+2024-08-06,2024-08-29,Wolf+Smith,2,43,49,44.5,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,43,39,#N/A
+2024-10-10,2024-10-16,YouGov2,1,45.5,57.922,49.098,42.084,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,36.3,43.725

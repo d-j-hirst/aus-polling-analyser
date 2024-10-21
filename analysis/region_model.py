@@ -11,7 +11,7 @@ from stan_cache import stan_cache
 
 
 fed_regions = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'WSTAN']
-qld_regions = ['Inner Suburbs', 'Outer Suburbs', 'Coasts', 'Regional', 'C+R', 'SE', 'Central', 'Far North', 'Regional ex-rural', 'Rural']
+qld_regions = ['Inner Suburbs', 'Outer Suburbs', 'Coasts', 'Regional', 'C+R', 'SE', 'Central', 'Far North', 'Regional ex-rural', 'Rural', 'Pure Regional']
 
 
 class ConfigError(ValueError):
@@ -264,6 +264,7 @@ def run_model_qld2024(config, m_data, e_data):
     'Far North': 51.31,
     'Regional ex-rural': 49.25,
     'Rural': 40.95,
+    'Pure Regional': 53.65,
   }
 
   for region in qld_regions:
@@ -296,6 +297,7 @@ def run_model_qld2024(config, m_data, e_data):
     'fnSwingDevPoll': df['Far North_SwingDev'].tolist() * 3,
     'rexSwingDevPoll': df['Regional ex-rural_SwingDev'].tolist() * 3,
     'ruSwingDevPoll': df['Rural_SwingDev'].tolist() * 3,
+    'prSwingDevPoll': df['Pure Regional_SwingDev'].tolist() * 3,
     'pollSize': df['Size'].tolist() * 3,
   }
 
