@@ -1,7 +1,10 @@
 #include "ResultsDownloader.h"
 
+#include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
+
 #include <stdio.h>
 #include <curl/curl.h>
 #include <tchar.h>
@@ -81,22 +84,20 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName,
 
 void ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName, std::string match)
 {
-	std::wstring matchL(match.begin(), match.end());
-	HZIP hz = OpenZip(std::wstring(sourceFileName.begin(), sourceFileName.end()).c_str(), 0);
-	// -1 gives overall information about the zipfile
-	ZIPENTRY ze; GetZipItem(hz, -1, &ze); int numitems = ze.index;
-	for (int zi = 0; zi < numitems; zi++)
-	{
-		GetZipItem(hz, zi, &ze);
-		std::wstring zippedName = ze.name;
-		if (zippedName.find(L".xml") != std::wstring::npos) {
-			if (!matchL.size() || zippedName.find(matchL) != std::wstring::npos) {
-				std::wstring s(newFileName.begin(), newFileName.end());
-				UnzipItem(hz, zi, s.c_str());
-			}
+	// Quickest way I could find to achieve this because the previous method started truncating files before the 2024 election
+	// and there's probably no good reason to do things more "properly" at this stage
+	// If you're not on Windows, replace with whatever code will put the expanded file inside the /downloads folder with filename
+	auto command = std::string("powershell.exe -Command \"Expand-Archive ") + sourceFileName + std::string(" -DestinationPath C:\\a\"");
+	system(command.c_str());
+	std::filesystem::path archivePath("C:/a");
+	std::filesystem::path newPath("downloads/" + newFileName);
+
+	for (const auto& entry : std::filesystem::directory_iterator(archivePath)) {
+		if (entry.path().string().find(".xml") != std::string::npos) {
+			std::filesystem::rename(entry.path(), newPath);
+			break;
 		}
 	}
-	CloseZip(hz);
 }
 
 void ResultsDownloader::loadUrlToString(std::string url, std::string& outputString)

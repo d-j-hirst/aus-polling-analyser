@@ -112,14 +112,15 @@ namespace Results2 {
 		PrePoll,
 		Postal,
 		Early,
-		IVote
+		IVote,
+		Telephone
 	};
 
 	inline std::string voteTypeName(VoteType v) {
 		static const auto nameMap = std::unordered_map<VoteType, std::string>{ {VoteType::Absent, "Absent"},
 			{VoteType::Invalid, "Invalid"}, {VoteType::Ordinary, "Ordinary"}, {VoteType::Postal, "Postal"},
 			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"}, {VoteType::Early, "Early"},
-			{VoteType::IVote, "iVote"} };
+			{VoteType::IVote, "iVote"}, {VoteType::Telephone, "Telephone"} };
 		return nameMap.at(v);
 	}
 
@@ -263,10 +264,13 @@ namespace Results2 {
 		std::unordered_map<int32_t, Booth> booths; // map booth id -> booth info
 		std::unordered_map<int32_t, Seat> seats; // map seat id -> seat info
 
+		std::unordered_map<std::string, int> candidateNameToId; // for QEC as they don't have candidate identifiers
+
 		enum class Format {
 			AEC,
 			VEC,
-			NSWEC
+			NSWEC,
+			QEC
 		};
 
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
@@ -282,8 +286,10 @@ namespace Results2 {
 			tinyxml2::XMLDocument const& input_booths
 		);
 		static Election createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
+		static Election createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
+		void updateQec(tinyxml2::XMLDocument const& xml);
 
 		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths);
@@ -291,5 +297,6 @@ namespace Results2 {
 			tinyxml2::XMLDocument const& input_booths, bool includeSeatBooths = false);
 
 		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
+		void preloadQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
 	};
 }

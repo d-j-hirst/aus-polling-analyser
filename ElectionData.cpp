@@ -33,6 +33,13 @@ Results2::Election Results2::Election::createNswec(nlohmann::json const& results
 	return election;
 }
 
+Results2::Election Results2::Election::createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros)
+{
+	Election election;
+	election.preloadQec(results, zeros);
+	return election;
+}
+
 void Results2::Election::preload2022Vic(tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths, bool includeSeatBooths)
 {
 	const std::map<std::string, std::string> shortCodes = {
@@ -116,7 +123,6 @@ void Results2::Election::update2022VicPrev(nlohmann::json const& results, tinyxm
 			seatNameToId[seat.name] = seatId;
 		}
 	}
-	std::map<std::string, int> candidateNameToId;
 	for (auto [candidateId, candidate] : candidates) {
 		if (candidateNameToId.contains(candidate.name)) {
 			logger << "Warning: duplicate name for " << candidate.name << "!\n";
@@ -412,7 +418,6 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 				seatNameToId[seat.name] = seatId;
 			}
 		}
-		std::map<std::string, int> candidateNameToId;
 		for (auto [candidateId, candidate] : candidates) {
 			if (candidateNameToId.contains(candidate.name)) {
 				logger << "Warning: duplicate name for " << candidate.name << "!\n";
@@ -633,9 +638,291 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 		logger << "Appeared to successfully load past election data\n";
 	}
 }
+void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& results, tinyxml2::XMLDocument const& zeros)
+{
+	const std::map<std::string, std::string> shortCodes = {
+		{"Queensland Greens", "GRN"},
+		{"Australian Labor Party (State of Queensland)", "ALP"},
+		{"Liberal National Party of Queensland", "LNP"},
+		{"Pauline Hanson's One Nation Queensland Division", "ON"},
+		{"Katter's Australian Party (KAP)", "KAP"},
+		{"Family First Queensland", "FF"},
+		{"Independent", "IND"}
+	};
+	auto districts = zeros.FirstChildElement("ecq")
+		->FirstChildElement("election")
+		->FirstChildElement("districts");
+	auto currentDistrict = districts->FirstChildElement("district");
+	int candidateIdCounter = 1;
+	int partyIdCounter = 1;
+	std::map<std::string, int> partyNameToPartyId;
+	partyNameToPartyId["Independent"] = -1;
+	while (currentDistrict) {
+		Seat seat;
+		seat.name = currentDistrict->Attribute("districtName");
+		seat.id = currentDistrict->IntAttribute("number");
+		if (seats.contains(seat.id)) seat = seats[seat.id]; // maintain already existing data
+		seat.enrolment = currentDistrict->IntAttribute("enrolment");
+		auto currentCandidate = currentDistrict->FirstChildElement("candidates")->FirstChildElement("candidate");
+		while (currentCandidate) {
+			Candidate candidate;
+			candidate.name = currentCandidate->Attribute("ballotName");
+			candidate.id = candidateIdCounter;
+			++candidateIdCounter;
+			auto partyName = currentCandidate->Attribute("party");
+			if (!partyNameToPartyId.contains(partyName)) {
+				partyNameToPartyId[partyName] = partyIdCounter;
+				++partyIdCounter;
+			}
+			candidate.party = partyNameToPartyId[partyName];
+			if (!parties.contains(candidate.party)) {
+				parties[candidate.party] = Party();
+				parties[candidate.party].id = candidate.party;
+				parties[candidate.party].name = partyName;
+				if (shortCodes.contains(parties[candidate.party].name)) {
+					parties[candidate.party].shortCode = shortCodes.at(parties[candidate.party].name);
+				}
+			}
+			candidates[candidate.id] = candidate;
+			if (candidateNameToId.contains(candidate.name)) {
+				logger << "WARNING: Identical candidate names found: " << candidate.name << "\n";
+			}
+			candidateNameToId[candidate.name] = candidate.id;
+
+			currentCandidate = currentCandidate->NextSiblingElement("candidate");
+		}
+
+		auto currentBooth = currentDistrict->FirstChildElement("countRound")->FirstChildElement("booths")->FirstChildElement("booth");
+		while (currentBooth) {
+			Booth booth;
+			booth.id = currentBooth->IntAttribute("id");
+			booth.id += seat.id * 100000; // create unique booth ID for booths with the same name in different seats
+			booth.name = currentBooth->Attribute("name");
+			if (booth.name.find("Returning Officer") != std::string::npos ||
+				booth.name.find("Early Voting Centre") != std::string::npos) {
+				booth.type = Booth::Type::Ppvc;
+			}
+			booth.parentSeat = seat.id;
+			booths[booth.id] = booth;
+			currentBooth = currentBooth->NextSiblingElement("booth");
+			if (results.is_null()) {
+				seat.booths.push_back(booth.id);
+			}
+		}
+
+		seats[seat.id] = seat;
+		currentDistrict = currentDistrict->NextSiblingElement("district");
+	}
+
+	if (!results.is_null()) {
+		// A lot of this is just a straight up copy of the Victorian Election
+		// In summary, the purpose is to match past booth data to currents booth data
+		// The length of the code is primarily to deal with various types of ambiguities
+		// that can result from booths with the same name under redistributions
+		// (and can therefore take on vastly different character depending on the
+		// boundary changes) so these are largely removed unless the booth
+		// changed cleanly from one seat to another.
+		std::map<std::string, int> seatNameToId;
+		for (auto [seatId, seat] : seats) {
+			if (seatNameToId.contains(seat.name)) {
+				logger << "Warning: duplicate name for " << seat.name << "!\n";
+			}
+			else {
+				seatNameToId[seat.name] = seatId;
+			}
+		}
+		std::set<std::string> seenBooths;
+		std::set<std::string> ambiguousBooths;
+		for (auto [boothId, booth] : booths) {
+			if (seenBooths.contains(booth.name)) {
+				ambiguousBooths.emplace(booth.name);
+			}
+			else {
+				seenBooths.emplace(booth.name);
+			}
+		}
+		std::map<std::string, int> boothNameToId;
+		std::map<std::pair<std::string, std::string>, int> ambiguousBoothNameToId;
+		for (auto [boothId, booth] : booths) {
+			if (ambiguousBooths.contains(booth.name)) {
+				ambiguousBoothNameToId[{booth.name, seats[booth.parentSeat].name}] = boothId;
+			}
+			else {
+				boothNameToId[booth.name] = boothId;
+			}
+		}
+		int dummyCandidateId = -100000; // Low numbers that will never be mistaken for an official id
+		int dummyBoothId = -100000; // Low numbers that will never be mistaken for an official id
+		//PA_LOG_VAR(boothNameToId);
+		//PA_LOG_VAR(ambiguousBoothNameToId);
+		std::set<int> matchedIds;
+		for (auto const& [seatName, seatValue] : results.items()) {
+			int seatId = -1;
+			if (seatNameToId.contains(seatName)) {
+				seatId = seatNameToId[seatName];
+			}
+			std::map<int, int> indexToId;
+			for (auto const& [candIndex, candValue] : seatValue["candidates"].items()) {
+				int candIndexI = std::stoi(candIndex);
+				auto candidateName = candValue["name"];
+				auto party = candValue["party"];
+				if (candidateNameToId.contains(candidateName)) {
+					indexToId[candIndexI] = candidateNameToId[candidateName];
+				}
+				else {
+					indexToId[candIndexI] = dummyCandidateId;
+					Candidate candidate;
+					candidate.id = dummyCandidateId;
+					candidate.name = candidateName;
+					if (partyNameToPartyId.contains(party)) {
+						candidate.party = partyNameToPartyId[party];
+					}
+					else {
+						candidate.party = -1;
+					}
+					candidates[candidate.id] = candidate;
+					--dummyCandidateId;
+				}
+			}
+			for (auto const& [boothName, boothValue] : seatValue["booths"].items()) {
+				VoteType voteType = VoteType::Ordinary;
+				if (boothName == "Absent Early Voting") voteType = VoteType::Absent;
+				if (boothName == "Absent Election Day") voteType = VoteType::Absent;
+				if (boothName == "Postal Declaration Votes") voteType = VoteType::Postal;
+				if (boothName == "In Person Declaration Votes") voteType = VoteType::Provisional;
+				if (boothName == "Telephone Voting") voteType = VoteType::Telephone;
+				if (boothName == "Telephone Voting - Early Voting") voteType = VoteType::Telephone;
+				if (voteType != VoteType::Ordinary) {
+					auto fps = boothValue["fp"];
+					for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
+						int fpCandIndexI = std::stoi(fpCandIndex);
+						int fpCandId = indexToId[fpCandIndexI];
+						seats[seatId].fpVotes[fpCandId][voteType] += fpVotes;
+					}
+					auto tcps = boothValue["tcp"];
+					for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
+						int tcpCandIndexI = std::stoi(tcpCandIndex);
+						int tcpCandId = indexToId[tcpCandIndexI];
+						int tcpAffiliation = candidates[tcpCandId].party;
+						seats[seatId].tcpVotes[tcpAffiliation][voteType] += tcpVotes;
+					}
+					continue;
+				}
+				int boothId = dummyBoothId;
+				if (boothNameToId.contains(boothName)) {
+					boothId = boothNameToId[boothName];
+				}
+				else if (ambiguousBoothNameToId.contains({ boothName, seatName })) {
+					boothId = ambiguousBoothNameToId[{ boothName, seatName }];
+				}
+				else {
+					Booth booth;
+					booth.name = boothName;
+					booth.id = dummyBoothId;
+					booths[booth.id] = booth;
+					--dummyBoothId;
+				}
+				if (matchedIds.contains(boothId)) {
+					// If two "old" booths match to one "new" booth then we don't know
+					// which "old" booth to actually compare to
+					// so ... make new booths that won't match to either
+					if (booths.contains(boothId)) {
+						auto boothData = booths[boothId];
+						boothData.id = dummyBoothId;
+						booths.erase(boothId);
+						booths[dummyBoothId] = boothData;
+						auto& parent = seats[booths[dummyBoothId].parentSeat];
+						//PA_LOG_VAR(parent.name);
+						//PA_LOG_VAR(parent.booths);
+						//PA_LOG_VAR(boothId);
+						//PA_LOG_VAR(dummyBoothId);
+						auto foundBoothId = std::find(parent.booths.begin(), parent.booths.end(), boothId);
+						if (foundBoothId != parent.booths.end()) *foundBoothId = dummyBoothId;
+						//PA_LOG_VAR(parent.booths);
+						logger << "Detached old ambiguous booth: " << booths[dummyBoothId].name << "\n";
+						--dummyBoothId;
+					}
+					boothId = dummyBoothId;
+					logger << "Detached ambiguous booth: " << boothName << "\n";
+					--dummyBoothId;
+				}
+				matchedIds.insert(boothId);
+				Booth& booth = booths[boothId];
+				// the parent seat refers to the seat this booth is in for the new election,
+				// but it should be the one it is in for this (old) election
+				booth.parentSeat = seatId;
+				booth.id = boothId;
+				booth.name = boothName;
+				auto fps = boothValue["fp"];
+				for (auto const& [fpCandIndex, fpVotes] : fps.items()) {
+					int fpCandIndexI = std::stoi(fpCandIndex);
+					int fpCandId = indexToId[fpCandIndexI];
+					booth.fpVotes[fpCandId] = fpVotes;
+					if (seatId > 0) seats[seatId].fpVotes[fpCandId][VoteType::Ordinary] += fpVotes;
+				}
+				auto tcps = boothValue["tcp"];
+				for (auto const& [tcpCandIndex, tcpVotes] : tcps.items()) {
+					int tcpCandIndexI = std::stoi(tcpCandIndex);
+					int tcpCandId = indexToId[tcpCandIndexI];
+					int tcpAffiliation = candidates[tcpCandId].party;
+					booth.tcpVotes[tcpAffiliation] = tcpVotes;
+					if (seatId > 0) seats[seatId].tcpVotes[tcpAffiliation][VoteType::Ordinary] += tcpVotes;
+				}
+				if (seatId > 0) {
+					seats[seatId].booths.push_back(booth.id);
+				}
+			}
+		}
+	}
+
+	logger << "Qec Preload\n";
+	PA_LOG_VAR(booths.size());
+	logger << "==SEATS==\n";
+	for (auto const& [seatId, seat] : seats) {
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(seat.id);
+		PA_LOG_VAR(seat.enrolment);
+		PA_LOG_VAR(seat.fpVotes);
+		PA_LOG_VAR(seat.tcpVotes);
+		PA_LOG_VAR(seat.tppVotes);
+		PA_LOG_VAR(seat.booths);
+		for (int boothId : seat.booths) {
+			PA_LOG_VAR(boothId);
+			auto const& booth = booths.at(boothId);
+			PA_LOG_VAR(booth.id);
+			PA_LOG_VAR(booth.name);
+			PA_LOG_VAR(booth.fpVotes);
+			PA_LOG_VAR(booth.tcpVotes);
+			PA_LOG_VAR(booth.type);
+		}
+	}
+	logger << "==CANDIDATES==\n";
+	for (auto const& candidate : candidates) {
+		PA_LOG_VAR(candidate.second.id);
+		PA_LOG_VAR(candidate.second.name);
+		if (candidate.second.party != -1) {
+			PA_LOG_VAR(parties[candidate.second.party].name);
+		}
+		else {
+			logger << "Independent\n";
+		}
+	}
+	logger << "==PARTIES==\n";
+	for (auto const& party : parties) {
+		PA_LOG_VAR(party.second.id);
+		PA_LOG_VAR(party.second.name);
+		PA_LOG_VAR(party.second.shortCode);
+	}
+	logger << "Appeared to successfully load past election data\n";
+}
 
 void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 {
+	if (format == Format::QEC) {
+		// QEC format is different enough to just have a separate procedure
+		updateQec(xml);
+		return;
+	}
 	PA_LOG_VAR(xml.FirstChildElement()->Name());
 	auto resultsFinder = [&]() {
 		switch (format) {
@@ -670,7 +957,6 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 	// For elections (like NSW) where seats and candidates aren't given their own id numbers
 	int seatIdCounter = 1;
 	int candidateIdCounter = 1;
-	std::map<std::string, int> candidateNameToId;
 	std::string candidateIdElName = format == Format::NSWEC ? "CandidateIdentifier" : "eml:CandidateIdentifier";
 
 	while (currentContest) {
@@ -871,6 +1157,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 
 		currentContest = currentContest->NextSiblingElement("Contest");
 	}
+
 	logger << "==SEATS==\n";
 	for (auto const& [seatId, seat] : seats) {
 		PA_LOG_VAR(seat.name);
@@ -879,6 +1166,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 		PA_LOG_VAR(seat.fpVotes);
 		PA_LOG_VAR(seat.tcpVotes);
 		PA_LOG_VAR(seat.tppVotes);
+		PA_LOG_VAR(seat.booths);
 		for (int boothId : seat.booths) {
 			auto const& booth = booths.at(boothId);
 			PA_LOG_VAR(booth.id);
@@ -915,4 +1203,135 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 	logger << "==ELECTION==\n";
 	PA_LOG_VAR(name);
 	PA_LOG_VAR(id);
+}
+
+void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
+{
+	// This is a pure update, assumes you've already used the preload
+	const std::map<std::string, std::string> shortCodes = {
+		{"Queensland Greens", "GRN"},
+		{"Australian Labor Party (State of Queensland)", "ALP"},
+		{"The Liberal Party of Australia, New South Wales Division", "LNP"},
+		{"Pauline Hanson's One Nation Queensland Division", "ON"},
+		{"Katter's Australian Party (KAP)", "KAP"},
+		{"Family First Queensland", "FF"},
+		{"Independent", "IND"}
+	};
+
+	id = xml.FirstChildElement("ecq")->FirstChildElement("election")->IntAttribute("id");
+	name = xml.FirstChildElement("ecq")->FirstChildElement("election")->IntAttribute("electionName");
+	auto districts = xml.FirstChildElement("ecq")
+		->FirstChildElement("election")
+		->FirstChildElement("districts");
+	auto currentDistrict = districts->FirstChildElement("district");
+	std::map<std::string, int> partyNameToPartyId;
+	while (currentDistrict) {
+		Seat seat;
+		seat.id = currentDistrict->IntAttribute("number");
+		if (seats.contains(seat.id)) seat = seats[seat.id]; // maintain already existing data
+		seat.enrolment = currentDistrict->IntAttribute("enrolment");
+
+		// For now it's assumed that the first countRound has the fp votes
+		auto fps = currentDistrict->FirstChildElement("countRound");
+
+		auto getBoothVoteType = [](std::string boothName) {
+			if (boothName == "Mobile Polling") return VoteType::PrePoll;
+			if (boothName == "Telephone Voting") return VoteType::Telephone;
+			if (boothName == "Telephone Voting - Early Voting") return VoteType::Telephone;
+			if (boothName == "Postal Declaration Votes") return VoteType::Postal;
+			if (boothName == "In Person Declaration Votes") return VoteType::Provisional;
+			if (boothName == "Absent Election Day") return VoteType::Absent;
+			if (boothName == "Absent Early Voting") return VoteType::PrePoll;
+			return VoteType::Ordinary;
+		};
+
+		// Extract booth fp results
+		auto fpBooths = fps->FirstChildElement("booths");
+		if (fpBooths && std::string(fps->Attribute("countName")) == "Unofficial Preliminary Count") {
+			auto currentFpBooth = fpBooths->FirstChildElement("booth");
+			for (; currentFpBooth; currentFpBooth = currentFpBooth->NextSiblingElement("booth")) {
+				if (!currentFpBooth->FirstChildElement("primaryVoteResults")) continue;
+				auto boothId = currentFpBooth->IntAttribute("id") + seat.id * 100000;
+				if (!booths.contains(boothId)) continue; // ignore booths not in preload
+				Booth& booth = booths[boothId];
+				auto currentCandidate = currentFpBooth->FirstChildElement("primaryVoteResults")->FirstChildElement("candidate");
+				for (; currentCandidate; currentCandidate = currentCandidate->NextSiblingElement("candidate")) {
+					auto candidateName = currentCandidate->Attribute("ballotName");
+					if (!candidateNameToId.contains(candidateName)) continue;
+					auto candidateId = candidateNameToId[candidateName];
+					auto votes = currentCandidate->FirstChildElement("count")->IntText();
+					booth.fpVotes[candidateId] = votes;
+					seat.fpVotes[candidateId][getBoothVoteType(booth.name)] += votes;
+				}
+			}
+		}
+
+		// For now it's assumed that the second countRound has the fp votes
+		auto tcps = fps->NextSiblingElement("countRound");
+
+		// Extract booth tcp results
+		auto tcpBooths = tcps->FirstChildElement("booths");
+		if (tcpBooths && std::string(tcps->Attribute("countName")) == "Unofficial Indicative Count") {
+			auto currentTcpBooth = tcpBooths->FirstChildElement("booth");
+			for (; currentTcpBooth; currentTcpBooth = currentTcpBooth->NextSiblingElement("booth")) {
+				if (!currentTcpBooth->FirstChildElement("twoCandidateVotes")) continue;
+				auto boothId = currentTcpBooth->IntAttribute("id") + seat.id * 100000;;
+				if (!booths.contains(boothId)) continue; // ignore booths not in preload
+				Booth& booth = booths[boothId];
+				auto currentCandidate = currentTcpBooth->FirstChildElement("twoCandidateVotes")->FirstChildElement("candidate");
+				for (; currentCandidate; currentCandidate = currentCandidate->NextSiblingElement("candidate")) {
+					auto candidateName = currentCandidate->Attribute("ballotName");
+					if (!candidateNameToId.contains(candidateName)) continue;
+					auto candidateId = candidateNameToId[candidateName];
+					int partyId = candidates.at(candidateId).party;
+					auto votes = currentCandidate->FirstChildElement("count")->IntText();
+					booth.tcpVotes[partyId] = votes;
+					seat.tcpVotes[partyId][getBoothVoteType(booth.name)] += votes;
+				}
+			}
+		}
+
+		seats[seat.id] = seat;
+		currentDistrict = currentDistrict->NextSiblingElement("district");
+	}
+
+	logger << "Qec Update\n";
+	PA_LOG_VAR(booths.size());
+	logger << "==SEATS==\n";
+	for (auto const& [seatId, seat] : seats) {
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(seat.id);
+		PA_LOG_VAR(seat.enrolment);
+		PA_LOG_VAR(seat.fpVotes);
+		PA_LOG_VAR(seat.tcpVotes);
+		PA_LOG_VAR(seat.tppVotes);
+		PA_LOG_VAR(seat.booths);
+		for (int boothId : seat.booths) {
+			PA_LOG_VAR(boothId);
+			auto const& booth = booths.at(boothId);
+			PA_LOG_VAR(booth.id);
+			PA_LOG_VAR(booth.name);
+			PA_LOG_VAR(booth.fpVotes);
+			PA_LOG_VAR(booth.tcpVotes);
+			PA_LOG_VAR(booth.type);
+		}
+	}
+	logger << "==CANDIDATES==\n";
+	for (auto const& candidate : candidates) {
+		PA_LOG_VAR(candidate.second.id);
+		PA_LOG_VAR(candidate.second.name);
+		if (candidate.second.party != -1) {
+			PA_LOG_VAR(parties[candidate.second.party].name);
+		}
+		else {
+			logger << "Independent\n";
+		}
+	}
+	logger << "==PARTIES==\n";
+	for (auto const& party : parties) {
+		PA_LOG_VAR(party.second.id);
+		PA_LOG_VAR(party.second.name);
+		PA_LOG_VAR(party.second.shortCode);
+	}
+	logger << "Appeared to successfully load election data update\n";
 }

@@ -176,7 +176,7 @@ sRegion=fnru
 fTppMargin=6.26
 fPreviousTppSwing=1.9
 sRunningParties=ALP,LNP,GRN,ONP,KAP
-sBettingOdds=KAP,6.25
+sBettingOdds=KAP,5.75
 sProminentMinors=KAP
 sMinorViability=KAP,-1.00
 sCandidateNames=Cynthia Lui,ALP;David Kempton,LNP;Troy Miller,GRN;Peter Campion,ONP;Duane Amos,KAP
@@ -196,7 +196,7 @@ fTppMargin=10.49
 fPreviousTppSwing=-0.16
 bSophomoreCandidate=1
 sRunningParties=ALP,LNP,GRN,ONP,OTH
-sBettingOdds=GRN,1.415
+sBettingOdds=GRN,1.405
 sCandidateNames=Jonty Bush,ALP;Raewyn Bailey,LNP;Katinka Winston-Allom,GRN;Susan Ventnor,ONP
 #Currumbin
 sIncumbent=LNP
@@ -253,7 +253,7 @@ sRegion=is
 fTppMargin=13.2
 fPreviousTppSwing=3.07
 sRunningParties=ALP,LNP,GRN,ONP,OTH
-sBettingOdds=GRN,3.25
+sBettingOdds=GRN,3.075
 sCandidateNames=Joe Kelly,ALP;Andrew Newbold,LNP;Rebecca White,GRN;Hugh Dickson,ONP
 #Gregory
 sIncumbent=LNP
@@ -406,7 +406,7 @@ sRegion=is
 fTppMargin=4.2
 fPreviousTppSwing=4.7
 sRunningParties=ALP,LNP,GRN,ONP
-sBettingOdds=GRN,1.15
+sBettingOdds=GRN,1.1
 sCandidateNames=Susan Irvine,ALP;Natasha Winters,LNP;Michael Berkman,GRN;Grant Sport,ONP
 #Mansfield
 sIncumbent=ALP
@@ -439,7 +439,7 @@ sRegion=is
 fTppMargin=11.06
 fPreviousTppSwing=3.2
 sRunningParties=ALP,LNP,GRN,ONP,OTH
-sBettingOdds=GRN,1.265
+sBettingOdds=GRN,1.34
 sCandidateNames=Grace Grace,ALP;Christien Duffey,LNP;Holstein Wong,GRN;Gavin Jones,ONP
 #Mermaid Beach
 sIncumbent=LNP
@@ -456,7 +456,7 @@ sRegion=is
 fTppMargin=13.82
 fPreviousTppSwing=5.64
 sRunningParties=ALP,LNP,GRN,ONP,OTH
-sBettingOdds=GRN,4.25
+sBettingOdds=GRN,4.9
 sCandidateNames=Mark Bailey,ALP;Clio Padayachee,LNP;Liam Flenady,GRN;Ashley Pettit,ONP
 #Mirani
 sIncumbent=KAP
@@ -507,7 +507,7 @@ fPreviousTppSwing=1.32
 bRetirement=1
 sRunningParties=ALP,LNP,GRN,ONP,KAP,IND**,OTH*
 sProminentMinors=KAP
-sBettingOdds=KAP,8
+sBettingOdds=KAP,6.75
 sMinorViability=KAP,-1.00
 sCandidateNames=Richie Bates,ALP;Terry James,LNP;Michael McInnes,ONP;Steven Lesina,KAP;Peter Everett,GRN
 #Mundingburra
@@ -519,7 +519,7 @@ fPreviousTppSwing=2.8
 bSophomoreCandidate=1
 sRunningParties=ALP,LNP,GRN,ONP,KAP
 sProminentMinors=KAP
-sBettingOdds=KAP,12
+sBettingOdds=KAP,10.5
 sMinorViability=KAP,-1.00
 sCandidateNames=Les Walker,ALP;Janelle Poole,LNP;Rebecca Haley,GRN;Michael Pugh,KAP;Mick Olsen,ONP
 #Murrumba
@@ -624,7 +624,7 @@ fPreviousTppSwing=1.9
 bConfirmedProminentIndependent=1
 bRetirement=1
 sMinorViability=IND,1.00
-sBettingOdds=IND,3.225
+sBettingOdds=IND,3.25
 sRunningParties=ALP,LNP,GRN,ONP,IND,OTH*
 sCandidateNames=Craig Marshall,ALP;Donna Kirkland,LNP;Mick Jones,GRN;David Bond,ONP;Margaret Strelow,IND
 #Sandgate
@@ -653,7 +653,7 @@ fPreviousTppSwing=1.9
 bSophomoreCandidate=1
 bSophomoreParty=1
 sRunningParties=ALP,LNP,GRN,ONP
-sBettingOdds=GRN,1.1
+sBettingOdds=GRN,1.11
 sCandidateNames=Barbara O'Shea,ALP;Marita Parkinson,LNP;Amy MacMahon,GRN;Richard Henderson,ONP
 #Southern Downs
 sIncumbent=LNP
@@ -757,7 +757,7 @@ fPreviousTppSwing=2.74
 sRunningParties=ALP,LNP,GRN,ONP,KAP,IND,OTH
 sProminentMinors=KAP
 sMinorViability=KAP,-1.00
-sBettingOdds=KAP,14.5
+sBettingOdds=KAP,14
 sCandidateNames=Scott Stewart,ALP;Adam Baillie,LNP;Benjamin Tiley,GRN;Margie Ryder,KAP;Alan Butt,ONP
 #Traeger
 sIncumbent=KAP
