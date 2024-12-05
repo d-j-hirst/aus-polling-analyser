@@ -384,7 +384,7 @@ void SimulationIteration::determineIndDistributionParameters()
 
 void SimulationIteration::determinePpvcBias()
 {
-	constexpr float DefaultPpvcBiasStdDev = 3.0f;
+	constexpr float DefaultPpvcBiasStdDev = 6.0f;
 	float defaultPpvcBias = rng.normal(0.0f, DefaultPpvcBiasStdDev);
 	float observedPpvcStdDev = DefaultPpvcBiasStdDev * std::pow(400000.0f / std::max(run.ppvcBiasConfidence, 0.1f), 0.6f);
 	float observedWeight = 1.0f / observedPpvcStdDev;
