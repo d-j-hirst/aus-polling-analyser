@@ -159,7 +159,7 @@ class AllElections:
             ElectionResults(f'{year} Federal Election',
             lambda: generic_download('fed', year))
             for year in fed_years})
-        nsw_years = [2019, 2015, 2011, 2007, 2003, 1999, 1995, 1991, 1988,
+        nsw_years = [2023, 2019, 2015, 2011, 2007, 2003, 1999, 1995, 1991, 1988,
                     1984, 1981]
         self.elections.update({
             ElectionCode(year=year, region='nsw'): 
@@ -172,7 +172,7 @@ class AllElections:
             ElectionResults(f'{year} VIC Election',
             lambda: generic_download('vic', year))
             for year in vic_years})
-        qld_years = [2020, 2017, 2015, 2012, 2009, 2006, 2004, 2001, 1998,
+        qld_years = [2024, 2020, 2017, 2015, 2012, 2009, 2006, 2004, 2001, 1998,
                     1995, 1992, 1989, 1986, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='qld'): 
@@ -326,6 +326,14 @@ def generic_download(state, year):
                     votes=int('0'+match[2].replace(',','').replace('.','').strip()),
                     percent=float(match[3].replace(',','.').strip()),
                     swing=swing))
+            if seat_name == 'Clarence' and year == 2023:
+                # Formatting is currently messed up for this candidate
+                seat_results.fp.append(CandidateResult(
+                    name='Brett Duroux',
+                    party='Independent Indigenous',
+                    votes=725,
+                    percent=1.5,
+                    swing=1.5))
             if tcp_content is not None:
                 tcp_matches = re.findall(pattern, tcp_content)
                 for match in tcp_matches:

@@ -522,6 +522,10 @@ void SimulationIteration::determineMinorPartyContests()
 			if (partyIndex >= 0) {
 				Party const& party = project.parties().viewByIndex(partyIndex);
 				float HalfSeatsPrimary = 5.0f;
+				if ((party.abbreviation == "ON" || party.abbreviation == "ONP") && std::stoi(run.yearCode) >= 2024) {
+					// One Nation has announced their intention to run candidates in ~all seats, so assume this will happen for now
+					HalfSeatsPrimary = 0.5f;
+				}
 				float seatProp = 2.0f - 2.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
 				// The seat total should adjust somewhat by the expected primary vote, but not entirely.
 				// The entered seat total corresponds to expected seat contests at 5% primary vote
@@ -1046,7 +1050,7 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	}
 
 	float seatModifier = partyFp ? calculateEffectiveSeatModifier(seatIndex, partyIndex) : 1.0f;
-	float adjustedModifier = std::max(0.2f, seatModifier * fpModificationAdjustment.contains(partyIndex) ? fpModificationAdjustment[partyIndex] : 1.0f);
+	float adjustedModifier = std::max(0.2f, seatModifier * (fpModificationAdjustment.contains(partyIndex) ? fpModificationAdjustment[partyIndex] : 1.0f));
 	float modifiedFp1 = predictorCorrectorTransformedSwing(effectivePartyFp, effectivePartyFp * (adjustedModifier - 1.0f));
 	float modifiedFp2 = effectivePartyFp * adjustedModifier;
 	float incumbentFp = project.parties().idToIndex(seat.incumbent) == partyIndex ? voteShare : 0.0f;

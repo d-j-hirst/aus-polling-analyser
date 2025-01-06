@@ -13,6 +13,7 @@ def check_fp_percent_total(elections):
                 continue  # Don't need to flag some old uncontested seats
             total_percent = sum(x.percent for x in seat_result.fp)
             if abs(total_percent - 100) > 0.21:
+                print(seat_result)
                 print(f'{election.name} - {seat_result.name}: total fp %: {total_percent}')
 
 
