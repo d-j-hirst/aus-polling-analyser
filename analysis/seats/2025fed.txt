@@ -16,7 +16,7 @@ fPreviousTppSwing=6.13
 sPolls=GRN,14,4;GRN,8,4;GRN,14,4
 sTppMrpPolls=Redbridge,2024-04-01,61.5;Redbridge,2024-07-31,56;Redbridge,2024-11-09,57
 bRetirement=1
-sCandidateNames=
+sCandidateNames=Ashvini Ambihaipahar,ALP;Fiona Douskou,LNP
 #Bennelong
 sIncumbent=ALP
 sChallenger=LNP
@@ -45,7 +45,7 @@ fTppMargin=13.1
 fPreviousTppSwing=0.22
 sPolls=GRN,9,4;GRN,10,4;GRN,10,4
 sTppMrpPolls=Redbridge,2024-04-01,61.2;Redbridge,2024-07-31,56;Redbridge,2024-11-09,56
-sCandidateNames=Jason Clare,ALP
+sCandidateNames=Jason Clare,ALP;Omar Sakr,GRN
 #Bradfield
 sIncumbent=LNP
 sChallenger=ALP
@@ -84,7 +84,7 @@ fTppMargin=-11.7
 fPreviousTppSwing=6.58
 sPolls=GRN,10,4;GRN,6,4;GRN,6,4
 sTppMrpPolls=Redbridge,2024-04-01,37.7;Redbridge,2024-07-31,36;Redbridge,2024-11-09,37
-sCandidateNames=Scott Morrison,LNP;Martin Moore,GRN
+sCandidateNames=Simon Kennedy,LNP;Martin Moore,GRN
 #Cowper
 sIncumbent=LNP
 sChallenger=ALP
@@ -122,7 +122,7 @@ fTppMargin=6.1
 fPreviousTppSwing=7.35
 sPolls=GRN,11,4;GRN,7,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,55.9;Redbridge,2024-07-31,53;Redbridge,2024-11-09,54
-sCandidateNames=Kristy McBain,ALP
+sCandidateNames=Kristy McBain,ALP;Jo van der Plaat,LNP
 #Farrer
 sIncumbent=LNP
 sChallenger=ALP
@@ -163,7 +163,7 @@ fPreviousTppSwing=5.02
 sTcpChange=GRN,-0.3
 sPolls=GRN,22,4;GRN,26,4;GRN,21,4
 sTppMrpPolls=Redbridge,2024-04-01,67
-sCandidateNames=Anthony Albanese,ALP
+sCandidateNames=Anthony Albanese,ALP;Hannah Thomas,GRN
 #Greenway
 sIncumbent=ALP
 sChallenger=LNP
@@ -172,7 +172,7 @@ fTppMargin=8
 fPreviousTppSwing=8.73
 sPolls=GRN,10,4;GRN,8,4;GRN,8,4
 sTppMrpPolls=Redbridge,2024-04-01,55.5;Redbridge,2024-07-31,55;Redbridge,2024-11-09,52
-sCandidateNames=Michelle Rowland,ALP
+sCandidateNames=Michelle Rowland,ALP;Rattan Virk,LNP
 #Hughes
 sIncumbent=LNP
 sChallenger=ALP
@@ -210,7 +210,7 @@ fTppMargin=13.3
 fPreviousTppSwing=5.69
 sPolls=GRN,16,4;GRN,17,4;GRN,16,4
 sTppMrpPolls=Redbridge,2024-04-01,61.8;Redbridge,2024-07-31,58;Redbridge,2024-11-09,57
-sCandidateNames=Matt Thistlethwaite,ALP
+sCandidateNames=Matt Thistlethwaite,ALP;Brad Cole,LNP
 #Lindsay
 sIncumbent=LNP
 sChallenger=ALP
@@ -228,7 +228,8 @@ fTppMargin=-13.8
 fPreviousTppSwing=1.37
 sPolls=GRN,9,4;GRN,11,4;GRN,8,4
 sTppMrpPolls=Redbridge,2024-04-01,38;Redbridge,2024-07-31,38;Redbridge,2024-11-09,38
-sCandidateNames=David Gillespie,LNP
+sCandidateNames=
+bRetirement=1
 #Macarthur
 sIncumbent=ALP
 sChallenger=LNP
@@ -237,7 +238,7 @@ fTppMargin=9.8
 fPreviousTppSwing=0.13
 sPolls=GRN,10,4;GRN,15,4;GRN,12,4
 sTppMrpPolls=Redbridge,2024-04-01,59.3;Redbridge,2024-07-31,54;Redbridge,2024-11-09,48
-sCandidateNames=Mike Freelander,ALP
+sCandidateNames=Mike Freelander,ALP;Binod Paudel,LNP
 #Mackellar
 sIncumbent=IND
 sChallenger=LNP
@@ -246,9 +247,10 @@ fTppMargin=-7.9
 fPreviousTppSwing=4.62
 sTcpChange=LNP,-0.8
 sPolls=IND,41,4;GRN,7,4;IND,33,4;GRN,7,4;IND,33.86,4;GRN,3,4
-sCandidateNames=Sophie Scamps,IND
+sCandidateNames=Sophie Scamps,IND;James Brown,LNP
 bSophomoreParty=1
 bSophomoreCandidate=1
+bIncumbentRecontestConfirmed=1
 #Macquarie
 sIncumbent=ALP
 sChallenger=LNP
@@ -257,7 +259,7 @@ fTppMargin=6.3
 fPreviousTppSwing=7.58
 sPolls=GRN,12,4;GRN,19,4;GRN,8,4
 sTppMrpPolls=Redbridge,2024-04-01,55.5;Redbridge,2024-07-31,54;Redbridge,2024-11-09,51
-sCandidateNames=Susan Templeman,ALP
+sCandidateNames=Susan Templeman,ALP;Mike Creed,LNP
 #McMahon
 sIncumbent=ALP
 sChallenger=LNP
@@ -293,7 +295,7 @@ fTppMargin=17.9
 fPreviousTppSwing=4.15
 sPolls=GRN,19,4;GRN,15,4;GRN,11,4
 sTppMrpPolls=Redbridge,2024-04-01,66.9;Redbridge,2024-07-31,63;Redbridge,2024-11-09,63
-sCandidateNames=Sharon Claydon,ALP
+sCandidateNames=Sharon Claydon,ALP;Charlotte McCabe,GRN
 #Page
 sIncumbent=LNP
 sChallenger=ALP
@@ -312,7 +314,7 @@ fPreviousTppSwing=-0.93
 sPolls=GRN,6,4;GRN,5,4;GRN,5,4
 bRetirement=1
 sTppMrpPolls=Redbridge,2024-04-01,32.7;Redbridge,2024-07-31,33;Redbridge,2024-11-09,33
-sCandidateNames=James Chaffey,LNP;
+sCandidateNames=James Chaffey,LNP
 #Parramatta
 sIncumbent=ALP
 sChallenger=LNP
@@ -322,7 +324,7 @@ fPreviousTppSwing=1.07
 sPolls=GRN,11,4;GRN,9,4;GRN,14,4
 bSophomoreCandidate=1
 sTppMrpPolls=Redbridge,2024-04-01,56.1;Redbridge,2024-07-31,52;Redbridge,2024-11-09,52
-sCandidateNames=Andrew Charlton,ALP;Katie Mullens,LNP
+sCandidateNames=Andrew Charlton,ALP;Katie Mullens,LNP;Liz Tilly,GRN
 #Paterson
 sIncumbent=ALP
 sChallenger=LNP
@@ -331,7 +333,7 @@ fTppMargin=2.6
 fPreviousTppSwing=-1.73
 sPolls=GRN,10,4;GRN,9,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,51.3;Redbridge,2024-07-31,46;Redbridge,2024-11-09,46
-sCandidateNames=Meryl Swanson,ALP
+sCandidateNames=Meryl Swanson,ALP;Laurence Antcliff,LNP
 #Reid
 sIncumbent=ALP
 sChallenger=LNP
@@ -342,7 +344,7 @@ sPolls=GRN,10,4;GRN,16,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,55;Redbridge,2024-07-31,55;Redbridge,2024-11-09,50
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Sally Sitou,ALP
+sCandidateNames=Sally Sitou,ALP;Grange Chung,LNP
 #Richmond
 sIncumbent=ALP
 sChallenger=LNP
@@ -360,7 +362,7 @@ fTppMargin=-9.7
 fPreviousTppSwing=4.63
 sPolls=GRN,7,4;GRN,7,4;GRN,10,4
 sTppMrpPolls=Redbridge,2024-04-01,41.1;Redbridge,2024-07-31,41;Redbridge,2024-11-09,42
-sCandidateNames=Michael McCormack,LNP
+sCandidateNames=Michael McCormack,LNP;Mark Jeffreson,ALP
 #Robertson
 sIncumbent=ALP
 sChallenger=LNP
@@ -371,7 +373,7 @@ sPolls=GRN,10,4;GRN,11,4;GRN,10,4
 sTppMrpPolls=Redbridge,2024-04-01,50;Redbridge,2024-07-31,49;Redbridge,2024-11-09,47
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Gordon Reid,ALP
+sCandidateNames=Gordon Reid,ALP;Lucy Wicks,LNP
 #Shortland
 sIncumbent=ALP
 sChallenger=LNP
@@ -389,7 +391,7 @@ fTppMargin=25.7
 fPreviousTppSwing=6.9
 sTcpChange=GRN,0.2
 sPolls=GRN,23,4;GRN,18,4;GRN,23,4
-sCandidateNames=Tanya Plibersek,ALP
+sCandidateNames=Tanya Plibersek,ALP;Luc Velez,GRN
 #Warringah
 sIncumbent=IND
 sChallenger=LNP
@@ -398,7 +400,8 @@ fTppMargin=-0.7
 fPreviousTppSwing=0.69
 sTcpChange=LNP,1.6
 sPolls=IND,45,4;GRN,10,4;IND,30,4;GRN,10,4;IND,33.94,4;GRN,7,4
-sCandidateNames=Zali Steggall,IND
+bIncumbentRecontestConfirmed=1
+sCandidateNames=Zali Steggall,IND;Jaimee Rogers,LNP
 #Watson
 sIncumbent=ALP
 sChallenger=LNP
@@ -420,6 +423,7 @@ sTcpChange=LNP,-4.8
 sPolls=IND,32,4;GRN,9,4;IND,28,4;GRN,9,4;IND,32.44,4;GRN,8,4
 bSophomoreCandidate=1
 bSophomoreParty=1
+bIncumbentRecontestConfirmed=1
 sCandidateNames=Allegra Spender,IND;Ro Knox,LNP
 #Werriwa
 sIncumbent=ALP
@@ -477,7 +481,7 @@ fTppMargin=5.5
 fPreviousTppSwing=-0.69
 sPolls=GRN,14,4;GRN,10,4;GRN,10,4
 sTppMrpPolls=Redbridge,2024-04-01,55.9;Redbridge,2024-07-31,51;Redbridge,2024-11-09,52
-sCandidateNames=Julian Hill,ALP;Zahid Safi,LNP
+sCandidateNames=Julian Hill,ALP;Zahid Safi,LNP;Rhonda Garad,GRN
 #Calwell
 sIncumbent=ALP
 sChallenger=LNP
@@ -487,7 +491,7 @@ fPreviousTppSwing=-7.23
 sPolls=GRN,12,4;GRN,16,4;GRN,12,4
 sTppMrpPolls=Redbridge,2024-04-01,61;Redbridge,2024-07-31,58;Redbridge,2024-11-09,57
 bRetirement=1
-sCandidateNames=Basem Abdo,ALP;Usman Ghani,LNP
+sCandidateNames=Basem Abdo,ALP;Usman Ghani,LNP;Mohamed El-Masri,GRN
 #Casey
 sIncumbent=LNP
 sChallenger=ALP
@@ -544,7 +548,7 @@ fTppMargin=-0.02
 fPreviousTppSwing=4.5
 sPolls=GRN,14,4;GRN,14,4;GRN,10,4
 sTppMrpPolls=Redbridge,2024-04-01,50.2;Redbridge,2024-07-31,47;Redbridge,2024-11-09,47
-sCandidateNames=Michael Sukkar,LNP
+sCandidateNames=Michael Sukkar,LNP;Matthew Gregg,ALP
 #Dunkley
 sIncumbent=ALP
 sChallenger=LNP
@@ -554,7 +558,7 @@ fTppMargin=6.8
 fPreviousTppSwing=3.53
 sPolls=GRN,13,4;GRN,9,4;GRN,10,4
 sTppMrpPolls=Redbridge,2024-04-01,57.5;Redbridge,2024-07-31,53;Redbridge,2024-11-09,52
-sCandidateNames=Jodie Belyea,ALP
+sCandidateNames=Jodie Belyea,ALP;Nathan Conroy,LNP
 #Flinders
 sIncumbent=LNP
 sChallenger=ALP
@@ -564,6 +568,8 @@ fPreviousTppSwing=-1.06
 sPolls=GRN,10,4;GRN,9,4;GRN,8,4
 sTppMrpPolls=Redbridge,2024-04-01,42.5;Redbridge,2024-07-31,44;Redbridge,2024-11-09,42
 sCandidateNames=Zoe McKenzie,LNP
+bConfirmedProminentIndependent=1
+sMinorViability=IND,0.00
 bSophomoreCandidate=1
 #Fraser
 sIncumbent=ALP
@@ -573,7 +579,7 @@ fTppMargin=16.5
 fPreviousTppSwing=-1.55
 sPolls=GRN,19,4;GRN,22,4;GRN,23,4
 sTppMrpPolls=Redbridge,2024-04-01,65.1;Redbridge,2024-07-31,64;Redbridge,2024-11-09,64
-sCandidateNames=Daniel Mulino,ALP;Huong Truong,GRN
+sCandidateNames=Daniel Mulino,ALP;Huong Truong,GRN;Luan Walker,LNP
 #Gellibrand
 sIncumbent=ALP
 sChallenger=LNP
@@ -602,7 +608,8 @@ sTcpChange=LNP,-0.7
 sPolls=IND,33,4;GRN,9,4;IND,23,4;GRN,6,4;IND,30.7,4;GRN,7,4
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Zoe Daniel,IND;Tim Wilson,LNP
+bIncumbentRecontestConfirmed=1
+sCandidateNames=Zoe Daniel,IND;Tim Wilson,LNP;Alana Galli-Mcrostie,GRN
 #Gorton
 sIncumbent=ALP
 sChallenger=LNP
@@ -622,7 +629,7 @@ fPreviousTppSwing=-2.59
 sPolls=GRN,11,4;GRN,11,4;GRN,8,4
 sTppMrpPolls=Redbridge,2024-04-01,59;Redbridge,2024-07-31,57;Redbridge,2024-11-09,50
 bSophomoreCandidate=1
-sCandidateNames=Sam Rae,ALP
+sCandidateNames=Sam Rae,ALP;Simmone Cottom,LNP;Sarah Newman,GRN
 #Holt
 sIncumbent=ALP
 sChallenger=LNP
@@ -651,6 +658,7 @@ fPreviousTppSwing=7.47
 sTcpChange=LNP,0
 sPolls=IND,41,4;GRN,7,4;IND,41,4;GRN,5,4;IND,39.16,4;GRN,3,4
 sCandidateNames=Helen Haines,IND;James Trenery,LNP
+bIncumbentRecontestConfirmed=1
 #Isaacs
 sIncumbent=ALP
 sChallenger=LNP
@@ -659,7 +667,7 @@ fTppMargin=9.4
 fPreviousTppSwing=0.39
 sPolls=GRN,15,4;GRN,10,4;GRN,11,4
 sTppMrpPolls=Redbridge,2024-04-01,60.5;Redbridge,2024-07-31,55;Redbridge,2024-11-09,56
-sCandidateNames=Mark Dreyfus,ALP
+sCandidateNames=Mark Dreyfus,ALP;Matthew Kirwan,GRN
 #Jagajaga
 sIncumbent=ALP
 sChallenger=LNP
@@ -679,6 +687,7 @@ sTcpChange=LNP,-0.0
 sPolls=IND,38,4;GRN,7,4;IND,37,4;GRN,4,4;IND,33.17,4;GRN,9,4
 bSophomoreCandidate=1
 bSophomoreParty=1
+bIncumbentRecontestConfirmed=1
 sCandidateNames=Monique Ryan,IND;Amelia Hamer,LNP
 #La Trobe
 sIncumbent=LNP
@@ -726,7 +735,7 @@ fPreviousTppSwing=2.14
 sPolls=GRN,17,4;GRN,13,4;GRN,14,4
 sTppMrpPolls=Redbridge,2024-04-01,66.1;Redbridge,2024-07-31,60;Redbridge,2024-11-09,58
 bRetirement=1
-sCandidateNames=Jo Briskley,ALP
+sCandidateNames=Jo Briskley,ALP;Tim Beddoe,LNP
 #McEwen
 sIncumbent=ALP
 sChallenger=LNP
@@ -783,7 +792,7 @@ fTppMargin=15.6
 fPreviousTppSwing=-6.08
 sPolls=GRN,14,4;GRN,9,4;GRN,13,4
 sTppMrpPolls=Redbridge,2024-04-01,65;Redbridge,2024-07-31,59;Redbridge,2024-11-09,61
-sCandidateNames=Andrew Giles,ALP
+sCandidateNames=Andrew Giles,ALP;Joel Drysdale,LNP
 #Wannon
 sIncumbent=LNP
 sChallenger=ALP
@@ -840,7 +849,7 @@ fPreviousTppSwing=8.32
 sPolls=GRN,22,4;GRN,29,4;GRN,31,4
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Stephen Bates,GRN;Madonna Jarrett,ALP
+sCandidateNames=Stephen Bates,GRN;Madonna Jarrett,ALP;Trevor Evans,LNP
 #Capricornia
 sIncumbent=LNP
 sChallenger=ALP
@@ -868,7 +877,7 @@ fTppMargin=-1.7
 fPreviousTppSwing=2.94
 sPolls=GRN,13,4;GRN,9,4;GRN,6,4
 sTppMrpPolls=Redbridge,2024-04-01,48;Redbridge,2024-07-31,45;Redbridge,2024-11-09,44
-sCandidateNames=Peter Dutton,LNP;Ali France,ALP
+sCandidateNames=Peter Dutton,LNP;Ali France,ALP;Vinnie Batten,GRN
 #Fadden
 sIncumbent=LNP
 sChallenger=ALP
@@ -954,7 +963,7 @@ fPreviousTppSwing=4.43
 bRetirement=1
 sPolls=GRN,9,4;GRN,6,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,40;Redbridge,2024-07-31,43;Redbridge,2024-11-09,41
-sCandidateNames=Keith Pitt,LNP
+sCandidateNames=
 #Kennedy
 sIncumbent=KAP
 sChallenger=LNP
@@ -1009,7 +1018,9 @@ fPreviousTppSwing=2.86
 sPolls=GRN,12,4;GRN,10,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,41;Redbridge,2024-07-31,42;Redbridge,2024-11-09,39
 bRetirement=1
-sCandidateNames=Leon Robello,LNP
+bConfirmedProminentIndependent=1
+sMinorViability=IND;0.00
+sCandidateNames=Leon Robello,LNP;Erchana Murray-Bartlett,LNP
 #Moncrieff
 sIncumbent=LNP
 sChallenger=ALP
@@ -1138,6 +1149,7 @@ fPreviousTppSwing=8.35
 sPolls=IND,29,4;GRN,10,4;IND,17,4;GRN,8,4;IND,26.1,4;GRN,12,4
 bSophomoreCandidate=1
 bSophomoreParty=1
+bIncumbentRecontestConfirmed=1
 sCandidateNames=Kate Chaney,IND;Tom White,LNP
 #Durack
 sIncumbent=LNP
@@ -1147,7 +1159,7 @@ fTppMargin=-4.6
 fPreviousTppSwing=9.22
 sPolls=GRN,9,4;GRN,7,4;GRN,6,4
 sTppMrpPolls=Redbridge,2024-04-01,46.7;Redbridge,2024-07-31,39;Redbridge,2024-11-09,38
-sCandidateNames=Melissa Price,LNP
+sCandidateNames=Melissa Price,LNP;Karen Wheatland,ALP
 #Forrest
 sIncumbent=LNP
 sChallenger=ALP
@@ -1157,7 +1169,9 @@ fPreviousTppSwing=10.29
 sPolls=GRN,13,4;GRN,14,4;GRN,9,4
 sTppMrpPolls=Redbridge,2024-04-01,45.1;Redbridge,2024-07-31,44;Redbridge,2024-11-09,42
 bRetirement=1
-sCandidateNames=Ben Small,LNP;Georgia Beardman,GRN
+bProminentIndependent=1
+sMinorViability=IND,0.00
+sCandidateNames=Ben Small,LNP;Georgia Beardman,GRN;Sue Chapman,IND
 #Fremantle
 sIncumbent=ALP
 sChallenger=LNP
@@ -1187,6 +1201,8 @@ fPreviousTppSwing=10.96
 sPolls=GRN,14,4;GRN,12,4;GRN,11,4
 sTppMrpPolls=Redbridge,2024-04-01,48.8;Redbridge,2024-07-31,47;Redbridge,2024-11-09,47
 bRetirement=1
+bProminentIndependent=1
+sMinorViability=IND,1.00
 sCandidateNames=Vince Connelly,LNP
 #O'Connor
 sIncumbent=LNP
@@ -1312,6 +1328,7 @@ sRegion=SA
 fTppMargin=1.59
 fPreviousTppSwing=4.13
 sPolls=CA,26,4;GRN,17,4;CA,25,4;GRN,15,4;CA,30.34,4;GRN,9,4
+bIncumbentRecontestConfirmed=1
 sCandidateNames=Rebekha Sharkie,CA;Zane Basic,LNP
 #Spence
 sIncumbent=ALP
@@ -1331,7 +1348,9 @@ fTppMargin=-0.45
 fPreviousTppSwing=6.42
 sPolls=GRN,13,4;GRN,11,4;GRN,14,4
 sTppMrpPolls=Redbridge,2024-04-01,47;Redbridge,2024-07-31,48;Redbridge,2024-11-09,50
-sCandidateNames=James Stevens,LNP;Claire Clutterham,ALP;Katie McCusker,GRN
+bConfirmedProminentIndependent=1
+sMinorViability=IND,0.00
+sCandidateNames=James Stevens,LNP;Claire Clutterham,ALP;Katie McCusker,GRN;Verity Cooper,IND
 #Bass
 sIncumbent=LNP
 sChallenger=ALP
@@ -1340,7 +1359,7 @@ fTppMargin=-1.43
 fPreviousTppSwing=-1.02
 sPolls=GRN,12,4;GRN,13,4;GRN,12,4
 sTppMrpPolls=Redbridge,2024-04-01,48;Redbridge,2024-07-31,48;Redbridge,2024-11-09,46
-sCandidateNames=Bridget Archer,LNP;Charlene McLennan,GRN
+sCandidateNames=Bridget Archer,LNP;Charlene McLennan,GRN;Jess Teesdale,ALP
 #Braddon
 sIncumbent=LNP
 sChallenger=ALP
@@ -1350,7 +1369,7 @@ fPreviousTppSwing=-4.94
 sPolls=GRN,9,4;GRN,10,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,43;Redbridge,2024-07-31,43;Redbridge,2024-11-09,41
 bRetirement=1
-sCandidateNames=Mal Hingston,LNP;Erin Morrow,GRN
+sCandidateNames=Mal Hingston,LNP;Erin Morrow,GRN;Anne Urquhart,ALP
 #Clark
 sIncumbent=IND
 sChallenger=ALP
@@ -1359,6 +1378,7 @@ fTppMargin=17.24
 fPreviousTppSwing=1.07
 sPolls=IND,43,4;GRN,21,4;IND,41,4;GRN,13,4;IND,44.59,4;GRN,13,4
 sCandidateNames=Andrew Wilkie,IND;Marilena Di Florio,LNP;Janet Shelley,GRN
+bIncumbentRecontestConfirmed=1
 #Franklin
 sIncumbent=ALP
 sChallenger=LNP
@@ -1376,7 +1396,8 @@ fTppMargin=0.92
 fPreviousTppSwing=-4.26
 sPolls=GRN,13,4;GRN,9,4;GRN,9,4
 sTppMrpPolls=Redbridge,2024-04-01,50;Redbridge,2024-07-31,46;Redbridge,2024-11-09,46
-sCandidateNames=Brian Mitchell,ALP;Susie Bower,LNP;Alistair Allan,GRN
+sCandidateNames=Susie Bower,LNP;Alistair Allan,GRN;Rebecca White,ALP
+bRetirement=1
 #Lingiari
 sIncumbent=ALP
 sChallenger=LNP
@@ -1386,7 +1407,7 @@ fPreviousTppSwing=-4.51
 sPolls=GRN,8,4;GRN,12,4;GRN,9,4
 sTppMrpPolls=Redbridge,2024-04-01,50;Redbridge,2024-07-31,47;Redbridge,2024-11-09,46
 bSophomoreCandidate=1
-sCandidateNames=Marion Scrymgour,ALP
+sCandidateNames=Marion Scrymgour,ALP;Lisa Siebert,LNP
 #Solomon
 sIncumbent=ALP
 sChallenger=LNP
@@ -1404,7 +1425,9 @@ fTppMargin=12.95
 fPreviousTppSwing=5.43
 sPolls=GRN,17,4;GRN,18,4;GRN,21,4
 sTppMrpPolls=Redbridge,2024-04-01,63;Redbridge,2024-07-31,62;Redbridge,2024-11-09,61
-sCandidateNames=David Smith,ALP
+bConfirmedProminentIndependent=1
+sMinorViability=IND,0.00
+sCandidateNames=David Smith,ALP;Jessie Price,IND
 #Canberra
 sIncumbent=ALP
 sChallenger=GRN

@@ -1182,8 +1182,26 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (isOuterMetro) indEmergenceRate += run.indEmergence.outerMetroRateMod;
 	float prevOthers = pastSeatResults[seatIndex].prevOthers;
 	indEmergenceRate += run.indEmergence.prevOthersRateMod * prevOthers;
+	bool existingStrongCandidate = false;
+	for (auto [partyIndex, vote] : seatFpVoteShare[seatIndex]) {
+		if (partyIndex < 0) continue;
+		//PA_LOG_VAR(seatIndex);
+		//PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+		//PA_LOG_VAR(partyIndex);
+		//PA_LOG_VAR(project.parties().count());
+		auto const& party = project.parties().viewByIndex(partyIndex);
+		if ((
+				party.ideology == 2 &&
+				party.countAsParty == Party::CountAsParty::None &&
+				party.supportsParty == Party::SupportsParty::None) ||
+			partyIndex == run.indPartyIndex)
+		{
+			existingStrongCandidate = true;
+			break;
+		}
+	}
 	// Less chance of independents emerging when there's already a strong candidate
-	if (seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) indEmergenceRate *= 0.3f;
+	if (existingStrongCandidate) indEmergenceRate *= std::min(run.indEmergenceModifier, 0.3f);
 	// but in other situations we want ind running chance to be affected by the presence of other confirmed independents
 	else indEmergenceRate *= run.indEmergenceModifier;
 	// If a notable independent hasn't emerged by the time candidacy is confirmed, much less likely they will

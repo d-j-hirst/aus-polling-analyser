@@ -21,6 +21,7 @@ def store_elections(elections):
     for election_code, election_results in elections.items():
         filename = (f'./elections/results_{election_code.year()}'
                     f'{election_code.region()}.csv')
+        print(filename)
         with open(filename, 'w') as file:
             write_election_to_file(file, election_code, election_results)
 
