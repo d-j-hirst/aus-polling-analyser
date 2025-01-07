@@ -2,30 +2,16 @@ from election_code import ElectionCode, no_target_election_marker
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
 
-from time import perf_counter
-
 from scipy.interpolate import UnivariateSpline
 from sklearn.linear_model import ElasticNetCV
-from numpy import array, transpose, dot, average, amax, amin, median, random
-
-from stan_cache import stan_cache
+from numpy import array, transpose, dot, average, amax, amin, median
 
 import argparse
-import copy
 import math
 import os
 import statistics
-import sys
-
-import pystan
 
 poll_score_threshold = 3
-
-backtest_limit = 1990 # Only backtest from this year onwards
-                       # Rationale: a complete set of state results
-                       # is available from this year onwards
-
-rng = random.default_rng()
 
 # To keep analysis simple, and maintain decent sample sizes, group
 # polled parties into categories with similar expected behaviour.
@@ -60,9 +46,6 @@ class ElectionPartyCode:
 
     def party(self):
         return self._internal[2]
-    
-    def election(self):
-        return ElectionCode(self.year(), self.region())
 
     def __repr__(self):
         return (f'ElectionPartyCode({self.year()}, '
@@ -131,14 +114,16 @@ class Config:
         with open('./Data/polled-elections.csv', 'r') as f:
             elections = ElectionCode.load_elections_from_file(f)
         with open('./Data/future-elections.csv', 'r') as f:
-            elections += ElectionCode.load_elections_from_file(f)
+            future_elections = ElectionCode.load_elections_from_file(f)
         if self.election_instructions == 'all':
-            self.elections = elections
+            self.elections = elections + [no_target_election_marker] + future_elections
+        elif self.election_instructions == 'none':
+            self.elections = [no_target_election_marker] + future_elections
         else:
             parts = self.election_instructions.split('-')
-            if len(parts) < 2:
+            if len(parts) != 2:
                 raise ConfigError('Error in "elections" argument: given value '
-                                  'did not have two parts separated '
+                                  'did not consist of two parts separated '
                                   'by a hyphen (e.g. 2013-fed)')
             try:
                 code = ElectionCode(parts[0], parts[1])
@@ -146,22 +131,11 @@ class Config:
                 raise ConfigError('Error in "elections" argument: first part '
                                   'of election name could not be converted '
                                   'into an integer')
-            if code not in elections:
-                raise ConfigError('Error in "elections" argument: '
+            if code not in elections and code not in future_elections:
+                raise ConfigError('Error in "elections" argument: given value '
                                   'value given did not match any election '
-                                  'given in Data/polled-elections.csv')
-            if len(parts) == 2:
-                self.elections = [code]
-            elif parts[2] == 'onwards':
-                try:
-                    self.elections = (elections[elections.index(code):])
-                except ValueError:
-                    raise ConfigError('Error in "elections" argument: '
-                                  'value given did not match any election '
-                                  'given in Data/polled-elections.csv')
-            else:
-                raise ConfigError('Invalid instruction in "elections"'
-                                  'argument.')
+                                  'given in Data/polled-elections.csv ')
+            self.elections = [code]
 
 
 class Inputs:
@@ -270,48 +244,22 @@ class Inputs:
                 self.polled_parties[e].append(unnamed_others_code)
 
 
-poll_trend_cache = {}
-dir_cache = None
 
 class PollTrend:
     def __init__(self, inputs, config):
         self._data = {}
-        self.cutoff_data = {}
-        cache_usage = 0
         for election, party_list in inputs.polled_parties.items():
             for party in party_list:
-                code = ElectionPartyCode(election, party)
-                cutoff_dir = './Outputs/Cutoffs'
-                if code in poll_trend_cache:
-                    self.cutoff_data[code] = poll_trend_cache[code]
-                global dir_cache
-                if dir_cache is None:
-                    dir_cache = os.listdir(cutoff_dir)
-                for filename in dir_cache:
-                    if filename.startswith(f'fp_trend_{election.year()}{election.region()}_{party}_') and filename.endswith('d.csv'):
-                        num_days = int(filename.split('_')[-1].split('d.csv')[0])
-                        if code in self.cutoff_data and num_days in self.cutoff_data[code]:
-                            continue
-                        if code in poll_trend_cache and num_days in poll_trend_cache[code]:
-                            if code not in self.cutoff_data:
-                                self.cutoff_data[code] = {}
-                            self.cutoff_data[code][num_days] = poll_trend_cache[code][num_days]
-                            cache_usage += 1
-                            continue
-                        cutoff_filename = os.path.join(cutoff_dir, filename)
-                        with open(cutoff_filename, 'r') as f:
-                            lines = f.readlines()
-                            if len(lines) >= 4:
-                                elements = lines[3].strip().split(',')
-                                if len(elements) >= 52:
-                                    extracted_value = float(elements[51])
-                                    if code not in self.cutoff_data:
-                                        self.cutoff_data[code] = {}
-                                    self.cutoff_data[code][num_days] = extracted_value
-                                    if code not in poll_trend_cache:
-                                        poll_trend_cache[code] = {}
-                                    poll_trend_cache[code][num_days] = extracted_value
-
+                if party == unnamed_others_code:
+                    continue
+                trend_filename = (f'./Outputs/fp_trend_{election.year()}'
+                                  f'{election.region()}_{party}.csv')
+                if config.show_loaded_files:
+                    print(trend_filename)
+                data = import_trend_file(trend_filename)
+                self._data[ElectionPartyCode(election, party)] = data
+            self._data[ElectionPartyCode(election, unnamed_others_code)] = \
+                self.create_exclusive_others_series(election, party_list)
 
     def value_at(self, party_code, day, percentile, default_value=None):
         if day >= len(self._data[party_code]) or day < 0:
@@ -343,115 +291,13 @@ class PollTrend:
         return series
 
 
-class HyperparamSet:
-    def __init__(self, average_error=10, median_error=10, rmse=10):
-        self.sigma_prior = 0.5
-        self.federal_state_difference_sigma = 1
-        self.poll_weight_change_sigma = 0.195
-        self.sigma_change_sigma = 0.057
-        self.bias_change_sigma = 0.0247
-        self.recency_bias_half_life = 2.114
-        self.sample_weight = 3
-
-        self.average_error = 10
-        self.median_error = 10
-        self.rmse = 10
-    
-    def limit_hyperparam_set(self):
-        self.sigma_prior = max(0.5, self.sigma_prior)
-        self.sigma_prior = min(10, self.sigma_prior)
-        self.federal_state_difference_sigma = max(0.05, self.federal_state_difference_sigma)
-        self.federal_state_difference_sigma = min(1, self.federal_state_difference_sigma)
-        self.poll_weight_change_sigma = max(0.02, self.poll_weight_change_sigma)
-        self.poll_weight_change_sigma = min(0.2, self.poll_weight_change_sigma)
-        self.sigma_change_sigma = max(0.02, self.sigma_change_sigma)
-        self.sigma_change_sigma = min(0.5, self.sigma_change_sigma)
-        self.bias_change_sigma = max(0.01, self.bias_change_sigma)
-        self.bias_change_sigma = min(0.5, self.bias_change_sigma)
-        self.recency_bias_half_life = max(1, self.recency_bias_half_life)
-        self.recency_bias_half_life = min(100, self.recency_bias_half_life)
-        self.sample_weight = math.floor(self.sample_weight + 0.5)
-        self.sample_weight = max(2, self.sample_weight)
-        self.sample_weight = min(20, self.sample_weight)
-    
-    def energy(self):
-        # High sample weight is time-consuming and theoretically questionable,
-        # so penalise it unless it really helps the predictions
-        return self.average_error + self.median_error + self.rmse + self.sample_weight * 0.01
-
-
-class Validation:
+class Outputs:
     def __init__(self):
-        self.errors = {}
-        self.hyperparam_sets = []
-        self.current_hyperparam_set = HyperparamSet()
-        self.previous_hyperparam_set = None
-        self.temperature = 0.4
-    
-    def analyse(self):
-        for election in self.errors.keys():
-            print(f"{election} error: {self.errors[election]}")
-            
-        average_error = statistics.mean([abs(a) for a in self.errors.values()])
-        median_error = statistics.median([abs(a) for a in self.errors.values()])
-        rmse = math.sqrt(statistics.mean([abs(a) ** 2 for a in self.errors.values()]))
-
-        if len(self.errors.values()) > 0:
-            print(f"Average error: {statistics.mean([abs(a) for a in self.errors.values()])}")
-            print(f"Median error: {statistics.median([abs(a) for a in self.errors.values()])}")
-            print(f"RMSE: {math.sqrt(statistics.mean([abs(a) ** 2 for a in self.errors.values()]))}")
-
-        self.current_hyperparam_set.average_error = average_error
-        self.current_hyperparam_set.median_error = median_error
-        self.current_hyperparam_set.rmse = rmse
-
-        current_energy = self.current_hyperparam_set.energy()
-        previous_energy = self.previous_hyperparam_set.energy() if self.previous_hyperparam_set is not None else None
-
-        # Test whether this set should be accepted
-        update = False
-        if self.previous_hyperparam_set is not None:
-            energy_diff = current_energy - previous_energy
-            if energy_diff < 0:
-                update = True
-            else:
-                r = rng.uniform(0, 1)
-                if r < math.exp(-energy_diff / self.temperature):
-                    update = True
-                else:
-                    update = False
-        else:
-            update = True
-        
-        if update == False:
-            print(f'Did not accept hyperparam set')
-            self.current_hyperparam_set = copy.deepcopy(self.previous_hyperparam_set)
-            return
-
-        print(f'Accepted hyperparam set')
-        print(f'Current energy: {current_energy}')
-        print(f'Previous energy: {previous_energy}')
-        self.hyperparam_sets.append(copy.deepcopy(self.current_hyperparam_set))
-
-    def next_hyperparam_set(self):
-        self.temperature *= 0.95
-        self.previous_hyperparam_set = copy.deepcopy(self.current_hyperparam_set)
-        self.current_hyperparam_set.sigma_prior *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.federal_state_difference_sigma *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.poll_weight_change_sigma *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.sigma_change_sigma *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.bias_change_sigma *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.recency_bias_half_life *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.sample_weight *= rng.normal(1, 0.5);
-        self.current_hyperparam_set.limit_hyperparam_set()
-        print(f'Next hyperparam set:')
-        print(f'Sigma prior: {self.current_hyperparam_set.sigma_prior}')
-        print(f'Federal state difference sigma: {self.current_hyperparam_set.federal_state_difference_sigma}')
-        print(f'Poll weight change sigma: {self.current_hyperparam_set.poll_weight_change_sigma}')
-        print(f'Sigma change sigma: {self.current_hyperparam_set.sigma_change_sigma}')
-        print(f'Bias change sigma: {self.current_hyperparam_set.bias_change_sigma}')
-        print(f'Recency bias half life: {self.current_hyperparam_set.recency_bias_half_life}')
-        print(f'Sample weight: {self.current_hyperparam_set.sample_weight}')
+        self.sum_squared_errors = {}
+        self.error_count = {}
+        self.estimations = {}
+        self.raw_params = {}
+        self.rmse = {}
 
 
 class RegressionInputs:
@@ -516,8 +362,6 @@ def run_fundamentals_regression(config, inputs, excluded_election):
         baseline_errors = []
         avg_len = average_length[party_group_code]
         for studied_election in inputs.past_elections + [excluded_election]:
-            if studied_election.year() < backtest_limit:
-                continue # Only backtest towards data from 1990 onwards
             result_deviations = []
             incumbents = []
             oppositions = []
@@ -527,7 +371,7 @@ def run_fundamentals_regression(config, inputs, excluded_election):
             federal_opposites = []
             for election in inputs.past_elections:
                 if election == studied_election:
-                    break # Only test on data before the election itself
+                    continue
                 
                 # Make sure that federal elections are only used to predict
                 # federal elections, and state elections are only used to
@@ -690,7 +534,7 @@ def run_fundamentals_regression(config, inputs, excluded_election):
             print(f'{e_p_c} - fundamentals prediction: {prediction}')
             if e_p_c in inputs.eventual_results:
                 print(f'{e_p_c} - actual: {inputs.eventual_results[e_p_c]}')
-    
+
     save_fundamentals(to_file)
 
 
@@ -1014,6 +858,7 @@ def test_procedure(config, inputs, poll_trend, exclude):
 
 def check_poll_predictiveness(config):
     poll_days = [int((n * n + n) / 2) for n in range(0, 45)]
+    print(poll_days)
     for poll_day in poll_days:
         baseline_errors = []
         poll_errors = []
@@ -1103,231 +948,6 @@ def check_poll_predictiveness(config):
             print("Could not check statistics as there were no data. Make sure you use --election all so that the program uses all available elections")
 
 
-def temp_run_stan(config, inputs, poll_trend, validation, party, exclude):
-    eventual_results = {}
-    for code, result in inputs.eventual_results.items():
-        if code.year() < backtest_limit:
-            continue
-        if code.party() != party:
-            continue
-        eventual_results[code] = result
-        
-    fundamentals = {}
-    for code, result in inputs.fundamentals.items():
-        if code.year() < backtest_limit:
-            continue
-        fundamentals[code] = result
-    
-    incumbencies = {}
-    for code, result in inputs.incumbency.items():
-        if code.year() < backtest_limit:
-            continue
-        incumbencies[code] = 1 if result[0] == "ALP FP" else 0
-
-    results_list = []
-    trends_list = []
-    fundamentals_list = []
-    incumbencies_list = []
-    days_list = []
-    federals_list = []
-    years_prior_list = []
-
-    for code, cutoffs in poll_trend.cutoff_data.items():
-        if code.year() < backtest_limit:
-            continue
-        if code.party() != party:
-            continue
-        if not cutoffs:
-            continue
-        for day in cutoffs.keys():
-            result = cutoffs[day]
-            results_list.append(eventual_results[code])
-            trends_list.append(result)
-            fundamentals_list.append(fundamentals[code])
-            incumbencies_list.append(incumbencies[code.election()])
-            days_list.append(day)
-            years_prior_list.append(exclude.year() - code.year())
-            federals_list.append(1 if code.region() == "fed" else 0)
-
-    def to_triangular(day):
-        return int(0.5 * (math.sqrt(8 * day + 1) - 1) + 0.01)
-
-    def from_triangular(day):
-        return int((day * (day + 1)) / 2)
-
-    days_list_t = [to_triangular(day) for day in days_list]
-    leftover_time = [int((to_triangular(day) % 1 * 100)) for day in days_list]
-
-    # NSW 2015 has a time point of 54, so we need to have the series be
-    # at least 54 when targeting that election
-    time_points = max(max(days_list_t) + 1, 54)
-    
-    stan_data = {
-        "sampleCount": len(results_list),
-        "dayCount": time_points,
-        "pollTrend": trends_list,
-        "federal": federals_list,
-        "result": results_list,
-        "fundamentals": fundamentals_list,
-        "incumbencies": incumbencies_list,
-        "days": days_list_t,
-        "leftoverTime": leftover_time,
-        "yearsPrior": years_prior_list,
-
-        "obsPriorSigma": validation.current_hyperparam_set.sigma_prior,
-        "federalObsPriorSigma": validation.current_hyperparam_set.sigma_prior,
-        "federalStateDifferenceSigma": validation.current_hyperparam_set.federal_state_difference_sigma,
-        "pollWeightChangeSigma": validation.current_hyperparam_set.poll_weight_change_sigma,
-        "sigmaChangeSigma": validation.current_hyperparam_set.sigma_change_sigma,
-        "biasChangeSigma": validation.current_hyperparam_set.bias_change_sigma,
-        "recencyBiasHalfLife": validation.current_hyperparam_set.recency_bias_half_life,
-        "sampleWeight": validation.current_hyperparam_set.sample_weight
-    }
-
-    # get the Stan model code
-    with open("./Models/adjust_model.stan", "r") as f:
-        model = f.read()
-
-    # print('Beginning sampling...')
-
-    # Stan model configuration
-    chains = 8
-    iterations = 300
-
-    # encode the STAN model in C++ or retrieve it if already cached
-    sm = stan_cache(model_code=model)
-
-    # Do model sampling. Time for diagnostic purposes
-    start_time = perf_counter()
-
-    # This suppresses the pystan stdout output
-    old = os.dup(1)
-    os.close(1)
-    os.open("pystan.log", os.O_WRONLY) # should open on 1
-
-    fit = sm.sampling(data=stan_data,
-                    iter=iterations,
-                    chains=chains,
-                    refresh=-1,
-                    control={'max_treedepth': 18,
-                            'adapt_delta': 0.9})
-    
-    # Restore stdout
-    os.close(1)
-    os.dup(old) # should dup to 1
-    os.close(old) # get rid of left overs
-
-    finish_time = perf_counter()
-    # print('Time elapsed: ' + format(finish_time - start_time, '.2f')
-    #         + ' seconds')
-    # print('Stan Finished ...')
-
-    # Check technical model diagnostics
-    import pystan.diagnostics as psd
-    # print(psd.check_hmc_diagnostics(fit))
-
-    probs_list = [0.001]
-    for i in range(1, 20):
-        probs_list.append(i * 0.05)
-    probs_list.append(0.999)
-    output_probs_t = tuple(probs_list)
-    summary = fit.summary(probs=output_probs_t)['summary']
-
-    if (exclude.year() == 2024):
-        print("Bias prior sigma: ", stan_data["obsPriorSigma"])
-        for i in range(0, time_points):
-            print(f"Median poll weight day {from_triangular(i)}: ", summary[i][0])
-        for i in range(0, time_points):
-            print(f"Median sigma day {from_triangular(i)}: ", summary[time_points + i][0])
-        for i in range(0, time_points):
-            print(f"Median federal poll weight day {from_triangular(i)}: ", summary[2 * time_points + i][0])
-        for i in range(0, time_points):
-            print(f"Median federal sigma day {from_triangular(i)}: ", summary[3 * time_points + i][0])
-        for i in range(0, time_points):
-            print(f"Median bias day {from_triangular(i)}: ", summary[4 * time_points + i][0])
-        for i in range(0, time_points):
-            print(f"Median federal bias day {from_triangular(i)}: ", summary[5 * time_points + i][0])
-        # for i in range(0, time_points):
-        #     print(f"Median incumbency bias dayfrom_triangular(i)}: ", summary[6 * time_points + i][0])
-
-    election = exclude
-    with open('./Data/eventual-results.csv', 'r') as f:
-        exclude_results_all = {
-            ElectionPartyCode(ElectionCode(a[0], a[1]), a[2]): float(a[3])
-            for a in [b.strip().split(',') for b in f.readlines()]
-        }
-        if ElectionPartyCode(election, party) not in exclude_results_all:
-            return
-        exclude_results = exclude_results_all[ElectionPartyCode(election, party)]
-
-    with open(f'./Fundamentals/fundamentals_{election.year()}{election.region()}.csv', 'r') as f:
-        print(f'{election.year()}{election.region()}')
-        lines = f.readlines()
-        exclude_fundamentals_all = {
-            a[0]: float(a[1])
-            for a in [b.strip().split(',') for b in lines]
-        }
-        if party not in exclude_fundamentals_all:
-            return  # can't use this election to validate
-        exclude_fundamentals = exclude_fundamentals_all[party]
-
-    exclude_federal = 1 if election.region() == "fed" else 0
-
-    # get excluded election trend
-    cutoff_dir = './Outputs/Cutoffs'
-    # latest_cutoff = 10000
-    # exclude_trend = None
-    errors = []
-    for filename in os.listdir(cutoff_dir):
-        if filename.startswith(f'fp_trend_{election.year()}{election.region()}_{party}_') and filename.endswith('d.csv'):
-            num_days = int(filename.split('_')[-1].split('d.csv')[0])
-            cutoff_filename = os.path.join(cutoff_dir, filename)
-            exclude_trend = None
-            with open(cutoff_filename, 'r') as f:
-                lines = f.readlines()
-                if len(lines) >= 4:
-                    elements = lines[3].strip().split(',')
-                    if len(elements) >= 52:
-                        extracted_value = float(elements[51])
-                        exclude_trend = extracted_value
-            time_point = to_triangular(num_days)
-
-            this_poll_weight = summary[time_point][0]
-            this_sigma = summary[time_points + time_point][0]
-            this_federal_poll_weight = summary[2 * time_points + time_point][0]
-            this_federal_sigma = summary[3 * time_points + time_point][0]
-            this_bias = summary[4 * time_points + time_point][0]
-            this_federal_bias = summary[5 * time_points + time_point][0]                
-
-            exclude_trend_estimate = exclude_trend + (this_federal_bias if exclude_federal else this_bias)
-            exclude_poll_weight = this_federal_poll_weight if exclude_federal else this_poll_weight
-            exclude_effective_sigma = this_federal_sigma if exclude_federal else this_sigma
-            exclude_final_estimate = exclude_trend_estimate * exclude_poll_weight + exclude_fundamentals * (1 - exclude_poll_weight)
-            
-            # print(f"num_days: {num_days}")
-            # print(f"exclude_fundamentals: {exclude_fundamentals}")
-            # print(f"this_poll_weight: {this_poll_weight}, this_sigma: {this_sigma}, this_federal_poll_weight: {this_federal_poll_weight}, this_federal_sigma: {this_federal_sigma}, this_bias: {this_bias}, this_federal_bias: {this_federal_bias}")
-            # print(f"exclude_trend_estimate: {exclude_trend_estimate}, exclude_poll_weight: {exclude_poll_weight}, exclude_effective_sigma: {exclude_effective_sigma}, exclude_final_estimate: {exclude_final_estimate}")
-
-            # print(f"{election}, {num_days} days remaining: "
-            #       f"Final Estimate: {exclude_final_estimate:.2f}, "
-            #       f"actual: {exclude_results:.2f}, "
-            #       f"sigma: {exclude_effective_sigma:.3f}, "
-            #       f"error: {exclude_final_estimate - exclude_results:.3f} "
-            #       f"z: {(exclude_final_estimate - exclude_results) / exclude_effective_sigma:.3f} ")
-            errors.append(exclude_final_estimate - exclude_results)
-
-    validation.errors[election] = average([abs(a) for a in errors])
-    # print(f"Average error: {validation.errors[election]}")
-
-
-def complete_validation(config, validation):
-    for hyperparam_set in validation.hyperparam_sets:
-        print(f"Sigma prior: {hyperparam_set.sigma_prior},"
-              f" Average error: {hyperparam_set.average_error},"
-              f" Median error: {hyperparam_set.median_error},"
-              f" RMSE: {hyperparam_set.rmse}")
-
 
 def trend_adjust():
     try:
@@ -1336,52 +956,26 @@ def trend_adjust():
         print('Could not process configuration due to the following issue:')
         print(str(e))
         return
-    
-    validation_parties = ['ONP FP']
-    
-    validations = {}
-    for party in validation_parties:
-        validations[party] = Validation()
 
     if config.check != "only":
-        for i in range(1, 100):
-            print(f"Annealing iteration: {i}")
 
-            for exclude in config.elections:
+        for exclude in config.elections:
+            print(f'Analysing pollsters for {exclude}')
+            print(f'Beginning trend adjustment algorithm for: {exclude}')
+            inputs = Inputs(exclude)
+            poll_trend = PollTrend(inputs, config)
 
-                print(f'Loading inputs for {exclude}')
-                inputs = Inputs(exclude)
+            # Leave this until now so it doesn't interfere with initialization
+            # of poll_trend
+            inputs.determine_eventual_others_results()
+            run_fundamentals_regression(config, inputs, exclude)
+            quit()
 
-                print(f'Loading poll trends for {exclude}')
-                poll_trend = PollTrend(inputs, config)
+            test_procedure(config, inputs, poll_trend, exclude)
+            print(f'Completed trend adjustment algorithm for: {exclude}')
 
-                # Leave this until now so it doesn't interfere with initialization
-                # of poll_trend
-                print(f'Determining eventual "others" results for: {exclude}')
-                inputs.determine_eventual_others_results()
-
-                print(f'Determining fundamentals for: {exclude}')
-                run_fundamentals_regression(config, inputs, exclude)
-
-                for party in validation_parties:
-                    print(f'Beginning trend adjustment algorithm for: {party} in {exclude}')
-                    temp_run_stan(config, inputs, poll_trend, validations[party], party, exclude)
-
-                # test_procedure(config, inputs, poll_trend, exclude)
-                print(f'Completed trend adjustment algorithm for: {exclude}')
-
-            for party in validation_parties:
-                print(f'Analysing results for: {party}')
-                validations[party].analyse()
-                print(f'Next hyperparam set for: {party}')
-                validations[party].next_hyperparam_set()
-    
-    for party in validation_parties:
-        print(f'Final analysis for: {party}')
-        complete_validation(config, validations[party])
-
-    # if config.check == "only" or config.check == "yes":
-    #     check_poll_predictiveness(config)
+    if config.check == "only" or config.check == "yes":
+        check_poll_predictiveness(config)
 
 
 if __name__ == '__main__':
