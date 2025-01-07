@@ -559,6 +559,8 @@ void SimulationPreparation::loadPastSeatResults()
 	bool fpMode = false;
 	int currentSeat = -1;
 	bool indSeen = false;
+	std::map<std::string, SimulationRun::PastSeatResult> unmatchedResults;
+	std::string currentUnmatched;
 	do {
 		std::string line;
 		std::getline(file, line);
@@ -577,12 +579,13 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 			catch (SeatDoesntExistException) {
 				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
-				if (!run.doingBettingOddsCalibrations) logger << "Could not find a match for seat " + values[1] + "\n";
+				if (!run.doingBettingOddsCalibrations) logger << "Could not find a match for seat " + values[1] + ". This is ok if the seat was abolished.\n";
 				currentSeat = -1;
+				unmatchedResults.insert({ values[1] , SimulationRun::PastSeatResult() });
+				currentUnmatched = values[1];
 			}
 		}
 		else if (values.size() >= 4) {
-			if (currentSeat < 0) continue;
 			std::string partyStr = values[1];
 			float voteCount = std::stof(values[2]);
 			float votePercent = std::stof(values[3]);
@@ -600,12 +603,24 @@ void SimulationPreparation::loadPastSeatResults()
 						indSeen = true;
 					}
 				}
-				run.pastSeatResults[currentSeat].fpVoteCount[partyId] += voteCount;
-				run.pastSeatResults[currentSeat].fpVotePercent[partyId] += votePercent;
+				if (currentSeat < 0) {
+					unmatchedResults.at(currentUnmatched).fpVoteCount[partyId] += voteCount;
+					unmatchedResults.at(currentUnmatched).fpVotePercent[partyId] += votePercent;
+				}
+				else {
+					run.pastSeatResults[currentSeat].fpVoteCount[partyId] += voteCount;
+					run.pastSeatResults[currentSeat].fpVotePercent[partyId] += votePercent;
+				}
 			}
 			else {
-				run.pastSeatResults[currentSeat].tcpVoteCount[partyId] += voteCount;
-				run.pastSeatResults[currentSeat].tcpVotePercent[partyId] += votePercent;
+				if (currentSeat < 0) {
+					unmatchedResults.at(currentUnmatched).tcpVoteCount[partyId] += voteCount;
+					unmatchedResults.at(currentUnmatched).tcpVotePercent[partyId] += votePercent;
+				}
+				else {
+					run.pastSeatResults[currentSeat].tcpVoteCount[partyId] += voteCount;
+					run.pastSeatResults[currentSeat].tcpVotePercent[partyId] += votePercent;
+				}
 			}
 		}
 	} while (true);
@@ -617,10 +632,13 @@ void SimulationPreparation::loadPastSeatResults()
 				run.pastSeatResults[thisSeatIndex] = run.pastSeatResults[otherSeatIndex];
 			}
 			catch (SeatDoesntExistException) {
-				// Seat might have been abolished, so no need to give an error, log it in case it's wrong
-				logger << "Could not match fp results for seat " + project.seats().view(thisSeatIndex).name + 
-					" - no seat found matching name " + seat.useFpResults + "\n";
-				currentSeat = -1;
+				if (unmatchedResults.contains(seat.useFpResults)) {
+					run.pastSeatResults[thisSeatIndex] = unmatchedResults.at(seat.useFpResults);
+				}
+				else {
+					logger << "WARNING: Could not match fp results for seat " + project.seats().view(thisSeatIndex).name +
+						" - no seat found matching name " + seat.useFpResults + "\n";
+				}
 			}
 		}
 	}

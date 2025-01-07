@@ -1,0 +1,451 @@
+#Albany
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=11.0
+fPreviousTppSwing=7.8
+sCandidateNames=Rebecca Stephens,ALP;Thomas Brough,LIB;Scott Leary,NAT
+bSophomoreCandidate=1
+#Armadale
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=33.8
+fPreviousTppSwing=10.3
+sCandidateNames=Tony Buti,ALP
+#Balcatta
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=25.8
+fPreviousTppSwing=17.7
+sCandidateNames=David Michael,ALP;Travis Mark,LIB
+#Baldivis
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=35.8
+fPreviousTppSwing=20.3
+sCandidateNames=Reece Whitby,ALP;Dylan Mbano,LIB
+#Bassendean
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=31.7
+fPreviousTppSwing=10
+sCandidateNames=Dave Kelly,ALP
+#Bateman
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=6.7
+fPreviousTppSwing=14.5
+sCandidateNames=Kim Giddens,ALP;Nitin Vashisht,LIB;Donna Gordin,NAT
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Belmont
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=29.4
+fPreviousTppSwing=17.8
+sCandidateNames=Cassie Rowe,ALP
+#Bibra Lake
+sPreviousName=Willagee
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=28.2
+fPreviousTppSwing=9.5
+sCandidateNames=Sook Yee Lai,ALP;Atul Garg,LIB
+bRetirement=1
+#Bicton
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=16.2
+fPreviousTppSwing=11.9
+sCandidateNames=Lisa O'Malley,ALP;Christopher Dowson,LIB;Bill Koul,NAT
+#Bunbury
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=22.5
+fPreviousTppSwing=12.0
+sCandidateNames=Don Punch,ALP;Heather Reid,LIB
+#Butler
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=32.6
+fPreviousTppSwing=11.7
+sCandidateNames=Lorna Clarke,ALP;Rikki Baulch,LIB
+bRetirement=1
+#Cannington
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=30.7
+fPreviousTppSwing=12.9
+sCandidateNames=Ron Sao,ALP;Bruce Henderson,LIB
+bRetirement=1
+#Carine
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=3.9
+fPreviousTppSwing=12.7
+sCandidateNames=Paul Lilburne,ALP;Liam Staltari,LIB
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Central Wheatbelt
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=-9.3
+fPreviousTppSwing=11.5
+sCandidateNames=Lachlan Hunter,NAT
+#Churchlands
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=1.6
+fPreviousTppSwing=12.5
+sCandidateNames=Christine Tonkin,ALP;Basil Zempilas,LIB
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Cockburn
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=28.1
+fPreviousTppSwing=12.4
+sCandidateNames=David Scaife,ALP;Brunetta Di Russo,LIB
+bSophomoreCandidate=1
+#Collie-Preston
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=23.3
+fPreviousTppSwing=8.7
+sCandidateNames=Jodie Hanns,ALP;Cameron Parsons,NAT
+bSophomoreCandidate=1
+#Cottesloe
+sIncumbent=LIB
+sChallenger=ALP
+sRegion=Perth
+fTppMargin=-7.4
+fPreviousTppSwing=6.6
+sCandidateNames=Sandra Brewer,LIB
+bRetirement=1
+#Darling Range
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=14.1
+fPreviousTppSwing=7.5
+sCandidateNames=Hugh Jones,ALP;Sandra Brewer,LIB;Paul Mansfield,NAT
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Dawesville
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=13.1
+fPreviousTppSwing=14.7
+sCandidateNames=Lisa Munday,ALP;Owen Mulder,LIB
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Forrestfield
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=22.9
+fPreviousTppSwing=16.1
+sCandidateNames=Stephen Price,ALP;George Tilbury,LIB;Ian Blayney,NAT
+#Fremantle
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=27.3
+fPreviousTppSwing=5.1
+sCandidateNames=Simone McGurk,ALP;Felicity Townsend,GRN
+#Geraldton
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=Regional
+fTppMargin=9.3
+fPreviousTppSwing=13.0
+sCandidateNames=Lara Dalton,ALP;Tim Milnes,LIB;Kirrilee Warr,NAT
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Girrawheen
+sPreviousName=Mirrabooka
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=33.4
+fPreviousTppSwing=10.4
+sCandidateNames=Meredith Hammat,ALP
+bSophomoreCandidate=1
+#Hillarys
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=18.7
+fPreviousTppSwing=19.3
+sCandidateNames=Caitlin Collins,ALP;Lisa Olsson,LIB
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Jandakot
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=18.2
+fPreviousTppSwing=19.2
+sCandidateNames=Stephen Pratt,ALP;Nicole Robins,LIB
+bRetirement=1
+#Joondalup
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=25.5
+fPreviousTppSwing=24.7
+sCandidateNames=Emily Hamilton,ALP;Michael Dudek,LIB
+#Kalamunda
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=14.5
+fPreviousTppSwing=9.5
+sCandidateNames=Karen Beale,ALP;Adam Hort,LIB;Lisa Logan,NAT;Janelle Sewell,GRN
+bRetirement=1
+#Kalgoorlie
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=Regional
+fTppMargin=11.2
+fPreviousTppSwing=18.2
+sCandidateNames=Ali Kent,ALP;Rowena Olsen,LIB;Tony Herron,NAT
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Kimberley
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=21.4
+fPreviousTppSwing=8.3
+sCandidateNames=Divina D'Anna,ALP;Millie Hills,NAT
+bSophomoreCandidate=1
+#Kingsley
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=16.9
+fPreviousTppSwing=15.7
+sCandidateNames=Jessica Stojkovski,ALP;Scott Edwardes,LIB
+#Kwinana
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=38.2
+fPreviousTppSwing=14.0
+sCandidateNames=Roger Cook,ALP;Cameron Foord,LIB
+#Landsdale
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=25.6
+fPreviousTppSwing=15.8
+sCandidateNames=Daniel Pastorelli,ALP;Mariane Moore,LIB
+bRetirement=1
+#Mandurah
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=24.2
+fPreviousTppSwing=7.3
+sCandidateNames=Rhys Williams,ALP
+bRetirement=1
+#Maylands
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=29.3
+fPreviousTppSwing=11.5
+sCandidateNames=Dan Bull,ALP
+bRetirement=1
+#Midland
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=26.9
+fPreviousTppSwing=12.6
+sCandidateNames=Steve Catania,ALP
+bRetirement=1
+#Mid-West
+sUseFpResults=North West Central
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Regional
+fTppMargin=-8.6
+fPreviousTppSwing=10.6
+sCandidateNames=Merome Beard,LIB;Shane Love,NAT
+#Mindarie
+sPreviousName=Burns Beach
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=27.9
+fPreviousTppSwing=21.5
+sCandidateNames=Mark Folkard,ALP;Paul Miles,LIB
+#Morley
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=27.9
+fPreviousTppSwing=16.2
+sCandidateNames=Amber-Jade Sanderson,ALP;Aswath Chavittupara,LIB
+#Mount Lawley
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=21.9
+fPreviousTppSwing=17.5
+sCandidateNames=Frank Paolino,ALP;Michelle Sutherland,LIB;Lucy Nicol,GRN
+bRetirement=1
+#Nedlands
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=3.1
+fPreviousTppSwing=10.8
+sCandidateNames=Mary Monkhouse,ALP;Jonathan Huston,LIB;James McLagan,NAT;Viv Glance,GRN
+bSophomoreParty=1
+#Oakford
+sUseFpResults=Jandakot
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=27.7
+fPreviousTppSwing=14.5
+sCandidateNames=Yaz Mubarakai,ALP;Tait Marston,LIB
+bRetirement=1
+#Perth
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=29.2
+fPreviousTppSwing=16.6
+sCandidateNames=John Carey,ALP;Simone Springer,GRN
+#Pilbara
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=Regional
+fTppMargin=17.6
+fPreviousTppSwing=18.1
+sCandidateNames=Kevin Michel,ALP;Amanda Kailis,LIB;Kieran Dart,NAT
+#Riverton
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=10.9
+fPreviousTppSwing=13.2
+sCandidateNames=Jags Krishnan,ALP;Amanda Spencer-Teo,LIB
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Rockingham
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=37.7
+fPreviousTppSwing=14.2
+fByElectionSwing=-22,52
+sCandidateNames=Magenta Marshall,ALP;Hayley Edwards,LIB
+#Roe
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Regional
+fTppMargin=-12.2
+fPreviousTppSwing=15.2
+sCandidateNames=Marie O'Dea,LIB;Peter Rundle,NAT
+#Scarborough
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=9.5
+fPreviousTppSwing=16.1
+sCandidateNames=Stuart Aubrey,ALP;Damian Kelly,LIB
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Secret Harbour
+sPreviousName=Warnbro
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=31.3
+fPreviousTppSwing=9.7
+sCandidateNames=Terry Heaky,ALP;Sudhir Chowdhary,LIB
+#South Perth
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=10.1
+fPreviousTppSwing=17.3
+sCandidateNames=Geoff Baker,ALP;Bronwyn Waugh,LIB;Jeremy Miles,NAT
+bSophomoreParty=1
+bSophomoreCandidate=1
+#Swan Hills
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=27.3
+fPreviousTppSwing=15.0
+sCandidateNames=Michelle Maynard,ALP;Rod Henderson,LIB
+bRetirement=1
+#Thornlie
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=30.6
+fPreviousTppSwing=15.1
+sCandidateNames=Daniel Morrison-Bird,ALP;Mahesh Arumugam,LIB
+bRetirement=1
+#Vasse
+sIncumbent=LIB
+sChallenger=ALP
+sRegion=Regional
+fTppMargin=-4.3
+fPreviousTppSwing=10.3
+sCandidateNames=Libby Mettam,LIB;Mia Krasenstein,GRN
+#Victoria Park
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=27.7
+fPreviousTppSwing=11.1
+sCandidateNames=Hannah Beazley,ALP;Andra Biondi,LIB
+bSophomoreCandidate=1
+#Wanneroo
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=28.5
+fPreviousTppSwing=19.8
+sCandidateNames=Sabine Winton,ALP;Joshua Kingshott,LIB
+#Warren-Blackwood
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=2.2
+fPreviousTppSwing=14.1
+sCandidateNames=Jane Kelsbie,ALP;Wade de Campo,LIB;Bevan Eatts,NAT;Julie Marsh,GRN
+bSophomoreCandidate=1
+bSophomoreParty=1
+#West Swan
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=34.8
+fPreviousTppSwing=15.7
+sCandidateNames=Rita Saffioti,ALP;Amninder Saini,LIB
