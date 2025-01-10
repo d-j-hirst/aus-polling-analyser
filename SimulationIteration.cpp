@@ -31,8 +31,8 @@ const std::set<std::pair<std::string, std::string>> IgnoreExhaust = {
 	{"2022vic", "Sydenham"},
 };
 
-bool isMajor(int partyIndex) {
-	return partyIndex == Mp::One || partyIndex == Mp::Two;
+bool isMajor(int partyIndex, int natPartyIndex = -100) {
+	return partyIndex == Mp::One || partyIndex == Mp::Two || partyIndex == natPartyIndex;
 }
 
 SimulationIteration::SimulationIteration(PollingProject& project, Simulation& sim, SimulationRun& run)
@@ -64,6 +64,7 @@ void SimulationIteration::reset()
 	partyConsistencies.clear();
 	fpModificationAdjustment.clear();
 	tempOverallFp.clear();
+	nationalsShare.clear();
 
 	postCountFpShift.clear();
 
@@ -668,7 +669,9 @@ void SimulationIteration::determineSeatInitialResults()
 
 	correctSeatTppSwings();
 
+	nationalsShare.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		determineNationalsShare(seatIndex);
 		allocateMajorPartyFp(seatIndex);
 	}
 }
@@ -841,6 +844,8 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 				voteShare = predictorCorrectorTransformedSwing(voteShare, seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
 			}
 		}
+		bool isNational = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("NAT"));
+		if (isNational) continue; // Nationals votes will be allocated at a later stage
 		bool effectiveGreen = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
 		if (!overallFpSwing.contains(partyIndex)) effectiveGreen = false;
 		bool effectiveIndependent = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"));
@@ -1450,6 +1455,21 @@ void SimulationIteration::determineSeatEmergingParties(int seatIndex)
 	float voteShare = 0.0f;
 	determinePopulistFp(seatIndex, EmergingPartyIndex, voteShare);
 	seatFpVoteShare[seatIndex][EmergingPartyIndex] = voteShare;
+}
+
+void SimulationIteration::determineNationalsShare(int seatIndex)
+{
+	if (run.natPartyIndex < 0) return; // Nationals may not be relevant in some elections
+	float natsVote = 0;
+	if (run.pastSeatResults[seatIndex].fpVotePercent.contains(run.natPartyIndex)) {
+		natsVote = run.pastSeatResults[seatIndex].fpVotePercent.at(run.natPartyIndex);
+	}
+	float libsVote = 0;
+	if (run.pastSeatResults[seatIndex].fpVotePercent.contains(1)) {
+		libsVote = run.pastSeatResults[seatIndex].fpVotePercent.at(1);
+	}
+	const float pastShare = libsVote + natsVote ? natsVote / (libsVote + natsVote) : 0.0f;
+	nationalsShare[seatIndex] = pastShare;
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)
@@ -2273,8 +2293,16 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 	}
 
+	if (run.natPartyIndex >= 0 && nationalsShare[seatIndex] > 0) {
+		assignNationalsVotes(seatIndex);
+		if (seatFpVoteShare[seatIndex][run.natPartyIndex] > seatFpVoteShare[seatIndex][1]) {
+			if (topTwo.first.first == 1) topTwo.first.first = run.natPartyIndex;
+			if (topTwo.second.first == 1) topTwo.second.first = run.natPartyIndex;
+		}
+	}
+
 	// incorporate non-classic live 2cp results
-	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first) && isMajor(topTwo.second.first))) {
+	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex))) {
 		float tcpLive = topTwo.first.second;
 		if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].first && topTwo.second.first == run.liveSeatTcpParties[seatIndex].second) {
 			tcpLive = run.liveSeatTcpPercent[seatIndex];
@@ -2284,10 +2312,10 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		}
 		float liveTransformedTcp = transformVoteShare(tcpLive);
 		float priorTransformedTcp = transformVoteShare(topTwo.first.second);
-		if (!isMajor(topTwo.first.first) && isMajor(topTwo.second.first)) {
+		if (!isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex)) {
 			liveTransformedTcp -= 0.8f; // lazy adjustment for poor performance of 3rd parties in declarations/postals
 		}
-		else if (isMajor(topTwo.first.first) && !isMajor(topTwo.second.first)) {
+		else if (isMajor(topTwo.first.first, run.natPartyIndex) && !isMajor(topTwo.second.first, run.natPartyIndex)) {
 			liveTransformedTcp += 0.8f; // lazy adjustment for poor performance of 3rd parties in declarations/postals
 		}
 		float swingDeviation = run.tppSwingFactors.meanSwingDeviation * 1.5f;
@@ -2306,6 +2334,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	seatTcpVoteShare[seatIndex] = { {byParty.first.first, byParty.second.first}, byParty.first.second };
 
 	if (run.isLive()) applyLiveManualOverrides(seatIndex);
+}
+
+void SimulationIteration::assignNationalsVotes(int seatIndex) {
+	float nationalsVote = seatFpVoteShare[seatIndex][1] * nationalsShare[seatIndex];
+	seatFpVoteShare[seatIndex][run.natPartyIndex] = nationalsVote;
+	seatFpVoteShare[seatIndex][1] -= nationalsVote;
 }
 
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)

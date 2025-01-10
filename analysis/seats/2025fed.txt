@@ -131,7 +131,7 @@ fTppMargin=-16.35
 fPreviousTppSwing=3.48
 sPolls=GRN,8,4;GRN,7,4;GRN,9,4
 bConfirmedProminentIndependent=1
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 sTppMrpPolls=Redbridge,2024-04-01,33;Redbridge,2024-07-31,34;Redbridge,2024-11-09,35
 sCandidateNames=Kristy McBain,ALP;Sussan Ley,LNP;Michelle Milthorpe,IND
 #Fowler
@@ -569,7 +569,7 @@ sPolls=GRN,10,4;GRN,9,4;GRN,8,4
 sTppMrpPolls=Redbridge,2024-04-01,42.5;Redbridge,2024-07-31,44;Redbridge,2024-11-09,42
 sCandidateNames=Zoe McKenzie,LNP
 bConfirmedProminentIndependent=1
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 bSophomoreCandidate=1
 #Fraser
 sIncumbent=ALP
@@ -754,7 +754,7 @@ fPreviousTppSwing=3.96
 sPolls=GRN,12,4;GRN,9,4;GRN,8,4
 bConfirmedProminentIndependent=1
 sTppMrpPolls=Redbridge,2024-04-01,48;Redbridge,2024-07-31,46;Redbridge,2024-11-09,43
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 sCandidateNames=Mary Aldred,LNP;Deb Leonard,IND
 #Melbourne
 sIncumbent=GRN
@@ -801,7 +801,7 @@ fTppMargin=-8.6
 fPreviousTppSwing=1.1
 bConfirmedProminentIndependent=1
 sPolls=IND,22,4;GRN,9,4;IND,15,4;GRN,7,4;IND,10.22,4;GRN,6,4
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 sCandidateNames=Dan Tehan,LNP;Alex Dyson,IND
 #Wills
 sIncumbent=ALP
@@ -972,6 +972,7 @@ fTppMargin=-10.16
 fPreviousTppSwing=4.35
 sPolls=KAP,44,4;GRN,11,4;KAP,32,4;GRN,6,4;KAP,33.86,4;GRN,8,4
 sCandidateNames=Bob Katter,KAP
+bIncumbentRecontestConfirmed=1
 #Leichhardt
 sIncumbent=LNP
 sChallenger=ALP
@@ -1019,7 +1020,7 @@ sPolls=GRN,12,4;GRN,10,4;GRN,7,4
 sTppMrpPolls=Redbridge,2024-04-01,41;Redbridge,2024-07-31,42;Redbridge,2024-11-09,39
 bRetirement=1
 bConfirmedProminentIndependent=1
-sMinorViability=IND;0.00
+sMinorViability=IND,-1.00
 sCandidateNames=Leon Robello,LNP;Erchana Murray-Bartlett,LNP
 #Moncrieff
 sIncumbent=LNP
@@ -1170,7 +1171,7 @@ sPolls=GRN,13,4;GRN,14,4;GRN,9,4
 sTppMrpPolls=Redbridge,2024-04-01,45.1;Redbridge,2024-07-31,44;Redbridge,2024-11-09,42
 bRetirement=1
 bProminentIndependent=1
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 sCandidateNames=Ben Small,LNP;Georgia Beardman,GRN;Sue Chapman,IND
 #Fremantle
 sIncumbent=ALP
@@ -1203,7 +1204,7 @@ sTppMrpPolls=Redbridge,2024-04-01,48.8;Redbridge,2024-07-31,47;Redbridge,2024-11
 bRetirement=1
 bProminentIndependent=1
 sMinorViability=IND,1.00
-sCandidateNames=Vince Connelly,LNP
+sCandidateNames=Vince Connelly,LNP;Ian Goodenough,IND
 #O'Connor
 sIncumbent=LNP
 sChallenger=ALP
@@ -1349,7 +1350,7 @@ fPreviousTppSwing=6.42
 sPolls=GRN,13,4;GRN,11,4;GRN,14,4
 sTppMrpPolls=Redbridge,2024-04-01,47;Redbridge,2024-07-31,48;Redbridge,2024-11-09,50
 bConfirmedProminentIndependent=1
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 sCandidateNames=James Stevens,LNP;Claire Clutterham,ALP;Katie McCusker,GRN;Verity Cooper,IND
 #Bass
 sIncumbent=LNP
@@ -1426,7 +1427,7 @@ fPreviousTppSwing=5.43
 sPolls=GRN,17,4;GRN,18,4;GRN,21,4
 sTppMrpPolls=Redbridge,2024-04-01,63;Redbridge,2024-07-31,62;Redbridge,2024-11-09,61
 bConfirmedProminentIndependent=1
-sMinorViability=IND,0.00
+sMinorViability=IND,-1.00
 sCandidateNames=David Smith,ALP;Jessie Price,IND
 #Canberra
 sIncumbent=ALP

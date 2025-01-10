@@ -469,9 +469,14 @@ void SimulationPreparation::resetResultCounts()
 void SimulationPreparation::determineSpecificPartyIndices()
 {
 	run.indPartyIndex = project.parties().indexByShortCode("IND");
-	if (run.indPartyIndex == -1) run.indPartyIndex = EmergingIndIndex;
+	if (run.indPartyIndex == -1) {
+		logger << "WARNING: Did not find a party with IND as a short code. This will probably cause a crash.";
+		run.indPartyIndex = EmergingIndIndex;
+	}
 	run.grnPartyIndex = project.parties().indexByShortCode("GRN");
-	if (run.grnPartyIndex == -1) run.indPartyIndex = InvalidPartyIndex;
+	if (run.grnPartyIndex == -1) run.grnPartyIndex = InvalidPartyIndex;
+	run.natPartyIndex = project.parties().indexByShortCode("NAT");
+	if (run.natPartyIndex == -1) run.natPartyIndex = InvalidPartyIndex;
 }
 
 void SimulationPreparation::loadPreviousPreferenceFlows() {
@@ -537,8 +542,8 @@ void SimulationPreparation::loadNcPreferenceFlows()
 
 const std::map<std::string, std::string> simplifiedStringToPartyCode = {
 	{"Labor", "ALP"},
-	{"Liberal", "LNP"},
-	{"National", "LNP"},
+	{"Liberal", "LIB"},
+	{"National", "NAT"},
 	{"Greens", "GRN"},
 	{"One Nation", "ONP"},
 	{"United Australia", "UAP"},

@@ -1,3 +1,8 @@
+For Nationals:
+ -BEFORE allocating major party votes, assign National vote %
+ -while allocating major party votes, adjust coalition total to adjust for leakage
+ -after determining seat winner, reallocate votes to National and also reallocate winner based on some criteria (allowing for uncertainty in how other votes flow between the two)
+
 
  -Rework pollster analysis to strictly exclude future polls and generate separate data for any given date/election combination. (Will create a lot of files, but should be small individually)
  -Setup 6-monthly calibration updates for in-progress polls and set pollster analyses to use these where possible

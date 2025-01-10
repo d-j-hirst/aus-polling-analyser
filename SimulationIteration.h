@@ -77,6 +77,7 @@ private:
 	void incorporateLiveSeatFps(int seatIndex);
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
+	void determineNationalsShare(int seatIndex);
 	void allocateMajorPartyFp(int seatIndex);
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
@@ -85,6 +86,7 @@ private:
 	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias();
 	void determineSeatFinalResult(int seatIndex);
+	void assignNationalsVotes(int seatIndex);
 	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignDirectWins();
@@ -121,6 +123,7 @@ private:
 	std::vector<Party::Id> seatWinner;
 	std::vector<FloatByPartyIndex> seatFpVoteShare;
 	std::vector<std::pair<std::pair<int, int>, float>> seatTcpVoteShare;
+	std::vector<float> nationalsShare; // Nationals' share of the LIB/NAT vote
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
 	int daysToElection = 0;

@@ -314,6 +314,13 @@ fTppMargin=21.9
 fPreviousTppSwing=17.5
 sCandidateNames=Frank Paolino,ALP;Michelle Sutherland,LIB;Lucy Nicol,GRN
 bRetirement=1
+#Murray-Wellington
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Regional
+fTppMargin=17.3
+fPreviousTppSwing=15.5
+sCandidateNames=Robyn Clarke,ALP;David Bolt,LIB
 #Nedlands
 sIncumbent=ALP
 sChallenger=LIB
@@ -385,7 +392,14 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=31.3
 fPreviousTppSwing=9.7
-sCandidateNames=Terry Heaky,ALP;Sudhir Chowdhary,LIB
+sCandidateNames=Paul Papalia,ALP;Mark Jones,LIB
+#Southern River
+sIncumbent=ALP
+sChallenger=LIB
+sRegion=Perth
+fTppMargin=33.1
+fPreviousTppSwing=25.3
+sCandidateNames=Terry Healy,ALP;Sudhir Chowdhary,LIB
 #South Perth
 sIncumbent=ALP
 sChallenger=LIB
