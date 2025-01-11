@@ -1756,6 +1756,26 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		finalPartyTwoFp = mix(finalPartyTwoFp, (finalMajorFpShare - majorFpDiff) * 0.5f, liveWeight);
 	}
 
+	// a final adjustment for the *change* in relative leakage among coalition parties
+	// which will require a correction increasing the total coalition FP at the expense of Labor FP
+	// in order to achieve the same TPP
+	// (The absolute level of split is already covered in the preference calculations)
+	float prevNatVote = pastSeatResults[seatIndex].fpVotePercent.contains(Mp::Two) ? pastSeatResults[seatIndex].fpVotePercent.at(Mp::Two) : 0.0f;
+	float prevLibVote = pastSeatResults[seatIndex].fpVotePercent.contains(Mp::Two) ? pastSeatResults[seatIndex].fpVotePercent.at(Mp::Two) : 0.0f;
+	float prevSplit = std::min(prevNatVote, prevLibVote) / (prevNatVote + prevLibVote);
+	float currentSplit = std::min(nationalsShare[seatIndex], 1.0f - nationalsShare[seatIndex]);
+	float splitChange = currentSplit - prevSplit;
+	// skip unnecessary calculations if there's not change (common as most seats only one coalition party will contest)
+	if (splitChange) {
+		float extraCoalitionVoteNeeded = splitChange * finalPartyTwoFp * 0.154f;
+		// make sure the adjustment doesn't overflow in either direction
+		float partyOneAdjustment = predictorCorrectorTransformedSwing(finalPartyOneFp, -extraCoalitionVoteNeeded) - finalPartyOneFp;
+		float partyTwoAdjustment = predictorCorrectorTransformedSwing(finalPartyTwoFp, extraCoalitionVoteNeeded) - finalPartyTwoFp;
+		float finalPartyOneAdjustment = std::min(partyOneAdjustment, -partyTwoAdjustment);
+		finalPartyOneFp += finalPartyOneAdjustment;
+		finalPartyTwoFp -= finalPartyOneAdjustment;
+	}
+
 	seatFpVoteShare[seatIndex][Mp::One] = finalPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = finalPartyTwoFp;
 
