@@ -1460,16 +1460,13 @@ void SimulationIteration::determineSeatEmergingParties(int seatIndex)
 void SimulationIteration::determineNationalsShare(int seatIndex)
 {
 	if (run.natPartyIndex < 0) return; // Nationals may not be relevant in some elections
-	float natsVote = 0;
-	if (run.pastSeatResults[seatIndex].fpVotePercent.contains(run.natPartyIndex)) {
-		natsVote = run.pastSeatResults[seatIndex].fpVotePercent.at(run.natPartyIndex);
-	}
-	float libsVote = 0;
-	if (run.pastSeatResults[seatIndex].fpVotePercent.contains(1)) {
-		libsVote = run.pastSeatResults[seatIndex].fpVotePercent.at(1);
-	}
-	const float pastShare = libsVote + natsVote ? natsVote / (libsVote + natsVote) : 0.0f;
-	nationalsShare[seatIndex] = pastShare;
+	nationalsShare[seatIndex] = run.seatNationalsExpectation[seatIndex];
+	float rmse = run.nationalsParameters.rmse;
+	float kurtosis = run.nationalsParameters.kurtosis;
+	float transformedShare = transformVoteShare(nationalsShare[seatIndex]);
+	float transformedSwing = rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis);
+	transformedShare += transformedSwing;
+	nationalsShare[seatIndex] = detransformVoteShare(transformedShare) * 0.01f;
 }
 
 void SimulationIteration::allocateMajorPartyFp(int seatIndex)
@@ -1775,6 +1772,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		finalPartyOneFp += finalPartyOneAdjustment;
 		finalPartyTwoFp -= finalPartyOneAdjustment;
 	}
+
 
 	seatFpVoteShare[seatIndex][Mp::One] = finalPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = finalPartyTwoFp;

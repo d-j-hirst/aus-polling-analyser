@@ -1526,100 +1526,142 @@ def analyse_green_independent_correlation(elections):
         f.write(f'{fit.params[0]}')
 
 
-def analyse_nationals(elections):
-    transformed_nationals_shares = []
-    transformed_previous_nationals_shares = []
-    transformed_old_nationals_shares = []
-    for this_election, data in elections.items():
-        if this_election.region() == 'wa':
-            previous_elections = elections.previous_elections(this_election)
-            if len(previous_elections) > 0:
-                previous_election = previous_elections[-1]
-                previous_results = elections[previous_election]
-            else:
-                continue
-            if len(previous_elections) > 1:
-                old_election = previous_elections[-2]
-                old_results = elections[old_election]
-            else:
-                continue
-            for seat in data.seat_results:
-                def get_nationals_share(results, seat_name):
-                    seat_result = (results.seat_by_name(
-                        seat_name,
-                        include_name_changes=True
-                    ) if results is not None else None)
-                    if seat_result is None:
-                        return None
-                    nationals_candidate = next((a for a in seat_result.fp if a.party == "National"), None)
-                    liberals_candidate = next((a for a in seat_result.fp if a.party == "Liberal"), None)
-                    nationals_percent = 0
-                    liberals_percent = 0
-                    if nationals_candidate is not None:
-                        nationals_percent = nationals_candidate.percent
-                    else:
-                        return None
-                    if liberals_candidate is not None:
-                        liberals_percent = liberals_candidate.percent
-                    else:
-                        return None
-                    return nationals_percent / (nationals_percent + liberals_percent) * 100
+def get_all_elections():
+    with open('./Data/polled-elections.csv', 'r') as f:
+        polled_elections = ElectionCode.load_elections_from_file(f)
+    with open('./Data/old-elections.csv', 'r') as f:
+        old_elections = ElectionCode.load_elections_from_file(f)
+    with open('./Data/future-elections.csv', 'r') as f:
+        future_elections = ElectionCode.load_elections_from_file(f)
+    return polled_elections + old_elections + future_elections
 
 
-                this_nationals_share = get_nationals_share(data, seat.name)
-                if (this_nationals_share is None or this_nationals_share == 0):
-                    continue
-                print(seat.name, this_election.short())
-                print("Nationals share:", this_nationals_share)
-                if previous_results is not None:
-                    previous_nationals_share = get_nationals_share(previous_results, seat.name)
-                    print("Previous Nationals share:", previous_nationals_share if previous_nationals_share is not None else "N/A")
-                if old_results is not None:
-                    old_nationals_share = get_nationals_share(old_results, seat.name)
-                    print("Old Nationals share:", old_nationals_share if old_nationals_share is not None else "N/A")
-                if this_nationals_share is not None and previous_nationals_share is not None:
-                    transformed_nationals_shares.append(transform_vote_share(this_nationals_share))
-                    transformed_previous_nationals_shares.append(transform_vote_share(previous_nationals_share))
-                    if old_nationals_share is not None:
-                        transformed_old_nationals_shares.append(transform_vote_share(old_nationals_share))
-                    else:
-                        transformed_old_nationals_shares.append(transformed_previous_nationals_shares[-1])
-
-    print("transformed_nationals_shares:", transformed_nationals_shares)
-    print("transformed_previous_nationals_shares:", transformed_previous_nationals_shares)
-    print("transformed_old_nationals_shares:", transformed_old_nationals_shares)
-
+def analyse_nationals(elections, all_elections):
+    def get_nationals_share(results, seat_name):
+        seat_result = (results.seat_by_name(
+            seat_name,
+            include_name_changes=True
+        ) if results is not None else None)
+        if seat_result is None:
+            return None
+        nationals_candidate = next((a for a in seat_result.fp if a.party == "National"), None)
+        liberals_candidate = next((a for a in seat_result.fp if a.party == "Liberal"), None)
+        nationals_percent = 0
+        liberals_percent = 0
+        if nationals_candidate is not None:
+            nationals_percent = nationals_candidate.percent
+        else:
+            return None
+        if liberals_candidate is not None:
+            liberals_percent = liberals_candidate.percent
+        else:
+            return None
+        return nationals_percent / (nationals_percent + liberals_percent) * 100
     
-    inputs_np = numpy.transpose(numpy.array([transformed_previous_nationals_shares, transformed_old_nationals_shares]))
-    results_np = numpy.array(transformed_nationals_shares)
-    reg = LinearRegression().fit(inputs_np, results_np)
-    print("reg.coef_[0]:", reg.coef_[0])
-    print("reg.coef_[1]:", reg.coef_[1])
-    print("reg.intercept_:", reg.intercept_)
+    for target_election in all_elections:
+        transformed_nationals_shares = []
+        transformed_previous_nationals_shares = []
+        transformed_old_nationals_shares = []
+        for this_election, data in elections.items():
+            if (
+                this_election.region() == target_election.region()
+                and int(this_election.year()) < int(target_election.year())
+            ):
+                previous_elections = elections.previous_elections(this_election)
+                if len(previous_elections) > 0:
+                    previous_election = previous_elections[-1]
+                    previous_results = elections[previous_election]
+                else:
+                    continue
+                if len(previous_elections) > 1:
+                    old_election = previous_elections[-2]
+                    old_results = elections[old_election]
+                else:
+                    continue
+                for seat in data.seat_results:
 
-    #calculate rmse of transformed_nationals_shares following this regression:
-    predictions = [
-        (reg.coef_[0] * transformed_previous_nationals_shares[i] +
-        reg.coef_[1] * transformed_old_nationals_shares[i] +
-        reg.intercept_)
-        for i in range(len(transformed_nationals_shares))
-    ]
-    residuals = [
-        transformed_nationals_shares[i] - predictions[i]
-        for i in range(len(transformed_nationals_shares))
-    ]
-    mean_residual = numpy.mean(residuals)
-    adjusted_residuals = [a - mean_residual for a in residuals]
-    rmse = numpy.sqrt(numpy.mean(numpy.square(adjusted_residuals)))
-    print("RMSE:", rmse)
 
-    #calculate sample kurtosis of residuals
-    this_kurtosis = two_tail_kurtosis(adjusted_residuals)
-    print("Kurtosis:", this_kurtosis)
+                    this_nationals_share = get_nationals_share(data, seat.name)
+                    if (this_nationals_share is None or this_nationals_share == 0):
+                        continue
+                    if previous_results is not None:
+                        previous_nationals_share = get_nationals_share(previous_results, seat.name)
+                    if old_results is not None:
+                        old_nationals_share = get_nationals_share(old_results, seat.name)
+                    if this_nationals_share is not None and previous_nationals_share is not None:
+                        transformed_nationals_shares.append(transform_vote_share(this_nationals_share))
+                        transformed_previous_nationals_shares.append(transform_vote_share(previous_nationals_share))
+                        if old_nationals_share is not None:
+                            transformed_old_nationals_shares.append(transform_vote_share(old_nationals_share))
+                        else:
+                            transformed_old_nationals_shares.append(transformed_previous_nationals_shares[-1])
+
+        if len(transformed_nationals_shares) < 4:
+            continue
+
+        inputs_np = numpy.transpose(numpy.array([transformed_previous_nationals_shares, transformed_old_nationals_shares]))
+        results_np = numpy.array(transformed_nationals_shares)
+        reg = LinearRegression().fit(inputs_np, results_np)
+
+        #calculate rmse of transformed_nationals_shares following this regression:
+        predictions = [
+            (reg.coef_[0] * transformed_previous_nationals_shares[i] +
+            reg.coef_[1] * transformed_old_nationals_shares[i] +
+            reg.intercept_)
+            for i in range(len(transformed_nationals_shares))
+        ]
+        residuals = [
+            transformed_nationals_shares[i] - predictions[i]
+            for i in range(len(transformed_nationals_shares))
+        ]
+        mean_residual = numpy.mean(residuals)
+        adjusted_residuals = [a - mean_residual for a in residuals]
+        rmse = numpy.sqrt(numpy.mean(numpy.square(adjusted_residuals)))
+
+        # calculate sample kurtosis of residuals
+        this_kurtosis = two_tail_kurtosis(adjusted_residuals)
+
+        filename = (f'./Nationals/{target_election.year()}{target_election.region()}_stats.csv')
+        with open(filename, 'w') as f:
+            f.write(f'prev_coef,old_coef,intercept,rmse,kurtosis\n')
+            f.write(f'{reg.coef_[0]},{reg.coef_[1]},{reg.intercept_},{rmse},{this_kurtosis}')
+
+        previous_elections = elections.previous_elections(target_election)
+        if len(previous_elections) > 0:
+            previous_election = previous_elections[-1]
+            previous_results = elections[previous_election]
+        else:
+            continue
+        if len(previous_elections) > 1:
+            old_election = previous_elections[-2]
+            old_results = elections[old_election]
+        else:
+            continue
+
+        # generate predictions for individual seats 
+        predictions = []
+        for seat in previous_results.seat_results:
+            if previous_results is not None:
+                previous_nationals_share = get_nationals_share(previous_results, seat.name)
+            if old_results is not None:
+                old_nationals_share = get_nationals_share(old_results, seat.name)
+            if previous_nationals_share is not None and old_nationals_share is not None:
+                predictions.append((seat.name, previous_nationals_share * reg.coef_[0] + old_nationals_share * reg.coef_[1] + reg.intercept_))
+            elif previous_nationals_share is not None:
+                predictions.append((seat.name, previous_nationals_share))
+            else:
+                predictions.append((seat.name, 0))
+        
+        filename = (f'./Nationals/{target_election.year()}{target_election.region()}_seats.csv')
+        with open(filename, 'w') as f:
+            f.write(f'seat,prediction\n')
+            for i in range(len(predictions)):
+                f.write(f'{predictions[i][0]},{predictions[i][1]}\n')
 
 
 
 if __name__ == '__main__':
+    all_elections = get_all_elections()
     elections = get_checked_elections()
     seat_types = load_seat_types()
     seat_regions = load_seat_regions()
@@ -1634,5 +1676,5 @@ if __name__ == '__main__':
     analyse_region_swings()
     analyse_seat_swings(elections, seat_types, seat_regions, by_elections)
     analyse_green_independent_correlation(elections)
-    analyse_nationals(elections)
+    analyse_nationals(elections, all_elections)
     print("Analysis completed.")

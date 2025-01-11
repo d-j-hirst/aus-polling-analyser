@@ -67,6 +67,9 @@ void SimulationPreparation::prepareForIterations()
 	loadSeatPolls();
 	loadSeatTppPolls();
 
+	loadNationalsParameters();
+	loadNationalsSeatExpectations();
+
 	determinePreviousVoteEnrolmentRatios();
 
 	resizeRegionSeatCountOutputs();
@@ -1091,6 +1094,52 @@ void SimulationPreparation::loadTppSwingFactors()
 			run.tppSwingFactors.byElectionSwingModifier = std::stof(values[1]);
 		}
 	} while (true);
+}
+
+void SimulationPreparation::loadNationalsParameters()
+{
+	std::string fileName = "analysis/Nationals/" + run.getTermCode() + "_stats.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	std::string line;
+	std::getline(file, line);
+	std::getline(file, line);
+	auto values = splitString(line, ",");
+	run.nationalsParameters.rmse = std::stof(values[3]);
+	run.nationalsParameters.kurtosis = std::stof(values[4]);
+}
+
+void SimulationPreparation::loadNationalsSeatExpectations()
+{
+	std::string fileName = "analysis/Nationals/" + run.getTermCode() + "_seats.csv";
+	auto file = std::ifstream(fileName);
+	if (!file) throw Exception("Could not find file " + fileName + "!");
+	std::string line;
+	std::getline(file, line);
+	std::map<std::string, float> oldExpectation;
+	do {
+		if (!file) break;
+		std::getline(file, line);
+		auto values = splitString(line, ",");
+		if (values.size() <= 1) break;
+		oldExpectation[values[0]] = std::stof(values[1]);
+	} while (true);
+	run.seatNationalsExpectation.resize(project.seats().count());
+	for (auto seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		if (oldExpectation.contains(seat.name)) {
+			run.seatNationalsExpectation[seatIndex] = oldExpectation[seat.name];
+		}
+		else if (oldExpectation.contains(seat.previousName)) {
+			run.seatNationalsExpectation[seatIndex] = oldExpectation[seat.previousName];
+		}
+		else if (oldExpectation.contains(seat.useFpResults)) {
+			run.seatNationalsExpectation[seatIndex] = oldExpectation[seat.useFpResults];
+		}
+		else {
+			run.seatNationalsExpectation[seatIndex] = 0.0f;
+		}
+	}
 }
 
 void SimulationPreparation::loadIndividualSeatParameters()

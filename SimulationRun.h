@@ -127,6 +127,11 @@ public:
 		float volatility = 2.5f;
 	};
 
+	struct NationalsParameters {
+		float rmse = 15.0f;
+		float kurtosis = 3.0f;
+	};
+
 	enum class SeatType {
 		InnerMetro,
 		OuterMetro,
@@ -245,6 +250,7 @@ private:
 	std::vector<float> seatCentristModifiers;
 	std::vector<float> seatPartyOneTppModifier;
 	std::vector<IndividualSeatParameters> seatParameters;
+	std::vector<float> seatNationalsExpectation;
 	std::map<int, float> previousFpVoteShare;
 	std::map<int, float> previousPreferenceFlow;
 	std::map<int, float> previousExhaustRate; // as proportion, i.e. in range 0-1
@@ -257,6 +263,7 @@ private:
 	RegionMixParameters regionMixParameters;
 	RegionPollBehaviour generalPollBehaviour;
 	TppSwingFactors tppSwingFactors;
+	NationalsParameters nationalsParameters;
 	std::map<int, float> regionSwingDeviations;
 
 	std::vector<int> indCount;
