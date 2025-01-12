@@ -1551,12 +1551,14 @@ def analyse_nationals(elections, all_elections):
         if nationals_candidate is not None:
             nationals_percent = nationals_candidate.percent
         else:
-            return None
+            nationals_percent = 0
         if liberals_candidate is not None:
             liberals_percent = liberals_candidate.percent
         else:
-            return None
-        return nationals_percent / (nationals_percent + liberals_percent) * 100
+            liberals_percent = 0
+        if (nationals_percent + liberals_percent) == 0:
+            return 0
+        return nationals_percent / (nationals_percent + liberals_percent)
     
     for target_election in all_elections:
         transformed_nationals_shares = []
@@ -1582,7 +1584,7 @@ def analyse_nationals(elections, all_elections):
 
 
                     this_nationals_share = get_nationals_share(data, seat.name)
-                    if (this_nationals_share is None or this_nationals_share == 0):
+                    if (this_nationals_share is None or this_nationals_share == 0 or this_nationals_share == 100):
                         continue
                     if previous_results is not None:
                         previous_nationals_share = get_nationals_share(previous_results, seat.name)
@@ -1621,6 +1623,8 @@ def analyse_nationals(elections, all_elections):
         # calculate sample kurtosis of residuals
         this_kurtosis = two_tail_kurtosis(adjusted_residuals)
 
+
+
         filename = (f'./Nationals/{target_election.year()}{target_election.region()}_stats.csv')
         with open(filename, 'w') as f:
             f.write(f'prev_coef,old_coef,intercept,rmse,kurtosis\n')
@@ -1641,16 +1645,29 @@ def analyse_nationals(elections, all_elections):
         # generate predictions for individual seats 
         predictions = []
         for seat in previous_results.seat_results:
+            previous_nationals_share = 0
             if previous_results is not None:
                 previous_nationals_share = get_nationals_share(previous_results, seat.name)
             if old_results is not None:
                 old_nationals_share = get_nationals_share(old_results, seat.name)
-            if previous_nationals_share is not None and old_nationals_share is not None:
-                predictions.append((seat.name, previous_nationals_share * reg.coef_[0] + old_nationals_share * reg.coef_[1] + reg.intercept_))
-            elif previous_nationals_share is not None:
-                predictions.append((seat.name, previous_nationals_share))
-            else:
-                predictions.append((seat.name, 0))
+            provisional_nats_share = previous_nationals_share
+            if (
+                previous_nationals_share is not None
+                and old_nationals_share is not None
+                and previous_nationals_share != 0
+                and old_nationals_share != 0
+                and previous_nationals_share != 1
+                and old_nationals_share != 1
+            ):
+                if seat.name == "Parkes":
+                    print(previous_nationals_share, old_nationals_share, reg.coef_[0], reg.coef_[1], reg.intercept_)
+                provisional_nats_share = previous_nationals_share * reg.coef_[0] + old_nationals_share * reg.coef_[1] + reg.intercept_
+            # sanity checking from overambitious regression
+            if provisional_nats_share < previous_nationals_share * 0.5:
+                provisional_nats_share = previous_nationals_share * 0.5
+            elif provisional_nats_share > (previous_nationals_share + 1) / 2:
+                provisional_nats_share = (previous_nationals_share + 1) / 2
+            predictions.append((seat.name, provisional_nats_share))
         
         filename = (f'./Nationals/{target_election.year()}{target_election.region()}_seats.csv')
         with open(filename, 'w') as f:

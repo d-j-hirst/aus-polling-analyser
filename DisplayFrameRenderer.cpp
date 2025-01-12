@@ -247,7 +247,7 @@ void DisplayFrameRenderer::drawExpectationsBoxRows() const
 	int rowSize = std::min(22, int(ExpectationBoxHeight - ExpectationBoxTitleHeight) / int(simulation.partySeatWinFrequency.size()));
 	wxRect expBoxNameRect = wxRect(ExpectationBoxLeft, ExpectationBoxTop + ExpectationBoxTitleHeight,
 		ExpectationBoxWidth * 0.5f, rowSize);
-	dc.SetFont(font(rowSize - 8));
+	dc.SetFont(font(int(std::floor(float(rowSize) * 0.7))));
 	
 	// Split into two so that we have the major parties first and emerging parties last
 	for (auto [partyIndex, x] : simulation.partyWinExpectation) {

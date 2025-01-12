@@ -91,7 +91,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-9.5
 fPreviousTppSwing=2.41
-bProminentIndependent=1
+bConfirmedProminentIndependent=1
 sPolls=IND,31,4;GRN,9,4;IND,14,4;GRN,11,4;IND,11.59,4;GRN,5,4
 sMinorViability=IND,2.00
 sCandidateNames=Pat Conaghan,LNP;Caz Heise,IND
@@ -1170,7 +1170,7 @@ fPreviousTppSwing=10.29
 sPolls=GRN,13,4;GRN,14,4;GRN,9,4
 sTppMrpPolls=Redbridge,2024-04-01,45.1;Redbridge,2024-07-31,44;Redbridge,2024-11-09,42
 bRetirement=1
-bProminentIndependent=1
+bConfirmedProminentIndependent=1
 sMinorViability=IND,-1.00
 sCandidateNames=Ben Small,LNP;Georgia Beardman,GRN;Sue Chapman,IND
 #Fremantle
@@ -1202,7 +1202,7 @@ fPreviousTppSwing=10.96
 sPolls=GRN,14,4;GRN,12,4;GRN,11,4
 sTppMrpPolls=Redbridge,2024-04-01,48.8;Redbridge,2024-07-31,47;Redbridge,2024-11-09,47
 bRetirement=1
-bProminentIndependent=1
+bConfirmedProminentIndependent=1
 sMinorViability=IND,1.00
 sCandidateNames=Vince Connelly,LNP;Ian Goodenough,IND
 #O'Connor
