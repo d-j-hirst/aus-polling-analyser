@@ -12,6 +12,8 @@
 #undef min
 #undef max
 
+using Mp = Simulation::MajorParty;
+
 const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = { 0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f };
 
 void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedback)
@@ -24,6 +26,7 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 	lastUpdated = wxInvalidDateTime;
 	latestRun.reset(new SimulationRun(project, *this));
 	latestRun->run(feedback);
+	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	checkLiveSeats(project, feedback);
 }
 
@@ -169,6 +172,16 @@ float Simulation::Report::getPartyWinMedian(int partyIndex) const
 	return 0;
 }
 
+float Simulation::Report::getCoalitionWinExpectation() const
+{
+	return coalitionWinExpectation;
+}
+
+float Simulation::Report::getCoalitionWinMedian() const
+{
+	return coalitionWinMedian;
+}
+
 float Simulation::Report::getOthersWinExpectation() const
 {
 	if (partyWinExpectation.size() < 3) return 0.0f;
@@ -184,6 +197,12 @@ float Simulation::Report::getOthersWinExpectation() const
 float Simulation::Report::getRegionPartyWinExpectation(int regionIndex, int partyIndex) const
 {
 	return regionPartyWinExpectation[regionIndex].at(partyIndex);
+}
+
+float Simulation::Report::getRegionCoalitionWinExpectation(int regionIndex) const
+{
+	if (!regionCoalitionWinExpectation.size()) return regionPartyWinExpectation[regionIndex].at(Mp::Two);
+	return regionCoalitionWinExpectation[regionIndex];
 }
 
 float Simulation::Report::getRegionOthersWinExpectation(int regionIndex) const
@@ -204,6 +223,11 @@ float Simulation::Report::getPartySeatWinFrequency(int partyIndex, int seatIndex
 	return partySeatWinFrequency.at(partyIndex)[seatIndex];
 }
 
+float Simulation::Report::getCoalitionWinFrequency(int seatIndex) const
+{
+	return coalitionWinFrequency[seatIndex];
+}
+
 float Simulation::Report::getOthersWinFrequency(int seatIndex) const
 {
 	return othersWinFrequency[seatIndex];
@@ -213,7 +237,7 @@ int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) co
 {
 	switch (whichParty) {
 	case MajorParty::One: return partyOneProbabilityBounds[bound];
-	case MajorParty::Two: return partyTwoProbabilityBounds[bound];
+	case MajorParty::Two: return coalitionWinFrequency.size() ? coalitionProbabilityBounds[bound] : partyTwoProbabilityBounds[bound];
 	case MajorParty::Others: return othersProbabilityBounds[bound];
 	default: return 0.0f;
 	}
@@ -390,6 +414,45 @@ float Simulation::Report::getTppSamplePercentile(float percentile) const
 	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
 	int currentCount = 0;
 	for (auto const& [bucketKey, bucketCount] : tppFrequency) {
+		int prevCount = currentCount;
+		currentCount += bucketCount;
+		if (currentCount > targetCount) {
+			float extra = (float(targetCount) - float(prevCount)) / (float(currentCount) - float(prevCount)) * 0.1f;
+			return float(bucketKey) * 0.1f + extra;
+		}
+	}
+	return 100.0f;
+}
+
+int Simulation::Report::getCoalitionFpSampleCount() const
+{
+	return std::accumulate(coalitionFpFrequency.begin(), coalitionFpFrequency.end(), 0,
+		[](int sum, std::pair<short, int> a) {return sum + a.second; });
+}
+
+float Simulation::Report::getCoalitionFpSampleExpectation() const
+{
+	int totalCount = getCoalitionFpSampleCount();
+	if (!totalCount) return 0;
+	return std::accumulate(coalitionFpFrequency.begin(), coalitionFpFrequency.end(), 0.0f,
+		[](float sum, std::pair<short, int> a) {
+			return sum + float(a.first) * float(a.second) * 0.1f;
+		}
+	) / float(totalCount);
+}
+
+float Simulation::Report::getCoalitionFpSampleMedian() const
+{
+	return getCoalitionFpSamplePercentile(50.0f);
+}
+
+float Simulation::Report::getCoalitionFpSamplePercentile(float percentile) const
+{
+	int totalCount = getCoalitionFpSampleCount();
+	if (!totalCount) return 0.0f;
+	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
+	int currentCount = 0;
+	for (auto const& [bucketKey, bucketCount] : coalitionFpFrequency) {
 		int prevCount = currentCount;
 		currentCount += bucketCount;
 		if (currentCount > targetCount) {

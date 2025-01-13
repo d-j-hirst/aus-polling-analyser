@@ -215,6 +215,7 @@ private:
 	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
 	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
+	std::vector<double> coalitionWinPercent;
 
 	// Keep track of swing factors
 	std::vector<double> seatRegionSwingSums;
@@ -237,6 +238,7 @@ private:
 	std::vector<std::map<int, int>> seatPartyWins;
 	// region, then party, then seat count
 	std::vector<std::map<int, std::vector<int>>> regionPartyWins;
+	std::vector<int> seatCoalitionWins;
 
 	std::vector<std::vector<int>> seatProminentMinors;
 	std::vector<float> seatPreviousTppSwing;

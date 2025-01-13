@@ -99,8 +99,8 @@ sCandidateNames=Paul Lilburne,ALP;Liam Staltari,LIB
 bSophomoreParty=1
 bSophomoreCandidate=1
 #Central Wheatbelt
-sIncumbent=ALP
-sChallenger=LIB
+sIncumbent=NAT
+sChallenger=ALP
 sRegion=Regional
 fTppMargin=-9.3
 fPreviousTppSwing=11.5
@@ -449,7 +449,7 @@ fPreviousTppSwing=19.8
 sCandidateNames=Sabine Winton,ALP;Joshua Kingshott,LIB
 #Warren-Blackwood
 sIncumbent=ALP
-sChallenger=LIB
+sChallenger=NAT
 sRegion=Regional
 fTppMargin=2.2
 fPreviousTppSwing=14.1

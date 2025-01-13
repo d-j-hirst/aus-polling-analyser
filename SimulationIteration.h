@@ -90,7 +90,6 @@ private:
 	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignDirectWins();
-	void assignCountAsPartyWins();
 	void assignSupportsPartyWins();
 	void recordMajorityResult();
 	void recordPartySeatWinCounts();
@@ -162,6 +161,7 @@ private:
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;
 
+	std::array<int, 2> effectiveWins = std::array<int, 2>();
 	std::array<int, 2> partySupport = std::array<int, 2>();
 	// *** IMPORTANT NOTE: see above *** //
 };

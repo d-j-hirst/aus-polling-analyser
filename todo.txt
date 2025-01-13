@@ -1,8 +1,9 @@
 For Nationals:
- -BEFORE allocating major party votes, assign National vote %
- -while allocating major party votes, adjust coalition total to adjust for leakage
- -after determining seat winner, reallocate votes to National and also reallocate winner based on some criteria (allowing for uncertainty in how other votes flow between the two)
-
+ -Release Coalition vote/seat statistics in report
+ -Check OTH overall vote being perhaps too hight in 2025wa
+ -Handle Nat/Lib TCP combinations
+ -Handle correlations between seats in NAT vote share
+ -Some more code to more precisely handle whether NAT/LIB will run in a seat
 
  -Rework pollster analysis to strictly exclude future polls and generate separate data for any given date/election combination. (Will create a lot of files, but should be small individually)
  -Setup 6-monthly calibration updates for in-progress polls and set pollster analyses to use these where possible
@@ -10,7 +11,6 @@ For Nationals:
  -(Wait for above to complete)
  -Rework trend adjust to strictly avoid using future elections and re-run for all elections past a certain date (this creates the baseline for comparison with the next step)
  -Overhaul trend adjust to use bayesian aggregation to determine best bias adjustment for each party type
- -
 
  -General refactor of frontend as there is currently a lot of code duplication
  -Develop mechanism for making hindcasts and assigning an appropriate date for when they "would" have been done

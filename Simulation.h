@@ -103,15 +103,20 @@ public:
 
 		std::map<int, std::map<short, int>> partyPrimaryFrequency;
 		std::map<short, int> tppFrequency;
+		std::map<short, int> coalitionFpFrequency;
 
 		std::map<int, float> partyWinExpectation;
-
 		std::map<int, float> partyWinMedian;
+
+		float coalitionWinExpectation = 0.0f;
+		float coalitionWinMedian = 0.0f;
 
 		// region, then party
 		std::vector<std::map<int, float>> regionPartyWinExpectation;
 
-		// party, then seat
+		std::vector<float> regionCoalitionWinExpectation;
+
+		// party, then seat count
 		std::map<int, std::vector<int>> partySeatWinFrequency;
 
 		// Margin by which each seat is expected to be on after simulation
@@ -119,6 +124,7 @@ public:
 		// and is only divided to form the average once simulations are complete
 		std::vector<float> seatPartyOneMarginAverage;
 
+		std::vector<int> coalitionWinFrequency;
 		std::vector<int> othersWinFrequency;
 
 		float total2cpPercentCounted = 0.0f;
@@ -128,6 +134,9 @@ public:
 
 		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 		std::array<int, NumProbabilityBoundIndices> partyTwoProbabilityBounds{};
+
+		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		std::array<int, NumProbabilityBoundIndices> coalitionProbabilityBounds{};
 
 		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
 		std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds{};
@@ -153,6 +162,7 @@ public:
 		std::vector<Seat::Id> classicSeatIndices; // deprecated, do not use
 
 		std::vector<std::vector<int>> regionPartyIncumbents;
+		std::vector<int> regionCoalitionIncumbents;
 
 		std::vector<std::map<int, float>> seatPartyWinPercent;
 
@@ -200,13 +210,21 @@ public:
 
 		float getPartyWinMedian(int partyIndex) const;
 
+		float getCoalitionWinExpectation() const;
+
+		float getCoalitionWinMedian() const;
+
 		float getOthersWinExpectation() const;
 
 		float getRegionPartyWinExpectation(int regionIndex, int partyIndex) const;
 
+		float getRegionCoalitionWinExpectation(int regionIndex) const;
+
 		float getRegionOthersWinExpectation(int regionIndex) const;
 
 		float getPartySeatWinFrequency(int partyIndex, int seatIndex) const;
+
+		float getCoalitionWinFrequency(int seatIndex) const;
 
 		float getOthersWinFrequency(int seatIndex) const;
 
@@ -247,6 +265,16 @@ public:
 		// Get the given percentile for this party's overall primary vote.
 		// Percentile should be expressed as a percentage e.g. median as 50.0f.
 		float getTppSamplePercentile(float percentile) const;
+
+		int getCoalitionFpSampleCount() const;
+
+		float getCoalitionFpSampleExpectation() const;
+
+		float getCoalitionFpSampleMedian() const;
+
+		// Get the given percentile for this party's overall primary vote.
+		// Percentile should be expressed as a percentage e.g. median as 50.0f.
+		float getCoalitionFpSamplePercentile(float percentile) const;
 
 		float getTcpPercentCounted() const { return total2cpPercentCounted; }
 

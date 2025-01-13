@@ -1590,11 +1590,22 @@ def analyse_nationals(elections, all_elections):
                         previous_nationals_share = get_nationals_share(previous_results, seat.name)
                     if old_results is not None:
                         old_nationals_share = get_nationals_share(old_results, seat.name)
-                    if this_nationals_share is not None and previous_nationals_share is not None:
-                        transformed_nationals_shares.append(transform_vote_share(this_nationals_share))
-                        transformed_previous_nationals_shares.append(transform_vote_share(previous_nationals_share))
-                        if old_nationals_share is not None:
-                            transformed_old_nationals_shares.append(transform_vote_share(old_nationals_share))
+                    if (
+                        this_nationals_share is not None
+                        and previous_nationals_share is not None
+                        and this_nationals_share != 0
+                        and previous_nationals_share != 0
+                        and this_nationals_share != 1
+                        and previous_nationals_share != 1
+                    ):
+                        transformed_nationals_shares.append(transform_vote_share(this_nationals_share * 100))
+                        transformed_previous_nationals_shares.append(transform_vote_share(previous_nationals_share * 100))
+                        if (
+                            old_nationals_share is not None
+                            and old_nationals_share != 0
+                            and old_nationals_share != 1
+                        ):
+                            transformed_old_nationals_shares.append(transform_vote_share(old_nationals_share * 100))
                         else:
                             transformed_old_nationals_shares.append(transformed_previous_nationals_shares[-1])
 
@@ -1603,6 +1614,8 @@ def analyse_nationals(elections, all_elections):
 
         inputs_np = numpy.transpose(numpy.array([transformed_previous_nationals_shares, transformed_old_nationals_shares]))
         results_np = numpy.array(transformed_nationals_shares)
+        if target_election.short() == "2025wa":
+            print(inputs_np, results_np)
         reg = LinearRegression().fit(inputs_np, results_np)
 
         #calculate rmse of transformed_nationals_shares following this regression:
@@ -1659,10 +1672,13 @@ def analyse_nationals(elections, all_elections):
                 and previous_nationals_share != 1
                 and old_nationals_share != 1
             ):
-                if seat.name == "Parkes":
-                    print(previous_nationals_share, old_nationals_share, reg.coef_[0], reg.coef_[1], reg.intercept_)
-                provisional_nats_share = previous_nationals_share * reg.coef_[0] + old_nationals_share * reg.coef_[1] + reg.intercept_
+                transformed_previous_nationals_share = transform_vote_share(previous_nationals_share * 100)
+                transformed_old_nationals_share = transform_vote_share(old_nationals_share * 100)   
+                transformed_provisional_nats_share = transformed_previous_nationals_share * reg.coef_[0] + transformed_old_nationals_share * reg.coef_[1] + reg.intercept_
+                provisional_nats_share = detransform_vote_share(transformed_provisional_nats_share) * 0.01
             # sanity checking from overambitious regression
+            if target_election.short() == "2025wa":
+                print(seat.name, provisional_nats_share, previous_nationals_share, old_nationals_share)
             if provisional_nats_share < previous_nationals_share * 0.5:
                 provisional_nats_share = previous_nationals_share * 0.5
             elif provisional_nats_share > (previous_nationals_share + 1) / 2:

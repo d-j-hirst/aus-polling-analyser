@@ -100,6 +100,13 @@ void SimulationCompletion::calculatePartyWinExpectations()
 		}
 		sim.latestReport.partyWinExpectation[partyIndex] = float(totalSeats) / float(iterations);
 	}
+	if (run.natPartyIndex >= 0) {
+		int totalSeats = 0;
+		for (int seatNum = 1; seatNum < project.seats().count(); ++seatNum) {
+			totalSeats += seatNum * sim.latestReport.coalitionWinFrequency[seatNum];
+		}
+		sim.latestReport.coalitionWinExpectation = float(totalSeats) / float(iterations);
+	}
 }
 
 void SimulationCompletion::calculatePartyWinMedians()
@@ -114,11 +121,22 @@ void SimulationCompletion::calculatePartyWinMedians()
 			}
 		}
 	}
+	if (run.natPartyIndex >= 0) {
+		int runningTotal = 0;
+		for (int seatNum = 0; seatNum < int(sim.latestReport.coalitionWinFrequency.size()); ++seatNum) {
+			runningTotal += sim.latestReport.coalitionWinFrequency[seatNum];
+			if (runningTotal > iterations / 2) {
+				sim.latestReport.coalitionWinMedian = seatNum;
+				break;
+			}
+		}
+	}
 }
 
 void SimulationCompletion::calculateRegionPartyWinExpectations()
 {
 	sim.latestReport.regionPartyWinExpectation.resize(project.regions().count());
+	if (run.natPartyIndex >= 0) sim.latestReport.regionCoalitionWinExpectation.resize(project.regions().count());
 
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
@@ -127,6 +145,17 @@ void SimulationCompletion::calculateRegionPartyWinExpectations()
 				totalSeats += seatNum * run.regionPartyWins[regionIndex][partyIndex][seatNum];
 			}
 			sim.latestReport.regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(iterations);
+		}
+
+		if (run.natPartyIndex >= 0) {
+			int totalSeats = 0;
+			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][Mp::Two].size()); ++seatNum) {
+				totalSeats += seatNum * run.regionPartyWins[regionIndex][Mp::Two][seatNum];
+			}
+			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][run.natPartyIndex].size()); ++seatNum) {
+				totalSeats += seatNum * run.regionPartyWins[regionIndex][run.natPartyIndex][seatNum];
+			}
+			sim.latestReport.regionCoalitionWinExpectation[regionIndex] = float(totalSeats) / float(iterations);
 		}
 	}
 }
@@ -163,19 +192,24 @@ void SimulationCompletion::recordProbabilityBands()
 {
 	int partyOneCount = 0;
 	int partyTwoCount = 0;
+	int coalitionCount = 0;
 	int othersCount = 0;
 	std::fill(sim.latestReport.partyOneProbabilityBounds.begin(), sim.latestReport.partyOneProbabilityBounds.end(), -1);
 	std::fill(sim.latestReport.partyTwoProbabilityBounds.begin(), sim.latestReport.partyTwoProbabilityBounds.end(), -1);
+	if (run.natPartyIndex >= 0) std::fill(sim.latestReport.coalitionProbabilityBounds.begin(), sim.latestReport.coalitionProbabilityBounds.end(), -1);
 	std::fill(sim.latestReport.othersProbabilityBounds.begin(), sim.latestReport.othersProbabilityBounds.end(), -1);
 	for (int numSeats = 0; numSeats < project.seats().count(); ++numSeats) {
 		partyOneCount += sim.latestReport.partySeatWinFrequency[0][numSeats];
 		partyTwoCount += sim.latestReport.partySeatWinFrequency[1][numSeats];
+		if (run.natPartyIndex >= 0) coalitionCount += sim.latestReport.coalitionWinFrequency[numSeats];
 		othersCount += sim.latestReport.othersWinFrequency[numSeats];
 		for (int probBoundIndex = 0; probBoundIndex < NumProbabilityBoundIndices; ++probBoundIndex) {
 			updateProbabilityBounds(partyOneCount, numSeats,
 				ProbabilityBounds[probBoundIndex], sim.latestReport.partyOneProbabilityBounds[probBoundIndex]);
 			updateProbabilityBounds(partyTwoCount, numSeats,
 				ProbabilityBounds[probBoundIndex], sim.latestReport.partyTwoProbabilityBounds[probBoundIndex]);
+			if (run.natPartyIndex >= 0) updateProbabilityBounds(coalitionCount, numSeats,
+				ProbabilityBounds[probBoundIndex], sim.latestReport.coalitionProbabilityBounds[probBoundIndex]);
 			updateProbabilityBounds(othersCount, numSeats,
 				ProbabilityBounds[probBoundIndex], sim.latestReport.othersProbabilityBounds[probBoundIndex]);
 		}

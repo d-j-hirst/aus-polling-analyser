@@ -64,7 +64,9 @@
 // Version 57: candidate names
 // Version 58: seat swing factors
 // Version 59: by-election swings
-constexpr int VersionNum = 59;
+// Version 60: coalition fp frequencies
+// Version 61: more coalition data
+constexpr int VersionNum = 61;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -580,12 +582,17 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.tiedPercent;
 	saveOutput << report.partyWinExpectation;
 	saveOutput << report.partyWinMedian;
+	saveOutput << report.coalitionWinExpectation;
+	saveOutput << report.coalitionWinMedian;
 	saveOutput << report.regionPartyWinExpectation;
+	saveOutput << report.regionCoalitionWinExpectation;
 	saveOutput << report.partySeatWinFrequency;
+	saveOutput << report.coalitionWinFrequency;
 	saveOutput << report.othersWinFrequency;
 	saveOutput << report.total2cpPercentCounted;
 	saveOutput << report.partyOneProbabilityBounds;
 	saveOutput << report.partyTwoProbabilityBounds;
+	saveOutput << report.coalitionProbabilityBounds;
 	saveOutput << report.othersProbabilityBounds;
 	saveOutput << report.partyAbbr;
 	saveOutput << report.partyName;
@@ -607,9 +614,11 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.seatTcpWinPercent;
 	saveOutput << report.classicSeatIndices;
 	saveOutput << report.regionPartyIncumbents;
+	saveOutput << report.regionCoalitionIncumbents;
 	saveOutput << report.prevElection2pp;
 	saveOutput << report.partyPrimaryFrequency;
 	saveOutput << report.tppFrequency;
+	saveOutput << report.coalitionFpFrequency;
 	saveOutput << report.swingFactors;
 	saveOutput << report.trendProbBands;
 	saveOutput << report.trendPeriod;
@@ -641,7 +650,14 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	if (versionNum >= 27) {
 		saveInput >> report.partyWinExpectation;
 		saveInput >> report.partyWinMedian;
+		if (versionNum >= 61) {
+			saveInput >> report.coalitionWinExpectation;
+			saveInput >> report.coalitionWinMedian;
+		}
 		saveInput >> report.regionPartyWinExpectation;
+		if (versionNum >= 61) {
+			saveInput >> report.regionCoalitionWinExpectation;
+		}
 		saveInput >> report.partySeatWinFrequency;
 	}
 	else {
@@ -662,17 +678,22 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 			for (int j = 0; j < int(regionWinExpectationVec[i].size()); ++j) {
 				subMap[j] = subVec[j];
 			}
-			report.regionPartyWinExpectation.push_back(subMap);
 		}
 		std::vector<std::vector<int>> winFrequencyVec; saveInput >> winFrequencyVec;
 		for (int i = 0; i < int(winExpectationVec.size()); ++i) {
 			report.partySeatWinFrequency[i] = winFrequencyVec[i];
 		}
 	}
+	if (versionNum >= 61) {
+		saveInput >> report.coalitionWinFrequency;
+	}
 	saveInput >> report.othersWinFrequency;
 	saveInput >> report.total2cpPercentCounted;
 	saveInput >> report.partyOneProbabilityBounds;
 	saveInput >> report.partyTwoProbabilityBounds;
+	if (versionNum >= 61) {
+		saveInput >> report.coalitionProbabilityBounds;
+	}
 	saveInput >> report.othersProbabilityBounds;
 	if (versionNum >= 26) {
 		saveInput >> report.partyAbbr;
@@ -752,6 +773,9 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	}
 	saveInput >> report.classicSeatIndices;
 	saveInput >> report.regionPartyIncumbents;
+	if (versionNum >= 61) {
+		saveInput >> report.regionCoalitionIncumbents;
+	}
 	saveInput >> report.prevElection2pp;
 	if (versionNum >= 18) {
 		if (versionNum >= 27) {
@@ -764,6 +788,9 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 			}
 		}
 		saveInput >> report.tppFrequency;
+		if (versionNum >= 60) {
+			saveInput >> report.coalitionFpFrequency;
+		}
 	}
 	if (versionNum >= 58) {
 		saveInput >> report.swingFactors;

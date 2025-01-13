@@ -4,7 +4,9 @@
 #include "Log.h"
 #include "SpecialPartyCodes.h"
 
-constexpr int GraphParty = 1;
+using Mp = Simulation::MajorParty;
+
+constexpr int GraphParty = Mp::One;
 
 // Note: The "Top" variables represent the height from the top of the drawing space, which is not
 // the same as the number that is actually passed to the function due to the presence of the toolbar
@@ -269,9 +271,13 @@ void DisplayFrameRenderer::drawExpectationsBoxRow(wxRect& nameRect, PartyCollect
 	std::string name = (simulation.partyName.at(partyIndex).size() < 18 ?
 		simulation.partyName.at(partyIndex) : simulation.partyAbbr.at(partyIndex));
 	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
-	dc.DrawLabel(formatFloat(simulation.getPartyWinExpectation(partyIndex), 2), expBoxDataRect, wxALIGN_CENTRE);
+	float expectation = simulation.getPartyWinExpectation(partyIndex);
+	if (partyIndex == Mp::Two && simulation.coalitionWinFrequency.size()) expectation = simulation.getCoalitionWinExpectation();
+	dc.DrawLabel(formatFloat(expectation, 2), expBoxDataRect, wxALIGN_CENTRE);
 	expBoxDataRect.Offset(width, 0);
-	dc.DrawLabel(formatFloat(simulation.getPartyWinMedian(partyIndex), 0), expBoxDataRect, wxALIGN_CENTRE);
+	float median = simulation.getPartyWinMedian(partyIndex);
+	if (partyIndex == Mp::Two && simulation.coalitionWinFrequency.size()) median = simulation.getCoalitionWinMedian();
+	dc.DrawLabel(formatFloat(median, 0), expBoxDataRect, wxALIGN_CENTRE);
 	nameRect.Offset(0, rowSize);
 }
 
@@ -338,10 +344,13 @@ void DisplayFrameRenderer::drawRegionsBoxRowListItem(RegionCollection::Index reg
 {
 	int horzOffset = int(RegionsBoxWidth * 0.25f);
 	float seats[3] = { simulation.getRegionPartyWinExpectation(regionIndex, 0) ,
-		simulation.getRegionPartyWinExpectation(regionIndex, 1) ,
+		simulation.getRegionCoalitionWinExpectation(regionIndex) ,
 		simulation.getRegionOthersWinExpectation(regionIndex) };
+	float coalitionIncumbents = simulation.regionCoalitionIncumbents.size()
+		? simulation.regionCoalitionIncumbents[regionIndex]
+		: simulation.regionPartyIncumbents[regionIndex][1];
 	float change[3] = { seats[0] - simulation.regionPartyIncumbents[regionIndex][0] ,
-		seats[1] - simulation.regionPartyIncumbents[regionIndex][1],
+		seats[1] - coalitionIncumbents,
 		seats[2] - simulation.getOthersLeading(regionIndex) };
 	wxRect elementRect = rowNameRect;
 	dc.DrawLabel(simulation.regionName[regionIndex], elementRect, wxALIGN_CENTRE);
@@ -477,9 +486,9 @@ void DisplayFrameRenderer::drawGraphColumns(GraphVariables const& gv) const
 															// will usually be somewhat smaller than the actual width of the graph
 	float columnStart = gv.axisMidpoint - columnRange * 0.5f;
 	const float GraphMaxColumnHeight = gv.GraphBoxHeight - GraphAxisOffset - GraphTopSpace;
-	setBrushAndPen(*wxBLUE);
+	setBrushAndPen(*wxRED);
 	for (int seatNum = gv.lowestSeatFrequency; seatNum <= gv.highestSeatFrequency; ++seatNum) {
-		float proportionOfMax = float(simulation.getPartySeatWinFrequency(1, seatNum)) / float(modalSeatFrequency) * 0.9999f;
+		float proportionOfMax = float(simulation.getPartySeatWinFrequency(GraphParty, seatNum)) / float(modalSeatFrequency) * 0.9999f;
 		float columnHeight = std::ceil(proportionOfMax * GraphMaxColumnHeight);
 		float columnTop = gv.axisY - columnHeight;
 		float columnWidth = float(gv.seatColumnWidth);
@@ -532,7 +541,12 @@ void DisplayFrameRenderer::drawVoteShareBoxRows() const
 
 	for (auto [partyIndex, _] : simulation.partyPrimaryFrequency) {
 		if (partyIndex == OthersIndex) continue;
-		drawVoteShareBoxRow(voteBoxNameRect, partyIndex);
+		if (partyIndex == Mp::Two) {
+			drawVoteShareBoxCoalitionRow(voteBoxNameRect);
+		}
+		else {
+			drawVoteShareBoxRow(voteBoxNameRect, partyIndex);
+		}
 	}
 	drawVoteShareBoxOthersRow(voteBoxNameRect);
 	drawVoteShareBoxPartyOneTppRow(voteBoxNameRect);
@@ -566,6 +580,22 @@ void DisplayFrameRenderer::drawVoteShareBoxRow(wxRect& nameRect, PartyCollection
 			dc.DrawLabel("na", voteBoxDataRect, wxALIGN_CENTRE);
 		}
 	}
+	nameRect.Offset(0, rowSize);
+}
+
+void DisplayFrameRenderer::drawVoteShareBoxCoalitionRow(wxRect& nameRect) const
+{
+	float voteBoxHeight = dv.DCheight - VoteShareBoxTop - BoxMargin;
+	int rowSize = std::min(21, int(voteBoxHeight - VoteShareBoxTitleHeight) / int(simulation.partyPrimaryFrequency.size() + 3));
+	int width = (VoteShareBoxWidth - nameRect.GetWidth()) / 2;
+	wxRect voteBoxDataRect = wxRect(nameRect.GetRight(), nameRect.GetTop(), width, rowSize);
+	std::string name = "Coalition";
+	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
+	float meanVote = simulation.coalitionFpFrequency.size() ? simulation.getCoalitionFpSampleExpectation() : simulation.getFpSampleExpectation(Mp::Two);
+	float medianVote = simulation.coalitionFpFrequency.size() ? simulation.getCoalitionFpSampleMedian() : simulation.getFpSampleMedian(Mp::Two);
+	dc.DrawLabel(formatFloat(meanVote, 2), voteBoxDataRect, wxALIGN_CENTRE);
+	voteBoxDataRect.Offset(width, 0);
+	dc.DrawLabel(formatFloat(medianVote, 2), voteBoxDataRect, wxALIGN_CENTRE);
 	nameRect.Offset(0, rowSize);
 }
 

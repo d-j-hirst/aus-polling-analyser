@@ -14,6 +14,8 @@
 #include <random>
 #include <set>
 
+using Mp = Simulation::MajorParty;
+
 static std::random_device rd;
 static std::mt19937 gen;
 
@@ -28,12 +30,12 @@ void SimulationPreparation::prepareForIterations()
 
 	resetLatestReport();
 
+	storeTermCode();
+	determineSpecificPartyIndices();
+
 	resetRegionSpecificOutput();
 
 	resetSeatSpecificOutput();
-
-	storeTermCode();
-	determineSpecificPartyIndices();
 
 	loadTppSwingFactors();
 
@@ -118,6 +120,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.partyOneWinPercent.resize(project.seats().count(), 0.0);
 	run.partyTwoWinPercent.resize(project.seats().count(), 0.0);
 	run.othersWinPercent.resize(project.seats().count(), 0.0);
+	if (run.natPartyIndex >= 0) run.coalitionWinPercent.resize(project.seats().count(), 0.0);
 
 	run.seatFirstPartyPreferenceFlow.resize(project.seats().count(), 0.0f);
 	run.seatPreferenceFlowVariation.resize(project.seats().count(), 0.0f);
@@ -128,6 +131,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPartyFpDistribution.resize(project.seats().count());
 	run.seatPartyFpZeros.resize(project.seats().count());
 	run.seatTcpDistribution.resize(project.seats().count());
+	if (run.natPartyIndex >= 0) run.seatCoalitionWins.resize(project.seats().count());
 
 	run.seatRegionSwingSums.resize(project.seats().count(), 0.0);
 	run.seatElasticitySwingSums.resize(project.seats().count(), 0.0);
@@ -326,6 +330,7 @@ void SimulationPreparation::determinePreviousVoteEnrolmentRatios()
 void SimulationPreparation::resizeRegionSeatCountOutputs()
 {
 	sim.latestReport.regionPartyIncumbents.resize(project.regions().count());
+	if (run.natPartyIndex >= 0) sim.latestReport.regionCoalitionIncumbents.resize(project.regions().count());
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		sim.latestReport.regionPartyIncumbents[regionIndex].resize(project.parties().count());
 		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
@@ -337,6 +342,9 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
+		if (seat.getLeadingParty() == Mp::Two || seat.getLeadingParty() == run.natPartyIndex) {
+			++sim.latestReport.regionCoalitionIncumbents[seat.region];
+		}
 		++sim.latestReport.regionPartyIncumbents[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
 	}
 }
@@ -463,9 +471,11 @@ void SimulationPreparation::resetResultCounts()
 	run.partyMostSeats.clear();
 	run.tiedParliament = 0;
 	sim.latestReport.partySeatWinFrequency.clear();
+	if (run.natPartyIndex >= 0) sim.latestReport.coalitionWinFrequency.resize(project.seats().count() + 1);
 	sim.latestReport.othersWinFrequency.resize(project.seats().count() + 1);
 	sim.latestReport.partyPrimaryFrequency.clear();
 	sim.latestReport.tppFrequency.clear();
+	if (run.natPartyIndex >= 0) sim.latestReport.coalitionFpFrequency.clear();
 	sim.latestReport.partyOneSwing = 0.0;
 }
 
