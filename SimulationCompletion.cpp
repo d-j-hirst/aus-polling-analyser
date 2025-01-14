@@ -103,7 +103,7 @@ void SimulationCompletion::calculatePartyWinExpectations()
 	if (run.natPartyIndex >= 0) {
 		int totalSeats = 0;
 		for (int seatNum = 1; seatNum < project.seats().count(); ++seatNum) {
-			totalSeats += seatNum * sim.latestReport.coalitionWinFrequency[seatNum];
+			totalSeats += seatNum * sim.latestReport.coalitionSeatWinFrequency[seatNum];
 		}
 		sim.latestReport.coalitionWinExpectation = float(totalSeats) / float(iterations);
 	}
@@ -123,8 +123,8 @@ void SimulationCompletion::calculatePartyWinMedians()
 	}
 	if (run.natPartyIndex >= 0) {
 		int runningTotal = 0;
-		for (int seatNum = 0; seatNum < int(sim.latestReport.coalitionWinFrequency.size()); ++seatNum) {
-			runningTotal += sim.latestReport.coalitionWinFrequency[seatNum];
+		for (int seatNum = 0; seatNum < int(sim.latestReport.coalitionSeatWinFrequency.size()); ++seatNum) {
+			runningTotal += sim.latestReport.coalitionSeatWinFrequency[seatNum];
 			if (runningTotal > iterations / 2) {
 				sim.latestReport.coalitionWinMedian = seatNum;
 				break;
@@ -201,8 +201,8 @@ void SimulationCompletion::recordProbabilityBands()
 	for (int numSeats = 0; numSeats < project.seats().count(); ++numSeats) {
 		partyOneCount += sim.latestReport.partySeatWinFrequency[0][numSeats];
 		partyTwoCount += sim.latestReport.partySeatWinFrequency[1][numSeats];
-		if (run.natPartyIndex >= 0) coalitionCount += sim.latestReport.coalitionWinFrequency[numSeats];
-		othersCount += sim.latestReport.othersWinFrequency[numSeats];
+		if (run.natPartyIndex >= 0) coalitionCount += sim.latestReport.coalitionSeatWinFrequency[numSeats];
+		othersCount += sim.latestReport.othersSeatWinFrequency[numSeats];
 		for (int probBoundIndex = 0; probBoundIndex < NumProbabilityBoundIndices; ++probBoundIndex) {
 			updateProbabilityBounds(partyOneCount, numSeats,
 				ProbabilityBounds[probBoundIndex], sim.latestReport.partyOneProbabilityBounds[probBoundIndex]);

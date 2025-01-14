@@ -587,8 +587,8 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.regionPartyWinExpectation;
 	saveOutput << report.regionCoalitionWinExpectation;
 	saveOutput << report.partySeatWinFrequency;
-	saveOutput << report.coalitionWinFrequency;
-	saveOutput << report.othersWinFrequency;
+	saveOutput << report.coalitionSeatWinFrequency;
+	saveOutput << report.othersSeatWinFrequency;
 	saveOutput << report.total2cpPercentCounted;
 	saveOutput << report.partyOneProbabilityBounds;
 	saveOutput << report.partyTwoProbabilityBounds;
@@ -685,9 +685,9 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 		}
 	}
 	if (versionNum >= 61) {
-		saveInput >> report.coalitionWinFrequency;
+		saveInput >> report.coalitionSeatWinFrequency;
 	}
-	saveInput >> report.othersWinFrequency;
+	saveInput >> report.othersSeatWinFrequency;
 	saveInput >> report.total2cpPercentCounted;
 	saveInput >> report.partyOneProbabilityBounds;
 	saveInput >> report.partyTwoProbabilityBounds;

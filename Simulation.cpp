@@ -225,19 +225,19 @@ float Simulation::Report::getPartySeatWinFrequency(int partyIndex, int seatIndex
 
 float Simulation::Report::getCoalitionWinFrequency(int seatIndex) const
 {
-	return coalitionWinFrequency[seatIndex];
+	return coalitionSeatWinFrequency[seatIndex];
 }
 
 float Simulation::Report::getOthersWinFrequency(int seatIndex) const
 {
-	return othersWinFrequency[seatIndex];
+	return othersSeatWinFrequency[seatIndex];
 }
 
 int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) const
 {
 	switch (whichParty) {
 	case MajorParty::One: return partyOneProbabilityBounds[bound];
-	case MajorParty::Two: return coalitionWinFrequency.size() ? coalitionProbabilityBounds[bound] : partyTwoProbabilityBounds[bound];
+	case MajorParty::Two: return coalitionSeatWinFrequency.size() ? coalitionProbabilityBounds[bound] : partyTwoProbabilityBounds[bound];
 	case MajorParty::Others: return othersProbabilityBounds[bound];
 	default: return 0.0f;
 	}
@@ -321,6 +321,28 @@ int Simulation::Report::getPartySeatsPercentile(int partyIndex, float percentile
 	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
 	int currentCount = 0;
 	auto const& thisSeatFreqs = partySeatWinFrequency.at(partyIndex);
+	for (int seatCount = 0; seatCount < int(thisSeatFreqs.size()); ++seatCount) {
+		int bucketCount = thisSeatFreqs.at(seatCount);
+		currentCount += bucketCount;
+		if (currentCount > targetCount) {
+			return seatCount;
+		}
+	}
+	return 100.0f;
+}
+
+int Simulation::Report::getCoalitionSeatsSampleCount() const
+{
+	return std::accumulate(coalitionSeatWinFrequency.begin(), coalitionSeatWinFrequency.end(), 0);
+}
+
+int Simulation::Report::getCoalitionSeatsPercentile(float percentile) const
+{
+	int totalCount = getCoalitionSeatsSampleCount();
+	if (!totalCount) return 0.0f;
+	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
+	int currentCount = 0;
+	auto const& thisSeatFreqs = coalitionSeatWinFrequency;
 	for (int seatCount = 0; seatCount < int(thisSeatFreqs.size()); ++seatCount) {
 		int bucketCount = thisSeatFreqs.at(seatCount);
 		currentCount += bucketCount;

@@ -272,11 +272,11 @@ void DisplayFrameRenderer::drawExpectationsBoxRow(wxRect& nameRect, PartyCollect
 		simulation.partyName.at(partyIndex) : simulation.partyAbbr.at(partyIndex));
 	dc.DrawLabel(name, nameRect, wxALIGN_CENTRE);
 	float expectation = simulation.getPartyWinExpectation(partyIndex);
-	if (partyIndex == Mp::Two && simulation.coalitionWinFrequency.size()) expectation = simulation.getCoalitionWinExpectation();
+	if (partyIndex == Mp::Two && simulation.coalitionSeatWinFrequency.size()) expectation = simulation.getCoalitionWinExpectation();
 	dc.DrawLabel(formatFloat(expectation, 2), expBoxDataRect, wxALIGN_CENTRE);
 	expBoxDataRect.Offset(width, 0);
 	float median = simulation.getPartyWinMedian(partyIndex);
-	if (partyIndex == Mp::Two && simulation.coalitionWinFrequency.size()) median = simulation.getCoalitionWinMedian();
+	if (partyIndex == Mp::Two && simulation.coalitionSeatWinFrequency.size()) median = simulation.getCoalitionWinMedian();
 	dc.DrawLabel(formatFloat(median, 0), expBoxDataRect, wxALIGN_CENTRE);
 	nameRect.Offset(0, rowSize);
 }

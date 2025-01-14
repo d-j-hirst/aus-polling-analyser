@@ -99,6 +99,22 @@ std::string ReportUploader::upload()
 	}
 	j["seatCandidateNames"] = thisReport.report.seatCandidateNames;
 	j["seatSwingFactors"] = thisReport.report.swingFactors;
+	if (thisReport.report.getCoalitionFpSampleExpectation() > 0.0f) {
+		VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
+			[this](VF v, float percentile) {
+				v.push_back(thisReport.report.getCoalitionFpSamplePercentile(percentile));
+				return v;
+			});
+		j["coalitionFpFrequencies"] = partyThresholds;
+	}
+	if (thisReport.report.coalitionSeatWinFrequency.size()) {
+		VI partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VI(),
+			[this](VI v, float percentile) {
+				v.push_back(thisReport.report.getCoalitionSeatsPercentile(percentile));
+				return v;
+			});
+		j["coalitionSeatCountFrequencies"] = partyThresholds;
+	}
 	std::ofstream file2("uploads/latest_json.dat");
 	try {
 		file2 << std::setw(4) << j;

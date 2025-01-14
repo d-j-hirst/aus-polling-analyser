@@ -471,8 +471,8 @@ void SimulationPreparation::resetResultCounts()
 	run.partyMostSeats.clear();
 	run.tiedParliament = 0;
 	sim.latestReport.partySeatWinFrequency.clear();
-	if (run.natPartyIndex >= 0) sim.latestReport.coalitionWinFrequency.resize(project.seats().count() + 1);
-	sim.latestReport.othersWinFrequency.resize(project.seats().count() + 1);
+	if (run.natPartyIndex >= 0) sim.latestReport.coalitionSeatWinFrequency.resize(project.seats().count() + 1);
+	sim.latestReport.othersSeatWinFrequency.resize(project.seats().count() + 1);
 	sim.latestReport.partyPrimaryFrequency.clear();
 	sim.latestReport.tppFrequency.clear();
 	if (run.natPartyIndex >= 0) sim.latestReport.coalitionFpFrequency.clear();

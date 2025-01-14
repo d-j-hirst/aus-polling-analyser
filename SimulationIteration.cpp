@@ -2542,8 +2542,8 @@ void SimulationIteration::recordPartySeatWinCounts()
 			++run.regionPartyWins[regionIndex][partyIndex][thisRegionSeatCount];
 		}
 	}
-	++sim.latestReport.othersWinFrequency[othersWins];
-	++sim.latestReport.coalitionWinFrequency[coalitionWins];
+	++sim.latestReport.othersSeatWinFrequency[othersWins];
+	++sim.latestReport.coalitionSeatWinFrequency[coalitionWins];
 }
 
 void SimulationIteration::recordSeatPartyWinner(int seatIndex)

@@ -124,8 +124,8 @@ public:
 		// and is only divided to form the average once simulations are complete
 		std::vector<float> seatPartyOneMarginAverage;
 
-		std::vector<int> coalitionWinFrequency;
-		std::vector<int> othersWinFrequency;
+		std::vector<int> coalitionSeatWinFrequency;
+		std::vector<int> othersSeatWinFrequency;
 
 		float total2cpPercentCounted = 0.0f;
 
@@ -239,6 +239,10 @@ public:
 		int getPartySeatsSampleCount(int partyIndex) const;
 
 		int getPartySeatsPercentile(int partyIndex, float percentile) const;
+
+		int getCoalitionSeatsSampleCount() const;
+
+		int getCoalitionSeatsPercentile(float percentile) const;
 
 		int getModalSeatFrequencyCount(int partyIndex) const;
 
