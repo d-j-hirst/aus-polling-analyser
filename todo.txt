@@ -1,7 +1,7 @@
 For Nationals:
- -Release Coalition vote/seat statistics in report
- -Check OTH overall vote being perhaps too hight in 2025wa
- -Handle Nat/Lib TCP combinations
+ -Check L-NC majority/minority position (seems low ATM)
+ -Do something to remove/cut off aberrant forecasts in history
+ -Investigate seats where ON gets no vote >50% of the time
  -Handle correlations between seats in NAT vote share
  -Some more code to more precisely handle whether NAT/LIB will run in a seat
 

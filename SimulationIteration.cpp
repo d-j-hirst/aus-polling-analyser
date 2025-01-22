@@ -1961,6 +1961,9 @@ void SimulationIteration::calculateNewFpVoteTotals()
 		else if (tempOverallFp.contains(OthersIndex)) {
 			tempOverallFp[OthersIndex] += fp;
 		}
+		else if (partyIndex == run.natPartyIndex) {
+			// for now do nothing, but don't add to others
+		}
 		else {
 			tempOverallFp[OthersIndex] = fp;
 		}
@@ -1970,7 +1973,7 @@ void SimulationIteration::calculateNewFpVoteTotals()
 	for (auto [partyIndex, voteCount] : tempOverallFp) {
 		float error = abs(overallFpTarget[partyIndex] - voteCount);
 		overallFpError += error;
-		if (!isMajor(partyIndex)) nonMajorFpError += error;
+		if (!isMajor(partyIndex) && partyIndex != run.natPartyIndex) nonMajorFpError += error;
 	}
 	float tempMicroOthers = float(partyVoteCount[OthersIndex]) / float(totalVoteCount) * 100.0f;
 	float indOthers = tempOverallFp[OthersIndex] - tempMicroOthers;
@@ -2062,12 +2065,13 @@ void SimulationIteration::correctMajorPartyFpBias()
 {
 	float majorFpCurrent = tempOverallFp[Mp::One] + tempOverallFp[Mp::Two];
 	float majorFpTarget = overallFpTarget[Mp::One] + overallFpTarget[Mp::Two];
+	if (run.natPartyIndex >= 0) majorFpTarget += overallFpTarget[run.natPartyIndex];
 	// This formula calculates the adjustment needed for the current fp to reach the target fp *after normalisation*
 	float adjustmentFactor = (majorFpTarget * (majorFpCurrent - 100.0f)) / (majorFpCurrent * (majorFpTarget - 100.0f));
 	float totalMinors = 0.0f;
 	float partyOnePrefs = 0.0f;
 	for (auto [partyIndex, vote] : tempOverallFp) {
-		if (isMajor(partyIndex)) continue;
+		if (isMajor(partyIndex) || partyIndex == run.natPartyIndex) continue;
 		partyOnePrefs += overallPreferenceFlow[partyIndex] * vote * 0.01f;
 		totalMinors += vote;
 	}
@@ -2366,9 +2370,26 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	if (run.natPartyIndex >= 0 && nationalsShare[seatIndex] > 0) {
 		assignNationalsVotes(seatIndex);
-		if (seatFpVoteShare[seatIndex][run.natPartyIndex] > seatFpVoteShare[seatIndex][1]) {
-			if (topTwo.first.first == 1) topTwo.first.first = run.natPartyIndex;
-			if (topTwo.second.first == 1) topTwo.second.first = run.natPartyIndex;
+		float natShare = seatFpVoteShare[seatIndex][run.natPartyIndex];
+		float libShare = seatFpVoteShare[seatIndex][Mp::Two];
+		float lowerShare = std::min(natShare, libShare) / (natShare + libShare);
+		if (
+			topTwo.first.first == Mp::Two && topTwo.first.second * lowerShare > topTwo.second.second
+			|| topTwo.second.first == Mp::Two && topTwo.second.second * lowerShare > topTwo.first.second
+		) {
+			// This will be a LIB/NAT contest, so rearrange it accordingly
+			topTwo.second.first = natShare > libShare ? run.natPartyIndex : Mp::Two;
+			topTwo.second.second = natShare > libShare ? natShare : libShare;
+			topTwo.first.first = natShare > libShare ? Mp::Two : run.natPartyIndex;
+			topTwo.first.second = natShare > libShare ? libShare : natShare;
+			// For now, simply assume preferences flow 50/50
+			float prefShare = (100.0f - topTwo.first.second - topTwo.second.second) * 0.5f;
+			topTwo.first.second += prefShare;
+			topTwo.second.second += prefShare;
+		}
+		else if (seatFpVoteShare[seatIndex][run.natPartyIndex] > seatFpVoteShare[seatIndex][Mp::Two]) {
+			if (topTwo.first.first == Mp::Two) topTwo.first.first = run.natPartyIndex;
+			if (topTwo.second.first == Mp::Two) topTwo.second.first = run.natPartyIndex;
 		}
 	}
 
@@ -2473,17 +2494,20 @@ void SimulationIteration::assignSupportsPartyWins()
 	partySupport = { partyWins[Mp::One], partyWins[Mp::Two] };
 	for (int partyNum = Mp::Others; partyNum < project.parties().count(); ++partyNum) {
 		Party const& thisParty = project.parties().viewByIndex(partyNum);
-		if (thisParty.relationType == Party::RelationType::IsPartOf && thisParty.relationTarget < Mp::Others) {
+		if (thisParty.relationTarget >= Mp::Others) continue;
+		if (thisParty.relationType == Party::RelationType::IsPartOf) {
 			effectiveWins[thisParty.relationTarget] += partyWins[partyNum];
+			partySupport[thisParty.relationTarget] += partyWins[partyNum];
 		}
-		else if (thisParty.relationType == Party::RelationType::Coalition && thisParty.relationTarget < Mp::Others) {
+		else if (thisParty.relationType == Party::RelationType::Coalition) {
 			effectiveWins[thisParty.relationTarget] += partyWins[partyNum];
+			partySupport[thisParty.relationTarget] += partyWins[partyNum];
 		}
 	}
-	partySupport = { partyWins[Mp::One], partyWins[Mp::Two] };
 	for (int partyNum = Mp::Others; partyNum < project.parties().count(); ++partyNum) {
 		Party const& thisParty = project.parties().viewByIndex(partyNum);
-		if (thisParty.relationType == Party::RelationType::Supports && thisParty.relationTarget < Mp::Others) {
+		if (thisParty.relationTarget >= Mp::Others) continue;
+		if (thisParty.relationType == Party::RelationType::Supports) {
 			partySupport[thisParty.relationTarget] += partyWins[partyNum];
 		}
 	}
@@ -2503,8 +2527,18 @@ void SimulationIteration::recordMajorityResult()
 	else if (partySupport[Mp::Two] >= minimumForMajority && mpWins[Mp::Two] > partySupport[Mp::Two] / 2) ++run.partyMinority[Mp::Two];
 	else {
 		std::vector<std::pair<int, int>> sortedPartyWins(partyWins.begin(), partyWins.end());
+		sortedPartyWins[Mp::One] = { Mp::One, mpWins[Mp::One] };
+		sortedPartyWins[Mp::Two] = { Mp::Two, mpWins[Mp::Two] };
+		// Nats and Inds should never be considered for "most seats"
+		// These are separate loops because otherwise the "erase" will interfere with the look operation
 		for (auto a = sortedPartyWins.begin(); a != sortedPartyWins.end(); ++a) {
 			if (a->first == run.indPartyIndex) {
+				sortedPartyWins.erase(a);
+				break;
+			}
+		}
+		for (auto a = sortedPartyWins.begin(); a != sortedPartyWins.end(); ++a) {
+			if (a->first == run.natPartyIndex) {
 				sortedPartyWins.erase(a);
 				break;
 			}
@@ -2604,7 +2638,7 @@ void SimulationIteration::recordVoteTotals()
 		double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
 		double turnoutScaledTpp = double(partyOneNewTppMargin[seatIndex] + 50.0) * turnout;
 		for (auto [party, vote] : seatFpVoteShare[seatIndex]) {
-			if (tempOverallFp.contains(party)) {
+			if (tempOverallFp.contains(party) || party == run.natPartyIndex) {
 				totalFp[party] += vote * turnout;
 			}
 			else {
