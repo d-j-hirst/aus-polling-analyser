@@ -1,9 +1,3 @@
-For Nationals:
- -Check L-NC majority/minority position (seems low ATM)
- -Do something to remove/cut off aberrant forecasts in history
- -Investigate seats where ON gets no vote >50% of the time
- -Handle correlations between seats in NAT vote share
- -Some more code to more precisely handle whether NAT/LIB will run in a seat
 
  -Rework pollster analysis to strictly exclude future polls and generate separate data for any given date/election combination. (Will create a lot of files, but should be small individually)
  -Setup 6-monthly calibration updates for in-progress polls and set pollster analyses to use these where possible

@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\C++ Libraries\\boost\\boost_1_79_0",
+                "C:\\C++ Libraries\\dlib-19.24",
+                "C:\\C++ Libraries\\TinyXml2\\tinyxml2-master",
+                "C:\\libcurl\\builds\\libcurl-vc12-x86-release-static-ipv6-sspi-winssl\\include",
+                "C:\\wxWidgets-3.1.1\\lib\\vc_lib\\mswu",
+                "C:\\wxWidgets-3.1.1\\include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.19041.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x86"
+        }
+    ],
+    "version": 4
+}

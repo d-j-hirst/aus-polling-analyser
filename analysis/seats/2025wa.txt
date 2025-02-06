@@ -33,7 +33,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=31.7
 fPreviousTppSwing=10
-sCandidateNames=Dave Kelly,ALP
+sCandidateNames=Dave Kelly,ALP;Callan Gray,GRN
 #Bateman
 sIncumbent=ALP
 sChallenger=LIB
@@ -49,7 +49,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=29.4
 fPreviousTppSwing=17.8
-sCandidateNames=Cassie Rowe,ALP
+sCandidateNames=Cassie Rowe,ALP;Biju Anthony,LNP
 #Bibra Lake
 sPreviousName=Willagee
 sIncumbent=ALP
@@ -57,7 +57,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=28.2
 fPreviousTppSwing=9.5
-sCandidateNames=Sook Yee Lai,ALP;Atul Garg,LIB
+sCandidateNames=Sook Yee Lai,ALP;Atul Garg,LIB;Robyn Walsh,GRN
 bRetirement=1
 #Bicton
 sIncumbent=ALP
@@ -65,7 +65,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=16.2
 fPreviousTppSwing=11.9
-sCandidateNames=Lisa O'Malley,ALP;Christopher Dowson,LIB;Bill Koul,NAT
+sCandidateNames=Lisa O'Malley,ALP;Christopher Dowson,LIB;Bill Koul,NAT;Adam Bennett,GRN
 #Bunbury
 sIncumbent=ALP
 sChallenger=LIB
@@ -87,7 +87,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=30.7
 fPreviousTppSwing=12.9
-sCandidateNames=Ron Sao,ALP;Bruce Henderson,LIB
+sCandidateNames=Ron Sao,ALP;Bruce Henderson,LIB;Eric Hayward,GRN
 bRetirement=1
 #Carine
 sIncumbent=ALP
@@ -95,7 +95,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=3.9
 fPreviousTppSwing=12.7
-sCandidateNames=Paul Lilburne,ALP;Liam Staltari,LIB
+sCandidateNames=Paul Lilburne,ALP;Liam Staltari,LIB;Lisa Hindmarsh,GRN
 bSophomoreParty=1
 bSophomoreCandidate=1
 #Central Wheatbelt
@@ -104,14 +104,15 @@ sChallenger=ALP
 sRegion=Regional
 fTppMargin=-9.3
 fPreviousTppSwing=11.5
-sCandidateNames=Lachlan Hunter,NAT
+sCandidateNames=Lachlan Hunter,NAT;Lance French,LIB
+bRetirement=1
 #Churchlands
 sIncumbent=ALP
 sChallenger=LIB
 sRegion=Perth
 fTppMargin=1.6
 fPreviousTppSwing=12.5
-sCandidateNames=Christine Tonkin,ALP;Basil Zempilas,LIB
+sCandidateNames=Christine Tonkin,ALP;Basil Zempilas,LIB;Caroline McLean,GRN
 bSophomoreParty=1
 bSophomoreCandidate=1
 #Cockburn
@@ -136,7 +137,7 @@ sChallenger=ALP
 sRegion=Perth
 fTppMargin=-7.4
 fPreviousTppSwing=6.6
-sCandidateNames=Sandra Brewer,LIB
+sCandidateNames=Sandra Brewer,LIB;Heidi Hardisty,GRN
 bRetirement=1
 #Darling Range
 sIncumbent=ALP
@@ -186,7 +187,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=33.4
 fPreviousTppSwing=10.4
-sCandidateNames=Meredith Hammat,ALP
+sCandidateNames=Meredith Hammat,ALP;Jacques Lombard,LIB
 bSophomoreCandidate=1
 #Hillarys
 sIncumbent=ALP
@@ -235,7 +236,7 @@ sChallenger=LIB
 sRegion=Regional
 fTppMargin=21.4
 fPreviousTppSwing=8.3
-sCandidateNames=Divina D'Anna,ALP;Millie Hills,NAT
+sCandidateNames=Divina D'Anna,ALP;Millie Hills,NAT;Rowena Olsen,LIB
 bSophomoreCandidate=1
 #Kingsley
 sIncumbent=ALP
@@ -273,7 +274,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=29.3
 fPreviousTppSwing=11.5
-sCandidateNames=Dan Bull,ALP
+sCandidateNames=Dan Bull,ALP;Caroline Perks,GRN
 bRetirement=1
 #Midland
 sIncumbent=ALP
@@ -290,7 +291,7 @@ sChallenger=ALP
 sRegion=Regional
 fTppMargin=-8.6
 fPreviousTppSwing=10.6
-sCandidateNames=Merome Beard,LIB;Shane Love,NAT
+sCandidateNames=Merome Beard,LIB;Shane Love,NAT;Jenna Denton,ALP
 #Mindarie
 sPreviousName=Burns Beach
 sIncumbent=ALP
@@ -298,14 +299,14 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=27.9
 fPreviousTppSwing=21.5
-sCandidateNames=Mark Folkard,ALP;Paul Miles,LIB
+sCandidateNames=Mark Folkard,ALP;Paul Miles,LIB;Scott McCarthy,GRN
 #Morley
 sIncumbent=ALP
 sChallenger=LIB
 sRegion=Perth
 fTppMargin=27.9
 fPreviousTppSwing=16.2
-sCandidateNames=Amber-Jade Sanderson,ALP;Aswath Chavittupara,LIB
+sCandidateNames=Amber-Jade Sanderson,ALP;Aswath Chavittupara,LIB;Kaelin Abrahams,GRN
 #Mount Lawley
 sIncumbent=ALP
 sChallenger=LIB
@@ -406,7 +407,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=10.1
 fPreviousTppSwing=17.3
-sCandidateNames=Geoff Baker,ALP;Bronwyn Waugh,LIB;Jeremy Miles,NAT
+sCandidateNames=Geoff Baker,ALP;Bronwyn Waugh,LIB;Jeremy Miles,NAT;Carl Evers,GRN
 bSophomoreParty=1
 bSophomoreCandidate=1
 #Swan Hills
@@ -438,7 +439,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=27.7
 fPreviousTppSwing=11.1
-sCandidateNames=Hannah Beazley,ALP;Andra Biondi,LIB
+sCandidateNames=Hannah Beazley,ALP;Andra Biondi,LIB;Jack Gordon-Manley,GRN
 bSophomoreCandidate=1
 #Wanneroo
 sIncumbent=ALP
@@ -462,4 +463,4 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=34.8
 fPreviousTppSwing=15.7
-sCandidateNames=Rita Saffioti,ALP;Amninder Saini,LIB
+sCandidateNames=Rita Saffioti,ALP;Amninder Saini,LIB;

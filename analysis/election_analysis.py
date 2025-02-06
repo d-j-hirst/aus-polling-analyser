@@ -711,7 +711,7 @@ def analyse_populist_minors(elections, seat_types, seat_regions):
         # is likely to get compared to the per-seat average in an election.
         'calib_party': 'One Nation',
         # Don't use elections past this date for the seat-specific calibration
-        'calib_cutoff': 2003,
+        'calib_cutoff': 2025,
         # Elections to use for measuring seat variability
         # and the parties to use in each election
         'elections_seat_variability': [
@@ -1614,8 +1614,6 @@ def analyse_nationals(elections, all_elections):
 
         inputs_np = numpy.transpose(numpy.array([transformed_previous_nationals_shares, transformed_old_nationals_shares]))
         results_np = numpy.array(transformed_nationals_shares)
-        if target_election.short() == "2025wa":
-            print(inputs_np, results_np)
         reg = LinearRegression().fit(inputs_np, results_np)
 
         #calculate rmse of transformed_nationals_shares following this regression:
@@ -1677,8 +1675,6 @@ def analyse_nationals(elections, all_elections):
                 transformed_provisional_nats_share = transformed_previous_nationals_share * reg.coef_[0] + transformed_old_nationals_share * reg.coef_[1] + reg.intercept_
                 provisional_nats_share = detransform_vote_share(transformed_provisional_nats_share) * 0.01
             # sanity checking from overambitious regression
-            if target_election.short() == "2025wa":
-                print(seat.name, provisional_nats_share, previous_nationals_share, old_nationals_share)
             if provisional_nats_share < previous_nationals_share * 0.5:
                 provisional_nats_share = previous_nationals_share * 0.5
             elif provisional_nats_share > (previous_nationals_share + 1) / 2:

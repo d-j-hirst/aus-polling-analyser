@@ -53,6 +53,7 @@ private:
 	void determineFedStateCorrelation();
 	void determineOverallTpp();
 	void incorporateLiveOverallFps();
+	void determineIntraCoalitionSwing();
 	void determineIndDistributionParameters();
 	void determinePpvcBias();
 	void determineDecVoteBias();
@@ -125,6 +126,7 @@ private:
 	std::vector<float> nationalsShare; // Nationals' share of the LIB/NAT vote
 	float iterationOverallTpp = 0.0f;
 	float iterationOverallSwing = 0.0f;
+	float intraCoalitionSwing = 0.0f;
 	int daysToElection = 0;
 	FloatByPartyIndex overallFpTarget;
 	FloatByPartyIndex overallFpSwing;
