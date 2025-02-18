@@ -358,8 +358,10 @@ void SimulationIteration::incorporateLiveOverallFps()
 
 void SimulationIteration::determineIntraCoalitionSwing()
 {
+	float baseOverallRmse = run.nationalsParameters.rmse;
+	float baseOverallKurtosis = run.nationalsParameters.kurtosis;
 	// Need to have live results influence this
-	intraCoalitionSwing = std::normal_distribution<float>(0.0f, 20.0f)(gen);
+	intraCoalitionSwing = rng.flexibleDist(0.0f, baseOverallRmse, baseOverallRmse, baseOverallKurtosis, baseOverallKurtosis);
 }
 
 void SimulationIteration::determineIndDistributionParameters()
@@ -1470,6 +1472,12 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	auto const& seat = project.seats().viewByIndex(seatIndex);
 	if (run.natPartyIndex < 0) return; // Nationals may not be relevant in some elections
 	nationalsShare[seatIndex] = run.seatNationalsExpectation[seatIndex];
+
+	// If Nationals are not running in this seat, then their share is zero
+	if (seat.runningParties.size() > 0 && std::find(seat.runningParties.begin(), seat.runningParties.end(), "NAT") == seat.runningParties.end()) {
+		nationalsShare[seatIndex] = 0.0f;
+		return;
+	}
 
 	// If the seat has a NAT candidate, raise the expectation to a minumum of 5%
 	if (std::any_of(seat.candidateNames.begin(), seat.candidateNames.end(), 

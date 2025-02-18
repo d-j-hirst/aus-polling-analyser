@@ -130,6 +130,8 @@ public:
 	struct NationalsParameters {
 		float rmse = 15.0f;
 		float kurtosis = 3.0f;
+		float overallRmse = 10.0f;
+		float overallKurtosis = 3.0f;
 	};
 
 	enum class SeatType {

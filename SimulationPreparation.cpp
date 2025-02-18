@@ -1117,6 +1117,8 @@ void SimulationPreparation::loadNationalsParameters()
 	auto values = splitString(line, ",");
 	run.nationalsParameters.rmse = std::stof(values[3]);
 	run.nationalsParameters.kurtosis = std::stof(values[4]);
+	run.nationalsParameters.overallRmse = std::stof(values[5]);
+	run.nationalsParameters.overallKurtosis = std::stof(values[6]);
 }
 
 void SimulationPreparation::loadNationalsSeatExpectations()

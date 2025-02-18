@@ -1564,10 +1564,10 @@ def analyse_nationals(elections, all_elections):
         transformed_nationals_shares = []
         transformed_previous_nationals_shares = []
         transformed_old_nationals_shares = []
+        transformed_swing_averages = []
         for this_election, data in elections.items():
             if (
-                this_election.region() == target_election.region()
-                and int(this_election.year()) < int(target_election.year())
+                int(this_election.year()) < int(target_election.year())
             ):
                 previous_elections = elections.previous_elections(this_election)
                 if len(previous_elections) > 0:
@@ -1580,9 +1580,10 @@ def analyse_nationals(elections, all_elections):
                     old_results = elections[old_election]
                 else:
                     continue
+
+                swing_sum = 0
+                swing_count = 0
                 for seat in data.seat_results:
-
-
                     this_nationals_share = get_nationals_share(data, seat.name)
                     if (this_nationals_share is None or this_nationals_share == 0 or this_nationals_share == 100):
                         continue
@@ -1598,8 +1599,12 @@ def analyse_nationals(elections, all_elections):
                         and this_nationals_share != 1
                         and previous_nationals_share != 1
                     ):
-                        transformed_nationals_shares.append(transform_vote_share(this_nationals_share * 100))
-                        transformed_previous_nationals_shares.append(transform_vote_share(previous_nationals_share * 100))
+                        this_transformed = transform_vote_share(this_nationals_share * 100)
+                        previous_transformed = transform_vote_share(previous_nationals_share * 100)
+                        transformed_nationals_shares.append(this_transformed)
+                        transformed_previous_nationals_shares.append(previous_transformed)
+                        swing_sum += this_transformed - previous_transformed
+                        swing_count += 1
                         if (
                             old_nationals_share is not None
                             and old_nationals_share != 0
@@ -1608,6 +1613,10 @@ def analyse_nationals(elections, all_elections):
                             transformed_old_nationals_shares.append(transform_vote_share(old_nationals_share * 100))
                         else:
                             transformed_old_nationals_shares.append(transformed_previous_nationals_shares[-1])
+                if (swing_count > 4): ## avoid using really small samples
+                    print("swing_count", swing_count)
+                    print("swing_sum", swing_sum)
+                    transformed_swing_averages.append(swing_sum / swing_count)
 
         if len(transformed_nationals_shares) < 4:
             continue
@@ -1634,12 +1643,18 @@ def analyse_nationals(elections, all_elections):
         # calculate sample kurtosis of residuals
         this_kurtosis = two_tail_kurtosis(adjusted_residuals)
 
-
+        print("transformed_swing_averages", transformed_swing_averages)
+        swing_rmse = numpy.sqrt(numpy.mean([a * a for a in transformed_swing_averages]))
+        swing_kurtosis = (
+            two_tail_kurtosis(transformed_swing_averages)
+            if len(transformed_swing_averages) > 4
+            else 0
+        )
 
         filename = (f'./Nationals/{target_election.year()}{target_election.region()}_stats.csv')
         with open(filename, 'w') as f:
-            f.write(f'prev_coef,old_coef,intercept,rmse,kurtosis\n')
-            f.write(f'{reg.coef_[0]},{reg.coef_[1]},{reg.intercept_},{rmse},{this_kurtosis}')
+            f.write(f'prev_coef,old_coef,intercept,seat_rmse,seat_kurtosis,overall_rmse,overall_kurtosis\n')
+            f.write(f'{reg.coef_[0]},{reg.coef_[1]},{reg.intercept_},{rmse},{this_kurtosis},{swing_rmse},{swing_kurtosis}')
 
         previous_elections = elections.previous_elections(target_election)
         if len(previous_elections) > 0:
