@@ -117,6 +117,13 @@ public:
 	ModelledPolls const& viewModelledPolls() const { return modelledPolls; }
 
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
+	
+	// Dump generated data to a temporary file for later reuse
+	bool dumpGeneratedData(std::string filename) const;
+	
+	// Load previously generated data from a file
+	bool loadGeneratedData(std::string filename);
+
 private:
 
 	enum class InputParameters {

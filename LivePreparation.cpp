@@ -1,6 +1,7 @@
 #include "LivePreparation.h"
 
 #include "LinearRegression.h"
+#include "LiveV2.h"
 #include "PollingProject.h"
 #include "ResultsDownloader.h"
 #include "Simulation.h"
@@ -48,6 +49,7 @@ void LivePreparation::prepareLiveAutomatic()
 		acquireCurrentResults();
 	}
 	parseCurrentResults();
+	Live::Election liveElection(previousElection, currentElection, project, sim, run);
 	preparePartyCodeGroupings();
 	determinePartyIdConversions();
 	determineSeatIdConversions();

@@ -908,3 +908,291 @@ void StanModel::Series::smooth(int smoothingFactor)
 	}
 	*this = newSeries;
 }
+
+bool StanModel::dumpGeneratedData(std::string filename) const {
+	std::ofstream file(filename, std::ios::binary);
+	if (!file) return false;
+	
+	// Define helper lambdas for serialization
+	auto writeString = [&file](const std::string& str) {
+		size_t size = str.size();
+		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		file.write(str.c_str(), size);
+	};
+	
+	auto writePartyParameters = [&file, &writeString](const PartyParameters& params) {
+		size_t size = params.size();
+		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		for (const auto& [key, value] : params) {
+			writeString(key);
+			file.write(reinterpret_cast<const char*>(&value), sizeof(value));
+		}
+	};
+	
+	auto writeSeries = [&file](const Series& series) {
+		size_t size = series.timePoint.size();
+		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		for (const auto& tp : series.timePoint) {
+			file.write(reinterpret_cast<const char*>(&tp.values), sizeof(tp.values));
+			file.write(reinterpret_cast<const char*>(&tp.expectation), sizeof(tp.expectation));
+		}
+	};
+	
+	auto writeSupportSeries = [&file, &writeString, &writeSeries](const PartySupport& support) {
+		size_t size = support.size();
+		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		for (const auto& [key, series] : support) {
+			writeString(key);
+			writeSeries(series);
+		}
+	};
+	
+	auto writeMap = [&file, &writeString](const auto& map) {
+		size_t size = map.size();
+		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		for (const auto& [key, value] : map) {
+			writeString(key);
+			writeString(value);
+		}
+	};
+	
+	auto writeFundamentals = [&file, &writeString](const Fundamentals& fundamentals) {
+		size_t size = fundamentals.size();
+		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		for (const auto& [key, value] : fundamentals) {
+			writeString(key);
+			file.write(reinterpret_cast<const char*>(&value), sizeof(value));
+		}
+	};
+	
+	auto writeParameters = [&file, &writeString](const ParameterSeriesByPartyGroup& params) {
+		size_t mapSize = params.size();
+		file.write(reinterpret_cast<const char*>(&mapSize), sizeof(mapSize));
+		for (const auto& [groupKey, series] : params) {
+			writeString(groupKey);
+			size_t seriesSize = series.size();
+			file.write(reinterpret_cast<const char*>(&seriesSize), sizeof(seriesSize));
+			for (const auto& paramSet : series) {
+				file.write(reinterpret_cast<const char*>(&paramSet), sizeof(paramSet));
+			}
+		}
+	};
+	
+	auto writeModelledPolls = [&file, &writeString](const ModelledPolls& polls) {
+		size_t mapSize = polls.size();
+		file.write(reinterpret_cast<const char*>(&mapSize), sizeof(mapSize));
+		for (const auto& [partyKey, pollVec] : polls) {
+			writeString(partyKey);
+			size_t vecSize = pollVec.size();
+			file.write(reinterpret_cast<const char*>(&vecSize), sizeof(vecSize));
+			for (const auto& poll : pollVec) {
+				writeString(poll.pollster);
+				file.write(reinterpret_cast<const char*>(&poll.day), sizeof(poll.day));
+				file.write(reinterpret_cast<const char*>(&poll.base), sizeof(poll.base));
+				file.write(reinterpret_cast<const char*>(&poll.adjusted), sizeof(poll.adjusted));
+				file.write(reinterpret_cast<const char*>(&poll.reported), sizeof(poll.reported));
+			}
+		}
+	};
+	
+	// Write numDays
+	file.write(reinterpret_cast<const char*>(&numDays), sizeof(numDays));
+	
+	// Write support series (rawSupport, adjustedSupport, tppSupport)
+	writeSupportSeries(rawSupport);
+	writeSeries(rawTppSupport);
+	writeSupportSeries(adjustedSupport);
+	writeSeries(tppSupport);
+	
+	// Write modelled polls
+	writeModelledPolls(modelledPolls);
+	
+	// Write reversePartyGroups (needed for party group lookup)
+	writeMap(reversePartyGroups);
+	
+	// Write fundamentals (needed for predictions)
+	writeFundamentals(fundamentals);
+	
+	// Write parameters
+	writeParameters(parameters);
+	
+	// Write emerging parameters
+	file.write(reinterpret_cast<const char*>(&emergingParameters), 
+			   sizeof(emergingParameters));
+	
+	// Write party codes vector
+	size_t partyCodeSize = partyCodeVec.size();
+	file.write(reinterpret_cast<const char*>(&partyCodeSize), sizeof(partyCodeSize));
+	for (const auto& code : partyCodeVec) {
+		writeString(code);
+	}
+	
+	// Write preference maps
+	writePartyParameters(preferenceFlowMap);
+	writePartyParameters(preferenceExhaustMap);
+	writePartyParameters(preferenceDeviationMap);
+	writePartyParameters(preferenceSamplesMap);
+	
+	// Write readyForProjection flag
+	file.write(reinterpret_cast<const char*>(&readyForProjection), 
+			   sizeof(readyForProjection));
+	
+	return true;
+}
+
+bool StanModel::loadGeneratedData(std::string filename) {
+	std::ifstream file(filename, std::ios::binary);
+	if (!file) return false;
+	
+	// Define helper lambdas for deserialization
+	auto readString = [&file](std::string& str) {
+		size_t size;
+		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		str.resize(size);
+		file.read(&str[0], size);
+	};
+	
+	auto readPartyParameters = [&file, &readString](PartyParameters& params) {
+		params.clear();
+		size_t size;
+		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		for (size_t i = 0; i < size; i++) {
+			std::string key;
+			float value;
+			readString(key);
+			file.read(reinterpret_cast<char*>(&value), sizeof(value));
+			params[key] = value;
+		}
+	};
+	
+	auto readSeries = [&file](Series& series) {
+		size_t size;
+		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		series.timePoint.resize(size);
+		for (size_t i = 0; i < size; i++) {
+			file.read(reinterpret_cast<char*>(&series.timePoint[i].values), 
+					 sizeof(series.timePoint[i].values));
+			file.read(reinterpret_cast<char*>(&series.timePoint[i].expectation), 
+					 sizeof(series.timePoint[i].expectation));
+		}
+	};
+	
+	auto readSupportSeries = [&file, &readString, &readSeries](PartySupport& support) {
+		support.clear();
+		size_t size;
+		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		for (size_t i = 0; i < size; i++) {
+			std::string key;
+			readString(key);
+			readSeries(support[key]);
+		}
+	};
+	
+	auto readMap = [&file, &readString](auto& map) {
+		map.clear();
+		size_t size;
+		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		for (size_t i = 0; i < size; i++) {
+			std::string key, value;
+			readString(key);
+			readString(value);
+			map[key] = value;
+		}
+	};
+	
+	auto readFundamentals = [&file, &readString](Fundamentals& fundamentals) {
+		fundamentals.clear();
+		size_t size;
+		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		for (size_t i = 0; i < size; i++) {
+			std::string key;
+			double value;
+			readString(key);
+			file.read(reinterpret_cast<char*>(&value), sizeof(value));
+			fundamentals[key] = value;
+		}
+	};
+	
+	auto readParameters = [&file, &readString](ParameterSeriesByPartyGroup& params) {
+		params.clear();
+		size_t mapSize;
+		file.read(reinterpret_cast<char*>(&mapSize), sizeof(mapSize));
+		for (size_t i = 0; i < mapSize; i++) {
+			std::string groupKey;
+			readString(groupKey);
+			size_t seriesSize;
+			file.read(reinterpret_cast<char*>(&seriesSize), sizeof(seriesSize));
+			auto& series = params[groupKey];
+			series.resize(seriesSize);
+			for (size_t j = 0; j < seriesSize; j++) {
+				file.read(reinterpret_cast<char*>(&series[j]), sizeof(series[j]));
+			}
+		}
+	};
+	
+	auto readModelledPolls = [&file, &readString](ModelledPolls& polls) {
+		polls.clear();
+		size_t mapSize;
+		file.read(reinterpret_cast<char*>(&mapSize), sizeof(mapSize));
+		for (size_t i = 0; i < mapSize; i++) {
+			std::string partyKey;
+			readString(partyKey);
+			size_t vecSize;
+			file.read(reinterpret_cast<char*>(&vecSize), sizeof(vecSize));
+			auto& pollVec = polls[partyKey];
+			pollVec.resize(vecSize);
+			for (size_t j = 0; j < vecSize; j++) {
+				readString(pollVec[j].pollster);
+				file.read(reinterpret_cast<char*>(&pollVec[j].day), sizeof(pollVec[j].day));
+				file.read(reinterpret_cast<char*>(&pollVec[j].base), sizeof(pollVec[j].base));
+				file.read(reinterpret_cast<char*>(&pollVec[j].adjusted), sizeof(pollVec[j].adjusted));
+				file.read(reinterpret_cast<char*>(&pollVec[j].reported), sizeof(pollVec[j].reported));
+			}
+		}
+	};
+	
+	// Read numDays
+	file.read(reinterpret_cast<char*>(&numDays), sizeof(numDays));
+	
+	// Read support series (rawSupport, adjustedSupport, tppSupport)
+	readSupportSeries(rawSupport);
+	readSeries(rawTppSupport);
+	readSupportSeries(adjustedSupport);
+	readSeries(tppSupport);
+	
+	// Read modelled polls
+	readModelledPolls(modelledPolls);
+	
+	// Read reversePartyGroups
+	readMap(reversePartyGroups);
+	
+	// Read fundamentals
+	readFundamentals(fundamentals);
+	
+	// Read parameters
+	readParameters(parameters);
+	
+	// Read emerging parameters
+	file.read(reinterpret_cast<char*>(&emergingParameters), 
+			  sizeof(emergingParameters));
+	
+	// Read party codes vector
+	size_t partyCodeSize;
+	file.read(reinterpret_cast<char*>(&partyCodeSize), sizeof(partyCodeSize));
+	partyCodeVec.resize(partyCodeSize);
+	for (size_t i = 0; i < partyCodeSize; i++) {
+		readString(partyCodeVec[i]);
+	}
+	
+	// Read preference maps
+	readPartyParameters(preferenceFlowMap);
+	readPartyParameters(preferenceExhaustMap);
+	readPartyParameters(preferenceDeviationMap);
+	readPartyParameters(preferenceSamplesMap);
+	
+	// Read readyForProjection flag
+	file.read(reinterpret_cast<char*>(&readyForProjection), 
+			  sizeof(readyForProjection));
+	
+	return true;
+}
