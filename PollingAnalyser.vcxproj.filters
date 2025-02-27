@@ -242,6 +242,9 @@
     <ClCompile Include="GeneralSettingsFrame.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
+    <ClCompile Include="LiveV2.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -590,6 +593,9 @@
     </ClInclude>
     <ClInclude Include="GeneralSettingsFrame.h">
       <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveV2.h">
+      <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

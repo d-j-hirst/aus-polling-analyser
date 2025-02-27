@@ -87,13 +87,13 @@ void LivePreparation::downloadPreviousResults()
 	std::filesystem::path mangledPath(mangledName);
 	if (std::filesystem::exists(mangledPath)) {
 		logger << "Already found previous results file at: " << mangledName << "\n";
+		xmlFilename = mangledName;
 	}
 	else {
-		resultsDownloader.loadZippedFile(sim.settings.previousResultsUrl, mangledName);
+		xmlFilename = resultsDownloader.loadZippedFile(sim.settings.previousResultsUrl, mangledName);
 		logger << "Downloaded file: " << sim.settings.previousResultsUrl << "\n";
 		logger << "and saved it as: " << mangledName << "\n";
 	}
-	xmlFilename = mangledName;
 }
 
 void LivePreparation::parsePreviousResults()
@@ -139,15 +139,15 @@ void LivePreparation::downloadPreload()
 	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
 	mangledName = "downloads/" + mangledName + ".xml";
 	std::filesystem::path mangledPath(mangledName);
+	xmlFilename = mangledName;
 	if (std::filesystem::exists(mangledPath)) {
 		logger << "Already found preload file at: " << mangledName << "\n";
 	}
 	else {
-		resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName, "preload");
+		xmlFilename = resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName, "preload");
 		logger << "Downloaded file: " << sim.settings.preloadUrl << "\n";
 		logger << "and saved it as: " << mangledName << "\n";
 	}
-	xmlFilename = mangledName;
 }
 
 void LivePreparation::parsePreload()
@@ -183,8 +183,7 @@ void LivePreparation::downloadLatestResults()
 	std::string latestFileName = directoryListing.substr(directoryListing.rfind(" ") + 1);
 	latestFileName = latestFileName.substr(0, latestFileName.length() - 1);
 	std::string latestUrl = sim.settings.currentRealUrl + latestFileName;
-	resultsDownloader.loadZippedFile(latestUrl, LatestResultsDataRetriever::UnzippedFileName);
-	xmlFilename = LatestResultsDataRetriever::UnzippedFileName;
+	xmlFilename = resultsDownloader.loadZippedFile(latestUrl, LatestResultsDataRetriever::UnzippedFileName);
 	logger << "Downloaded file: " << latestUrl << "\n";
 	logger << "and saved it as: " << xmlFilename << "\n";
 
@@ -269,7 +268,7 @@ void LivePreparation::acquireCurrentResults()
 
 void LivePreparation::parseCurrentResults()
 {
-	xml.LoadFile(("downloads/" + xmlFilename).c_str());
+	xml.LoadFile((xmlFilename).c_str());
 	Results2::Election::Format format;
 	if (run.regionCode == "fed") format = Results2::Election::Format::AEC;
 	else if (run.regionCode == "vic") format = Results2::Election::Format::VEC;

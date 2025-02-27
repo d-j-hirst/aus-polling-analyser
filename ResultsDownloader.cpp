@@ -47,7 +47,7 @@ ResultsDownloader::~ResultsDownloader()
 	curl_global_cleanup();
 }
 
-void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName, std::string match)
+std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFileName, std::string match)
 {
 	CURLcode res;
 	struct FtpFile ftpfile = {
@@ -79,10 +79,10 @@ void ResultsDownloader::loadZippedFile(std::string url, std::string newFileName,
 	if (ftpfile.stream)
 		fclose(ftpfile.stream); /* close the local file */
 
-	unzipFile(TempZipFileName, newFileName, match);
+	return unzipFile(TempZipFileName, newFileName, match);
 }
 
-void ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName, std::string match)
+std::string ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName, std::string match)
 {
 	// Quickest way I could find to achieve this because the previous method started truncating files before the 2024 election
 	// and there's probably no good reason to do things more "properly" at this stage
@@ -90,14 +90,30 @@ void ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFil
 	auto command = std::string("powershell.exe -Command \"Expand-Archive ") + sourceFileName + std::string(" -DestinationPath C:\\a\"");
 	system(command.c_str());
 	std::filesystem::path archivePath("C:/a");
-	std::filesystem::path newPath("downloads/" + newFileName);
+	newFileName = newFileName.substr(0, 10) == "downloads/" ? newFileName : "downloads/" + newFileName;
+	std::filesystem::path newPath(newFileName);
 
-	for (const auto& entry : std::filesystem::directory_iterator(archivePath)) {
-		if (entry.path().string().find(".xml") != std::string::npos) {
-			std::filesystem::rename(entry.path(), newPath);
-			break;
+	bool transferredFile = false;
+	auto transferFile = [&]() {
+		for (const auto& entry : std::filesystem::directory_iterator(archivePath)) {
+			if (entry.path().string().find(".xml") != std::string::npos) {
+				if (entry.path().string().find("eml-") != std::string::npos) continue;
+				if (entry.path().string().find("pollingdistricts-") != std::string::npos) continue;
+				std::filesystem::rename(entry.path(), newPath);
+				transferredFile = true;
+			}
 		}
+	};
+
+	transferFile();
+	// This section handles AEC folders which have an "xml" subfolder.
+	// (They also have other files with .xml in other subfolders, so we only want to look in this particular subfolder.)
+	if (!transferredFile) {
+		archivePath = std::filesystem::path("C:/a/xml");
+		transferFile();
 	}
+	if (transferredFile) return newPath.string();
+	return "Could not transfer file.";
 }
 
 void ResultsDownloader::loadUrlToString(std::string url, std::string& outputString)
