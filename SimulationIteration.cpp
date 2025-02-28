@@ -1479,6 +1479,12 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 		return;
 	}
 
+	// If Nationals are the only party running in this seat, then their share is 100%
+	if (seat.runningParties.size() > 0 && std::find(seat.runningParties.begin(), seat.runningParties.end(), project.parties().viewByIndex(1).abbreviation) == seat.runningParties.end()) {
+		nationalsShare[seatIndex] = 1.0f;
+		return;
+	}
+
 	// If the seat has a NAT candidate, raise the expectation to a minumum of 5%
 	if (std::any_of(seat.candidateNames.begin(), seat.candidateNames.end(), 
 		[](const auto& pair) { return pair.second == "NAT"; })) {

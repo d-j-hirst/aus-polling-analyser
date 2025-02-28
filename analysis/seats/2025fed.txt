@@ -436,7 +436,7 @@ sPolls=IND,32,4;GRN,9,4;IND,28,4;GRN,9,4;IND,32.44,4;GRN,8,4;GRN,13.1,3;ON,3.2,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,1.22
+sBettingOdds=IND,1.225
 sCandidateNames=Allegra Spender,IND;Ro Knox,LNP;Nick Ward,GRN
 #Werriwa
 sIncumbent=ALP
@@ -517,6 +517,7 @@ sTppMrpPolls=Redbridge,2024-04-01,47.1;Redbridge,2024-07-31,51;Redbridge,2024-11
 sCandidateNames=Aaron Violi,LNP;Merran Blair,GRN;Claire Ferres Miles,IND
 bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
+sBettingOdds=IND,11.5
 sMinorViability=IND,-1.00
 #Chisholm
 sIncumbent=ALP
@@ -706,7 +707,7 @@ sPolls=IND,38,4;GRN,7,4;IND,37,4;GRN,4,4;IND,33.17,4;GRN,9,4;GRN,12.2,3;ON,2.7,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,1.55
+sBettingOdds=IND,1.56
 sCandidateNames=Monique Ryan,IND;Amelia Hamer,LNP;Jackie Carter,GRN
 #La Trobe
 sIncumbent=LNP
@@ -775,7 +776,7 @@ sPolls=GRN,12,4;GRN,9,4;GRN,8,4;GRN,10.9,3;ON,11.8,3;IND,14.2,3
 bConfirmedProminentIndependent=1
 sTppMrpPolls=Redbridge,2024-04-01,48;Redbridge,2024-07-31,46;Redbridge,2024-11-09,43;YouGov,2025-02-02,44
 sMinorViability=IND,1.00
-sBettingOdds=IND,7
+sBettingOdds=IND,4.75
 sCandidateNames=Mary Aldred,LNP;Russell Broadbent,IND
 #Melbourne
 sIncumbent=GRN
@@ -824,7 +825,7 @@ fPreviousTppSwing=1.1
 bConfirmedProminentIndependent=1
 sPolls=IND,22,4;GRN,9,4;IND,15,4;GRN,7,4;IND,10.22,4;GRN,6,4;GRN,8,3;ON,6.6,3;IND,25.3,3
 sMinorViability=IND,0.00
-sBettingOdds=IND,2.75
+sBettingOdds=IND,2.675
 sCandidateNames=Dan Tehan,LNP;Alex Dyson,IND
 #Wills
 sIncumbent=ALP
@@ -874,7 +875,7 @@ sPolls=GRN,22,4;GRN,29,4;GRN,31,4;GRN,23.7,3;ON,4.3,3
 sTppMrpPolls=YouGov,2025-02-02,53.7
 bSophomoreCandidate=1
 bSophomoreParty=1
-sBettingOdds=GRN,2.15
+sBettingOdds=GRN,2.385
 sCandidateNames=Stephen Bates,GRN;Madonna Jarrett,ALP;Trevor Evans,LNP
 #Capricornia
 sIncumbent=LNP
@@ -1006,7 +1007,7 @@ fTppMargin=-10.16
 fPreviousTppSwing=4.35
 sPolls=KAP,44,4;GRN,11,4;KAP,32,4;GRN,6,4;KAP,33.86,4;GRN,8,4;GRN,7.7,3;ON,3.3,3;KAP,38.9,3
 sCandidateNames=Bob Katter,KAP;Annette Swaine,LNP
-sBettingOdds=KAP,1.03
+sBettingOdds=KAP,1.02
 bIncumbentRecontestConfirmed=1
 #Leichhardt
 sIncumbent=LNP
@@ -1189,7 +1190,7 @@ sPolls=IND,29,4;GRN,10,4;IND,17,4;GRN,8,4;IND,26.1,4;GRN,12,4;GRN,12.4,3;ON,2.7,
 bSophomoreCandidate=1
 bSophomoreParty=1
 bIncumbentRecontestConfirmed=1
-sBettingOdds=IND,2.025
+sBettingOdds=IND,2.135
 sCandidateNames=Kate Chaney,IND;Tom White,LNP;Kitty Hemsley,GRN
 #Durack
 sIncumbent=LNP
@@ -1211,7 +1212,7 @@ sTppMrpPolls=Redbridge,2024-04-01,45.1;Redbridge,2024-07-31,44;Redbridge,2024-11
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,-1.00
-sBettingOdds=IND,15
+sBettingOdds=IND,11.5
 sCandidateNames=Ben Small,LNP;Georgia Beardman,GRN;Sue Chapman,IND;Paul Van Der Mey,ON
 #Fremantle
 sIncumbent=ALP

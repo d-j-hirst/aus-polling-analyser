@@ -18,6 +18,7 @@ public:
 
   float tpp;
   std::map<int, int> fpVotes;
+  std::map<int, int> fpVotesPrevious;
 };
 
 class Booth {

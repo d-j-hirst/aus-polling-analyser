@@ -19,11 +19,16 @@ void Node::log() const
 Booth::Booth(Results2::Booth const& currentBooth, std::optional<Results2::Booth const*> previousBooth, std::map<int, int>& aecPartyToNetParty)
   : name(currentBooth.name)
 {
+  for (auto const& [party, votes] : currentBooth.fpVotes) {
+    logger << "Current booth: " << currentBooth.name << " " << party << " " << votes << "\n";
+    auto [it, inserted] = aecPartyToNetParty.try_emplace(party, aecPartyToNetParty.size());
+    node.fpVotes[it->second] = votes;
+  }
   if (previousBooth) {
     for (auto const& [party, votes] : previousBooth.value()->fpVotes) {
       logger << "Previous booth: " << previousBooth.value()->name << " " << party << " " << votes << "\n";
       auto [it, inserted] = aecPartyToNetParty.try_emplace(party, aecPartyToNetParty.size());
-      node.fpVotes[it->second] = votes;
+      node.fpVotesPrevious[it->second] = votes;
     }
   }
 }
