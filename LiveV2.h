@@ -6,11 +6,21 @@
 #include <map>
 
 class PollingProject;
+struct Region;
 class Simulation;
 class SimulationRun;
 
 namespace Live {
 
+class Election;
+
+/**
+ * Represents a node in the election data hierarchy.
+ * 
+ * A Node stores vote counts, vote shares, and swings for both first preferences
+ * and two-candidate/two-party preferred counts. It serves as the common data
+ * structure for booths, seats, and regions.
+ */
 class Node {
 public:
   Node();
@@ -69,45 +79,83 @@ public:
 
 class Seat {
 public:
-  Seat(Results2::Seat const& seat);
+  Seat(Results2::Seat const& seat, int parentRegionId);
 
-  void log(bool includeBooths = false) const;
+  void log(Election const& election, bool includeBooths = false) const;
 
   std::string name;
 
-  std::vector<Booth> booths;
+  // Int handles are used to index into the booths vector
+  // This is preferred to using references as it avoids dangling references
+  // and allows the vector to be resized
+  std::vector<int> booths;
+
+  const int parentRegionId;
 
   Node node;
 };
 
+class LargeRegion {
+public:
+  LargeRegion(Region const& region);
+
+  void log(Election const& election, bool includeSeats = false, bool includeBooths = false) const;
+
+  std::string name;
+
+  // Int handles are used to index into the seats vector
+  // This is preferred to using references as it avoids dangling references
+  // and allows the vector to be resized
+  std::vector<int> seats;
+
+  Node node;
+};
+
+/**
+ * Manages live election data aggregation and analysis.
+ * 
+ * The Election class coordinates the loading, mapping, and aggregation of
+ * election data from both current and previous elections. It maintains
+ * hierarchical relationships between booths, seats, and regions, and provides
+ * methods to calculate swings and project results.
+ */
 class Election {
 public:
+  friend class LargeRegion;
+  friend class Live::Seat;
+
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
   // Propagates information from lower levels to higher levels
   void aggregate();
 
 private:
+  template<typename T, typename U>
+  void aggregateCollection(T& parent, const std::vector<int>& childIndices, 
+    const std::vector<U>& childNodes) const;
+
   void getNatPartyIndex();
 
-  void aggregateToSeat(Seat& seat);
+  void aggregateToSeat(Live::Seat& seat);
+  void aggregateToLargeRegion(LargeRegion& largeRegion);
 
-  Node aggregateFromChildren(std::vector<Node const*>& nodesToAggregate);
+  Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate) const;
 
   void initializePartyMappings();
 
-  void createBoothsFromElectionData();
+  void createNodesFromElectionData();
 
   // map AEC party IDs to internal party IDs
   int mapPartyId(int ecCandidateId);
 
+  std::vector<LargeRegion> largeRegions;
   std::vector<Booth> booths;
-  std::vector<Seat> seats;
+  std::vector<Live::Seat> seats;
 
-  std::map<int, int> ecPartyToNetParty;
-  std::map<int, int> ecBoothToNetBooth;
+  std::map<int, int> ecPartyToInternalParty;
+  std::map<int, int> ecBoothToInternalBooth;
 
-  std::map<std::string, int> ecAbbreviationToNetParty;
+  std::map<std::string, int> ecAbbreviationToInternalParty;
 
   int natPartyIndex;
 

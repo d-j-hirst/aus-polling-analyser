@@ -75,13 +75,13 @@ Booth::Booth(
     // Calculate shares and swings
     if (totalCurrentVotes > 0) {
       for (auto const& [partyId, votes] : currentMap) {
-        if (votes == 0) {
+        if (votes == 0 || votes >= totalCurrentVotes) {
           continue;
         }
         float currentTransformed = transformVoteShare(static_cast<float>(votes) / totalCurrentVotes * 100.0f);
         sharesMap[partyId] = currentTransformed;
         if (previousMap.contains(partyId) && totalPreviousVotes > 0) {
-          if (previousMap.at(partyId) == 0) {
+          if (previousMap.at(partyId) == 0 || previousMap.at(partyId) >= totalPreviousVotes) {
             continue;
           }
           float previousTransformed = transformVoteShare(static_cast<float>(previousMap.at(partyId)) / totalPreviousVotes * 100.0f);
@@ -90,6 +90,11 @@ Booth::Booth(
         }
       }
     }
+  };
+
+  // Helper function to determine if a given tcp set is a valid tpp set
+  auto isTppSet = [natPartyIndex](const auto& shares) {
+    return shares.contains(0) && (shares.contains(1) || shares.contains(natPartyIndex));
   };
 
   // Process first preference votes
@@ -107,19 +112,17 @@ Booth::Booth(
   );
 
   // Determine tpp share and swing, if available
-  if (
-    node.totalVotesCurrent() > 0 &&
-    node.tcpShares.contains(0) &&
-    (node.tcpShares.contains(1) || node.tcpShares.contains(natPartyIndex))
-  ) {
+  if (node.totalVotesCurrent() > 0 && isTppSet(node.tcpShares)) {
     node.tppShare = node.tcpShares.at(0);
+    int previousTotal = node.totalVotesPrevious();
     if (
-      node.totalVotesPrevious() > 0 &&
-      node.tcpVotesPrevious.contains(0) &&
-      (node.tcpVotesPrevious.contains(1) || node.tcpVotesPrevious.contains(natPartyIndex))
+      previousTotal > 0
+      && isTppSet(node.tcpVotesPrevious)
+      && node.tcpVotesPrevious.at(0) > 0
+      && node.tcpVotesPrevious.at(0) < previousTotal
     ) {
       float previousShare = transformVoteShare(
-        static_cast<float>(node.tcpVotesPrevious.at(0)) / node.totalVotesPrevious() * 100.0f
+        static_cast<float>(node.tcpVotesPrevious.at(0)) / previousTotal * 100.0f
       );
       node.tppSwing = node.tppShare.value() - previousShare;
     }
@@ -132,28 +135,44 @@ void Booth::log() const
   node.log();
 }
 
-Live::Seat::Seat(Results2::Seat const& seat)
-  : name(seat.name)
+Live::Seat::Seat(Results2::Seat const& seat, int parentRegionId)
+  : name(seat.name), parentRegionId(parentRegionId)
 {
 }
 
-void Live::Seat::log(bool includeBooths) const
+void Live::Seat::log(Election const& election, bool includeBooths) const
 {
   logger << "\nSeat: " << name << "\n";
   node.log();
   if (includeBooths) {
     for (auto const& booth : booths) {
-      booth.log();
+      election.booths.at(booth).log();
     }
   }
 }
 
-Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
+Live::LargeRegion::LargeRegion(Region const& region)
+  : name(region.name)
+{
+}
+
+void Live::LargeRegion::log(Election const& election, bool includeSeats, bool includeBooths) const
+{
+  logger << "\nLargeRegion: " << name << "\n";
+  node.log();
+  if (includeSeats) {
+    for (auto const& seat : seats) {
+      election.seats.at(seat).log(election, includeBooths);
+    }
+  }
+}
+
+Live::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), sim(sim), run(run), previousElection(previousElection), currentElection(currentElection)
 {
   getNatPartyIndex();
   initializePartyMappings();
-  createBoothsFromElectionData();
+  createNodesFromElectionData();
 }
 
 void Election::getNatPartyIndex() {
@@ -165,24 +184,30 @@ void Election::initializePartyMappings() {
   for (auto const& [id, party] : currentElection.parties) {
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
-      ecPartyToNetParty[id] = simIndex;
-      ecAbbreviationToNetParty[party.shortCode] = simIndex;
+      ecPartyToInternalParty[id] = simIndex;
+      ecAbbreviationToInternalParty[party.shortCode] = simIndex;
     }
   }
 
   for (auto const& [id, party] : previousElection.parties) {
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
-      ecPartyToNetParty[id] = simIndex;
-      ecAbbreviationToNetParty[party.shortCode] = simIndex;
+      ecPartyToInternalParty[id] = simIndex;
+      ecAbbreviationToInternalParty[party.shortCode] = simIndex;
     }
   }
 }
 
-void Election::createBoothsFromElectionData() {
+void Election::createNodesFromElectionData() {
+  for (auto const [regionId, region] : project.regions()) {
+    largeRegions.push_back(LargeRegion(region));
+  }
   for (auto const& [id, seat] : currentElection.seats) {
     int seatIndex = seats.size();
-    seats.push_back(seat);
+    auto const& projectSeat = project.seats().accessByName(seat.name).second;
+    int parentRegionId = projectSeat.region;
+    seats.push_back(Seat(seat, parentRegionId));
+    largeRegions.at(parentRegionId).seats.push_back(seatIndex);
     for (auto const& boothId : seat.booths) {
       if (!currentElection.booths.contains(boothId)) {
         continue;
@@ -192,10 +217,13 @@ void Election::createBoothsFromElectionData() {
       // Find matching booth in previous election if it exists
       std::optional<Results2::Booth const*> previousBoothPtr = std::nullopt;
       for (auto const& [prevBoothId, prevBooth] : previousElection.booths) {
-          if (prevBooth.id == currentBooth.id) {
-              previousBoothPtr = &prevBooth;
-              break;
-          }
+        // IDs are the only unique identifier for booths
+        // as names can be changed from one election to the next
+        // without changing the ID
+        if (prevBooth.id == currentBooth.id) {
+          previousBoothPtr = &prevBooth;
+          break;
+        }
       }
 
       // Create new booth with mapping function
@@ -206,7 +234,8 @@ void Election::createBoothsFromElectionData() {
           seatIndex,
           natPartyIndex
       ));
-      seats.at(seatIndex).booths.push_back(booths.back());
+      auto& liveSeat = seats.at(seatIndex);
+      liveSeat.booths.push_back(int(booths.size()) - 1);
     }
   }
 }
@@ -214,77 +243,121 @@ void Election::createBoothsFromElectionData() {
 void Election::aggregate() {
   for (auto& seat : seats) {
     aggregateToSeat(seat);
-    seat.log(true);
   }
+  for (auto& largeRegion : largeRegions) {
+    aggregateToLargeRegion(largeRegion);
+    largeRegion.log(*this, true, true);
+  }
+}
+
+// Template method for aggregation
+template<typename T, typename U>
+void Election::aggregateCollection(T& parent, const std::vector<int>& childIndices, 
+                                  const std::vector<U>& childNodes) const {
+  std::vector<Node const*> nodesToAggregate;
+  for (auto const& childIndex : childIndices) {
+    nodesToAggregate.push_back(&childNodes.at(childIndex).node);
+  }
+  parent.node = aggregateFromChildren(nodesToAggregate);
 }
 
 void Election::aggregateToSeat(Seat& seat) {
-  std::vector<Node const*> boothsToAggregate;
-
-  for (auto const& booth : seat.booths) {
-    boothsToAggregate.push_back(&booth.node);
-  }
-  seat.node = aggregateFromChildren(boothsToAggregate);
+  aggregateCollection(seat, seat.booths, booths);
 }
 
-Node Election::aggregateFromChildren(std::vector<Node const*>& nodesToAggregate) {
+void Election::aggregateToLargeRegion(LargeRegion& largeRegion) {
+  aggregateCollection(largeRegion, largeRegion.seats, seats);
+}
+
+Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate) const {
+  // Aggregate swings from previous election to current election
+  // Aggregation takes small-scale results and calculates a weighted average
+  // in a larger region. This can then be used (in a later step) to extrapolate
+  // swings to other small-scale results.
+  // Current raw vote tallies and vote shares are not aggregated
+  // because they generally don't add information beyond what is already
+  // available in the swings
+
+  Node aggregatedNode;
+
+  // Aggregate previous election vote totals (used for weighting only)
+  for (auto const& node : nodesToAggregate) {
+    for (auto const& [partyId, votes] : node->fpVotesPrevious) {
+      aggregatedNode.fpVotesPrevious[partyId] += votes;
+    }
+  }
 
   std::map<int, float> fpSwingWeightedSum; // weighted by number of votes
   std::map<int, float> fpWeightSum; // sum of weights
 
   for (auto const& node : nodesToAggregate) {
     for (auto const& [partyId, swing] : node->fpSwings) {
-      fpSwingWeightedSum[partyId] += swing * node->totalVotesCurrent();
-      fpWeightSum[partyId] += node->totalVotesCurrent();
+      fpSwingWeightedSum[partyId] += swing * node->totalVotesPrevious();
+      fpWeightSum[partyId] += node->totalVotesPrevious();
     }
   }
-  Node aggregatedNode;
+  // Node created for each new seat/region/election: should be <200 times
+  // per election, so not major bottleneck
   for (auto const& [partyId, swing] : fpSwingWeightedSum) {
     if (fpWeightSum[partyId] > 0) { // ignore parties with no votes
       aggregatedNode.fpSwings[partyId] = swing / fpWeightSum[partyId];
     }
   }
 
+  // Note: for now we don't aggregate tcp swings because they cannot be
+  // consistently extrapolated beyond the seat level
+  // (except when they are equivalent to tpp swings, which are already covered
+  // by the tpp swing calculation below)
+
   // Calculate tpp swing
   float tppSwingWeightedSum = 0.0f;
   float tppWeightSum = 0.0f;
   for (auto const& node : nodesToAggregate) {
     if (node->tppSwing) {
-      tppSwingWeightedSum += node->tppSwing.value() * node->totalVotesCurrent();
-      tppWeightSum += node->totalVotesCurrent();
+      tppSwingWeightedSum += node->tppSwing.value() * node->totalVotesPrevious();
+      tppWeightSum += node->totalVotesPrevious();
     }
   }
   if (tppWeightSum > 0) {
     aggregatedNode.tppSwing = tppSwingWeightedSum / tppWeightSum;
   }
 
+  PA_LOG_VAR(aggregatedNode.fpSwings);
+  PA_LOG_VAR(aggregatedNode.tppSwing);
+  PA_LOG_VAR(tppSwingWeightedSum);
+  PA_LOG_VAR(tppWeightSum);
+
   return aggregatedNode;
 }
 
 int Election::mapPartyId(int ecCandidateId) {
+  // Note: only used when initially loading data from EC files
+  // so not a bottleneck
+
   // Helper function to get next available ID
   auto getNextId = [this]() {
     int maxId = -1;
-    for (auto const& [_, mappedId] : ecPartyToNetParty) {
+    for (auto const& [_, mappedId] : ecPartyToInternalParty) {
       maxId = std::max(maxId, mappedId);
     }
     return maxId + 1;
   };
 
   // Helper function to process a party from any election
-  auto processParty = [&](const Results2::Party& party, int ecPartyId) -> std::optional<int> {
+  auto processParty = [this, &getNextId]
+    (const Results2::Party& party, int ecPartyId) -> std::optional<int> {
     // Check if we've seen this abbreviation before
-    auto abbrevIt = ecAbbreviationToNetParty.find(party.shortCode);
-    if (abbrevIt != ecAbbreviationToNetParty.end()) {
+    auto abbrevIt = ecAbbreviationToInternalParty.find(party.shortCode);
+    if (abbrevIt != ecAbbreviationToInternalParty.end()) {
       // Reuse the same internal ID for parties with same short code
-      ecPartyToNetParty[ecPartyId] = abbrevIt->second;
+      ecPartyToInternalParty[ecPartyId] = abbrevIt->second;
       return abbrevIt->second;
     }
     
     // New party abbreviation - assign a new internal ID
     int newId = getNextId();
-    ecPartyToNetParty[ecPartyId] = newId;
-    ecAbbreviationToNetParty[party.shortCode] = newId;
+    ecPartyToInternalParty[ecPartyId] = newId;
+    ecAbbreviationToInternalParty[party.shortCode] = newId;
     return newId;
   };
 
@@ -301,13 +374,18 @@ int Election::mapPartyId(int ecCandidateId) {
 
   // Independent candidates are given a new ID so they don't clash with real parties
   // Don't add this to ecPartyToNetParty as other candidates should never be mapped to this ID
+  // (doing so would also break the generation of new party IDs)
   if (ecPartyId == Results2::Candidate::Independent) {
-    return ecCandidateId + 100000;
+    // Arbitrary offset to ensure independent candidates don't clash with real party IDs
+    // Candidate IDs are 5-digit (or shorter) numbers, so this offset makes it easy to spot
+    // what the original EC ID was if necessary.
+    constexpr int IndependentPartyIdOffset = 100000;
+    return ecCandidateId + IndependentPartyIdOffset;
   }
 
   // Check if we've already mapped this EC party ID
-  auto it = ecPartyToNetParty.find(ecPartyId);
-  if (it != ecPartyToNetParty.end()) {
+  auto it = ecPartyToInternalParty.find(ecPartyId);
+  if (it != ecPartyToInternalParty.end()) {
     return it->second;
   }
   
@@ -324,6 +402,6 @@ int Election::mapPartyId(int ecCandidateId) {
   // 3. Failsafe: Party not found in either election
   logger << "Warning: Party ID " << ecPartyId << " not found in either current or previous election data\n";
   int newId = getNextId();
-  ecPartyToNetParty[ecPartyId] = newId;
+  ecPartyToInternalParty[ecPartyId] = newId;
   return newId;
 }
