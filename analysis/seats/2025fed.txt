@@ -776,7 +776,7 @@ sPolls=GRN,12,4;GRN,9,4;GRN,8,4;GRN,10.9,3;ON,11.8,3;IND,14.2,3
 bConfirmedProminentIndependent=1
 sTppMrpPolls=Redbridge,2024-04-01,48;Redbridge,2024-07-31,46;Redbridge,2024-11-09,43;YouGov,2025-02-02,44
 sMinorViability=IND,1.00
-sBettingOdds=IND,4.75
+sBettingOdds=IND,4.5
 sCandidateNames=Mary Aldred,LNP;Russell Broadbent,IND
 #Melbourne
 sIncumbent=GRN

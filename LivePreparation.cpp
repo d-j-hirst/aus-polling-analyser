@@ -49,7 +49,10 @@ void LivePreparation::prepareLiveAutomatic()
 		acquireCurrentResults();
 	}
 	parseCurrentResults();
+
 	Live::Election liveElection(previousElection, currentElection, project, sim, run);
+	liveElection.aggregate();
+
 	preparePartyCodeGroupings();
 	determinePartyIdConversions();
 	determineSeatIdConversions();

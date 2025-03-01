@@ -159,6 +159,7 @@ namespace Results2 {
 		int32_t parentSeat;
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotes; // map affiliation id -> vote count
+		std::unordered_map<int32_t, int32_t> tcpVotesCandidate; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tppVotes; // map affiliation id -> vote count
 
 		std::unordered_map<int32_t, float> fpPercent; // as percentage

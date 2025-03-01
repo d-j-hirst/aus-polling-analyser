@@ -126,16 +126,6 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 
 	logger << "Completed projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
 
-	for (auto& [key, support] : projectedSupport) {
-		for (int timeCount = 0; timeCount < int(support.timePoint.size()); timeCount += 50) {
-			std::stringstream ss;
-			ss << key << " - day " << timeCount << "\n";
-			for (int spreadVal = 1; spreadVal < 100; ++spreadVal) {
-				ss << spreadVal << "%: " << support.timePoint[timeCount].values[spreadVal] << "\n";
-			}
-		}
-	}
-
 	std::string report = textReport(models);
 	auto reportMessages = splitString(report, ";");
 	for (auto message : reportMessages) feedback(message);

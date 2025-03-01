@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -51,6 +52,9 @@ public:
 
 	template<typename T, typename U, typename V>
 	Logger& operator<<(const std::tuple<T, U, V>& obj);
+
+	template<typename T>
+	Logger& operator<<(const std::optional<T>& obj);
 
 	Logger& operator<<(const uint8_t& obj);
 
@@ -200,6 +204,16 @@ inline Logger& Logger::operator<<(const std::tuple<T, U, V>& obj)
 	*this << "[" << std::get<0>(obj) << ", " << std::get<1>(obj) << ", " << std::get<2>(obj) << "]";
 	setFlushFlag(prevFlush);
 	flushIf();
+	return *this;
+}
+
+template<typename T>
+inline Logger& Logger::operator<<(const std::optional<T>& obj) {
+	if (obj) {
+		*this << obj.value();
+	} else {
+		*this << "empty";
+	}
 	return *this;
 }
 
