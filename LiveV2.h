@@ -37,6 +37,9 @@ public:
   std::map<int, float> tcpSwings; // change in transformed vote share
   std::optional<float> tppShare; // transformed vote share, only filled if 2pp is available at both elections 
   std::optional<float> tppSwing; // change in transformed vote share, only filled if 2pp is available at both elections
+  float fpConfidence = 0.0f;
+  float tcpConfidence = 0.0f;
+  float tppConfidence = 0.0f;
 
   auto fpSharesPercent() const {
     std::map<int, float> result;
@@ -54,8 +57,9 @@ public:
     return result;
   }
 
-  int totalVotesCurrent() const;
+  int totalFpVotesCurrent() const;
   int totalVotesPrevious() const;
+  int totalTcpVotesCurrent() const;
 };
 
 class Booth {
@@ -138,6 +142,7 @@ private:
 
   void aggregateToSeat(Live::Seat& seat);
   void aggregateToLargeRegion(LargeRegion& largeRegion);
+  void aggregateToElection();
 
   Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate) const;
 
@@ -147,6 +152,10 @@ private:
 
   // map AEC party IDs to internal party IDs
   int mapPartyId(int ecCandidateId);
+
+  void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
+
+  Node node;
 
   std::vector<LargeRegion> largeRegions;
   std::vector<Booth> booths;

@@ -182,6 +182,10 @@ void LivePreparation::parsePreload()
 
 void LivePreparation::downloadLatestResults()
 {
+	if (sim.settings.currentRealUrl.substr(0, 6) == "local:") {
+		xmlFilename = "downloads/" + sim.settings.currentRealUrl.substr(6);
+		return;
+	}
 	ResultsDownloader resultsDownloader;
 	std::string directoryListing;
 	resultsDownloader.loadUrlToString(sim.settings.currentRealUrl, directoryListing);

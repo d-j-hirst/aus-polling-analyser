@@ -26,11 +26,14 @@ void Node::log() const
   PA_LOG_VAR(tcpSwings);
   PA_LOG_VAR(tppShare);
   PA_LOG_VAR(tppSwing);
+  PA_LOG_VAR(fpConfidence);
+  PA_LOG_VAR(tcpConfidence);
+  PA_LOG_VAR(tppConfidence);
   PA_LOG_VAR(fpSharesPercent());
   PA_LOG_VAR(tcpSharesPercent());
 }
 
-int Node::totalVotesCurrent() const {
+int Node::totalFpVotesCurrent() const {
   return std::accumulate(fpVotesCurrent.begin(), fpVotesCurrent.end(), 0,
     [](int sum, const auto& pair) { return sum + pair.second; });
 }
@@ -69,7 +72,7 @@ Booth::Booth(
     }
 
     // Calculate total votes for percentages
-    float totalCurrentVotes = static_cast<float>(node.totalVotesCurrent());
+    float totalCurrentVotes = static_cast<float>(node.totalFpVotesCurrent());
     float totalPreviousVotes = static_cast<float>(node.totalVotesPrevious());
 
     // Calculate shares and swings
@@ -112,7 +115,7 @@ Booth::Booth(
   );
 
   // Determine tpp share and swing, if available
-  if (node.totalVotesCurrent() > 0 && isTppSet(node.tcpShares)) {
+  if (node.totalFpVotesCurrent() > 0 && isTppSet(node.tcpShares)) {
     node.tppShare = node.tcpShares.at(0);
     int previousTotal = node.totalVotesPrevious();
     if (
@@ -127,6 +130,13 @@ Booth::Booth(
       node.tppSwing = node.tppShare.value() - previousShare;
     }
   }
+
+  // Booths are either complete or not in, so confidence is 1 if there are votes, 0 otherwise
+  // We'll handle partial results (like absent/postal votes that are in different batches) later
+  // as well as the usually very minor changes that occur when the check count is performed.
+  node.fpConfidence = node.fpSwings.size() > 0 ? 1 : 0;
+  node.tcpConfidence = node.tcpSwings.size() > 1 ? 1 : 0;
+  node.tppConfidence = node.tppSwing.has_value() ? 1 : 0;
 }
 
 void Booth::log() const
@@ -246,8 +256,9 @@ void Election::aggregate() {
   }
   for (auto& largeRegion : largeRegions) {
     aggregateToLargeRegion(largeRegion);
-    largeRegion.log(*this, true, true);
   }
+  aggregateToElection();
+  log(true, true, true);
 }
 
 // Template method for aggregation
@@ -269,6 +280,12 @@ void Election::aggregateToLargeRegion(LargeRegion& largeRegion) {
   aggregateCollection(largeRegion, largeRegion.seats, seats);
 }
 
+void Election::aggregateToElection() {
+  std::vector<int> indices(largeRegions.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  aggregateCollection(*this, indices, largeRegions);
+}
+
 Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate) const {
   // Aggregate swings from previous election to current election
   // Aggregation takes small-scale results and calculates a weighted average
@@ -281,26 +298,32 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   Node aggregatedNode;
 
   // Aggregate previous election vote totals (used for weighting only)
-  for (auto const& node : nodesToAggregate) {
-    for (auto const& [partyId, votes] : node->fpVotesPrevious) {
+  for (auto const& thisNode : nodesToAggregate) {
+    for (auto const& [partyId, votes] : thisNode->fpVotesPrevious) {
       aggregatedNode.fpVotesPrevious[partyId] += votes;
     }
   }
 
   std::map<int, float> fpSwingWeightedSum; // weighted by number of votes
   std::map<int, float> fpWeightSum; // sum of weights
+  float fpConfidenceSum = 0.0f; // sum of confidence, weighted by number of votes
+  float fpConfidenceWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
 
-  for (auto const& node : nodesToAggregate) {
-    for (auto const& [partyId, swing] : node->fpSwings) {
-      fpSwingWeightedSum[partyId] += swing * node->totalVotesPrevious();
-      fpWeightSum[partyId] += node->totalVotesPrevious();
+  for (auto const& thisNode : nodesToAggregate) {
+    float weight = thisNode->totalVotesPrevious() * thisNode->fpConfidence;
+    for (auto const& [partyId, swing] : thisNode->fpSwings) {
+      fpSwingWeightedSum[partyId] += swing * weight;
+      fpWeightSum[partyId] += weight;
     }
+    fpConfidenceSum += thisNode->fpConfidence * thisNode->totalVotesPrevious();
+    fpConfidenceWeightSum += thisNode->totalVotesPrevious();
   }
   // Node created for each new seat/region/election: should be <200 times
   // per election, so not major bottleneck
   for (auto const& [partyId, swing] : fpSwingWeightedSum) {
     if (fpWeightSum[partyId] > 0) { // ignore parties with no votes
       aggregatedNode.fpSwings[partyId] = swing / fpWeightSum[partyId];
+      aggregatedNode.fpConfidence = fpConfidenceSum / fpConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
     }
   }
 
@@ -308,24 +331,27 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   // consistently extrapolated beyond the seat level
   // (except when they are equivalent to tpp swings, which are already covered
   // by the tpp swing calculation below)
+  // Will eventually add some code for the seat-level tcp swings, but not a priority
+  // for WA election
 
   // Calculate tpp swing
   float tppSwingWeightedSum = 0.0f;
   float tppWeightSum = 0.0f;
-  for (auto const& node : nodesToAggregate) {
-    if (node->tppSwing) {
-      tppSwingWeightedSum += node->tppSwing.value() * node->totalVotesPrevious();
-      tppWeightSum += node->totalVotesPrevious();
+  float tppConfidenceSum = 0.0f;
+  float tppConfidenceWeightSum = 0.0f;
+  for (auto const& thisNode : nodesToAggregate) {
+    float weight = thisNode->totalVotesPrevious() * thisNode->tppConfidence;
+    if (thisNode->tppSwing) {
+      tppSwingWeightedSum += thisNode->tppSwing.value() * weight;
+      tppWeightSum += weight;
     }
+    tppConfidenceSum += thisNode->tppConfidence * thisNode->totalVotesPrevious();
+    tppConfidenceWeightSum += thisNode->totalVotesPrevious();
   }
   if (tppWeightSum > 0) {
     aggregatedNode.tppSwing = tppSwingWeightedSum / tppWeightSum;
+    aggregatedNode.tppConfidence = tppConfidenceSum / tppConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
   }
-
-  PA_LOG_VAR(aggregatedNode.fpSwings);
-  PA_LOG_VAR(aggregatedNode.tppSwing);
-  PA_LOG_VAR(tppSwingWeightedSum);
-  PA_LOG_VAR(tppWeightSum);
 
   return aggregatedNode;
 }
@@ -404,4 +430,14 @@ int Election::mapPartyId(int ecCandidateId) {
   int newId = getNextId();
   ecPartyToInternalParty[ecPartyId] = newId;
   return newId;
+}
+
+void Election::log(bool includeLargeRegions, bool includeSeats, bool includeBooths) const {
+  logger << "\nElection:\n";
+  node.log();
+  if (includeLargeRegions) {
+    for (auto const& largeRegion : largeRegions) {
+      largeRegion.log(*this, includeSeats, includeBooths);
+    }
+  }
 }
