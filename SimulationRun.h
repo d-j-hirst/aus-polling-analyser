@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LiveV2.h"
 #include "Party.h"
 
 #include <array>
@@ -22,6 +23,7 @@ public:
 	friend class SimulationIteration;
 	friend class SimulationCompletion;
 	friend class LivePreparation;
+	friend class LiveV2::Election;
 
 	struct PastSeatResult {
 		std::map<int, float> fpVotePercent; // map from party index -> percentage

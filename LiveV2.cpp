@@ -8,7 +8,7 @@
 
 #include <numeric>
 
-using namespace Live;
+using namespace LiveV2;
 
 Node::Node()
 {
@@ -35,6 +35,8 @@ void Node::log() const
   PA_LOG_VAR(fpSwingsBaseline);
   PA_LOG_VAR(tppShareBaseline);
   PA_LOG_VAR(tppSwingBaseline);
+  PA_LOG_VAR(fpDeviations);
+  PA_LOG_VAR(tppDeviation);
 }
 
 int Node::totalFpVotesCurrent() const {
@@ -56,6 +58,7 @@ Booth::Booth(
 )
   : name(currentBooth.name), parentSeatId(parentSeatId)
 {
+
   // Helper function to process votes, calculate shares and swings
   auto processVotes = [this, &partyMapper](
       const auto& currentVotes, const auto& previousVotes, 
@@ -78,6 +81,15 @@ Booth::Booth(
     // Calculate total votes for percentages
     float totalCurrentVotes = static_cast<float>(node.totalFpVotesCurrent());
     float totalPreviousVotes = static_cast<float>(node.totalVotesPrevious());
+
+    int totalCurrentVotesCounted = std::accumulate(currentMap.begin(), currentMap.end(), 0,
+      [](int sum, const auto& pair) { return sum + pair.second; });
+
+    if (totalCurrentVotesCounted > 0 && float(totalCurrentVotesCounted) < float(totalCurrentVotes) * 0.95f) {
+      logger << "Warning: Only " << float(totalCurrentVotesCounted) / float(totalCurrentVotes) * 100.0f << "% of current votes were counted in " << name << "\n";
+      logger << "Skipping votes as they are not reliable\n";
+      return;
+    }
 
     // Calculate shares and swings
     if (totalCurrentVotes > 0) {
@@ -149,12 +161,12 @@ void Booth::log() const
   node.log();
 }
 
-Live::Seat::Seat(Results2::Seat const& seat, int parentRegionId)
+LiveV2::Seat::Seat(Results2::Seat const& seat, int parentRegionId)
   : name(seat.name), parentRegionId(parentRegionId)
 {
 }
 
-void Live::Seat::log(Election const& election, bool includeBooths) const
+void LiveV2::Seat::log(Election const& election, bool includeBooths) const
 {
   logger << "\nSeat: " << name << "\n";
   node.log();
@@ -165,12 +177,12 @@ void Live::Seat::log(Election const& election, bool includeBooths) const
   }
 }
 
-Live::LargeRegion::LargeRegion(Region const& region)
+LiveV2::LargeRegion::LargeRegion(Region const& region)
   : name(region.name)
 {
 }
 
-void Live::LargeRegion::log(Election const& election, bool includeSeats, bool includeBooths) const
+void LiveV2::LargeRegion::log(Election const& election, bool includeSeats, bool includeBooths) const
 {
   logger << "\nLargeRegion: " << name << "\n";
   node.log();
@@ -181,14 +193,17 @@ void Live::LargeRegion::log(Election const& election, bool includeSeats, bool in
   }
 }
 
-Live::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
+LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), sim(sim), run(run), previousElection(previousElection), currentElection(currentElection)
 {
   logger << "Initializing live election\n";
   getNatPartyIndex();
   initializePartyMappings();
   createNodesFromElectionData();
+  doAggregationForFpTotals();
   includeBaselineResults();
+  extrapolateBaselineSwings();
+  calculateDeviationsFromBaseline();
 }
 
 void Election::getNatPartyIndex() {
@@ -243,7 +258,7 @@ void Election::createNodesFromElectionData() {
       }
 
       // Create new booth with mapping function
-      booths.push_back(Booth(
+      booths.emplace_back(Booth(
           currentBooth, 
           previousBoothPtr,
           [this](int partyId) { return this->mapPartyId(partyId); },
@@ -253,6 +268,12 @@ void Election::createNodesFromElectionData() {
       auto& liveSeat = seats.at(seatIndex);
       liveSeat.booths.push_back(int(booths.size()) - 1);
     }
+  }
+}
+
+void Election::doAggregationForFpTotals() {
+  for (auto& seat : seats) {
+    aggregateToSeat(seat);
   }
 }
 
@@ -273,11 +294,55 @@ void Election::includeBaselineResults() {
       float median = probabilityBands.at((probabilityBands.size() - 1) / 2);
       if (median > 0 && median < 100) {
         seat.node.fpSharesBaseline[partyId] = transformVoteShare(median);
+        if (seat.node.totalVotesPrevious() > 0 && seat.node.fpVotesPrevious.contains(partyId)) {
+          seat.node.fpSwingsBaseline[partyId] = seat.node.fpSharesBaseline[partyId] - 
+            transformVoteShare(float(seat.node.fpVotesPrevious.at(partyId)) / float(seat.node.totalVotesPrevious()) * 100.0f);
+        }
       }
     }
     float tppMedian = baseline.seatTppProbabilityBand.at(i).at((baseline.seatTppProbabilityBand.at(i).size() - 1) / 2);
     if (tppMedian > 0 && tppMedian < 100) {
       seat.node.tppShareBaseline = transformVoteShare(tppMedian);
+    }
+    int projectSeatIndex = project.seats().indexByName(name);
+    ::Seat const& projectSeat = project.seats().viewByIndex(projectSeatIndex);
+    float tppExistingShare = transformVoteShare(projectSeat.tppMargin + 50.0f);
+    if (seat.node.tppShareBaseline) {
+      seat.node.tppSwingBaseline = seat.node.tppShareBaseline.value() - tppExistingShare;
+    }
+  }
+}
+
+void Election::extrapolateBaselineSwings() {
+  for (auto& seat : seats) {
+    for (int boothIndex : seat.booths) {
+      auto& booth = booths.at(boothIndex);
+      for (auto const& [partyId, swing] : seat.node.fpSwingsBaseline) {
+        if (booth.node.fpVotesPrevious.contains(partyId)) {
+          booth.node.fpSwingsBaseline[partyId] = swing;
+        }
+      }
+      if (seat.node.tppSwingBaseline) {
+        booth.node.tppSwingBaseline = seat.node.tppSwingBaseline.value();
+      }
+    }
+  }
+}
+
+void Election::calculateDeviationsFromBaseline() {
+  for (auto& seat : seats) {
+    for (int boothIndex : seat.booths) {
+      auto& booth = booths.at(boothIndex);
+      for (auto const& [partyId, baselineSwing] : seat.node.fpSwingsBaseline) {
+        if (booth.node.fpSwings.contains(partyId)) {
+          booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(partyId) - baselineSwing;
+        }
+      }
+      if (seat.node.tppSwingBaseline) {
+        if (booth.node.tppSwing) {
+          booth.node.tppDeviation = booth.node.tppSwing.value() - seat.node.tppSwingBaseline.value();
+        }
+      }
     }
   }
 }
@@ -336,15 +401,15 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     }
   }
 
-  std::map<int, float> fpSwingWeightedSum; // weighted by number of votes
+  std::map<int, float> fpDeviationWeightedSum; // weighted by number of votes
   std::map<int, float> fpWeightSum; // sum of weights
   float fpConfidenceSum = 0.0f; // sum of confidence, weighted by number of votes
   float fpConfidenceWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
 
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->fpConfidence;
-    for (auto const& [partyId, swing] : thisNode->fpSwings) {
-      fpSwingWeightedSum[partyId] += swing * weight;
+    for (auto const& [partyId, swing] : thisNode->fpDeviations) {
+      fpDeviationWeightedSum[partyId] += swing * weight;
       fpWeightSum[partyId] += weight;
     }
     fpConfidenceSum += thisNode->fpConfidence * thisNode->totalVotesPrevious();
@@ -352,9 +417,9 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   }
   // Node created for each new seat/region/election: should be <200 times
   // per election, so not major bottleneck
-  for (auto const& [partyId, swing] : fpSwingWeightedSum) {
+  for (auto const& [partyId, swing] : fpDeviationWeightedSum) {
     if (fpWeightSum[partyId] > 0) { // ignore parties with no votes
-      aggregatedNode.fpSwings[partyId] = swing / fpWeightSum[partyId];
+      aggregatedNode.fpDeviations[partyId] = swing / fpWeightSum[partyId];
       aggregatedNode.fpConfidence = fpConfidenceSum / fpConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
     }
   }
@@ -367,21 +432,21 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   // for WA election
 
   // Calculate tpp swing
-  float tppSwingWeightedSum = 0.0f;
+  float tppDeviationWeightedSum = 0.0f;
   float tppWeightSum = 0.0f;
   float tppConfidenceSum = 0.0f;
   float tppConfidenceWeightSum = 0.0f;
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->tppConfidence;
-    if (thisNode->tppSwing) {
-      tppSwingWeightedSum += thisNode->tppSwing.value() * weight;
+    if (thisNode->tppDeviation) {
+      tppDeviationWeightedSum += thisNode->tppDeviation.value() * weight;
       tppWeightSum += weight;
     }
     tppConfidenceSum += thisNode->tppConfidence * thisNode->totalVotesPrevious();
     tppConfidenceWeightSum += thisNode->totalVotesPrevious();
   }
   if (tppWeightSum > 0) {
-    aggregatedNode.tppSwing = tppSwingWeightedSum / tppWeightSum;
+    aggregatedNode.tppDeviation = tppDeviationWeightedSum / tppWeightSum;
     aggregatedNode.tppConfidence = tppConfidenceSum / tppConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
   }
 

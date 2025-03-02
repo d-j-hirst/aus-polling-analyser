@@ -10,7 +10,7 @@ struct Region;
 class Simulation;
 class SimulationRun;
 
-namespace Live {
+namespace LiveV2 {
 
 class Election;
 
@@ -41,6 +41,8 @@ public:
   std::map<int, float> fpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
   std::optional<float> tppShareBaseline; // transformed vote share, median result from baseline (no-results) simulation
   std::optional<float> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, float> fpDeviations; // observed deviation from baseline
+  std::optional<float> tppDeviation; // observed deviation from baseline
 
   float fpConfidence = 0.0f;
   float tcpConfidence = 0.0f;
@@ -131,7 +133,7 @@ public:
 class Election {
 public:
   friend class LargeRegion;
-  friend class Live::Seat;
+  friend class LiveV2::Seat;
 
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
@@ -145,7 +147,7 @@ private:
 
   void getNatPartyIndex();
 
-  void aggregateToSeat(Live::Seat& seat);
+  void aggregateToSeat(LiveV2::Seat& seat);
   void aggregateToLargeRegion(LargeRegion& largeRegion);
   void aggregateToElection();
 
@@ -155,7 +157,13 @@ private:
 
   void createNodesFromElectionData();
 
+  void doAggregationForFpTotals();
+
   void includeBaselineResults();
+
+  void extrapolateBaselineSwings();
+
+  void calculateDeviationsFromBaseline();
 
   // map AEC party IDs to internal party IDs
   int mapPartyId(int ecCandidateId);
@@ -166,7 +174,7 @@ private:
 
   std::vector<LargeRegion> largeRegions;
   std::vector<Booth> booths;
-  std::vector<Live::Seat> seats;
+  std::vector<LiveV2::Seat> seats;
 
   std::map<int, int> ecPartyToInternalParty;
   std::map<int, int> ecBoothToInternalBooth;
@@ -183,4 +191,4 @@ private:
   Results2::Election const& currentElection;
 };
 
-} // namespace Live
+} // namespace LiveV2

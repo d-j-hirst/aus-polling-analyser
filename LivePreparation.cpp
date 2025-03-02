@@ -50,7 +50,7 @@ void LivePreparation::prepareLiveAutomatic()
 	}
 	parseCurrentResults();
 
-	Live::Election liveElection(previousElection, currentElection, project, sim, run);
+	LiveV2::Election liveElection(previousElection, currentElection, project, sim, run);
 	liveElection.aggregate();
 
 	preparePartyCodeGroupings();

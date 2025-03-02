@@ -1122,7 +1122,11 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 					if (booth.name.find("Divisional Office") != std::string::npos) booth.type = Booth::Type::Other;
 					if (booth.name.find("BLV") != std::string::npos) booth.type = Booth::Type::Other;
 				}
-				seat.booths.push_back(booth.id);
+
+				// Don't add the same booth multiple times
+				if (std::find(seat.booths.begin(), seat.booths.end(), booth.id) == seat.booths.end()) {
+					seat.booths.push_back(booth.id);
+				}
 			}
 
 			auto fps = currentBooth->FirstChildElement("FirstPreferences");
@@ -1159,25 +1163,25 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 		currentContest = currentContest->NextSiblingElement("Contest");
 	}
 
-	//logger << "==SEATS==\n";
+	// logger << "==SEATS==\n";
 	//for (auto const& [seatId, seat] : seats) {
-	//	PA_LOG_VAR(seat.name);
-	//	PA_LOG_VAR(seat.id);
-	//	PA_LOG_VAR(seat.enrolment);
-	//	PA_LOG_VAR(seat.fpVotes);
-	//	PA_LOG_VAR(seat.tcpVotes);
-	//	PA_LOG_VAR(seat.tppVotes);
-	//	PA_LOG_VAR(seat.booths);
-	//	for (int boothId : seat.booths) {
-	//		auto const& booth = booths.at(boothId);
-	//		PA_LOG_VAR(booth.id);
-	//		PA_LOG_VAR(booth.name);
-	//		PA_LOG_VAR(booth.fpVotes);
-	//		PA_LOG_VAR(booth.tcpVotes);
-	//		PA_LOG_VAR(booth.tcpVotesCandidate);
-	//		PA_LOG_VAR(booth.tppVotes);
-	//		PA_LOG_VAR(booth.type);
-	//	}
+		//PA_LOG_VAR(seat.name);
+		//PA_LOG_VAR(seat.id);
+		//PA_LOG_VAR(seat.enrolment);
+		//PA_LOG_VAR(seat.fpVotes);
+		//PA_LOG_VAR(seat.tcpVotes);
+		//PA_LOG_VAR(seat.tppVotes);
+		//PA_LOG_VAR(seat.booths);
+		//for (int boothId : seat.booths) {
+		//	auto const& booth = booths.at(boothId);
+		//	PA_LOG_VAR(booth.id);
+		//	PA_LOG_VAR(booth.name);
+		//	PA_LOG_VAR(booth.fpVotes);
+		//	PA_LOG_VAR(booth.tcpVotes);
+		//	PA_LOG_VAR(booth.tcpVotesCandidate);
+		//	PA_LOG_VAR(booth.tppVotes);
+		//	PA_LOG_VAR(booth.type);
+		//}
 	//}
 	//logger << "==CANDIDATES==\n";
 	//for (auto const& candidate : candidates) {
