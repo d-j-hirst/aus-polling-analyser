@@ -27,6 +27,7 @@ private:
 	void recordSeatPartyWinPercentages();
 	void recordSeatFpVoteStats();
 	void recordSeatTcpVoteStats();
+	void recordSeatTppVoteStats(); // only used for live baseline simulation
 	void recordSeatSwingFactors();
 	void recordTrends();
 	void recordTcpTrend();
@@ -37,6 +38,8 @@ private:
 	StanModel const& baseModel();
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
+
+	bool doLogging() const;
 
 	int iterations;
 

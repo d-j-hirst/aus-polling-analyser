@@ -2594,6 +2594,13 @@ void SimulationIteration::recordSeatTcpVotes(int seatIndex)
 	++run.seatTcpDistribution[seatIndex][parties][bucket];
 }
 
+void SimulationIteration::recordSeatTppVotes(int seatIndex)
+{
+	float tppPercent = partyOneNewTppMargin[seatIndex] + 50.0f;
+	int bucket = std::clamp(int(std::floor(tppPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+	++run.seatTppDistribution[seatIndex][bucket];
+}
+
 void SimulationIteration::recordIterationResults()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -2601,6 +2608,7 @@ void SimulationIteration::recordIterationResults()
 		recordSeatPartyWinner(seatIndex);
 		recordSeatFpVotes(seatIndex);
 		recordSeatTcpVotes(seatIndex);
+		recordSeatTppVotes(seatIndex);
 	}
 	recordVoteTotals();
 	recordSwings();

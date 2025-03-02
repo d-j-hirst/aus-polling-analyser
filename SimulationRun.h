@@ -143,11 +143,11 @@ public:
 
 	typedef std::function<void(std::string)> FeedbackFunc;
 
-	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false) :
-		project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations) {}
+	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false) :
+		project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations), doingLiveBaselineSimulation(doingLiveBaselineSimulation) {}
 
 	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim),
-		doingBettingOddsCalibrations(otherRun.doingBettingOddsCalibrations) {}
+		doingBettingOddsCalibrations(otherRun.doingBettingOddsCalibrations), doingLiveBaselineSimulation(otherRun.doingLiveBaselineSimulation) {}
 	SimulationRun& operator=(SimulationRun const& otherRun) = default;
 
 	void run(FeedbackFunc feedback = [](std::string) {});
@@ -166,6 +166,8 @@ private:
 
 	void runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});
 
+	void runLiveBaselineSimulation(FeedbackFunc feedback = [](std::string) {});
+
 	PollingProject& project;
 
 	Simulation& sim;
@@ -173,6 +175,8 @@ private:
 	bool doingBettingOddsCalibrations = false;
 	std::map<std::pair<int, int>, float> oddsCalibrationMeans; // transformed
 	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
+
+	bool doingLiveBaselineSimulation = false;
 
 	int currentIteration = 0;
 
@@ -241,6 +245,8 @@ private:
 	// region, then party, then seat count
 	std::vector<std::map<int, std::vector<int>>> regionPartyWins;
 	std::vector<int> seatCoalitionWins;
+
+	std::vector<std::array<int, FpBucketCount>> seatTppDistribution;
 
 	std::vector<std::vector<int>> seatProminentMinors;
 	std::vector<float> seatPreviousTppSwing;

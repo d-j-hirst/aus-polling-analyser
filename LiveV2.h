@@ -37,6 +37,11 @@ public:
   std::map<int, float> tcpSwings; // change in transformed vote share
   std::optional<float> tppShare; // transformed vote share, only filled if 2pp is available at both elections 
   std::optional<float> tppSwing; // change in transformed vote share, only filled if 2pp is available at both elections
+  std::map<int, float> fpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, float> fpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+  std::optional<float> tppShareBaseline; // transformed vote share, median result from baseline (no-results) simulation
+  std::optional<float> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+
   float fpConfidence = 0.0f;
   float tcpConfidence = 0.0f;
   float tppConfidence = 0.0f;
@@ -144,11 +149,13 @@ private:
   void aggregateToLargeRegion(LargeRegion& largeRegion);
   void aggregateToElection();
 
-  Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate) const;
+  Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate, Node const* parentNode = nullptr) const;
 
   void initializePartyMappings();
 
   void createNodesFromElectionData();
+
+  void includeBaselineResults();
 
   // map AEC party IDs to internal party IDs
   int mapPartyId(int ecCandidateId);

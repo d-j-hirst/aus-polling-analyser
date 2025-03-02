@@ -31,6 +31,10 @@ void Node::log() const
   PA_LOG_VAR(tppConfidence);
   PA_LOG_VAR(fpSharesPercent());
   PA_LOG_VAR(tcpSharesPercent());
+  PA_LOG_VAR(fpSharesBaseline);
+  PA_LOG_VAR(fpSwingsBaseline);
+  PA_LOG_VAR(tppShareBaseline);
+  PA_LOG_VAR(tppSwingBaseline);
 }
 
 int Node::totalFpVotesCurrent() const {
@@ -180,9 +184,11 @@ void Live::LargeRegion::log(Election const& election, bool includeSeats, bool in
 Live::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), sim(sim), run(run), previousElection(previousElection), currentElection(currentElection)
 {
+  logger << "Initializing live election\n";
   getNatPartyIndex();
   initializePartyMappings();
   createNodesFromElectionData();
+  includeBaselineResults();
 }
 
 void Election::getNatPartyIndex() {
@@ -250,6 +256,32 @@ void Election::createNodesFromElectionData() {
   }
 }
 
+void Election::includeBaselineResults() {
+  if (!sim.getLiveBaselineReport()) {
+    return;
+  }
+  auto const& baseline = sim.getLiveBaselineReport().value();
+  for (int i = 0; i < int(baseline.seatName.size()); ++i) {
+    auto const& name = baseline.seatName.at(i);
+    auto seatIt = std::find_if(seats.begin(), seats.end(), [name](Seat const& s) { return s.name == name; });
+    if (seatIt == seats.end()) {
+      logger << "Warning: Seat " << name << " from baseline report not found in current election results\n";
+      continue;
+    }
+    auto& seat = *seatIt;
+    for (auto const& [partyId, probabilityBands] : baseline.seatFpProbabilityBand.at(i)) {
+      float median = probabilityBands.at((probabilityBands.size() - 1) / 2);
+      if (median > 0 && median < 100) {
+        seat.node.fpSharesBaseline[partyId] = transformVoteShare(median);
+      }
+    }
+    float tppMedian = baseline.seatTppProbabilityBand.at(i).at((baseline.seatTppProbabilityBand.at(i).size() - 1) / 2);
+    if (tppMedian > 0 && tppMedian < 100) {
+      seat.node.tppShareBaseline = transformVoteShare(tppMedian);
+    }
+  }
+}
+
 void Election::aggregate() {
   for (auto& seat : seats) {
     aggregateToSeat(seat);
@@ -269,7 +301,7 @@ void Election::aggregateCollection(T& parent, const std::vector<int>& childIndic
   for (auto const& childIndex : childIndices) {
     nodesToAggregate.push_back(&childNodes.at(childIndex).node);
   }
-  parent.node = aggregateFromChildren(nodesToAggregate);
+  parent.node = aggregateFromChildren(nodesToAggregate, &parent.node);
 }
 
 void Election::aggregateToSeat(Seat& seat) {
@@ -286,7 +318,7 @@ void Election::aggregateToElection() {
   aggregateCollection(*this, indices, largeRegions);
 }
 
-Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate) const {
+Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate, Node const* parentNode) const {
   // Aggregate swings from previous election to current election
   // Aggregation takes small-scale results and calculates a weighted average
   // in a larger region. This can then be used (in a later step) to extrapolate
@@ -295,7 +327,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   // because they generally don't add information beyond what is already
   // available in the swings
 
-  Node aggregatedNode;
+  Node aggregatedNode = parentNode ? *parentNode : Node();
 
   // Aggregate previous election vote totals (used for weighting only)
   for (auto const& thisNode : nodesToAggregate) {

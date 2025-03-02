@@ -97,6 +97,7 @@ private:
 	void recordSeatPartyWinner(int seatIndex);
 	void recordSeatFpVotes(int seatIndex);
 	void recordSeatTcpVotes(int seatIndex);
+	void recordSeatTppVotes(int seatIndex);
 	void recordIterationResults();
 	void recordVoteTotals();
 	void recordSwings();

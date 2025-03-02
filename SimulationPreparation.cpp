@@ -131,6 +131,7 @@ void SimulationPreparation::resetSeatSpecificOutput()
 	run.seatPartyFpDistribution.resize(project.seats().count());
 	run.seatPartyFpZeros.resize(project.seats().count());
 	run.seatTcpDistribution.resize(project.seats().count());
+	run.seatTppDistribution.resize(project.seats().count());
 	if (run.natPartyIndex >= 0) run.seatCoalitionWins.resize(project.seats().count());
 
 	run.seatRegionSwingSums.resize(project.seats().count(), 0.0);

@@ -184,6 +184,8 @@ public:
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpScenarioPercent;
 		std::vector<std::map<std::pair<int, int>, float>> seatTcpWinPercent;
 
+		std::vector<std::vector<float>> seatTppProbabilityBand;
+
 		std::vector<int> seatHideTcps;
 
 		std::vector<int> trendProbBands;
@@ -316,6 +318,8 @@ public:
 
 	Report const& getLatestReport() const;
 
+	std::optional<Report> const& getLiveBaselineReport() const;
+
 	SavedReports const& viewSavedReports() const;
 
 	void deleteReport(int reportIndex);
@@ -342,6 +346,8 @@ private:
 	friend class SimulationIteration;
 
 	Settings settings;
+
+	std::optional<Report> liveBaselineReport;
 
 	Report latestReport;
 

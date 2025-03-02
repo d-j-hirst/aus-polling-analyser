@@ -25,6 +25,10 @@ void SimulationRun::run(FeedbackFunc feedback) {
 
 	runBettingOddsCalibrations();
 
+	if (sim.isLiveAutomatic() && !sim.liveBaselineReport) {
+		runLiveBaselineSimulation();
+	}
+
 	SimulationPreparation preparations(project, sim, *this);
 	try {
 		preparations.prepareForIterations();
@@ -75,12 +79,12 @@ std::string SimulationRun::getTermCode() const
 
 bool SimulationRun::isLiveAutomatic() const
 {
-	return sim.isLiveAutomatic() && !doingBettingOddsCalibrations;
+	return sim.isLiveAutomatic() && !doingBettingOddsCalibrations && !doingLiveBaselineSimulation;
 }
 
 bool SimulationRun::isLiveManual() const
 {
-	return sim.isLiveManual() && !doingBettingOddsCalibrations;
+	return sim.isLiveManual() && !doingBettingOddsCalibrations && !doingLiveBaselineSimulation;
 }
 
 // Converts a betting odds (e.g. $1.65) into an implied chance.
@@ -103,7 +107,6 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 {
 	doingBettingOddsCalibrations = true;
 
-	logger << "Beginning simulation part 5\n";
 	// key is (seatIndex, partyIndex)
 	std::map<std::pair<int, int>, float> impliedChances;
 	for (auto const& [seatId, seat] : project.seats()) {
@@ -221,3 +224,55 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 
 	doingBettingOddsCalibrations = false;
 }
+
+void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
+	doingLiveBaselineSimulation = true;
+
+	logger << "*** Doing live baseline simulation ***\n";
+
+	auto newRun = SimulationRun(project, sim, false, true);
+	SimulationPreparation preparations(project, sim, newRun);
+	try {
+		preparations.prepareForIterations();
+	}
+	catch (SimulationPreparation::Exception const& e) {
+
+		feedback("Could not run live baseline simulation due to the following issue: \n" + std::string(e.what()));
+		return;
+	}
+
+	int numThreads = project.config().getSimulationThreads();
+	std::vector<int> batchSizes;
+	const int CycleIterationsDivisor = 1;
+	int cycleIterations = std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
+	int minBatchSize = cycleIterations / numThreads;
+	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
+	int extraIterations = cycleIterations - minBatchSize * numThreads;
+	for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
+
+	std::vector<std::thread> threads;
+	threads.resize(numThreads);
+
+	auto runIterations = [&](int numIterations) {
+		for (int i = 0; i < numIterations; ++i) {
+			SimulationIteration iteration(project, sim, newRun);
+			iteration.runIteration();
+		}
+	};
+
+	for (int thread = 0; thread < numThreads; ++thread) {
+		threads[thread] = std::thread(runIterations, batchSizes[thread]);
+	}
+
+	for (int thread = 0; thread < numThreads; ++thread) {
+		if (threads[thread].joinable()) threads[thread].join();
+	}
+
+	SimulationCompletion completion(project, sim, newRun, cycleIterations);
+	completion.completeRun();
+	sim.liveBaselineReport = sim.latestReport;
+
+	logger << "*** Finished live baseline simulation ***\n";
+	doingLiveBaselineSimulation = false;
+}
+

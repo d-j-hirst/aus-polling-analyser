@@ -118,6 +118,11 @@ Simulation::Report const& Simulation::getLatestReport() const
 	return latestReport;
 }
 
+std::optional<Simulation::Report> const& Simulation::getLiveBaselineReport() const
+{
+	return liveBaselineReport;
+}
+
 Simulation::SavedReports const& Simulation::viewSavedReports() const
 {
 	return savedReports;
