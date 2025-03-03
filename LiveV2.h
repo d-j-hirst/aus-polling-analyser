@@ -79,6 +79,8 @@ public:
     int natPartyIndex
   );
 
+  void calculateTppSwing(int natPartyIndex);
+
   void log() const;
 
   std::string name;
@@ -147,6 +149,8 @@ private:
 
   void getNatPartyIndex();
 
+  void loadEstimatedPreferenceFlows();
+
   void aggregateToSeat(LiveV2::Seat& seat);
   void aggregateToLargeRegion(LargeRegion& largeRegion);
   void aggregateToElection();
@@ -158,6 +162,8 @@ private:
   void createNodesFromElectionData();
 
   void doAggregationForFpTotals();
+
+  void calculateTppEstimates();
 
   void includeBaselineResults();
 
@@ -180,6 +186,10 @@ private:
   std::map<int, int> ecBoothToInternalBooth;
 
   std::map<std::string, int> ecAbbreviationToInternalParty;
+
+  std::map<int, float> preferenceFlowMap;
+  std::map<int, float> preferenceExhaustMap;
+  std::map<int, float> prevPreferenceOverrides; // Covers cases where the preference flow last election is expected to be different
 
   int natPartyIndex;
 

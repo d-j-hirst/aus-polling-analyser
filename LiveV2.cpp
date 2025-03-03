@@ -49,6 +49,11 @@ int Node::totalVotesPrevious() const {
     [](int sum, const auto& pair) { return sum + pair.second; });
 }
 
+// Helper function to determine if a given tcp set is a valid tpp set
+auto isTppSet = [](const auto& shares, int natPartyIndex) {
+  return shares.contains(0) && (shares.contains(1) || shares.contains(natPartyIndex));
+};
+
 Booth::Booth(
   Results2::Booth const& currentBooth,
   std::optional<Results2::Booth const*> previousBooth,
@@ -111,11 +116,6 @@ Booth::Booth(
     }
   };
 
-  // Helper function to determine if a given tcp set is a valid tpp set
-  auto isTppSet = [natPartyIndex](const auto& shares) {
-    return shares.contains(0) && (shares.contains(1) || shares.contains(natPartyIndex));
-  };
-
   // Process first preference votes
   processVotes(
     currentBooth.fpVotes, 
@@ -131,12 +131,12 @@ Booth::Booth(
   );
 
   // Determine tpp share and swing, if available
-  if (node.totalFpVotesCurrent() > 0 && isTppSet(node.tcpShares)) {
+  if (node.totalFpVotesCurrent() > 0 && isTppSet(node.tcpShares, natPartyIndex)) {
     node.tppShare = node.tcpShares.at(0);
     int previousTotal = node.totalVotesPrevious();
     if (
       previousTotal > 0
-      && isTppSet(node.tcpVotesPrevious)
+      && isTppSet(node.tcpVotesPrevious, natPartyIndex)
       && node.tcpVotesPrevious.at(0) > 0
       && node.tcpVotesPrevious.at(0) < previousTotal
     ) {
@@ -153,6 +153,21 @@ Booth::Booth(
   node.fpConfidence = node.fpSwings.size() > 0 ? 1 : 0;
   node.tcpConfidence = node.tcpSwings.size() > 1 ? 1 : 0;
   node.tppConfidence = node.tppSwing.has_value() ? 1 : 0;
+}
+
+void Booth::calculateTppSwing(int natPartyIndex) {
+  int previousTotal = node.totalVotesPrevious();
+  if (
+    previousTotal > 0
+    && isTppSet(node.tcpVotesPrevious, natPartyIndex)
+    && node.tcpVotesPrevious.at(0) > 0
+    && node.tcpVotesPrevious.at(0) < previousTotal
+  ) {
+    float previousShare = transformVoteShare(
+      static_cast<float>(node.tcpVotesPrevious.at(0)) / previousTotal * 100.0f
+    );
+    node.tppSwing = node.tppShare.value() - previousShare;
+  }
 }
 
 void Booth::log() const
@@ -198,9 +213,12 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
 {
   logger << "Initializing live election\n";
   getNatPartyIndex();
+  loadEstimatedPreferenceFlows();
   initializePartyMappings();
   createNodesFromElectionData();
   doAggregationForFpTotals();
+  // doAggregationForPreferenceFlows();
+  calculateTppEstimates();
   includeBaselineResults();
   extrapolateBaselineSwings();
   calculateDeviationsFromBaseline();
@@ -209,6 +227,39 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
 void Election::getNatPartyIndex() {
 	natPartyIndex = project.parties().indexByShortCode("NAT");
 	if (natPartyIndex == -1) natPartyIndex = InvalidPartyIndex;
+}
+
+void Election::loadEstimatedPreferenceFlows() {
+  preferenceFlowMap.clear();
+	preferenceExhaustMap.clear();
+	auto lines = extractElectionDataFromFile("analysis/Data/preference-estimates.csv", run.getTermCode());
+	for (auto const& line : lines) {
+		std::string party = splitString(line[2], " ")[0];
+    int partyIndex = project.parties().indexByShortCode(party);
+		float thisPreferenceFlow = std::stof(line[3]);
+		preferenceFlowMap[partyIndex] = thisPreferenceFlow;
+		if (line.size() >= 5 && line[4][0] != '#') {
+			float thisExhaustRate = std::stof(line[4]);
+			preferenceExhaustMap[partyIndex] = thisExhaustRate;
+		}
+		else {
+			preferenceExhaustMap[partyIndex] = 0.0f;
+		}
+	}
+
+	preferenceFlowMap[0] = 100.0f;
+	preferenceFlowMap[1] = 0.0f;
+	preferenceExhaustMap[0] = 0.0f;
+	preferenceExhaustMap[1] = 0.0f;
+  if (!preferenceFlowMap.contains(-1)) {
+    preferenceFlowMap[-1] = project.parties().getOthersPreferenceFlow();
+  }
+  if (!preferenceExhaustMap.contains(-1)) {
+    preferenceExhaustMap[-1] = project.parties().getOthersExhaustRate();
+  }
+  if (run.getTermCode() == "2025fed") {
+    prevPreferenceOverrides[7] = 35.7f; // One Nation preferences, expected to be lower in 2025
+  }
 }
 
 void Election::initializePartyMappings() {
@@ -274,6 +325,93 @@ void Election::createNodesFromElectionData() {
 void Election::doAggregationForFpTotals() {
   for (auto& seat : seats) {
     aggregateToSeat(seat);
+  }
+}
+
+void Election::calculateTppEstimates() {
+  for (auto& booth : booths) {
+    if (booth.node.tppShare) continue;
+
+    std::optional<float> prevPreferenceRateOffset = std::nullopt;
+    if (booth.node.tcpVotesPrevious.contains(0) && (booth.node.tcpVotesPrevious.contains(1) || booth.node.tcpVotesPrevious.contains(natPartyIndex))) {
+      float prevPartyOnePreferenceEstimatePercent = 0.0f;
+      int preferredCoalitionParty = booth.node.tcpVotesPrevious.contains(natPartyIndex) ? natPartyIndex : 1;
+      float totalPrevVotes = float(booth.node.totalVotesPrevious());
+      // Work out expected preference flow last election to determine offset
+      for (auto const& [partyId, votes] : booth.node.fpVotesPrevious) {
+        // unlike current election, we know for sure which coalition party made the TPP last election
+        float partyPercent = float(votes) / totalPrevVotes * 100.0f;
+
+        // now allocate preferences for non-major parties
+        if (partyId == preferredCoalitionParty || partyId == 0) {
+          // This party will make the TPP, so will have zero preferences to Labor
+          continue;
+        }
+        else if (partyId == natPartyIndex || partyId == 1) {
+          // Other coalition party's votes, assume some leakage to Labor
+          prevPartyOnePreferenceEstimatePercent += partyPercent * 0.2f;
+        }
+        else if (prevPreferenceOverrides.contains(partyId)) {
+          // Override preference flow for this party
+          // When a party's preference flow is expected to be different
+          // the preference offset should be calculated relative to the
+          // preference flow at the previous election
+          prevPartyOnePreferenceEstimatePercent += partyPercent * prevPreferenceOverrides.at(partyId) * 0.01f;
+        }
+        else if (preferenceFlowMap.contains(partyId)) {
+          prevPartyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(partyId) * 0.01f;
+        }
+        else {
+          prevPartyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(-1) * 0.01f;
+        }
+      }
+      float nonMajorVotes = totalPrevVotes - booth.node.fpVotesPrevious.at(0) - booth.node.fpVotesPrevious.at(preferredCoalitionParty);
+      float nonMajorVotesPercent = nonMajorVotes / totalPrevVotes * 100.0f;
+      float prevPartyOnePreferenceRateEstimate = prevPartyOnePreferenceEstimatePercent / nonMajorVotesPercent * 100.0f;
+      float prevPartyOnePreferenceRateActual = (booth.node.tcpVotesPrevious.at(0) - booth.node.fpVotesPrevious.at(0)) / nonMajorVotes * 100.0f;
+      prevPreferenceRateOffset = transformVoteShare(prevPartyOnePreferenceRateActual) - transformVoteShare(prevPartyOnePreferenceRateEstimate);
+    }
+
+    float partyOneShare = 0.0f;
+    for (auto const& [partyId, share] : booth.node.fpShares) {
+
+      auto applyOffset = [prevPreferenceRateOffset](float flow) {
+        if (flow == 0.0f || flow == 100.0f || !prevPreferenceRateOffset) return flow;
+        return detransformVoteShare(transformVoteShare(flow) + *prevPreferenceRateOffset);
+      };
+
+      // work out which coalition party will make the TPP here
+      int preferredCoalitionParty = 1;
+      if (booth.node.fpVotesCurrent.contains(natPartyIndex)) {
+        if (!booth.node.fpVotesCurrent.contains(1)) {
+          preferredCoalitionParty = natPartyIndex;
+        }
+        else if (booth.node.fpVotesCurrent.at(natPartyIndex) > booth.node.fpVotesCurrent.at(1)) {
+          preferredCoalitionParty = natPartyIndex;
+        }
+      }
+      // now allocate preferences for non-major parties
+      if (partyId == preferredCoalitionParty) {
+        // This party will make the TPP, so will have zero preferences to Labor
+        continue;
+      }
+      else if (partyId == natPartyIndex || partyId == 1) {
+        // Other coalition party's votes, assume some leakage to Labor
+        partyOneShare += detransformVoteShare(share) * applyOffset(20.0f) * 0.01f;
+      }
+      else if (preferenceFlowMap.contains(partyId)) {
+        partyOneShare += detransformVoteShare(share) * applyOffset(preferenceFlowMap.at(partyId)) * 0.01f;
+      }
+      else {
+        partyOneShare += detransformVoteShare(share) * applyOffset(preferenceFlowMap.at(-1)) * 0.01f;
+      }
+    }
+
+    if (partyOneShare > 0.0f && partyOneShare < 100.0f) {
+      booth.node.tppShare = transformVoteShare(partyOneShare);
+      booth.node.tppConfidence = 0.5f; // TODO: tune parameter
+      booth.calculateTppSwing(natPartyIndex);
+    }
   }
 }
 
