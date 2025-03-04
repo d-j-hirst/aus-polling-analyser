@@ -10,6 +10,13 @@
 
 using namespace LiveV2;
 
+constexpr float VoteObsWeightStrength = 80.0f;
+constexpr float PreferenceFlowObsWeightStrength = 200.0f;
+
+const float obsWeight(float confidence, float strength = VoteObsWeightStrength) {
+  return std::min(1.0f, 1.025f - 1.025f / (1.0f + std::pow(confidence, 1.6f) * strength));
+}
+
 Node::Node()
 {
 }
@@ -41,6 +48,7 @@ void Node::log() const
   PA_LOG_VAR(specificTppDeviation);
   PA_LOG_VAR(preferenceFlowDeviation);
   PA_LOG_VAR(preferenceFlowConfidence);
+  PA_LOG_VAR(specificPreferenceFlowDeviation);
 }
 
 int Node::totalFpVotesCurrent() const {
@@ -229,6 +237,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   createNodesFromElectionData();
   calculateTppEstimates(true); // This is done now so that we can observe deviations from preference flows
   aggregate(); // preliminary, for calculating preference flow and seat fp totals
+  calculatePreferenceFlowDeviations();
   calculateTppEstimates(false); // Calculate again, this time using the observed deviations from preference flows
   includeBaselineResults();
   extrapolateBaselineSwings();
@@ -336,6 +345,25 @@ void Election::createNodesFromElectionData() {
   }
 }
 
+template<typename T>
+std::vector<Node const*> Election::getThisAndParents(T& child) const {
+  std::vector<Node const*> parents;
+  parents.push_back(&child.node);
+  if constexpr (std::is_same_v<T, Booth>) {
+    parents.push_back(&seats.at(child.parentSeatId).node);
+    parents.push_back(&largeRegions.at(seats.at(child.parentSeatId).parentRegionId).node);
+    parents.push_back(&node);
+  }
+  else if constexpr (std::is_same_v<T, Seat>) {
+    parents.push_back(&largeRegions.at(child.parentRegionId).node);
+    parents.push_back(&node);
+  }
+  else if constexpr (std::is_same_v<T, LargeRegion>) {
+    parents.push_back(&node);
+  }
+  return parents;
+}
+
 void Election::calculateTppEstimates(bool withTpp) {
   for (auto& booth : booths) {
     // We're either doing this to help observe deviations from preference flows
@@ -389,9 +417,14 @@ void Election::calculateTppEstimates(bool withTpp) {
     float partyOneShare = 0.0f;
     for (auto const& [partyId, share] : booth.node.fpShares) {
 
-      auto applyOffset = [prevPreferenceRateOffset](float flow) {
+      auto applyOffset = [this, booth, prevPreferenceRateOffset](float flow) {
         if (flow == 0.0f || flow == 100.0f || !prevPreferenceRateOffset) return flow;
-        return detransformVoteShare(transformVoteShare(flow) + *prevPreferenceRateOffset);
+        auto const& thisAndParents = getThisAndParents(booth);
+        float preferenceFlowDeviation = 0.0f;
+        for (auto const& parent : thisAndParents) {
+          preferenceFlowDeviation += parent->specificPreferenceFlowDeviation.value_or(0.0f);
+        }
+        return detransformVoteShare(transformVoteShare(flow) + *prevPreferenceRateOffset + preferenceFlowDeviation);
       };
 
       // work out which coalition party will make the TPP here
@@ -455,9 +488,51 @@ void Election::calculateTppEstimates(bool withTpp) {
   }
 }
 
-void Election::doPreliminaryAggregation() {
+void Election::calculatePreferenceFlowDeviations() {
+  determineElectionPreferenceFlowDeviations();
+  determineLargeRegionPreferenceFlowDeviations();
+  determineSeatPreferenceFlowDeviations();
+  determineBoothPreferenceFlowDeviations();
+}
+
+void Election::determineElectionPreferenceFlowDeviations() {
+  node.specificPreferenceFlowDeviation = node.preferenceFlowDeviation.value() * obsWeight(node.preferenceFlowConfidence, PreferenceFlowObsWeightStrength);
+}
+
+void Election::determineLargeRegionPreferenceFlowDeviations() {
+  for (auto& largeRegion : largeRegions) {
+    float preferenceFlowObsWeight = obsWeight(largeRegion.node.preferenceFlowConfidence, PreferenceFlowObsWeightStrength);
+    float parentPreferenceFlowDeviation = node.specificPreferenceFlowDeviation.value_or(0.0f);
+    float withoutElectionSpecific = largeRegion.node.preferenceFlowDeviation ? largeRegion.node.preferenceFlowDeviation.value() - parentPreferenceFlowDeviation : 0.0f;
+    largeRegion.node.specificPreferenceFlowDeviation = withoutElectionSpecific * preferenceFlowObsWeight;
+  }
+}
+
+void Election::determineSeatPreferenceFlowDeviations() {
+  for (auto& largeRegion : largeRegions) {
+    for (int seatIndex : largeRegion.seats) {
+      auto& seat = seats.at(seatIndex);
+      float preferenceFlowObsWeight = obsWeight(seat.node.preferenceFlowConfidence, PreferenceFlowObsWeightStrength);
+      float parentPreferenceFlowDeviation = largeRegion.node.specificPreferenceFlowDeviation.value_or(0.0f);
+      parentPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0f);
+      float withoutElectionSpecific = seat.node.preferenceFlowDeviation ? seat.node.preferenceFlowDeviation.value() - parentPreferenceFlowDeviation : 0.0f;
+      seat.node.specificPreferenceFlowDeviation = withoutElectionSpecific * preferenceFlowObsWeight;
+    }
+  }
+}
+
+void Election::determineBoothPreferenceFlowDeviations() {
   for (auto& seat : seats) {
-    aggregateToSeat(seat);
+    for (int boothIndex : seat.booths) {
+      auto& booth = booths.at(boothIndex);
+      float preferenceFlowObsWeight = obsWeight(booth.node.preferenceFlowConfidence, PreferenceFlowObsWeightStrength);
+      float parentPreferenceFlowDeviation = seat.node.specificPreferenceFlowDeviation.value_or(0.0f);
+      auto const& largeRegion = largeRegions.at(seat.parentRegionId);
+      parentPreferenceFlowDeviation += largeRegion.node.specificPreferenceFlowDeviation.value_or(0.0f);
+      parentPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0f);
+      float withoutElectionSpecific = booth.node.preferenceFlowDeviation ? booth.node.preferenceFlowDeviation.value() - parentPreferenceFlowDeviation : 0.0f;
+      booth.node.specificPreferenceFlowDeviation = withoutElectionSpecific * preferenceFlowObsWeight;
+    }
   }
 }
 
@@ -658,37 +733,32 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
 }
 
 void Election::determineSpecificDeviations() {
-
-  logger << "Determining specific deviations\n";
   determineElectionSpecificDeviations();
-  logger << "Election specific deviations determined\n";
   determineLargeRegionSpecificDeviations();
-  logger << "Large region specific deviations determined\n";
   determineSeatSpecificDeviations();
-  logger << "Seat specific deviations determined\n";
   determineBoothSpecificDeviations();
 }
 
 void Election::determineElectionSpecificDeviations() {
-  float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(node.fpConfidence, 1.6f) * 80.0f);
+  float fpObsWeight = obsWeight(node.fpConfidence);
   for (auto const& [partyId, deviation] : node.fpDeviations) {
     node.specificFpDeviations[partyId] = deviation * fpObsWeight;
   }
-  float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(node.tppConfidence, 1.6f) * 80.0f);
+  float tppObsWeight = obsWeight(node.tppConfidence);
   node.specificTppDeviation = node.tppDeviation.value() * tppObsWeight;
 }
 
 void Election::determineLargeRegionSpecificDeviations() {
   for (auto& largeRegion : largeRegions) {
-    float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(largeRegion.node.fpConfidence, 1.6f) * 80.0f);
+    float fpObsWeight = obsWeight(largeRegion.node.fpConfidence);
     for (auto const& [partyId, deviation] : largeRegion.node.fpDeviations) {
       float withoutElectionSpecific = 
         deviation - (node.specificFpDeviations.contains(partyId) ? node.specificFpDeviations.at(partyId) : 0.0f);
       largeRegion.node.specificFpDeviations[partyId] = withoutElectionSpecific * fpObsWeight;
     }
-    float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(largeRegion.node.tppConfidence, 1.6f) * 80.0f);
-    // specificTppDeviation should always exist here unless there's already a bug
-    float withoutElectionSpecific = largeRegion.node.tppDeviation ? largeRegion.node.tppDeviation.value() - node.specificTppDeviation.value() : 0.0f;
+    float tppObsWeight = obsWeight(largeRegion.node.tppConfidence);
+    float parentTppDeviation = node.specificTppDeviation.value_or(0.0f);
+    float withoutElectionSpecific = largeRegion.node.tppDeviation ? largeRegion.node.tppDeviation.value() - parentTppDeviation : 0.0f;
     largeRegion.node.specificTppDeviation = withoutElectionSpecific * tppObsWeight;
   }
 }
@@ -697,15 +767,16 @@ void Election::determineSeatSpecificDeviations() {
   for (auto& largeRegion : largeRegions) {
     for (int seatIndex : largeRegion.seats) {
       auto& seat = seats.at(seatIndex);
-      float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(seat.node.fpConfidence, 1.6f) * 80.0f);
+      float fpObsWeight = obsWeight(seat.node.fpConfidence);
       for (auto const& [partyId, deviation] : seat.node.fpDeviations) {
         float withoutElectionSpecific = 
           deviation - (largeRegion.node.specificFpDeviations.contains(partyId) ? largeRegion.node.specificFpDeviations.at(partyId) : 0.0f);
         seat.node.specificFpDeviations[partyId] = withoutElectionSpecific * fpObsWeight;
       }
-      float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(seat.node.tppConfidence, 1.6f) * 80.0f);
-      // specificTppDeviation should always exist here unless there's already a bug
-      float withoutElectionSpecific = seat.node.tppDeviation ? seat.node.tppDeviation.value() - largeRegion.node.specificTppDeviation.value() : 0.0f;
+      float tppObsWeight = obsWeight(seat.node.tppConfidence);
+      float parentTppDeviation = largeRegion.node.specificTppDeviation.value_or(0.0f);
+      parentTppDeviation += node.specificTppDeviation.value_or(0.0f);
+      float withoutElectionSpecific = seat.node.tppDeviation ? seat.node.tppDeviation.value() - parentTppDeviation : 0.0f;
       seat.node.specificTppDeviation = withoutElectionSpecific * tppObsWeight;
     }
   }
@@ -715,15 +786,18 @@ void Election::determineBoothSpecificDeviations() {
   for (auto& seat : seats) {
     for (int boothIndex : seat.booths) {
       auto& booth = booths.at(boothIndex);
-      float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(booth.node.fpConfidence, 1.6f) * 80.0f);
+      float fpObsWeight = obsWeight(booth.node.fpConfidence);
       for (auto const& [partyId, deviation] : seat.node.fpDeviations) {
         float withoutElectionSpecific = 
           deviation - (seat.node.specificFpDeviations.contains(partyId) ? seat.node.specificFpDeviations.at(partyId) : 0.0f);
         booth.node.specificFpDeviations[partyId] = withoutElectionSpecific * fpObsWeight;
       }
-      float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(booth.node.tppConfidence, 1.6f) * 80.0f);
-      // specificTppDeviation should always exist here unless there's already a bug
-      float withoutElectionSpecific = booth.node.tppDeviation ? booth.node.tppDeviation.value() - seat.node.specificTppDeviation.value() : 0.0f;
+      float tppObsWeight = obsWeight(booth.node.tppConfidence);
+      float parentTppDeviation = seat.node.specificTppDeviation.value_or(0.0f);
+      auto const& largeRegion = largeRegions.at(seat.parentRegionId);
+      parentTppDeviation += largeRegion.node.specificTppDeviation.value_or(0.0f);
+      parentTppDeviation += node.specificTppDeviation.value_or(0.0f);
+      float withoutElectionSpecific = booth.node.tppDeviation ? booth.node.tppDeviation.value() - parentTppDeviation : 0.0f;
       booth.node.specificTppDeviation = withoutElectionSpecific * tppObsWeight;
     }
   }

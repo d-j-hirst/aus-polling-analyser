@@ -46,6 +46,7 @@ public:
   std::map<int, float> specificFpDeviations; // deviations reduced according to confidence level
   std::optional<float> specificTppDeviation; // deviations reduced according to confidence level
   std::optional<float> preferenceFlowDeviation; // deviation from baseline preference flows
+  std::optional<float> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
 
   float fpConfidence = 0.0f;
   float tcpConfidence = 0.0f;
@@ -157,9 +158,17 @@ private:
 
   void createNodesFromElectionData();
 
+  template<typename T>
+  std::vector<Node const*> getThisAndParents(T& child) const;
+
   void calculateTppEstimates(bool withTpp);
 
-  void doPreliminaryAggregation();
+  void calculatePreferenceFlowDeviations();
+
+  void determineElectionPreferenceFlowDeviations();
+  void determineLargeRegionPreferenceFlowDeviations();
+  void determineSeatPreferenceFlowDeviations();
+  void determineBoothPreferenceFlowDeviations();
 
   void includeBaselineResults();
 
