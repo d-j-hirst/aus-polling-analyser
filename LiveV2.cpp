@@ -37,10 +37,19 @@ void Node::log() const
   PA_LOG_VAR(tppSwingBaseline);
   PA_LOG_VAR(fpDeviations);
   PA_LOG_VAR(tppDeviation);
+  PA_LOG_VAR(specificFpDeviations);
+  PA_LOG_VAR(specificTppDeviation);
+  PA_LOG_VAR(preferenceFlowDeviation);
+  PA_LOG_VAR(preferenceFlowConfidence);
 }
 
 int Node::totalFpVotesCurrent() const {
   return std::accumulate(fpVotesCurrent.begin(), fpVotesCurrent.end(), 0,
+    [](int sum, const auto& pair) { return sum + pair.second; });
+}
+
+int Node::totalTcpVotesCurrent() const {
+  return std::accumulate(tcpVotesCurrent.begin(), tcpVotesCurrent.end(), 0,
     [](int sum, const auto& pair) { return sum + pair.second; });
 }
 
@@ -147,6 +156,8 @@ Booth::Booth(
     }
   }
 
+
+
   // Booths are either complete or not in, so confidence is 1 if there are votes, 0 otherwise
   // We'll handle partial results (like absent/postal votes that are in different batches) later
   // as well as the usually very minor changes that occur when the check count is performed.
@@ -216,12 +227,15 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   loadEstimatedPreferenceFlows();
   initializePartyMappings();
   createNodesFromElectionData();
-  doAggregationForFpTotals();
-  // doAggregationForPreferenceFlows();
-  calculateTppEstimates();
+  calculateTppEstimates(true); // This is done now so that we can observe deviations from preference flows
+  aggregate(); // preliminary, for calculating preference flow and seat fp totals
+  calculateTppEstimates(false); // Calculate again, this time using the observed deviations from preference flows
   includeBaselineResults();
   extrapolateBaselineSwings();
   calculateDeviationsFromBaseline();
+  aggregate();
+  determineSpecificDeviations();
+  log(true, true, true);
 }
 
 void Election::getNatPartyIndex() {
@@ -322,55 +336,55 @@ void Election::createNodesFromElectionData() {
   }
 }
 
-void Election::doAggregationForFpTotals() {
-  for (auto& seat : seats) {
-    aggregateToSeat(seat);
-  }
-}
-
-void Election::calculateTppEstimates() {
+void Election::calculateTppEstimates(bool withTpp) {
   for (auto& booth : booths) {
-    if (booth.node.tppShare) continue;
+    // We're either doing this to help observe deviations from preference flows
+    // or to calculate the final estimate of the TPP share for each booth
+    if (booth.node.tppShare.has_value() != withTpp) continue;
 
-    std::optional<float> prevPreferenceRateOffset = std::nullopt;
-    if (booth.node.tcpVotesPrevious.contains(0) && (booth.node.tcpVotesPrevious.contains(1) || booth.node.tcpVotesPrevious.contains(natPartyIndex))) {
-      float prevPartyOnePreferenceEstimatePercent = 0.0f;
-      int preferredCoalitionParty = booth.node.tcpVotesPrevious.contains(natPartyIndex) ? natPartyIndex : 1;
-      float totalPrevVotes = float(booth.node.totalVotesPrevious());
-      // Work out expected preference flow last election to determine offset
-      for (auto const& [partyId, votes] : booth.node.fpVotesPrevious) {
-        // unlike current election, we know for sure which coalition party made the TPP last election
-        float partyPercent = float(votes) / totalPrevVotes * 100.0f;
-
-        // now allocate preferences for non-major parties
-        if (partyId == preferredCoalitionParty || partyId == 0) {
-          // This party will make the TPP, so will have zero preferences to Labor
-          continue;
+    auto calculatePreferenceRateOffset = [this, &booth](bool current) -> std::optional<float> {
+      std::optional<float> preferenceRateOffset = std::nullopt;
+      auto const& tcpVotes = current ? booth.node.tcpVotesCurrent : booth.node.tcpVotesPrevious;
+      if (tcpVotes.contains(0) && (tcpVotes.contains(1) || tcpVotes.contains(natPartyIndex))) {
+        float partyOnePreferenceEstimatePercent = 0.0f;
+        int preferredCoalitionParty = tcpVotes.contains(natPartyIndex) ? natPartyIndex : 1;
+        float totalVotes = float(current ? booth.node.totalFpVotesCurrent() : booth.node.totalVotesPrevious());
+        if (current && totalVotes != booth.node.totalTcpVotesCurrent()) {
+          logger << "Warning: Total votes in current election (" << totalVotes << ") does not match total TCP votes (" << booth.node.totalTcpVotesCurrent() << ") for booth " << booth.name << "\n";
+          logger << "Not calculating preference rate offset for booth " << booth.name << "\n";
+          return std::nullopt;
         }
-        else if (partyId == natPartyIndex || partyId == 1) {
-          // Other coalition party's votes, assume some leakage to Labor
-          prevPartyOnePreferenceEstimatePercent += partyPercent * 0.2f;
+        auto const& fpVotes = current ? booth.node.fpVotesCurrent : booth.node.fpVotesPrevious;
+        for (auto const& [partyId, votes] : fpVotes) {
+          float partyPercent = float(votes) / totalVotes * 100.0f;
+          if (partyId == preferredCoalitionParty || partyId == 0) {
+            continue;
+          }
+          if (partyId == natPartyIndex || partyId == 1) {
+            // Other coalition party's votes, assume some leakage to Labor
+            partyOnePreferenceEstimatePercent += partyPercent * 0.2f;
+          }
+          else if (prevPreferenceOverrides.contains(partyId)) {
+            // Override preference flow for this party
+            partyOnePreferenceEstimatePercent += partyPercent * prevPreferenceOverrides.at(partyId) * 0.01f;
+          }
+          else if (preferenceFlowMap.contains(partyId)) {
+            partyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(partyId) * 0.01f;
+          }
+          else {
+            partyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(-1) * 0.01f;
+          }
         }
-        else if (prevPreferenceOverrides.contains(partyId)) {
-          // Override preference flow for this party
-          // When a party's preference flow is expected to be different
-          // the preference offset should be calculated relative to the
-          // preference flow at the previous election
-          prevPartyOnePreferenceEstimatePercent += partyPercent * prevPreferenceOverrides.at(partyId) * 0.01f;
-        }
-        else if (preferenceFlowMap.contains(partyId)) {
-          prevPartyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(partyId) * 0.01f;
-        }
-        else {
-          prevPartyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(-1) * 0.01f;
-        }
+        float nonMajorVotes = totalVotes - fpVotes.at(0) - fpVotes.at(preferredCoalitionParty);
+        float nonMajorVotesPercent = nonMajorVotes / totalVotes * 100.0f;
+        float partyOnePreferenceRateEstimate = partyOnePreferenceEstimatePercent / nonMajorVotesPercent * 100.0f;
+        float partyOnePreferenceRateActual = (tcpVotes.at(0) - fpVotes.at(0)) / nonMajorVotes * 100.0f;
+        preferenceRateOffset = transformVoteShare(partyOnePreferenceRateActual) - transformVoteShare(partyOnePreferenceRateEstimate);
       }
-      float nonMajorVotes = totalPrevVotes - booth.node.fpVotesPrevious.at(0) - booth.node.fpVotesPrevious.at(preferredCoalitionParty);
-      float nonMajorVotesPercent = nonMajorVotes / totalPrevVotes * 100.0f;
-      float prevPartyOnePreferenceRateEstimate = prevPartyOnePreferenceEstimatePercent / nonMajorVotesPercent * 100.0f;
-      float prevPartyOnePreferenceRateActual = (booth.node.tcpVotesPrevious.at(0) - booth.node.fpVotesPrevious.at(0)) / nonMajorVotes * 100.0f;
-      prevPreferenceRateOffset = transformVoteShare(prevPartyOnePreferenceRateActual) - transformVoteShare(prevPartyOnePreferenceRateEstimate);
-    }
+      return preferenceRateOffset;
+    };
+    
+    std::optional<float> prevPreferenceRateOffset = calculatePreferenceRateOffset(false);
 
     float partyOneShare = 0.0f;
     for (auto const& [partyId, share] : booth.node.fpShares) {
@@ -408,10 +422,42 @@ void Election::calculateTppEstimates() {
     }
 
     if (partyOneShare > 0.0f && partyOneShare < 100.0f) {
-      booth.node.tppShare = transformVoteShare(partyOneShare);
-      booth.node.tppConfidence = 0.5f; // TODO: tune parameter
-      booth.calculateTppSwing(natPartyIndex);
+      if (withTpp) {
+        std::optional<float> currentPreferenceRateOffset = calculatePreferenceRateOffset(true);
+        if (currentPreferenceRateOffset && prevPreferenceRateOffset) {
+          bool isBad = false;
+          // Error inputs can result in NaN or Inf
+          // Inf can also result from legitimate results where the
+          // preference flow is 0% or 100%
+          // For analysis purposes, it's better to just ignore these booths
+          if (std::isnan(currentPreferenceRateOffset.value())) {
+            logger << "Warning: NaN preference rate offset for booth " << booth.name << "\n";
+            logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
+            isBad = true;
+          }
+          if (std::isinf(currentPreferenceRateOffset.value()) || std::isinf(prevPreferenceRateOffset.value())) {
+            logger << "Warning: Infinite preference rate offset for booth " << booth.name << "\n";
+            logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
+            logger << "Previous: " << prevPreferenceRateOffset.value() << "\n";
+            isBad = true;
+          }
+          if (!isBad) {
+            booth.node.preferenceFlowDeviation = currentPreferenceRateOffset.value() - prevPreferenceRateOffset.value();
+            booth.node.preferenceFlowConfidence = 1.0f;
+          }
+        }
+      } else {
+        booth.node.tppShare = transformVoteShare(partyOneShare);
+        booth.node.tppConfidence = 0.5f; // TODO: tune parameter
+        booth.calculateTppSwing(natPartyIndex);
+      }
     }
+  }
+}
+
+void Election::doPreliminaryAggregation() {
+  for (auto& seat : seats) {
+    aggregateToSeat(seat);
   }
 }
 
@@ -493,7 +539,6 @@ void Election::aggregate() {
     aggregateToLargeRegion(largeRegion);
   }
   aggregateToElection();
-  log(true, true, true);
 }
 
 // Template method for aggregation
@@ -533,6 +578,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   Node aggregatedNode = parentNode ? *parentNode : Node();
 
   // Aggregate previous election vote totals (used for weighting only)
+  aggregatedNode.fpVotesPrevious = std::map<int, int>();
   for (auto const& thisNode : nodesToAggregate) {
     for (auto const& [partyId, votes] : thisNode->fpVotesPrevious) {
       aggregatedNode.fpVotesPrevious[partyId] += votes;
@@ -569,7 +615,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   // Will eventually add some code for the seat-level tcp swings, but not a priority
   // for WA election
 
-  // Calculate tpp swing
+  // Aggregate tpp swing
   float tppDeviationWeightedSum = 0.0f;
   float tppWeightSum = 0.0f;
   float tppConfidenceSum = 0.0f;
@@ -588,7 +634,99 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     aggregatedNode.tppConfidence = tppConfidenceSum / tppConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
   }
 
+    // Aggregate preference flow deviation
+  float preferenceFlowDeviationWeightedSum = 0.0f;
+  float preferenceFlowWeightSum = 0.0f;
+  float preferenceFlowConfidenceSum = 0.0f;
+  float preferenceFlowConfidenceWeightSum = 0.0f;
+  for (auto const& thisNode : nodesToAggregate) {
+    float weight = thisNode->totalVotesPrevious() * thisNode->preferenceFlowConfidence;
+    if (thisNode->preferenceFlowDeviation) {
+      preferenceFlowDeviationWeightedSum += thisNode->preferenceFlowDeviation.value() * weight;
+      preferenceFlowWeightSum += weight;
+    }
+    preferenceFlowConfidenceSum += thisNode->preferenceFlowConfidence * thisNode->totalVotesPrevious();
+    preferenceFlowConfidenceWeightSum += thisNode->totalVotesPrevious();
+  }
+  if (preferenceFlowWeightSum > 0) {
+    aggregatedNode.preferenceFlowDeviation = preferenceFlowDeviationWeightedSum / preferenceFlowWeightSum;
+    aggregatedNode.preferenceFlowConfidence = preferenceFlowConfidenceSum / preferenceFlowConfidenceWeightSum;
+  }
+
+
   return aggregatedNode;
+}
+
+void Election::determineSpecificDeviations() {
+
+  logger << "Determining specific deviations\n";
+  determineElectionSpecificDeviations();
+  logger << "Election specific deviations determined\n";
+  determineLargeRegionSpecificDeviations();
+  logger << "Large region specific deviations determined\n";
+  determineSeatSpecificDeviations();
+  logger << "Seat specific deviations determined\n";
+  determineBoothSpecificDeviations();
+}
+
+void Election::determineElectionSpecificDeviations() {
+  float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(node.fpConfidence, 1.6f) * 80.0f);
+  for (auto const& [partyId, deviation] : node.fpDeviations) {
+    node.specificFpDeviations[partyId] = deviation * fpObsWeight;
+  }
+  float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(node.tppConfidence, 1.6f) * 80.0f);
+  node.specificTppDeviation = node.tppDeviation.value() * tppObsWeight;
+}
+
+void Election::determineLargeRegionSpecificDeviations() {
+  for (auto& largeRegion : largeRegions) {
+    float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(largeRegion.node.fpConfidence, 1.6f) * 80.0f);
+    for (auto const& [partyId, deviation] : largeRegion.node.fpDeviations) {
+      float withoutElectionSpecific = 
+        deviation - (node.specificFpDeviations.contains(partyId) ? node.specificFpDeviations.at(partyId) : 0.0f);
+      largeRegion.node.specificFpDeviations[partyId] = withoutElectionSpecific * fpObsWeight;
+    }
+    float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(largeRegion.node.tppConfidence, 1.6f) * 80.0f);
+    // specificTppDeviation should always exist here unless there's already a bug
+    float withoutElectionSpecific = largeRegion.node.tppDeviation ? largeRegion.node.tppDeviation.value() - node.specificTppDeviation.value() : 0.0f;
+    largeRegion.node.specificTppDeviation = withoutElectionSpecific * tppObsWeight;
+  }
+}
+
+void Election::determineSeatSpecificDeviations() {
+  for (auto& largeRegion : largeRegions) {
+    for (int seatIndex : largeRegion.seats) {
+      auto& seat = seats.at(seatIndex);
+      float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(seat.node.fpConfidence, 1.6f) * 80.0f);
+      for (auto const& [partyId, deviation] : seat.node.fpDeviations) {
+        float withoutElectionSpecific = 
+          deviation - (largeRegion.node.specificFpDeviations.contains(partyId) ? largeRegion.node.specificFpDeviations.at(partyId) : 0.0f);
+        seat.node.specificFpDeviations[partyId] = withoutElectionSpecific * fpObsWeight;
+      }
+      float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(seat.node.tppConfidence, 1.6f) * 80.0f);
+      // specificTppDeviation should always exist here unless there's already a bug
+      float withoutElectionSpecific = seat.node.tppDeviation ? seat.node.tppDeviation.value() - largeRegion.node.specificTppDeviation.value() : 0.0f;
+      seat.node.specificTppDeviation = withoutElectionSpecific * tppObsWeight;
+    }
+  }
+}
+
+void Election::determineBoothSpecificDeviations() {
+  for (auto& seat : seats) {
+    for (int boothIndex : seat.booths) {
+      auto& booth = booths.at(boothIndex);
+      float fpObsWeight = 1.025f - 1.025f / (1.0f + std::pow(booth.node.fpConfidence, 1.6f) * 80.0f);
+      for (auto const& [partyId, deviation] : seat.node.fpDeviations) {
+        float withoutElectionSpecific = 
+          deviation - (seat.node.specificFpDeviations.contains(partyId) ? seat.node.specificFpDeviations.at(partyId) : 0.0f);
+        booth.node.specificFpDeviations[partyId] = withoutElectionSpecific * fpObsWeight;
+      }
+      float tppObsWeight = 1.025f - 1.025f / (1.0f + std::pow(booth.node.tppConfidence, 1.6f) * 80.0f);
+      // specificTppDeviation should always exist here unless there's already a bug
+      float withoutElectionSpecific = booth.node.tppDeviation ? booth.node.tppDeviation.value() - seat.node.specificTppDeviation.value() : 0.0f;
+      booth.node.specificTppDeviation = withoutElectionSpecific * tppObsWeight;
+    }
+  }
 }
 
 int Election::mapPartyId(int ecCandidateId) {

@@ -43,10 +43,14 @@ public:
   std::optional<float> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
   std::map<int, float> fpDeviations; // observed deviation from baseline
   std::optional<float> tppDeviation; // observed deviation from baseline
+  std::map<int, float> specificFpDeviations; // deviations reduced according to confidence level
+  std::optional<float> specificTppDeviation; // deviations reduced according to confidence level
+  std::optional<float> preferenceFlowDeviation; // deviation from baseline preference flows
 
   float fpConfidence = 0.0f;
   float tcpConfidence = 0.0f;
   float tppConfidence = 0.0f;
+  float preferenceFlowConfidence = 0.0f;
 
   auto fpSharesPercent() const {
     std::map<int, float> result;
@@ -139,8 +143,6 @@ public:
 
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
-  // Propagates information from lower levels to higher levels
-  void aggregate();
 
 private:
   template<typename T, typename U>
@@ -151,25 +153,36 @@ private:
 
   void loadEstimatedPreferenceFlows();
 
-  void aggregateToSeat(LiveV2::Seat& seat);
-  void aggregateToLargeRegion(LargeRegion& largeRegion);
-  void aggregateToElection();
-
-  Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate, Node const* parentNode = nullptr) const;
-
   void initializePartyMappings();
 
   void createNodesFromElectionData();
 
-  void doAggregationForFpTotals();
+  void calculateTppEstimates(bool withTpp);
 
-  void calculateTppEstimates();
+  void doPreliminaryAggregation();
 
   void includeBaselineResults();
 
   void extrapolateBaselineSwings();
 
   void calculateDeviationsFromBaseline();
+
+  // Propagates information from lower levels to higher levels
+  void aggregate();
+
+  void aggregateToSeat(LiveV2::Seat& seat);
+  void aggregateToLargeRegion(LargeRegion& largeRegion);
+  void aggregateToElection();
+
+  Node aggregateFromChildren(const std::vector<Node const*>& nodesToAggregate, Node const* parentNode = nullptr) const;
+
+  // Propagates information from higher levels to lower levels
+  void determineSpecificDeviations();
+  
+  void determineElectionSpecificDeviations();
+  void determineLargeRegionSpecificDeviations();
+  void determineSeatSpecificDeviations();
+  void determineBoothSpecificDeviations();
 
   // map AEC party IDs to internal party IDs
   int mapPartyId(int ecCandidateId);

@@ -1,4 +1,20 @@
 
+ -Determine specific deviations - at each level, model observed deviation, subtract specific deviation from higher level and with the remainder lessen it according to confidence level.
+ -Model preference flow deviations via aggregation + specific deviation in same manner as for tpp deviations
+ -deviations can be injected into the mean expectation for election/region/seat by simply adding it to the (transformed) values
+ -variance is a little more tricky, but can be approximated for now with a sliding linear scale (never exceeding pre-election variance)
+  -could use a mix between historically observed variance with complete correlation and historically observed variance with no correlation, with mix factor and "historical observations" just guesstimates for a first pass.
+ -secondary categories (vote type, urban/rural status, maybe booth size) can then be identified based on patterns in specific deviations. This can be done at whole-election level for a simpler implementation.
+ -create projected deviation for each booth based on specific deviation +  the difference expected for each secondary category.
+ -Project mean actual numerical results rather than percentages (to deal with Simpson's Paradox effects and take into account new booths) - require some adjustments to expectations for each category so they still add to the correct total
+ -Will then need to aggregate these updates and use the new projected deviations in the simulations (rather than specific deviations).
+ -Inclusion of known stats for prepoll/postal votes and adjustments between categories
+ -Weight confidence heavily based on diversity (downweight similar inputs, upweight diverse inputs, truly high confidence requires all significant categories to be well covered)
+ -Actually determine best parameters for variance
+ -Modelling of formal vote % of electorate (somehow)
+ -change weighting based on booths' prior indicativeness and status (e.g. booths that have changed seats in a redistribution should be downweighted and/or specially categorised)
+ -whatever else
+
  -Rework pollster analysis to strictly exclude future polls and generate separate data for any given date/election combination. (Will create a lot of files, but should be small individually)
  -Setup 6-monthly calibration updates for in-progress polls and set pollster analyses to use these where possible
  -Run all poll trends that have enough previous pollster data (assess how much after completing previous points)

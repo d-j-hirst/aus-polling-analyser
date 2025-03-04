@@ -51,7 +51,6 @@ void LivePreparation::prepareLiveAutomatic()
 	parseCurrentResults();
 
 	LiveV2::Election liveElection(previousElection, currentElection, project, sim, run);
-	liveElection.aggregate();
 
 	preparePartyCodeGroupings();
 	determinePartyIdConversions();
