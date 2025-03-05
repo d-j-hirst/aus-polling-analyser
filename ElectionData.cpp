@@ -5,6 +5,19 @@
 
 #include <set>
 
+std::map<std::string, Results2::VoteType> typeNameToVoteType = {
+	{"Ordinary", Results2::VoteType::Ordinary},
+	{"PP", Results2::VoteType::Ordinary},
+	{"PR", Results2::VoteType::Ordinary},
+	{"Absent", Results2::VoteType::Absent},
+	{"Provisional", Results2::VoteType::Provisional},
+	{"Enrolment/Provisional", Results2::VoteType::Provisional},
+	{"PrePoll", Results2::VoteType::PrePoll},
+	{"Postal", Results2::VoteType::Postal},
+	{"Early", Results2::VoteType::Early},
+	{"iVote", Results2::VoteType::IVote}
+};
+
 Results2::Election Results2::Election::createAec(tinyxml2::XMLDocument const& xml)
 {
 	Election election;
@@ -1035,13 +1048,7 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 			while (fpVoteType) {
 				std::string typeName = fpVoteType->FindAttribute("Type")->Value();
 				int fpCount = fpVoteType->GetText() ? std::stoi(fpVoteType->GetText()) : 0;
-				if (typeName == "Ordinary" || typeName == "PP" || typeName == "PR") seat.fpVotes[candidate.id][VoteType::Ordinary] += fpCount;
-				else if (typeName == "Absent") seat.fpVotes[candidate.id][VoteType::Absent] = fpCount;
-				else if (typeName == "Provisional" || typeName == "Enrolment/Provisional") seat.fpVotes[candidate.id][VoteType::Provisional] = fpCount;
-				else if (typeName == "PrePoll") seat.fpVotes[candidate.id][VoteType::PrePoll] = fpCount;
-				else if (typeName == "Postal") seat.fpVotes[candidate.id][VoteType::Postal] = fpCount;
-				else if (typeName == "Early") seat.fpVotes[candidate.id][VoteType::Early] = fpCount;
-				else if (typeName == "iVote") seat.fpVotes[candidate.id][VoteType::IVote] = fpCount;
+				if (typeNameToVoteType.contains(typeName)) seat.fpVotes[candidate.id][typeNameToVoteType[typeName]] += fpCount;
 				fpVoteType = fpVoteType->NextSiblingElement("Votes");
 			}
 
@@ -1076,13 +1083,9 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 					std::string typeName = tcpVoteType->FindAttribute("Type")->Value();
 					int tcpCount = tcpVoteType->GetText() ? std::stoi(tcpVoteType->GetText()) : 0;
 					// Note: for NSWEC the PP/PR categories are always zero - will need to extract them from the booth data
-					if (typeName == "Ordinary" || typeName == "PP" || typeName == "PR") seat.tcpVotes[partyId][VoteType::Ordinary] = tcpCount;
-					else if (typeName == "Absent") seat.tcpVotes[partyId][VoteType::Absent] = tcpCount;
-					else if (typeName == "Provisional" || typeName == "Enrolment/Provisional") seat.tcpVotes[partyId][VoteType::Provisional] = tcpCount;
-					else if (typeName == "PrePoll") seat.tcpVotes[partyId][VoteType::PrePoll] = tcpCount;
-					else if (typeName == "Postal") seat.tcpVotes[partyId][VoteType::Postal] = tcpCount;
-					else if (typeName == "Early") seat.tcpVotes[partyId][VoteType::Early] = tcpCount;
-					else if (typeName == "iVote") seat.tcpVotes[partyId][VoteType::IVote] = tcpCount;
+					if (typeNameToVoteType.contains(typeName)) seat.tcpVotes[partyId][typeNameToVoteType[typeName]] = tcpCount;
+					if (typeNameToVoteType.contains(typeName)) seat.tcpVotesCandidate[candidateId][typeNameToVoteType[typeName]] = tcpCount;
+
 					tcpVoteType = tcpVoteType->NextSiblingElement("Votes");
 				}
 

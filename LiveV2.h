@@ -4,6 +4,7 @@
 #include "General.h"
 
 #include <map>
+#include <set>
 
 class PollingProject;
 struct Region;
@@ -47,6 +48,9 @@ public:
   std::optional<float> specificTppDeviation; // deviations reduced according to confidence level
   std::optional<float> preferenceFlowDeviation; // deviation from baseline preference flows
   std::optional<float> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
+  std::map<int, float> fpVotesProjected; // median projected vote count. Note: 
+  int tcpVotesProjected; // median projected vote count
+  std::set<int> runningParties;
 
   float fpConfidence = 0.0f;
   float tcpConfidence = 0.0f;
@@ -79,6 +83,17 @@ public:
   Booth(
     Results2::Booth const& currentBooth,
     std::optional<Results2::Booth const*> previousBooth,
+    std::function<int(int)> partyMapper,
+    int parentSeatId,
+    int natPartyIndex
+  );
+
+  Booth(
+    Results2::Seat::VotesByType const& currentFpVotes,
+    Results2::Seat::VotesByType const& currentTcpVotes,
+    std::optional<Results2::Seat::VotesByType const*> previousFpVotes,
+    std::optional<Results2::Seat::VotesByType const*> previousTcpVotes,
+    Results2::VoteType voteType,
     std::function<int(int)> partyMapper,
     int parentSeatId,
     int natPartyIndex
@@ -193,7 +208,13 @@ private:
   void determineSeatSpecificDeviations();
   void determineBoothSpecificDeviations();
 
-  // map AEC party IDs to internal party IDs
+  void recomposeVoteCounts();
+
+  void recomposeBoothFpVotes(int boothIndex);
+  void recomposeBoothTcpVotes(int boothIndex);
+  void recomposeBoothTppVotes(int boothIndex);
+
+  // map AEC candidate IDs to internal party IDs
   int mapPartyId(int ecCandidateId);
 
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;

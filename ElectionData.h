@@ -187,13 +187,16 @@ namespace Results2 {
 	};
 
 	struct Seat {
+		typedef std::unordered_map<int32_t, std::unordered_map<VoteType, int>> VotesByType;
+
 		int32_t id;
 		std::string name;
 		int32_t enrolment;
 		std::vector<int32_t> booths;
-		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> fpVotes; // map candidate id -> (vote type -> vote count)
-		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tcpVotes; // map party id -> (vote type -> vote count)
-		std::unordered_map<int32_t, std::unordered_map<VoteType, int>> tppVotes; // map party id -> vote count
+		VotesByType fpVotes; // map candidate id -> (vote type -> vote count)
+		VotesByType tcpVotes; // map party id -> (vote type -> vote count)
+		VotesByType tcpVotesCandidate; // map candidate id -> (vote type -> vote count)
+		VotesByType tppVotes; // map party id -> (vote type -> vote count)
 		float fpProgress; // as percentage
 		float tcpProgress; // as percentage
 		float fpSwingProgress; // as percentage
