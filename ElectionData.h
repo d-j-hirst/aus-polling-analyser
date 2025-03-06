@@ -153,6 +153,14 @@ namespace Results2 {
 			Other,
 			Invalid
 		};
+
+		static std::string boothTypeName(Type t) {
+			static const auto nameMap = std::unordered_map<Type, std::string>{ {Type::Normal, "Normal"},
+				{Type::Ppvc, "PPVC"}, {Type::Remote, "Remote"}, {Type::Prison, "Prison"}, {Type::Hospital, "Hospital"},
+				{Type::Other, "Other"}, {Type::Invalid, "Invalid"} };
+			return nameMap.at(t);
+		}
+
 		int32_t id;
 		std::string name;
 		Type type = Type::Normal;

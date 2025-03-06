@@ -92,7 +92,7 @@ Booth::Booth(
   int parentSeatId,
   int natPartyIndex
 )
-  : name(currentBooth.name), parentSeatId(parentSeatId)
+  : name(currentBooth.name), parentSeatId(parentSeatId), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type)
 {
 
   // Helper function to process votes, calculate shares and swings
@@ -186,7 +186,7 @@ Booth::Booth(
   int parentSeatId,
   int natPartyIndex
 )
-  : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId)
+  : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other)
 {
   auto processVotes = [this, &partyMapper, voteType](
     Results2::Seat::VotesByType const& currentVotes,
@@ -288,6 +288,8 @@ void Booth::calculateTppSwing(int natPartyIndex) {
 void Booth::log() const
 {
   logger << "Booth: " << name << "\n";
+  logger << "Vote type: " << voteTypeName(voteType) << "\n";
+  logger << "Booth type: " << Results2::Booth::boothTypeName(boothType) << "\n";
   node.log();
 }
 

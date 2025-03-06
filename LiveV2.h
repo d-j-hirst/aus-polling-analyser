@@ -80,6 +80,7 @@ public:
 
 class Booth {
 public:
+  // For ordinary/ppvc booths
   Booth(
     Results2::Booth const& currentBooth,
     std::optional<Results2::Booth const*> previousBooth,
@@ -88,6 +89,7 @@ public:
     int natPartyIndex
   );
 
+  // For incremental vote categories, not ordinary polling locations
   Booth(
     Results2::Seat::VotesByType const& currentFpVotes,
     Results2::Seat::VotesByType const& currentTcpVotes,
@@ -106,6 +108,9 @@ public:
   std::string name;
 
   const int parentSeatId;
+
+  Results2::VoteType voteType = Results2::VoteType::Ordinary;
+  Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
 
   Node node;
 };
