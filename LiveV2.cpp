@@ -63,6 +63,7 @@ void Node::log() const
   PA_LOG_VAR(specificPreferenceFlowDeviation);
   PA_LOG_VAR(runningParties);
   PA_LOG_VAR(fpVotesProjected);
+  PA_LOG_VAR(tcpVotesProjected);
 }
 
 int Node::totalFpVotesCurrent() const {
@@ -985,14 +986,21 @@ void Election::recomposeBoothFpVotes(int boothIndex) {
 
   auto& booth = booths.at(boothIndex);
   int projectSeatIndex = project.seats().indexByName(seats[booth.parentSeatId].name);
-  // TODO: check for incremental booths
   if (booth.node.totalFpVotesCurrent()) {
     // convert from int to float
     booth.node.fpVotesProjected = std::map<int, float>();
     for (auto const& [partyId, votes] : booth.node.fpVotesCurrent) {
       booth.node.fpVotesProjected[partyId] = static_cast<float>(votes);
     }
-    // TODO: account for minor adjustments due to error checking
+    if (booth.voteType != Results2::VoteType::Ordinary) {
+      float previousTotalVotes = booth.node.totalVotesPrevious();
+      float currentTotalVotesProjected = std::accumulate(booth.node.fpVotesProjected.begin(), booth.node.fpVotesProjected.end(), 0.0f,
+        [](float sum, const auto& pair) { return sum + pair.second; });
+      float ratio = previousTotalVotes / currentTotalVotesProjected;
+      for (auto& [partyId, votes] : booth.node.fpVotesProjected) {
+        votes *= std::max(1.0f, ratio);
+      }
+    }
   }
   else {
     constexpr float previousTotalVotesGuess = 500.0f;
@@ -1080,7 +1088,88 @@ void Election::recomposeBoothFpVotes(int boothIndex) {
 }
 
 void Election::recomposeBoothTcpVotes(int boothIndex) {
-  boothIndex ; //placeholder 
+  auto& booth = booths.at(boothIndex);
+  if (booth.node.totalTcpVotesCurrent()) {
+    if (isTppSet(booth.node.tcpShares, natPartyIndex)) {
+      // convert from int to float
+      booth.node.tcpVotesProjected = std::map<int, float>();
+      for (auto const& [partyId, votes] : booth.node.tcpVotesCurrent) {
+        booth.node.tcpVotesProjected[partyId] = static_cast<float>(votes);
+      }
+      if (booth.voteType != Results2::VoteType::Ordinary) {
+        float previousTotalVotes = booth.node.totalVotesPrevious();
+        float currentTotalVotesProjected = std::accumulate(booth.node.tcpVotesProjected.begin(), booth.node.tcpVotesProjected.end(), 0.0f,
+          [](float sum, const auto& pair) { return sum + pair.second; });
+        float ratio = previousTotalVotes / currentTotalVotesProjected;
+        for (auto& [partyId, votes] : booth.node.tcpVotesProjected) {
+          votes *= std::max(1.0f, ratio);
+        }
+      }
+    } else {
+      // currently recording a non-classic TCP, ignore for now
+      // the simulation will estimate off fp votes if necessary
+
+      // Once we start projecting non-classic TCP votes, we need to also
+      // revisit the conversion into TPP votes to make sure that it's
+      // done correctly.
+    }
+  }
+  else {
+    // If we don't have an actual TCP count, just make an estimate based on observed deviations
+    // Even if the seat doesn't end up using TPP, this will still be used to estimate the fp votes
+    // and the actual TCP will come from fp-based estimates in the simulation.
+    constexpr float previousTotalVotesGuess = 500.0f;
+    float previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : previousTotalVotesGuess;
+    std::map<int, float> tempTcpVotesProjected;
+    std::optional<float> prevAlpShare;
+    if (isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)) {
+      prevAlpShare = transformVoteShare(float(booth.node.tcpVotesPrevious.at(0)) / float(previousTotalVotes) * 100.0f);
+    }
+    std::optional<float> seatBaselineAlpShare;
+    if (seats[booth.parentSeatId].node.tppShareBaseline.has_value()) {
+      seatBaselineAlpShare = seats[booth.parentSeatId].node.tppShareBaseline.value();
+    }
+    std::optional<float> baselineAlpShare =
+      (prevAlpShare.has_value()
+        ? prevAlpShare.value() + booth.node.tppSwingBaseline.value_or(0.0f)
+        : seatBaselineAlpShare.value_or(0.0f) // this already has the baseline swing factored in
+      );
+    float deviation = 0.0f;
+    auto const& thisAndParents = getThisAndParents(booth);
+    for (auto const& parent : thisAndParents) {
+      deviation += parent->specificTppDeviation.value_or(0.0f);
+    }
+    float existingAlpShare = baselineAlpShare.value_or(
+      isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)
+        ? transformVoteShare(float(booth.node.tcpVotesPrevious.at(0)) / float(previousTotalVotes) * 100.0f)
+        : 0.0f
+      );
+    float newAlpShare = existingAlpShare + deviation;
+    float newAlpVotes = detransformVoteShare(newAlpShare) * previousTotalVotes * 0.01f;
+    tempTcpVotesProjected[0] = newAlpVotes;
+    int coalitionPartyId = booth.node.tcpVotesCurrent.contains(natPartyIndex) ? natPartyIndex : 1;
+    tempTcpVotesProjected[coalitionPartyId] = previousTotalVotes - newAlpVotes;
+
+    PA_LOG_VAR(booth.name);
+    PA_LOG_VAR(baselineAlpShare);
+    PA_LOG_VAR(isTppSet(booth.node.tcpVotesPrevious, natPartyIndex));
+    PA_LOG_VAR(existingAlpShare);
+    PA_LOG_VAR(newAlpShare);
+    PA_LOG_VAR(newAlpVotes);
+    PA_LOG_VAR(tempTcpVotesProjected);
+
+    // normalize so that the sum of the votes is the same as the previous election (or other estimate)
+    float totalVotes = 0.0f;
+    for (auto const& [partyId, votes] : tempTcpVotesProjected) {
+      totalVotes += votes;
+    }
+    PA_LOG_VAR(totalVotes);
+    for (auto& [partyId, votes] : tempTcpVotesProjected) {
+      votes *= previousTotalVotes / totalVotes;
+    }
+    PA_LOG_VAR(tempTcpVotesProjected);
+    booth.node.tcpVotesProjected = tempTcpVotesProjected;
+  }
 }
 
 void Election::recomposeBoothTppVotes(int boothIndex) {

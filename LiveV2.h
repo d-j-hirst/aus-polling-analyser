@@ -48,8 +48,8 @@ public:
   std::optional<float> specificTppDeviation; // deviations reduced according to confidence level
   std::optional<float> preferenceFlowDeviation; // deviation from baseline preference flows
   std::optional<float> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
-  std::map<int, float> fpVotesProjected; // median projected vote count. Note: 
-  int tcpVotesProjected; // median projected vote count
+  std::map<int, float> fpVotesProjected; // median projected vote count
+  std::map<int, float> tcpVotesProjected; // median projected vote count
   std::set<int> runningParties;
 
   float fpConfidence = 0.0f;

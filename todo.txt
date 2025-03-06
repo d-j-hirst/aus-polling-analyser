@@ -1,7 +1,5 @@
 
- -add markers to booths to identify them as belonging to different categories, and also be used to indicate which are incremental
- -make sure incremental booths are projected to reach the same total votes as previous election even if they're partly complete
- -recompose tcp votes for seats (only where they're the same combo as last time)
+ -recompose tcp votes for seats (only where they're the same combo as last time, leave other scenarios until later)
  
  
  -deviations can be injected into the mean expectation for election/region/seat by simply adding it to the (transformed) values
@@ -10,6 +8,7 @@
  -observe Nationals ratio (compare to expectations)
  -secondary categories (vote type, urban/rural status, maybe booth size) can then be identified based on patterns in specific deviations. This can be done at whole-election level for a simpler implementation.
  (-doing the above with only vote type as a secondary category probably enoguh for WA election, test on vic/qld elections with any remaining spare time-)
+ -rudimentary use of tcp estimates for relevant seats
  -Inclusion of known stats for prepoll/postal votes and adjustments between categories
  -Weight confidence heavily based on diversity (downweight similar inputs, upweight diverse inputs, truly high confidence requires all significant categories to be well covered)
  -Actually determine best parameters for variance
