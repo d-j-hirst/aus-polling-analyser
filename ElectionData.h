@@ -113,14 +113,15 @@ namespace Results2 {
 		Postal,
 		Early,
 		IVote,
-		Telephone
+		Telephone,
+		SIR,
 	};
 
 	inline std::string voteTypeName(VoteType v) {
 		static const auto nameMap = std::unordered_map<VoteType, std::string>{ {VoteType::Absent, "Absent"},
 			{VoteType::Invalid, "Invalid"}, {VoteType::Ordinary, "Ordinary"}, {VoteType::Postal, "Postal"},
 			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"}, {VoteType::Early, "Early"},
-			{VoteType::IVote, "iVote"}, {VoteType::Telephone, "Telephone"} };
+			{VoteType::IVote, "iVote"}, {VoteType::Telephone, "Telephone"}, {VoteType::SIR, "SIR"} };
 		return nameMap.at(v);
 	}
 
@@ -165,6 +166,7 @@ namespace Results2 {
 		std::string name;
 		Type type = Type::Normal;
 		int32_t parentSeat;
+		bool confirmedPresent; // "Phantom booths" can appear in the preload but not in the live data, this 
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotes; // map affiliation id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotesCandidate; // map candidate id -> vote count
@@ -282,7 +284,8 @@ namespace Results2 {
 			AEC,
 			VEC,
 			NSWEC,
-			QEC
+			QEC,
+			WAEC
 		};
 
 		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
@@ -299,9 +302,11 @@ namespace Results2 {
 		);
 		static Election createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
 		static Election createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
+		static Election createWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
 		void updateQec(tinyxml2::XMLDocument const& xml);
+		void updateWaec(tinyxml2::XMLDocument const& xml);
 
 		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths);
@@ -310,5 +315,6 @@ namespace Results2 {
 
 		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
 		void preloadQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
+		void preloadWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
 	};
 }

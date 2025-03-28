@@ -50,27 +50,27 @@ void LivePreparation::prepareLiveAutomatic()
 	}
 	parseCurrentResults();
 
-	LiveV2::Election liveElection(previousElection, currentElection, project, sim, run);
+	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run);
 
-	preparePartyCodeGroupings();
-	determinePartyIdConversions();
-	determineSeatIdConversions();
-	calculateTppPreferenceFlows();
-	calculateBoothFpSwings();
-	estimateBoothTcps();
-	calculateSeatPreferenceFlows();
-	calculateBoothTcpSwings();
-	calculateCountProgress();
-	projectOrdinaryVoteTotals();
-	projectDeclarationVotes();
-	determinePpvcBiasSensitivity();
-	determineDecVoteSensitivity();
-	determinePpvcBias();
-	calculateSeatSwings();
-	prepareLiveTppSwings();
-	prepareLiveTcpSwings();
-	prepareLiveFpSwings();
-	prepareOverallLiveFpSwings();
+	// preparePartyCodeGroupings();
+	// determinePartyIdConversions();
+	// determineSeatIdConversions();
+	// calculateTppPreferenceFlows();
+	// calculateBoothFpSwings();
+	// estimateBoothTcps();
+	// calculateSeatPreferenceFlows();
+	// calculateBoothTcpSwings();
+	// calculateCountProgress();
+	// projectOrdinaryVoteTotals();
+	// projectDeclarationVotes();
+	// determinePpvcBiasSensitivity();
+	// determineDecVoteSensitivity();
+	// determinePpvcBias();
+	// calculateSeatSwings();
+	// prepareLiveTppSwings();
+	// prepareLiveTcpSwings();
+	// prepareLiveFpSwings();
+	// prepareOverallLiveFpSwings();
 }
 
 void LivePreparation::downloadPreviousResults()
@@ -78,6 +78,7 @@ void LivePreparation::downloadPreviousResults()
 	if (run.regionCode == "vic") return;
 	if (run.regionCode == "nsw") return;
 	if (run.regionCode == "qld") return;
+	if (run.regionCode == "wa") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
 	if (mangledName.substr(0, 6) == "local:") {
@@ -129,6 +130,16 @@ void LivePreparation::parsePreviousResults()
 		nlohmann::json resultsJson = nlohmann::json::parse(f);
 		previousElection = Results2::Election::createQec(resultsJson, zerosXml);
 	}
+	else if (run.regionCode == "wa") {
+		tinyxml2::XMLDocument candidatesXml;
+		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates_prev.xml").c_str());
+		tinyxml2::XMLDocument boothsXml;
+		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths_prev.xml").c_str());
+		previousElection = Results2::Election::createWaec(candidatesXml, boothsXml);
+		tinyxml2::XMLDocument resultsXml;
+		resultsXml.LoadFile(("downloads/" + getTermCode() + "_results_prev.xml").c_str());
+		previousElection.update(resultsXml, Results2::Election::Format::WAEC);
+	}
 }
 
 void LivePreparation::downloadPreload()
@@ -136,6 +147,7 @@ void LivePreparation::downloadPreload()
 	if (run.regionCode == "vic") return;
 	if (run.regionCode == "nsw") return;
 	if (run.regionCode == "qld") return;
+	if (run.regionCode == "wa") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.preloadUrl;
 	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
@@ -176,6 +188,13 @@ void LivePreparation::parsePreload()
 		tinyxml2::XMLDocument zerosXml;
 		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
 		currentElection = Results2::Election::createQec(nlohmann::json(), zerosXml);
+	}
+	else if (run.regionCode == "wa") {
+		tinyxml2::XMLDocument candidatesXml;
+		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates_current.xml").c_str());
+		tinyxml2::XMLDocument boothsXml;
+		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths_current.xml").c_str());
+		currentElection = Results2::Election::createWaec(candidatesXml, boothsXml);
 	}
 }
 
@@ -262,6 +281,33 @@ void LivePreparation::acquireCurrentResults()
 						bestFilename = entryStr;
 					}
 				}
+				else if (run.regionCode == "wa" && entryStr.find("LA VERBOSE RESULTS") != std::string::npos) {
+					bestFilename = entryStr;
+					
+					// Archive the file with a timestamp
+					auto now = std::chrono::system_clock::now();
+					auto time_t_now = std::chrono::system_clock::to_time_t(now);
+					std::tm tm_now;
+					localtime_s(&tm_now, &time_t_now);
+					
+					char timestamp[13];
+					std::strftime(timestamp, sizeof(timestamp), "%y%m%d%H%M%S", &tm_now);
+					
+					std::string archivedFilename = entryStr;
+					std::string searchStr = "LA VERBOSE RESULTS";
+					size_t pos = archivedFilename.find(searchStr);
+					if (pos != std::string::npos) {
+						archivedFilename.replace(pos, searchStr.length(), timestamp);
+						std::filesystem::copy_file(entryStr, archivedFilename, std::filesystem::copy_options::overwrite_existing);
+						logger << "Archived WA results file as: " << archivedFilename << "\n";
+					}
+
+					// Then, copy the file directly to the downloads directory for immediate use
+					xmlFilename = "downloads/" + run.getTermCode() + "_latest.xml";
+					std::filesystem::copy_file(entryStr, xmlFilename, std::filesystem::copy_options::overwrite_existing);
+					logger << "Copied WA results file to: " << xmlFilename << "\n";
+					return; // Exit the function early since we've already copied the file
+				}
 			}
 			catch (std::system_error const&) {
 				// just continue, probably a file with special characters in the filename
@@ -269,7 +315,7 @@ void LivePreparation::acquireCurrentResults()
 		}
 		PA_LOG_VAR(bestFilename);
 		PA_LOG_VAR(xmlFilename);
-		xmlFilename = run.getTermCode() + "_latest.xml";
+		xmlFilename = "downloads/" + run.getTermCode() + "_latest.xml";
 		resultsDownloader.unzipFile(bestFilename, xmlFilename);
 	}
 }
@@ -282,6 +328,7 @@ void LivePreparation::parseCurrentResults()
 	else if (run.regionCode == "vic") format = Results2::Election::Format::VEC;
 	else if (run.regionCode == "nsw") format = Results2::Election::Format::NSWEC;
 	else if (run.regionCode == "qld") format = Results2::Election::Format::QEC;
+	else if (run.regionCode == "wa") format = Results2::Election::Format::WAEC;
 	else format = Results2::Election::Format::AEC;
 	currentElection.update(xml, format);
 }

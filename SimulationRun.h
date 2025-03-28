@@ -8,6 +8,7 @@
 #include <map>
 #include <string>
 
+class LiveV2::Election;
 class PollingProject;
 class RegionCollection;
 class Seat;
@@ -174,6 +175,8 @@ private:
 
 	Simulation& sim;
 
+	std::unique_ptr<LiveV2::Election> liveElection;
+
 	bool doingBettingOddsCalibrations = false;
 	std::map<std::pair<int, int>, float> oddsCalibrationMeans; // transformed
 	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
@@ -224,6 +227,12 @@ private:
 	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
 	std::vector<double> coalitionWinPercent;
+
+	std::vector<std::map<int, std::array<int, FpBucketCount>>> regionPartyFpDistribution;
+	std::vector<std::array<int, FpBucketCount>> regionTppDistribution;
+
+	std::map<int, std::array<int, FpBucketCount>> electionPartyFpDistribution;
+	std::array<int, FpBucketCount> electionTppDistribution;
 
 	// Keep track of swing factors
 	std::vector<double> seatRegionSwingSums;

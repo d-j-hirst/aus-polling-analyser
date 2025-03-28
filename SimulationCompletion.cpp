@@ -36,7 +36,14 @@ void SimulationCompletion::completeRun()
 
 	recordSeatFpVoteStats();
 	recordSeatTcpVoteStats();
-	if (run.doingLiveBaselineSimulation) recordSeatTppVoteStats();
+	if (run.doingLiveBaselineSimulation) {
+		recordSeatTppVoteStats();
+		recordRegionFpVoteStats();
+		recordRegionTppVoteStats();
+		recordElectionFpVoteStats();
+		recordElectionTppVoteStats();
+	}
+
 	recordSeatSwingFactors();
 
 	recordTrends();
@@ -489,6 +496,106 @@ void SimulationCompletion::recordSeatSwingFactors()
 			float scaledEffect = impact * seatLocalEffectsAverage / totalLocalEffects;
 			sim.latestReport.swingFactors[seatIndex].push_back(
 				name + ";" + std::to_string(scaledEffect));
+		}
+	}
+}
+
+void SimulationCompletion::recordRegionFpVoteStats() {
+	sim.latestReport.regionFpProbabilityBand.resize(project.regions().count());
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		for (auto const& [partyIndex, distribution] : run.regionPartyFpDistribution[regionIndex]) {
+			int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+			sim.latestReport.regionFpProbabilityBand[regionIndex][partyIndex].resize(sim.latestReport.probabilityBands.size());
+			int currentProbabilityBand = 0;
+			for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
+				if (distribution[a] > 0) {
+					float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
+					cumulative += distribution[a];
+					float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
+					while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
+						float(cumulative) / float(iterations) * 100.0f)
+					{
+						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
+						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
+						float exactFp = float(a) + exactFrac;
+						sim.latestReport.regionFpProbabilityBand[regionIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
+						++currentProbabilityBand;
+					}
+				}
+			}
+		}
+	}
+}
+
+void SimulationCompletion::recordRegionTppVoteStats() {
+	sim.latestReport.regionTppProbabilityBand.resize(project.regions().count());
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+		auto const& distribution = run.regionTppDistribution[regionIndex];
+		int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+		sim.latestReport.regionTppProbabilityBand[regionIndex].resize(sim.latestReport.probabilityBands.size());
+		int currentProbabilityBand = 0;
+		for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
+			if (distribution[a] > 0) {
+				float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
+				cumulative += distribution[a];
+				float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
+				while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
+					float(cumulative) / float(iterations) * 100.0f)
+				{
+					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
+					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
+					float exactFp = float(a) + exactFrac;
+					sim.latestReport.regionTppProbabilityBand[regionIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
+					++currentProbabilityBand;
+				}
+			}
+		}
+	}
+}
+
+void SimulationCompletion::recordElectionFpVoteStats() {
+	for (auto const& [partyIndex, distribution] : run.electionPartyFpDistribution) {
+		int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+		sim.latestReport.electionFpProbabilityBand[partyIndex].resize(sim.latestReport.probabilityBands.size());
+		int currentProbabilityBand = 0;
+		for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
+			if (distribution[a] > 0) {
+				float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
+				cumulative += distribution[a];
+				float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
+				while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
+					float(cumulative) / float(iterations) * 100.0f)
+				{
+					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
+					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
+					float exactFp = float(a) + exactFrac;
+					sim.latestReport.electionFpProbabilityBand[partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
+					++currentProbabilityBand;
+				}
+			}
+		}
+	}
+}
+
+void SimulationCompletion::recordElectionTppVoteStats() {
+	auto const& distribution = run.electionTppDistribution;
+	int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+	sim.latestReport.electionTppProbabilityBand.resize(sim.latestReport.probabilityBands.size());
+	int currentProbabilityBand = 0;
+	for (int a = 0; a < SimulationRun::FpBucketCount; ++a) {
+		if (distribution[a] > 0) {
+			float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
+			cumulative += distribution[a];
+			float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
+			while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
+				float(cumulative) / float(iterations) * 100.0f)
+			{
+				float band = sim.latestReport.probabilityBands[currentProbabilityBand];
+				float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
+				float exactFp = float(a) + exactFrac;
+				sim.latestReport.electionTppProbabilityBand[currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
+				++currentProbabilityBand;
+			}
 		}
 	}
 }

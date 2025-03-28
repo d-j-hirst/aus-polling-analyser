@@ -29,6 +29,10 @@ private:
 	void recordSeatTcpVoteStats();
 	void recordSeatTppVoteStats(); // only used for live baseline simulation
 	void recordSeatSwingFactors();
+	void recordRegionFpVoteStats();
+	void recordRegionTppVoteStats();
+	void recordElectionFpVoteStats();
+	void recordElectionTppVoteStats();
 	void recordTrends();
 	void recordTcpTrend();
 	void recordFpTrends();

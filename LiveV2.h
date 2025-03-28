@@ -49,7 +49,7 @@ public:
   std::optional<float> preferenceFlowDeviation; // deviation from baseline preference flows
   std::optional<float> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
   std::map<int, float> fpVotesProjected; // median projected vote count
-  std::map<int, float> tcpVotesProjected; // median projected vote count
+  std::map<int, float> tppVotesProjected; // median projected vote count, use this for the process of calculating underlying tpp estimates
   std::set<int> runningParties;
 
   float fpConfidence = 0.0f;
@@ -128,6 +128,11 @@ public:
   // and allows the vector to be resized
   std::vector<int> booths;
 
+  std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
+  std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
+  std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
+  std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+
   const int parentRegionId;
 
   Node node;
@@ -146,6 +151,11 @@ public:
   // and allows the vector to be resized
   std::vector<int> seats;
 
+  std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
+  std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
+  std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
+  std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+
   Node node;
 };
 
@@ -161,9 +171,48 @@ class Election {
 public:
   friend class LargeRegion;
   friend class LiveV2::Seat;
+  friend class SimulationIteration;
 
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
+  float getTppShareBaseline() const {
+    return node.tppShareBaseline.value_or(50.0f);
+  }
+
+  float getFinalSpecificTppDeviation() const {
+    return finalSpecificTppDeviation.value_or(0.0f);
+  }
+
+  float getTransformedBaselineFp(int partyIndex) const {
+    if (node.fpSharesBaseline.contains(partyIndex)) {
+      return node.fpSharesBaseline.at(partyIndex);
+    }
+    return 1.0f;
+  }
+
+  float getFinalSpecificFpDeviations(int partyIndex) const {
+    if (finalSpecificFpDeviations.contains(partyIndex)) {
+      return finalSpecificFpDeviations.at(partyIndex);
+    }
+    return 0.0f;
+  }
+
+  float getRegionTppBaseline(int regionIndex) const {
+    return largeRegions[regionIndex].node.tppShareBaseline.value_or(50.0f);
+
+  }
+
+  float getRegionFinalSpecificTppDeviation(int regionIndex) const {
+    return largeRegions[regionIndex].finalSpecificTppDeviation.value_or(0.0f);
+  }
+
+  float getSeatTppDeviation(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+		if (seatIndex != int(seats.size())) {
+			return seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
+		}
+    return 0.0f;
+  }
 
 private:
   template<typename T, typename U>
@@ -192,6 +241,10 @@ private:
 
   void includeBaselineResults();
 
+  void includeSeatBaselineResults();
+  void includeLargeRegionBaselineResults();
+  void includeElectionBaselineResults();
+
   void extrapolateBaselineSwings();
 
   void calculateDeviationsFromBaseline();
@@ -215,9 +268,28 @@ private:
 
   void recomposeVoteCounts();
 
-  void recomposeBoothFpVotes(int boothIndex);
-  void recomposeBoothTcpVotes(int boothIndex);
-  void recomposeBoothTppVotes(int boothIndex);
+  void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
+  void recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex);
+  void recomposeBoothTppVotes(bool allowCurrentData, int boothIndex);
+
+  void recomposeSeatFpVotes(int seatIndex);
+  void recomposeSeatTcpVotes(int seatIndex);
+  void recomposeSeatTppVotes(int seatIndex);
+
+  void recomposeLargeRegionFpVotes(int largeRegionIndex);
+  void recomposeLargeRegionTppVotes(int largeRegionIndex);
+
+  void recomposeElectionFpVotes();
+  void recomposeElectionTppVotes();
+
+  void determineElectionFinalFpDeviations(bool allowCurrentData);
+  void determineElectionFinalTppDeviation(bool allowCurrentData);
+
+  void determineLargeRegionFinalFpDeviations(bool allowCurrentData, int largeRegionIndex);
+  void determineLargeRegionFinalTppDeviation(bool allowCurrentData, int largeRegionIndex);
+
+  void determineSeatFinalFpDeviations(bool allowCurrentData, int seatIndex);
+  void determineSeatFinalTppDeviation(bool allowCurrentData, int seatIndex);
 
   // map AEC candidate IDs to internal party IDs
   int mapPartyId(int ecCandidateId);
@@ -238,6 +310,12 @@ private:
   std::map<int, float> preferenceFlowMap;
   std::map<int, float> preferenceExhaustMap;
   std::map<int, float> prevPreferenceOverrides; // Covers cases where the preference flow last election is expected to be different
+
+  
+  std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
+  std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
+  std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
+  std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
 
   int natPartyIndex;
 

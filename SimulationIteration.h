@@ -52,7 +52,6 @@ private:
 	void initialiseIterationSpecificCounts();
 	void determineFedStateCorrelation();
 	void determineOverallTpp();
-	void incorporateLiveOverallFps();
 	void determineIntraCoalitionSwing();
 	void determineIndDistributionParameters();
 	void determinePpvcBias();
@@ -98,6 +97,10 @@ private:
 	void recordSeatFpVotes(int seatIndex);
 	void recordSeatTcpVotes(int seatIndex);
 	void recordSeatTppVotes(int seatIndex);
+	void recordRegionFpVotes(int regionIndex);
+	void recordRegionTppVotes(int regionIndex);
+	void recordElectionFpVotes();
+	void recordElectionTppVotes();
 	void recordIterationResults();
 	void recordVoteTotals();
 	void recordSwings();

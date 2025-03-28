@@ -29,6 +29,7 @@ private:
 	void resetLatestReport();
 	void resetRegionSpecificOutput();
 	void resetSeatSpecificOutput();
+	void resetOtherOutput();
 	void storeTermCode();
 	void determineEffectiveSeatTppModifiers();
 	void determinePreviousSwingDeviations();

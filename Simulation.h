@@ -186,6 +186,12 @@ public:
 
 		std::vector<std::vector<float>> seatTppProbabilityBand;
 
+		std::vector<std::map<int, std::vector<float>>> regionFpProbabilityBand;
+		std::vector<std::vector<float>> regionTppProbabilityBand;
+
+		std::map<int, std::vector<float>> electionFpProbabilityBand;
+		std::vector<float> electionTppProbabilityBand;
+
 		std::vector<int> seatHideTcps;
 
 		std::vector<int> trendProbBands;
