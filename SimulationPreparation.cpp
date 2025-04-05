@@ -1243,10 +1243,12 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 	// More independents should be expected to emerge if more
 	// are already confirmed relative to the usual number.
 	int numConfirmed = std::count_if(project.seats().begin(), project.seats().end(),
-		[](const decltype(project.seats().begin())::value_type& seatPair) {return seatPair.second.confirmedProminentIndependent; });
+		[](const decltype(project.seats().begin())::value_type& seatPair) {
+			return seatPair.second.confirmedProminentIndependent && seatPair.second.minorViability.contains("IND") && seatPair.second.minorViability.at("IND") >= 0; }
+		);
 	int daysToElection = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models()).daysToElection;
 	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
-	run.indEmergenceModifier = (float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f);
+	run.indEmergenceModifier = std::min((float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f), 2.5f);
 }
 
 void SimulationPreparation::initializeGeneralLiveData()
