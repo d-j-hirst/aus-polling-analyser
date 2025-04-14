@@ -1606,9 +1606,11 @@ sChallenger=LNP
 sRegion=TAS
 fTppMargin=13.7
 fPreviousTppSwing=1.49
-sPolls=GRN,19,4;GRN,13,4;GRN,18,4;GRN,14.5,3;ON,8.2,3;GRN,18.1,3;ON,6,3
+sPolls=GRN,19,4;GRN,13,4;GRN,18,4;GRN,14.5,3;ON,8.2,3;GRN,18.1,3;ON,6,3;IND,13,2;GRN,13,2
 sTppMrpPolls=Redbridge,2024-04-01,65;Redbridge,2024-07-31,61;Redbridge,2024-11-09,63;YouGov,2025-02-02,56;YouGov,2025-03-13,57.1
-sCandidateNames=Julie Collins,ALP;Josh Garvin,LNP;Owen Fitzgerald,GRN;Stefan Popescu,ON
+sCandidateNames=Julie Collins,ALP;Josh Garvin,LNP;Owen Fitzgerald,GRN;Stefan Popescu,ON;Peter George,IND
+sMinorViability=IND,0
+sBettingOdds=IND,6.75
 sRunningParties=LNP,ALP,GRN,ON,IND*
 #Lyons
 sIncumbent=ALP
