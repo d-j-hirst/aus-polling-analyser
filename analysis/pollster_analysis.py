@@ -304,6 +304,7 @@ def analyse_house_effects(target_election, cycles, links):
         if party == "LIB FP": party = "LNP FP"
         election = ElectionCode(int(election[:4]), election[4:])
         if not check_dates(election, target_election, cycles, equals=True): continue
+
         # Load the relevant data as (pollster:median house effect) dict pairs
         with open(f'{directory}/{filename}', 'r') as f:
             data = load_new_house_effects(f)
@@ -334,11 +335,13 @@ def analyse_house_effects(target_election, cycles, links):
             adjusted_median = median / diversity_weight
             abs_he_sums[key] += abs(adjusted_median) * total_weight
             abs_he_weights[key] += 1 * total_weight
+
+    linked_keys = sum(links.values(), [])
     
     with open(f'{directory}/he_weighting-{target_election.year()}{target_election.region()}.csv', 'w') as f:
         for key in sorted(abs_he_sums.keys()):
             # Don't do linked pollsters yet
-            if key[0] in sum(links.values(), []): continue
+            if key[0] in linked_keys: continue
             average_he = abs_he_sums[key] / abs_he_weights[key]
             weighting = 1 / average_he
             # Adjust data for any linked pollsters
@@ -354,7 +357,7 @@ def analyse_house_effects(target_election, cycles, links):
             f.write(f'{key[0]},{key[1]},{weighting}\n')
         for key in sorted(abs_he_sums.keys()):
             # Non-linked pollsters have already been done
-            if key[0] not in sum(links.values(), []): continue
+            if key[0] not in linked_keys: continue
             average_he = abs_he_sums[key] / abs_he_weights[key]
             weighting = 1 / average_he
             if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")

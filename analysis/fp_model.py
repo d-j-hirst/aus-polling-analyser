@@ -820,7 +820,8 @@ def run_individual_party(config, m_data, e_data,
     polls_file.write('\n')
     for poll_index in df.index:
         if ('Brand' in df and isinstance(df.loc[poll_index, 'Brand'], str)
-            and len(df.loc[poll_index, 'Brand']) > 0):
+            and len(df.loc[poll_index, 'Brand']) > 0
+            and not config.calibrate_pollsters and not config.calibrate_bias):
             polls_file.write(str(df.loc[poll_index, 'Brand']))
         else:
             polls_file.write(str(df.loc[poll_index, 'Firm']))

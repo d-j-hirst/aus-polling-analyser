@@ -1169,6 +1169,14 @@ void SimulationPreparation::loadNationalsSeatExpectations()
 		else {
 			run.seatNationalsExpectation[seatIndex] = 0.0f;
 		}
+
+		// Overrides for some special cases where seat was uncontested/didn't exist in previous election
+		if (run.getTermCode() == "2025fed" && seat.name == "Bullwinkel") {
+			run.seatNationalsExpectation[seatIndex] = 0.2f; // based on state election results + prominent candidate
+		}
+		if (run.getTermCode() == "2025fed" && seat.name == "O'Connor") {
+			run.seatNationalsExpectation[seatIndex] = 0.23f; // based on 2019 results
+		}
 	}
 }
 
