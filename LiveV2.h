@@ -2,6 +2,7 @@
 
 #include "ElectionData.h"
 #include "General.h"
+#include "SpecialPartyCodes.h"
 
 #include <map>
 #include <set>
@@ -128,6 +129,8 @@ public:
   // and allows the vector to be resized
   std::vector<int> booths;
 
+  int independentPartyIndex = InvalidPartyIndex;
+
   std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
   std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
@@ -210,6 +213,22 @@ public:
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
+		}
+    return 0.0f;
+  }
+
+  std::map<int, float> getSeatFpDeviations(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+		if (seatIndex != int(seats.size())) {
+			return seats[seatIndex].finalSpecificFpDeviations;
+		}
+    return {};
+  }
+
+  float getSeatFpConfidence(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+		if (seatIndex != int(seats.size())) {
+			return seats[seatIndex].node.fpConfidence;
 		}
     return 0.0f;
   }

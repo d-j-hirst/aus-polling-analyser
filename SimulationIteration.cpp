@@ -176,6 +176,12 @@ void SimulationIteration::runIteration()
 		seatTcpVoteShare.resize(project.seats().count());
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			determineSeatFinalResult(seatIndex);
+
+			Seat const& seat = project.seats().viewByIndex(seatIndex);
+			if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+				logger << "after determineSeatFinalResult\n";
+				PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+			}
 		}
 
 		assignDirectWins();
@@ -866,6 +872,10 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		else if (effectiveIndependent && (
 			project.parties().idToIndex(seat.incumbent) == partyIndex || contains(run.seatProminentMinors[seatIndex], partyIndex)
 		)) {
+			if (seat.name == "Warringah" && partyIndex == 6 && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+				logger << "before determineSpecificPartyFp\n";
+				PA_LOG_VAR(voteShare);
+			}
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -883,6 +893,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] += voteShare;
+		if (seat.name == "Warringah" && partyIndex == 6 && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+			PA_LOG_VAR(voteShare);
+		}
 	}
 
 	pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = tempPastResults[OthersIndex];
@@ -902,6 +915,10 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
+
+	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+	}
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
@@ -927,6 +944,7 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	float minorViability = run.seatMinorViability[seatIndex][partyIndex];
 	float minorVoteMod = 1.0f + (0.4f * minorViability);
 	modifiedVoteShare *= minorVoteMod;
+
 	float transformedFp = transformVoteShare(modifiedVoteShare);
 	float seatStatisticsExact = (std::clamp(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
 		- seatStatistics.scaleLow) / seatStatistics.scaleStep;
@@ -978,7 +996,9 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	if (overallFpSwing.contains(partyIndex)) {
 		transformedFp += swingMultiplierMixed * overallFpSwing[partyIndex];
 	}
+
 	transformedFp += offsetMixed;
+
 	if (seat.sophomoreCandidate && project.parties().idToIndex(seat.incumbent) == partyIndex) {
 		transformedFp += sophomoreMixed;
 	}
@@ -1305,6 +1325,17 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 void SimulationIteration::incorporateLiveSeatFps(int seatIndex)
 {
 	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
+	auto fpDeviations = run.liveElection->getSeatFpDeviations(seat.name);
+	for (auto [partyIndex, swing] : fpDeviations) {
+		if (isMajor(partyIndex)) continue;
+		if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
+		float priorFp = seatFpVoteShare[seatIndex][partyIndex];
+		float transformedPriorFp = transformVoteShare(priorFp);
+		float transformedUpdatedFp = transformedPriorFp + swing;
+		float updatedFp = detransformVoteShare(transformedUpdatedFp);
+		seatFpVoteShare[seatIndex][partyIndex] = updatedFp;
+	}
+
 	// if (run.liveSeatFpTransformedSwing[seatIndex].size() &&
 	// 	!run.liveSeatFpTransformedSwing[seatIndex].contains(run.indPartyIndex) &&
 	// 	seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
@@ -1897,15 +1928,59 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 
 		if (overallFpError < 0.3f) break;
 
+		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation && i >= 3) {
+		// 		logger << "chcekpoint A\n";
+		// 		PA_LOG_VAR(i);
+		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+		// 	}
+		// }
+
 		if (i > 2) correctMajorPartyFpBias();
 
+		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation && i >= 3) {
+		// 		logger << "chcekpoint B\n";
+		// 		PA_LOG_VAR(i);
+		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+		// 	}
+		// }
+
 		if (i > 1) calculatePreferenceCorrections();
+
+		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation && i >= 3) {
+		// 		logger << "chcekpoint C\n";
+		// 		PA_LOG_VAR(i);
+		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+		// 	}
+		// }
 
 		if (i == MaxReconciliationCycles - 1) break;
 		checkForNans("d");
 		applyCorrectionsToSeatFps();
 		checkForNans("e");
+
+		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+		// 		logger << "chcekpoint D\n";
+		// 		PA_LOG_VAR(i);
+		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+		// 	}
+		// }
 	}
+
+	// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+	// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+	// 		logger << "after reconcileSeatAndOverallFp\n";
+	// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+	// 	}
+	// }
 }
 
 void SimulationIteration::calculateNewFpVoteTotals()
@@ -2029,9 +2104,12 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 		}
 	}
 	checkForNans("d2");
+
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		allocateMajorPartyFp(seatIndex);
 	}
+
 	checkForNans("d3");
 }
 
@@ -2058,10 +2136,12 @@ void SimulationIteration::correctMajorPartyFpBias()
 		// Don't readjust fps when there is a meaningful actual fp count
 		float seatPartyOneAdjust = partyOneAdjust;
 		float seatPartyTwoAdjust = partyTwoAdjust;
-		//if (run.isLiveAutomatic()) {
-		//	seatPartyOneAdjust = mix(1.0f, seatPartyOneAdjust, std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]));
-		//	seatPartyTwoAdjust = mix(1.0f, seatPartyTwoAdjust, std::pow(2.0f, -1.0f * run.liveSeatFpCounted[seatIndex]));
-		//}
+		if (run.isLiveAutomatic()) {
+			Seat const& seat = project.seats().viewByIndex(seatIndex);
+			float seatCountProgress = run.liveElection->getSeatFpConfidence(seat.name) * 100.0f;
+			seatPartyOneAdjust = mix(1.0f, seatPartyOneAdjust, std::pow(2.0f, -1.0f * seatCountProgress));
+			seatPartyTwoAdjust = mix(1.0f, seatPartyTwoAdjust, std::pow(2.0f, -1.0f * seatCountProgress));
+		}
 		seatFpVoteShare[seatIndex][Mp::One] = seatFpVoteShare[seatIndex][Mp::One] * seatPartyOneAdjust;
 		seatFpVoteShare[seatIndex][Mp::Two] = seatFpVoteShare[seatIndex][Mp::Two] * seatPartyTwoAdjust;
 		normaliseSeatFp(seatIndex);
