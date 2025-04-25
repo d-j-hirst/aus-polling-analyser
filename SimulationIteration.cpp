@@ -176,12 +176,6 @@ void SimulationIteration::runIteration()
 		seatTcpVoteShare.resize(project.seats().count());
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			determineSeatFinalResult(seatIndex);
-
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				logger << "after determineSeatFinalResult\n";
-				PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-			}
 		}
 
 		assignDirectWins();
@@ -872,10 +866,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		else if (effectiveIndependent && (
 			project.parties().idToIndex(seat.incumbent) == partyIndex || contains(run.seatProminentMinors[seatIndex], partyIndex)
 		)) {
-			if (seat.name == "Warringah" && partyIndex == 6 && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				logger << "before determineSpecificPartyFp\n";
-				PA_LOG_VAR(voteShare);
-			}
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
 		else if (effectivePopulist) {
@@ -893,9 +883,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		}
 		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] += voteShare;
-		if (seat.name == "Warringah" && partyIndex == 6 && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-			PA_LOG_VAR(voteShare);
-		}
 	}
 
 	pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = tempPastResults[OthersIndex];
@@ -915,10 +902,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
-
-	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-	}
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
@@ -1468,10 +1451,11 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 	// In live sims, want to avoid reducing actual recorded vote tallies through normalisation
 	// so make sure the we adjust the major party vote to make normalisation have minimal effect,
 	// especially if more than a trivial amount of vote is counted.
-	//if (run.isLiveAutomatic()) {
-	//	float liveFactor = 1.0f - pow(2.0f, -0.5f * run.liveSeatFpCounted[seatIndex]);
-	//	diff = mix(diff, totalVotePercent - 100.0f, liveFactor);
-	//}
+	if (run.isLiveAutomatic()) {
+		float seatCountProgress = run.liveElection->getSeatFpConfidence(seat.name) * 100.0f;
+		float liveFactor = 1.0f - pow(2.0f, -0.5f * seatCountProgress);
+		diff = mix(diff, totalVotePercent - 100.0f, liveFactor);
+	}
 	// The values for the majors (i.e. parties 0 and 1) are overwritten anyway,
 	// so this only has the effect of softening effect of the normalisation.
 	// This ensures that the normalisation is only punishing to minor parties
@@ -1695,28 +1679,41 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 
 	// Step 4: Adjust the current flow estimate according the bias the previous flow estimate had
 
+	currentPartyOnePrefs = std::clamp(
+		currentPartyOnePrefs,
+		0.01f * currentNonMajorTppShare,
+		0.99f * currentNonMajorTppShare
+	);
 	float biasAdjustedPartyOnePrefs = basicTransformedSwing(currentPartyOnePrefs, preferenceBiasRate * currentNonMajorTppShare);
 
 	// If it's been determined that the overall preference flow needs a correction, do that here.
-	float overallAdjustedPartyOnePrefs = biasAdjustedPartyOnePrefs + prefCorrection * currentNonMajorTppShare;
+	// Make sure that this falls well within the total non-major preferences available.
+	float overallAdjustedPartyOnePrefs = std::clamp(
+		biasAdjustedPartyOnePrefs + prefCorrection * currentNonMajorTppShare,
+		0.01f * currentNonMajorTppShare,
+		0.99f * currentNonMajorTppShare
+	);
 	float overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
 
 	// Step 4a: Integrate live forecast preference flow estimates (if applicable)
 
-	// if (run.isLive() && !std::isnan(run.liveSeatPrefFlow[seatIndex]) && !std::isnan(run.liveSeatExhaustRate[seatIndex])) {
-	// 	if (seat.name == "Sydney") logger << "Shouldn't be here!\n";
-	// 	float livePrefFlow = run.liveSeatPrefFlow[seatIndex];
+	// float beforeLiveAdjustment = overallAdjustedPartyOnePrefs; // REMOVE
+	if (run.isLiveAutomatic()) {
+		auto livePreferenceFlowInfo = run.liveElection->getSeatPreferenceFlowInformation(seat.name);
 	// 	float liveExhaustRate = run.liveSeatExhaustRate[seatIndex];
-	// 	float liveWeight = 1.0f - 100.0f / (100.0f + run.liveSeatTcpCounted[seatIndex] * run.liveSeatTcpCounted[seatIndex]);
-	// 	float currentPrefFlow = overallAdjustedPartyOnePrefs / currentNonMajorTppShare;
+		float liveWeight = 1.0f - std::pow(2.0f, -1.0f * livePreferenceFlowInfo.confidence * 50.0f);
+		float currentPrefFlow = overallAdjustedPartyOnePrefs / currentNonMajorTppShare * 100.0f;
 	// 	float currentExhaustRate = currentNonMajorTppShare / currentNonMajorFpShare;
 	// 	float mixedExhaustRate = mix(currentExhaustRate, liveExhaustRate, liveWeight);
-	// 	float mixedPrefFlow = mix(currentPrefFlow, livePrefFlow, liveWeight);
-	// 	currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - mixedExhaustRate);
-	// 	overallAdjustedPartyOnePrefs = currentNonMajorTppShare * mixedPrefFlow * 0.01f;
-	// 	overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
+		float mixedExhaustRate = 0.0f; // replace with above line when implementing exhaust rates
+		float modifiedPrefFlow = basicTransformedSwing(currentPrefFlow, livePreferenceFlowInfo.deviation);
+		[[maybe_unused]] float mixedPrefFlow = mix(currentPrefFlow, modifiedPrefFlow, liveWeight);
+	 	currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - mixedExhaustRate);
+	 	overallAdjustedPartyOnePrefs = currentNonMajorTppShare * mixedPrefFlow * 0.01f;
+		overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
 	// 	currentExhaustRateEstimate = mixedExhaustRate;
-	// }
+	 }
+	// float afterLiveAdjustment = overallAdjustedPartyOnePrefs; // REMOVE
 
 	// Step 5: Actually estimate the major party fps based on these adjusted flows
 
@@ -1747,11 +1744,27 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	float addPartyTwoFp = (partyTwoCurrentTpp * totalTpp * 0.01f - newPartyTwoTpp) / (1.0f - partyTwoCurrentTpp * 0.01f);
 	float finalPartyOneFp = newPartyOneFp;
 	float finalPartyTwoFp = newPartyTwoFp;
+
+	float addedPartyOneFp = finalPartyOneFp;
+	float addedPartyTwoFp = finalPartyTwoFp;
 	if (addPartyOneFp >= 0.0f) {
-		finalPartyOneFp += addPartyOneFp;
+		addedPartyOneFp = addPartyOneFp + finalPartyOneFp;
 	}
 	else {
-		finalPartyTwoFp += addPartyTwoFp;
+		addedPartyTwoFp = addPartyTwoFp + finalPartyTwoFp;
+	}
+
+	if (run.isLiveAutomatic()) {
+		auto majorPartyBalance = run.liveElection->getSeatMajorPartyBalance(seat.name);
+		float liveWeight = 1.0f - std::pow(2.0f, -1.0f * majorPartyBalance.confidence * 50.0f);
+		liveWeight *= std::min(1.0f, std::max(std::abs(addPartyOneFp), std::abs(addPartyTwoFp)) * 0.5f);
+		float majorPartyTotal = finalPartyOneFp + finalPartyTwoFp;
+		finalPartyOneFp = mix(addedPartyOneFp, majorPartyTotal * majorPartyBalance.alpShare, liveWeight);
+		finalPartyTwoFp = mix(addedPartyTwoFp, majorPartyTotal * (1.0f - majorPartyBalance.alpShare), liveWeight);
+	}
+	else {
+		finalPartyOneFp = addedPartyOneFp;
+		finalPartyTwoFp = addedPartyTwoFp;
 	}
 
 	//if (seat.name == "Terrigal") {
@@ -1818,7 +1831,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 		float prevSplit = std::min(prevNatVote, prevLibVote) / (prevNatVote + prevLibVote);
 		float currentSplit = std::min(nationalsShare[seatIndex], 1.0f - nationalsShare[seatIndex]);
 		float splitChange = currentSplit - prevSplit;
-		// skip unnecessary calculations if there's not change (common as most seats only one coalition party will contest)
+		// skip unnecessary calculations if there's no change (common as most seats only one coalition party will contest)
 		if (splitChange) {
 			float extraCoalitionVoteNeeded = splitChange * finalPartyTwoFp * 0.154f;
 			// make sure the adjustment doesn't overflow in either direction
@@ -1885,6 +1898,11 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex)
 	else {
 		normaliseSeatFp(seatIndex);
 	}
+
+	// if (seat.name == "Wentworth" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+	// 	logger << "Checkpoint Z\n";
+	// 	PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
+	// }
 }
 
 void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float fixedVote)
@@ -1928,59 +1946,15 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 
 		if (overallFpError < 0.3f) break;
 
-		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation && i >= 3) {
-		// 		logger << "chcekpoint A\n";
-		// 		PA_LOG_VAR(i);
-		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-		// 	}
-		// }
-
 		if (i > 2) correctMajorPartyFpBias();
 
-		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation && i >= 3) {
-		// 		logger << "chcekpoint B\n";
-		// 		PA_LOG_VAR(i);
-		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-		// 	}
-		// }
-
 		if (i > 1) calculatePreferenceCorrections();
-
-		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation && i >= 3) {
-		// 		logger << "chcekpoint C\n";
-		// 		PA_LOG_VAR(i);
-		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-		// 	}
-		// }
 
 		if (i == MaxReconciliationCycles - 1) break;
 		checkForNans("d");
 		applyCorrectionsToSeatFps();
 		checkForNans("e");
-
-		// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-		// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		// 		logger << "chcekpoint D\n";
-		// 		PA_LOG_VAR(i);
-		// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-		// 	}
-		// }
 	}
-
-	// for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-	// 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	// 	if (seat.name == "Warringah" && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-	// 		logger << "after reconcileSeatAndOverallFp\n";
-	// 		PA_LOG_VAR(seatFpVoteShare[seatIndex][6]);
-	// 	}
-	// }
 }
 
 void SimulationIteration::calculateNewFpVoteTotals()
@@ -2104,12 +2078,9 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 		}
 	}
 	checkForNans("d2");
-
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		allocateMajorPartyFp(seatIndex);
 	}
-
 	checkForNans("d3");
 }
 

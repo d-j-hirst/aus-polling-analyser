@@ -2,7 +2,6 @@
 
 #include "ElectionData.h"
 #include "General.h"
-#include "Log.h"
 #include "PollingProject.h"
 #include "SpecialPartyCodes.h"
 
@@ -13,6 +12,7 @@ using namespace LiveV2;
 
 constexpr float VoteObsWeightStrength = 80.0f;
 constexpr float PreferenceFlowObsWeightStrength = 200.0f;
+constexpr float CoalitionLeakagePercent = 20.0f;
 
 // Arbitrary offset to ensure independent candidates don't clash with real party IDs
 // Candidate IDs are 5-digit (or shorter) numbers, so this offset makes it easy to spot
@@ -49,6 +49,7 @@ void Node::log() const
   PA_LOG_VAR(tcpVotesPrevious);
   PA_LOG_VAR(tcpShares);
   PA_LOG_VAR(tcpSwings);
+  PA_LOG_VAR(tppSharePrevious);
   PA_LOG_VAR(tppShare);
   PA_LOG_VAR(tppSwing);
   PA_LOG_VAR(fpConfidence);
@@ -307,17 +308,9 @@ void Booth::calculateTppSwing(int natPartyIndex) {
   if (!node.tppShare) {
     return;
   }
-  int previousTotal = node.totalVotesPrevious();
-  if (
-    previousTotal > 0
-    && isTppSet(node.tcpVotesPrevious, natPartyIndex)
-    && node.tcpVotesPrevious.at(0) > 0
-    && node.tcpVotesPrevious.at(0) < previousTotal
-  ) {
-    float previousShare = transformVoteShare(
-      static_cast<float>(node.tcpVotesPrevious.at(0)) / previousTotal * 100.0f
-    );
-    node.tppSwing = node.tppShare.value() - previousShare;
+
+  if (node.tppSharePrevious) {
+    node.tppSwing = node.tppShare.value() - node.tppSharePrevious.value();
   }
 }
 
@@ -562,6 +555,10 @@ void Election::calculateTppEstimates(bool withTpp) {
     // or to calculate the final estimate of the TPP share for each booth
     if (booth.node.tppShare.has_value() != withTpp) continue;
 
+    // The preference flows vary in each booth from the overall election flows, so we need to calculate an
+    // offset value to properly compare each booth to the baseline
+    // The offset should be applied to the new estimated tpp estimate before calculating
+    // the estimated swing
     auto calculatePreferenceRateOffset = [this, &booth](bool current) -> std::optional<float> {
       std::optional<float> preferenceRateOffset = std::nullopt;
       auto const& tcpVotes = current ? booth.node.tcpVotesCurrent : booth.node.tcpVotesPrevious;
@@ -606,6 +603,7 @@ void Election::calculateTppEstimates(bool withTpp) {
     
     std::optional<float> prevPreferenceRateOffset = calculatePreferenceRateOffset(false);
 
+    // Calculate estimate of party one's share of the TPP based on the FP votes
     float partyOneShare = 0.0f;
     for (auto const& [partyId, share] : booth.node.fpShares) {
 
@@ -646,32 +644,83 @@ void Election::calculateTppEstimates(bool withTpp) {
       }
     }
 
-    if (partyOneShare > 0.0f && partyOneShare < 100.0f) {
-      if (withTpp) {
-        std::optional<float> currentPreferenceRateOffset = calculatePreferenceRateOffset(true);
-        if (currentPreferenceRateOffset && prevPreferenceRateOffset) {
-          bool isBad = false;
-          // Error inputs can result in NaN or Inf
-          // Inf can also result from legitimate results where the
-          // preference flow is 0% or 100%
-          // For analysis purposes, it's better to just ignore these booths
-          if (std::isnan(currentPreferenceRateOffset.value())) {
-            logger << "Warning: NaN preference rate offset for booth " << booth.name << "\n";
-            logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
-            isBad = true;
-          }
-          if (std::isinf(currentPreferenceRateOffset.value()) || std::isinf(prevPreferenceRateOffset.value())) {
-            logger << "Warning: Infinite preference rate offset for booth " << booth.name << "\n";
-            logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
-            logger << "Previous: " << prevPreferenceRateOffset.value() << "\n";
-            isBad = true;
-          }
-          if (!isBad) {
-            booth.node.preferenceFlowDeviation = currentPreferenceRateOffset.value() - prevPreferenceRateOffset.value();
-            booth.node.preferenceFlowConfidence = 1.0f;
-          }
+    int previousTotal = booth.node.totalVotesPrevious();
+    if (
+      previousTotal > 0
+      && isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)
+      && booth.node.tcpVotesPrevious.at(0) > 0
+      && booth.node.tcpVotesPrevious.at(0) < previousTotal
+    ) {
+      // TPP share is directly available for this booth, so record it
+      float previousShare = transformVoteShare(
+        static_cast<float>(booth.node.tcpVotesPrevious.at(0)) / previousTotal * 100.0f
+      );
+      booth.node.tppSharePrevious = previousShare;
+    } else if (previousTotal > 0) {
+      // work out which coalition party would have made the TPP here
+      int preferredCoalitionParty = 1;
+      if (booth.node.fpVotesPrevious.contains(natPartyIndex)) {
+        if (!booth.node.fpVotesCurrent.contains(1)) {
+          preferredCoalitionParty = natPartyIndex;
         }
-      } else {
+        else if (booth.node.fpVotesCurrent.at(natPartyIndex) > booth.node.fpVotesCurrent.at(1)) {
+          preferredCoalitionParty = natPartyIndex;
+        }
+      }
+
+      // Estimate the previous election's TPP share if not available
+      float partyOnePreferenceEstimatePercent = 0.0f;
+
+      for (auto const& [partyId, votes] : booth.node.fpVotesPrevious) {
+        float share = static_cast<float>(votes) / static_cast<float>(previousTotal) * 100.0f;
+        // now allocate preferences for non-major parties
+        if (partyId == preferredCoalitionParty) {
+          // This party will make the TPP, so will have zero preferences to Labor
+          continue;
+        }
+        else if (partyId == natPartyIndex || partyId == 1) {
+          // Other coalition party's votes, assume some leakage to Labor
+          partyOnePreferenceEstimatePercent += share * CoalitionLeakagePercent * 0.01f;
+        }
+        else if (prevPreferenceOverrides.contains(partyId)) {
+          // Override preference flow for this party when it'd different from the current election
+          partyOnePreferenceEstimatePercent += share * prevPreferenceOverrides.at(partyId) * 0.01f;
+        }
+        else if (preferenceFlowMap.contains(partyId)) {
+          partyOnePreferenceEstimatePercent += share * preferenceFlowMap.at(partyId) * 0.01f;
+        }
+        else {
+          partyOnePreferenceEstimatePercent += share * preferenceFlowMap.at(-1) * 0.01f;
+        }
+      }
+      booth.node.tppSharePrevious = transformVoteShare(partyOnePreferenceEstimatePercent);
+    }
+
+    if (partyOneShare > 0.0f && partyOneShare < 100.0f) {
+      std::optional<float> currentPreferenceRateOffset = calculatePreferenceRateOffset(true);
+      if (currentPreferenceRateOffset && prevPreferenceRateOffset) {
+        bool isBad = false;
+        // Error inputs can result in NaN or Inf
+        // Inf can also result from legitimate results where the
+        // preference flow is 0% or 100%
+        // For analysis purposes, it's better to just ignore these booths
+        if (std::isnan(currentPreferenceRateOffset.value())) {
+          logger << "Warning: NaN preference rate offset for booth " << booth.name << "\n";
+          logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
+          isBad = true;
+        }
+        if (std::isinf(currentPreferenceRateOffset.value()) || std::isinf(prevPreferenceRateOffset.value())) {
+          logger << "Warning: Infinite preference rate offset for booth " << booth.name << "\n";
+          logger << "Current: " << currentPreferenceRateOffset.value() << "\n";
+          logger << "Previous: " << prevPreferenceRateOffset.value() << "\n";
+          isBad = true;
+        }
+        if (!isBad) {
+          booth.node.preferenceFlowDeviation = currentPreferenceRateOffset.value() - prevPreferenceRateOffset.value();
+          booth.node.preferenceFlowConfidence = 1.0f;
+        }
+      }
+      if (!withTpp) {
         booth.node.tppShare = transformVoteShare(partyOneShare);
         booth.node.tppConfidence = 0.5f; // TODO: tune parameter
         booth.calculateTppSwing(natPartyIndex);

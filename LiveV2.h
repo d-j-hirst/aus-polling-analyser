@@ -2,6 +2,7 @@
 
 #include "ElectionData.h"
 #include "General.h"
+#include "Log.h"
 #include "SpecialPartyCodes.h"
 
 #include <map>
@@ -37,6 +38,7 @@ public:
   std::map<int, float> fpSwings; // change in transformed vote share
   std::map<int, float> tcpShares; // transformed vote share
   std::map<int, float> tcpSwings; // change in transformed vote share
+  std::optional<float> tppSharePrevious; // 2pp share at previous election, estimate if not directly available
   std::optional<float> tppShare; // transformed vote share, only filled if 2pp is available at both elections 
   std::optional<float> tppSwing; // change in transformed vote share, only filled if 2pp is available at both elections
   std::map<int, float> fpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
@@ -233,6 +235,57 @@ public:
     return 0.0f;
   }
 
+  struct PreferenceFlowInformation {
+    float deviation = 0.0f;
+    float confidence = 0.0f;
+  };
+
+  PreferenceFlowInformation getSeatPreferenceFlowInformation(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    if (seatIndex != int(seats.size())) {
+      float totalPreferenceFlowDeviation = 0.0f;
+      float totalPreferenceFlowConfidence = 0.0f;
+      auto const& seatNode = seats[seatIndex].node;
+      totalPreferenceFlowDeviation += seatNode.preferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowConfidence += seatNode.preferenceFlowConfidence;
+      auto const& largeRegionNode = largeRegions[seats[seatIndex].parentRegionId].node;
+      totalPreferenceFlowDeviation += largeRegionNode.preferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowConfidence += largeRegionNode.preferenceFlowConfidence;
+      totalPreferenceFlowDeviation += node.preferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowConfidence += node.preferenceFlowConfidence;
+      float finalConfidence = totalPreferenceFlowConfidence / 3.0f;
+      return {totalPreferenceFlowDeviation, finalConfidence};
+    }
+    return {0.0f, 0.0f};
+  }
+
+  struct MajorPartyBalanceInformation {
+    float alpShare = 0.0f;
+    float confidence = 0.0f;
+  };
+
+  // Returns Labor's share of the major party vote (including Nationals)
+  MajorPartyBalanceInformation getSeatMajorPartyBalance(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    if (seatIndex != int(seats.size())) {
+      auto const& fpVotes = seats[seatIndex].node.fpVotesCurrent;
+      if (fpVotes.empty() || !fpVotes.contains(0) || fpVotes.at(0) == 0) return {0.0f, 0.0f};
+      float totalMajorPartyVotes = 0.0f;
+      std::vector<int> majorPartyIds = {0, 1, natPartyIndex};
+      for (auto const& partyId : majorPartyIds) {
+        if (fpVotes.contains(partyId)) {
+          totalMajorPartyVotes += fpVotes.at(partyId);
+        }
+      }
+      float confidence = seats[seatIndex].node.fpConfidence;
+      if (totalMajorPartyVotes == 0) {
+        PA_LOG_VAR(fpVotes);
+      }
+      return {static_cast<float>(fpVotes.at(0)) / static_cast<float>(totalMajorPartyVotes), confidence};
+    }
+    return {0.0f, 0.0f};
+  }
+
 private:
   template<typename T, typename U>
   void aggregateCollection(T& parent, const std::vector<int>& childIndices, 
@@ -326,7 +379,7 @@ private:
 
   std::map<std::string, int> ecAbbreviationToInternalParty;
 
-  std::map<int, float> preferenceFlowMap;
+  std::map<int, float> preferenceFlowMap; // preference flows as a percentage
   std::map<int, float> preferenceExhaustMap;
   std::map<int, float> prevPreferenceOverrides; // Covers cases where the preference flow last election is expected to be different
 
