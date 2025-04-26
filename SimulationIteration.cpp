@@ -678,18 +678,8 @@ void SimulationIteration::determineSeatInitialResults()
 
 	nationalsShare.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-			logger << "before allocating major party fp: " << seatFpVoteShare[seatIndex][6] << "\n";
-		}
-
 		determineNationalsShare(seatIndex);
 		allocateMajorPartyFp(seatIndex);
-
-		if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-			logger << "after allocating major party fp: " << seatFpVoteShare[seatIndex][6] << "\n";
-		}
 	}
 }
 
@@ -904,9 +894,6 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		// Note: this means major party vote shares get passed on as-is
 		seatFpVoteShare[seatIndex][partyIndex] += voteShare;
 	}
-	if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		logger << "initial fp allocation: " << seatFpVoteShare[seatIndex][6] << "\n";
-	}
 
 	pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = tempPastResults[OthersIndex];
 	determineSeatEmergingParties(seatIndex);
@@ -919,24 +906,12 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 
 	adjustForFpCorrelations(seatIndex);
 
-	if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		logger << "before incorporation of live fps: " << seatFpVoteShare[seatIndex][6] << "\n";
-	}
-
 	if (run.isLiveAutomatic()) incorporateLiveSeatFps(seatIndex);
-
-	if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		logger << "after incorporation of live fps: " << seatFpVoteShare[seatIndex][6] << "\n";
-	}
 
 	// Helps to effect minor party crowding, i.e. if too many minor parties
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
 	normaliseSeatFp(seatIndex);
-
-	if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		logger << "after normalisation: " << seatFpVoteShare[seatIndex][6] << "\n";
-	}
 }
 
 void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
@@ -1976,61 +1951,19 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 {
 	constexpr int MaxReconciliationCycles = 5;
 
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-			logger << "before reconciliation: " << seatFpVoteShare[seatIndex][6] << "\n";
-		}
-	}
-
 	for (int i = 0; i < MaxReconciliationCycles; ++i) {
 		calculateNewFpVoteTotals();
-	
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				logger << "after calculating new fp vote totals: " << i << " " << seatFpVoteShare[seatIndex][6] << "\n";
-			}
-		}
 
 		if (overallFpError < 0.3f) break;
 
 		if (i > 2) correctMajorPartyFpBias();
-	
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				logger << "after correcting major party fp bias: " << i << " " << seatFpVoteShare[seatIndex][6] << "\n";
-			}
-		}
 
 		if (i > 1) calculatePreferenceCorrections();
-	
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				logger << "after calculating preference corrections: " << i << " " << seatFpVoteShare[seatIndex][6] << "\n";
-			}
-		}
 
 		if (i == MaxReconciliationCycles - 1) break;
 		checkForNans("d");
 		applyCorrectionsToSeatFps();
 		checkForNans("e");
-	
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			Seat const& seat = project.seats().viewByIndex(seatIndex);
-			if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				logger << "after applying corrections to seat fps: " << i << " " << seatFpVoteShare[seatIndex][6] << "\n";
-			}
-		}
-	}
-
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		if (seat.name == "Curtin" && run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-			logger << "after reconciliation: " << seatFpVoteShare[seatIndex][6] << "\n";
-		}
 	}
 }
 
