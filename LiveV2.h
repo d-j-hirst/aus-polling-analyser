@@ -43,6 +43,8 @@ public:
   std::optional<float> tppSwing; // change in transformed vote share, only filled if 2pp is available at both elections
   std::map<int, float> fpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
   std::map<int, float> fpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, float> tcpSharesBaseline; // transformed vote share, median result from baseline (no-results) simulation
+  std::map<int, float> tcpSwingsBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
   std::optional<float> tppShareBaseline; // transformed vote share, median result from baseline (no-results) simulation
   std::optional<float> tppSwingBaseline; // change in transformed vote share, median result from baseline (no-results) simulation
   std::map<int, float> fpDeviations; // observed deviation from baseline
@@ -53,6 +55,7 @@ public:
   std::optional<float> specificPreferenceFlowDeviation; // deviations reduced according to confidence level
   std::map<int, float> fpVotesProjected; // median projected vote count
   std::map<int, float> tppVotesProjected; // median projected vote count, use this for the process of calculating underlying tpp estimates
+  std::map<int, float> tcpVotesProjected; // median projected vote count, Important: only calculated when a real TCP count is available.
   std::set<int> runningParties;
 
   float fpConfidence = 0.0f;
@@ -79,6 +82,7 @@ public:
   int totalFpVotesCurrent() const;
   int totalVotesPrevious() const;
   int totalTcpVotesCurrent() const;
+  float totalTcpVotesProjected() const;
 };
 
 class Booth {
@@ -284,6 +288,19 @@ public:
       return {static_cast<float>(fpVotes.at(0)) / static_cast<float>(totalMajorPartyVotes), confidence};
     }
     return {0.0f, 0.0f};
+  }
+
+  struct tcpInformation {
+    std::map<int, float> shares; // transformed vote share
+    float confidence = 0.0f;
+  };
+
+  tcpInformation getSeatTcpInformation(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    if (seatIndex != int(seats.size())) {
+      return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpConfidence};
+    }
+    return {std::map<int, float>(), 0.0f};
   }
 
 private:

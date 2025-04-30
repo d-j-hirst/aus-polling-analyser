@@ -2126,7 +2126,6 @@ void SimulationIteration::correctMajorPartyFpBias()
 		seatFpVoteShare[seatIndex][Mp::One] = seatFpVoteShare[seatIndex][Mp::One] * seatPartyOneAdjust;
 		seatFpVoteShare[seatIndex][Mp::Two] = seatFpVoteShare[seatIndex][Mp::Two] * seatPartyTwoAdjust;
 
-		Seat const& seat = project.seats().viewByIndex(seatIndex);
 		normaliseSeatFp(seatIndex);
 	}
 }
@@ -2431,31 +2430,22 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	}
 
 	// incorporate non-classic live 2cp results
-	// if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex))) {
-	// 	float tcpLive = topTwo.first.second;
-	// 	if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].first && topTwo.second.first == run.liveSeatTcpParties[seatIndex].second) {
-	// 		tcpLive = run.liveSeatTcpPercent[seatIndex];
-	// 	}
-	// 	else if (topTwo.first.first == run.liveSeatTcpParties[seatIndex].second && topTwo.second.first == run.liveSeatTcpParties[seatIndex].first) {
-	// 		tcpLive = 100.0f - run.liveSeatTcpPercent[seatIndex];
-	// 	}
-	// 	float liveTransformedTcp = transformVoteShare(tcpLive);
-	// 	float priorTransformedTcp = transformVoteShare(topTwo.first.second);
-	// 	if (!isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex)) {
-	// 		liveTransformedTcp -= 0.8f; // lazy adjustment for poor performance of 3rd parties in declarations/postals
-	// 	}
-	// 	else if (isMajor(topTwo.first.first, run.natPartyIndex) && !isMajor(topTwo.second.first, run.natPartyIndex)) {
-	// 		liveTransformedTcp += 0.8f; // lazy adjustment for poor performance of 3rd parties in declarations/postals
-	// 	}
-	// 	float swingDeviation = run.tppSwingFactors.meanSwingDeviation * 1.5f;
-	// 	float liveSwingDeviation = std::min(swingDeviation, 10.0f * pow(2.0f, -std::sqrt(run.liveSeatTcpBasis[seatIndex] * 0.2f)));
-	// 	liveTransformedTcp += rng.flexibleDist(0.0f, liveSwingDeviation, liveSwingDeviation, 5.0f, 5.0f);
-	// 	float liveFactor = 1.0f - pow(2.0f, -run.liveSeatTcpCounted[seatIndex] * 0.2f);
-	// 	float mixedTransformedTcp = mix(priorTransformedTcp, liveTransformedTcp, liveFactor);
-	// 	topTwo.first.second = detransformVoteShare(mixedTransformedTcp);
-	// 	topTwo.second.second = 100.0f - topTwo.first.second;
-	// 	if (topTwo.first.second > topTwo.second.second) std::swap(topTwo.first, topTwo.second);
-	// }
+	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex))) {
+		auto tcpInfo = run.liveElection->getSeatTcpInformation(project.seats().viewByIndex(seatIndex).name);
+		if (tcpInfo.shares.contains(topTwo.first.first) && tcpInfo.shares.contains(topTwo.second.first)) {
+			float priorShare = transformVoteShare(topTwo.first.second);
+			float liveShare = tcpInfo.shares.at(topTwo.first.first);
+			// placeholder insertion of variance, remove once the election model creates
+			// its own better internal estimate of variance
+			liveShare += rng.normal(0.0f, 12.0f * std::pow(2.0f, -4.0f * tcpInfo.confidence) - 0.25f);
+			// Strongly favour use of live TCP results once there's a decent amount in
+			float liveFactor = std::pow(tcpInfo.confidence, 0.1f);
+			float mixedShare = mix(priorShare, liveShare, liveFactor);
+			topTwo.first.second = detransformVoteShare(mixedShare);
+			topTwo.second.second = 100.0f - topTwo.first.second;
+			if (topTwo.first.second > topTwo.second.second) std::swap(topTwo.first, topTwo.second);
+		}
+	}
 
 	seatWinner[seatIndex] = topTwo.second.first;
 	auto byParty = std::minmax(topTwo.first, topTwo.second); // default pair operator orders by first element
