@@ -391,6 +391,7 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   aggregate();
   determineSpecificDeviations();
   recomposeVoteCounts();
+  calculateLivePreferenceFlowDeviations();
   log(true, true, true);
 }
 
@@ -898,6 +899,14 @@ void Election::extrapolateBaselineSwings() {
       for (auto const& [partyId, swing] : seat.node.fpSwingsBaseline) {
         booth.node.fpSwingsBaseline[partyId] = swing;
       }
+      for (auto const& [partyId, share] : seat.node.fpSharesBaseline) {
+        // If there isn't a swing baseline, use the share baseline instead
+        // TODO: Make this more realistic in situations where the party would be
+        // expected to perform differently in different parts of the seat
+        if (!booth.node.fpSwingsBaseline.contains(partyId)) {
+          booth.node.fpSharesBaseline[partyId] = share;
+        }
+      }
       if (seat.node.tppSwingBaseline) {
         booth.node.tppSwingBaseline = seat.node.tppSwingBaseline.value();
       }
@@ -919,6 +928,19 @@ void Election::calculateDeviationsFromBaseline() {
           }
         }
       }
+      for (auto const& [partyId, baselineShare] : seat.node.fpSharesBaseline) {
+        // fp swings are preferred, so only use share baseline if there is no swing baseline
+        if (booth.node.fpSwingsBaseline.contains(partyId)) continue;
+        if (booth.node.fpShares.contains(partyId)) {
+          booth.node.fpDeviations[partyId] = booth.node.fpShares.at(partyId) - baselineShare;
+        }
+        else if (partyId == run.indPartyIndex && booth.node.fpShares.contains(seat.independentPartyIndex)) {
+          if (seat.independentPartyIndex != InvalidPartyIndex) {
+            booth.node.fpDeviations[partyId] = booth.node.fpShares.at(seat.independentPartyIndex) - baselineShare;
+          }
+        }
+      }
+      
       if (seat.node.tppSwingBaseline) {
         if (booth.node.tppSwing) {
           booth.node.tppDeviation = booth.node.tppSwing.value() - seat.node.tppSwingBaseline.value();
@@ -1227,7 +1249,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     ) {
       auto const& probabilityBands = sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].at(-1);
       float median = probabilityBands[(probabilityBands.size() - 1) / 2];
-      remainingExpectedVotes = std::max(remainingExpectedVotes, median * totalVotesPrevious - othersAccountedFor);
+      remainingExpectedVotes = std::max(remainingExpectedVotes, median * totalVotesPrevious * 0.01f - othersAccountedFor);
     }
     for (auto const& partyId : blindOthers) {
       votesProjected[partyId] = remainingExpectedVotes / float(blindOthers.size());
@@ -1259,6 +1281,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     float previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : previousTotalVotesGuess;
     std::map<int, float> tempFpVotesProjected;
     float othersAccountedFor = 0.0f;
+    std::set<int> blindOthers;
     for (auto const& partyId : booth.node.runningParties) {
       float deviation = 0.0f;
       int effectivePartyId = partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
@@ -1270,7 +1293,6 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
           }
         }
       }
-      std::set<int> blindOthers;
       std::optional<float> baselineShareUntransformed;
       if (sim.getLiveBaselineReport().has_value()) {
         if (sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(effectivePartyId)) {  
@@ -1287,30 +1309,31 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
           baselineShare = transformVoteShare(baselineShareUntransformed.value());
         }
         float newShare = baselineShare + deviation;
-        float newVotes = detransformVoteShare(newShare) * previousTotalVotes;
+        float newVotes = detransformVoteShare(newShare) * previousTotalVotes * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
         }
-      } else if (allowCurrentData && seats[booth.parentSeatId].node.fpShares.contains(effectivePartyId)) {
+      } else if (allowCurrentData && seats[booth.parentSeatId].node.fpShares.contains(partyId)) {
         // seat share data are available
         // If there is a baseline, use it and modify from there; otherwise, use a low initial expectation
         // Either way, use the seat share data to modify the initial expectation
         float baselineShare = transformVoteShare(baselineShareUntransformed.value_or(1.0f));
         float weight = obsWeight(seats[booth.parentSeatId].node.fpConfidence, VoteObsWeightStrength);
-        float seatShare = seats[booth.parentSeatId].node.fpShares.at(effectivePartyId);
+        float seatShare = seats[booth.parentSeatId].node.fpShares.at(partyId);
         float newShare = seatShare * weight + baselineShare * (1.0f - weight);
-        float newVotes = detransformVoteShare(newShare) * previousTotalVotes;
+        float newVotes = detransformVoteShare(newShare) * previousTotalVotes * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
         }
       } else if (baselineShareUntransformed.has_value()) {
         // No previous data and no current data, but we have a baseline
-        // (Typically occurs early on the night when no useful data at all has been recorded for this party yet)
-        // TODO: make sure that this correctly handles new prominent independents
-        // (and also recontesting independents, though they should have the same party ID as previous election)
-        float newVotes = baselineShareUntransformed.value() * previousTotalVotes;
+        // (Typically occurs for independents, early on the night when no useful data at all has been recorded for this party yet)
+        float transformedBaselineShare = transformVoteShare(baselineShareUntransformed.value());
+        float adjustedShare = transformedBaselineShare + deviation;
+        float detransformedShare = detransformVoteShare(adjustedShare);
+        float newVotes = detransformedShare * previousTotalVotes * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
@@ -1325,9 +1348,8 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         // and no pre-election expectations exist yet
         blindOthers.insert(effectivePartyId);
       }
-
-      assignBlindOthers(tempFpVotesProjected, blindOthers, projectSeatIndex, previousTotalVotes, othersAccountedFor);
     }
+    assignBlindOthers(tempFpVotesProjected, blindOthers, projectSeatIndex, previousTotalVotes, othersAccountedFor);
     // normalize so that the sum of the votes is the same as the previous election (or other estimate)
     float totalVotes = 0.0f;
     for (auto const& [partyId, votes] : tempFpVotesProjected) {
@@ -1433,12 +1455,6 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
         booth.node.tcpVotesPrevious.begin()->first;
       float weightedSwing = 0.0f;
       float summedWeight = 0.0f;
-      if (booth.name == "Beaumaris") {
-        logger << "Beaumaris\n";
-        PA_LOG_VAR(otherPartyId);
-        PA_LOG_VAR(firstPartyId);
-        PA_LOG_VAR(secondPartyId);
-      }
       
       for (auto const& otherBoothIndex : seat.booths) {
         // Rather than using the seat swing, need to manually calculate the "swing"
@@ -1459,22 +1475,7 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
           float weight = static_cast<float>(otherBooth.node.totalVotesPrevious());
           weightedSwing += swing * weight;
           summedWeight += weight; 
-          if (booth.name == "Beaumaris") {
-            PA_LOG_VAR(otherBooth.name);
-            PA_LOG_VAR(otherBooth.node.tcpVotesPrevious);
-            PA_LOG_VAR(otherBooth.node.tcpVotesCurrent);
-            PA_LOG_VAR(prevMajorShare);
-            PA_LOG_VAR(currentMajorShare);
-            PA_LOG_VAR(swing);
-            PA_LOG_VAR(weight);
-            PA_LOG_VAR(weightedSwing);
-            PA_LOG_VAR(summedWeight);
-          }
         }
-      }
-      if (booth.name == "Beaumaris") {
-        PA_LOG_VAR(weightedSwing);
-        PA_LOG_VAR(summedWeight);
       }
       if (summedWeight > 0.0f) {
         float averageSwing = weightedSwing / summedWeight;
@@ -1855,6 +1856,65 @@ void Election::determineSeatFinalTppDeviation(bool allowCurrentData, int seatInd
     seats[seatIndex].finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     seats[seatIndex].offsetSpecificTppDeviation = finalDeviation;
+  }
+}
+
+void Election::calculateLivePreferenceFlowDeviations() {
+  for (auto& seat : seats) {
+    // Basic idea: calculate preference flow based on "expected" (pre-election) flows
+    // Then compare this to "actual" flows (i.e. what the projections say, which might not be quite the same as directly measured from booths)
+
+    float expectedPartyOnePrefs = 0.0f;
+    float totalMinorPartyPrefs = 0.0f;
+    // Calculate estimate of party one's share of the TPP based on the FP votes
+    float totalFpVotes = std::accumulate(
+      seat.node.fpVotesProjected.begin(),
+      seat.node.fpVotesProjected.end(),
+      0.0f,
+      [](float sum, const auto& pair) { return sum + pair.second; }
+    );
+    float alpPrimaryPlusCoalitionLeakage = seat.node.fpVotesProjected.at(0) / totalFpVotes;
+    for (auto const& [partyId, votes] : seat.node.fpVotesProjected) {
+      float share = votes / totalFpVotes * 100.0f;
+
+      // work out which coalition party will make the TPP here
+      int preferredCoalitionParty = 1;
+      if (seat.node.fpVotesCurrent.contains(natPartyIndex)) {
+        if (!seat.node.fpVotesCurrent.contains(1)) {
+          preferredCoalitionParty = natPartyIndex;
+        }
+        else if (seat.node.fpVotesCurrent.at(natPartyIndex) > seat.node.fpVotesCurrent.at(1)) {
+          preferredCoalitionParty = natPartyIndex;
+        }
+      }
+
+      // now allocate preferences for non-major parties
+      if (partyId == preferredCoalitionParty || partyId == 0) {
+        // Major parties, don't include them in preference flow calculations
+        continue;
+      }
+      else if (partyId == natPartyIndex || partyId == 1) {
+        // Other coalition party's votes, assume some leakage to Labor
+        alpPrimaryPlusCoalitionLeakage += detransformVoteShare(share) * 20.0f * 0.01f;
+      }
+      else if (preferenceFlowMap.contains(partyId)) {
+        expectedPartyOnePrefs += detransformVoteShare(share) * preferenceFlowMap.at(partyId) * 0.01f;
+        totalMinorPartyPrefs += detransformVoteShare(share);
+      }
+      else {
+        expectedPartyOnePrefs += detransformVoteShare(share) * preferenceFlowMap.at(-1) * 0.01f;
+        totalMinorPartyPrefs += detransformVoteShare(share);
+      }
+    }
+    float expectedPreferenceFlow = transformVoteShare(expectedPartyOnePrefs / totalMinorPartyPrefs * 100.0f);
+
+    float actualTpp = seat.node.tppVotesProjected.at(0) / (seat.node.tppVotesProjected.at(0) + seat.node.tppVotesProjected.at(1)) * 100.0f;
+    float actualPartyOnePrefs = actualTpp - alpPrimaryPlusCoalitionLeakage;
+    float actualPreferenceFlow = transformVoteShare(actualPartyOnePrefs / totalMinorPartyPrefs * 100.0f);
+
+    float deviation = actualPreferenceFlow - expectedPreferenceFlow;
+    seat.livePreferenceFlowDeviation = deviation;
+
   }
 }
 

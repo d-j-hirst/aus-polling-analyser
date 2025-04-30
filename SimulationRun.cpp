@@ -232,6 +232,8 @@ void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 
 	auto newRun = SimulationRun(project, sim, false, true);
 	SimulationPreparation preparations(project, sim, newRun);
+	newRun.oddsFinalMeans = oddsFinalMeans;
+	newRun.oddsCalibrationMeans = oddsCalibrationMeans;
 	try {
 		preparations.prepareForIterations();
 	}

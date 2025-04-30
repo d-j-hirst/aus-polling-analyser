@@ -141,6 +141,7 @@ public:
   std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+  float livePreferenceFlowDeviation; // deviations from the "expected" pre-election preference flows
 
   const int parentRegionId;
 
@@ -188,10 +189,6 @@ public:
     return node.tppShareBaseline.value_or(50.0f);
   }
 
-  float getFinalSpecificTppDeviation() const {
-    return finalSpecificTppDeviation.value_or(0.0f);
-  }
-
   float getTransformedBaselineFp(int partyIndex) const {
     if (node.fpSharesBaseline.contains(partyIndex)) {
       return node.fpSharesBaseline.at(partyIndex);
@@ -199,23 +196,27 @@ public:
     return 1.0f;
   }
 
-  float getFinalSpecificFpDeviations(int partyIndex) const {
-    if (finalSpecificFpDeviations.contains(partyIndex)) {
-      return finalSpecificFpDeviations.at(partyIndex);
-    }
-    return 0.0f;
-  }
-
   float getRegionTppBaseline(int regionIndex) const {
     return largeRegions[regionIndex].node.tppShareBaseline.value_or(50.0f);
+  }
 
+  float getFinalSpecificTppDeviation() const {
+    return finalSpecificTppDeviation.value_or(0.0f);
+  }
+
+  std::map<int, float> getFinalSpecificFpDeviations() const {
+    return finalSpecificFpDeviations;
   }
 
   float getRegionFinalSpecificTppDeviation(int regionIndex) const {
     return largeRegions[regionIndex].finalSpecificTppDeviation.value_or(0.0f);
   }
 
-  float getSeatTppDeviation(std::string const& seatName) const {
+  std::map<int, float> getRegionFinalSpecificFpDeviations(int regionIndex) const {
+    return largeRegions[regionIndex].finalSpecificFpDeviations;
+  }
+
+  float getSeatFinalSpecificTppDeviation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
@@ -223,10 +224,29 @@ public:
     return 0.0f;
   }
 
-  std::map<int, float> getSeatFpDeviations(std::string const& seatName) const {
+  std::map<int, float> getSeatFinalSpecificFpDeviations(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].finalSpecificFpDeviations;
+		}
+    return {};
+  }
+
+  std::map<int, float> getSeatOverallFpDeviations(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+		if (seatIndex != int(seats.size())) {
+      std::map<int, float> seatDeviations = seats[seatIndex].finalSpecificFpDeviations;
+      for (auto const& [partyId, deviation] : largeRegions[seats[seatIndex].parentRegionId].finalSpecificFpDeviations) {
+        if (seatDeviations.contains(partyId)) {
+          seatDeviations[partyId] += deviation;
+        }
+      }
+      for (auto const& [partyId, deviation] : finalSpecificFpDeviations) {
+        if (seatDeviations.contains(partyId)) {
+          seatDeviations[partyId] += deviation;
+        }
+      }
+			return seatDeviations;
 		}
     return {};
   }
@@ -244,21 +264,31 @@ public:
     float confidence = 0.0f;
   };
 
+  // Returns *specific* preference flow deviations ()
   PreferenceFlowInformation getSeatPreferenceFlowInformation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       float totalPreferenceFlowDeviation = 0.0f;
       float totalPreferenceFlowConfidence = 0.0f;
       auto const& seatNode = seats[seatIndex].node;
-      totalPreferenceFlowDeviation += seatNode.preferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowDeviation += seatNode.specificPreferenceFlowDeviation.value_or(0.0f);
       totalPreferenceFlowConfidence += seatNode.preferenceFlowConfidence;
       auto const& largeRegionNode = largeRegions[seats[seatIndex].parentRegionId].node;
-      totalPreferenceFlowDeviation += largeRegionNode.preferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowDeviation += largeRegionNode.specificPreferenceFlowDeviation.value_or(0.0f);
       totalPreferenceFlowConfidence += largeRegionNode.preferenceFlowConfidence;
-      totalPreferenceFlowDeviation += node.preferenceFlowDeviation.value_or(0.0f);
+      totalPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0f);
       totalPreferenceFlowConfidence += node.preferenceFlowConfidence;
       float finalConfidence = totalPreferenceFlowConfidence / 3.0f;
       return {totalPreferenceFlowDeviation, finalConfidence};
+    }
+    return {0.0f, 0.0f};
+  }
+
+  PreferenceFlowInformation getSeatLivePreferenceFlowDeviation(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    if (seatIndex != int(seats.size())) {
+      float confidence = std::min(seats[seatIndex].node.fpConfidence, seats[seatIndex].node.tcpConfidence);
+      return {seats[seatIndex].livePreferenceFlowDeviation, confidence};
     }
     return {0.0f, 0.0f};
   }
@@ -379,6 +409,8 @@ private:
 
   void determineSeatFinalFpDeviations(bool allowCurrentData, int seatIndex);
   void determineSeatFinalTppDeviation(bool allowCurrentData, int seatIndex);
+
+  void calculateLivePreferenceFlowDeviations();
 
   // map AEC candidate IDs to internal party IDs
   int mapPartyId(int ecCandidateId);

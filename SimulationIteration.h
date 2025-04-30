@@ -54,7 +54,6 @@ private:
 	void determineOverallTpp();
 	void determineIntraCoalitionSwing();
 	void determineIndDistributionParameters();
-	void determinePpvcBias();
 	void determineDecVoteBias();
 	void decideMinorPartyPopulism();
 	void determineHomeRegions();
@@ -74,17 +73,17 @@ private:
 	void determineSeatEmergingInds(int seatIndex);
 	void determineSeatOthers(int seatIndex);
 	void adjustForFpCorrelations(int seatIndex);
-	void incorporateLiveSeatFps(int seatIndex);
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
 	void determineNationalsShare(int seatIndex);
-	void allocateMajorPartyFp(int seatIndex);
+	void allocateMajorPartyFp(int seatIndex, float preferenceFlowDeviation = 0.0f);
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals();
 	void calculatePreferenceCorrections();
 	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias();
+	void incorporateLiveResults();
 	void determineSeatFinalResult(int seatIndex);
 	void assignNationalsVotes(int seatIndex);
 	void applyLiveManualOverrides(int seatIndex);
