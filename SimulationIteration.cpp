@@ -14,7 +14,7 @@ static std::mt19937 gen;
 static std::mutex recordMutex;
 static std::mutex debugMutex;
 
-RandomGenerator rng;
+static RandomGenerator rng;
 
 // Threshold at which longshot-bias correction starts being applied for seats being approximated from betting odds
 constexpr float LongshotOddsThreshold = 2.5f;
@@ -130,6 +130,9 @@ void SimulationIteration::runIteration()
 
 	bool gotValidResult = false;
 	while (!gotValidResult) {
+		if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+			liveElection = std::make_unique<LiveV2::Election>(run.liveElection->generateScenario());
+		}
 		loadPastSeatResults();
 		initialiseIterationSpecificCounts();
 		determineFedStateCorrelation();
@@ -1854,35 +1857,75 @@ void SimulationIteration::correctMajorPartyFpBias()
 void SimulationIteration::incorporateLiveResults()
 {
 	if (!sim.isLive() || run.doingBettingOddsCalibrations || run.doingLiveBaselineSimulation) return;
+
 	// Incorporate live TPPs first
-	float electionTppDeviation = run.liveElection->getFinalSpecificTppDeviation();
+
+	// First, adjust seat margins towards the election baseline as confidence increases
+	// This is because we want to replace the uncertainty measured in the prior
+	// with the uncertainty estimated from the live results
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		float transformedTpp = transformVoteShare(partyOneNewTppMargin[seatIndex] + 50.0f);
-		transformedTpp += electionTppDeviation;
+		auto seatTppInformation = liveElection->getSeatTppInformation(project.seats().viewByIndex(seatIndex).name);
+		float priorMargin = partyOneNewTppMargin[seatIndex];
+		float baselineMargin = detransformVoteShare(seatTppInformation.baseline) - 50.0f;
+		float confidence = seatTppInformation.confidence;
+		float baselineWeight = std::pow(confidence, 0.05f);
+		float mixedMargin = mix(priorMargin, baselineMargin, baselineWeight);
+		partyOneNewTppMargin[seatIndex] = mixedMargin;
+	}
+
+	// Get the baseline and deviation for the election
+	auto electionTppInformation = liveElection->getFinalSpecificTppInformation();
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		// now incorporate deviation
+		float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
+		float transformedTpp = transformVoteShare(oldTpp);
+		transformedTpp += electionTppInformation.deviation;
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		auto regionTppDeviation = run.liveElection->getRegionFinalSpecificTppDeviation(regionIndex);
+		auto regionTppDeviation = liveElection->getRegionFinalSpecificTppDeviation(regionIndex);
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			int regionId = project.seats().viewByIndex(seatIndex).region;
 			if (project.regions().idToIndex(regionId) != regionIndex) continue;
-			float transformedTpp = transformVoteShare(partyOneNewTppMargin[seatIndex] + 50.0f);
+			float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
+			float transformedTpp = transformVoteShare(oldTpp);
 			transformedTpp += regionTppDeviation;
 			partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
+
+			auto const seat = project.seats().viewByIndex(seatIndex);
 		}
 	}
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const seat = project.seats().viewByIndex(seatIndex);
-		float seatTppDeviation = run.liveElection->getSeatFinalSpecificTppDeviation(seat.name);
-		float transformedTpp = transformVoteShare(partyOneNewTppMargin[seatIndex] + 50.0f);
+		float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
+		float seatTppDeviation = liveElection->getSeatTppInformation(seat.name).deviation;
+		float transformedTpp = transformVoteShare(oldTpp);
 		transformedTpp += seatTppDeviation;
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
 
+	// Now, incorporate live FPs
 
-	auto electionFpDeviations = run.liveElection->getFinalSpecificFpDeviations();
+	// As for TPPs, adjust seat margins towards the election baseline as confidence increases
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto seatFpInformation = liveElection->getSeatFpInformation(project.seats().viewByIndex(seatIndex).name);
+		for (auto [partyIndex, information] : seatFpInformation) {
+			if (partyIndex < Mp::Others) continue;
+			if (partyIndex == run.natPartyIndex) continue; // We will deal with NAT fp later
+
+			float priorFpShare = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+			float baselineFpShare = information.baseline;
+			float confidence = information.confidence;
+			float baselineWeight = std::pow(confidence, 0.05f);
+			float mixedFpShare = mix(priorFpShare, baselineFpShare, baselineWeight);
+			seatFpVoteShare[seatIndex][partyIndex] = detransformVoteShare(mixedFpShare);
+		}
+	}
+
+	auto electionFpDeviations = liveElection->getFinalSpecificFpDeviations();
 	for (auto [partyIndex, deviation] : electionFpDeviations) {
 		if (partyIndex < Mp::Others) continue;
+		if (partyIndex == run.natPartyIndex) continue; // We will deal with NAT fp later
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
 			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
@@ -1891,9 +1934,10 @@ void SimulationIteration::incorporateLiveResults()
 		}
 	}
 	 for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-	 	auto regionFpDeviations = run.liveElection->getRegionFinalSpecificFpDeviations(regionIndex);
+	 	auto regionFpDeviations = liveElection->getRegionFinalSpecificFpDeviations(regionIndex);
 	 	for (auto [partyIndex, deviation] : regionFpDeviations) {
 	 		if (partyIndex < Mp::Others) continue;
+			if (partyIndex == run.natPartyIndex) continue; // We will deal with NAT fp later
 	 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 	 			if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
 	 			int regionId = project.seats().viewByIndex(seatIndex).region;
@@ -1906,10 +1950,12 @@ void SimulationIteration::incorporateLiveResults()
 	 }
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const seat = project.seats().viewByIndex(seatIndex);
-		auto seatFpDeviations = run.liveElection->getSeatFinalSpecificFpDeviations(seat.name);
-		for (auto [partyIndex, deviation] : seatFpDeviations) {
+		auto seatFpInformation = liveElection->getSeatFpInformation(seat.name);
+		for (auto [partyIndex, information] : seatFpInformation) {
 			if (partyIndex < Mp::Others) continue;
+			if (partyIndex == run.natPartyIndex) continue; // We
 			if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
+			float deviation = information.deviation;
 			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
 			transformedFp += deviation;
 			seatFpVoteShare[seatIndex][partyIndex] = detransformVoteShare(transformedFp);
@@ -1919,8 +1965,8 @@ void SimulationIteration::incorporateLiveResults()
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		// Need to recalculate major party votes so that the major parties have the proper fp vote shares
 		auto const seat = project.seats().viewByIndex(seatIndex);
-		auto preferenceDeviationInfo = run.liveElection->getSeatLivePreferenceFlowDeviation(seat.name);
-		float preferenceDeviationToUse = preferenceDeviationInfo.deviation * std::sqrt(preferenceDeviationInfo.confidence);
+		auto preferenceDeviationInfo = liveElection->getSeatLivePreferenceFlowDeviation(seat.name);
+		float preferenceDeviationToUse = preferenceDeviationInfo.value * std::sqrt(preferenceDeviationInfo.confidence);
 		allocateMajorPartyFp(seatIndex, preferenceDeviationToUse);
 	}
 }
@@ -2185,15 +2231,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 
 	// incorporate non-classic live 2cp results
 	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex))) {
-		auto tcpInfo = run.liveElection->getSeatTcpInformation(project.seats().viewByIndex(seatIndex).name);
+		auto tcpInfo = liveElection->getSeatTcpInformation(project.seats().viewByIndex(seatIndex).name);
 		if (tcpInfo.shares.contains(topTwo.first.first) && tcpInfo.shares.contains(topTwo.second.first)) {
 			float priorShare = transformVoteShare(topTwo.first.second);
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
-			// placeholder insertion of variance, remove once the election model creates
-			// its own better internal estimate of variance
-			liveShare += rng.normal(0.0f, 12.0f * std::pow(2.0f, -4.0f * tcpInfo.confidence) - 0.25f);
 			// Strongly favour use of live TCP results once there's a decent amount in
-			float liveFactor = std::pow(tcpInfo.confidence, 0.1f);
+			float liveFactor = std::pow(tcpInfo.confidence, 0.03f);
 			float mixedShare = mix(priorShare, liveShare, liveFactor);
 			topTwo.first.second = detransformVoteShare(mixedShare);
 			topTwo.second.second = 100.0f - topTwo.first.second;

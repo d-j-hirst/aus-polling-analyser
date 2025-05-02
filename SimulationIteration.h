@@ -61,7 +61,6 @@ private:
 	void determineMinorPartyContests();
 	void loadPastSeatResults();
 	void determineBaseRegionalSwing(int regionIndex);
-	void modifyLiveRegionalSwing(int regionIndex);
 	void correctRegionalSwings();
 	void determineSeatInitialResults();
 	void correctSeatTppSwings();
@@ -118,6 +117,8 @@ private:
 
 	// iteration-specific variables
 	// *** IMPORTANT NOTE: Add all new variables to this class's reset() function *** //
+	std::unique_ptr<LiveV2::Election> liveElection;
+	
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::map<int, std::vector<int>> regionSeatCount; // party, then region
 	std::map<int, int> partyWins;

@@ -56,6 +56,9 @@ public:
   std::map<int, float> fpVotesProjected; // median projected vote count
   std::map<int, float> tppVotesProjected; // median projected vote count, use this for the process of calculating underlying tpp estimates
   std::map<int, float> tcpVotesProjected; // median projected vote count, Important: only calculated when a real TCP count is available.
+  std::map<int, float> tempFpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
+  std::map<int, float> tempTppVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
+  std::map<int, float> tempTcpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::set<int> runningParties;
 
   float fpConfidence = 0.0f;
@@ -141,6 +144,9 @@ public:
   std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+  std::map<int, float> fpAllBoothsStdDev; // variability of (transformed) fp votes across all remaining booths
+  float tppAllBoothsStdDev; // variability of (transformed) tpp votes across all remaining booths
+  std::optional<float> tcpAllBoothsStdDev; // variability of (transformed) tcp votes across all remaining booths
   float livePreferenceFlowDeviation; // deviations from the "expected" pre-election preference flows
 
   const int parentRegionId;
@@ -183,6 +189,17 @@ public:
   friend class LiveV2::Seat;
   friend class SimulationIteration;
 
+  struct FloatInformation {
+    float value = 0.0f;
+    float confidence = 0.0f;
+  };
+
+  struct FloatBaselineInformation {
+    float deviation = 0.0f;
+    float confidence = 0.0f;
+    float baseline = 0.0f;
+  };
+
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
   float getTppShareBaseline() const {
@@ -200,8 +217,16 @@ public:
     return largeRegions[regionIndex].node.tppShareBaseline.value_or(50.0f);
   }
 
-  float getFinalSpecificTppDeviation() const {
-    return finalSpecificTppDeviation.value_or(0.0f);
+   // baseline: revert "simulated" 2PP to this as confidence increases
+   // deviation: deviation from prior baseline
+   // confidence: confidence in the deviation, should determine how this is weighted
+   // Note this should be used from a randomized instance of the live results simulation
+   // to reflect uncertainty in the remaining live results
+  FloatBaselineInformation getFinalSpecificTppInformation() const {
+    float baseline = node.tppShareBaseline.value_or(50.0f);
+    float deviation = finalSpecificTppDeviation.value_or(0.0f);
+    float confidence = node.tppConfidence;
+    return {deviation, confidence, baseline};
   }
 
   std::map<int, float> getFinalSpecificFpDeviations() const {
@@ -216,18 +241,26 @@ public:
     return largeRegions[regionIndex].finalSpecificFpDeviations;
   }
 
-  float getSeatFinalSpecificTppDeviation(std::string const& seatName) const {
+  FloatBaselineInformation getSeatTppInformation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
-			return seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
+      float deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
+      float confidence = seats[seatIndex].node.tppConfidence;
+      float baseline = seats[seatIndex].node.tppShareBaseline.value_or(50.0f);
+      return {deviation, confidence, baseline};
 		}
-    return 0.0f;
+    return {0.0f, 0.0f, 50.0f};
   }
 
-  std::map<int, float> getSeatFinalSpecificFpDeviations(std::string const& seatName) const {
+  std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
-			return seats[seatIndex].finalSpecificFpDeviations;
+      std::map<int, FloatBaselineInformation> result;
+      for (auto [party, deviation] : seats[seatIndex].finalSpecificFpDeviations) {
+        if (!seats[seatIndex].node.fpSharesBaseline.contains(party)) continue;
+        result[party] = {deviation, seats[seatIndex].node.fpConfidence, seats[seatIndex].node.fpSharesBaseline.at(party)};
+      }
+			return result;
 		}
     return {};
   }
@@ -259,13 +292,8 @@ public:
     return 0.0f;
   }
 
-  struct PreferenceFlowInformation {
-    float deviation = 0.0f;
-    float confidence = 0.0f;
-  };
-
   // Returns *specific* preference flow deviations ()
-  PreferenceFlowInformation getSeatPreferenceFlowInformation(std::string const& seatName) const {
+  FloatInformation getSeatPreferenceFlowInformation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       float totalPreferenceFlowDeviation = 0.0f;
@@ -284,7 +312,7 @@ public:
     return {0.0f, 0.0f};
   }
 
-  PreferenceFlowInformation getSeatLivePreferenceFlowDeviation(std::string const& seatName) const {
+  FloatInformation getSeatLivePreferenceFlowDeviation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       float confidence = std::min(seats[seatIndex].node.fpConfidence, seats[seatIndex].node.tcpConfidence);
@@ -293,13 +321,8 @@ public:
     return {0.0f, 0.0f};
   }
 
-  struct MajorPartyBalanceInformation {
-    float alpShare = 0.0f;
-    float confidence = 0.0f;
-  };
-
   // Returns Labor's share of the major party vote (including Nationals)
-  MajorPartyBalanceInformation getSeatMajorPartyBalance(std::string const& seatName) const {
+  FloatInformation getSeatMajorPartyBalance(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       auto const& fpVotes = seats[seatIndex].node.fpVotesCurrent;
@@ -312,26 +335,25 @@ public:
         }
       }
       float confidence = seats[seatIndex].node.fpConfidence;
-      if (totalMajorPartyVotes == 0) {
-        PA_LOG_VAR(fpVotes);
-      }
       return {static_cast<float>(fpVotes.at(0)) / static_cast<float>(totalMajorPartyVotes), confidence};
     }
     return {0.0f, 0.0f};
   }
 
-  struct tcpInformation {
+  struct TcpShareInformation {
     std::map<int, float> shares; // transformed vote share
     float confidence = 0.0f;
   };
 
-  tcpInformation getSeatTcpInformation(std::string const& seatName) const {
+  TcpShareInformation getSeatTcpInformation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpConfidence};
     }
     return {std::map<int, float>(), 0.0f};
   }
+
+  LiveV2::Election generateScenario() const;
 
 private:
   template<typename T, typename U>
@@ -367,6 +389,8 @@ private:
   void extrapolateBaselineSwings();
 
   void calculateDeviationsFromBaseline();
+
+  void measureBoothTypeBiases();
 
   // Propagates information from lower levels to higher levels
   void aggregate();
@@ -412,12 +436,18 @@ private:
 
   void calculateLivePreferenceFlowDeviations();
 
+  void prepareVariability();
+
+  void generateVariability();
+
   // map AEC candidate IDs to internal party IDs
   int mapPartyId(int ecCandidateId);
 
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
 
   Node node;
+
+  bool createRandomVariation = false;
 
   std::vector<LargeRegion> largeRegions;
   std::vector<Booth> booths;
