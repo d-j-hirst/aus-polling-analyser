@@ -562,6 +562,7 @@ void ResultsFrame::addTableData()
 	constexpr int MaxResultsShown = 1000;
 	for (int i = 0; i < project->outcomes().count(); ++i) {
 		Outcome thisResult = project->outcomes().get(i);
+		if (thisResult.seat == -1) continue;
 		if (filter != Filter::AllResults) {
 			if (seenSeat[thisResult.seat]) continue;
 			seenSeat[thisResult.seat] = true;

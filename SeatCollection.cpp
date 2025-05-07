@@ -2,6 +2,7 @@
 
 #include "PartyCollection.h"
 #include "PollingProject.h"
+#include "RegionCollection.h"
 
 #include <exception>
 
@@ -223,6 +224,11 @@ void SeatCollection::importInfo()
 		logger << "Warning: Seat import failed, tried to open: " << filename;
 		return;
 	}
+	std::map<std::string, Seat> oldSeats;
+	for (auto const& [id, seat] : seats) {
+		std::string name = seat.name;
+		oldSeats[name] = seat;
+	}
 	seats.clear();
 	std::string line;
 	while (std::getline(is, line)) {
@@ -327,5 +333,17 @@ void SeatCollection::importInfo()
 		if (tag == KnownPostalCount) seat.knownPostalCount = std::stoi(val);
 		// do something with the line
 	}
+	for (auto const& [name, oldSeat] : oldSeats) {
+		for (auto& [id, newSeat] : seats) {
+			if (newSeat.name == name) {
+				newSeat.livePartyOne = oldSeat.livePartyOne;
+				newSeat.livePartyTwo = oldSeat.livePartyTwo;
+				newSeat.liveUseTpp = oldSeat.liveUseTpp;
+				newSeat.partyTwoProb = oldSeat.partyTwoProb;
+				newSeat.partyThreeProb = oldSeat.partyThreeProb;
+			}
+		}
+	}
+
 	logger << "Completed importing seat info\n";
 }

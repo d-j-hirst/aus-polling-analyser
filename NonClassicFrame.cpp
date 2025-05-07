@@ -3,6 +3,7 @@
 #include "ChoiceInput.h"
 #include "FloatInput.h"
 #include "General.h"
+#include "Log.h"
 #include "PartyCollection.h"
 #include "Seat.h"
 
@@ -126,6 +127,8 @@ void NonClassicFrame::createButtons(int & y)
 	removeButton = new wxButton(this, ControlId::Remove, "Remove", wxPoint(115, y), wxSize(60, 24));
 	cancelButton = new wxButton(this, wxID_CANCEL, "Cancel", wxPoint(180, y), wxSize(60, 24));
 
+	PA_LOG_VAR("Creating buttons");
+
 	Bind(wxEVT_BUTTON, &NonClassicFrame::OnOK, this, ControlId::Ok);
 	Bind(wxEVT_BUTTON, &NonClassicFrame::OnRemove, this, ControlId::Remove);
 
@@ -152,6 +155,7 @@ void NonClassicFrame::updatePartyOneProbText()
 
 void NonClassicFrame::OnOK(wxCommandEvent& WXUNUSED(event))
 {
+	PA_LOG_VAR("Clicked button");
 	try {
 		Party::Id partyOne = parties.indexToId(partyOneInput->getSelection());
 		Party::Id partyTwo = parties.indexToId(partyTwoInput->getSelection());

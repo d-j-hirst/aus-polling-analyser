@@ -52,6 +52,20 @@ void LivePreparation::prepareLiveAutomatic()
 
 	run.liveElection = std::make_unique<LiveV2::Election>(previousElection, currentElection, project, sim, run);
 
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto seat = project.seats().viewByIndex(seatIndex);
+		if (run.liveElection->getSeatFpConfidence(seat.name) > 0) {
+			project.outcomes().add(Outcome(
+				seatIndex,
+				run.liveElection->getSeatRawTppSwing(seat.name),
+				run.liveElection->getSeatFpConfidence(seat.name) * 100.0f,
+				run.liveElection->getSeatTppConfidence(seat.name) * 100.0f,
+				0,
+				40
+			));
+		}
+	}
+
 	// preparePartyCodeGroupings();
 	// determinePartyIdConversions();
 	// determineSeatIdConversions();
@@ -207,6 +221,8 @@ void LivePreparation::downloadLatestResults()
 	ResultsDownloader resultsDownloader;
 	std::string directoryListing;
 	resultsDownloader.loadUrlToString(sim.settings.currentRealUrl, directoryListing);
+	PA_LOG_VAR(sim.settings.currentRealUrl);
+	PA_LOG_VAR(directoryListing);
 	std::string latestFileName = directoryListing.substr(directoryListing.rfind(" ") + 1);
 	latestFileName = latestFileName.substr(0, latestFileName.length() - 1);
 	std::string latestUrl = sim.settings.currentRealUrl + latestFileName;

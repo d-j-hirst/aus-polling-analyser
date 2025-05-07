@@ -85,6 +85,7 @@ public:
   int totalFpVotesCurrent() const;
   int totalVotesPrevious() const;
   int totalTcpVotesCurrent() const;
+  float totalFpVotesProjected() const;
   float totalTcpVotesProjected() const;
 };
 
@@ -94,7 +95,7 @@ public:
   Booth(
     Results2::Booth const& currentBooth,
     std::optional<Results2::Booth const*> previousBooth,
-    std::function<int(int)> partyMapper,
+    std::function<int(int, bool)> partyMapper,
     int parentSeatId,
     int natPartyIndex
   );
@@ -106,7 +107,7 @@ public:
     std::optional<Results2::Seat::VotesByType const*> previousFpVotes,
     std::optional<Results2::Seat::VotesByType const*> previousTcpVotes,
     Results2::VoteType voteType,
-    std::function<int(int)> partyMapper,
+    std::function<int(int, bool)> partyMapper,
     int parentSeatId,
     int natPartyIndex
   );
@@ -148,6 +149,12 @@ public:
   float tppAllBoothsStdDev; // variability of (transformed) tpp votes across all remaining booths
   std::optional<float> tcpAllBoothsStdDev; // variability of (transformed) tcp votes across all remaining booths
   float livePreferenceFlowDeviation; // deviations from the "expected" pre-election preference flows
+  std::map<Results2::VoteType, float> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::map<Results2::Booth::Type, float> tppBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::optional<int> tcpFocusPartyIndex;
+  std::optional<float> tcpFocusPartyPrefFlow;
+  std::optional<float> tcpFocusPartyConfidence;
+  std::optional<float> nationalsProportion;
 
   const int parentRegionId;
 
@@ -284,10 +291,29 @@ public:
     return {};
   }
 
+  float getSeatRawTppSwing(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+		if (seatIndex != int(seats.size())) {
+      if (!seats[seatIndex].node.tppShareBaseline.has_value()) return 0.0f;
+      float originalTpp = detransformVoteShare(seats[seatIndex].node.tppShareBaseline.value() - seats[seatIndex].node.tppSwingBaseline.value_or(0.0f));
+      float currentTpp = detransformVoteShare(seats[seatIndex].node.tppShareBaseline.value() + seats[seatIndex].node.tppDeviation.value_or(0.0f));
+      return currentTpp - originalTpp;
+		}
+    return 0.0f;
+  }
+
   float getSeatFpConfidence(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].node.fpConfidence;
+		}
+    return 0.0f;
+  }
+
+  float getSeatTppConfidence(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+		if (seatIndex != int(seats.size())) {
+			return seats[seatIndex].node.tppConfidence;
 		}
     return 0.0f;
   }
@@ -353,6 +379,18 @@ public:
     return {std::map<int, float>(), 0.0f};
   }
 
+  std::optional<float> getSeatNationalsProportion(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    if (seatIndex != int(seats.size())) {
+      return seats[seatIndex].nationalsProportion;
+    }
+    return std::nullopt;
+  }
+
+  // Returns untransformed vote share belonging to parties not included among the project's
+  // significant parties, along with independents who don't make the threshold for significance
+  FloatInformation getSeatOthersInformation(std::string const& seatName) const; 
+
   LiveV2::Election generateScenario() const;
 
 private:
@@ -390,8 +428,6 @@ private:
 
   void calculateDeviationsFromBaseline();
 
-  void measureBoothTypeBiases();
-
   // Propagates information from lower levels to higher levels
   void aggregate();
 
@@ -409,7 +445,13 @@ private:
   void determineSeatSpecificDeviations();
   void determineBoothSpecificDeviations();
 
+  void measureBoothTypeBiases();
+
   void recomposeVoteCounts();
+
+  void calculateTcpPreferenceFlows();
+
+  void calculateNationalsProportions();
 
   void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
   void recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex);
@@ -441,7 +483,7 @@ private:
   void generateVariability();
 
   // map AEC candidate IDs to internal party IDs
-  int mapPartyId(int ecCandidateId);
+  int mapPartyId(int ecCandidateId, bool isPrevious);
 
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
 
@@ -467,6 +509,14 @@ private:
   std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
+
+  std::map<Results2::Booth::Type, float> boothTypeBiases;
+  std::map<Results2::VoteType, float> voteTypeBiases;
+  std::map<Results2::Booth::Type, float> boothTypeBiasStdDev;
+  std::map<Results2::VoteType, float> voteTypeBiasStdDev;
+  std::map<Results2::Booth::Type, float> boothTypeIterationVariation;
+  std::map<Results2::VoteType, float> voteTypeIterationVariation;
+
 
   int natPartyIndex;
 

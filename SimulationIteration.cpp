@@ -127,7 +127,6 @@ bool SimulationIteration::checkForNans(std::string const& loc) {
 
 void SimulationIteration::runIteration()
 {
-
 	bool gotValidResult = false;
 	while (!gotValidResult) {
 		if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
@@ -1868,7 +1867,8 @@ void SimulationIteration::incorporateLiveResults()
 		float priorMargin = partyOneNewTppMargin[seatIndex];
 		float baselineMargin = detransformVoteShare(seatTppInformation.baseline) - 50.0f;
 		float confidence = seatTppInformation.confidence;
-		float baselineWeight = std::pow(confidence, 0.05f);
+			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
+			float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
 		float mixedMargin = mix(priorMargin, baselineMargin, baselineWeight);
 		partyOneNewTppMargin[seatIndex] = mixedMargin;
 	}
@@ -1906,69 +1906,125 @@ void SimulationIteration::incorporateLiveResults()
 
 	// Now, incorporate live FPs
 
+	// First, need to split the coalition votes so that swings can be assigned to them separately
+	// For now this is simplified and we just take the proportions from the prior
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		assignNationalsVotes(seatIndex);
+	}
+
 	// As for TPPs, adjust seat margins towards the election baseline as confidence increases
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto seatFpInformation = liveElection->getSeatFpInformation(project.seats().viewByIndex(seatIndex).name);
 		for (auto [partyIndex, information] : seatFpInformation) {
-			if (partyIndex < Mp::Others) continue;
-			if (partyIndex == run.natPartyIndex) continue; // We will deal with NAT fp later
+			//if (partyIndex < Mp::Others) continue;
+			int effectivePartyIndex = partyIndex;
+			if (partyIndex == run.indPartyIndex && !seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+				effectivePartyIndex = EmergingIndIndex;
+			}
 
-			float priorFpShare = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+			float priorFpShare = transformVoteShare(std::clamp(seatFpVoteShare[seatIndex][effectivePartyIndex], 1.0f, 99.0f));
 			float baselineFpShare = information.baseline;
 			float confidence = information.confidence;
-			float baselineWeight = std::pow(confidence, 0.05f);
+			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
+			float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
 			float mixedFpShare = mix(priorFpShare, baselineFpShare, baselineWeight);
-			seatFpVoteShare[seatIndex][partyIndex] = detransformVoteShare(mixedFpShare);
+			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(mixedFpShare);
 		}
 	}
 
 	auto electionFpDeviations = liveElection->getFinalSpecificFpDeviations();
-	for (auto [partyIndex, deviation] : electionFpDeviations) {
-		if (partyIndex < Mp::Others) continue;
-		if (partyIndex == run.natPartyIndex) continue; // We will deal with NAT fp later
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
-			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		for (auto [partyIndex, deviation] : electionFpDeviations) {
+		// if (partyIndex < Mp::Others) continue;
+			int effectivePartyIndex = partyIndex;
+			if (partyIndex == run.indPartyIndex && !seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+				effectivePartyIndex = EmergingIndIndex;
+			}
+			if (!seatFpVoteShare[seatIndex].contains(effectivePartyIndex)) continue;
+			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][effectivePartyIndex]);
 			transformedFp += deviation;
-			seatFpVoteShare[seatIndex][partyIndex] = detransformVoteShare(transformedFp);
+			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(transformedFp);
 		}
 	}
-	 for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
+
+	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 	 	auto regionFpDeviations = liveElection->getRegionFinalSpecificFpDeviations(regionIndex);
-	 	for (auto [partyIndex, deviation] : regionFpDeviations) {
-	 		if (partyIndex < Mp::Others) continue;
-			if (partyIndex == run.natPartyIndex) continue; // We will deal with NAT fp later
-	 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-	 			if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
+	 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+	 		for (auto [partyIndex, deviation] : regionFpDeviations) {
+	 		//if (partyIndex < Mp::Others) continue;
+				int effectivePartyIndex = partyIndex;	
+				if (partyIndex == run.indPartyIndex && !seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+					effectivePartyIndex = EmergingIndIndex;
+				}
+	 			if (!seatFpVoteShare[seatIndex].contains(effectivePartyIndex)) continue;
 	 			int regionId = project.seats().viewByIndex(seatIndex).region;
 	 			if (project.regions().idToIndex(regionId) != regionIndex) continue;
-	 			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+	 			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][effectivePartyIndex]);
 	 			transformedFp += deviation;
-	 			seatFpVoteShare[seatIndex][partyIndex] = detransformVoteShare(transformedFp);
+	 			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(transformedFp);
 	 		}
 	 	}
-	 }
+	}
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const seat = project.seats().viewByIndex(seatIndex);
 		auto seatFpInformation = liveElection->getSeatFpInformation(seat.name);
 		for (auto [partyIndex, information] : seatFpInformation) {
-			if (partyIndex < Mp::Others) continue;
-			if (partyIndex == run.natPartyIndex) continue; // We
-			if (!seatFpVoteShare[seatIndex].contains(partyIndex)) continue;
+			// if (partyIndex < Mp::Others) continue;
+			int effectivePartyIndex = partyIndex;
+			if (partyIndex == run.indPartyIndex && !seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+				effectivePartyIndex = EmergingIndIndex;
+			}
+			if (!seatFpVoteShare[seatIndex].contains(effectivePartyIndex)) continue;
 			float deviation = information.deviation;
-			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][partyIndex]);
+			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][effectivePartyIndex]);
 			transformedFp += deviation;
-			seatFpVoteShare[seatIndex][partyIndex] = detransformVoteShare(transformedFp);
+			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(transformedFp);
 		}
 	}
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		// Need to recalculate major party votes so that the major parties have the proper fp vote shares
-		auto const seat = project.seats().viewByIndex(seatIndex);
-		auto preferenceDeviationInfo = liveElection->getSeatLivePreferenceFlowDeviation(seat.name);
-		float preferenceDeviationToUse = preferenceDeviationInfo.value * std::sqrt(preferenceDeviationInfo.confidence);
-		allocateMajorPartyFp(seatIndex, preferenceDeviationToUse);
+		// auto const seat = project.seats().viewByIndex(seatIndex);
+		// auto preferenceDeviationInfo = liveElection->getSeatLivePreferenceFlowDeviation(seat.name);
+		// float preferenceDeviationToUse = preferenceDeviationInfo.value * std::sqrt(preferenceDeviationInfo.confidence);
+		// allocateMajorPartyFp(seatIndex, preferenceDeviationToUse);
+
+		// Return Nationals to the race as for now it works better for the preference flow calculations
+		// for them to be included as a single unit in the coalition
+		// (maybe reverse this later)
+		if (seatFpVoteShare[seatIndex].contains(run.natPartyIndex)) {
+			seatFpVoteShare[seatIndex][Mp::Two] += seatFpVoteShare[seatIndex][run.natPartyIndex];
+			seatFpVoteShare[seatIndex].erase(run.natPartyIndex);
+		}
+		if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex)) {
+			if (seatFpVoteShare[seatIndex][EmergingIndIndex] < detransformVoteShare(run.indEmergence.fpThreshold)) {
+				seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingIndIndex];
+				seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+			}
+		}
+		if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) {
+			if (seatFpVoteShare[seatIndex][EmergingPartyIndex] < detransformVoteShare(run.indEmergence.fpThreshold)) {
+				seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingPartyIndex];
+				seatFpVoteShare[seatIndex][EmergingPartyIndex] = 0.0f;
+			}
+		}
+		// Unlike with specific party votes, the system of interlocking swings is not
+		// helpful for others votes, so we just mix the prior with the observed value
+		// (as total others votes are highly seat specific)
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		auto seatOthersInformation = liveElection->getSeatOthersInformation(seat.name);
+		if (seatOthersInformation.value > 0.0f) {
+			float priorOthersShare = seatFpVoteShare[seatIndex][OthersIndex];
+			float observedOthersShare = seatOthersInformation.value;
+			float confidence = seatOthersInformation.confidence;
+			float observedWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
+			float mixedOthersShare = mix(priorOthersShare, observedOthersShare, observedWeight);
+			seatFpVoteShare[seatIndex][OthersIndex] = mixedOthersShare;
+		}
+		normaliseSeatFp(seatIndex);
 	}
+
+
 }
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
@@ -2171,39 +2227,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (topTwo.first.first == CoalitionPartnerIndex) topTwo.first.first = 1;
 	if (topTwo.second.first == CoalitionPartnerIndex) topTwo.second.first = 1;
 
-	// For non-standard Tcp scenarios, if it's a match to the previous tcp pair then compare with that
-	// and adjust the current results to match.
-	if (!bothMajorParties(topTwo.first.first, topTwo.second.first)) {
-		//auto const& prevResults = pastSeatResults[seatIndex];
-		//if (prevResults.tcpVotePercent.count(topTwo.first.first) && prevResults.tcpVotePercent.count(topTwo.second.first)) {
-		//	// Allocate the previous elections fp votes as if it were now
-		//	std::vector<PartyVotes> pseudoAccumulated;
-		//	std::vector<PartyVotes> pseudoExcluded;
-		//	for (auto [party, voteShare] : prevResults.fpVotePercent) {
-		//		if (prevResults.tcpVotePercent.count(party)) {
-		//			pseudoAccumulated.push_back({ party, voteShare });
-		//		}
-		//		else {
-		//			pseudoExcluded.push_back({ party, voteShare });
-		//		}
-
-		//	}
-		//	if (pseudoAccumulated[0].first != topTwo.first.first) std::swap(pseudoAccumulated[0], pseudoAccumulated[1]);
-		//	allocateVotes(pseudoAccumulated, pseudoExcluded);
-		//	float bias = pseudoAccumulated[0].second - prevResults.tcpVotePercent.at(topTwo.first.first);
-		//	float totalAllocatedPrev = std::accumulate(pseudoExcluded.begin(), pseudoExcluded.end(), 0.0f,
-		//		[](float acc, PartyVotes const& votes) {return acc + votes.second; });
-		//	float biasRate = bias / totalAllocatedPrev;
-		//	float totalAllocatedNow = std::accumulate(excludedVoteShares.begin(), excludedVoteShares.end(), 0.0f,
-		//		[](float acc, PartyVotes const& votes) {return acc + votes.second; });
-		//	topTwo.first.second -= biasRate * totalAllocatedNow;
-		//	topTwo.second.second += biasRate * totalAllocatedNow;
-
-		//	if (topTwo.second.second < topTwo.first.second) std::swap(topTwo.first, topTwo.second);
-		//}
-
-	}
-
 	if (run.natPartyIndex >= 0 && nationalsShare[seatIndex] > 0) {
 		assignNationalsVotes(seatIndex);
 		float natShare = seatFpVoteShare[seatIndex][run.natPartyIndex];
@@ -2236,8 +2259,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float priorShare = transformVoteShare(topTwo.first.second);
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
 			// Strongly favour use of live TCP results once there's a decent amount in
-			float liveFactor = std::pow(tcpInfo.confidence, 0.03f);
-			float mixedShare = mix(priorShare, liveShare, liveFactor);
+			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
+			float baselineWeight = std::clamp(1.606f / (1.0f + std::exp(-(24.0f * tcpInfo.confidence - 0.5f))) - 0.6063f, 0.0f, 1.0f);
+			float mixedShare = mix(priorShare, liveShare, baselineWeight);
 			topTwo.first.second = detransformVoteShare(mixedShare);
 			topTwo.second.second = 100.0f - topTwo.first.second;
 			if (topTwo.first.second > topTwo.second.second) std::swap(topTwo.first, topTwo.second);
@@ -2253,6 +2277,12 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 }
 
 void SimulationIteration::assignNationalsVotes(int seatIndex) {
+	if (run.isLiveAutomatic()) {
+		auto nationalsProportion = liveElection->getSeatNationalsProportion(project.seats().viewByIndex(seatIndex).name);
+		if (nationalsProportion) {
+			nationalsShare[seatIndex] = nationalsProportion.value();
+		}
+	}
 	float nationalsVote = seatFpVoteShare[seatIndex][1] * nationalsShare[seatIndex];
 	seatFpVoteShare[seatIndex][run.natPartyIndex] = nationalsVote;
 	seatFpVoteShare[seatIndex][1] -= nationalsVote;
@@ -2261,7 +2291,6 @@ void SimulationIteration::assignNationalsVotes(int seatIndex) {
 void SimulationIteration::applyLiveManualOverrides(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	// this verifies there's a non-classic result entered.
 	if (seat.livePartyOne != Party::InvalidId) {
 		float prob = rng.uniform();
 		float firstThreshold = seat.partyOneProb();
@@ -2390,7 +2419,7 @@ void SimulationIteration::recordPartySeatWinCounts()
 			sim.latestReport.partySeatWinFrequency[partyIndex] = std::vector<int>(project.seats().count() + 1);
 		}
 		++sim.latestReport.partySeatWinFrequency[partyIndex][partyWins[partyIndex]];
-		if (partyIndex > 1) othersWins += partyWins[partyIndex];
+		if (partyIndex > 1 && partyIndex != run.natPartyIndex) othersWins += partyWins[partyIndex];
 		if (partyIndex == Mp::Two || partyIndex == run.natPartyIndex) coalitionWins += partyWins[partyIndex];
 		for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 			if (!run.regionPartyWins[regionIndex].contains(partyIndex)) {
