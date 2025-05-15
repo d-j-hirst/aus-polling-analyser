@@ -91,11 +91,11 @@ void SimulationIteration::reset()
 	partySupport = std::array<int, 2>();
 }
 
-bool SimulationIteration::checkForNans(std::string const& loc) {
+bool SimulationIteration::checkForNans(std::string const& loc, bool forceDebug) {
 	static bool alreadyLogged = false;
 	auto report = [&](int seatIndex, std::string type) {
 		std::lock_guard<std::mutex> lock(recordMutex);
-		if (alreadyLogged) return;
+		if (alreadyLogged && !forceDebug) return;
 		alreadyLogged = true;
 		logger << "Warning: A " << type << " vote share for seat " << project.seats().viewByIndex(seatIndex).name << "was Nan!\n";
 		logger << "At simulation location " << loc << "\n";
@@ -165,7 +165,7 @@ void SimulationIteration::runIteration()
 
 		incorporateLiveResults();
 
-		if (checkForNans("After reconciling")) {
+		if (checkForNans("After reconciling", !run.doingLiveBaselineSimulation && !run.doingBettingOddsCalibrations)) {
 			reset();
 			continue;
 		}
@@ -1882,6 +1882,7 @@ void SimulationIteration::incorporateLiveResults()
 		transformedTpp += electionTppInformation.deviation;
 		partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
 	}
+
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		auto regionTppDeviation = liveElection->getRegionFinalSpecificTppDeviation(regionIndex);
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -1895,6 +1896,7 @@ void SimulationIteration::incorporateLiveResults()
 			auto const seat = project.seats().viewByIndex(seatIndex);
 		}
 	}
+
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const seat = project.seats().viewByIndex(seatIndex);
 		float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
@@ -1983,8 +1985,8 @@ void SimulationIteration::incorporateLiveResults()
 	}
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		auto const seat = project.seats().viewByIndex(seatIndex);
 		// Need to recalculate major party votes so that the major parties have the proper fp vote shares
-		// auto const seat = project.seats().viewByIndex(seatIndex);
 		// auto preferenceDeviationInfo = liveElection->getSeatLivePreferenceFlowDeviation(seat.name);
 		// float preferenceDeviationToUse = preferenceDeviationInfo.value * std::sqrt(preferenceDeviationInfo.confidence);
 		// allocateMajorPartyFp(seatIndex, preferenceDeviationToUse);
@@ -2003,6 +2005,10 @@ void SimulationIteration::incorporateLiveResults()
 			}
 		}
 		if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) {
+			auto seatFpInformation = liveElection->getSeatFpInformation(seat.name);
+			float fpConfidence = seatFpInformation.size() > 0 ? seatFpInformation.begin()->second.confidence : 0.0f;
+			float fpWeight = 1.6063f - 1.606f / (1.0f + std::exp(-(12.0f * fpConfidence - 0.5f)));
+			seatFpVoteShare[seatIndex][EmergingPartyIndex] *= fpWeight;
 			if (seatFpVoteShare[seatIndex][EmergingPartyIndex] < detransformVoteShare(run.indEmergence.fpThreshold)) {
 				seatFpVoteShare[seatIndex][OthersIndex] += seatFpVoteShare[seatIndex][EmergingPartyIndex];
 				seatFpVoteShare[seatIndex][EmergingPartyIndex] = 0.0f;
@@ -2011,7 +2017,6 @@ void SimulationIteration::incorporateLiveResults()
 		// Unlike with specific party votes, the system of interlocking swings is not
 		// helpful for others votes, so we just mix the prior with the observed value
 		// (as total others votes are highly seat specific)
-		auto const& seat = project.seats().viewByIndex(seatIndex);
 		auto seatOthersInformation = liveElection->getSeatOthersInformation(seat.name);
 		if (seatOthersInformation.value > 0.0f) {
 			float priorOthersShare = seatFpVoteShare[seatIndex][OthersIndex];
@@ -2023,8 +2028,6 @@ void SimulationIteration::incorporateLiveResults()
 		}
 		normaliseSeatFp(seatIndex);
 	}
-
-
 }
 
 void SimulationIteration::determineSeatFinalResult(int seatIndex)
@@ -2451,7 +2454,7 @@ void SimulationIteration::recordSeatFpVotes(int seatIndex)
 {
 	for (auto [partyIndex, fpPercent] : seatFpVoteShare[seatIndex]) {
 		run.cumulativeSeatPartyFpShare[seatIndex][partyIndex] += fpPercent;
-		int bucket = std::clamp(int(std::floor(fpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+		int bucket = std::clamp(int(std::floor(fpPercent * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 		++run.seatPartyFpDistribution[seatIndex][partyIndex][bucket];
 		if (!fpPercent) ++run.seatPartyFpZeros[seatIndex][partyIndex];
 	}
@@ -2462,14 +2465,14 @@ void SimulationIteration::recordSeatTcpVotes(int seatIndex)
 
 	auto parties = seatTcpVoteShare[seatIndex].first;
 	float tcpPercent = seatTcpVoteShare[seatIndex].second;
-	int bucket = std::clamp(int(std::floor(tcpPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+	int bucket = std::clamp(int(std::floor(tcpPercent * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 	++run.seatTcpDistribution[seatIndex][parties][bucket];
 }
 
 void SimulationIteration::recordSeatTppVotes(int seatIndex)
 {
 	float tppPercent = partyOneNewTppMargin[seatIndex] + 50.0f;
-	int bucket = std::clamp(int(std::floor(tppPercent * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+	int bucket = std::clamp(int(std::floor(tppPercent * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 	++run.seatTppDistribution[seatIndex][bucket];
 }
 
@@ -2486,7 +2489,7 @@ void SimulationIteration::recordRegionFpVotes(int regionIndex) {
 	}
 	for (auto [partyIndex, voteShare] : voteShareSum) {
 		float meanVoteShare = voteShare / seatsSum;
-		int bucket = std::clamp(int(std::floor(meanVoteShare * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+		int bucket = std::clamp(int(std::floor(meanVoteShare * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 		++run.regionPartyFpDistribution[regionIndex][partyIndex][bucket];
 	}
 }
@@ -2501,7 +2504,7 @@ void SimulationIteration::recordRegionTppVotes(int regionIndex) {
 		}
 	}
 	float meanTpp = tppSum / seatsSum;
-	int bucket = std::clamp(int(std::floor(meanTpp * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+	int bucket = std::clamp(int(std::floor(meanTpp * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 	++run.regionTppDistribution[regionIndex][bucket];
 }
 
@@ -2516,7 +2519,7 @@ void SimulationIteration::recordElectionFpVotes() {
 	}
 	for (auto [partyIndex, voteShare] : voteShareSum) {
 		float meanVoteShare = voteShare / seatsSum;
-		int bucket = std::clamp(int(std::floor(meanVoteShare * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+		int bucket = std::clamp(int(std::floor(meanVoteShare * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 		++run.electionPartyFpDistribution[partyIndex][bucket];
 	}
 }
@@ -2529,7 +2532,7 @@ void SimulationIteration::recordElectionTppVotes() {
 		seatsSum += 1.0f;
 	}
 	float meanTpp = tppSum / seatsSum;
-	int bucket = std::clamp(int(std::floor(meanTpp * 0.01f * float(SimulationRun::FpBucketCount))), 0, SimulationRun::FpBucketCount - 1);
+	int bucket = std::clamp(int(std::floor(meanTpp * 0.01f * float(SimulationRun::BucketCount))), 0, SimulationRun::BucketCount - 1);
 	++run.electionTppDistribution[bucket];
 }
 

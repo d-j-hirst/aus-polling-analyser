@@ -168,14 +168,14 @@ void consolidateParties(Results2::Election& election) {
 	}
 }
 
-Results2::Election PreviousElectionDataRetriever::collectData()
+Results2::Election PreviousElectionDataRetriever::collectData(std::string const& termCode)
 {
 	std::ifstream file(UnzippedFileName);
 	std::string xmlString;
 	transferFileToString(file, xmlString);
 	file.close(); // don't prevent the file from being used for longer than necessary
 
-	Results2::Election election;
+	Results2::Election election(termCode);
 
 	tinyxml2::XMLDocument doc;
 	doc.LoadFile(UnzippedFileName.c_str());
@@ -196,7 +196,7 @@ Results2::Election PreviousElectionDataRetriever::collectData()
 Results2::Election PreviousElectionDataRetriever::load2004Tcp(std::string filename)
 {
 	logger << "Loading results from " << filename << " using 2004 format\n";
-	Results2::Election election;
+	Results2::Election election("2004fed");
 	std::ifstream file(filename);
 	std::string firstLine; std::string secondLine;
 	std::getline(file, firstLine);
@@ -277,10 +277,10 @@ struct BoothSeatComp {
 
 };
 
-Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Election const& templateElection, std::string filename)
+Results2::Election PreviousElectionDataRetriever::loadPre2004Tcp(Results2::Election const& templateElection, std::string filename, std::string const& termCode)
 {
 	logger << "Loading results from " << filename << " using pre-2004 format\n";
-	Results2::Election election;
+	Results2::Election election(termCode);
 
 	// This section looks for duplicate booth names in the file, which are later used to
 	// avoid matching the wrong booths if there are two with the same name in different seats

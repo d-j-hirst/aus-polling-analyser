@@ -66,7 +66,9 @@
 // Version 59: by-election swings
 // Version 60: coalition fp frequencies
 // Version 61: more coalition data
-constexpr int VersionNum = 61;
+// Version 62: store election term code
+// Version 63: save seat live manual overrides
+constexpr int VersionNum = 63;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -484,8 +486,17 @@ void ProjectFiler::loadRegions(SaveFileInput& saveInput, int versionNum)
 
 void ProjectFiler::saveSeats(SaveFileOutput& saveOutput)
 {
-	// No need to save seats as they're now loaded from a file
-	saveOutput.outputAsType<int32_t>(0);
+	saveOutput.outputAsType<int32_t>(project.seatCollection.count());
+	for (auto const& [key, thisSeat] : project.seatCollection) {
+		// Only need to save live input information, the rest is loaded from a file
+		saveOutput << thisSeat.name;
+		saveOutput.outputAsType<int32_t>(thisSeat.livePartyOne);
+		saveOutput.outputAsType<int32_t>(thisSeat.livePartyTwo);
+		saveOutput.outputAsType<int32_t>(thisSeat.livePartyThree);
+		saveOutput << thisSeat.partyTwoProb;
+		saveOutput << thisSeat.partyThreeProb;
+		saveOutput << thisSeat.overrideBettingOdds;
+	}
 }
 
 void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int versionNum)
@@ -494,80 +505,91 @@ void ProjectFiler::loadSeats(SaveFileInput& saveInput, [[maybe_unused]] int vers
 	for (int seatIndex = 0; seatIndex < seatCount; ++seatIndex) {
 		Seat thisSeat;
 		saveInput >> thisSeat.name;
-		saveInput >> thisSeat.previousName;
-		if (versionNum >= 21) {
-			saveInput >> thisSeat.useFpResults;
+		if (versionNum < 63) {
+			saveInput >> thisSeat.previousName;
+			if (versionNum >= 21) {
+				saveInput >> thisSeat.useFpResults;
+			}
+			thisSeat.incumbent = saveInput.extract<int32_t>();
+			thisSeat.challenger = saveInput.extract<int32_t>();
+			thisSeat.challenger2 = saveInput.extract<int32_t>();
+			thisSeat.region = saveInput.extract<int32_t>();
+			saveInput >> thisSeat.tppMargin;
+			if (versionNum >= 34) saveInput >> thisSeat.previousSwing;
+			saveInput >> thisSeat.miscTppModifier;
+			if (versionNum >= 54) saveInput >> thisSeat.transposedTppSwing;
+			if (versionNum >= 59) saveInput >> thisSeat.byElectionSwing;
+			saveInput >> thisSeat.incumbentOdds;
+			saveInput >> thisSeat.challengerOdds;
+			saveInput >> thisSeat.challenger2Odds;
+			saveInput >> thisSeat.incumbentWinPercent;
+			saveInput >> thisSeat.tippingPointPercent;
+			saveInput.extract<double>(); // old simulatedMarginAverage
+			thisSeat.livePartyOne = saveInput.extract<int32_t>();
+			thisSeat.livePartyTwo = saveInput.extract<int32_t>();
+			thisSeat.livePartyThree = saveInput.extract<int32_t>();
+			saveInput >> thisSeat.partyTwoProb;
+			saveInput >> thisSeat.partyThreeProb;
+			saveInput >> thisSeat.overrideBettingOdds;
+			if (versionNum >= 47) {
+				thisSeat.liveUseTpp = Seat::UseTpp(saveInput.extract<int32_t>());
+			}
+			if (versionNum >= 22) {
+				saveInput >> thisSeat.sophomoreCandidate;
+				saveInput >> thisSeat.sophomoreParty;
+				saveInput >> thisSeat.retirement;
+			}
+			if (versionNum >= 35) {
+				saveInput >> thisSeat.disendorsement;
+				saveInput >> thisSeat.previousDisendorsement;
+			}
+			if (versionNum >= 41) {
+				saveInput >> thisSeat.incumbentRecontestConfirmed;
+				saveInput >> thisSeat.confirmedProminentIndependent;
+			}
+			if (versionNum >= 42) {
+				saveInput >> thisSeat.prominentMinors;
+			}
+			if (versionNum >= 43) {
+				saveInput >> thisSeat.bettingOdds;
+			}
+			if (versionNum >= 44) {
+				saveInput >> thisSeat.polls;
+			}
+			if (versionNum >= 46) {
+				saveInput >> thisSeat.runningParties;
+			}
+			if (versionNum >= 48) {
+				saveInput >> thisSeat.tcpChange;
+			}
+			if (versionNum >= 56) {
+				saveInput >> thisSeat.minorViability;
+			}
+			if (versionNum >= 57) {
+				saveInput >> thisSeat.candidateNames;
+			}
+			if (versionNum >= 49) {
+				saveInput >> thisSeat.previousIndRunning;
+			}
+			if (versionNum >= 52) {
+				saveInput >> thisSeat.knownPrepollPercent;
+				saveInput >> thisSeat.knownPostalPercent;
+			}
+			if (versionNum >= 53) {
+				saveInput >> thisSeat.knownAbsentCount;
+				saveInput >> thisSeat.knownProvisionalCount;
+				saveInput >> thisSeat.knownDecPrepollCount;
+				saveInput >> thisSeat.knownPostalCount;
+			}
 		}
-		thisSeat.incumbent = saveInput.extract<int32_t>();
-		thisSeat.challenger = saveInput.extract<int32_t>();
-		thisSeat.challenger2 = saveInput.extract<int32_t>();
-		thisSeat.region = saveInput.extract<int32_t>();
-		saveInput >> thisSeat.tppMargin;
-		if (versionNum >= 34) saveInput >> thisSeat.previousSwing;
-		saveInput >> thisSeat.miscTppModifier;
-		if (versionNum >= 54) saveInput >> thisSeat.transposedTppSwing;
-		if (versionNum >= 59) saveInput >> thisSeat.byElectionSwing;
-		saveInput >> thisSeat.incumbentOdds;
-		saveInput >> thisSeat.challengerOdds;
-		saveInput >> thisSeat.challenger2Odds;
-		saveInput >> thisSeat.incumbentWinPercent;
-		saveInput >> thisSeat.tippingPointPercent;
-		saveInput.extract<double>(); // old simulatedMarginAverage
-		thisSeat.livePartyOne = saveInput.extract<int32_t>();
-		thisSeat.livePartyTwo = saveInput.extract<int32_t>();
-		thisSeat.livePartyThree = saveInput.extract<int32_t>();
-		saveInput >> thisSeat.partyTwoProb;
-		saveInput >> thisSeat.partyThreeProb;
-		saveInput >> thisSeat.overrideBettingOdds;
-		if (versionNum >= 47) {
-			thisSeat.liveUseTpp = Seat::UseTpp(saveInput.extract<int32_t>());
-		}
-		if (versionNum >= 22) {
-			saveInput >> thisSeat.sophomoreCandidate;
-			saveInput >> thisSeat.sophomoreParty;
-			saveInput >> thisSeat.retirement;
-		}
-		if (versionNum >= 35) {
-			saveInput >> thisSeat.disendorsement;
-			saveInput >> thisSeat.previousDisendorsement;
-		}
-		if (versionNum >= 41) {
-			saveInput >> thisSeat.incumbentRecontestConfirmed;
-			saveInput >> thisSeat.confirmedProminentIndependent;
-		}
-		if (versionNum >= 42) {
-			saveInput >> thisSeat.prominentMinors;
-		}
-		if (versionNum >= 43) {
-			saveInput >> thisSeat.bettingOdds;
-		}
-		if (versionNum >= 44) {
-			saveInput >> thisSeat.polls;
-		}
-		if (versionNum >= 46) {
-			saveInput >> thisSeat.runningParties;
-		}
-		if (versionNum >= 48) {
-			saveInput >> thisSeat.tcpChange;
-		}
-		if (versionNum >= 56) {
-			saveInput >> thisSeat.minorViability;
-		}
-		if (versionNum >= 57) {
-			saveInput >> thisSeat.candidateNames;
-		}
-		if (versionNum >= 49) {
-			saveInput >> thisSeat.previousIndRunning;
-		}
-		if (versionNum >= 52) {
-			saveInput >> thisSeat.knownPrepollPercent;
-			saveInput >> thisSeat.knownPostalPercent;
-		}
-		if (versionNum >= 53) {
-			saveInput >> thisSeat.knownAbsentCount;
-			saveInput >> thisSeat.knownProvisionalCount;
-			saveInput >> thisSeat.knownDecPrepollCount;
-			saveInput >> thisSeat.knownPostalCount;
+		else if (versionNum >= 63) {
+			thisSeat.livePartyOne = saveInput.extract<int32_t>();
+			thisSeat.livePartyTwo = saveInput.extract<int32_t>();
+			thisSeat.livePartyThree = saveInput.extract<int32_t>();
+			saveInput >> thisSeat.partyTwoProb;
+			saveInput >> thisSeat.partyThreeProb;
+			saveInput >> thisSeat.overrideBettingOdds;
+
 		}
 
 		project.seatCollection.add(thisSeat);
@@ -920,6 +942,7 @@ void ProjectFiler::saveElections(SaveFileOutput& saveOutput)
 {
 	saveOutput.outputAsType<int32_t>(project.electionCollection.count());
 	for (auto const& [electionKey, thisElection] : project.electionCollection) {
+		saveOutput << thisElection.termCode;
 		saveOutput << thisElection.id; // this is the same as the key
 		saveOutput << thisElection.name;
 		saveOutput.outputAsType<int32_t>(thisElection.parties.size());
@@ -966,7 +989,11 @@ void ProjectFiler::loadElections(SaveFileInput& saveInput, [[maybe_unused]] int 
 {
 	auto electionCount = saveInput.extract<int32_t>();
 	for (int electionIndex = 0; electionIndex < electionCount; ++electionIndex) {
-		Results2::Election thisElection;
+		std::string termCode = "";
+		if (versionNum >= 62) {
+			saveInput >> termCode;
+		}
+		Results2::Election thisElection(termCode);
 		saveInput >> thisElection.id; // this is the same as the key
 		saveInput >> thisElection.name;
 		auto partyCount = saveInput.extract<int32_t>();

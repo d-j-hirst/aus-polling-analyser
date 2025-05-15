@@ -118,10 +118,10 @@ void SimulationPreparation::resetRegionSpecificOutput()
 	run.regionTppDistribution.resize(project.regions().count());
 	for (int i = 0; i < project.regions().count(); ++i) {
 		for (int j = 0; j < project.parties().count(); ++j) {
-			run.regionPartyFpDistribution[i][j] = std::array<int, SimulationRun::FpBucketCount>();
+			run.regionPartyFpDistribution[i][j] = std::array<int, SimulationRun::BucketCount>();
 			std::fill(run.regionPartyFpDistribution[i][j].begin(), run.regionPartyFpDistribution[i][j].end(), 0);
 		}
-		run.regionTppDistribution[i] = std::array<int, SimulationRun::FpBucketCount>();
+		run.regionTppDistribution[i] = std::array<int, SimulationRun::BucketCount>();
 		std::fill(run.regionTppDistribution[i].begin(), run.regionTppDistribution[i].end(), 0);
 	}
 }

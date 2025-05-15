@@ -903,7 +903,7 @@ bConfirmedProminentIndependent=1
 sTppMrpPolls=Redbridge,2024-04-01,48;Redbridge,2024-07-31,46;Redbridge,2024-11-09,43;YouGov,2025-02-02,44;YouGov,2025-03-13,44.7
 sMinorViability=IND,1.00
 sBettingOdds=IND,3.55
-sCandidateNames=Mary Aldred,LNP;D,IND;Kuljeet Robinson,ON;Terence Steele,GRN;Tully Fletcher,ALP
+sCandidateNames=Mary Aldred,LNP;Deb Leonard,IND;Kuljeet Robinson,ON;Terence Steele,GRN;Tully Fletcher,ALP
 sRunningParties=LNP,ALP,GRN,ON,IND*,OTH**
 #Nicholls
 sIncumbent=NAT

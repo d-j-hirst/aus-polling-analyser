@@ -28,44 +28,44 @@ int hashName(const std::string& name) {
 	return static_cast<int>(hash & 0x7FFFFFFF); // Ensure positive value by masking
 };
 
-Results2::Election Results2::Election::createAec(tinyxml2::XMLDocument const& xml)
+Results2::Election Results2::Election::createAec(tinyxml2::XMLDocument const& xml, std::string const& termCode)
 {
-	Election election;
+	Election election(termCode);
 	election.update(xml);
 	return election;
 }
 
-Results2::Election Results2::Election::createVec(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths)
+Results2::Election Results2::Election::createVec(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths, std::string const& termCode)
 {
-	Election election;
+	Election election(termCode);
 	election.update2022VicPrev(results, input_candidates, input_booths);
 	return election;
 }
 
-Results2::Election Results2::Election::createVec(tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths)
+Results2::Election Results2::Election::createVec(tinyxml2::XMLDocument const& input_candidates, tinyxml2::XMLDocument const& input_booths, std::string const& termCode)
 {
-	Election election;
+	Election election(termCode);	
 	election.preload2022Vic(input_candidates, input_booths, true);
 	return election;
 }
 
-Results2::Election Results2::Election::createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros)
+Results2::Election Results2::Election::createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, std::string const& termCode)
 {
-	Election election;
+	Election election(termCode);
 	election.preloadNswec(results, zeros, true);
 	return election;
 }
 
-Results2::Election Results2::Election::createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros)
+Results2::Election Results2::Election::createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, std::string const& termCode)
 {
-	Election election;
+	Election election(termCode);
 	election.preloadQec(results, zeros);
 	return election;
 }
 
-Results2::Election Results2::Election::createWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& resultsXml)
+Results2::Election Results2::Election::createWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& resultsXml, std::string const& termCode)
 {
-	Election election;
+	Election election(termCode);
 	election.preloadWaec(candidatesXml, resultsXml);
 	return election;
 }
@@ -630,41 +630,41 @@ void Results2::Election::preloadNswec([[maybe_unused]] nlohmann::json const& res
 			}
 		}
 
-		logger << "==SEATS==\n";
-		for (auto const& [seatId, seat] : seats) {
-			PA_LOG_VAR(seat.name);
-			PA_LOG_VAR(seat.id);
-			PA_LOG_VAR(seat.enrolment);
-			PA_LOG_VAR(seat.fpVotes);
-			PA_LOG_VAR(seat.tcpVotes);
-			PA_LOG_VAR(seat.tppVotes);
-			for (int boothId : seat.booths) {
-				PA_LOG_VAR(boothId);
-				auto const& booth = booths.at(boothId);
-				PA_LOG_VAR(booth.id);
-				PA_LOG_VAR(booth.name);
-				PA_LOG_VAR(booth.fpVotes);
-				PA_LOG_VAR(booth.tcpVotes);
-				PA_LOG_VAR(booth.type);
-			}
-		}
-		logger << "==CANDIDATES==\n";
-		for (auto const& candidate : candidates) {
-			PA_LOG_VAR(candidate.second.id);
-			PA_LOG_VAR(candidate.second.name);
-			if (candidate.second.party != -1) {
-				PA_LOG_VAR(parties[candidate.second.party].name);
-			}
-			else {
-				logger << "Independent\n";
-			}
-		}
-		logger << "==PARTIES==\n";
-		for (auto const& party : parties) {
-			PA_LOG_VAR(party.second.id);
-			PA_LOG_VAR(party.second.name);
-			PA_LOG_VAR(party.second.shortCode);
-		}
+		// logger << "==SEATS==\n";
+		// for (auto const& [seatId, seat] : seats) {
+		// 	PA_LOG_VAR(seat.name);
+		// 	PA_LOG_VAR(seat.id);
+		// 	PA_LOG_VAR(seat.enrolment);
+		// 	PA_LOG_VAR(seat.fpVotes);
+		// 	PA_LOG_VAR(seat.tcpVotes);
+		// 	PA_LOG_VAR(seat.tppVotes);
+		// 	for (int boothId : seat.booths) {
+		// 		PA_LOG_VAR(boothId);
+		// 		auto const& booth = booths.at(boothId);
+		// 		PA_LOG_VAR(booth.id);
+		// 		PA_LOG_VAR(booth.name);
+		// 		PA_LOG_VAR(booth.fpVotes);
+		// 		PA_LOG_VAR(booth.tcpVotes);
+		// 		PA_LOG_VAR(booth.type);
+		// 	}
+		// }
+		// logger << "==CANDIDATES==\n";
+		// for (auto const& candidate : candidates) {
+		// 	PA_LOG_VAR(candidate.second.id);
+		// 	PA_LOG_VAR(candidate.second.name);
+		// 	if (candidate.second.party != -1) {
+		// 		PA_LOG_VAR(parties[candidate.second.party].name);
+		// 	}
+		// 	else {
+		// 		logger << "Independent\n";
+		// 	}
+		// }
+		// logger << "==PARTIES==\n";
+		// for (auto const& party : parties) {
+		// 	PA_LOG_VAR(party.second.id);
+		// 	PA_LOG_VAR(party.second.name);
+		// 	PA_LOG_VAR(party.second.shortCode);
+		// }
 		logger << "Appeared to successfully load past election data\n";
 	}
 }
@@ -906,44 +906,44 @@ void Results2::Election::preloadQec([[maybe_unused]] nlohmann::json const& resul
 		}
 	}
 
-	logger << "Qec Preload\n";
-	PA_LOG_VAR(booths.size());
-	logger << "==SEATS==\n";
-	for (auto const& [seatId, seat] : seats) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.id);
-		PA_LOG_VAR(seat.enrolment);
-		PA_LOG_VAR(seat.fpVotes);
-		PA_LOG_VAR(seat.tcpVotes);
-		PA_LOG_VAR(seat.tppVotes);
-		PA_LOG_VAR(seat.booths);
-		for (int boothId : seat.booths) {
-			PA_LOG_VAR(boothId);
-			auto const& booth = booths.at(boothId);
-			PA_LOG_VAR(booth.id);
-			PA_LOG_VAR(booth.name);
-			PA_LOG_VAR(booth.fpVotes);
-			PA_LOG_VAR(booth.tcpVotes);
-			PA_LOG_VAR(booth.type);
-		}
-	}
-	logger << "==CANDIDATES==\n";
-	for (auto const& candidate : candidates) {
-		PA_LOG_VAR(candidate.second.id);
-		PA_LOG_VAR(candidate.second.name);
-		if (candidate.second.party != -1) {
-			PA_LOG_VAR(parties[candidate.second.party].name);
-		}
-		else {
-			logger << "Independent\n";
-		}
-	}
-	logger << "==PARTIES==\n";
-	for (auto const& party : parties) {
-		PA_LOG_VAR(party.second.id);
-		PA_LOG_VAR(party.second.name);
-		PA_LOG_VAR(party.second.shortCode);
-	}
+	// logger << "Qec Preload\n";
+	// PA_LOG_VAR(booths.size());
+	// logger << "==SEATS==\n";
+	// for (auto const& [seatId, seat] : seats) {
+	// 	PA_LOG_VAR(seat.name);
+	// 	PA_LOG_VAR(seat.id);
+	// 	PA_LOG_VAR(seat.enrolment);
+	// 	PA_LOG_VAR(seat.fpVotes);
+	// 	PA_LOG_VAR(seat.tcpVotes);
+	// 	PA_LOG_VAR(seat.tppVotes);
+	// 	PA_LOG_VAR(seat.booths);
+	// 	for (int boothId : seat.booths) {
+	// 		PA_LOG_VAR(boothId);
+	// 		auto const& booth = booths.at(boothId);
+	// 		PA_LOG_VAR(booth.id);
+	// 		PA_LOG_VAR(booth.name);
+	// 		PA_LOG_VAR(booth.fpVotes);
+	// 		PA_LOG_VAR(booth.tcpVotes);
+	// 		PA_LOG_VAR(booth.type);
+	// 	}
+	// }
+	// logger << "==CANDIDATES==\n";
+	// for (auto const& candidate : candidates) {
+	// 	PA_LOG_VAR(candidate.second.id);
+	// 	PA_LOG_VAR(candidate.second.name);
+	// 	if (candidate.second.party != -1) {
+	// 		PA_LOG_VAR(parties[candidate.second.party].name);
+	// 	}
+	// 	else {
+	// 		logger << "Independent\n";
+	// 	}
+	// }
+	// logger << "==PARTIES==\n";
+	// for (auto const& party : parties) {
+	// 	PA_LOG_VAR(party.second.id);
+	// 	PA_LOG_VAR(party.second.name);
+	// 	PA_LOG_VAR(party.second.shortCode);
+	// }
 	logger << "Appeared to successfully load past election data\n";
 }
 
@@ -1031,39 +1031,39 @@ void Results2::Election::preloadWaec(tinyxml2::XMLDocument const& candidatesXml,
 		currentRegion = currentRegion->NextSiblingElement("ElectionRegion");
 	}
 
-	logger << "Waec Preload\n";
-	PA_LOG_VAR(booths.size());
-	logger << "==SEATS==\n";
-	for (auto const& [seatId, seat] : seats) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.id);
-		PA_LOG_VAR(seat.enrolment);
-		PA_LOG_VAR(seat.booths);
-		for (int boothId : seat.booths) {
-			PA_LOG_VAR(boothId);
-			auto const& booth = booths.at(boothId);
-			PA_LOG_VAR(booth.id);
-			PA_LOG_VAR(booth.name);
-			PA_LOG_VAR(booth.type);
-		}
-	}
-	logger << "==CANDIDATES==\n";
-	for (auto const& candidate : candidates) {
-		PA_LOG_VAR(candidate.second.id);
-		PA_LOG_VAR(candidate.second.name);
-		if (candidate.second.party != -1) {
-			PA_LOG_VAR(parties[candidate.second.party].name);
-		}
-		else {
-			logger << "Independent\n";
-		}
-	}
-	logger << "==PARTIES==\n";
-	for (auto const& party : parties) {
-		PA_LOG_VAR(party.second.id);
-		PA_LOG_VAR(party.second.name);
-		PA_LOG_VAR(party.second.shortCode);
-	}
+	// logger << "Waec Preload\n";
+	// PA_LOG_VAR(booths.size());
+	// logger << "==SEATS==\n";
+	// for (auto const& [seatId, seat] : seats) {
+	// 	PA_LOG_VAR(seat.name);
+	// 	PA_LOG_VAR(seat.id);
+	// 	PA_LOG_VAR(seat.enrolment);
+	// 	PA_LOG_VAR(seat.booths);
+	// 	for (int boothId : seat.booths) {
+	// 		PA_LOG_VAR(boothId);
+	// 		auto const& booth = booths.at(boothId);
+	// 		PA_LOG_VAR(booth.id);
+	// 		PA_LOG_VAR(booth.name);
+	// 		PA_LOG_VAR(booth.type);
+	// 	}
+	// }
+	// logger << "==CANDIDATES==\n";
+	// for (auto const& candidate : candidates) {
+	// 	PA_LOG_VAR(candidate.second.id);
+	// 	PA_LOG_VAR(candidate.second.name);
+	// 	if (candidate.second.party != -1) {
+	// 		PA_LOG_VAR(parties[candidate.second.party].name);
+	// 	}
+	// 	else {
+	// 		logger << "Independent\n";
+	// 	}
+	// }
+	// logger << "==PARTIES==\n";
+	// for (auto const& party : parties) {
+	// 	PA_LOG_VAR(party.second.id);
+	// 	PA_LOG_VAR(party.second.name);
+	// 	PA_LOG_VAR(party.second.shortCode);
+	// }
 	logger << "Appeared to successfully load past election data\n";
 }
 
@@ -1325,52 +1325,54 @@ void Results2::Election::update(tinyxml2::XMLDocument const& xml, Format format)
 		}
 	}
 
-	 logger << "==SEATS==\n";
-	  for (auto const& [seatId, seat] : seats) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.id);
-		PA_LOG_VAR(seat.enrolment);
-		PA_LOG_VAR(seat.fpVotes);
-		PA_LOG_VAR(seat.tcpVotes);
-		PA_LOG_VAR(seat.tppVotes);
-		PA_LOG_VAR(seat.booths);
-	 	for (int boothId : seat.booths) {
-	 		auto const& booth = booths.at(boothId);
-	 		PA_LOG_VAR(booth.id);
-	 		PA_LOG_VAR(booth.name);
-			PA_LOG_VAR(booth.fpVotes);
-			PA_LOG_VAR(booth.tcpVotes);
-			PA_LOG_VAR(booth.tcpVotesCandidate);
-			PA_LOG_VAR(booth.tppVotes);
-			PA_LOG_VAR(booth.type);
-		}
-	}
-	logger << "==CANDIDATES==\n";
-	for (auto const& candidate : candidates) {
-		PA_LOG_VAR(candidate.second.id);
-		PA_LOG_VAR(candidate.second.name);
-		if (candidate.second.party != -1) {
-			PA_LOG_VAR(parties[candidate.second.party].name);
-		}
-		else {
-			logger << "Independent\n";
-		}
-	}
-	logger << "==PARTIES==\n";
-	for (auto const& party : parties) {
-		PA_LOG_VAR(party.second.id);
-		PA_LOG_VAR(party.second.name);
-		PA_LOG_VAR(party.second.shortCode);
-	}
-	logger << "==COALITIONS==\n";
-	for (auto const& coalition : coalitions) {
-		PA_LOG_VAR(coalition.second.id);
-		PA_LOG_VAR(coalition.second.name);
-		PA_LOG_VAR(coalition.second.shortCode);
-	}
-	logger << "==ELECTION==\n";
-	PA_LOG_VAR(name);
-	PA_LOG_VAR(id);
+	applyResultOverrides();
+
+	// logger << "==SEATS==\n";
+	//   for (auto const& [seatId, seat] : seats) {
+	// 	PA_LOG_VAR(seat.name);
+	// 	PA_LOG_VAR(seat.id);
+	// 	PA_LOG_VAR(seat.enrolment);
+	// 	PA_LOG_VAR(seat.fpVotes);
+	// 	PA_LOG_VAR(seat.tcpVotes);
+	// 	PA_LOG_VAR(seat.tppVotes);
+	// 	PA_LOG_VAR(seat.booths);
+	//  	for (int boothId : seat.booths) {
+	//  		auto const& booth = booths.at(boothId);
+	//  		PA_LOG_VAR(booth.id);
+	//  		PA_LOG_VAR(booth.name);
+	// 		PA_LOG_VAR(booth.fpVotes);
+	// 		PA_LOG_VAR(booth.tcpVotes);
+	// 		PA_LOG_VAR(booth.tcpVotesCandidate);
+	// 		PA_LOG_VAR(booth.tppVotes);
+	// 		PA_LOG_VAR(booth.type);
+	// 	}
+	// }
+	// logger << "==CANDIDATES==\n";
+	// for (auto const& candidate : candidates) {
+	// 	PA_LOG_VAR(candidate.second.id);
+	// 	PA_LOG_VAR(candidate.second.name);
+	// 	if (candidate.second.party != -1) {
+	// 		PA_LOG_VAR(parties[candidate.second.party].name);
+	// 	}
+	// 	else {
+	// 		logger << "Independent\n";
+	// 	}
+	// }
+	// logger << "==PARTIES==\n";
+	// for (auto const& party : parties) {
+	// 	PA_LOG_VAR(party.second.id);
+	// 	PA_LOG_VAR(party.second.name);
+	// 	PA_LOG_VAR(party.second.shortCode);
+	// }
+	// logger << "==COALITIONS==\n";
+	// for (auto const& coalition : coalitions) {
+	// 	PA_LOG_VAR(coalition.second.id);
+	// 	PA_LOG_VAR(coalition.second.name);
+	// 	PA_LOG_VAR(coalition.second.shortCode);
+	// }
+	// logger << "==ELECTION==\n";
+	// PA_LOG_VAR(name);
+	// PA_LOG_VAR(id);
 }
 
 void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
@@ -1463,44 +1465,44 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
 		currentDistrict = currentDistrict->NextSiblingElement("district");
 	}
 
-	logger << "Qec Update\n";
-	PA_LOG_VAR(booths.size());
-	logger << "==SEATS==\n";
-	for (auto const& [seatId, seat] : seats) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.id);
-		PA_LOG_VAR(seat.enrolment);
-		PA_LOG_VAR(seat.fpVotes);
-		PA_LOG_VAR(seat.tcpVotes);
-		PA_LOG_VAR(seat.tppVotes);
-		PA_LOG_VAR(seat.booths);
-		for (int boothId : seat.booths) {
-			PA_LOG_VAR(boothId);
-			auto const& booth = booths.at(boothId);
-			PA_LOG_VAR(booth.id);
-			PA_LOG_VAR(booth.name);
-			PA_LOG_VAR(booth.fpVotes);
-			PA_LOG_VAR(booth.tcpVotes);
-			PA_LOG_VAR(booth.type);
-		}
-	}
-	logger << "==CANDIDATES==\n";
-	for (auto const& candidate : candidates) {
-		PA_LOG_VAR(candidate.second.id);
-		PA_LOG_VAR(candidate.second.name);
-		if (candidate.second.party != -1) {
-			PA_LOG_VAR(parties[candidate.second.party].name);
-		}
-		else {
-			logger << "Independent\n";
-		}
-	}
-	logger << "==PARTIES==\n";
-	for (auto const& party : parties) {
-		PA_LOG_VAR(party.second.id);
-		PA_LOG_VAR(party.second.name);
-		PA_LOG_VAR(party.second.shortCode);
-	}
+	// logger << "Qec Update\n";
+	// PA_LOG_VAR(booths.size());
+	// logger << "==SEATS==\n";
+	// for (auto const& [seatId, seat] : seats) {
+	// 	PA_LOG_VAR(seat.name);
+	// 	PA_LOG_VAR(seat.id);
+	// 	PA_LOG_VAR(seat.enrolment);
+	// 	PA_LOG_VAR(seat.fpVotes);
+	// 	PA_LOG_VAR(seat.tcpVotes);
+	// 	PA_LOG_VAR(seat.tppVotes);
+	// 	PA_LOG_VAR(seat.booths);
+	// 	for (int boothId : seat.booths) {
+	// 		PA_LOG_VAR(boothId);
+	// 		auto const& booth = booths.at(boothId);
+	// 		PA_LOG_VAR(booth.id);
+	// 		PA_LOG_VAR(booth.name);
+	// 		PA_LOG_VAR(booth.fpVotes);
+	// 		PA_LOG_VAR(booth.tcpVotes);
+	// 		PA_LOG_VAR(booth.type);
+	// 	}
+	// }
+	// logger << "==CANDIDATES==\n";
+	// for (auto const& candidate : candidates) {
+	// 	PA_LOG_VAR(candidate.second.id);
+	// 	PA_LOG_VAR(candidate.second.name);
+	// 	if (candidate.second.party != -1) {
+	// 		PA_LOG_VAR(parties[candidate.second.party].name);
+	// 	}
+	// 	else {
+	// 		logger << "Independent\n";
+	// 	}
+	// }
+	// logger << "==PARTIES==\n";
+	// for (auto const& party : parties) {
+	// 	PA_LOG_VAR(party.second.id);
+	// 	PA_LOG_VAR(party.second.name);
+	// 	PA_LOG_VAR(party.second.shortCode);
+	// }
 	logger << "Appeared to successfully load election data update\n";
 }
 
@@ -1673,46 +1675,106 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
 		currentRegion = currentRegion->NextSiblingElement("ElectionRegion");
 	}
 
-	logger << "Waec Update\n";
-	PA_LOG_VAR(booths.size());
-	logger << "==SEATS==\n";
-	for (auto const& [seatId, seat] : seats) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.id);
-		PA_LOG_VAR(seat.enrolment);
-		PA_LOG_VAR(seat.fpVotes);
-		PA_LOG_VAR(seat.tcpVotes);
-		PA_LOG_VAR(seat.tcpVotesCandidate);
-		PA_LOG_VAR(seat.tppVotes);
-		PA_LOG_VAR(seat.booths);
-		for (int boothId : seat.booths) {
-			PA_LOG_VAR(boothId);
-			auto const& booth = booths.at(boothId);
-			PA_LOG_VAR(booth.id);
-			PA_LOG_VAR(booth.name);
-			PA_LOG_VAR(booth.fpVotes);
-			PA_LOG_VAR(booth.tcpVotes);
-			PA_LOG_VAR(booth.type);
-		}
-	}
-	logger << "==CANDIDATES==\n";
-	for (auto const& candidate : candidates) {
-		PA_LOG_VAR(candidate.second.id);
-		PA_LOG_VAR(candidate.second.name);
-		if (candidate.second.party != -1) {
-			PA_LOG_VAR(parties[candidate.second.party].name);
-		}
-		else {
-			logger << "Independent\n";
-		}
-	}
-	logger << "==PARTIES==\n";
-	for (auto const& party : parties) {
-		PA_LOG_VAR(party.second.id);
-		PA_LOG_VAR(party.second.name);
-		PA_LOG_VAR(party.second.shortCode);
-	}
+	// logger << "Waec Update\n";
+	// PA_LOG_VAR(booths.size());
+	// logger << "==SEATS==\n";
+	// for (auto const& [seatId, seat] : seats) {
+	// 	PA_LOG_VAR(seat.name);
+	// 	PA_LOG_VAR(seat.id);
+	// 	PA_LOG_VAR(seat.enrolment);
+	// 	PA_LOG_VAR(seat.fpVotes);
+	// 	PA_LOG_VAR(seat.tcpVotes);
+	// 	PA_LOG_VAR(seat.tcpVotesCandidate);
+	// 	PA_LOG_VAR(seat.tppVotes);
+	// 	PA_LOG_VAR(seat.booths);
+	// 	for (int boothId : seat.booths) {
+	// 		PA_LOG_VAR(boothId);
+	// 		auto const& booth = booths.at(boothId);
+	// 		PA_LOG_VAR(booth.id);
+	// 		PA_LOG_VAR(booth.name);
+	// 		PA_LOG_VAR(booth.fpVotes);
+	// 		PA_LOG_VAR(booth.tcpVotes);
+	// 		PA_LOG_VAR(booth.type);
+	// 	}
+	// }
+	// logger << "==CANDIDATES==\n";
+	// for (auto const& candidate : candidates) {
+	// 	PA_LOG_VAR(candidate.second.id);
+	// 	PA_LOG_VAR(candidate.second.name);
+	// 	if (candidate.second.party != -1) {
+	// 		PA_LOG_VAR(parties[candidate.second.party].name);
+	// 	}
+	// 	else {
+	// 		logger << "Independent\n";
+	// 	}
+	// }
+	// logger << "==PARTIES==\n";
+	// for (auto const& party : parties) {
+	// 	PA_LOG_VAR(party.second.id);
+	// 	PA_LOG_VAR(party.second.name);
+	// 	PA_LOG_VAR(party.second.shortCode);
+	// }
 	logger << "Appeared to successfully load election data update\n";
 }
 
+void Results2::Election::applyResultOverrides() {
+	std::string fileName = "analysis/Live Overrides/" + termCode + ".csv";
+	auto file = std::ifstream(fileName);
+	if (!file) {
+		// Not finding a file is fine, but log a message in case this isn't intended behaviour
+		logger << "Info: Could not find file " + fileName + " - original results will be used\n";
+		return;
+	}
+	do {
+		std::string line;
+		std::getline(file, line);
+		if (!file) break;
+		auto values = splitString(line, ",");
+		if (values.size() <= 1) break;
+		if (values[0] == "tcp") {
+      if (values.size() < 7) {
+        logger << "Warning: Invalid line in " + fileName + ": " + line + "\n";
+        continue;
+      }
+      std::string seatName = values[1];
+      std::string boothName = values[2];
+      std::string partyOneCode = values[3];
+      std::string partyTwoCode = values[4];
+      int partyOneVotes = std::stoi(values[5]);
+      int partyTwoVotes = std::stoi(values[6]);
+      auto booth = std::find_if(booths.begin(), booths.end(), [this, &seatName, &boothName](decltype(booths)::value_type const& b) {
+        return b.second.name == boothName && seats.at(b.second.parentSeat).name == seatName;
+      });
+      if (booth == booths.end()) {
+        logger << "Warning: Could not find booth " + boothName + " in seat " + seatName + " in " + fileName + "\n";
 
+				std::vector<std::string> boothNames;
+				for (auto const& b : booths) {
+					if (seats.at(b.second.parentSeat).name == seatName) {
+						boothNames.push_back(b.second.name);
+					}
+				}
+        continue;	
+      }
+			auto candidateOne = std::find_if(booth->second.fpVotes.begin(), booth->second.fpVotes.end(),
+				[this, &partyOneCode](decltype(booth->second.fpVotes)::value_type const& c) {
+					return parties.at(candidates.at(c.first).party).shortCode == partyOneCode;
+				}
+			);
+			auto candidateTwo = std::find_if(booth->second.fpVotes.begin(), booth->second.fpVotes.end(),
+				[this, &partyTwoCode](decltype(booth->second.fpVotes)::value_type const& c) {
+					return parties.at(candidates.at(c.first).party).shortCode == partyTwoCode;
+				}
+			);
+			if (candidateOne == booth->second.fpVotes.end() || candidateTwo == booth->second.fpVotes.end()) {
+				logger << "Warning: Could not find candidates for " + partyOneCode + " or " + partyTwoCode + " in " + fileName + "\n";
+				continue;
+			}
+			booths.at(booth->first).tcpVotes[candidates.at(candidateOne->first).party] = partyOneVotes;
+      booths.at(booth->first).tcpVotes[candidates.at(candidateTwo->first).party] = partyTwoVotes;
+			booths.at(booth->first).tcpVotesCandidate[candidateOne->first] = partyOneVotes;
+      booths.at(booth->first).tcpVotesCandidate[candidateTwo->first] = partyTwoVotes;
+      logger << "Applied override for " + seatName + " " + boothName + " - " + partyOneCode + " "  + std::to_string(partyOneVotes) + " " + partyTwoCode + " " + std::to_string(partyTwoVotes) + "\n";
+    }
+	} while (true);
+}

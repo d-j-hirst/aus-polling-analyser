@@ -212,7 +212,7 @@ private:
 	int totalEnrolment = 0;
 	int totalPreviousTurnout = 0;
 
-	constexpr static int FpBucketCount = 100;
+	constexpr static int BucketCount = 1000;
 
 	std::map<int, int> partyMajority;
 	std::map<int, int> partyMinority;
@@ -224,15 +224,15 @@ private:
 	std::vector<double> partyTwoWinPercent;
 	std::vector<double> othersWinPercent;
 	std::vector<std::map<int, double>> cumulativeSeatPartyFpShare;
-	std::vector<std::map<int, std::array<int, FpBucketCount>>> seatPartyFpDistribution;
+	std::vector<std::map<int, std::array<int, BucketCount>>> seatPartyFpDistribution;
 	std::vector<std::map<int, int>> seatPartyFpZeros; // frequency of seat total being actually zero, i.e. candidate didn't run
 	std::vector<double> coalitionWinPercent;
 
-	std::vector<std::map<int, std::array<int, FpBucketCount>>> regionPartyFpDistribution;
-	std::vector<std::array<int, FpBucketCount>> regionTppDistribution;
+	std::vector<std::map<int, std::array<int, BucketCount>>> regionPartyFpDistribution;
+	std::vector<std::array<int, BucketCount>> regionTppDistribution;
 
-	std::map<int, std::array<int, FpBucketCount>> electionPartyFpDistribution;
-	std::array<int, FpBucketCount> electionTppDistribution;
+	std::map<int, std::array<int, BucketCount>> electionPartyFpDistribution;
+	std::array<int, BucketCount> electionTppDistribution;
 
 	// Keep track of swing factors
 	std::vector<double> seatRegionSwingSums;
@@ -251,13 +251,13 @@ private:
 	// Second index is a pair containing the two parties involved in ascending order
 	// Third index represents the bucket.
 	// E.g. bucket 51 contains all TCP results for the first party (lower index) that fall between 51.0 and 52.0
-	std::vector<std::map<std::pair<int, int>, std::array<int, FpBucketCount>>> seatTcpDistribution;
+	std::vector<std::map<std::pair<int, int>, std::array<int, BucketCount>>> seatTcpDistribution;
 	std::vector<std::map<int, int>> seatPartyWins;
 	// region, then party, then seat count
 	std::vector<std::map<int, std::vector<int>>> regionPartyWins;
 	std::vector<int> seatCoalitionWins;
 
-	std::vector<std::array<int, FpBucketCount>> seatTppDistribution;
+	std::vector<std::array<int, BucketCount>> seatTppDistribution;
 
 	std::vector<std::vector<int>> seatProminentMinors;
 	std::vector<float> seatPreviousTppSwing;

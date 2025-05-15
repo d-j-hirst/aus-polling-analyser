@@ -272,6 +272,7 @@ namespace Results2 {
 		typedef int32_t Id;
 		std::string name;
 		Id id = 0;
+		std::string termCode;
 		std::unordered_map<int32_t, Party> parties; // map affiliation id -> affiliation info
 		std::unordered_map<int32_t, Candidate> candidates; // map candidate id -> candidate info
 		std::unordered_map<int32_t, Coalition> coalitions; // map coalition id -> coalition info
@@ -288,21 +289,23 @@ namespace Results2 {
 			WAEC
 		};
 
-		Election() {parties.insert({-1, {-1, "Independent", "IND"}});}
+		Election(std::string const& termCode) : termCode(termCode) {parties.insert({-1, {-1, "Independent", "IND"}});}
 
-		static Election createAec(tinyxml2::XMLDocument const& xml);
+		static Election createAec(tinyxml2::XMLDocument const& xm, std::string const& termCode);
 		static Election createVec(
 			nlohmann::json const& results,
 			tinyxml2::XMLDocument const& input_candidates,
-			tinyxml2::XMLDocument const& input_booths
+			tinyxml2::XMLDocument const& input_booths,
+			std::string const& termCode
 		);
 		static Election createVec(
 			tinyxml2::XMLDocument const& input_candidates,
-			tinyxml2::XMLDocument const& input_booths
+			tinyxml2::XMLDocument const& input_booths,
+			std::string const& termCode
 		);
-		static Election createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
-		static Election createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml);
-		static Election createWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
+		static Election createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml, std::string const& termCode);
+		static Election createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml, std::string const& termCode);
+		static Election createWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml, std::string const& termCode);
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
 		void updateQec(tinyxml2::XMLDocument const& xml);
@@ -316,5 +319,7 @@ namespace Results2 {
 		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
 		void preloadQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
 		void preloadWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
+
+		void applyResultOverrides();
 	};
 }

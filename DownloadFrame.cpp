@@ -121,6 +121,18 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 		case Preset::Federal2019: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/20499/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-20499-20170511174118.zip"; break;
 		case Preset::Federal2022: defaultUrl = "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-24310-20190729153147.zip"; break;
 		}
+		std::string termCode;
+		switch (presetComboBox->GetSelection()) {
+		case Preset::Federal1998: termCode = "1998fed"; break;
+		case Preset::Federal2001: termCode = "2001fed"; break;
+		case Preset::Federal2004: termCode = "2004fed"; break;
+		case Preset::Federal2007: termCode = "2007fed"; break;
+		case Preset::Federal2010: termCode = "2010fed"; break;
+		case Preset::Federal2013: termCode = "2013fed"; break;
+		case Preset::Federal2016: termCode = "2016fed"; break;
+		case Preset::Federal2019: termCode = "2019fed"; break;
+		case Preset::Federal2022: termCode = "2022fed"; break;
+		}
 
 		std::string userUrl = (skipPrompt ? defaultUrl : wxGetTextFromUser("Enter a URL to download results from:", "Download Results", defaultUrl).ToStdString());
 		if (userUrl.empty()) return;
@@ -140,16 +152,15 @@ void DownloadFrame::collectHistoricBoothData(bool skipPrompt)
 				if (!skipPrompt) wxMessageBox("Getting historic data from: " + userUrl);
 				// Since the election files don't include the booth and seat ids, need some kind of template to load them from.
 				auto templateElection = PreviousElectionDataRetriever().load2004Tcp("downloads/2004 tcp.csv");
-				auto const& election = project->elections().add(PreviousElectionDataRetriever().loadPre2004Tcp(templateElection, userUrl));
+				auto const& election = project->elections().add(PreviousElectionDataRetriever().loadPre2004Tcp(templateElection, userUrl, termCode));
 				logger << "Added election: " << election.name << "\n";
 			}
 		}
 		else {
-
 			ResultsDownloader resultsDownloader;
 			resultsDownloader.loadZippedFile(userUrl, PreviousElectionDataRetriever::UnzippedFileName);
 			if (!skipPrompt) wxMessageBox("Downloaded historic data from: " + userUrl);
-			auto const& election = project->elections().add(PreviousElectionDataRetriever().collectData());
+			auto const& election = project->elections().add(PreviousElectionDataRetriever().collectData(termCode));
 			logger << "Added election: " << election.name << "\n";
 		}
 	}
