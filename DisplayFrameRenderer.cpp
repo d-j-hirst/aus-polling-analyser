@@ -428,10 +428,7 @@ void DisplayFrameRenderer::drawGraphBox() const
 	dc.SetFont(font(11));
 	GraphVariables gv = calculateGraphVariables();
 	drawGraphBoxBackground(gv);
-	int lowestSeatFrequency = simulation.getMinimumSeatFrequency(GraphParty);
-	int highestSeatFrequency = simulation.getMaximumSeatFrequency(GraphParty);
-	int seatRange = highestSeatFrequency - lowestSeatFrequency;
-	if (seatRange > 0) {
+	if (gv.seatRange > 1) {
 		drawGraphAxisLabels(gv);
 		drawGraphColumns(gv);
 		drawGraphAxis(gv);
@@ -451,7 +448,7 @@ DisplayFrameRenderer::GraphVariables DisplayFrameRenderer::calculateGraphVariabl
 	gv.axisRight = GraphBoxLeft + GraphBoxWidth - GraphAxisOffset;
 	gv.axisMidpoint = (gv.axisLeft + gv.axisRight) * 0.5f;
 	gv.axisLength = gv.axisRight - gv.axisLeft;
-	gv.seatColumnWidth = int(floor(gv.axisLength)) / gv.seatRange;
+	gv.seatColumnWidth = int(floor(gv.axisLength)) / std::max(gv.seatRange, 1);
 	return gv;
 }
 
