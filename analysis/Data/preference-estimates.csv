@@ -1,3 +1,6 @@
+2028,fed,GRN FP,88.19
+2028,fed,ONP FP,25.5
+2028,fed,OTH FP,54.5
 2025,fed,GRN FP,85.755
 2025,fed,ONP FP,26.2
 2025,fed,OTH FP,53.4,#Includes UAP but weighted at 1/3 to represent their estimated support when removed from forecasts
@@ -140,6 +143,8 @@
 1995,qld,OTH FP,69.8,40
 1992,qld,OTH FP,50.0,40,#With high leakage of LIB/NAT votes it's not practical to establish a pref flow here
 1989,qld,OTH FP,50.0
+2026,sa,GRN FP,77.95
+2026,sa,OTH FP,49.29
 2022,sa,GRN FP,74.5
 2022,sa,SAB FP,48.4
 2022,sa,OTH FP,45.84,#No SA-BEST candidates means previous election figures unlikely to be accurate, average with federal figure instead

@@ -152,7 +152,7 @@ class CandidateResult:
 class AllElections:
     def __init__(self):
         self.elections = {}
-        fed_years = [2022, 2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
+        fed_years = [2025, 2022, 2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
                     1993, 1990, 1987, 1984, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='fed'): 
@@ -185,7 +185,7 @@ class AllElections:
             ElectionResults(f'{year} SA Election',
             lambda: generic_download('sa', year))
             for year in sa_years})
-        wa_years = [2021, 2017, 2013, 2008, 2005, 2001, 1996, 1993, 1989,
+        wa_years = [2025, 2021, 2017, 2013, 2008, 2005, 2001, 1996, 1993, 1989,
                     1986, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='wa'): 
