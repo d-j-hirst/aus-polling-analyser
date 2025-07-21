@@ -427,6 +427,8 @@ def run_fundamentals_regression(config, inputs, excluded_election):
                 if studied_election not in inputs.past_elections:
                     if studied_election not in to_file:
                         to_file[studied_election] = {}
+                    print(studied_election)
+                    print(inputs.past_elections)
                     to_file[studied_election][party] = 3
                 continue
             if amax(input_array) > 0 or amin(input_array) < 0:

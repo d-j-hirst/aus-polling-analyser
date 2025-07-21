@@ -60,8 +60,13 @@ if timeseries:
     data = '{"termCode":"' + timeseries + '"}'
     url_part = 'submit-timeseries-update'
 elif results:
-    data = '{"termCode":"' + results + '"}'
     url_part = 'submit-results-update'
+    pre_fill = None
+    if not upload_local:
+        with open("prefill_results.json") as f:
+            pre_fill = json.load(f)
+    data = '{"termCode":"' + results + '", "preFill":' + json.dumps(pre_fill) + '}'
+    print(data)
 elif review:
     data = '{"termCode":"' + review + '"}'
     url_part = 'submit-review'

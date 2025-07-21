@@ -492,11 +492,6 @@ def analyse_bias(target_election, cycles, links):
                 link_weight = 1.5
                 weight_list[linked_key] += [link_weight, link_weight]
                 bias_list[linked_key] += [desc.mean + desc.std, desc.mean - desc.std]
-                print(target_key[0])
-                print(desc.mean)
-                print(desc.std)
-                print(weight_list[linked_key])
-                print(bias_list[linked_key])
         if target_key[1] == "LNP FP" and lib: target_key = (target_key[0], "LIB FP")
         bias_infos.append((target_key[0], target_key[1], desc.mean, desc.std))
     for target_key in sorted(bias_list.keys()):
