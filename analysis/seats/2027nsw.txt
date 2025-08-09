@@ -1,0 +1,702 @@
+#Albury
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-16.3
+fPreviousTppSwing=-0.5
+sCandidateNames=Justin Clancy,LNP
+#Auburn
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=24.0
+fPreviousTppSwing=10.3
+sCandidateNames=Lynda Voltz,ALP
+#Badgerys Creek
+sPreviousName=Mulgoa
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southwest Sydney
+fTppMargin=-10.5
+fPreviousTppSwing=-0.7
+sCandidateNames=Tanya Davies,LNP
+#Ballina
+sIncumbent=GRN
+sChallenger=NAT
+sRegion=North Coast
+fTppMargin=6.2
+fPreviousTppSwing=2.3
+fTransposedFederalSwing=0.3
+sCandidateNames=Tamara Smith,GRN
+#Balmain
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Southeast Sydney
+fTppMargin=24.5
+fPreviousTppSwing=4.05
+bSophomoreCandidate=1
+sCandidateNames=Kobi Shetty,GRN
+#Bankstown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=20.3
+fPreviousTppSwing=-0.1
+sCandidateNames=Jihad Dib,ALP
+#Barwon
+sIncumbent=IND
+sChallenger=NAT
+sRegion=Northern Inland
+fTppMargin=-10.76
+fPreviousTppSwing=-8.24
+bSophomoreParty=1
+sCandidateNames=Roy Butler,IND
+#Bathurst
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-23.6
+fPreviousTppSwing=-5.7
+sCandidateNames=Paul Toole,NAT
+#Bega
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=South Coast
+fTppMargin=10.4
+fPreviousTppSwing=17.33
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Michael Holland,ALP
+#Blacktown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=19.1
+fPreviousTppSwing=2.5
+sCandidateNames=Stephen Bali,ALP
+#Blue Mountains
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=21.9
+fPreviousTppSwing=8.3
+sCandidateNames=Trish Doyle,ALP
+#Cabramatta
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=11.8
+fPreviousTppSwing=-7.5
+bSophomoreCandidate=1
+sCandidateNames=Tri Vo,ALP
+#Camden
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=3.0
+fPreviousTppSwing=10.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Sally Quinnell,ALP
+#Campbelltown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=23.3
+fPreviousTppSwing=7.3
+sCandidateNames=Greg Warren,ALP
+#Canterbury
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=25.8
+fPreviousTppSwing=10.5
+sCandidateNames=Sophie Cotsis,ALP
+#Castle Hill
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-10.9
+fPreviousTppSwing=11.5
+fTransposedFederalSwing=4.8
+bSophomoreCandidate=1
+sCandidateNames=Mark Hodges,LNP
+#Cessnock
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=Central Coast
+fTppMargin=26.8
+fPreviousTppSwing=7.1
+sCandidateNames=Clayton Barr,ALP
+#Charlestown
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=21.1
+fPreviousTppSwing=8
+sCandidateNames=Jodie Harrison,ALP
+#Clarence
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-14.3
+fPreviousTppSwing=0.2
+bSophomoreCandidate=1
+sCandidateNames=Richard Williamson,NAT
+#Coffs Harbour
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-13.24
+fPreviousTppSwing=-2.47
+sCandidateNames=Gurmesh Singh,NAT
+#Coogee
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=12.3
+fPreviousTppSwing=10.0
+sCandidateNames=Marjorie O'Neill,ALP
+#Cootamundra
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-32.1
+fPreviousTppSwing=-5.5
+sCandidateNames=Steph Cooke,NAT
+#Cronulla
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-13.79
+fPreviousTppSwing=5.82
+sCandidateNames=Mark Speakman,LNP
+#Davidson
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-13.9
+fPreviousTppSwing=10.9
+bSophomoreCandidate=1
+sCandidateNames=Matt Cross,LNP
+#Drummoyne
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=-1.3
+fPreviousTppSwing=12.3
+bSophomoreCandidate=1
+sCandidateNames=Stephanie Di Pasqua,LNP
+#Dubbo
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-18.6
+fPreviousTppSwing=-0.5
+sCandidateNames=Dugald Saunders,NAT
+#East Hills
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=1.7
+fPreviousTppSwing=1.8
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Kylie Wilkinson,ALP
+#Epping
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-4.8
+fPreviousTppSwing=6.5
+sCandidateNames=Monica Tudehope,LNP
+#Fairfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=20.9
+fPreviousTppSwing=4.0
+bSophomoreCandidate=1
+sCandidateNames=David Saliba,ALP
+#Gosford
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=15.4
+fPreviousTppSwing=8.3
+sCandidateNames=Liesl Tesch,ALP
+#Goulburn
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Inland
+fTppMargin=-1.3
+fPreviousTppSwing=1.8
+sCandidateNames=Wendy Tuckerman,LNP
+#Granville
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=21.5
+fPreviousTppSwing=12.1
+sCandidateNames=Julia Finn,ALP
+#Hawkesbury
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-9.8
+fPreviousTppSwing=6.7
+sCandidateNames=Robyn Preston,LNP
+#Heathcote
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=9.9
+fPreviousTppSwing=8.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Maryanne Stuart,ALP
+#Heffron
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=23.3
+fPreviousTppSwing=8.0
+sCandidateNames=Ron Hoenig,ALP
+#Holsworthy
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-0.4
+fPreviousTppSwing=5.6
+bSophomoreCandidate=1
+sCandidateNames=Tina Ayyad,LNP
+#Hornsby
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-8.0
+fPreviousTppSwing=8.8
+sCandidateNames=James Wallace,LNP
+#Keira
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=24.2
+fPreviousTppSwing=5.9
+sCandidateNames=Ryan Park,ALP
+#Kellyville
+sPreviousName=Baulkham Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-11.0
+fPreviousTppSwing=12.1
+bSophomoreCandidate=1
+sCandidateNames=Ray Williams,LNP
+#Kiama
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=South Coast
+fTppMargin=19.73
+fPreviousTppSwing=31.74
+fMiscTppModifier=-15
+bRetirement=1
+sCandidateNames=
+#Kogarah
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=18.3
+fPreviousTppSwing=18.1
+sCandidateNames=Chris Minns,ALP
+#Lake Macquarie
+sIncumbent=IND
+sChallenger=ALP
+sRegion=Central Coast
+fTppMargin=12.8
+fPreviousTppSwing=6.3
+sCandidateNames=Greg Piper,IND
+#Lane Cove
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-5.5
+fPreviousTppSwing=9.2
+sCandidateNames=Anthony Roberts,LNP
+#Leppington
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=8.9
+fPreviousTppSwing=7.4
+bSophomoreCandidate=1
+sCandidateNames=Nathan Hagarty,ALP
+#Lismore
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=North Coast
+fTppMargin=15
+fPreviousTppSwing=13
+sCandidateNames=Janelle Saffin,ALP
+#Liverpool
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=8.3
+fPreviousTppSwing=-9.0
+bSophomoreCandidate=1
+sCandidateNames=Charishma Kaliyanda,ALP
+#Londonderry
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=13.7
+fPreviousTppSwing=10.7
+sCandidateNames=Prue Car,ALP
+#Macquarie Fields
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southwest Sydney
+fTppMargin=19.9
+fPreviousTppSwing=5
+sCandidateNames=Anoulack Chanthivong,ALP
+#Maitland
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=18.6
+fPreviousTppSwing=3.9
+sCandidateNames=Jenny Aitchison,ALP
+#Manly
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-12.5
+fPreviousTppSwing=2.1
+sCandidateNames=James Griffin,LNP
+#Maroubra
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southeast Sydney
+fTppMargin=18.7
+fPreviousTppSwing=10.4
+sCandidateNames=Michael Daley,ALP
+#Miranda
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-2.3
+fPreviousTppSwing=12.1
+sCandidateNames=Eleni Petinos,LNP
+#Monaro
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=Southern Inland
+fTppMargin=2.3
+fPreviousTppSwing=13.9
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Steve Whan,ALP
+#Mount Druitt
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=22.4
+fPreviousTppSwing=3.8
+sCandidateNames=Edmond Atalla,ALP
+#Murray
+sIncumbent=IND
+sChallenger=NAT
+sRegion=Southern Inland
+fTppMargin=-22.1
+fPreviousTppSwing=2.7
+bSophomoreParty=1
+sCandidateNames=Helen Dalton,IND
+#Myall Lakes
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-15.8
+fPreviousTppSwing=-6.5
+bSophomoreCandidate=1
+sCandidateNames=Tanya Thompson,NAT
+#Newcastle
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=22.6
+fPreviousTppSwing=5.1
+sCandidateNames=Tim Crakanthorp,ALP
+#Newtown
+sIncumbent=GRN
+sChallenger=ALP
+sRegion=Inner West Sydney
+fTppMargin=32.3
+fPreviousTppSwing=4.1
+sCandidateNames=Jenny Leong,GRN
+#Northern Tablelands
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-33.8
+fPreviousTppSwing=-0.7
+sCandidateNames=Brendan Moylan,NAT
+#North Shore
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-8.22
+fPreviousTppSwing=9.63
+sCandidateNames=Felicity Wilson,LNP
+#Oatley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southern Sydney
+fTppMargin=-0.8
+fPreviousTppSwing=6.0
+sCandidateNames=Mark Coure,LNP
+#Orange
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Northern Inland
+fTppMargin=-12.77
+fPreviousTppSwing=2.28
+bSophomoreParty=1
+sCandidateNames=Philip Donato,IND
+#Oxley
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-12.8
+fPreviousTppSwing=2.6
+bSophomoreCandidate=1
+sCandidateNames=Michael Kemp,LNP
+#Parramatta
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=8.6
+fPreviousTppSwing=15.0
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Donna Davis,ALP
+#Penrith
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=1.6
+fPreviousTppSwing=2.2
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Karen McKeown,ALP
+#Pittwater
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Northeast Sydney
+fTppMargin=-13.25
+fPreviousTppSwing=9.11
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Jacqui Scruby,IND
+#Port Macquarie
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-16.7
+fPreviousTppSwing=3.4
+sCandidateNames=Robert Dwyer,LNP
+#Port Stephens
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=19.02
+fPreviousTppSwing=13.27
+sCandidateNames=Kate Washington,ALP
+#Prospect
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=8.7
+fPreviousTppSwing=0.1
+sCandidateNames=Hugh McDermott,ALP
+#Riverstone
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Outer West Sydney
+fTppMargin=3.7
+fPreviousTppSwing=9.9
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Warren Kirby,ALP
+#Rockdale
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Southern Sydney
+fTppMargin=15.4
+fPreviousTppSwing=5.4
+sCandidateNames=Steve Kamper,ALP
+#Ryde
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-0.1
+fPreviousTppSwing=8.9
+bSophomoreCandidate=1
+sCandidateNames=Jordan Lane,LNP
+#Shellharbour
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=27.2
+fPreviousTppSwing=8.8
+sCandidateNames=Anna Watson,ALP
+#South Coast
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=South Coast
+fTppMargin=3.77
+fPreviousTppSwing=14.32
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Liza Butler,ALP
+#Strathfield
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Inner West Sydney
+fTppMargin=13.0
+fPreviousTppSwing=7.8
+sCandidateNames=Jason Yat-Sen Li,ALP
+#Summer Hill
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=Inner West Sydney
+fTppMargin=29.8
+fPreviousTppSwing=8.2
+sCandidateNames=Jo Haylen,ALP
+#Swansea
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=15.4
+fPreviousTppSwing=4.8
+sCandidateNames=Yasmin Catley,ALP
+#Sydney
+sIncumbent=IND
+sChallenger=ALP
+sRegion=Southeast Sydney
+fTppMargin=11.3
+fPreviousTppSwing=11.2
+sCandidateNames=Alex Greenwich,IND
+#Tamworth
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-24.2
+fPreviousTppSwing=3.8
+sCandidateNames=Kevin Anderson,LNP
+#Terrigal
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Central Coast
+fTppMargin=-1.2
+fPreviousTppSwing=11.1
+sCandidateNames=Adam Crouch,LNP
+#The Entrance
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=7.8
+fPreviousTppSwing=2.5
+sCandidateNames=David Mehan,ALP
+#Tweed
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=North Coast
+fTppMargin=-3.58
+fPreviousTppSwing=1.39
+sCandidateNames=Geoff Provest,NAT
+#Upper Hunter
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=Northern Inland
+fTppMargin=-3.8
+fPreviousTppSwing=-3.3
+sCandidateNames=Dave Layzell,NAT
+#Vaucluse
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Southeast Sydney
+fTppMargin=-15.6
+fPreviousTppSwing=5.0
+bSophomoreCandidate=1
+sCandidateNames=Kellie Sloane,LNP
+#Wagga Wagga
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Southern Inland
+fTppMargin=-6.2
+fPreviousTppSwing=1.3
+sCandidateNames=Joe McGirr,IND
+#Wahroonga
+sPreviousName=Ku-ring-gai
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-10.6
+fPreviousTppSwing=8.4
+bSophomoreCandidate=1
+sCandidateNames=Alister Henskens,LNP
+#Wakehurst
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Northeast Sydney
+fTppMargin=-9.6
+fPreviousTppSwing=12.3
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Michael Regan,IND
+#Wallsend
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=31.8
+fPreviousTppSwing=5.9
+sCandidateNames=Sonia Hornery,ALP
+#Willoughby
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Northeast Sydney
+fTppMargin=-5.9
+fPreviousTppSwing=14.8
+sCandidateNames=Tim James,LNP
+#Winston Hills
+sPreviousName=Seven Hills
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=Outer West Sydney
+fTppMargin=-1.8
+fPreviousTppSwing=3.9
+sCandidateNames=Mark Taylor,LNP
+#Wollondilly
+sIncumbent=IND
+sChallenger=LNP
+sRegion=Southern Inland
+fTppMargin=-5.0
+fPreviousTppSwing=9.1
+bSophomoreParty=1
+bSophomoreCandidate=1
+sCandidateNames=Judy Hannan,IND
+#Wollongong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Illawarra
+fTppMargin=24.3
+fPreviousTppSwing=1.5
+sCandidateNames=Paul Scully,ALP
+#Wyong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=Central Coast
+fTppMargin=19.8
+fPreviousTppSwing=6.9
+sCandidateNames=David Harris,ALP

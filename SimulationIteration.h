@@ -48,7 +48,7 @@ private:
 	};
 
 	void reset();
-	bool checkForNans(std::string const& loc, bool forceDebug = false);
+	bool checkForNans(std::string const& loc, bool forceDebug = false, bool checkTppMargins = true);
 	void initialiseIterationSpecificCounts();
 	void determineFedStateCorrelation();
 	void determineOverallTpp();

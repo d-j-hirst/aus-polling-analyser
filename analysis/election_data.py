@@ -255,12 +255,15 @@ def fetch_seat_urls_state(state):
         collect_seat_urls(seat_urls,
                           f'https://en.wikipedia.org/w/index.php?title=Category:New_South_Wales_state_electoral_results_by_district&pagefrom=Marrickville',
                           state_pattern)
+        if (state == 'nsw'):
+            for seat_name in ['Kellyville', 'Leppington', 'Wahroonga', 'Winston Hills']:
+                seat_urls[seat_name] = {f'wiki/Electoral_district_of_{seat_name.replace(" ", "_")}'}
     elif state == 'vic':
         collect_seat_urls(seat_urls,
-                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(Australia)_state_electoral_results_by_district',
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(state)_state_electoral_results_by_district',
                           state_pattern)
         collect_seat_urls(seat_urls,
-                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(Australia)_state_electoral_results_by_district&pagefrom=Rainbow%0AElectoral+results+for+the+district+of+Rainbow#mw-pages',
+                          f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(state)_state_electoral_results_by_district&pagefrom=Rainbow%0AElectoral+results+for+the+district+of+Rainbow#mw-pages',
                           state_pattern)
     else:
         collect_seat_urls(seat_urls,
@@ -294,14 +297,16 @@ def generic_download(state, year):
             content = content.replace('\\xe2\\x80\\x93', '-')
             content = content.replace('&#039;', "'")
             election_marker = f'>{year} {state_election_name[state]}<'
+            if seat_name == 'Narracan' and year == 2022:
+                # Non-standard marker for this as it's an unusual supplementary election
+                election_marker = 'wikitable plainrowheaders'
+            if seat_name in ['Kellyville', 'Leppington', 'Wahroonga', 'Winston Hills']:
+                election_marker = f'election_(Legislative_Assembly)#{seat_name.replace(" ", "_")}'
             if election_marker not in content:
                 print(f'Seat not present in election: {seat_name}')
                 continue
             print(f'Seat results found: {seat_name}')
             election_content = content.split(election_marker)[1].split('</table>')[0]
-            if seat_name == "Narungga":
-                print(url)
-                print(election_content)
             if '>Two-' in election_content:
                 fp_content = election_content.split('>Two-')[0]
                 tcp_content = election_content.split('>Two-')[-1]
@@ -309,11 +314,15 @@ def generic_download(state, year):
                 fp_content = election_content
                 tcp_content = None
             fp_content = fp_content.split('Notional')[0]
+            if seat_name == 'Pascoe Vale':
+                print(fp_content)
             pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
                         + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
                         + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
             fp_matches = re.findall(pattern, fp_content)
             for match in fp_matches:
+                if seat_name == 'Pascoe Vale':
+                    print(match)
                 if len(match[3].strip()) == 0:
                     continue
                 if len(match[4].strip()) > 0:
@@ -334,6 +343,14 @@ def generic_download(state, year):
                     votes=725,
                     percent=1.5,
                     swing=1.5))
+            if seat_name == 'Pascoe Vale' and year == 2022:
+                # For some reason it doesn't pick up this line of the table
+                seat_results.fp.append(CandidateResult(
+                    name='Sue Bolton',
+                    party='Ind. (',
+                    votes=1689,
+                    percent=4.2,
+                    swing=4.2))
             if tcp_content is not None:
                 tcp_matches = re.findall(pattern, tcp_content)
                 for match in tcp_matches:

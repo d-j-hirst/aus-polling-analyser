@@ -1,0 +1,1100 @@
+#Banks
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=2.39
+fPreviousTppSwing=5.03
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Zhi Soon,ALP
+#Barton
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=16.0
+fPreviousTppSwing=4.01
+bSophomoreCandidate=1
+sCandidateNames=Ash Ambihaipahar,ALP
+#Bennelong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=9.26
+fPreviousTppSwing=9.3
+sCandidateNames=Jerome Laxale,ALP
+#Berowra
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-1.63
+fPreviousTppSwing=5.93
+sCandidateNames=Julian Leeser,LNP
+#Blaxland
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=21.9
+fPreviousTppSwing=8.86
+sCandidateNames=Jason Clare,ALP
+#Bradfield
+sIncumbent=IND
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=-4.95
+fPreviousTppSwing=1.18
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Nicolette Boele,IND
+#Calare
+sIncumbent=IND
+sChallenger=NAT
+sRegion=NSW
+fTppMargin=-12.26
+fPreviousTppSwing=3.19
+bSophomoreParty=1
+sCandidateNames=Andrew Gee,IND
+#Chifley
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=19.83
+fPreviousTppSwing=6.18
+sCandidateNames=Ed Husic,ALP
+#Cook
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-7.19
+fPreviousTppSwing=4.43
+sCandidateNames=Simon Kennedy,LNP
+#Cowper
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-9.08
+fPreviousTppSwing=0.45
+sCandidateNames=Pat Conaghan,NAT
+#Cunningham
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=17.52
+fPreviousTppSwing=2.45
+sCandidateNames=Alison Byrnes,ALP
+#Dobell
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=9.43
+fPreviousTppSwing=5.02
+sCandidateNames=Emma McBride,ALP
+#Eden-Monaro
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=7.21
+fPreviousTppSwing=1.13
+sCandidateNames=Kristy McBain,ALP
+#Farrer
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-12.89
+fPreviousTppSwing=3.46
+sCandidateNames=Sussan Ley,LNP
+#Fowler
+sIncumbent=IND
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=18.19
+fPreviousTppSwing=12.29
+sCandidateNames=Dai Le,IND
+#Gilmore
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=5.13
+fPreviousTppSwing=4.96
+sCandidateNames=Fiona Phillips,ALP
+#Grayndler
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=NSW
+fTppMargin=30.18
+fPreviousTppSwing=3.55
+sCandidateNames=Anthony Albanese,ALP
+#Greenway
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=13.76
+fPreviousTppSwing=5.82
+sCandidateNames=Michelle Rowland,ALP
+#Hughes
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=3.06
+fPreviousTppSwing=6.52
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=David Moncrieff,ALP
+#Hume
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-8.06
+fPreviousTppSwing=-1.19
+sCandidateNames=Angus Taylor,LNP
+#Hunter
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=9.48
+fPreviousTppSwing=4.7
+sCandidateNames=Dan Repacholi,ALP
+#Kingsford Smith
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=17.19
+fPreviousTppSwing=3.88
+sCandidateNames=Matt Thistlethwaite,ALP
+#Lindsay
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-2.78
+fPreviousTppSwing=3.33
+sCandidateNames=Melissa McIntosh,LNP
+#Lyne
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-9.78
+fPreviousTppSwing=4.02
+bSophomoreCandidate=1
+sCandidateNames=Alison Penfold,NAT
+#Macarthur
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=15.61
+fPreviousTppSwing=5.85
+sCandidateNames=Mike Freelander,ALP
+#Mackellar
+sIncumbent=IND
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=-3.66
+fPreviousTppSwing=4.21
+sCandidateNames=Sophie Scamps,IND
+#Macquarie
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=7.71
+fPreviousTppSwing=1.38
+sCandidateNames=Susan Templeman,ALP
+#McMahon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=9.02
+fPreviousTppSwing=-1.46
+sCandidateNames=Chris Bowen,ALP
+#Mitchell
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-3.81
+fPreviousTppSwing=6.68
+sCandidateNames=Alex Hawke,LNP
+#New England
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-17.06
+fPreviousTppSwing=-1.85
+sCandidateNames=Barnaby Joyce,NAT
+#Newcastle
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=NSW
+fTppMargin=20.79
+fPreviousTppSwing=2.85
+sCandidateNames=Sharon Claydon,ALP
+#Page
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-9.29
+fPreviousTppSwing=-1.36
+sCandidateNames=Kevin Hogan,NAT
+#Parkes
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-12.97
+fPreviousTppSwing=5.18
+bSophomoreCandidate=1
+sCandidateNames=James Chaffey,NAT
+#Parramatta
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=12.55
+fPreviousTppSwing=8.83
+sCandidateNames=Andrew Charlton,ALP
+#Paterson
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=6.89
+fPreviousTppSwing=4.29
+sCandidateNames=Meryl Swanson,ALP
+#Reid
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=12.01
+fPreviousTppSwing=6.82
+sCandidateNames=Sally Sitou,ALP
+#Richmond
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=NSW
+fTppMargin=10
+fPreviousTppSwing=1.77
+sCandidateNames=Justine Elliot,ALP
+#Riverina
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=NSW
+fTppMargin=-12.62
+fPreviousTppSwing=-2.91
+sCandidateNames=Michael McCormack,NAT
+#Robertson
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=9.37
+fPreviousTppSwing=7.14
+sCandidateNames=Gordon Reid,ALP
+#Shortland
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=11.51
+fPreviousTppSwing=5.51
+sCandidateNames=Pat Conroy,ALP
+#Sydney
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=NSW
+fTppMargin=28.08
+fPreviousTppSwing=2.42
+sCandidateNames=Tanya Plibersek,ALP
+#Warringah
+sIncumbent=IND
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=4.51
+fPreviousTppSwing=5.25
+sCandidateNames=Zali Steggall,IND
+#Watson
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=22.86
+fPreviousTppSwing=7.7
+sCandidateNames=Tony Burke,ALP
+#Wentworth
+sIncumbent=IND
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=0.56
+fPreviousTppSwing=1.72
+sCandidateNames=Allegra Spender,IND
+#Werriwa
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=6.77
+fPreviousTppSwing=1.43
+sCandidateNames=Anne Stanley,ALP
+#Whitlam
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NSW
+fTppMargin=6.25
+fPreviousTppSwing=-2.06
+bSophomoreCandidate=1
+sCandidateNames=Carol Berry,ALP
+#Aston
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=3.43
+fPreviousTppSwing=6.04
+sCandidateNames=Mary Doyle,ALP
+#Ballarat
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=10.66
+fPreviousTppSwing=-2.32
+sCandidateNames=Catherine King,ALP
+#Bendigo
+sIncumbent=ALP
+sChallenger=NAT
+sRegion=VIC
+fTppMargin=1.4
+fPreviousTppSwing=-9.81
+sCandidateNames=Lisa Chesters,ALP
+#Bruce
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=14.62
+fPreviousTppSwing=9.31
+sCandidateNames=Julian Hill,ALP
+#Calwell
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=14.71
+fPreviousTppSwing=2.32
+bSophomoreCandidate=1
+sCandidateNames=Basem Abdo,ALP
+#Casey
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-2.89
+fPreviousTppSwing=-1.46
+sCandidateNames=Aaron Violi,LNP
+#Chisholm
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=5.7
+fPreviousTppSwing=2.37
+sCandidateNames=Carina Garland,ALP
+#Cooper
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=VIC
+fTppMargin=28.53
+fPreviousTppSwing=2.82
+sCandidateNames=Ged Kearney,ALP
+#Corangamite
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=8.05
+fPreviousTppSwing=0.21
+sCandidateNames=Libby Coker,ALP
+#Corio
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=13.23
+fPreviousTppSwing=0.74
+sCandidateNames=Richard Marles,ALP
+#Deakin
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=2.82
+fPreviousTppSwing=2.84
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Matthew Gregg,ALP
+#Dunkley
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=7.08
+fPreviousTppSwing=0.31
+sCandidateNames=Jodie Belyea,ALP
+#Flinders
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-4.78
+fPreviousTppSwing=1.38
+sCandidateNames=Zoe McKenzie,LNP
+#Fraser
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=22.02
+fPreviousTppSwing=5.46
+sCandidateNames=Daniel Mulino,ALP
+#Gellibrand
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=15.1
+fPreviousTppSwing=3.9
+sCandidateNames=Tim Watts,ALP
+#Gippsland
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-19.36
+fPreviousTppSwing=1.21
+sCandidateNames=Darren Chester,NAT
+#Goldstein
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-3.97
+fPreviousTppSwing=0.25
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Tim Wilson,LNP
+#Gorton
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=10.28
+fPreviousTppSwing=0.3
+bSophomoreCandidate=1
+sCandidateNames=Alice Jordan-Baird,ALP
+#Hawke
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=7.63
+fPreviousTppSwing=0.01
+sCandidateNames=Sam Rae,ALP
+#Holt
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=14.03
+fPreviousTppSwing=6.92
+sCandidateNames=Cassandra Fernando,ALP
+#Hotham
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=16.86
+fPreviousTppSwing=5.27
+sCandidateNames=Clare O'Neil,ALP
+#Indi
+sIncumbent=IND
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=-6.66
+fPreviousTppSwing=-1.4
+sCandidateNames=Helen Haines,IND
+#Isaacs
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=14.34
+fPreviousTppSwing=4.83
+sCandidateNames=Mark Dreyfus,ALP
+#Jagajaga
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=12.88
+fPreviousTppSwing=0.67
+sCandidateNames=Kate Thwaites,ALP
+#Kooyong
+sIncumbent=IND
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=-2.37
+fPreviousTppSwing=1.37
+sCandidateNames=Monique Ryan,IND
+#La Trobe
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-2.06
+fPreviousTppSwing=-6.37
+sCandidateNames=Jason Wood,LNP
+#Lalor
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=13.21
+fPreviousTppSwing=0.42
+sCandidateNames=Joanne Ryan,ALP
+#Macnamara
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=11.8
+fPreviousTppSwing=-0.37
+sCandidateNames=Josh Burns,ALP
+#Mallee
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-19.04
+fPreviousTppSwing=-0.05
+sCandidateNames=Anne Webster,NAT
+#Maribyrnong
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=12.65
+fPreviousTppSwing=-0.38
+bSophomoreCandidate=1
+sCandidateNames=Jo Briskley,ALP
+#McEwen
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=4.76
+fPreviousTppSwing=0.94
+sCandidateNames=Rob Mitchell,ALP
+#Melbourne
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=VIC
+fTppMargin=23.97
+fPreviousTppSwing=0.88
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Sarah Witty,ALP
+#Menzies
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=1.08
+fPreviousTppSwing=0.66
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Gabriel Ng,ALP
+#Monash
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-4.09
+fPreviousTppSwing=-1.19
+sCandidateNames=Mary Aldred,LNP
+#Nicholls
+sIncumbent=NAT
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-14.38
+fPreviousTppSwing=-1.87
+sCandidateNames=Sam Birrell,NAT
+#Scullin
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=VIC
+fTppMargin=14.29
+fPreviousTppSwing=-1.14
+sCandidateNames=Andrew Giles,ALP
+#Wannon
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=VIC
+fTppMargin=-10.92
+fPreviousTppSwing=-2.27
+sCandidateNames=Dan Tehan,LNP
+#Wills
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=VIC
+fTppMargin=30.86
+fPreviousTppSwing=3.77
+sCandidateNames=Peter Khalil,ALP
+#Blair
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=5.71
+fPreviousTppSwing=0.48
+sCandidateNames=Shayne Neumann,ALP
+#Bonner
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=5
+fPreviousTppSwing=8.41
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Kara Cook,ALP
+#Bowman
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-2.43
+fPreviousTppSwing=3.08
+sCandidateNames=Henry Pike,LNP
+#Brisbane
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=8.96
+fPreviousTppSwing=4.56
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Madonna Jarrett,ALP
+#Capricornia
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-5.83
+fPreviousTppSwing=0.76
+sCandidateNames=Michelle Landry,LNP
+#Dawson
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-11.83
+fPreviousTppSwing=1.41
+sCandidateNames=Andrew Willcox,LNP
+#Dickson
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=5.99
+fPreviousTppSwing=7.69
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Ali France,ALP
+#Fadden
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-6.88
+fPreviousTppSwing=3.75
+sCandidateNames=Cameron Caldwell,LNP
+#Fairfax
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-3.23
+fPreviousTppSwing=5.72
+sCandidateNames=Ted O'Brien,LNP
+#Fisher
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-6.03
+fPreviousTppSwing=2.64
+sCandidateNames=Andrew Wallace,LNP
+#Flynn
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-10.24
+fPreviousTppSwing=-6.42
+sCandidateNames=Colin Boyce,LNP
+#Forde
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=1.77
+fPreviousTppSwing=6
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Rowan Holzberger,ALP
+#Griffith
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=QLD
+fTppMargin=15.94
+fPreviousTppSwing=4.87
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Renee Coffey,ALP
+#Groom
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-13.35
+fPreviousTppSwing=0.82
+sCandidateNames=Garth Hamilton,LNP
+#Herbert
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-13.41
+fPreviousTppSwing=-1.64
+sCandidateNames=Phillip Thompson,LNP
+#Hinkler
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-6.26
+fPreviousTppSwing=3.81
+bSophomoreCandidate=1
+sCandidateNames=David Batt,LNP
+#Kennedy
+sIncumbent=KAP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=-9.32
+fPreviousTppSwing=0.84
+sCandidateNames=Bob Katter,KAP
+#Leichhardt
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=6.06
+fPreviousTppSwing=9.5
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Matt Smith,ALP
+#Lilley
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=14.52
+fPreviousTppSwing=3.98
+sCandidateNames=Anika Wells,ALP
+#Longman
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-0.11
+fPreviousTppSwing=2.97
+sCandidateNames=Terry Young,LNP
+#Maranoa
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-23.96
+fPreviousTppSwing=-1.84
+sCandidateNames=David Littleproud,LNP
+#McPherson
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-4.44
+fPreviousTppSwing=4.9
+bSophomoreCandidate=1
+sCandidateNames=Leon Robello,LNP
+#Moncrieff
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-8.8
+fPreviousTppSwing=2.39
+sCandidateNames=Angie Bell,LNP
+#Moreton
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=16.09
+fPreviousTppSwing=7
+bSophomoreCandidate=1
+sCandidateNames=Julie-Ann Campbell,ALP
+#Oxley
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=19.19
+fPreviousTppSwing=7.6
+sCandidateNames=Milton Dick,ALP
+#Petrie
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=1.17
+fPreviousTppSwing=5.61
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Emma Comer,LNP
+#Rankin
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=15.55
+fPreviousTppSwing=6.46
+sCandidateNames=Jim Chalmers,ALP
+#Ryan
+sIncumbent=GRN
+sChallenger=LNP
+sRegion=QLD
+fTppMargin=7.82
+fPreviousTppSwing=5.4
+sCandidateNames=Elizabeth Watson-Brown,GRN
+#Wide Bay
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-7.63
+fPreviousTppSwing=3.71
+sCandidateNames=Llew O'Brien,LNP
+#Wright
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=QLD
+fTppMargin=-7.98
+fPreviousTppSwing=2.91
+sCandidateNames=Scott Buchholz,LNP
+#Brand
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=16.92
+fPreviousTppSwing=-0.15
+sCandidateNames=Madeleine King,ALP
+#Bullwinkel
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=0.51
+fPreviousTppSwing=-2.84
+bSophomoreCandidate=1
+sCandidateNames=Trish Cook,ALP
+#Burt
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=15.71
+fPreviousTppSwing=2.42
+sCandidateNames=Matt Keogh,ALP
+#Canning
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=WA
+fTppMargin=-6.55
+fPreviousTppSwing=-5.35
+sCandidateNames=Andrew Hastie,LNP
+#Cowan
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=13.63
+fPreviousTppSwing=3.69
+sCandidateNames=Anne Aly,ALP
+#Curtin
+sIncumbent=IND
+sChallenger=LNP
+sRegion=WA
+fTppMargin=-5.6
+fPreviousTppSwing=3.48
+sCandidateNames=Kate Chaney,IND
+#Durack
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=WA
+fTppMargin=-10.15
+fPreviousTppSwing=-5.49
+sCandidateNames=Melissa Price,LNP
+#Forrest
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=WA
+fTppMargin=-2.24
+fPreviousTppSwing=1.95
+sCandidateNames=Ben Small,LNP
+#Fremantle
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=18.68
+fPreviousTppSwing=1.75
+sCandidateNames=Josh Wilson,ALP
+#Hasluck
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=15.97
+fPreviousTppSwing=5.93
+sCandidateNames=Tania Lawrence,ALP
+#Moore
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=2.89
+fPreviousTppSwing=3.8
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Tom French,ALP
+#O'Connor
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=WA
+fTppMargin=-13.28
+fPreviousTppSwing=-6.59
+sCandidateNames=Rick Wilson,LNP
+#Pearce
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=6.44
+fPreviousTppSwing=-2.4
+sCandidateNames=Tracey Roberts,ALP
+#Perth
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=16.51
+fPreviousTppSwing=2.09
+sCandidateNames=Patrick Gorman,ALP
+#Swan
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=13.99
+fPreviousTppSwing=4.56
+sCandidateNames=Zaneta Mascarenhas,ALP
+#Tangney
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=WA
+fTppMargin=6.99
+fPreviousTppSwing=4.14
+sCandidateNames=Sam Lim,ALP
+#Adelaide
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=19.07
+fPreviousTppSwing=7.16
+sCandidateNames=Steve Georganas,ALP
+#Barker
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=SA
+fTppMargin=-12.98
+fPreviousTppSwing=3.64
+sCandidateNames=Tony Pasin,LNP
+#Boothby
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=11.1
+fPreviousTppSwing=7.82
+sCandidateNames=Louise Miller-Frost,ALP
+#Grey
+sIncumbent=LNP
+sChallenger=ALP
+sRegion=SA
+fTppMargin=-4.64
+fPreviousTppSwing=5.43
+bSophomoreCandidate=1
+sCandidateNames=Tom Venning,LNP
+#Hindmarsh
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=16.35
+fPreviousTppSwing=7.4
+sCandidateNames=Mark Butler,ALP
+#Kingston
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=20.74
+fPreviousTppSwing=4.39
+sCandidateNames=Amanda Rishworth,ALP
+#Makin
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=14.66
+fPreviousTppSwing=3.86
+sCandidateNames=Tony Zappia,ALP
+#Mayo
+sIncumbent=CA
+sChallenger=LNP
+sRegion=SA
+fTppMargin=4.98
+fPreviousTppSwing=3.39
+sCandidateNames=Rebekha Sharkie,CA
+#Spence
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=15.34
+fPreviousTppSwing=2.44
+sCandidateNames=Matt Burnell,ALP
+#Sturt
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=SA
+fTppMargin=6.62
+fPreviousTppSwing=7.07
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Claire Clutterham,ALP
+#Bass
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=TAS
+fTppMargin=8.01
+fPreviousTppSwing=9.44
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Jess Teesdale,ALP
+#Braddon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=TAS
+fTppMargin=7.2
+fPreviousTppSwing=15.23
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Anne Urquhart,ALP
+#Clark
+sIncumbent=IND
+sChallenger=ALP
+sRegion=TAS
+fTppMargin=20.89
+fPreviousTppSwing=3.65
+sCandidateNames=Andrew Wilkie,IND
+#Franklin
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=TAS
+fTppMargin=19.44
+fPreviousTppSwing=5.74
+sCandidateNames=Julie Collins,ALP
+#Lyons
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=TAS
+fTppMargin=11.58
+fPreviousTppSwing=10.66
+bSophomoreCandidate=1
+sCandidateNames=Rebecca White,ALP
+#Lingiari
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NT
+fTppMargin=8.13
+fPreviousTppSwing=6.53
+sCandidateNames=Marion Scrymgour,ALP
+#Solomon
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=NT
+fTppMargin=1.31
+fPreviousTppSwing=-7.09
+sCandidateNames=Luke Gosling,ALP
+#Bean
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=ACT
+fTppMargin=19.29
+fPreviousTppSwing=6.34
+sCandidateNames=David Smith,ALP
+#Canberra
+sIncumbent=ALP
+sChallenger=GRN
+sRegion=ACT
+fTppMargin=26.42
+fPreviousTppSwing=3.96
+sCandidateNames=Alicia Payne,ALP
+#Fenner
+sIncumbent=ALP
+sChallenger=LNP
+sRegion=ACT
+fTppMargin=22.08
+fPreviousTppSwing=6.39
+sCandidateNames=Andrew Leigh,ALP

@@ -809,8 +809,8 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 	for (auto [key, support] : sample.voteShare) {
 		if (key == OthersCode) continue;
 		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) continue;
-		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
-		float deviation = preferenceDeviationMap.at(key) * 0.01f;
+		float flow = preferenceFlowMap.at(key); // this is expressed textually as a percentage, convert to a proportion here
+		float deviation = preferenceDeviationMap.at(key);
 		float historicalSamples = preferenceSamplesMap.at(key);
 		float randomPreferenceVariation = historicalSamples >= 2
 			? rng.scaledTdist(int(std::floor(historicalSamples)) - 1, 0.0f, deviation)
@@ -820,9 +820,9 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample) const
 		// distribution approximately taken from NSW elections
 		float randomExhaustVariation = rng.scaledTdist(6, 0.0f, 0.054f);
 		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
-		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
+		sample.preferenceFlow.insert({ key, randomisedFlow });
 		sample.exhaustRate.insert({ key, randomisedExhaustRate });
-		partyOneTpp += support * randomisedFlow * (1.0f - randomisedExhaustRate);
+		partyOneTpp += support * randomisedFlow * 0.01f * (1.0f - randomisedExhaustRate);
 		totalTpp += support * (1.0f - randomisedExhaustRate);
 	}
 	sample.voteShare[TppCode] = partyOneTpp * (100.0f / totalTpp);

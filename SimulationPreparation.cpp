@@ -360,7 +360,7 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		if (seat.getLeadingParty() == Mp::Two || seat.getLeadingParty() == run.natPartyIndex) {
+		if (run.natPartyIndex >= 0 && (seat.getLeadingParty() == Mp::Two || seat.getLeadingParty() == run.natPartyIndex)) {
 			++sim.latestReport.regionCoalitionIncumbents[seat.region];
 		}
 		++sim.latestReport.regionPartyIncumbents[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
@@ -734,6 +734,17 @@ void SimulationPreparation::loadPastSeatResults()
 			}
 		}
 	}
+	else if (run.getTermCode() == "2028fed") {
+		 for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			 if (project.seats().viewByIndex(seatIndex).name == "Calare") {
+				 // Assign Kate Hook's FPs to Andrew Gee - not doing this causes his support to be seriously underestimated
+				 run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 41928;
+				 run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 39.46f;
+				 run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 9723;
+				 run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 9.15f;
+			 }
+		 }
+	 }
 }
 
 void SimulationPreparation::loadSeatTypes()

@@ -190,8 +190,6 @@ def analyse_variability(target_election, cycles, links):
         for key in sorted(weight_sums.keys()):
             # Don't do linked pollsters yet
             if key[0] in sum(links.values(), []): continue
-            print("Doing non-linked")
-            print(key)
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum
@@ -210,8 +208,6 @@ def analyse_variability(target_election, cycles, links):
         for key in sorted(weight_sums.keys()):
             # Non-linked pollsters have already been done
             if key[0] not in sum(links.values(), []): continue
-            print("Doing linked")
-            print(key)
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum
