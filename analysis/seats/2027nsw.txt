@@ -297,11 +297,11 @@ sCandidateNames=Ray Williams,LNP
 sIncumbent=ALP
 sChallenger=LNP
 sRegion=South Coast
-fTppMargin=19.73
-fPreviousTppSwing=31.74
-fMiscTppModifier=-15
-bRetirement=1
-sCandidateNames=
+fTppMargin=10
+fPreviousTppSwing=0
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=Katelin McInerney,ALP
 #Kogarah
 sIncumbent=ALP
 sChallenger=LNP

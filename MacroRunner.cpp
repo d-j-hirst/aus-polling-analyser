@@ -89,10 +89,10 @@ std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*
 			project_.models().access(instruction.id).loadGeneratedData("model.bin");
 		}
 		else if (instruction.type == Instruction::Type::PrepareModel) {
-			project_.models().access(instruction.id).prepareForRun([](std::string s) {});
+			project_.models().access(instruction.id).prepareForRun([](std::string) {});
 		}
 		else if (instruction.type == Instruction::Type::RunModel) {
-			project_.models().access(instruction.id).loadData([](std::string s) {},
+			project_.models().access(instruction.id).loadData([](std::string) {},
 				project_.config().getModelThreads());
 		}
 		else if (instruction.type == Instruction::Type::SetNowcast) {

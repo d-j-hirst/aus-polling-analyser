@@ -735,16 +735,31 @@ void SimulationPreparation::loadPastSeatResults()
 		}
 	}
 	else if (run.getTermCode() == "2028fed") {
-		 for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			 if (project.seats().viewByIndex(seatIndex).name == "Calare") {
-				 // Assign Kate Hook's FPs to Andrew Gee - not doing this causes his support to be seriously underestimated
-				 run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 41928;
-				 run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 39.46f;
-				 run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 9723;
-				 run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 9.15f;
-			 }
-		 }
-	 }
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			if (project.seats().viewByIndex(seatIndex).name == "Calare") {
+				// Assign Kate Hook's FPs to Andrew Gee - not doing this causes his support to be seriously underestimated
+				run.pastSeatResults[seatIndex].fpVoteCount[run.indPartyIndex] = 41928;
+				run.pastSeatResults[seatIndex].fpVotePercent[run.indPartyIndex] = 39.46f;
+				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 9723;
+				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 9.15f;
+			}
+		}
+	}
+	else if (run.getTermCode() == "2027nsw") {
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			if (project.seats().viewByIndex(seatIndex).name == "Kiama") {
+				// Use preliminary by-election projection (temporary)
+				run.pastSeatResults[seatIndex].fpVoteCount[0] = 17423;
+				run.pastSeatResults[seatIndex].fpVotePercent[0] = 37.5f;
+				run.pastSeatResults[seatIndex].fpVoteCount[1] = 12173;
+				run.pastSeatResults[seatIndex].fpVotePercent[1] = 26.2f;
+				run.pastSeatResults[seatIndex].fpVoteCount[run.grnPartyIndex] = 3805;
+				run.pastSeatResults[seatIndex].fpVotePercent[run.grnPartyIndex] = 8.2f;
+				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 13068;
+				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 28.1f;
+			}
+		}
+	}
 }
 
 void SimulationPreparation::loadSeatTypes()

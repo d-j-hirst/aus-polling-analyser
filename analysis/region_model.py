@@ -368,9 +368,6 @@ def run_models():
   # Load the list of election periods we want to model
   desired_elections = config.elections
 
-  print("here")
-  print(desired_elections)
-
   for desired_election in desired_elections:
     e_data = ElectionData(
       config=config,
@@ -378,7 +375,7 @@ def run_models():
       desired_election=desired_election
     )
 
-    if desired_election.year() == 2025 and desired_election.region() == 'fed':
+    if desired_election.year() >= 2025 and desired_election.region() == 'fed':
 
       run_model_fed2025(
         config=config,
