@@ -638,6 +638,7 @@ void SimulationCompletion::recordFpTrends()
 	for (auto [index, abbr] : sim.latestReport.partyAbbr) {
 		if (index == EmergingPartyIndex) abbr = EmergingOthersCode;
 		if (index == OthersIndex) abbr = UnnamedOthersCode;
+		if (abbr == "ON") abbr = "ONP";
 		if (model.viewAdjustedSeries(abbr)) {
 			auto const& series = *model.viewAdjustedSeries(abbr);
 			for (int i = 0; ; i = std::min(i + sim.latestReport.trendPeriod, int(series.timePoint.size()) - 1)) {

@@ -228,7 +228,7 @@ void StanModel::loadParameters(FeedbackFunc feedback)
 	}
 }
 
-void StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
+void StanModel::loadEmergingOthersParameters([[maybe_unused]] FeedbackFunc feedback)
 {
 	logger << "loading emerging others parameters\n";
 	const std::string filename = "analysis/Seat Statistics/statistics_emerging_party.csv";
@@ -311,7 +311,7 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 	return true;
 }
 
-void StanModel::loadPreferenceFlows(FeedbackFunc feedback)
+void StanModel::loadPreferenceFlows([[maybe_unused]] FeedbackFunc feedback)
 {
 	preferenceFlowMap.clear();
 	preferenceExhaustMap.clear();

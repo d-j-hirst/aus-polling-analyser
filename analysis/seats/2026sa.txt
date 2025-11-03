@@ -239,12 +239,12 @@ fTppMargin=-4.5
 fPreviousTppSwing=6.4
 sCandidateNames=Stephen Patterson,LNP;Toby Priest,ALP
 #Mount Gambier
-sIncumbent=IND
-sChallenger=LNP
+sIncumbent=LNP
+sChallenger=ALP
 sRegion=Outer Rural
 fTppMargin=-13.8
 fPreviousTppSwing=4.7
-sCandidateNames=Troy Bell,IND
+sCandidateNames=
 #Narungga
 sIncumbent=IND
 sChallenger=LNP
