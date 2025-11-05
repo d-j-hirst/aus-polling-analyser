@@ -12,13 +12,17 @@ class ConfigError(ValueError):
 warnings = ''
 
 
-overall_tpp_swings = {'2023nsw': 3.2,
+overall_tpp_swings = {
+                      '2026sa': 5.23,
+                      '2023nsw': 3.2,
                       '2022vic': 1.69,
                       '2022sa': 3.26,
                       '2019nsw': -1.17,
                       '2018vic': 1.31,
                       '2018sa': -1.56}
-overall_grn_swings = {'2023nsw': 1.31,
+overall_grn_swings = {
+                      '2026sa': 0.65,
+                      '2023nsw': 1.31,
                       '2022vic': 1.85,
                       '2022sa': 3.16,
                       '2019nsw': 0.17,
@@ -26,6 +30,7 @@ overall_grn_swings = {'2023nsw': 1.31,
                       '2018sa': 3.4}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
+    '2026sa': 31496,
     '2023nsw': 27966,
     '2022vic': 27966,
     '2022sa': 27966,
@@ -35,6 +40,7 @@ aec_election_code = {
 }
 
 alp_name = {
+    '2026sa': 'Australian Labor Party',
     '2023nsw': 'Labor',
     '2022vic': 'Australian Labor Party',
     '2022sa': 'Australian Labor Party',
@@ -44,6 +50,7 @@ alp_name = {
 }
 
 grn_name = {
+    '2026sa': 'The Greens',
     '2023nsw': 'The Greens',
     '2022vic': 'The Greens',
     '2022sa': 'The Greens',
@@ -242,6 +249,7 @@ def gen_fed_url(election):
             f'HouseDivisionalResults-{aec_election_code[election]}.htm')
 
 fed_results_urls = {
+    '2026sa': (gen_fed_url("2026sa")),
     '2023nsw': (gen_fed_url("2023nsw")),
     '2022vic': (gen_fed_url("2022vic")),
     '2022sa': (gen_fed_url("2022sa")),
@@ -251,6 +259,7 @@ fed_results_urls = {
 }
 
 ignore_greens_seats_election = {
+    '2026sa': {'Mayo'},
     # Ignore Greens totals in these seats due to new prominent independents distorting their
     # natural vote
     '2023nsw': {'North Sydney', 'Mackellar', 'Bradfield', 'Cowper', 'Calare'},
@@ -266,6 +275,7 @@ ignore_greens_seats_election = {
 }
 
 assume_tpp_seats_election = {
+    '2026sa': {'Mayo': 3.39},
     '2023nsw': {
         'Bradfield': 10.01,
         'Calare': -2.16,
@@ -423,6 +433,11 @@ adjust_tpp_state = {
 }
 
 adjust_tpp_federal = {
+    '2026sa': {
+        'Boothby': 1.96,
+        'Grey': 1.04,
+        'Spence': 0.72,
+    },
     '2023nsw': {
         'Cunningham': -1.3,
         'Hunter': -1.3,
