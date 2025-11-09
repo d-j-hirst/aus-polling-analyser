@@ -13,6 +13,7 @@ warnings = ''
 
 
 overall_tpp_swings = {
+                      '2026vic': 1.52,
                       '2026sa': 5.23,
                       '2023nsw': 3.2,
                       '2022vic': 1.69,
@@ -21,6 +22,7 @@ overall_tpp_swings = {
                       '2018vic': 1.31,
                       '2018sa': -1.56}
 overall_grn_swings = {
+                      '2026vic': -0.15,
                       '2026sa': 0.65,
                       '2023nsw': 1.31,
                       '2022vic': 1.85,
@@ -30,6 +32,7 @@ overall_grn_swings = {
                       '2018sa': 3.4}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
+    '2026vic': 31496,
     '2026sa': 31496,
     '2023nsw': 27966,
     '2022vic': 27966,
@@ -40,6 +43,7 @@ aec_election_code = {
 }
 
 alp_name = {
+    '2026vic': 'Australian Labor Party',
     '2026sa': 'Australian Labor Party',
     '2023nsw': 'Labor',
     '2022vic': 'Australian Labor Party',
@@ -50,6 +54,7 @@ alp_name = {
 }
 
 grn_name = {
+    '2026vic': 'The Greens',
     '2026sa': 'The Greens',
     '2023nsw': 'The Greens',
     '2022vic': 'The Greens',
@@ -249,6 +254,7 @@ def gen_fed_url(election):
             f'HouseDivisionalResults-{aec_election_code[election]}.htm')
 
 fed_results_urls = {
+    '2026vic': (gen_fed_url("2026vic")),
     '2026sa': (gen_fed_url("2026sa")),
     '2023nsw': (gen_fed_url("2023nsw")),
     '2022vic': (gen_fed_url("2022vic")),
@@ -259,7 +265,8 @@ fed_results_urls = {
 }
 
 ignore_greens_seats_election = {
-    '2026sa': {'Mayo'},
+    '2026vic': {'Flinders', 'Monash'},
+    '2026sa': {},
     # Ignore Greens totals in these seats due to new prominent independents distorting their
     # natural vote
     '2023nsw': {'North Sydney', 'Mackellar', 'Bradfield', 'Cowper', 'Calare'},
@@ -275,6 +282,21 @@ ignore_greens_seats_election = {
 }
 
 assume_tpp_seats_election = {
+    '2026vic': {
+        'Bendigo': -9.81,
+        'Calwell': 2.32,
+        'Cooper': 2.82,
+        'Flinders': 1.38,
+        'Fraser': 5.46,
+        'Goldstein': -0.25,
+        'Indi': -1.40,
+        'Kooyong': 1.37,
+        'Melbourne': 0.88,
+        'Monash': 3.39,
+        'Nicholls': -1.87,
+        'Wannon': -2.27,
+        'Wills': 3.77,
+    },
     '2026sa': {'Mayo': 3.39},
     '2023nsw': {
         'Bradfield': 10.01,
@@ -433,6 +455,18 @@ adjust_tpp_state = {
 }
 
 adjust_tpp_federal = {
+    '2026vic': {
+        'Aston': 2.0,
+        'Calwell': -1.2,
+        'Casey': 1.2,
+        'Chisholm': 2.0,
+        'Flinders': -1.1,
+        'Gorton': -1.2,
+        'Hawke': 1.1,
+        'Holt': 0.7,
+        'Maribyrnong': -1.2,
+        'Menzies': -0.7,
+    },
     '2026sa': {
         'Boothby': 1.96,
         'Grey': 1.04,
@@ -665,6 +699,7 @@ def add_weighted_swings(seat_booths, results, election):
         and 'Divisional Office' not in a[1] and 'BLV' not in a[1] and
         'Adelaide (' not in a[1] and 'Melbourne (' not in a[1]
         and 'Sydney (' not in a[1]
+        and 'Polling Day' not in a[1]
         and not (('Adelaide ') in a[1] and (' PPVC') in a[1])
         and not (('Melbourne ') in a[1] and (' PPVC') in a[1])
         and not (('Sydney ') in a[1] and (' PPVC') in a[1])

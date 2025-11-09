@@ -238,7 +238,7 @@ void SimulationIteration::determineFedStateCorrelation()
 	}
 	auto projDate = project.projections().view(sim.settings.baseProjection).getSettings().endDate;
 	auto dateDiff = abs((projDate - fedElectionDate).GetDays());
-	float gammaMedian = 0.5555f * exp(-0.00294f * float(dateDiff));
+	float gammaMedian = 0.7f * exp(-0.00294f * float(dateDiff)); // increased from 0.5555f
 	fedStateCorrelation = rng.gamma(3.0f, 0.374f) * gammaMedian;
 }
 

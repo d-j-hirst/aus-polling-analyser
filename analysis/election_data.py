@@ -23,6 +23,8 @@ previous_names = [
     {'Newtown', 'Marrickville'}
 ]
 
+default_headers = {'User-Agent': 'AEF Occasional Data Updating (https://www.aeforecasts.com/; aeforecasts@gmail.com)'}
+
 class ElectionResults:
     def __init__(self, name, download):
         self.name = name
@@ -220,7 +222,7 @@ class AllElections:
 
 
 def collect_seat_urls(seat_url_dict, url, pattern):
-    content_category = str(requests.get(url).content)
+    content_category = str(requests.get(url, headers=default_headers).content)
     content_category = content_category.split('div class="mw-category mw-category-columns"')[1].split('<noscript>')[0]
     matches_category = re.findall(pattern, content_category)
     for match in matches_category:
@@ -288,10 +290,10 @@ def generic_download(state, year):
             full_url = f'https://en.wikipedia.org/{url}'
             # This lines makes sure we don't get old data
             headers = {
-                'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36',
+                'User-Agent' : default_headers['User-Agent'],
                 'Cache-Control': 'no-cache'
             }
-            content = str(requests.get(full_url, headers).content)
+            content = str(requests.get(full_url, headers=headers).content)
             content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
             content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
             content = content.replace('\\xe2\\x80\\x93', '-')
@@ -314,15 +316,11 @@ def generic_download(state, year):
                 fp_content = election_content
                 tcp_content = None
             fp_content = fp_content.split('Notional')[0]
-            if seat_name == 'Pascoe Vale':
-                print(fp_content)
             pattern = (r'<tr class="vcard"[\s\S]*?class="org"[\s\S]*?>([^<]+)<'
                         + r'[\s\S]*?class="fn"[\s\S]*?>([^<]+)<'
                         + r'[\s\S]*?<td[\s\S]*?>([^<]+)<' * 3)
             fp_matches = re.findall(pattern, fp_content)
             for match in fp_matches:
-                if seat_name == 'Pascoe Vale':
-                    print(match)
                 if len(match[3].strip()) == 0:
                     continue
                 if len(match[4].strip()) > 0:
