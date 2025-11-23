@@ -181,7 +181,7 @@ private:
 	std::map<std::pair<int, int>, float> oddsCalibrationMeans; // transformed
 	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
 
-	bool doingLiveBaselineSimulation = false;
+	bool doingLiveBaselineSimulation = false; // Are we running the baseline simulation (i.e. NOT final output) for live results? 
 
 	int currentIteration = 0;
 

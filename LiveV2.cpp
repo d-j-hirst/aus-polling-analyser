@@ -1336,10 +1336,18 @@ void Election::calculateNationalsProportions() {
       seat.nationalsProportion = 1;
       continue;
     }
-    float nationalsShare = static_cast<float>(seat.node.fpVotesCurrent.at(natPartyIndex)) / static_cast<float>(seat.node.totalFpVotesCurrent());
-    float partyOneShare = static_cast<float>(seat.node.fpVotesCurrent.at(1)) / static_cast<float>(seat.node.totalFpVotesCurrent());
+    float totalFp = static_cast<float>(seat.node.totalFpVotesCurrent());
+    if (totalFp == 0.0f) {
+        seat.nationalsProportion = std::nullopt;
+        continue;
+    }
+    float nationalsShare = static_cast<float>(seat.node.fpVotesCurrent.at(natPartyIndex)) / totalFp;
+    float partyOneShare = static_cast<float>(seat.node.fpVotesCurrent.at(1)) / totalFp;
+    if (nationalsShare + partyOneShare == 0) {
+      seat.nationalsProportion = std::nullopt;
+      continue;
+    }
     seat.nationalsProportion = nationalsShare / (nationalsShare + partyOneShare);
-
   }
 }
 
