@@ -4,6 +4,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=2.39
 fPreviousTppSwing=5.03
+sPolls=GRN,25,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,54
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Zhi Soon,ALP
@@ -13,6 +15,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=16.0
 fPreviousTppSwing=4.01
+sPolls=GRN,15,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,64
 bSophomoreCandidate=1
 sCandidateNames=Ash Ambihaipahar,ALP
 #Bennelong
@@ -21,6 +25,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=9.26
 fPreviousTppSwing=9.3
+sPolls=GRN,12,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,59
 sCandidateNames=Jerome Laxale,ALP
 #Berowra
 sIncumbent=LNP
@@ -28,6 +34,8 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-1.63
 fPreviousTppSwing=5.93
+sPolls=GRN,12,3;ON,14,3
+sTppMrpPolls=DemosAU,2025-10-24,49
 sCandidateNames=Julian Leeser,LNP
 #Blaxland
 sIncumbent=ALP
@@ -35,6 +43,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=21.9
 fPreviousTppSwing=8.86
+sPolls=GRN,10,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,69
 sCandidateNames=Jason Clare,ALP
 #Bradfield
 sIncumbent=IND
@@ -42,6 +52,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=-4.95
 fPreviousTppSwing=1.18
+sPolls=GRN,15,9;ON,10,3;IND,18,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Nicolette Boele,IND
@@ -51,6 +62,7 @@ sChallenger=NAT
 sRegion=NSW
 fTppMargin=-12.26
 fPreviousTppSwing=3.19
+sPolls=GRN,5,3;ON,23,3;IND,29,3
 bSophomoreParty=1
 sCandidateNames=Andrew Gee,IND
 #Chifley
@@ -59,6 +71,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=19.83
 fPreviousTppSwing=6.18
+sPolls=GRN,11,3;ON,14,3
+sTppMrpPolls=DemosAU,2025-10-24,67
 sCandidateNames=Ed Husic,ALP
 #Cook
 sIncumbent=LNP
@@ -66,6 +80,8 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-7.19
 fPreviousTppSwing=4.43
+sPolls=GRN,10,3;ON,16,3
+sTppMrpPolls=DemosAU,2025-10-24,44
 sCandidateNames=Simon Kennedy,LNP
 #Cowper
 sIncumbent=NAT
@@ -73,6 +89,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-9.08
 fPreviousTppSwing=0.45
+sPolls=GRN,6,3;ON,22,3;IND,23,3
 sCandidateNames=Pat Conaghan,NAT
 #Cunningham
 sIncumbent=ALP
@@ -80,6 +97,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=17.52
 fPreviousTppSwing=2.45
+sPolls=GRN,19,3;ON,17,3
 sCandidateNames=Alison Byrnes,ALP
 #Dobell
 sIncumbent=ALP
@@ -87,6 +105,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=9.43
 fPreviousTppSwing=5.02
+sPolls=GRN,15,10;ON,13,20
 sCandidateNames=Emma McBride,ALP
 #Eden-Monaro
 sIncumbent=ALP
@@ -94,6 +113,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=7.21
 fPreviousTppSwing=1.13
+sPolls=GRN,11,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,55
 sCandidateNames=Kristy McBain,ALP
 #Farrer
 sIncumbent=LNP
@@ -101,6 +122,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-12.89
 fPreviousTppSwing=3.46
+sPolls=GRN,15,7;ON,13,22
 sCandidateNames=Sussan Ley,LNP
 #Fowler
 sIncumbent=IND
@@ -108,6 +130,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=18.19
 fPreviousTppSwing=12.29
+sPolls=GRN,8,3;ON,13,3;IND,28,3
 sCandidateNames=Dai Le,IND
 #Gilmore
 sIncumbent=ALP
@@ -115,6 +138,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=5.13
 fPreviousTppSwing=4.96
+sPolls=GRN,9,3;ON,17,3
+sTppMrpPolls=DemosAU,2025-10-24,54
 sCandidateNames=Fiona Phillips,ALP
 #Grayndler
 sIncumbent=ALP
@@ -122,6 +147,7 @@ sChallenger=GRN
 sRegion=NSW
 fTppMargin=30.18
 fPreviousTppSwing=3.55
+sPolls=GRN,23,3;ON,8,3
 sCandidateNames=Anthony Albanese,ALP
 #Greenway
 sIncumbent=ALP
@@ -129,6 +155,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=13.76
 fPreviousTppSwing=5.82
+sPolls=GRN,12,3;ON,12,3
+sTppMrpPolls=DemosAU,2025-10-24,62
 sCandidateNames=Michelle Rowland,ALP
 #Hughes
 sIncumbent=ALP
@@ -136,6 +164,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=3.06
 fPreviousTppSwing=6.52
+sPolls=GRN,12,3;ON,15,3
+sTppMrpPolls=DemosAU,2025-10-24,53
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=David Moncrieff,ALP
@@ -145,6 +175,8 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-8.06
 fPreviousTppSwing=-1.19
+sPolls=GRN,10,3;ON,21,3
+sTppMrpPolls=DemosAU,2025-10-24,44
 sCandidateNames=Angus Taylor,LNP
 #Hunter
 sIncumbent=ALP
@@ -152,6 +184,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=9.48
 fPreviousTppSwing=4.7
+sPolls=GRN,8,3;ON,30,3
 sCandidateNames=Dan Repacholi,ALP
 #Kingsford Smith
 sIncumbent=ALP
@@ -159,6 +192,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=17.19
 fPreviousTppSwing=3.88
+sPolls=GRN,14,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,66
 sCandidateNames=Matt Thistlethwaite,ALP
 #Lindsay
 sIncumbent=LNP
@@ -166,6 +201,8 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-2.78
 fPreviousTppSwing=3.33
+sPolls=GRN,10,3;ON,19,3
+sTppMrpPolls=DemosAU,2025-10-24,49
 sCandidateNames=Melissa McIntosh,LNP
 #Lyne
 sIncumbent=NAT
@@ -173,6 +210,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-9.78
 fPreviousTppSwing=4.02
+sPolls=GRN,7,3;ON,25,3
 bSophomoreCandidate=1
 sCandidateNames=Alison Penfold,NAT
 #Macarthur
@@ -181,6 +219,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=15.61
 fPreviousTppSwing=5.85
+sPolls=GRN,13,3;ON,17,3
 sCandidateNames=Mike Freelander,ALP
 #Mackellar
 sIncumbent=IND
@@ -188,6 +227,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=-3.66
 fPreviousTppSwing=4.21
+sPolls=GRN,8,3;ON,13,3;IND,27,3
 sCandidateNames=Sophie Scamps,IND
 #Macquarie
 sIncumbent=ALP
@@ -195,6 +235,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=7.71
 fPreviousTppSwing=1.38
+sPolls=GRN,12,3;ON,20,3
+sTppMrpPolls=DemosAU,2025-10-24,56
 sCandidateNames=Susan Templeman,ALP
 #McMahon
 sIncumbent=ALP
@@ -202,6 +244,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=9.02
 fPreviousTppSwing=-1.46
+sPolls=GRN,10,3;ON,20,3
 sCandidateNames=Chris Bowen,ALP
 #Mitchell
 sIncumbent=LNP
@@ -209,6 +252,8 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-3.81
 fPreviousTppSwing=6.68
+sPolls=GRN,13,3;ON,14,3
+sTppMrpPolls=DemosAU,2025-10-24,47
 sCandidateNames=Alex Hawke,LNP
 #New England
 sIncumbent=NAT
@@ -216,6 +261,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-17.06
 fPreviousTppSwing=-1.85
+sPolls=GRN,9,3;ON,27,3
 sCandidateNames=Barnaby Joyce,NAT
 #Newcastle
 sIncumbent=ALP
@@ -223,6 +269,7 @@ sChallenger=GRN
 sRegion=NSW
 fTppMargin=20.79
 fPreviousTppSwing=2.85
+sPolls=GRN,20,3;ON,13,3
 sCandidateNames=Sharon Claydon,ALP
 #Page
 sIncumbent=NAT
@@ -230,6 +277,8 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-9.29
 fPreviousTppSwing=-1.36
+sPolls=GRN,14,3;ON,20,3
+sTppMrpPolls=DemosAU,2025-10-24,41
 sCandidateNames=Kevin Hogan,NAT
 #Parkes
 sIncumbent=NAT
@@ -237,6 +286,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-12.97
 fPreviousTppSwing=5.18
+sPolls=GRN,7,3;ON,32,3
 bSophomoreCandidate=1
 sCandidateNames=James Chaffey,NAT
 #Parramatta
@@ -245,6 +295,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=12.55
 fPreviousTppSwing=8.83
+sPolls=GRN,13,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,62
 sCandidateNames=Andrew Charlton,ALP
 #Paterson
 sIncumbent=ALP
@@ -252,6 +304,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=6.89
 fPreviousTppSwing=4.29
+sPolls=GRN,8,3;ON,19,3
 sCandidateNames=Meryl Swanson,ALP
 #Reid
 sIncumbent=ALP
@@ -259,6 +312,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=12.01
 fPreviousTppSwing=6.82
+sPolls=GRN,12,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,61
 sCandidateNames=Sally Sitou,ALP
 #Richmond
 sIncumbent=ALP
@@ -266,6 +321,8 @@ sChallenger=NAT
 sRegion=NSW
 fTppMargin=10
 fPreviousTppSwing=1.77
+sPolls=GRN,23,3;ON,16,3
+sTppMrpPolls=DemosAU,2025-10-24,57
 sCandidateNames=Justine Elliot,ALP
 #Riverina
 sIncumbent=NAT
@@ -273,6 +330,7 @@ sChallenger=ALP
 sRegion=NSW
 fTppMargin=-12.62
 fPreviousTppSwing=-2.91
+sPolls=GRN,6,3;ON,27,3
 sCandidateNames=Michael McCormack,NAT
 #Robertson
 sIncumbent=ALP
@@ -280,6 +338,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=9.37
 fPreviousTppSwing=7.14
+sPolls=GRN,9,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,57
 sCandidateNames=Gordon Reid,ALP
 #Shortland
 sIncumbent=ALP
@@ -287,6 +347,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=11.51
 fPreviousTppSwing=5.51
+sPolls=GRN,11,3;ON,20,3
 sCandidateNames=Pat Conroy,ALP
 #Sydney
 sIncumbent=ALP
@@ -294,6 +355,7 @@ sChallenger=GRN
 sRegion=NSW
 fTppMargin=28.08
 fPreviousTppSwing=2.42
+sPolls=GRN,21,3;ON,8,3
 sCandidateNames=Tanya Plibersek,ALP
 #Warringah
 sIncumbent=IND
@@ -301,6 +363,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=4.51
 fPreviousTppSwing=5.25
+sPolls=GRN,10,3;ON,11,3;IND,28,3
 sCandidateNames=Zali Steggall,IND
 #Watson
 sIncumbent=ALP
@@ -308,6 +371,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=22.86
 fPreviousTppSwing=7.7
+sPolls=GRN,11,3;ON,11,3
 sCandidateNames=Tony Burke,ALP
 #Wentworth
 sIncumbent=IND
@@ -315,6 +379,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=0.56
 fPreviousTppSwing=1.72
+sPolls=GRN,12,3;ON,12,3;IND,27,3
 sCandidateNames=Allegra Spender,IND
 #Werriwa
 sIncumbent=ALP
@@ -322,6 +387,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=6.77
 fPreviousTppSwing=1.43
+sPolls=GRN,12,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,57
 sCandidateNames=Anne Stanley,ALP
 #Whitlam
 sIncumbent=ALP
@@ -329,6 +396,7 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=6.25
 fPreviousTppSwing=-2.06
+sPolls=GRN,12,3;ON,19,3
 bSophomoreCandidate=1
 sCandidateNames=Carol Berry,ALP
 #Aston
@@ -337,6 +405,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=3.43
 fPreviousTppSwing=6.04
+sPolls=GRN,13,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,55
 sCandidateNames=Mary Doyle,ALP
 #Ballarat
 sIncumbent=ALP
@@ -344,6 +414,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=10.66
 fPreviousTppSwing=-2.32
+sPolls=GRN,15,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,60
 sCandidateNames=Catherine King,ALP
 #Bendigo
 sIncumbent=ALP
@@ -351,6 +423,8 @@ sChallenger=NAT
 sRegion=VIC
 fTppMargin=1.4
 fPreviousTppSwing=-9.81
+sPolls=GRN,13,3;ON,16,3
+sTppMrpPolls=DemosAU,2025-10-24,53
 sCandidateNames=Lisa Chesters,ALP
 #Bruce
 sIncumbent=ALP
@@ -358,6 +432,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=14.62
 fPreviousTppSwing=9.31
+sPolls=GRN,13,3;ON,17,3
 sCandidateNames=Julian Hill,ALP
 #Calwell
 sIncumbent=ALP
@@ -365,6 +440,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=14.71
 fPreviousTppSwing=2.32
+sPolls=GRN,10,3;ON,12,3
 bSophomoreCandidate=1
 sCandidateNames=Basem Abdo,ALP
 #Casey
@@ -373,6 +449,8 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-2.89
 fPreviousTppSwing=-1.46
+sPolls=GRN,12,3;ON,16,3
+sTppMrpPolls=DemosAU,2025-10-24,50
 sCandidateNames=Aaron Violi,LNP
 #Chisholm
 sIncumbent=ALP
@@ -380,6 +458,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=5.7
 fPreviousTppSwing=2.37
+sPolls=GRN,14,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,57
 sCandidateNames=Carina Garland,ALP
 #Cooper
 sIncumbent=ALP
@@ -387,6 +467,7 @@ sChallenger=GRN
 sRegion=VIC
 fTppMargin=28.53
 fPreviousTppSwing=2.82
+sPolls=GRN,25,3;ON,11,3
 sCandidateNames=Ged Kearney,ALP
 #Corangamite
 sIncumbent=ALP
@@ -394,6 +475,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=8.05
 fPreviousTppSwing=0.21
+sPolls=GRN,15,3;ON,12,3
+sTppMrpPolls=DemosAU,2025-10-24,59
 sCandidateNames=Libby Coker,ALP
 #Corio
 sIncumbent=ALP
@@ -401,6 +484,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=13.23
 fPreviousTppSwing=0.74
+sPolls=GRN,16,3;ON,20,3
 sCandidateNames=Richard Marles,ALP
 #Deakin
 sIncumbent=ALP
@@ -408,6 +492,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=2.82
 fPreviousTppSwing=2.84
+sPolls=GRN,13,3;ON,12,3
+sTppMrpPolls=DemosAU,2025-10-24,54
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Matthew Gregg,ALP
@@ -417,6 +503,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=7.08
 fPreviousTppSwing=0.31
+sPolls=GRN,13,3;ON,17,3
+sTppMrpPolls=DemosAU,2025-10-24,58
 sCandidateNames=Jodie Belyea,ALP
 #Flinders
 sIncumbent=LNP
@@ -424,6 +512,8 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-4.78
 fPreviousTppSwing=1.38
+sPolls=GRN,8,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,48
 sCandidateNames=Zoe McKenzie,LNP
 #Fraser
 sIncumbent=ALP
@@ -431,6 +521,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=22.02
 fPreviousTppSwing=5.46
+sPolls=GRN,24,3;ON,11,3
 sCandidateNames=Daniel Mulino,ALP
 #Gellibrand
 sIncumbent=ALP
@@ -438,6 +529,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=15.1
 fPreviousTppSwing=3.9
+sPolls=GRN,18,3;ON,12,3
+sTppMrpPolls=DemosAU,2025-10-24,65
 sCandidateNames=Tim Watts,ALP
 #Gippsland
 sIncumbent=NAT
@@ -445,6 +538,7 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-19.36
 fPreviousTppSwing=1.21
+sPolls=GRN,10,3;ON,33,3
 sCandidateNames=Darren Chester,NAT
 #Goldstein
 sIncumbent=LNP
@@ -452,6 +546,7 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-3.97
 fPreviousTppSwing=0.25
+sPolls=GRN,9,3;ON,11,3;IND,21,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Tim Wilson,LNP
@@ -461,6 +556,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=10.28
 fPreviousTppSwing=0.3
+sPolls=GRN,12,3;ON,15,3
+sTppMrpPolls=DemosAU,2025-10-24,61
 bSophomoreCandidate=1
 sCandidateNames=Alice Jordan-Baird,ALP
 #Hawke
@@ -469,6 +566,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=7.63
 fPreviousTppSwing=0.01
+sPolls=GRN,11,3;ON,21,3
 sCandidateNames=Sam Rae,ALP
 #Holt
 sIncumbent=ALP
@@ -476,6 +574,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=14.03
 fPreviousTppSwing=6.92
+sPolls=GRN,13,3;ON,18,3
 sCandidateNames=Cassandra Fernando,ALP
 #Hotham
 sIncumbent=ALP
@@ -483,6 +582,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=16.86
 fPreviousTppSwing=5.27
+sPolls=GRN,16,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,66
 sCandidateNames=Clare O'Neil,ALP
 #Indi
 sIncumbent=IND
@@ -490,6 +591,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=-6.66
 fPreviousTppSwing=-1.4
+sPolls=GRN,5,3;ON,22,3;IND,35,3
 sCandidateNames=Helen Haines,IND
 #Isaacs
 sIncumbent=ALP
@@ -497,6 +599,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=14.34
 fPreviousTppSwing=4.83
+sPolls=GRN,14,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,63
 sCandidateNames=Mark Dreyfus,ALP
 #Jagajaga
 sIncumbent=ALP
@@ -504,6 +608,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=12.88
 fPreviousTppSwing=0.67
+sPolls=GRN,16,3;ON,12,3
+sTppMrpPolls=DemosAU,2025-10-24,62
 sCandidateNames=Kate Thwaites,ALP
 #Kooyong
 sIncumbent=IND
@@ -511,6 +617,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=-2.37
 fPreviousTppSwing=1.37
+sPolls=GRN,10,3;ON,9,3;IND,25,3
 sCandidateNames=Monique Ryan,IND
 #La Trobe
 sIncumbent=LNP
@@ -518,6 +625,8 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-2.06
 fPreviousTppSwing=-6.37
+sPolls=GRN,14,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,50
 sCandidateNames=Jason Wood,LNP
 #Lalor
 sIncumbent=ALP
@@ -525,6 +634,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=13.21
 fPreviousTppSwing=0.42
+sPolls=GRN,16,3;ON,16,3
+sTppMrpPolls=DemosAU,2025-10-24,63
 sCandidateNames=Joanne Ryan,ALP
 #Macnamara
 sIncumbent=ALP
@@ -532,6 +643,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=11.8
 fPreviousTppSwing=-0.37
+sPolls=GRN,25,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,62
 sCandidateNames=Josh Burns,ALP
 #Mallee
 sIncumbent=NAT
@@ -539,6 +652,7 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-19.04
 fPreviousTppSwing=-0.05
+sPolls=GRN,10,3;ON,28,3
 sCandidateNames=Anne Webster,NAT
 #Maribyrnong
 sIncumbent=ALP
@@ -546,6 +660,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=12.65
 fPreviousTppSwing=-0.38
+sPolls=GRN,20,3;ON,14,3
+sTppMrpPolls=DemosAU,2025-10-24,63
 bSophomoreCandidate=1
 sCandidateNames=Jo Briskley,ALP
 #McEwen
@@ -554,6 +670,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=4.76
 fPreviousTppSwing=0.94
+sPolls=GRN,12,3;ON,16,3
+sTppMrpPolls=DemosAU,2025-10-24,56
 sCandidateNames=Rob Mitchell,ALP
 #Melbourne
 sIncumbent=ALP
@@ -561,6 +679,7 @@ sChallenger=GRN
 sRegion=VIC
 fTppMargin=23.97
 fPreviousTppSwing=0.88
+sPolls=GRN,37,3;ON,7,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Sarah Witty,ALP
@@ -570,6 +689,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=1.08
 fPreviousTppSwing=0.66
+sPolls=GRN,12,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,53
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Gabriel Ng,ALP
@@ -579,6 +700,8 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-4.09
 fPreviousTppSwing=-1.19
+sPolls=GRN,7,3;ON,22,3
+sTppMrpPolls=DemosAU,2025-10-24,48
 sCandidateNames=Mary Aldred,LNP
 #Nicholls
 sIncumbent=NAT
@@ -586,6 +709,7 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-14.38
 fPreviousTppSwing=-1.87
+sPolls=GRN,9,3;ON,28,3
 sCandidateNames=Sam Birrell,NAT
 #Scullin
 sIncumbent=ALP
@@ -593,6 +717,7 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=14.29
 fPreviousTppSwing=-1.14
+sPolls=GRN,11,3;ON,16,3
 sCandidateNames=Andrew Giles,ALP
 #Wannon
 sIncumbent=LNP
@@ -600,6 +725,7 @@ sChallenger=ALP
 sRegion=VIC
 fTppMargin=-10.92
 fPreviousTppSwing=-2.27
+sPolls=GRN,6,3;ON,18,3
 sCandidateNames=Dan Tehan,LNP
 #Wills
 sIncumbent=ALP
@@ -607,6 +733,7 @@ sChallenger=GRN
 sRegion=VIC
 fTppMargin=30.86
 fPreviousTppSwing=3.77
+sPolls=GRN,32,3;ON,9,3
 sCandidateNames=Peter Khalil,ALP
 #Blair
 sIncumbent=ALP
@@ -614,6 +741,7 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=5.71
 fPreviousTppSwing=0.48
+sPolls=GRN,11,3;ON,22,3
 sCandidateNames=Shayne Neumann,ALP
 #Bonner
 sIncumbent=ALP
@@ -621,6 +749,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=5
 fPreviousTppSwing=8.41
+sPolls=GRN,13,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,56
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Kara Cook,ALP
@@ -630,6 +760,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-2.43
 fPreviousTppSwing=3.08
+sPolls=GRN,12,3;ON,19,3
+sTppMrpPolls=DemosAU,2025-10-24,49
 sCandidateNames=Henry Pike,LNP
 #Brisbane
 sIncumbent=ALP
@@ -639,6 +771,8 @@ fTppMargin=8.96
 fPreviousTppSwing=4.56
 bSophomoreCandidate=1
 bSophomoreParty=1
+sPolls=GRN,25,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,61
 sCandidateNames=Madonna Jarrett,ALP
 #Capricornia
 sIncumbent=LNP
@@ -646,6 +780,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-5.83
 fPreviousTppSwing=0.76
+sPolls=GRN,7,3;ON,32,3
 sCandidateNames=Michelle Landry,LNP
 #Dawson
 sIncumbent=LNP
@@ -653,6 +788,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-11.83
 fPreviousTppSwing=1.41
+sPolls=GRN,9,3;ON,26,3
 sCandidateNames=Andrew Willcox,LNP
 #Dickson
 sIncumbent=ALP
@@ -660,6 +796,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=5.99
 fPreviousTppSwing=7.69
+sPolls=GRN,9,3;ON,14,3
+sTppMrpPolls=DemosAU,2025-10-24,57
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Ali France,ALP
@@ -669,6 +807,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-6.88
 fPreviousTppSwing=3.75
+sPolls=GRN,10,3;ON,21,3
+sTppMrpPolls=DemosAU,2025-10-24,46
 sCandidateNames=Cameron Caldwell,LNP
 #Fairfax
 sIncumbent=LNP
@@ -676,6 +816,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-3.23
 fPreviousTppSwing=5.72
+sPolls=GRN,10,3;ON,20,3
+sTppMrpPolls=DemosAU,2025-10-24,49
 sCandidateNames=Ted O'Brien,LNP
 #Fisher
 sIncumbent=LNP
@@ -683,6 +825,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-6.03
 fPreviousTppSwing=2.64
+sPolls=GRN,10,3;ON,19,3
+sTppMrpPolls=DemosAU,2025-10-24,47
 sCandidateNames=Andrew Wallace,LNP
 #Flynn
 sIncumbent=LNP
@@ -690,6 +834,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-10.24
 fPreviousTppSwing=-6.42
+sPolls=GRN,7,3;ON,32,3
 sCandidateNames=Colin Boyce,LNP
 #Forde
 sIncumbent=ALP
@@ -697,6 +842,7 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=1.77
 fPreviousTppSwing=6
+sPolls=GRN,10,3;ON,23,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Rowan Holzberger,ALP
@@ -706,6 +852,7 @@ sChallenger=GRN
 sRegion=QLD
 fTppMargin=15.94
 fPreviousTppSwing=4.87
+sPolls=GRN,29,3;ON,8,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Renee Coffey,ALP
@@ -715,6 +862,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-13.35
 fPreviousTppSwing=0.82
+sPolls=GRN,7,3;ON,26,3
 sCandidateNames=Garth Hamilton,LNP
 #Herbert
 sIncumbent=LNP
@@ -722,6 +870,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-13.41
 fPreviousTppSwing=-1.64
+sPolls=GRN,11,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,41
 sCandidateNames=Phillip Thompson,LNP
 #Hinkler
 sIncumbent=LNP
@@ -729,6 +879,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-6.26
 fPreviousTppSwing=3.81
+sPolls=GRN,8,3;ON,31,3
 bSophomoreCandidate=1
 sCandidateNames=David Batt,LNP
 #Kennedy
@@ -737,6 +888,7 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=-9.32
 fPreviousTppSwing=0.84
+sPolls=GRN,7,3;ON,23,3;KAP,31,3
 sCandidateNames=Bob Katter,KAP
 #Leichhardt
 sIncumbent=ALP
@@ -744,6 +896,7 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=6.06
 fPreviousTppSwing=9.5
+sPolls=GRN,11,3;ON,20,3
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Matt Smith,ALP
@@ -753,6 +906,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=14.52
 fPreviousTppSwing=3.98
+sPolls=GRN,17,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,65
 sCandidateNames=Anika Wells,ALP
 #Longman
 sIncumbent=LNP
@@ -760,6 +915,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-0.11
 fPreviousTppSwing=2.97
+sPolls=GRN,10,3;ON,23,3
 sCandidateNames=Terry Young,LNP
 #Maranoa
 sIncumbent=LNP
@@ -767,6 +923,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-23.96
 fPreviousTppSwing=-1.84
+sPolls=GRN,6,3;ON,32,3
 sCandidateNames=David Littleproud,LNP
 #McPherson
 sIncumbent=LNP
@@ -774,6 +931,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-4.44
 fPreviousTppSwing=4.9
+sPolls=GRN,10,3;ON,15,3
+sTppMrpPolls=DemosAU,2025-10-24,48
 bSophomoreCandidate=1
 sCandidateNames=Leon Robello,LNP
 #Moncrieff
@@ -782,6 +941,8 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-8.8
 fPreviousTppSwing=2.39
+sPolls=GRN,10,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,44
 sCandidateNames=Angie Bell,LNP
 #Moreton
 sIncumbent=ALP
@@ -789,6 +950,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=16.09
 fPreviousTppSwing=7
+sPolls=GRN,21,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,66
 bSophomoreCandidate=1
 sCandidateNames=Julie-Ann Campbell,ALP
 #Oxley
@@ -797,6 +960,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=19.19
 fPreviousTppSwing=7.6
+sPolls=GRN,14,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,67
 sCandidateNames=Milton Dick,ALP
 #Petrie
 sIncumbent=ALP
@@ -804,6 +969,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=1.17
 fPreviousTppSwing=5.61
+sPolls=GRN,12,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,53
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Emma Comer,LNP
@@ -813,6 +980,7 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=15.55
 fPreviousTppSwing=6.46
+sPolls=GRN,12,3;ON,15,3
 sCandidateNames=Jim Chalmers,ALP
 #Ryan
 sIncumbent=GRN
@@ -820,6 +988,8 @@ sChallenger=LNP
 sRegion=QLD
 fTppMargin=7.82
 fPreviousTppSwing=5.4
+sPolls=GRN,27,3;ON,9,3
+sTppMrpPolls=DemosAU,2025-10-24,60
 sCandidateNames=Elizabeth Watson-Brown,GRN
 #Wide Bay
 sIncumbent=LNP
@@ -827,6 +997,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-7.63
 fPreviousTppSwing=3.71
+sPolls=GRN,9,3;ON,29,3
 sCandidateNames=Llew O'Brien,LNP
 #Wright
 sIncumbent=LNP
@@ -834,6 +1005,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-7.98
 fPreviousTppSwing=2.91
+sPolls=GRN,9,3;ON,33,3
 sCandidateNames=Scott Buchholz,LNP
 #Brand
 sIncumbent=ALP
@@ -841,6 +1013,7 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=16.92
 fPreviousTppSwing=-0.15
+sPolls=GRN,13,3;ON,24,3
 sCandidateNames=Madeleine King,ALP
 #Bullwinkel
 sIncumbent=ALP
@@ -848,6 +1021,8 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=0.51
 fPreviousTppSwing=-2.84
+sPolls=GRN,11,3;ON,21,3
+sTppMrpPolls=DemosAU,2025-10-24,52
 bSophomoreCandidate=1
 sCandidateNames=Trish Cook,ALP
 #Burt
@@ -856,6 +1031,7 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=15.71
 fPreviousTppSwing=2.42
+sPolls=GRN,12,3;ON,20,3
 sCandidateNames=Matt Keogh,ALP
 #Canning
 sIncumbent=LNP
@@ -863,6 +1039,7 @@ sChallenger=ALP
 sRegion=WA
 fTppMargin=-6.55
 fPreviousTppSwing=-5.35
+sPolls=GRN,9,3;ON,27,3
 sCandidateNames=Andrew Hastie,LNP
 #Cowan
 sIncumbent=ALP
@@ -870,6 +1047,8 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=13.63
 fPreviousTppSwing=3.69
+sPolls=GRN,12,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,63
 sCandidateNames=Anne Aly,ALP
 #Curtin
 sIncumbent=IND
@@ -877,6 +1056,7 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=-5.6
 fPreviousTppSwing=3.48
+sPolls=GRN,10,3;ON,12,3;IND,23,3
 sCandidateNames=Kate Chaney,IND
 #Durack
 sIncumbent=LNP
@@ -884,6 +1064,8 @@ sChallenger=ALP
 sRegion=WA
 fTppMargin=-10.15
 fPreviousTppSwing=-5.49
+sPolls=GRN,9,3;ON,26,3
+sTppMrpPolls=DemosAU,2025-10-24,43
 sCandidateNames=Melissa Price,LNP
 #Forrest
 sIncumbent=LNP
@@ -891,6 +1073,8 @@ sChallenger=ALP
 sRegion=WA
 fTppMargin=-2.24
 fPreviousTppSwing=1.95
+sPolls=GRN,9,3;ON,24,3
+sTppMrpPolls=DemosAU,2025-10-24,48
 sCandidateNames=Ben Small,LNP
 #Fremantle
 sIncumbent=ALP
@@ -898,6 +1082,7 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=18.68
 fPreviousTppSwing=1.75
+sPolls=GRN,13,3;ON,14,3
 sCandidateNames=Josh Wilson,ALP
 #Hasluck
 sIncumbent=ALP
@@ -905,6 +1090,7 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=15.97
 fPreviousTppSwing=5.93
+sPolls=GRN,13,3;ON,16,3
 sCandidateNames=Tania Lawrence,ALP
 #Moore
 sIncumbent=ALP
@@ -912,6 +1098,8 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=2.89
 fPreviousTppSwing=3.8
+sPolls=GRN,11,3;ON,15,3
+sTppMrpPolls=DemosAU,2025-10-24,53
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Tom French,ALP
@@ -921,6 +1109,7 @@ sChallenger=ALP
 sRegion=WA
 fTppMargin=-13.28
 fPreviousTppSwing=-6.59
+sPolls=GRN,10,3;ON,28,3
 sCandidateNames=Rick Wilson,LNP
 #Pearce
 sIncumbent=ALP
@@ -928,6 +1117,7 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=6.44
 fPreviousTppSwing=-2.4
+sPolls=GRN,12,3;ON,20,3
 sCandidateNames=Tracey Roberts,ALP
 #Perth
 sIncumbent=ALP
@@ -935,6 +1125,8 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=16.51
 fPreviousTppSwing=2.09
+sPolls=GRN,23,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,65
 sCandidateNames=Patrick Gorman,ALP
 #Swan
 sIncumbent=ALP
@@ -942,6 +1134,8 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=13.99
 fPreviousTppSwing=4.56
+sPolls=GRN,17,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,64
 sCandidateNames=Zaneta Mascarenhas,ALP
 #Tangney
 sIncumbent=ALP
@@ -949,6 +1143,8 @@ sChallenger=LNP
 sRegion=WA
 fTppMargin=6.99
 fPreviousTppSwing=4.14
+sPolls=GRN,13,3;ON,12,3
+sTppMrpPolls=DemosAU,2025-10-24,57
 sCandidateNames=Sam Lim,ALP
 #Adelaide
 sIncumbent=ALP
@@ -956,6 +1152,8 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=19.07
 fPreviousTppSwing=7.16
+sPolls=GRN,20,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,69
 sCandidateNames=Steve Georganas,ALP
 #Barker
 sIncumbent=LNP
@@ -963,6 +1161,7 @@ sChallenger=ALP
 sRegion=SA
 fTppMargin=-12.98
 fPreviousTppSwing=3.64
+sPolls=GRN,10,3;ON,25,3
 sCandidateNames=Tony Pasin,LNP
 #Boothby
 sIncumbent=ALP
@@ -970,6 +1169,8 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=11.1
 fPreviousTppSwing=7.82
+sPolls=GRN,17,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,62
 sCandidateNames=Louise Miller-Frost,ALP
 #Grey
 sIncumbent=LNP
@@ -978,6 +1179,7 @@ sRegion=SA
 fTppMargin=-4.64
 fPreviousTppSwing=5.43
 bSophomoreCandidate=1
+sPolls=GRN,8,3;ON,27,3
 sCandidateNames=Tom Venning,LNP
 #Hindmarsh
 sIncumbent=ALP
@@ -985,6 +1187,8 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=16.35
 fPreviousTppSwing=7.4
+sPolls=GRN,15,3;ON,13,3
+sTppMrpPolls=DemosAU,2025-10-24,66
 sCandidateNames=Mark Butler,ALP
 #Kingston
 sIncumbent=ALP
@@ -992,6 +1196,7 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=20.74
 fPreviousTppSwing=4.39
+sPolls=GRN,14,3;ON,15,3
 sCandidateNames=Amanda Rishworth,ALP
 #Makin
 sIncumbent=ALP
@@ -999,6 +1204,7 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=14.66
 fPreviousTppSwing=3.86
+sPolls=GRN,13,3;ON,16,3
 sCandidateNames=Tony Zappia,ALP
 #Mayo
 sIncumbent=CA
@@ -1006,6 +1212,7 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=4.98
 fPreviousTppSwing=3.39
+sPolls=GRN,13,3;ON,17,3;CA,25,3
 sCandidateNames=Rebekha Sharkie,CA
 #Spence
 sIncumbent=ALP
@@ -1013,6 +1220,7 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=15.34
 fPreviousTppSwing=2.44
+sPolls=GRN,15,3;ON,20,3
 sCandidateNames=Matt Burnell,ALP
 #Sturt
 sIncumbent=ALP
@@ -1020,6 +1228,8 @@ sChallenger=LNP
 sRegion=SA
 fTppMargin=6.62
 fPreviousTppSwing=7.07
+sPolls=GRN,16,3;ON,11,3
+sTppMrpPolls=DemosAU,2025-10-24,58
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Claire Clutterham,ALP
@@ -1029,6 +1239,8 @@ sChallenger=LNP
 sRegion=TAS
 fTppMargin=8.01
 fPreviousTppSwing=9.44
+sPolls=GRN,14,3;ON,18,3
+sTppMrpPolls=DemosAU,2025-10-24,59
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Jess Teesdale,ALP
@@ -1038,6 +1250,8 @@ sChallenger=LNP
 sRegion=TAS
 fTppMargin=7.2
 fPreviousTppSwing=15.23
+sPolls=GRN,10,3;ON,20,3
+sTppMrpPolls=DemosAU,2025-10-24,59
 bSophomoreCandidate=1
 bSophomoreParty=1
 sCandidateNames=Anne Urquhart,ALP
@@ -1047,6 +1261,7 @@ sChallenger=ALP
 sRegion=TAS
 fTppMargin=20.89
 fPreviousTppSwing=3.65
+sPolls=GRN,14,3;ON,14,3;IND,35,3
 sCandidateNames=Andrew Wilkie,IND
 #Franklin
 sIncumbent=ALP
@@ -1054,6 +1269,7 @@ sChallenger=LNP
 sRegion=TAS
 fTppMargin=19.44
 fPreviousTppSwing=5.74
+sPolls=GRN,12,3;ON,14,3
 sCandidateNames=Julie Collins,ALP
 #Lyons
 sIncumbent=ALP
@@ -1061,6 +1277,7 @@ sChallenger=LNP
 sRegion=TAS
 fTppMargin=11.58
 fPreviousTppSwing=10.66
+sPolls=GRN,12,3;ON,18,3
 bSophomoreCandidate=1
 sCandidateNames=Rebecca White,ALP
 #Lingiari
@@ -1069,6 +1286,8 @@ sChallenger=LNP
 sRegion=NT
 fTppMargin=8.13
 fPreviousTppSwing=6.53
+sPolls=GRN,12,3;ON,20,3
+sTppMrpPolls=DemosAU,2025-10-24,56
 sCandidateNames=Marion Scrymgour,ALP
 #Solomon
 sIncumbent=ALP
@@ -1076,6 +1295,8 @@ sChallenger=LNP
 sRegion=NT
 fTppMargin=1.31
 fPreviousTppSwing=-7.09
+sPolls=GRN,12,3;ON,17,3
+sTppMrpPolls=DemosAU,2025-10-24,51
 sCandidateNames=Luke Gosling,ALP
 #Bean
 sIncumbent=ALP
@@ -1083,6 +1304,7 @@ sChallenger=LNP
 sRegion=ACT
 fTppMargin=19.29
 fPreviousTppSwing=6.34
+sPolls=GRN,11,3;ON,7,3;IND,20,3
 sCandidateNames=David Smith,ALP
 #Canberra
 sIncumbent=ALP
@@ -1090,6 +1312,8 @@ sChallenger=GRN
 sRegion=ACT
 fTppMargin=26.42
 fPreviousTppSwing=3.96
+sPolls=GRN,20,3;ON,5,3
+sTppMrpPolls=DemosAU,2025-10-24,73
 sCandidateNames=Alicia Payne,ALP
 #Fenner
 sIncumbent=ALP
@@ -1097,4 +1321,6 @@ sChallenger=LNP
 sRegion=ACT
 fTppMargin=22.08
 fPreviousTppSwing=6.39
+sPolls=GRN,17,3;ON,5,3
+sTppMrpPolls=DemosAU,2025-10-24,70
 sCandidateNames=Andrew Leigh,ALP
