@@ -183,9 +183,9 @@ void DownloadFrame::collectPreloadData(bool skipPrompt)
 		if (userUrl.empty()) return;
 
 		ResultsDownloader resultsDownloader;
-		resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedCandidatesFileName, PreloadDataRetriever::CandidateMatch);
+		resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedCandidatesFileName);
 		if (!skipPrompt) wxMessageBox("Downloaded preload candidate data from: " + userUrl);
-		resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedBoothsFileName, PreloadDataRetriever::BoothsMatch);
+		resultsDownloader.loadZippedFile(userUrl, PreloadDataRetriever::UnzippedBoothsFileName);
 		if (!skipPrompt) wxMessageBox("Downloaded preload booth data from: " + userUrl);
 	}
 

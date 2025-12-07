@@ -155,7 +155,7 @@ void LivePreparation::downloadPreload()
 		logger << "Already found preload file at: " << mangledName << "\n";
 	}
 	else {
-		xmlFilename = resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName, "preload");
+		xmlFilename = resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName);
 		logger << "Downloaded file: " << sim.settings.preloadUrl << "\n";
 		logger << "and saved it as: " << mangledName << "\n";
 	}

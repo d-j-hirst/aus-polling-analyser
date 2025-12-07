@@ -52,6 +52,10 @@ void SimulationCompletion::completeRun()
 
 	recordReportSettings();
 
+	if (run.isLiveAutomatic()) {
+		exportSummary();
+	}
+
 	logger << "Simulation successfully completed.\n";
 }
 
@@ -660,6 +664,116 @@ void SimulationCompletion::recordReportSettings()
 void SimulationCompletion::recordModelledPolls()
 {
 	sim.latestReport.modelledPolls = baseModel().viewModelledPolls();
+}
+
+void SimulationCompletion::exportSummary()
+{
+	std::ofstream summaryFile("live_summary.csv");
+	summaryFile << "Simulation Summary\n";
+	summaryFile << "Iterations\n" << iterations << "\n";
+	summaryFile << "Party Names\n";
+	std::set useParties = { -3, -2, 0, 1, 2, 4, 5, 6, 7, 10 };
+	PA_LOG_VAR(sim.latestReport.partyName);
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << name << ",";
+	}
+	summaryFile << "\nALP majority % simulations\n";
+	summaryFile << sim.latestReport.majorityPercent[0];
+	summaryFile << "\nALP minority % simulations\n";
+	summaryFile << sim.latestReport.minorityPercent[0];
+	summaryFile << "\nLNP minority % simulations\n";
+	summaryFile << sim.latestReport.minorityPercent[1];
+	summaryFile << "\nLNP majority % simulations\n";
+	summaryFile << sim.latestReport.majorityPercent[1];
+	summaryFile << "\nParty Win Expectations\n";
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		if (!sim.latestReport.partyWinExpectation.contains(partyIndex)) {
+			summaryFile << "0,";
+			continue;
+		}
+		summaryFile << sim.latestReport.partyWinExpectation.at(partyIndex) << ",";
+	}
+	summaryFile << "\nCoalition Win Expectation\n";
+	summaryFile << sim.latestReport.coalitionWinExpectation << "\n";
+	summaryFile << "Party Win 0.1%s\n";
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << sim.latestReport.getPartySeatsPercentile(partyIndex, 0.1f) << ",";
+	}
+	summaryFile << "\nCoalition Win 0.1%\n";
+	summaryFile << sim.latestReport.getCoalitionSeatsPercentile(0.1f);
+	summaryFile << "\nParty Win 5%s\n";
+	for (auto [partyIndex, median] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << sim.latestReport.getPartySeatsPercentile(partyIndex, 5.0f) << ",";
+	}
+	summaryFile << "\nCoalition Win 5%\n";
+	summaryFile << sim.latestReport.getCoalitionSeatsPercentile(5.0f);
+	summaryFile << "\nParty Win Medians\n";
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		if (!sim.latestReport.partyWinMedian.contains(partyIndex)) {
+			summaryFile << "0,";
+			continue;
+		}
+		summaryFile << sim.latestReport.partyWinMedian.at(partyIndex) << ",";
+	}
+	summaryFile << "\nCoalition Win Median\n";
+	summaryFile << sim.latestReport.coalitionWinMedian;
+	summaryFile << "\nParty Win 95%s\n";
+	for (auto [partyIndex, median] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << sim.latestReport.getPartySeatsPercentile(partyIndex, 95.0f) << ",";
+	}
+	summaryFile << "\nCoalition Win 95%\n";
+	summaryFile << sim.latestReport.getCoalitionSeatsPercentile(95.0f);
+	summaryFile << "\nParty Win 99.9%s\n";
+	for (auto [partyIndex, median] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << sim.latestReport.getPartySeatsPercentile(partyIndex, 99.9f) << ",";
+	}
+	summaryFile << "\nCoalition Win 99.9%\n";
+	summaryFile << sim.latestReport.getCoalitionSeatsPercentile(99.9f);
+	summaryFile << "\nParty Vote Shares\n";
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << sim.latestReport.getFpSampleExpectation(partyIndex) << ",";
+	}
+	summaryFile << "\n2PP Vote Share (Labor) - mean\n";
+	summaryFile << sim.latestReport.getTppSampleExpectation() << ",";
+	summaryFile << "\n2PP Vote Share (Labor) - 0.1%\n";
+	summaryFile << sim.latestReport.getTppSamplePercentile(0.1f) << ",";
+	summaryFile << "\n2PP Vote Share (Labor) - 5%\n";
+	summaryFile << sim.latestReport.getTppSamplePercentile(5.0f) << ",";
+	summaryFile << "\n2PP Vote Share (Labor) - median\n";
+	summaryFile << sim.latestReport.getTppSampleMedian() << ",";
+	summaryFile << "\n2PP Vote Share (Labor) - 95%\n";
+	summaryFile << sim.latestReport.getTppSamplePercentile(95.0f) << ",";
+	summaryFile << "\n2PP Vote Share (Labor) - 99.9%\n";
+	summaryFile << sim.latestReport.getTppSamplePercentile(99.9f) << ",";
+	summaryFile << "\nSeat Names\n";
+	for (auto const& name : sim.latestReport.seatName) {
+		summaryFile << name << ",";
+	}
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << "\nSeat Win Percentages - " << name << "\n";
+		for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
+			summaryFile << sim.latestReport.seatPartyWinPercent[index][partyIndex] << ",";
+		}
+	}
+	for (auto [partyIndex, name] : sim.latestReport.partyName) {
+		if (!useParties.contains(partyIndex)) continue;
+		summaryFile << "\nSeat FP Estimate - " << name << "\n";
+		for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
+			if (sim.latestReport.seatPartyMeanFpShare[index].contains(partyIndex))
+				summaryFile << sim.latestReport.seatPartyMeanFpShare[index][partyIndex] << ",";
+			else
+				summaryFile << "0,";
+		}
+	}
 }
 
 StanModel const& SimulationCompletion::baseModel()

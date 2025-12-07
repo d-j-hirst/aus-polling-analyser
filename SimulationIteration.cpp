@@ -1949,6 +1949,8 @@ void SimulationIteration::incorporateLiveResults()
 
 	// Incorporate live TPPs first
 
+	//PA_LOG_VAR("------");
+
 	// First, adjust seat margins towards the election baseline as confidence increases
 	// This is because we want to replace the uncertainty measured in the prior
 	// with the uncertainty estimated from the live results
@@ -1957,8 +1959,11 @@ void SimulationIteration::incorporateLiveResults()
 		float priorMargin = partyOneNewTppMargin[seatIndex];
 		float baselineMargin = detransformVoteShare(seatTppInformation.baseline) - 50.0f;
 		float confidence = seatTppInformation.confidence;
-			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
-			float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
+		// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
+		float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
+		//PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
+		//PA_LOG_VAR(confidence);
+		//PA_LOG_VAR(baselineWeight);
 		// shouldn't overflow as both priorMargin and baselineMargin will be within acceptable bounds
 		// if baselineWeight is outside (0, 1) there is a logic error somewhere
 		float mixedMargin = mix(priorMargin, baselineMargin, baselineWeight);
@@ -1967,6 +1972,9 @@ void SimulationIteration::incorporateLiveResults()
 
 	// Get the baseline and deviation for the election
 	auto electionTppInformation = liveElection->getFinalSpecificTppInformation();
+	//PA_LOG_VAR(electionTppInformation.baseline);
+	//PA_LOG_VAR(electionTppInformation.confidence);
+	//PA_LOG_VAR(electionTppInformation.deviation);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		// now incorporate deviation
 		float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
@@ -2001,7 +2009,7 @@ void SimulationIteration::incorporateLiveResults()
 	// Now, incorporate live FPs
 
 	// First, need to split the coalition votes so that swings can be assigned to them separately
-	// For now this is simplified and we just take the proportions from the prior
+	// For now this is simplified and we just take the proportions from the seat's live results or the prior if there are none.
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		assignNationalsVotes(seatIndex);
 	}

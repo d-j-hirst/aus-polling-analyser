@@ -38,6 +38,7 @@ private:
 	void recordFpTrends();
 	void recordReportSettings();
 	void recordModelledPolls();
+	void exportSummary();
 
 	StanModel const& baseModel();
 

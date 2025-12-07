@@ -316,6 +316,7 @@ int Simulation::Report::getMaximumSeatFrequency(int partyIndex) const
 
 int Simulation::Report::getPartySeatsSampleCount(int partyIndex) const
 {
+	if (!partySeatWinFrequency.contains(partyIndex)) return 0;
 	return std::accumulate(partySeatWinFrequency.at(partyIndex).begin(), partySeatWinFrequency.at(partyIndex).end(), 0);
 }
 
@@ -375,6 +376,7 @@ double Simulation::Report::getPartyOne2pp() const
 
 int Simulation::Report::getFpSampleCount(int partyIndex) const
 {
+	if (!partyPrimaryFrequency.contains(partyIndex)) return 0;
 	return std::accumulate(partyPrimaryFrequency.at(partyIndex).begin(), partyPrimaryFrequency.at(partyIndex).end(), 0,
 		[](int sum, std::pair<short, int> a) {return sum + a.second; });
 }

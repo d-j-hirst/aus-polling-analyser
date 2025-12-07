@@ -695,8 +695,6 @@ void VisualiserFrame::drawProjections(wxDC& dc) {
 void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 	if (!displayProjections) return;
 	if (selectedParty < 0) return;
-	constexpr int NumSigmaLevels = 2;
-	constexpr int SigmaBrightnessChange = 50;
 	auto series = viewSeriesFromProjection(projection);
 	if (!series) return;
 	int projStartDay = int(floor(getProjectionStartDate(projection).GetMJD()));
@@ -888,7 +886,6 @@ void VisualiserFrame::determineLabelRectFromPoll()
 
 void VisualiserFrame::determineLabelRectFromModel()
 {
-	constexpr int MinimumLines = 2;
 	constexpr int VerticalPaddingTotal = PollInfoPadding * 2 - 1;
 	constexpr int DefaultWidth = 200;
 	constexpr int MousePointerHorzSpacing = 10;
@@ -909,7 +906,6 @@ void VisualiserFrame::determineLabelRectFromModel()
 
 void VisualiserFrame::determineLabelRectFromProjection()
 {
-	constexpr int MinimumLines = 2;
 	constexpr int VerticalPaddingTotal = PollInfoPadding * 2 - 1;
 	constexpr int DefaultWidth = 200;
 	constexpr int MousePointerHorzSpacing = 10;

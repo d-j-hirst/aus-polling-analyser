@@ -260,13 +260,13 @@ void SeatCollection::importInfo()
 		if (tag == MiscTppModifier) seat.miscTppModifier = std::stof(val);
 		if (tag == TransposedFederalSwing) seat.transposedTppSwing = std::stof(val);
 		if (tag == ByElectionSwing) seat.byElectionSwing = std::stof(val);
-		if (tag == SophomoreCandidate) seat.sophomoreCandidate = val != 0;
-		if (tag == SophomoreParty) seat.sophomoreParty = val != 0;
-		if (tag == Retirement) seat.retirement = val != 0;
-		if (tag == Disendorsement) seat.disendorsement = val != 0;
-		if (tag == PreviousDisendorsement) seat.previousDisendorsement = val != 0;
-		if (tag == IncumbentRecontestConfirmed) seat.incumbentRecontestConfirmed = val != 0;
-		if (tag == ConfirmedProminentIndependent) seat.confirmedProminentIndependent = val != 0;
+		if (tag == SophomoreCandidate) seat.sophomoreCandidate = std::stoi(val) != 0;
+		if (tag == SophomoreParty) seat.sophomoreParty = std::stoi(val) != 0;
+		if (tag == Retirement) seat.retirement = std::stoi(val) != 0;
+		if (tag == Disendorsement) seat.disendorsement = std::stoi(val) != 0;
+		if (tag == PreviousDisendorsement) seat.previousDisendorsement = std::stoi(val) != 0;
+		if (tag == IncumbentRecontestConfirmed) seat.incumbentRecontestConfirmed = std::stoi(val) != 0;
+		if (tag == ConfirmedProminentIndependent) seat.confirmedProminentIndependent = std::stoi(val) != 0;
 		if (tag == ProminentMinors) seat.prominentMinors = splitString(val, ",");
 		if (tag == BettingOdds) {
 			auto splitByParty = splitString(val, ";");

@@ -2629,7 +2629,6 @@ LUFILE *lufopen(void *z,unsigned int len,DWORD flags,ZRESULT *err)
     { h=CreateFile((const TCHAR*)z,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
       if (h==INVALID_HANDLE_VALUE) 
 	  {
-		const DWORD error = GetLastError();
 		*err=ZR_NOFILE;
 		return NULL;
 	  }

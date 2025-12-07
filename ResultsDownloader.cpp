@@ -47,7 +47,7 @@ ResultsDownloader::~ResultsDownloader()
 	curl_global_cleanup();
 }
 
-std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFileName, std::string match)
+std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFileName)
 {
 	CURLcode res;
 	struct FtpFile ftpfile = {
@@ -79,10 +79,10 @@ std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFi
 	if (ftpfile.stream)
 		fclose(ftpfile.stream); /* close the local file */
 
-	return unzipFile(TempZipFileName, newFileName, match);
+	return unzipFile(TempZipFileName, newFileName);
 }
 
-std::string ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName, std::string match)
+std::string ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName)
 {
 	// Quickest way I could find to achieve this because the previous method started truncating files before the 2024 election
 	// and there's probably no good reason to do things more "properly" at this stage
