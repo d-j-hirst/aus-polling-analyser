@@ -524,6 +524,14 @@ void Election::createNodesFromElectionData() {
         // as names can be changed from one election to the next
         // without changing the ID
         if (prevBooth.id == currentBooth.id) {
+            if (currentBooth.type == Results2::Booth::Type::Ppvc) {
+				// AEC is known to sometimes use the same booth ID for different PPVC booths in different elections
+                // E.g. Brunswick WILLS PPVC (2025) vs Pascoe Vale WILLS PPVC (2022) both use 34056
+                // So check the start of the name to make sure they're at least a similar location
+                if (prevBooth.name.substr(0, 4) != currentBooth.name.substr(0, 4)) {
+                  continue;
+				}
+          }
           previousBoothPtr = &prevBooth;
           break;
         }
@@ -1635,7 +1643,7 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
     // map from party index to vote count (as a float)
     auto tcpVotesProjected = std::map<int, float>();
     for (auto const& [partyId, votes] : booth.node.tcpVotesCurrent) { 
-      int effectivePartyId = partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
+      int effectivePartyId = convertPartyId(partyId);
       tcpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
     booth.node.tcpConfidence = 1.0f;
@@ -1702,13 +1710,15 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
       float boothFocusPartyTcpVotes = boothFocusPartyFpVotes + boothFocusPartyPrefs;
       float boothOtherPartyTcpVotes = static_cast<float>(booth.node.totalFpVotesCurrent()) - boothFocusPartyTcpVotes;
       if (createRandomVariation) {
-        booth.node.tempTcpVotesProjected[focusParty] = boothFocusPartyTcpVotes;
-        booth.node.tempTcpVotesProjected[otherParty] = boothOtherPartyTcpVotes;
+        booth.node.tempTcpVotesProjected[convertPartyId(focusParty)] = boothFocusPartyTcpVotes;
+        booth.node.tempTcpVotesProjected[convertPartyId(otherParty)] = boothOtherPartyTcpVotes;
       } else {
-        booth.node.tcpVotesProjected[focusParty] = boothFocusPartyTcpVotes;
-        booth.node.tcpVotesProjected[otherParty] = boothOtherPartyTcpVotes;
+        booth.node.tcpVotesProjected[convertPartyId(focusParty)] = boothFocusPartyTcpVotes;
+        booth.node.tcpVotesProjected[convertPartyId(otherParty)] = boothOtherPartyTcpVotes;
         booth.node.tcpConfidence = seat.tcpFocusPartyConfidence.value() * 0.5f;
       }
+      // TODO: As above, we need to account for incomplete returns in non-ordinary booths
+      // (FPs seem to arrive with TCPs for now but can't rely on that always being the case)
     } else if (
       booth.node.totalVotesPrevious() > 0
       && booth.node.tcpVotesPrevious.contains(firstPartyId)

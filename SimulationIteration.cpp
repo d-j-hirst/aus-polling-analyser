@@ -1142,7 +1142,14 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	// increased change of emerging inds based on how competitive one was last time
 	// (a bit ad-hoc for now, should do more scientifically later)
 	if (run.pastSeatResults[seatIndex].fpVotePercent.contains(run.indPartyIndex)) {
-		indEmergenceRate += 0.008f * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 40.0f);
+		float multiplier = 1.0f;
+		// Reduce emergence chance if an ind actually won last time
+		// as re-run by the same ind will not count for this category in that case
+		if (run.pastSeatResults[seatIndex].tcpVotePercent.contains(run.indPartyIndex) &&
+			run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] > 50.0f) {
+			multiplier *= 0.3f;
+		}
+		indEmergenceRate += 0.008f * multiplier * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 24.0f);
 	}
 	for (auto [partyIndex, vote] : seatFpVoteShare[seatIndex]) {
 		if (partyIndex < 0) continue;
@@ -1178,9 +1185,16 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		// increased vote for emerging inds based on how competitive one was last time
 		// (a bit ad-hoc for now, should do more scientifically later)
 		if (run.pastSeatResults[seatIndex].fpVotePercent.contains(run.indPartyIndex) && !existingStrongCandidate) {
+			float multiplier = 1.0f;
+			// Reduce vote if an ind actually won last time
+			// as re-run by the same ind will not count for this category in that case
+			if (run.pastSeatResults[seatIndex].tcpVotePercent.contains(run.indPartyIndex) &&
+				run.pastSeatResults[seatIndex].tcpVotePercent[run.indPartyIndex] > 50.0f) {
+				multiplier *= 0.5f;
+			}
 			rmse = predictorCorrectorTransformedSwing(
 				rmse, 
-				0.8f * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 40.0f)
+				0.8f * multiplier * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 24.0f)
 			);
 		}
 		// The quantile should only fall within the upper half of the distribution
