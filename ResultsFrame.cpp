@@ -355,6 +355,10 @@ bool ResultsFrame::resultPassesFilter(Outcome const& thisResult)
 		// this can be detected by the simulated tpp average and previous margin having opposite signs
 		if (simulatedMarginAverage * seat.tppMargin < 0.0f) significance += 5.0f;
 	}
+	if (thisResult.seat < 0 || thisResult.seat >= project->seats().count()) {
+		logger << "Warning: A seat number was invalid in ResultsFrame::resultPassesFilter\n";
+		return false;
+	}
 	significance += std::max(0.0f, (0.5f - abs(0.5f - report->othersWinProportion[thisResult.seat])) * 30.0f);
 
 	if (filter == Filter::SignificantResults) return significance > 1.5f;

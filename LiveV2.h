@@ -122,6 +122,7 @@ public:
 
   Results2::VoteType voteType = Results2::VoteType::Ordinary;
   Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
+  std::pair<float, float> coords = { 0.0f, 0.0f }; // latitude, longitude
 
   Node node;
 };
@@ -152,7 +153,7 @@ public:
   std::map<Results2::VoteType, float> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::map<Results2::Booth::Type, float> tppBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::optional<int> tcpFocusPartyIndex;
-  std::optional<float> tcpFocusPartyPrefFlow;
+  std::optional<float> tcpFocusPartyPrefFlow; // batched among all parties not in the top 2
   std::optional<float> tcpFocusPartyConfidence;
   std::optional<float> nationalsProportion;
 
@@ -312,9 +313,17 @@ public:
 
   float getSeatTppConfidence(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
-		if (seatIndex != int(seats.size())) {
-			return seats[seatIndex].node.tppConfidence;
-		}
+    if (seatIndex != int(seats.size())) {
+      return seats[seatIndex].node.tppConfidence;
+    }
+    return 0.0f;
+  }
+
+  float getSeatTcpConfidence(std::string const& seatName) const {
+    int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
+    if (seatIndex != int(seats.size())) {
+      return seats[seatIndex].node.tcpConfidence;
+    }
     return 0.0f;
   }
 

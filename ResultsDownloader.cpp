@@ -10,6 +10,8 @@
 #include <tchar.h>
 #include "unzip.h"
 
+#include "Log.h"
+
 #pragma warning(disable : 4996)
 
 const std::string TempZipFileName = "downloads/TempResults.zip";
@@ -17,13 +19,13 @@ const std::wstring LTempZipFileName(TempZipFileName.begin(), TempZipFileName.end
 const std::string TempFileName = "downloads/Temp.dat";
 
 struct FtpFile {
-	const char *filename;
-	FILE *stream;
+	const char* filename;
+	FILE* stream;
 };
 
-static size_t my_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
+static size_t my_fwrite(void* buffer, size_t size, size_t nmemb, void* stream)
 {
-	struct FtpFile *out = (struct FtpFile *)stream;
+	struct FtpFile* out = (struct FtpFile*)stream;
 	if (out && !out->stream) {
 		/* open file for writing */
 		out->stream = fopen(out->filename, "wb");
@@ -47,7 +49,7 @@ ResultsDownloader::~ResultsDownloader()
 	curl_global_cleanup();
 }
 
-std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFileName)
+std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFileName, bool getPollingDistricts)
 {
 	CURLcode res;
 	struct FtpFile ftpfile = {
@@ -79,10 +81,10 @@ std::string ResultsDownloader::loadZippedFile(std::string url, std::string newFi
 	if (ftpfile.stream)
 		fclose(ftpfile.stream); /* close the local file */
 
-	return unzipFile(TempZipFileName, newFileName);
+	return unzipFile(TempZipFileName, newFileName, getPollingDistricts);
 }
 
-std::string ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName)
+std::string ResultsDownloader::unzipFile(std::string sourceFileName, std::string newFileName, bool getPollingDistricts)
 {
 	// Quickest way I could find to achieve this because the previous method started truncating files before the 2024 election
 	// and there's probably no good reason to do things more "properly" at this stage
@@ -98,7 +100,11 @@ std::string ResultsDownloader::unzipFile(std::string sourceFileName, std::string
 		for (const auto& entry : std::filesystem::directory_iterator(archivePath)) {
 			if (entry.path().string().find(".xml") != std::string::npos) {
 				if (entry.path().string().find("eml-") != std::string::npos) continue;
-				if (entry.path().string().find("pollingdistricts-") != std::string::npos) continue;
+				if (!getPollingDistricts) {
+					if (entry.path().string().find("pollingdistricts-") != std::string::npos) continue;
+				} else {
+					if (entry.path().string().find("preload-") != std::string::npos) continue;
+				}
 				std::filesystem::rename(entry.path(), newPath);
 				transferredFile = true;
 			}

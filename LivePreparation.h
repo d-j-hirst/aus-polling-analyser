@@ -30,6 +30,8 @@ private:
 	void parsePreviousResults();
 	void downloadPreload();
 	void parsePreload();
+	void downloadPollingPlaces();
+	void parsePollingPlaces();
 	void acquireCurrentResults();
 	void downloadLatestResults();
 	void parseCurrentResults();

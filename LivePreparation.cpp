@@ -42,6 +42,8 @@ void LivePreparation::prepareLiveAutomatic()
 	parsePreviousResults();
 	downloadPreload();
 	parsePreload();
+	downloadPollingPlaces();
+	parsePollingPlaces();
 	if (sim.settings.currentRealUrl.size()) {
 		downloadLatestResults();
 	}
@@ -156,8 +158,8 @@ void LivePreparation::downloadPreload()
 	}
 	else {
 		xmlFilename = resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName);
-		logger << "Downloaded file: " << sim.settings.preloadUrl << "\n";
-		logger << "and saved it as: " << mangledName << "\n";
+		logger << "Downloaded file from: " << sim.settings.preloadUrl << "\n";
+		logger << "and saved preload data as: " << mangledName << "\n";
 	}
 }
 
@@ -190,6 +192,40 @@ void LivePreparation::parsePreload()
 		tinyxml2::XMLDocument boothsXml;
 		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths_current.xml").c_str());
 		currentElection = Results2::Election::createWaec(candidatesXml, boothsXml, run.getTermCode());
+	}
+}
+
+void LivePreparation::downloadPollingPlaces()
+{
+	// Polling places data contains location data that is used to estimate
+	// votes for booths that don't have a previous-election match.
+	if (run.regionCode == "vic") return;
+	if (run.regionCode == "nsw") return;
+	if (run.regionCode == "qld") return;
+	if (run.regionCode == "wa") return;
+	ResultsDownloader resultsDownloader;
+	std::string mangledName = sim.settings.preloadUrl;
+	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
+	std::replace(mangledName.begin(), mangledName.end(), '.', '$');
+	std::replace(mangledName.begin(), mangledName.end(), ':', '$');
+	mangledName = "downloads/" + mangledName + "@polling_places.xml";
+	std::filesystem::path mangledPath(mangledName);
+	xmlFilename = mangledName;
+	if (std::filesystem::exists(mangledPath)) {
+		logger << "Already found preload file at: " << mangledName << "\n";
+	}
+	else {
+		xmlFilename = resultsDownloader.loadZippedFile(sim.settings.preloadUrl, mangledName, true);
+		logger << "Downloaded file from: " << sim.settings.preloadUrl << "\n";
+		logger << "and saved polling places data as: " << mangledName << "\n";
+	}
+}
+
+void LivePreparation::parsePollingPlaces()
+{
+	if (run.regionCode == "fed") {
+		xml.LoadFile(xmlFilename.c_str());
+		currentElection.updateAecPollingPlaces(xml);
 	}
 }
 

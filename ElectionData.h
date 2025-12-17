@@ -167,6 +167,9 @@ namespace Results2 {
 		Type type = Type::Normal;
 		int32_t parentSeat;
 		bool confirmedPresent; // "Phantom booths" can appear in the preload but not in the live data, this 
+
+		std::pair<float, float> coords = { 0.0f, 0.0f }; // latitude, longitude
+
 		std::unordered_map<int32_t, int32_t> fpVotes; // map candidate id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotes; // map affiliation id -> vote count
 		std::unordered_map<int32_t, int32_t> tcpVotesCandidate; // map candidate id -> vote count
@@ -291,7 +294,7 @@ namespace Results2 {
 
 		Election(std::string const& termCode) : termCode(termCode) {parties.insert({-1, {-1, "Independent", "IND"}});}
 
-		static Election createAec(tinyxml2::XMLDocument const& xm, std::string const& termCode);
+		static Election createAec(tinyxml2::XMLDocument const& xml, std::string const& termCode);
 		static Election createVec(
 			nlohmann::json const& results,
 			tinyxml2::XMLDocument const& input_candidates,
@@ -319,6 +322,8 @@ namespace Results2 {
 		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
 		void preloadQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
 		void preloadWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
+
+		void updateAecPollingPlaces(tinyxml2::XMLDocument const& xml);
 
 		void applyResultOverrides();
 	};

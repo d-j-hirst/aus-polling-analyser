@@ -1717,6 +1717,28 @@ void Results2::Election::updateWaec(tinyxml2::XMLDocument const& xml)
 	logger << "Appeared to successfully load election data update\n";
 }
 
+void Results2::Election::updateAecPollingPlaces(tinyxml2::XMLDocument const& xml)
+{
+	auto districtList = xml.FirstChildElement("MediaFeed")->FirstChildElement("PollingDistrictList");
+	auto currentDistrict = districtList->FirstChildElement("PollingDistrict");
+	while (currentDistrict) {
+		auto currentPollingPlace = currentDistrict->FirstChildElement("PollingPlaces")->FirstChildElement("PollingPlace");
+		while (currentPollingPlace) {
+			auto locationEl = currentPollingPlace->FirstChildElement("eml:PhysicalLocation");
+			int boothId = locationEl->FindAttribute("Id")->IntValue();
+			auto coordsEl = locationEl->FirstChildElement("eml:Address")->FirstChildElement("xal:PostalServiceElements");
+			auto latitude = coordsEl->FirstChildElement("xal:AddressLatitude")->FloatText();
+			auto longitude = coordsEl->FirstChildElement("xal:AddressLongitude")->FloatText();
+			if (booths.contains(boothId)) {
+				booths[boothId].coords = { latitude, longitude };
+			}
+			currentPollingPlace = currentPollingPlace->NextSiblingElement("PollingPlace");
+		}
+		currentDistrict = currentDistrict->NextSiblingElement("PollingDistrict");
+	}
+
+}
+
 void Results2::Election::applyResultOverrides() {
 	std::string fileName = "analysis/Live Overrides/" + termCode + ".csv";
 	auto file = std::ifstream(fileName);

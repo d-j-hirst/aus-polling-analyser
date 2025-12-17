@@ -11,7 +11,7 @@
 
 using namespace LiveV2;
 
-constexpr float VoteObsWeightStrength = 80.0f;
+constexpr float VoteObsWeightStrength = 120.0f;
 constexpr float PreferenceFlowObsWeightStrength = 200.0f;
 constexpr float CoalitionLeakagePercent = 20.0f;
 constexpr float PreviousTotalVotesGuess = 500.0f;
@@ -23,7 +23,7 @@ constexpr float HospitalBoothVotesGuess = 50.0f;
 constexpr int IndependentPartyIdOffset = 100000;
 
 const float obsWeight(float confidence, float strength = VoteObsWeightStrength) {
-  return std::min(1.0f, 1.025f - 1.025f / (1.0f + std::pow(confidence, 1.6f) * strength));
+  return std::min(1.0f, 1.01f - 1.01f / (1.0f + std::pow(confidence, 1.6f) * strength));
 }
 
 const std::map<Results2::VoteType, std::string> VoteTypeNames = {
@@ -120,7 +120,8 @@ Booth::Booth(
   int parentSeatId,
   int natPartyIndex
 )
-  : name(currentBooth.name), parentSeatId(parentSeatId), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type)
+  : name(currentBooth.name), parentSeatId(parentSeatId), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type),
+  coords(currentBooth.coords)
 {
 
   // Helper function to process votes, calculate shares and swings
@@ -218,16 +219,17 @@ Booth::Booth(
 }
 
 Booth::Booth(
-  Results2::Seat::VotesByType const& currentFpVotes,
-  Results2::Seat::VotesByType const& currentTcpVotes,
-  std::optional<Results2::Seat::VotesByType const*> previousFpVotes,
-  std::optional<Results2::Seat::VotesByType const*> previousTcpVotes,
-  Results2::VoteType voteType,
-  std::function<int(int, bool)> partyMapper,
-  int parentSeatId,
-  int natPartyIndex
+    Results2::Seat::VotesByType const& currentFpVotes,
+    Results2::Seat::VotesByType const& currentTcpVotes,
+    std::optional<Results2::Seat::VotesByType const*> previousFpVotes,
+    std::optional<Results2::Seat::VotesByType const*> previousTcpVotes,
+    Results2::VoteType voteType,
+    std::function<int(int, bool)> partyMapper,
+    int parentSeatId,
+    int natPartyIndex
 )
-  : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other)
+  : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other),
+  coords({ 0.0f, 0.0f })
 {
   auto processVotes = [this, &partyMapper, voteType](
     Results2::Seat::VotesByType const& currentVotes,
@@ -338,6 +340,7 @@ void Booth::log() const
   logger << "Booth: " << name << "\n";
   logger << "Vote type: " << voteTypeName(voteType) << "\n";
   logger << "Booth type: " << Results2::Booth::boothTypeName(boothType) << "\n";
+  logger << "Coordinates: (" << coords.first << ", " << coords.second << ")\n";
   node.log();
 }
 
@@ -906,6 +909,7 @@ void Election::includeSeatBaselineResults() {
         if (thisVotesPrevious > 0.0f) {
           seat.node.fpSwingsBaseline[partyId] = seat.node.fpSharesBaseline[partyId] - 
             transformVoteShare(float(thisVotesPrevious) / float(seat.node.totalVotesPrevious()) * 100.0f);
+          // this ignores redistributions, might have to tweak it to handle some cases better
         }
       }
     }
@@ -1032,16 +1036,32 @@ void Election::measureBoothTypeBiases() {
           continue;
         }
         if (booth.node.totalTcpVotesCurrent() == 0) {
+          // This makes these vote types exist in the sums
+          // so that the baseline bias is still included
+          // If we don't, there's a sudden snap back when the first booth of that type reports
+          // because even though the booth itself has a tiny influence, the baseline
+          // is significantly non-zero (since it leans away from the observed swing)
+          seatTppDeviationWeightedSums[booth.boothType] += 0.0f;
+          seatTppWeightSums[booth.boothType] += 0.0f;
           continue;
         }
+
         
         seatTppDeviationWeightedSums[booth.boothType] += booth.node.tppDeviation.value_or(0.0f) * booth.node.totalTcpVotesCurrent();
         seatTppWeightSums[booth.boothType] += booth.node.totalTcpVotesCurrent();
       }
       if (!seatTppDeviationWeightedSums.contains(Results2::Booth::Type::Normal)) continue;
-      float normalDeviation = seatTppDeviationWeightedSums.at(Results2::Booth::Type::Normal) / seatTppWeightSums.at(Results2::Booth::Type::Normal);
+      float normalDeviation = seatTppWeightSums.at(Results2::Booth::Type::Normal) ?
+        seatTppDeviationWeightedSums.at(Results2::Booth::Type::Normal) / seatTppWeightSums.at(Results2::Booth::Type::Normal)
+        : 0.0f;
       for (auto const& [boothType, deviationWeightedSum] : seatTppDeviationWeightedSums) {
         if (boothType == Results2::Booth::Type::Normal) continue;
+        if (seatTppWeightSums.at(boothType) == 0.0f) {
+          // avoid division by zero
+          tppBiasWeightedSums[boothType] += 0.0f;
+          tppWeightSums[boothType] += 0.0f;
+          continue;
+        }
         float deviation = deviationWeightedSum / seatTppWeightSums.at(boothType);
         float boothTypeBias = deviation - normalDeviation;
         float weight = seatTppWeightSums.at(boothType);
@@ -1049,15 +1069,16 @@ void Election::measureBoothTypeBiases() {
         tppWeightSums[boothType] += weight;
       }
     }
+
     for (auto const& [boothType, bias] : tppBiasWeightedSums) {
       float votes = tppWeightSums.at(boothType);
-      float overallTppBias = tppBiasWeightedSums.at(boothType) / tppWeightSums.at(boothType);
+      float overallTppBias = votes ? tppBiasWeightedSums.at(boothType) / votes : 0.0f;
       // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they aren't very important)
       float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(1000000.0f, 0.9f));
       float baseline = 0.0f;
       // pre-polls tend to move the tpp back towards the baseline
       if (boothType == Results2::Booth::Type::Ppvc) {
-        baseline = -0.8f * node.tppDeviation.value_or(0.0f);
+        baseline = -0.7f * node.tppDeviation.value_or(0.0f);
       }
       boothTypeBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
@@ -1556,15 +1577,12 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
           baselineShareUntransformed = fpProbabilityBands[(fpProbabilityBands.size() - 1) / 2];
         }
       }
-      if (booth.node.fpVotesPrevious.contains(effectivePartyId)) {
+      if (booth.node.fpVotesPrevious.contains(effectivePartyId) && booth.node.totalVotesPrevious()) {
         // We have previous election data and some sort of a deviation estimate (even if it's just zero)
         float prevVotes = booth.node.fpVotesPrevious.at(effectivePartyId);
-        float baselineShare = transformVoteShare(float(prevVotes) / float(previousTotalVotes));
-        // If we can use the baseline report (typically we can), use it to determine the baseline for the swing
-        if (baselineShareUntransformed.has_value()) {
-          baselineShare = transformVoteShare(baselineShareUntransformed.value());
-        }
-        float newShare = baselineShare + deviation + randomFactor;
+        float prevShare = transformVoteShare(std::clamp(float(prevVotes) / float(previousTotalVotes) * 100.0f, 0.5f, 99.5f));
+        float baselineSwing = seat.node.fpSwingsBaseline.contains(effectivePartyId) ? seat.node.fpSwingsBaseline.at(effectivePartyId) : 0.0f;
+        float newShare = prevShare + baselineSwing + deviation + randomFactor;
         float newVotes = detransformVoteShare(newShare) * previousTotalVotes * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
@@ -1589,6 +1607,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float transformedBaselineShare = transformVoteShare(baselineShareUntransformed.value());
         if (booth.voteType == Results2::VoteType::Postal) {
           deviation -= 5.0f; // Rough approximation to account for first-time third party candidates generally doing worse on postal votes
+          // TODO: Applied like this will bias the results to the negative, some sort of compensation should be applied to other votes
         }
         float adjustedShare = transformedBaselineShare + deviation + randomFactor;
         float detransformedShare = detransformVoteShare(adjustedShare);
@@ -1693,8 +1712,9 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
     if (
       seat.tcpFocusPartyIndex.has_value() && seat.tcpFocusPartyPrefFlow.has_value()
       && seat.tcpFocusPartyConfidence.value_or(0.0f) > 0.0f && booth.node.totalFpVotesCurrent() > 0
-    ) {
+     ) {
       // We have a preference flow estimate for the seat, use that to project
+      // from the known first preference votes
       int focusParty = seat.tcpFocusPartyIndex.value() == firstPartyId ? firstPartyId : secondPartyId;
       int otherParty = focusParty == firstPartyId ? secondPartyId : firstPartyId;
       float boothPrefs = booth.node.totalFpVotesCurrent() - booth.node.fpVotesCurrent.at(focusParty) - booth.node.fpVotesCurrent.at(otherParty);
@@ -1712,10 +1732,11 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
       if (createRandomVariation) {
         booth.node.tempTcpVotesProjected[convertPartyId(focusParty)] = boothFocusPartyTcpVotes;
         booth.node.tempTcpVotesProjected[convertPartyId(otherParty)] = boothOtherPartyTcpVotes;
-      } else {
+      }
+      else {
         booth.node.tcpVotesProjected[convertPartyId(focusParty)] = boothFocusPartyTcpVotes;
         booth.node.tcpVotesProjected[convertPartyId(otherParty)] = boothOtherPartyTcpVotes;
-        booth.node.tcpConfidence = seat.tcpFocusPartyConfidence.value() * 0.5f;
+        booth.node.tcpConfidence = std::sqrt(seat.tcpFocusPartyConfidence.value()) * 0.5f;
       }
       // TODO: As above, we need to account for incomplete returns in non-ordinary booths
       // (FPs seem to arrive with TCPs for now but can't rely on that always being the case)
@@ -1724,12 +1745,15 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
       && booth.node.tcpVotesPrevious.contains(firstPartyId)
       && booth.node.tcpVotesPrevious.contains(secondPartyId)
     ) {
-      // We have a match between the current TCP count for the seat and the previous TCP count for the booth
+      // We either don't have first preference data for this booth yet, or we don't have a preference flow estimate for the seat
+      // We  *do* have a match between the current TCP count for the seat and the previous TCP count for the booth
       // So we can calculate the existing swing across the seat and project to this booth
       // TODO: need to add extra checks if the booth was previously in a different seat
       // (won't affect independents since they're counted separately at this stage but could affect e.g. Wills)
       float weightedSwing = 0.0f;
       float summedWeight = 0.0f;
+      bool prefFlowAvailable = seat.tcpFocusPartyIndex.has_value() && seat.tcpFocusPartyPrefFlow.has_value()
+        && seat.tcpFocusPartyConfidence.value_or(0.0f) > 0.0f;
       for (auto const& otherBoothIndex : seat.booths) {
         // Need to find the existing TCP swing for the seat, average swings across the seat
         // and then project to the booth
@@ -1742,11 +1766,27 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
         ) {
           // This booth is a valid comparison
           float swing = otherBooth.node.tcpSwings.at(firstPartyId);
-          float weight = static_cast<float>(otherBooth.node.totalVotesPrevious());
+          float weight = static_cast<float>(otherBooth.node.totalFpVotesCurrent());
           weightedSwing += swing * weight;
-          summedWeight += weight; 
+          summedWeight += weight;
+        }
+        else if (otherBooth.node.fpSwings.size() > 0 && prefFlowAvailable) {
+          /* calculate estimate for tcp swing and add it at a lower weight */
+          int focusParty = seat.tcpFocusPartyIndex.value();
+          if (otherBooth.node.fpSwings.contains(firstPartyId) && otherBooth.node.fpSwings.contains(secondPartyId)) {
+            float fpSwingFirst = otherBooth.node.fpSwings.at(firstPartyId);
+            float fpSwingSecond = otherBooth.node.fpSwings.at(secondPartyId);
+            float fpSwingPrefs = -fpSwingFirst - fpSwingSecond;
+            float preferenceFlow = firstPartyId == focusParty ? seat.tcpFocusPartyPrefFlow.value() : 100.0f - seat.tcpFocusPartyPrefFlow.value();
+            float estimatedTcpSwing = (fpSwingFirst - fpSwingSecond) * 0.5f + fpSwingPrefs * (preferenceFlow * 0.01f - 0.5f);
+            float topTwoProportion = 0.01f * ( otherBooth.node.fpSharesPercent().at(firstPartyId) + otherBooth.node.fpSharesPercent().at(secondPartyId));
+            float weight = static_cast<float>(otherBooth.node.totalFpVotesCurrent()) * topTwoProportion * topTwoProportion;
+            weightedSwing += estimatedTcpSwing * weight;
+            summedWeight += weight;
+          }
         }
       }
+
       if (summedWeight > 0.0f) {
         float averageSwing = weightedSwing / summedWeight;
         if (createRandomVariation) {
@@ -1765,13 +1805,27 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
         } else {
           booth.node.tcpVotesProjected[convertPartyId(firstPartyId)] = tcpEstimateCurrent;
           booth.node.tcpVotesProjected[convertPartyId(secondPartyId)] = float(booth.node.totalVotesPrevious()) - tcpEstimateCurrent;
-          booth.node.tcpConfidence = std::sqrt((summedWeight) / float(seat.node.totalVotesPrevious())) * 0.5f;
+          booth.node.tcpConfidence = 0.0f;
         }
       } else {
-        cantProject = true;
+        // As a last resort use project the vote shares directly (without any kind of swing)
+        // Can happen if the only booths reporting TCP data had a different TCP last time or are new.
+        // Example case: 2025 Grayndler at 18:50 on election night
+        for (auto const& [partyId, votes] : seat.node.tcpVotesCurrent) {
+          float tcpProportionCurrent = float(votes) / float(seat.node.totalTcpVotesCurrent());
+          float tcpEstimateCurrent = tcpProportionCurrent * float(booth.node.totalVotesPrevious());
+          if (createRandomVariation) {
+            booth.node.tempTcpVotesProjected[convertPartyId(partyId)] = tcpEstimateCurrent;
+          } else {
+            booth.node.tcpVotesProjected[convertPartyId(partyId)] = tcpEstimateCurrent;
+          }
+        }
+        booth.node.tcpConfidence = 0.0f;
       }
     }
     else if (booth.node.tcpVotesPrevious.contains(secondPartyId)) {
+      // We have some TCP data for the seat but (a) no FP data for this booth yet and 
+      // (b) this booth's previous TCP involved a different party to the current major party so can't use swing
       // In this case, the major party (always in 2nd position) is the same as the previous election
       // so we can project, but with extra caution
       // First, need to know what party was their previous opponent
@@ -2057,6 +2111,7 @@ void Election::determineElectionFinalFpDeviations(bool allowCurrentData) {
     float finalDeviation = node.fpSharesBaseline.contains(partyId)
       ? transformVoteShare(share * 100.0f) - node.fpSharesBaseline.at(partyId)
       : 0.0f;
+
     if (allowCurrentData) {
       float offset = offsetSpecificFpDeviations.contains(partyId)
         ? offsetSpecificFpDeviations.at(partyId) * (1.0f - node.fpConfidence)
@@ -2307,8 +2362,8 @@ void Election::prepareVariability() {
   std::map<int, std::map<int, std::vector<float>>> seatFpResults; // by seat, then by party
   std::map<int, std::vector<float>> seatTppResults;
   std::map<int, std::vector<float>> seatTcpResults;
-  int IterationsTarget = 160;
-  int threadCount = 16;
+  int IterationsTarget = 288;
+  int threadCount = 24;
   for (int iteration = 0; iteration < IterationsTarget / threadCount; ++iteration) {
     std::mutex seatResultsMutex;
     auto doSingleIteration = [&]() {

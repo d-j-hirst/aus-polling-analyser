@@ -2012,7 +2012,7 @@ void SimulationIteration::incorporateLiveResults()
 	}
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		auto const seat = project.seats().viewByIndex(seatIndex);
+		auto const& seat = project.seats().viewByIndex(seatIndex);
 		float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
 		float seatTppDeviation = liveElection->getSeatTppInformation(seat.name).deviation;
 		float transformedTpp = transformVoteShare(oldTpp);
@@ -2373,11 +2373,14 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 	if (run.isLiveAutomatic() && !(isMajor(topTwo.first.first, run.natPartyIndex) && isMajor(topTwo.second.first, run.natPartyIndex))) {
 		auto tcpInfo = liveElection->getSeatTcpInformation(project.seats().viewByIndex(seatIndex).name);
 		if (tcpInfo.shares.contains(topTwo.first.first) && tcpInfo.shares.contains(topTwo.second.first)) {
+      auto oldTopTwo = topTwo;
 			float priorShare = transformVoteShare(topTwo.first.second);
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
+			// TODO: Tune this
+			liveShare += rng.normal(0.0f, std::min(10.0f, 1.0f / (tcpInfo.confidence + 0.02f) - 0.97f));
 			// Strongly favour use of live TCP results once there's a decent amount in
 			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
-			float baselineWeight = std::clamp(1.606f / (1.0f + std::exp(-(24.0f * tcpInfo.confidence - 0.5f))) - 0.6063f, 0.0f, 1.0f);
+			float baselineWeight = std::clamp(1.6065f / (1.0f + std::exp(-(14.0f * tcpInfo.confidence - 0.5f))) - 0.60651f, 0.0f, 1.0f);
 			float mixedShare = mix(priorShare, liveShare, baselineWeight);
 			topTwo.first.second = detransformVoteShare(mixedShare);
 			topTwo.second.second = 100.0f - topTwo.first.second;

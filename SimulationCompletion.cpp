@@ -774,6 +774,18 @@ void SimulationCompletion::exportSummary()
 				summaryFile << "0,";
 		}
 	}
+	summaryFile << "\nFP percent counted\n";
+	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
+		summaryFile << run.liveElection->getSeatFpConfidence(sim.latestReport.seatName[index]) << ",";
+	}
+	summaryFile << "\nTPP swing basis\n";
+	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
+		summaryFile << run.liveElection->getSeatTppConfidence(sim.latestReport.seatName[index]) << ",";
+	}
+	summaryFile << "\nTCP swing basis\n";
+	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
+		summaryFile << run.liveElection->getSeatTcpConfidence(sim.latestReport.seatName[index]) << ",";
+	}
 }
 
 StanModel const& SimulationCompletion::baseModel()
