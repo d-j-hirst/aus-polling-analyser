@@ -9,8 +9,8 @@ using Mp = Simulation::MajorParty;
 
 constexpr std::array<int, NumProbabilityBoundIndices> ProbabilityBounds = { 1, 5, 20, 50, 150, 180, 195,199 };
 
-SimulationCompletion::SimulationCompletion(PollingProject & project, Simulation & sim, SimulationRun & run, int iterations)
-	: project(project), run(run), sim(sim), iterations(iterations)
+SimulationCompletion::SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations, FeedbackFunc feedback)
+	: project(project), run(run), sim(sim), iterations(iterations), feedback(feedback)
 {
 }
 
@@ -52,7 +52,7 @@ void SimulationCompletion::completeRun()
 
 	recordReportSettings();
 
-	if (run.isLiveAutomatic()) {
+	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
 		exportSummary();
 	}
 
@@ -668,7 +668,13 @@ void SimulationCompletion::recordModelledPolls()
 
 void SimulationCompletion::exportSummary()
 {
-	std::ofstream summaryFile("live_summary.csv");
+	std::ofstream summaryFile;
+	while (!summaryFile.is_open()) {
+		summaryFile.open("live_summary.csv");
+		if (!summaryFile.is_open()) {
+			feedback("Summary file is open. Close it to write new data.");
+		}
+	}
 	summaryFile << "Simulation Summary\n";
 	summaryFile << "Iterations\n" << iterations << "\n";
 	summaryFile << "Party Names\n";
@@ -786,6 +792,35 @@ void SimulationCompletion::exportSummary()
 	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
 		summaryFile << run.liveElection->getSeatTcpConfidence(sim.latestReport.seatName[index]) << ",";
 	}
+	auto internals = run.liveElection->getInternals();
+	summaryFile << "\nBooth type biases\n";
+	for (auto [boothType, bias] : internals.boothTypeBiases) {
+    summaryFile << Results2::Booth::boothTypeName(boothType) << ",";
+	}
+	summaryFile << "\n";
+	for (auto [boothType, bias] : internals.boothTypeBiases) {
+		summaryFile << bias << ",";
+	}
+	summaryFile << "\nBooth type bias StdDev\n";
+	for (auto [boothType, stdDev] : internals.boothTypeBiasStdDev) {
+		summaryFile << stdDev << ",";
+	}
+	summaryFile << "\nVote type biases\n";
+	for (auto [voteType, bias] : internals.voteTypeBiases) {
+		summaryFile << Results2::voteTypeName(voteType) << ",";
+	}
+	summaryFile << "\n";
+	for (auto [voteType, bias] : internals.voteTypeBiases) {
+		summaryFile << bias << ",";
+	}
+	summaryFile << "\nVote type bias StdDev\n";
+	for (auto [voteType, bias] : internals.voteTypeBiasStdDev) {
+		summaryFile << bias << ",";
+	}
+  summaryFile << "\nInternal projected 2PP\n";
+	summaryFile << internals.projected2pp;
+	summaryFile << "\nRaw 2PP deviation\n";
+	summaryFile << internals.raw2ppDeviation;
 }
 
 StanModel const& SimulationCompletion::baseModel()

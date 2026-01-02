@@ -10,7 +10,6 @@
 static std::random_device rd;
 static std::mt19937 gen;
 
-
 using Mp = Simulation::MajorParty;
 
 void SimulationRun::run(FeedbackFunc feedback) {
@@ -66,7 +65,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 		if (threads[thread].joinable()) threads[thread].join();
 	}
 
-	SimulationCompletion completion(project, sim, *this, cycleIterations);
+	SimulationCompletion completion(project, sim, *this, cycleIterations, feedback);
 	completion.completeRun();
 
 	sim.lastUpdated = wxDateTime::Now();
@@ -191,7 +190,7 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 			if (threads[thread].joinable()) threads[thread].join();
 		}
 
-		SimulationCompletion completion(project, sim, newRun, cycleIterations);
+		SimulationCompletion completion(project, sim, newRun, cycleIterations, feedback);
 		completion.completeRun();
 
 		for (auto const [identifier, chance] : impliedChances) {
@@ -270,7 +269,7 @@ void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 		if (threads[thread].joinable()) threads[thread].join();
 	}
 
-	SimulationCompletion completion(project, sim, newRun, cycleIterations);
+	SimulationCompletion completion(project, sim, newRun, cycleIterations, feedback);
 	completion.completeRun();
 	sim.liveBaselineReport = sim.latestReport;
 

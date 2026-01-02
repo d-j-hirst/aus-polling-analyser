@@ -274,8 +274,10 @@ class ElectionData:
         df['@TPP'] = df['ALP FP']
         for column in df:
             pref_tuple = (self.e_tuple[0], self.e_tuple[1], column)
+            print(pref_tuple)
             if pref_tuple not in m_data.preference_flows:
                 continue
+            print("continuing with preference flow calculation")
             preference_flow = m_data.preference_flows[pref_tuple][0]
             preference_survival = 1 - m_data.preference_flows[pref_tuple][1]
             if column == 'OTH FP':
@@ -291,8 +293,14 @@ class ElectionData:
             pref_col = df[column].fillna(0)
             df['@TPP'] += pref_col * preference_flow * preference_survival
             df['Total'] += pref_col * preference_survival
+            print(df['@TPP'])
+            print(df['Total'])
         df['@TPP'] += adjustment_series
         df['@TPP'] /= (df['Total'] * 0.01)
+        print(df['@TPP'])
+        print(adjustment_series)
+        print(df['Total'])
+        print(df['Total'])
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
         

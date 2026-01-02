@@ -1078,7 +1078,7 @@ void Election::measureBoothTypeBiases() {
       float baseline = 0.0f;
       // pre-polls tend to move the tpp back towards the baseline
       if (boothType == Results2::Booth::Type::Ppvc) {
-        baseline = -0.7f * node.tppDeviation.value_or(0.0f);
+        baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
       }
       boothTypeBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
@@ -1099,6 +1099,8 @@ void Election::measureBoothTypeBiases() {
           continue;
         }
         if (booth.node.totalTcpVotesCurrent() == 0) {
+          seatTppDeviationWeightedSums[booth.voteType] += 0.0f;
+          seatTppWeightSums[booth.voteType] += 0.0f;
           continue;
         }
         
@@ -1107,25 +1109,37 @@ void Election::measureBoothTypeBiases() {
       }
       if (!seatTppDeviationWeightedSums.contains(Results2::VoteType::Ordinary)) continue;
       float normalDeviation = seatTppDeviationWeightedSums.at(Results2::VoteType::Ordinary) / seatTppWeightSums.at(Results2::VoteType::Ordinary);
-      for (auto const& [boothType, deviationWeightedSum] : seatTppDeviationWeightedSums) {
-        if (boothType == Results2::VoteType::Ordinary) continue;
-        float deviation = deviationWeightedSum / seatTppWeightSums.at(boothType);
-        float boothTypeBias = deviation - normalDeviation;
-        float weight = seatTppWeightSums.at(boothType);
-        tppBiasWeightedSums[boothType] += boothTypeBias * weight;
-        tppWeightSums[boothType] += weight;
+      for (auto const& [voteType, deviationWeightedSum] : seatTppDeviationWeightedSums) {
+        if (voteType == Results2::VoteType::Ordinary) continue;
+        if (seatTppWeightSums.at(voteType) == 0.0f) {
+          // avoid division by zero
+          tppBiasWeightedSums[voteType] += 0.0f;
+          tppWeightSums[voteType] += 0.0f;
+          continue;
+        }
+        float deviation = deviationWeightedSum / seatTppWeightSums.at(voteType);
+        float voteTypeBias = deviation - normalDeviation;
+        float weight = seatTppWeightSums.at(voteType);
+        tppBiasWeightedSums[voteType] += voteTypeBias * weight;
+        tppWeightSums[voteType] += weight;
       }
     }
     for (auto const& [voteType, bias] : tppBiasWeightedSums) {
       float votes = tppWeightSums.at(voteType);
-      float overallTppBias = tppBiasWeightedSums.at(voteType) / tppWeightSums.at(voteType);
+      float overallTppBias = votes ? tppBiasWeightedSums.at(voteType) / votes : 0.0f;
       // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they aren't very important)
-      float proportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(1000000.0f, 0.9f));
-      voteTypeBiases[voteType] = overallTppBias * proportion;
+      float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(1000000.0f, 0.9f));
+      // Declaration votes tend to move the tpp back toward the baseline
+      float baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
+      voteTypeBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       voteTypeBiasStdDev[voteType] = stdDev;
     }
   }
+  PA_LOG_VAR(boothTypeBiases);
+  PA_LOG_VAR(boothTypeBiasStdDev);
+  PA_LOG_VAR(voteTypeBiases);
+  PA_LOG_VAR(voteTypeBiasStdDev);
 }
 
 void Election::aggregate() {
@@ -2362,7 +2376,8 @@ void Election::prepareVariability() {
   std::map<int, std::map<int, std::vector<float>>> seatFpResults; // by seat, then by party
   std::map<int, std::vector<float>> seatTppResults;
   std::map<int, std::vector<float>> seatTcpResults;
-  int IterationsTarget = 288;
+  // For testing purposes, keep number of iterations high (live should be more like 288 rather than 2400)
+  int IterationsTarget = 2400;
   int threadCount = 24;
   for (int iteration = 0; iteration < IterationsTarget / threadCount; ++iteration) {
     std::mutex seatResultsMutex;
@@ -2481,7 +2496,7 @@ void Election::prepareVariability() {
 
 void LiveV2::Election::generateVariability() {
   // generate seat-level variability using the parameters previously prepared
-  // this simulates the variability caused by random booth result without
+  // this simulates the variability caused by random booth results without
   // requiring a full recalculation of every booth
 
   for (auto [boothType, variation] : boothTypeBiasStdDev) {
@@ -2517,11 +2532,18 @@ void LiveV2::Election::generateVariability() {
     float withBoothTypeBias = transformedNewTppProjection;
     for (auto [boothType, variation] : boothTypeIterationVariation) {
       float sensitivity = seat.tppBoothTypeSensitivity[boothType] / seat.node.totalVotesPrevious();
+      // Sensitivity is scaled by the election's confidence. We need scaling because the
+      // variation is applied on top of the existing projection, so if confidence is zero/low
+      // this should not change the forecast much from the baseline.
+      // For now, use election-wide confidence as the booth sensitivity is an election-level measure
+      // but could revisit this later
+      sensitivity *= obsWeight(node.tppConfidence);
       withBoothTypeBias += variation * sensitivity;
     }
     float withVoteTypeBias = withBoothTypeBias;
     for (auto [voteType, variation] : voteTypeIterationVariation) {
       float sensitivity = seat.tppVoteTypeSensitivity[voteType] / seat.node.totalVotesPrevious();
+      sensitivity *= obsWeight(node.tppConfidence);
       withVoteTypeBias += variation * sensitivity;
     }
     float newTppProjection = detransformVoteShare(withVoteTypeBias) * 0.01f * totalTppProjectedVotes;

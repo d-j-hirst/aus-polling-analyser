@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 class PollingProject;
 class Seat;
 class Simulation;
@@ -8,7 +11,9 @@ class StanModel;
 
 class SimulationCompletion {
 public:
-	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations);
+	typedef std::function<void(std::string)> FeedbackFunc;
+
+	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations, FeedbackFunc feedback);
 
 	// cycleIterations needs to be given as an argument as it will
 	// be different for calibration runs.
@@ -51,4 +56,5 @@ private:
 	PollingProject & project;
 	Simulation& sim;
 	SimulationRun& run;
+	FeedbackFunc& feedback;
 };

@@ -208,6 +208,15 @@ public:
     float baseline = 0.0f;
   };
 
+  struct Internals {
+    std::map<Results2::Booth::Type, float> boothTypeBiases;
+    std::map<Results2::VoteType, float> voteTypeBiases;
+    std::map<Results2::Booth::Type, float> boothTypeBiasStdDev;
+    std::map<Results2::VoteType, float> voteTypeBiasStdDev;
+    float projected2pp = 0.0f;
+    float raw2ppDeviation = 0.0f;
+  };
+
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
   float getTppShareBaseline() const {
@@ -398,7 +407,22 @@ public:
 
   // Returns untransformed vote share belonging to parties not included among the project's
   // significant parties, along with independents who don't make the threshold for significance
-  FloatInformation getSeatOthersInformation(std::string const& seatName) const; 
+  FloatInformation getSeatOthersInformation(std::string const& seatName) const;
+
+  // Expose some internals for diagnostics/analysis
+  Internals getInternals() const {
+    Internals internals;
+    internals.boothTypeBiases = boothTypeBiases;
+    internals.voteTypeBiases = voteTypeBiases;
+    internals.boothTypeBiasStdDev = boothTypeBiasStdDev;
+    internals.voteTypeBiasStdDev = voteTypeBiasStdDev;
+    internals.projected2pp =
+      node.tppVotesProjected.at(0)
+      / (node.tppVotesProjected.at(0) + node.tppVotesProjected.at(1))
+      * 100.0f;
+    internals.raw2ppDeviation = node.tppDeviation.value_or(0);
+    return internals;
+  }
 
   LiveV2::Election generateScenario() const;
 

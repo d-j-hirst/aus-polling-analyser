@@ -159,54 +159,60 @@ void SimulationIteration::runIteration()
 {
 	bool gotValidResult = false;
 	while (!gotValidResult) {
-		if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-			liveElection = std::make_unique<LiveV2::Election>(run.liveElection->generateScenario());
-		}
-		loadPastSeatResults();
-		initialiseIterationSpecificCounts();
-		determineFedStateCorrelation();
-		determineOverallTpp();
-		decideMinorPartyPopulism();
-		determineHomeRegions();
-		determineMinorPartyContests();
-		determineIntraCoalitionSwing();
-		determineIndDistributionParameters();
-		determineDecVoteBias();
-		determineRegionalSwings();
+		try {
+			if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
+				liveElection = std::make_unique<LiveV2::Election>(run.liveElection->generateScenario());
+			}
+			loadPastSeatResults();
+			initialiseIterationSpecificCounts();
+			determineFedStateCorrelation();
+			determineOverallTpp();
+			decideMinorPartyPopulism();
+			determineHomeRegions();
+			determineMinorPartyContests();
+			determineIntraCoalitionSwing();
+			determineIndDistributionParameters();
+			determineDecVoteBias();
+			determineRegionalSwings();
 
-		if (checkForNans("Before seat initial results", false, false)) {
-			reset();
+			if (checkForNans("Before seat initial results", false, false)) {
+				reset();
+				continue;
+			}
+
+			determineSeatInitialResults();
+
+			if (checkForNans("Before reconciling")) {
+				reset();
+				continue;
+			}
+
+			reconcileSeatAndOverallFp();
+
+			if (checkForNans("After reconciling")) {
+				reset();
+				continue;
+			}
+
+			incorporateLiveResults();
+
+			if (checkForNans("After reconciling", !run.doingLiveBaselineSimulation && !run.doingBettingOddsCalibrations)) {
+				reset();
+				continue;
+			}
+
+			seatTcpVoteShare.resize(project.seats().count());
+			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+				determineSeatFinalResult(seatIndex);
+			}
+
+			assignDirectWins();
+			assignSupportsPartyWins();
+		} 
+		catch (std::bad_alloc const& err) {
+			PA_LOG_VAR(err.what());
 			continue;
 		}
-
-		determineSeatInitialResults();
-
-		if (checkForNans("Before reconciling")) {
-			reset();
-			continue;
-		}
-
-		reconcileSeatAndOverallFp();
-
-		if (checkForNans("After reconciling")) {
-			reset();
-			continue;
-		}
-
-		incorporateLiveResults();
-
-		if (checkForNans("After reconciling", !run.doingLiveBaselineSimulation && !run.doingBettingOddsCalibrations)) {
-			reset();
-			continue;
-		}
-
-		seatTcpVoteShare.resize(project.seats().count());
-		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-			determineSeatFinalResult(seatIndex);
-		}
-
-		assignDirectWins();
-		assignSupportsPartyWins();
 		gotValidResult = true;
 	}
 
