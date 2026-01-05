@@ -1108,6 +1108,8 @@ void Election::measureBoothTypeBiases() {
         seatTppWeightSums[booth.voteType] += booth.node.totalTcpVotesCurrent();
       }
       if (!seatTppDeviationWeightedSums.contains(Results2::VoteType::Ordinary)) continue;
+      // zero weight sum can occur if a seat's count is being realigned and therefore no TCP results
+      if (!seatTppWeightSums.contains(Results2::VoteType::Ordinary) || seatTppWeightSums.at(Results2::VoteType::Ordinary) == 0) continue;
       float normalDeviation = seatTppDeviationWeightedSums.at(Results2::VoteType::Ordinary) / seatTppWeightSums.at(Results2::VoteType::Ordinary);
       for (auto const& [voteType, deviationWeightedSum] : seatTppDeviationWeightedSums) {
         if (voteType == Results2::VoteType::Ordinary) continue;
@@ -1134,6 +1136,7 @@ void Election::measureBoothTypeBiases() {
       voteTypeBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       voteTypeBiasStdDev[voteType] = stdDev;
+
     }
   }
   PA_LOG_VAR(boothTypeBiases);
@@ -1917,44 +1920,32 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
 
 void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   auto& booth = booths.at(boothIndex);
-  if (allowCurrentData && booth.node.totalTcpVotesCurrent()) {
-    if (isTppSet(booth.node.tcpVotesCurrent, natPartyIndex)) {
-      // map from party index to vote count (as a float)
-      auto tppVotesProjected = std::map<int, float>();
-      for (auto const& [partyId, votes] : booth.node.tcpVotesCurrent) {
-        tppVotesProjected[partyId == natPartyIndex ? 1 : partyId] = static_cast<float>(votes);
+  if (allowCurrentData && booth.node.totalTcpVotesCurrent() && isTppSet(booth.node.tcpVotesCurrent, natPartyIndex)) {
+    // map from party index to vote count (as a float)
+    auto tppVotesProjected = std::map<int, float>();
+    for (auto const& [partyId, votes] : booth.node.tcpVotesCurrent) {
+      tppVotesProjected[partyId == natPartyIndex ? 1 : partyId] = static_cast<float>(votes);
+    }
+    if (booth.voteType != Results2::VoteType::Ordinary) {
+      float previousTotalVotes = booth.node.totalVotesPrevious();
+      float currentTotalVotesProjected = std::accumulate(tppVotesProjected.begin(), tppVotesProjected.end(), 0.0f,
+        [](float sum, const auto& pair) { return sum + pair.second; });
+      float totalAdditionalVotes = std::max(0.0f, previousTotalVotes - currentTotalVotesProjected);
+      float stdDev = 4.5f + 7.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
+      float projectionDifference = createRandomVariation ? rng.normal(0.0f, stdDev) : 0.0f;
+      if (booth.voteType == Results2::VoteType::Postal) {
+        projectionDifference += 2.0f; // late-arriving postals are generally more friendly to ALP than early postals
       }
-      if (booth.voteType != Results2::VoteType::Ordinary) {
-        float previousTotalVotes = booth.node.totalVotesPrevious();
-        float currentTotalVotesProjected = std::accumulate(tppVotesProjected.begin(), tppVotesProjected.end(), 0.0f,
-          [](float sum, const auto& pair) { return sum + pair.second; });
-        float totalAdditionalVotes = std::max(0.0f, previousTotalVotes - currentTotalVotesProjected);
-        float stdDev = 4.5f + 7.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
-        float projectionDifference = createRandomVariation ? rng.normal(0.0f, stdDev) : 0.0f;
-        if (booth.voteType == Results2::VoteType::Postal) {
-          projectionDifference += 2.0f; // late-arriving postals are generally more friendly to ALP than early postals
-        }
-        float transformedOriginal = transformVoteShare(float(tppVotesProjected.at(0)) / currentTotalVotesProjected * 100.0f);
-        float transformedProjection = transformedOriginal + projectionDifference;
-        float additionalPartyOneVotes = detransformVoteShare(transformedProjection) * totalAdditionalVotes * 0.01f;
-        tppVotesProjected[0] += additionalPartyOneVotes;
-        tppVotesProjected[1] += totalAdditionalVotes - additionalPartyOneVotes;
-      }
-      if (createRandomVariation) {
-        booth.node.tempTppVotesProjected = tppVotesProjected;
-      } else {
-        booth.node.tppVotesProjected = tppVotesProjected;
-      } 
+      float transformedOriginal = transformVoteShare(float(tppVotesProjected.at(0)) / currentTotalVotesProjected * 100.0f);
+      float transformedProjection = transformedOriginal + projectionDifference;
+      float additionalPartyOneVotes = detransformVoteShare(transformedProjection) * totalAdditionalVotes * 0.01f;
+      tppVotesProjected[0] += additionalPartyOneVotes;
+      tppVotesProjected[1] += totalAdditionalVotes - additionalPartyOneVotes;
+    }
+    if (createRandomVariation) {
+      booth.node.tempTppVotesProjected = tppVotesProjected;
     } else {
-      if (createRandomVariation) {
-        booth.node.tempTppVotesProjected = booth.node.tppVotesProjected;
-      }
-      // currently recording a non-classic TCP, ignore for now
-      // the simulation will estimate off fp votes if necessary
-
-      // Once we start projecting non-classic TCP votes, we need to also
-      // revisit the conversion into TPP votes to make sure that it's
-      // done correctly.
+      booth.node.tppVotesProjected = tppVotesProjected;
     }
   }
   else {
