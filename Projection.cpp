@@ -128,7 +128,8 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 
 	std::string report = textReport(models);
 	auto reportMessages = splitString(report, ";");
-	for (auto message : reportMessages) feedback(message);
+	// for (auto message : reportMessages) feedback(message);
+	PA_LOG_VAR(reportMessages);
 	lastUpdated = wxDateTime::Now();
 }
 

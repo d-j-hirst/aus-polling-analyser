@@ -27,7 +27,7 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 	latestRun.reset(new SimulationRun(project, *this));
 	latestRun->run(feedback);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
-	checkLiveSeats(project, feedback);
+	if (isLive()) checkLiveSeats(project, feedback);
 }
 
 void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback)

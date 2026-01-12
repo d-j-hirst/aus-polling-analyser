@@ -49,7 +49,7 @@ PollingProject::PollingProject(std::string pathName)
 }
 
 
-std::optional<std::string> PollingProject::runMacro(std::string macro)
+std::optional<std::string> PollingProject::runMacro(std::string macro, FeedbackFunc feedback)
 {
 	bool passesValidation = true;
 	if (!passesValidation) {
@@ -57,7 +57,7 @@ std::optional<std::string> PollingProject::runMacro(std::string macro)
 	}
 	else {
 		lastMacro = macro;
-		return MacroRunner(*this).run(macro, true);
+		return MacroRunner(*this).run(macro, feedback);
 	}
 }
 

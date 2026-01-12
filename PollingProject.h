@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <list>
 #include <fstream>
+#include <functional>
+#include <list>
 #include <optional>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "Config.h"
 #include "ElectionData.h"
@@ -43,6 +44,8 @@ public:
 	friend class ProjectFiler;
 	friend class GeneralSettingsFrame;
 
+	typedef std::function<void(std::string)> FeedbackFunc;
+
 	// Initializes the polling project using the project data
 	// selected on the New Project screen.
 	PollingProject(NewProjectData& newProjectData);
@@ -64,7 +67,7 @@ public:
 	void setElectionName(std::string newName) { electionName = newName; }
 
 	// Runs the given macro. Returns true if the macro verified successfully, 
-	std::optional<std::string> runMacro(std::string macro);
+	std::optional<std::string> runMacro(std::string macro, FeedbackFunc feedback = [](std::string) {});
 
 	// Update the macro to the given value without running it.
 	void updateMacro(std::string macro);

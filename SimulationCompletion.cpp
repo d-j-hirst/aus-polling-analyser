@@ -9,12 +9,12 @@ using Mp = Simulation::MajorParty;
 
 constexpr std::array<int, NumProbabilityBoundIndices> ProbabilityBounds = { 1, 5, 20, 50, 150, 180, 195,199 };
 
-SimulationCompletion::SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations, FeedbackFunc feedback)
-	: project(project), run(run), sim(sim), iterations(iterations), feedback(feedback)
+SimulationCompletion::SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations)
+	: project(project), run(run), sim(sim), iterations(iterations)
 {
 }
 
-void SimulationCompletion::completeRun()
+void SimulationCompletion::completeRun(FeedbackFunc feedback)
 {
 	recordNames();
 
@@ -53,7 +53,7 @@ void SimulationCompletion::completeRun()
 	recordReportSettings();
 
 	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		exportSummary();
+		exportSummary(feedback);
 	}
 
 	logger << "Simulation successfully completed.\n";
@@ -666,7 +666,7 @@ void SimulationCompletion::recordModelledPolls()
 	sim.latestReport.modelledPolls = baseModel().viewModelledPolls();
 }
 
-void SimulationCompletion::exportSummary()
+void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 {
 	std::ofstream summaryFile;
 	while (!summaryFile.is_open()) {

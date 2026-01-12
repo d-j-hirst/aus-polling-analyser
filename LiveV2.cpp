@@ -1083,6 +1083,8 @@ void Election::measureBoothTypeBiases() {
       boothTypeBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       boothTypeBiasStdDev[boothType] = stdDev;
+      logger << "Booth type " << Results2::Booth::boothTypeName(boothType) << " raw bias: " << overallTppBias << ")\n";
+      logger << "Baseline: " << baseline << ", obsProportion: " << obsProportion << "\n";
     }
   }
 
@@ -1136,7 +1138,7 @@ void Election::measureBoothTypeBiases() {
       voteTypeBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       voteTypeBiasStdDev[voteType] = stdDev;
-
+      logger << "Vote type " << Results2::voteTypeName(voteType) << " raw bias: " << overallTppBias << "\n";
     }
   }
   PA_LOG_VAR(boothTypeBiases);
@@ -2368,7 +2370,7 @@ void Election::prepareVariability() {
   std::map<int, std::vector<float>> seatTppResults;
   std::map<int, std::vector<float>> seatTcpResults;
   // For testing purposes, keep number of iterations high (live should be more like 288 rather than 2400)
-  int IterationsTarget = 2400;
+  int IterationsTarget = 4800;
   int threadCount = 24;
   for (int iteration = 0; iteration < IterationsTarget / threadCount; ++iteration) {
     std::mutex seatResultsMutex;

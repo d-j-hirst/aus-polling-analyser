@@ -2506,8 +2506,10 @@ void SimulationIteration::recordMajorityResult()
 	else if (partySupport[Mp::Two] >= minimumForMajority && mpWins[Mp::Two] > partySupport[Mp::Two] / 2) ++run.partyMinority[Mp::Two];
 	else {
 		std::vector<std::pair<int, int>> sortedPartyWins(partyWins.begin(), partyWins.end());
-		sortedPartyWins[Mp::One] = { Mp::One, mpWins[Mp::One] };
-		sortedPartyWins[Mp::Two] = { Mp::Two, mpWins[Mp::Two] };
+		for (auto& el : sortedPartyWins) {
+			if (el.first == Mp::One) el.second = mpWins[Mp::One];
+			if (el.first == Mp::Two) el.second = mpWins[Mp::Two];
+		}
 		// Nats and Inds should never be considered for "most seats"
 		// These are separate loops because otherwise the "erase" will interfere with the look operation
 		for (auto a = sortedPartyWins.begin(); a != sortedPartyWins.end(); ++a) {

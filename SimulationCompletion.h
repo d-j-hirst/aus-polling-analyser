@@ -13,11 +13,11 @@ class SimulationCompletion {
 public:
 	typedef std::function<void(std::string)> FeedbackFunc;
 
-	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations, FeedbackFunc feedback);
+	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations);
 
 	// cycleIterations needs to be given as an argument as it will
 	// be different for calibration runs.
-	void completeRun();
+	void completeRun(FeedbackFunc feedback = [](std::string) {});
 private:
 
 	// statistic calculations
@@ -43,7 +43,7 @@ private:
 	void recordFpTrends();
 	void recordReportSettings();
 	void recordModelledPolls();
-	void exportSummary();
+	void exportSummary(FeedbackFunc feedback);
 
 	StanModel const& baseModel();
 
@@ -56,5 +56,4 @@ private:
 	PollingProject & project;
 	Simulation& sim;
 	SimulationRun& run;
-	FeedbackFunc& feedback;
 };

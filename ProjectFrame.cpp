@@ -153,7 +153,7 @@ void ProjectFrame::runMacro()
 	int result = dialog.ShowModal();
 	if (result == wxID_CANCEL) return;
 	std::string newMacro = std::string(dialog.GetValue());
-	auto error = project->runMacro(newMacro);
+	auto error = project->runMacro(newMacro, [](std::string s) {wxMessageBox(s); });
 	if (error.has_value()) {
 		wxMessageBox(error.value());
 	}

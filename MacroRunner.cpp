@@ -29,7 +29,7 @@ MacroRunner::MacroRunner(PollingProject& project)
 {
 }
 
-std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*/)
+std::optional<std::string> MacroRunner::run(std::string macro, MacroRunner::FeedbackFunc feedback)
 {
 	logger << "Running macro: reading instructions\n";
 	auto lines = splitString(macro, ";");
@@ -99,10 +99,10 @@ std::optional<std::string> MacroRunner::run(std::string macro, bool /*confirmId*
 			project_.projections().access(instruction.id).setAsNowCast(project_.models());
 		}
 		else if (instruction.type == Instruction::Type::RunProjection) {
-			project_.projections().run(instruction.id);
+			project_.projections().run(instruction.id, feedback);
 		}
 		else if (instruction.type == Instruction::Type::RunSimulation) {
-			project_.simulations().run(instruction.id);
+			project_.simulations().run(instruction.id, feedback);
 		}
 	}
 

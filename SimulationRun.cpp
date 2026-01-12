@@ -22,10 +22,10 @@ void SimulationRun::run(FeedbackFunc feedback) {
 
 	project.seats().importInfo();
 
-	runBettingOddsCalibrations();
+	runBettingOddsCalibrations(feedback);
 
 	if (sim.isLiveAutomatic() && !sim.liveBaselineReport) {
-		runLiveBaselineSimulation();
+		runLiveBaselineSimulation(feedback);
 	}
 
 	SimulationPreparation preparations(project, sim, *this);
@@ -65,8 +65,8 @@ void SimulationRun::run(FeedbackFunc feedback) {
 		if (threads[thread].joinable()) threads[thread].join();
 	}
 
-	SimulationCompletion completion(project, sim, *this, cycleIterations, feedback);
-	completion.completeRun();
+	SimulationCompletion completion(project, sim, *this, cycleIterations);
+	completion.completeRun(feedback);
 
 	sim.lastUpdated = wxDateTime::Now();
 }
@@ -190,8 +190,8 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 			if (threads[thread].joinable()) threads[thread].join();
 		}
 
-		SimulationCompletion completion(project, sim, newRun, cycleIterations, feedback);
-		completion.completeRun();
+		SimulationCompletion completion(project, sim, newRun, cycleIterations);
+		completion.completeRun(feedback);
 
 		for (auto const [identifier, chance] : impliedChances) {
 			float winPercent = sim.latestReport.seatPartyWinPercent[identifier.first][identifier.second];
@@ -269,8 +269,8 @@ void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 		if (threads[thread].joinable()) threads[thread].join();
 	}
 
-	SimulationCompletion completion(project, sim, newRun, cycleIterations, feedback);
-	completion.completeRun();
+	SimulationCompletion completion(project, sim, newRun, cycleIterations);
+	completion.completeRun(feedback);
 	sim.liveBaselineReport = sim.latestReport;
 
 	logger << "*** Finished live baseline simulation ***\n";
