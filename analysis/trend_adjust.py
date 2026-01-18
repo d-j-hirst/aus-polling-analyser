@@ -666,10 +666,12 @@ def weighted_median(container, weights):
 
 class BiasData:
     def __init__(self):
-        self.fundamentals_errors = []
-        self.poll_errors = []
-        self.poll_distance = []
-        self.relevance = []
+        # Start with some dummy values to regularise and avoid
+        # overfitting with the relatively small sample size
+        self.fundamentals_errors = [3, -3]
+        self.poll_errors = [3, -3]
+        self.poll_distance = [1, 1]
+        self.relevance = [1, 1]
         self.studied_fundamentals_error = None
         self.studied_poll_errors = []
         self.studied_poll_parties = []

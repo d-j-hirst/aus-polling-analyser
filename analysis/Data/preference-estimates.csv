@@ -144,8 +144,9 @@
 1995,qld,OTH FP,69.8,40
 1992,qld,OTH FP,50.0,40,#With high leakage of LIB/NAT votes it's not practical to establish a pref flow here
 1989,qld,OTH FP,50.0
-2026,sa,GRN FP,77.95
-2026,sa,OTH FP,49.29
+2026,sa,GRN FP,81.15
+2026,sa,ONP FP,36.15,0,#50/50 between state + federal preference flow
+2026,sa,OTH FP,47.66
 2022,sa,GRN FP,74.5
 2022,sa,SAB FP,48.4
 2022,sa,OTH FP,45.84,0,#No SA-BEST candidates means previous election figures unlikely to be accurate, average with federal figure instead

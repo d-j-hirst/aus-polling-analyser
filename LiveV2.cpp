@@ -1074,7 +1074,7 @@ void Election::measureBoothTypeBiases() {
       float votes = tppWeightSums.at(boothType);
       float overallTppBias = votes ? tppBiasWeightedSums.at(boothType) / votes : 0.0f;
       // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they aren't very important)
-      float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(1000000.0f, 0.9f));
+      float obsProportion = std::pow(votes, 0.9f) / (30000.0f + std::pow(votes, 0.9f));
       float baseline = 0.0f;
       // pre-polls tend to move the tpp back towards the baseline
       if (boothType == Results2::Booth::Type::Ppvc) {
@@ -1083,8 +1083,7 @@ void Election::measureBoothTypeBiases() {
       boothTypeBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       boothTypeBiasStdDev[boothType] = stdDev;
-      logger << "Booth type " << Results2::Booth::boothTypeName(boothType) << " raw bias: " << overallTppBias << ")\n";
-      logger << "Baseline: " << baseline << ", obsProportion: " << obsProportion << "\n";
+      boothTypeBiasesRaw[boothType] = overallTppBias;
     }
   }
 
@@ -1132,13 +1131,13 @@ void Election::measureBoothTypeBiases() {
       float votes = tppWeightSums.at(voteType);
       float overallTppBias = votes ? tppBiasWeightedSums.at(voteType) / votes : 0.0f;
       // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they aren't very important)
-      float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(1000000.0f, 0.9f));
+      float obsProportion = std::pow(votes, 0.9f) / (30000.0f + std::pow(votes, 0.9f));
       // Declaration votes tend to move the tpp back toward the baseline
       float baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
       voteTypeBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       voteTypeBiasStdDev[voteType] = stdDev;
-      logger << "Vote type " << Results2::voteTypeName(voteType) << " raw bias: " << overallTppBias << "\n";
+      voteTypeBiasesRaw[voteType] = overallTppBias;
     }
   }
   PA_LOG_VAR(boothTypeBiases);

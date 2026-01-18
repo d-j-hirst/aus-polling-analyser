@@ -805,6 +805,10 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	for (auto [boothType, stdDev] : internals.boothTypeBiasStdDev) {
 		summaryFile << stdDev << ",";
 	}
+	summaryFile << "\nBooth type bias raw\n";
+	for (auto [boothType, biasRaw] : internals.boothTypeBiasesRaw) {
+		summaryFile << biasRaw << ",";
+	}
 	summaryFile << "\nVote type biases\n";
 	for (auto [voteType, bias] : internals.voteTypeBiases) {
 		summaryFile << Results2::voteTypeName(voteType) << ",";
@@ -816,6 +820,10 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	summaryFile << "\nVote type bias StdDev\n";
 	for (auto [voteType, bias] : internals.voteTypeBiasStdDev) {
 		summaryFile << bias << ",";
+	}
+	summaryFile << "\nVote type bias raw\n";
+	for (auto [boothType, biasRaw] : internals.voteTypeBiasesRaw) {
+		summaryFile << biasRaw << ",";
 	}
   summaryFile << "\nInternal projected 2PP\n";
 	summaryFile << internals.projected2pp;

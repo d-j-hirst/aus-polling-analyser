@@ -13,6 +13,7 @@ warnings = ''
 
 
 overall_tpp_swings = {
+                      '2027nsw': 3.85,
                       '2026vic': 1.52,
                       '2026sa': 5.23,
                       '2023nsw': 3.2,
@@ -22,6 +23,7 @@ overall_tpp_swings = {
                       '2018vic': 1.31,
                       '2018sa': -1.56}
 overall_grn_swings = {
+                      '2027nsw': 1.04,
                       '2026vic': -0.15,
                       '2026sa': 0.65,
                       '2023nsw': 1.31,
@@ -32,6 +34,7 @@ overall_grn_swings = {
                       '2018sa': 3.4}
 base_url = 'https://results.aec.gov.au'
 aec_election_code = {
+    '2027nsw': 31496,
     '2026vic': 31496,
     '2026sa': 31496,
     '2023nsw': 27966,
@@ -43,6 +46,7 @@ aec_election_code = {
 }
 
 alp_name = {
+    '2027nsw': 'Labor',
     '2026vic': 'Australian Labor Party',
     '2026sa': 'Australian Labor Party',
     '2023nsw': 'Labor',
@@ -54,6 +58,7 @@ alp_name = {
 }
 
 grn_name = {
+    '2027nsw': 'The Greens',
     '2026vic': 'The Greens',
     '2026sa': 'The Greens',
     '2023nsw': 'The Greens',
@@ -254,6 +259,7 @@ def gen_fed_url(election):
             f'HouseDivisionalResults-{aec_election_code[election]}.htm')
 
 fed_results_urls = {
+    '2027nsw': (gen_fed_url("2027nsw")),
     '2026vic': (gen_fed_url("2026vic")),
     '2026sa': (gen_fed_url("2026sa")),
     '2023nsw': (gen_fed_url("2023nsw")),
@@ -265,6 +271,7 @@ fed_results_urls = {
 }
 
 ignore_greens_seats_election = {
+    '2027nsw': {'Calare'},
     '2026vic': {'Flinders', 'Monash'},
     '2026sa': {},
     # Ignore Greens totals in these seats due to new prominent independents distorting their
@@ -282,6 +289,21 @@ ignore_greens_seats_election = {
 }
 
 assume_tpp_seats_election = {
+    '2027nsw': {
+        'Bradfield': 1.18,
+        'Calare': 3.19,
+        'Cowper': 0.45,
+        'Farrer': 3.46,
+        'Fowler': 12.29,
+        'Grayndler': 3.55,
+        'Hunter': 4.70,
+        'Mackellar': 4.21,
+        'Newcastle': 2.85,
+        'Warringah': 5.25,
+        'Watson': 7.70,
+        'Wentworth': 1.72,
+        'Wills': 3.77,
+    },
     '2026vic': {
         'Bendigo': -9.81,
         'Calwell': 2.32,
@@ -455,6 +477,19 @@ adjust_tpp_state = {
 }
 
 adjust_tpp_federal = {
+    '2027nsw': {
+        'Barton': -1.2,
+        'Bennelong': 2.0,
+        'Bradfield': 1.2,
+        'Fowler': -1.0,
+        'Lyne': 1.2,
+        'Mackellar': 1.0,
+        'Parkes': 1.2,
+        'Reid': 2.0,
+        'Robertson': 2.0,
+        'Wentworth': 1.0,
+        'Whitlam': -1.2,
+    },
     '2026vic': {
         'Aston': 2.0,
         'Calwell': -1.2,
@@ -545,11 +580,11 @@ adjust_tpp_federal = {
 class Config:
     def __init__(self):
         parser = argparse.ArgumentParser(
-            description='Determine trend adjustment parameters')
+            description='Determine federal-state comparisons')
         parser.add_argument('--election', action='store', type=str,
                             help='Generate federal comparisons for this state '
                             'election. Enter as 1234-xxx format,'
-                            ' e.g. 2013-fed.')
+                            ' e.g. 2027-nsw.')
         parser.add_argument('--hideseats', action='store_true',
                             help='Hide individual seat output')
         self.election = parser.parse_args().election.lower().replace('-', '')
@@ -589,6 +624,8 @@ def fetch_results(election):
         if state != current_state: continue
         seat_link = seat_el.find('a')
         seat_name = seat_el.text
+        if (seat_name == "Watson"):
+            print("Found Watson")
         seat_path = seat_link['href']
         seat_URL = f'{base_url}/{aec_code}/Website/{seat_path}'
         seat_page = requests.get(seat_URL)
@@ -596,6 +633,8 @@ def fetch_results(election):
         booth_els = seat_soup.find_all('td', headers='ppPp')
         for booth_el in booth_els:
             booth_name = booth_el.text
+            if (seat_name == "Watson"):
+                print(f"booth {booth_name} found")
             booth_link = booth_el.find('a')
             booth_path = booth_link['href']
             booth_URL = f'{base_url}/{aec_code}/Website/{booth_path}'
@@ -623,11 +662,14 @@ def fetch_results(election):
                                         'td', headers='tcpPct').text)
                 tpp_alp_swing = float(tpp_alp_el.find_next_sibling(
                                         'td', headers='tcpSwg').text)
-            if tpp_alp_pct is not None:
-                if (abs(tpp_alp_swing - tpp_alp_pct) < 0.02 or
-                    fp_formal_int == 0): continue
             booth_key = (seat_name, booth_name)
             results.greens_swings[booth_key] = fp_greens_swing
+            if tpp_alp_pct is not None:
+                if (abs(tpp_alp_swing - tpp_alp_pct) < 0.02 or
+                        fp_formal_int == 0):
+                    results.tpp_swings[booth_key] = 0
+                    results.vote_totals[booth_key] = 0
+                    continue
             if seat_name in adjust_tpp_federal[election]:
                 tpp_alp_swing -= adjust_tpp_federal[election][seat_name]
             results.tpp_swings[booth_key] = tpp_alp_swing
@@ -698,7 +740,8 @@ def add_weighted_swings(seat_booths, results, election):
         and 'EAV' not in a[1] and ' Team' not in a[1]
         and 'Divisional Office' not in a[1] and 'BLV' not in a[1] and
         'Adelaide (' not in a[1] and 'Melbourne (' not in a[1]
-        and 'Sydney (' not in a[1]
+        and 'Sydney (' not in a[1] and 'Ultimo (' not in a[1]
+        and 'Wynyard (' not in a[1]
         and 'Polling Day' not in a[1]
         and not (('Adelaide ') in a[1] and (' PPVC') in a[1])
         and not (('Melbourne ') in a[1] and (' PPVC') in a[1])

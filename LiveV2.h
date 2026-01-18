@@ -213,6 +213,8 @@ public:
     std::map<Results2::VoteType, float> voteTypeBiases;
     std::map<Results2::Booth::Type, float> boothTypeBiasStdDev;
     std::map<Results2::VoteType, float> voteTypeBiasStdDev;
+    std::map<Results2::Booth::Type, float> boothTypeBiasesRaw;
+    std::map<Results2::VoteType, float> voteTypeBiasesRaw;
     float projected2pp = 0.0f;
     float raw2ppDeviation = 0.0f;
   };
@@ -416,6 +418,8 @@ public:
     internals.voteTypeBiases = voteTypeBiases;
     internals.boothTypeBiasStdDev = boothTypeBiasStdDev;
     internals.voteTypeBiasStdDev = voteTypeBiasStdDev;
+    internals.boothTypeBiasesRaw = boothTypeBiasesRaw;
+    internals.voteTypeBiasesRaw = voteTypeBiasesRaw;
     internals.projected2pp =
       node.tppVotesProjected.at(0)
       / (node.tppVotesProjected.at(0) + node.tppVotesProjected.at(1))
@@ -550,6 +554,9 @@ private:
   std::map<Results2::Booth::Type, float> boothTypeIterationVariation;
   std::map<Results2::VoteType, float> voteTypeIterationVariation;
 
+  // Debug/internal analysis only
+  std::map<Results2::Booth::Type, float> boothTypeBiasesRaw;
+  std::map<Results2::VoteType, float> voteTypeBiasesRaw;
 
   int natPartyIndex;
 
