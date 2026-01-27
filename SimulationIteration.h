@@ -4,6 +4,7 @@
 #include "SimulationRun.h"
 
 #include <array>
+#include <cstdint>
 #include <map>
 #include <numeric>
 #include <vector>
@@ -15,7 +16,7 @@ class Simulation;
 
 class SimulationIteration {
 public:
-	SimulationIteration(PollingProject& project, Simulation& sim, SimulationRun& run);
+	SimulationIteration(PollingProject& project, Simulation& sim, SimulationRun& run, int iterationIndex);
 
 	void runIteration();
 private:
@@ -54,7 +55,6 @@ private:
 	void determineOverallTpp();
 	void determineIntraCoalitionSwing();
 	void determineIndDistributionParameters();
-	void determineDecVoteBias();
 	void decideMinorPartyPopulism();
 	void determineHomeRegions();
 	void determineRegionalSwings();
@@ -105,6 +105,12 @@ private:
 	void recordSwingFactors();
 
 	float calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const;
+
+	float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	float variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	float variabilityUniformInt(int low, int high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	float variabilityGamma(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	float variabilityBeta(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 
 	struct SeatCandidate { int vote; Party::Id partyId; float weight; };
 	typedef std::vector<SeatCandidate> SeatCandidates;
@@ -163,9 +169,12 @@ private:
 	float fedStateCorrelation = 0.0f;
 	float ppvcBias = 0.0f;
 	float liveSystemicBias = 0.0f;
-	float decVoteBias = 0.0f;
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;
+
+	int iterationIndex = 0;
+
+	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 
 	std::array<int, 2> effectiveWins = std::array<int, 2>();
 	std::array<int, 2> partySupport = std::array<int, 2>();

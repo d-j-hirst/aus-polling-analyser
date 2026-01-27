@@ -44,23 +44,23 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 				previousLiveSeats[seatIndex].contains(EmergingIndIndex)) {
 				// Special case where an emerging ind gets promoted to a normal ind, can handle this
 				float percentShift = winFrequency - previousLiveSeats[seatIndex][EmergingIndIndex];
-				if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, partyIndex, percentShift });
+				if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
 				continue;
 			}
 			else if (!previousLiveSeats[seatIndex].contains(partyIndex)) {
 				if (previousLiveSeats[seatIndex].size()) {
 					float percentShift = winFrequency;
-					if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, partyIndex, percentShift });
+					if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
 				}
 				continue;
 			}
 			float percentShift = winFrequency - previousLiveSeats[seatIndex][partyIndex];
-			if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, partyIndex, percentShift });
+			if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
 		}
 		if (previousLiveSeats[seatIndex].contains(indPartyIndex) &&	!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
 			// Special case where an emerging ind gets promoted to a normal ind, can handle this
 			float percentShift = -previousLiveSeats[seatIndex][indPartyIndex];
-			if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
+			if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
 			continue;
 		}
 		if (previousLiveSeats[seatIndex].contains(EmergingIndIndex) &&
@@ -69,7 +69,7 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 			!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
 			// Special case where an emerging ind gets promoted to a normal ind, can handle this
 			float percentShift = -previousLiveSeats[seatIndex][EmergingIndIndex];
-			if (abs(percentShift) > 1.0f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
+			if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
 			continue;
 		}
 	}

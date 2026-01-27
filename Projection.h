@@ -91,9 +91,9 @@ public:
 
 	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
 
-	StanModel::SupportSample generateNowcastSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime);
+	StanModel::SupportSample generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, wxDateTime date = wxInvalidDateTime);
 
-	StanModel::SupportSample generateSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime) const;
+	StanModel::SupportSample generateSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime, int iterationIndex = -1) const;
 
 	int getPartyIndexFromCode(std::string code) const;
 

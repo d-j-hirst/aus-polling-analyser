@@ -163,10 +163,10 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 	return &std::next(projectedSupport.begin(), index)->second;
 }
 
-StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, wxDateTime date)
+StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, wxDateTime date)
 {
 	// Get an as-if-election-now sample
-	auto electionNowSupportSample = generateSupportSample(models, date);
+	auto electionNowSupportSample = generateSupportSample(models, date, iterationIndex);
 	// convert dates to projection indices, adding 4 additional hours to smooth over any DST etc. related issues
 	int sampleProjIndex = (date - startDate).GetDays();
 	int endProjIndex = (settings.endDate - startDate).GetDays();
@@ -227,7 +227,7 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 	return electionNowSupportSample;
 }
 
-StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date) const
+StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date, int iterationIndex) const
 {
 	auto const& model = getBaseModel(models);
 	if (!date.IsValid()) {
@@ -257,7 +257,7 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 	date += wxTimeSpan(4); // adding four hours to make sure date comparisons are consistent
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
 	daysAfterModelEnd = std::max(daysAfterModelEnd, MinDaysBeforeElection);
-	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd);
+	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd, iterationIndex);
 
 	return sample;
 }

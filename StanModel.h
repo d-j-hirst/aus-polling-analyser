@@ -183,25 +183,29 @@ private:
 	bool loadTrendData(FeedbackFunc feedback);
 
 	// Invalid date/time (default) gives the most recent time point
-	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime) const;
+	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime, int iterationIndex = -1) const;
 
-	SupportSample generateAdjustedSupportSample(wxDateTime date = wxInvalidDateTime, int days = 0) const;
+	SupportSample generateAdjustedSupportSample(wxDateTime date = wxInvalidDateTime, int days = 0, int iterationIndex = -1) const;
 
 	void generateUnnamedOthersSeries();
 
-	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0) const;
+	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0, int iterationIndex = -1) const;
 
 	void updateAdjustedData(FeedbackFunc feedback, int numThreads);
 
-	void addEmergingOthers(StanModel::SupportSample& sample, int days) const;
+	void addEmergingOthers(StanModel::SupportSample& sample, int days, int iterationIndex = -1) const;
 
 	static void updateOthersValue(StanModel::SupportSample& sample);
 
 	static void normaliseSample(StanModel::SupportSample& sample);
 
-	void generateTppForSample(StanModel::SupportSample& sample) const;
+	void generateTppForSample(StanModel::SupportSample& sample, int iterationIndex = -1) const;
 
-	void generateMajorFpForSample(StanModel::SupportSample& sample) const;
+	void generateMajorFpForSample(StanModel::SupportSample& sample, int iterationIndex = -1) const;
+
+	float variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag, int iterationIndex) const;
+
+	float mirroredQuantile(std::string const& scope, std::string const& key, int iterationIndex, std::uint32_t tag, int index) const;
 
 	static RandomGenerator rng;
 
@@ -223,6 +227,8 @@ private:
 	std::string preferenceSamples;
 	wxDateTime startDate = wxInvalidDateTime;
 	wxDateTime lastUpdatedDate = wxInvalidDateTime;
+
+	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 
 	ModelledPolls modelledPolls; // this is for the simulation reports
 

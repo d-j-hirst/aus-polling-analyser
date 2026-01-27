@@ -50,15 +50,17 @@ void SimulationRun::run(FeedbackFunc feedback) {
 	std::vector<std::thread> threads;
 	threads.resize(numThreads);
 
-	auto runIterations = [&](int numIterations) {
+	auto runIterations = [&](int numIterations, int iterationStartIndex) {
 		for (int i = 0; i < numIterations; ++i) {
-			SimulationIteration iteration(project, sim, *this);
+			SimulationIteration iteration(project, sim, *this, iterationStartIndex + i);
 			iteration.runIteration();
 		}
 	};
 
+  int iterationsStarted = 0;
 	for (int thread = 0; thread < numThreads; ++thread) {
-		threads[thread] = std::thread(runIterations, batchSizes[thread]);
+    threads[thread] = std::thread(runIterations, batchSizes[thread], iterationsStarted);
+    iterationsStarted += batchSizes[thread];
 	}
 
 	for (int thread = 0; thread < numThreads; ++thread) {
@@ -175,15 +177,18 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		std::vector<std::thread> threads;
 		threads.resize(numThreads);
 
-		auto runIterations = [&](int numIterations) {
+		auto runIterations = [&](int numIterations, int iterationStartIndex) {
 			for (int i = 0; i < numIterations; ++i) {
-				SimulationIteration iteration(project, sim, newRun);
+				SimulationIteration iteration(project, sim, newRun, iterationStartIndex + i);
 				iteration.runIteration();
 			}
 		};
 
+		// Make sure these iterationIndex values do not overlap with the main simulation run
+		int iterationsStarted = sim.settings.numIterations;
 		for (int thread = 0; thread < numThreads; ++thread) {
-			threads[thread] = std::thread(runIterations, batchSizes[thread]);
+			threads[thread] = std::thread(runIterations, batchSizes[thread], iterationsStarted);
+			iterationsStarted += batchSizes[thread];
 		}
 
 		for (int thread = 0; thread < numThreads; ++thread) {
@@ -254,15 +259,18 @@ void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	std::vector<std::thread> threads;
 	threads.resize(numThreads);
 
-	auto runIterations = [&](int numIterations) {
+	auto runIterations = [&](int numIterations, int iterationStartIndex) {
 		for (int i = 0; i < numIterations; ++i) {
-			SimulationIteration iteration(project, sim, newRun);
+			SimulationIteration iteration(project, sim, newRun, iterationStartIndex + i);
 			iteration.runIteration();
 		}
 	};
 
+	// Make sure these iterationIndex values do not overlap with the main simulation run or the betting odds calibrations
+	int iterationsStarted = sim.settings.numIterations;
 	for (int thread = 0; thread < numThreads; ++thread) {
-		threads[thread] = std::thread(runIterations, batchSizes[thread]);
+		threads[thread] = std::thread(runIterations, batchSizes[thread], iterationsStarted);
+		iterationsStarted += batchSizes[thread];
 	}
 
 	for (int thread = 0; thread < numThreads; ++thread) {

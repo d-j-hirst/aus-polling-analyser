@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "SpecialPartyCodes.h"
 
+#include <cstdint>
 #include <map>
 #include <set>
 
@@ -407,6 +408,8 @@ public:
     return std::nullopt;
   }
 
+  void setVariabilitySeed(std::uint64_t seed) { variabilityBaseSeed = seed; }
+
   // Returns untransformed vote share belonging to parties not included among the project's
   // significant parties, along with independents who don't make the threshold for significance
   FloatInformation getSeatOthersInformation(std::string const& seatName) const;
@@ -428,7 +431,7 @@ public:
     return internals;
   }
 
-  LiveV2::Election generateScenario() const;
+  LiveV2::Election generateScenario(int iterationIndex) const;
 
 private:
   template<typename T, typename U>
@@ -517,10 +520,12 @@ private:
 
   void prepareVariability();
 
-  void generateVariability();
+  void generateVariability(int iterationIndex);
 
   // map AEC candidate IDs to internal party IDs
   int mapPartyId(int ecCandidateId, bool isPrevious);
+
+  float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 
   void log(bool includeLargeRegions = false, bool includeSeats = false, bool includeBooths = false) const;
 
@@ -559,6 +564,9 @@ private:
   std::map<Results2::VoteType, float> voteTypeBiasesRaw;
 
   int natPartyIndex;
+
+  int variabilitySampleIndex = 0;
+  std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 
 	PollingProject& project;
 	Simulation& sim;

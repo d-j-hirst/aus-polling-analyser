@@ -668,10 +668,10 @@ class BiasData:
     def __init__(self):
         # Start with some dummy values to regularise and avoid
         # overfitting with the relatively small sample size
-        self.fundamentals_errors = [3, -3]
-        self.poll_errors = [3, -3]
-        self.poll_distance = [1, 1]
-        self.relevance = [1, 1]
+        self.fundamentals_errors = []
+        self.poll_errors = []
+        self.poll_distance = []
+        self.relevance = []
         self.studied_fundamentals_error = None
         self.studied_poll_errors = []
         self.studied_poll_parties = []
@@ -679,6 +679,8 @@ class BiasData:
 
 def get_bias_data(exclude, inputs, poll_trend, party_group,
                   day, studied_election):
+    # Assume fairly large errors unless there's enough data to override
+    prior_errors = {}
     bias_data = BiasData()
     target_year = (exclude.year()
                    if studied_election == no_target_election_marker
@@ -714,6 +716,7 @@ def get_bias_data(exclude, inputs, poll_trend, party_group,
                         bias_data.poll_errors.append(poll_error)
                         bias_data.poll_distance.append(year_distance)
                         bias_data.relevance.append(relevance)
+
     return bias_data
 
 
@@ -725,6 +728,7 @@ class DayData:
         self.overall_fundamentals_biases = []
         self.final_mix_factor = 0
 
+prior_errors = {'ALP': 1.5, 'LNP': 1.5, 'Misc-c': 2, 'Misc-p': 6, 'OTH': 2.5, 'xOTH': 3, 'TPP': 1.5}
 
 def get_single_election_data(exclude, inputs, poll_trend, party_group, day_data, day,
                              studied_election, mix_limits):
@@ -738,7 +742,14 @@ def get_single_election_data(exclude, inputs, poll_trend, party_group, day_data,
     weights = [10 * 2 ** -(val / 8) * (1 + 2 * bias_data.relevance[n])
                for n, val in enumerate(bias_data.poll_distance)]
 
+    prior_fundamentals_errors = [prior_errors[party_group] * 2, -prior_errors[party_group] * 2]
+    prior_error_single = prior_errors[party_group] * (1 + math.sqrt(day / 100))
+    prior_poll_errors = [prior_error_single, -prior_error_single]
+
+    bias_data.fundamentals_errors.extend(prior_fundamentals_errors)
     fundamentals_bias = average(bias_data.fundamentals_errors)
+    bias_data.poll_errors.extend(prior_poll_errors)
+    weights.extend([20, 20])
     poll_bias = average(bias_data.poll_errors, weights=weights)
     if studied_election == no_target_election_marker:
         day_data.overall_fundamentals_biases = [fundamentals_bias]
@@ -797,6 +808,14 @@ def get_day_data(exclude, inputs, poll_trend, party_group, day):
                                      studied_election=studied_election,
                                      day_data=day_data,
                                      mix_limits=mix_limits)
+                                     
+    
+        prior_error_single = prior_errors[party_group] * (1 + math.sqrt(day / 100))
+        prior_mixed_errors = [prior_error_single, -prior_error_single]
+        for a in (0, 1):
+            day_data.mixed_errors[a].extend(prior_mixed_errors)
+            day_data.mixed_weights[a].extend([150, 150])
+
         rmse_factor = 0.6
         mixed_criteria = [0, 0]
         for mix_index in range(0, len(mix_limits)):
@@ -829,6 +848,7 @@ def get_day_data(exclude, inputs, poll_trend, party_group, day):
                           + mix_limits[0] * window_factor,
                           mix_limits[1])
     day_data.final_mix_factor = statistics.mean(mix_limits)
+
     return day_data
 
 
@@ -844,7 +864,6 @@ class PartyData:
         self.upper_kurtoses = {}
         self.final_mix_factors = {}
 
-
 def get_party_data(config, exclude, inputs, poll_trend, party_group):
     party_data = PartyData()
     for day in config.days:
@@ -853,6 +872,9 @@ def get_party_data(config, exclude, inputs, poll_trend, party_group):
                                 poll_trend=poll_trend,
                                 party_group=party_group,
                                 day=day)
+        day_multiplier = 1 + math.sqrt(day / 100)
+        extension = (prior_errors[party_group] * day_multiplier, -prior_errors[party_group] * day_multiplier)
+        #  day_data.overall_poll_biases.extend(extension)
         if day == 0:
             fundamentals_bias = smoothed_median(
                 day_data.overall_fundamentals_biases, 2)
@@ -882,7 +904,7 @@ def get_party_data(config, exclude, inputs, poll_trend, party_group):
         # actual value is underestimated (mix_errors < 0)
         # So when using this to create variance, this applies to the
         # upper part of the distribution (high actual values vs. forecast median)
-        upper_info = zip(day_data.mixed_errors[1], day_data.mixed_weights[1])
+        upper_info = list(zip(day_data.mixed_errors[1], day_data.mixed_weights[1]))
         upper_info = [a for a in upper_info if a[0] < 0]
         upper_rmse = math.sqrt(mean_squared_error(
             [a[0] for a in upper_info],

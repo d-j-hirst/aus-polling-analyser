@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <map>
 #include <mutex>
 #include <random>
@@ -170,6 +171,37 @@ public:
 	static void randomise() { gen.seed(rd()); }
 
 	static void setSeed(int seed) { gen.seed(seed); }
+
+	static inline std::uint64_t splitmix64(std::uint64_t x) {
+		x += 0x9e3779b97f4a7c15ULL;
+		x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+		x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+		return x ^ (x >> 31);
+	}
+
+	static inline std::uint64_t mixKey(std::uint64_t seed, std::uint64_t v) {
+		return splitmix64(seed ^ v);
+	}
+
+	static inline float uniform01_from_key(std::uint64_t key) {
+		// Use 53 bits -> (0,1). Avoid 0/1 exact by shifting + 1.
+		std::uint64_t x = splitmix64(key);
+		const double denom = 9007199254740992.0; // 2^53
+		return static_cast<float>(((x >> 11) + 1) / (denom + 2.0));
+	}
+
+	static inline float normal_from_key(std::uint64_t key, float mean, float sd) {
+		// Box-Muller
+		float u1 = uniform01_from_key(key);
+		float u2 = uniform01_from_key(key + 0x9e3779b97f4a7c15ULL);
+		float r = std::sqrt(-2.0f * std::log(u1));
+		float theta = 6.28318530718f * u2;
+		return mean + sd * (r * std::cos(theta));
+	}
+
+	static inline std::uint64_t combinePartyIds(int a, int b) {
+		return (std::uint64_t(std::uint32_t(a)) << 32) | std::uint32_t(b);
+	}
 
 private:
 
