@@ -18,6 +18,10 @@
 
 std::mutex detailCreationMutex;
 
+enum class VariabilityTag : std::uint32_t {
+	SelectDate = 1,
+};
+
 Projection::Projection(SaveData saveData)
 	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
 	projection(saveData.projection)
@@ -245,7 +249,9 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			date = settings.endDate;
 		}
 		else {
-			float selectedOdds = rng.uniform(0.0f, totalOdds);
+			float selectedOdds = iterationIndex < 0 ?
+				rng.uniform(0.0f, totalOdds) :
+				variabilityUniform(0.0f, totalOdds, 0, 0, 0, iterationIndex);
 			for (int index = 0; index < int(cumulativeOdds.size()); ++index) {
 				if (selectedOdds < cumulativeOdds[index].second) {
 					date = cumulativeOdds[index].first;
@@ -293,4 +299,13 @@ std::string Projection::textReport(ModelCollection const& models) const
 StanModel const& Projection::getBaseModel(ModelCollection const& models) const
 {
 	return models.view(settings.baseModel);
+}
+
+float Projection::variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag, int iterationIndex) const {
+	std::uint64_t key = variabilityBaseSeed;
+	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(iterationIndex));
+	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
+	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
+	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
+	return RandomGenerator::uniform01_from_key(key) * (high - low) + low;
 }

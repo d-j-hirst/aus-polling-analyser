@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <map>
 #include <mutex>
 #include <random>
@@ -130,6 +131,19 @@ public:
 		T lower_kurt = T(3.0), T upper_kurt = T(3.0), T quantile = -1.0) {
 		if (quantile < 0.0) quantile = uniform(0.0, 1.0);
 		T upperVal = 0.0;
+
+		// If doing a deterministic calculation, we need to have a deterministic
+		// calculation for the high-kurtosis branches
+		// This gets a uniform variable from the quantile without it correlating to
+		// the quantile's value.
+		auto auxUniformFromQuantile = [](T q, std::uint64_t salt) {
+			std::uint64_t key = 0;
+			static_assert(sizeof(T) <= sizeof(std::uint64_t));
+			std::memcpy(&key, &q, sizeof(T)); // use <cstring>
+			key ^= salt;
+			return uniform01_from_key(key);   // uses splitmix64 inside
+		};
+
 		// are we looking in the upper or lower half of the distribution?
 		if (upper_kurt <= T(3.0)) {
 			// use normal distribution for low kurtosis
@@ -140,7 +154,10 @@ public:
 			T df = T(6.0) / (upper_kurt - 3.0) + T(4.0);
 			T floor_df = std::floor(df);
 			T ceil_factor = df - floor_df;
-			if (uniform(T(0.0), T(1.0)) < ceil_factor) {
+			T u = (quantile >= T(0.0))
+				? T(auxUniformFromQuantile(quantile, 0x9e3779b97f4a7c15ULL))
+				: uniform(T(0.0), T(1.0));
+			if (u < ceil_factor) {
 				upperVal = mean + scaledTdistQuantile(int(floor_df) + 1, quantile, T(0.0), upper_sd);
 			}
 			else {
@@ -157,7 +174,10 @@ public:
 			T df = T(6.0) / (lower_kurt - 3.0) + T(4.0);
 			T floor_df = std::floor(df);
 			T ceil_factor = df - floor_df;
-			if (uniform(T(0.0), T(1.0)) < ceil_factor) {
+			T u = (quantile >= T(0.0))
+				? T(auxUniformFromQuantile(quantile, 0xbf58476d1ce4e5b9ULL))
+				: uniform(T(0.0), T(1.0));
+			if (u < ceil_factor) {
 				lowerVal = mean + scaledTdistQuantile(int(floor_df) + 1, quantile, T(0.0), lower_sd);
 			}
 			else {

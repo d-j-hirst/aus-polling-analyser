@@ -101,6 +101,8 @@ public:
 
 	StanModel const& getBaseModel(ModelCollection const& models) const;
 
+	float variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag, int iterationIndex) const;
+
 private:
 
 	void createTimePoint(int time, ModelCollection const& models);
@@ -120,4 +122,6 @@ private:
 
 	// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;
+
+	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 };
