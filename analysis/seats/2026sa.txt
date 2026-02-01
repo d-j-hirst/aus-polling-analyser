@@ -35,7 +35,7 @@ fTppMargin=-8.2
 fPreviousTppSwing=8.8
 fByElectionSwing=2.5
 fTransposedFederalSwing=1.4
-sCandidateNames=Jack Batty,LNP;Sarah Ditter,GRN
+sCandidateNames=Jack Batty,LNP;Sarah Ditter,GRN;Rick Sarre,ALP
 #Chaffey
 sIncumbent=LNP
 sChallenger=ALP
@@ -99,7 +99,7 @@ fPreviousTppSwing=7.5
 fTransposedFederalSwing=-1.5
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Nadia Clancy,ALP;Shawn van Groesen,LNP;Matthew Mangelsdorf,ON;Stef Rozitis,GRN
+sCandidateNames=Nadia Clancy,ALP;Shane van Groesen,LNP;Matthew Mangelsdorf,ON;Stef Rozitis,GRN
 #Elizabeth
 sIncumbent=ALP
 sChallenger=LNP
@@ -137,7 +137,7 @@ fTransposedFederalSwing=-3.0
 bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1.00
-sCandidateNames=Sam Telfer,LNP;Meghan Petherick,IND;Brenton Hicks,ON
+sCandidateNames=Sam Telfer,LNP;Meghan Petherick,IND;Brenton Hincks,ON
 #Florey
 sIncumbent=ALP
 sChallenger=LNP
@@ -251,7 +251,7 @@ fTransposedFederalSwing=-3.7
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,4.00
-sCandidateNames=Nick McBride,IND;Mark Braes,ALP;Rebekah Rosser;LNP
+sCandidateNames=Nick McBride,IND;Mark Braes,ALP;Rebekah Rosser;LNP;Jason Virgo,ON
 #Mawson
 sIncumbent=ALP
 sChallenger=LNP
@@ -260,7 +260,7 @@ fTppMargin=13.8
 fPreviousTppSwing=13.1
 fTransposedFederalSwing=-1.9
 bRetirement=1
-sCandidateNames=Jenni Mitton,ALP
+sCandidateNames=Jenni Mitton,ALP;Tyler Green,ON
 #Morialta
 sIncumbent=LNP
 sChallenger=ALP
@@ -314,7 +314,7 @@ fPreviousTppSwing=10
 fTransposedFederalSwing=-2.4
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Penny Pratt,LNP;Tony Piccolo,ALP
+sCandidateNames=Penny Pratt,LNP;Tony Piccolo,ALP;David Paton,ON
 #Playford
 sIncumbent=ALP
 sChallenger=LNP
@@ -367,7 +367,7 @@ fPreviousTppSwing=14.7
 fTransposedFederalSwing=-0.4
 bSophomoreCandidate=1
 bSophomoreParty=1
-sCandidateNames=Geoff Brock,IND;Leon Stephens,LNP;Brandon Turton,ON
+sCandidateNames=Geoff Brock,IND;Leon Stephens,LNP;Brandon Turton,ON;David Ewings,ALP
 #Taylor
 sIncumbent=ALP
 sChallenger=LNP
@@ -385,7 +385,7 @@ fTppMargin=10.0
 fPreviousTppSwing=4.3
 fTransposedFederalSwing=3.3
 bRetirement=1
-sCandidateNames=Meagan Spencer,ALP
+sCandidateNames=Meagan Spencer,ALP;David Medlock,ON
 #Unley
 sIncumbent=LNP
 sChallenger=ALP

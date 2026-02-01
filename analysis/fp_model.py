@@ -730,7 +730,7 @@ def run_individual_party(config, m_data, e_data,
     print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
 
     # Stan model configuration
-    chains = 8
+    chains = 15
     iterations = m_data.desired_iterations[e_data.e_tuple]
 
     # Do model sampling. Time for diagnostic purposes

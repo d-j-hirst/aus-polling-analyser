@@ -9,6 +9,8 @@ from time import perf_counter
 
 from stan_cache import stan_cache
 
+from poll_transform import transform_vote_share, detransform_vote_share, clamp
+
 
 fed_regions = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'WSTAN']
 qld_regions = ['Inner Suburbs', 'Outer Suburbs', 'Coasts', 'Regional', 'C+R', 'SE', 'Central', 'Far North', 'Regional ex-rural', 'Rural', 'Pure Regional']
@@ -29,7 +31,15 @@ class Config:
       help='Generate regional trends for this election.'
            'Enter as 1234-xxx format, e.g. 2013-fed. Write "all" '
            'to do it for all elections.')
+    parser.add_argument(
+      '--party',
+      action='store',
+      type=str,
+      help='Party to generate regional trends for. Currently only supports ON. '
+           'If not specified, will do 2PP.',
+      default='')
     self.election_instructions = parser.parse_args().election.lower()
+    self.party_instructions = parser.parse_args().party.lower()
     self.prepare_election_list()
 
   def prepare_election_list(self):
@@ -106,7 +116,8 @@ class ElectionData:
     self.others_medians = {}
 
     # collect the model data
-    filename = f'./Regional/{desired_election.short()}-polls.csv'
+    party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
+    filename = f'./Regional/{desired_election.short()}-polls{party_part}.csv'
     self.base_df = pd.read_csv(filename)
 
     print(self.base_df)
@@ -158,12 +169,17 @@ class ElectionData:
 def run_model_fed2025(config, m_data, e_data):
   df = e_data.base_df.copy()
 
-  df['NatSwing'] = df['National'] - e_data.previous_results['National']
+  prev_nat = e_data.previous_results['National']
+  df['NatSwing'] = df['National'].apply(lambda x: transform_vote_share(x) - transform_vote_share(prev_nat))
 
   for region in fed_regions:
-    df[f'{region}_SwingDev'] = (
-      df[f'{region}'] - e_data.previous_results[f'{region}'] - df['NatSwing']
-    )
+    prev_region = e_data.previous_results[region]
+    def swing_dev(row):
+      if pd.isna(row[region]):
+        return -10000
+      else:
+        return transform_vote_share(row[region]) - transform_vote_share(prev_region) - row['NatSwing']
+    df[f'{region}_SwingDev'] = df.apply(swing_dev, axis=1)
 
   pollDays = (
     [int(a) for a in df['StartDayNum'].values] +
@@ -206,8 +222,8 @@ def run_model_fed2025(config, m_data, e_data):
   print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
 
   # Stan model configuration
-  chains = 6
-  iterations = 300
+  chains = 15
+  iterations = 1000
 
   # Do model sampling. Time for diagnostic purposes
   start_time = perf_counter()
@@ -236,12 +252,12 @@ def run_model_fed2025(config, m_data, e_data):
   required_rows = [modified_day_count * a - 1 for a in range(1, 7)]
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
+  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
   with open(
-    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations.csv', 'w'
+    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
   ) as f:
     f.write('nsw,vic,qld,wa,sa,tan\n')
     f.write(','.join([str(a) for a in state_vals]))
-
   for offset in reversed(range(0, 5)):
     required_rows = [modified_day_count * a - offset for a in range(1, 7)]
     state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]

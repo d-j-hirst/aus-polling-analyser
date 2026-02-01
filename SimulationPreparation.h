@@ -51,6 +51,7 @@ private:
 	void loadNcPreferenceFlows();
 	void loadPastSeatResults();
 	void loadSeatTypes();
+	void calculateRegionalProportion();
 	void loadGreensSeatStatistics();
 	void loadIndSeatStatistics();
 	void loadOthSeatStatistics();

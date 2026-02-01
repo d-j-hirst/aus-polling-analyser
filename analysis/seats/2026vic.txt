@@ -114,6 +114,7 @@ sRegion=Inner Melbourne
 fTppMargin=34.1
 fPreviousTppSwing=0.5
 fTransposedFederalSwing=2.3
+bRetirement=1
 sCandidateNames=Tim Read,GRN
 #Bulleen
 sIncumbent=LNP

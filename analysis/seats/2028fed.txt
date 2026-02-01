@@ -262,7 +262,7 @@ sRegion=NSW
 fTppMargin=-17.06
 fPreviousTppSwing=-1.85
 sPolls=GRN,9,3;ON,27,3
-sCandidateNames=Barnaby Joyce,NAT
+sCandidateNames=
 #Newcastle
 sIncumbent=ALP
 sChallenger=GRN

@@ -208,6 +208,7 @@ private:
 	// A bunch of votes from one seat is less likely to be representative than from a wide variety of seats,
 	// so this factor is introduced to avoid a small number of seats from having undue influence early in the count
 	float sampleRepresentativeness = 0.0f;
+  float regionalProportion = 0.0f; // proportion of total population in regional seats (provincial + rural)
 	int total2cpVotes = 0;
 	int totalEnrolment = 0;
 	int totalPreviousTurnout = 0;
@@ -286,6 +287,7 @@ private:
 	TppSwingFactors tppSwingFactors;
 	NationalsParameters nationalsParameters;
 	std::map<int, float> regionSwingDeviations;
+	std::map<int, std::map<int, float>> regionFpSwingDeviations;
 
 	std::vector<int> indCount;
 	std::vector<int> othCount;

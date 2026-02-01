@@ -47,6 +47,7 @@ void SimulationPreparation::prepareForIterations()
 	loadPreviousElectionBaselineVotes();
 
 	loadSeatTypes();
+	calculateRegionalProportion();
 
 	loadGreensSeatStatistics();
 	loadIndSeatStatistics();
@@ -1076,31 +1077,62 @@ void SimulationPreparation::loadOverallRegionMixParameters()
 
 void SimulationPreparation::loadRegionSwingDeviations()
 {
-	std::string fileName = "analysis/Regional/" + run.getTermCode() + "-swing-deviations.csv";
-	auto file = std::ifstream(fileName);
-	if (!file) {
-		// Not finding a file is fine, but log a message in case this isn't intended behaviour
-		if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
-		return;
-	}
-	do {
-		std::string line;
-		std::getline(file, line);
-		std::getline(file, line);
-		if (!file) break;
-		auto values = splitString(line, ",");
-		int index = 0;
-		for (auto value : values) {
-			run.regionSwingDeviations[index] = std::stof(value);
-			if (index == 5) { // TAS, ACT and NT are all bundled together
-				run.regionSwingDeviations[6] = std::stof(value);
-				run.regionSwingDeviations[7] = std::stof(value);
-				break;
-			}
-			++index;
+	{ // TPP
+		std::string fileName = "analysis/Regional/" + run.getTermCode() + "-swing-deviations.csv";
+		auto file = std::ifstream(fileName);
+		if (!file) {
+			// Not finding a file is fine, but log a message in case this isn't intended behaviour
+			if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+			return;
 		}
+		do {
+			std::string line;
+			std::getline(file, line);
+			std::getline(file, line);
+			if (!file) break;
+			auto values = splitString(line, ",");
+			int index = 0;
+			for (auto value : values) {
+				run.regionSwingDeviations[index] = std::stof(value);
+				if (index == 5) { // TAS, ACT and NT are all bundled together
+					run.regionSwingDeviations[6] = std::stof(value);
+					run.regionSwingDeviations[7] = std::stof(value);
+					break;
+				}
+				++index;
+			}
 
-	} while (true);
+		} while (true);
+	}
+
+	auto onIndex = project.parties().indexByShortCode("ON");
+	if (onIndex != -1) {
+		std::string fileName = "analysis/Regional/" + run.getTermCode() + "-swing-deviations-ON.csv";
+		auto file = std::ifstream(fileName);
+		if (!file) {
+			// Not finding a file is fine, but log a message in case this isn't intended behaviour
+			if (run.regionCode == "fed") logger << "Info: Could not find file " + fileName + " - default region behaviours will be used\n";
+			return;
+		}
+		do {
+			std::string line;
+			std::getline(file, line);
+			std::getline(file, line);
+			if (!file) break;
+			auto values = splitString(line, ",");
+			int index = 0;
+			for (auto value : values) {
+				run.regionFpSwingDeviations[onIndex][index] = std::stof(value);
+				if (index == 5) { // TAS, ACT and NT are all bundled together
+					run.regionFpSwingDeviations[onIndex][6] = std::stof(value);
+					run.regionFpSwingDeviations[onIndex][7] = std::stof(value);
+					break;
+				}
+				++index;
+			}
+
+		} while (true);
+	}
 }
 
 void SimulationPreparation::loadTppSwingFactors()
@@ -1283,6 +1315,17 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 	int daysToElection = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models()).daysToElection;
 	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
 	run.indEmergenceModifier = std::min((float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f), 2.5f);
+}
+
+void SimulationPreparation::calculateRegionalProportion()
+{
+	int regionalSeats = 0;
+	for (auto const& seatType : run.seatTypes) {
+		if (seatType == SimulationRun::SeatType::Provincial || seatType == SimulationRun::SeatType::Rural) {
+			++regionalSeats;
+		}
+	}
+  run.regionalProportion = float(regionalSeats) / float(run.seatTypes.size());
 }
 
 void SimulationPreparation::initializeGeneralLiveData()

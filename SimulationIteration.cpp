@@ -695,6 +695,7 @@ void SimulationIteration::determineSeatInitialResults()
 		determineNationalsShare(seatIndex);
 
 		allocateMajorPartyFp(seatIndex);
+
 		if (checkForNans("After corrections")) {
 			reset();
 			return;
@@ -896,6 +897,7 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	// Helps to effect minor party crowding, i.e. if too many minor parties
 	// rise in their fp vote, then they're all reduced a bit more than if only one rose.
 	prepareFpsForNormalisation(seatIndex);
+
 	normaliseSeatFp(seatIndex);
 }
 
@@ -1073,7 +1075,13 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	float incumbentFp = project.parties().idToIndex(seat.incumbent) == partyIndex ? voteShare : 0.0f;
 	// Choosing the lower of modifiedFp1 and modifiedFp2 prevents the fp from being >= 100.0f in some scenarios
 	float modifiedFp = std::clamp(modifiedFp1, incumbentFp, modifiedFp2);
+
 	float transformedFp = transformVoteShare(modifiedFp);
+
+  float regionIndex = project.regions().idToIndex(seat.region);
+	if (run.regionFpSwingDeviations.contains(partyIndex)) {
+    transformedFp += run.regionFpSwingDeviations[partyIndex][regionIndex];
+	}
 
 	float populism = centristPopulistFactor[partyIndex];
 	float lowerRmse = mix(run.centristStatistics.lowerRmse, run.populistStatistics.lowerRmse, populism);
@@ -2271,6 +2279,20 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						// Based on previous elections Mirani ONP member got better flows than expected for an ONP candidate, expect this to continue as KAP to some extent
 						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.first == 3) flow += 5.0f;
 						if (seat.name == "Mirani" && run.getTermCode() == "2024qld" && isMajor(sourceParty) && targetParties.second == 3) flow -= 5.0f;
+
+						// higher flow for ON in regional areas, as suggested by results from 2017/2020 in Qld
+						if (targetParties.first >= 0 && targetParties.second >= 0) {
+							float regionalBoost = 5.0f - (10.0f * run.regionalProportion);
+							if (run.seatTypes.at(seatIndex) == SimulationRun::SeatType::Provincial || run.seatTypes.at(seatIndex) == SimulationRun::SeatType::Rural) {
+								if (sourceParty == 1 && project.parties().viewByIndex(targetParties.first).abbreviation == "ON" && targetParties.second == 0) flow += 5.0f + regionalBoost;
+								if (sourceParty == 1 && project.parties().viewByIndex(targetParties.second).abbreviation == "ON" && targetParties.first == 0) flow -= 5.0f + regionalBoost;
+							}
+							else {
+								if (sourceParty == 1 && project.parties().viewByIndex(targetParties.first).abbreviation == "ON" && targetParties.second == 0) flow -= 5.0f + regionalBoost;
+								if (sourceParty == 1 && project.parties().viewByIndex(targetParties.second).abbreviation == "ON" && targetParties.first == 0) flow += 5.0f + regionalBoost;
+							}
+						}
+
 						float transformedFlow = transformVoteShare(flow);
 						// Higher variation in preference flow under OPV
 						float randomFactorFlow = variabilityNormal(
@@ -2328,6 +2350,14 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				thisWeight *= std::sqrt(targetVoteShare);
 				weights[targetIndex] = thisWeight;
 			}
+
+			//if (alpIndex >= 0 && lnpIndex >= 0 && bothMajorParties(sourceParty, accumulatedVoteShares[alpIndex].first) == false &&
+			//	bothMajorParties(sourceParty, accumulatedVoteShares[lnpIndex].first) == false) {
+			//	// boost weight to major party when both are present and source is not major
+			//	float combinedWeights = weights[alpIndex] + weights[lnpIndex];
+			//	weights[alpIndex] = combinedWeights * 0.7f;
+			//	weights[lnpIndex] = combinedWeights * 0.3f;
+   //   }
 
 			// Rather hacky way to handle GRN -> ALP/IND flows in cases where another candidate (usually LNP)
 			// is still in the running. Depends on ALP being party index 0,
@@ -2842,8 +2872,12 @@ float SimulationIteration::calculateEffectiveSeatModifier(int seatIndex, int par
 	float seatModifier = mix(run.seatCentristModifiers[seatIndex], run.seatPopulistModifiers[seatIndex], populism);
 	int regionIndex = project.regions().idToIndex(seat.region);
 	float homeStateCoefficient = mix(run.centristStatistics.homeStateCoefficient, run.populistStatistics.homeStateCoefficient, populism);
-	if (homeRegion.contains(partyIndex) && homeRegion.at(partyIndex) == regionIndex) seatModifier += homeStateCoefficient;
-	float highVoteModifier = std::clamp(std::pow(2.0f, (3.0f - overallFpTarget.at(partyIndex)) * 0.1f), 0.2f, 1.0f);
+	if (
+		homeRegion.contains(partyIndex)
+		&& homeRegion.at(partyIndex) == regionIndex
+		&& !run.regionFpSwingDeviations.contains(partyIndex) /* don't do a home state modified if there are actual polled deviations */
+	) seatModifier += homeStateCoefficient;
+	float highVoteModifier = std::clamp(std::pow(2.0f, (15.0f - overallFpTarget.at(partyIndex)) * 0.05f), 0.2f, 1.0f);
 	seatModifier = (seatModifier - 1.0f) * highVoteModifier + 1.0f;
 	return seatModifier;
 }
