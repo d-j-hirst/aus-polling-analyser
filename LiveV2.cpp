@@ -235,14 +235,14 @@ Booth::Booth(
 }
 
 Booth::Booth(
-    Results2::Seat::VotesByType const& currentFpVotes,
-    Results2::Seat::VotesByType const& currentTcpVotes,
-    std::optional<Results2::Seat::VotesByType const*> previousFpVotes,
-    std::optional<Results2::Seat::VotesByType const*> previousTcpVotes,
-    Results2::VoteType voteType,
-    std::function<int(int, bool)> partyMapper,
-    int parentSeatId,
-    int natPartyIndex
+  Results2::Seat::VotesByType const& currentFpVotes,
+  Results2::Seat::VotesByType const& currentTcpVotes,
+  std::optional<Results2::Seat::VotesByType const*> previousFpVotes,
+  std::optional<Results2::Seat::VotesByType const*> previousTcpVotes,
+  Results2::VoteType voteType,
+  std::function<int(int, bool)> partyMapper,
+  int parentSeatId,
+  int natPartyIndex
 )
   : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other),
   coords({ 0.0f, 0.0f })
@@ -251,61 +251,61 @@ Booth::Booth(
     Results2::Seat::VotesByType const& currentVotes,
     std::optional<Results2::Seat::VotesByType const*> previousVotes,
     auto& currentMap, auto& previousMap, auto& sharesMap, auto& swingsMap, bool isTcp = false)
-  {
-    // Extract votes from current booth
-    for (auto const& [partyId, votes] : currentVotes) {
-      int mappedPartyId = partyMapper(partyId, false);
-      currentMap[mappedPartyId] = votes.at(voteType);
-    }
-    // Extract votes from previous booth if available
-    if (previousVotes) {
-      for (auto const& [partyId, votes] : *(previousVotes.value())) {
-        int mappedPartyId = partyMapper(partyId, true);
-        previousMap[mappedPartyId] = votes.at(voteType);
+    {
+      // Extract votes from current booth
+      for (auto const& [partyId, votes] : currentVotes) {
+        int mappedPartyId = partyMapper(partyId, false);
+        currentMap[mappedPartyId] = votes.at(voteType);
       }
-    }
-
-    for (auto const& [partyId, votes] : currentMap) {
-      node.runningParties.insert(partyId);
-    }
-
-    if (node.totalFpVotesCurrent() == 0 && isTcp) {
-      // If there are no fp votes, we can't process the tcp votes
-      // So clear the current map so that we don't have any votes in it
-      // This is because it is likely an error, or even if it isn't, having 2CP votes without FP votes may cause errors
-      // So just clear it and pretend there are no votes reported at all.
-      // We do need to keep the previous map so that we can project the votes
-      for (auto& [partyId, votes] : currentMap) {
-        votes = 0;
-      }
-      return;
-    }
-
-    // Calculate total votes for percentages
-    // Need to actually calculate this because the fp and tcp can be legitimately different for incremental booths
-    float totalCurrentVotes = static_cast<float>(std::accumulate(currentMap.begin(), currentMap.end(), 0,
-      [](int sum, const auto& pair) { return sum + pair.second; }));
-    float totalPreviousVotes = static_cast<float>(std::accumulate(previousMap.begin(), previousMap.end(), 0,
-      [](int sum, const auto& pair) { return sum + pair.second; }));
-    // Calculate shares and swings
-    if (totalCurrentVotes > 0) {
-      for (auto const& [partyId, votes] : currentMap) {
-        if (votes == 0 || votes >= totalCurrentVotes) {
-          continue;
+      // Extract votes from previous booth if available
+      if (previousVotes) {
+        for (auto const& [partyId, votes] : *(previousVotes.value())) {
+          int mappedPartyId = partyMapper(partyId, true);
+          previousMap[mappedPartyId] = votes.at(voteType);
         }
-        float currentTransformed = transformVoteShare(static_cast<float>(votes) / totalCurrentVotes * 100.0f);
-        sharesMap[partyId] = currentTransformed;
-        if (previousMap.contains(partyId) && totalPreviousVotes > 0) {
-          if (previousMap.at(partyId) == 0 || previousMap.at(partyId) >= totalPreviousVotes) {
+      }
+
+      for (auto const& [partyId, votes] : currentMap) {
+        node.runningParties.insert(partyId);
+      }
+
+      if (node.totalFpVotesCurrent() == 0 && isTcp) {
+        // If there are no fp votes, we can't process the tcp votes
+        // So clear the current map so that we don't have any votes in it
+        // This is because it is likely an error, or even if it isn't, having 2CP votes without FP votes may cause errors
+        // So just clear it and pretend there are no votes reported at all.
+        // We do need to keep the previous map so that we can project the votes
+        for (auto& [partyId, votes] : currentMap) {
+          votes = 0;
+        }
+        return;
+      }
+
+      // Calculate total votes for percentages
+      // Need to actually calculate this because the fp and tcp can be legitimately different for incremental booths
+      float totalCurrentVotes = static_cast<float>(std::accumulate(currentMap.begin(), currentMap.end(), 0,
+        [](int sum, const auto& pair) { return sum + pair.second; }));
+      float totalPreviousVotes = static_cast<float>(std::accumulate(previousMap.begin(), previousMap.end(), 0,
+        [](int sum, const auto& pair) { return sum + pair.second; }));
+      // Calculate shares and swings
+      if (totalCurrentVotes > 0) {
+        for (auto const& [partyId, votes] : currentMap) {
+          if (votes == 0 || votes >= totalCurrentVotes) {
             continue;
           }
-          float previousTransformed = transformVoteShare(static_cast<float>(previousMap.at(partyId)) / totalPreviousVotes * 100.0f);
-          float change = currentTransformed - previousTransformed;
-          swingsMap[partyId] = change;
+          float currentTransformed = transformVoteShare(static_cast<float>(votes) / totalCurrentVotes * 100.0f);
+          sharesMap[partyId] = currentTransformed;
+          if (previousMap.contains(partyId) && totalPreviousVotes > 0) {
+            if (previousMap.at(partyId) == 0 || previousMap.at(partyId) >= totalPreviousVotes) {
+              continue;
+            }
+            float previousTransformed = transformVoteShare(static_cast<float>(previousMap.at(partyId)) / totalPreviousVotes * 100.0f);
+            float change = currentTransformed - previousTransformed;
+            swingsMap[partyId] = change;
+          }
         }
       }
-    }
-  };
+    };
 
   // Process first preference votes
   processVotes(
@@ -326,14 +326,18 @@ Booth::Booth(
 
   // For incremental booths our confidence will increase as more votes are counted
   // but as we don't actually know how many votes are left to be counted
-  // the confidence will plateau at 0.9
-  node.fpConfidence = std::min(float(node.totalFpVotesCurrent()) / float(node.totalVotesPrevious()), 0.9f);
-  node.tcpConfidence = std::min(float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()), 0.9f);
-  node.tppConfidence = std::min({
-    float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()),
-    float(node.totalFpVotesCurrent()) / float(node.totalVotesPrevious()) * 0.5f,
-    0.9f
-  });
+  // the confidence will plateau at 0.95
+  // (this needs to be quite high to prevent the offset from incorrectly bleeding into the
+  // votes for close TPP seats)
+  node.fpConfidence = std::min(float(node.totalFpVotesCurrent()) / float(node.totalVotesPrevious()), 0.95f);
+  node.tcpConfidence = std::min(float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()), 0.95f);
+  node.tppConfidence = std::min(
+    std::max(
+      float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()),
+      float(node.totalFpVotesCurrent()) / float(node.totalVotesPrevious()) * 0.5f
+    ),
+    0.95f
+  );
 }
 
 void Booth::calculateTppSwing(int natPartyIndex) {

@@ -2084,8 +2084,6 @@ void SimulationIteration::incorporateLiveResults()
 			float transformedTpp = transformVoteShare(oldTpp);
 			transformedTpp += regionTppDeviation;
 			partyOneNewTppMargin[seatIndex] = detransformVoteShare(transformedTpp) - 50.0f;
-
-			auto const seat = project.seats().viewByIndex(seatIndex);
 		}
 	}
 

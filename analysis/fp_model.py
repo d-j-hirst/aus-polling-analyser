@@ -495,6 +495,8 @@ def run_individual_party(config, m_data, e_data,
         prior_result = 50  # placeholder TPP
     else:
         prior_result = 0.25  # percentage
+    print(party)
+    print(prior_result)
 
     # Get a series for any missing data
     missing = df[party].apply(lambda x: 1 if np.isnan(x) else 0)

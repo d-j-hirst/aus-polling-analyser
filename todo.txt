@@ -12,13 +12,17 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
+ -Longman overestimation of ALP chance in very late count - possibly due to rounding (49.9 goes to Coalition but 50.0 to Labor even if actually slightly below? check)
  -Resolve situations where TCP progress decreases (and not due to fresh realignment) e.g. Franklin, Griffith. Also address TCP progress being (far) ahead of FP progress for Melbourne.
  -Address overly strong decline in Curtin IND win% and sudden snapback at 8:49 without new results
  -Check Franklin Tuesday 11am low ALP win % if not already resolved
  -Why is Calwell showing 100% ALP on election night?
  -TPP progress much less than half of FP progress n some seats (e.g. Brisbane on Tuesday) - why?
  -Franklin Wednesday 12:30pm second IND rated slight chance of winning even though mathematically impossible based on final fps.
+ -Why is LIB given such a relatively high chance in Ryan (2025-05-14 12:01) even though ALP win extremely unlikely?
  -Prepoll StdDev is clearly dropping too fast relative to changes in the bias estimate (changes in the bias estimate continue to drop even when the StdDev is ~zero). Check (a) is bias estimate accurate to data (before blending to baseline) (b) does bias estimate adjust too slowly based on 2025 data (c) does StdDev need to be changed to match bias estimate
+ -Call of Goldstein at 2025-05-14 13:32 seems aggressive considering final margin
+ -Flinders 2025-05-14 17:03 - emerging IND is rated as some chance, should be zero as parties outside the top three do not have enough primaries to reach the 3CP regardless of preference flow. (Similar in Cowper)
  -in order to better calibrate the balance between baseline and live results, we need to store standard deviations as part of the live baseline, not just medians. These can then be compared with the standard deviation derived from the live results to determine the weightings for baseline vs. live. (Low-medium difficulty, needed for other steps)
  -for live results, calculate standard deviation of remaining results per seat based on theoretical or empirical formula rather than just vibes. Current vibes-based calculation is clearly (based on the smooth curves seen) overly conservative (as all vibes-based results need to be), with proper calibration we can tighten it up and make the live simulation more reactive. Way it should work: we have a formula for calculating the standard deviation of remaining results (in same vote category) based on (a) % of vote counted (b) number of different booths. Perhaps add a variable for diversity in size/location and weightings for confidence in the 2cp/2pp for fp-only booths (Medium-high difficulty, high impact)
  -Variance in estimation of NAT/LIB ratio, even a crude vibes-based variation formula is better than what we have now (Low difficulty, medium impact)
