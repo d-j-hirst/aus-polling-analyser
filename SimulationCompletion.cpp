@@ -782,15 +782,15 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	}
 	summaryFile << "\nFP percent counted\n";
 	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
-		summaryFile << run.liveElection->getSeatFpConfidence(sim.latestReport.seatName[index]) << ",";
+		summaryFile << run.liveElection->getSeatFpCompletion(sim.latestReport.seatName[index]) << ",";
 	}
 	summaryFile << "\nTPP swing basis\n";
 	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
-		summaryFile << run.liveElection->getSeatTppConfidence(sim.latestReport.seatName[index]) << ",";
+		summaryFile << run.liveElection->getSeatTppCompletion(sim.latestReport.seatName[index]) << ",";
 	}
 	summaryFile << "\nTCP swing basis\n";
 	for (auto index = 0; index < int(sim.latestReport.seatName.size()); ++index) {
-		summaryFile << run.liveElection->getSeatTcpConfidence(sim.latestReport.seatName[index]) << ",";
+		summaryFile << run.liveElection->getSeatTcpCompletion(sim.latestReport.seatName[index]) << ",";
 	}
 	auto internals = run.liveElection->getInternals();
 	summaryFile << "\nBooth type biases\n";

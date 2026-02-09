@@ -76,6 +76,9 @@ void Node::log() const
   PA_LOG_VAR(fpConfidence);
   PA_LOG_VAR(tcpConfidence);
   PA_LOG_VAR(tppConfidence);
+  PA_LOG_VAR(fpCompletion);
+  PA_LOG_VAR(tcpCompletion);
+  PA_LOG_VAR(tppCompletion);
   PA_LOG_VAR(fpSharesPercent());
   PA_LOG_VAR(tcpSharesPercent());
   PA_LOG_VAR(fpSharesBaseline);
@@ -232,6 +235,10 @@ Booth::Booth(
   node.fpConfidence = node.fpSwings.size() > 0 ? 1 : 0;
   node.tcpConfidence = node.tcpSwings.size() > 1 ? 1 : 0;
   node.tppConfidence = node.tppSwing.has_value() ? 1 : 0;
+
+  node.fpCompletion = node.totalFpVotesCurrent() > 0 ? 1 : 0;
+  node.tcpCompletion = node.totalTcpVotesCurrent() > 0 ? 1 : 0;
+  node.tppCompletion = node.totalTcpVotesCurrent() > 0 && isTppSet(node.tcpVotesCurrent, natPartyIndex) ? 1 : 0;
 }
 
 Booth::Booth(
@@ -330,13 +337,22 @@ Booth::Booth(
   // (this needs to be quite high to prevent the offset from incorrectly bleeding into the
   // votes for close TPP seats)
   node.fpConfidence = std::min(float(node.totalFpVotesCurrent()) / float(node.totalVotesPrevious()), 0.95f);
-  node.tcpConfidence = std::min(float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()), 0.95f);
+  // If we can't compare tcp swings due to difference matchup, keep tcp confidence to zero 
+  node.tcpConfidence = node.tcpSwings.size() ? std::min(float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()), 0.95f) : 0.0f;
   node.tppConfidence = std::min(
     std::max(
-      float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()),
+      // TCP vote progress should only be counted as TPP confidence if it's actually a TPP matchup
+      isTppSet(node.tcpVotesCurrent, natPartyIndex) ?  float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()) : 0.0f,
       float(node.totalFpVotesCurrent()) / float(node.totalVotesPrevious()) * 0.5f
     ),
     0.95f
+  );
+
+  node.fpCompletion = node.fpConfidence;
+  node.tcpCompletion = node.tcpConfidence;
+  // The same as tppConfidence but without the approximation from FPs
+  node.tppCompletion = std::min(
+    isTppSet(node.tcpVotesCurrent, natPartyIndex) ? float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()) : 0.0f,0.95f
   );
 }
 
@@ -438,9 +454,9 @@ LiveV2::Election::FloatInformation LiveV2::Election::getSeatOthersInformation(st
       }
     }
     float othersShare = othersVotes / seats[seatIndex].node.totalFpVotesProjected() * 100.0f;
-    return {othersShare, seats[seatIndex].node.fpConfidence};
+    return {othersShare, seats[seatIndex].node.fpCompletion, seats[seatIndex].node.fpConfidence};
   }
-  return {0.0f, 0.0f};
+  return {0.0f, 0.0f, 0.0f};
 }
 
 LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
@@ -810,6 +826,7 @@ void Election::calculateTppEstimates(bool withTpp) {
           booth.node.preferenceFlowDeviation = currentPreferenceRateOffset.value() - prevPreferenceRateOffset.value();
           booth.node.preferenceFlowConfidence = 1.0f;
           booth.calculateTppSwing(natPartyIndex);
+          // TODO: Check if the use of "max" here works (booths with tpp estimate only should have confidence = 0.5f)
           booth.node.tppConfidence = std::max(booth.node.tppConfidence, 0.5f);
         }
       }
@@ -1224,6 +1241,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   std::map<int, float> fpWeightSum; // sum of weights
   float fpConfidenceSum = 0.0f; // sum of confidence, weighted by number of votes
   float fpConfidenceWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
+  float fpCompletionSum = 0.0f;
 
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->fpConfidence;
@@ -1237,6 +1255,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
         confidenceAdded = true;
       }
     }
+    fpCompletionSum += thisNode->fpCompletion * thisNode->totalVotesPrevious();
 
     fpConfidenceWeightSum += thisNode->totalVotesPrevious();
   }
@@ -1249,6 +1268,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     }
   }
   if (fpConfidenceWeightSum > 0) {
+    aggregatedNode.fpCompletion = fpCompletionSum / fpConfidenceWeightSum; // can use same denominator as confidence since it's weighted the same way, even though it's technically a different metric
     aggregatedNode.fpConfidence = fpConfidenceSum / fpConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
   }
 
@@ -1276,6 +1296,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float tppWeightSum = 0.0f;
   float tppConfidenceSum = 0.0f;
   float tppConfidenceWeightSum = 0.0f;
+  float tppCompletionSum = 0.0f;
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->tppConfidence;
     if (thisNode->tppDeviation) {
@@ -1284,6 +1305,8 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
       // Only count confidence when the deviation actually contributes to the calculations
       tppConfidenceSum += thisNode->tppConfidence * thisNode->totalVotesPrevious();
     }
+    // Always count completion
+    tppCompletionSum += thisNode->tppCompletion * thisNode->totalVotesPrevious();
 
     tppConfidenceWeightSum += thisNode->totalVotesPrevious();
   }
@@ -1291,10 +1314,13 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     aggregatedNode.tppDeviation = tppDeviationWeightedSum / tppWeightSum;
   }
   if (tppConfidenceWeightSum > 0) {
-    aggregatedNode.tppConfidence = tppConfidenceSum / tppConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
+    // will eventually have a more sophisticated nonlinear confidence calculation
+    aggregatedNode.tppConfidence = tppConfidenceSum / tppConfidenceWeightSum;
+    // can use same denominator as confidence since it's weighted the same way, even though it's technically a different metric
+    aggregatedNode.tppCompletion = tppCompletionSum / tppConfidenceWeightSum;
   }
 
-    // Aggregate preference flow deviation
+  // Aggregate preference flow deviation
   float preferenceFlowDeviationWeightedSum = 0.0f;
   float preferenceFlowWeightSum = 0.0f;
   float preferenceFlowConfidenceSum = 0.0f;
@@ -1540,7 +1566,6 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       int effectivePartyId = partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
       fpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
-    booth.node.tcpConfidence = 1.0f;
     if (booth.voteType != Results2::VoteType::Ordinary) {
       float expectedTotalVotes = booth.node.totalVotesPrevious();
       float currentTotalVotesProjected = std::accumulate(fpVotesProjected.begin(), fpVotesProjected.end(), 0.0f,
@@ -1704,7 +1729,6 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
       int effectivePartyId = convertPartyId(partyId);
       tcpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
-    booth.node.tcpConfidence = 1.0f;
     if (booth.voteType != Results2::VoteType::Ordinary) {
       float expectedTotalVotes = booth.node.totalVotesPrevious();
       float currentTotalVotesProjected = std::accumulate(tcpVotesProjected.begin(), tcpVotesProjected.end(), 0.0f,
@@ -1731,7 +1755,8 @@ void Election::recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex) {
       float additionalPartyOneVotes = detransformVoteShare(transformedProjection) * totalAdditionalVotes * 0.01f;
       tcpVotesProjected[firstPartyId] += additionalPartyOneVotes;
       tcpVotesProjected[secondPartyId] += totalAdditionalVotes - additionalPartyOneVotes;
-      booth.node.tcpConfidence = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
+      booth.node.tcpCompletion = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
+      booth.node.tcpConfidence = booth.node.tcpCompletion;
     }
     if (createRandomVariation) {
       booth.node.tempTcpVotesProjected = tcpVotesProjected;
@@ -2061,6 +2086,7 @@ void Election::recomposeSeatFpVotes(int seatIndex) {
 void Election::recomposeSeatTcpVotes(int seatIndex) {
   seats[seatIndex].node.tcpVotesProjected = std::map<int, float>();
   auto& seatNode = seats[seatIndex].node;
+  float weightedCompletion = 0.0f;
   float weightedConfidence = 0.0f;
   float totalWeight = 0.0f;
   for (auto const& boothIndex : seats[seatIndex].booths) {
@@ -2071,13 +2097,15 @@ void Election::recomposeSeatTcpVotes(int seatIndex) {
         seatNode.tcpVotesProjected[partyId] += votes;
       }
     }
-    weightedConfidence += boothNode.tcpConfidence * boothNode.totalTcpVotesProjected(); 
+    weightedCompletion += boothNode.tcpCompletion * boothNode.totalTcpVotesProjected();
+    weightedConfidence += boothNode.tcpConfidence * boothNode.totalTcpVotesProjected();
     totalWeight += boothNode.totalTcpVotesProjected();
   }
   if (seatNode.totalTcpVotesProjected() == 0) return;
   for (auto const& [partyId, votes] : seatNode.tcpVotesProjected) {
     seatNode.tcpShares[partyId] = transformVoteShare(votes / seatNode.totalTcpVotesProjected() * 100.0f);
   }
+  seatNode.tcpCompletion = weightedCompletion / totalWeight;
   seatNode.tcpConfidence = weightedConfidence / totalWeight;
 }
 
@@ -2181,7 +2209,9 @@ void Election::determineElectionFinalTppDeviation(bool allowCurrentData) {
     // but for now this is a simple way to account for factors that may bias
     // the seat's TPP share away from the baseline, such as redistributions, new
     // booths, or expected shifts between vote types.
-    float offset = offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - node.tppConfidence);
+    // use completion rather than confidence to make sure that complete TPP results
+    // in no offset, even if confidence is low due to inability to measure swings
+    float offset = offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - node.tppCompletion);
     finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     offsetSpecificTppDeviation = finalDeviation;
@@ -2248,7 +2278,9 @@ void Election::determineLargeRegionFinalTppDeviation(bool allowCurrentData, int 
     // but for now this is a simple way to account for factors that may bias
     // the seat's TPP share away from the baseline, such as redistributions, new
     // booths, or expected shifts between vote types.
-    float offset = largeRegions[largeRegionIndex].offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - largeRegions[largeRegionIndex].node.tppConfidence);
+    // use completion rather than confidence to make sure that complete TPP results
+    // in no offset, even if confidence is low due to inability to measure swings
+    float offset = largeRegions[largeRegionIndex].offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - largeRegions[largeRegionIndex].node.tppCompletion);
     largeRegions[largeRegionIndex].finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     largeRegions[largeRegionIndex].offsetSpecificTppDeviation = finalDeviation;
@@ -2321,7 +2353,9 @@ void Election::determineSeatFinalTppDeviation(bool allowCurrentData, int seatInd
     // but for now this is a simple way to account for factors that may bias
     // the seat's TPP share away from the baseline, such as redistributions, new
     // booths, or expected shifts between vote types.
-    float offset = seats[seatIndex].offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - seats[seatIndex].node.tppConfidence);
+    // use completion rather than confidence to make sure that complete TPP results
+    // in no offset, even if confidence is low due to inability to measure swings
+    float offset = seats[seatIndex].offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - seats[seatIndex].node.tppCompletion);
     seats[seatIndex].finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     seats[seatIndex].offsetSpecificTppDeviation = finalDeviation;

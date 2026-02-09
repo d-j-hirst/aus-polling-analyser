@@ -56,12 +56,12 @@ void LivePreparation::prepareLiveAutomatic()
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto seat = project.seats().viewByIndex(seatIndex);
-		if (run.liveElection->getSeatFpConfidence(seat.name) > 0) {
+		if (run.liveElection->getSeatFpCompletion(seat.name) > 0) {
 			project.outcomes().add(Outcome(
 				seatIndex,
 				run.liveElection->getSeatRawTppSwing(seat.name),
-				run.liveElection->getSeatFpConfidence(seat.name) * 100.0f,
-				run.liveElection->getSeatTppConfidence(seat.name) * 100.0f,
+				run.liveElection->getSeatFpCompletion(seat.name) * 100.0f,
+				run.liveElection->getSeatTcpCompletion(seat.name) * 100.0f,
 				0,
 				40
 			));

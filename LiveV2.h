@@ -62,10 +62,18 @@ public:
   std::map<int, float> tempTcpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::set<int> runningParties;
 
+  // Confidence = how useful the existing results are for projection remaining results.
+  // So this will include estimates from fp, but not include results where swing can't be calculated
   float fpConfidence = 0.0f;
   float tcpConfidence = 0.0f;
   float tppConfidence = 0.0f;
   float preferenceFlowConfidence = 0.0f;
+
+  // Completion = how much of this result is counted - for weghting versus pre-election and completion statistics
+  // So this will include results where swing can't be calculated, but not include estimates from fp
+  float fpCompletion = 0.0f;
+  float tcpCompletion = 0.0f;
+  float tppCompletion = 0.0f;
 
   auto fpSharesPercent() const {
     std::map<int, float> result;
@@ -200,13 +208,15 @@ public:
 
   struct FloatInformation {
     float value = 0.0f;
+    float completion = 0.0f;
     float confidence = 0.0f;
   };
 
   struct FloatBaselineInformation {
-    float deviation = 0.0f;
-    float confidence = 0.0f;
     float baseline = 0.0f;
+    float completion = 0.0f;
+    float confidence = 0.0f;
+    float deviation = 0.0f;
   };
 
   struct Internals {
@@ -239,14 +249,16 @@ public:
 
    // baseline: revert "simulated" 2PP to this as confidence increases
    // deviation: deviation from prior baseline
-   // confidence: confidence in the deviation, should determine how this is weighted
+   // confidence: confidence in the deviation for purposes of projecting remaining results
+   // completion: how much of the result is in, should determine how this is weighted versus pre-election and completion statistics
    // Note this should be used from a randomized instance of the live results simulation
    // to reflect uncertainty in the remaining live results
   FloatBaselineInformation getFinalSpecificTppInformation() const {
     float baseline = node.tppShareBaseline.value_or(50.0f);
     float deviation = finalSpecificTppDeviation.value_or(0.0f);
     float confidence = node.tppConfidence;
-    return {deviation, confidence, baseline};
+    float completion = node.tppCompletion;
+    return { baseline, completion, confidence, deviation, };
   }
 
   std::map<int, float> getFinalSpecificFpDeviations() const {
@@ -266,8 +278,9 @@ public:
 		if (seatIndex != int(seats.size())) {
       float deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
       float confidence = seats[seatIndex].node.tppConfidence;
+      float completion = seats[seatIndex].node.tppCompletion;
       float baseline = seats[seatIndex].node.tppShareBaseline.value_or(50.0f);
-      return {deviation, confidence, baseline};
+      return { baseline, completion, confidence, deviation };
 		}
     return {0.0f, 0.0f, 50.0f};
   }
@@ -278,7 +291,7 @@ public:
       std::map<int, FloatBaselineInformation> result;
       for (auto [party, deviation] : seats[seatIndex].finalSpecificFpDeviations) {
         if (!seats[seatIndex].node.fpSharesBaseline.contains(party)) continue;
-        result[party] = {deviation, seats[seatIndex].node.fpConfidence, seats[seatIndex].node.fpSharesBaseline.at(party)};
+        result[party] = { seats[seatIndex].node.fpSharesBaseline.at(party), seats[seatIndex].node.fpCompletion, seats[seatIndex].node.fpConfidence, deviation };
       }
 			return result;
 		}
@@ -315,26 +328,26 @@ public:
     return 0.0f;
   }
 
-  float getSeatFpConfidence(std::string const& seatName) const {
+  float getSeatFpCompletion(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
-			return seats[seatIndex].node.fpConfidence;
+			return seats[seatIndex].node.fpCompletion;
 		}
     return 0.0f;
   }
 
-  float getSeatTppConfidence(std::string const& seatName) const {
+  float getSeatTppCompletion(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
-      return seats[seatIndex].node.tppConfidence;
+      return seats[seatIndex].node.tppCompletion;
     }
     return 0.0f;
   }
 
-  float getSeatTcpConfidence(std::string const& seatName) const {
+  float getSeatTcpCompletion(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
-      return seats[seatIndex].node.tcpConfidence;
+      return seats[seatIndex].node.tcpCompletion;
     }
     return 0.0f;
   }
@@ -354,7 +367,7 @@ public:
       totalPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0f);
       totalPreferenceFlowConfidence += node.preferenceFlowConfidence;
       float finalConfidence = totalPreferenceFlowConfidence / 3.0f;
-      return {totalPreferenceFlowDeviation, finalConfidence};
+      return {totalPreferenceFlowDeviation, 0, finalConfidence};
     }
     return {0.0f, 0.0f};
   }
@@ -363,7 +376,7 @@ public:
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       float confidence = std::min(seats[seatIndex].node.fpConfidence, seats[seatIndex].node.tcpConfidence);
-      return {seats[seatIndex].livePreferenceFlowDeviation, confidence};
+      return {seats[seatIndex].livePreferenceFlowDeviation, 0, confidence};
     }
     return {0.0f, 0.0f};
   }
@@ -381,23 +394,25 @@ public:
           totalMajorPartyVotes += fpVotes.at(partyId);
         }
       }
+      float completion = seats[seatIndex].node.fpCompletion;
       float confidence = seats[seatIndex].node.fpConfidence;
-      return {static_cast<float>(fpVotes.at(0)) / static_cast<float>(totalMajorPartyVotes), confidence};
+      return {static_cast<float>(fpVotes.at(0)) / static_cast<float>(totalMajorPartyVotes), completion, confidence};
     }
-    return {0.0f, 0.0f};
+    return {0.0f, 0.0f, 0.0f};
   }
 
   struct TcpShareInformation {
     std::map<int, float> shares; // transformed vote share
+    float completion = 0.0f;
     float confidence = 0.0f;
   };
 
   TcpShareInformation getSeatTcpInformation(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
-      return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpConfidence};
+      return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpCompletion, seats[seatIndex].node.tcpConfidence};
     }
-    return {std::map<int, float>(), 0.0f};
+    return {std::map<int, float>(), 0.0f, 0.0f};
   }
 
   std::optional<float> getSeatNationalsProportion(std::string const& seatName) const {

@@ -2172,6 +2172,24 @@ void SimulationIteration::incorporateLiveResults()
 			transformedFp += deviation;
 			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(transformedFp);
 		}
+		// Rapidly remove "emerging IND" possibilities as votes come in
+		// Either there is an IND, and that'll be counted under run.indPartyIndex
+		// or there isn't, and it shouldn't appear in results
+		// Leaving in the EmergingIndIndex results alongside run.indPartyIndex sometimes
+		// causes it to have a spurious change of winning as the live results only override
+		// the run.indPartyIndex
+		// (This will ideally need more refinement to handle a second significant IND as in Calare 2025)
+		if (seatFpVoteShare[seatIndex].contains(EmergingIndIndex) && seatFpVoteShare[seatIndex].contains(run.indPartyIndex)) {
+			if (seatFpInformation.contains(run.indPartyIndex)) {
+				seatFpVoteShare[seatIndex][EmergingIndIndex] = std::min(
+					seatFpVoteShare[seatIndex][EmergingIndIndex],
+					100.0f / (10000.0f * seatFpInformation[run.indPartyIndex].completion)
+				);
+			}
+			else {
+				seatFpVoteShare[seatIndex][EmergingIndIndex] = 0.0f;
+			}
+		}
 	}
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
@@ -2489,7 +2507,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float priorShare = transformVoteShare(topTwo.first.second);
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
 			// TODO: Tune this
-			float stdDev = std::min(10.0f, 1.0f / (tcpInfo.confidence + 0.02f) - 0.97f);
+			float stdDev = std::min(10.0f, 1.0f / (tcpInfo.completion + 0.02f) - 0.97f);
       liveShare += variabilityNormal(
 				0.0f, stdDev, seatIndex,
 				RandomGenerator::combinePartyIds(topTwo.first.first, topTwo.second.first),
