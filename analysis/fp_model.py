@@ -214,6 +214,29 @@ class ElectionData:
         # could cause inconsistent date indexing)
         self.start = self.base_df['MidDate'].min()  # day zero
         self.end = self.base_df['MidDate'].max()
+        # federal trend medians for selected minor parties
+        self.fed_trends = {}
+
+        # pick the most recent federal cycle covering the model end date
+        fed_cycles = select_fed_cycles_for_model_end(m_data, self.end)
+
+        if len(fed_cycles) > 0:
+            print(f"Using federal cycles for model prior: {', '.join(f'{c[0]}' for c in fed_cycles)}")
+        else:
+            print("No federal cycles found for model prior")
+
+        fed_minor_parties = others_parties + ['GRN FP', 'OTH FP']
+        for party in fed_minor_parties:
+            if party in major_parties or party in ['@TPP']:
+                continue
+            series = load_fed_trend_series_for_party(fed_cycles, party)
+            if series is not None:
+                self.fed_trends[party] = series
+
+        self.fed_trends_aligned = {}
+        for party, series in self.fed_trends.items():
+            self.fed_trends_aligned[party] = align_fed_trend_to_state(self, series, party)
+
         # day number for each poll
         self.base_df['Day'] = (self.base_df['MidDate'] - self.start).dt.days
         self.n_days = self.base_df['Day'].max() + 1
@@ -274,10 +297,8 @@ class ElectionData:
         df['@TPP'] = df['ALP FP']
         for column in df:
             pref_tuple = (self.e_tuple[0], self.e_tuple[1], column)
-            print(pref_tuple)
             if pref_tuple not in m_data.preference_flows:
                 continue
-            print("continuing with preference flow calculation")
             preference_flow = m_data.preference_flows[pref_tuple][0]
             preference_survival = 1 - m_data.preference_flows[pref_tuple][1]
             if column == 'OTH FP':
@@ -293,14 +314,8 @@ class ElectionData:
             pref_col = df[column].fillna(0)
             df['@TPP'] += pref_col * preference_flow * preference_survival
             df['Total'] += pref_col * preference_survival
-            print(df['@TPP'])
-            print(df['Total'])
         df['@TPP'] += adjustment_series
         df['@TPP'] /= (df['Total'] * 0.01)
-        print(df['@TPP'])
-        print(adjustment_series)
-        print(df['Total'])
-        print(df['Total'])
         if desired_election.region() == 'fed':
             df['@TPP'] += 0.1  # leakage in LIB/NAT seats
         
@@ -427,6 +442,111 @@ def calibrate_pollsters(e_data, exc_polls, excluded_pollster, party, day_data,
     print(f'Overall ({excluded_pollster}, {party}):'
           f' standard deviation from trend median: {std_dev}'
           f' average probability deviation: {prob_dev_avg}')
+
+
+def select_fed_cycles_for_model_end(m_data, model_end, max_cycles=2):
+    fed_cycles = [
+        (year, start, end)
+        for (year, region), (start, end) in m_data.election_cycles.items()
+        if region == 'fed'
+    ]
+    # sort by start date
+    fed_cycles.sort(key=lambda x: x[1])
+
+    # find the most recent cycle that starts before model_end
+    idx = None
+    for i, (_, start, end) in enumerate(fed_cycles):
+        if start <= model_end <= end:
+            idx = i
+            break
+        if start <= model_end:
+            idx = i
+    
+    if idx is None:
+          return [fed_cycles[0]]
+
+    # take this cycle and the previous one (if available)
+    start_idx = max(0, idx - (max_cycles - 1))
+    return fed_cycles[start_idx:idx + 1]
+
+
+def load_fed_trend_median(election_year, party):
+    # TODO: if we ever use cutoff files, add Cutoffs/ + _{cutoff}d here
+    filename = f'./Outputs/fp_trend_{election_year}fed_{party}.csv'
+    if not os.path.exists(filename):
+        return None
+
+    # read header lines
+    with open(filename, 'r') as f:
+        f.readline()  # "Start date day,Month,Year"
+        start_line = f.readline().strip()
+    start_day, start_month, start_year = [int(x) for x in start_line.split(',')]
+    start_date = pd.Timestamp(start_year, start_month, start_day)
+
+    # read the data rows
+    df = pd.read_csv(filename, skiprows=2)
+    # median is 51st percentile; column index 2 + 50 = 52
+    median = df.iloc[:, 52]
+    dates = start_date + pd.to_timedelta(df['Day'], unit='D')
+    return pd.Series(median.values, index=dates)
+
+
+def load_fed_trend_series_for_party(fed_cycles, party):
+    combined = None
+
+    for year, start, end in fed_cycles:
+        series = load_fed_trend_median(year, party)
+        if series is None:
+            continue
+
+        if combined is None:
+            combined = series
+        else:
+            # use newer data for overlapping dates
+            combined = combined.combine_first(series)  # older first
+            combined.update(series)  # overwrite with newer
+
+    return combined
+
+
+def align_fed_trend_to_state(e_data, fed_series, party):
+    state_dates = pd.date_range(e_data.start, e_data.end, freq='D')
+
+    if fed_series is None or fed_series.empty:
+        return pd.Series([None] * len(state_dates), index=state_dates)
+
+    aligned = pd.Series([None] * len(state_dates), index=state_dates)
+
+    fed_start = fed_series.index.min()
+    mask = state_dates >= fed_start
+
+    # Reindex to state dates, forward-fill (last available value)
+    fed_reindexed = fed_series.reindex(state_dates[mask], method='ffill')
+
+    aligned.loc[mask] = fed_reindexed.values
+    return aligned
+
+
+def build_prior_series(e_data, party, prior_result):
+    # Build daily series for full state period
+    days = pd.date_range(e_data.start, e_data.end, freq='D')
+    fed_series = e_data.fed_trends_aligned.get(party)
+    prior_daily = []
+    sigma_daily = []
+
+    for day in days:
+        fed_val = None if fed_series is None else fed_series.get(day, None)
+        if fed_val is None or fed_val < prior_result:
+            prior_daily.append(prior_result)
+            sigma_daily.append(200)
+        else:
+            prior_daily.append(fed_val)
+            # Parameters estimated as a best guess from limited scenarios;
+            # federal OTH is a less reliable indicator of state OTH,
+            # but we still need it because it includes other "minor" parties that
+            # will have their prior series calculated from the federal trends.
+            sigma_daily.append(16 if party == 'OTH FP' else 8)
+    return prior_daily, sigma_daily
 
 
 def output_filename(config, e_data, party, excluded_pollster, file_type):
@@ -659,6 +779,8 @@ def run_individual_party(config, m_data, e_data,
             sigmasList += [max(3, 5 - a[2]) for a in approvals]
             he_weights += [0]
             biases += [0]
+  
+    prior_series_daily, sigma_daily = build_prior_series(e_data, party, prior_result)
 
     # Transform series to smaller number of days for more efficient processing
     tFactor = 2
@@ -668,6 +790,8 @@ def run_individual_party(config, m_data, e_data,
     tElectionDay = e_data.election_day // tFactor
     tHouseEffectNew = houseEffectNew // tFactor
     tHouseEffectOld = houseEffectOld // tFactor
+    prior_series_t = [prior_series_daily[i * tFactor] for i in range(tDayCount)]
+    prior_sigma_t = [sigma_daily[i * tFactor] for i in range(tDayCount)]
 
     # Prepare the data for Stan to process
     stan_data = {
@@ -676,6 +800,8 @@ def run_individual_party(config, m_data, e_data,
         'houseCount': n_houses,
         'discontinuityCount': len(discontinuities_filtered),
         'priorResult': prior_result,
+        'priorSeries': prior_series_t,
+        'priorVoteShareSigma': prior_sigma_t,
 
         'pollObservations': pollObs,
         'missingObservations': missingObs,
@@ -710,12 +836,14 @@ def run_individual_party(config, m_data, e_data,
         # prior distribution for each day's vote share
         # very weak prior, want to avoid pulling extreme vote shares
         # towards the center since that historically harms accuracy
-        'priorVoteShareSigma': 200.0,
+        # 'priorVoteShareSigma': 200.0,
 
         # Bounds for the transition between old and new house effects
         'houseEffectOld': tHouseEffectOld,
         'houseEffectNew': tHouseEffectNew
     }
+
+    print(stan_data)
 
     # get the Stan model code
     with open("./Models/fp_model.stan", "r") as f:

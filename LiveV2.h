@@ -509,7 +509,9 @@ private:
   void calculateNationalsProportions();
 
   void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
-  void recomposeBoothTcpVotes(bool allowCurrentData, int boothIndex);
+  // recomposing 2CP votes is only ever done with current data
+  // as there is no useful offset to calculate
+  void recomposeBoothTcpVotes(int boothIndex);
   void recomposeBoothTppVotes(bool allowCurrentData, int boothIndex);
 
   void recomposeSeatFpVotes(int seatIndex);

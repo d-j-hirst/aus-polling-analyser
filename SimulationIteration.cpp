@@ -2507,7 +2507,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float priorShare = transformVoteShare(topTwo.first.second);
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
 			// TODO: Tune this
-			float stdDev = std::min(10.0f, 1.0f / (tcpInfo.completion + 0.02f) - 0.97f);
+			float stdDev = std::min(10.0f, 1.0f / (std::min(tcpInfo.confidence, tcpInfo.completion) + 0.02f) - 0.97f);
       liveShare += variabilityNormal(
 				0.0f, stdDev, seatIndex,
 				RandomGenerator::combinePartyIds(topTwo.first.first, topTwo.second.first),

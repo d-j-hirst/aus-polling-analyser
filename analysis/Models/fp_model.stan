@@ -11,6 +11,8 @@ data {
     int<lower=0, upper=1> missingObservations[pollCount]; // 1 is data is missing otherwise zero
     int<lower=1, upper=houseCount> pollHouse[pollCount]; // polling house for each poll
     int<lower=1, upper=dayCount> pollDay[pollCount]; // day on which polling occurred
+    real<lower=0.0, upper=100.0> priorSeries[dayCount]; // prior series for each day
+    real<lower=0.0001> priorVoteShareSigma[dayCount];
     
     // day of all discontinuities in term
     // dummy value of 0 is used to indicate no discontinuities since Stan doesn't like zero-size arrays
@@ -30,7 +32,6 @@ data {
     // calibration settings
     real<lower=0.0001> houseEffectSigma;
     real<lower=0.0001> houseEffectSumSigma;
-    real<lower=0.0001> priorVoteShareSigma;
 
     // End points between the transition between "new" and "old" house effects
     real<lower=1> houseEffectNew;
@@ -78,7 +79,9 @@ model {
     sum(pOldHouseEffects[1:houseCount] .* houseWeight) ~ normal(weightedBias, houseEffectSumSigma);
     // very broad prior distribution, this shouldn't affect the model much unless
     // there is absolutely no data nearby
-    preliminaryVoteShare[1:dayCount] ~ normal(adjustedPriorResult, priorVoteShareSigma);
+    for (day in 1:dayCount) {
+      preliminaryVoteShare[day] ~ normal(priorSeries[day], priorVoteShareSigma[day]);
+  }
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {
