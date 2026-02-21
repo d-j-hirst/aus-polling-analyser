@@ -361,6 +361,8 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
+		PA_LOG_VAR(seat.name);
+		PA_LOG_VAR(seat.region);
 		if (run.natPartyIndex >= 0 && (seat.getLeadingParty() == Mp::Two || seat.getLeadingParty() == run.natPartyIndex)) {
 			++sim.latestReport.regionCoalitionIncumbents[seat.region];
 		}
@@ -1093,11 +1095,40 @@ void SimulationPreparation::loadRegionSwingDeviations()
 			auto values = splitString(line, ",");
 			int index = 0;
 			for (auto value : values) {
-				run.regionSwingDeviations[index] = std::stof(value);
-				if (index == 5) { // TAS, ACT and NT are all bundled together
-					run.regionSwingDeviations[6] = std::stof(value);
-					run.regionSwingDeviations[7] = std::stof(value);
-					break;
+				float f = std::stof(value);
+				if (run.regionCode == "fed") {
+					run.regionSwingDeviations[index] = std::stof(value);
+					if (index == 5) { // TAS, ACT and NT are all bundled together
+						run.regionSwingDeviations[6] = std::stof(value);
+						run.regionSwingDeviations[7] = std::stof(value);
+						break;
+					}
+				}
+				else if (run.regionCode == "vic" && std::stoi(run.yearCode) >= 2026) {
+					if (index == 0) { //"Inner Metro"
+						run.regionSwingDeviations[8] = f; // Inner East Melb
+						run.regionSwingDeviations[9] = f; // Inner Melb
+						run.regionSwingDeviations[13] = f; // Middle NW Melb
+					}
+					else if (index == 1) { // "Outer Metro"
+						run.regionSwingDeviations[5] = f; // West Melb
+						run.regionSwingDeviations[6] = f; // North Melb
+						run.regionSwingDeviations[7] = f; // Outer East Melb
+						run.regionSwingDeviations[10] = f; // Pakenham Line
+						run.regionSwingDeviations[11] = f; // Frankston Line
+					}
+					else if (index == 2) { // "Regional"
+						run.regionSwingDeviations[0] = f; // Rural Outer West
+						run.regionSwingDeviations[1] = f; // Ballarat & Bendigo
+						run.regionSwingDeviations[2] = f; // Rural North & East
+						run.regionSwingDeviations[3] = f; // Gippsland
+						run.regionSwingDeviations[4] = f; // Geelong
+						run.regionSwingDeviations[12] = f; // Mornington Peninsula
+					}
+				}
+				else {
+					logger << "Warning: Region conversion not accounted for in loadOverallRegionMixParameters - skipping import\n";
+					return;
 				}
 				++index;
 			}
@@ -1122,17 +1153,47 @@ void SimulationPreparation::loadRegionSwingDeviations()
 			auto values = splitString(line, ",");
 			int index = 0;
 			for (auto value : values) {
-				run.regionFpSwingDeviations[onIndex][index] = std::stof(value);
-				if (index == 5) { // TAS, ACT and NT are all bundled together
-					run.regionFpSwingDeviations[onIndex][6] = std::stof(value);
-					run.regionFpSwingDeviations[onIndex][7] = std::stof(value);
-					break;
+				float f = std::stof(value);
+				if (run.regionCode == "fed") {
+					run.regionFpSwingDeviations[onIndex][index] = f;
+					if (index == 5) { // TAS, ACT and NT are all bundled together
+						run.regionFpSwingDeviations[onIndex][6] = f;
+						run.regionFpSwingDeviations[onIndex][7] = f;
+						break;
+					}
+				}
+				else if (run.regionCode == "vic" && std::stoi(run.yearCode) >= 2026) {
+					if (index == 0) { //"Inner Metro"
+						run.regionFpSwingDeviations[onIndex][8] = f; // Inner East Melb
+						run.regionFpSwingDeviations[onIndex][9] = f; // Inner Melb
+						run.regionFpSwingDeviations[onIndex][13] = f; // Middle NW Melb
+					}
+					else if (index == 1) { // "Outer Metro"
+						run.regionFpSwingDeviations[onIndex][5] = f; // West Melb
+						run.regionFpSwingDeviations[onIndex][6] = f; // North Melb
+						run.regionFpSwingDeviations[onIndex][7] = f; // Outer East Melb
+						run.regionFpSwingDeviations[onIndex][10] = f; // Pakenham Line
+						run.regionFpSwingDeviations[onIndex][11] = f; // Frankston Line
+					}
+					else if (index == 2) { // "Regional"
+						run.regionFpSwingDeviations[onIndex][0] = f; // Rural Outer West
+						run.regionFpSwingDeviations[onIndex][1] = f; // Ballarat & Bendigo
+						run.regionFpSwingDeviations[onIndex][2] = f; // Rural North & East
+						run.regionFpSwingDeviations[onIndex][3] = f; // Gippsland
+						run.regionFpSwingDeviations[onIndex][4] = f; // Geelong
+						run.regionFpSwingDeviations[onIndex][12] = f; // Mornington Peninsula
+					}
+				}
+				else {
+					logger << "Warning: Region conversion not accounted for in loadOverallRegionMixParameters - skipping import\n";
+					return;
 				}
 				++index;
 			}
 
 		} while (true);
 	}
+	PA_LOG_VAR(run.regionSwingDeviations);
 }
 
 void SimulationPreparation::loadTppSwingFactors()

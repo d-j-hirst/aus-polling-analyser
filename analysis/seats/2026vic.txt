@@ -200,7 +200,7 @@ sCandidateNames=Vicki Ward,ALP
 #Essendon
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=Northern Melbourne
+sRegion=Middle NW Melbourne
 fTppMargin=12.5
 fPreviousTppSwing=-3.4
 fTransposedFederalSwing=0.8
@@ -233,7 +233,7 @@ sCandidateNames=Bridget Vallence,LNP
 #Footscray
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=Western Melbourne
+sRegion=Middle NW Melbourne
 fTppMargin=25.7
 fPreviousTppSwing=-3.0
 fTransposedFederalSwing=3.9
@@ -312,7 +312,7 @@ sCandidateNames=John Pesutto,LNP
 #Ivanhoe
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=Northern Melbourne
+sRegion=Middle NW Melbourne
 fTppMargin=12.8
 fPreviousTppSwing=0.4
 fTransposedFederalSwing=0.1
@@ -553,7 +553,7 @@ sCandidateNames=Alessandra Soliven,ALP
 #Pascoe Vale
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=Northern Melbourne
+sRegion=Middle NW Melbourne
 fTppMargin=22.2
 fPreviousTppSwing=0.0
 fTransposedFederalSwing=2.2
@@ -589,7 +589,7 @@ sCandidateNames=Rachel Westaway,LNP;Angelica Di Camillo,GRN
 #Preston
 sIncumbent=ALP
 sChallenger=LNP
-sRegion=Northern Melbourne
+sRegion=Middle NW Melbourne
 fTppMargin=19.7
 fPreviousTppSwing=-8.6
 fTransposedFederalSwing=1.3
