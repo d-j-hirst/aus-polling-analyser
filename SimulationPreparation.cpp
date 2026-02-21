@@ -895,7 +895,8 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 		auto values = splitString(line, ",");
 		if (values[1] == run.regionCode) {
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
+				auto const& seat = project.seats().viewByIndex(seatIndex);
+				if (values[0] == seat.name || values[0] == seat.previousName || values[0] == seat.useFpResults) {
 					run.seatPopulistModifiers[seatIndex] = std::stof(values[2]);
 				}
 			}
@@ -929,7 +930,8 @@ void SimulationPreparation::loadCentristSeatModifiers()
 		auto values = splitString(line, ",");
 		if (values[1] == run.regionCode) {
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-				if (values[0] == project.seats().viewByIndex(seatIndex).name) {
+				auto const& seat = project.seats().viewByIndex(seatIndex);
+				if (values[0] == seat.name || values[0] == seat.previousName || values[0] == seat.useFpResults) {
 					run.seatCentristModifiers[seatIndex] = std::stof(values[2]);
 				}
 			}
