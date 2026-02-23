@@ -25,9 +25,9 @@ model {
     innerMetroSwingDev[1:dayCount] * 0.2847 + outerMetroSwingDev[1:dayCount] * 0.369 +
       regionalSwingDev[1:dayCount] * 0.3463 ~ normal(0.0, 0.001);
     // Fairly weak priors, the swing deviations should default to zero, but with a bit of flexibility
-    innerMetroSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    outerMetroSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    regionalSwingDev[1:dayCount] ~ normal(0.0, 10.0);
+    innerMetroSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    outerMetroSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    regionalSwingDev[1:dayCount] ~ normal(0.0, 2.0);
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {

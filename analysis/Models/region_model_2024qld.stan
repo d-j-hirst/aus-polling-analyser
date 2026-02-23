@@ -38,14 +38,14 @@ model {
         cereSwingDev[1:dayCount] * 0.0860 + ceruSwingDev[1:dayCount] * 0.0860 +
         fnreSwingDev[1:dayCount] * 0.0753 + fnruSwingDev[1:dayCount] * 0.0645 ~ normal(0.0, 0.001);
     // Fairly weak priors, the swing deviations should default to zero, but with a bit of flexibility
-    isSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    osSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    coreSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    seruSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    cereSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    ceruSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    fnreSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    fnruSwingDev[1:dayCount] ~ normal(0.0, 10.0);
+    isSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    osSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    coreSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    seruSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    cereSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    ceruSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    fnreSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    fnruSwingDev[1:dayCount] ~ normal(0.0, 2.0);
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {

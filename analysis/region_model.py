@@ -13,8 +13,10 @@ from poll_transform import transform_vote_share, detransform_vote_share, clamp
 
 
 fed_regions = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'WSTAN']
-qld_regions = ['Inner Suburbs', 'Outer Suburbs', 'Coasts', 'Regional', 'C+R', 'SE', 'Central', 'Far North', 'Regional ex-rural', 'Rural', 'Pure Regional']
+qld_regions_2024 = ['Inner Suburbs', 'Outer Suburbs', 'Coasts', 'Regional', 'C+R', 'SE', 'Central', 'Far North', 'Regional ex-rural', 'Rural', 'Pure Regional']
 vic_regions = ['InnerMetro', 'OuterMetro', 'Regional', 'Metro']
+nsw_regions = ['Metro', 'Regional']
+qld_regions = ['Metro', 'SEQ', 'Regional']
 
 
 class ConfigError(ValueError):
@@ -123,10 +125,9 @@ class ElectionData:
 
     print(self.base_df)
 
-    if desired_election.region() == 'fed' or desired_election.region() == 'vic':
-      self.previous_results = (
-        self.base_df[self.base_df.Firm == 'Election'].to_dict('records')[0]
-      )
+    self.previous_results = (
+      self.base_df[self.base_df.Firm == 'Election'].to_dict('records')[0]
+    )
 
     self.base_df = self.base_df[self.base_df.Firm != 'Election']
 
@@ -162,6 +163,7 @@ class ElectionData:
     # Convert "days" objects into raw numerical data
     # that Stan can accept
     for i in self.base_df.index:
+      print(self.base_df.loc[i, 'StartDay'] + 1)
       self.base_df.loc[i, 'StartDayNum'] = int(self.base_df.loc[i, 'StartDay'] + 1)
       self.base_df.loc[i, 'MidDayNum'] = int(self.base_df.loc[i, 'MidDay'] + 1)
       self.base_df.loc[i, 'EndDayNum'] = int(self.base_df.loc[i, 'EndDay'] + 1)
@@ -285,7 +287,7 @@ def run_model_qld2024(e_data):
     'Pure Regional': 53.65,
   }
 
-  for region in qld_regions:
+  for region in qld_regions_2024:
     df[f'{region}_SwingDev'] = (
       df[f'{region}'] - prev[f'{region}'] - df['StateSwing']
     ) 
@@ -474,6 +476,205 @@ def run_model_vic2026(config, e_data):
     print(state_vals)
 
 
+def run_model_nsw2027(config, e_data):
+  df = e_data.base_df.copy()
+
+  print(e_data)
+  prev_nat = e_data.previous_results['State']
+  df['StateSwing'] = df['State'].apply(lambda x: transform_vote_share(x) - transform_vote_share(prev_nat))
+
+  print(e_data.previous_results)
+  for region in nsw_regions:
+    prev_region = e_data.previous_results[region]
+    def swing_dev(row):
+      if pd.isna(row[region]):
+        return -10000
+      else:
+        return transform_vote_share(row[region]) - transform_vote_share(prev_region) - row['StateSwing']
+    df[f'{region}_SwingDev'] = df.apply(swing_dev, axis=1)
+
+  pollDays = (
+    [int(a) for a in df['StartDayNum'].values] +
+    [int(a) for a in df['MidDayNum'].values] +
+    [int(a) for a in df['EndDayNum'].values]
+  )
+  df.fillna(-10000, inplace=True)
+
+  # Modify poll "days" to be more efficient
+  modified_day_count = max(math.floor(e_data.n_days / 5), 1)
+  modified_poll_days = [min(modified_day_count, max(1, math.floor(a / 5))) for a in pollDays]
+
+  stan_data = {
+    'pollCount': df.shape[0] * 3,
+    'dayCount': modified_day_count, # scale for efficiency
+    'pollDay': modified_poll_days,
+    'metroDevPoll': df['Metro_SwingDev'].tolist() * 3,
+    'regionalDevPoll': df['Regional_SwingDev'].tolist() * 3,
+    'pollSize': df['Size'].tolist() * 3,
+  }
+
+  print(stan_data)
+
+  # get the Stan model code
+  with open("./Models/region_model_2027nsw.stan", "r") as f:
+    model = f.read()
+
+  # encode the STAN model in C++ or retrieve it if already cached
+  sm = stan_cache(model_code=model)
+
+  # Report dates for model, this means we can easily check if new
+  # data has actually been saved without waiting for model to run
+  print('Beginning sampling ...')
+  end = e_data.start + timedelta(days=int(e_data.n_days))
+  print('Start date of model: ' + e_data.start.strftime('%Y-%m-%d\n'))
+  print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
+
+  # Stan model configuration
+  chains = 15
+  iterations = 1000
+
+  # Do model sampling. Time for diagnostic purposes
+  start_time = perf_counter()
+  fit = sm.sampling(data=stan_data,
+                      iter=iterations,
+                      chains=chains,
+                      control={'max_treedepth': 18,
+                              'adapt_delta': 0.8})
+  finish_time = perf_counter()
+  print('Time elapsed: ' + format(finish_time - start_time, '.2f')
+          + ' seconds')
+  print('Stan Finished ...')
+
+  # Check technical model diagnostics
+  import pystan.diagnostics as psd
+  print(psd.check_hmc_diagnostics(fit))
+
+  probs_list = [0.001]
+  for i in range(1, 100):
+      probs_list.append(i * 0.01)
+  probs_list.append(0.999)
+  probs_list = [0.5]
+  output_probs = tuple(probs_list)
+  summary = fit.summary(probs=output_probs)
+
+  num_regions = 2
+  required_rows = [modified_day_count * a - 1 for a in range(1, num_regions + 1)]
+  print(summary['summary'])
+  print(summary['summary'].tolist())
+  state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
+  print(state_vals)
+  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
+  with open(
+    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
+  ) as f:
+    f.write('metro,regional\n')
+    f.write(','.join([str(a) for a in state_vals]))
+  for offset in reversed(range(0, 5)):
+    required_rows = [modified_day_count * a - offset for a in range(1, num_regions + 1)]
+    state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
+    print(state_vals)
+
+
+def run_model_qld2028(config, e_data):
+  df = e_data.base_df.copy()
+
+  print(e_data)
+  prev_nat = e_data.previous_results['State']
+  df['StateSwing'] = df['State'].apply(lambda x: transform_vote_share(x) - transform_vote_share(prev_nat))
+
+  print(e_data.previous_results)
+  for region in qld_regions:
+    prev_region = e_data.previous_results[region]
+    def swing_dev(row):
+      if pd.isna(row[region]):
+        return -10000
+      else:
+        return transform_vote_share(row[region]) - transform_vote_share(prev_region) - row['StateSwing']
+    df[f'{region}_SwingDev'] = df.apply(swing_dev, axis=1)
+
+  pollDays = (
+    [int(a) for a in df['StartDayNum'].values] +
+    [int(a) for a in df['MidDayNum'].values] +
+    [int(a) for a in df['EndDayNum'].values]
+  )
+  df.fillna(-10000, inplace=True)
+
+  # Modify poll "days" to be more efficient
+  modified_day_count = max(math.floor(e_data.n_days / 5), 1)
+  modified_poll_days = [min(modified_day_count, max(1, math.floor(a / 5))) for a in pollDays]
+
+  stan_data = {
+    'pollCount': df.shape[0] * 3,
+    'dayCount': modified_day_count, # scale for efficiency
+    'pollDay': modified_poll_days,
+    'metroDevPoll': df['Metro_SwingDev'].tolist() * 3,
+    'seqDevPoll': df['SEQ_SwingDev'].tolist() * 3,
+    'regionalDevPoll': df['Regional_SwingDev'].tolist() * 3,
+    'pollSize': df['Size'].tolist() * 3,
+  }
+
+  print(stan_data)
+
+  # get the Stan model code
+  with open("./Models/region_model_2028qld.stan", "r") as f:
+    model = f.read()
+
+  # encode the STAN model in C++ or retrieve it if already cached
+  sm = stan_cache(model_code=model)
+
+  # Report dates for model, this means we can easily check if new
+  # data has actually been saved without waiting for model to run
+  print('Beginning sampling ...')
+  end = e_data.start + timedelta(days=int(e_data.n_days))
+  print('Start date of model: ' + e_data.start.strftime('%Y-%m-%d\n'))
+  print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
+
+  # Stan model configuration
+  chains = 15
+  iterations = 1000
+
+  # Do model sampling. Time for diagnostic purposes
+  start_time = perf_counter()
+  fit = sm.sampling(data=stan_data,
+                      iter=iterations,
+                      chains=chains,
+                      control={'max_treedepth': 18,
+                              'adapt_delta': 0.8})
+  finish_time = perf_counter()
+  print('Time elapsed: ' + format(finish_time - start_time, '.2f')
+          + ' seconds')
+  print('Stan Finished ...')
+
+  # Check technical model diagnostics
+  import pystan.diagnostics as psd
+  print(psd.check_hmc_diagnostics(fit))
+
+  probs_list = [0.001]
+  for i in range(1, 100):
+      probs_list.append(i * 0.01)
+  probs_list.append(0.999)
+  probs_list = [0.5]
+  output_probs = tuple(probs_list)
+  summary = fit.summary(probs=output_probs)
+
+  num_regions = 3
+  required_rows = [modified_day_count * a - 1 for a in range(1, num_regions + 1)]
+  print(summary['summary'])
+  print(summary['summary'].tolist())
+  state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
+  print(state_vals)
+  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
+  with open(
+    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
+  ) as f:
+    f.write('metro,seq,regional\n')
+    f.write(','.join([str(a) for a in state_vals]))
+  for offset in reversed(range(0, 5)):
+    required_rows = [modified_day_count * a - offset for a in range(1, num_regions + 1)]
+    state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
+    print(state_vals)
+
+
 def run_models():
   try:
     config = Config()
@@ -499,12 +700,22 @@ def run_models():
         config=config,
         e_data=e_data,
       )
+    elif desired_election.year() >= 2028 and desired_election.region() == 'qld':
+      run_model_qld2028(
+        config=config,
+        e_data=e_data,
+      )
     elif desired_election.year() == 2024 and desired_election.region() == 'qld':
       run_model_qld2024(
         e_data=e_data,
       )
     elif desired_election.year() == 2026 and desired_election.region() == 'vic':
       run_model_vic2026(
+        config=config,
+        e_data=e_data,
+      )
+    elif desired_election.year() == 2027 and desired_election.region() == 'nsw':
+      run_model_nsw2027(
         config=config,
         e_data=e_data,
       )

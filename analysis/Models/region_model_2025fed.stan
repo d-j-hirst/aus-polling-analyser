@@ -31,12 +31,12 @@ model {
         qldSwingDev[1:dayCount] * 0.2018 + waSwingDev[1:dayCount] * 0.1005 + 
         saSwingDev[1:dayCount] * 0.0749 + tanSwingDev[1:dayCount] * 0.05 ~ normal(0.0, 0.001);
     // Fairly weak priors, the swing deviations should default to zero, but with a bit of flexibility
-    nswSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    vicSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    qldSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    waSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    saSwingDev[1:dayCount] ~ normal(0.0, 10.0);
-    tanSwingDev[1:dayCount] ~ normal(0.0, 10.0);
+    nswSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    vicSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    qldSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    waSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    saSwingDev[1:dayCount] ~ normal(0.0, 2.0);
+    tanSwingDev[1:dayCount] ~ normal(0.0, 2.0);
     
     // day-to-day change sampling, excluding discontinuities
     for (day in 1:dayCount-1) {

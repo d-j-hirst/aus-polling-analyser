@@ -361,8 +361,6 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		PA_LOG_VAR(seat.name);
-		PA_LOG_VAR(seat.region);
 		if (run.natPartyIndex >= 0 && (seat.getLeadingParty() == Mp::Two || seat.getLeadingParty() == run.natPartyIndex)) {
 			++sim.latestReport.regionCoalitionIncumbents[seat.region];
 		}
@@ -1127,6 +1125,23 @@ void SimulationPreparation::loadRegionSwingDeviations()
 						run.regionSwingDeviations[4] = f; // Geelong
 						run.regionSwingDeviations[12] = f; // Mornington Peninsula
 					}
+				}
+				else if (run.regionCode == "nsw" && std::stoi(run.yearCode) >= 2027) {
+					if (index == 0) { //"Metro"
+						for (int i = 6; i < 12; ++i) {
+							run.regionSwingDeviations[i] = f;
+						}
+					}
+					else if (index == 1) { // "Regional"
+						for (int i = 0; i < 6; ++i) {
+							run.regionSwingDeviations[i] = f;
+						}
+					}
+				}
+				else if (run.regionCode == "qld" && std::stoi(run.yearCode) >= 2028) {
+					// NB for now "SEQ" is bounded by Gympie, Nanango, Condamine, Lockyer, Scenic Rim (inclusive)
+					// and also includes Pumicestone and Coomera
+					// everything else that looks like in could be in Brisbane is in "Metro"
 				}
 				else {
 					logger << "Warning: Region conversion not accounted for in loadOverallRegionMixParameters - skipping import\n";
