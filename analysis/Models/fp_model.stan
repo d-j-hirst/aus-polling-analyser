@@ -77,7 +77,7 @@ model {
     // keep sum of house effects constrained to zero, or near enough
     sum(pHouseEffects[1:houseCount] .* houseWeight) ~ normal(weightedBias, houseEffectSumSigma);
     sum(pOldHouseEffects[1:houseCount] .* houseWeight) ~ normal(weightedBias, houseEffectSumSigma);
-    // very broad prior distribution, this shouldn't affect the model much unless
+    // very broad/permissive prior distribution, this shouldn't affect the model much unless
     // there is absolutely no data nearby
     for (day in 1:dayCount) {
       preliminaryVoteShare[day] ~ normal(priorSeries[day], priorVoteShareSigma[day]);

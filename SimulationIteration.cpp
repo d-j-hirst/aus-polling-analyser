@@ -2142,6 +2142,8 @@ void SimulationIteration::incorporateLiveResults()
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 	 	auto regionFpDeviations = liveElection->getRegionFinalSpecificFpDeviations(regionIndex);
 	 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			int regionId = project.seats().viewByIndex(seatIndex).region;
+			if (project.regions().idToIndex(regionId) != regionIndex) continue;
 	 		for (auto [partyIndex, deviation] : regionFpDeviations) {
 	 		//if (partyIndex < Mp::Others) continue;
 				int effectivePartyIndex = partyIndex;	
@@ -2149,14 +2151,13 @@ void SimulationIteration::incorporateLiveResults()
 					effectivePartyIndex = EmergingIndIndex;
 				}
 	 			if (!seatFpVoteShare[seatIndex].contains(effectivePartyIndex)) continue;
-	 			int regionId = project.seats().viewByIndex(seatIndex).region;
-	 			if (project.regions().idToIndex(regionId) != regionIndex) continue;
 	 			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][effectivePartyIndex]);
 	 			transformedFp += deviation;
 	 			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(transformedFp);
 	 		}
 	 	}
 	}
+
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const seat = project.seats().viewByIndex(seatIndex);
 		auto seatFpInformation = liveElection->getSeatFpInformation(seat.name);

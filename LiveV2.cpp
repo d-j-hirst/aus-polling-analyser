@@ -2101,6 +2101,25 @@ void Election::recomposeSeatFpVotes(int seatIndex) {
       seats[seatIndex].node.fpVotesProjected[partyId] += votes;
     }
   }
+
+  // Make sure to move any independent votes to the correct party index if needed, so that they can be correctly aggregated in the simulation
+  // Otherwise there's sharp movements in the independent vote projected when the first independent votes come in
+  // because the only vote share that's projected will be in that seat
+  // Instead we make sure that independent votes are projected in seats that 
+  if (!seats[seatIndex].node.fpVotesProjected.contains(run.indPartyIndex)) {
+    int bestIndependentId = InvalidPartyIndex;
+    for (auto const& [partyId, votes] : seats[seatIndex].node.fpVotesProjected) {
+      if (partyId >= IndependentPartyIdOffset) {
+        if (bestIndependentId == InvalidPartyIndex || votes > seats[seatIndex].node.fpVotesProjected.at(bestIndependentId)) {
+          bestIndependentId = partyId;
+        }
+      }
+    }
+    if (bestIndependentId != InvalidPartyIndex) {
+      seats[seatIndex].node.fpVotesProjected[run.indPartyIndex] = seats[seatIndex].node.fpVotesProjected.at(bestIndependentId);
+      seats[seatIndex].node.fpVotesProjected.erase(bestIndependentId);
+    }
+  }
 }
 
 void Election::recomposeSeatTcpVotes(int seatIndex) {
@@ -2607,11 +2626,14 @@ void LiveV2::Election::generateVariability(int iterationIndex) {
       float randomVariation = variabilityNormal(
         0.0f, stdDev, seatIndex, partyId, uint32_t(VariabilityTag::GenerateFpVariability)
       );
-      float currentFpProjection = seat.node.fpVotesProjected.at(partyId);
+      // If the party isn't found in the existing projection, that means it was converted
+      // to the main independent, so use the independent party index instead
+      int usePartyId = seat.node.fpVotesProjected.contains(partyId) ? partyId : run.indPartyIndex;
+      float currentFpProjection = seat.node.fpVotesProjected.at(usePartyId);
       float transformedCurrentFpProjection = transformVoteShare(currentFpProjection / totalFpProjectedVotes * 100.0f);
       float transformedNewFpProjection = transformedCurrentFpProjection + randomVariation;
       float newFpProjection = detransformVoteShare(transformedNewFpProjection) * 0.01f * totalFpProjectedVotes;
-      newFpVotesProjected[partyId] = newFpProjection;
+      newFpVotesProjected[usePartyId] = newFpProjection;
     }
     float totalNewFpProjectedVotes = std::accumulate(newFpVotesProjected.begin(), newFpVotesProjected.end(), 0.0f, [](float sum, const auto& pair) { return sum + pair.second; });
     float normalisationFactor = totalFpProjectedVotes / totalNewFpProjectedVotes; 

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from election_code import ElectionCode
 from time import perf_counter
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from stan_cache import stan_cache
 
@@ -230,6 +230,11 @@ class ElectionData:
         self.fed_trends = {}
 
         # pick the most recent federal cycle covering the model end date
+        # Federal trends are used to calculate the prior series for minor parties
+        # This establishes a baseline for the minor parties' prior series
+        # before polls are taken into account
+        # We need to collect them from all relevant federal cycles
+        # and then align them so that they're numbered according to the state's dates
         fed_cycles = select_fed_cycles_for_model_end(
             SelectFedCyclesForModelEndInputs(m_data=m_data, model_end=self.end)
         )
@@ -301,10 +306,18 @@ class ElectionData:
         m_data: ModellingData
 
     def create_tpp_series(self, inputs: CreateTppSeriesInputs):
+        # Reconstruct TPP series from the first preference votes for each poll
+        # This, not the "reported" TPP, is used to calculate the TPP trend
         m_data = inputs.m_data
         desired_election = inputs.desired_election
         df = inputs.df
 
+        # Estimate missing minor-party contributions
+        # This ensures that the OTH FP column is consistent across all polls
+        # When a pollster doesn't report a minor party, we need to estimate their contribution
+        # from the minor party's poll trend and record the adjustment that needs
+        # to be made to the TPP series so that the preference flows represent the
+        # likely breakdown of the OTH vote.
         self.base_df['OTH FP'] = self.base_df['OTH base']
         if 'old_tpp' not in df:
             df['old_tpp'] = df['@TPP']
@@ -322,6 +335,11 @@ class ElectionData:
                         pref_adjust = estimated_fp * adj_flow
                         adjustments[a] += pref_adjust
         adjustment_series = pd.Series(data=adjustments)
+
+        # This "Total" column is used to handle exhaust in OPV elections
+        # where not all votes contribute to the TPP due to exhaustion of preferences
+        # We now add up the total votes expected to reach ALP, and the total expected
+        # to reach either "major".
         df['Total'] = (df['ALP FP'] + df['LIB FP'
                        if 'LIB FP' in df else 'LNP FP'])
         df['@TPP'] = df['ALP FP']
@@ -344,13 +362,15 @@ class ElectionData:
             pref_col = df[column].fillna(0)
             df['@TPP'] += pref_col * preference_flow * preference_survival
             df['Total'] += pref_col * preference_survival
+        # Adjust the TPP series to account for the estimated missing minor-party contributions
         df['@TPP'] += adjustment_series
+        # Convert the total votes to a percentage of the total votes (for OPV)
         df['@TPP'] /= (df['Total'] * 0.01)
         if desired_election.region() == 'fed':
-            df['@TPP'] += 0.1  # leakage in LIB/NAT seats
+            df['@TPP'] += 0.1  # small adjustment for leakage in LIB/NAT seats
         
-        # This order is important: do not want to overwrite
-        # the OTH FP column until after the TPP has been calculated
+        # This order is important: this overwrites the OTH FP column, and we
+        # do not want to overwrite the OTH FP column until after the TPP has been calculated
         self.combine_others_parties()
 
         print(desired_election)
@@ -359,6 +379,8 @@ class ElectionData:
     
     def combine_others_parties(self):
         # push misc parties into Others, as explained above
+        # The OTH FP column now should include the vote share of (non-Greens) "minor" parties
+        # This ensures that the meaning of the OTH FP value is consistent across all polls
         for others_party in others_parties:
             try:
                 # make sure any N/A values do not get
@@ -449,14 +471,17 @@ class HouseEffects:
     he_weights: List[float]
 
 
+# Configuration for the model, centralised for easier adjustment
 @dataclass
 class ModelParams:
     # Prior construction
     min_observation: float = 0.01
     prior_min_result: float = 0.25
-    prior_sigma_no_fed: float = 200.0
-    prior_sigma_fed: float = 8.0
-    prior_sigma_fed_oth: float = 16.0
+    # Really large values: these should only give the prior a "center of gravity",
+    # not strongly pull the trend toward it
+    prior_sigma_no_fed: float = 48.0
+    prior_sigma_fed: float = 16.0
+    prior_sigma_fed_oth: float = 32.0
     prior_tpp_default: float = 50.0
 
     # Poll variance / calibration
@@ -831,6 +856,11 @@ def build_poll_vectors(inputs: PollVectorInputs) -> PollVectors:
 
 
 def build_prior_series(party_context: PartyContext, prior_result: float) -> PriorSeries:
+    # When federal polls for a minor party are rapidly changing but state polls are
+    # sparse/nonexistent/unreliable, we want to use the federal trends to establish a prior
+    # rather than the one derived from the previous election. This function creates a
+    # series for each day in the state period, using the greater of the federal trend
+    # and the expected value based on the state prior result.
     e_data = party_context.e_data
     party = party_context.party
     model_params = party_context.model_params
@@ -843,6 +873,9 @@ def build_prior_series(party_context: PartyContext, prior_result: float) -> Prio
 
     for day in days:
         fed_val = None if fed_series is None else fed_series.get(day, None)
+        # Maximum of federal trend (if available) and state prior result is used
+        # A low federal trend shouldn't drag down a party that was strong in a state
+        # and a low state trend is often a result of sparse polling for that particular party
         if fed_val is None or fed_val < prior_result:
             prior_daily.append(prior_result)
             sigma_daily.append(model_params.prior_sigma_no_fed)
@@ -864,6 +897,8 @@ def build_prior_series(party_context: PartyContext, prior_result: float) -> Prio
 def should_use_approvals(party_context: PartyContext) -> bool:
     config = party_context.config
     party = party_context.party
+    # We only use (government leader) approvals for the TPP and major parties
+    # there's no useful connection between the leader ratings and minor parties' vote shares
     return config.use_approvals() and (party == "@TPP" or party in major_parties)
 
 
@@ -899,7 +934,10 @@ def adjust_approvals_for_party (
     e_data = party_context.e_data
     m_data = party_context.m_data
     party = party_context.party
-        
+    
+    # We previously converted the approval rating to a TPP estimate
+    # Now we need to calculate how that converts to FP for the "major" parties
+
     # Go through each approval and remove the part of the TPP
     # that comes from preferences, leaving an estimate of the
     # major party FP
@@ -1017,12 +1055,19 @@ def maybe_add_approvals(inputs: ApprovalsInputs) -> PollVectors:
     # Add synthetic data (from approval ratings)
     # for TPP and major party primaries
     if should_use_approvals(party_context):
+        # Load the synthetic TPPs from the CSV file
         approvals = load_approvals(party_context)
+        # Filter the approvals to only include those within the cycle of the election
         approvals = filter_approvals_by_cycle(approvals, party_context)
+        # Create the FP series from the approvals, if necessary
         approvals = adjust_approvals_for_party(approvals, party_context)
+        # Make sure that the approvals are all within the range of days that have polls
+        # (they might not be with cutoffs or other reasons)
         approvals_in_range, approval_days_in_range = \
              filter_approvals_by_poll_range(approvals, party_context)
 
+        # Append the approvals to the poll vectors
+        # so that they act as (low-impact) polls in the model
         append_approvals_inputs = AppendApprovalsInputs(
             approval_days=approval_days_in_range,
             approvals=approvals_in_range,
@@ -1065,33 +1110,49 @@ class HouseEffectsInputs:
     poll_vectors: PollVectors
 
 
-def prepare_house_effects(inputs: HouseEffectsInputs) -> HouseEffects:
-    df = inputs.df
+def build_house_effect_weights(inputs: HouseEffectsInputs) -> List[float]:
     poll_vectors = inputs.poll_vectors
     e_data = inputs.party_context.e_data
     party = inputs.party_context.party
     config = inputs.party_context.config
 
     # Equal weights for house effects when calibrating,
-    # use determined house effect weights when running forecasts
-    he_weights = [
+    # use house effect weights when running forecasts
+    # that have been determined by the pollster calibration process
+    return [
         1 if config.calibrate_pollsters or config.calibrate_bias else
         e_data.pollster_he_weights[(x, party)] ** 2 if
         (x, party) in e_data.pollster_he_weights else 0.05
         for x in poll_vectors.houses
     ]
 
-    # Equal weights for house effects when calibrating,
-    # use determined house effect weights when running forecasts
-    biases = [
+
+def build_house_effect_biases(inputs: HouseEffectsInputs) -> List[float]:
+    poll_vectors = inputs.poll_vectors
+    e_data = inputs.party_context.e_data
+    party = inputs.party_context.party
+    config = inputs.party_context.config
+
+    return [
         0 if config.calibrate_pollsters or config.calibrate_bias else
         e_data.pollster_biases[(x, party)][0] if
         (x, party) in e_data.pollster_biases else 0
         for x in poll_vectors.houses
     ]
 
-    # Print an estimate for the expected house effect sum
-    # (doesn't have any impact on subsequent calculations)
+
+@dataclass
+class LogExpectedHouseEffectSumInputs:
+    inputs: HouseEffectsInputs
+    he_weights: List[float]
+    biases: List[float]
+
+def log_expected_house_effect_sum(inputs: LogExpectedHouseEffectSumInputs) -> float:
+    biases = inputs.biases
+    he_weights = inputs.he_weights
+    df = inputs.inputs.df
+    poll_vectors = inputs.inputs.poll_vectors
+
     weightedBiasSum = 0
     housePollCount = [0 for a in poll_vectors.houses]
     houseWeight = [0 for a in poll_vectors.houses]
@@ -1106,6 +1167,28 @@ def prepare_house_effects(inputs: HouseEffectsInputs) -> HouseEffects:
     print(f'Expected house effect sum: {weightedBias}')
     print(f'House effect weights: {houseWeight} for {poll_vectors.houses}')
 
+
+def prepare_house_effects(inputs: HouseEffectsInputs) -> HouseEffects:
+    df = inputs.df
+    poll_vectors = inputs.poll_vectors
+    e_data = inputs.party_context.e_data
+    party = inputs.party_context.party
+    config = inputs.party_context.config
+
+    he_weights = build_house_effect_weights(inputs)
+
+    # No biases when calibrating, use biases when running forecasts
+    # that are determined by the pollster calibration process
+    biases = build_house_effect_biases(inputs)
+
+    # Print an estimate for the expected house effect sum
+    # (this whole section doesn't have any impact on subsequent calculations)
+    log_expected_house_effect_sum(LogExpectedHouseEffectSumInputs(
+        inputs=inputs,
+        he_weights=he_weights,
+        biases=biases
+    ))
+
     return HouseEffects(he_weights=he_weights, biases=biases)
 
 
@@ -1119,17 +1202,38 @@ class ReducedSeriesInputs:
 
 
 def build_reduced_series(inputs: ReducedSeriesInputs) -> ReducedSeries:
+    # To save on computation, we only compute the Bayesian aggregation every tFactor days
+    # This function adjusts the previously prepared data to reflect this
+    # Each series starts at 1 as Stan prefers 1-based indexing
     model_params = inputs.model_params
 
+    # For these first series, we do the (n - 1) // tFactor + 1 calculations
+    # because it's important that they aren't ever zero
+    # For the other series, we can just use n // tFactor as they won't ever by near zero
+    # being sometimes off by one is not a problem since the poll dates are fuzzier in the first place
+
+    # Calculate the number of days in the reduced series
     tDayCount = (inputs.e_data.n_days - 1) // model_params.tFactor + 1
+    # Calculate the (reduced) day indices for the polls
     tPollDays = [(day - 1) // model_params.tFactor + 1 for day in inputs.poll_vectors.pollDays]
+    # Calculate the (reduced) day indices for the discontinuities
     tDiscontinuities = [(day - 1) // model_params.tFactor + 1 for day in inputs.discontinuities_filtered]
+    # Stan doesn't like zero-length arrays so put in a dummy value
+    # if there are no discontinuities
     if len(tDiscontinuities) == 0:
         tDiscontinuities.append(0)
+    # Calculate the (reduced) day index for the election day
+    # (this determines when the lowered sigma for the campaign starts)
     tElectionDay = inputs.e_data.election_day // model_params.tFactor
+    # Calculate the thresholds between new and old house effects
+    # (this determines when the house effects are mixed)
     tHouseEffectNew = model_params.houseEffectNew // model_params.tFactor
     tHouseEffectOld = model_params.houseEffectOld // model_params.tFactor
+    # Calculate the prior series for each day in the reduced series
+    # This is the default assumption for each day before polls are taken into account
     prior_series_t = [inputs.prior_series.prior_series_daily[i * model_params.tFactor] for i in range(tDayCount)]
+    # Calculate the prior sigma for each day in the reduced series
+    # This is the variance in the default assumption
     prior_sigma_t = [inputs.prior_series.sigma_daily[i * model_params.tFactor] for i in range(tDayCount)]
 
     return ReducedSeries(
@@ -1296,6 +1400,9 @@ class TrendDay:
     table_index: int
 
 def iter_trend_days(inputs: IterTrendDaysInputs):
+    # Isolates the extration of the trend days from the STAN output
+    # so that the logic isn't repeated in multiple places
+    # and this is therefore done consistently across the program
     e_data = inputs.e_data
     run_context = inputs.run_context
     summary = inputs.summary
@@ -1304,6 +1411,8 @@ def iter_trend_days(inputs: IterTrendDaysInputs):
     poll_vectors = run_context.poll_vectors
     tDayCount = run_context.reduced_series.tDayCount
 
+    # This is the index of the first day in the summary table (STAN output)
+    # that corresponds to the first day in the model
     offset = tDayCount + poll_vectors.n_houses * 2
     median_col = math.floor((4 + len(output_probs_t)) / 2)
 
@@ -1544,26 +1653,39 @@ class CalibratePollstersInputs:
     trend_outputs: TrendOutputs
     writing_context: WritingContext
 
+@dataclass
+class ExcludedPoll:
+    day_index: int  # 0-based day (DayNum - 1)
+    vote: float
+    poll_index: int
+    pollster: str
 
-def calibrate_pollsters(inputs: CalibratePollstersInputs) -> None:
-    day_data = inputs.trend_outputs.day_data
-    df = inputs.df
-    e_data = inputs.output_context.e_data
-    excluded_pollster = inputs.excluded_pollster
+def build_excluded_polls(inputs: CalibratePollstersInputs) -> List[ExcludedPoll]:
     exc_polls = inputs.exc_polls
-    output_probs = inputs.writing_context.output_probs_t
     party = inputs.party
-                        
-    exc_poll_data = [a for a in zip(exc_polls['DayNum'], exc_polls[party],
-                     exc_polls.axes[0], exc_polls['Firm'])]
-    if len(exc_poll_data) <= 1: return
-    print(f'Trend closeness statistics for {excluded_pollster}')
-    median_col = output_probs.index(0.5)
+    rows = zip(exc_polls['DayNum'], exc_polls[party], exc_polls.axes[0], exc_polls['Firm'])
+    return [
+        ExcludedPoll(day_index=int(day) - 1, vote=vote, poll_index=poll_index, pollster=pollster)
+        for day, vote, poll_index, pollster in rows
+    ]
+                    
+
+@dataclass
+class ComputerPollsterHouseEffectsInputs:
+    excluded_polls: List[ExcludedPoll]
+    median_col: int
+    parent_inputs: CalibratePollstersInputs
+
+def compute_pollster_house_effects(inputs: ComputerPollsterHouseEffectsInputs) -> Dict[str, float]:
+    excluded_polls = inputs.excluded_polls
+    median_col = inputs.median_col
+    day_data = inputs.parent_inputs.trend_outputs.day_data
+
     diff_sum = {}
     pollster_count = {}
     house_effects = {}
-    for a in exc_poll_data:
-        day, vote, pollster = int(a[0]) - 1, a[1], a[3]
+    for a in excluded_polls:
+        day, vote, pollster = a.day_index, a.vote, a.pollster
         trend_value = day_data[day][median_col]
         if pollster not in diff_sum:
             diff_sum[pollster] = 0
@@ -1572,41 +1694,150 @@ def calibrate_pollsters(inputs: CalibratePollstersInputs) -> None:
         pollster_count[pollster] += 1
     for key in diff_sum.keys():
         house_effects[key] = diff_sum[key] / pollster_count[key]
+    return house_effects
+
+@dataclass
+class InterpolatePercentileInputs:
+    day_distribution: List[float]
+    output_probs: List[float]
+    value: float
+
+def interpolate_percentile(inputs: InterpolatePercentileInputs) -> float:
+    day_distribution = inputs.day_distribution
+    output_probs = inputs.output_probs
+    value = inputs.value
+
+    for index, upper_prob in enumerate(output_probs):
+        upper_value = day_distribution[index]
+        if value < upper_value:
+            if index == 0:
+                return 0.001
+            else:
+                lower_value = day_distribution[index - 1]
+                lower_prob = output_probs[index - 1]
+                lerp = ((value - lower_value) /
+                    (upper_value - lower_value))
+                return (lower_prob + lerp * 
+                    (upper_prob - lower_prob))
+    # default high percentile if above all thresholds
+    return 0.999
+
+@dataclass
+class PollCalibration:
+    vote: float
+    trend_median: float
+    adjusted_vote: float
+    percentile: float
+    deviation: float
+    prob_deviation: float
+    neighbours: float
+
+@dataclass
+class BuildPollCalibrationInputs:
+    poll: ExcludedPoll
+    day_data: List[List[float]]
+    median_col: int
+    output_probs: List[float]
+    house_effects: Dict[str, float]
+    df_daynum: pd.Series
+
+def build_poll_calibration(inputs: BuildPollCalibrationInputs) -> PollCalibration:
+    day_data = inputs.day_data
+    df_daynum = inputs.df_daynum
+    house_effects = inputs.house_effects
+    median_col = inputs.median_col
+    output_probs = inputs.output_probs
+    poll = inputs.poll
+
+    trend_median = day_data[poll.day_index][median_col]
+    adjusted_vote = poll.vote - house_effects[poll.pollster]
+    percentile = interpolate_percentile(InterpolatePercentileInputs(
+        day_distribution=day_data[poll.day_index],
+        output_probs=output_probs,
+        value=adjusted_vote,
+    ))
+    deviation = adjusted_vote - trend_median
+    prob_deviation = abs(percentile - 0.5)
+    neighbours = sum(min(1, 2 ** (-abs(poll.day_index + 1 - other_day) / 20) * 0.5)
+                    for other_day in df_daynum)
+    return PollCalibration(
+        vote=poll.vote,
+        trend_median=trend_median,
+        adjusted_vote=adjusted_vote,
+        percentile=percentile,
+        deviation=deviation,
+        prob_deviation=prob_deviation,
+        neighbours=neighbours,
+    )
+
+@dataclass
+class RecordCalibrationInputs:
+    e_data: ElectionData
+    excluded_pollster: str
+    party: str
+    poll: ExcludedPoll
+    cal: PollCalibration
+
+def record_calibration(inputs: RecordCalibrationInputs) -> None:
+    e_data = inputs.e_data
+    excluded_pollster = inputs.excluded_pollster
+    party = inputs.party
+    poll = inputs.poll
+    cal = inputs.cal
+    e_data.poll_calibrations[(excluded_pollster, poll.day_index, party, poll.poll_index)] = (
+        cal.vote,
+        cal.trend_median,
+        cal.adjusted_vote,
+        cal.percentile,
+        cal.deviation,
+        cal.prob_deviation,
+        cal.neighbours,
+    )
+
+def calibrate_pollsters(inputs: CalibratePollstersInputs) -> None:
+
+    # An initial calibration step without using historical house effects
+    # or variability data as inputs. The poll calibrations are later used to
+    # determine how reliably each pollster indicates the trend, its historical bias,
+    # and how useful it is for estimating overall bias.
+
+    day_data = inputs.trend_outputs.day_data
+    df = inputs.df
+    e_data = inputs.output_context.e_data
+    excluded_pollster = inputs.excluded_pollster
+    output_probs = inputs.writing_context.output_probs_t
+    party = inputs.party
+                        
+    excluded_polls = build_excluded_polls(inputs)
+    if len(excluded_polls) <= 1: return
+    print(f'Trend closeness statistics for {excluded_pollster}')
+    median_col = output_probs.index(0.5)
+    house_effects = compute_pollster_house_effects(ComputerPollsterHouseEffectsInputs(
+        excluded_polls=excluded_polls,
+        median_col=median_col,
+        parent_inputs=inputs,
+    ))
         
     deviations = []
     prob_deviations = []
-    for a in exc_poll_data:
-        day, vote, poll_index, pollster = int(a[0]) - 1, a[1], a[2], a[3]
-        trend_median = day_data[day][median_col]
-        eff_house_effect = house_effects[pollster]
-        adj_poll = vote - eff_house_effect
-        # for the case where the poll is higher than any
-        # probability threshold, have this as the default value
-        percentile = 0.999 
-        for index, upper_prob in enumerate(output_probs):
-            upper_value = day_data[day][index]
-            if adj_poll < upper_value:
-                if index == 0:
-                    percentile = 0.001
-                else:
-                    lower_value = day_data[day][index - 1]
-                    lower_prob = output_probs[index - 1]
-                    lerp = ((adj_poll - lower_value) /
-                            (upper_value - lower_value))
-                    percentile = (lower_prob + lerp * 
-                                (upper_prob - lower_prob))
-                break
-        deviation = adj_poll - trend_median
-        prob_deviation = abs(percentile - 0.5)
-        neighbours = sum([min(1, 2 ** (-abs(day - other_day) / 20) * 0.5)
-                      for other_day in df['DayNum']
-                     ])
-        e_data.poll_calibrations[(excluded_pollster, day,
-                                  party, poll_index)] = \
-            (vote, trend_median, adj_poll, 
-             percentile, deviation, prob_deviation, neighbours)
-        deviations.append(deviation)
-        prob_deviations.append(prob_deviation)
+    for a in excluded_polls:
+        poll_calibration = build_poll_calibration(BuildPollCalibrationInputs(
+            poll=a,
+            day_data=day_data,
+            median_col=median_col,
+            output_probs=output_probs,
+            house_effects=house_effects,
+            df_daynum=df['DayNum'],
+        ))
+        record_calibration(RecordCalibrationInputs(
+            e_data=e_data,
+            excluded_pollster=excluded_pollster,
+            party=party,
+            poll=a,
+            cal=poll_calibration,
+        ))
+        deviations.append(poll_calibration.deviation)
+        prob_deviations.append(poll_calibration.prob_deviation)
     std_dev = statistics.stdev(deviations)
     prob_dev_avg = statistics.mean(prob_deviations)
     print(f'Overall ({excluded_pollster}, {party}):'
