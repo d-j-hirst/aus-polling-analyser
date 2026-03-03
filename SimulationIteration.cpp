@@ -2508,7 +2508,13 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			float priorShare = transformVoteShare(topTwo.first.second);
 			float liveShare = tcpInfo.shares.at(topTwo.first.first);
 			// TODO: Tune this
-			float stdDev = std::min(10.0f, 1.0f / (std::min(tcpInfo.confidence, tcpInfo.completion) + 0.02f) - 0.97f);
+			// "tcpInfo.confidence" = how much confidence there is in the vote projection in uncounted areas
+			// (~zero if there is no previous result to compare to)
+			// "tcpInfo.completion" = how much is counted (from 0-1)
+			// Use results cautiously until a lot of the vote is in by squaring the completion
+			// But override this if there can be more confidence in the results as a result of swing matching
+			float effectiveConfidence = std::max(tcpInfo.confidence, tcpInfo.completion * tcpInfo.completion);
+			float stdDev = std::min(10.0f, 1.0f / (effectiveConfidence + 0.02f) - 0.97f);
       liveShare += variabilityNormal(
 				0.0f, stdDev, seatIndex,
 				RandomGenerator::combinePartyIds(topTwo.first.first, topTwo.second.first),
@@ -2516,7 +2522,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			);
 			// Strongly favour use of live TCP results once there's a decent amount in
 			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
-			float baselineWeight = std::clamp(1.6065f / (1.0f + std::exp(-(14.0f * tcpInfo.confidence - 0.5f))) - 0.60651f, 0.0f, 1.0f);
+			float baselineWeight = std::clamp(1.6065f / (1.0f + std::exp(-(14.0f * effectiveConfidence - 0.5f))) - 0.60651f, 0.0f, 1.0f);
 			float mixedShare = mix(priorShare, liveShare, baselineWeight);
 			topTwo.first.second = detransformVoteShare(mixedShare);
 			topTwo.second.second = 100.0f - topTwo.first.second;

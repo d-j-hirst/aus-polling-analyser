@@ -1721,6 +1721,17 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     return partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
   };
 
+  auto it = seat.node.tcpVotesCurrent.begin();
+  int firstPartyId = it->first;
+  int secondPartyId = std::next(it)->first;
+  if (isMajorParty(firstPartyId, natPartyIndex)) {
+    std::swap(firstPartyId, secondPartyId);
+  }
+  bool fullComparisonAvailable = booth.node.totalVotesPrevious() > 0
+    && booth.node.tcpVotesPrevious.contains(firstPartyId)
+    && booth.node.tcpVotesPrevious.contains(secondPartyId);
+  bool partialComparisonAvailable = booth.node.tcpVotesPrevious.contains(secondPartyId);
+
   bool cantProject = false;
   if (booth.node.totalTcpVotesCurrent()) {
     // map from party index to vote count (as a float)
@@ -1738,8 +1749,6 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
 
       float random = variabilityNormal(0.0f, stdDev, boothIndex, 0 /* no party id required */, uint32_t(VariabilityTag::NonOrdinaryTcp));
       float projectionDifference = createRandomVariation ? random : 0.0f;
-      int firstPartyId = booth.node.tcpVotesCurrent.begin()->first;
-      int secondPartyId = std::next(booth.node.tcpVotesCurrent.begin())->first;
       if (firstPartyId == seat.independentPartyIndex) firstPartyId = run.indPartyIndex;
       if (secondPartyId == seat.independentPartyIndex) secondPartyId = run.indPartyIndex;
       if (booth.voteType == Results2::VoteType::Postal) {
@@ -1758,6 +1767,9 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       booth.node.tcpCompletion = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
       booth.node.tcpConfidence = booth.node.tcpCompletion;
     }
+    else {
+      booth.node.tcpConfidence = std::max(fullComparisonAvailable ? 1.0f : 0.2f, booth.node.tcpConfidence);
+    }
     if (createRandomVariation) {
       booth.node.tempTcpVotesProjected = tcpVotesProjected;
     } else {
@@ -1768,13 +1780,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     // Note this present code may have an issue if the results output
     // does not record TCP candidates for booths that don't have a TCP count yet
     // Not an issue for AEC, but needs to be checked for other elections
-    auto it = seat.node.tcpVotesCurrent.begin();
-    int firstPartyId = it->first;
-    int secondPartyId = std::next(it)->first;
     // Make sure the major party is always in 2nd position
-    if (isMajorParty(firstPartyId, natPartyIndex)) {
-      std::swap(firstPartyId, secondPartyId);
-    }
     // Do all methods of estimating the TCP and select the one with most confidence
     std::array<float, 3> methodConfidence = { 0.0f, 0.0f, 0.0f };
     std::array<float, 3> tcpFirst = { 0.0f, 0.0f, 0.0f };
@@ -1816,11 +1822,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       // TODO: As above, we need to account for incomplete returns in non-ordinary booths
       // (FPs seem to arrive with TCPs for now but can't rely on that always being the case)
     }
-    if (
-      booth.node.totalVotesPrevious() > 0
-      && booth.node.tcpVotesPrevious.contains(firstPartyId)
-      && booth.node.tcpVotesPrevious.contains(secondPartyId)
-    ) {
+    if (fullComparisonAvailable) {
       // We either don't have first preference data for this booth yet, or we don't have a preference flow estimate for the seat
       // We  *do* have a match between the current TCP count for the seat and the previous TCP count for the booth
       // So we can calculate the existing swing across the seat and project to this booth
@@ -1892,7 +1894,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         }
       }
     }
-    if (booth.node.tcpVotesPrevious.contains(secondPartyId)) {
+    if (partialComparisonAvailable) {
       // We have some TCP data for the seat but (a) no FP data for this booth yet and 
       // (b) this booth's previous TCP involved a different party to the current major party so can't use swing
       // In this case, the major party (always in 2nd position) is the same as the previous election
@@ -1942,7 +1944,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         float tcpTransformedEstimateCurrent = tcpTransformedSharePrevious + averageSwing;
         float tcpEstimateCurrent = detransformVoteShare(tcpTransformedEstimateCurrent) * float(booth.node.totalVotesPrevious()) * 0.01f;
         // Lower confidence because one of the parties has changed, so patterns are less reliable
-        methodConfidence[2] = std::sqrt((summedWeight) / float(seat.node.totalVotesPrevious())) * 0.25f;
+        methodConfidence[2] = std::sqrt((summedWeight) / float(seat.node.totalVotesPrevious())) * 0.2f;
         tcpFirst[2] = float(booth.node.totalVotesPrevious()) - tcpEstimateCurrent;
         tcpSecond[2] = tcpEstimateCurrent;
       }

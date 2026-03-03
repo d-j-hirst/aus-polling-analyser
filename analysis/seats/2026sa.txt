@@ -7,7 +7,7 @@ fPreviousTppSwing=7.1
 fTransposedFederalSwing=1.8
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH,IND
 sCandidateNames=Lucy Hood,ALP;Julian Amato,LNP;Aoi Baxter,ON;Bronte Colmer,GRN
 #Badcoe
 sIncumbent=ALP
@@ -16,7 +16,7 @@ sRegion=Metro South
 fTppMargin=14.8
 fPreviousTppSwing=10.1
 fTransposedFederalSwing=2.8
-sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sRunningParties=ALP,LNP,GRN,ON,OTH*
 sCandidateNames=Jayne Stinson,ALP;Amar Singh,LNP;Joshua Andersen-Ward,GRN;Daniel Shepherd,ON
 #Black
 sIncumbent=ALP
@@ -28,7 +28,7 @@ fByElectionSwing=12.6
 fTransposedFederalSwing=-0.3
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND
 sCandidateNames=Alex Dighton,ALP;Paula Wilson,ON;Sarah Luscombe,GRN;Rhees Bishop,LNP
 #Bragg
 sIncumbent=LNP
@@ -38,7 +38,7 @@ fTppMargin=-8.2
 fPreviousTppSwing=8.8
 fByElectionSwing=2.5
 fTransposedFederalSwing=1.4
-sRunningParties=ALP,LNP,GRN,ONP,OTH
+sRunningParties=ALP,LNP,GRN,ON,OTH
 sCandidateNames=Jack Batty,LNP;Susan Ditter,GRN;Rick Sarre,ALP;Russell Paterson,ON
 #Chaffey
 sIncumbent=LNP
@@ -47,7 +47,7 @@ sRegion=Outer Rural
 fTppMargin=-17.2
 fPreviousTppSwing=0.8
 fTransposedFederalSwing=-2.1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND*
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND*
 sCandidateNames=Tim Whetstone,LNP;Jenny Troeth,ON;Oscar Harding,ALP;Alice Kuersch,GRN
 #Cheltenham
 sIncumbent=ALP
@@ -56,7 +56,7 @@ sRegion=Metro Inner North
 fTppMargin=19.1
 fPreviousTppSwing=2.4
 fTransposedFederalSwing=1.9
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND
 sCandidateNames=Joe Szakacs,ALP;Melissa Higgins,ON;Helen Pike,LNP;Steffi Medrow,GRN
 #Colton
 sIncumbent=LNP
@@ -66,7 +66,7 @@ fTppMargin=-4.8
 fPreviousTppSwing=1.4
 fTransposedFederalSwing=4.8
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH***,IND
 sCandidateNames=Aria Bolkus,ALP;Rocco DeAngelis,ON;Bec Sutton,LNP;Adelaide Xerri,GRN
 #Croydon
 sIncumbent=ALP
@@ -75,7 +75,7 @@ sRegion=Metro Inner North
 fTppMargin=24.8
 fPreviousTppSwing=1.5
 fTransposedFederalSwing=3.3
-sRunningParties=ALP,LNP,GRN,ONP,OTH***,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH***,IND
 sCandidateNames=Peter Malinauskas,ALP;Michael Santagata,LNP;Ruby Dolling,GRN;Dale Blackeby,ON
 #Davenport
 sIncumbent=ALP
@@ -86,7 +86,7 @@ fPreviousTppSwing=11.6
 fTransposedFederalSwing=0.8
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH*,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH*,IND
 sCandidateNames=Erin Thompson,ALP;Trent Burnard,LNP;John Photakis,GRN;Jon Howell,ON
 #Dunstan
 sIncumbent=ALP
@@ -98,7 +98,7 @@ fByElectionSwing=1.4
 fTransposedFederalSwing=1.8
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH***,IND
 sCandidateNames=Cressida O'Hanlon,ALP;Anna Finizio,LNP;Christel Mex,GRN;Victoria Pollifrone,ON
 #Elder
 sIncumbent=ALP
@@ -109,7 +109,7 @@ fPreviousTppSwing=7.5
 fTransposedFederalSwing=-1.5
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Nadia Clancy,ALP;Shawn van Groesen,LNP;Matt Mangelsdorf,ON;Stef Rozitis,GRN
 #Elizabeth
 sIncumbent=ALP
@@ -119,7 +119,7 @@ fTppMargin=21.7
 fPreviousTppSwing=3.3
 fTransposedFederalSwing=-5.0
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH****
+sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Ella Shaw,ALP;Kym Hanton,ON;David Deex,GRN;Dawid Jurczak,LNP
 #Enfield
 sIncumbent=ALP
@@ -128,7 +128,7 @@ sRegion=Metro Inner North
 fTppMargin=14.5
 fPreviousTppSwing=8.3
 fTransposedFederalSwing=3.0
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND
 sCandidateNames=Lawrence Ben,ALP;Paul Morrell,ON;Oscar Ong,LNP;Chris Siclari,GRN
 #Finniss
 sIncumbent=LNP
@@ -139,7 +139,7 @@ fPreviousTppSwing=12
 fTransposedFederalSwing=-1.8
 bConfirmedProminentIndependent=1
 sMinorViability=IND,3.00
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND*
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND*
 sCandidateNames=David Basham,LNP;Lou Nicholson,IND;Greg Powell,ON;Phoebe Redington,ALP
 #Flinders
 sIncumbent=LNP
@@ -151,7 +151,7 @@ fTransposedFederalSwing=-3.0
 bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1.00
-sRunningParties=ALP,LNP,GRN,ONP,OTH***,IND**
+sRunningParties=ALP,LNP,GRN,ON,OTH***,IND**
 sCandidateNames=Sam Telfer,LNP;Meghan Petherick,IND;Brenton Hincks,ON;Ben Anchor,ALP;Kathryn Hardwick-Franco,GRN
 #Florey
 sIncumbent=ALP
@@ -161,7 +161,7 @@ fTppMargin=12.8
 fPreviousTppSwing=-0.6
 fTransposedFederalSwing=-1.7
 bSophomoreCandidate=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH***,IND
 sCandidateNames=Michael Brown,ALP;Riley Size,ON;Alexandra McGee,GRN;Denise George,LNP
 #Gibson
 sIncumbent=ALP
@@ -172,7 +172,7 @@ fPreviousTppSwing=12.5
 fTransposedFederalSwing=1.3
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Sarah Andrews,ALP;Jane Fleming,LNP;Zoran Ananijev,ON;Mike Trewartha,GRN
 #Giles
 sIncumbent=ALP
@@ -181,7 +181,7 @@ sRegion=Outer Rural
 fTppMargin=19.7
 fPreviousTppSwing=6.1
 fTransposedFederalSwing=2.3
-sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sRunningParties=ALP,LNP,GRN,ON,OTH*
 sCandidateNames=Eddie Hughes,ALP;Barry Drage,ON;Sunny Singh,LNP;Alex Taylor,GRN
 #Hammond
 sIncumbent=LNP
@@ -192,7 +192,7 @@ fPreviousTppSwing=11.7
 fTransposedFederalSwing=-2.1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,3.00
-sRunningParties=ALP,LNP,GRN,ONP,OTH*****,IND*
+sRunningParties=ALP,LNP,GRN,ON,OTH*****,IND*
 sCandidateNames=Adrian Pederick,LNP;Robert Roylance,ON;Simone Bailey,ALP;Airlie Keen,IND;Nicole Palachicky,GRN
 #Hartley
 sIncumbent=LNP
@@ -201,7 +201,7 @@ sRegion=Metro Inner North
 fTppMargin=-3.6
 fPreviousTppSwing=3
 fTransposedFederalSwing=2.7
-sRunningParties=ALP,LNP,GRN,ONP,OTH****
+sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Vincent Tarzia,LNP;Jenn Roberts,ALP;Melanie Searle,GRN;David Dwyer,ON
 #Heysen
 sIncumbent=LNP
@@ -210,7 +210,7 @@ sRegion=Inner Rural
 fTppMargin=-2.6
 fPreviousTppSwing=5.7
 fTransposedFederalSwing=-1.8
-sRunningParties=ALP,LNP,GRN,ONP,OTH****
+sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Josh Teague,LNP;Marisa Bell,ALP;Tom Kovac,ON;Genevieve Dawson-Scott,GRN
 #Hurtle Vale
 sIncumbent=ALP
@@ -219,7 +219,7 @@ sRegion=Metro South
 fTppMargin=15.7
 fPreviousTppSwing=7.2
 fTransposedFederalSwing=-0.8
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Nat Cook,ALP;Katrina Emmerson,ON;Charlotte Grundy,LNP;Tammy Scott,GRN
 #Kaurna
 sIncumbent=ALP
@@ -228,7 +228,7 @@ sRegion=Metro South
 fTppMargin=19.8
 fPreviousTppSwing=4.1
 fTransposedFederalSwing=0.1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Chris Picton,ALP;Zoe Jones,ON;Sean Weatherly,GRN;Shane Carter,LNP
 #Kavel
 sIncumbent=LNP
@@ -240,7 +240,7 @@ fTransposedFederalSwing=-1.8
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,2.00
-sRunningParties=ALP,LNP,GRN,ONP,OTH****,IND*
+sRunningParties=ALP,LNP,GRN,ON,OTH****,IND*
 sCandidateNames=Bradley Orr,LNP;Christiaan Loch,ON;David Leach,ALP;Sam Tyler,GRN;Matt Schultz,IND
 #King
 sIncumbent=ALP
@@ -251,7 +251,7 @@ fPreviousTppSwing=3.5
 fTransposedFederalSwing=-0.9
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH****
+sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Rhiannon Pearce,ALP;Amanda Hendry,LNP;David Kerrison,ON;Samuel Moore,GRN
 #Lee
 sIncumbent=ALP
@@ -261,7 +261,7 @@ fTppMargin=11.5
 fPreviousTppSwing=5.9
 fTransposedFederalSwing=0.8
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=David Wilkins,ALP;Fabio Sturm,ON;Merlindie Fardone,LNP;Brett Ferris,GRN
 #Light
 sIncumbent=ALP
@@ -270,7 +270,7 @@ sRegion=Metro Outer North
 fTppMargin=20.1
 fPreviousTppSwing=11.1
 fTransposedFederalSwing=-2.1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=James Agness,ALP;Alexander Banks,ON;Andrew Williamson,LNP;James Scalzi,GRN
 #MacKillop
 sIncumbent=LNP
@@ -282,7 +282,7 @@ fTransposedFederalSwing=-3.7
 bRetirement=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,4.00
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND*
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND*
 sCandidateNames=Nick McBride,IND;Mark Braes,ALP;Rebekah Rosser,LNP;Jason Virgo,ON;Cathy Olsson,GRN
 #Mawson
 sIncumbent=ALP
@@ -292,7 +292,7 @@ fTppMargin=13.8
 fPreviousTppSwing=13.1
 fTransposedFederalSwing=-1.9
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Jenni Mitton,ALP;Tyler Green,ON;Mike Holden,LNP;Lawrence Johnson,GRN
 #Morialta
 sIncumbent=LNP
@@ -302,7 +302,7 @@ fTppMargin=-1.4
 fPreviousTppSwing=8
 fTransposedFederalSwing=4.3
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Scott Kennedy,LNP;Matthew Marozzi,ALP;Jenn Tranter,GRN;Peter Ellery,ON
 #Morphett
 sIncumbent=LNP
@@ -311,7 +311,7 @@ sRegion=Metro South
 fTppMargin=-4.5
 fPreviousTppSwing=6.4
 fTransposedFederalSwing=2.4
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Stephen Patterson,LNP;Toby Priest,ALP;Isabella Litt,GRN;Tim March,ON
 #Mount Gambier
 sIncumbent=LNP
@@ -323,7 +323,7 @@ bConfirmedProminentIndependent=1
 fTransposedFederalSwing=-1.5
 sMinorViability=IND,2.00
 sPolls=GRN,5,2;ON,10.8,2;IND,23.1,2
-sRunningParties=ALP,LNP,GRN,ONP,OTH***,IND**
+sRunningParties=ALP,LNP,GRN,ON,OTH***,IND**
 sCandidateNames=Anne-Marie Loef,ON;Matthew Key,ALP;Lamorna Alexander,LNP;Travis Fatchen,IND;Sharon Holmes,GRN
 #Narungga
 sIncumbent=IND
@@ -332,7 +332,7 @@ sRegion=Metro Inner North
 fTppMargin=-14.0
 fPreviousTppSwing=4.3
 fTransposedFederalSwing=-1.5
-sRunningParties=ALP,LNP,GRN,ONP,OTH****,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH****,IND
 sCandidateNames=Fraser Ellis,IND;Chantelle Thomas,ON;Tania Stock,LNP;Esther Short,ALP
 #Newland
 sIncumbent=ALP
@@ -343,7 +343,7 @@ fPreviousTppSwing=5.4
 fTransposedFederalSwing=-0.8
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Olivia Savvas,ALP;Sarai Birch,LNP;Alison Dew-Fennell,ON;Helen Wright,GRN
 #Ngadjuri
 sPreviousName=Frome
@@ -355,7 +355,7 @@ fPreviousTppSwing=10
 fTransposedFederalSwing=-2.4
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH****
+sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Penny Pratt,LNP;Tony Piccolo,ALP;David Paton,ON;Danielle Every,GRN
 #Playford
 sIncumbent=ALP
@@ -365,7 +365,7 @@ fTppMargin=16.3
 fPreviousTppSwing=-2.7
 fTransposedFederalSwing=-4.0
 bSophomoreCandidate=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=John Fulbrook,ALP;Nickolas Tsentidis,ON;David Wright,GRN;Christopher Jones,LNP
 #Port Adelaide
 sIncumbent=ALP
@@ -375,7 +375,7 @@ fTppMargin=21.8
 fPreviousTppSwing=5
 fTransposedFederalSwing=-0.6
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH****,IND**
+sRunningParties=ALP,LNP,GRN,ON,OTH****,IND**
 sCandidateNames=Cheyne Rich,ALP;Joel Hendrie,ON;Scott Anderson,LNP;Hayden Shaw,GRN
 #Ramsay
 sIncumbent=ALP
@@ -384,7 +384,7 @@ sRegion=Metro Outer North
 fTppMargin=19.9
 fPreviousTppSwing=1.4
 fTransposedFederalSwing=-6.3
-sRunningParties=ALP,LNP,GRN,ONP,OTH****
+sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Zoe Bettison,ALP;Ralph Chambers,ON;Luke Skinner,GRN;Daryl McCann,LNP
 #Reynell
 sIncumbent=ALP
@@ -393,7 +393,7 @@ sRegion=Metro South
 fTppMargin=17.2
 fPreviousTppSwing=7.3
 fTransposedFederalSwing=-2.5
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Katrine Hildyard,ALP;Haseen Zaman,LNP;Miya Tait,GRN;Peter Heggie,ON
 #Schubert
 sIncumbent=LNP
@@ -403,7 +403,7 @@ fTppMargin=-11.9
 fPreviousTppSwing=3.8
 fTransposedFederalSwing=1.3
 bSophomoreCandidate=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Ashton Hurn,LNP;James Rothe,ALP;Beverley Morris,GRN;Bruce Preece,ON
 #Stuart
 sIncumbent=IND
@@ -414,7 +414,7 @@ fPreviousTppSwing=14.7
 fTransposedFederalSwing=-0.4
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND
 sCandidateNames=Geoff Brock,IND;Leon Stephens,LNP;Brandon Turton,ON;David Ewings,ALP
 #Taylor
 sIncumbent=ALP
@@ -424,7 +424,7 @@ fTppMargin=18.4
 fPreviousTppSwing=7.8
 fTransposedFederalSwing=-1.5
 bSophomoreCandidate=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Nick Champion,ALP;Peter Rentoulis,ON;Xander Osborne,GRN;Ted Boul Hosn,LNP
 #Torrens
 sIncumbent=ALP
@@ -434,7 +434,7 @@ fTppMargin=10.0
 fPreviousTppSwing=4.3
 fTransposedFederalSwing=3.3
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**
+sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Meagan Spencer,ALP;David Medlock,ON;Haritha Yara,LNP;Stella Salvemini,GRN
 #Unley
 sIncumbent=LNP
@@ -444,7 +444,7 @@ fTppMargin=-2.2
 fPreviousTppSwing=9.4
 fTransposedFederalSwing=1.1
 bRetirement=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH**,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH**,IND
 sCandidateNames=Alice Rolls,ALP;Rosalie Rotolo,LNP;Jason Wilkinson,ON;Dylan Kiernan,GRN
 #Waite
 sIncumbent=ALP
@@ -455,7 +455,7 @@ fPreviousTppSwing=11.4
 fTransposedFederalSwing=0.3
 bSophomoreCandidate=1
 bSophomoreParty=1
-sRunningParties=ALP,LNP,GRN,ONP,OTH*,IND
+sRunningParties=ALP,LNP,GRN,ON,OTH*,IND
 sCandidateNames=Catherine Hutchesson,ALP;Frank Pangallo,LNP;Declan Brumfield,GRN;Aaron Von Frattner,ON
 #West Torrens
 sIncumbent=ALP
@@ -464,7 +464,7 @@ sRegion=Metro Inner North
 fTppMargin=18.8
 fPreviousTppSwing=4.5
 fTransposedFederalSwing=2.5
-sRunningParties=ALP,LNP,GRN,ONP,OTH*
+sRunningParties=ALP,LNP,GRN,ON,OTH*
 sCandidateNames=Tom Koutsantonis,ALP;Sam Bannon,GRN;Judith Aldridge,ON;Sarika Sharma,LNP
 #Wright
 sIncumbent=ALP
@@ -473,5 +473,5 @@ sRegion=Metro Inner North
 fTppMargin=11.9
 fPreviousTppSwing=8.8
 fTransposedFederalSwing=-3.0
-sRunningParties=ALP,LNP,GRN,ONP,OTH***
+sRunningParties=ALP,LNP,GRN,ON,OTH***
 sCandidateNames=Blair Boyer,ALP;Sean Porter,ON;Samantha Skinner,GRN;Carston Keong-Woodhouse,LNP
