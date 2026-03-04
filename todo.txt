@@ -12,8 +12,6 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
- -Resolve situations where TCP progress decreases (and not due to fresh realignment) e.g. Franklin, Griffith. Also address TCP progress being (far) ahead of FP progress for Melbourne.
- -Address overly strong decline in Curtin IND win% and sudden snapback at 8:49 without new results
  -Check Franklin Tuesday 11am low ALP win % if not already resolved
  -Why is Calwell showing 100% ALP on election night (should be some emerging IND change)?
  -TPP progress much less than half of FP progress in some seats (e.g. Brisbane on Tuesday) - why?

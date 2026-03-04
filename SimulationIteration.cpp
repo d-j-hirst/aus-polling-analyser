@@ -2041,8 +2041,6 @@ void SimulationIteration::incorporateLiveResults()
 
 	// Incorporate live TPPs first
 
-	//PA_LOG_VAR("------");
-
 	// First, adjust seat margins towards the election baseline as confidence increases
 	// This is because we want to replace the uncertainty measured in the prior
 	// with the uncertainty estimated from the live results
@@ -2053,9 +2051,6 @@ void SimulationIteration::incorporateLiveResults()
 		float confidence = seatTppInformation.confidence;
 		// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
 		float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
-		//PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-		//PA_LOG_VAR(confidence);
-		//PA_LOG_VAR(baselineWeight);
 		// shouldn't overflow as both priorMargin and baselineMargin will be within acceptable bounds
 		// if baselineWeight is outside (0, 1) there is a logic error somewhere
 		float mixedMargin = mix(priorMargin, baselineMargin, baselineWeight);
@@ -2064,9 +2059,6 @@ void SimulationIteration::incorporateLiveResults()
 
 	// Get the baseline and deviation for the election
 	auto electionTppInformation = liveElection->getFinalSpecificTppInformation();
-	//PA_LOG_VAR(electionTppInformation.baseline);
-	//PA_LOG_VAR(electionTppInformation.confidence);
-	//PA_LOG_VAR(electionTppInformation.deviation);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		// now incorporate deviation
 		float oldTpp = partyOneNewTppMargin[seatIndex] + 50.0f;
@@ -2104,7 +2096,7 @@ void SimulationIteration::incorporateLiveResults()
 		assignNationalsVotes(seatIndex);
 	}
 
-	// As for TPPs, adjust seat margins towards the election baseline as confidence increases
+	// As with TPPs, adjust seat margins towards the election baseline as confidence increases
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto seatFpInformation = liveElection->getSeatFpInformation(project.seats().viewByIndex(seatIndex).name);
 		for (auto [partyIndex, information] : seatFpInformation) {
@@ -2169,11 +2161,13 @@ void SimulationIteration::incorporateLiveResults()
 			}
 			if (!seatFpVoteShare[seatIndex].contains(effectivePartyIndex)) continue;
 			float deviation = information.deviation;
-			float transformedFp = transformVoteShare(seatFpVoteShare[seatIndex][effectivePartyIndex]);
+			float originalFp = seatFpVoteShare[seatIndex][effectivePartyIndex];
+			float transformedFp = transformVoteShare(originalFp);
 			transformedFp += deviation;
 			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(transformedFp);
 		}
 		// Rapidly remove "emerging IND" possibilities as votes come in
+		// if there's also an IND in the seat
 		// Either there is an IND, and that'll be counted under run.indPartyIndex
 		// or there isn't, and it shouldn't appear in results
 		// Leaving in the EmergingIndIndex results alongside run.indPartyIndex sometimes
