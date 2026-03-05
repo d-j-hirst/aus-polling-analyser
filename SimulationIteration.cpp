@@ -2048,9 +2048,9 @@ void SimulationIteration::incorporateLiveResults()
 		auto seatTppInformation = liveElection->getSeatTppInformation(project.seats().viewByIndex(seatIndex).name);
 		float priorMargin = partyOneNewTppMargin[seatIndex];
 		float baselineMargin = detransformVoteShare(seatTppInformation.baseline) - 50.0f;
-		float confidence = seatTppInformation.confidence;
+		float effectiveConfidence = std::max(seatTppInformation.confidence, seatTppInformation.completion * seatTppInformation.completion);
 		// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
-		float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
+		float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * effectiveConfidence - 0.5f))) - 0.6063f;
 		// shouldn't overflow as both priorMargin and baselineMargin will be within acceptable bounds
 		// if baselineWeight is outside (0, 1) there is a logic error somewhere
 		float mixedMargin = mix(priorMargin, baselineMargin, baselineWeight);
@@ -2108,9 +2108,9 @@ void SimulationIteration::incorporateLiveResults()
 
 			float priorFpShare = transformVoteShare(std::clamp(seatFpVoteShare[seatIndex][effectivePartyIndex], 1.0f, 99.0f));
 			float baselineFpShare = information.baseline;
-			float confidence = information.confidence;
+			float effectiveConfidence = std::max(information.confidence, information.completion * information.completion);
 			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
-			float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
+			float baselineWeight = 1.606f / (1.0f + std::exp(-(12.0f * effectiveConfidence - 0.5f))) - 0.6063f;
 			float mixedFpShare = mix(priorFpShare, baselineFpShare, baselineWeight);
 			seatFpVoteShare[seatIndex][effectivePartyIndex] = detransformVoteShare(mixedFpShare);
 		}
@@ -2209,7 +2209,9 @@ void SimulationIteration::incorporateLiveResults()
 		}
 		if (seatFpVoteShare[seatIndex].contains(EmergingPartyIndex)) {
 			auto seatFpInformation = liveElection->getSeatFpInformation(seat.name);
-			float fpConfidence = seatFpInformation.size() > 0 ? seatFpInformation.begin()->second.confidence : 0.0f;
+			float fpConfidence = seatFpInformation.size() > 0 ?
+				std::max(seatFpInformation.begin()->second.confidence, seatFpInformation.begin()->second.completion * seatFpInformation.begin()->second.completion) :
+				0.0f;
 			float fpWeight = 1.6063f - 1.606f / (1.0f + std::exp(-(12.0f * fpConfidence - 0.5f)));
 			seatFpVoteShare[seatIndex][EmergingPartyIndex] *= fpWeight;
 			if (seatFpVoteShare[seatIndex][EmergingPartyIndex] < detransformVoteShare(run.indEmergence.fpThreshold)) {
@@ -2224,8 +2226,8 @@ void SimulationIteration::incorporateLiveResults()
 		if (seatOthersInformation.value > 0.0f) {
 			float priorOthersShare = seatFpVoteShare[seatIndex][OthersIndex];
 			float observedOthersShare = seatOthersInformation.value;
-			float confidence = seatOthersInformation.confidence;
-			float observedWeight = 1.606f / (1.0f + std::exp(-(12.0f * confidence - 0.5f))) - 0.6063f;
+			float effectiveConfidence = std::max(seatOthersInformation.confidence, seatOthersInformation.completion * seatOthersInformation.completion);
+			float observedWeight = 1.606f / (1.0f + std::exp(-(12.0f * effectiveConfidence - 0.5f))) - 0.6063f;
 			float mixedOthersShare = mix(priorOthersShare, observedOthersShare, observedWeight);
 			seatFpVoteShare[seatIndex][OthersIndex] = mixedOthersShare;
 		}

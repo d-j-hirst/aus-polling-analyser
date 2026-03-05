@@ -12,8 +12,6 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
- -Check Franklin Tuesday 11am low ALP win % if not already resolved
- -Why is Calwell showing 100% ALP on election night (should be some emerging IND change)?
  -TPP progress much less than half of FP progress in some seats (e.g. Brisbane on Tuesday) - why?
  -Franklin Wednesday 12:30pm second IND rated slight chance of winning even though mathematically impossible based on final fps.
  -Why is LIB given such a relatively high chance in Ryan (2025-05-14 12:01) even though ALP win extremely unlikely?

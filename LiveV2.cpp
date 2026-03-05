@@ -54,11 +54,8 @@ enum class VariabilityTag : std::uint32_t {
   GenerateFpVariability = 11,
   GenerateTppVariability = 12,
   GenerateTcpVariability = 13,
+  DeclarationVoteSizeVariability = 14,
 };
-
-Node::Node()
-{
-}
 
 void Node::log() const
 {
@@ -1540,6 +1537,22 @@ void Election::recomposeVoteCounts() {
   }
 }
 
+// Temporary-ish function to generate a guess for the expected number of votes in a declaration vote, used for determining variability
+// Prevents these counts from becoming prematurely too certain
+// Later on do something more sophisicated by estimating remaining votes from existing vote count,
+// modelling from estimated population growth and known counts of the declaration votes
+int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
+  auto const& booth = booths.at(boothIndex);
+  // 1.046f represents typical population growth
+  float baseExpectation = booth.node.totalVotesPrevious() * 1.05f;
+  baseExpectation *= std::max(0.1f, variabilityNormal(1.0f, 0.12f, boothIndex, 0, uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
+  return static_cast<int>(baseExpectation);
+}
+
+Node::Node()
+{
+}
+
 void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
   auto assignBlindOthers = [this](std::map<int, float>& votesProjected, std::set<int>& blindOthers, int projectSeatIndex, float totalVotesPrevious, float othersAccountedFor) {
     float remainingExpectedVotes = 0.01f * blindOthers.size() * totalVotesPrevious;
@@ -1567,7 +1580,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       fpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
     if (booth.voteType != Results2::VoteType::Ordinary) {
-      float expectedTotalVotes = booth.node.totalVotesPrevious();
+      float expectedTotalVotes = generateDeclarationVoteExpectedSize(boothIndex);
       float currentTotalVotesProjected = std::accumulate(fpVotesProjected.begin(), fpVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
       float totalAdditionalVotes = expectedTotalVotes - currentTotalVotesProjected;
@@ -1745,7 +1758,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       tcpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
     if (booth.voteType != Results2::VoteType::Ordinary) {
-      float expectedTotalVotes = booth.node.totalVotesPrevious();
+      float expectedTotalVotes = generateDeclarationVoteExpectedSize(boothIndex);
       float currentTotalVotesProjected = std::accumulate(tcpVotesProjected.begin(), tcpVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
       float totalAdditionalVotes = std::max(0.0f, expectedTotalVotes - currentTotalVotesProjected);
@@ -2029,7 +2042,7 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
       tppVotesProjected[partyId == natPartyIndex ? 1 : partyId] = static_cast<float>(votes);
     }
     if (booth.voteType != Results2::VoteType::Ordinary) {
-      float previousTotalVotes = booth.node.totalVotesPrevious();
+      float previousTotalVotes = generateDeclarationVoteExpectedSize(boothIndex);
       float currentTotalVotesProjected = std::accumulate(tppVotesProjected.begin(), tppVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
       float totalAdditionalVotes = std::max(0.0f, previousTotalVotes - currentTotalVotesProjected);

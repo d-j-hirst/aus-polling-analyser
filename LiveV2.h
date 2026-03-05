@@ -508,6 +508,8 @@ private:
 
   void calculateNationalsProportions();
 
+  int generateDeclarationVoteExpectedSize(int boothIndex);
+
   void recomposeBoothFpVotes(bool allowCurrentData, int boothIndex);
   // recomposing 2CP votes is only ever done with current data
   // as there is no useful offset to calculate
