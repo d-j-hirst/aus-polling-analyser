@@ -14,7 +14,7 @@ from poll_transform import transform_vote_share, detransform_vote_share, clamp
 
 fed_regions = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'WSTAN']
 qld_regions_2024 = ['Inner Suburbs', 'Outer Suburbs', 'Coasts', 'Regional', 'C+R', 'SE', 'Central', 'Far North', 'Regional ex-rural', 'Rural', 'Pure Regional']
-vic_regions = ['InnerMetro', 'OuterMetro', 'Regional', 'Metro']
+vic_regions = ['InnerMetro', 'OuterMetro', 'Regional', 'Metro', 'Provincial', 'Rural']
 nsw_regions = ['Metro', 'Regional']
 qld_regions = ['Metro', 'SEQ', 'Regional']
 
@@ -411,6 +411,8 @@ def run_model_vic2026(config, e_data):
     'outerMetroDevPoll': df['OuterMetro_SwingDev'].tolist() * 3,
     'regionalDevPoll': df['Regional_SwingDev'].tolist() * 3,
     'metroDevPoll': df['Metro_SwingDev'].tolist() * 3,
+    'provincialDevPoll': df['Provincial_SwingDev'].tolist() * 3,
+    'ruralDevPoll': df['Rural_SwingDev'].tolist() * 3,
     'pollSize': df['Size'].tolist() * 3,
   }
 
@@ -458,7 +460,7 @@ def run_model_vic2026(config, e_data):
   output_probs = tuple(probs_list)
   summary = fit.summary(probs=output_probs)
 
-  num_regions = 3
+  num_regions = 4
   required_rows = [modified_day_count * a - 1 for a in range(1, num_regions + 1)]
   print(summary['summary'])
   print(summary['summary'].tolist())
@@ -468,7 +470,7 @@ def run_model_vic2026(config, e_data):
   with open(
     f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
   ) as f:
-    f.write('innerMetro,outerMetro,regional\n')
+    f.write('innerMetro,outerMetro,provincial,rural\n')
     f.write(','.join([str(a) for a in state_vals]))
   for offset in reversed(range(0, 5)):
     required_rows = [modified_day_count * a - offset for a in range(1, num_regions + 1)]

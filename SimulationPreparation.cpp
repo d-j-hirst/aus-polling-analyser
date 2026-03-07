@@ -1117,13 +1117,15 @@ void SimulationPreparation::loadRegionSwingDeviations()
 						run.regionSwingDeviations[10] = f; // Pakenham Line
 						run.regionSwingDeviations[11] = f; // Frankston Line
 					}
-					else if (index == 2) { // "Regional"
-						run.regionSwingDeviations[0] = f; // Rural Outer West
+					else if (index == 2) { // "Provincial"
 						run.regionSwingDeviations[1] = f; // Ballarat & Bendigo
-						run.regionSwingDeviations[2] = f; // Rural North & East
-						run.regionSwingDeviations[3] = f; // Gippsland
 						run.regionSwingDeviations[4] = f; // Geelong
 						run.regionSwingDeviations[12] = f; // Mornington Peninsula
+					}
+					else if (index == 3) { // "Rural"
+						run.regionSwingDeviations[0] = f; // Rural Outer West
+						run.regionSwingDeviations[2] = f; // Rural North & East
+						run.regionSwingDeviations[3] = f; // Gippsland
 					}
 				}
 				else if (run.regionCode == "nsw" && std::stoi(run.yearCode) >= 2027) {
@@ -1192,13 +1194,15 @@ void SimulationPreparation::loadRegionSwingDeviations()
 						run.regionFpSwingDeviations[onIndex][10] = f; // Pakenham Line
 						run.regionFpSwingDeviations[onIndex][11] = f; // Frankston Line
 					}
-					else if (index == 2) { // "Regional"
-						run.regionFpSwingDeviations[onIndex][0] = f; // Rural Outer West
+					else if (index == 2) { // "Provincial"
 						run.regionFpSwingDeviations[onIndex][1] = f; // Ballarat & Bendigo
-						run.regionFpSwingDeviations[onIndex][2] = f; // Rural North & East
-						run.regionFpSwingDeviations[onIndex][3] = f; // Gippsland
 						run.regionFpSwingDeviations[onIndex][4] = f; // Geelong
 						run.regionFpSwingDeviations[onIndex][12] = f; // Mornington Peninsula
+					}
+					else if (index == 3) { // "Rural"
+						run.regionFpSwingDeviations[onIndex][0] = f; // Rural Outer West
+						run.regionFpSwingDeviations[onIndex][2] = f; // Rural North & East
+						run.regionFpSwingDeviations[onIndex][3] = f; // Gippsland
 					}
 				}
 				else {

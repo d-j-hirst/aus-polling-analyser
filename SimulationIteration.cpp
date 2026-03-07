@@ -77,6 +77,7 @@ enum class VariabilityTag : std::uint32_t {
 	ConfirmedIndVariation = 43,
 	IndEmergenceDecision = 44,
 	IndEmergenceQuantile = 45,
+	CoalitionFutureRetirement = 46,
 };
 
 bool isMajor(int partyIndex, int natPartyIndex = -100) {
@@ -1402,6 +1403,7 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 {
 	auto const& seat = project.seats().viewByIndex(seatIndex);
 	if (run.natPartyIndex < 0) return; // Nationals may not be relevant in some elections
+
 	nationalsShare[seatIndex] = run.seatNationalsExpectation[seatIndex];
 
 	// If Nationals are not running in this seat, then their share is zero
@@ -1416,11 +1418,26 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 		return;
 	}
 
-	// If the seat has a NAT candidate, raise the expectation to a minumum of 5%
+	// If the seat has a NAT candidate, raise the expectation to a minimum of 5%
 	if (std::any_of(seat.candidateNames.begin(), seat.candidateNames.end(), 
 		[](const auto& pair) { return pair.second == "NAT"; })) {
 		nationalsShare[seatIndex] = std::max(nationalsShare[seatIndex], 0.05f);
 	}
+
+	// If candidates aren't confirmed yet, consider the Coalition policy of not challenging each others' incumbents
+	// which generally means the opposite coalition party will not run, but we must allow for the possibility of a future retirement 
+	constexpr float ContinuationChance = 0.85f; // TODO: make this more sophisticated based on time until the election + calibrate historically
+	float futureRetirementQuantile = variabilityUniform(0.0f, 1.0f, seatIndex, iterationIndex, uint32_t(VariabilityTag::CoalitionFutureRetirement));
+	if (!seat.runningParties.size() && futureRetirementQuantile < ContinuationChance) {
+		if (seat.incumbent == 1 && !seat.retirement) {
+			nationalsShare[seatIndex] = 0.0f;
+			return;
+		}
+		else if (seat.incumbent == run.natPartyIndex && !seat.retirement) {
+			nationalsShare[seatIndex] = 1.0f;
+			return;
+		}
+	} // if the retirement scenario occurs, then we continue and see if 
 
 	if (nationalsShare[seatIndex] > 0 && nationalsShare[seatIndex] < 1) {
 		float rmse = run.nationalsParameters.rmse;
