@@ -78,6 +78,7 @@ enum class VariabilityTag : std::uint32_t {
 	IndEmergenceDecision = 44,
 	IndEmergenceQuantile = 45,
 	CoalitionFutureRetirement = 46,
+	NationalsLiveVariability = 47,
 };
 
 bool isMajor(int partyIndex, int natPartyIndex = -100) {
@@ -1428,7 +1429,8 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	// which generally means the opposite coalition party will not run, but we must allow for the possibility of a future retirement 
 	constexpr float ContinuationChance = 0.85f; // TODO: make this more sophisticated based on time until the election + calibrate historically
 	float futureRetirementQuantile = variabilityUniform(0.0f, 1.0f, seatIndex, iterationIndex, uint32_t(VariabilityTag::CoalitionFutureRetirement));
-	if (!seat.runningParties.size() && futureRetirementQuantile < ContinuationChance) {
+	bool waException = project.regions().viewByIndex(seat.region).name == "WA" || run.regionCode == "wa";
+	if (!seat.runningParties.size() && futureRetirementQuantile < ContinuationChance && !waException) {
 		if (seat.incumbent == 1 && !seat.retirement) {
 			nationalsShare[seatIndex] = 0.0f;
 			return;
@@ -2552,10 +2554,23 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 }
 
 void SimulationIteration::assignNationalsVotes(int seatIndex) {
+	auto const& seat = project.seats().viewByIndex(seatIndex);
 	if (run.isLiveAutomatic()) {
-		auto nationalsProportion = liveElection->getSeatNationalsProportion(project.seats().viewByIndex(seatIndex).name);
-		if (nationalsProportion) {
-			nationalsShare[seatIndex] = nationalsProportion.value();
+		auto nationalsProportion = liveElection->getSeatNationalsProportion(seat.name);
+		if (nationalsProportion && nationalsShare[seatIndex] > 0.0f && nationalsShare[seatIndex] < 1.0f) {
+			const float liveEstimate = nationalsProportion.value().value;
+			if (liveEstimate > 0.0f && liveEstimate < 1.0f) {
+				const float effectiveConfidence = std::max(nationalsProportion.value().confidence, nationalsProportion.value().completion * nationalsProportion.value().completion);
+				const float stdDev = std::min(10.0f, 1.0f / (effectiveConfidence + 0.02f) - 0.97f);
+				const float transformedLive = transformVoteShare(liveEstimate * 100.0f);
+				const float transformedPrior = transformVoteShare(nationalsShare[seatIndex] * 100.0f);
+				const float liveWithVariability = transformedLive + variabilityNormal(
+					0.0f, stdDev, seatIndex, 0, uint32_t(VariabilityTag::NationalsLiveVariability)
+				);
+				const float liveWeight = std::clamp(1.6065f / (1.0f + std::exp(-(14.0f * effectiveConfidence - 0.5f))) - 0.60651f, 0.0f, 1.0f);
+				const float mixedShare = mix(transformedPrior, liveWithVariability, liveWeight);
+				nationalsShare[seatIndex] = detransformVoteShare(mixedShare) * 0.01f;
+			}
 		}
 	}
 	float nationalsVote = seatFpVoteShare[seatIndex][1] * nationalsShare[seatIndex];

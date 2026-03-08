@@ -415,10 +415,14 @@ public:
     return {std::map<int, float>(), 0.0f, 0.0f};
   }
 
-  std::optional<float> getSeatNationalsProportion(std::string const& seatName) const {
+  std::optional<FloatInformation> getSeatNationalsProportion(std::string const& seatName) const {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
-    if (seatIndex != int(seats.size())) {
-      return seats[seatIndex].nationalsProportion;
+    if (seatIndex != int(seats.size()) && seats[seatIndex].nationalsProportion.has_value()) {
+      return std::make_optional<FloatInformation>(
+        seats[seatIndex].nationalsProportion.value_or(0.0f),
+        seats[seatIndex].node.fpCompletion,
+        seats[seatIndex].node.fpConfidence
+      );
     }
     return std::nullopt;
   }

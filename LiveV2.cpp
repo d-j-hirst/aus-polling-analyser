@@ -1418,25 +1418,27 @@ void Election::determineBoothSpecificDeviations() {
 
 void Election::calculateNationalsProportions() {
   for (auto& seat : seats) {
-    if (!seat.node.fpVotesCurrent.contains(natPartyIndex)) {
-      seat.nationalsProportion = 0;
-      continue;
-    }
-    if (!seat.node.fpVotesCurrent.contains(1)) {
-      seat.nationalsProportion = 1;
-      continue;
-    }
     float totalFp = static_cast<float>(seat.node.totalFpVotesCurrent());
     if (totalFp == 0.0f) {
-        seat.nationalsProportion = std::nullopt;
-        continue;
-    }
-    float nationalsShare = static_cast<float>(seat.node.fpVotesCurrent.at(natPartyIndex)) / totalFp;
-    float partyOneShare = static_cast<float>(seat.node.fpVotesCurrent.at(1)) / totalFp;
-    if (nationalsShare + partyOneShare == 0) {
       seat.nationalsProportion = std::nullopt;
       continue;
     }
+    float nationalsVotes = static_cast<float>(seat.node.fpVotesCurrent.contains(natPartyIndex) ? seat.node.fpVotesCurrent.at(natPartyIndex) : 0);
+    float partyOneVotes = static_cast<float>(seat.node.fpVotesCurrent.contains(1) ? seat.node.fpVotesCurrent.at(1) : 0);
+    if (nationalsVotes + partyOneVotes == 0) {
+      seat.nationalsProportion = std::nullopt;
+      continue;
+    }
+    if (!nationalsVotes) {
+      seat.nationalsProportion = 0;
+      continue;
+    }
+    if (!partyOneVotes) {
+      seat.nationalsProportion = 1;
+      continue;
+    }
+    float nationalsShare = static_cast<float>(nationalsVotes) / totalFp;
+    float partyOneShare = static_cast<float>(partyOneVotes) / totalFp;
     seat.nationalsProportion = nationalsShare / (nationalsShare + partyOneShare);
   }
 }
@@ -1665,7 +1667,11 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
         }
-      } else if (allowCurrentData && seats[booth.parentSeatId].node.fpVotesCurrent.contains(partyId)) {
+      } else if (
+        allowCurrentData &&
+        seats[booth.parentSeatId].node.totalFpVotesCurrent() &&
+        seats[booth.parentSeatId].node.fpVotesCurrent.contains(partyId)
+       ) {
         // We don't have previous data, but we have seat share data from some other booths
         // If there is a baseline, use it and modify from there; otherwise, use a low initial expectation
         // Either way, use the seat share data to modify the initial expectation
@@ -1747,7 +1753,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
   bool fullComparisonAvailable = booth.node.totalVotesPrevious() > 0
     && booth.node.tcpVotesPrevious.contains(firstPartyId)
     && booth.node.tcpVotesPrevious.contains(secondPartyId);
-  bool partialComparisonAvailable = booth.node.tcpVotesPrevious.contains(secondPartyId);
+  bool partialComparisonAvailable = booth.node.tcpVotesPrevious.contains(secondPartyId) && booth.node.totalVotesPrevious();
 
   bool cantProject = false;
   if (booth.node.totalTcpVotesCurrent()) {
@@ -1934,6 +1940,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           && otherBooth.node.tcpVotesPrevious.contains(secondPartyId)
           && otherBooth.node.tcpVotesPrevious.contains(otherPartyId)
           && otherBooth.node.totalTcpVotesCurrent() > 0
+          && otherBooth.node.totalVotesPrevious() > 0
         ) {
           // This booth is a valid comparison
           float prevMajorShare = transformVoteShare(float(otherBooth.node.tcpVotesPrevious.at(secondPartyId)) /
@@ -1943,7 +1950,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           float swing = currentMajorShare - prevMajorShare;
           float weight = static_cast<float>(otherBooth.node.totalVotesPrevious());
           weightedSwing += swing * weight;
-          summedWeight += weight; 
+          summedWeight += weight;
         }
       }
       if (summedWeight > 0.0f) {
