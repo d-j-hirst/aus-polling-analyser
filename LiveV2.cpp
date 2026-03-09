@@ -1686,10 +1686,9 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         // Either way, use the seat share data to modify the initial expectation
         float baselineShare = transformVoteShare(baselineShareUntransformed.value_or(1.0f));
         float weight = obsWeight(seats[booth.parentSeatId].node.fpConfidence, VoteObsWeightStrength);
-        float seatShare = transformVoteShare(
-          float(seats[booth.parentSeatId].node.fpVotesCurrent.at(partyId)) /
-          float(seats[booth.parentSeatId].node.totalFpVotesCurrent()) * 100.0f
-        );
+        float currentPartyVotes = float(seats[booth.parentSeatId].node.fpVotesCurrent.at(partyId));
+        float currentTotalVotes = float(seats[booth.parentSeatId].node.totalFpVotesCurrent());
+        float seatShare = transformVoteShare(std::clamp(currentPartyVotes / currentTotalVotes * 100.0f, 0.1f, 99.9f));
         float newShare = seatShare * weight + baselineShare * (1.0f - weight);
         float newVotes = detransformVoteShare(newShare + randomFactor) * previousTotalVotes * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
@@ -1699,7 +1698,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       } else if (baselineShareUntransformed.has_value()) {
         // No previous data and no current data, but we have a baseline
         // (Typically occurs for independents, early on the night when no useful data at all has been recorded for this party yet)
-        float transformedBaselineShare = transformVoteShare(baselineShareUntransformed.value());
+        float transformedBaselineShare = transformVoteShare(std::clamp(baselineShareUntransformed.value(), 0.1f, 99.9f));
         if (booth.voteType == Results2::VoteType::Postal) {
           deviation -= 5.0f; // Rough approximation to account for first-time third party candidates generally doing worse on postal votes
           // TODO: Applied like this will bias the results to the negative, some sort of compensation should be applied to other votes
