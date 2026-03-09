@@ -1060,6 +1060,7 @@ void Election::measureBoothTypeBiases() {
   { // biases for polling places (including PPVC)
     std::map<Results2::Booth::Type, float> tppBiasWeightedSums;
     std::map<Results2::Booth::Type, float> tppWeightSums;
+    std::map<Results2::Booth::Type, float> tppSourceCount;
     for (auto& seat : seats) {
       std::map<Results2::Booth::Type, float> seatTppDeviationWeightedSums;
       std::map<Results2::Booth::Type, float> seatTppWeightSums;
@@ -1101,6 +1102,7 @@ void Election::measureBoothTypeBiases() {
         float weight = seatTppWeightSums.at(boothType);
         tppBiasWeightedSums[boothType] += boothTypeBias * weight;
         tppWeightSums[boothType] += weight;
+        ++tppSourceCount[boothType];
       }
     }
 
@@ -1118,12 +1120,15 @@ void Election::measureBoothTypeBiases() {
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       boothTypeBiasStdDev[boothType] = stdDev;
       boothTypeBiasesRaw[boothType] = overallTppBias;
+      boothTypeSourceCount[boothType] = tppSourceCount[boothType];
+      boothTypeVoteCount[boothType] = tppWeightSums[boothType];
     }
   }
 
   { // biases for declaration votes
     std::map<Results2::VoteType, float> tppBiasWeightedSums;
     std::map<Results2::VoteType, float> tppWeightSums;
+    std::map<Results2::VoteType, float> tppSourceCount;
     for (auto& seat : seats) {
       std::map<Results2::VoteType, float> seatTppDeviationWeightedSums;
       std::map<Results2::VoteType, float> seatTppWeightSums;
@@ -1134,6 +1139,7 @@ void Election::measureBoothTypeBiases() {
           continue;
         }
         if (booth.node.totalTcpVotesCurrent() == 0) {
+          // As with booth types, make sure that these vote types exist in the sums, even if just zero
           seatTppDeviationWeightedSums[booth.voteType] += 0.0f;
           seatTppWeightSums[booth.voteType] += 0.0f;
           continue;
@@ -1159,6 +1165,7 @@ void Election::measureBoothTypeBiases() {
         float weight = seatTppWeightSums.at(voteType);
         tppBiasWeightedSums[voteType] += voteTypeBias * weight;
         tppWeightSums[voteType] += weight;
+        ++tppSourceCount[voteType];
       }
     }
     for (auto const& [voteType, bias] : tppBiasWeightedSums) {
@@ -1172,6 +1179,8 @@ void Election::measureBoothTypeBiases() {
       float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
       voteTypeBiasStdDev[voteType] = stdDev;
       voteTypeBiasesRaw[voteType] = overallTppBias;
+      voteTypeSourceCount[voteType] = tppSourceCount[voteType];
+      voteTypeVoteCount[voteType] = tppWeightSums[voteType];
     }
   }
   PA_LOG_VAR(boothTypeBiases);
@@ -2597,6 +2606,7 @@ void Election::prepareVariability() {
           auto totalVariedFpVotes = std::accumulate(variedFpVoteCounts.begin(), variedFpVoteCounts.end(), 0.0f, [](float sum, const auto& partyId) { return sum + partyId.second; });
           for (auto const& [partyId, baseVoteCount] : baseFpVoteCounts) {
             float variedVoteCount = variedFpVoteCounts.at(partyId);
+            if (baseVoteCount == 0.0f || variedVoteCount == 0.0f) continue; // if there are no votes for this party, then we can't calculate the variation
             float baseTransformedShare = transformVoteShare(baseVoteCount / totalBaseFpVotes * 100.0f);
             float variedTransformedShare = transformVoteShare(variedVoteCount / totalVariedFpVotes * 100.0f);
             tempSeatFpResults[seatIndex][partyId].push_back(variedTransformedShare - baseTransformedShare);
@@ -2639,14 +2649,24 @@ void Election::prepareVariability() {
   
   for (auto const& [seatIndex, seatResults] : seatFpResults) {
     for (auto const& [partyId, results] : seatResults) {
-      // assume mean is 0, any non-zero mean is due to rng
-      float stdDev = std::sqrt(std::accumulate(results.begin(), results.end(), 0.0f, [](float sum, float result) { return sum + result * result; }) / results.size());
-      seats[seatIndex].fpAllBoothsStdDev[partyId] = stdDev;
+      if (results.size()) {
+        // assume mean is 0, any non-zero mean is due to rng
+        float stdDev = std::sqrt(std::accumulate(
+          results.begin(), results.end(), 0.0f, [](float sum, float result) { return sum + result * result; }
+        ) / results.size());
+        seats[seatIndex].fpAllBoothsStdDev[partyId] = stdDev;
+      }
     }
-    float tppStdDev = std::sqrt(std::accumulate(seatTppResults[seatIndex].begin(), seatTppResults[seatIndex].end(), 0.0f, [](float sum, float result) { return sum + result * result; }) / seatTppResults[seatIndex].size());
-    seats[seatIndex].tppAllBoothsStdDev = tppStdDev;
-    if (seatTcpResults.contains(seatIndex)) {
-      float tcpStdDev = std::sqrt(std::accumulate(seatTcpResults[seatIndex].begin(), seatTcpResults[seatIndex].end(), 0.0f, [](float sum, float result) { return sum + result * result; }) / seatTcpResults[seatIndex].size());
+    if (seatTppResults[seatIndex].size()) {
+      float tppStdDev = std::sqrt(std::accumulate(
+        seatTppResults[seatIndex].begin(), seatTppResults[seatIndex].end(), 0.0f, [](float sum, float result) { return sum + result * result; }
+      ) / seatTppResults[seatIndex].size());
+      seats[seatIndex].tppAllBoothsStdDev = tppStdDev;
+    }
+    if (seatTcpResults.contains(seatIndex) && seatTcpResults[seatIndex].size()) {
+      float tcpStdDev = std::sqrt(std::accumulate(
+        seatTcpResults[seatIndex].begin(), seatTcpResults[seatIndex].end(), 0.0f, [](float sum, float result) { return sum + result * result; }
+      ) / seatTcpResults[seatIndex].size());
       seats[seatIndex].tcpAllBoothsStdDev = tcpStdDev;
     }
   }

@@ -226,6 +226,10 @@ public:
     std::map<Results2::VoteType, float> voteTypeBiasStdDev;
     std::map<Results2::Booth::Type, float> boothTypeBiasesRaw;
     std::map<Results2::VoteType, float> voteTypeBiasesRaw;
+    std::map<Results2::Booth::Type, float> boothTypeSourceCount;
+    std::map<Results2::VoteType, float> voteTypeSourceCount;
+    std::map<Results2::Booth::Type, float> boothTypeVoteCount;
+    std::map<Results2::VoteType, float> voteTypeVoteCount;
     float projected2pp = 0.0f;
     float raw2ppDeviation = 0.0f;
   };
@@ -442,6 +446,10 @@ public:
     internals.voteTypeBiasStdDev = voteTypeBiasStdDev;
     internals.boothTypeBiasesRaw = boothTypeBiasesRaw;
     internals.voteTypeBiasesRaw = voteTypeBiasesRaw;
+    internals.boothTypeSourceCount = boothTypeSourceCount;
+    internals.voteTypeSourceCount = voteTypeSourceCount;
+    internals.boothTypeVoteCount = boothTypeVoteCount;
+    internals.voteTypeVoteCount = voteTypeVoteCount;
     internals.projected2pp =
       node.tppVotesProjected.at(0)
       / (node.tppVotesProjected.at(0) + node.tppVotesProjected.at(1))
@@ -581,6 +589,10 @@ private:
   std::map<Results2::VoteType, float> voteTypeBiasStdDev;
   std::map<Results2::Booth::Type, float> boothTypeIterationVariation;
   std::map<Results2::VoteType, float> voteTypeIterationVariation;
+  std::map<Results2::Booth::Type, float> boothTypeSourceCount;
+  std::map<Results2::VoteType, float> voteTypeSourceCount;
+  std::map<Results2::Booth::Type, float> boothTypeVoteCount;
+  std::map<Results2::VoteType, float> voteTypeVoteCount;
 
   // Debug/internal analysis only
   std::map<Results2::Booth::Type, float> boothTypeBiasesRaw;

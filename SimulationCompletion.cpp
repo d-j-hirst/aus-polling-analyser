@@ -809,6 +809,14 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	for (auto [boothType, biasRaw] : internals.boothTypeBiasesRaw) {
 		summaryFile << biasRaw << ",";
 	}
+	summaryFile << "\nBooth type source count\n";
+	for (auto [boothType, sourceCount] : internals.boothTypeSourceCount) {
+		summaryFile << sourceCount << ",";
+	}
+  summaryFile << "\nBooth type vote count\n";
+  for (auto [boothType, voteCount] : internals.boothTypeVoteCount) {
+		summaryFile << voteCount << ",";
+  }
 	summaryFile << "\nVote type biases\n";
 	for (auto [voteType, bias] : internals.voteTypeBiases) {
 		summaryFile << Results2::voteTypeName(voteType) << ",";
@@ -825,6 +833,14 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	for (auto [boothType, biasRaw] : internals.voteTypeBiasesRaw) {
 		summaryFile << biasRaw << ",";
 	}
+  summaryFile << "\nVote type source count\n";
+  for (auto [voteType, sourceCount] : internals.voteTypeSourceCount) {
+		summaryFile << sourceCount << ",";
+  }
+  summaryFile << "\nVote type vote count\n";
+  for (auto [voteType, voteCount] : internals.voteTypeVoteCount) {
+		summaryFile << voteCount << ",";
+  }
   summaryFile << "\nInternal projected 2PP\n";
 	summaryFile << internals.projected2pp;
 	summaryFile << "\nRaw 2PP deviation\n";
