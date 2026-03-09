@@ -2332,6 +2332,13 @@ void Election::determineElectionFinalTppDeviation(bool allowCurrentData) {
     // in no offset, even if confidence is low due to inability to measure swings
     float offset = offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - node.tppCompletion);
     finalSpecificTppDeviation = finalDeviation - offset;
+    if (variabilitySampleIndex % 1000 == 0) {
+      PA_LOG_VAR(offset);
+      PA_LOG_VAR(node.tppCompletion);
+      PA_LOG_VAR(offsetSpecificTppDeviation);
+      PA_LOG_VAR(finalSpecificTppDeviation);
+      PA_LOG_VAR(node.tppVotesProjected.at(0));
+    }
   } else {
     offsetSpecificTppDeviation = finalDeviation;
   }
@@ -2678,7 +2685,7 @@ void Election::prepareVariability() {
   createRandomVariation = false;
 }
 
-void LiveV2::Election::generateVariability(int iterationIndex) {
+void Election::generateVariability(int iterationIndex) {
   // generate seat-level variability using the parameters previously prepared
   // this simulates the variability caused by random booth results without
   // requiring a full recalculation of every booth
@@ -2689,11 +2696,13 @@ void LiveV2::Election::generateVariability(int iterationIndex) {
     boothTypeIterationVariation[boothType] = variabilityNormal(
       0.0f, variation, int(boothType), 0, uint32_t(VariabilityTag::GenerateBoothTypeVariability)
     );
+    boothTypeIterationVariation[boothType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
   }
   for (auto [voteType, variation] : voteTypeBiasStdDev) {
     voteTypeIterationVariation[voteType] = variabilityNormal(
       0.0f, variation, int(voteType), 0, uint32_t(VariabilityTag::GenerateVoteTypeVariability)
     );
+    voteTypeIterationVariation[voteType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
   }
 
   for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex) {
@@ -2705,6 +2714,10 @@ void LiveV2::Election::generateVariability(int iterationIndex) {
       float randomVariation = variabilityNormal(
         0.0f, stdDev, seatIndex, partyId, uint32_t(VariabilityTag::GenerateFpVariability)
       );
+      // Random variability can be not-quite-symmetric due to the complexity of the simulation,
+      // so this (and similar lines elsewhere) ensures that the variation is zero when completion is zero,
+      // but rapidly transitions to full variability as completion increases
+      randomVariation *= 1 - std::exp(-seat.node.fpCompletion * 50.0f);
       // If the party isn't found in the existing projection, that means it was converted
       // to the main independent, so use the independent party index instead
       int usePartyId = seat.node.fpVotesProjected.contains(partyId) ? partyId : run.indPartyIndex;
@@ -2724,6 +2737,7 @@ void LiveV2::Election::generateVariability(int iterationIndex) {
     float randomTppVariation = variabilityNormal(
       0.0f, seat.tppAllBoothsStdDev, seatIndex, 0, uint32_t(VariabilityTag::GenerateTppVariability)
     );
+    randomTppVariation *= 1 - std::exp(-seat.node.fpCompletion * 50.0f);
     float currentTppProjection = seat.node.tppVotesProjected.at(0);
     float transformedCurrentTppProjection = transformVoteShare(currentTppProjection / totalTppProjectedVotes * 100.0f);
     float transformedNewTppProjection = transformedCurrentTppProjection + randomTppVariation;
@@ -2755,6 +2769,7 @@ void LiveV2::Election::generateVariability(int iterationIndex) {
       float randomTcpVariation = variabilityNormal(
         0.0f, seat.tcpAllBoothsStdDev.value(), seatIndex, 0, uint32_t(VariabilityTag::GenerateTcpVariability)
       );
+      randomTcpVariation *= 1 - std::exp(-seat.node.fpCompletion * 50.0f);
       float arbitraryPartyId = seat.node.tcpVotesProjected.begin()->first;
       float currentTcpProjection = seat.node.tcpVotesProjected.at(arbitraryPartyId);
       float transformedCurrentTcpProjection = transformVoteShare(currentTcpProjection / totalTcpProjectedVotes * 100.0f);
