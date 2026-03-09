@@ -1134,6 +1134,11 @@ void Election::measureBoothTypeBiases() {
       std::map<Results2::VoteType, float> seatTppWeightSums;
       for (int boothIndex : seat.booths) {
         auto& booth = booths.at(boothIndex);
+        // make sure that this booth type "exists" (for output/consistency purposes)
+        if (booth.voteType != Results2::VoteType::Ordinary) {
+          tppBiasWeightedSums[booth.voteType] += 0.0f;
+          tppWeightSums[booth.voteType] += 0.0f;
+        }
         // ignore "invalid" booths (we don't know what they are)
         if (booth.voteType == Results2::VoteType::Invalid) {
           continue;
@@ -1148,6 +1153,7 @@ void Election::measureBoothTypeBiases() {
         seatTppDeviationWeightedSums[booth.voteType] += booth.node.tppDeviation.value_or(0.0f) * booth.node.totalTcpVotesCurrent();
         seatTppWeightSums[booth.voteType] += booth.node.totalTcpVotesCurrent();
       }
+
       if (!seatTppDeviationWeightedSums.contains(Results2::VoteType::Ordinary)) continue;
       // zero weight sum can occur if a seat's count is being realigned and therefore no TCP results
       if (!seatTppWeightSums.contains(Results2::VoteType::Ordinary) || seatTppWeightSums.at(Results2::VoteType::Ordinary) == 0) continue;
