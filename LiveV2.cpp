@@ -1109,15 +1109,15 @@ void Election::measureBoothTypeBiases() {
     for (auto const& [boothType, bias] : tppBiasWeightedSums) {
       float votes = tppWeightSums.at(boothType);
       float overallTppBias = votes ? tppBiasWeightedSums.at(boothType) / votes : 0.0f;
-      // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they aren't very important)
-      float obsProportion = std::pow(votes, 0.9f) / (30000.0f + std::pow(votes, 0.9f));
+      // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they don't usually have a significant impact)
+      float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(votes, 0.9f));
       float baseline = 0.0f;
       // pre-polls tend to move the tpp back towards the baseline
       if (boothType == Results2::Booth::Type::Ppvc) {
         baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
       }
       boothTypeBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
-      float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
+      float stdDev = 7.0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
       boothTypeBiasStdDev[boothType] = stdDev;
       boothTypeBiasesRaw[boothType] = overallTppBias;
       boothTypeSourceCount[boothType] = tppSourceCount[boothType];
@@ -1177,12 +1177,12 @@ void Election::measureBoothTypeBiases() {
     for (auto const& [voteType, bias] : tppBiasWeightedSums) {
       float votes = tppWeightSums.at(voteType);
       float overallTppBias = votes ? tppBiasWeightedSums.at(voteType) / votes : 0.0f;
-      // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they aren't very important)
-      float obsProportion = std::pow(votes, 0.9f) / (30000.0f + std::pow(votes, 0.9f));
+      // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they don't usually have a significant impact)
+      float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(votes, 0.9f));
       // Declaration votes tend to move the tpp back toward the baseline
       float baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
       voteTypeBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
-      float stdDev = 4.5f * std::exp(-(votes + 1000.0f) * 0.00001f);
+      float stdDev = .0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
       voteTypeBiasStdDev[voteType] = stdDev;
       voteTypeBiasesRaw[voteType] = overallTppBias;
       voteTypeSourceCount[voteType] = tppSourceCount[voteType];
@@ -2332,13 +2332,6 @@ void Election::determineElectionFinalTppDeviation(bool allowCurrentData) {
     // in no offset, even if confidence is low due to inability to measure swings
     float offset = offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - node.tppCompletion);
     finalSpecificTppDeviation = finalDeviation - offset;
-    if (variabilitySampleIndex % 1000 == 0) {
-      PA_LOG_VAR(offset);
-      PA_LOG_VAR(node.tppCompletion);
-      PA_LOG_VAR(offsetSpecificTppDeviation);
-      PA_LOG_VAR(finalSpecificTppDeviation);
-      PA_LOG_VAR(node.tppVotesProjected.at(0));
-    }
   } else {
     offsetSpecificTppDeviation = finalDeviation;
   }
@@ -2737,7 +2730,7 @@ void Election::generateVariability(int iterationIndex) {
     float randomTppVariation = variabilityNormal(
       0.0f, seat.tppAllBoothsStdDev, seatIndex, 0, uint32_t(VariabilityTag::GenerateTppVariability)
     );
-    randomTppVariation *= 1 - std::exp(-seat.node.fpCompletion * 50.0f);
+    randomTppVariation *= 1 - std::exp(-seat.node.tppCompletion * 50.0f);
     float currentTppProjection = seat.node.tppVotesProjected.at(0);
     float transformedCurrentTppProjection = transformVoteShare(currentTppProjection / totalTppProjectedVotes * 100.0f);
     float transformedNewTppProjection = transformedCurrentTppProjection + randomTppVariation;
@@ -2769,7 +2762,7 @@ void Election::generateVariability(int iterationIndex) {
       float randomTcpVariation = variabilityNormal(
         0.0f, seat.tcpAllBoothsStdDev.value(), seatIndex, 0, uint32_t(VariabilityTag::GenerateTcpVariability)
       );
-      randomTcpVariation *= 1 - std::exp(-seat.node.fpCompletion * 50.0f);
+      randomTcpVariation *= 1 - std::exp(-seat.node.tcpCompletion * 50.0f);
       float arbitraryPartyId = seat.node.tcpVotesProjected.begin()->first;
       float currentTcpProjection = seat.node.tcpVotesProjected.at(arbitraryPartyId);
       float transformedCurrentTcpProjection = transformVoteShare(currentTcpProjection / totalTcpProjectedVotes * 100.0f);

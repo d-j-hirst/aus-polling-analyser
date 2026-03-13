@@ -12,7 +12,9 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
+ -2025-05-03 19:55 -> 19:56: suspiciously large shift from Labor->Greens in Wills here, check that it's justified (and swing-back at 20:47)
  -Prepoll StdDev is clearly dropping too fast relative to changes in the bias estimate (changes in the bias estimate continue to drop even when the StdDev is ~zero). Check (a) is bias estimate accurate to data (before blending to baseline) (b) does bias estimate adjust too slowly based on 2025 data (c) does StdDev need to be changed to match bias estimate
+ -big gap between internal projection (conservative, but probably "more accurate" given existing data) and final projection (overestimates TPP even though PPVC/postal projections would be lower than final)
  -Check TPP at end of 2025fed - likely either TPP estimations in non-classic seats are slightly faulty or there is insufficient accounting for correlated bias.
  -Extend bias by vote/booth type from tpp to fp.
  -in order to better calibrate the balance between baseline and live results, we need to store standard deviations as part of the live baseline, not just medians. These can then be compared with the standard deviation derived from the live results to determine the weightings for baseline vs. live. (Low-medium difficulty, needed for other steps)
