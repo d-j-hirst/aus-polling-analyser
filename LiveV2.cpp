@@ -16,6 +16,7 @@ constexpr float PreferenceFlowObsWeightStrength = 200.0f;
 constexpr float CoalitionLeakagePercent = 20.0f;
 constexpr float PreviousTotalVotesGuess = 500.0f;
 constexpr float HospitalBoothVotesGuess = 50.0f;
+constexpr float DifferentSeatRelevanceModifier = 0.1f;
 
 // Arbitrary offset to ensure independent candidates don't clash with real party IDs
 // Candidate IDs are 5-digit (or shorter) numbers, so this offset makes it easy to spot
@@ -59,6 +60,7 @@ enum class VariabilityTag : std::uint32_t {
 
 void Node::log() const
 {
+  PA_LOG_VAR(relevanceModifier);
   PA_LOG_VAR(fpVotesCurrent);
   PA_LOG_VAR(fpVotesPrevious);
   PA_LOG_VAR(fpShares);
@@ -134,10 +136,11 @@ Booth::Booth(
   std::optional<Results2::Booth const*> previousBooth,
   std::function<int(int, bool)> partyMapper,
   int parentSeatId,
-  int natPartyIndex
+  int natPartyIndex,
+  bool sameSeat
 )
   : name(currentBooth.name), parentSeatId(parentSeatId), voteType(Results2::VoteType::Ordinary), boothType(currentBooth.type),
-  coords(currentBooth.coords)
+  coords(currentBooth.coords), sameSeat(sameSeat)
 {
 
   // Helper function to process votes, calculate shares and swings
@@ -236,6 +239,11 @@ Booth::Booth(
   node.fpCompletion = node.totalFpVotesCurrent() > 0 ? 1 : 0;
   node.tcpCompletion = node.totalTcpVotesCurrent() > 0 ? 1 : 0;
   node.tppCompletion = node.totalTcpVotesCurrent() > 0 && isTppSet(node.tcpVotesCurrent, natPartyIndex) ? 1 : 0;
+
+  // For booths previously different seat, we reduce their relevance for projections
+  // as they are less likely to be indicative of the remaining votes in the seat
+  // than booths from the same seat
+  node.relevanceModifier = sameSeat ? 1.0f : DifferentSeatRelevanceModifier;
 }
 
 Booth::Booth(
@@ -246,10 +254,11 @@ Booth::Booth(
   Results2::VoteType voteType,
   std::function<int(int, bool)> partyMapper,
   int parentSeatId,
-  int natPartyIndex
+  int natPartyIndex,
+  bool sameSeat
 )
   : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other),
-  coords({ 0.0f, 0.0f })
+  coords({ 0.0f, 0.0f }), sameSeat(sameSeat)
 {
   auto processVotes = [this, &partyMapper, voteType](
     Results2::Seat::VotesByType const& currentVotes,
@@ -351,6 +360,11 @@ Booth::Booth(
   node.tppCompletion = std::min(
     isTppSet(node.tcpVotesCurrent, natPartyIndex) ? float(node.totalTcpVotesCurrent()) / float(node.totalVotesPrevious()) : 0.0f,0.95f
   );
+
+  // For booths previously different seat, we reduce their relevance for projections
+  // as they are less likely to be indicative of the remaining votes in the seat
+  // than booths from the same seat
+  node.relevanceModifier = sameSeat ? 1.0f : DifferentSeatRelevanceModifier;
 }
 
 void Booth::calculateTppSwing(int natPartyIndex) {
@@ -374,6 +388,7 @@ void Booth::log() const
   logger << "Vote type: " << voteTypeName(voteType) << "\n";
   logger << "Booth type: " << Results2::Booth::boothTypeName(boothType) << "\n";
   logger << "Coordinates: (" << coords.first << ", " << coords.second << ")\n";
+  logger << "Same seat: " << (sameSeat ? "true" : "false") << "\n";
   node.log();
 }
 
@@ -555,13 +570,14 @@ void Election::createNodesFromElectionData() {
 
       // Find matching booth in previous election if it exists
       std::optional<Results2::Booth const*> previousBoothPtr = std::nullopt;
+      std::string previousSeatName = "";
       for (auto const& [prevBoothId, prevBooth] : previousElection.booths) {
         // IDs are the only unique identifier for booths
         // as names can be changed from one election to the next
         // without changing the ID
         if (prevBooth.id == currentBooth.id) {
             if (currentBooth.type == Results2::Booth::Type::Ppvc) {
-				// AEC is known to sometimes use the same booth ID for different PPVC booths in different elections
+				        // AEC sometimes uses the same booth ID for different PPVC booths in different elections
                 // E.g. Brunswick WILLS PPVC (2025) vs Pascoe Vale WILLS PPVC (2022) both use 34056
                 // So check the start of the name to make sure they're at least a similar location
                 if (prevBooth.name.substr(0, 4) != currentBooth.name.substr(0, 4)) {
@@ -569,9 +585,11 @@ void Election::createNodesFromElectionData() {
 				}
           }
           previousBoothPtr = &prevBooth;
+          previousSeatName = previousElection.seats.at(prevBooth.parentSeat).name;
           break;
         }
       }
+      bool sameSeat = previousSeatName == seat.name || previousSeatName == projectSeat.previousName;
 
       // Create new booth with mapping function
       booths.emplace_back(Booth(
@@ -579,7 +597,8 @@ void Election::createNodesFromElectionData() {
           previousBoothPtr,
           [this](int partyId, bool isPrevious) { return this->mapPartyId(partyId, isPrevious); },
           seatIndex,
-          natPartyIndex
+          natPartyIndex,
+          sameSeat
       ));
       auto& liveSeat = seats.at(seatIndex);
       liveSeat.booths.push_back(int(booths.size()) - 1);
@@ -627,7 +646,8 @@ void Election::createNodesFromElectionData() {
         voteType,
         [this](int partyId, bool isPrevious) { return this->mapPartyId(partyId, isPrevious); },
         seatIndex,
-        natPartyIndex
+        natPartyIndex,
+        true
       );
 
       auto& liveSeat = seats.at(seatIndex);
@@ -1254,6 +1274,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float fpConfidenceSum = 0.0f; // sum of confidence, weighted by number of votes
   float fpConfidenceWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
   float fpCompletionSum = 0.0f;
+  float fpCompletionWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
 
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->fpConfidence;
@@ -1261,15 +1282,16 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     for (auto const& [partyId, swing] : thisNode->fpDeviations) {
       fpDeviationWeightedSum[partyId] += swing * weight;
       fpWeightSum[partyId] += weight;
+      float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
       // Only count confidence when the deviation actually contributes to the calculations
       if (!confidenceAdded) {
-        fpConfidenceSum += thisNode->fpConfidence * thisNode->totalVotesPrevious();
+        fpConfidenceSum += thisNode->fpConfidence * confidenceWeight;
         confidenceAdded = true;
       }
+      fpConfidenceWeightSum += confidenceWeight;
     }
     fpCompletionSum += thisNode->fpCompletion * thisNode->totalVotesPrevious();
-
-    fpConfidenceWeightSum += thisNode->totalVotesPrevious();
+    fpCompletionWeightSum += thisNode->totalVotesPrevious();
   }
 
   // Node created for each new seat/region/election: should be <200 times
@@ -1280,8 +1302,8 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     }
   }
   if (fpConfidenceWeightSum > 0) {
-    aggregatedNode.fpCompletion = fpCompletionSum / fpConfidenceWeightSum; // can use same denominator as confidence since it's weighted the same way, even though it's technically a different metric
-    aggregatedNode.fpConfidence = fpConfidenceSum / fpConfidenceWeightSum; // will eventually have a more sophisticated nonlinear confidence calculation
+    aggregatedNode.fpCompletion = fpCompletionSum / fpCompletionWeightSum;
+    aggregatedNode.fpConfidence = fpConfidenceSum / fpConfidenceWeightSum;
   }
 
   // Aggregate current election vote totals (used for weighting only)
@@ -1309,18 +1331,20 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float tppConfidenceSum = 0.0f;
   float tppConfidenceWeightSum = 0.0f;
   float tppCompletionSum = 0.0f;
+  float tppCompletionWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->tppConfidence;
     if (thisNode->tppDeviation) {
       tppDeviationWeightedSum += thisNode->tppDeviation.value() * weight;
       tppWeightSum += weight;
+      float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
       // Only count confidence when the deviation actually contributes to the calculations
-      tppConfidenceSum += thisNode->tppConfidence * thisNode->totalVotesPrevious();
+      tppConfidenceSum += thisNode->tppConfidence * confidenceWeight;
+      tppConfidenceSum += confidenceWeight;
     }
     // Always count completion
     tppCompletionSum += thisNode->tppCompletion * thisNode->totalVotesPrevious();
-
-    tppConfidenceWeightSum += thisNode->totalVotesPrevious();
+    tppCompletionWeightSum += thisNode->totalVotesPrevious();
   }
   if (tppWeightSum > 0) {
     aggregatedNode.tppDeviation = tppDeviationWeightedSum / tppWeightSum;
@@ -1329,7 +1353,7 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     // will eventually have a more sophisticated nonlinear confidence calculation
     aggregatedNode.tppConfidence = tppConfidenceSum / tppConfidenceWeightSum;
     // can use same denominator as confidence since it's weighted the same way, even though it's technically a different metric
-    aggregatedNode.tppCompletion = tppCompletionSum / tppConfidenceWeightSum;
+    aggregatedNode.tppCompletion = tppCompletionSum / tppCompletionWeightSum;
   }
 
   // Aggregate preference flow deviation
@@ -1933,7 +1957,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         }
       }
     }
-    if (partialComparisonAvailable) {
+    if (partialComparisonAvailable && !fpTotalCurrent) {
       // We have some TCP data for the seat but (a) no FP data for this booth yet and 
       // (b) this booth's previous TCP involved a different party to the current major party so can't use swing
       // In this case, the major party (always in 2nd position) is the same as the previous election
@@ -1962,7 +1986,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           float currentMajorShare = transformVoteShare(float(otherBooth.node.tcpVotesCurrent.at(secondPartyId)) /
             float(otherBooth.node.totalTcpVotesCurrent()) * 100.0f);
           float swing = currentMajorShare - prevMajorShare;
-          float weight = static_cast<float>(otherBooth.node.totalVotesPrevious());
+          float weight = static_cast<float>(otherBooth.node.totalVotesPrevious()) * otherBooth.node.relevanceModifier;
           weightedSwing += swing * weight;
           summedWeight += weight;
         }
@@ -1984,7 +2008,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         float tcpTransformedEstimateCurrent = tcpTransformedSharePrevious + averageSwing;
         float tcpEstimateCurrent = detransformVoteShare(tcpTransformedEstimateCurrent) * currentVoteEstimate * 0.01f;
         // Lower confidence because one of the parties has changed, so patterns are less reliable
-        methodConfidence[2] = std::sqrt((summedWeight) / currentVoteEstimate) * 0.2f;
+        methodConfidence[2] = std::sqrt((summedWeight) / currentVoteEstimate) * 0.1f;
         tcpFirst[2] = currentVoteEstimate - tcpEstimateCurrent;
         tcpSecond[2] = tcpEstimateCurrent;
       }
@@ -1992,7 +2016,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
     if (currentVoteEstimate > 0) {
       // As a last resort, if we have FP data, use a 50% pref flow by default
       // Maybe refine this using preference guesses later
-      // But for now it should prevent the 
+      // But for now it should prevent booth TCPs from being completely unassigned
       for (auto const& [partyId, votes] : seat.node.tcpVotesCurrent) {
         float boothPrefs = fpTotalCurrent ?
           fpTotalCurrent - booth.node.fpVotesCurrent.at(firstPartyId) - booth.node.fpVotesCurrent.at(secondPartyId) :

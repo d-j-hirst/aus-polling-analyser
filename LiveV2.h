@@ -75,6 +75,8 @@ public:
   float tcpCompletion = 0.0f;
   float tppCompletion = 0.0f;
 
+  float relevanceModifier = 1.0f;
+
   auto fpSharesPercent() const {
     std::map<int, float> result;
     for (auto const& [partyId, share] : fpShares) {
@@ -106,7 +108,8 @@ public:
     std::optional<Results2::Booth const*> previousBooth,
     std::function<int(int, bool)> partyMapper,
     int parentSeatId,
-    int natPartyIndex
+    int natPartyIndex,
+    bool sameSeat
   );
 
   // For incremental vote categories, not ordinary polling locations
@@ -118,7 +121,8 @@ public:
     Results2::VoteType voteType,
     std::function<int(int, bool)> partyMapper,
     int parentSeatId,
-    int natPartyIndex
+    int natPartyIndex,
+    bool sameSeat
   );
 
   void calculateTppSwing(int natPartyIndex);
@@ -132,6 +136,10 @@ public:
   Results2::VoteType voteType = Results2::VoteType::Ordinary;
   Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
   std::pair<float, float> coords = { 0.0f, 0.0f }; // latitude, longitude
+
+  // Booths from a different seat are much less reliable for extrapolation
+  // so we use this to make sure they're treated differently
+  bool sameSeat = false; 
 
   Node node;
 };
