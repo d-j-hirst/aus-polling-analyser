@@ -1268,17 +1268,17 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->fpConfidence;
     bool confidenceAdded = false;
+    float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
     for (auto const& [partyId, swing] : thisNode->fpDeviations) {
       fpDeviationWeightedSum[partyId] += swing * weight;
       fpWeightSum[partyId] += weight;
-      float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
       // Only count confidence when the deviation actually contributes to the calculations
       if (!confidenceAdded) {
         fpConfidenceSum += thisNode->fpConfidence * confidenceWeight;
         confidenceAdded = true;
       }
-      fpConfidenceWeightSum += confidenceWeight;
     }
+    fpConfidenceWeightSum += confidenceWeight;
     fpCompletionSum += thisNode->fpCompletion * thisNode->totalVotesPrevious();
     fpCompletionWeightSum += thisNode->totalVotesPrevious();
   }
@@ -1323,14 +1323,14 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float tppCompletionWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
   for (auto const& thisNode : nodesToAggregate) {
     float weight = thisNode->totalVotesPrevious() * thisNode->tppConfidence;
+    float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
     if (thisNode->tppDeviation) {
       tppDeviationWeightedSum += thisNode->tppDeviation.value() * weight;
       tppWeightSum += weight;
-      float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
       // Only count confidence when the deviation actually contributes to the calculations
       tppConfidenceSum += thisNode->tppConfidence * confidenceWeight;
-      tppConfidenceSum += confidenceWeight;
     }
+    tppConfidenceWeightSum += confidenceWeight;
     // Always count completion
     tppCompletionSum += thisNode->tppCompletion * thisNode->totalVotesPrevious();
     tppCompletionWeightSum += thisNode->totalVotesPrevious();

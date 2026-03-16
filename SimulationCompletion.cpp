@@ -524,7 +524,8 @@ void SimulationCompletion::recordRegionFpVoteStats() {
 					{
 						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-						float exactFp = float(a) + exactFrac;
+						float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
+						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
 						sim.latestReport.regionFpProbabilityBand[regionIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 						++currentProbabilityBand;
 					}
@@ -551,7 +552,8 @@ void SimulationCompletion::recordRegionTppVoteStats() {
 				{
 					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-					float exactFp = float(a) + exactFrac;
+					float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
+					if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
 					sim.latestReport.regionTppProbabilityBand[regionIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 					++currentProbabilityBand;
 				}
@@ -575,7 +577,8 @@ void SimulationCompletion::recordElectionFpVoteStats() {
 				{
 					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-					float exactFp = float(a) + exactFrac;
+					float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
+					if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
 					sim.latestReport.electionFpProbabilityBand[partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 					++currentProbabilityBand;
 				}
@@ -599,7 +602,8 @@ void SimulationCompletion::recordElectionTppVoteStats() {
 			{
 				float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 				float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-				float exactFp = float(a) + exactFrac;
+				float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
+				if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
 				sim.latestReport.electionTppProbabilityBand[currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
 				++currentProbabilityBand;
 			}
