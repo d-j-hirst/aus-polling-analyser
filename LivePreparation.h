@@ -56,6 +56,7 @@ private:
 	void prepareOverallLiveFpSwings();
 
 	std::string getTermCode();
+	void loadEcsaXmlDocument(tinyxml2::XMLDocument& document, std::string const& filename) const;
 
 	Results2::Seat const& findBestMatchingPreviousSeat(int currentSeatId);
 	std::map<int, int> findMatchedParties(Results2::Seat const& previousSeat, Results2::Seat const& currentSeat);

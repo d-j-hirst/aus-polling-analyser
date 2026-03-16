@@ -597,6 +597,9 @@
     <ClInclude Include="LiveV2.h">
       <Filter>Header Files\Process Objects</Filter>
     </ClInclude>
+    <ClInclude Include="Utf16ToUtf8.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="bitmaps\plus.bmp" />

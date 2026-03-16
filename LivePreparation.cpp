@@ -8,6 +8,7 @@
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
 #include "LatestResultsDataRetriever.h"
+#include "Utf16ToUtf8.h"
 
 #include <filesystem>
 #include <queue>
@@ -34,6 +35,16 @@ constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 LivePreparation::LivePreparation(PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), run(run), sim(sim), previousElection(run.getTermCode()), currentElection(run.getTermCode())
 {
+}
+
+void LivePreparation::loadEcsaXmlDocument(tinyxml2::XMLDocument& document, std::string const& filename) const
+{
+	try {
+		XmlEncoding::loadUtf16AwareXmlDocument(document, filename);
+	}
+	catch (std::runtime_error const& e) {
+		throw Exception("Failed to load ECSA XML file: " + filename + " (" + e.what() + ")");
+	}
 }
 
 void LivePreparation::prepareLiveAutomatic()
@@ -71,10 +82,7 @@ void LivePreparation::prepareLiveAutomatic()
 
 void LivePreparation::downloadPreviousResults()
 {
-	if (run.regionCode == "vic") return;
-	if (run.regionCode == "nsw") return;
-	if (run.regionCode == "qld") return;
-	if (run.regionCode == "wa") return;
+	if (run.regionCode != "fed") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.previousResultsUrl;
 	if (mangledName.substr(0, 6) == "local:") {
@@ -137,14 +145,18 @@ void LivePreparation::parsePreviousResults()
 		resultsXml.LoadFile(("downloads/" + getTermCode() + "_results_prev.xml").c_str());
 		previousElection.update(resultsXml, Results2::Election::Format::WAEC);
 	}
+  else if (run.regionCode == "sa") {
+			tinyxml2::XMLDocument zerosXml;
+			loadEcsaXmlDocument(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
+			std::ifstream f("analysis/Booth Results/" + prevTermCode + ".json");
+			nlohmann::json resultsJson = nlohmann::json::parse(f);
+			previousElection = Results2::Election::createEcsa(resultsJson, zerosXml, prevTermCode);
+		}
 }
 
 void LivePreparation::downloadPreload()
 {
-	if (run.regionCode == "vic") return;
-	if (run.regionCode == "nsw") return;
-	if (run.regionCode == "qld") return;
-	if (run.regionCode == "wa") return;
+	if (run.regionCode != "fed") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.preloadUrl;
 	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
@@ -193,16 +205,18 @@ void LivePreparation::parsePreload()
 		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths_current.xml").c_str());
 		currentElection = Results2::Election::createWaec(candidatesXml, boothsXml, run.getTermCode());
 	}
+	else if (run.regionCode == "sa") {
+		tinyxml2::XMLDocument zerosXml;
+		loadEcsaXmlDocument(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
+		currentElection = Results2::Election::createEcsa(nlohmann::json(), zerosXml, run.getTermCode());
+	}
 }
 
 void LivePreparation::downloadPollingPlaces()
 {
 	// Polling places data contains location data that is used to estimate
 	// votes for booths that don't have a previous-election match.
-	if (run.regionCode == "vic") return;
-	if (run.regionCode == "nsw") return;
-	if (run.regionCode == "qld") return;
-	if (run.regionCode == "wa") return;
+	if (run.regionCode != "fed") return;
 	ResultsDownloader resultsDownloader;
 	std::string mangledName = sim.settings.preloadUrl;
 	std::replace(mangledName.begin(), mangledName.end(), '/', '$');
@@ -341,6 +355,33 @@ void LivePreparation::acquireCurrentResults()
 					logger << "Copied WA results file to: " << xmlFilename << "\n";
 					return; // Exit the function early since we've already copied the file
 				}
+				else if (run.regionCode == "sa" && entryStr.find("_ha_detail") != std::string::npos) {
+					bestFilename = entryStr;
+
+					// Archive the file with a timestamp
+					auto now = std::chrono::system_clock::now();
+					auto time_t_now = std::chrono::system_clock::to_time_t(now);
+					std::tm tm_now;
+					localtime_s(&tm_now, &time_t_now);
+
+					char timestamp[13];
+					std::strftime(timestamp, sizeof(timestamp), "%y%m%d%H%M%S", &tm_now);
+
+					std::string archivedFilename = entryStr;
+					std::string searchStr = "_ha_detail";
+					size_t pos = archivedFilename.find(searchStr);
+					if (pos != std::string::npos) {
+						archivedFilename.replace(pos, searchStr.length(), timestamp);
+						std::filesystem::copy_file(entryStr, archivedFilename, std::filesystem::copy_options::overwrite_existing);
+						logger << "Archived SA results file as: " << archivedFilename << "\n";
+					}
+
+					// Then, copy the file directly to the downloads directory for immediate use
+					xmlFilename = "downloads/" + run.getTermCode() + "_latest.xml";
+					std::filesystem::copy_file(entryStr, xmlFilename, std::filesystem::copy_options::overwrite_existing);
+					logger << "Copied SA results file to: " << xmlFilename << "\n";
+					return; // Exit the function early since we've already copied the file
+				}
 			}
 			catch (std::system_error const&) {
 				// just continue, probably a file with special characters in the filename
@@ -355,13 +396,20 @@ void LivePreparation::acquireCurrentResults()
 
 void LivePreparation::parseCurrentResults()
 {
-	xml.LoadFile((xmlFilename).c_str());
+	if (run.regionCode == "sa") {
+		// ECSA's XML files are UTF-16 encoded, so we need to use a special function to load them
+		loadEcsaXmlDocument(xml, xmlFilename);
+	}
+	else {
+		xml.LoadFile((xmlFilename).c_str());
+	}
 	Results2::Election::Format format;
 	if (run.regionCode == "fed") format = Results2::Election::Format::AEC;
 	else if (run.regionCode == "vic") format = Results2::Election::Format::VEC;
 	else if (run.regionCode == "nsw") format = Results2::Election::Format::NSWEC;
 	else if (run.regionCode == "qld") format = Results2::Election::Format::QEC;
 	else if (run.regionCode == "wa") format = Results2::Election::Format::WAEC;
+	else if (run.regionCode == "sa") format = Results2::Election::Format::ECSA;
 	else format = Results2::Election::Format::AEC;
 	currentElection.update(xml, format);
 }

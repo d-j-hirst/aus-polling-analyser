@@ -27,18 +27,6 @@ const float obsWeight(float confidence, float strength = VoteObsWeightStrength) 
   return std::min(1.0f, 1.01f - 1.01f / (1.0f + std::pow(confidence, 1.6f) * strength));
 }
 
-const std::map<Results2::VoteType, std::string> VoteTypeNames = {
-  {Results2::VoteType::Ordinary, "Ordinary"},
-  {Results2::VoteType::Absent, "Absent"},
-  {Results2::VoteType::Provisional, "Provisional"},
-  {Results2::VoteType::PrePoll, "PrePoll"},
-  {Results2::VoteType::Postal, "Postal"},
-  {Results2::VoteType::Early, "Early"},
-  {Results2::VoteType::IVote, "iVote"},
-  {Results2::VoteType::SIR, "SIR"},
-  {Results2::VoteType::Invalid, "Invalid"}
-};
-
 static RandomGenerator rng;
 
 enum class VariabilityTag : std::uint32_t {
@@ -257,7 +245,7 @@ Booth::Booth(
   int natPartyIndex,
   bool sameSeat
 )
-  : name(VoteTypeNames.at(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other),
+  : name(Results2::voteTypeName(voteType)), parentSeatId(parentSeatId), voteType(voteType), boothType(Results2::Booth::Type::Other),
   coords({ 0.0f, 0.0f }), sameSeat(sameSeat)
 {
   auto processVotes = [this, &partyMapper, voteType](
@@ -273,6 +261,7 @@ Booth::Booth(
       // Extract votes from previous booth if available
       if (previousVotes) {
         for (auto const& [partyId, votes] : *(previousVotes.value())) {
+          if (!votes.contains(voteType)) continue;
           int mappedPartyId = partyMapper(partyId, true);
           previousMap[mappedPartyId] = votes.at(voteType);
         }
@@ -330,7 +319,7 @@ Booth::Booth(
   // Process two-candidate-preferred votes
   processVotes(
     currentTcpVotes,
-    previousTcpVotes ? std::optional(previousTcpVotes.value()) : std::nullopt,
+    previousTcpVotes && (*previousTcpVotes)->size() ? std::optional(previousTcpVotes.value()) : std::nullopt,
     node.tcpVotesCurrent, node.tcpVotesPrevious, node.tcpShares, node.tcpSwings, true
   );
 
@@ -1583,9 +1572,11 @@ void Election::recomposeVoteCounts() {
 // Later on do something more sophisicated by estimating remaining votes from existing vote count,
 // modelling from estimated population growth and known counts of the declaration votes
 int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
+  constexpr int MinimumDeclarationVoteExpectationBase = 200;
   auto const& booth = booths.at(boothIndex);
+  int expectationBase = std::max(booth.node.totalVotesPrevious(), MinimumDeclarationVoteExpectationBase);
   // 1.046f represents typical population growth
-  float baseExpectation = booth.node.totalVotesPrevious() * 1.05f;
+  float baseExpectation = expectationBase * 1.05f;
   baseExpectation *= std::max(0.1f, variabilityNormal(1.0f, 0.12f, boothIndex, 0, uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
   return static_cast<int>(baseExpectation);
 }

@@ -462,6 +462,7 @@
     <ClInclude Include="Simulation.h" />
     <ClInclude Include="SimulationsFrame.h" />
     <ClInclude Include="unzip.h" />
+    <ClInclude Include="Utf16ToUtf8.h" />
     <ClInclude Include="VisualiserFrame.h" />
   </ItemGroup>
   <ItemGroup>

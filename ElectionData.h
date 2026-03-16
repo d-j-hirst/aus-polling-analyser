@@ -115,13 +115,27 @@ namespace Results2 {
 		IVote,
 		Telephone,
 		SIR,
+		EarlyProvisional, // "Early Voting Declaration Votes" for SA
+		EVM, // "Electoral Visitor/Mobile Declaration Votes" for SA
+		TIO, // "Telephone/Interstate/Overseas Declaration Votes" for SA
 	};
 
 	inline std::string voteTypeName(VoteType v) {
-		static const auto nameMap = std::unordered_map<VoteType, std::string>{ {VoteType::Absent, "Absent"},
-			{VoteType::Invalid, "Invalid"}, {VoteType::Ordinary, "Ordinary"}, {VoteType::Postal, "Postal"},
-			{VoteType::PrePoll, "PrePoll"}, {VoteType::Provisional, "Provisional"}, {VoteType::Early, "Early"},
-			{VoteType::IVote, "iVote"}, {VoteType::Telephone, "Telephone"}, {VoteType::SIR, "SIR"} };
+		auto nameMap = std::unordered_map<VoteType, std::string>{
+			{ VoteType::Ordinary, "Ordinary" },
+			{ VoteType::Absent, "Absent" },
+			{ VoteType::Provisional, "Provisional" },
+			{ VoteType::PrePoll, "PrePoll" },
+			{ VoteType::Postal, "Postal" },
+			{ VoteType::Early, "Early" },
+			{ VoteType::IVote, "iVote" },
+			{ VoteType::SIR, "SIR" },
+			{ VoteType::Telephone, "Telephone" },
+			{ VoteType::EarlyProvisional, "Early Provisional" },
+			{ VoteType::EVM, "EVM" },
+			{ VoteType::TIO, "TIO" },
+			{ VoteType::Invalid, "Invalid" }
+		};
 		return nameMap.at(v);
 	}
 
@@ -204,7 +218,7 @@ namespace Results2 {
 
 		int32_t id;
 		std::string name;
-		int32_t enrolment;
+		int32_t enrolment = 0;
 		std::vector<int32_t> booths;
 		VotesByType fpVotes; // map candidate id -> (vote type -> vote count)
 		VotesByType tcpVotes; // map party id -> (vote type -> vote count)
@@ -289,7 +303,8 @@ namespace Results2 {
 			VEC,
 			NSWEC,
 			QEC,
-			WAEC
+			WAEC,
+			ECSA
 		};
 
 		Election(std::string const& termCode) : termCode(termCode) {parties.insert({-1, {-1, "Independent", "IND"}});}
@@ -309,10 +324,12 @@ namespace Results2 {
 		static Election createNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml, std::string const& termCode);
 		static Election createQec(nlohmann::json const& results, tinyxml2::XMLDocument const& xml, std::string const& termCode);
 		static Election createWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml, std::string const& termCode);
+		static Election createEcsa(nlohmann::json const& results, tinyxml2::XMLDocument const& xml, std::string const& termCode);
 
 		void update(tinyxml2::XMLDocument const& xml, Format format = Format::AEC);
 		void updateQec(tinyxml2::XMLDocument const& xml);
 		void updateWaec(tinyxml2::XMLDocument const& xml);
+		void updateEcsa(tinyxml2::XMLDocument const& xml);
 
 		void update2022VicPrev(nlohmann::json const& results, tinyxml2::XMLDocument const& input_candidates,
 			tinyxml2::XMLDocument const& input_booths);
@@ -322,6 +339,11 @@ namespace Results2 {
 		void preloadNswec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros, bool includeSeatBooths = false);
 		void preloadQec(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
 		void preloadWaec(tinyxml2::XMLDocument const& candidatesXml, tinyxml2::XMLDocument const& boothsXml);
+		void preloadEcsa(nlohmann::json const& results, tinyxml2::XMLDocument const& zeros);
+
+		bool allocate2022saDeclarationVotes(int seatId, std::string const& seatName,
+			nlohmann::json& seatValue,
+			std::map<int, int> const& indexToId);
 
 		void updateAecPollingPlaces(tinyxml2::XMLDocument const& xml);
 
