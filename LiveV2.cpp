@@ -15,7 +15,7 @@
 
 using namespace LiveV2;
 
-constexpr float VoteObsWeightStrength = 120.0f;
+constexpr float VoteObsWeightStrength = 400.0f;
 constexpr float PreferenceFlowObsWeightStrength = 200.0f;
 constexpr float CoalitionLeakagePercent = 20.0f;
 constexpr float PreviousTotalVotesGuess = 500.0f;
