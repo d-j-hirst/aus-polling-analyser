@@ -1394,6 +1394,25 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
   }
   std::sort(ppvcBoothIds.begin(), ppvcBoothIds.end());
 
+  auto ppvcSplitWeights = [&]() {
+    std::vector<double> weights(ppvcBoothIds.size(), 1.0);
+    if (seatName != "Stuart" || ppvcBoothIds.size() != 2) return weights;
+
+    int portPiriePos = -1;
+    int portAugustaPos = -1;
+    for (size_t boothPos = 0; boothPos < ppvcBoothIds.size(); ++boothPos) {
+      std::string const& boothName = booths[ppvcBoothIds[boothPos]].name;
+      if (boothName == "Port Pirie Early Voting Centre") portPiriePos = int(boothPos);
+      else if (boothName == "Port Augusta Early Voting Centre") portAugustaPos = int(boothPos);
+    }
+
+    if (portPiriePos >= 0 && portAugustaPos >= 0) {
+      weights[portPiriePos] = 0.8;
+      weights[portAugustaPos] = 0.2;
+    }
+    return weights;
+  };
+
   std::vector<double> baseWeights;
   for (auto const& category : SaDeclarationBaseCategories) {
     baseWeights.push_back(category.share);
@@ -1415,8 +1434,9 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
         addOrMergeBooth("Early Voting Absent Ordinary Votes", categoryFpVotes, categoryTcpVotes);
         continue;
       }
-      auto boothFpTotals = allocateVotes(categoryFpTotal, std::vector<double>(ppvcBoothIds.size(), 1.0), 0);
-      auto boothTcpTotals = allocateVotes(categoryTcpTotal, std::vector<double>(ppvcBoothIds.size(), 1.0), 0);
+      auto boothWeights = ppvcSplitWeights();
+      auto boothFpTotals = allocateVotes(categoryFpTotal, boothWeights, 0);
+      auto boothTcpTotals = allocateVotes(categoryTcpTotal, boothWeights, 0);
       for (size_t boothPos = 0; boothPos < ppvcBoothIds.size(); ++boothPos) {
         int boothId = ppvcBoothIds[boothPos];
         auto boothFpVotes = allocateVotes(boothFpTotals[boothPos],

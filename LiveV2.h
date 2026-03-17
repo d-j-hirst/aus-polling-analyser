@@ -60,6 +60,7 @@ public:
   std::map<int, float> tempFpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::map<int, float> tempTppVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
   std::map<int, float> tempTcpVotesProjected; // temporary storage for projected vote counts, used for determining seat-level variability
+  std::map<int, float> tppVotesProjectedFinal; // takes into account offset adjustments
   std::set<int> runningParties;
 
   // Confidence = how useful the existing results are for projection remaining results.
@@ -169,6 +170,8 @@ public:
   float livePreferenceFlowDeviation; // deviations from the "expected" pre-election preference flows
   std::map<Results2::VoteType, float> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::map<Results2::Booth::Type, float> tppBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::map<int, std::map<Results2::VoteType, float>> fpVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
+  std::map<int, std::map<Results2::Booth::Type, float>> fpBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::optional<int> tcpFocusPartyIndex;
   std::optional<float> tcpFocusPartyPrefFlow; // batched among all parties not in the top 2
   std::optional<float> tcpFocusPartyConfidence;
@@ -448,16 +451,16 @@ public:
   // Expose some internals for diagnostics/analysis
   Internals getInternals() const {
     Internals internals;
-    internals.boothTypeBiases = boothTypeBiases;
-    internals.voteTypeBiases = voteTypeBiases;
-    internals.boothTypeBiasStdDev = boothTypeBiasStdDev;
-    internals.voteTypeBiasStdDev = voteTypeBiasStdDev;
-    internals.boothTypeBiasesRaw = boothTypeBiasesRaw;
-    internals.voteTypeBiasesRaw = voteTypeBiasesRaw;
-    internals.boothTypeSourceCount = boothTypeSourceCount;
-    internals.voteTypeSourceCount = voteTypeSourceCount;
-    internals.boothTypeVoteCount = boothTypeVoteCount;
-    internals.voteTypeVoteCount = voteTypeVoteCount;
+    internals.boothTypeBiases = boothTypeTppBiases;
+    internals.voteTypeBiases = voteTypeTppBiases;
+    internals.boothTypeBiasStdDev = boothTypeTppBiasStdDev;
+    internals.voteTypeBiasStdDev = voteTypeTppBiasStdDev;
+    internals.boothTypeBiasesRaw = boothTypeTppBiasesRaw;
+    internals.voteTypeBiasesRaw = voteTypeTppBiasesRaw;
+    internals.boothTypeSourceCount = boothTypeTppSourceCount;
+    internals.voteTypeSourceCount = voteTypeTppSourceCount;
+    internals.boothTypeVoteCount = boothTypeTppVoteCount;
+    internals.voteTypeVoteCount = voteTypeTppVoteCount;
     internals.projected2pp =
       node.tppVotesProjected.at(0)
       / (node.tppVotesProjected.at(0) + node.tppVotesProjected.at(1))
@@ -520,7 +523,8 @@ private:
   void determineSeatSpecificDeviations();
   void determineBoothSpecificDeviations();
 
-  void measureBoothTypeBiases();
+  void measureFpBoothTypeBiases();
+  void measureTppBoothTypeBiases();
 
   void recomposeVoteCounts();
 
@@ -554,6 +558,8 @@ private:
 
   void determineSeatFinalFpDeviations(bool allowCurrentData, int seatIndex);
   void determineSeatFinalTppDeviation(bool allowCurrentData, int seatIndex);
+
+  void adjustSeatTppProjectionForOffset(int seatIndex);
 
   void calculateLivePreferenceFlowDeviations();
 
@@ -591,20 +597,34 @@ private:
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
 
-  std::map<Results2::Booth::Type, float> boothTypeBiases;
-  std::map<Results2::VoteType, float> voteTypeBiases;
-  std::map<Results2::Booth::Type, float> boothTypeBiasStdDev;
-  std::map<Results2::VoteType, float> voteTypeBiasStdDev;
-  std::map<Results2::Booth::Type, float> boothTypeIterationVariation;
-  std::map<Results2::VoteType, float> voteTypeIterationVariation;
-  std::map<Results2::Booth::Type, float> boothTypeSourceCount;
-  std::map<Results2::VoteType, float> voteTypeSourceCount;
-  std::map<Results2::Booth::Type, float> boothTypeVoteCount;
-  std::map<Results2::VoteType, float> voteTypeVoteCount;
+  std::map<Results2::Booth::Type, float> boothTypeTppBiases;
+  std::map<Results2::VoteType, float> voteTypeTppBiases;
+  std::map<Results2::Booth::Type, float> boothTypeTppBiasStdDev;
+  std::map<Results2::VoteType, float> voteTypeTppBiasStdDev;
+  std::map<Results2::Booth::Type, float> boothTypeTppIterationVariation;
+  std::map<Results2::VoteType, float> voteTypeTppIterationVariation;
+  float nonClassicTppIterationVariation = 0.0f;
+  std::map<Results2::Booth::Type, float> boothTypeTppSourceCount;
+  std::map<Results2::VoteType, float> voteTypeTppSourceCount;
+  std::map<Results2::Booth::Type, float> boothTypeTppVoteCount;
+  std::map<Results2::VoteType, float> voteTypeTppVoteCount;
+
+  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpBiases;
+  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiases;
+  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpBiasStdDev;
+  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiasStdDev;
+  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpIterationVariation;
+  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpIterationVariation;
+  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpSourceCount;
+  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpSourceCount;
+  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpVoteCount;
+  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpVoteCount;
 
   // Debug/internal analysis only
-  std::map<Results2::Booth::Type, float> boothTypeBiasesRaw;
-  std::map<Results2::VoteType, float> voteTypeBiasesRaw;
+  std::map<Results2::Booth::Type, float> boothTypeTppBiasesRaw;
+  std::map<Results2::VoteType, float> voteTypeTppBiasesRaw;
+  std::map<int, std::map<Results2::Booth::Type, float>> boothTypeFpBiasesRaw;
+  std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiasesRaw;
 
   int natPartyIndex;
 

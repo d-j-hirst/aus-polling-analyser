@@ -2289,13 +2289,24 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 		return isMajor(a) && isMajor(b);
 	};
 
+	auto softenExtremePreferenceFlow = [](float flow) {
+		flow = std::clamp(flow, 1.0f, 99.0f);
+		if (flow > 85.0f) {
+			return basicTransformedSwing(85.0f, flow - 85.0f);
+		}
+		if (flow < 15.0f) {
+			return 100.0f - basicTransformedSwing(85.0f, 15.0f - flow);
+		}
+		return flow;
+	};
+
 	// Function for allocating votes from excluded parties. Used in several places in this loop only,
 	// so create once and use wherever needed
 	auto allocateVotes = [&](std::vector<PartyVotes>& accumulatedVoteShares, std::vector<PartyVotes> const& excludedVoteShares) {
 		for (auto [sourceParty, sourceVoteShare] : excludedVoteShares) {
-			// This is a fallback estimate for parties without a specified within-party exahust rate
+			// This is a fallback estimate for parties without a specified within-party exhaust rate
 			// Typically non-classic exhaust rates are a bit higher than classic ones
-			float survivalRate = (1.0f - overallExhaustRate[sourceParty]) * 0.85f;
+			float survivalRate = overallExhaustRate[sourceParty] ? (1.0f - overallExhaustRate[sourceParty]) * 0.85f : 1.0f;
 			// Fallback figure for major parties when OPV is in force. Past observations suggest a somewhat lower
 			// exhaust rate for ALP votes than other parties
 			if (sourceParty == 0 && overallExhaustRate[OthersIndex] > 0.01f) survivalRate = 0.5f;
@@ -2328,20 +2339,23 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 						float transformedFlow = transformVoteShare(flow);
 						// Higher variation in preference flow under OPV
 						float randomFactorFlow = variabilityNormal(
-							0.0f, 10.0f + 10.0f * (1.0f - survivalRate), seatIndex,
+							0.0f, 12.0f + 10.0f * (1.0f - survivalRate), seatIndex,
 							RandomGenerator::combinePartyIds(sourceParty, RandomGenerator::combinePartyIds(targetParties.first, targetParties.second)),
 							uint32_t(VariabilityTag::PrefFlowKnown)
 						);
 						transformedFlow += randomFactorFlow;
 						flow = detransformVoteShare(transformedFlow);
-						float transformedSurvival = transformVoteShare(survivalRate);
-						float randomFactorSurvival = variabilityNormal(
-							0.0f, 15.0f, seatIndex,
-							RandomGenerator::combinePartyIds(sourceParty, RandomGenerator::combinePartyIds(targetParties.first, targetParties.second)),
-							uint32_t(VariabilityTag::ExhaustKnown)
-						);
-						transformedSurvival += randomFactorSurvival;
-						survivalRate = detransformVoteShare(transformedSurvival);
+						flow = softenExtremePreferenceFlow(flow);
+						if (survivalRate && survivalRate < 1.0f) {
+							float transformedSurvival = transformVoteShare(survivalRate * 100.0f);
+							float randomFactorSurvival = variabilityNormal(
+								0.0f, 15.0f, seatIndex,
+								RandomGenerator::combinePartyIds(sourceParty, RandomGenerator::combinePartyIds(targetParties.first, targetParties.second)),
+								uint32_t(VariabilityTag::ExhaustKnown)
+							);
+							transformedSurvival += randomFactorSurvival;
+							survivalRate = detransformVoteShare(transformedSurvival) * 0.01f;
+						}
 						if (seat.name == "Kiama" && run.getTermCode() == "2023nsw" && sourceParty == 0) {
 							flow = 50.0f;
 							survivalRate = 0.2f;
@@ -2374,7 +2388,7 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				float consistencyBase = PreferenceConsistencyBase[partyConsistencies[sourceParty]];
 				float thisWeight = std::pow(consistencyBase, -ideologyDistance);
 				float randomFactor = variabilityUniform(
-					0.6f, 1.4f, seatIndex,
+					0.5f, 1.5f, seatIndex,
 					RandomGenerator::combinePartyIds(sourceParty, targetParty),
 					uint32_t(VariabilityTag::PrefFlowUnknown)
 				);
@@ -2424,6 +2438,13 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 				float totalWeightWithoutLnp = totalWeight - weights[lnpIndex];
 				weights[lnpIndex] = totalWeightWithoutLnp * 4.0f;
 				totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning
+			}
+			if (accumulatedVoteShares.size() == 2) {
+				float flow = 100.0f * weights[0] / totalWeight;
+				flow = softenExtremePreferenceFlow(flow);
+				weights[0] = flow;
+				weights[1] = 100.0f - flow;
+				totalWeight = 100.0f;
 			}
 			for (int targetIndex = 0; targetIndex < int(accumulatedVoteShares.size()); ++targetIndex) {
 				accumulatedVoteShares[targetIndex].second += sourceVoteShare * weights[targetIndex] / totalWeight * survivalRate;

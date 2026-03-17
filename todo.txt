@@ -12,11 +12,48 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
- -big gap between internal projection (conservative, but probably "more accurate" given existing data) and final projection (overestimates TPP even though PPVC/postal projections would be lower than final). Confirmed that "projected 2pp" lines up with the tpp projection totals, while the `finalSpecificTppDeviation` lines up with the observed swings only. So "Projected 2pp" is likely more in line with what we want, and that suggests that the value we use for the overall election needs to be adjusted for that discrepancy.
  -Check TPP at end of 2025fed - likely either TPP estimations in non-classic seats are slightly faulty or there is insufficient accounting for correlated bias.
- -Extend bias by vote/booth type from tpp to fp.
+  -Blaxland: 63.7% estimated vs 71.9% actual (no TCP provided in feed; 3CP margin of 22 votes with eventual pair ALP-LIB)
+  -Bradfield: 47.5% estimated vs 45.1% actual (**IMPORTANT** this "actual" value is an estimate due to court dispute, IND-LIB TCP)
+  -Calare: 40.2% estimated vs 37.7% actual (IND-NAT TCP)
+  -Cowper: 39.5% estimated vs 40.9% actual (NAT-IND TCP)
+  -Farrer: 33.1% estimated vs 37.1% actual (LIB-IND TCP)
+  -Fowler: 57.8% estimated vs 68.2% actual (IND-ALP TCP)
+  -Grayndler: 77.1% estimated vs 80.2% actual (ALP-GRN TCP)
+  (Greenway: 1000-vote batch swapped in `The Ponds GREENWAY PPVC`)
+  -Hunter: 58.5% estimated vs 59.5% actual (ALP-ON TCP)
+  -Mackellar: 46.2% estimated vs 46.3% actual (IND-LIB TCP)
+  -Sydney: 77.2% estimated vs 78.1% actual (ALP-GRN TCP)
+  -Warringah: 51.3% estimated vs 54.5% actual (IND-LIB TCP)
+  -Watson: 68.5% estimated vs 72.9% actual (ALP-IND TCP)
+  -Wentworth: 48.7% estimated vs 50.6% actual (IND-LIB TCP)
+  (Bendigo: Internal projection is ALP-LIB not the proper ALP-NAT but the ratio is correct and actual end output is correctly ALP-NAT)
+  -Calwell: 58.8% estimated vs 64.7% actual (ALP-IND TCP)
+  -Cooper: 74.6% estimated vs 78.5% actual (ALP-GRN TCP)
+  -Flinders: 42.5% estimated vs 45.2% actual (LIB-IND TCP)
+  -Fraser: 71.5% estimated vs 72.0% actual (ALP-GRN TCP)
+  -Goldstein: 44.1% estimated vs 46.0% actual (LIB-IND TCP)
+  -Indi: 40.5% estimated vs 43.3% actual (IND-LIB TCP)
+  -Kooyong: 47.1% estimated vs 47.6% actual (IND-LIB TCP)
+  -Melbourne: 70.8% estimated vs 74.0% actual (ALP-GRN TCP)
+  -Wannon: 35.3% estimated vs 39.1% actual (LIB-IND TCP)
+  -Wills: 77.6% estimated vs 80.9% actual (ALP-GRN TCP)
+  -Griffith: 64.3% estimated vs 65.9% actual (ALP-GRN TCP)
+  -Groom: 34.9% estimated vs 36.7% actual (LNP-IND TCP)
+  -Kennedy: 39.3% estimated vs 40.7% actual (KAP-LNP TCP)
+  -Maranoa: 28.1% estimated vs 26.0% actual (LNP-ONP TCP)
+  -Ryan: 55.8% estimated vs 57.8% actual (GRN-LNP TCP)
+  -Curtin: 43.6% estimated vs 47.8% actual (IND-LIB TCP)
+  -Fremantle: 64.0% estimated vs 68.7% actual (ALP-IND TCP)
+  -Mayo: 53.8% estimated vs 55.0% actual (CA-ALP TCP)
+  -Clark: 67.6% estimated vs 70.9% actual (IND-ALP TCP)
+  -Franklin: 65.6% estimated vs 69.4% actual (ALP-IND TCP)
+  -Bean: 64.6% estimated vs 69.3% actual (ALP-IND TCP)
+  -Canberra: 73.6% estimated vs 76.42% actual (ALP-GRN TCP)
+  Average error: 2.66%, median error: 2.80%, standard deviation: 1.95%
  
  ## for v3.0
+ -Use the alternative TPP values and <Elected> to inform late-count TPP and uncertainty estimates
  -in order to better calibrate the balance between baseline and live results, we need to store standard deviations as part of the live baseline, not just medians. These can then be compared with the standard deviation derived from the live results to determine the weightings for baseline vs. live. (Low-medium difficulty, needed for other steps)
  -for live results, calculate standard deviation of remaining results per seat based on theoretical or empirical formula rather than just vibes. Current vibes-based calculation is clearly (based on the smooth curves seen) overly conservative (as all vibes-based results need to be), with proper calibration we can tighten it up and make the live simulation more reactive. Way it should work: we have a formula for calculating the standard deviation of remaining results (in same vote category) based on (a) % of vote counted (b) number of different booths. Perhaps add a variable for diversity in size/location and weightings for confidence in the 2cp/2pp for fp-only booths (Medium-high difficulty, high impact)
  -increase uncertainty for TPPs in scenarios where different coalition partner enters TCP to the counted matchup (relevant to Bullwinkel/Bendigo 2025) (Low difficulty, low impact)

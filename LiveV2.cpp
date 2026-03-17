@@ -6,8 +6,12 @@
 #include "RandomGenerator.h"
 #include "SpecialPartyCodes.h"
 
+#include <algorithm>
+#include <cctype>
 #include <numeric>
 #include <ranges>
+#include <set>
+#include <sstream>
 
 using namespace LiveV2;
 
@@ -17,11 +21,58 @@ constexpr float CoalitionLeakagePercent = 20.0f;
 constexpr float PreviousTotalVotesGuess = 500.0f;
 constexpr float HospitalBoothVotesGuess = 50.0f;
 constexpr float DifferentSeatRelevanceModifier = 0.1f;
+constexpr float NonClassicTppVariabilityStdDev = 2.5f;
 
 // Arbitrary offset to ensure independent candidates don't clash with real party IDs
 // Candidate IDs are 5-digit (or shorter) numbers, so this offset makes it easy to spot
 // what the original EC ID was if necessary.
 constexpr int IndependentPartyIdOffset = 100000;
+
+namespace {
+
+std::vector<std::string> normalizeCandidateNameTokens(std::string const& name) {
+  std::string cleaned;
+  cleaned.reserve(name.size());
+  for (char ch : name) {
+    unsigned char uch = static_cast<unsigned char>(ch);
+    if (std::isalnum(uch)) {
+      cleaned.push_back(static_cast<char>(std::tolower(uch)));
+    } else {
+      cleaned.push_back(' ');
+    }
+  }
+
+  std::istringstream tokenStream(cleaned);
+  std::vector<std::string> tokens;
+  std::string token;
+  while (tokenStream >> token) {
+    tokens.push_back(token);
+  }
+  std::sort(tokens.begin(), tokens.end());
+  return tokens;
+}
+
+int candidateNameMatchScore(std::string const& lhs, std::string const& rhs) {
+  auto lhsTokens = normalizeCandidateNameTokens(lhs);
+  auto rhsTokens = normalizeCandidateNameTokens(rhs);
+  if (lhsTokens.empty() || rhsTokens.empty()) return 0;
+  if (lhsTokens == rhsTokens) return 1000 + int(lhsTokens.size());
+
+  std::set<std::string> lhsSet(lhsTokens.begin(), lhsTokens.end());
+  std::set<std::string> rhsSet(rhsTokens.begin(), rhsTokens.end());
+  int overlap = 0;
+  for (auto const& token : lhsSet) {
+    if (rhsSet.contains(token)) {
+      ++overlap;
+    }
+  }
+  if (overlap == 0) return 0;
+
+  int unionSize = int(lhsSet.size() + rhsSet.size() - overlap);
+  return overlap * 100 - unionSize;
+}
+
+}
 
 const float obsWeight(float confidence, float strength = VoteObsWeightStrength) {
   return std::min(1.0f, 1.01f - 1.01f / (1.0f + std::pow(confidence, 1.6f) * strength));
@@ -38,12 +89,15 @@ enum class VariabilityTag : std::uint32_t {
   TcpSwingDifferentCandidate = 6,
   NonOrdinaryTpp = 7,
   BoothProjectionTpp = 8,
-  GenerateBoothTypeVariability = 9,
-  GenerateVoteTypeVariability = 10,
+  GenerateBoothTypeTppVariability = 9,
+  GenerateVoteTypeTppVariability = 10,
   GenerateFpVariability = 11,
   GenerateTppVariability = 12,
   GenerateTcpVariability = 13,
   DeclarationVoteSizeVariability = 14,
+  GenerateNonClassicTppVariability = 15,
+  GenerateBoothTypeFpVariability = 16,
+  GenerateVoteTypeFpVariability = 17,
 };
 
 void Node::log() const
@@ -83,6 +137,7 @@ void Node::log() const
   PA_LOG_VAR(fpVotesProjected);
   PA_LOG_VAR(tppVotesProjected);
   PA_LOG_VAR(tcpVotesProjected);
+  PA_LOG_VAR(tppVotesProjectedFinal);
 }
 
 int Node::totalFpVotesCurrent() const {
@@ -476,7 +531,8 @@ LiveV2::Election::Election(Results2::Election const& previousElection, Results2:
   calculateDeviationsFromBaseline();
   aggregate();
   determineSpecificDeviations();
-  measureBoothTypeBiases();
+  measureFpBoothTypeBiases();
+  measureTppBoothTypeBiases();
   calculateNationalsProportions();
   calculateTcpPreferenceFlows();
   recomposeVoteCounts();
@@ -677,18 +733,19 @@ void Election::calculateTppEstimates(bool withTpp) {
     auto calculatePreferenceRateOffset = [this, &booth](bool current) -> std::optional<float> {
       std::optional<float> preferenceRateOffset = std::nullopt;
       auto const& tcpVotes = current ? booth.node.tcpVotesCurrent : booth.node.tcpVotesPrevious;
-      if (booth.node.totalTcpVotesCurrent() > 0 && isTppSet(tcpVotes, natPartyIndex)) {
+      auto const totalTcpVotes = current ? booth.node.totalTcpVotesCurrent() : booth.node.totalVotesPrevious();
+      if (totalTcpVotes > 0 && isTppSet(tcpVotes, natPartyIndex)) {
         float partyOnePreferenceEstimatePercent = 0.0f;
         int preferredCoalitionParty = tcpVotes.contains(natPartyIndex) ? natPartyIndex : 1;
-        float totalVotes = float(current ? booth.node.totalFpVotesCurrent() : booth.node.totalVotesPrevious());
-        if (current && totalVotes != booth.node.totalTcpVotesCurrent()) {
-          logger << "Warning: Total votes in current election (" << totalVotes << ") does not match total TCP votes (" << booth.node.totalTcpVotesCurrent() << ") for booth " << booth.name << "\n";
+        float totalFpVotes = current ? booth.node.totalFpVotesCurrent() : booth.node.totalVotesPrevious();
+        if (current && totalFpVotes != totalTcpVotes) {
+          logger << "Warning: Total votes in current election (" << totalFpVotes << ") does not match total TCP votes (" << booth.node.totalTcpVotesCurrent() << ") for booth " << booth.name << "\n";
           logger << "Not calculating preference rate offset for booth " << booth.name << "\n";
           return std::nullopt;
         }
         auto const& fpVotes = current ? booth.node.fpVotesCurrent : booth.node.fpVotesPrevious;
         for (auto const& [partyId, votes] : fpVotes) {
-          float partyPercent = float(votes) / totalVotes * 100.0f;
+          float partyPercent = float(votes) / totalFpVotes * 100.0f;
           if (partyId == preferredCoalitionParty || partyId == 0) {
             continue;
           }
@@ -707,8 +764,8 @@ void Election::calculateTppEstimates(bool withTpp) {
             partyOnePreferenceEstimatePercent += partyPercent * preferenceFlowMap.at(-1) * 0.01f;
           }
         }
-        float nonMajorVotes = totalVotes - fpVotes.at(0) - fpVotes.at(preferredCoalitionParty);
-        float nonMajorVotesPercent = nonMajorVotes / totalVotes * 100.0f;
+        float nonMajorVotes = totalFpVotes - fpVotes.at(0) - fpVotes.at(preferredCoalitionParty);
+        float nonMajorVotesPercent = nonMajorVotes / totalFpVotes * 100.0f;
         float partyOnePreferenceRateEstimate = partyOnePreferenceEstimatePercent / nonMajorVotesPercent * 100.0f;
         float partyOnePreferenceRateActual = (tcpVotes.at(0) - fpVotes.at(0)) / nonMajorVotes * 100.0f;
         preferenceRateOffset = transformVoteShare(partyOnePreferenceRateActual) - transformVoteShare(partyOnePreferenceRateEstimate);
@@ -927,17 +984,37 @@ void Election::includeSeatBaselineResults() {
       seat.node.fpSharesBaseline.erase(EmergingIndIndex);
     }
 
-    // Independents can't be matched by party ID, so we need to find the best-performing independent
-    // to match to the independent party index
-    float bestIndependentShare = 0.0f;
+    // Independents can't be matched by party ID, so match the baseline independent
+    // candidate name against the current seat's independent candidates.
+    std::string baselineIndependentName;
+    if (baseline.seatCandidateNames.size() > size_t(i) && baseline.seatCandidateNames.at(i).contains(run.indPartyIndex)) {
+      baselineIndependentName = baseline.seatCandidateNames.at(i).at(run.indPartyIndex);
+    }
+
+    int bestIndependentScore = 0;
     int bestIndependentId = InvalidPartyIndex;
-    for (auto const& [prevPartyId, share] : seat.node.fpVotesCurrent) {
-      if (prevPartyId < IndependentPartyIdOffset) continue;
-      if (share > bestIndependentShare) {
-        bestIndependentShare = share;
-        bestIndependentId = prevPartyId;
+    auto currentSeatIt = std::find_if(currentElection.seats.begin(), currentElection.seats.end(),
+      [&seat](auto const& seatPair) { return seatPair.second.name == seat.name; });
+    if (currentSeatIt != currentElection.seats.end()) {
+      for (auto const& [candidateId, voteTypes] : currentSeatIt->second.fpVotes) {
+        auto candidateIt = currentElection.candidates.find(candidateId);
+        if (candidateIt == currentElection.candidates.end()) continue;
+        if (candidateIt->second.party != Results2::Candidate::Independent) continue;
+        int candidateInternalId = candidateId + IndependentPartyIdOffset;
+        if (bestIndependentId == InvalidPartyIndex) {
+          bestIndependentId = candidateInternalId;
+        }
+        if (baselineIndependentName.empty()) {
+          continue;
+        }
+        int score = candidateNameMatchScore(candidateIt->second.name, baselineIndependentName);
+        if (score > bestIndependentScore) {
+          bestIndependentScore = score;
+          bestIndependentId = candidateInternalId;
+        }
       }
     }
+
     seat.independentPartyIndex = bestIndependentId;
 
     for (auto const& [partyId, swing] : seat.node.fpSharesBaseline) {
@@ -1065,7 +1142,153 @@ void Election::calculateDeviationsFromBaseline() {
   }
 }
 
-void Election::measureBoothTypeBiases() {
+void Election::measureFpBoothTypeBiases() {
+  { // biases for polling places (including PPVC)
+    // map is party, then booth type
+    std::map<int, std::map<Results2::Booth::Type, float>> fpBiasWeightedSums;
+    std::map<int, std::map<Results2::Booth::Type, float>> fpWeightSums;
+    std::map<int, std::map<Results2::Booth::Type, float>> fpSourceCount;
+    for (auto& seat : seats) {
+      std::map<int, std::map<Results2::Booth::Type, float>> seatFpDeviationWeightedSums;
+      std::map<int, std::map<Results2::Booth::Type, float>> seatFpWeightSums;
+      for (auto const& [partyId, _] : seat.node.fpVotesCurrent) {
+        for (int boothIndex : seat.booths) {
+          auto& booth = booths.at(boothIndex);
+          // Handle "other" booths (postals/absent/etc.) separately and ignore "invalid" booths (we don't know what they are)
+          if (booth.boothType == Results2::Booth::Type::Other || booth.boothType == Results2::Booth::Type::Invalid) {
+            continue;
+          }
+          if (!booth.node.totalFpVotesCurrent() || !booth.node.fpDeviations.contains(partyId)) {
+            // This makes these vote types exist in the sums
+            // so that the baseline bias is still included
+            // If we don't, there's a sudden snap back when the first booth of that type reports
+            // because even though the booth itself has a tiny influence, the baseline
+            // is significantly non-zero (since it leans away from the observed swing)
+            seatFpDeviationWeightedSums[partyId][booth.boothType] += 0.0f;
+            seatFpWeightSums[partyId][booth.boothType] += 0.0f;
+            continue;
+          }
+
+          seatFpDeviationWeightedSums[partyId][booth.boothType] += booth.node.fpDeviations[partyId] * booth.node.totalFpVotesCurrent();
+          seatFpWeightSums[partyId][booth.boothType] += booth.node.totalFpVotesCurrent();
+        }
+      }
+      for (auto const& [partyId, deviationWeightedSums] : seatFpDeviationWeightedSums) {
+        if (!deviationWeightedSums.contains(Results2::Booth::Type::Normal)) continue;
+        float normalDeviation = seatFpWeightSums[partyId].at(Results2::Booth::Type::Normal) ?
+          deviationWeightedSums.at(Results2::Booth::Type::Normal) / seatFpWeightSums[partyId].at(Results2::Booth::Type::Normal)
+          : 0.0f;
+        for (auto const& [boothType, deviationWeightedSum] : deviationWeightedSums) {
+          if (boothType == Results2::Booth::Type::Normal) continue;
+          if (seatFpWeightSums[partyId].at(boothType) == 0.0f) {
+            // avoid division by zero
+            fpBiasWeightedSums[partyId][boothType] += 0.0f;
+            fpWeightSums[partyId][boothType] += 0.0f;
+            continue;
+          }
+          float deviation = deviationWeightedSum / seatFpWeightSums[partyId].at(boothType);
+          float boothTypeBias = deviation - normalDeviation;
+          float weight = seatFpWeightSums[partyId].at(boothType);
+          fpBiasWeightedSums[partyId][boothType] += boothTypeBias * weight;
+          fpWeightSums[partyId][boothType] += weight;
+          ++fpSourceCount[partyId][boothType];
+        }
+      }
+    }
+
+    for (auto const& [partyId, biasWeightedSums] : fpBiasWeightedSums) {
+      for (auto const& [boothType, bias] : biasWeightedSums) {
+        float votes = fpWeightSums[partyId].at(boothType);
+        float overallFpBias = votes ? bias / votes : 0.0f;
+        // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they don't usually have a significant impact)
+        float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(votes, 0.9f));
+        float baseline = 0.0f;
+        boothTypeFpBiases[partyId][boothType] = overallFpBias * obsProportion + baseline * (1.0f - obsProportion);
+        float stdDev = 7.0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
+        boothTypeFpBiasStdDev[partyId][boothType] = stdDev;
+        boothTypeFpBiasesRaw[partyId][boothType] = overallFpBias;
+        boothTypeFpSourceCount[partyId][boothType] = fpSourceCount[partyId][boothType];
+        boothTypeFpVoteCount[partyId][boothType] = fpWeightSums[partyId][boothType];
+      }
+    }
+  }
+
+  { // biases for declaration votes
+    std::map<int, std::map<Results2::VoteType, float>> fpBiasWeightedSums;
+    std::map<int, std::map<Results2::VoteType, float>> fpWeightSums;
+    std::map<int, std::map<Results2::VoteType, float>> fpSourceCount;
+    for (auto& seat : seats) {
+      std::map<int, std::map<Results2::VoteType, float>> seatFpDeviationWeightedSums;
+      std::map<int, std::map<Results2::VoteType, float>> seatFpWeightSums;
+      for (auto const& [partyId, _] : seat.node.fpVotesCurrent) {
+        for (int boothIndex : seat.booths) {
+          auto& booth = booths.at(boothIndex);
+          // make sure that this booth type "exists" (for output/consistency purposes)
+          if (booth.voteType != Results2::VoteType::Ordinary) {
+            fpBiasWeightedSums[partyId][booth.voteType] += 0.0f;
+            fpWeightSums[partyId][booth.voteType] += 0.0f;
+          }
+          // ignore "invalid" booths (we don't know what they are)
+          if (booth.voteType == Results2::VoteType::Invalid) {
+            continue;
+          }
+          if (booth.node.totalFpVotesCurrent() == 0 || !booth.node.fpDeviations.contains(partyId)) {
+            // As with booth types, make sure that these vote types exist in the sums, even if just zero
+            seatFpDeviationWeightedSums[partyId][booth.voteType] += 0.0f;
+            seatFpWeightSums[partyId][booth.voteType] += 0.0f;
+            continue;
+          }
+
+          seatFpDeviationWeightedSums[partyId][booth.voteType] += booth.node.fpDeviations[partyId] * booth.node.totalFpVotesCurrent();
+          seatFpWeightSums[partyId][booth.voteType] += booth.node.totalFpVotesCurrent();
+        }
+      }
+
+      for (auto const& [partyId, deviationWeightedSums] : seatFpDeviationWeightedSums) {
+        if (!seatFpDeviationWeightedSums[partyId].contains(Results2::VoteType::Ordinary)) continue;
+        // zero weight sum can occur if a seat's count is being realigned and therefore no TCP results
+        if (!seatFpWeightSums[partyId].contains(Results2::VoteType::Ordinary) || seatFpWeightSums[partyId].at(Results2::VoteType::Ordinary) == 0) continue;
+        float normalDeviation = seatFpDeviationWeightedSums[partyId].at(Results2::VoteType::Ordinary) / seatFpWeightSums[partyId].at(Results2::VoteType::Ordinary);
+        for (auto const& [voteType, deviationWeightedSum] : deviationWeightedSums) {
+          if (voteType == Results2::VoteType::Ordinary) continue;
+          if (seatFpWeightSums[partyId].at(voteType) == 0.0f) {
+            // avoid division by zero
+            fpBiasWeightedSums[partyId][voteType] += 0.0f;
+            fpWeightSums[partyId][voteType] += 0.0f;
+            continue;
+          }
+          float deviation = deviationWeightedSum / seatFpWeightSums[partyId].at(voteType);
+          float voteTypeBias = deviation - normalDeviation;
+          float weight = seatFpWeightSums[partyId].at(voteType);
+          fpBiasWeightedSums[partyId][voteType] += voteTypeBias * weight;
+          fpWeightSums[partyId][voteType] += weight;
+          ++fpSourceCount[partyId][voteType];
+        }
+      }
+    }
+    for (auto const& [partyId, biasWeightedSums] : fpBiasWeightedSums) {
+      for (auto const& [voteType, bias] : biasWeightedSums) {
+        float votes = fpWeightSums[partyId].at(voteType);
+        float overallFpBias = votes ? bias / votes : 0.0f;
+        // placeholder formula, works for PPVCs/postals/absents but not smaller categories (but they don't usually have a significant impact)
+        float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(votes, 0.9f));
+        float baseline = 0.0f;
+        voteTypeFpBiases[partyId][voteType] = overallFpBias * obsProportion + baseline * (1.0f - obsProportion);
+        float stdDev = .0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
+        voteTypeFpBiasStdDev[partyId][voteType] = stdDev;
+        voteTypeFpBiasesRaw[partyId][voteType] = overallFpBias;
+        voteTypeFpSourceCount[partyId][voteType] = fpSourceCount[partyId][voteType];
+        voteTypeFpVoteCount[partyId][voteType] = fpWeightSums[partyId][voteType];
+      }
+    }
+  }
+  PA_LOG_VAR(boothTypeFpBiases);
+  PA_LOG_VAR(boothTypeFpBiasStdDev);
+  PA_LOG_VAR(voteTypeFpBiases);
+  PA_LOG_VAR(voteTypeFpBiasStdDev);
+}
+
+void Election::measureTppBoothTypeBiases() {
   { // biases for polling places (including PPVC)
     std::map<Results2::Booth::Type, float> tppBiasWeightedSums;
     std::map<Results2::Booth::Type, float> tppWeightSums;
@@ -1125,12 +1348,12 @@ void Election::measureBoothTypeBiases() {
       if (boothType == Results2::Booth::Type::Ppvc) {
         baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
       }
-      boothTypeBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
+      boothTypeTppBiases[boothType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = 7.0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
-      boothTypeBiasStdDev[boothType] = stdDev;
-      boothTypeBiasesRaw[boothType] = overallTppBias;
-      boothTypeSourceCount[boothType] = tppSourceCount[boothType];
-      boothTypeVoteCount[boothType] = tppWeightSums[boothType];
+      boothTypeTppBiasStdDev[boothType] = stdDev;
+      boothTypeTppBiasesRaw[boothType] = overallTppBias;
+      boothTypeTppSourceCount[boothType] = tppSourceCount[boothType];
+      boothTypeTppVoteCount[boothType] = tppWeightSums[boothType];
     }
   }
 
@@ -1190,18 +1413,18 @@ void Election::measureBoothTypeBiases() {
       float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(votes, 0.9f));
       // Declaration votes tend to move the tpp back toward the baseline
       float baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
-      voteTypeBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
+      voteTypeTppBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
       float stdDev = .0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
-      voteTypeBiasStdDev[voteType] = stdDev;
-      voteTypeBiasesRaw[voteType] = overallTppBias;
-      voteTypeSourceCount[voteType] = tppSourceCount[voteType];
-      voteTypeVoteCount[voteType] = tppWeightSums[voteType];
+      voteTypeTppBiasStdDev[voteType] = stdDev;
+      voteTypeTppBiasesRaw[voteType] = overallTppBias;
+      voteTypeTppSourceCount[voteType] = tppSourceCount[voteType];
+      voteTypeTppVoteCount[voteType] = tppWeightSums[voteType];
     }
   }
-  PA_LOG_VAR(boothTypeBiases);
-  PA_LOG_VAR(boothTypeBiasStdDev);
-  PA_LOG_VAR(voteTypeBiases);
-  PA_LOG_VAR(voteTypeBiasStdDev);
+  PA_LOG_VAR(boothTypeTppBiases);
+  PA_LOG_VAR(boothTypeTppBiasStdDev);
+  PA_LOG_VAR(voteTypeTppBiases);
+  PA_LOG_VAR(voteTypeTppBiasStdDev);
 }
 
 void Election::aggregate() {
@@ -1514,6 +1737,11 @@ void Election::recomposeVoteCounts() {
       recomposeBoothFpVotes(false, boothIndex);
       recomposeBoothTppVotes(false, boothIndex);
     }
+
+    for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
+      recomposeSeatFpVotes(seatIndex);
+      recomposeSeatTppVotes(seatIndex);
+    }
     for (int seatIndex : std::ranges::views::iota(0, int(seats.size()))) {
       recomposeSeatFpVotes(seatIndex);
       recomposeSeatTppVotes(seatIndex);
@@ -1546,6 +1774,7 @@ void Election::recomposeVoteCounts() {
     recomposeSeatFpVotes(seatIndex);
     recomposeSeatTppVotes(seatIndex);
     recomposeSeatTcpVotes(seatIndex);
+    adjustSeatTppProjectionForOffset(seatIndex);
   }
   for (int largeRegionIndex : std::ranges::views::iota(0, int(largeRegions.size()))) {
     recomposeLargeRegionFpVotes(largeRegionIndex);
@@ -1679,6 +1908,14 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float stdDev = 6.0f + 10.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
         randomFactor = variabilityNormal(0.0f, stdDev, boothIndex, effectivePartyId, uint32_t(VariabilityTag::BoothProjectionFp));
       }
+      // Apply biases for this booth type and vote type
+      if (allowCurrentData && boothTypeFpBiases.contains(effectivePartyId) && boothTypeFpBiases.at(effectivePartyId).contains(booth.boothType)) {
+        deviation += boothTypeFpBiases.at(effectivePartyId).at(booth.boothType);
+      }
+      // Apply biases for this booth type and vote type
+      if (allowCurrentData && voteTypeFpBiases.contains(effectivePartyId) && voteTypeFpBiases.at(effectivePartyId).contains(booth.voteType)) {
+        deviation += voteTypeFpBiases.at(effectivePartyId).at(booth.voteType);
+      }
       std::optional<float> baselineShareUntransformed;
       if (sim.getLiveBaselineReport().has_value()) {
         if (sim.getLiveBaselineReport().value().seatFpProbabilityBand[projectSeatIndex].contains(effectivePartyId)) {  
@@ -1757,6 +1994,14 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     }
     else {
       booth.node.fpVotesProjected = tempFpVotesProjected;
+      for (auto const& [partyId, _] : booth.node.fpVotesProjected) {
+        if (allowCurrentData && booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Invalid && booth.boothType != Results2::Booth::Type::Other) {
+          seats[booth.parentSeatId].fpBoothTypeSensitivity[partyId][booth.boothType] += previousTotalVotes;
+        }
+        else if (allowCurrentData && booth.voteType != Results2::VoteType::Ordinary && booth.voteType != Results2::VoteType::Invalid) {
+          seats[booth.parentSeatId].fpVoteTypeSensitivity[partyId][booth.voteType] += previousTotalVotes;
+        }
+      }
     }
   }
 }
@@ -2140,16 +2385,16 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
       deviation += random;
     }
     // Apply biases for this booth type and vote type
-    if (boothTypeBiases.contains(booth.boothType)) {
-      deviation += boothTypeBiases.at(booth.boothType);
+    if (allowCurrentData && boothTypeTppBiases.contains(booth.boothType)) {
+      deviation += boothTypeTppBiases.at(booth.boothType);
     }
-    if (voteTypeBiases.contains(booth.voteType)) {
-      deviation += voteTypeBiases.at(booth.voteType);
+    if (allowCurrentData && voteTypeTppBiases.contains(booth.voteType)) {
+      deviation += voteTypeTppBiases.at(booth.voteType);
     }
     float newAlpShare = existingAlpShare + deviation;
     // If we know how many FP votes there are, and we know that the booth is ~complete, then that's a better estimate
     // of eventual TPP votes than the previous election, so use that instead
-    float totalEstimate = booth.node.totalFpVotesCurrent() > 0 && booth.node.fpCompletion > 0.99f ?
+    float totalEstimate = allowCurrentData && booth.node.totalFpVotesCurrent() > 0 && booth.node.fpCompletion > 0.99f ?
       booth.node.totalFpVotesCurrent() : previousTotalVotes;
     float newAlpVotes = detransformVoteShare(newAlpShare) * totalEstimate * 0.01f;
     tempTppVotesProjected[0] = newAlpVotes;
@@ -2266,9 +2511,13 @@ void Election::recomposeLargeRegionFpVotes(int largeRegionIndex) {
 
 void Election::recomposeLargeRegionTppVotes(int largeRegionIndex) {
   largeRegions[largeRegionIndex].node.tppVotesProjected = std::map<int, float>();
+  largeRegions[largeRegionIndex].node.tppVotesProjectedFinal = std::map<int, float>();
   for (auto const& seatIndex : largeRegions[largeRegionIndex].seats) {
     for (auto const& [partyId, votes] : seats[seatIndex].node.tppVotesProjected) {
       largeRegions[largeRegionIndex].node.tppVotesProjected[partyId] += votes;
+    }
+    for (auto const& [partyId, votes] : seats[seatIndex].node.tppVotesProjectedFinal) {
+      largeRegions[largeRegionIndex].node.tppVotesProjectedFinal[partyId] += votes;
     }
   }
 }
@@ -2284,11 +2533,28 @@ void Election::recomposeElectionFpVotes() {
 
 void Election::recomposeElectionTppVotes() {
   node.tppVotesProjected = std::map<int, float>();
+  node.tppVotesProjectedFinal = std::map<int, float>();
   for (auto const& largeRegion : largeRegions) {
     for (auto const& [partyId, votes] : largeRegion.node.tppVotesProjected) {
       node.tppVotesProjected[partyId] += votes;
     }
+    for (auto const& [partyId, votes] : largeRegion.node.tppVotesProjectedFinal) {
+      node.tppVotesProjectedFinal[partyId] += votes;
+    }
   }
+}
+
+static float offsetWeight(float completion, float confidence) {
+  return std::pow((1.0f - std::max(completion, confidence)), 3.0f);
+}
+
+static float offsetWeightFp(LiveV2::Node const& node) {
+
+  return offsetWeight(node.fpCompletion, node.fpConfidence);
+}
+
+static float offsetWeightTpp(LiveV2::Node const& node) {
+  return offsetWeight(node.tppCompletion, node.tppConfidence);
 }
 
 void Election::determineElectionFinalFpDeviations(bool allowCurrentData) {
@@ -2310,7 +2576,7 @@ void Election::determineElectionFinalFpDeviations(bool allowCurrentData) {
 
     if (allowCurrentData) {
       float offset = offsetSpecificFpDeviations.contains(partyId)
-        ? offsetSpecificFpDeviations.at(partyId) * (1.0f - node.fpConfidence)
+        ? offsetSpecificFpDeviations.at(partyId) * offsetWeightFp(node)
         : 0.0f;
       finalSpecificFpDeviations[partyId] = finalDeviation - offset;
     } else {
@@ -2341,11 +2607,11 @@ void Election::determineElectionFinalTppDeviation(bool allowCurrentData) {
   if (allowCurrentData) {
     // This will eventually be replaced with something a lot more sophisticated,
     // but for now this is a simple way to account for factors that may bias
-    // the seat's TPP share away from the baseline, such as redistributions, new
+    // the area's TPP share away from the baseline, such as redistributions, new
     // booths, or expected shifts between vote types.
     // use completion rather than confidence to make sure that complete TPP results
     // in no offset, even if confidence is low due to inability to measure swings
-    float offset = offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - node.tppCompletion);
+    float offset = offsetSpecificTppDeviation.value_or(0.0f) * offsetWeightTpp(node);
     finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     offsetSpecificTppDeviation = finalDeviation;
@@ -2375,7 +2641,7 @@ void Election::determineLargeRegionFinalFpDeviations(bool allowCurrentData, int 
       : 0.0f;
     if (allowCurrentData) {
       float offset = largeRegions[largeRegionIndex].offsetSpecificFpDeviations.contains(partyId)
-        ? largeRegions[largeRegionIndex].offsetSpecificFpDeviations.at(partyId) * (1.0f - largeRegions[largeRegionIndex].node.fpConfidence)
+        ? largeRegions[largeRegionIndex].offsetSpecificFpDeviations.at(partyId) * offsetWeightFp(largeRegions[largeRegionIndex].node)
         : 0.0f;
       largeRegions[largeRegionIndex].finalSpecificFpDeviations[partyId] = finalDeviation - offset;
     } else {
@@ -2414,7 +2680,7 @@ void Election::determineLargeRegionFinalTppDeviation(bool allowCurrentData, int 
     // booths, or expected shifts between vote types.
     // use completion rather than confidence to make sure that complete TPP results
     // in no offset, even if confidence is low due to inability to measure swings
-    float offset = largeRegions[largeRegionIndex].offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - largeRegions[largeRegionIndex].node.tppCompletion);
+    float offset = largeRegions[largeRegionIndex].offsetSpecificTppDeviation.value_or(0.0f) * offsetWeightTpp(largeRegions[largeRegionIndex].node);
     largeRegions[largeRegionIndex].finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     largeRegions[largeRegionIndex].offsetSpecificTppDeviation = finalDeviation;
@@ -2448,7 +2714,7 @@ void Election::determineSeatFinalFpDeviations(bool allowCurrentData, int seatInd
       : 0.0f;
     if (allowCurrentData) {
       float offset = seats[seatIndex].offsetSpecificFpDeviations.contains(partyId)
-        ? seats[seatIndex].offsetSpecificFpDeviations.at(partyId) * (1.0f - seats[seatIndex].node.fpConfidence)
+        ? seats[seatIndex].offsetSpecificFpDeviations.at(partyId) * offsetWeightFp(seats[seatIndex].node)
         : 0.0f;
       seats[seatIndex].finalSpecificFpDeviations[partyId] = finalDeviation - offset;
     } else {
@@ -2489,11 +2755,28 @@ void Election::determineSeatFinalTppDeviation(bool allowCurrentData, int seatInd
     // booths, or expected shifts between vote types.
     // use completion rather than confidence to make sure that complete TPP results
     // in no offset, even if confidence is low due to inability to measure swings
-    float offset = seats[seatIndex].offsetSpecificTppDeviation.value_or(0.0f) * (1.0f - seats[seatIndex].node.tppCompletion);
+    float offset = seats[seatIndex].offsetSpecificTppDeviation.value_or(0.0f) * offsetWeightTpp(seats[seatIndex].node);
     seats[seatIndex].finalSpecificTppDeviation = finalDeviation - offset;
   } else {
     seats[seatIndex].offsetSpecificTppDeviation = finalDeviation;
   }
+}
+
+void LiveV2::Election::adjustSeatTppProjectionForOffset(int seatIndex)
+{
+  float totalVotes = 0.0f;
+  std::map<int, float> shares;
+  for (auto const& [partyId, votes] : seats[seatIndex].node.tppVotesProjected) {
+    totalVotes += votes;
+  }
+
+  float alpShare = seats[seatIndex].node.tppVotesProjected.at(0) / totalVotes;
+  float offset = seats[seatIndex].offsetSpecificTppDeviation.value_or(0.0f) * offsetWeightTpp(seats[seatIndex].node);
+  float transformedAlp = transformVoteShare(alpShare * 100.0f);
+  float adjustedAlpShare = detransformVoteShare(transformedAlp - offset) * 0.01f;
+  seats[seatIndex].node.tppVotesProjectedFinal = std::map<int, float>();
+  seats[seatIndex].node.tppVotesProjectedFinal[0] = adjustedAlpShare * totalVotes;
+  seats[seatIndex].node.tppVotesProjectedFinal[1] = (1.0f - adjustedAlpShare) * totalVotes;
 }
 
 void Election::calculateLivePreferenceFlowDeviations() {
@@ -2551,7 +2834,6 @@ void Election::calculateLivePreferenceFlowDeviations() {
 
     float deviation = actualPreferenceFlow - expectedPreferenceFlow;
     seat.livePreferenceFlowDeviation = deviation;
-
   }
 }
 
@@ -2700,18 +2982,37 @@ void Election::generateVariability(int iterationIndex) {
 
   variabilitySampleIndex = iterationIndex;
 
-  for (auto [boothType, variation] : boothTypeBiasStdDev) {
-    boothTypeIterationVariation[boothType] = variabilityNormal(
-      0.0f, variation, int(boothType), 0, uint32_t(VariabilityTag::GenerateBoothTypeVariability)
+  for (auto [boothType, variation] : boothTypeTppBiasStdDev) {
+    boothTypeTppIterationVariation[boothType] = variabilityNormal(
+      0.0f, variation, int(boothType), 0, uint32_t(VariabilityTag::GenerateBoothTypeTppVariability)
     );
-    boothTypeIterationVariation[boothType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+    boothTypeTppIterationVariation[boothType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
   }
-  for (auto [voteType, variation] : voteTypeBiasStdDev) {
-    voteTypeIterationVariation[voteType] = variabilityNormal(
-      0.0f, variation, int(voteType), 0, uint32_t(VariabilityTag::GenerateVoteTypeVariability)
+  for (auto [voteType, variation] : voteTypeTppBiasStdDev) {
+    voteTypeTppIterationVariation[voteType] = variabilityNormal(
+      0.0f, variation, int(voteType), 0, uint32_t(VariabilityTag::GenerateVoteTypeTppVariability)
     );
-    voteTypeIterationVariation[voteType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+    voteTypeTppIterationVariation[voteType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
   }
+  for (auto [partyId, variations] : boothTypeFpBiasStdDev) {
+    for (auto [boothType, variation] : variations) {
+      boothTypeFpIterationVariation[partyId][boothType] = variabilityNormal(
+        0.0f, variation, int(boothType), partyId, uint32_t(VariabilityTag::GenerateBoothTypeFpVariability)
+      );
+      boothTypeFpIterationVariation[partyId][boothType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+    }
+  }
+  for (auto [partyId, variations] : voteTypeFpBiasStdDev) {
+    for (auto [voteType, variation] : variations) {
+      voteTypeFpIterationVariation[partyId][voteType] = variabilityNormal(
+        0.0f, variation, int(voteType), partyId, uint32_t(VariabilityTag::GenerateVoteTypeFpVariability)
+      );
+      voteTypeFpIterationVariation[partyId][voteType] *= 1 - std::exp(-node.fpCompletion * 50.0f);
+    }
+  }
+  nonClassicTppIterationVariation = variabilityNormal(
+    0.0f, NonClassicTppVariabilityStdDev, 0, 0, uint32_t(VariabilityTag::GenerateNonClassicTppVariability)
+  );
 
   for (int seatIndex = 0; seatIndex < int(seats.size()); ++seatIndex) {
     auto& seat = seats[seatIndex];
@@ -2732,7 +3033,27 @@ void Election::generateVariability(int iterationIndex) {
       float currentFpProjection = seat.node.fpVotesProjected.at(usePartyId);
       float transformedCurrentFpProjection = transformVoteShare(currentFpProjection / totalFpProjectedVotes * 100.0f);
       float transformedNewFpProjection = transformedCurrentFpProjection + randomVariation;
-      float newFpProjection = detransformVoteShare(transformedNewFpProjection) * 0.01f * totalFpProjectedVotes;
+      float withBoothTypeBias = transformedNewFpProjection;
+      if (boothTypeFpIterationVariation.contains(partyId)) {
+        for (auto [boothType, variation] : boothTypeFpIterationVariation.at(partyId)) {
+          if (!seat.fpBoothTypeSensitivity.contains(partyId) || !seat.fpBoothTypeSensitivity[partyId].contains(boothType)) continue;
+          float sensitivity = seat.fpBoothTypeSensitivity[partyId][boothType] / seat.node.totalVotesPrevious();
+          // See comments in the TPP section for explanation of the sensitivity scaling
+          sensitivity *= obsWeight(node.fpConfidence);
+          withBoothTypeBias += variation * sensitivity;
+        }
+      }
+      float withVoteTypeBias = withBoothTypeBias;
+      if (voteTypeFpIterationVariation.contains(partyId)) {
+        for (auto [voteType, variation] : voteTypeFpIterationVariation.at(partyId)) {
+          if (!seat.fpVoteTypeSensitivity.contains(partyId) || !seat.fpVoteTypeSensitivity[partyId].contains(voteType)) continue;
+          float sensitivity = seat.fpVoteTypeSensitivity[partyId][voteType] / seat.node.totalVotesPrevious();
+          // See comments in the TPP section for explanation of the sensitivity scaling
+          sensitivity *= obsWeight(node.fpConfidence);
+          withVoteTypeBias += variation * sensitivity;
+        }
+      }
+      float newFpProjection = detransformVoteShare(withVoteTypeBias) * 0.01f * totalFpProjectedVotes;
       newFpVotesProjected[usePartyId] = newFpProjection;
     }
     float totalNewFpProjectedVotes = std::accumulate(newFpVotesProjected.begin(), newFpVotesProjected.end(), 0.0f, [](float sum, const auto& pair) { return sum + pair.second; });
@@ -2750,7 +3071,7 @@ void Election::generateVariability(int iterationIndex) {
     float transformedCurrentTppProjection = transformVoteShare(currentTppProjection / totalTppProjectedVotes * 100.0f);
     float transformedNewTppProjection = transformedCurrentTppProjection + randomTppVariation;
     float withBoothTypeBias = transformedNewTppProjection;
-    for (auto [boothType, variation] : boothTypeIterationVariation) {
+    for (auto [boothType, variation] : boothTypeTppIterationVariation) {
       float sensitivity = seat.tppBoothTypeSensitivity[boothType] / seat.node.totalVotesPrevious();
       // Sensitivity is scaled by the election's confidence. We need scaling because the
       // variation is applied on top of the existing projection, so if confidence is zero/low
@@ -2761,12 +3082,17 @@ void Election::generateVariability(int iterationIndex) {
       withBoothTypeBias += variation * sensitivity;
     }
     float withVoteTypeBias = withBoothTypeBias;
-    for (auto [voteType, variation] : voteTypeIterationVariation) {
+    for (auto [voteType, variation] : voteTypeTppIterationVariation) {
       float sensitivity = seat.tppVoteTypeSensitivity[voteType] / seat.node.totalVotesPrevious();
       sensitivity *= obsWeight(node.tppConfidence);
       withVoteTypeBias += variation * sensitivity;
     }
-    float newTppProjection = detransformVoteShare(withVoteTypeBias) * 0.01f * totalTppProjectedVotes;
+    bool const usesEstimatedClassicTpp = !isTppSet(seat.node.tcpVotesCurrent, natPartyIndex);
+    float withNonClassicVariability = withVoteTypeBias;
+    if (usesEstimatedClassicTpp) {
+      withNonClassicVariability += nonClassicTppIterationVariation;
+    }
+    float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
     seat.node.tppVotesProjected[0] = newTppProjection;
     for (auto const& [partyId, votes] : seat.node.tppVotesProjected) {
       if (partyId != 0)  seat.node.tppVotesProjected[partyId] = totalTppProjectedVotes - newTppProjection;
