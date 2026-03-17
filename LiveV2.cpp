@@ -1274,7 +1274,7 @@ void Election::measureFpBoothTypeBiases() {
         float obsProportion = std::pow(votes, 0.9f) / (20000.0f + std::pow(votes, 0.9f));
         float baseline = 0.0f;
         voteTypeFpBiases[partyId][voteType] = overallFpBias * obsProportion + baseline * (1.0f - obsProportion);
-        float stdDev = .0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
+        float stdDev = 7.0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
         voteTypeFpBiasStdDev[partyId][voteType] = stdDev;
         voteTypeFpBiasesRaw[partyId][voteType] = overallFpBias;
         voteTypeFpSourceCount[partyId][voteType] = fpSourceCount[partyId][voteType];
@@ -1414,7 +1414,7 @@ void Election::measureTppBoothTypeBiases() {
       // Declaration votes tend to move the tpp back toward the baseline
       float baseline = -0.7f * node.specificTppDeviation.value_or(0.0f);
       voteTypeTppBiases[voteType] = overallTppBias * obsProportion + baseline * (1.0f - obsProportion);
-      float stdDev = .0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
+      float stdDev = 7.0f * std::exp(-std::pow(votes + 1000.0f, 0.25f) * 0.06f);
       voteTypeTppBiasStdDev[voteType] = stdDev;
       voteTypeTppBiasesRaw[voteType] = overallTppBias;
       voteTypeTppSourceCount[voteType] = tppSourceCount[voteType];
@@ -3090,7 +3090,8 @@ void Election::generateVariability(int iterationIndex) {
     bool const usesEstimatedClassicTpp = !isTppSet(seat.node.tcpVotesCurrent, natPartyIndex);
     float withNonClassicVariability = withVoteTypeBias;
     if (usesEstimatedClassicTpp) {
-      withNonClassicVariability += nonClassicTppIterationVariation;
+      float weight = obsWeight(node.tppConfidence); // ensure this doesn't impact the simulation until there's an appreciable amount of vote in
+      withNonClassicVariability += nonClassicTppIterationVariation * weight;
     }
     float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
     seat.node.tppVotesProjected[0] = newTppProjection;
