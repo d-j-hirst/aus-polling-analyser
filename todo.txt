@@ -12,10 +12,10 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
-  -Wannon 18:38: Check why the win prob goes down so much here despite only slight change in vote numbers
-  -Menzies 19:13: Increase in ALP win% is somewhat at odds with increased LIB fp and decrease GRN fp, investigate
+  -Wannon 18:38: RESOLVED (Two bad TCP booths for independent)
+  -Menzies 19:13: Increase in ALP win% is somewhat at odds with increased LIB fp and decrease GRN fp, investigate (also happens in v2)
   -Model is very pessimistic on Labor in Solomon around 20:37, may be justified but needs a check
-  -Wills 20:49: Greens chance seems overly high here
+  -Wills 20:49: Greens chance seems overly high here (nb first preference are not greatly different vs v2)
   -20:58: High Liberal chance in Longman
   -Wills 22:55: TCP progress falls (but not to zero)
   -Calwell early post-count 99.8% for Labor probably still too high

@@ -1018,6 +1018,19 @@ void Election::includeSeatBaselineResults() {
 
     seat.independentPartyIndex = bestIndependentId;
 
+    // Independents can't be matched by party ID, so we need to find the best-performing independent
+    // to match to the independent party index
+    float bestIndependentShare = 0.0f;
+    bestIndependentId = seat.independentPartyIndex;
+    for (auto const& [prevPartyId, share] : seat.node.fpVotesCurrent) {
+      if (prevPartyId < IndependentPartyIdOffset) continue;
+      if (share > bestIndependentShare) {
+        bestIndependentShare = share;
+        bestIndependentId = prevPartyId;
+      }
+    }
+    seat.liveIndependentPartyIndex = bestIndependentId;
+
     for (auto const& [partyId, swing] : seat.node.fpSharesBaseline) {
       if (seat.node.totalVotesPrevious() > 0) {
         float thisVotesPrevious = 0.0f;
@@ -1115,9 +1128,9 @@ void Election::calculateDeviationsFromBaseline() {
         if (booth.node.fpSwings.contains(partyId)) {
           booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(partyId) - baselineSwing;
         }
-        else if (partyId == run.indPartyIndex && booth.node.fpSwings.contains(seat.independentPartyIndex)) {
-          if (seat.independentPartyIndex != InvalidPartyIndex) {
-            booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(seat.independentPartyIndex) - baselineSwing;
+        else if (partyId == run.indPartyIndex && booth.node.fpSwings.contains(seat.liveIndependentPartyIndex)) {
+          if (seat.liveIndependentPartyIndex != InvalidPartyIndex) {
+            booth.node.fpDeviations[partyId] = booth.node.fpSwings.at(seat.liveIndependentPartyIndex) - baselineSwing;
           }
         }
       }
@@ -1127,9 +1140,9 @@ void Election::calculateDeviationsFromBaseline() {
         if (booth.node.fpShares.contains(partyId)) {
           booth.node.fpDeviations[partyId] = booth.node.fpShares.at(partyId) - baselineShare;
         }
-        else if (partyId == run.indPartyIndex && booth.node.fpShares.contains(seat.independentPartyIndex)) {
-          if (seat.independentPartyIndex != InvalidPartyIndex) {
-            booth.node.fpDeviations[partyId] = booth.node.fpShares.at(seat.independentPartyIndex) - baselineShare;
+        else if (partyId == run.indPartyIndex && booth.node.fpShares.contains(seat.liveIndependentPartyIndex)) {
+          if (seat.liveIndependentPartyIndex != InvalidPartyIndex) {
+            booth.node.fpDeviations[partyId] = booth.node.fpShares.at(seat.liveIndependentPartyIndex) - baselineShare;
           }
         }
       }
@@ -1851,7 +1864,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     // map from party index to vote count (as a float)
     auto fpVotesProjected = std::map<int, float>();
     for (auto const& [partyId, votes] : booth.node.fpVotesCurrent) { 
-      int effectivePartyId = partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
+      int effectivePartyId = partyId == seat.liveIndependentPartyIndex ? run.indPartyIndex : partyId;
       fpVotesProjected[effectivePartyId] = static_cast<float>(votes);
     }
     if (booth.voteType != Results2::VoteType::Ordinary) {
@@ -1885,7 +1898,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     auto& projected = createRandomVariation ? booth.node.tempFpVotesProjected : booth.node.fpVotesProjected;
     projected = std::map<int, float>();
     for (auto const& [partyId, votes] : booth.node.fpVotesCurrent) {
-      int effectivePartyId = partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
+      int effectivePartyId = partyId == seat.liveIndependentPartyIndex ? run.indPartyIndex : partyId;
       projected[effectivePartyId] = static_cast<float>(votes);
     }
     if (booth.voteType != Results2::VoteType::Ordinary) {
@@ -1919,7 +1932,8 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     std::set<int> blindOthers;
     for (auto const& partyId : booth.node.runningParties) {
       float deviation = 0.0f;
-      int effectivePartyId = partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
+      int indIndex = allowCurrentData ? seat.liveIndependentPartyIndex : seat.independentPartyIndex;
+      int effectivePartyId = partyId == indIndex ? run.indPartyIndex : partyId;
       if (allowCurrentData && booth.node.totalVotesPrevious()) {
         auto const& thisAndParents = getThisAndParents(booth);
         for (auto const& parent : thisAndParents) {
@@ -2042,7 +2056,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
   if (isTppSet(booth.node.tcpVotesCurrent, natPartyIndex)) return;
 
   auto convertPartyId = [this, seat](int partyId) {
-    return partyId == seat.independentPartyIndex ? run.indPartyIndex : partyId;
+    return partyId == seat.liveIndependentPartyIndex ? run.indPartyIndex : partyId;
   };
 
   auto it = seat.node.tcpVotesCurrent.begin();
@@ -2073,8 +2087,8 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
 
       float random = variabilityNormal(0.0f, stdDev, boothIndex, 0 /* no party id required */, uint32_t(VariabilityTag::NonOrdinaryTcp));
       float projectionDifference = createRandomVariation ? random : 0.0f;
-      if (firstPartyId == seat.independentPartyIndex) firstPartyId = run.indPartyIndex;
-      if (secondPartyId == seat.independentPartyIndex) secondPartyId = run.indPartyIndex;
+      if (firstPartyId == seat.liveIndependentPartyIndex) firstPartyId = run.indPartyIndex;
+      if (secondPartyId == seat.liveIndependentPartyIndex) secondPartyId = run.indPartyIndex;
       if (booth.voteType == Results2::VoteType::Postal) {
         float adjustment = 2.0f; // late-arriving postals are generally less friendly to Coalition than early postals
         if (firstPartyId == natPartyIndex || firstPartyId == 1) {

@@ -160,6 +160,7 @@ public:
   std::vector<int> booths;
 
   int independentPartyIndex = InvalidPartyIndex;
+  int liveIndependentPartyIndex = InvalidPartyIndex;
 
   std::map<int, float> finalSpecificFpDeviations; // deviations taking into account change in voter categories
   std::optional<float> finalSpecificTppDeviation; // deviations taking into account change in voter categories
