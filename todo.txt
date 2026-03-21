@@ -12,7 +12,18 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
- -Check TPP at end of 2025fed - likely either TPP estimations in non-classic seats are slightly faulty or there is insufficient accounting for correlated bias.
+  -Wannon 18:38: Check why the win prob goes down so much here despite only slight change in vote numbers
+  -Menzies 19:13: Increase in ALP win% is somewhat at odds with increased LIB fp and decrease GRN fp, investigate
+  -Model is very pessimistic on Labor in Solomon around 20:37, may be justified but needs a check
+  -Wills 20:49: Greens chance seems overly high here
+  -20:58: High Liberal chance in Longman
+  -Wills 22:55: TCP progress falls (but not to zero)
+  -Calwell early post-count 99.8% for Labor probably still too high
+  -Menzies Wed 15:33 - significant change in win% despite no new votes
+  -Kooyong Wed 15:33 - TCP count ahead of FP, possible mismatche? and projection changes over next two updates despite counts not increasing
+  
+ The moves in Wannon and Lilley are likely driven by the `TCP progress` and `TPP progress` count advancement, which can move the projection significantly by shifting the expected preference flows for the existing FP votes even though no new FP votes were counted. Keep that in mind for future reports.
+ 
   -Blaxland: 63.7% estimated vs 71.9% actual (no TCP provided in feed; 3CP margin of 22 votes with eventual pair ALP-LIB)
   -Bradfield: 47.5% estimated vs 45.1% actual (**IMPORTANT** this "actual" value is an estimate due to court dispute, IND-LIB TCP)
   -Calare: 40.2% estimated vs 37.7% actual (IND-NAT TCP)

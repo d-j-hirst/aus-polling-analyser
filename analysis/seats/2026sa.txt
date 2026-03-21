@@ -151,6 +151,7 @@ fTransposedFederalSwing=-3.0
 bSophomoreCandidate=1
 bConfirmedProminentIndependent=1
 sMinorViability=IND,1.00
+sBettingOdds=IND,1.61
 sRunningParties=ALP,LNP,GRN,ON,OTH***,IND**
 sCandidateNames=Sam Telfer,LNP;Meghan Petherick,IND;Brenton Hincks,ON;Ben Anchor,ALP;Kathryn Hardwick-Franco,GRN
 #Florey
@@ -181,6 +182,7 @@ sRegion=Outer Rural
 fTppMargin=19.7
 fPreviousTppSwing=6.1
 fTransposedFederalSwing=2.3
+sBettingOdds=ON,8
 sRunningParties=ALP,LNP,GRN,ON,OTH*
 sCandidateNames=Eddie Hughes,ALP;Barry Drage,ON;Sunny Singh,LNP;Alex Taylor,GRN
 #Hammond
@@ -191,7 +193,8 @@ fTppMargin=-5.1
 fPreviousTppSwing=11.7
 fTransposedFederalSwing=-2.1
 bConfirmedProminentIndependent=1
-sMinorViability=IND,3.00
+sMinorViability=IND,5
+sBettingOdds=IND,5.75;ON,3.9
 sRunningParties=ALP,LNP,GRN,ON,OTH*****,IND*
 sCandidateNames=Adrian Pederick,LNP;Robert Roylance,ON;Simone Bailey,ALP;Airlie Keen,IND;Nicole Palachicky,GRN
 #Hartley
@@ -210,6 +213,7 @@ sRegion=Inner Rural
 fTppMargin=-2.6
 fPreviousTppSwing=5.7
 fTransposedFederalSwing=-1.8
+sBettingOdds=GRN,4.25
 sRunningParties=ALP,LNP,GRN,ON,OTH****
 sCandidateNames=Josh Teague,LNP;Marisa Bell,ALP;Tom Kovac,ON;Genevieve Dawson-Scott,GRN
 #Hurtle Vale
@@ -356,6 +360,7 @@ fTransposedFederalSwing=-2.4
 bSophomoreCandidate=1
 bSophomoreParty=1
 sRunningParties=ALP,LNP,GRN,ON,OTH****
+sBettingOdds=ON,2.18
 sCandidateNames=Penny Pratt,LNP;Tony Piccolo,ALP;David Paton,ON;Danielle Every,GRN
 #Playford
 sIncumbent=ALP
@@ -403,6 +408,7 @@ fTppMargin=-11.9
 fPreviousTppSwing=3.8
 fTransposedFederalSwing=1.3
 bSophomoreCandidate=1
+sBettingOdds=ON,4.1
 sRunningParties=ALP,LNP,GRN,ON,OTH**
 sCandidateNames=Ashton Hurn,LNP;James Rothe,ALP;Beverley Morris,GRN;Bruce Preece,ON
 #Stuart

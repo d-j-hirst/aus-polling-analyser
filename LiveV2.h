@@ -137,6 +137,7 @@ public:
   Results2::VoteType voteType = Results2::VoteType::Ordinary;
   Results2::Booth::Type boothType = Results2::Booth::Type::Normal;
   std::pair<float, float> coords = { 0.0f, 0.0f }; // latitude, longitude
+  std::map<int, float> tppVotesEstimated; // estimate-only count for tpp votes, used for calculating general bias in TPP estimates
 
   // Booths from a different seat are much less reliable for extrapolation
   // so we use this to make sure they're treated differently
@@ -559,6 +560,7 @@ private:
   void determineSeatFinalFpDeviations(bool allowCurrentData, int seatIndex);
   void determineSeatFinalTppDeviation(bool allowCurrentData, int seatIndex);
 
+  void calculateTppEstimateBias();
   void adjustSeatTppProjectionForOffset(int seatIndex);
 
   void calculateLivePreferenceFlowDeviations();
@@ -627,6 +629,8 @@ private:
   std::map<int, std::map<Results2::VoteType, float>> voteTypeFpBiasesRaw;
 
   int natPartyIndex;
+
+  float nonClassicTppBias = 0.0f;
 
   int variabilitySampleIndex = 0;
   std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
