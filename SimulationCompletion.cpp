@@ -683,6 +683,7 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	summaryFile << "Iterations\n" << iterations << "\n";
 	summaryFile << "Party Names\n";
 	std::set useParties = { -3, -2, 0, 1, 2, 4, 5, 6, 7, 10 };
+	if (run.getTermCode() == "2022fed") useParties = { -3, -2, 0, 1, 2, 4, 5, 6, 7, 9 };
 	PA_LOG_VAR(sim.latestReport.partyName);
 	for (auto [partyIndex, name] : sim.latestReport.partyName) {
 		if (!useParties.contains(partyIndex)) continue;

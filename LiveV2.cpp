@@ -1503,9 +1503,10 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float fpCompletionWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
 
   for (auto const& thisNode : nodesToAggregate) {
-    float weight = thisNode->totalVotesPrevious() * thisNode->fpConfidence;
+    float expectedVotes = thisNode->totalFpVotesProjected() ? thisNode->totalFpVotesProjected() : thisNode->totalVotesPrevious();
+    float weight = expectedVotes * thisNode->fpConfidence;
     bool confidenceAdded = false;
-    float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
+    float confidenceWeight = expectedVotes * thisNode->relevanceModifier;
     for (auto const& [partyId, swing] : thisNode->fpDeviations) {
       fpDeviationWeightedSum[partyId] += swing * weight;
       fpWeightSum[partyId] += weight;
@@ -1516,8 +1517,8 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
       }
     }
     fpConfidenceWeightSum += confidenceWeight;
-    fpCompletionSum += thisNode->fpCompletion * thisNode->totalVotesPrevious();
-    fpCompletionWeightSum += thisNode->totalVotesPrevious();
+    fpCompletionSum += thisNode->fpCompletion * expectedVotes;
+    fpCompletionWeightSum += expectedVotes;
   }
 
   // Node created for each new seat/region/election: should be <200 times
@@ -1559,8 +1560,9 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float tppCompletionSum = 0.0f;
   float tppCompletionWeightSum = 0.0f; // sum of confidence weights (different from above as it includes even booths with no votes)
   for (auto const& thisNode : nodesToAggregate) {
-    float weight = thisNode->totalVotesPrevious() * thisNode->tppConfidence;
-    float confidenceWeight = thisNode->totalVotesPrevious() * thisNode->relevanceModifier;
+    float expectedVotes = thisNode->totalFpVotesProjected() ? thisNode->totalFpVotesProjected() : thisNode->totalVotesPrevious();
+    float weight = expectedVotes * thisNode->tppConfidence;
+    float confidenceWeight = expectedVotes * thisNode->relevanceModifier;
     if (thisNode->tppDeviation) {
       tppDeviationWeightedSum += thisNode->tppDeviation.value() * weight;
       tppWeightSum += weight;
@@ -1569,8 +1571,8 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
     }
     tppConfidenceWeightSum += confidenceWeight;
     // Always count completion
-    tppCompletionSum += thisNode->tppCompletion * thisNode->totalVotesPrevious();
-    tppCompletionWeightSum += thisNode->totalVotesPrevious();
+    tppCompletionSum += thisNode->tppCompletion * expectedVotes;
+    tppCompletionWeightSum += expectedVotes;
   }
   if (tppWeightSum > 0) {
     aggregatedNode.tppDeviation = tppDeviationWeightedSum / tppWeightSum;
@@ -1588,14 +1590,15 @@ Node Election::aggregateFromChildren(const std::vector<Node const*>& nodesToAggr
   float preferenceFlowConfidenceSum = 0.0f;
   float preferenceFlowConfidenceWeightSum = 0.0f;
   for (auto const& thisNode : nodesToAggregate) {
-    float weight = thisNode->totalVotesPrevious() * thisNode->preferenceFlowConfidence;
+    float expectedVotes = thisNode->totalFpVotesProjected() ? thisNode->totalFpVotesProjected() : thisNode->totalVotesPrevious();
+    float weight = expectedVotes * thisNode->preferenceFlowConfidence;
     if (thisNode->preferenceFlowDeviation) {
       preferenceFlowDeviationWeightedSum += thisNode->preferenceFlowDeviation.value() * weight;
       preferenceFlowWeightSum += weight;
       // Only count confidence when the deviation actually contributes to the calculations
-      preferenceFlowConfidenceSum += thisNode->preferenceFlowConfidence * thisNode->totalVotesPrevious();
+      preferenceFlowConfidenceSum += thisNode->preferenceFlowConfidence * expectedVotes;
     }
-    preferenceFlowConfidenceWeightSum += thisNode->totalVotesPrevious();
+    preferenceFlowConfidenceWeightSum += expectedVotes;
   }
   if (preferenceFlowWeightSum > 0) {
     aggregatedNode.preferenceFlowDeviation = preferenceFlowDeviationWeightedSum / preferenceFlowWeightSum;
@@ -1871,7 +1874,8 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       float expectedTotalVotes = generateDeclarationVoteExpectedSize(boothIndex);
       float currentTotalVotesProjected = std::accumulate(fpVotesProjected.begin(), fpVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
-      float totalAdditionalVotes = expectedTotalVotes - currentTotalVotesProjected;
+      float totalAdditionalVotes = std::max(0.0f, expectedTotalVotes - currentTotalVotesProjected);
+      float totalAddedVotes = 0.0f;
       for (auto const& [partyId, votes] : fpVotesProjected) {
         float stdDev = 7.0f + 12.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
         float random = variabilityNormal(0.0f, stdDev, boothIndex, partyId, uint32_t(VariabilityTag::NonOrdinaryFp));
@@ -1884,7 +1888,15 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float transformedProjection = transformedOriginal + projectionDifference;
         float additionalPartyOneVotes = detransformVoteShare(transformedProjection) * totalAdditionalVotes * 0.01f;
         fpVotesProjected[partyId] += additionalPartyOneVotes;
+        totalAddedVotes += additionalPartyOneVotes;
       }
+      // The adjustment process above for the projection difference causes the vote total to be changed
+      // so adjust it to keep it consistent with other counts
+      float voteTotalAdjustment = expectedTotalVotes / (currentTotalVotesProjected + totalAddedVotes);
+      for (auto const& [partyId, votes] : fpVotesProjected) {
+        fpVotesProjected[partyId] *= voteTotalAdjustment;
+      }
+      booth.node.fpCompletion = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
       booth.node.fpConfidence = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
     }
     if (createRandomVariation) {
@@ -3212,7 +3224,8 @@ void Election::generateVariability(int iterationIndex) {
       withNonClassicVariability += nonClassicTppIterationVariation * weight;
       // Ideally the bias for non-classic seats should be applied at a booth level, not here
       // but it will do as a quick stop-gap
-      withNonClassicVariability -= nonClassicTppBias * weight;
+      // The 0.8f reflects that non-classic seats may not follow the same patterns as classic seats (calibrated to 2025fed)
+      withNonClassicVariability -= nonClassicTppBias * weight * 0.8f;
     }
     float newTppProjection = detransformVoteShare(withNonClassicVariability) * 0.01f * totalTppProjectedVotes;
     seat.node.tppVotesProjected[0] = newTppProjection;

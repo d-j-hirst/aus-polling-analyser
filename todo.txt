@@ -12,15 +12,15 @@
  -rudimentary use of tcp estimates for relevant seats
  
  ## Changes for live-simulations v2.5
-  -Wannon 18:38: RESOLVED (Two bad TCP booths for independent)
-  -Menzies 19:13: Increase in ALP win% is somewhat at odds with increased LIB fp and decrease GRN fp, investigate (also happens in v2)
-  -Model is very pessimistic on Labor in Solomon around 20:37, may be justified but needs a check
-  -Wills 20:49: Greens chance seems overly high here (nb first preference are not greatly different vs v2)
-  -20:58: High Liberal chance in Longman
-  -Wills 22:55: TCP progress falls (but not to zero)
-  -Calwell early post-count 99.8% for Labor probably still too high
-  -Menzies Wed 15:33 - significant change in win% despite no new votes
-  -Kooyong Wed 15:33 - TCP count ahead of FP, possible mismatche? and projection changes over next two updates despite counts not increasing
+  -Wannon 18:38: RESOLVED (Two bad TCP booths for independent, significant adjustment warranted)
+  -Menzies 19:13: RESOLVED (greater confidence in TPP swing > slightly worse FP results)
+  -Solomon 20:37: RESOLVED (Existing swing removes margin and expected drop in PPVC votes (which doesn't eventuate) puts ALP behind)
+  -Wills 20:49: RESOLVED (Booth TCP swings were strong (except certain redistributed) but later PPVCs/declarations didn't follow the trend)
+  -20:58: RESOLVED (Low swing on booths + strong PPVC/dec bias pushes low but in the end do not follow the pattern)
+  -Wills 22:55: RESOLVED (Did not actually happen?)
+  -Calwell early post-count: RESOLVED (There was a real issue: the wrong IND was used for preference distribution. Now split between IND and non-IND)
+  -Menzies Wed 15:33 - RESOLVED (This was a booth correction in the Wattle Park booth)
+  -Kooyong Wed 15:33 - PARTIALLY RESOLVED (Some real inconsistencies were fixed, but the tcpCompletion and fpCompletion are still not in sync. No obvious candidates, and this only affects declaration votes, so we'll move on for now)
   
  The moves in Wannon and Lilley are likely driven by the `TCP progress` and `TPP progress` count advancement, which can move the projection significantly by shifting the expected preference flows for the existing FP votes even though no new FP votes were counted. Keep that in mind for future reports.
  
