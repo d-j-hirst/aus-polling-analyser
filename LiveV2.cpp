@@ -496,14 +496,15 @@ LiveV2::Election LiveV2::Election::generateScenario(int iterationIndex) const {
   return newElection;
 }
 
-LiveV2::Election::FloatInformation LiveV2::Election::getSeatOthersInformation(std::string const& seatName) const {
+LiveV2::Election::FloatInformation LiveV2::Election::getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const {
   int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
   if (seatIndex != int(seats.size())) {
     float othersVotes = 0.0f;
     float totalVotes = seats[seatIndex].node.totalFpVotesProjected();
     for (auto [partyIndex, votes] : seats[seatIndex].node.fpVotesProjected) {
       bool isIndependent = partyIndex == run.indPartyIndex;
-      bool isOthers = partyIndex >= project.parties().count() && !isIndependent;
+      bool isRepresented = representedParties.contains(partyIndex);
+      bool isOthers = (partyIndex >= project.parties().count() || !isRepresented) && !isIndependent;
       float voteShare = votes / totalVotes * 100.0f;
       isOthers = isOthers || ( isIndependent && transformVoteShare(voteShare) < run.indEmergence.fpThreshold);
       if (isOthers && votes > 0.0f) {
@@ -2167,7 +2168,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       if (createRandomVariation) {
         // placeholder formula, a little on the conservative side but will do for a prototype
         // until I get around to properly calibrating the variance
-        float stdDev = 7.0f + 10.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f) + 5.0f * std::clamp(1.0f / std::sqrt(seat.tcpFocusPartyConfidence.value()), 1.0f, 5.0f);
+        float stdDev = 4.0f + 10.0f * std::min(std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.002f), 2.0f) + 1.5f * std::clamp(1.0f / std::sqrt(seat.tcpFocusPartyConfidence.value()), 1.0f, 20.0f);
         float random = variabilityNormal(0.0f, stdDev, boothIndex, RandomGenerator::combinePartyIds(firstPartyId, secondPartyId), uint32_t(VariabilityTag::PreferenceFlow));
         preferenceFlow = basicTransformedSwing(preferenceFlow, random);
       }
@@ -2264,6 +2265,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       // (b) this booth's previous TCP involved a different party to the current major party so can't use swing
       // In this case, the major party (always in 2nd position) is the same as the previous election
       // so we can project, but with extra caution
+      // TODO: Check if this is still valid if the current/past election didn't have a major party at all
       // First, need to know what party was their previous opponent
       int otherPartyId = booth.node.tcpVotesPrevious.begin()->first == secondPartyId ?
         std::next(booth.node.tcpVotesPrevious.begin())->first :

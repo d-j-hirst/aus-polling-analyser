@@ -2498,6 +2498,22 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
     currentDistrict = currentDistrict->NextSiblingElement("district");
   }
 
+  // temporary fix for "Greenwith West" TCP apparently flipped
+  for (auto& [_, booth] : booths) {
+    PA_LOG_VAR(booth.name);
+    if (booth.name == "Greenwith West" && booth.tcpVotes.contains(2) && booth.tcpVotes[2] == 1026) {
+      PA_LOG_VAR(booth.tcpVotes);
+      for (auto& [party, votes] : booth.tcpVotes) {
+        if (votes == 1026) votes = 677;
+        else if (votes == 677) votes = 1026;
+      }
+      for (auto& [party, votes] : booth.tcpVotesCandidate) {
+        if (votes == 1026) votes = 677;
+        else if (votes == 677) votes = 1026;
+      }
+    }
+  }
+
    //logger << "Ecsa Update for South Australia\n";
    //PA_LOG_VAR(booths.size());
    //logger << "==SEATS==\n";

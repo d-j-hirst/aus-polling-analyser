@@ -448,7 +448,7 @@ public:
 
   // Returns untransformed vote share belonging to parties not included among the project's
   // significant parties, along with independents who don't make the threshold for significance
-  FloatInformation getSeatOthersInformation(std::string const& seatName) const;
+  FloatInformation getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const;
 
   // Expose some internals for diagnostics/analysis
   Internals getInternals() const {

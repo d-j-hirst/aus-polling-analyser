@@ -2241,7 +2241,7 @@ void SimulationIteration::incorporateLiveResults()
 		// Unlike with specific party votes, the system of interlocking swings is not
 		// helpful for others votes, so we just mix the prior with the observed value
 		// (as total others votes are highly seat specific)
-		auto seatOthersInformation = liveElection->getSeatOthersInformation(seat.name);
+		auto seatOthersInformation = liveElection->getSeatOthersInformation(seat.name, seatFpVoteShare[seatIndex]);
 		if (seatOthersInformation.value > 0.0f) {
 			float priorOthersShare = seatFpVoteShare[seatIndex][OthersIndex];
 			float observedOthersShare = seatOthersInformation.value;
