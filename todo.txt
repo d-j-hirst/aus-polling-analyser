@@ -22,6 +22,8 @@
   -Menzies Wed 15:33 - RESOLVED (This was a booth correction in the Wattle Park booth)
   -Kooyong Wed 15:33 - PARTIALLY RESOLVED (Some real inconsistencies were fixed, but the tcpCompletion and fpCompletion are still not in sync. No obvious candidates, and this only affects declaration votes, so we'll move on for now)
   
+  -SA issue to investigate: 1:30ish Sunday update moved Ngadjuri/Hammond significantly towards ON. Possible cause: PPVC size was overestimated, leaving too few remaining votes for ALP/LNP to catch up. Is this just an isolated issue with this election or would fixing this help elsewhere? This might be helped by measing booth size vs expectations by booth/vote type as well as the vote shares themselves.
+  
  The moves in Wannon and Lilley are likely driven by the `TCP progress` and `TPP progress` count advancement, which can move the projection significantly by shifting the expected preference flows for the existing FP votes even though no new FP votes were counted. Keep that in mind for future reports.
  
   -Blaxland: 63.7% estimated vs 71.9% actual (no TCP provided in feed; 3CP margin of 22 votes with eventual pair ALP-LIB)
@@ -64,6 +66,8 @@
   Average error: 2.66%, median error: 2.80%, standard deviation: 1.95%
  
  ## for v3.0
+ -TCP counting (as part of realignment) causes unjustified temporary uncertainty (e.g. Mount Gambier 2026sa 2026-03-24 morning). Should implement a different path by which at first only preference distribution is implacted, and only gradually transition to "actual results" as certainty increases. Check in particular Light at 2026260324134750.
+ -Narungga at 2026260325154053 - something up with the declaration votes creating too many ON votes. Not easy to pin down. May be mitigated by updating simulation via preference-flows rather than tcp estimates, but still will need accuracy if that method doesn't pin down the final result by itself.
  -Use the alternative TPP values and <Elected> to inform late-count TPP and uncertainty estimates
  -in order to better calibrate the balance between baseline and live results, we need to store standard deviations as part of the live baseline, not just medians. These can then be compared with the standard deviation derived from the live results to determine the weightings for baseline vs. live. (Low-medium difficulty, needed for other steps)
  -for live results, calculate standard deviation of remaining results per seat based on theoretical or empirical formula rather than just vibes. Current vibes-based calculation is clearly (based on the smooth curves seen) overly conservative (as all vibes-based results need to be), with proper calibration we can tighten it up and make the live simulation more reactive. Way it should work: we have a formula for calculating the standard deviation of remaining results (in same vote category) based on (a) % of vote counted (b) number of different booths. Perhaps add a variable for diversity in size/location and weightings for confidence in the 2cp/2pp for fp-only booths (Medium-high difficulty, high impact)

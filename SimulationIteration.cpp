@@ -2360,6 +2360,9 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 							flow = 50.0f;
 							survivalRate = 0.2f;
 						}
+						if ((seat.name == "Narungga"|| seat.name == "MacKillop") && run.getTermCode() == "2026sa" && sourceParty == 0) {
+							flow = 50.0f;
+						}
 						// later, include custom exhaust rate for known nc preference flows
 						accumulatedVoteShares[0].second += sourceVoteShare * 0.01f * flow * survivalRate;
 						accumulatedVoteShares[1].second += sourceVoteShare * 0.01f * (100.0f - flow) * survivalRate;
@@ -2431,6 +2434,11 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
         float grnShare = variabilityUniform(0.35f, 0.65f, seatIndex, 0, uint32_t(VariabilityTag::OthGrnLibSplit));
 				weights[grnIndex] = combinedWeights * grnShare;
 				weights[lnpIndex] = combinedWeights * (1.0f - grnShare);
+			}
+
+			if ((seat.name == "Narungga" || seat.name == "MacKillop") && run.getTermCode() == "2026sa" && sourceParty == 0 && indIndex >= 0) {
+				// Prevent ALP votes from heavily favouring these specific INDs and pushing them into TCP
+				weights[indIndex] *= 0.2f;
 			}
 
 			float totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0000001f); // avoid divide by zero warning

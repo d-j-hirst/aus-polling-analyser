@@ -1246,6 +1246,7 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
   int laborCandidatePos = -1;
   int liberalCandidatePos = -1;
   int greensCandidatePos = -1;
+  int oneNationCandidatePos = -1;
   int totalOriginalFpVotes = 0;
   for (int candidateIndex : orderedCandidateIndices) {
     int candidateId = indexToId.at(candidateIndex);
@@ -1257,6 +1258,7 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
     if (partyCode == "ALP") laborCandidatePos = int(candidateIds.size()) - 1;
     else if (partyCode == "LIB") liberalCandidatePos = int(candidateIds.size()) - 1;
     else if (partyCode == "GRN") greensCandidatePos = int(candidateIds.size()) - 1;
+    else if (partyCode == "ONP") oneNationCandidatePos = int(candidateIds.size()) - 1;
   }
 
   std::vector<int> tcpCandidateIndices;
@@ -1287,10 +1289,12 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
   double laborBaseShare = originalFpShare(laborCandidatePos);
   double liberalBaseShare = originalFpShare(liberalCandidatePos);
   double greensBaseShare = originalFpShare(greensCandidatePos);
+  double oneNationBaseShare = originalFpShare(oneNationCandidatePos);
 
   double minorBaseShare = 1.0 - laborBaseShare - liberalBaseShare - greensBaseShare;
   if (minorBaseShare < 0.0) minorBaseShare = 0.0;
   int totalOriginalMinorVotes = 0;
+  int totalOriginalNonOnpMinorVotes = 0;
   for (size_t candidatePos = 0; candidatePos < candidateIds.size(); ++candidatePos) {
     if (int(candidatePos) == laborCandidatePos ||
       int(candidatePos) == liberalCandidatePos ||
@@ -1300,6 +1304,9 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
     }
     originalMinorWeights.push_back(originalFpVotes[candidatePos]);
     totalOriginalMinorVotes += originalFpVotes[candidatePos];
+    if (int(candidatePos) != oneNationCandidatePos) {
+      totalOriginalNonOnpMinorVotes += originalFpVotes[candidatePos];
+    }
   }
 
   auto buildFpVotes = [&](SaDeclarationCategory const& category, int totalCategoryVotes) {
@@ -1315,14 +1322,20 @@ bool Results2::Election::allocate2022saDeclarationVotes(int seatId, std::string 
       majorShareSum = laborShare + liberalShare + greensShare;
     }
     double remainderShare = std::max(0.0, 1.0 - majorShareSum);
+    double oneNationShare = 0.0;
+    if (oneNationCandidatePos >= 0) {
+      oneNationShare = std::min(remainderShare, oneNationBaseShare);
+      remainderShare -= oneNationShare;
+    }
 
     std::vector<double> weights(candidateIds.size(), 0.0);
     for (size_t candidatePos = 0; candidatePos < candidateIds.size(); ++candidatePos) {
       if (int(candidatePos) == laborCandidatePos) weights[candidatePos] = laborShare;
       else if (int(candidatePos) == liberalCandidatePos) weights[candidatePos] = liberalShare;
       else if (int(candidatePos) == greensCandidatePos) weights[candidatePos] = greensShare;
-      else if (totalOriginalMinorVotes > 0) weights[candidatePos] = remainderShare * originalMinorWeights[candidatePos] / double(totalOriginalMinorVotes);
-      else weights[candidatePos] = remainderShare / double(std::max<size_t>(1, candidateIds.size() - size_t(laborCandidatePos >= 0) - size_t(liberalCandidatePos >= 0) - size_t(greensCandidatePos >= 0)));
+      else if (int(candidatePos) == oneNationCandidatePos) weights[candidatePos] = oneNationShare;
+      else if (totalOriginalNonOnpMinorVotes > 0) weights[candidatePos] = remainderShare * originalMinorWeights[candidatePos] / double(totalOriginalNonOnpMinorVotes);
+      else weights[candidatePos] = remainderShare / double(std::max<size_t>(1, candidateIds.size() - size_t(laborCandidatePos >= 0) - size_t(liberalCandidatePos >= 0) - size_t(greensCandidatePos >= 0) - size_t(oneNationCandidatePos >= 0)));
     }
     return allocateVotes(totalCategoryVotes, weights, 1);
   };

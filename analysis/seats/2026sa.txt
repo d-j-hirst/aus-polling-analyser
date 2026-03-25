@@ -237,7 +237,7 @@ sCandidateNames=Chris Picton,ALP;Zoe Jones,ON;Sean Weatherly,GRN;Shane Carter,LN
 #Kavel
 sIncumbent=LNP
 sChallenger=ALP
-sRegion=Metro Inner North
+sRegion=Inner Rural
 fTppMargin=-3.5
 fPreviousTppSwing=9.8
 fTransposedFederalSwing=-1.8
@@ -301,7 +301,7 @@ sCandidateNames=Jenni Mitton,ALP;Tyler Green,ON;Mike Holden,LNP;Lawrence Johnson
 #Morialta
 sIncumbent=LNP
 sChallenger=ALP
-sRegion=Inner Rural
+sRegion=Metro Inner North
 fTppMargin=-1.4
 fPreviousTppSwing=8
 fTransposedFederalSwing=4.3
@@ -332,7 +332,7 @@ sCandidateNames=Anne-Marie Loef,ON;Matthew Key,ALP;Lamorna Alexander,LNP;Travis 
 #Narungga
 sIncumbent=IND
 sChallenger=LNP
-sRegion=Metro Inner North
+sRegion=Outer Rural
 fTppMargin=-14.0
 fPreviousTppSwing=4.3
 fTransposedFederalSwing=-1.5
@@ -353,7 +353,7 @@ sCandidateNames=Olivia Savvas,ALP;Sarai Birch,LNP;Alison Dew-Fennell,ON;Helen Wr
 sPreviousName=Frome
 sIncumbent=LNP
 sChallenger=ALP
-sRegion=Outer Rural
+sRegion=Inner Rural
 fTppMargin=-3.2
 fPreviousTppSwing=10
 fTransposedFederalSwing=-2.4

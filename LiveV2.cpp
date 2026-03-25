@@ -1829,7 +1829,7 @@ void Election::recomposeVoteCounts() {
 // Later on do something more sophisicated by estimating remaining votes from existing vote count,
 // modelling from estimated population growth and known counts of the declaration votes
 int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
-  constexpr int MinimumDeclarationVoteExpectationBase = 200;
+  constexpr int MinimumDeclarationVoteExpectationBase = 30;
   auto const& booth = booths.at(boothIndex);
   int expectationBase = std::max(booth.node.totalVotesPrevious(), MinimumDeclarationVoteExpectationBase);
   // 1.046f represents typical population growth
@@ -1838,6 +1838,7 @@ int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
     baseExpectation *= 0.661f; // expected decline in 
   }
   baseExpectation *= std::max(0.1f, variabilityNormal(1.0f, 0.12f, boothIndex, 0, uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
+
   return static_cast<int>(baseExpectation);
 }
 
@@ -2035,6 +2036,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
     }
 
     assignBlindOthers(tempFpVotesProjected, blindOthers, projectSeatIndex, currentVotesEstimate, othersAccountedFor);
+
     // normalize so that the sum of the votes is the same as the previous election (or other estimate)
     float totalVotes = 0.0f;
     for (auto const& [partyId, votes] : tempFpVotesProjected) {
@@ -2105,9 +2107,14 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       if (booth.voteType == Results2::VoteType::Postal) {
         float adjustment = 2.0f; // late-arriving postals are generally less friendly to Coalition than early postals
         if (firstPartyId == natPartyIndex || firstPartyId == 1) {
-          projectionDifference -= adjustment;
+          // But only if other party is less right than the Coalition themselves
+          if (secondPartyId > 0 && project.parties().viewByIndex(secondPartyId).ideology < 3) {
+            projectionDifference -= adjustment;
+          }
         } else if (secondPartyId == natPartyIndex || secondPartyId == 1) {
-          projectionDifference += adjustment;
+          if (firstPartyId > 0 && project.parties().viewByIndex(firstPartyId).ideology < 3) {
+            projectionDifference += adjustment;
+          }
         }
       }
       float transformedOriginal = transformVoteShare(float(tcpVotesProjected.at(firstPartyId)) / currentTotalVotesProjected * 100.0f);
@@ -2272,6 +2279,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         booth.node.tcpVotesPrevious.begin()->first;
       float weightedSwing = 0.0f;
       float summedWeight = 0.0f;
+      float totalExpected = 0.0f;
 
       for (auto const& otherBoothIndex : seat.booths) {
         // Rather than using the seat swing, need to manually calculate the "swing"
@@ -2293,6 +2301,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
           float weight = static_cast<float>(otherBooth.node.totalVotesPrevious()) * otherBooth.node.relevanceModifier;
           weightedSwing += swing * weight;
           summedWeight += weight;
+          totalExpected += otherBooth.node.totalFpVotesProjected();
         }
       }
       if (summedWeight > 0.0f) {
@@ -2312,7 +2321,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         float tcpTransformedEstimateCurrent = tcpTransformedSharePrevious + averageSwing;
         float tcpEstimateCurrent = detransformVoteShare(tcpTransformedEstimateCurrent) * currentVoteTarget * 0.01f;
         // Lower confidence because one of the parties has changed, so patterns are less reliable
-        methodConfidence[2] = std::sqrt((summedWeight) / currentVoteTarget) * 0.1f;
+        methodConfidence[2] = std::sqrt(summedWeight / totalExpected) * 0.1f;
         tcpFirst[2] = currentVoteTarget - tcpEstimateCurrent;
         tcpSecond[2] = tcpEstimateCurrent;
       }
@@ -2346,24 +2355,28 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       }
     }
 
-    int bestMethod = -1;
-    float bestConfidence = 0.0f;
+    float firstPartyWeighted = 0.0f;
+    float secondPartyWeighted = 0.0f;
+    float totalWeight = 0.0f;
+    float highestConfidence = 0.0f;
     for (int method = 0; method < NumMethods; ++method) {
-      if (methodConfidence[method] > bestConfidence) {
-        bestConfidence = methodConfidence[method];
-        bestMethod = method;
-      }
+      firstPartyWeighted += tcpFirst[method] * methodConfidence[method];
+      secondPartyWeighted += tcpSecond[method] * methodConfidence[method];
+      totalWeight += methodConfidence[method];
+      highestConfidence = std::max(highestConfidence, methodConfidence[method]);
     }
 
-    if (bestMethod >= 0) {
+    if (totalWeight > 0 && highestConfidence) {
+      float estimatedFirstParty = firstPartyWeighted / totalWeight;
+      float estimatedSecondParty = secondPartyWeighted / totalWeight;
       if (createRandomVariation) {
-        booth.node.tempTcpVotesProjected[convertPartyId(firstPartyId)] = tcpFirst[bestMethod];
-        booth.node.tempTcpVotesProjected[convertPartyId(secondPartyId)] = tcpSecond[bestMethod];
+        booth.node.tempTcpVotesProjected[convertPartyId(firstPartyId)] = estimatedFirstParty;
+        booth.node.tempTcpVotesProjected[convertPartyId(secondPartyId)] = estimatedSecondParty;
       }
       else {
-        booth.node.tcpVotesProjected[convertPartyId(firstPartyId)] = tcpFirst[bestMethod];
-        booth.node.tcpVotesProjected[convertPartyId(secondPartyId)] = tcpSecond[bestMethod];
-        booth.node.tcpConfidence = methodConfidence[bestMethod];
+        booth.node.tcpVotesProjected[convertPartyId(firstPartyId)] = estimatedFirstParty;
+        booth.node.tcpVotesProjected[convertPartyId(secondPartyId)] = estimatedSecondParty;
+        booth.node.tcpConfidence = highestConfidence;
       }
 
     }
