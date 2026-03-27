@@ -2558,7 +2558,6 @@ void SimulationIteration::determineSeatFinalResult(int seatIndex)
 			// Use results cautiously until a lot of the vote is in by squaring the completion
 			// But override this if there can be more confidence in the results as a result of swing matching
 			float effectiveConfidence = std::max(tcpInfo.confidence, tcpInfo.completion * tcpInfo.completion);
-			float stdDev = std::min(10.0f, 1.0f / (effectiveConfidence + 0.02f) - 0.97f);
 			// Strongly favour use of live TCP results once there's a decent amount in
 			// sigmoid function, very ad hoc but smooths out the transition from prior to baseline+results
 			float baselineWeight = std::clamp(1.6065f / (1.0f + std::exp(-(14.0f * effectiveConfidence - 0.5f))) - 0.60651f, 0.0f, 1.0f);

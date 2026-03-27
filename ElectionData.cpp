@@ -2513,9 +2513,7 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
 
   // temporary fix for "Greenwith West" TCP apparently flipped
   for (auto& [_, booth] : booths) {
-    PA_LOG_VAR(booth.name);
     if (booth.name == "Greenwith West" && booth.tcpVotes.contains(2) && booth.tcpVotes[2] == 1026) {
-      PA_LOG_VAR(booth.tcpVotes);
       for (auto& [party, votes] : booth.tcpVotes) {
         if (votes == 1026) votes = 677;
         else if (votes == 677) votes = 1026;
@@ -2523,6 +2521,25 @@ void Results2::Election::updateEcsa(tinyxml2::XMLDocument const& xml)
       for (auto& [party, votes] : booth.tcpVotesCandidate) {
         if (votes == 1026) votes = 677;
         else if (votes == 677) votes = 1026;
+      }
+    }
+  }
+  for (auto& [_, seat] : seats) {
+    if (seat.name == "Narungga") {
+      if (seat.fpVotes.contains(133004) && seat.fpVotes.at(133004).contains(VoteType::PrePoll) && seat.fpVotes.at(133004).at(VoteType::PrePoll) == 189) {
+        // This crucial line in Narungga post-count is entered for the wrong parties, which messes up the projection
+        // In future we should have a check for obviously-wrong entries, but for now just override it specifically
+        // Some of these might not be in quite the right order, but it should avoid the massive error
+        seat.fpVotes[133001][VoteType::PrePoll] = 189;
+        seat.fpVotes[133002][VoteType::PrePoll] = 9;
+        seat.fpVotes[133003][VoteType::PrePoll] = 95;
+        seat.fpVotes[133004][VoteType::PrePoll] = 13;
+        seat.fpVotes[133005][VoteType::PrePoll] = 153;
+        seat.fpVotes[133006][VoteType::PrePoll] = 11;
+        seat.fpVotes[133007][VoteType::PrePoll] = 311;
+        seat.fpVotes[133008][VoteType::PrePoll] = 8;
+        seat.fpVotes[133009][VoteType::PrePoll] = 13;
+        seat.fpVotes[133010][VoteType::PrePoll] = 46;
       }
     }
   }

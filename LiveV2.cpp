@@ -1858,7 +1858,7 @@ int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
     if (booth.voteType == Results2::VoteType::EarlyProvisional) baseExpectation = 50.0f;
     if (booth.voteType == Results2::VoteType::Provisional) baseExpectation = 50.0f;
     if (booth.voteType == Results2::VoteType::Postal) baseExpectation = 3000.0f;
-    if (booth.voteType == Results2::VoteType::EVM) baseExpectation = 300.0f;
+    if (booth.voteType == Results2::VoteType::EVM) baseExpectation = 200.0f;
     if (booth.voteType == Results2::VoteType::TIO) baseExpectation = 30.0f;
   }
   baseExpectation *= std::max(0.1f, variabilityNormal(1.0f, 0.12f, boothIndex, 0, uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
@@ -1922,6 +1922,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       for (auto const& [partyId, votes] : fpVotesProjected) {
         fpVotesProjected[partyId] *= voteTotalAdjustment;
       }
+
       booth.node.fpCompletion = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
       booth.node.fpConfidence = std::clamp(currentTotalVotesProjected / expectedTotalVotes, 0.0f, 1.0f);
     }
@@ -1929,24 +1930,6 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       booth.node.tempFpVotesProjected = fpVotesProjected;
     } else {
       booth.node.fpVotesProjected = fpVotesProjected;
-    }
-
-
-    // convert from int to float
-    auto& projected = createRandomVariation ? booth.node.tempFpVotesProjected : booth.node.fpVotesProjected;
-    projected = std::map<int, float>();
-    for (auto const& [partyId, votes] : booth.node.fpVotesCurrent) {
-      int effectivePartyId = partyId == seat.liveIndependentPartyIndex ? run.indPartyIndex : partyId;
-      projected[effectivePartyId] = static_cast<float>(votes);
-    }
-    if (booth.voteType != Results2::VoteType::Ordinary) {
-      float previousTotalVotes = booth.node.totalVotesPrevious();
-      float currentTotalVotesProjected = std::accumulate(projected.begin(), projected.end(), 0.0f,
-        [](float sum, const auto& pair) { return sum + pair.second; });
-      float ratio = previousTotalVotes / currentTotalVotesProjected;
-      for (auto& [partyId, votes] : projected) {
-        votes *= std::max(1.0f, ratio);
-      }
     }
   }
   else {
@@ -2124,7 +2107,7 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       float currentTotalVotesProjected = std::accumulate(tcpVotesProjected.begin(), tcpVotesProjected.end(), 0.0f,
         [](float sum, const auto& pair) { return sum + pair.second; });
       float totalAdditionalVotes = std::max(0.0f, expectedTotalVotes - currentTotalVotesProjected);
-      float stdDev = 7.0f + 12.0f * std::exp(-static_cast<float>(booth.node.totalVotesPrevious()) * 0.0001f);
+      float stdDev = 7.0f + 12.0f * std::exp(-static_cast<float>(currentTotalVotesProjected) * 0.0001f);
 
       float random = variabilityNormal(0.0f, stdDev, boothIndex, 0 /* no party id required */, uint32_t(VariabilityTag::NonOrdinaryTcp));
       float projectionDifference = createRandomVariation ? random : 0.0f;
