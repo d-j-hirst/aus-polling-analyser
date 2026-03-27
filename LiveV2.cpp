@@ -1727,15 +1727,28 @@ void Election::calculateTcpPreferenceFlows() {
     float focusPartyConfidence = 0.0f;
     for (auto& boothIndex : seat.booths) {
       auto& booth = booths.at(boothIndex);
-      float totalFpVotes = booth.node.totalFpVotesCurrent();
-      float totalTcpVotes = booth.node.totalTcpVotesCurrent();
-      if (totalFpVotes != totalTcpVotes || totalTcpVotes == 0) continue;
+      float totalFpVotes = float(booth.node.totalFpVotesCurrent());
+      float totalTcpVotes = float(booth.node.totalTcpVotesCurrent());
       if (!booth.node.fpVotesCurrent.contains(partyOneIndex) || !booth.node.fpVotesCurrent.contains(partyTwoIndex)) continue;
-      float boothPrefs = totalFpVotes - booth.node.fpVotesCurrent.at(partyOneIndex) - booth.node.fpVotesCurrent.at(partyTwoIndex);
-      float boothPartyOnePrefs = static_cast<float>(booth.node.tcpVotesCurrent.at(partyOneIndex)) - static_cast<float>(booth.node.fpVotesCurrent.at(partyOneIndex));
-      totalPartyOnePrefs += boothPartyOnePrefs;
-      totalPrefs += boothPrefs;
-      focusPartyConfidence += totalTcpVotes;
+      if (totalTcpVotes == 0 || totalFpVotes == 0) continue;
+
+      if (run.regionCode == "sa") {
+        // SA TCP votes are commonly different to FP votes due to savings provisions, so handle them differently
+        float fpTcpRatio = totalFpVotes / totalTcpVotes;
+        float scaledTcpPartyOne = float(booth.node.tcpVotesCurrent.at(partyOneIndex)) * fpTcpRatio;
+        float boothPrefs = totalFpVotes - booth.node.fpVotesCurrent.at(partyOneIndex) - booth.node.fpVotesCurrent.at(partyTwoIndex);
+        float boothPartyOnePrefs = std::clamp(scaledTcpPartyOne - float(booth.node.fpVotesCurrent.at(partyOneIndex)), 1.0f, boothPrefs - 1.0f);
+        totalPartyOnePrefs += boothPartyOnePrefs;
+        totalPrefs += boothPrefs;
+        focusPartyConfidence += totalTcpVotes;
+      }
+      else if (totalFpVotes == totalTcpVotes) {
+        float boothPrefs = totalFpVotes - float(booth.node.fpVotesCurrent.at(partyOneIndex)) - float(booth.node.fpVotesCurrent.at(partyTwoIndex));
+        float boothPartyOnePrefs = float(booth.node.tcpVotesCurrent.at(partyOneIndex)) - float(booth.node.fpVotesCurrent.at(partyOneIndex));
+        totalPartyOnePrefs += boothPartyOnePrefs;
+        totalPrefs += boothPrefs;
+        focusPartyConfidence += totalTcpVotes;
+      }
     }
     if (totalPrefs == 0) continue;
     seat.tcpFocusPartyIndex = partyOneIndex;
@@ -1837,6 +1850,17 @@ int Election::generateDeclarationVoteExpectedSize(int boothIndex) {
   if (run.getTermCode() == "2026sa" && booth.voteType != Results2::VoteType::Postal) {
     baseExpectation *= 0.661f; // expected decline in 
   }
+  if (run.getTermCode() == "2026sa") {
+    // Temporary fix for 2026sa declaration votes being way off expectations, replace with a more robust system when there's more time
+    if (booth.voteType == Results2::VoteType::Absent) baseExpectation = 1200.0f;
+    if (booth.voteType == Results2::VoteType::PrePoll) baseExpectation = 1300.0f;
+    // These are are early declaration votes. Clearly too many to be provisionals
+    if (booth.voteType == Results2::VoteType::EarlyProvisional) baseExpectation = 50.0f;
+    if (booth.voteType == Results2::VoteType::Provisional) baseExpectation = 50.0f;
+    if (booth.voteType == Results2::VoteType::Postal) baseExpectation = 3000.0f;
+    if (booth.voteType == Results2::VoteType::EVM) baseExpectation = 300.0f;
+    if (booth.voteType == Results2::VoteType::TIO) baseExpectation = 30.0f;
+  }
   baseExpectation *= std::max(0.1f, variabilityNormal(1.0f, 0.12f, boothIndex, 0, uint32_t(VariabilityTag::DeclarationVoteSizeVariability)));
 
   return static_cast<int>(baseExpectation);
@@ -1928,6 +1952,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
   else {
     const float votesGuess = booth.boothType == Results2::Booth::Type::Hospital ? HospitalBoothVotesGuess : PreviousTotalVotesGuess;
     float previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : votesGuess;
+    const float fpTotalCurrent = booth.node.totalFpVotesCurrent();
     float currentVotesEstimate = previousTotalVotes;
     if (booth.voteType != Results2::VoteType::Ordinary) {
       currentVotesEstimate = float(generateDeclarationVoteExpectedSize(boothIndex));
@@ -1938,9 +1963,10 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       }
       else {
         // Postals are known to be flat, so the general decline is shares across other booths
-        currentVotesEstimate *= 0.661f;
+        //currentVotesEstimate *= 0.661f;
       }
     }
+    float currentVoteTarget = fpTotalCurrent ? fpTotalCurrent : currentVotesEstimate;
     std::map<int, float> tempFpVotesProjected;
     float othersAccountedFor = 0.0f;
     std::set<int> blindOthers;
@@ -1984,7 +2010,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float prevShare = transformVoteShare(std::clamp(float(prevVotes) / float(previousTotalVotes) * 100.0f, 0.5f, 99.5f));
         float baselineSwing = seat.node.fpSwingsBaseline.contains(effectivePartyId) ? seat.node.fpSwingsBaseline.at(effectivePartyId) : 0.0f;
         float newShare = prevShare + baselineSwing + deviation + randomFactor;
-        float newVotes = detransformVoteShare(newShare) * currentVotesEstimate * 0.01f;
+        float newVotes = detransformVoteShare(newShare) * currentVoteTarget * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
@@ -2003,7 +2029,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         float currentTotalVotes = float(seats[booth.parentSeatId].node.totalFpVotesCurrent());
         float seatShare = transformVoteShare(std::clamp(currentPartyVotes / currentTotalVotes * 100.0f, 0.1f, 99.9f));
         float newShare = seatShare * weight + baselineShare * (1.0f - weight);
-        float newVotes = detransformVoteShare(newShare + randomFactor) * currentVotesEstimate * 0.01f;
+        float newVotes = detransformVoteShare(newShare + randomFactor) * currentVoteTarget * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
@@ -2018,7 +2044,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
         }
         float adjustedShare = transformedBaselineShare + deviation + randomFactor;
         float detransformedShare = detransformVoteShare(adjustedShare);
-        float newVotes = detransformedShare * currentVotesEstimate * 0.01f;
+        float newVotes = detransformedShare * currentVoteTarget * 0.01f;
         tempFpVotesProjected[effectivePartyId] = newVotes;
         if (effectivePartyId > 2 && effectivePartyId != natPartyIndex) {
           othersAccountedFor += newVotes;
@@ -2035,7 +2061,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       }
     }
 
-    assignBlindOthers(tempFpVotesProjected, blindOthers, projectSeatIndex, currentVotesEstimate, othersAccountedFor);
+    assignBlindOthers(tempFpVotesProjected, blindOthers, projectSeatIndex, currentVoteTarget, othersAccountedFor);
 
     // normalize so that the sum of the votes is the same as the previous election (or other estimate)
     float totalVotes = 0.0f;
@@ -2043,7 +2069,7 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       totalVotes += votes;
     }
     for (auto& [partyId, votes] : tempFpVotesProjected) {
-      votes *= currentVotesEstimate / totalVotes;
+      votes *= currentVoteTarget / totalVotes;
     }
     if (createRandomVariation) {
       booth.node.tempFpVotesProjected = tempFpVotesProjected;
@@ -2052,10 +2078,10 @@ void Election::recomposeBoothFpVotes(bool allowCurrentData, int boothIndex) {
       booth.node.fpVotesProjected = tempFpVotesProjected;
       for (auto const& [partyId, _] : booth.node.fpVotesProjected) {
         if (allowCurrentData && booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Invalid && booth.boothType != Results2::Booth::Type::Other) {
-          seats[booth.parentSeatId].fpBoothTypeSensitivity[partyId][booth.boothType] += currentVotesEstimate;
+          seats[booth.parentSeatId].fpBoothTypeSensitivity[partyId][booth.boothType] += currentVoteTarget;
         }
         else if (allowCurrentData && booth.voteType != Results2::VoteType::Ordinary && booth.voteType != Results2::VoteType::Invalid) {
-          seats[booth.parentSeatId].fpVoteTypeSensitivity[partyId][booth.voteType] += currentVotesEstimate;
+          seats[booth.parentSeatId].fpVoteTypeSensitivity[partyId][booth.voteType] += currentVoteTarget;
         }
       }
     }
@@ -2156,10 +2182,10 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
       }
       else {
         // Postals are known to be flat, so the general decline is shares across other booths
-        currentVotesEstimate *= 0.661f;
+        // currentVotesEstimate *= 0.661f;
       }
     }
-    float currentVoteTarget = fpTotalCurrent ? fpTotalCurrent : currentVotesEstimate;
+    float currentVoteTarget = fpTotalProjected ? fpTotalProjected : currentVotesEstimate;
     if (
       seat.tcpFocusPartyIndex.has_value() && seat.tcpFocusPartyPrefFlow.has_value()
       && seat.tcpFocusPartyConfidence.value_or(0.0f) > 0.0f && (fpTotalCurrent > 0 || fpTotalProjected > 0)
@@ -2188,9 +2214,10 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         fpTotalCurrent - boothFocusPartyTcpVotes : fpTotalProjected - boothFocusPartyTcpVotes;
       float firstTcp = focusParty == firstPartyId ? boothFocusPartyTcpVotes : boothOtherPartyTcpVotes;
       float secondTcp = focusParty == firstPartyId ? boothOtherPartyTcpVotes : boothFocusPartyTcpVotes;
+      float targetRatio = currentVotesEstimate / (fpTotalCurrent ? fpTotalCurrent : fpTotalProjected);
       methodConfidence[0] = std::sqrt(seat.tcpFocusPartyConfidence.value()) * (fpTotalCurrent ? 0.5f : 0.2f);
-      tcpFirst[0] = firstTcp;
-      tcpSecond[0] = secondTcp;
+      tcpFirst[0] = firstTcp * targetRatio;
+      tcpSecond[0] = secondTcp * targetRatio;
 
       // TODO: As above, we need to account for incomplete returns in non-ordinary booths
       // (FPs seem to arrive with TCPs for now but can't rely on that always being the case)
@@ -2349,9 +2376,10 @@ void Election::recomposeBoothTcpVotes(int boothIndex) {
         float boothFirstPartyTcpVotes = boothFirstPartyFpVotes + boothFirstPartyPrefs;
         float boothSecondPartyTcpVotes = fpTotalCurrent ?
           fpTotalCurrent - boothFirstPartyTcpVotes : fpTotalProjected - boothFirstPartyTcpVotes;
+        float targetRatio = currentVotesEstimate / (fpTotalCurrent ? fpTotalCurrent : fpTotalProjected);
         methodConfidence[3] = 0.0001f;
-        tcpFirst[3] = boothFirstPartyTcpVotes;
-        tcpSecond[3] = boothSecondPartyTcpVotes;
+        tcpFirst[3] = boothFirstPartyTcpVotes * targetRatio;
+        tcpSecond[3] = boothSecondPartyTcpVotes * targetRatio;
       }
     }
 
@@ -2433,6 +2461,7 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   // and the actual TCP will come from fp-based estimates in the simulation.
   const float votesGuess = booth.boothType == Results2::Booth::Type::Hospital ? HospitalBoothVotesGuess : PreviousTotalVotesGuess;
   float previousTotalVotes = booth.node.totalVotesPrevious() ? booth.node.totalVotesPrevious() : votesGuess;
+  const float fpTotalCurrent = booth.node.totalFpVotesCurrent();
   float currentVotesEstimate = previousTotalVotes;
   if (booth.voteType != Results2::VoteType::Ordinary) {
     currentVotesEstimate = float(generateDeclarationVoteExpectedSize(boothIndex));
@@ -2443,9 +2472,10 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
     }
     else {
       // Postals are known to be flat, so the general decline is shares across other booths
-      currentVotesEstimate *= 0.661f;
+      //currentVotesEstimate *= 0.661f;
     }
   }
+  float currentVoteTarget = fpTotalCurrent ? fpTotalCurrent : currentVotesEstimate;
   std::map<int, float> tempTppVotesProjected;
   std::optional<float> prevAlpShare;
   if (isTppSet(booth.node.tcpVotesPrevious, natPartyIndex)) {
@@ -2503,7 +2533,7 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
   // If we know how many FP votes there are, and we know that the booth is ~complete, then that's a better estimate
   // of eventual TPP votes than the previous election, so use that instead
   float totalEstimate = allowCurrentData && booth.node.totalFpVotesCurrent() > 0 && booth.node.fpCompletion > 0.99f ?
-    booth.node.totalFpVotesCurrent() : currentVotesEstimate;
+    booth.node.totalFpVotesCurrent() : currentVoteTarget;
   // Even if booth isn't complete, allow increased vote count if there are more fp votes than previous
   if (allowCurrentData && booth.node.totalFpVotesCurrent() > totalEstimate) totalEstimate = booth.node.totalFpVotesCurrent();
   float newAlpVotes = detransformVoteShare(newAlpShare) * totalEstimate * 0.01f;
@@ -2525,10 +2555,10 @@ void Election::recomposeBoothTppVotes(bool allowCurrentData, int boothIndex) {
     if (!dataExists) {
       booth.node.tppVotesProjected = tempTppVotesProjected;
       if (allowCurrentData && booth.boothType != Results2::Booth::Type::Normal && booth.boothType != Results2::Booth::Type::Invalid && booth.boothType != Results2::Booth::Type::Other) {
-        seats[booth.parentSeatId].tppBoothTypeSensitivity[booth.boothType] += currentVotesEstimate;
+        seats[booth.parentSeatId].tppBoothTypeSensitivity[booth.boothType] += currentVoteTarget;
       }
       else if (allowCurrentData && booth.voteType != Results2::VoteType::Ordinary && booth.voteType != Results2::VoteType::Invalid) {
-        seats[booth.parentSeatId].tppVoteTypeSensitivity[booth.voteType] += currentVotesEstimate;
+        seats[booth.parentSeatId].tppVoteTypeSensitivity[booth.voteType] += currentVoteTarget;
       }
     }
     else { // dataExists

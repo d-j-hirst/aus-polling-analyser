@@ -228,7 +228,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=-3.66
 fPreviousTppSwing=4.21
-sPolls=GRN,8,3;ON,13,3;GRN,9,3;ON,20,3
+sPolls=GRN,8,3;ON,13,3;GRN,9,3;ON,20,3;IND,30.7,1;ON,20.6,1;GRN,4.6,1
+sPollSources=GRN/ON DemosAU 2025-10-24;GRN/ON DemosAU 2026-02-07;IND/ON/GRN UComms 2026-03-18
 sCandidateNames=Sophie Scamps,IND
 #Macquarie
 sIncumbent=ALP
@@ -380,7 +381,8 @@ sChallenger=LNP
 sRegion=NSW
 fTppMargin=0.56
 fPreviousTppSwing=1.72
-sPolls=GRN,12,3;ON,12,3;GRN,13,3;ON,17,3
+sPolls=GRN,12,3;ON,12,3;GRN,13,3;ON,17,3;IND,28.4,1;ON,15.7,1;GRN,7.2,1
+sPollSources=GRN/ON DemosAU 2025-10-24;GRN/ON DemosAU 2026-02-07;IND/ON/GRN UComms 2026-03-18
 sCandidateNames=Allegra Spender,IND
 #Werriwa
 sIncumbent=ALP
@@ -618,7 +620,8 @@ sChallenger=LNP
 sRegion=VIC
 fTppMargin=-2.37
 fPreviousTppSwing=1.37
-sPolls=GRN,10,3;ON,9,3;GRN,10,3;ON,19,3
+sPolls=GRN,10,3;ON,9,3;GRN,10,3;ON,19,3;IND,27.9,1;ON,12.5,1;GRN,5.2,1
+sPollSources=GRN/ON DemosAU 2025-10-24;GRN/ON DemosAU 2026-02-07;IND/ON/GRN UComms 2026-03-18
 sCandidateNames=Monique Ryan,IND
 #La Trobe
 sIncumbent=LNP
