@@ -94,6 +94,7 @@ void ResultsFrame::OnRunLiveSimulations(wxCommandEvent & WXUNUSED(event))
 	refreshData();
 
 	refresher.refreshSeatData();
+	refresher.refreshLiveBooths();
 
 	if (project->config().getBeepOnCompletion()) beep();
 }

@@ -517,6 +517,23 @@ LiveV2::Election::FloatInformation LiveV2::Election::getSeatOthersInformation(st
   return {0.0f, 0.0f, 0.0f};
 }
 
+std::vector<LiveV2::Election::BoothSnapshot> LiveV2::Election::getBoothSnapshots() const {
+  std::vector<BoothSnapshot> snapshots;
+  snapshots.reserve(booths.size());
+  for (auto const& booth : booths) {
+    BoothSnapshot snapshot;
+    if (booth.parentSeatId >= 0 && booth.parentSeatId < int(seats.size())) {
+      snapshot.seatName = seats[booth.parentSeatId].name;
+    }
+    snapshot.boothName = booth.name;
+    snapshot.boothType = booth.boothType;
+    snapshot.voteType = booth.voteType;
+    snapshot.sameSeat = booth.sameSeat;
+    snapshots.push_back(std::move(snapshot));
+  }
+  return snapshots;
+}
+
 LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), sim(sim), run(run), previousElection(previousElection), currentElection(currentElection)
 {

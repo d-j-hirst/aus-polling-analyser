@@ -247,6 +247,14 @@ public:
     float raw2ppDeviation = 0.0f;
   };
 
+  struct BoothSnapshot {
+    std::string seatName;
+    std::string boothName;
+    Results2::Booth::Type boothType = Results2::Booth::Type::Invalid;
+    Results2::VoteType voteType = Results2::VoteType::Invalid;
+    bool sameSeat = false;
+  };
+
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
   float getTppShareBaseline() const {
@@ -470,6 +478,8 @@ public:
     internals.raw2ppDeviation = node.tppDeviation.value_or(0);
     return internals;
   }
+
+  std::vector<BoothSnapshot> getBoothSnapshots() const;
 
   LiveV2::Election generateScenario(int iterationIndex) const;
 

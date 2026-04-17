@@ -326,6 +326,8 @@ public:
 
 	std::optional<Report> const& getLiveBaselineReport() const;
 
+	std::vector<LiveV2::Election::BoothSnapshot> getLiveBoothSnapshots() const;
+
 	SavedReports const& viewSavedReports() const;
 
 	void deleteReport(int reportIndex);

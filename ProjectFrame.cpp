@@ -14,6 +14,7 @@
 #include "DownloadFrame.h"
 #include "AnalysisFrame.h"
 #include "MapFrame.h"
+#include "LiveBoothFrame.h"
 #include "GeneralSettingsFrame.h"
 
 enum TabsEnum {
@@ -31,7 +32,8 @@ enum TabsEnum {
 	Tab_Results,
 	Tab_Downloads,
 	Tab_Analysis,
-	Tab_Map
+	Tab_Map,
+	Tab_LiveBooths
 };
 
 // Constructor for the ProjectFrame loading from a pre-existing file.
@@ -97,6 +99,10 @@ void ProjectFrame::Refresher::refreshAnalysis() const {
 // Refreshes the Map frame data.
 void ProjectFrame::Refresher::refreshMap() const {
 	if (projectFrame.mapFrame) projectFrame.mapFrame->refreshData();
+}
+
+void ProjectFrame::Refresher::refreshLiveBooths() const {
+	if (projectFrame.liveBoothFrame) projectFrame.liveBoothFrame->refreshData();
 }
 
 bool ProjectFrame::checkSave() {
@@ -228,6 +234,7 @@ void ProjectFrame::setupPages() {
 	createPage<DownloadFrame>(downloadFrame);
 	createPage<AnalysisFrame>(analysisFrame);
 	createPage<MapFrame>(mapFrame);
+	createPage<LiveBoothFrame>(liveBoothFrame);
 }
 
 void ProjectFrame::saveUnderFilename(std::string const& pathName)

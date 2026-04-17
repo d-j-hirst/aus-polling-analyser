@@ -40,6 +40,7 @@ class ResultsFrame;
 class DownloadFrame;
 class AnalysisFrame;
 class MapFrame;
+class LiveBoothFrame;
 
 class LoadProjectFailedException : public std::runtime_error {
 public:
@@ -69,6 +70,7 @@ public:
 		void refreshResults() const;
 		void refreshAnalysis() const;
 		void refreshMap() const;
+		void refreshLiveBooths() const;
 		// Gives a reference to the underlying notebook so that this
 		// can be used to construct children of the ProjectFrame
 		wxNotebook* notebook() const { return &projectFrame; }
@@ -174,6 +176,9 @@ private:
 
 	// points to the map frame (if it exists).
 	MapFrame* mapFrame = nullptr;
+
+	// points to the live booth frame (if it exists).
+	LiveBoothFrame* liveBoothFrame = nullptr;
 
 	ParentFrame* parent;
 };

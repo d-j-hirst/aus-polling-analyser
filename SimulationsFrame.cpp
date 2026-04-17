@@ -244,6 +244,7 @@ void SimulationsFrame::runSimulation() {
 	project->simulations().run(simulationId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
 	simulationData->Refresh();
+	refresher.refreshLiveBooths();
 	if (project->config().getBeepOnCompletion()) beep();
 }
 

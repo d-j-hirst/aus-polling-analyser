@@ -236,7 +236,7 @@ sRegion=Northeast Sydney
 fTppMargin=-4.8
 fPreviousTppSwing=6.5
 fTransposedFederalSwing=5.0
-sCandidateNames=Monica Tudehope,LNP
+sCandidateNames=Monica Tudehope,LNP;Duncan Voyage,GRN
 #Fairfield
 sIncumbent=ALP
 sChallenger=LNP
@@ -647,7 +647,7 @@ sRegion=Inner West Sydney
 fTppMargin=29.8
 fPreviousTppSwing=8.2
 fTransposedFederalSwing=-0.3
-sCandidateNames=Jo Haylen,ALP
+sCandidateNames=Jo Haylen,ALP;Izabella Antoniou,GRN
 #Swansea
 sIncumbent=ALP
 sChallenger=LNP

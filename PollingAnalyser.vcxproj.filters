@@ -104,6 +104,9 @@
     <ClCompile Include="LatestResultsDataRetriever.cpp">
       <Filter>Source Files\Data Processing</Filter>
     </ClCompile>
+    <ClCompile Include="LiveBoothFrame.cpp">
+      <Filter>Source Files\Tabbed Frames</Filter>
+    </ClCompile>
     <ClCompile Include="Log.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
@@ -431,6 +434,9 @@
     </ClInclude>
     <ClInclude Include="LatestResultsDataRetriever.h">
       <Filter>Header Files\Data Processing</Filter>
+    </ClInclude>
+    <ClInclude Include="LiveBoothFrame.h">
+      <Filter>Header Files\Tabbed Frames</Filter>
     </ClInclude>
     <ClInclude Include="Log.h">
       <Filter>Header Files\Utility</Filter>

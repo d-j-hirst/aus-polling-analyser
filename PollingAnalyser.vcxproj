@@ -296,6 +296,7 @@
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="LivePreparation.cpp" />
+    <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MacroRunner.cpp" />
@@ -385,6 +386,7 @@
     <ClInclude Include="json.h" />
     <ClInclude Include="LinearRegression.h" />
     <ClInclude Include="LivePreparation.h" />
+    <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
     <ClInclude Include="MacroRunner.h" />
     <ClInclude Include="OrthogonalRegression.h" />

@@ -164,6 +164,7 @@ public:
 	bool isLiveAutomatic() const;
 	bool isLiveManual() const;
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
+	LiveV2::Election const* getLiveElection() const { return liveElection.get(); }
 
 private:
 
