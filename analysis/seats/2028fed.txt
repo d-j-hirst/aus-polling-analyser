@@ -118,13 +118,15 @@ sPolls=GRN,11,3;ON,18,3;GRN,10,3;ON,29,3
 sTppMrpPolls=DemosAU,2025-10-24,55
 sCandidateNames=Kristy McBain,ALP
 #Farrer
-sIncumbent=LNP
-sChallenger=ALP
+sIncumbent=ON
+sChallenger=LNP
 sRegion=NSW
 fTppMargin=-12.89
 fPreviousTppSwing=3.46
 sPolls=GRN,15,7;ON,13,22;GRN,6,3;ON,35,3
-sCandidateNames=Sussan Ley,LNP
+bSophomoreCandidate=1
+bSophomoreParty=1
+sCandidateNames=David Farley,ON
 #Fowler
 sIncumbent=IND
 sChallenger=ALP

@@ -744,6 +744,14 @@ void SimulationPreparation::loadPastSeatResults()
 				run.pastSeatResults[seatIndex].fpVoteCount[OthersIndex] = 9723;
 				run.pastSeatResults[seatIndex].fpVotePercent[OthersIndex] = 9.15f;
 			}
+			if (project.seats().viewByIndex(seatIndex).name == "Farrer") {
+				// Model as direct LNP votes to ON directly to match by-election result
+				// exact modelling of major party votes not critical as only the ON vote is used in a substantial way
+				run.pastSeatResults[seatIndex].fpVoteCount[7] = 40751;
+				run.pastSeatResults[seatIndex].fpVotePercent[7] = 39.53f;
+				run.pastSeatResults[seatIndex].fpVoteCount[1] = 10795;
+				run.pastSeatResults[seatIndex].fpVotePercent[1] = 10.47f;
+			}
 		}
 	}
 	else if (run.getTermCode() == "2027nsw") {
