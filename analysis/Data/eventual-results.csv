@@ -5,7 +5,6 @@
 2025,fed,ONP FP,6.4
 2025,fed,UAP FP,1.91
 2025,fed,OTH FP,21.42
-2019,fed,@TPP,48.47
 2022,fed,@TPP,52.13
 2022,fed,LNP FP,35.7
 2022,fed,ALP FP,32.58
@@ -362,6 +361,12 @@
 1989,wa,ALP FP,42.46
 1989,wa,NAT FP,4.6
 1989,wa,OTH FP,10.15
+2026,sa,@TPP,57.89,#Kevin Bonham's estimate
+2026,sa,LNP FP,18.9
+2026,sa,ALP FP,37.5
+2026,sa,GRN FP,10.4
+2026,sa,ONP FP,22.9,#Changed for testing, actually 22.9
+2026,sa,OTH FP,33.2
 2022,sa,@TPP,54.59
 2022,sa,LNP FP,35.67
 2022,sa,ALP FP,39.97

@@ -87,6 +87,16 @@ def get_links():
     return links
 
 
+def get_significant_parties(target_election):
+    with open('Data/significant-parties.csv', 'r') as f:
+        for line in f:
+            parts = [a.strip() for a in line.split(',')]
+            if (int(parts[0]) == target_election.year()
+                and parts[1] == target_election.region()):
+                return parts[2:]
+    return []
+
+
 def check_dates(election, target_election, cycles, equals=False):
     # Returns True is the election should be used for the target election
     if election.year() > target_election.year(): return False
@@ -406,9 +416,11 @@ def analyse_bias(target_election, cycles, links):
     weight_list = {}
     filenames = os.listdir(directory)
     lib = False
-    # Get all the different pollster/party combinations
-    # that are actually needed for this election
-    # and establish a prior expectation for each
+    target_pollsters = set()
+    target_parties = set()
+    significant_parties = set(get_significant_parties(target_election))
+
+    # Get all target-election pollsters and parties that have calibration files.
     for filename in filenames:
         if 'biascal' not in filename or 'polls' not in filename: continue
         election = filename.split('.')[0].split('_')[2]
@@ -418,16 +430,21 @@ def analyse_bias(target_election, cycles, links):
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
         if party == "LIB FP": party = "LNP FP"; lib = True
+        if significant_parties and party not in significant_parties:
+            continue
+        target_parties.add(party)
         with open(f'{directory}/{filename}', 'r') as f:
             data = f.readlines()[1:]
             for line in data:
-                pollster = line.split(',')[0]
-                key = (pollster, party)
-                # Add a small amount to the weight when a new pollster/party is
-                # encountered to establish prior expectation and avoid
-                # overfitting to the first few data points
-                bias_list[key] = [4, -4]
-                weight_list[key] = [0.5, 0.5]
+                target_pollsters.add(line.split(',')[0])
+
+    # Establish a prior expectation for every target pollster/significant party
+    # combination, even if that pollster has not reported the party yet.
+    for pollster in target_pollsters:
+        for party in target_parties:
+            key = (pollster, party)
+            bias_list[key] = [4, -4]
+            weight_list[key] = [0.5, 0.5]
 
 
     # Cycle through elections to exclude
