@@ -1028,6 +1028,9 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		);
 	}
 
+	constexpr float MaxSpecificPartyFpShare = 99.0f;
+	regularVoteShare = std::min(regularVoteShare, MaxSpecificPartyFpShare);
+
 	if (partyIndex == run.indPartyIndex && seat.incumbent != run.indPartyIndex) {
 		// Add potential re-runs under "Emerging Independent" instead
 		voteShare = 0.0f;
