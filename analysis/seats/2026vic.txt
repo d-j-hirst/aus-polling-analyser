@@ -501,7 +501,8 @@ sRegion=Pakenham Line
 fTppMargin=8.3
 fPreviousTppSwing=-2.1
 fTransposedFederalSwing=6.7
-sCandidateNames=Gary Maas,ALP
+bRetirement=1
+sCandidateNames=
 #Nepean
 sIncumbent=ALP
 sChallenger=LNP

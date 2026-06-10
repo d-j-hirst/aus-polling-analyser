@@ -65,6 +65,8 @@ elif results:
     if not upload_local:
         with open("prefill_results.json") as f:
             pre_fill = json.load(f)
+        if pre_fill.get("code") != results:
+            pre_fill = None
     data = '{"termCode":"' + results + '", "preFill":' + json.dumps(pre_fill) + '}'
     print(data)
 elif review:
