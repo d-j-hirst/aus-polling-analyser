@@ -276,6 +276,8 @@ void SimulationCompletion::recordNames()
 			// incumbent is 3rd party and gained seat in by-election, just skip for now
 			sim.latestReport.seatIncumbentMargins.push_back(0);
 		}
+		// Store names in the report at simulation time. Saved reports must not
+		// depend on the project's mutable seat data when uploaded later.
 		std::map<int, std::string> candidateNames;
 		for (auto const& [candidateName, partyCode] : seat.candidateNames) {
 			int const partyIndex = project.parties().indexByShortCode(partyCode);

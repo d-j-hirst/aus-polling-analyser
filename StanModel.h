@@ -154,6 +154,9 @@ private:
 	typedef std::array<double, int(InputParameters::Max)> ParameterSet;
 	typedef std::array<double, int(EmergingPartyParameters::Max)> EmergingPartyParameterSet;
 	typedef std::vector<ParameterSet> ParameterSeries;
+
+	// Adjustment parameters are generated at several transformed poll-support
+	// anchors. Runtime values are linearly interpolated between adjacent anchors.
 	struct ParameterLevel {
 		double trendLevel = 0.0;
 		ParameterSeries series;

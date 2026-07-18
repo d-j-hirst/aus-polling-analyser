@@ -151,8 +151,9 @@ public:
 			return std::min(T(MaxDf), df);
 		};
 
-		// Select whichever available endpoint is closer by kurtosis when the
-		// calculated degrees of freedom would exceed the lookup range.
+		// The df=MaxDf t distribution has kurtosis 3 + 6/(MaxDf-4).
+		// Switch halfway between that value and the normal distribution's 3,
+		// selecting whichever available endpoint is closer by kurtosis.
 		T const normalKurtosisThreshold =
 			T(3.0) + T(3.0) / (T(MaxDf) - T(4.0));
 

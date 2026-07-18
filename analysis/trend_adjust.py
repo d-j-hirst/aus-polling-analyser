@@ -1,3 +1,24 @@
+"""Generate the historical adjustments used by the election forecast model.
+
+The script combines previously generated poll trends with prior and eventual
+election results. It groups comparable parties, produces leave-one-election-out
+fundamentals forecasts, and measures how poll trends, fundamentals, and blends
+of the two performed at different distances from election day. From those
+comparisons it estimates systematic biases, the preferred balance between
+polls and fundamentals, and separate uncertainty distributions for results
+above and below the central forecast.
+
+The resulting daily parameter series are smoothed and written to
+``Adjustments/`` for use by the C++ model; fundamentals forecasts are written
+to ``Fundamentals/``. When targeting a past election, that election is excluded
+from the training data so the same process can be used for genuine hindcasts.
+
+Because party-group behaviour can depend strongly on its level of support,
+historical observations are also weighted by similarity at several transformed
+support anchors. The C++ model interpolates between those pre-calculated
+anchors for the current poll trend.
+"""
+
 from election_code import ElectionCode, no_target_election_marker
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
@@ -9,14 +30,13 @@ from numpy import array, transpose, dot, average, amax, amin, median
 
 import argparse
 import math
-import os
 import statistics
 
-poll_score_threshold = 3
-trend_adjustment_levels = [-100, -80, -60, -40, -20, 0]
-trend_similarity_stddev = 15
-mixed_similarity_scale = 20
-diagnostic_rows_per_ranking = 5
+TREND_ADJUSTMENT_LEVELS = [-100, -80, -60, -40, -20, 0]
+TREND_SIMILARITY_STDDEV = 15
+MIXED_SIMILARITY_SCALE = 20
+DIAGNOSTIC_ROWS_PER_RANKING = 5
+ADJUSTMENT_PARAMETER_COUNT = 8
 
 # To keep analysis simple, and maintain decent sample sizes, group
 # polled parties into categories with similar expected behaviour.
@@ -29,8 +49,6 @@ average_length = {a: 6 if a == "ALP" or a == "LNP" or a == "TPP" else 1
                   for a in party_groups.keys()}
 
 unnamed_others_code = party_groups['xOTH'][0]
-
-debugged = False
 
 class ElectionPartyCode:
     def __init__(self, election, party):
@@ -642,7 +660,7 @@ def import_trend_file(filename):
 # to determine direction of monotonicity
 def print_smoothed_series(config, label, some_dict, file,
                           force_monotone=False,
-                          bounds=[-math.inf, math.inf],
+                          bounds=(-math.inf, math.inf),
                           prefix=None):
     # print(label)
     # print(some_dict)
@@ -660,6 +678,12 @@ def print_smoothed_series(config, label, some_dict, file,
     daily_x = [.5 * (math.sqrt(8 * n + 1) - 1)
                for n in range(0, total_days + 1)]
     daily_spline = list(spline(daily_x))
+    if not all(math.isfinite(value) for value in daily_spline):
+        level_description = (
+            '' if prefix is None else f' at target trend {prefix:g}')
+        raise ValueError(
+            f'{label} produced a non-finite adjustment'
+            f'{level_description}')
     if force_monotone:
         if daily_spline[len(daily_spline) - 1] > daily_spline[0]:
             for day in range(0, len(daily_spline) - 1):
@@ -710,9 +734,10 @@ def trend_similarity(poll_value, target_trend):
     transformed_poll = transform_vote_share(poll_value)
     comparable_poll = clamp(
         transformed_poll,
-        trend_adjustment_levels[0],
-        trend_adjustment_levels[-1])
-    distance = (comparable_poll - target_trend) / trend_similarity_stddev
+        TREND_ADJUSTMENT_LEVELS[0],
+        TREND_ADJUSTMENT_LEVELS[-1])
+    distance = (
+        (comparable_poll - target_trend) / TREND_SIMILARITY_STDDEV)
     return math.exp(-0.5 * distance ** 2), transformed_poll
 
 
@@ -843,8 +868,9 @@ def get_single_election_data(exclude, inputs, poll_trend, party_group, day_data,
         selected_keys = {
             source_key(item)
             for item in (
-                weighted_sources[:diagnostic_rows_per_ranking]
-                + weighted_sources_by_weight[:diagnostic_rows_per_ranking])
+                weighted_sources[:DIAGNOSTIC_ROWS_PER_RANKING]
+                + weighted_sources_by_weight[
+                    :DIAGNOSTIC_ROWS_PER_RANKING])
         }
         selected_sources = [
             item for item in weighted_sources
@@ -933,14 +959,10 @@ def get_single_election_data(exclude, inputs, poll_trend, party_group, day_data,
         day_data.overall_poll_biases = [poll_bias]
     if studied_election == no_target_election_marker:
         return
-    if bias_data.studied_fundamentals_error is not None:
-        previous_debiased_error = (bias_data.studied_fundamentals_error
-                                   - fundamentals_bias)
     if len(bias_data.studied_poll_errors) > 0:
         zipped_bias_data = zip(bias_data.studied_poll_errors,
                                bias_data.studied_poll_parties)
         for studied_poll_error, studied_poll_party in zipped_bias_data:
-            poll_debiased_error = studied_poll_error - poll_bias
             party_code = ElectionPartyCode(studied_election,
                                            studied_poll_party)
             fundamentals = inputs.fundamentals[party_code]
@@ -959,7 +981,7 @@ def get_single_election_data(exclude, inputs, poll_trend, party_group, day_data,
                 relevance = (1 if exclude.region() == "fed"
                         and studied_election.region() == "fed" else 0)
                 weight = 10 * 2 ** -(poll_distance / 12) * (1 + 3 * relevance)
-                weight *= similarity * mixed_similarity_scale
+                weight *= similarity * MIXED_SIMILARITY_SCALE
                 day_data.mixed_errors[mix_index].append(mixed_error)
                 day_data.mixed_weights[mix_index].append(weight)
 
@@ -999,8 +1021,6 @@ def get_day_data(exclude, inputs, poll_trend, party_group, day,
         rmse_factor = 0.6
         mixed_criteria = [0, 0]
         for mix_index in range(0, len(mix_limits)):
-            mixed_deviation = smoothed_median(
-                [abs(a) for a in day_data.mixed_errors[mix_index]], 2)
             mixed_rmse = math.sqrt(
                 mean_squared_error(
                     day_data.mixed_errors[mix_index],
@@ -1037,7 +1057,6 @@ class PartyData:
         self.poll_biases = {}
         self.fundamentals_biases = {}
         self.mixed_biases = {}
-        self.deviations = {}
         self.lower_rmses = {}
         self.upper_rmses = {}
         self.lower_kurtoses = {}
@@ -1057,12 +1076,6 @@ def get_party_data(config, exclude, inputs, poll_trend, party_group,
                                 diagnostics=(
                                     config.diagnostics_enabled_for(party_group)
                                     and day == 0))
-        day_multiplier = 1 + math.sqrt(day / 100)
-        extension = (prior_errors[party_group] * day_multiplier, -prior_errors[party_group] * day_multiplier)
-        #  day_data.overall_poll_biases.extend(extension)
-        if day == 0:
-            fundamentals_bias = smoothed_median(
-                day_data.overall_fundamentals_biases, 2)
         poll_bias = smoothed_median(
             day_data.overall_poll_biases, 2)
         # if "TPP" in party_group and day <= 200:
@@ -1073,9 +1086,6 @@ def get_party_data(config, exclude, inputs, poll_trend, party_group,
             day_data.overall_fundamentals_biases, 2)
         mixed_bias = weighted_median(
             day_data.mixed_errors[1],
-            day_data.mixed_weights[1])
-        mixed_deviation = weighted_median(
-            [abs(a) for a in day_data.mixed_errors[1]],
             day_data.mixed_weights[1])
         # These values are the RMSE for the subset of values where the
         # acutal value is overestimated (mix_errors >= 0)
@@ -1110,7 +1120,6 @@ def get_party_data(config, exclude, inputs, poll_trend, party_group,
         party_data.poll_biases[day] = poll_bias
         party_data.fundamentals_biases[day] = fundamentals_bias
         party_data.mixed_biases[day] = mixed_bias
-        party_data.deviations[day] = mixed_deviation
         party_data.lower_rmses[day] = lower_rmse
         party_data.upper_rmses[day] = upper_rmse
         party_data.lower_kurtoses[day] = lower_kurtosis
@@ -1123,7 +1132,10 @@ def save_party_data(config, party_data_by_level, exclude, party_group):
     filename = (f'./Adjustments/adjust_{exclude.year()}'
                 f'{exclude.region()}_{party_group}.csv')
     with open(filename, 'w') as f:
-        for target_trend in trend_adjustment_levels:
+        # Each block has one row per adjustment parameter. The transformed
+        # support anchor is repeated in column one so files remain readable
+        # and each row can be inspected independently.
+        for target_trend in TREND_ADJUSTMENT_LEVELS:
             party_data = party_data_by_level[target_trend]
             print_smoothed_series(config, 'Poll Bias',
                                   party_data.poll_biases, f,
@@ -1160,10 +1172,8 @@ def test_procedure(config, inputs, poll_trend, exclude):
     for party_group in party_groups.keys():
         print(f'*** DETERMINING TREND ADJUSTMENTS FOR PARTY GROUP'
               f' {party_group} ***')
-        global debugged
-        debugged = False
         party_data_by_level = {}
-        for target_trend in trend_adjustment_levels:
+        for target_trend in TREND_ADJUSTMENT_LEVELS:
             party_data_by_level[target_trend] = get_party_data(
                 config=config,
                 exclude=exclude,
@@ -1182,24 +1192,25 @@ def load_adjustment_data(filename):
         rows = [
             [float(value) for value in line.strip().split(',')]
             for line in f if line.strip()]
-    parameter_count = 8
-    if len(rows) == parameter_count:
+    if any(not math.isfinite(value) for row in rows for value in row):
+        raise ValueError(f'{filename} contains a non-finite value')
+    if len(rows) == ADJUSTMENT_PARAMETER_COUNT:
         if any(len(row) != len(rows[0]) for row in rows):
             raise ValueError(
                 f'{filename} has inconsistent daily value counts')
         return [(None, rows)]
-    if not rows or len(rows) % parameter_count:
+    if not rows or len(rows) % ADJUSTMENT_PARAMETER_COUNT:
         raise ValueError(
             f'{filename} has {len(rows)} rows; expected 8 rows or '
             'a multiple of 8')
     grids = []
-    for start in range(0, len(rows), parameter_count):
-        block = rows[start:start + parameter_count]
+    for start in range(0, len(rows), ADJUSTMENT_PARAMETER_COUNT):
+        block = rows[start:start + ADJUSTMENT_PARAMETER_COUNT]
         target_trend = block[0][0]
         if any(row[0] != target_trend for row in block):
             raise ValueError(
                 f'{filename} has inconsistent trend levels in rows '
-                f'{start + 1}-{start + parameter_count}')
+                f'{start + 1}-{start + ADJUSTMENT_PARAMETER_COUNT}')
         daily_values = [row[1:] for row in block]
         if any(len(row) != len(daily_values[0])
                for row in daily_values):

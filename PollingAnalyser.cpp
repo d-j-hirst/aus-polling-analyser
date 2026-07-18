@@ -30,6 +30,7 @@ public:
 
   // Rethrow event-handler exceptions instead of showing wxWidgets' default
   // Abort/Retry/Ignore dialog, allowing the debugger to break on them.
+  // Keep wxAppBase::OnRun(): it enables exit when the last frame is destroyed.
   virtual bool OnExceptionInMainLoop() override
   {
     throw;

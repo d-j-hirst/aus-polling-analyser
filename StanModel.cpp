@@ -4,6 +4,7 @@
 #include "Log.h"
 #include "SpecialPartyCodes.h"
 
+#include <cmath>
 #include <fstream>
 #include <future>
 #include <numeric>
@@ -13,6 +14,8 @@
 constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
+// Cached model files predate explicit headers. The magic value distinguishes
+// the new format while the version tracks the expanded parameter-grid layout.
 constexpr std::uint32_t GeneratedDataMagic = 0x50414d32;
 constexpr std::uint32_t GeneratedDataVersion = 2;
 
@@ -234,6 +237,9 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 		for (std::string line; std::getline(file, line);) {
 			if (!line.empty()) rows.push_back(splitString(line, ","));
 		}
+		// Legacy files contain one eight-row parameter series. Current files
+		// contain one such block per transformed support anchor, with the
+		// anchor repeated in the first column of every row in its block.
 		bool const legacyFormat = rows.size() == ParameterCount;
 		if (!legacyFormat && (rows.empty() || rows.size() % ParameterCount)) {
 			feedback("Error: Adjustment file has an invalid row count: " + loadedFileName);
@@ -257,6 +263,13 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 
 		ParameterGrid grid;
 		try {
+			auto parseFinite = [](std::string const& text) {
+				double const value = std::stod(text);
+				if (!std::isfinite(value)) {
+					throw std::domain_error("non-finite adjustment parameter");
+				}
+				return value;
+			};
 			for (int levelIndex = 0; levelIndex < levelCount; ++levelIndex) {
 				int const firstRow = levelIndex * ParameterCount;
 				auto const& levelRow = rows[firstRow];
@@ -264,7 +277,9 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 					feedback("Error: Adjustment rows have inconsistent daily value counts: " + loadedFileName);
 					return false;
 				}
-				double const trendLevel = legacyFormat ? 0.0 : std::stod(levelRow[0]);
+				double const trendLevel = legacyFormat
+					? 0.0
+					: parseFinite(levelRow[0]);
 				if (!grid.empty() && trendLevel <= grid.back().trendLevel) {
 					feedback("Error: Adjustment trend levels are not strictly increasing: " + loadedFileName);
 					return false;
@@ -276,19 +291,20 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 						feedback("Error: Adjustment rows have inconsistent daily value counts: " + loadedFileName);
 						return false;
 					}
-					if (!legacyFormat && std::stod(row[0]) != trendLevel) {
+					if (!legacyFormat && parseFinite(row[0]) != trendLevel) {
 						feedback("Error: Adjustment block contains inconsistent trend levels: " + loadedFileName);
 						return false;
 					}
 					for (int day = 0; day < numDays; ++day) {
-						series[day][parameter] = std::stod(row[day + firstValueColumn]);
+						series[day][parameter] =
+							parseFinite(row[day + firstValueColumn]);
 					}
 				}
 				grid.push_back(ParameterLevel{ trendLevel, std::move(series) });
 			}
 		}
 		catch (std::exception const&) {
-			feedback("Error: Adjustment file contains a value that could not be parsed: " + loadedFileName);
+			feedback("Error: Adjustment file contains an invalid or non-finite value: " + loadedFileName);
 			return false;
 		}
 		parameters[partyGroup] = std::move(grid);
@@ -538,6 +554,8 @@ double StanModel::rawMedianTrend(std::string const& partyCode, wxDateTime date) 
 {
 	int const dayOffset = rawSupportDayOffset(date);
 	Series const& series = partyCode == TppCode ? rawTppSupport : rawSupport.at(partyCode);
+	// Select the adjustment regime from the underlying trend, not this
+	// iteration's random draw, so parameter choice doesn't add extra variance.
 	double const medianVote = std::clamp(
 		double(series.timePoint[dayOffset].values[MedianSpreadValue]),
 		0.1, 99.9);

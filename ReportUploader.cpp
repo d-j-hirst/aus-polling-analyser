@@ -105,6 +105,8 @@ std::string ReportUploader::upload()
 			break;
 		}
 	}
+	// Reports saved before project format 64 did not persist candidate names.
+	// Reconstruct those reports from the same election project's seat metadata.
 	if (seatCandidateNames.size() != size_t(project.seats().count()) ||
 		!reportHasCandidateNames) {
 		seatCandidateNames.clear();
