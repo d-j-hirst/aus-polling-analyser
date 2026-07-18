@@ -1694,6 +1694,10 @@ def analyse_nationals(elections, all_elections):
                 provisional_nats_share = previous_nationals_share * 0.5
             elif provisional_nats_share > (previous_nationals_share + 1) / 2:
                 provisional_nats_share = (previous_nationals_share + 1) / 2
+            # Andrew Lethlean is the confirmed Coalition candidate, while no
+            # Liberal candidate is currently expected to contest Bendigo East.
+            if target_election == ElectionCode(2026, 'vic') and seat.name == 'Bendigo East':
+                provisional_nats_share = 1.0
             predictions.append((seat.name, provisional_nats_share))
         
         filename = (f'./Nationals/{target_election.year()}{target_election.region()}_seats.csv')

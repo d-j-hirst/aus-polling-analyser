@@ -277,9 +277,9 @@ void SimulationCompletion::recordNames()
 			sim.latestReport.seatIncumbentMargins.push_back(0);
 		}
 		std::map<int, std::string> candidateNames;
-		for (auto [name, party] : seat.candidateNames) {
-			int partyIndex = project.parties().indexByShortCode(party);
-			candidateNames[partyIndex] = name;
+		for (auto const& [candidateName, partyCode] : seat.candidateNames) {
+			int const partyIndex = project.parties().indexByShortCode(partyCode);
+			if (partyIndex >= 0) candidateNames[partyIndex] = candidateName;
 		}
 		sim.latestReport.seatCandidateNames.push_back(candidateNames);
 	}

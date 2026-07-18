@@ -117,6 +117,7 @@ public:
 
 	// Known candidate names (doesn't have do be 100% guaranteed, just confirmed as running
 	// for now, or the incumbent if they haven't announced retirement etc.)
+	// Maps candidate name to party short code.
 	std::map<std::string, std::string> candidateNames;
 
 	// Store date (in string form) and TPP

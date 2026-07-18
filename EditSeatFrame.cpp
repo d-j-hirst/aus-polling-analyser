@@ -422,9 +422,9 @@ void EditSeatFrame::createCandidateNamesInput(int& y)
 {
 	std::string candidateNames = "";
 	bool firstDone = false;
-	for (auto [shortCode, value] : seat.candidateNames) {
+	for (auto const& [candidateName, partyCode] : seat.candidateNames) {
 		if (firstDone) candidateNames += ";";
-		candidateNames += shortCode + "," + value;
+		candidateNames += candidateName + "," + partyCode;
 		firstDone = true;
 	}
 
@@ -509,10 +509,10 @@ void partyStringUpdate(std::string input, std::map<std::string, std::string>& st
 	for (auto odds : vec) {
 		auto item = splitString(odds, ",");
 		if (item.size() < 2) continue;
-		std::string party = item[0];
+		std::string key = item[0];
 		try {
-			std::string val = item[1];
-			storedValue[party] = val;
+			std::string value = item[1];
+			storedValue[key] = value;
 		}
 		catch (std::invalid_argument) {
 			continue;

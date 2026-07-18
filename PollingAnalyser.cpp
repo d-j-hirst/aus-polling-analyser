@@ -28,12 +28,11 @@ class MyApp : public wxApp
 public:
 	virtual bool OnInit();
 
-  // Override OnRun to bypass the built-in try/catch
-  virtual int OnRun() override
+  // Rethrow event-handler exceptions instead of showing wxWidgets' default
+  // Abort/Retry/Ignore dialog, allowing the debugger to break on them.
+  virtual bool OnExceptionInMainLoop() override
   {
-    // Default wxApp::OnRun calls MainLoop() inside a try/catch.
-    // We call MainLoop() directly to let exceptions bubble up to the OS/Debugger.
-    return MainLoop();
+    throw;
   }
 };
 

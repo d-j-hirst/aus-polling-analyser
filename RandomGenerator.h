@@ -144,14 +144,26 @@ public:
 			return uniform01_from_key(key);   // uses splitmix64 inside
 		};
 
+		// Clamp before conversion to int: interpolation can leave kurtosis
+		// infinitesimally above 3 and produce an out-of-range df.
+		auto boundedDegreesOfFreedom = [](T kurtosis) {
+			T const df = T(6.0) / (kurtosis - T(3.0)) + T(4.0);
+			return std::min(T(MaxDf), df);
+		};
+
+		// Select whichever available endpoint is closer by kurtosis when the
+		// calculated degrees of freedom would exceed the lookup range.
+		T const normalKurtosisThreshold =
+			T(3.0) + T(3.0) / (T(MaxDf) - T(4.0));
+
 		// are we looking in the upper or lower half of the distribution?
-		if (upper_kurt <= T(3.0)) {
+		if (upper_kurt <= normalKurtosisThreshold) {
 			// use normal distribution for low kurtosis
 			upperVal = scaledNormalQuantile(quantile, mean, upper_sd);
 		}
 		else {
 			// map kurtosis value to approximate t-dist degrees of freedom
-			T df = T(6.0) / (upper_kurt - 3.0) + T(4.0);
+			T df = boundedDegreesOfFreedom(upper_kurt);
 			T floor_df = std::floor(df);
 			T ceil_factor = df - floor_df;
 			T u = (quantile >= T(0.0))
@@ -165,13 +177,13 @@ public:
 			}
 		}
 		T lowerVal = 0.0;
-		if (lower_kurt <= T(3.0)) {
+		if (lower_kurt <= normalKurtosisThreshold) {
 			// use normal distribution for low kurtosis
 			lowerVal = scaledNormalQuantile(quantile, mean, lower_sd);
 		}
 		else {
 			// map kurtosis value to approximate t-dist degrees of freedom
-			T df = T(6.0) / (lower_kurt - 3.0) + T(4.0);
+			T df = boundedDegreesOfFreedom(lower_kurt);
 			T floor_df = std::floor(df);
 			T ceil_factor = df - floor_df;
 			T u = (quantile >= T(0.0))

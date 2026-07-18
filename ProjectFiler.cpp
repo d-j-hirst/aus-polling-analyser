@@ -68,7 +68,8 @@
 // Version 61: more coalition data
 // Version 62: store election term code
 // Version 63: save seat live manual overrides
-constexpr int VersionNum = 63;
+// Version 64: save candidate names in simulation reports
+constexpr int VersionNum = 64;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -621,6 +622,7 @@ void saveReport(SaveFileOutput& saveOutput, Simulation::Report const& report)
 	saveOutput << report.partyColour;
 	saveOutput << report.regionName;
 	saveOutput << report.seatName;
+	saveOutput << report.seatCandidateNames;
 	saveOutput << report.seatIncumbents;
 	saveOutput << report.seatMargins;
 	saveOutput << report.seatIncumbentMargins;
@@ -734,6 +736,9 @@ Simulation::Report loadReport(SaveFileInput& saveInput, int versionNum)
 	}
 	saveInput >> report.regionName;
 	saveInput >> report.seatName;
+	if (versionNum >= 64) {
+		saveInput >> report.seatCandidateNames;
+	}
 	saveInput >> report.seatIncumbents;
 	saveInput >> report.seatMargins;
 	if (versionNum >= 40) {

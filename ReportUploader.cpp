@@ -97,7 +97,29 @@ std::string ReportUploader::upload()
 		j["seatTcpBands"] = thisReport.report.seatTcpProbabilityBand;
 		j["polls"] = thisReport.report.modelledPolls;
 	}
-	j["seatCandidateNames"] = thisReport.report.seatCandidateNames;
+	auto seatCandidateNames = thisReport.report.seatCandidateNames;
+	bool reportHasCandidateNames = false;
+	for (auto const& seatNames : seatCandidateNames) {
+		if (!seatNames.empty()) {
+			reportHasCandidateNames = true;
+			break;
+		}
+	}
+	if (seatCandidateNames.size() != size_t(project.seats().count()) ||
+		!reportHasCandidateNames) {
+		seatCandidateNames.clear();
+		seatCandidateNames.resize(project.seats().count());
+		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+			for (auto const& [candidateName, partyCode] :
+				project.seats().viewByIndex(seatIndex).candidateNames) {
+				int const partyIndex = project.parties().indexByShortCode(partyCode);
+				if (partyIndex >= 0) {
+					seatCandidateNames[seatIndex][partyIndex] = candidateName;
+				}
+			}
+		}
+	}
+	j["seatCandidateNames"] = seatCandidateNames;
 	j["seatSwingFactors"] = thisReport.report.swingFactors;
 	if (thisReport.report.getCoalitionFpSampleExpectation() > 0.0f) {
 		VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
