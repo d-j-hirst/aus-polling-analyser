@@ -154,7 +154,12 @@ private:
 	typedef std::array<double, int(InputParameters::Max)> ParameterSet;
 	typedef std::array<double, int(EmergingPartyParameters::Max)> EmergingPartyParameterSet;
 	typedef std::vector<ParameterSet> ParameterSeries;
-	typedef std::map<std::string, ParameterSeries> ParameterSeriesByPartyGroup;
+	struct ParameterLevel {
+		double trendLevel = 0.0;
+		ParameterSeries series;
+	};
+	typedef std::vector<ParameterLevel> ParameterGrid;
+	typedef std::map<std::string, ParameterGrid> ParameterGridByPartyGroup;
 
 	typedef std::map<std::string, double> Fundamentals;
 
@@ -165,7 +170,7 @@ private:
 	void loadFundamentalsPredictions();
 
 	// Loads coefficients for model parameters from files
-	void loadParameters(FeedbackFunc feedback);
+	bool loadParameters(FeedbackFunc feedback);
 
 	// Loads parameters specifically relating to emerging others
 	void loadEmergingOthersParameters(FeedbackFunc feedback);
@@ -189,7 +194,15 @@ private:
 
 	void generateUnnamedOthersSeries();
 
-	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, int days = 0, int iterationIndex = -1) const;
+	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, wxDateTime date,
+		int days = 0, int iterationIndex = -1) const;
+
+	int rawSupportDayOffset(wxDateTime date) const;
+
+	double rawMedianTrend(std::string const& partyCode, wxDateTime date) const;
+
+	ParameterSet interpolatedParameters(std::string const& partyGroup,
+		int day, double transformedTrend) const;
 
 	void updateAdjustedData(FeedbackFunc feedback, int numThreads);
 
@@ -247,7 +260,7 @@ private:
 	Fundamentals fundamentals;
 	EmergingPartyParameterSet emergingParameters;
 
-	ParameterSeriesByPartyGroup parameters;
+	ParameterGridByPartyGroup parameters;
 
 	PartyCodes partyCodeVec;
 	PartyParameters preferenceFlowMap;

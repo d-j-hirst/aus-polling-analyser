@@ -13,6 +13,8 @@
 constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
+constexpr std::uint32_t GeneratedDataMagic = 0x50414d32;
+constexpr std::uint32_t GeneratedDataVersion = 2;
 
 std::mutex debugMutex;
 
@@ -157,7 +159,7 @@ bool StanModel::prepareForRun(FeedbackFunc feedback)
 {
 	loadPartyGroups();
 	loadFundamentalsPredictions();
-	loadParameters(feedback);
+	if (!loadParameters(feedback)) return false;
 	loadEmergingOthersParameters(feedback);
 	if (!generatePreferenceMaps(feedback)) return false;
 	if (!loadModelledPolls(feedback)) return false;
@@ -207,37 +209,91 @@ void StanModel::loadFundamentalsPredictions()
 	} while (true);
 }
 
-void StanModel::loadParameters(FeedbackFunc feedback)
+bool StanModel::loadParameters(FeedbackFunc feedback)
 {
 	parameters = {};
+	numDays = 0;
+	constexpr int ParameterCount = int(InputParameters::Max);
 	for (auto const& [partyGroup, partyList] : partyGroups) {
 		// If there's a specific adjustment file for this election (usually only for hindcasts) use that
 		// Otherwise (as for future elections) just use the general versions that use all past elections
 		std::string electionFileName = "analysis/Adjustments/adjust_" + termCode + "_" + partyGroup + ".csv";
 		std::string generalFileName = "analysis/Adjustments/adjust_0none_" + partyGroup + ".csv";
+		std::string loadedFileName = electionFileName;
 		auto file = std::ifstream(electionFileName);
-		if (!file) file = std::ifstream(generalFileName);
+		if (!file) {
+			file = std::ifstream(generalFileName);
+			loadedFileName = generalFileName;
+		}
 		if (!file) {
 			feedback("Error: Could not find an adjustment file for party group: " + partyGroup);
-			return;
+			return false;
 		}
-		std::string line;
-		std::getline(file, line);
-		auto coeffLine = splitString(line, ",");
-		if (!numDays) numDays = coeffLine.size();
-		ParameterSeries series(numDays, ParameterSet{}); // final argument braces sets to zero rather than uninitialized
-		for (int day = 0; day < numDays; ++day) {
-			series[day][0] = std::stod(coeffLine[day]);
+
+		std::vector<std::vector<std::string>> rows;
+		for (std::string line; std::getline(file, line);) {
+			if (!line.empty()) rows.push_back(splitString(line, ","));
 		}
-		for (int coeffType = 1; coeffType < int(InputParameters::Max); ++coeffType) {
-			std::getline(file, line);
-			coeffLine = splitString(line, ",");
-			for (int day = 0; day < numDays; ++day) {
-				series[day][coeffType] = std::stod(coeffLine[day]);
+		bool const legacyFormat = rows.size() == ParameterCount;
+		if (!legacyFormat && (rows.empty() || rows.size() % ParameterCount)) {
+			feedback("Error: Adjustment file has an invalid row count: " + loadedFileName);
+			return false;
+		}
+
+		int const levelCount = legacyFormat ? 1 : int(rows.size()) / ParameterCount;
+		int const firstValueColumn = legacyFormat ? 0 : 1;
+		int const thisNumDays = int(rows[0].size()) - firstValueColumn;
+		if (thisNumDays <= 0) {
+			feedback("Error: Adjustment file has no daily values: " + loadedFileName);
+			return false;
+		}
+		if (!numDays) {
+			numDays = thisNumDays;
+		}
+		else if (numDays != thisNumDays) {
+			feedback("Error: Adjustment files have inconsistent daily value counts: " + loadedFileName);
+			return false;
+		}
+
+		ParameterGrid grid;
+		try {
+			for (int levelIndex = 0; levelIndex < levelCount; ++levelIndex) {
+				int const firstRow = levelIndex * ParameterCount;
+				auto const& levelRow = rows[firstRow];
+				if (int(levelRow.size()) != numDays + firstValueColumn) {
+					feedback("Error: Adjustment rows have inconsistent daily value counts: " + loadedFileName);
+					return false;
+				}
+				double const trendLevel = legacyFormat ? 0.0 : std::stod(levelRow[0]);
+				if (!grid.empty() && trendLevel <= grid.back().trendLevel) {
+					feedback("Error: Adjustment trend levels are not strictly increasing: " + loadedFileName);
+					return false;
+				}
+				ParameterSeries series(numDays, ParameterSet{});
+				for (int parameter = 0; parameter < ParameterCount; ++parameter) {
+					auto const& row = rows[firstRow + parameter];
+					if (int(row.size()) != numDays + firstValueColumn) {
+						feedback("Error: Adjustment rows have inconsistent daily value counts: " + loadedFileName);
+						return false;
+					}
+					if (!legacyFormat && std::stod(row[0]) != trendLevel) {
+						feedback("Error: Adjustment block contains inconsistent trend levels: " + loadedFileName);
+						return false;
+					}
+					for (int day = 0; day < numDays; ++day) {
+						series[day][parameter] = std::stod(row[day + firstValueColumn]);
+					}
+				}
+				grid.push_back(ParameterLevel{ trendLevel, std::move(series) });
 			}
 		}
-		parameters[partyGroup] = series;
+		catch (std::exception const&) {
+			feedback("Error: Adjustment file contains a value that could not be parsed: " + loadedFileName);
+			return false;
+		}
+		parameters[partyGroup] = std::move(grid);
 	}
+	return true;
 }
 
 void StanModel::loadEmergingOthersParameters([[maybe_unused]] FeedbackFunc feedback)
@@ -470,15 +526,60 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 	return true;
 }
 
+int StanModel::rawSupportDayOffset(wxDateTime date) const
+{
+	int const finalOffset = int(rawSupport.begin()->second.timePoint.size()) - 1;
+	if (!date.IsValid()) return finalOffset;
+	int const requestedOffset = int(date.Subtract(startDate).GetDays());
+	return std::clamp(requestedOffset, 0, finalOffset);
+}
+
+double StanModel::rawMedianTrend(std::string const& partyCode, wxDateTime date) const
+{
+	int const dayOffset = rawSupportDayOffset(date);
+	Series const& series = partyCode == TppCode ? rawTppSupport : rawSupport.at(partyCode);
+	double const medianVote = std::clamp(
+		double(series.timePoint[dayOffset].values[MedianSpreadValue]),
+		0.1, 99.9);
+	return transformVoteShare(medianVote);
+}
+
+StanModel::ParameterSet StanModel::interpolatedParameters(
+	std::string const& partyGroup, int day, double transformedTrend) const
+{
+	ParameterGrid const& grid = parameters.at(partyGroup);
+	// Legacy adjustment files are represented as a single unconditioned level.
+	if (grid.size() == 1 || transformedTrend <= grid.front().trendLevel) {
+		return grid.front().series[day];
+	}
+	if (transformedTrend >= grid.back().trendLevel) {
+		return grid.back().series[day];
+	}
+	auto const upper = std::lower_bound(
+		grid.begin(), grid.end(), transformedTrend,
+		[](ParameterLevel const& level, double value) {
+			return level.trendLevel < value;
+		});
+	auto const lower = std::prev(upper);
+	double const upperWeight = (transformedTrend - lower->trendLevel)
+		/ (upper->trendLevel - lower->trendLevel);
+	ParameterSet result{};
+	for (int parameter = 0; parameter < int(InputParameters::Max); ++parameter) {
+		result[parameter] = mix(
+			lower->series[day][parameter],
+			upper->series[day][parameter],
+			upperWeight);
+	}
+	return result;
+}
+
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, int iterationIndex) const
 {
 	thread_local static std::map<std::string, float> mirroring;
 	if (!rawSupport.size()) return SupportSample();
 	int seriesLength = rawSupport.begin()->second.timePoint.size();
 	if (!seriesLength) return SupportSample();
-	int dayOffset = rawSupport.begin()->second.timePoint.size() - 1;
-	if (date.IsValid()) dayOffset = std::min(dayOffset, date.Subtract(startDate).GetDays());
-	//if (dayOffset < 0) dayOffset = 0;
+	int const dayOffset = rawSupportDayOffset(date);
 	SupportSample sample;
 	int index = 0;
 	for (auto [key, support] : rawSupport) {
@@ -523,7 +624,7 @@ StanModel::SupportSample StanModel::generateAdjustedSupportSample(wxDateTime dat
 {
 	if (!date.IsValid()) date = getEndDate();
 	auto rawSample = generateRawSupportSample(date, iterationIndex);
-	auto adjustedSample = adjustRawSupportSample(rawSample, days, iterationIndex);
+	auto adjustedSample = adjustRawSupportSample(rawSample, date, days, iterationIndex);
 	return adjustedSample;
 }
 
@@ -550,7 +651,9 @@ void StanModel::generateUnnamedOthersSeries()
 	}
 }
 
-StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& rawSupportSample, int days, int iterationIndex) const
+StanModel::SupportSample StanModel::adjustRawSupportSample(
+	SupportSample const& rawSupportSample, wxDateTime date,
+	int days, int iterationIndex) const
 {
 	thread_local static std::map<std::string, double> mirroring;
 	constexpr int MinDays = 0;
@@ -576,31 +679,33 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(SupportSample const& 
 		double transformedPolls = transformVoteShare(double(voteShare));
 
 		const std::string partyGroup = reversePartyGroups.at(key);
+		ParameterSet const parameterSet = interpolatedParameters(
+			partyGroup, days, rawMedianTrend(key, date));
 
 		// remove systemic bias in poll results
-		const double pollBiasToday = parameters.at(partyGroup)[days][int(InputParameters::PollBias)];
+		const double pollBiasToday = parameterSet[int(InputParameters::PollBias)];
 		const double debiasedPolls = transformedPolls - pollBiasToday;
 
 		// remove systemic bias in previous-election average
 		const double fundamentalsPrediction = transformVoteShare(fundamentals.at(key));
-		const double fundamentalsBiasToday = parameters.at(partyGroup)[days][int(InputParameters::FundamentalsBias)];
+		const double fundamentalsBiasToday = parameterSet[int(InputParameters::FundamentalsBias)];
 		const double debiasedFundamentalsAverage = fundamentalsPrediction - fundamentalsBiasToday;
 
 		// mix poll and previous values
-		const double mixFactor = parameters.at(partyGroup)[days][int(InputParameters::MixFactor)];
+		const double mixFactor = parameterSet[int(InputParameters::MixFactor)];
 		const double mixedVoteShare = mix(debiasedFundamentalsAverage, debiasedPolls, mixFactor);
 
 		// adjust for residual bias in the mixed vote share
-		const double mixedBiasToday = parameters.at(partyGroup)[days][int(InputParameters::MixedBias)];
+		const double mixedBiasToday = parameterSet[int(InputParameters::MixedBias)];
 		const double mixedDebiasedVote = mixedVoteShare - mixedBiasToday;
 
 		// for debugging purposes we often want to avoid adding additional variation here
 		if (IncludeVariation) {
 			// Get parameters for spread
-			const double lowerError = parameters.at(partyGroup)[days][int(InputParameters::LowerError)];
-			const double upperError = parameters.at(partyGroup)[days][int(InputParameters::UpperError)];
-			const double lowerKurtosis = parameters.at(partyGroup)[days][int(InputParameters::LowerKurtosis)];
-			const double upperKurtosis = parameters.at(partyGroup)[days][int(InputParameters::UpperKurtosis)];
+			const double lowerError = parameterSet[int(InputParameters::LowerError)];
+			const double upperError = parameterSet[int(InputParameters::UpperError)];
+			const double lowerKurtosis = parameterSet[int(InputParameters::LowerKurtosis)];
+			const double upperKurtosis = parameterSet[int(InputParameters::UpperKurtosis)];
 
 			double quantile = mirroredQuantile("adj", key, iterationIndex,
 				uint32_t(VariabilityTag::FpAdjustedSupport),
@@ -946,6 +1051,11 @@ void StanModel::Series::smooth(int smoothingFactor)
 bool StanModel::dumpGeneratedData(std::string filename) const {
 	std::ofstream file(filename, std::ios::binary);
 	if (!file) return false;
+
+	file.write(reinterpret_cast<const char*>(&GeneratedDataMagic),
+		sizeof(GeneratedDataMagic));
+	file.write(reinterpret_cast<const char*>(&GeneratedDataVersion),
+		sizeof(GeneratedDataVersion));
 	
 	// Define helper lambdas for serialization
 	auto writeString = [&file](const std::string& str) {
@@ -999,15 +1109,21 @@ bool StanModel::dumpGeneratedData(std::string filename) const {
 		}
 	};
 	
-	auto writeParameters = [&file, &writeString](const ParameterSeriesByPartyGroup& params) {
+	auto writeParameters = [&file, &writeString](const ParameterGridByPartyGroup& params) {
 		size_t mapSize = params.size();
 		file.write(reinterpret_cast<const char*>(&mapSize), sizeof(mapSize));
-		for (const auto& [groupKey, series] : params) {
+		for (const auto& [groupKey, grid] : params) {
 			writeString(groupKey);
-			size_t seriesSize = series.size();
-			file.write(reinterpret_cast<const char*>(&seriesSize), sizeof(seriesSize));
-			for (const auto& paramSet : series) {
-				file.write(reinterpret_cast<const char*>(&paramSet), sizeof(paramSet));
+			size_t gridSize = grid.size();
+			file.write(reinterpret_cast<const char*>(&gridSize), sizeof(gridSize));
+			for (auto const& level : grid) {
+				file.write(reinterpret_cast<const char*>(&level.trendLevel),
+					sizeof(level.trendLevel));
+				size_t seriesSize = level.series.size();
+				file.write(reinterpret_cast<const char*>(&seriesSize), sizeof(seriesSize));
+				for (const auto& paramSet : level.series) {
+					file.write(reinterpret_cast<const char*>(&paramSet), sizeof(paramSet));
+				}
 			}
 		}
 	};
@@ -1071,12 +1187,25 @@ bool StanModel::dumpGeneratedData(std::string filename) const {
 	file.write(reinterpret_cast<const char*>(&readyForProjection), 
 			   sizeof(readyForProjection));
 	
-	return true;
+	return bool(file);
 }
 
 bool StanModel::loadGeneratedData(std::string filename) {
 	std::ifstream file(filename, std::ios::binary);
 	if (!file) return false;
+
+	std::uint32_t magic = 0;
+	file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+	bool const legacyGeneratedData = magic != GeneratedDataMagic;
+	if (legacyGeneratedData) {
+		file.clear();
+		file.seekg(0);
+	}
+	else {
+		std::uint32_t version = 0;
+		file.read(reinterpret_cast<char*>(&version), sizeof(version));
+		if (version != GeneratedDataVersion) return false;
+	}
 	
 	// Define helper lambdas for deserialization
 	auto readString = [&file](std::string& str) {
@@ -1147,19 +1276,41 @@ bool StanModel::loadGeneratedData(std::string filename) {
 		}
 	};
 	
-	auto readParameters = [&file, &readString](ParameterSeriesByPartyGroup& params) {
+	auto readParameters = [&file, &readString, legacyGeneratedData](
+		ParameterGridByPartyGroup& params) {
 		params.clear();
 		size_t mapSize;
 		file.read(reinterpret_cast<char*>(&mapSize), sizeof(mapSize));
 		for (size_t i = 0; i < mapSize; i++) {
 			std::string groupKey;
 			readString(groupKey);
-			size_t seriesSize;
-			file.read(reinterpret_cast<char*>(&seriesSize), sizeof(seriesSize));
-			auto& series = params[groupKey];
-			series.resize(seriesSize);
-			for (size_t j = 0; j < seriesSize; j++) {
-				file.read(reinterpret_cast<char*>(&series[j]), sizeof(series[j]));
+			if (legacyGeneratedData) {
+				size_t seriesSize;
+				file.read(reinterpret_cast<char*>(&seriesSize), sizeof(seriesSize));
+				ParameterLevel level;
+				level.series.resize(seriesSize);
+				for (size_t j = 0; j < seriesSize; j++) {
+					file.read(reinterpret_cast<char*>(&level.series[j]),
+						sizeof(level.series[j]));
+				}
+				params[groupKey].push_back(std::move(level));
+			}
+			else {
+				size_t gridSize;
+				file.read(reinterpret_cast<char*>(&gridSize), sizeof(gridSize));
+				auto& grid = params[groupKey];
+				grid.resize(gridSize);
+				for (auto& level : grid) {
+					file.read(reinterpret_cast<char*>(&level.trendLevel),
+						sizeof(level.trendLevel));
+					size_t seriesSize;
+					file.read(reinterpret_cast<char*>(&seriesSize), sizeof(seriesSize));
+					level.series.resize(seriesSize);
+					for (auto& parameterSet : level.series) {
+						file.read(reinterpret_cast<char*>(&parameterSet),
+							sizeof(parameterSet));
+					}
+				}
 			}
 		}
 	};
@@ -1228,7 +1379,7 @@ bool StanModel::loadGeneratedData(std::string filename) {
 	file.read(reinterpret_cast<char*>(&readyForProjection), 
 			  sizeof(readyForProjection));
 	
-	return true;
+	return bool(file);
 }
 
 float StanModel::variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag, int iterationIndex) const {
