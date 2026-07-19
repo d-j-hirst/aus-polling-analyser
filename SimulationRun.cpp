@@ -37,6 +37,13 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 			return false;
 		}
 	}
+	if (sim.isLiveManual()) {
+		feedback(
+			"Manual live simulation is retained for possible future use, "
+			"but it has not yet been adapted to the current live-results "
+			"pipeline.");
+		return false;
+	}
 
 	project.seats().importInfo();
 

@@ -479,6 +479,7 @@ void SimulationIteration::determineOverallTpp()
 	}
 
 	for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
+		if (overallExhaustRate.contains(partyIndex)) continue;
 		// Give any party without a sampled exhaust rate (e.g. Independents) an exhaust rate relative to generic others
 		if (run.previousExhaustRate.contains(partyIndex)) {
 			overallExhaustRate[partyIndex] = overallExhaustRate[OthersIndex] +
@@ -502,10 +503,17 @@ void SimulationIteration::determineOverallTpp()
 
 void SimulationIteration::determineIntraCoalitionSwing()
 {
-	float baseOverallRmse = run.nationalsParameters.rmse;
-	float baseOverallKurtosis = run.nationalsParameters.kurtosis;
-	float quantile = variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::IntraCoalitionSwingGlobal));
-	intraCoalitionSwing = rng.flexibleDist(0.0f, baseOverallRmse, baseOverallRmse, baseOverallKurtosis, baseOverallKurtosis, quantile);
+	// Draw the election-wide correlated shift from aggregate historical
+	// errors. Seat-level errors are added separately in determineNationalsShare.
+	float const baseOverallRmse = run.nationalsParameters.overallRmse;
+	float const baseOverallKurtosis =
+		run.nationalsParameters.overallKurtosis;
+	float const quantile = variabilityUniform(
+		0.0f, 1.0f, 0, 0,
+		uint32_t(VariabilityTag::IntraCoalitionSwingGlobal));
+	intraCoalitionSwing = rng.flexibleDist(
+		0.0f, baseOverallRmse, baseOverallRmse,
+		baseOverallKurtosis, baseOverallKurtosis, quantile);
 }
 
 void SimulationIteration::determineIndDistributionParameters()
