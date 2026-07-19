@@ -6,7 +6,6 @@
 #include <array>
 #include <cstdint>
 #include <map>
-#include <numeric>
 #include <vector>
 
 class PollingProject;
@@ -21,34 +20,6 @@ public:
 	// Returns the number of discarded attempts before a valid result was produced.
 	int runIteration();
 private:
-
-	typedef std::array<int, 2> TcpTally;
-
-	struct SeatResult {
-		Party::Id winner = Party::InvalidId;
-		Party::Id runnerUp = Party::InvalidId;
-		float margin = 0.0f;
-		float significance = 0.0f;
-	};
-
-	struct OddsInfo {
-		float incumbentChance = 1.0f;
-		float topTwoChance = 1.0f;
-	};
-
-	struct BoothAccumulation {
-		enum MysteryBoothType {
-			Standard,
-			Ppvc,
-			Team
-		};
-		typedef std::array<int, MysteryBoothType::Team + 1> MysteryBoothCounts;
-		MysteryBoothCounts mysteryBoothCounts = { 0, 0, 0 };
-		TcpTally tcpTally = { 0, 0 };
-
-		bool hasMysteryBooths() { return std::accumulate(mysteryBoothCounts.begin(), mysteryBoothCounts.end(), 0); }
-	};
-
 	void reset();
 	bool hasInvalidValues(std::string const& location, bool forceDebug = false, bool checkTppMargins = true);
 	void initialiseIterationSpecificCounts();
