@@ -9,7 +9,6 @@
 #include <cmath>
 #include <map>
 #include <numeric>
-#include <random>
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -42,7 +41,8 @@ void Projection::createTimePoint(int time, ModelCollection const& models)
 	tppSamples.reset(new std::vector<float>(std::vector<float>(settings.numIterations)));
 	for (int iteration = 0; iteration < settings.numIterations; ++iteration) {
 		auto projectedDate = startDate + wxDateSpan::Days(time);
-		auto sample = generateSupportSample(models, projectedDate);
+		// Explicit iteration keys make parallel time-point generation repeatable.
+		auto sample = generateSupportSample(models, projectedDate, iteration);
 		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
 			std::string partyName = model.partyCodeVec[partyIndex];
 			if (sample.voteShare.count(partyName)) {
@@ -249,9 +249,9 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			date = settings.endDate;
 		}
 		else {
-			float selectedOdds = iterationIndex < 0 ?
-				rng.uniform(0.0f, totalOdds) :
-				variabilityUniform(0.0f, totalOdds, 0, 0, 0, iterationIndex);
+			float selectedOdds = variabilityUniform(
+				0.0f, totalOdds, 0, 0,
+				uint32_t(VariabilityTag::SelectDate), iterationIndex);
 			for (int index = 0; index < int(cumulativeOdds.size()); ++index) {
 				if (selectedOdds < cumulativeOdds[index].second) {
 					date = cumulativeOdds[index].first;
@@ -288,7 +288,7 @@ std::string Projection::textReport(ModelCollection const& models) const
 	report << " End Date: " << getEndDateString() << "\n";
 	report << " Last Updated: " << getLastUpdatedString() << "\n";
 	report << ";"; // delimiter
-	auto sample = generateSupportSample(models);
+	auto sample = generateSupportSample(models, wxInvalidDateTime, 0);
 	report << "Final sample: \n";
 	for (auto [key, vote] : sample.voteShare) {
 		report << key << ": " << vote << "\n";

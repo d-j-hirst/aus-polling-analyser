@@ -25,7 +25,7 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 	}
 	lastUpdated = wxInvalidDateTime;
 	latestRun.reset(new SimulationRun(project, *this));
-	latestRun->run(feedback);
+	if (!latestRun->run(feedback)) return;
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	if (isLive()) checkLiveSeats(project, feedback);
 }

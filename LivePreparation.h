@@ -22,6 +22,7 @@ public:
 	};
 
 	LivePreparation(PollingProject& project, Simulation& sim, SimulationRun& run);
+	static void validateAutomaticSetup(PollingProject const& project, Simulation const& sim);
 	void prepareLiveAutomatic();
 
 private:

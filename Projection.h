@@ -93,7 +93,9 @@ public:
 
 	StanModel::SupportSample generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, wxDateTime date = wxInvalidDateTime);
 
-	StanModel::SupportSample generateSupportSample(ModelCollection const& models, wxDateTime date = wxInvalidDateTime, int iterationIndex = -1) const;
+	StanModel::SupportSample generateSupportSample(
+		ModelCollection const& models, wxDateTime date,
+		int iterationIndex) const;
 
 	int getPartyIndexFromCode(std::string code) const;
 
@@ -110,8 +112,6 @@ private:
 	std::vector<bool> detailCreated;
 	StanModel::PartySupport projectedSupport;
 	StanModel::Series tppSupport; // For whatever party is first in the user-defined party list
-
-	static RandomGenerator rng;
 
 	Settings settings;
 

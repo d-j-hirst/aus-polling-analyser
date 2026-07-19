@@ -1,6 +1,7 @@
 #include "SimulationRun.h"
 
 #include "CountProgress.h"
+#include "LivePreparation.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationCompletion.h"
@@ -12,12 +13,23 @@ static std::mt19937 gen;
 
 using Mp = Simulation::MajorParty;
 
-void SimulationRun::run(FeedbackFunc feedback) {
+bool SimulationRun::run(FeedbackFunc feedback) {
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 
 	if (int(thisProjection.getProjectionLength()) == 0) {
 		feedback("Base projection has not yet been run. Run the simulation's base projection before running the simulation itself.");
-		return;
+		return false;
+	}
+
+	if (sim.isLiveAutomatic()) {
+		try {
+			LivePreparation::validateAutomaticSetup(project, sim);
+		}
+		catch (LivePreparation::Exception const& e) {
+			feedback("Could not run live simulation because its live data is not set up:\n" +
+				std::string(e.what()));
+			return false;
+		}
 	}
 
 	project.seats().importInfo();
@@ -25,7 +37,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 	runBettingOddsCalibrations(feedback);
 
 	if (sim.isLiveAutomatic() && !sim.liveBaselineReport) {
-		runLiveBaselineSimulation(feedback);
+		if (!runLiveBaselineSimulation(feedback)) return false;
 	}
 
 	SimulationPreparation preparations(project, sim, *this);
@@ -35,7 +47,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 	catch (SimulationPreparation::Exception const& e) {
 
 		feedback("Could not run simulation due to the following issue: \n" + std::string(e.what()));
-		return;
+		return false;
 	}
 
 	int numThreads = project.config().getSimulationThreads();
@@ -71,6 +83,7 @@ void SimulationRun::run(FeedbackFunc feedback) {
 	completion.completeRun(feedback);
 
 	sim.lastUpdated = wxDateTime::Now();
+	return true;
 }
 
 std::string SimulationRun::getTermCode() const
@@ -229,7 +242,7 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	doingBettingOddsCalibrations = false;
 }
 
-void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
+bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	doingLiveBaselineSimulation = true;
 
 	logger << "*** Doing live baseline simulation ***\n";
@@ -244,7 +257,8 @@ void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	catch (SimulationPreparation::Exception const& e) {
 
 		feedback("Could not run live baseline simulation due to the following issue: \n" + std::string(e.what()));
-		return;
+		doingLiveBaselineSimulation = false;
+		return false;
 	}
 
 	int numThreads = project.config().getSimulationThreads();
@@ -283,5 +297,6 @@ void SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 
 	logger << "*** Finished live baseline simulation ***\n";
 	doingLiveBaselineSimulation = false;
+	return true;
 }
 

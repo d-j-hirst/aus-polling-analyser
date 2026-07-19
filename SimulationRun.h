@@ -153,7 +153,7 @@ public:
 		doingBettingOddsCalibrations(otherRun.doingBettingOddsCalibrations), doingLiveBaselineSimulation(otherRun.doingLiveBaselineSimulation) {}
 	SimulationRun& operator=(SimulationRun const& otherRun) = default;
 
-	void run(FeedbackFunc feedback = [](std::string) {});
+	bool run(FeedbackFunc feedback = [](std::string) {});
 
 	std::string getTermCode() const;
 
@@ -170,7 +170,7 @@ private:
 
 	void runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});
 
-	void runLiveBaselineSimulation(FeedbackFunc feedback = [](std::string) {});
+	bool runLiveBaselineSimulation(FeedbackFunc feedback = [](std::string) {});
 
 	PollingProject& project;
 

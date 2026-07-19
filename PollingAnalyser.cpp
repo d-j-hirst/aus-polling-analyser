@@ -11,6 +11,12 @@
   #include "wx/wx.h"
 #endif
 
+#include <wx/debug.h>
+
+#ifdef _MSC_VER
+  #include <intrin.h>
+#endif
+
 #ifndef wxHAS_IMAGES_IN_RESOURCES
   #include "../sample.xpm"
 #endif
@@ -33,6 +39,15 @@ public:
   // Keep wxAppBase::OnRun(): it enables exit when the last frame is destroyed.
   virtual bool OnExceptionInMainLoop() override
   {
+#ifdef _MSC_VER
+    // wxWidgets catches exceptions escaping event handlers. Break while the
+    // exception is still active, before wxWidgets replaces it with a generic
+    // fatal-error message.
+    if (wxIsDebuggerRunning()) {
+      __debugbreak();
+      return false;
+    }
+#endif
     throw;
   }
 };

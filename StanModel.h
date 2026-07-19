@@ -190,15 +190,15 @@ private:
 	// Returns false on failure to load trend data
 	bool loadTrendData(FeedbackFunc feedback);
 
-	// Invalid date/time (default) gives the most recent time point
-	SupportSample generateRawSupportSample(wxDateTime date = wxInvalidDateTime, int iterationIndex = -1) const;
+	SupportSample generateRawSupportSample(wxDateTime date, int iterationIndex) const;
 
-	SupportSample generateAdjustedSupportSample(wxDateTime date = wxInvalidDateTime, int days = 0, int iterationIndex = -1) const;
+	SupportSample generateAdjustedSupportSample(wxDateTime date, int days,
+		int iterationIndex) const;
 
 	void generateUnnamedOthersSeries();
 
 	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, wxDateTime date,
-		int days = 0, int iterationIndex = -1) const;
+		int days, int iterationIndex) const;
 
 	int rawSupportDayOffset(wxDateTime date) const;
 
@@ -209,21 +209,23 @@ private:
 
 	void updateAdjustedData(FeedbackFunc feedback, int numThreads);
 
-	void addEmergingOthers(StanModel::SupportSample& sample, int days, int iterationIndex = -1) const;
+	void addEmergingOthers(StanModel::SupportSample& sample, int days,
+		int iterationIndex) const;
 
 	static void updateOthersValue(StanModel::SupportSample& sample);
 
 	static void normaliseSample(StanModel::SupportSample& sample);
 
-	void generateTppForSample(StanModel::SupportSample& sample, int iterationIndex = -1) const;
+	void generateTppForSample(StanModel::SupportSample& sample,
+		int iterationIndex) const;
 
-	void generateMajorFpForSample(StanModel::SupportSample& sample, int iterationIndex = -1) const;
+	void generateMajorFpForSample(StanModel::SupportSample& sample,
+		int iterationIndex) const;
 
 	float variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag, int iterationIndex) const;
 
-	float mirroredQuantile(std::string const& scope, std::string const& key, int iterationIndex, std::uint32_t tag, int index) const;
-
-	static RandomGenerator rng;
+	float mirroredQuantile(int iterationIndex, std::uint32_t tag,
+		int index) const;
 
 	static MajorPartyCodes majorPartyCodes;
 

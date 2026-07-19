@@ -21,8 +21,6 @@ constexpr std::uint32_t GeneratedDataVersion = 2;
 
 std::mutex debugMutex;
 
-RandomGenerator StanModel::rng = RandomGenerator();
-
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
 	{ "ALP", "LNP", "LIB", "NAT", "GRN" };
 
@@ -593,7 +591,6 @@ StanModel::ParameterSet StanModel::interpolatedParameters(
 
 StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, int iterationIndex) const
 {
-	thread_local static std::map<std::string, float> mirroring;
 	if (!rawSupport.size()) return SupportSample();
 	int seriesLength = rawSupport.begin()->second.timePoint.size();
 	if (!seriesLength) return SupportSample();
@@ -608,9 +605,8 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 		}
 		// Mirroring ensures the underlying uniform distribution is symmetric, so that the
 		// median never deviates as a result of random variation.
-		float quantile = mirroredQuantile("raw", key, iterationIndex,
-			uint32_t(VariabilityTag::FpRawSupport),
-			index);
+		float quantile = mirroredQuantile(
+			iterationIndex, uint32_t(VariabilityTag::FpRawSupport), index);
 
 		int lowerBucket = std::clamp(int(floor(quantile * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
 		float upperMix = std::fmod(quantile * float(Spread::Size - 1), 1.0f);
@@ -622,9 +618,8 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 
 	// This "raw TPP" may not be congruent with the primary votes above, but the adjustment
 	// process will only use one or the other, so that doesn't matter
-	float quantile = mirroredQuantile("raw", TppCode, iterationIndex,
-		uint32_t(VariabilityTag::TppRawSupport),
-		index);
+	float quantile = mirroredQuantile(
+		iterationIndex, uint32_t(VariabilityTag::TppRawSupport), index);
 
 	int lowerBucket = std::clamp(int(floor(quantile * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
 	float upperMix = std::fmod(quantile * float(Spread::Size - 1), 1.0f);
@@ -673,7 +668,6 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 	SupportSample const& rawSupportSample, wxDateTime date,
 	int days, int iterationIndex) const
 {
-	thread_local static std::map<std::string, double> mirroring;
 	constexpr int MinDays = 0;
 	// the "days" parameter used for trend adjustment calculation is the number of days to the end
 	// of the series, not the election itself - and the typical series ends 3 days before the election proper
@@ -684,9 +678,9 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 	auto sample = rawSupportSample;
 	constexpr float TppFirstChance = 0.5f;
 
-	float tppFirstQuantile = iterationIndex < 0 ?
-		rng.uniform(0.0f, 1.0f) :
-		variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::TppFirstSelection), iterationIndex);
+	float tppFirstQuantile = variabilityUniform(
+		0.0f, 1.0f, 0, 0,
+		uint32_t(VariabilityTag::TppFirstSelection), iterationIndex);
 	bool tppFirst = tppFirstQuantile < TppFirstChance;
 	constexpr bool IncludeVariation = true;
 	int index = 0;
@@ -725,11 +719,13 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 			const double lowerKurtosis = parameterSet[int(InputParameters::LowerKurtosis)];
 			const double upperKurtosis = parameterSet[int(InputParameters::UpperKurtosis)];
 
-			double quantile = mirroredQuantile("adj", key, iterationIndex,
-				uint32_t(VariabilityTag::FpAdjustedSupport),
-				index);
+			double quantile = mirroredQuantile(
+				iterationIndex,
+				uint32_t(VariabilityTag::FpAdjustedSupport), index);
 
-			const double additionalVariation = rng.flexibleDist(0.0, lowerError, upperError, lowerKurtosis, upperKurtosis, quantile);
+			const double additionalVariation = RandomGenerator::flexibleDist(
+				0.0, lowerError, upperError, lowerKurtosis, upperKurtosis,
+				quantile);
 			const double voteWithVariation = mixedDebiasedVote + additionalVariation;
 
 			double newVoteShare = detransformVoteShare(voteWithVariation);
@@ -824,7 +820,10 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 					std::vector<std::vector<float>> samples(partyCodeVec.size(), std::vector<float>(localIterations));
 					std::vector<float> tppSamples(localIterations);
 					for (int iteration = 0; iteration < localIterations; ++iteration) {
-						auto sample = generateAdjustedSupportSample(thisDate);
+						// Key variation by iteration so worker scheduling cannot
+						// change which random quantiles this time point receives.
+						auto sample = generateAdjustedSupportSample(
+							thisDate, 0, iteration);
 						for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 							std::string partyName = partyCodeVec[partyIndex];
 							if (sample.voteShare.count(partyName)) {
@@ -883,16 +882,18 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days, in
 	// Guessed values for a curve that makes the chance of a new party emerging
 	// decrease approaching election day. E.g. 100 days out it is halved, on election day it's about 16%
 	double emergenceChance = baseEmergenceRate * (1.0 - 1.0 / (double(days) * 0.01 + 1.2));
-	double quantile = iterationIndex < 0 ?
-		rng.uniform(0.0, 1.0) :
-    double(variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::EmergingOthers), iterationIndex));
+	double quantile = variabilityUniform(
+		0.0f, 1.0f, 0, 0,
+		uint32_t(VariabilityTag::EmergingOthers), iterationIndex);
 	if (quantile > emergenceChance) {
 		sample.voteShare[EmergingOthersCode] = 0.0;
 		return;
 	}
 	// As above, but slightly different numbers and the curve takes longer to drop.
 	double rmse = baseEmergenceRmse * (1.0 - 1.0 / (double(days) * 0.03 + 1.4));
-	double emergingOthersFpTargetTransformed = transformedThreshold + abs(rng.flexibleDist(0.0, rmse, rmse, kurtosis, kurtosis, quantile));
+	double emergingOthersFpTargetTransformed = transformedThreshold
+		+ abs(RandomGenerator::flexibleDist(
+			0.0, rmse, rmse, kurtosis, kurtosis, quantile));
 	double emergingOthersFpTarget = detransformVoteShare(emergingOthersFpTargetTransformed);
 	// The normalisation procedure will reduce the value of 
 	double correctedFp = 100.0 * emergingOthersFpTarget / (100.0 - emergingOthersFpTarget);
@@ -942,25 +943,22 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample, int itera
 		float historicalSamples = preferenceSamplesMap.at(key);
 		float randomPreferenceVariation = 0.0f;
 		if (historicalSamples >= 2) {
-			if (iterationIndex < 0) {
-				randomPreferenceVariation = rng.scaledTdist(int(std::floor(historicalSamples)) - 1, 0.0f, deviation);
-			}
-			else {
-        float quantile = variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::TppPreferenceFlow), iterationIndex);
-				randomPreferenceVariation = rng.scaledTdistQuantile(int(std::floor(historicalSamples)) - 1, quantile, 0.0f, deviation);
-      }
-    }
+			float quantile = variabilityUniform(
+				0.0f, 1.0f, 0, 0,
+				uint32_t(VariabilityTag::TppPreferenceFlow), iterationIndex);
+			randomPreferenceVariation = RandomGenerator::scaledTdistQuantile(
+				int(std::floor(historicalSamples)) - 1, quantile,
+				0.0f, deviation);
+		}
 		float randomisedFlow = basicTransformedSwing(flow, randomPreferenceVariation);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		// distribution approximately taken from NSW elections
-		float randomExhaustVariation = 0.0f;
-		if (iterationIndex < 0) {
-			randomExhaustVariation = rng.scaledTdist(6, 0.0f, 0.054f);
-		}
-		else {
-			float quantile = variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::TppExhaustRate), iterationIndex);
-			randomExhaustVariation = rng.scaledTdistQuantile(6, quantile, 0.0f, 0.054f);
-		}
+		float quantile = variabilityUniform(
+			0.0f, 1.0f, 0, 0,
+			uint32_t(VariabilityTag::TppExhaustRate), iterationIndex);
+		float randomExhaustVariation =
+			RandomGenerator::scaledTdistQuantile(
+				6, quantile, 0.0f, 0.054f);
 		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
 		sample.preferenceFlow.insert({ key, randomisedFlow });
 		sample.exhaustRate.insert({ key, randomisedExhaustRate });
@@ -983,29 +981,27 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample, int i
 		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
-    float randomVariation = 0.0f;
+		float randomVariation = 0.0f;
 		if (historicalSamples >= 2) {
-			if (iterationIndex < 0) {
-				randomVariation = rng.scaledTdist(int(std::floor(historicalSamples)) - 1, 0.0f, deviation);
-			}
-			else {
-				float quantile = variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::MajorFpPreferenceFlow), iterationIndex);
-				randomVariation = rng.scaledTdistQuantile(int(std::floor(historicalSamples)) - 1, quantile, 0.0f, deviation);
-			}
+			float quantile = variabilityUniform(
+				0.0f, 1.0f, 0, 0,
+				uint32_t(VariabilityTag::MajorFpPreferenceFlow),
+				iterationIndex);
+			randomVariation = RandomGenerator::scaledTdistQuantile(
+				int(std::floor(historicalSamples)) - 1, quantile,
+				0.0f, deviation);
 		}
 
 		float randomisedFlow = basicTransformedSwing(flow, randomVariation);
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		// distribution approximately taken from NSW elections
-		float randomExhaustVariation = 0.0f;
-		if (iterationIndex < 0) {
-			randomExhaustVariation = rng.scaledTdist(6, 0.0f, 0.054f);
-		}
-		else {
-			float quantile = variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::FpExhaustRate), iterationIndex);
-			randomExhaustVariation = rng.scaledTdistQuantile(6, quantile, 0.0f, 0.054f);
-		}
+		float quantile = variabilityUniform(
+			0.0f, 1.0f, 0, 0,
+			uint32_t(VariabilityTag::FpExhaustRate), iterationIndex);
+		float randomExhaustVariation =
+			RandomGenerator::scaledTdistQuantile(
+				6, quantile, 0.0f, 0.054f);
 		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
 		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
 		sample.exhaustRate.insert({ key, randomisedExhaustRate });
@@ -1409,25 +1405,10 @@ float StanModel::variabilityUniform(float low, float high, int itemIndex, std::u
 	return RandomGenerator::uniform01_from_key(key) * (high - low) + low;
 }
 
-float StanModel::mirroredQuantile(std::string const& scope, std::string const& key, int iterationIndex, std::uint32_t tag, int index) const
+float StanModel::mirroredQuantile(
+	int iterationIndex, std::uint32_t tag, int index) const
 {
-	if (iterationIndex < 0) {
-		thread_local static std::map<std::string, float> mirroring;
-		std::string scopedKey = scope + "|" + key;
-
-		auto it = mirroring.find(scopedKey);
-		if (it != mirroring.end()) {
-			float q = it->second;
-			mirroring.erase(it);
-			return q;
-		}
-
-		float q = rng.uniform(0.0f, 1.0f);
-		mirroring[scopedKey] = 1.0f - q;
-		return q;
-	}
-
-	// deterministic antithetic pairing by iteration
+	// Antithetic pairing keeps the sampled distribution centred exactly.
 	int pairIndex = iterationIndex / 2;
 	float base = variabilityUniform(0.0f, 1.0f, 0, index, tag, pairIndex);
 	return (iterationIndex & 1) ? (1.0f - base) : base;

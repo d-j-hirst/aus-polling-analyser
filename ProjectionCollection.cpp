@@ -5,8 +5,6 @@
 
 #include <exception>
 
-RandomGenerator Projection::rng = RandomGenerator();
-
 class ModelCollection;
 
 ProjectionCollection::ProjectionCollection(PollingProject & project)

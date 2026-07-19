@@ -97,7 +97,12 @@ void SimulationPreparation::prepareForIterations()
 	if (run.isLiveManual()) loadLiveManualResults();
 	if (run.isLiveAutomatic()) {
 		auto livePreparation = LivePreparation(project, sim, run);
-		livePreparation.prepareLiveAutomatic();
+		try {
+			livePreparation.prepareLiveAutomatic();
+		}
+		catch (LivePreparation::Exception const& e) {
+			throw Exception(e.what());
+		}
 	}
 
 	calculateLiveAggregates();
@@ -1402,7 +1407,9 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 		[](const decltype(project.seats().begin())::value_type& seatPair) {
 			return seatPair.second.confirmedProminentIndependent && seatPair.second.minorViability.contains("IND") && seatPair.second.minorViability.at("IND") >= 0; }
 		);
-	int daysToElection = project.projections().view(sim.settings.baseProjection).generateSupportSample(project.models()).daysToElection;
+	int daysToElection = project.projections().view(
+		sim.settings.baseProjection).generateSupportSample(
+			project.models(), wxInvalidDateTime, 0).daysToElection;
 	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
 	run.indEmergenceModifier = std::min((float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f), 2.5f);
 }

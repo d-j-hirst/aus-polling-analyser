@@ -8,7 +8,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <map>
 #include <mutex>
 #include <random>
 #include <vector>
@@ -97,7 +96,9 @@ public:
 		int lookupIndex = int(std::floor(quantile * T(LookupSize - 1)));
 		lookupIndex = std::min(lookupIndex, LookupSize - 2);
 		T mixFactor = quantile - T(lookupIndex) / T(LookupSize - 1);
-		df = std::clamp(df, 0, MaxDf);
+		// A Student-t distribution only has a finite standard deviation above
+		// two degrees of freedom, which is required for this normalisation.
+		df = std::clamp(df, 3, MaxDf);
 		prepareTdistLookup(df);
 		T lowerVal = tdistLookup[df][lookupIndex];
 		T upperVal = tdistLookup[df][lookupIndex + 1];
@@ -248,12 +249,9 @@ private:
 	static constexpr int MaxDf = 100;
 	static constexpr int LookupSize = 500000;
 
-	static std::mutex tdistGeneralMutex;
-	static std::array<std::mutex, MaxDf + 1> tdistMutex;
-	static std::map<int, std::vector<double>> tdistLookup;
-	static std::array<bool, MaxDf + 1> tdistReady;
+	static std::array<std::once_flag, MaxDf + 1> tdistOnce;
+	static std::array<std::vector<double>, MaxDf + 1> tdistLookup;
 
-	static std::mutex normalMutex;
+	static std::once_flag normalOnce;
 	static std::vector<double> normalLookup;
-	static bool normalReady;
 };

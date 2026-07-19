@@ -32,9 +32,146 @@ bool simPartyIsTpp(int simParty) {
 
 constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
+namespace {
+
+void requireLiveInputFile(std::filesystem::path const& path, std::vector<std::string>& missingFiles)
+{
+	std::error_code error;
+	if (!std::filesystem::is_regular_file(path, error)) {
+		missingFiles.push_back(path.string());
+		return;
+	}
+
+	auto const fileSize = std::filesystem::file_size(path, error);
+	if (error || fileSize == 0) {
+		missingFiles.push_back(path.string());
+	}
+}
+
+bool hasCurrentResultsFile(std::string const& regionCode)
+{
+	static std::map<std::string, std::string> const filenameMarkers = {
+		{"vic", "mediafilelitepplh_"},
+		{"nsw", "-SG"},
+		{"qld", "_publicResults"},
+		{"wa", "LA VERBOSE RESULTS"},
+		{"sa", "_ha_detail"}
+	};
+	if (!filenameMarkers.contains(regionCode)) return false;
+
+	std::error_code error;
+	std::filesystem::path const downloadsPath("../../../Downloads");
+	std::filesystem::directory_iterator entry(downloadsPath, error);
+	std::filesystem::directory_iterator const end;
+	while (!error && entry != end) {
+		if (entry->path().filename().string().find(filenameMarkers.at(regionCode)) != std::string::npos) {
+			return true;
+		}
+		entry.increment(error);
+	}
+	return false;
+}
+
+nlohmann::json loadLiveJson(std::string const& filename)
+{
+	std::ifstream file(filename);
+	if (!file) {
+		throw LivePreparation::Exception("Could not open required live input file: " + filename);
+	}
+
+	try {
+		return nlohmann::json::parse(file);
+	}
+	catch (nlohmann::json::parse_error const& e) {
+		throw LivePreparation::Exception("Could not parse required live input file " +
+			filename + ": " + e.what());
+	}
+}
+
+void loadLiveXml(tinyxml2::XMLDocument& document, std::string const& filename)
+{
+	if (document.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS) {
+		throw LivePreparation::Exception("Could not load required live input file " +
+			filename + ": " + document.ErrorStr());
+	}
+}
+
+}
+
 LivePreparation::LivePreparation(PollingProject& project, Simulation& sim, SimulationRun& run)
 	: project(project), run(run), sim(sim), previousElection(run.getTermCode()), currentElection(run.getTermCode())
 {
+}
+
+void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simulation const& sim)
+{
+	auto const& settings = sim.getSettings();
+	auto const& projection = project.projections().view(settings.baseProjection);
+	std::string const termCode = projection.getBaseModel(project.models()).getTermCode();
+	if (termCode.size() < 5) {
+		throw Exception("The base model has an invalid election code: " + termCode);
+	}
+	if (settings.prevTermCodes.empty()) {
+		throw Exception("No previous election code has been configured.");
+	}
+
+	std::string const regionCode = termCode.substr(4);
+	std::string const previousTermCode = settings.prevTermCodes.front();
+	std::vector<std::string> missingFiles;
+	if (regionCode == "vic") {
+		requireLiveInputFile("downloads/" + termCode + "_candidates.xml", missingFiles);
+		requireLiveInputFile("downloads/" + termCode + "_booths.xml", missingFiles);
+		requireLiveInputFile("analysis/Booth Results/" + termCode + ".json", missingFiles);
+	}
+	else if (regionCode == "nsw" || regionCode == "qld") {
+		requireLiveInputFile("downloads/" + termCode + "_zeros.xml", missingFiles);
+		requireLiveInputFile("analysis/Booth Results/" + previousTermCode + ".json", missingFiles);
+	}
+	else if (regionCode == "wa") {
+		requireLiveInputFile("downloads/" + termCode + "_candidates_prev.xml", missingFiles);
+		requireLiveInputFile("downloads/" + termCode + "_booths_prev.xml", missingFiles);
+		requireLiveInputFile("downloads/" + termCode + "_results_prev.xml", missingFiles);
+		requireLiveInputFile("downloads/" + termCode + "_candidates_current.xml", missingFiles);
+		requireLiveInputFile("downloads/" + termCode + "_booths_current.xml", missingFiles);
+	}
+	else if (regionCode == "sa") {
+		requireLiveInputFile("downloads/" + termCode + "_zeros.xml", missingFiles);
+		requireLiveInputFile("analysis/Booth Results/" + previousTermCode + ".json", missingFiles);
+	}
+	else if (regionCode == "fed") {
+		if (settings.previousResultsUrl.empty()) {
+			throw Exception("No previous-results URL has been configured.");
+		}
+		if (settings.preloadUrl.empty()) {
+			throw Exception("No preload URL has been configured.");
+		}
+		if (settings.currentRealUrl.empty() && settings.currentTestUrl.empty()) {
+			throw Exception("No current-results URL has been configured.");
+		}
+	}
+	else {
+		throw Exception("Automatic live preparation is not supported for region code " + regionCode + ".");
+	}
+
+	if (settings.currentRealUrl.starts_with("local:")) {
+		requireLiveInputFile("downloads/" + settings.currentRealUrl.substr(6), missingFiles);
+	}
+
+	if (!missingFiles.empty()) {
+		std::string message = "The live simulation is not set up for " + termCode +
+			". Missing required file";
+		message += missingFiles.size() == 1 ? ":\n" : "s:\n";
+		for (auto const& filename : missingFiles) {
+			message += filename + "\n";
+		}
+		throw Exception(message);
+	}
+
+	if (regionCode != "fed" && settings.currentRealUrl.empty() &&
+		!hasCurrentResultsFile(regionCode)) {
+		throw Exception("No current-results file for " + regionCode +
+			" was found in the Windows Downloads folder.");
+	}
 }
 
 void LivePreparation::loadEcsaXmlDocument(tinyxml2::XMLDocument& document, std::string const& filename) const
@@ -109,47 +246,43 @@ void LivePreparation::parsePreviousResults()
 {
 	std::string prevTermCode = sim.settings.prevTermCodes.at(0);
 	if (run.regionCode == "fed") {
-		xml.LoadFile(xmlFilename.c_str());
+		loadLiveXml(xml, xmlFilename);
 		previousElection = Results2::Election::createAec(xml, prevTermCode);
 	}
 	else if (run.regionCode == "vic") {
 		tinyxml2::XMLDocument candidatesXml;
-		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates.xml").c_str());
+		loadLiveXml(candidatesXml, "downloads/" + getTermCode() + "_candidates.xml");
 		tinyxml2::XMLDocument boothsXml;
-		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths.xml").c_str());
-		std::ifstream f("analysis/Booth Results/" + getTermCode() + ".json");
-		nlohmann::json resultsJson = nlohmann::json::parse(f);
+		loadLiveXml(boothsXml, "downloads/" + getTermCode() + "_booths.xml");
+		nlohmann::json resultsJson = loadLiveJson("analysis/Booth Results/" + getTermCode() + ".json");
 		previousElection = Results2::Election::createVec(resultsJson, candidatesXml, boothsXml, prevTermCode);
 	}
 	else if (run.regionCode == "nsw") {
 		tinyxml2::XMLDocument zerosXml;
-		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
-		std::ifstream f("analysis/Booth Results/" + prevTermCode + ".json");
-		nlohmann::json resultsJson = nlohmann::json::parse(f);
+		loadLiveXml(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
+		nlohmann::json resultsJson = loadLiveJson("analysis/Booth Results/" + prevTermCode + ".json");
 		previousElection = Results2::Election::createNswec(resultsJson, zerosXml, prevTermCode);
 	}
 	else if (run.regionCode == "qld") {
 		tinyxml2::XMLDocument zerosXml;
-		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
-		std::ifstream f("analysis/Booth Results/" + prevTermCode + ".json");
-		nlohmann::json resultsJson = nlohmann::json::parse(f);
+		loadLiveXml(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
+		nlohmann::json resultsJson = loadLiveJson("analysis/Booth Results/" + prevTermCode + ".json");
 		previousElection = Results2::Election::createQec(resultsJson, zerosXml, prevTermCode);
 	}
 	else if (run.regionCode == "wa") {
 		tinyxml2::XMLDocument candidatesXml;
-		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates_prev.xml").c_str());
+		loadLiveXml(candidatesXml, "downloads/" + getTermCode() + "_candidates_prev.xml");
 		tinyxml2::XMLDocument boothsXml;
-		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths_prev.xml").c_str());
+		loadLiveXml(boothsXml, "downloads/" + getTermCode() + "_booths_prev.xml");
 		previousElection = Results2::Election::createWaec(candidatesXml, boothsXml, prevTermCode);
 		tinyxml2::XMLDocument resultsXml;
-		resultsXml.LoadFile(("downloads/" + getTermCode() + "_results_prev.xml").c_str());
+		loadLiveXml(resultsXml, "downloads/" + getTermCode() + "_results_prev.xml");
 		previousElection.update(resultsXml, Results2::Election::Format::WAEC);
 	}
   else if (run.regionCode == "sa") {
 			tinyxml2::XMLDocument zerosXml;
 			loadEcsaXmlDocument(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
-			std::ifstream f("analysis/Booth Results/" + prevTermCode + ".json");
-			nlohmann::json resultsJson = nlohmann::json::parse(f);
+			nlohmann::json resultsJson = loadLiveJson("analysis/Booth Results/" + prevTermCode + ".json");
 			previousElection = Results2::Election::createEcsa(resultsJson, zerosXml, prevTermCode);
 		}
 }
@@ -178,31 +311,31 @@ void LivePreparation::downloadPreload()
 void LivePreparation::parsePreload()
 {
 	if (run.regionCode == "fed") {
-		xml.LoadFile(xmlFilename.c_str());
+		loadLiveXml(xml, xmlFilename);
 		currentElection = Results2::Election::createAec(xml, run.getTermCode());
 	}
 	else if (run.regionCode == "vic") {
 		tinyxml2::XMLDocument candidatesXml;
-		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates.xml").c_str());
+		loadLiveXml(candidatesXml, "downloads/" + getTermCode() + "_candidates.xml");
 		tinyxml2::XMLDocument boothsXml;
-		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths.xml").c_str());
+		loadLiveXml(boothsXml, "downloads/" + getTermCode() + "_booths.xml");
 		currentElection = Results2::Election::createVec(candidatesXml, boothsXml, run.getTermCode());
 	}
 	else if (run.regionCode == "nsw") {
 		tinyxml2::XMLDocument zerosXml;
-		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
+		loadLiveXml(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
 		currentElection = Results2::Election::createNswec(nlohmann::json(), zerosXml, run.getTermCode());
 	}
 	else if (run.regionCode == "qld") {
 		tinyxml2::XMLDocument zerosXml;
-		zerosXml.LoadFile(("downloads/" + getTermCode() + "_zeros.xml").c_str());
+		loadLiveXml(zerosXml, "downloads/" + getTermCode() + "_zeros.xml");
 		currentElection = Results2::Election::createQec(nlohmann::json(), zerosXml, run.getTermCode());
 	}
 	else if (run.regionCode == "wa") {
 		tinyxml2::XMLDocument candidatesXml;
-		candidatesXml.LoadFile(("downloads/" + getTermCode() + "_candidates_current.xml").c_str());
+		loadLiveXml(candidatesXml, "downloads/" + getTermCode() + "_candidates_current.xml");
 		tinyxml2::XMLDocument boothsXml;
-		boothsXml.LoadFile(("downloads/" + getTermCode() + "_booths_current.xml").c_str());
+		loadLiveXml(boothsXml, "downloads/" + getTermCode() + "_booths_current.xml");
 		currentElection = Results2::Election::createWaec(candidatesXml, boothsXml, run.getTermCode());
 	}
 	else if (run.regionCode == "sa") {
@@ -238,7 +371,7 @@ void LivePreparation::downloadPollingPlaces()
 void LivePreparation::parsePollingPlaces()
 {
 	if (run.regionCode == "fed") {
-		xml.LoadFile(xmlFilename.c_str());
+		loadLiveXml(xml, xmlFilename);
 		currentElection.updateAecPollingPlaces(xml);
 	}
 }
@@ -292,6 +425,9 @@ void LivePreparation::acquireCurrentResults()
 	}
 	else {
 		std::filesystem::path downloadsPath("../../../Downloads");
+		if (!std::filesystem::is_directory(downloadsPath)) {
+			throw Exception("Could not find the Windows Downloads folder used for current results.");
+		}
 		int bestDate = 0;
 		int bestTime = 0;
 		std::string bestFilename;
@@ -389,6 +525,10 @@ void LivePreparation::acquireCurrentResults()
 		}
 		PA_LOG_VAR(bestFilename);
 		PA_LOG_VAR(xmlFilename);
+		if (bestFilename.empty()) {
+			throw Exception("No current-results file for " + run.regionCode +
+				" was found in the Windows Downloads folder.");
+		}
 		xmlFilename = "downloads/" + run.getTermCode() + "_latest.xml";
 		resultsDownloader.unzipFile(bestFilename, xmlFilename);
 	}
@@ -401,7 +541,7 @@ void LivePreparation::parseCurrentResults()
 		loadEcsaXmlDocument(xml, xmlFilename);
 	}
 	else {
-		xml.LoadFile((xmlFilename).c_str());
+		loadLiveXml(xml, xmlFilename);
 	}
 	Results2::Election::Format format;
 	if (run.regionCode == "fed") format = Results2::Election::Format::AEC;
