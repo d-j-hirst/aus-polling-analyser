@@ -89,7 +89,7 @@ private:
 	void correctMajorPartyFpBias();
 	void incorporateLiveResults();
 	void determineSeatFinalResult(int seatIndex);
-	void assignNationalsVotes(int seatIndex);
+	void assignNationalsVotes(int seatIndex, bool updateFromLive = true);
 	void applyLiveManualOverrides(int seatIndex);
 	void recordSeatResult(int seatIndex);
 	void assignDirectWins();
