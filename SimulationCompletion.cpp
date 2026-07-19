@@ -501,6 +501,7 @@ void SimulationCompletion::recordSeatSwingFactors()
 			"Adjustment towards seat polling;" + std::to_string(seatPollEffectAverage));
 		float totalLocalEffects = 0.0f;
 		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) totalLocalEffects += impact;
+		if (totalLocalEffects == 0.0f) continue;
 		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) {
 			float scaledEffect = impact * seatLocalEffectsAverage / totalLocalEffects;
 			sim.latestReport.swingFactors[seatIndex].push_back(

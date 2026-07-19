@@ -31,7 +31,7 @@ public:
 		std::map<int, int> fpVoteCount; // map from party index -> number
 		std::map<int, float> tcpVotePercent; // map from party index -> percentage
 		std::map<int, float> tcpVoteCount; // map from party index -> number
-		int turnoutCount;
+		int turnoutCount = 0;
 		float prevOthers = 0.0f; // Special variable for calculating emergence of independents
 	};
 
@@ -168,7 +168,14 @@ public:
 
 private:
 
-	void runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});
+	bool runIterations(
+		SimulationRun& iterationRun,
+		int iterationCount,
+		int iterationStartIndex,
+		std::string const& phase,
+		FeedbackFunc feedback);
+
+	bool runBettingOddsCalibrations(FeedbackFunc feedback = [](std::string) {});
 
 	bool runLiveBaselineSimulation(FeedbackFunc feedback = [](std::string) {});
 

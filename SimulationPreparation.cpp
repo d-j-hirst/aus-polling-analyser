@@ -9,6 +9,8 @@
 #include "SpecialPartyCodes.h"
 #include "LatestResultsDataRetriever.h"
 
+#include <cctype>
+#include <cmath>
 #include <filesystem>
 #include <queue>
 #include <random>
@@ -19,8 +21,124 @@ using Mp = Simulation::MajorParty;
 static std::random_device rd;
 static std::mt19937 gen;
 
+namespace {
+	int seatPartyIndex(
+		PollingProject const& project,
+		Seat const& seat,
+		std::string const& partyCode,
+		std::string const& inputName)
+	{
+		if (partyCode == OthersCode) return OthersIndex;
+
+		int const partyIndex =
+			project.parties().indexByShortCode(partyCode);
+		if (partyIndex == PartyCollection::InvalidIndex) {
+			throw SimulationPreparation::Exception(
+				"Seat " + seat.name + " has an unknown party code (" +
+				partyCode + ") in " + inputName + ".");
+		}
+		return partyIndex;
+	}
+
+	void loadSeatStatisticsFile(
+		std::string const& fileName,
+		SimulationRun::SeatStatistics& statistics)
+	{
+		auto file = std::ifstream(fileName);
+		if (!file) {
+			throw SimulationPreparation::Exception(
+				"Could not find file " + fileName + "!");
+		}
+
+		try {
+			std::string line;
+			if (!std::getline(file, line)) {
+				throw SimulationPreparation::Exception(
+					"Seat-statistics file " + fileName + " is empty.");
+			}
+
+			auto scaleStrings = splitString(line, ",");
+			if (scaleStrings.size() < 2) {
+				throw SimulationPreparation::Exception(
+					"Seat-statistics file " + fileName +
+					" must contain at least two scale points.");
+			}
+
+			std::vector<float> scale;
+			scale.reserve(scaleStrings.size());
+			for (auto const& value : scaleStrings) {
+				float parsed = std::stof(value);
+				if (!std::isfinite(parsed)) {
+					throw SimulationPreparation::Exception(
+						"Seat-statistics file " + fileName +
+						" contains a non-finite scale value.");
+				}
+				scale.push_back(parsed);
+			}
+
+			float const scaleStep = scale[1] - scale[0];
+			if (!(scaleStep > 0.0f) || !std::isfinite(scaleStep)) {
+				throw SimulationPreparation::Exception(
+					"Seat-statistics file " + fileName +
+					" must use a positive scale step.");
+			}
+			for (std::size_t index = 2; index < scale.size(); ++index) {
+				float const expected = scale[0] + scaleStep * float(index);
+				float const tolerance =
+					0.0001f * std::max(1.0f, std::abs(expected));
+				if (std::abs(scale[index] - expected) > tolerance) {
+					throw SimulationPreparation::Exception(
+						"Seat-statistics file " + fileName +
+						" must use evenly spaced scale points.");
+				}
+			}
+
+			statistics = SimulationRun::SeatStatistics();
+			statistics.scaleLow = scale.front();
+			statistics.scaleStep = scaleStep;
+			statistics.scaleHigh = scale.back();
+
+			int const trendTypeCount =
+				int(SimulationRun::SeatStatistics::TrendType::Num);
+			for (int trendType = 0; trendType < trendTypeCount; ++trendType) {
+				if (!std::getline(file, line)) {
+					throw SimulationPreparation::Exception(
+						"Seat-statistics file " + fileName +
+						" does not contain all required statistic rows.");
+				}
+				auto values = splitString(line, ",");
+				if (values.size() != scale.size()) {
+					throw SimulationPreparation::Exception(
+						"Seat-statistics file " + fileName +
+						" has a statistic row with " +
+						std::to_string(values.size()) +
+						" values; expected " +
+						std::to_string(scale.size()) + ".");
+				}
+				for (auto const& value : values) {
+					float parsed = std::stof(value);
+					if (!std::isfinite(parsed)) {
+						throw SimulationPreparation::Exception(
+							"Seat-statistics file " + fileName +
+							" contains a non-finite statistic.");
+					}
+					statistics.trend[trendType].push_back(parsed);
+				}
+			}
+		}
+		catch (SimulationPreparation::Exception const&) {
+			throw;
+		}
+		catch (std::exception const& error) {
+			throw SimulationPreparation::Exception(
+				"Could not parse seat-statistics file " + fileName +
+				": " + error.what());
+		}
+	}
+}
+
 SimulationPreparation::SimulationPreparation(PollingProject& project, Simulation& sim, SimulationRun& run)
-	: project(project), run(run), sim(sim)
+	: project(project), sim(sim), run(run)
 {
 }
 
@@ -32,6 +150,7 @@ void SimulationPreparation::prepareForIterations()
 
 	storeTermCode();
 	determineSpecificPartyIndices();
+	validateIterationInputs();
 
 	resetRegionSpecificOutput();
 
@@ -61,6 +180,7 @@ void SimulationPreparation::prepareForIterations()
 	loadIndividualSeatParameters();
 
 	loadPastSeatResults();
+	validatePastSeatResults();
 
 	determineEffectiveSeatTppModifiers();
 	determinePreviousSwingDeviations();
@@ -171,9 +291,194 @@ void SimulationPreparation::resetOtherOutput()
 
 void SimulationPreparation::storeTermCode()
 {
-	std::string termCode = project.projections().view(sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+	if (project.projections().idToIndex(sim.settings.baseProjection) ==
+		ProjectionCollection::InvalidIndex) {
+		throw Exception("The simulation does not have a valid base projection.");
+	}
+
+	std::string const termCode = project.projections().view(
+		sim.settings.baseProjection).getBaseModel(project.models()).getTermCode();
+	bool const validYear = termCode.size() >= 4 &&
+		std::all_of(termCode.begin(), std::next(termCode.begin(), 4),
+			[](unsigned char character) { return std::isdigit(character); });
+	if (!validYear || termCode.size() == 4) {
+		throw Exception(
+			"Election term code \"" + termCode +
+			"\" must contain a four-digit year followed by a region code.");
+	}
 	run.yearCode = termCode.substr(0, 4);
 	run.regionCode = termCode.substr(4);
+}
+
+void SimulationPreparation::validateIterationInputs() const
+{
+	auto requireFiniteRange = [](
+		float value, float minimum, float maximum,
+		std::string const& description, bool allowEndpoints = true) {
+		bool const inRange = allowEndpoints ?
+			value >= minimum && value <= maximum :
+			value > minimum && value < maximum;
+		if (!std::isfinite(value) || !inRange) {
+			throw Exception(
+				description + " must be " +
+				(allowEndpoints ? "between " : "strictly between ") +
+				std::to_string(minimum) + " and " +
+				std::to_string(maximum) + ".");
+		}
+	};
+
+	if (project.parties().count() < PartyCollection::NumMajorParties) {
+		throw Exception("The simulation requires two major parties.");
+	}
+	if (project.regions().count() == 0) {
+		throw Exception("The simulation requires at least one region.");
+	}
+	if (project.seats().count() == 0) {
+		throw Exception("The simulation requires at least one seat.");
+	}
+	if (sim.settings.numIterations <= 0) {
+		throw Exception("The simulation iteration count must be positive.");
+	}
+
+	requireFiniteRange(
+		sim.settings.prevElection2pp, 0.0f, 100.0f,
+		"Previous-election TPP", false);
+	if (sim.settings.forceTpp) {
+		requireFiniteRange(
+			*sim.settings.forceTpp, 0.0f, 100.0f,
+			"Forced TPP", false);
+	}
+
+	auto const& projection =
+		project.projections().view(sim.settings.baseProjection);
+	if (sim.settings.fedElectionDate.IsValid() &&
+		!projection.getSettings().endDate.IsValid()) {
+		throw Exception(
+			"A federal election date was configured, but the base "
+			"projection has no valid end date.");
+	}
+
+	for (int partyIndex = 0;
+		partyIndex < project.parties().count(); ++partyIndex) {
+		auto const& party = project.parties().viewByIndex(partyIndex);
+		std::string const label = party.name.empty() ?
+			"Party index " + std::to_string(partyIndex) :
+			"Party " + party.name;
+
+		requireFiniteRange(
+			party.p1PreferenceFlow, 0.0f, 100.0f,
+			label + " preference flow");
+		requireFiniteRange(
+			party.exhaustRate, 0.0f, 100.0f,
+			label + " exhaust rate");
+		if (!std::isfinite(party.seatTarget) ||
+			party.seatTarget < 0.0f) {
+			throw Exception(label + " has an invalid seat target.");
+		}
+		if (party.ideology < 0 || party.ideology > 4) {
+			throw Exception(
+				label + " ideology must be between 0 and 4.");
+		}
+		if (party.consistency < 0 || party.consistency > 2) {
+			throw Exception(
+				label + " preference consistency must be between 0 and 2.");
+		}
+		if (!party.homeRegion.empty() &&
+			!project.regions().findbyName(party.homeRegion).second) {
+			throw Exception(
+				label + " refers to an unknown home region: " +
+				party.homeRegion + ".");
+		}
+	}
+
+	for (int regionIndex = 0;
+		regionIndex < project.regions().count(); ++regionIndex) {
+		auto const& region = project.regions().viewByIndex(regionIndex);
+		std::string const label = region.name.empty() ?
+			"Region index " + std::to_string(regionIndex) :
+			"Region " + region.name;
+		if (region.population <= 0) {
+			throw Exception(label + " must have a positive population.");
+		}
+		requireFiniteRange(
+			region.lastElection2pp, 0.0f, 100.0f,
+			label + " previous-election TPP", false);
+		if (!std::isfinite(region.homeRegionMod) ||
+			region.homeRegionMod < 0.0f) {
+			throw Exception(label + " has an invalid home-region modifier.");
+		}
+	}
+
+	for (int seatIndex = 0;
+		seatIndex < project.seats().count(); ++seatIndex) {
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		std::string const label = seat.name.empty() ?
+			"Seat index " + std::to_string(seatIndex) :
+			"Seat " + seat.name;
+		if (project.regions().idToIndex(seat.region) ==
+			RegionCollection::InvalidIndex) {
+			throw Exception(label + " refers to a region that does not exist.");
+		}
+		if (project.parties().idToIndex(seat.incumbent) ==
+			PartyCollection::InvalidIndex ||
+			project.parties().idToIndex(seat.challenger) ==
+			PartyCollection::InvalidIndex) {
+			throw Exception(
+				label + " must have valid incumbent and challenger parties.");
+		}
+		if (seat.incumbent == seat.challenger) {
+			throw Exception(
+				label + " has the same incumbent and challenger party.");
+		}
+		requireFiniteRange(
+			seat.tppMargin, -50.0f, 50.0f,
+			label + " TPP margin", false);
+		for (auto const& [description, value] :
+			std::initializer_list<std::pair<std::string, float>>{
+				{ "miscellaneous TPP modifier", seat.miscTppModifier },
+				{ "previous TPP swing", seat.previousSwing },
+				{ "transposed federal swing", seat.transposedTppSwing },
+				{ "by-election swing", seat.byElectionSwing } }) {
+			if (!std::isfinite(value)) {
+				throw Exception(
+					label + " has a non-finite " + description + ".");
+			}
+		}
+	}
+}
+
+void SimulationPreparation::validatePastSeatResults() const
+{
+	for (int seatIndex = 0;
+		seatIndex < int(run.pastSeatResults.size()); ++seatIndex) {
+		auto const& results = run.pastSeatResults[seatIndex];
+		std::string const label =
+			"Previous results for " +
+			project.seats().viewByIndex(seatIndex).name;
+		if (results.turnoutCount < 0) {
+			throw Exception(label + " have a negative turnout.");
+		}
+		for (auto const& [partyIndex, voteCount] : results.fpVoteCount) {
+			if (voteCount < 0) {
+				throw Exception(label + " contain a negative FP vote count.");
+			}
+		}
+		for (auto const& [partyIndex, voteCount] : results.tcpVoteCount) {
+			if (!std::isfinite(voteCount) || voteCount < 0.0f) {
+				throw Exception(label + " contain an invalid TCP vote count.");
+			}
+		}
+		for (auto const* voteShares :
+			{ &results.fpVotePercent, &results.tcpVotePercent }) {
+			for (auto const& [partyIndex, voteShare] : *voteShares) {
+				if (!std::isfinite(voteShare) ||
+					voteShare < 0.0f || voteShare > 100.0f) {
+					throw Exception(
+						label + " contain a vote share outside 0-100.");
+				}
+			}
+		}
+	}
 }
 
 void SimulationPreparation::determineEffectiveSeatTppModifiers()
@@ -181,12 +486,16 @@ void SimulationPreparation::determineEffectiveSeatTppModifiers()
 	run.seatPartyOneTppModifier.resize(project.seats().count(), 0.0f);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		bool majorParty = (seat.incumbent <= 1);
+		int const incumbentIndex =
+			project.parties().idToIndex(seat.incumbent);
+		bool const majorParty =
+			incumbentIndex >= Mp::First && incumbentIndex <= Mp::Last;
 		if (!majorParty) continue;
 		typedef SimulationRun::SeatType ST;
 		auto type = run.seatTypes[seatIndex];
 		bool isRegional = type == ST::Provincial || type == ST::Rural;
-		float direction = (seat.incumbent ? -1.0f : 1.0f);
+		float const direction =
+			incumbentIndex == Mp::One ? 1.0f : -1.0f;
 		if (isRegional) {
 			if (seat.sophomoreCandidate) {
 				float effectSize = run.tppSwingFactors.sophomoreCandidateRegional * direction;
@@ -216,7 +525,7 @@ void SimulationPreparation::determineEffectiveSeatTppModifiers()
 				run.seatLocalEffects[seatIndex].push_back({ "Party sophomore effect", effectSize });
 			}
 			if (seat.retirement) {
-				float effectSize = run.tppSwingFactors.retirementRegional * direction;
+				float effectSize = run.tppSwingFactors.retirementUrban * direction;
 				run.seatPartyOneTppModifier[seatIndex] += effectSize;
 				run.seatLocalEffects[seatIndex].push_back({ "Retirement effect", effectSize });
 			}
@@ -234,7 +543,11 @@ void SimulationPreparation::determineEffectiveSeatTppModifiers()
 			run.seatLocalEffects[seatIndex].push_back({ "Recovery from previous disendorsement", effectSize });
 		}
 		run.seatPartyOneTppModifier[seatIndex] += seat.miscTppModifier;
-		run.seatLocalEffects[seatIndex].push_back({ "Extraordinary circumstances (treat with extra caution)", seat.miscTppModifier });
+		if (seat.miscTppModifier != 0.0f) {
+			run.seatLocalEffects[seatIndex].push_back({
+				"Extraordinary circumstances (treat with extra caution)",
+				seat.miscTppModifier });
+		}
 	}
 }
 
@@ -267,11 +580,21 @@ void SimulationPreparation::accumulateRegionStaticInfo()
 {
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		Seat const& seat = project.seats().viewByIndex(seatIndex);
-		run.regionLocalModifierAverage[seat.region] += run.seatPartyOneTppModifier[seatIndex];
-		++regionSeatCount[seat.region];
+		int const regionIndex = project.regions().idToIndex(seat.region);
+		if (regionIndex == RegionCollection::InvalidIndex) {
+			throw Exception(
+				"Seat " + seat.name +
+				" refers to a region that does not exist.");
+		}
+		run.regionLocalModifierAverage[regionIndex] +=
+			run.seatPartyOneTppModifier[seatIndex];
+		++regionSeatCount[regionIndex];
 	}
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		run.regionLocalModifierAverage[regionIndex] /= float(regionSeatCount[regionIndex]);
+		if (regionSeatCount[regionIndex] > 0) {
+			run.regionLocalModifierAverage[regionIndex] /=
+				float(regionSeatCount[regionIndex]);
+		}
 	}
 }
 
@@ -279,8 +602,15 @@ void SimulationPreparation::loadSeatBettingOdds()
 {
 	run.seatBettingOdds.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		for (auto const& [partyCode, odds] : project.seats().viewByIndex(seatIndex).bettingOdds) {
-			int partyIndex = project.parties().indexByShortCode(partyCode);
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		for (auto const& [partyCode, odds] : seat.bettingOdds) {
+			if (!std::isfinite(odds) || odds <= 0.0f) {
+				throw Exception(
+					"Seat " + seat.name +
+					" has invalid betting odds for " + partyCode + ".");
+			}
+			int const partyIndex = seatPartyIndex(
+				project, seat, partyCode, "betting odds");
 			run.seatBettingOdds[seatIndex][partyIndex] = odds;
 		}
 	}
@@ -290,8 +620,19 @@ void SimulationPreparation::loadSeatPolls()
 {
 	run.seatPolls.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		for (auto const& [partyCode, polls] : project.seats().viewByIndex(seatIndex).polls) {
-			int partyIndex = project.parties().indexByShortCode(partyCode);
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		for (auto const& [partyCode, polls] : seat.polls) {
+			int const partyIndex = seatPartyIndex(
+				project, seat, partyCode, "seat polls");
+			for (auto const& [voteShare, credibility] : polls) {
+				if (!std::isfinite(voteShare) ||
+					voteShare < 0.0f || voteShare > 100.0f) {
+					throw Exception(
+						"Seat " + seat.name +
+						" has an invalid poll result for " +
+						partyCode + ".");
+				}
+			}
 			run.seatPolls[seatIndex][partyIndex] = polls;
 		}
 	}
@@ -301,19 +642,37 @@ void SimulationPreparation::loadSeatTppPolls()
 {
 	run.seatTppPolls.resize(project.seats().count(), 0.0f);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		auto& polls = project.seats().viewByIndex(seatIndex).tppPolls;
-		if (polls.size()) {
-			float sum = std::accumulate(polls.begin(), polls.end(), 0.0f,
-				[](float acc, std::pair<std::string, float> const& val) {return acc + val.second; });
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		auto const& polls = seat.tppPolls;
+		if (!polls.empty()) {
+			float sum = 0.0f;
+			for (auto const& [date, voteShare] : polls) {
+				if (!std::isfinite(voteShare) ||
+					voteShare <= 0.0f || voteShare >= 100.0f) {
+					throw Exception(
+						"Seat " + seat.name +
+						" has a TPP poll outside the range 0-100.");
+				}
+				sum += voteShare;
+			}
 			run.seatTppPolls[seatIndex] = sum / float(polls.size());
 		}
 	}
 	run.seatTppMrpPolls.resize(project.seats().count(), 0.0f);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		auto& polls = project.seats().viewByIndex(seatIndex).tppMrpPolls;
-		if (polls.size()) {
-			float sum = std::accumulate(polls.begin(), polls.end(), 0.0f,
-				[](float acc, std::pair<std::string, float> const& val) {return acc + val.second; });
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		auto const& polls = seat.tppMrpPolls;
+		if (!polls.empty()) {
+			float sum = 0.0f;
+			for (auto const& [date, voteShare] : polls) {
+				if (!std::isfinite(voteShare) ||
+					voteShare <= 0.0f || voteShare >= 100.0f) {
+					throw Exception(
+						"Seat " + seat.name +
+						" has an MRP TPP estimate outside the range 0-100.");
+				}
+				sum += voteShare;
+			}
 			run.seatTppMrpPolls[seatIndex] = sum / float(polls.size());
 		}
 	}
@@ -323,8 +682,16 @@ void SimulationPreparation::loadSeatMinorViability()
 {
 	run.seatMinorViability.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		for (auto const& [partyCode, minorViability] : project.seats().viewByIndex(seatIndex).minorViability) {
-			int partyIndex = project.parties().indexByShortCode(partyCode);
+		auto const& seat = project.seats().viewByIndex(seatIndex);
+		for (auto const& [partyCode, minorViability] : seat.minorViability) {
+			if (!std::isfinite(minorViability)) {
+				throw Exception(
+					"Seat " + seat.name +
+					" has non-finite minor-party viability for " +
+					partyCode + ".");
+			}
+			int const partyIndex = seatPartyIndex(
+				project, seat, partyCode, "minor-party viability");
 			run.seatMinorViability[seatIndex][partyIndex] = minorViability;
 		}
 	}
@@ -366,10 +733,21 @@ void SimulationPreparation::resizeRegionSeatCountOutputs()
 void SimulationPreparation::countInitialRegionSeatLeads()
 {
 	for (auto&[key, seat] : project.seats()) {
-		if (run.natPartyIndex >= 0 && (seat.getLeadingParty() == Mp::Two || seat.getLeadingParty() == run.natPartyIndex)) {
-			++sim.latestReport.regionCoalitionIncumbents[seat.region];
+		int const regionIndex = project.regions().idToIndex(seat.region);
+		int const leadingPartyIndex =
+			project.parties().idToIndex(seat.getLeadingParty());
+		if (regionIndex == RegionCollection::InvalidIndex ||
+			leadingPartyIndex == PartyCollection::InvalidIndex) {
+			throw Exception(
+				"Seat " + seat.name +
+					" has an invalid region or leading party.");
 		}
-		++sim.latestReport.regionPartyIncumbents[seat.region][project.parties().idToIndex(seat.getLeadingParty())];
+		if (run.natPartyIndex >= 0 &&
+			(leadingPartyIndex == Mp::Two ||
+				leadingPartyIndex == run.natPartyIndex)) {
+			++sim.latestReport.regionCoalitionIncumbents[regionIndex];
+		}
+		++sim.latestReport.regionPartyIncumbents[regionIndex][leadingPartyIndex];
 	}
 }
 
@@ -506,14 +884,19 @@ void SimulationPreparation::resetResultCounts()
 void SimulationPreparation::determineSpecificPartyIndices()
 {
 	run.indPartyIndex = project.parties().indexByShortCode("IND");
-	if (run.indPartyIndex == -1) {
-		logger << "WARNING: Did not find a party with IND as a short code. This will probably cause a crash.";
-		run.indPartyIndex = EmergingIndIndex;
+	if (run.indPartyIndex == PartyCollection::InvalidIndex) {
+		throw Exception(
+			"Could not find a party with IND as a short code. "
+			"The simulation requires an Independent party.");
 	}
 	run.grnPartyIndex = project.parties().indexByShortCode("GRN");
-	if (run.grnPartyIndex == -1) run.grnPartyIndex = InvalidPartyIndex;
+	if (run.grnPartyIndex == PartyCollection::InvalidIndex) {
+		run.grnPartyIndex = InvalidPartyIndex;
+	}
 	run.natPartyIndex = project.parties().indexByShortCode("NAT");
-	if (run.natPartyIndex == -1) run.natPartyIndex = InvalidPartyIndex;
+	if (run.natPartyIndex == PartyCollection::InvalidIndex) {
+		run.natPartyIndex = InvalidPartyIndex;
+	}
 }
 
 void SimulationPreparation::loadPreviousPreferenceFlows() {
@@ -799,62 +1182,23 @@ void SimulationPreparation::loadSeatTypes()
 
 void SimulationPreparation::loadGreensSeatStatistics()
 {
-	std::string fileName = "analysis/Seat Statistics/statistics_GRN.csv";
-	auto file = std::ifstream(fileName);
-	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string line;
-	std::getline(file, line);
-	auto scaleValues = splitString(line, ",");
-	run.greensSeatStatistics.scaleLow = std::stof(scaleValues[0]);
-	run.greensSeatStatistics.scaleStep = std::stof(scaleValues[1]) - run.greensSeatStatistics.scaleLow;
-	run.greensSeatStatistics.scaleHigh = std::stof(scaleValues.back());
-	for (int trendType = 0; trendType < int(SimulationRun::SeatStatistics::TrendType::Num); ++trendType) {
-		std::getline(file, line);
-		auto strings = splitString(line, ",");
-		for (auto const& str : strings) {
-			run.greensSeatStatistics.trend[trendType].push_back(std::stof(str));
-		}
-	}
+	loadSeatStatisticsFile(
+		"analysis/Seat Statistics/statistics_GRN.csv",
+		run.greensSeatStatistics);
 }
 
 void SimulationPreparation::loadIndSeatStatistics()
 {
-	std::string fileName = "analysis/Seat Statistics/statistics_IND.csv";
-	auto file = std::ifstream(fileName);
-	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string line;
-	std::getline(file, line);
-	auto scaleValues = splitString(line, ",");
-	run.indSeatStatistics.scaleLow = std::stof(scaleValues[0]);
-	run.indSeatStatistics.scaleStep = std::stof(scaleValues[1]) - run.indSeatStatistics.scaleLow;
-	run.indSeatStatistics.scaleHigh = std::stof(scaleValues.back());
-	for (int trendType = 0; trendType < int(SimulationRun::SeatStatistics::TrendType::Num); ++trendType) {
-		std::getline(file, line);
-		auto strings = splitString(line, ",");
-		for (auto const& str : strings) {
-			run.indSeatStatistics.trend[trendType].push_back(std::stof(str));
-		}
-	}
+	loadSeatStatisticsFile(
+		"analysis/Seat Statistics/statistics_IND.csv",
+		run.indSeatStatistics);
 }
 
 void SimulationPreparation::loadOthSeatStatistics()
 {
-	std::string fileName = "analysis/Seat Statistics/statistics_OTH.csv";
-	auto file = std::ifstream(fileName);
-	if (!file) throw Exception("Could not find file " + fileName + "!");
-	std::string line;
-	std::getline(file, line);
-	auto scaleValues = splitString(line, ",");
-	run.othSeatStatistics.scaleLow = std::stof(scaleValues[0]);
-	run.othSeatStatistics.scaleStep = std::stof(scaleValues[1]) - run.othSeatStatistics.scaleLow;
-	run.othSeatStatistics.scaleHigh = std::stof(scaleValues.back());
-	for (int trendType = 0; trendType < int(SimulationRun::SeatStatistics::TrendType::Num); ++trendType) {
-		std::getline(file, line);
-		auto strings = splitString(line, ",");
-		for (auto const& str : strings) {
-			run.othSeatStatistics.trend[trendType].push_back(std::stof(str));
-		}
-	}
+	loadSeatStatisticsFile(
+		"analysis/Seat Statistics/statistics_OTH.csv",
+		run.othSeatStatistics);
 }
 
 void SimulationPreparation::loadIndEmergence()
@@ -1367,11 +1711,18 @@ void SimulationPreparation::loadIndividualSeatParameters()
 void SimulationPreparation::prepareProminentMinors()
 {
 	std::size_t seatCount = project.seats().count();
-	const std::string indAbbrev = project.parties().viewByIndex(run.indPartyIndex).abbreviation;
 	run.seatProminentMinors.resize(seatCount);
 	for (int seatIndex = 0; seatIndex < int(seatCount); ++seatIndex) {
+		auto const& seat = project.seats().viewByIndex(seatIndex);
 		for (auto const& code : project.seats().viewByIndex(seatIndex).prominentMinors) {
-			run.seatProminentMinors[seatIndex].push_back(project.parties().indexByShortCode(code));
+			int const partyIndex = project.parties().indexByShortCode(code);
+			if (partyIndex == PartyCollection::InvalidIndex) {
+				throw Exception(
+					"Seat " + seat.name +
+					" lists an unknown prominent-minor party code: " +
+					code + ".");
+			}
+			run.seatProminentMinors[seatIndex].push_back(partyIndex);
 		}
 	}
 }

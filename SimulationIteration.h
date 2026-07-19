@@ -18,7 +18,8 @@ class SimulationIteration {
 public:
 	SimulationIteration(PollingProject& project, Simulation& sim, SimulationRun& run, int iterationIndex);
 
-	void runIteration();
+	// Returns the number of discarded attempts before a valid result was produced.
+	int runIteration();
 private:
 
 	typedef std::array<int, 2> TcpTally;
@@ -49,7 +50,7 @@ private:
 	};
 
 	void reset();
-	bool checkForNans(std::string const& loc, bool forceDebug = false, bool checkTppMargins = true);
+	bool hasInvalidValues(std::string const& location, bool forceDebug = false, bool checkTppMargins = true);
 	void initialiseIterationSpecificCounts();
 	void determineFedStateCorrelation();
 	void determineOverallTpp();
@@ -66,7 +67,11 @@ private:
 	void correctSeatTppSwings();
 	void determineSeatTpp(int seatIndex);
 	void determineSeatInitialFp(int seatIndex);
-	void determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics);
+	void determineSpecificPartyFp(
+		int seatIndex,
+		int partyIndex,
+		float& voteShare,
+		SimulationRun::SeatStatistics const& seatStatistics);
 	void determinePopulistFp(int seatIndex, int partyIndex, float& voteShare);
 	void determineSeatConfirmedInds(int seatIndex);
 	void determineSeatEmergingInds(int seatIndex);
@@ -108,9 +113,10 @@ private:
 
 	float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 	float variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
-	float variabilityUniformInt(int low, int high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	int variabilityUniformInt(int low, int high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 	float variabilityGamma(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 	float variabilityBeta(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
+	int randomSampleIndex() const;
 
 	struct SeatCandidate { int vote; Party::Id partyId; float weight; };
 	typedef std::vector<SeatCandidate> SeatCandidates;
@@ -121,8 +127,7 @@ private:
 
 	typedef std::map<int, float> FloatByPartyIndex;
 
-	// iteration-specific variables
-	// *** IMPORTANT NOTE: Add all new variables to this class's reset() function *** //
+	// Per-attempt state. Add new generated values here to reset().
 	std::unique_ptr<LiveV2::Election> liveElection;
 	
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
@@ -168,15 +173,16 @@ private:
 	float othersCorrectionFactor = 0.0f;
 	float fedStateCorrelation = 0.0f;
 	float ppvcBias = 0.0f;
-	float liveSystemicBias = 0.0f;
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;
 
+	// Stable identity and retry bookkeeping. These are intentionally not reset
+	// with the generated state above.
 	int iterationIndex = 0;
+	int retryCount = 0;
 
 	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 
 	std::array<int, 2> effectiveWins = std::array<int, 2>();
 	std::array<int, 2> partySupport = std::array<int, 2>();
-	// *** IMPORTANT NOTE: see above *** //
 };

@@ -8,8 +8,14 @@
 #include "SimulationIteration.h"
 #include "SimulationPreparation.h"
 
-static std::random_device rd;
-static std::mt19937 gen;
+#include <algorithm>
+#include <atomic>
+#include <cstdint>
+#include <exception>
+#include <mutex>
+#include <stdexcept>
+#include <thread>
+#include <vector>
 
 using Mp = Simulation::MajorParty;
 
@@ -34,7 +40,7 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 
 	project.seats().importInfo();
 
-	runBettingOddsCalibrations(feedback);
+	if (!runBettingOddsCalibrations(feedback)) return false;
 
 	if (sim.isLiveAutomatic() && !sim.liveBaselineReport) {
 		if (!runLiveBaselineSimulation(feedback)) return false;
@@ -50,40 +56,111 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 		return false;
 	}
 
-	int numThreads = project.config().getSimulationThreads();
-	std::vector<int> batchSizes;
-
 	const int cycleIterations = sim.settings.numIterations;
-	int minBatchSize = cycleIterations / numThreads;
-	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
-	int extraIterations = cycleIterations - minBatchSize * numThreads;
-	for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
-
-	std::vector<std::thread> threads;
-	threads.resize(numThreads);
-
-	auto runIterations = [&](int numIterations, int iterationStartIndex) {
-		for (int i = 0; i < numIterations; ++i) {
-			SimulationIteration iteration(project, sim, *this, iterationStartIndex + i);
-			iteration.runIteration();
-		}
-	};
-
-  int iterationsStarted = 0;
-	for (int thread = 0; thread < numThreads; ++thread) {
-    threads[thread] = std::thread(runIterations, batchSizes[thread], iterationsStarted);
-    iterationsStarted += batchSizes[thread];
-	}
-
-	for (int thread = 0; thread < numThreads; ++thread) {
-		if (threads[thread].joinable()) threads[thread].join();
-	}
+	if (!runIterations(*this, cycleIterations, 0, "simulation", feedback)) return false;
 
 	SimulationCompletion completion(project, sim, *this, cycleIterations);
 	completion.completeRun(feedback);
 
 	sim.lastUpdated = wxDateTime::Now();
 	return true;
+}
+
+bool SimulationRun::runIterations(
+	SimulationRun& iterationRun,
+	int iterationCount,
+	int iterationStartIndex,
+	std::string const& phase,
+	FeedbackFunc feedback)
+{
+	if (iterationCount <= 0) {
+		feedback("Could not run " + phase + ": the configured iteration count must be positive.");
+		return false;
+	}
+
+	int const numThreads = std::clamp(
+		project.config().getSimulationThreads(), 1, iterationCount);
+	std::vector<int> batchSizes(numThreads, iterationCount / numThreads);
+	for (int i = 0; i < iterationCount % numThreads; ++i) {
+		++batchSizes[i];
+	}
+
+	std::atomic<int> totalRetries = 0;
+	std::atomic<bool> abortRequested = false;
+	std::exception_ptr failure;
+	std::mutex failureMutex;
+
+	auto captureFailure = [&](std::exception_ptr error) {
+		bool expected = false;
+		if (!abortRequested.compare_exchange_strong(expected, true)) return;
+		std::lock_guard<std::mutex> lock(failureMutex);
+		failure = error;
+	};
+
+	auto runBatch = [&](int batchSize, int batchStartIndex) {
+		try {
+			for (int i = 0; i < batchSize && !abortRequested.load(); ++i) {
+				SimulationIteration iteration(
+					project, sim, iterationRun, batchStartIndex + i);
+				int const iterationRetries = iteration.runIteration();
+				int const updatedRetries =
+					totalRetries.fetch_add(iterationRetries) + iterationRetries;
+
+				// Use integer arithmetic so "exceeds 1%" has an exact boundary.
+				// A few in-flight workers may finish before observing the abort.
+				if (int64_t(updatedRetries) * 100 > iterationCount) {
+					captureFailure(std::make_exception_ptr(std::runtime_error(
+						"The " + phase + " produced " +
+						std::to_string(updatedRetries) + " retries across " +
+						std::to_string(iterationCount) +
+						" expected iterations, exceeding the 1% safety limit.")));
+				}
+			}
+		}
+		catch (...) {
+			captureFailure(std::current_exception());
+		}
+	};
+
+	std::vector<std::thread> threads;
+	threads.reserve(numThreads);
+	int iterationsStarted = iterationStartIndex;
+	try {
+		for (int thread = 0; thread < numThreads; ++thread) {
+			threads.emplace_back(runBatch, batchSizes[thread], iterationsStarted);
+			iterationsStarted += batchSizes[thread];
+		}
+	}
+	catch (...) {
+		captureFailure(std::current_exception());
+	}
+	for (std::thread& thread : threads) {
+		if (thread.joinable()) thread.join();
+	}
+
+	if (!failure) {
+		if (totalRetries > 0) {
+			logger << "Completed " << phase << " with " << totalRetries <<
+				" retried simulation iterations.\n";
+		}
+		return true;
+	}
+
+	std::string detail = "Unknown worker-thread error.";
+	try {
+		std::rethrow_exception(failure);
+	}
+	catch (std::exception const& e) {
+		detail = e.what();
+	}
+	catch (...) {
+	}
+
+	logger << "Aborted " << phase << ": " << detail << "\n";
+	feedback(
+		"Could not complete the " + phase + ":\n" + detail +
+		"\n\nThe simulation report was not completed. Check PALog.log for the first invalid values.");
+	return false;
 }
 
 std::string SimulationRun::getTermCode() const
@@ -117,7 +194,7 @@ template<typename T,
 	return impliedChance;
 }
 
-void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
+bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 {
 	doingBettingOddsCalibrations = true;
 
@@ -140,16 +217,16 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	oddsFinalMeans.clear();
 
 	if (!impliedChances.size()) {
-		logger << "*** Skipping betting odds calibrations are there are no odds currently entered ***\n";
+		logger << "*** Skipping betting odds calibrations as there are no odds currently entered ***\n";
 		doingBettingOddsCalibrations = false;
-		return;
+		return true;
 	}
 
 	if (sim.isLive() && sim.cachedOddsFinalMeans.size()) {
 		logger << "*** Skipping betting odds calibrations for a live forecast as there are already cached results ***";
 		oddsFinalMeans = sim.cachedOddsFinalMeans;
 		doingBettingOddsCalibrations = false;
-		return;
+		return true;
 	}
 
 	logger << "*** Doing betting odds calibrations ***\n";
@@ -174,38 +251,20 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		catch (SimulationPreparation::Exception const& e) {
 
 			feedback("Could not run betting odds calibrations due to the following issue: \n" + std::string(e.what()));
-			return;
+			doingBettingOddsCalibrations = false;
+			return false;
 		}
 		newRun.oddsCalibrationMeans = oddsCalibrationMeans;
 
-		int numThreads = project.config().getSimulationThreads();
-		std::vector<int> batchSizes;
 		const int CycleIterationsDivisor = 20;
 		int cycleIterations = std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
-		int minBatchSize = cycleIterations / numThreads;
-		for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
-		int extraIterations = cycleIterations - minBatchSize * numThreads;
-		for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
-
-		std::vector<std::thread> threads;
-		threads.resize(numThreads);
-
-		auto runIterations = [&](int numIterations, int iterationStartIndex) {
-			for (int i = 0; i < numIterations; ++i) {
-				SimulationIteration iteration(project, sim, newRun, iterationStartIndex + i);
-				iteration.runIteration();
-			}
-		};
 
 		// Make sure these iterationIndex values do not overlap with the main simulation run
-		int iterationsStarted = sim.settings.numIterations;
-		for (int thread = 0; thread < numThreads; ++thread) {
-			threads[thread] = std::thread(runIterations, batchSizes[thread], iterationsStarted);
-			iterationsStarted += batchSizes[thread];
-		}
-
-		for (int thread = 0; thread < numThreads; ++thread) {
-			if (threads[thread].joinable()) threads[thread].join();
+		if (!runIterations(
+			newRun, cycleIterations, sim.settings.numIterations,
+			"betting-odds calibration", feedback)) {
+			doingBettingOddsCalibrations = false;
+			return false;
 		}
 
 		SimulationCompletion completion(project, sim, newRun, cycleIterations);
@@ -240,6 +299,7 @@ void SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	logger << "*** Finished betting odds calibrations ***\n";
 
 	doingBettingOddsCalibrations = false;
+	return true;
 }
 
 bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
@@ -261,34 +321,15 @@ bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 		return false;
 	}
 
-	int numThreads = project.config().getSimulationThreads();
-	std::vector<int> batchSizes;
 	const int CycleIterationsDivisor = 1;
 	int cycleIterations = std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
-	int minBatchSize = cycleIterations / numThreads;
-	for (int i = 0; i < numThreads; ++i) batchSizes.push_back(minBatchSize);
-	int extraIterations = cycleIterations - minBatchSize * numThreads;
-	for (int i = 0; i < extraIterations; ++i) ++batchSizes[i];
-
-	std::vector<std::thread> threads;
-	threads.resize(numThreads);
-
-	auto runIterations = [&](int numIterations, int iterationStartIndex) {
-		for (int i = 0; i < numIterations; ++i) {
-			SimulationIteration iteration(project, sim, newRun, iterationStartIndex + i);
-			iteration.runIteration();
-		}
-	};
 
 	// Make sure these iterationIndex values do not overlap with the main simulation run or the betting odds calibrations
-	int iterationsStarted = sim.settings.numIterations;
-	for (int thread = 0; thread < numThreads; ++thread) {
-		threads[thread] = std::thread(runIterations, batchSizes[thread], iterationsStarted);
-		iterationsStarted += batchSizes[thread];
-	}
-
-	for (int thread = 0; thread < numThreads; ++thread) {
-		if (threads[thread].joinable()) threads[thread].join();
+	if (!runIterations(
+		newRun, cycleIterations, sim.settings.numIterations,
+		"live baseline simulation", feedback)) {
+		doingLiveBaselineSimulation = false;
+		return false;
 	}
 
 	SimulationCompletion completion(project, sim, newRun, cycleIterations);

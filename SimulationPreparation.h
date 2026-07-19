@@ -31,6 +31,8 @@ private:
 	void resetSeatSpecificOutput();
 	void resetOtherOutput();
 	void storeTermCode();
+	void validateIterationInputs() const;
+	void validatePastSeatResults() const;
 	void determineEffectiveSeatTppModifiers();
 	void determinePreviousSwingDeviations();
 	void accumulateRegionStaticInfo();

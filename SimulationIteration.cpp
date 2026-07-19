@@ -9,10 +9,7 @@
 
 using Mp = Simulation::MajorParty;
 
-static std::random_device rd;
-static std::mt19937 gen;
 static std::mutex recordMutex;
-static std::mutex debugMutex;
 
 static RandomGenerator rng;
 
@@ -22,6 +19,11 @@ constexpr float LongshotOddsThreshold = 2.5f;
 constexpr float ProminentMinorFlatBonus = 5.0f;
 constexpr float ProminentMinorFlatBonusThreshold = 10.0f;
 constexpr float ProminentMinorBonusMax = 35.0f;
+constexpr int MaxIterationRetries = 10;
+
+namespace {
+	struct InvalidIteration {};
+}
 
 // How strongly preferences align with ideology based on the "consistency" property of a party
 constexpr std::array<float, 3> PreferenceConsistencyBase = { 1.2f, 1.4f, 1.8f };
@@ -47,14 +49,14 @@ enum class VariabilityTag : std::uint32_t {
 	ConfirmedIndsOddsCalibration = 13,
 	ConfirmedIndsContestRate = 14,
 	ProminentPopulistBonus1 = 15,
-  ProminentPopulistBonus2 = 16,
-  ProminentMinorBonus1 = 17,
-  ProminentMinorBonus2 = 18,
+	ProminentPopulistBonus2 = 16,
+	ProminentMinorBonus1 = 17,
+	ProminentMinorBonus2 = 18,
 	MinorQuantile = 19,
-  ProminentMinorPreBonus = 20,
+	ProminentMinorPreBonus = 20,
 	RecontestRateCheck = 21,
-  KiamaBias = 22,
-  KiamaExhaust = 23,
+	KiamaBias = 22,
+	KiamaExhaust = 23,
 	EmergingPartyHomeRegion = 24,
 	PopulismLevel = 25,
 	IndDist1 = 26,
@@ -64,16 +66,16 @@ enum class VariabilityTag : std::uint32_t {
 	IndDist5 = 30,
 	IndDist6 = 31,
 	IndDist7 = 32,
-  IntraCoalitionSwing = 33,
+	IntraCoalitionSwing = 33,
 	SeatTpp = 34,
 	RegionSwingNaive = 35,
 	RegionSwing = 36,
 	MinorPartySeats = 37,
 	MinorPartySeatPriority = 38,
-  IntraCoalitionSwingGlobal = 39,
+	IntraCoalitionSwingGlobal = 39,
 	PopulistFp = 40,
-  FedStateCorrelation = 41,
-  EmergingPartyHomeRegion2 = 42,
+	FedStateCorrelation = 41,
+	EmergingPartyHomeRegion2 = 42,
 	ConfirmedIndVariation = 43,
 	IndEmergenceDecision = 44,
 	IndEmergenceQuantile = 45,
@@ -86,12 +88,13 @@ bool isMajor(int partyIndex, int natPartyIndex = -100) {
 }
 
 SimulationIteration::SimulationIteration(PollingProject& project, Simulation& sim, SimulationRun& run, int iterationIndex)
-	: iterationIndex(iterationIndex), project(project), run(run), sim(sim)
+	: project(project), sim(sim), run(run), iterationIndex(iterationIndex)
 {
 }
 
 void SimulationIteration::reset()
 {
+	liveElection.reset();
 	pastSeatResults.clear();
 	regionSeatCount.clear();
 	partyWins.clear();
@@ -134,23 +137,35 @@ void SimulationIteration::reset()
 	othersCorrectionFactor = 0.0f;
 	fedStateCorrelation = 0.0f;
 	ppvcBias = 0.0f;
+	intraCoalitionSwing = 0.0f;
 	indAlpha = 1.0f;
 	indBeta = 1.0f;
 
+	effectiveWins = std::array<int, 2>();
 	partySupport = std::array<int, 2>();
 }
 
-bool SimulationIteration::checkForNans(std::string const& loc, bool forceDebug, bool checkTppMargins) {
+bool SimulationIteration::hasInvalidValues(std::string const& location, bool forceDebug, bool checkTppMargins) {
 	static bool alreadyLogged = false;
-	auto report = [&](int seatIndex, std::string type, std::string valueType) {
+	auto report = [&](int seatIndex, std::string const& type, std::string const& valueType) {
 		std::lock_guard<std::mutex> lock(recordMutex);
 		if (alreadyLogged && !forceDebug) return;
 		alreadyLogged = true;
-		logger << "Warning: A " << type << " vote share for seat " << project.seats().viewByIndex(seatIndex).name << "was " << valueType << "!\n";
-		logger << "At simulation location " << loc << "\n";
+		if (seatIndex >= 0 && seatIndex < project.seats().count()) {
+			logger << "Warning: A " << type << " value for seat " <<
+				project.seats().viewByIndex(seatIndex).name << " was " << valueType << "!\n";
+		}
+		else {
+			logger << "Warning: A simulation " << type << " value was " << valueType << "!\n";
+		}
+		logger << "At simulation location " << location << "\n";
 		logger << "Simulation iteration aborted to prevent a freeze, trying to redo.\n";
-		PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+		if (seatIndex >= 0 && seatIndex < int(seatFpVoteShare.size())) {
+			PA_LOG_VAR(seatFpVoteShare[seatIndex]);
+		}
+		if (seatIndex >= 0 && seatIndex < int(partyOneNewTppMargin.size())) {
+			PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
+		}
 		PA_LOG_VAR(iterationOverallTpp);
 		PA_LOG_VAR(overallFpTarget);
 		PA_LOG_VAR(overallFpSwing);
@@ -159,20 +174,65 @@ bool SimulationIteration::checkForNans(std::string const& loc, bool forceDebug, 
 		PA_LOG_VAR(seatFpVoteShare);
 		return;
 	};
+
+	if (!std::isfinite(iterationOverallTpp)) {
+		report(-1, "overall TPP", "not finite");
+		return true;
+	}
+	if (iterationOverallTpp <= 0.0f || iterationOverallTpp >= 100.0f) {
+		report(-1, "overall TPP", "outside the open range 0-100");
+		return true;
+	}
+	for (auto const& [party, voteShare] : overallFpTarget) {
+		if (!std::isfinite(voteShare) ||
+			voteShare < 0.0f || voteShare > 100.0f) {
+			report(-1, "overall FP",
+				"outside 0-100 for party index " + std::to_string(party));
+			return true;
+		}
+	}
+	for (auto const& [party, preferenceFlow] : overallPreferenceFlow) {
+		if (!std::isfinite(preferenceFlow) ||
+			preferenceFlow < 0.0f || preferenceFlow > 100.0f) {
+			report(-1, "preference flow",
+				"outside 0-100 for party index " + std::to_string(party));
+			return true;
+		}
+	}
+	for (auto const& [party, exhaustRate] : overallExhaustRate) {
+		if (!std::isfinite(exhaustRate) ||
+			exhaustRate < 0.0f || exhaustRate > 1.0f) {
+			report(-1, "exhaust rate",
+				"outside 0-1 for party index " + std::to_string(party));
+			return true;
+		}
+	}
+	if (!std::isfinite(indAlpha) || indAlpha <= 0.0f ||
+		!std::isfinite(indBeta) || indBeta <= 0.0f) {
+		report(-1, "independent distribution parameters", "not positive and finite");
+		return true;
+	}
+	for (int regionIndex = 0; regionIndex < int(regionSwing.size()); ++regionIndex) {
+		if (!std::isfinite(regionSwing[regionIndex])) {
+			report(-1, "regional swing", "not finite for region index " + std::to_string(regionIndex));
+			return true;
+		}
+	}
+
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		if (int(seatFpVoteShare.size()) > seatIndex) {
 			float nonMajorTotal = 0.0f;
 			for (auto [party, voteShare] : seatFpVoteShare[seatIndex]) {
-				if (std::isnan(voteShare)) {
-					report(seatIndex, "fp", "NaN");
+				if (!std::isfinite(voteShare)) {
+					report(seatIndex, "FP", "not finite");
 					return true;
 				}
 				if (voteShare < 0.0f) {
-					report(seatIndex, "fp", "below 0 (" + std::to_string(voteShare) + ")");
+					report(seatIndex, "FP", "below 0 (" + std::to_string(voteShare) + ")");
 					return true;
 				}
 				if (voteShare > 100.0f) {
-					report(seatIndex, "fp", "above 100 (" + std::to_string(voteShare) + ")");
+					report(seatIndex, "FP", "above 100 (" + std::to_string(voteShare) + ")");
 					return true;
 				}
 				if (party != Mp::One && party != Mp::Two && party != run.natPartyIndex) {
@@ -180,37 +240,52 @@ bool SimulationIteration::checkForNans(std::string const& loc, bool forceDebug, 
 				}
 			}
 			if (checkTppMargins && nonMajorTotal >= 100.0f) {
-				report(seatIndex, "non-major share", "above 100 (" + std::to_string(nonMajorTotal) + ")");
+				report(seatIndex, "non-major FP share", "above 100 (" + std::to_string(nonMajorTotal) + ")");
 				return true;
 			}
 		}
 		if (int(partyOneNewTppMargin.size()) <= seatIndex) {
-			report(seatIndex, "tcp", "invalid - partyOneNewTppMargin size too small");
+			report(seatIndex, "TCP", "invalid because partyOneNewTppMargin is too small");
 			return true;
 		}
-		if (std::isnan(partyOneNewTppMargin[seatIndex])) {
-			report(seatIndex, "tcp", "NaN");
+		if (!std::isfinite(partyOneNewTppMargin[seatIndex])) {
+			report(seatIndex, "TCP", "not finite");
 			return true;
 		}
 		if (partyOneNewTppMargin[seatIndex] <= -50 && checkTppMargins) {
-			report(seatIndex, "tcp", "below 0");
+			report(seatIndex, "TCP", "below 0");
 			return true;
 		}
 		if (partyOneNewTppMargin[seatIndex] >= 50 && checkTppMargins) {
-			report(seatIndex, "tcp", "above 100");
+			report(seatIndex, "TCP", "above 100");
 			return true;
 		}
 	}
 	return false;
 }
 
-void SimulationIteration::runIteration()
+int SimulationIteration::runIteration()
 {
+	retryCount = 0;
+	auto retryOrThrow = [&]() {
+		if (retryCount >= MaxIterationRetries) {
+			throw std::runtime_error(
+				"Simulation iteration " + std::to_string(iterationIndex) +
+				" remained invalid after the initial attempt and " +
+				std::to_string(MaxIterationRetries) + " retries.");
+		}
+		++retryCount;
+		reset();
+	};
+
 	bool gotValidResult = false;
 	while (!gotValidResult) {
 		try {
+			// Build the election-wide scenario first, then progressively distribute
+			// it through regions and seats before applying any live observations.
 			if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				liveElection = std::make_unique<LiveV2::Election>(run.liveElection->generateScenario(iterationIndex));
+				liveElection = std::make_unique<LiveV2::Election>(
+					run.liveElection->generateScenario(randomSampleIndex()));
 			}
 			loadPastSeatResults();
 			initialiseIterationSpecificCounts();
@@ -223,32 +298,39 @@ void SimulationIteration::runIteration()
 			determineIndDistributionParameters();
 			determineRegionalSwings();
 
-			if (checkForNans("Before seat initial results", false, false)) {
-				reset();
+			if (hasInvalidValues("Before seat initial results", false, false)) {
+				retryOrThrow();
 				continue;
 			}
 
+			// Convert the regional scenario to seat-level FP and TPP estimates,
+			// then reconcile them back to the sampled election-wide totals.
 			determineSeatInitialResults();
 
-			if (checkForNans("Before reconciling")) {
-				reset();
+			if (hasInvalidValues("Before reconciling")) {
+				retryOrThrow();
 				continue;
 			}
 
 			reconcileSeatAndOverallFp();
 
-			if (checkForNans("After reconciling")) {
-				reset();
+			if (hasInvalidValues("After reconciling")) {
+				retryOrThrow();
 				continue;
 			}
 
+			// Live observations override the corresponding portions of the
+			// pre-election scenario while retaining uncertainty elsewhere.
 			incorporateLiveResults();
 
-			if (checkForNans("After reconciling", !run.doingLiveBaselineSimulation && !run.doingBettingOddsCalibrations)) {
-				reset();
+			if (hasInvalidValues("After live results",
+				!run.doingLiveBaselineSimulation && !run.doingBettingOddsCalibrations)) {
+				retryOrThrow();
 				continue;
 			}
 
+			// Resolve each seat's final TCP contest and winner, then aggregate
+			// support relationships into the government-level result.
 			seatTcpVoteShare.resize(project.seats().count());
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				determineSeatFinalResult(seatIndex);
@@ -256,9 +338,14 @@ void SimulationIteration::runIteration()
 
 			assignDirectWins();
 			assignSupportsPartyWins();
-		} 
+		}
+		catch (InvalidIteration const&) {
+			retryOrThrow();
+			continue;
+		}
 		catch (std::bad_alloc const& err) {
 			PA_LOG_VAR(err.what());
+			retryOrThrow();
 			continue;
 		}
 		gotValidResult = true;
@@ -266,6 +353,7 @@ void SimulationIteration::runIteration()
 
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
+	return retryCount;
 }
 
 void SimulationIteration::initialiseIterationSpecificCounts()
@@ -298,11 +386,12 @@ void SimulationIteration::determineFedStateCorrelation()
 
 void SimulationIteration::determineOverallTpp()
 {
-	// First, randomly determine the national swing for this particular simulation
-	auto& projection = project.projections().access(0);
+	// Sample the simulation's configured projection, not necessarily the first
+	// projection in the project.
+	auto& projection = project.projections().access(sim.settings.baseProjection);
 	auto projectedSample = projection.generateNowcastSupportSample(
 		project.models(),
-		iterationIndex,
+		randomSampleIndex(),
 		project.projections().view(sim.settings.baseProjection).getSettings().endDate
 	);
 	daysToElection = projectedSample.daysToElection;
@@ -316,6 +405,8 @@ void SimulationIteration::determineOverallTpp()
 	}
 	iterationOverallSwing = iterationOverallTpp - sim.settings.prevElection2pp;
 
+	// Translate the model's official party codes into the project-specific
+	// party indices used throughout the seat simulation.
 	for (auto const& [sampleKey, partySample] : projectedSample.voteShare) {
 		if (sampleKey == UnnamedOthersCode) {
 			overallFpTarget[OthersIndex] = partySample;
@@ -492,7 +583,8 @@ void SimulationIteration::determineHomeRegions()
 	}
 	// 0.75f is a subjective guesstimate, too little data to calculate the
 	// chance emerging parties will have a home state
-	if (variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::EmergingPartyHomeRegion)) < 0.75f) {
+	if (project.regions().count() > 0 &&
+		variabilityUniform(0.0f, 1.0f, 0, 0, uint32_t(VariabilityTag::EmergingPartyHomeRegion)) < 0.75f) {
 		homeRegion[EmergingPartyIndex] = variabilityUniformInt(0, project.regions().count(), 0, 0, uint32_t(VariabilityTag::EmergingPartyHomeRegion2));
 	}
 	else {
@@ -512,19 +604,30 @@ void SimulationIteration::determineRegionalSwings()
 
 void SimulationIteration::determineMinorPartyContests()
 {
-	for (auto& [partyIndex, voteShare] : overallFpTarget) {
+	// Candidate lists take precedence when available. Before nominations close,
+	// estimate how many seats each minor party will contest and rank seats using
+	// their centrist/populist and home-region modifiers.
+	for (auto const& [partyIndex, voteShare] : overallFpTarget) {
 		if (!(partyIndex >= 2 || partyIndex == EmergingPartyIndex)) continue;
-		typedef std::pair<int, float> Priority;
+		using Priority = std::pair<int, float>;
 		std::vector<Priority> seatPriorities;
 		std::vector<float> seatMods(project.seats().count());
 		for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 			float seatMod = calculateEffectiveSeatModifier(seatIndex, partyIndex);
 			seatMods[seatIndex] = seatMod;
-			float quantile = variabilityUniform(0.0f, 1.0f, partyIndex, 0, uint32_t(VariabilityTag::MinorPartySeatPriority));
+			float quantile = variabilityUniform(
+				0.0f, 1.0f, seatIndex, partyIndex,
+				uint32_t(VariabilityTag::MinorPartySeatPriority));
 			float priority = rng.flexibleDist(seatMod, seatMod * 0.2f, seatMod * 0.6f, 3.0f, 6.0f, quantile);
 			seatPriorities.push_back({ seatIndex, priority });
 			// Make sure this seat is able to be contested later on for this party
-			pastSeatResults[seatPriorities[seatIndex].first].fpVotePercent.insert({ partyIndex, 0.0f });
+			pastSeatResults[seatIndex].fpVotePercent.insert({ partyIndex, 0.0f });
+		}
+
+		if (seatPriorities.empty()) {
+			seatContested[partyIndex] = {};
+			fpModificationAdjustment[partyIndex] = 1.0f;
+			continue;
 		}
 
 		int seatsKnown = 0;
@@ -546,19 +649,19 @@ void SimulationIteration::determineMinorPartyContests()
 			float totalSeats = float(project.seats().count());
 			if (partyIndex >= 0) {
 				Party const& party = project.parties().viewByIndex(partyIndex);
-				float HalfSeatsPrimary = 5.0f;
+				float halfSeatsPrimary = 5.0f;
 				if ((party.abbreviation == "ON" || party.abbreviation == "ONP") && std::stoi(run.yearCode) >= 2024) {
 					// One Nation has announced their intention to run candidates in ~all seats, so assume this will happen for now
-					HalfSeatsPrimary = 0.5f;
+					halfSeatsPrimary = 0.5f;
 				}
-				float seatProp = 2.0f - 2.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
+				float seatProp = 2.0f - 2.0f * std::pow(2.0f, -voteShare / halfSeatsPrimary);
 				// The seat total should adjust somewhat by the expected primary vote, but not entirely.
 				// The entered seat total corresponds to expected seat contests at 5% primary vote
 				estimatedSeats = std::clamp(party.seatTarget * seatProp, 0.0f, totalSeats);
 			}
-			else if (partyIndex == -3) {
-				float HalfSeatsPrimary = 4.0f;
-				float seatProp = 1.0f - 1.0f * std::pow(2.0f, -voteShare / HalfSeatsPrimary);
+			else if (partyIndex == EmergingPartyIndex) {
+				constexpr float HalfSeatsPrimary = 4.0f;
+				float seatProp = 1.0f - std::pow(2.0f, -voteShare / HalfSeatsPrimary);
 				estimatedSeats = totalSeats * seatProp;
 			}
 			else {
@@ -568,19 +671,38 @@ void SimulationIteration::determineMinorPartyContests()
 			float upperRmse = std::min((totalSeats - estimatedSeats) * 1.0f, lowerRmse);
 
 			float quantile = variabilityUniform(0.0f, 1.0f, partyIndex, 0, uint32_t(VariabilityTag::MinorPartySeats));
-			int actualSeats = int(floor(std::clamp(rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse, 3.0f, 3.0f, quantile), std::max(7.0f, estimatedSeats * 0.4f), totalSeats) + 0.5f));
-			std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
-				[](Priority const& a, Priority const& b) {return a.second > b.second; });
+			float minimumSeats = std::min(totalSeats, std::max(7.0f, estimatedSeats * 0.4f));
+			int actualSeats = int(floor(std::clamp(
+				rng.flexibleDist(estimatedSeats, lowerRmse, upperRmse, 3.0f, 3.0f, quantile),
+				minimumSeats, totalSeats) + 0.5f));
+			if (actualSeats < int(seatPriorities.size())) {
+				std::nth_element(seatPriorities.begin(), std::next(seatPriorities.begin(), actualSeats), seatPriorities.end(),
+					[](Priority const& a, Priority const& b) {return a.second > b.second; });
+			}
 
 			fpModificationAdjustment[partyIndex] = 0.0f;
 			for (int seatPlace = 0; seatPlace < actualSeats; ++seatPlace) {
 				seatContested[partyIndex][seatPriorities[seatPlace].first] = true;
 				fpModificationAdjustment[partyIndex] += seatMods[seatPriorities[seatPlace].first];
 			}
-			fpModificationAdjustment[partyIndex] = totalSeats / fpModificationAdjustment[partyIndex];
+			// Preserve the sampled election-wide FP target after distributing
+			// the party across only its selected seats.
+			if (fpModificationAdjustment[partyIndex] > 0.0f) {
+				fpModificationAdjustment[partyIndex] = totalSeats / fpModificationAdjustment[partyIndex];
+			}
+			else {
+				// Missing or zero seat modifiers should not create an infinite
+				// adjustment. The downstream minimum modifier remains active.
+				fpModificationAdjustment[partyIndex] = 1.0f;
+			}
 		}
 		else {
-			fpModificationAdjustment[partyIndex] = seatsKnown / fpModificationAdjustment[partyIndex];
+			if (fpModificationAdjustment[partyIndex] > 0.0f) {
+				fpModificationAdjustment[partyIndex] = seatsKnown / fpModificationAdjustment[partyIndex];
+			}
+			else {
+				fpModificationAdjustment[partyIndex] = 1.0f;
+			}
 		}
 	}
 }
@@ -663,7 +785,16 @@ void SimulationIteration::correctRegionalSwings()
 		weightSums += double(regionTurnout);
 	}
 
-	float tempOverallSwing = float(weightedSwings / weightSums);
+	float tempOverallSwing = iterationOverallSwing;
+	if (weightSums > 0.0) {
+		tempOverallSwing = float(weightedSwings / weightSums);
+	}
+	else if (!regionSwing.empty()) {
+		// Previous turnout should normally provide the weights. Equal region
+		// weighting is a safe fallback for incomplete external data.
+		tempOverallSwing = std::accumulate(regionSwing.begin(), regionSwing.end(), 0.0f) /
+			float(regionSwing.size());
+	}
 	float regionSwingAdjustment = iterationOverallSwing - tempOverallSwing;
 	for (float& swing : regionSwing) {
 		swing += regionSwingAdjustment;
@@ -672,35 +803,36 @@ void SimulationIteration::correctRegionalSwings()
 
 void SimulationIteration::determineSeatInitialResults()
 {
+	// Construct minor-party FPs first because special TPP adjustments can depend
+	// on them. Major-party FPs are then inferred from the resulting TPP and
+	// preference flows.
+	seatFpVoteShare.assign(project.seats().count(), {});
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatInitialFp(seatIndex);
 
-		if (checkForNans("After initial FPs", false, false)) {
-			reset();
-			return;
+		if (hasInvalidValues("After initial FPs", false, false)) {
+			throw InvalidIteration();
 		}
 	}
 
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineSeatTpp(seatIndex);
 
-		if (checkForNans("After initial TPPs",false, false)) {
-			reset();
-			return;
+		if (hasInvalidValues("After initial TPPs", false, false)) {
+			throw InvalidIteration();
 		}
 	}
 
 	correctSeatTppSwings();
 
-	nationalsShare.resize(project.seats().count());
+	nationalsShare.assign(project.seats().count(), 0.0f);
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		determineNationalsShare(seatIndex);
 
 		allocateMajorPartyFp(seatIndex);
 
-		if (checkForNans("After corrections")) {
-			reset();
-			return;
+		if (hasInvalidValues("After corrections")) {
+			throw InvalidIteration();
 		}
 	}
 }
@@ -709,13 +841,23 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	const float tppPrev = seat.tppMargin + 50.0f;
+	if (!std::isfinite(tppPrev) || tppPrev <= 0.0f || tppPrev >= 100.0f) {
+		throw std::runtime_error(
+			"Seat " + seat.name +
+				" must have a previous TPP strictly between 0 and 100.");
+	}
 	float transformedTpp = transformVoteShare(tppPrev);
 	const float elasticity = run.seatParameters[seatIndex].elasticity;
 	// float trend = run.seatParameters[seatIndex].trend;
 	const float volatility = run.seatParameters[seatIndex].volatility;
 	const bool useVolatility = run.seatParameters[seatIndex].loaded;
 	// Save effects so we can record them for the display
-	const float thisRegionSwing = regionSwing[project.regions().idToIndex(seat.region)];
+	const int regionIndex = project.regions().idToIndex(seat.region);
+	if (regionIndex == RegionCollection::InvalidIndex) {
+		throw std::runtime_error(
+			"Seat " + seat.name + " refers to a region that does not exist.");
+	}
+	const float thisRegionSwing = regionSwing.at(regionIndex);
 	const float elasticitySwing = (elasticity - 1.0f) * thisRegionSwing;
 	const float localEffects = run.seatPartyOneTppModifier[seatIndex];
 	const float previousSwingEffect = run.seatPreviousTppSwing[seatIndex] * run.tppSwingFactors.previousSwingModifier;
@@ -732,15 +874,20 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 		float exhaustRate = basicTransformedSwing(0.5f, variabilityNormal(0.0f, 0.15f, 0, 0, uint32_t(VariabilityTag::KiamaExhaust)));
 		const float alpBase = tppPrev - indShare * ((1.0f - bias) * exhaustRate);
 		const float lnpBase = (100.0f - tppPrev) - indShare * (bias * exhaustRate);
-		const float alpNew = alpBase / (alpBase + lnpBase) * 100.0f;
-		thirdPartyExhaustEffect = alpNew - tppPrev;
+		const float exhaustedTotal = alpBase + lnpBase;
+		if (exhaustedTotal > 0.0f) {
+			const float alpNew = alpBase / exhaustedTotal * 100.0f;
+			thirdPartyExhaustEffect = alpNew - tppPrev;
+		}
 	}
 	transformedTpp += thisRegionSwing + elasticitySwing;
 	// Add modifiers for known local effects
 	transformedTpp += localEffects;
 	// Remove the average local modifier across the region
 	// Only do this for federal elections since we don't have regional swing estimates otherwise
-	if (run.regionCode == "fed") transformedTpp -= run.regionLocalModifierAverage[seat.region];
+	if (run.regionCode == "fed") {
+		transformedTpp -= run.regionLocalModifierAverage.at(regionIndex);
+	}
 	transformedTpp += previousSwingEffect;
 	transformedTpp += federalSwingEffect;
 	transformedTpp += byElectionEffect;
@@ -766,7 +913,16 @@ void SimulationIteration::determineSeatTpp(int seatIndex)
 	const float totalFixedEffects = thisRegionSwing + elasticitySwing + localEffects + previousSwingEffect +
 		federalSwingEffect + byElectionEffect + thirdPartyExhaustEffect;
 	const float fixedSwingSize = detransformVoteShare(transformVoteShare(tppPrev) + totalFixedEffects) - tppPrev;
-	const float transformFactor = fixedSwingSize / totalFixedEffects;
+	// These display attributions use one common conversion back to raw TPP
+	// points. They are intentionally approximate: nonlinear scaling and later
+	// post-processing mean exact marginal effects would depend on application
+	// order. A sequential attribution could replace this if greater precision
+	// becomes useful.
+	// Use the limiting inverse-logit derivative when fixed effects cancel
+	// exactly; dividing 0 by 0 here previously contaminated the diagnostics.
+	const float transformFactor = std::abs(totalFixedEffects) > 0.000001f ?
+		fixedSwingSize / totalFixedEffects :
+		1.0f / logitDeriv(tppPrev);
 	seatRegionSwing[seatIndex] += double(thisRegionSwing * transformFactor);
 	seatElasticitySwing[seatIndex] += double(elasticitySwing * transformFactor);
 	seatLocalEffects[seatIndex] += double(localEffects * transformFactor);
@@ -786,18 +942,26 @@ void SimulationIteration::correctSeatTppSwings()
 			// Make sure that the sum of seat TPPs is actually equal to the samples' overall TPP.
 			double totalSwing = 0.0;
 			double totalTurnout = 0.0;
+			double unweightedSwing = 0.0;
+			int seatCount = 0;
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				Seat const& seat = project.seats().viewByIndex(seatIndex);
 				if (seat.region != regionId) continue;
-				double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
-				double turnoutScaledSwing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin) * turnout;
+				double const swing = double(partyOneNewTppMargin[seatIndex] - seat.tppMargin);
+				double const turnout = std::max(
+					double(run.pastSeatResults[seatIndex].turnoutCount), 0.0);
+				double turnoutScaledSwing = swing * turnout;
 				totalSwing += turnoutScaledSwing;
 				totalTurnout += turnout;
+				unweightedSwing += swing;
+				++seatCount;
 			}
-			// Theoretically this could cause the margin to fall outside valid bounds, but
-			// practically it's not close to ever happening so save a little computation time
-			// not bothering to check
-			double averageSwing = totalSwing / totalTurnout;
+			if (!seatCount) continue;
+			// Previous turnout normally provides the weights. Equal seat weighting
+			// keeps incomplete historical input finite and internally consistent.
+			double averageSwing = totalTurnout > 0.0 ?
+				totalSwing / totalTurnout :
+				unweightedSwing / double(seatCount);
 			float swingAdjust = regionSwing[regionIndex] - float(averageSwing);
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				Seat const& seat = project.seats().viewByIndex(seatIndex);
@@ -809,13 +973,20 @@ void SimulationIteration::correctSeatTppSwings()
 	// Now fix seats to the nation tpp as the above calculation doesn't always do this
 	double totalTpp = 0.0;
 	double totalTurnout = 0.0;
+	double unweightedTpp = 0.0;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		double turnout = double(run.pastSeatResults[seatIndex].turnoutCount);
-		double turnoutScaledTpp = double(partyOneNewTppMargin[seatIndex] + 50.0) * turnout;
+		double const seatTpp = double(partyOneNewTppMargin[seatIndex] + 50.0);
+		double const turnout = std::max(
+			double(run.pastSeatResults[seatIndex].turnoutCount), 0.0);
+		double turnoutScaledTpp = seatTpp * turnout;
 		totalTpp += turnoutScaledTpp;
 		totalTurnout += turnout;
+		unweightedTpp += seatTpp;
 	}
-	float averageTpp = float(totalTpp / totalTurnout);
+	if (project.seats().count() == 0) return;
+	float averageTpp = totalTurnout > 0.0 ?
+		float(totalTpp / totalTurnout) :
+		float(unweightedTpp / double(project.seats().count()));
 	float swingAdjust = iterationOverallTpp - averageTpp;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		partyOneNewTppMargin[seatIndex] = (predictorCorrectorTransformedSwing(partyOneNewTppMargin[seatIndex] + 50.0f, swingAdjust) - 50.0f);
@@ -825,7 +996,21 @@ void SimulationIteration::correctSeatTppSwings()
 void SimulationIteration::determineSeatInitialFp(int seatIndex)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
-	seatFpVoteShare.resize(project.seats().count());
+	int const incumbentPartyIndex =
+		project.parties().idToIndex(seat.incumbent);
+	int const challengerPartyIndex =
+		project.parties().idToIndex(seat.challenger);
+	if (!seat.tcpChange.empty() &&
+		challengerPartyIndex == PartyCollection::InvalidIndex) {
+		throw std::runtime_error(
+			"Seat " + seat.name +
+				" has TCP-change adjustments but no valid challenger.");
+	}
+	std::string const challengerCode =
+		challengerPartyIndex == PartyCollection::InvalidIndex ?
+		std::string() :
+		project.parties().viewByIndex(challengerPartyIndex).abbreviation;
+
 	// add any "prominent minors" to seat results so that they can be processed.
 	// also keep a record of the party indices.
 	for (auto const& minorParty : run.seatProminentMinors[seatIndex]) {
@@ -840,13 +1025,15 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	for (auto [partyIndex, voteShare] : tempPastResults) {
 		if (partyIndex != 0 && partyIndex != 1 && seat.tcpChange.size()) {
 			// reduce incumbent fp by the tcp-change vs challenger (to account for redistributions)
-			if (partyIndex == project.parties().idToIndex(seat.incumbent) &&
-				seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
-				voteShare = predictorCorrectorTransformedSwing(voteShare, -seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
+			if (partyIndex == incumbentPartyIndex &&
+				seat.tcpChange.contains(challengerCode)) {
+				voteShare = predictorCorrectorTransformedSwing(
+					voteShare, -seat.tcpChange.at(challengerCode));
 			}
-			else if (partyIndex == project.parties().idToIndex(seat.challenger) &&
-				seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
-				voteShare = predictorCorrectorTransformedSwing(voteShare, seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation));
+			else if (partyIndex == challengerPartyIndex &&
+				seat.tcpChange.contains(challengerCode)) {
+				voteShare = predictorCorrectorTransformedSwing(
+					voteShare, seat.tcpChange.at(challengerCode));
 			}
 		}
 		bool isNational = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("NAT"));
@@ -859,6 +1046,9 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		bool effectiveGreen = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("GRN"));
 		if (!overallFpSwing.contains(partyIndex)) effectiveGreen = false;
 		bool effectiveIndependent = partyIndex >= Mp::Others && contains(project.parties().viewByIndex(partyIndex).officialCodes, std::string("IND"));
+		// A strong historical candidate whose party has no separate current
+		// trend is treated as a quasi-independent. These candidates are often
+		// personally established and only nominally aligned with a minor party.
 		if (!overallFpSwing.contains(partyIndex)) effectiveIndependent = true;
 		if (transformVoteShare(voteShare) < run.indEmergence.fpThreshold) effectiveIndependent = false;
 		bool effectivePopulist = partyIndex >= Mp::Others && !effectiveGreen && !effectiveIndependent &&
@@ -869,7 +1059,8 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 		// only continue to apply independent votes if they're an incumbent
 		// assume re-runs don't happen unless explicitly confirmed
 		else if (effectiveIndependent && (
-			project.parties().idToIndex(seat.incumbent) == partyIndex || contains(run.seatProminentMinors[seatIndex], partyIndex)
+			incumbentPartyIndex == partyIndex ||
+			contains(run.seatProminentMinors[seatIndex], partyIndex)
 		)) {
 			determineSpecificPartyFp(seatIndex, partyIndex, voteShare, run.indSeatStatistics);
 		}
@@ -903,19 +1094,19 @@ void SimulationIteration::determineSeatInitialFp(int seatIndex)
 	normaliseSeatFp(seatIndex);
 }
 
-void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex, float& voteShare, SimulationRun::SeatStatistics const seatStatistics) {
+void SimulationIteration::determineSpecificPartyFp(
+	int seatIndex,
+	int partyIndex,
+	float& voteShare,
+	SimulationRun::SeatStatistics const& seatStatistics)
+{
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
 
 	if (run.runningParties[seatIndex].size() && partyIndex >= Mp::Others &&
 		!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
 		voteShare = 0.0f;
 		return;
-	}
-	if (run.runningParties[seatIndex].size() && partyIndex == run.indPartyIndex && !seat.incumbentRecontestConfirmed) {
-		if (!contains(run.runningParties[seatIndex], project.parties().viewByIndex(partyIndex).abbreviation)) {
-			voteShare = 0.0f;
-			return;
-		}
 	}
 	if (partyIndex == run.indPartyIndex && seat.confirmedProminentIndependent) {
 		// this case will be handled by the "confirmed independent" logic instead
@@ -923,9 +1114,11 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		return;
 	}
 	float modifiedVoteShare = voteShare;
-	float minorViability = run.seatMinorViability[seatIndex][partyIndex];
+	float minorViability = getAt(
+		run.seatMinorViability[seatIndex], partyIndex, 0.0f);
 	float minorVoteMod = 1.0f + (0.4f * minorViability);
-	modifiedVoteShare *= minorVoteMod;
+	modifiedVoteShare = std::clamp(
+		modifiedVoteShare * minorVoteMod, 0.01f, 99.0f);
 
 	float transformedFp = transformVoteShare(modifiedVoteShare);
 	float seatStatisticsExact = (std::clamp(transformedFp, seatStatistics.scaleLow, seatStatistics.scaleHigh)
@@ -933,17 +1126,24 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	int seatStatisticsLower = int(std::floor(seatStatisticsExact));
 	float seatStatisticsMix = seatStatisticsExact - float(seatStatisticsLower);
 	using StatType = SimulationRun::SeatStatistics::TrendType;
-	// ternary operator in second argument prevents accessing beyong the end of the array when at the upper end of the scale
+	// At the upper scale point the mix factor is zero, so no following
+	// element is needed.
 	auto getMixedStat = [&](StatType statType) {
-		return mix(seatStatistics.trend[int(statType)][seatStatisticsLower],
-			(seatStatisticsMix ? seatStatistics.trend[int(statType)][seatStatisticsLower + 1] : 0.0f),
+		auto const& values = seatStatistics.trend[int(statType)];
+		float const lower = values[seatStatisticsLower];
+		if (seatStatisticsMix == 0.0f) return lower;
+		return mix(
+			lower,
+			values[seatStatisticsLower + 1],
 			seatStatisticsMix);
 	};
 	float recontestRateMixed = getMixedStat(StatType::RecontestRate);
 	float recontestIncumbentRateMixed = getMixedStat(StatType::RecontestIncumbentRate);
-	float timeToElectionFactor = std::clamp(1.78f - 0.26f * log(float(daysToElection)), 0.0f, 1.0f);
+	float timeToElectionFactor = std::clamp(
+		1.78f - 0.26f * log(float(std::max(daysToElection, 1))),
+		0.0f, 1.0f);
 
-	if (seat.incumbent == partyIndex) {
+	if (incumbentPartyIndex == partyIndex) {
 		recontestRateMixed += recontestIncumbentRateMixed;
 		// rough, un-empirical estimate of higher recontest rates with less time before election
 		recontestRateMixed += (1.0f - recontestRateMixed) * timeToElectionFactor;
@@ -960,12 +1160,18 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		recontestRateMixed = 1.0f;
 	}
 	if (run.runningParties[seatIndex].size() && partyIndex == OthersIndex &&
-		contains(run.runningParties[seatIndex], OthersCode) || contains(run.runningParties[seatIndex], std::string("IND"))) {
+		(contains(run.runningParties[seatIndex], OthersCode) ||
+			contains(run.runningParties[seatIndex], std::string("IND")))) {
 		recontestRateMixed = 1.0f;
 	}
+	recontestRateMixed = std::clamp(recontestRateMixed, 0.0f, 1.0f);
 	// also, should some day handle retirements for minor parties that would be expected to stay competitive
-  float recontestRateCheck = variabilityUniform(0.0f, 1.0f, seatIndex, partyIndex, uint32_t(VariabilityTag::RecontestRateCheck));
-	if (recontestRateCheck > recontestRateMixed || (seat.retirement && partyIndex == seat.incumbent && !overallFpTarget.contains(partyIndex))) {
+	float recontestRateCheck = variabilityUniform(
+		0.0f, 1.0f, seatIndex, partyIndex,
+		uint32_t(VariabilityTag::RecontestRateCheck));
+	if (recontestRateCheck > recontestRateMixed ||
+		(seat.retirement && partyIndex == incumbentPartyIndex &&
+			!overallFpTarget.contains(partyIndex))) {
 		voteShare = 0.0f;
 		return;
 	}
@@ -990,7 +1196,6 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 		transformedFp += variabilityUniform(0.0f, 15.0f, seatIndex, partyIndex, uint32_t(VariabilityTag::ProminentMinorPreBonus));
 	}
 
-	[[maybe_unused]] float preOddsFp = transformedFp;
 	constexpr float OddsWeight = 0.6f;
 	if (run.oddsCalibrationMeans.contains({ seatIndex, partyIndex })) {
 		transformedFp = run.oddsCalibrationMeans[{seatIndex, partyIndex}];
@@ -998,8 +1203,6 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	else if (run.oddsFinalMeans.contains({ seatIndex, partyIndex })) {
 		transformedFp = mix(transformedFp, run.oddsFinalMeans[{seatIndex, partyIndex}], OddsWeight);
 	}
-	[[maybe_unused]] float postOddsFp = transformedFp;
-
 	float quantile = partyIndex == run.indPartyIndex ?
 		variabilityBeta(indAlpha, indBeta, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile)) :
 		variabilityUniform(0.0f, 1.0f, seatIndex, partyIndex, uint32_t(VariabilityTag::MinorQuantile));
@@ -1031,7 +1234,8 @@ void SimulationIteration::determineSpecificPartyFp(int seatIndex, int partyIndex
 	constexpr float MaxSpecificPartyFpShare = 99.0f;
 	regularVoteShare = std::min(regularVoteShare, MaxSpecificPartyFpShare);
 
-	if (partyIndex == run.indPartyIndex && seat.incumbent != run.indPartyIndex) {
+	if (partyIndex == run.indPartyIndex &&
+		incumbentPartyIndex != run.indPartyIndex) {
 		// Add potential re-runs under "Emerging Independent" instead
 		voteShare = 0.0f;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] = regularVoteShare;
@@ -1078,14 +1282,20 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	float modifiedFp1 = predictorCorrectorTransformedSwing(effectivePartyFp, effectivePartyFp * (adjustedModifier - 1.0f));
 	float modifiedFp2 = effectivePartyFp * adjustedModifier;
 	float incumbentFp = project.parties().idToIndex(seat.incumbent) == partyIndex ? voteShare : 0.0f;
-	// Choosing the lower of modifiedFp1 and modifiedFp2 prevents the fp from being >= 100.0f in some scenarios
-	float modifiedFp = std::clamp(modifiedFp1, incumbentFp, modifiedFp2);
+	// Use an incumbent's previous support as the baseline floor before regional
+	// and random variation. Those later effects can still produce a final vote
+	// below the previous result. std::clamp cannot be used because the baseline
+	// floor can legitimately exceed modifiedFp2.
+	float modifiedFp = std::max(
+		incumbentFp, std::min(modifiedFp1, modifiedFp2));
+	modifiedFp = std::clamp(modifiedFp, 0.01f, 99.0f);
 
 	float transformedFp = transformVoteShare(modifiedFp);
 
-  float regionIndex = project.regions().idToIndex(seat.region);
+	int const regionIndex = project.regions().idToIndex(seat.region);
 	if (run.regionFpSwingDeviations.contains(partyIndex)) {
-    transformedFp += run.regionFpSwingDeviations[partyIndex][regionIndex];
+		transformedFp += getAt(
+			run.regionFpSwingDeviations.at(partyIndex), regionIndex, 0.0f);
 	}
 
 	float populism = centristPopulistFactor[partyIndex];
@@ -1094,7 +1304,9 @@ void SimulationIteration::determinePopulistFp(int seatIndex, int partyIndex, flo
 	float lowerKurtosis = mix(run.centristStatistics.lowerKurtosis, run.populistStatistics.lowerKurtosis, populism);
 	float upperKurtosis = mix(run.centristStatistics.upperKurtosis, run.populistStatistics.upperKurtosis, populism);
 
-	float quantile = variabilityUniform(0.0f, 1.0f, seatIndex, 0, uint32_t(VariabilityTag::PopulistFp));
+	float quantile = variabilityUniform(
+		0.0f, 1.0f, seatIndex, partyIndex,
+		uint32_t(VariabilityTag::PopulistFp));
 	transformedFp += rng.flexibleDist(0.0f, lowerRmse, upperRmse, lowerKurtosis, upperKurtosis, quantile);
 
 	float regularVoteShare = detransformVoteShare(transformedFp);
@@ -1135,6 +1347,10 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
 		float interceptSize = run.indEmergence.voteIntercept - run.indEmergence.fpThreshold;
+		if (std::abs(interceptSize) < 0.000001f) {
+			throw std::runtime_error(
+				"Independent-emergence vote intercept must differ from its FP threshold.");
+		}
 		if (isFederal) rmse *= (1.0f + run.indEmergence.fedVoteCoeff / interceptSize);
 		if (isRural) rmse *= (1.0f + run.indEmergence.ruralVoteCoeff / interceptSize);
 		if (isProvincial) rmse *= (1.0f + run.indEmergence.provincialVoteCoeff / interceptSize);
@@ -1146,7 +1362,10 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		if (run.seatMinorViability[seatIndex].contains(run.indPartyIndex)) {
 			rmse *= 1.0f + (0.4f * run.seatMinorViability[seatIndex][run.indPartyIndex]);
 		}
-		if (seat.incumbent == 0) rmse *= 1.1f;
+		if (project.parties().idToIndex(seat.incumbent) == Mp::One) {
+			rmse *= 1.1f;
+		}
+		rmse = std::max(rmse, 0.0f);
 		float quantile = variabilityBeta(indAlpha, indBeta, seatIndex, run.indPartyIndex, uint32_t(VariabilityTag::ConfirmedIndVariation)) * 0.5f + 0.5f;
 		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
@@ -1174,29 +1393,40 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 			if (run.seatPolls[seatIndex].contains(run.indPartyIndex)) {
 				float weightedSum = 0.0f;
 				float sumOfWeights = 0.0f;
-				for (auto poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
+				for (auto const& poll : run.seatPolls[seatIndex][run.indPartyIndex]) {
 					constexpr float QualityWeightBase = 0.6f;
 					float weight = myPow(QualityWeightBase, poll.second);
+					if (!std::isfinite(weight) || weight <= 0.0f) continue;
 					float pollRaw = poll.first;
 					pollRaw = pollRaw * 0.503f + 15.59f;
 					weightedSum += pollRaw * weight;
 					sumOfWeights += weight;
 				}
-				float transformedPollFp = transformVoteShare(std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
-				constexpr float MaxPollWeight = 0.8f;
-				constexpr float PollWeightBase = 0.6f;
-				float pollFactor = MaxPollWeight * (1.0f - std::powf(PollWeightBase, sumOfWeights));
-				transformedVoteShare = mix(transformedVoteShare, transformedPollFp, pollFactor);
+				if (sumOfWeights > 0.0f) {
+					float transformedPollFp = transformVoteShare(
+						std::clamp(weightedSum / sumOfWeights, 0.1f, 99.9f));
+					constexpr float MaxPollWeight = 0.8f;
+					constexpr float PollWeightBase = 0.6f;
+					float pollFactor = MaxPollWeight *
+						(1.0f - std::powf(PollWeightBase, sumOfWeights));
+					transformedVoteShare = mix(
+						transformedVoteShare, transformedPollFp, pollFactor);
+				}
 			}
 		}
 
-		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(seatFpVoteShare[seatIndex][run.indPartyIndex], detransformVoteShare(transformedVoteShare));
+		constexpr float MaxSpecificPartyFpShare = 99.0f;
+		float const independentVoteShare = std::min(
+			detransformVoteShare(transformedVoteShare),
+			MaxSpecificPartyFpShare);
+		seatFpVoteShare[seatIndex][run.indPartyIndex] = std::max(
+			seatFpVoteShare[seatIndex][run.indPartyIndex],
+			independentVoteShare);
 	}
 }
 
 void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 {
-	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// For an emerging ind to be allowed must have one of the following:
 	//  -final ballot is not available yet
 	//  -at least two inds in the seat
@@ -1252,10 +1482,15 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 	if (run.runningParties[seatIndex].size()) indEmergenceRate *= 0.1f;
 	// Beta distribution flipped because it's desired for the high rate of ind emergence
 	// to match high rate of ind voting
-	if (1.0f - variabilityBeta(indAlpha, indBeta, seatIndex, run.indPartyIndex, uint32_t(VariabilityTag::IndEmergenceDecision)) < std::max(0.01f, indEmergenceRate)) {
+	indEmergenceRate = std::clamp(indEmergenceRate, 0.01f, 1.0f);
+	if (1.0f - variabilityBeta(indAlpha, indBeta, seatIndex, run.indPartyIndex, uint32_t(VariabilityTag::IndEmergenceDecision)) < indEmergenceRate) {
 		float rmse = run.indEmergence.voteRmse;
 		float kurtosis = run.indEmergence.voteKurtosis;
 		float interceptSize = run.indEmergence.voteIntercept - run.indEmergence.fpThreshold;
+		if (std::abs(interceptSize) < 0.000001f) {
+			throw std::runtime_error(
+				"Independent-emergence vote intercept must differ from its FP threshold.");
+		}
 		if (isFederal) rmse *= (1.0f + run.indEmergence.fedVoteCoeff / interceptSize);
 		if (isRural) rmse *= (1.0f + run.indEmergence.ruralVoteCoeff / interceptSize);
 		if (isProvincial) rmse *= (1.0f + run.indEmergence.provincialVoteCoeff / interceptSize);
@@ -1277,6 +1512,7 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 				0.8f * multiplier * std::clamp(run.pastSeatResults[seatIndex].fpVotePercent.at(run.indPartyIndex) - 8.0f, 0.0f, 24.0f)
 			);
 		}
+		rmse = std::max(rmse, 0.0f);
 		// The quantile should only fall within the upper half of the distribution
 		// so that the correlation created using the beta distribution works
 		// as intended
@@ -1289,7 +1525,6 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 
 void SimulationIteration::determineSeatOthers(int seatIndex)
 {
-	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
 	constexpr float MinPreviousOthFp = 2.0f;
 	float voteShare = MinPreviousOthFp;
 	voteShare = std::max(voteShare, pastSeatResults[seatIndex].prevOthers);
@@ -1303,7 +1538,7 @@ void SimulationIteration::determineSeatOthers(int seatIndex)
 		int othersCount = run.othCount[seatIndex] - (emergingPartyPresent ? 1 : 0) +
 			run.indCount[seatIndex] - (emergingIndPresent ? 1 : 0) - (confirmedIndPresent ? 1 : 0);
 
-		if (!othersCount) {
+		if (othersCount <= 0) {
 			return;
 		}
 
@@ -1353,7 +1588,6 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 
 void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 {
-	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
 	// Subsequent to this procedure, fp vote shares for this seat will
 	// be normalised such that their sum equals 100. For for seats with
 	// (especially large) increases in a minor party's FP vote, this would result in
@@ -1366,15 +1600,15 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 	// major parties by the same amount as the minor party increased,
 	// and maintaining the crowding effect that this normalisation achieves.
 	float maxPrevious = 0.0f;
-	float totalVotePercent = 0.0f;
 	for (auto& [party, voteShare] : pastSeatResults[seatIndex].fpVotePercent) {
-		if (!isMajor(party) && voteShare > maxPrevious) maxPrevious = voteShare;
+		if (!isMajor(party, run.natPartyIndex) && voteShare > maxPrevious) {
+			maxPrevious = voteShare;
+		}
 	}
 	float maxCurrent = 0.0f;
 	for (auto& [party, voteShare] : seatFpVoteShare[seatIndex]) {
 		if (party == CoalitionPartnerIndex) continue;
 		if (!isMajor(party) && voteShare > maxCurrent) maxCurrent = voteShare;
-		totalVotePercent += voteShare;
 	}
 	// Adjustment to prevent high OTH vote from crowding out other minor parties
 	// Crowding should only occur between defined parties
@@ -1388,7 +1622,12 @@ void SimulationIteration::prepareFpsForNormalisation(int seatIndex)
 	// so this only has the effect of softening effect of the normalisation.
 	// This ensures that the normalisation is only punishing to minor parties
 	// when more than one rises in votes (thus crowding each other out)
-	float partyOneProportion = seatFpVoteShare[seatIndex][0] / (seatFpVoteShare[seatIndex][0] + seatFpVoteShare[seatIndex][1]);
+	float const majorPartyTotal =
+		seatFpVoteShare[seatIndex][Mp::One] +
+		seatFpVoteShare[seatIndex][Mp::Two];
+	float partyOneProportion = majorPartyTotal > 0.0f ?
+		seatFpVoteShare[seatIndex][Mp::One] / majorPartyTotal :
+		0.5f;
 	float partyOneAdjust = diff * partyOneProportion;
 	float partyTwoAdjust = diff * (1.0f - partyOneProportion);
 	seatFpVoteShare[seatIndex][0] -= partyOneAdjust;
@@ -1408,16 +1647,23 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	auto const& seat = project.seats().viewByIndex(seatIndex);
 	if (run.natPartyIndex < 0) return; // Nationals may not be relevant in some elections
 
-	nationalsShare[seatIndex] = run.seatNationalsExpectation[seatIndex];
+	nationalsShare[seatIndex] = std::clamp(
+		run.seatNationalsExpectation[seatIndex], 0.0f, 1.0f);
+	auto const& runningParties = run.runningParties[seatIndex];
+	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
 
 	// If Nationals are not running in this seat, then their share is zero
-	if (seat.runningParties.size() > 0 && std::find(seat.runningParties.begin(), seat.runningParties.end(), "NAT") == seat.runningParties.end()) {
+	if (!runningParties.empty() &&
+		!contains(runningParties, std::string("NAT"))) {
 		nationalsShare[seatIndex] = 0.0f;
 		return;
 	}
 
 	// If Nationals are the only party running in this seat, then their share is 100%
-	if (seat.runningParties.size() > 0 && std::find(seat.runningParties.begin(), seat.runningParties.end(), project.parties().viewByIndex(1).abbreviation) == seat.runningParties.end()) {
+	if (!runningParties.empty() &&
+		!contains(
+			runningParties,
+			project.parties().viewByIndex(Mp::Two).abbreviation)) {
 		nationalsShare[seatIndex] = 1.0f;
 		return;
 	}
@@ -1431,24 +1677,31 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 	// If candidates aren't confirmed yet, consider the Coalition policy of not challenging each others' incumbents
 	// which generally means the opposite coalition party will not run, but we must allow for the possibility of a future retirement 
 	constexpr float ContinuationChance = 0.85f; // TODO: make this more sophisticated based on time until the election + calibrate historically
-	float futureRetirementQuantile = variabilityUniform(0.0f, 1.0f, seatIndex, iterationIndex, uint32_t(VariabilityTag::CoalitionFutureRetirement));
-	bool waException = project.regions().viewByIndex(seat.region).name == "WA" || run.regionCode == "wa";
-	if (!seat.runningParties.size() && futureRetirementQuantile < ContinuationChance && !waException) {
-		if (seat.incumbent == 1 && !seat.retirement) {
+	float futureRetirementQuantile = variabilityUniform(
+		0.0f, 1.0f, seatIndex, 0,
+		uint32_t(VariabilityTag::CoalitionFutureRetirement));
+	bool waException =
+		project.regions().view(seat.region).name == "WA" ||
+		run.regionCode == "wa";
+	if (runningParties.empty() &&
+		futureRetirementQuantile < ContinuationChance && !waException) {
+		if (incumbentPartyIndex == Mp::Two && !seat.retirement) {
 			nationalsShare[seatIndex] = 0.0f;
 			return;
 		}
-		else if (seat.incumbent == run.natPartyIndex && !seat.retirement) {
+		else if (incumbentPartyIndex == run.natPartyIndex && !seat.retirement) {
 			nationalsShare[seatIndex] = 1.0f;
 			return;
 		}
-	} // if the retirement scenario occurs, then we continue and see if 
+	} // A possible retirement leaves both Coalition parties available.
 
 	if (nationalsShare[seatIndex] > 0 && nationalsShare[seatIndex] < 1) {
 		float rmse = run.nationalsParameters.rmse;
 		float kurtosis = run.nationalsParameters.kurtosis;
 		float transformedShare = transformVoteShare(nationalsShare[seatIndex] * 100.0f);
-    float quantile = variabilityUniform(0.0f, 1.0f, seatIndex, 0, uint32_t(VariabilityTag::IntraCoalitionSwing));
+		float quantile = variabilityUniform(
+			0.0f, 1.0f, seatIndex, 0,
+			uint32_t(VariabilityTag::IntraCoalitionSwing));
 		float transformedSwing = rng.flexibleDist(intraCoalitionSwing, rmse, rmse, kurtosis, kurtosis, quantile);
 		transformedShare += transformedSwing;
 		nationalsShare[seatIndex] = detransformVoteShare(transformedShare) * 0.01f;
@@ -1458,8 +1711,9 @@ void SimulationIteration::determineNationalsShare(int seatIndex)
 void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFlowDeviation)
 {
 	Seat const& seat = project.seats().viewByIndex(seatIndex);
+	int const incumbentPartyIndex = project.parties().idToIndex(seat.incumbent);
 
-	[[maybe_unused]] auto oldFpVotes = seatFpVoteShare[seatIndex]; // for debug purposes, since this gets changed later on
+	auto oldFpVotes = seatFpVoteShare[seatIndex]; // retained for invalid-value diagnostics
 
 	// Step 0: Prepare preference flow calculation functions
 
@@ -1504,9 +1758,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 	float previousNonMajorFpShare = 0.0f;
 	float previousPartyOnePrefEstimate = 0.0f;
 	float previousExhaustRateEstimate = 0.0f;
-	float previousExhuastDenominator = 0.0f;
-
-	previousNonMajorFpShare = 0.0f;
+	float previousExhaustDenominator = 0.0f;
 
 	for (auto [partyIndex, voteShare] : run.pastSeatResults[seatIndex].fpVotePercent) {
 		if (isMajor(partyIndex)) continue;
@@ -1528,9 +1780,14 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		}
 		previousNonMajorFpShare += voteShare * (1.0f - exhaustRate);
 		previousExhaustRateEstimate += exhaustRate * voteShare;
-		previousExhuastDenominator += voteShare;
+		previousExhaustDenominator += voteShare;
 	}
-	previousExhaustRateEstimate /= previousExhuastDenominator;
+	if (previousExhaustDenominator > 0.0f) {
+		previousExhaustRateEstimate /= previousExhaustDenominator;
+	}
+	else {
+		previousExhaustRateEstimate = 0.0f;
+	}
 
 	// Step 2: Calculate the preference bias between the estimate from last election and actual results
 
@@ -1553,13 +1810,19 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		auto const& tcpCounts = run.pastSeatResults[seatIndex].tcpVoteCount;
 		auto prevTcpSum = std::accumulate(tcpCounts.begin(), tcpCounts.end(), 0, [](int acc, const auto& el) {return acc + el.second; });
 		auto prevFpSum = std::accumulate(fpCounts.begin(), fpCounts.end(), 0, [](int acc, const auto& el) {return acc + el.second; });
-		auto prevPartyOneTcpCount = 0;
-		auto majorFpSum = fpCounts.at(Mp::One) + fpCounts.at(Mp::Two);
-		if (majorTcp) {
+		float prevPartyOneTcpCount = 0.0f;
+		auto majorFpSum =
+			getAt(fpCounts, Mp::One, 0) +
+			getAt(fpCounts, Mp::Two, 0);
+		int const previousPreferenceFpCount = prevFpSum - majorFpSum;
+		int const distributedPreferenceCount = prevTcpSum - majorFpSum;
+		if (majorTcp && previousPreferenceFpCount > 0) {
 			previousPartyOneTppPercent = run.pastSeatResults[seatIndex].tcpVotePercent[Mp::One];
-			prevPartyOneTcpCount = tcpCounts.at(Mp::One);
+			prevPartyOneTcpCount = float(getAt(tcpCounts, Mp::One, 0.0f));
 			// Note, this can theoretically be below 0 in intra-coalition contests
-			float previousExhaustRate = 1.0f - float(prevTcpSum - majorFpSum) / float(prevFpSum - majorFpSum);
+			float previousExhaustRate =
+				1.0f - float(distributedPreferenceCount) /
+				float(previousPreferenceFpCount);
 			if (previousExhaustRate < 0.04f || IgnoreExhaust.contains({run.getTermCode(), seat.name})) previousExhaustRate = 0.0f;
 			exhaustBiasRate = previousExhaustRate - previousExhaustRateEstimate;
 		}
@@ -1574,12 +1837,22 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		}
 		
 		// If no TPP count then get it from the known TPP margin
-		if (!prevPartyOneTcpCount) prevPartyOneTcpCount = prevTcpSum * (float(previousPartyOneTppPercent) * 0.01f);
+		if (!prevPartyOneTcpCount) {
+			prevPartyOneTcpCount =
+				float(prevTcpSum) * previousPartyOneTppPercent * 0.01f;
+		}
 
-		float previousPrefRateEstimate = previousPartyOnePrefEstimate / previousNonMajorFpShare;
-		float previousPrefRate = float(prevPartyOneTcpCount - fpCounts.at(Mp::One)) / float(prevTcpSum - majorFpSum);
-		// Amount by which actual TPP is higher than estimated TPP, per 1% of the non-exhausted vote
-		preferenceBiasRate = previousPrefRate - previousPrefRateEstimate;
+		if (distributedPreferenceCount > 0) {
+			float previousPrefRateEstimate =
+				previousPartyOnePrefEstimate / previousNonMajorFpShare;
+			float previousPrefRate =
+				(prevPartyOneTcpCount - float(getAt(fpCounts, Mp::One, 0))) /
+				float(distributedPreferenceCount);
+			// Amount by which actual TPP is higher than estimated TPP,
+			// per 1% of the non-exhausted vote.
+			preferenceBiasRate =
+				previousPrefRate - previousPrefRateEstimate;
+		}
 	}
 
 	// Step 3: Get an estimate for the *current* election
@@ -1600,8 +1873,14 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		float exhaustRate = calculateEffectiveExhaustRate(partyIndex, true);
 		if (!preferenceVariation.contains(partyIndex)) preferenceVariation[partyIndex] =
 			variabilityNormal(0.0f, 15.0f, seatIndex, partyIndex, uint32_t(VariabilityTag::SeatPreferenceVariation));
-		if (!exhaustVariation.contains(partyIndex)) exhaustVariation[partyIndex] =
-			variabilityNormal(0.0f, 15.0f, seatIndex, partyIndex, uint32_t(VariabilityTag::SeatExhaustVariation));
+		if (!exhaustVariation.contains(partyIndex)) {
+			// Exhaust rates are stored and consumed as proportions. This small
+			// swing preserves the historically calibrated percentage-point-scale
+			// variation despite basicTransformedSwing's 0-100 convention.
+			exhaustVariation[partyIndex] = variabilityNormal(
+				0.0f, 0.15f, seatIndex, partyIndex,
+				uint32_t(VariabilityTag::SeatExhaustVariation));
+		}
 		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, exhaustVariation[partyIndex]) : 0.0f;
 		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, true);
@@ -1629,29 +1908,40 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 
 	float currentNonMajorTppShare = currentNonMajorFpShare * (1.0f - currentExhaustRateEstimate);
 
-	static bool ProducedExhaustRateWarning = false;
-	if (currentExhaustRateEstimate && !std::isnan(currentExhaustRateEstimate) && overallExhaustRate[OthersIndex] < 0.01f && !ProducedExhaustRateWarning) {
-		PA_LOG_VAR(overallExhaustRate);
-		logger << "Warning: An exhaust rate was produced for an election that appears to be for compulsory preferential voting. Seat concerned: " + seat.name + ", observed exhaust rate: " + std::to_string(currentExhaustRateEstimate) << "\n";
-		ProducedExhaustRateWarning = true;
+	static std::once_flag producedExhaustRateWarning;
+	if (currentExhaustRateEstimate &&
+		std::isfinite(currentExhaustRateEstimate) &&
+		overallExhaustRate[OthersIndex] < 0.01f) {
+		std::call_once(producedExhaustRateWarning, [&]() {
+			PA_LOG_VAR(overallExhaustRate);
+			logger << "Warning: An exhaust rate was produced for an election "
+				"that appears to use compulsory preferential voting. Seat: " +
+				seat.name + ", observed exhaust rate: " +
+				std::to_string(currentExhaustRateEstimate) + "\n";
+		});
 	}
 
 	// Step 4: Adjust the current flow estimate according the bias the previous flow estimate had
 
-	currentPartyOnePrefs = std::clamp(
-		currentPartyOnePrefs,
-		std::max(0.01f, 0.01f * currentNonMajorTppShare),
-		std::min(99.9f, 0.99f * currentNonMajorTppShare)
-	);
-	float biasAdjustedPartyOnePrefs = basicTransformedSwing(currentPartyOnePrefs, preferenceBiasRate * currentNonMajorTppShare);
+	float biasAdjustedPartyOnePrefs = 0.0f;
+	float overallAdjustedPartyOnePrefs = 0.0f;
+	if (currentNonMajorTppShare > 0.0f) {
+		currentPartyOnePrefs = std::clamp(
+			currentPartyOnePrefs,
+			0.01f * currentNonMajorTppShare,
+			0.99f * currentNonMajorTppShare);
+		biasAdjustedPartyOnePrefs = basicTransformedSwing(
+			currentPartyOnePrefs,
+			preferenceBiasRate * currentNonMajorTppShare);
 
-	// If it's been determined that the overall preference flow needs a correction, do that here.
-	// Make sure that this falls well within the total non-major preferences available.
-	float overallAdjustedPartyOnePrefs = std::clamp(
-		biasAdjustedPartyOnePrefs + prefCorrection * currentNonMajorTppShare,
-		0.01f * currentNonMajorTppShare,
-		0.99f * currentNonMajorTppShare
-	);
+		// If the overall preference flow needs a correction, keep it well
+		// within the total non-major preferences available.
+		overallAdjustedPartyOnePrefs = std::clamp(
+			biasAdjustedPartyOnePrefs +
+				prefCorrection * currentNonMajorTppShare,
+			0.01f * currentNonMajorTppShare,
+			0.99f * currentNonMajorTppShare);
+	}
 	float overallAdjustedPartyTwoPrefs = currentNonMajorTppShare - overallAdjustedPartyOnePrefs;
 
 	// Step 5: Actually estimate the major party fps based on these adjusted flows
@@ -1661,6 +1951,10 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 	float nonExhaustedProportion = mix(1.0f, majorFpShare * 0.01f, currentExhaustRateEstimate * 1.0f);
 
 	float partyTwoCurrentTpp = 100.0f - partyOneCurrentTpp;
+	if (!std::isfinite(partyOneCurrentTpp) ||
+		partyOneCurrentTpp <= 0.0f || partyOneCurrentTpp >= 100.0f) {
+		throw InvalidIteration();
+	}
 
 	// Estimate Fps by removing expected preferences from expected tpp, but keeping it above zero
 	// (as high 3rd-party fps can combine with a low tpp to push this below zero)
@@ -1696,52 +1990,6 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 	finalPartyOneFp = std::clamp(addedPartyOneFp, 0.1f, 99.9f);
 	finalPartyTwoFp = std::clamp(addedPartyTwoFp, 0.1f, 99.9f);
 
-	//if (seat.name == "Terrigal") {
-	//	static int timesWritten = 0;
-	//	if (timesWritten < 10000) {
-	//		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
-	//		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
-	//		PA_LOG_VAR(partyOneCurrentTpp);
-	//		PA_LOG_VAR(partyTwoCurrentTpp);
-	//		PA_LOG_VAR(oldFpVotes);
-	//		PA_LOG_VAR(seatFpVoteShare[seatIndex]);
-	//		PA_LOG_VAR(previousNonMajorFpShare);
-	//		PA_LOG_VAR(previousPartyOnePrefEstimate);
-	//		PA_LOG_VAR(previousExhaustRateEstimate);
-	//		PA_LOG_VAR(previousExhuastDenominator);
-	//		PA_LOG_VAR(preferenceBiasRate);
-	//		PA_LOG_VAR(exhaustBiasRate);
-	//		PA_LOG_VAR(majorTcp);
-	//		PA_LOG_VAR(overallPreferenceFlow);
-	//		PA_LOG_VAR(overallExhaustRate);
-	//		PA_LOG_VAR(currentPartyOnePrefs);
-	//		PA_LOG_VAR(currentNonMajorFpShare);
-	//		PA_LOG_VAR(currentNonMajorTppShare);
-	//		PA_LOG_VAR(biasAdjustedPartyOnePrefs);
-	//		PA_LOG_VAR(preferenceVariation);
-	//		PA_LOG_VAR(prefCorrection);
-	//		PA_LOG_VAR(overallAdjustedPartyOnePrefs);
-	//		PA_LOG_VAR(overallAdjustedPartyTwoPrefs);
-	//		PA_LOG_VAR(partyOneScaledTpp);
-	//		PA_LOG_VAR(partyTwoScaledTpp);
-	//		PA_LOG_VAR(newPartyOneTpp);
-	//		PA_LOG_VAR(newPartyTwoTpp);
-	//		PA_LOG_VAR(totalTpp);
-	//		PA_LOG_VAR(addPartyOneFp);
-	//		PA_LOG_VAR(addPartyTwoFp);
-	//		PA_LOG_VAR(newPartyOneFp);
-	//		PA_LOG_VAR(newPartyTwoFp);
-	//		PA_LOG_VAR(majorFpShare);
-	//		PA_LOG_VAR(nonExhaustedProportion);
-	//		PA_LOG_VAR(currentExhaustRateEstimate);
-	//		PA_LOG_VAR(currentExhaustDenominator);
-	//		PA_LOG_VAR(exhaustBiasRate);
-	//		PA_LOG_VAR(finalPartyOneFp);
-	//		PA_LOG_VAR(finalPartyTwoFp);
-	//		++timesWritten;
-	//	}
-	//}
-
 	if (run.natPartyIndex > 0) {
 		// a final adjustment for the *change* in relative leakage among coalition parties
 		// which will require a correction increasing the total coalition FP at the expense of Labor FP
@@ -1749,28 +1997,40 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		// (The absolute level of split is already covered in the preference calculations)
 		float prevNatVote = run.pastSeatResults[seatIndex].fpVotePercent.contains(run.natPartyIndex) ? run.pastSeatResults[seatIndex].fpVotePercent.at(run.natPartyIndex) : 0.0f;
 		float prevLibVote = run.pastSeatResults[seatIndex].fpVotePercent.contains(Mp::Two) ? run.pastSeatResults[seatIndex].fpVotePercent.at(Mp::Two) : 0.0f;
-		float prevSplit = std::min(prevNatVote, prevLibVote) / (prevNatVote + prevLibVote);
-		float currentSplit = std::min(nationalsShare[seatIndex], 1.0f - nationalsShare[seatIndex]);
-		float splitChange = currentSplit - prevSplit;
-		// skip unnecessary calculations if there's no change (common as most seats only one coalition party will contest)
-		if (splitChange) {
-			float extraCoalitionVoteNeeded = splitChange * finalPartyTwoFp * 0.154f;
-			// make sure the adjustment doesn't overflow in either direction
-			float partyOneAdjustment = predictorCorrectorTransformedSwing(finalPartyOneFp, -extraCoalitionVoteNeeded) - finalPartyOneFp;
-			float partyTwoAdjustment = predictorCorrectorTransformedSwing(finalPartyTwoFp, extraCoalitionVoteNeeded) - finalPartyTwoFp;
-			float finalPartyOneAdjustment = partyOneAdjustment > 0 ?
-				std::min(partyOneAdjustment, -partyTwoAdjustment) :
-				std::max(partyOneAdjustment, -partyTwoAdjustment);
-			finalPartyOneFp += finalPartyOneAdjustment;
-			finalPartyTwoFp -= finalPartyOneAdjustment;
-
+		float const previousCoalitionVote = prevNatVote + prevLibVote;
+		float currentSplit = std::min(
+			nationalsShare[seatIndex], 1.0f - nationalsShare[seatIndex]);
+		// Without a previous Coalition FP split there is no baseline leakage
+		// from which to calculate a change.
+		if (previousCoalitionVote > 0.0f) {
+			float prevSplit =
+				std::min(prevNatVote, prevLibVote) / previousCoalitionVote;
+			float splitChange = currentSplit - prevSplit;
+			// Skip unnecessary calculations if there is no change, which is
+			// common where only one Coalition party contests.
+			if (splitChange) {
+				float extraCoalitionVoteNeeded =
+					splitChange * finalPartyTwoFp * 0.154f;
+				// Make sure the adjustment does not overflow in either direction.
+				float partyOneAdjustment = predictorCorrectorTransformedSwing(
+					finalPartyOneFp, -extraCoalitionVoteNeeded) -
+					finalPartyOneFp;
+				float partyTwoAdjustment = predictorCorrectorTransformedSwing(
+					finalPartyTwoFp, extraCoalitionVoteNeeded) -
+					finalPartyTwoFp;
+				float finalPartyOneAdjustment = partyOneAdjustment > 0 ?
+					std::min(partyOneAdjustment, -partyTwoAdjustment) :
+					std::max(partyOneAdjustment, -partyTwoAdjustment);
+				finalPartyOneFp += finalPartyOneAdjustment;
+				finalPartyTwoFp -= finalPartyOneAdjustment;
+			}
 		}
 	}
 
 	seatFpVoteShare[seatIndex][Mp::One] = finalPartyOneFp;
 	seatFpVoteShare[seatIndex][Mp::Two] = finalPartyTwoFp;
 
-	if (checkForNans("amp1", true)) {
+	if (hasInvalidValues("amp1", true)) {
 		PA_LOG_VAR(project.seats().viewByIndex(seatIndex).name);
 		PA_LOG_VAR(partyOneNewTppMargin[seatIndex]);
 		PA_LOG_VAR(partyOneCurrentTpp);
@@ -1780,13 +2040,12 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		PA_LOG_VAR(previousNonMajorFpShare);
 		PA_LOG_VAR(previousPartyOnePrefEstimate);
 		PA_LOG_VAR(previousExhaustRateEstimate);
-		PA_LOG_VAR(previousExhuastDenominator);
+		PA_LOG_VAR(previousExhaustDenominator);
 		PA_LOG_VAR(preferenceBiasRate);
 		PA_LOG_VAR(exhaustBiasRate);
 		PA_LOG_VAR(majorTcp);
 		PA_LOG_VAR(overallPreferenceFlow);
 		PA_LOG_VAR(overallExhaustRate);
-		PA_LOG_VAR(currentPartyOnePrefs);
 		PA_LOG_VAR(currentPartyOnePrefs);
 		PA_LOG_VAR(currentNonMajorFpShare);
 		PA_LOG_VAR(currentNonMajorTppShare);
@@ -1813,17 +2072,23 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		PA_LOG_VAR(exhaustBiasRate);
 		PA_LOG_VAR(finalPartyOneFp);
 		PA_LOG_VAR(finalPartyTwoFp);
-		throw 1;
+		throw InvalidIteration();
 	}
 
-	if (seat.incumbent >= Mp::Others && seatFpVoteShare[seatIndex][seat.incumbent]) {
+	if (incumbentPartyIndex >= Mp::Others &&
+		seatFpVoteShare[seatIndex][incumbentPartyIndex]) {
 		// Maintain constant fp vote for non-major incumbents
-		normaliseSeatFp(seatIndex, seat.incumbent, seatFpVoteShare[seatIndex][seat.incumbent]);
+		normaliseSeatFp(
+			seatIndex,
+			incumbentPartyIndex,
+			seatFpVoteShare[seatIndex][incumbentPartyIndex]);
 	}
 	else {
 		normaliseSeatFp(seatIndex);
 	}
-	checkForNans("amp2");
+	if (hasInvalidValues("After normalising major-party FPs")) {
+		throw InvalidIteration();
+	}
 }
 
 void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float fixedVote)
@@ -1849,6 +2114,10 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 		totalVoteShare += voteShare;
 	}
 	float totalTarget = 100.0f - fixedVote;
+	if (!std::isfinite(totalVoteShare) || totalVoteShare <= 0.0f ||
+		!std::isfinite(totalTarget) || totalTarget < 0.0f) {
+		throw InvalidIteration();
+	}
 	float correctionFactor = totalTarget / totalVoteShare;
 
 	for (auto& [partyIndex, voteShare] : seatFpVoteShare[seatIndex]) {
@@ -1864,20 +2133,20 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 
 	for (int i = 0; i < MaxReconciliationCycles; ++i) {
 		calculateNewFpVoteTotals();
-		checkForNans("a, i=" + std::to_string(i));
+		hasInvalidValues("a, i=" + std::to_string(i));
 
 		if (overallFpError < 0.3f) break;
 
 		if (i > 2) correctMajorPartyFpBias();
-		checkForNans("b, i=" + std::to_string(i));
+		hasInvalidValues("b, i=" + std::to_string(i));
 
 		if (i > 1) calculatePreferenceCorrections();
-		checkForNans("c, i=" + std::to_string(i));
+		hasInvalidValues("c, i=" + std::to_string(i));
 
 		if (i == MaxReconciliationCycles - 1) break;
-		checkForNans("d, i=" + std::to_string(i));
+		hasInvalidValues("d, i=" + std::to_string(i));
 		applyCorrectionsToSeatFps();
-		checkForNans("e, i=" + std::to_string(i));
+		hasInvalidValues("e, i=" + std::to_string(i));
 	}
 }
 
@@ -1949,17 +2218,19 @@ void SimulationIteration::calculatePreferenceCorrections()
 void SimulationIteration::applyCorrectionsToSeatFps()
 {
 	auto oldVoteShares = seatFpVoteShare;
-	checkForNans("d1");
+	hasInvalidValues("d1");
 	for (auto [partyIndex, vote] : tempOverallFp) {
 		if (partyIndex == CoalitionPartnerIndex) continue;
 		if (partyIndex != OthersIndex) {
-			checkForNans("d0a", false, false);
+			hasInvalidValues("d0a", false, false);
 			if (isMajor(partyIndex)) continue;
 			if (!tempOverallFp[partyIndex] || !overallFpTarget[partyIndex]) continue; // avoid division by zero when we have non-existent emerging others
 			float correctionFactor = overallFpTarget[partyIndex] / tempOverallFp[partyIndex];
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				Seat const& seat = project.seats().viewByIndex(seatIndex);
-				if (partyIndex == seat.incumbent) continue;
+				int const incumbentPartyIndex =
+					project.parties().idToIndex(seat.incumbent);
+				if (partyIndex == incumbentPartyIndex) continue;
 				if (seatFpVoteShare[seatIndex].contains(partyIndex)) {
 					// prevent outlier seats from getting monster swings
 					float swingCap = std::max(0.0f, tempOverallFp[partyIndex] * (correctionFactor - 1.0f) * 3.0f);
@@ -1968,12 +2239,14 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					seatFpVoteShare[seatIndex][partyIndex] = newValue;
 				}
 			}
-			checkForNans("d0b", false, false);
+			hasInvalidValues("d0b", false, false);
 		}
 		else {
-			checkForNans("d0c", false, false);
+			hasInvalidValues("d0c", false, false);
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-				[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
+				Seat const& seat = project.seats().viewByIndex(seatIndex);
+				int const incumbentPartyIndex =
+					project.parties().idToIndex(seat.incumbent);
 				float allocation = seatFpVoteShare[seatIndex][OthersIndex] * (othersCorrectionFactor - 1.0f);
 
 				FloatByPartyIndex categories;
@@ -1982,7 +2255,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					// protect independents and quasi-independents from having their votes squashed here
 					if (seatPartyIndex == run.indPartyIndex) continue;
 					if (!overallFpSwing.contains(seatPartyIndex) && seatPartyIndex >= 2) continue;
-					if (seatPartyIndex == seat.incumbent) continue;
+					if (seatPartyIndex == incumbentPartyIndex) continue;
 					if (seatPartyIndex == OthersIndex || !overallFpTarget.contains(seatPartyIndex)) {
 						categories[seatPartyIndex] = seatPartyVote;
 						totalOthers += seatPartyVote;
@@ -1996,7 +2269,7 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				}
 
 			}
-			checkForNans("d0e", false, false);
+			hasInvalidValues("d0e", false, false);
 		}
 	}
 
@@ -2020,11 +2293,11 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 		}
 	}
 
-	checkForNans("d2");
+	hasInvalidValues("d2");
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		allocateMajorPartyFp(seatIndex);
 	}
-	checkForNans("d3");
+	hasInvalidValues("d3");
 }
 
 void SimulationIteration::correctMajorPartyFpBias()
@@ -2944,7 +3217,7 @@ void SimulationIteration::recordSwingFactors()
 
 float SimulationIteration::calculateEffectiveSeatModifier(int seatIndex, int partyIndex) const
 {
-	[[maybe_unused]] Seat const& seat = project.seats().viewByIndex(seatIndex);
+	Seat const& seat = project.seats().viewByIndex(seatIndex);
 	float populism = centristPopulistFactor.at(partyIndex);
 	float seatModifier = mix(run.seatCentristModifiers[seatIndex], run.seatPopulistModifiers[seatIndex], populism);
 	int regionIndex = project.regions().idToIndex(seat.region);
@@ -2962,6 +3235,7 @@ float SimulationIteration::calculateEffectiveSeatModifier(int seatIndex, int par
 float SimulationIteration::variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {
 	std::uint64_t key = variabilityBaseSeed;
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(iterationIndex));
+	if (retryCount) key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(retryCount));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
@@ -2971,22 +3245,27 @@ float SimulationIteration::variabilityNormal(float mean, float sd, int itemIndex
 float SimulationIteration::variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const {
 	std::uint64_t key = variabilityBaseSeed;
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(iterationIndex));
+	if (retryCount) key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(retryCount));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
 	return RandomGenerator::uniform01_from_key(key) * (high - low) + low;
 }
 
-float SimulationIteration::variabilityUniformInt(int low, int high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const
+int SimulationIteration::variabilityUniformInt(int low, int high, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const
 {
 	int span = high - low;
-	return low + std::min(int(variabilityUniform(low, high, itemIndex, partyId, tag) * span), span - 1);
+	if (span <= 0) return low;
+	return low + std::min(
+		int(variabilityUniform(0.0f, 1.0f, itemIndex, partyId, tag) * span),
+		span - 1);
 }
 
 float SimulationIteration::variabilityGamma(float alpha, float beta, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const
 {
 	std::uint64_t key = variabilityBaseSeed;
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(iterationIndex));
+	if (retryCount) key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(retryCount));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
@@ -2999,10 +3278,21 @@ float SimulationIteration::variabilityBeta(float alpha, float beta, int itemInde
 {
 	std::uint64_t key = variabilityBaseSeed;
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(iterationIndex));
+	if (retryCount) key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(retryCount));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(itemIndex));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
 	std::mt19937_64 engine(RandomGenerator::splitmix64(key));
 	boost::random::beta_distribution<float> dist(alpha, beta);
 	return dist(engine);
+}
+
+int SimulationIteration::randomSampleIndex() const
+{
+	if (!retryCount) return iterationIndex;
+
+	std::uint64_t key = RandomGenerator::mixKey(
+		static_cast<std::uint64_t>(iterationIndex),
+		static_cast<std::uint64_t>(retryCount));
+	return static_cast<int>(key & 0x7fffffff);
 }
