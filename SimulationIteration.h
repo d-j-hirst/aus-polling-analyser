@@ -169,7 +169,6 @@ private:
 
 	float prefCorrection = 0.0f;
 	float overallFpError = 0.0f;
-	float nonMajorFpError = 0.0f;
 	float othersCorrectionFactor = 0.0f;
 	float fedStateCorrelation = 0.0f;
 	float ppvcBias = 0.0f;
