@@ -26,7 +26,6 @@ private:
 	void calculatePartyWinExpectations();
 	void calculatePartyWinMedians();
 	void calculateRegionPartyWinExpectations();
-	void recordVoteTotalStats();
 	void recordProbabilityBands();
 	void recordNames();
 	void recordSeatPartyWinPercentages();
@@ -45,7 +44,7 @@ private:
 	void recordModelledPolls();
 	void exportSummary(FeedbackFunc feedback);
 
-	StanModel const& baseModel();
+	StanModel const& baseModel() const;
 
 	void updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int& bound);
 

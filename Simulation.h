@@ -129,16 +129,16 @@ public:
 
 		float total2cpPercentCounted = 0.0f;
 
-		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		// Ordered lower-to-upper: 99%, 95%, 80%, then 50% bounds.
 		std::array<int, NumProbabilityBoundIndices> partyOneProbabilityBounds{};
 
-		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		// Ordered lower-to-upper: 99%, 95%, 80%, then 50% bounds.
 		std::array<int, NumProbabilityBoundIndices> partyTwoProbabilityBounds{};
 
-		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		// Ordered lower-to-upper: 99%, 95%, 80%, then 50% bounds.
 		std::array<int, NumProbabilityBoundIndices> coalitionProbabilityBounds{};
 
-		// 1,2 = 50% bounds, 3,4 = 80% bounds, 5,6 = 95% bounds, 7,8 = 99% bounds
+		// Ordered lower-to-upper: 99%, 95%, 80%, then 50% bounds.
 		std::array<int, NumProbabilityBoundIndices> othersProbabilityBounds{};
 
 		std::map<int, std::string> partyAbbr;

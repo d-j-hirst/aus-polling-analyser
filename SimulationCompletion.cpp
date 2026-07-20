@@ -7,9 +7,14 @@
 
 using Mp = Simulation::MajorParty;
 
-constexpr std::array<int, NumProbabilityBoundIndices> ProbabilityBounds = { 1, 5, 20, 50, 150, 180, 195,199 };
+// Values are stored in half-percent units, allowing the outer 0.5%/99.5%
+// thresholds to remain integral.
+constexpr std::array<int, NumProbabilityBoundIndices> ProbabilityBounds = {
+	1, 5, 20, 50, 150, 180, 195, 199
+};
 
-SimulationCompletion::SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations)
+SimulationCompletion::SimulationCompletion(
+	PollingProject& project, Simulation& sim, SimulationRun& run, int iterations)
 	: project(project), run(run), sim(sim), iterations(iterations)
 {
 }
@@ -27,8 +32,6 @@ void SimulationCompletion::completeRun(FeedbackFunc feedback)
 	calculatePartyWinMedians();
 
 	calculateRegionPartyWinExpectations();
-
-	recordVoteTotalStats();
 
 	recordProbabilityBands();
 
@@ -105,17 +108,22 @@ void SimulationCompletion::calculateWholeResultStatistics()
 
 void SimulationCompletion::calculatePartyWinExpectations()
 {
-	for (auto [partyIndex, frequency] : sim.latestReport.partySeatWinFrequency) {
-		int totalSeats = 0;
-		for (int seatNum = 1; seatNum < project.seats().count(); ++seatNum) {
-			totalSeats += seatNum * frequency[seatNum];
+	for (auto const& [partyIndex, frequency] :
+		sim.latestReport.partySeatWinFrequency) {
+		int64_t totalSeats = 0;
+		for (int seatNum = 1; seatNum < int(frequency.size()); ++seatNum) {
+			totalSeats += int64_t(seatNum) * frequency[seatNum];
 		}
 		sim.latestReport.partyWinExpectation[partyIndex] = float(totalSeats) / float(iterations);
 	}
 	if (run.natPartyIndex >= 0) {
-		int totalSeats = 0;
-		for (int seatNum = 1; seatNum < project.seats().count(); ++seatNum) {
-			totalSeats += seatNum * sim.latestReport.coalitionSeatWinFrequency[seatNum];
+		int64_t totalSeats = 0;
+		for (int seatNum = 1;
+			seatNum < int(sim.latestReport.coalitionSeatWinFrequency.size());
+			++seatNum) {
+			totalSeats +=
+				int64_t(seatNum) *
+				sim.latestReport.coalitionSeatWinFrequency[seatNum];
 		}
 		sim.latestReport.coalitionWinExpectation = float(totalSeats) / float(iterations);
 	}
@@ -151,51 +159,20 @@ void SimulationCompletion::calculateRegionPartyWinExpectations()
 	if (run.natPartyIndex >= 0) sim.latestReport.regionCoalitionWinExpectation.resize(project.regions().count());
 
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
-		for (int partyIndex = 0; partyIndex < project.parties().count(); ++partyIndex) {
-			int totalSeats = 0;
-			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][partyIndex].size()); ++seatNum) {
-				totalSeats += seatNum * run.regionPartyWins[regionIndex][partyIndex][seatNum];
+		for (auto const& [partyIndex, frequency] :
+			run.regionPartyWins[regionIndex]) {
+			int64_t totalSeats = 0;
+			for (int seatNum = 1;
+				seatNum < int(frequency.size()); ++seatNum) {
+				totalSeats += int64_t(seatNum) * frequency[seatNum];
 			}
 			sim.latestReport.regionPartyWinExpectation[regionIndex][partyIndex] = float(totalSeats) / float(iterations);
 		}
 
 		if (run.natPartyIndex >= 0) {
-			int totalSeats = 0;
-			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][Mp::Two].size()); ++seatNum) {
-				totalSeats += seatNum * run.regionPartyWins[regionIndex][Mp::Two][seatNum];
-			}
-			for (int seatNum = 1; seatNum < int(run.regionPartyWins[regionIndex][run.natPartyIndex].size()); ++seatNum) {
-				totalSeats += seatNum * run.regionPartyWins[regionIndex][run.natPartyIndex][seatNum];
-			}
-			sim.latestReport.regionCoalitionWinExpectation[regionIndex] = float(totalSeats) / float(iterations);
-		}
-	}
-}
-
-void SimulationCompletion::recordVoteTotalStats()
-{
-	// Note: for now this method doesn't actually save anything, just prints debug info
-	// It's recalculated in identical fashion in ReportUploader.cpp
-	// Obviously, this should be refactored when time permits
-	const std::vector<float> thresholds = { 0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f };
-	//j["voteTotalThresholds"] = thresholds;
-	typedef std::vector<float> VF;
-	std::vector<float> tppFrequencies = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
-		[this](VF v, float percentile) {
-			v.push_back(sim.latestReport.getTppSamplePercentile(percentile));
-			return v;
-		});
-	if (!run.isLiveManual()) {
-		std::map<int, VF> fpFrequencies;
-		for (auto [partyIndex, frequencies] : sim.latestReport.partyPrimaryFrequency) {
-			if (sim.latestReport.getFpSampleExpectation(partyIndex) > 0.0f) {
-				VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
-					[this, partyIndex](VF v, float percentile) {
-						v.push_back(sim.latestReport.getFpSamplePercentile(partyIndex, percentile));
-						return v;
-					});
-				fpFrequencies[partyIndex] = partyThresholds;
-			}
+			sim.latestReport.regionCoalitionWinExpectation[regionIndex] =
+				sim.latestReport.regionPartyWinExpectation[regionIndex][Mp::Two] +
+				sim.latestReport.regionPartyWinExpectation[regionIndex][run.natPartyIndex];
 		}
 	}
 }
@@ -210,7 +187,7 @@ void SimulationCompletion::recordProbabilityBands()
 	std::fill(sim.latestReport.partyTwoProbabilityBounds.begin(), sim.latestReport.partyTwoProbabilityBounds.end(), -1);
 	if (run.natPartyIndex >= 0) std::fill(sim.latestReport.coalitionProbabilityBounds.begin(), sim.latestReport.coalitionProbabilityBounds.end(), -1);
 	std::fill(sim.latestReport.othersProbabilityBounds.begin(), sim.latestReport.othersProbabilityBounds.end(), -1);
-	for (int numSeats = 0; numSeats < project.seats().count(); ++numSeats) {
+	for (int numSeats = 0; numSeats <= project.seats().count(); ++numSeats) {
 		partyOneCount += sim.latestReport.partySeatWinFrequency[0][numSeats];
 		partyTwoCount += sim.latestReport.partySeatWinFrequency[1][numSeats];
 		if (run.natPartyIndex >= 0) coalitionCount += sim.latestReport.coalitionSeatWinFrequency[numSeats];
@@ -246,18 +223,21 @@ void SimulationCompletion::recordNames()
 	sim.latestReport.partyColour[OthersIndex] = Party::createColour(128, 128, 128);
 	sim.latestReport.partyColour[EmergingIndIndex] = Party::createColour(128, 128, 128);
 	sim.latestReport.partyColour[EmergingPartyIndex] = Party::createColour(64, 64, 64);
-	sim.latestReport.partyColour[CoalitionPartnerIndex] = Party::createColour(0, 0, 256);
+	sim.latestReport.partyColour[CoalitionPartnerIndex] = Party::createColour(0, 0, 255);
 	for (int index = 0; index < project.regions().count(); ++index) {
 		sim.latestReport.regionName.push_back(project.regions().viewByIndex(index).name);
 	}
 	for (int index = 0; index < project.seats().count(); ++index) {
 		Seat const& seat = project.seats().viewByIndex(index);
+		int const incumbentPartyIndex =
+			project.parties().idToIndex(seat.incumbent);
 		sim.latestReport.seatName.push_back(seat.name);
-		int effectiveIncumbent = seat.incumbent;
-		if (seat.incumbent == run.indPartyIndex && seat.retirement == true) {
+		int effectiveIncumbent = incumbentPartyIndex;
+		if (incumbentPartyIndex == run.indPartyIndex && seat.retirement) {
 			effectiveIncumbent = seat.tppMargin > 0 ? 0 : 1;
 		}
-		sim.latestReport.seatIncumbents.push_back(seat.incumbent);
+		// Report party maps use collection indices, not persistent project IDs.
+		sim.latestReport.seatIncumbents.push_back(incumbentPartyIndex);
 		sim.latestReport.seatMargins.push_back(seat.tppMargin);
 		if (effectiveIncumbent == 0) {
 			sim.latestReport.seatIncumbentMargins.push_back(seat.tppMargin);
@@ -328,7 +308,20 @@ void SimulationCompletion::recordSeatFpVoteStats()
 				logger << ": " << fpVoteShare << ", " << "distribution: ";
 			}
 			auto const& distribution = run.seatPartyFpDistribution[seatIndex][partyIndex];
-			int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
+			int const recordedCount =
+				std::accumulate(distribution.begin(), distribution.end(), 0);
+			if (recordedCount > iterations) {
+				throw std::runtime_error(
+					"Seat FP distribution exceeds the simulation count for " +
+					project.seats().viewByIndex(seatIndex).name + ".");
+			}
+			int const missingCount = iterations - recordedCount;
+			int const exactZeroCount =
+				missingCount +
+				getAt(run.seatPartyFpZeros[seatIndex], partyIndex, 0);
+			float const exactZeroPercent =
+				float(exactZeroCount) / float(iterations) * 100.0f;
+			int cumulative = missingCount;
 			sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex].resize(sim.latestReport.probabilityBands.size());
 			int currentProbabilityBand = 0;
 			for (int a = 0; a < SimulationRun::BucketCount; ++a) {
@@ -343,8 +336,7 @@ void SimulationCompletion::recordSeatFpVoteStats()
 						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
 						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
 						float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-						if (!a && run.seatPartyFpZeros[seatIndex].contains(partyIndex) &&
-							float(currentProbabilityBand) < float(run.seatPartyFpZeros[seatIndex][partyIndex]) / float(iterations) * 100.0f) {
+						if (band < exactZeroPercent) {
 							exactFp = 0.0f;
 						}
 						sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
@@ -393,6 +385,8 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 				else if (parties.second == -2) logger << "Emerging Ind";
 				else if (parties.second == -3) logger << "Emerging Party";
 			}
+			// Despite the legacy field name, the serialized scenario frequency
+			// is a 0-1 proportion.
 			float scenarioPercent = float(total) / float(iterations);
 			sim.latestReport.seatTcpScenarioPercent[seatIndex][parties] = scenarioPercent;
 			sim.latestReport.seatTcpProbabilityBand[seatIndex][parties].resize(sim.latestReport.probabilityBands.size());
@@ -408,7 +402,8 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 				if (distribution[a] > 0) {
 					float lowerPercentile = float(cumulative) / float(total) * 100.0f;
 					if (a >= SimulationRun::BucketCount / 2 && !winPercentAssigned) {
-						winPercent = (float(SimulationRun::BucketCount) - lowerPercentile) / float(SimulationRun::BucketCount) * 100.0f;
+						// The distribution stores the share of parties.first.
+						winPercent = 100.0f - lowerPercentile;
 						winPercentAssigned = true;
 					}
 					cumulative += distribution[a];
@@ -432,10 +427,10 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 					}
 				}
 			}
+			sim.latestReport.seatTcpWinPercent[seatIndex][parties] = winPercent;
 			if (doLogging()) {
 				logger << "\n";
 				logger << "   Win rate: " << winPercent << "%\n";
-				sim.latestReport.seatTcpWinPercent[seatIndex][parties] = winPercent;
 				logger << "   Probability bands: " << sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] << "\n";
 			}
 		}
@@ -500,9 +495,13 @@ void SimulationCompletion::recordSeatSwingFactors()
 		sim.latestReport.swingFactors[seatIndex].push_back(
 			"Adjustment towards seat polling;" + std::to_string(seatPollEffectAverage));
 		float totalLocalEffects = 0.0f;
-		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) totalLocalEffects += impact;
-		if (totalLocalEffects == 0.0f) continue;
-		for (auto const [name, impact] : run.seatLocalEffects[seatIndex]) {
+		for (auto const& [name, impact] : run.seatLocalEffects[seatIndex]) {
+			totalLocalEffects += impact;
+		}
+		// Opposing local effects can cancel. Do not amplify their explanatory
+		// breakdown by dividing through a near-zero net effect.
+		if (std::abs(totalLocalEffects) < 0.000001f) continue;
+		for (auto const& [name, impact] : run.seatLocalEffects[seatIndex]) {
 			float scaledEffect = impact * seatLocalEffectsAverage / totalLocalEffects;
 			sim.latestReport.swingFactors[seatIndex].push_back(
 				name + ";" + std::to_string(scaledEffect));
@@ -620,9 +619,12 @@ void SimulationCompletion::recordTrends()
 	sim.latestReport.trendPeriod = 5;
 	auto const& model = baseModel();
 	auto const startDate = model.getStartDate();
-	sim.latestReport.trendStartDate = std::to_string(startDate.GetYear()) + "-" +
-		(int(startDate.GetMonth()) < 9 ? "0" : "") +
-		std::to_string(int(startDate.GetMonth()) + 1) + "-" + std::to_string(startDate.GetDay());
+	if (!startDate.IsValid()) {
+		throw std::runtime_error(
+			"Cannot record simulation trends because the model start date is invalid.");
+	}
+	sim.latestReport.trendStartDate =
+		startDate.FormatISODate().ToStdString();
 	recordTcpTrend();
 	recordFpTrends();
 }
@@ -631,9 +633,18 @@ void SimulationCompletion::recordTcpTrend()
 {
 	auto const& model = baseModel();
 	auto const& series = model.viewTPPSeries();
+	if (series.timePoint.empty()) {
+		throw std::runtime_error(
+			"Cannot record the TPP trend because its model series is empty.");
+	}
 	for (int i = 0; ; i = std::min(i + sim.latestReport.trendPeriod, int(series.timePoint.size()) - 1)) {
 		sim.latestReport.tppTrend.push_back({});
 		for (int j : sim.latestReport.trendProbBands) {
+			if (j < 0 || j >= int(series.timePoint[i].values.size())) {
+				throw std::runtime_error(
+					"Cannot record the TPP trend because a model time point "
+					"does not contain every requested probability band.");
+			}
 			sim.latestReport.tppTrend.back().push_back(series.timePoint[i].values[j]);
 		}
 		if (i == int(series.timePoint.size()) - 1) {
@@ -650,11 +661,23 @@ void SimulationCompletion::recordFpTrends()
 		if (index == EmergingPartyIndex) abbr = EmergingOthersCode;
 		if (index == OthersIndex) abbr = UnnamedOthersCode;
 		if (abbr == "ON") abbr = "ONP";
-		if (model.viewAdjustedSeries(abbr)) {
-			auto const& series = *model.viewAdjustedSeries(abbr);
+		auto const adjustedSeries = model.viewAdjustedSeries(abbr);
+		if (adjustedSeries) {
+			auto const& series = *adjustedSeries;
+			if (series.timePoint.empty()) {
+				throw std::runtime_error(
+					"Cannot record the " + abbr +
+					" FP trend because its model series is empty.");
+			}
 			for (int i = 0; ; i = std::min(i + sim.latestReport.trendPeriod, int(series.timePoint.size()) - 1)) {
 				sim.latestReport.fpTrend[index].push_back({});
 				for (int j : sim.latestReport.trendProbBands) {
+					if (j < 0 || j >= int(series.timePoint[i].values.size())) {
+						throw std::runtime_error(
+							"Cannot record the " + abbr +
+							" FP trend because a model time point does not "
+							"contain every requested probability band.");
+					}
 					sim.latestReport.fpTrend[index].back().push_back(series.timePoint[i].values[j]);
 				}
 				if (i == int(series.timePoint.size()) - 1) break;
@@ -675,6 +698,9 @@ void SimulationCompletion::recordModelledPolls()
 
 void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 {
+	// This remains a purpose-built operational export for automatic live runs,
+	// rather than a general report format. Its selected party columns preserve
+	// the layouts expected by the existing downstream workflow.
 	std::ofstream summaryFile;
 	while (!summaryFile.is_open()) {
 		summaryFile.open("live_summary.csv");
@@ -855,7 +881,7 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	summaryFile << internals.raw2ppDeviation;
 }
 
-StanModel const& SimulationCompletion::baseModel()
+StanModel const& SimulationCompletion::baseModel() const
 {
 	return project.projections().view(sim.settings.baseProjection).getBaseModel(project.models());
 }

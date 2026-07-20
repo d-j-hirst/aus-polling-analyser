@@ -1,6 +1,7 @@
 #include "Simulation.h"
 
 #include "CountProgress.h"
+#include "General.h"
 #include "Log.h"
 #include "Party.h"
 #include "PollingProject.h"
@@ -195,38 +196,50 @@ float Simulation::Report::getCoalitionWinMedian() const
 
 float Simulation::Report::getOthersWinExpectation() const
 {
-	if (partyWinExpectation.size() < 3) return 0.0f;
-	float totalExpectation = 0.0f;
-	for (auto [partyIndex, expectation] : partyWinExpectation) {
-		if (partyIndex && partyIndex != 1) {
-			totalExpectation += expectation;
-		}
-	}
-	return totalExpectation;
+	float totalExpectation = std::accumulate(
+		partyWinExpectation.begin(), partyWinExpectation.end(), 0.0f,
+		[](float total, auto const& item) {
+			return total + item.second;
+		});
+	float const partyOneExpectation =
+		getAt(partyWinExpectation, Mp::One, 0.0f);
+	float const coalitionExpectation =
+		coalitionSeatWinFrequency.empty() ?
+		getAt(partyWinExpectation, Mp::Two, 0.0f) :
+		coalitionWinExpectation;
+	return std::max(
+		0.0f,
+		totalExpectation - partyOneExpectation - coalitionExpectation);
 }
 
-float Simulation::Report::getRegionPartyWinExpectation(int regionIndex, int partyIndex) const
+float Simulation::Report::getRegionPartyWinExpectation(
+	int regionIndex, int partyIndex) const
 {
 	return regionPartyWinExpectation[regionIndex].at(partyIndex);
 }
 
 float Simulation::Report::getRegionCoalitionWinExpectation(int regionIndex) const
 {
-	if (!regionCoalitionWinExpectation.size()) return regionPartyWinExpectation[regionIndex].at(Mp::Two);
+	if (!regionCoalitionWinExpectation.size()) {
+		return regionPartyWinExpectation[regionIndex].at(Mp::Two);
+	}
 	return regionCoalitionWinExpectation[regionIndex];
 }
 
 float Simulation::Report::getRegionOthersWinExpectation(int regionIndex) const
 {
 	if (regionIndex < 0 || regionIndex >= int(regionPartyWinExpectation.size())) return 0.0f;
-	if (regionPartyWinExpectation[regionIndex].size() < 3) return 0.0f;
-	float totalExpectation = 0.0f;
-	for (auto [partyIndex, expectation] : regionPartyWinExpectation[regionIndex]) {
-		if (partyIndex && partyIndex != 1) {
-			totalExpectation += expectation;
-		}
-	}
-	return totalExpectation;
+	auto const& expectations = regionPartyWinExpectation[regionIndex];
+	float const totalExpectation = std::accumulate(
+		expectations.begin(), expectations.end(), 0.0f,
+		[](float total, auto const& item) {
+			return total + item.second;
+		});
+	return std::max(
+		0.0f,
+		totalExpectation -
+			getAt(expectations, Mp::One, 0.0f) -
+			getRegionCoalitionWinExpectation(regionIndex));
 }
 
 float Simulation::Report::getPartySeatWinFrequency(int partyIndex, int seatIndex) const
@@ -302,8 +315,10 @@ float Simulation::Report::getOthersOverallWinPercent() const
 
 int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const
 {
-	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
-	if (partySeatWinFrequency.at(partyIndex).size() == 0) return 0;
+	if (!partySeatWinFrequency.contains(partyIndex) ||
+		partySeatWinFrequency.at(partyIndex).empty()) {
+		return 0;
+	}
 	for (int i = 0; i < int(partySeatWinFrequency.at(partyIndex).size()); ++i) {
 		if (partySeatWinFrequency.at(partyIndex)[i] > 0) return i;
 	}
@@ -312,8 +327,10 @@ int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const
 
 int Simulation::Report::getMaximumSeatFrequency(int partyIndex) const
 {
-	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
-	if (partySeatWinFrequency.at(partyIndex).size() == 0) return 0;
+	if (!partySeatWinFrequency.contains(partyIndex) ||
+		partySeatWinFrequency.at(partyIndex).empty()) {
+		return 0;
+	}
 	for (int i = int(partySeatWinFrequency.at(partyIndex).size()) - 1; i >= 0; --i) {
 		if (partySeatWinFrequency.at(partyIndex)[i] > 0) return i;
 	}
@@ -367,8 +384,10 @@ int Simulation::Report::getCoalitionSeatsPercentile(float percentile) const
 
 int Simulation::Report::getModalSeatFrequencyCount(int partyIndex) const
 {
-	if (int(partySeatWinFrequency.size()) < partyIndex) return 0;
-	if (partySeatWinFrequency.at(partyIndex).size() == 0) return 0;
+	if (!partySeatWinFrequency.contains(partyIndex) ||
+		partySeatWinFrequency.at(partyIndex).empty()) {
+		return 0;
+	}
 	return *std::max_element(partySeatWinFrequency.at(partyIndex).begin(), partySeatWinFrequency.at(partyIndex).end());
 }
 
@@ -501,7 +520,16 @@ float Simulation::Report::getCoalitionFpSamplePercentile(float percentile) const
 int Simulation::Report::getOthersLeading(int regionIndex) const
 {
 	if (regionPartyIncumbents[regionIndex].size() < 3) return 0;
-	return std::accumulate(regionPartyIncumbents[regionIndex].begin() + 2, regionPartyIncumbents[regionIndex].end(), 0);
+	int othersLeading = std::accumulate(
+		regionPartyIncumbents[regionIndex].begin() + 2,
+		regionPartyIncumbents[regionIndex].end(), 0);
+	if (regionIndex < int(regionCoalitionIncumbents.size())) {
+		int const coalitionPartnerLeading =
+			regionCoalitionIncumbents[regionIndex] -
+			regionPartyIncumbents[regionIndex][Mp::Two];
+		othersLeading -= coalitionPartnerLeading;
+	}
+	return std::max(0, othersLeading);
 }
 
 Simulation::Report::SaveablePolls Simulation::Report::getSaveablePolls() const

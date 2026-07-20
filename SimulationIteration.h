@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <map>
+#include <set>
 #include <vector>
 
 class PollingProject;
@@ -54,7 +55,7 @@ private:
 	void allocateMajorPartyFp(int seatIndex, float preferenceFlowDeviation = 0.0f);
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
-	void calculateNewFpVoteTotals();
+	void calculateNewFpVoteTotals(int reconciliationCycle);
 	void calculatePreferenceCorrections();
 	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias();
@@ -150,6 +151,7 @@ private:
 	// with the generated state above.
 	int iterationIndex = 0;
 	int retryCount = 0;
+	std::set<int> loggedReconciliationDiagnosticCycles;
 
 	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 

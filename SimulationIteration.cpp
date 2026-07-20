@@ -22,6 +22,8 @@ constexpr float ProminentMinorFlatBonus = 5.0f;
 constexpr float ProminentMinorFlatBonusThreshold = 10.0f;
 constexpr float ProminentMinorBonusMax = 35.0f;
 constexpr int MaxIterationRetries = 10;
+constexpr int MaxFpReconciliationCycles = 5;
+constexpr float AcceptableOverallFpError = 0.3f;
 
 namespace {
 	struct InvalidIteration {
@@ -2209,11 +2211,8 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 
 void SimulationIteration::reconcileSeatAndOverallFp()
 {
-	constexpr int MaxReconciliationCycles = 5;
-	constexpr float AcceptableOverallFpError = 0.3f;
-
-	for (int i = 0; i < MaxReconciliationCycles; ++i) {
-		calculateNewFpVoteTotals();
+	for (int i = 0; i < MaxFpReconciliationCycles; ++i) {
+		calculateNewFpVoteTotals(i);
 		if (hasInvalidValues(
 			"FP reconciliation totals, cycle " + std::to_string(i))) {
 			throw InvalidIteration();
@@ -2229,7 +2228,7 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 			throw InvalidIteration();
 		}
 
-		if (i < MaxReconciliationCycles - 1) {
+		if (i < MaxFpReconciliationCycles - 1) {
 			if (i > 1) calculatePreferenceCorrections();
 			applyCorrectionsToSeatFps();
 		}
@@ -2240,31 +2239,11 @@ void SimulationIteration::reconcileSeatAndOverallFp()
 	// A larger residual is permitted here: protected incumbents and locally
 	// established candidates can make the national target impossible without
 	// destroying the local support the seat model is intended to preserve.
-	calculateNewFpVoteTotals();
+	calculateNewFpVoteTotals(MaxFpReconciliationCycles);
 }
 
-void SimulationIteration::calculateNewFpVoteTotals()
+void SimulationIteration::calculateNewFpVoteTotals(int reconciliationCycle)
 {
-	// Weight each seat by its previous-election turnout. This is particularly
-	// important where electorate sizes differ substantially, such as Tasmania.
-	std::map<int, double> partyVoteCount;
-	double totalVoteCount = 0.0;
-	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
-		double const seatVoteCount =
-			double(run.pastSeatResults[seatIndex].turnoutCount);
-		for (auto const& [partyIndex, voteShare] :
-			seatFpVoteShare[seatIndex]) {
-			if (partyIndex == CoalitionPartnerIndex) continue;
-			double const voteCount =
-				double(voteShare) * seatVoteCount * 0.01;
-			totalVoteCount += voteCount;
-			partyVoteCount[partyIndex] += voteCount;
-		}
-	}
-	if (!std::isfinite(totalVoteCount) || totalVoteCount <= 0.0) {
-		throw InvalidIteration();
-	}
-
 	// Nationals votes are held within party two until assignNationalsVotes().
 	// Reconcile against the combined Coalition target when a projection happens
 	// to provide separate Liberal and National primary-vote series.
@@ -2276,6 +2255,63 @@ void SimulationIteration::calculateNewFpVoteTotals()
 		reconciliationTargets.erase(run.natPartyIndex);
 	}
 	reconciliationTargets.try_emplace(OthersIndex, 0.0f);
+
+	// Weight each seat by its previous-election turnout. This is particularly
+	// important where electorate sizes differ substantially, such as Tasmania.
+	std::map<int, double> partyVoteCount;
+	double totalVoteCount = 0.0;
+	double literalOthersVoteCount = 0.0;
+	double independentVoteCount = 0.0;
+	double emergingIndependentVoteCount = 0.0;
+	double untargetedNamedPartyVoteCount = 0.0;
+	double incumbentProtectedVoteCount = 0.0;
+	double adjustableGroupedOthersVoteCount = 0.0;
+	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
+		double const seatVoteCount =
+			double(run.pastSeatResults[seatIndex].turnoutCount);
+		int const incumbentPartyIndex =
+			project.parties().idToIndex(
+				project.seats().viewByIndex(seatIndex).incumbent);
+		for (auto const& [partyIndex, voteShare] :
+			seatFpVoteShare[seatIndex]) {
+			if (partyIndex == CoalitionPartnerIndex) continue;
+			double const voteCount =
+				double(voteShare) * seatVoteCount * 0.01;
+			totalVoteCount += voteCount;
+			partyVoteCount[partyIndex] += voteCount;
+
+			bool const groupedIntoOthers =
+				partyIndex != run.natPartyIndex &&
+				(partyIndex == OthersIndex ||
+					!reconciliationTargets.contains(partyIndex));
+			if (!groupedIntoOthers) continue;
+
+			if (partyIndex == OthersIndex) {
+				literalOthersVoteCount += voteCount;
+			}
+
+			// Match the exclusion order in applyCorrectionsToSeatFps().
+			if (partyIndex == run.indPartyIndex) {
+				independentVoteCount += voteCount;
+			}
+			else if (partyIndex == EmergingIndIndex) {
+				emergingIndependentVoteCount += voteCount;
+			}
+			else if (partyIndex >= Mp::Others &&
+				!overallFpSwing.contains(partyIndex)) {
+				untargetedNamedPartyVoteCount += voteCount;
+			}
+			else if (partyIndex == incumbentPartyIndex) {
+				incumbentProtectedVoteCount += voteCount;
+			}
+			else {
+				adjustableGroupedOthersVoteCount += voteCount;
+			}
+		}
+	}
+	if (!std::isfinite(totalVoteCount) || totalVoteCount <= 0.0) {
+		throw InvalidIteration();
+	}
 
 	tempOverallFp.clear();
 	for (auto const& [partyIndex, voteCount] : partyVoteCount) {
@@ -2301,30 +2337,93 @@ void SimulationIteration::calculateNewFpVoteTotals()
 			std::abs(target - tempOverallFp.at(partyIndex));
 	}
 
-	float const tempMicroOthers =
-		float(getAt(partyVoteCount, OthersIndex, 0.0) /
-			totalVoteCount * 100.0);
+	double const protectedOthersVoteCount =
+		independentVoteCount +
+		untargetedNamedPartyVoteCount +
+		incumbentProtectedVoteCount;
+	double const adjustableOthersVoteCount =
+		emergingIndependentVoteCount +
+		adjustableGroupedOthersVoteCount;
 	float const protectedOthers =
-		tempOverallFp.at(OthersIndex) - tempMicroOthers;
+		float(protectedOthersVoteCount / totalVoteCount * 100.0);
+	float const adjustableOthers =
+		float(adjustableOthersVoteCount / totalVoteCount * 100.0);
 	float const targetOthers =
 		reconciliationTargets.at(OthersIndex);
 	constexpr float MinimumAdjustableOthersShare = 0.0001f;
-	if (tempMicroOthers > MinimumAdjustableOthersShare) {
-		// Protected independents can already exceed the aggregate Others
-		// target. In that case remove as much generic Others support as
-		// possible, but never request a nonsensical negative scale.
+	if (adjustableOthers > MinimumAdjustableOthersShare) {
+		// Emerging independents represent the election-wide possibility of a
+		// strong new candidate, so reconcile them with generic Others. Known
+		// independents, quasi-independents and incumbents remain protected.
 		othersCorrectionFactor = std::max(
 			0.0f,
-			(targetOthers - protectedOthers) / tempMicroOthers);
+			(targetOthers - protectedOthers) / adjustableOthers);
 	}
 	else {
-		// There is no generic Others reservoir through which to apply a
-		// correction. Preserve the local candidates and accept the residual.
+		// There is no adjustable Others reservoir through which to apply a
+		// correction. Preserve known local candidates and accept the residual.
 		othersCorrectionFactor = 1.0f;
 	}
 	if (!std::isfinite(overallFpError) ||
 		!std::isfinite(othersCorrectionFactor)) {
 		throw InvalidIteration();
+	}
+
+	bool const terminalCheckpoint =
+		overallFpError < AcceptableOverallFpError ||
+		reconciliationCycle == MaxFpReconciliationCycles;
+	bool const logDetailedCycles = iterationIndex < 5;
+	bool const logTerminalSample =
+		iterationIndex < 100 && terminalCheckpoint;
+	if ((logDetailedCycles || logTerminalSample) &&
+		loggedReconciliationDiagnosticCycles.insert(
+			reconciliationCycle).second) {
+		auto const voteShare = [totalVoteCount](double voteCount) {
+			return float(voteCount / totalVoteCount * 100.0);
+		};
+		float const correctionProtectedOthers =
+			voteShare(
+				independentVoteCount +
+				untargetedNamedPartyVoteCount +
+				incumbentProtectedVoteCount);
+		std::string const cycleLabel =
+			reconciliationCycle == MaxFpReconciliationCycles ?
+			"final refresh" :
+			"cycle " + std::to_string(reconciliationCycle);
+
+		std::lock_guard<std::mutex> lock(recordMutex);
+		logger << "\n*** FP reconciliation diagnostic: iteration "
+			<< iterationIndex << ", " << cycleLabel
+			<< ", retry " << retryCount << " ***\n";
+		PA_LOG_VAR(reconciliationTargets);
+		PA_LOG_VAR(tempOverallFp);
+		logger << overallFpError << " - overallFpError; "
+			<< targetOthers << " - targetOthers; "
+			<< tempOverallFp.at(OthersIndex) << " - actualOthers; "
+			<< tempOverallFp.at(OthersIndex) - targetOthers
+			<< " - othersResidual; "
+			<< getAt(tempOverallFp, Mp::One, 0.0f) -
+				getAt(reconciliationTargets, Mp::One, 0.0f)
+			<< " - partyOneResidual; "
+			<< getAt(tempOverallFp, Mp::Two, 0.0f) -
+				getAt(reconciliationTargets, Mp::Two, 0.0f)
+			<< " - partyTwoResidual; "
+			<< othersCorrectionFactor << " - othersCorrectionFactor\n";
+		logger << voteShare(literalOthersVoteCount)
+			<< " - literalOthers; "
+			<< protectedOthers << " - factorProtectedOthers; "
+			<< correctionProtectedOthers << " - correctionProtectedOthers; "
+			<< voteShare(independentVoteCount) << " - independent; "
+			<< voteShare(emergingIndependentVoteCount)
+			<< " - emergingIndependent; "
+			<< voteShare(untargetedNamedPartyVoteCount)
+			<< " - untargetedNamedParties; "
+			<< voteShare(incumbentProtectedVoteCount)
+			<< " - incumbentOnly; "
+			<< voteShare(adjustableGroupedOthersVoteCount)
+			<< " - otherAdjustableOthers; "
+			<< voteShare(adjustableOthersVoteCount)
+			<< " - totalAdjustableOthers\n";
 	}
 }
 
@@ -2398,20 +2497,15 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 				Seat const& seat = project.seats().viewByIndex(seatIndex);
 				int const incumbentPartyIndex =
 					project.parties().idToIndex(seat.incumbent);
-				float const allocation =
-					getAt(seatFpVoteShare[seatIndex], OthersIndex, 0.0f) *
-					(othersCorrectionFactor - 1.0f);
 
 				FloatByPartyIndex categories;
 				float totalOthers = 0.0f;
 				for (auto const& [seatPartyIndex, seatPartyVote] :
 					seatFpVoteShare[seatIndex]) {
-					// Preserve independents, quasi-independents and incumbents:
-					// their local support need not follow a national Others trend.
-					if (seatPartyIndex == run.indPartyIndex ||
-						seatPartyIndex == EmergingIndIndex) {
-						continue;
-					}
+					// Preserve known independents, quasi-independents and
+					// incumbents: their local support need not follow a national
+					// Others trend. Hypothetical emerging independents do.
+					if (seatPartyIndex == run.indPartyIndex) continue;
 					if (!overallFpSwing.contains(seatPartyIndex) && seatPartyIndex >= 2) continue;
 					if (seatPartyIndex == incumbentPartyIndex) continue;
 					if (seatPartyIndex == OthersIndex || !overallFpTarget.contains(seatPartyIndex)) {
@@ -2420,6 +2514,8 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 					}
 				}
 				if (!totalOthers) continue;
+				float const allocation =
+					totalOthers * (othersCorrectionFactor - 1.0f);
 				for (auto const& [seatPartyIndex, voteShare] : categories) {
 					float const additionalVotes =
 						allocation * voteShare / totalOthers;
@@ -3409,6 +3505,8 @@ void SimulationIteration::recordRegionFpVotes(int regionIndex)
 {
 	// Aggregate-node vote shares represent voters rather than a typical seat,
 	// so use the same previous-turnout weights as the main election totals.
+	// Earlier live baselines equal-weighted seats. If aggregate live offsets
+	// behave unexpectedly, revisit this methodological choice as a comparison.
 	std::map<int, double> weightedVoteShare;
 	double turnoutSum = 0.0;
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
