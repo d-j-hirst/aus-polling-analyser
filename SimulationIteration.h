@@ -6,7 +6,6 @@
 #include <array>
 #include <cstdint>
 #include <map>
-#include <set>
 #include <vector>
 
 class PollingProject;
@@ -55,10 +54,19 @@ private:
 	void allocateMajorPartyFp(int seatIndex, float preferenceFlowDeviation = 0.0f);
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
-	void calculateNewFpVoteTotals(int reconciliationCycle);
+	void calculateNewFpVoteTotals(
+		bool finalCheckpoint = false,
+		std::map<int, float> const* preTerminalFp = nullptr,
+		float preTerminalFpError = 0.0f);
 	void calculatePreferenceCorrections();
-	void applyCorrectionsToSeatFps();
-	void correctMajorPartyFpBias();
+	void applyCorrectionsToSeatFps(int reconciliationCycle);
+	void correctMajorPartyFpBias(bool accountForSeatNormalisation = false);
+	void solveTerminalFpReconciliation();
+	std::map<int, float> calculateCurrentFpTotalsForDiagnostics() const;
+	void logDetailedFpReconciliationStage(
+		int reconciliationCycle,
+		std::string const& stage,
+		std::map<int, float> const& totals) const;
 	void incorporateLiveResults();
 	void determineSeatFinalResult(int seatIndex);
 	void assignNationalsVotes(int seatIndex, bool updateFromLive = true);
@@ -146,12 +154,12 @@ private:
 	float ppvcBias = 0.0f;
 	float indAlpha = 1.0f;
 	float indBeta = 1.0f;
+	bool neededTerminalFpReconciliation = false;
 
 	// Stable identity and retry bookkeeping. These are intentionally not reset
 	// with the generated state above.
 	int iterationIndex = 0;
 	int retryCount = 0;
-	std::set<int> loggedReconciliationDiagnosticCycles;
 
 	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 

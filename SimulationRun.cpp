@@ -10,16 +10,23 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 #include <vector>
 
 using Mp = Simulation::MajorParty;
 
 bool SimulationRun::run(FeedbackFunc feedback) {
+	{
+		std::lock_guard<std::mutex> lock(warningMutex);
+		warnings.clear();
+	}
+
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
 
 	if (int(thisProjection.getProjectionLength()) == 0) {
@@ -53,6 +60,8 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 		if (!runLiveBaselineSimulation(feedback)) return false;
 	}
 
+	auto const mainRunStart = std::chrono::steady_clock::now();
+
 	SimulationPreparation preparations(project, sim, *this);
 	try {
 		preparations.prepareForIterations();
@@ -69,8 +78,85 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 	SimulationCompletion completion(project, sim, *this, cycleIterations);
 	completion.completeRun(feedback);
 
+	auto const mainRunElapsed =
+		std::chrono::steady_clock::now() - mainRunStart;
+	double const mainRunSeconds =
+		std::chrono::duration<double>(mainRunElapsed).count();
+	logger << "*** Main simulation run completed in " << mainRunSeconds
+		<< " seconds (includes preparation, iterations, and completion; "
+		<< "excludes betting-odds calibration and live baseline simulation) ***\n";
+
+	reportWarnings(feedback);
+
 	sim.lastUpdated = wxDateTime::Now();
 	return true;
+}
+
+void SimulationRun::recordWarning(
+	WarningCategory category,
+	int iterationIndex,
+	std::string description)
+{
+	std::lock_guard<std::mutex> lock(warningMutex);
+	auto [warningIt, inserted] = warnings.try_emplace(
+		category,
+		Warning{iterationIndex, std::move(description)});
+	// Worker completion order is nondeterministic, so retain the lowest
+	// iteration index rather than whichever thread reached the mutex first.
+	if (!inserted) {
+		++warningIt->second.occurrenceCount;
+		if (iterationIndex < warningIt->second.iterationIndex) {
+			warningIt->second.iterationIndex = iterationIndex;
+		}
+	}
+}
+
+void SimulationRun::reportWarnings(FeedbackFunc feedback) const
+{
+	std::string message;
+	{
+		std::lock_guard<std::mutex> lock(warningMutex);
+		if (warnings.empty()) return;
+
+		for (auto const& [category, warning] : warnings) {
+			if (category ==
+					WarningCategory::FrequentTerminalFpReconciliation &&
+				int64_t(warning.occurrenceCount) * 100 <=
+					sim.settings.numIterations) {
+				continue;
+			}
+			if (message.empty()) {
+				message =
+					"Simulation completed with the following warnings:";
+			}
+
+			std::string categoryCode;
+			switch (category) {
+			case WarningCategory::FpReconciliation:
+				categoryCode = "FP_RECONCILIATION";
+				break;
+			case WarningCategory::FrequentTerminalFpReconciliation:
+				categoryCode = "FREQUENT_TERMINAL_FP_RECONCILIATION";
+				break;
+			case WarningCategory::DiagnosticTest:
+				categoryCode = "DIAGNOSTIC_TEST";
+				break;
+			}
+			message +=
+				"\n- [" + categoryCode + "] " +
+				std::to_string(warning.occurrenceCount) +
+				(warning.occurrenceCount == 1 ?
+					" occurrence; first at iteration " :
+					" occurrences; first at iteration ") +
+				std::to_string(warning.iterationIndex) +
+				": " + warning.description;
+		}
+		if (message.empty()) return;
+		message += "\n\nSee PALog.log for diagnostic details.";
+	}
+
+	logger << message << "\n";
+	feedback(message);
 }
 
 bool SimulationRun::runIterations(

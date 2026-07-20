@@ -5,6 +5,18 @@
 #include "SimulationRun.h"
 #include "SpecialPartyCodes.h"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <fstream>
+#include <numeric>
+#include <optional>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
 using Mp = Simulation::MajorParty;
 
 // Values are stored in half-percent units, allowing the outer 0.5%/99.5%
@@ -12,6 +24,79 @@ using Mp = Simulation::MajorParty;
 constexpr std::array<int, NumProbabilityBoundIndices> ProbabilityBounds = {
 	1, 5, 20, 50, 150, 180, 195, 199
 };
+
+namespace {
+	template <std::size_t BucketCount>
+	std::vector<float> probabilityBandsFromDistribution(
+		std::array<int, BucketCount> const& distribution,
+		std::vector<float> const& probabilityBands,
+		int sampleCount,
+		std::string const& context,
+		std::optional<int> explicitZeroCount = std::nullopt,
+		bool inferZeroFromFirstBucket = false)
+	{
+		if (sampleCount <= 0) {
+			throw std::runtime_error(
+				"Cannot calculate probability bands for " + context +
+				" without a positive sample count.");
+		}
+		int const recordedCount =
+			std::accumulate(distribution.begin(), distribution.end(), 0);
+		if (recordedCount > sampleCount) {
+			throw std::runtime_error(
+				"Distribution exceeds the simulation count for " +
+				context + ".");
+		}
+
+		int const missingCount = sampleCount - recordedCount;
+		int const exactZeroCount = explicitZeroCount ?
+			missingCount + *explicitZeroCount : missingCount;
+		if (exactZeroCount > sampleCount) {
+			throw std::runtime_error(
+				"Exact-zero count exceeds the simulation count for " +
+				context + ".");
+		}
+
+		std::vector<float> result(probabilityBands.size(), 0.0f);
+		int cumulative = missingCount;
+		int currentProbabilityBand = 0;
+		for (int bucket = 0; bucket < int(BucketCount); ++bucket) {
+			if (distribution[bucket] <= 0) continue;
+
+			float const lowerPercentile =
+				float(cumulative) / float(sampleCount) * 100.0f;
+			cumulative += distribution[bucket];
+			float const upperPercentile =
+				float(cumulative) / float(sampleCount) * 100.0f;
+			while (currentProbabilityBand < int(probabilityBands.size()) &&
+				probabilityBands[currentProbabilityBand] <
+					upperPercentile) {
+				float const band =
+					probabilityBands[currentProbabilityBand];
+				float const exactFraction =
+					(band - lowerPercentile) /
+					(upperPercentile - lowerPercentile);
+				float exactVote =
+					(float(bucket) + exactFraction) *
+					100.0f / float(BucketCount);
+				if (explicitZeroCount &&
+					band < float(exactZeroCount) /
+						float(sampleCount) * 100.0f) {
+					exactVote = 0.0f;
+				}
+				else if (inferZeroFromFirstBucket &&
+					bucket == 0 && BucketCount > 1 &&
+					distribution[1] < distribution[0]) {
+					exactVote = 0.0f;
+				}
+				result[currentProbabilityBand] =
+					std::clamp(exactVote, 0.0f, 100.0f);
+				++currentProbabilityBand;
+			}
+		}
+		return result;
+	}
+}
 
 SimulationCompletion::SimulationCompletion(
 	PollingProject& project, Simulation& sim, SimulationRun& run, int iterations)
@@ -247,8 +332,13 @@ void SimulationCompletion::recordNames()
 		}
 		else if (run.pastSeatResults[index].tcpVotePercent.contains(effectiveIncumbent)) {
 			float margin = run.pastSeatResults[index].tcpVotePercent.at(effectiveIncumbent) - 50.0f;
-			if (seat.tcpChange.contains(project.parties().view(seat.challenger).abbreviation)) {
-				margin -= seat.tcpChange.at(project.parties().view(seat.challenger).abbreviation);
+			if (seat.challenger != Party::InvalidId) {
+				auto const& challenger =
+					project.parties().view(seat.challenger);
+				if (seat.tcpChange.contains(challenger.abbreviation)) {
+					margin -=
+						seat.tcpChange.at(challenger.abbreviation);
+				}
 			}
 			sim.latestReport.seatIncumbentMargins.push_back(margin);
 		}
@@ -308,46 +398,25 @@ void SimulationCompletion::recordSeatFpVoteStats()
 				logger << ": " << fpVoteShare << ", " << "distribution: ";
 			}
 			auto const& distribution = run.seatPartyFpDistribution[seatIndex][partyIndex];
-			int const recordedCount =
-				std::accumulate(distribution.begin(), distribution.end(), 0);
-			if (recordedCount > iterations) {
-				throw std::runtime_error(
-					"Seat FP distribution exceeds the simulation count for " +
-					project.seats().viewByIndex(seatIndex).name + ".");
-			}
-			int const missingCount = iterations - recordedCount;
-			int const exactZeroCount =
-				missingCount +
-				getAt(run.seatPartyFpZeros[seatIndex], partyIndex, 0);
-			float const exactZeroPercent =
-				float(exactZeroCount) / float(iterations) * 100.0f;
-			int cumulative = missingCount;
-			sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex].resize(sim.latestReport.probabilityBands.size());
-			int currentProbabilityBand = 0;
-			for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-				if (distribution[a] > 0) {
-					float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
-					cumulative += distribution[a];
-					float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
-					while (
-						currentProbabilityBand < int(sim.latestReport.probabilityBands.size())
-						&& sim.latestReport.probabilityBands[currentProbabilityBand] < upperPercentile
-					) {
-						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-						float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-						if (band < exactZeroPercent) {
-							exactFp = 0.0f;
-						}
-						sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-						++currentProbabilityBand;
-					}
-					if (doLogging()) {
-						logger << float(a) / float(SimulationRun::BucketCount) * 100.0f;
-						logger << "-";
-						logger << distribution[a];
-						logger << ", ";
-					}
+			sim.latestReport.seatFpProbabilityBand[seatIndex][partyIndex] =
+				probabilityBandsFromDistribution(
+					distribution,
+					sim.latestReport.probabilityBands,
+					iterations,
+					"seat FP for " +
+						project.seats().viewByIndex(seatIndex).name,
+					getAt(
+						run.seatPartyFpZeros[seatIndex],
+						partyIndex, 0));
+			if (doLogging()) {
+				for (int bucket = 0;
+					bucket < SimulationRun::BucketCount; ++bucket) {
+					if (distribution[bucket] <= 0) continue;
+					logger <<
+						float(bucket) /
+							float(SimulationRun::BucketCount) *
+							100.0f <<
+						"-" << distribution[bucket] << ", ";
 				}
 			}
 			if (doLogging()) {
@@ -389,42 +458,36 @@ void SimulationCompletion::recordSeatTcpVoteStats()
 			// is a 0-1 proportion.
 			float scenarioPercent = float(total) / float(iterations);
 			sim.latestReport.seatTcpScenarioPercent[seatIndex][parties] = scenarioPercent;
-			sim.latestReport.seatTcpProbabilityBand[seatIndex][parties].resize(sim.latestReport.probabilityBands.size());
+			sim.latestReport.seatTcpProbabilityBand[seatIndex][parties] =
+				probabilityBandsFromDistribution(
+					distribution,
+					sim.latestReport.probabilityBands,
+					total,
+					"seat TCP for " +
+						project.seats().viewByIndex(seatIndex).name,
+					std::nullopt,
+					true);
 
 			if (doLogging()) {
 				logger << " - scenario frequency: " << scenarioPercent << " - distribution: ";
 			}
-			int cumulative = 0;
-			int currentProbabilityBand = 0;
-			float winPercent = 0.0f;
-			bool winPercentAssigned = false;
-			for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-				if (distribution[a] > 0) {
-					float lowerPercentile = float(cumulative) / float(total) * 100.0f;
-					if (a >= SimulationRun::BucketCount / 2 && !winPercentAssigned) {
-						// The distribution stores the share of parties.first.
-						winPercent = 100.0f - lowerPercentile;
-						winPercentAssigned = true;
-					}
-					cumulative += distribution[a];
-					float upperPercentile = float(cumulative) / float(total) * 100.0f;
-					while (
-						currentProbabilityBand < int(sim.latestReport.probabilityBands.size())
-						&& sim.latestReport.probabilityBands[currentProbabilityBand] < upperPercentile)
-					{
-						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-						float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
-						sim.latestReport.seatTcpProbabilityBand[seatIndex][parties][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-						++currentProbabilityBand;
-					}
-					if (doLogging()) {
-						logger << float(a) / float(SimulationRun::BucketCount) * 100.0f;
-						logger << "-";
-						logger << distribution[a];
-						logger << ", ";
-					}
+			int const belowWinningShare = std::accumulate(
+				distribution.begin(),
+				distribution.begin() + SimulationRun::BucketCount / 2,
+				0);
+			// The distribution stores the share of parties.first.
+			float const winPercent =
+				100.0f -
+				float(belowWinningShare) / float(total) * 100.0f;
+			if (doLogging()) {
+				for (int bucket = 0;
+					bucket < SimulationRun::BucketCount; ++bucket) {
+					if (distribution[bucket] <= 0) continue;
+					logger <<
+						float(bucket) /
+							float(SimulationRun::BucketCount) *
+							100.0f <<
+						"-" << distribution[bucket] << ", ";
 				}
 			}
 			sim.latestReport.seatTcpWinPercent[seatIndex][parties] = winPercent;
@@ -442,26 +505,13 @@ void SimulationCompletion::recordSeatTppVoteStats() {
 	sim.latestReport.seatTppProbabilityBand.resize(project.seats().count());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		auto const& distribution = run.seatTppDistribution[seatIndex];
-		int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
-		sim.latestReport.seatTppProbabilityBand[seatIndex].resize(sim.latestReport.probabilityBands.size());
-		int currentProbabilityBand = 0;
-		for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-			if (distribution[a] > 0) {
-				float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
-				cumulative += distribution[a];
-				float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
-				while (
-					currentProbabilityBand < int(sim.latestReport.probabilityBands.size())
-					&& sim.latestReport.probabilityBands[currentProbabilityBand] < upperPercentile)
-				{
-					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-					float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-					sim.latestReport.seatTppProbabilityBand[seatIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-					++currentProbabilityBand;
-				}
-			}
-		}
+		sim.latestReport.seatTppProbabilityBand[seatIndex] =
+			probabilityBandsFromDistribution(
+				distribution,
+				sim.latestReport.probabilityBands,
+				iterations,
+				"seat TPP for " +
+					project.seats().viewByIndex(seatIndex).name);
 	}
 }
 
@@ -513,26 +563,15 @@ void SimulationCompletion::recordRegionFpVoteStats() {
 	sim.latestReport.regionFpProbabilityBand.resize(project.regions().count());
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		for (auto const& [partyIndex, distribution] : run.regionPartyFpDistribution[regionIndex]) {
-			int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
-			sim.latestReport.regionFpProbabilityBand[regionIndex][partyIndex].resize(sim.latestReport.probabilityBands.size());
-			int currentProbabilityBand = 0;
-			for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-				if (distribution[a] > 0) {
-					float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
-					cumulative += distribution[a];
-					float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
-					while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
-						float(cumulative) / float(iterations) * 100.0f)
-					{
-						float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-						float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-						float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-						if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
-						sim.latestReport.regionFpProbabilityBand[regionIndex][partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-						++currentProbabilityBand;
-					}
-				}
-			}
+			sim.latestReport.regionFpProbabilityBand[regionIndex][partyIndex] =
+				probabilityBandsFromDistribution(
+					distribution,
+					sim.latestReport.probabilityBands,
+					iterations,
+					"region FP for " +
+						project.regions().viewByIndex(regionIndex).name,
+					std::nullopt,
+					true);
 		}
 	}
 }
@@ -541,76 +580,42 @@ void SimulationCompletion::recordRegionTppVoteStats() {
 	sim.latestReport.regionTppProbabilityBand.resize(project.regions().count());
 	for (int regionIndex = 0; regionIndex < project.regions().count(); ++regionIndex) {
 		auto const& distribution = run.regionTppDistribution[regionIndex];
-		int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
-		sim.latestReport.regionTppProbabilityBand[regionIndex].resize(sim.latestReport.probabilityBands.size());
-		int currentProbabilityBand = 0;
-		for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-			if (distribution[a] > 0) {
-				float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
-				cumulative += distribution[a];
-				float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
-				while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
-					float(cumulative) / float(iterations) * 100.0f)
-				{
-					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-					float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-					if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
-					sim.latestReport.regionTppProbabilityBand[regionIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-					++currentProbabilityBand;
-				}
-			}
-		}
+		sim.latestReport.regionTppProbabilityBand[regionIndex] =
+			probabilityBandsFromDistribution(
+				distribution,
+				sim.latestReport.probabilityBands,
+				iterations,
+				"region TPP for " +
+					project.regions().viewByIndex(regionIndex).name,
+				std::nullopt,
+				true);
 	}
 }
 
 void SimulationCompletion::recordElectionFpVoteStats() {
 	for (auto const& [partyIndex, distribution] : run.electionPartyFpDistribution) {
-		int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
-		sim.latestReport.electionFpProbabilityBand[partyIndex].resize(sim.latestReport.probabilityBands.size());
-		int currentProbabilityBand = 0;
-		for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-			if (distribution[a] > 0) {
-				float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
-				cumulative += distribution[a];
-				float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
-				while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
-					float(cumulative) / float(iterations) * 100.0f)
-				{
-					float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-					float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-					float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-					if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
-					sim.latestReport.electionFpProbabilityBand[partyIndex][currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-					++currentProbabilityBand;
-				}
-			}
-		}
+		sim.latestReport.electionFpProbabilityBand[partyIndex] =
+			probabilityBandsFromDistribution(
+				distribution,
+				sim.latestReport.probabilityBands,
+				iterations,
+				"election FP for party index " +
+					std::to_string(partyIndex),
+				std::nullopt,
+				true);
 	}
 }
 
 void SimulationCompletion::recordElectionTppVoteStats() {
 	auto const& distribution = run.electionTppDistribution;
-	int cumulative = iterations - std::accumulate(distribution.begin(), distribution.end(), 0);
-	sim.latestReport.electionTppProbabilityBand.resize(sim.latestReport.probabilityBands.size());
-	int currentProbabilityBand = 0;
-	for (int a = 0; a < SimulationRun::BucketCount; ++a) {
-		if (distribution[a] > 0) {
-			float lowerPercentile = float(cumulative) / float(iterations) * 100.0f;
-			cumulative += distribution[a];
-			float upperPercentile = float(cumulative) / float(iterations) * 100.0f;
-			while (currentProbabilityBand < int(sim.latestReport.probabilityBands.size()) && sim.latestReport.probabilityBands[currentProbabilityBand] <
-				float(cumulative) / float(iterations) * 100.0f)
-			{
-				float band = sim.latestReport.probabilityBands[currentProbabilityBand];
-				float exactFrac = (band - lowerPercentile) / (upperPercentile - lowerPercentile);
-				float exactFp = (float(a) + exactFrac) * 100.0f / float(SimulationRun::BucketCount);
-				if (!a && distribution[1] < distribution[0]) exactFp = 0.0f;
-				sim.latestReport.electionTppProbabilityBand[currentProbabilityBand] = std::clamp(exactFp, 0.0f, 100.0f);
-				++currentProbabilityBand;
-			}
-		}
-	}
+	sim.latestReport.electionTppProbabilityBand =
+		probabilityBandsFromDistribution(
+			distribution,
+			sim.latestReport.probabilityBands,
+			iterations,
+			"election TPP",
+			std::nullopt,
+			true);
 }
 
 void SimulationCompletion::recordTrends()
@@ -702,11 +707,26 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	// rather than a general report format. Its selected party columns preserve
 	// the layouts expected by the existing downstream workflow.
 	std::ofstream summaryFile;
-	while (!summaryFile.is_open()) {
+	constexpr int MaxSummaryFileOpenAttempts = 3;
+	for (int attempt = 1;
+		attempt <= MaxSummaryFileOpenAttempts && !summaryFile.is_open();
+		++attempt) {
 		summaryFile.open("live_summary.csv");
-		if (!summaryFile.is_open()) {
-			feedback("Summary file is open. Close it to write new data.");
+		if (!summaryFile.is_open() &&
+			attempt < MaxSummaryFileOpenAttempts) {
+			feedback(
+				"Could not write live_summary.csv. Close the file if it is "
+				"open, then dismiss this message to retry (" +
+				std::to_string(attempt) + " of " +
+				std::to_string(MaxSummaryFileOpenAttempts) + ").");
+			summaryFile.clear();
 		}
+	}
+	if (!summaryFile.is_open()) {
+		feedback(
+			"Could not write live_summary.csv after three attempts. "
+			"The simulation will continue without updating that file.");
+		return;
 	}
 	summaryFile << "Simulation Summary\n";
 	summaryFile << "Iterations\n" << iterations << "\n";
@@ -827,55 +847,55 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 		summaryFile << run.liveElection->getSeatTcpCompletion(sim.latestReport.seatName[index]) << ",";
 	}
 	auto internals = run.liveElection->getInternals();
+	auto const writeValuesForKeys = [&summaryFile](
+		auto const& keys, auto const& values) {
+		for (auto const& [key, unused] : keys) {
+			auto const value = values.find(key);
+			if (value != values.end()) {
+				summaryFile << value->second;
+			}
+			summaryFile << ",";
+		}
+	};
 	summaryFile << "\nBooth type biases\n";
-	for (auto [boothType, bias] : internals.boothTypeBiases) {
-    summaryFile << Results2::Booth::boothTypeName(boothType) << ",";
+	for (auto const& [boothType, bias] : internals.boothTypeBiases) {
+		summaryFile << Results2::Booth::boothTypeName(boothType) << ",";
 	}
 	summaryFile << "\n";
-	for (auto [boothType, bias] : internals.boothTypeBiases) {
-		summaryFile << bias << ",";
-	}
+	writeValuesForKeys(
+		internals.boothTypeBiases, internals.boothTypeBiases);
 	summaryFile << "\nBooth type bias StdDev\n";
-	for (auto [boothType, stdDev] : internals.boothTypeBiasStdDev) {
-		summaryFile << stdDev << ",";
-	}
+	writeValuesForKeys(
+		internals.boothTypeBiases, internals.boothTypeBiasStdDev);
 	summaryFile << "\nBooth type bias raw\n";
-	for (auto [boothType, biasRaw] : internals.boothTypeBiasesRaw) {
-		summaryFile << biasRaw << ",";
-	}
+	writeValuesForKeys(
+		internals.boothTypeBiases, internals.boothTypeBiasesRaw);
 	summaryFile << "\nBooth type source count\n";
-	for (auto [boothType, sourceCount] : internals.boothTypeSourceCount) {
-		summaryFile << sourceCount << ",";
-	}
-  summaryFile << "\nBooth type vote count\n";
-  for (auto [boothType, voteCount] : internals.boothTypeVoteCount) {
-		summaryFile << voteCount << ",";
-  }
+	writeValuesForKeys(
+		internals.boothTypeBiases, internals.boothTypeSourceCount);
+	summaryFile << "\nBooth type vote count\n";
+	writeValuesForKeys(
+		internals.boothTypeBiases, internals.boothTypeVoteCount);
 	summaryFile << "\nVote type biases\n";
-	for (auto [voteType, bias] : internals.voteTypeBiases) {
+	for (auto const& [voteType, bias] : internals.voteTypeBiases) {
 		summaryFile << Results2::voteTypeName(voteType) << ",";
 	}
 	summaryFile << "\n";
-	for (auto [voteType, bias] : internals.voteTypeBiases) {
-		summaryFile << bias << ",";
-	}
+	writeValuesForKeys(
+		internals.voteTypeBiases, internals.voteTypeBiases);
 	summaryFile << "\nVote type bias StdDev\n";
-	for (auto [voteType, bias] : internals.voteTypeBiasStdDev) {
-		summaryFile << bias << ",";
-	}
+	writeValuesForKeys(
+		internals.voteTypeBiases, internals.voteTypeBiasStdDev);
 	summaryFile << "\nVote type bias raw\n";
-	for (auto [boothType, biasRaw] : internals.voteTypeBiasesRaw) {
-		summaryFile << biasRaw << ",";
-	}
-  summaryFile << "\nVote type source count\n";
-  for (auto [voteType, sourceCount] : internals.voteTypeSourceCount) {
-		summaryFile << sourceCount << ",";
-  }
-  summaryFile << "\nVote type vote count\n";
-  for (auto [voteType, voteCount] : internals.voteTypeVoteCount) {
-		summaryFile << voteCount << ",";
-  }
-  summaryFile << "\nInternal projected 2PP\n";
+	writeValuesForKeys(
+		internals.voteTypeBiases, internals.voteTypeBiasesRaw);
+	summaryFile << "\nVote type source count\n";
+	writeValuesForKeys(
+		internals.voteTypeBiases, internals.voteTypeSourceCount);
+	summaryFile << "\nVote type vote count\n";
+	writeValuesForKeys(
+		internals.voteTypeBiases, internals.voteTypeVoteCount);
+	summaryFile << "\nInternal projected 2PP\n";
 	summaryFile << internals.projected2pp;
 	summaryFile << "\nRaw 2PP deviation\n";
 	summaryFile << internals.raw2ppDeviation;
@@ -888,7 +908,13 @@ StanModel const& SimulationCompletion::baseModel() const
 
 void SimulationCompletion::updateProbabilityBounds(int partyCount, int numSeats, int probThreshold, int & bound)
 {
-	if (float(partyCount) > float(iterations) * 0.005f * float(probThreshold) && bound == -1) bound = numSeats;
+	// ProbabilityBounds uses half-percent units, so compare counts exactly
+	// rather than introducing floating-point ambiguity at a percentile boundary.
+	if (int64_t(partyCount) * 200 >
+			int64_t(iterations) * probThreshold &&
+		bound == -1) {
+		bound = numSeats;
+	}
 }
 
 bool SimulationCompletion::doLogging() const {

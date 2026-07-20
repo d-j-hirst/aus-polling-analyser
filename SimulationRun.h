@@ -4,8 +4,10 @@
 #include "Party.h"
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <map>
+#include <mutex>
 #include <string>
 
 class LiveV2::Election;
@@ -146,6 +148,12 @@ public:
 
 	typedef std::function<void(std::string)> FeedbackFunc;
 
+	enum class WarningCategory : std::uint8_t {
+		FpReconciliation,
+		FrequentTerminalFpReconciliation,
+		DiagnosticTest
+	};
+
 	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false) :
 		project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations), doingLiveBaselineSimulation(doingLiveBaselineSimulation) {}
 
@@ -179,6 +187,18 @@ private:
 
 	bool runLiveBaselineSimulation(FeedbackFunc feedback = [](std::string) {});
 
+	struct Warning {
+		int iterationIndex = 0;
+		std::string description;
+		int occurrenceCount = 1;
+	};
+
+	void recordWarning(
+		WarningCategory category,
+		int iterationIndex,
+		std::string description);
+	void reportWarnings(FeedbackFunc feedback) const;
+
 	PollingProject& project;
 
 	Simulation& sim;
@@ -190,6 +210,9 @@ private:
 	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
 
 	bool doingLiveBaselineSimulation = false; // Are we running the baseline simulation (i.e. NOT final output) for live results? 
+
+	mutable std::mutex warningMutex;
+	std::map<WarningCategory, Warning> warnings;
 
 	int currentIteration = 0;
 

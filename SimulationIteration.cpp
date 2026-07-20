@@ -22,8 +22,13 @@ constexpr float ProminentMinorFlatBonus = 5.0f;
 constexpr float ProminentMinorFlatBonusThreshold = 10.0f;
 constexpr float ProminentMinorBonusMax = 35.0f;
 constexpr int MaxIterationRetries = 10;
-constexpr int MaxFpReconciliationCycles = 5;
+constexpr int MaxFpReconciliationCycles = 25;
 constexpr float AcceptableOverallFpError = 0.3f;
+constexpr float FpReconciliationWarningThreshold = 0.6f;
+constexpr float MinimumLiteralOthersForReconciliationWarning = 2.0f;
+constexpr int MaxTerminalFpReconciliationCycles = 10;
+constexpr std::array DetailedFpReconciliationIterations{120355, 228577};
+constexpr int DetailedFpReconciliationFinalCycles = 5;
 
 namespace {
 	struct InvalidIteration {
@@ -192,6 +197,7 @@ void SimulationIteration::reset()
 	intraCoalitionSwing = 0.0f;
 	indAlpha = 1.0f;
 	indBeta = 1.0f;
+	neededTerminalFpReconciliation = false;
 
 	effectiveWins = std::array<int, 2>();
 	partySupport = std::array<int, 2>();
@@ -423,6 +429,14 @@ int SimulationIteration::runIteration()
 		gotValidResult = true;
 	}
 
+	if (neededTerminalFpReconciliation) {
+		run.recordWarning(
+			SimulationRun::WarningCategory::
+				FrequentTerminalFpReconciliation,
+			iterationIndex,
+			"Regular FP reconciliation left an error above 0.6 before "
+			"the bounded terminal solver.");
+	}
 	std::lock_guard<std::mutex> lock(recordMutex);
 	recordIterationResults();
 	return retryCount;
@@ -1827,6 +1841,15 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		float effectivePreferenceFlow = std::clamp(summedPreferenceFlow / voteShare, 1.0f, 99.0f);
 		return effectivePreferenceFlow;
 	};
+	auto usesTacticalPreferenceFlow = [&](int partyIndex) {
+		// An emerging party may occupy any ideological position, so it should
+		// retain its sampled party-wide flow rather than inherit behaviour
+		// calibrated for independents and broadly centrist candidates.
+		return partyIndex != EmergingPartyIndex &&
+			(partyIndex == OthersIndex ||
+				partyIndex == EmergingIndIndex ||
+				partyIdeologies[partyIndex] == 2);
+	};
 
 	auto calculateEffectiveExhaustRate = [&](int partyIndex, bool isCurrent) {
 		float baseExhaustRate = isCurrent ? overallExhaustRate[partyIndex] : run.previousExhaustRate[partyIndex];
@@ -1848,7 +1871,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 		}
 		float exhaustRate = calculateEffectiveExhaustRate(partyIndex, false);
 		// Use a special formula for IND-like preference flows that accounts for tactical voting
-		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
+		if (voteShare > 5.0f && usesTacticalPreferenceFlow(partyIndex)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, false);
 			float adjustedPreferenceFlow = std::clamp(effectivePreferenceFlow + preferenceFlowDeviation, 1.0f, 99.0f);
 			previousPartyOnePrefEstimate += voteShare * adjustedPreferenceFlow * 0.01f * (1.0f - exhaustRate);
@@ -1962,7 +1985,7 @@ void SimulationIteration::allocateMajorPartyFp(int seatIndex, float preferenceFl
 				uint32_t(VariabilityTag::SeatExhaustVariation));
 		}
 		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, exhaustVariation[partyIndex]) : 0.0f;
-		if (voteShare > 5.0f && (partyIndex <= OthersIndex || partyIdeologies[partyIndex] == 2)) {
+		if (voteShare > 5.0f && usesTacticalPreferenceFlow(partyIndex)) {
 			float effectivePreferenceFlow = calculateEffectivePreferenceFlow(partyIndex, voteShare, true);
 			float adjustedPreferenceFlow = basicTransformedSwing(effectivePreferenceFlow, preferenceFlowDeviation);
 			float randomisedPreferenceFlow = basicTransformedSwing(adjustedPreferenceFlow, preferenceVariation[partyIndex]);
@@ -2212,37 +2235,276 @@ void SimulationIteration::normaliseSeatFp(int seatIndex, int fixedParty, float f
 void SimulationIteration::reconcileSeatAndOverallFp()
 {
 	for (int i = 0; i < MaxFpReconciliationCycles; ++i) {
-		calculateNewFpVoteTotals(i);
+		calculateNewFpVoteTotals();
 		if (hasInvalidValues(
 			"FP reconciliation totals, cycle " + std::to_string(i))) {
 			throw InvalidIteration();
 		}
+		logDetailedFpReconciliationStage(
+			i, "before corrections", tempOverallFp);
 
 		if (overallFpError < AcceptableOverallFpError) return;
 
 		// The transformed minor-party corrections converge quickly but leave
 		// some residual major-party bias after each seat is renormalised.
-		if (i > 2) correctMajorPartyFpBias();
+		if (i > 2) {
+			correctMajorPartyFpBias();
+			// The correction above mutates every seat. Refresh the aggregate so
+			// preference and party corrections use the resulting FP distribution
+			// rather than the totals measured at the start of the cycle.
+			calculateNewFpVoteTotals();
+			logDetailedFpReconciliationStage(
+				i, "after aggregate major-party correction", tempOverallFp);
+		}
 		if (hasInvalidValues(
 			"major-party FP reconciliation, cycle " + std::to_string(i))) {
 			throw InvalidIteration();
 		}
 
-		if (i < MaxFpReconciliationCycles - 1) {
-			if (i > 1) calculatePreferenceCorrections();
-			applyCorrectionsToSeatFps();
-		}
+		if (i > 1) calculatePreferenceCorrections();
+		applyCorrectionsToSeatFps(i);
 	}
 
-	// The final cycle can directly adjust the major parties, so refresh the
-	// aggregate rather than leaving tempOverallFp and overallFpError stale.
+	// Each full correction cycle ends by reallocating major-party FP to preserve
+	// the seat TPP. Apply one terminal aggregate correction so that this final
+	// reallocation does not leave a systematic major-party FP bias.
+	calculateNewFpVoteTotals();
+	if (hasInvalidValues("terminal FP reconciliation totals")) {
+		throw InvalidIteration();
+	}
+	FloatByPartyIndex const preTerminalFp = tempOverallFp;
+	float const preTerminalFpError = overallFpError;
+	correctMajorPartyFpBias(true);
+	if (hasInvalidValues("terminal major-party FP reconciliation")) {
+		throw InvalidIteration();
+	}
+	calculateNewFpVoteTotals();
+	solveTerminalFpReconciliation();
+
+	// Refresh the aggregate after the terminal correction rather than leaving
+	// tempOverallFp and overallFpError stale.
 	// A larger residual is permitted here: protected incumbents and locally
 	// established candidates can make the national target impossible without
 	// destroying the local support the seat model is intended to preserve.
-	calculateNewFpVoteTotals(MaxFpReconciliationCycles);
+	calculateNewFpVoteTotals(
+		true, &preTerminalFp, preTerminalFpError);
 }
 
-void SimulationIteration::calculateNewFpVoteTotals(int reconciliationCycle)
+void SimulationIteration::solveTerminalFpReconciliation()
+{
+	if (overallFpError <= AcceptableOverallFpError) return;
+	neededTerminalFpReconciliation =
+		overallFpError > FpReconciliationWarningThreshold;
+
+	FloatByPartyIndex reconciliationTargets = overallFpTarget;
+	if (run.natPartyIndex >= 0 &&
+		reconciliationTargets.contains(run.natPartyIndex)) {
+		reconciliationTargets[Mp::Two] +=
+			reconciliationTargets.at(run.natPartyIndex);
+		reconciliationTargets.erase(run.natPartyIndex);
+	}
+	reconciliationTargets.try_emplace(OthersIndex, 0.0f);
+
+	FloatByPartyIndex cumulativeMultipliers;
+	for (auto const& [partyIndex, target] : reconciliationTargets) {
+		if (!isMajor(partyIndex)) {
+			cumulativeMultipliers[partyIndex] = 1.0f;
+		}
+	}
+	if (cumulativeMultipliers.empty()) return;
+
+	struct ReconciliationShares {
+		FloatByPartyIndex adjustable;
+		FloatByPartyIndex protectedVote;
+	};
+
+	auto const categoryForParty = [&](int partyIndex) {
+		if (run.natPartyIndex >= 0 &&
+			partyIndex == run.natPartyIndex) {
+			return int(Mp::Two);
+		}
+		if (partyIndex != OthersIndex &&
+			reconciliationTargets.contains(partyIndex)) {
+			return partyIndex;
+		}
+		return OthersIndex;
+	};
+	auto const isAdjustable = [&](int partyIndex, int category,
+		int incumbentPartyIndex) {
+		if (isMajor(category)) return false;
+		if (category != OthersIndex) {
+			return partyIndex != incumbentPartyIndex;
+		}
+		if (partyIndex == run.indPartyIndex) return false;
+		if (partyIndex >= Mp::Others &&
+			!overallFpSwing.contains(partyIndex)) {
+			return false;
+		}
+		if (partyIndex == incumbentPartyIndex) return false;
+		return partyIndex == OthersIndex ||
+			!overallFpTarget.contains(partyIndex);
+	};
+	auto const measureShares = [&]() {
+		ReconciliationShares result;
+		double totalVoteCount = 0.0;
+		for (int seatIndex = 0;
+			seatIndex < project.seats().count(); ++seatIndex) {
+			double const turnout =
+				double(run.pastSeatResults[seatIndex].turnoutCount);
+			int const incumbentPartyIndex =
+				project.parties().idToIndex(
+					project.seats().viewByIndex(seatIndex).incumbent);
+			for (auto const& [partyIndex, voteShare] :
+				seatFpVoteShare[seatIndex]) {
+				if (partyIndex == CoalitionPartnerIndex) continue;
+				double const voteCount =
+					double(voteShare) * turnout * 0.01;
+				totalVoteCount += voteCount;
+				int const category = categoryForParty(partyIndex);
+				if (!cumulativeMultipliers.contains(category)) continue;
+				auto& destination = isAdjustable(
+					partyIndex, category, incumbentPartyIndex) ?
+					result.adjustable : result.protectedVote;
+				destination[category] += float(voteCount);
+			}
+		}
+		if (!std::isfinite(totalVoteCount) || totalVoteCount <= 0.0) {
+			throw InvalidIteration();
+		}
+		for (auto& [partyIndex, voteCount] : result.adjustable) {
+			voteCount =
+				float(double(voteCount) / totalVoteCount * 100.0);
+		}
+		for (auto& [partyIndex, voteCount] : result.protectedVote) {
+			voteCount =
+				float(double(voteCount) / totalVoteCount * 100.0);
+		}
+		return result;
+	};
+
+	auto const baseSeatFp = seatFpVoteShare;
+	auto bestSeatFp = seatFpVoteShare;
+	float bestError = overallFpError;
+	int stagnantCycles = 0;
+
+	for (int cycle = 0;
+		cycle < MaxTerminalFpReconciliationCycles; ++cycle) {
+		auto const shares = measureShares();
+		bool adjustedAnyCategory = false;
+		for (auto& [partyIndex, cumulativeMultiplier] :
+			cumulativeMultipliers) {
+			float const target =
+				reconciliationTargets.at(partyIndex);
+			float const protectedShare =
+				getAt(shares.protectedVote, partyIndex, 0.0f);
+			float const adjustableShare =
+				getAt(shares.adjustable, partyIndex, 0.0f);
+			if (adjustableShare <= 0.0001f) continue;
+
+			float const desiredAdjustable =
+				std::max(0.0f, target - protectedShare);
+			float const rawAdjustment =
+				desiredAdjustable / adjustableShare;
+			if (!std::isfinite(rawAdjustment)) {
+				throw InvalidIteration();
+			}
+			if (std::abs(rawAdjustment - 1.0f) < 0.0001f) continue;
+
+			// Damping and cumulative bounds keep coupled party corrections
+			// stable when a different locally strong party is fixed by seat
+			// normalisation on successive trials.
+			float const boundedAdjustment =
+				std::clamp(rawAdjustment, 0.25f, 4.0f);
+			float const dampedAdjustment =
+				std::pow(boundedAdjustment, 0.75f);
+			cumulativeMultiplier = std::clamp(
+				cumulativeMultiplier * dampedAdjustment,
+				0.05f, 20.0f);
+			adjustedAnyCategory = true;
+		}
+		if (!adjustedAnyCategory) break;
+
+		seatFpVoteShare = baseSeatFp;
+		for (int seatIndex = 0;
+			seatIndex < project.seats().count(); ++seatIndex) {
+			int const incumbentPartyIndex =
+				project.parties().idToIndex(
+					project.seats().viewByIndex(seatIndex).incumbent);
+			for (auto& [partyIndex, voteShare] :
+				seatFpVoteShare[seatIndex]) {
+				int const category = categoryForParty(partyIndex);
+				if (!cumulativeMultipliers.contains(category) ||
+					!isAdjustable(
+						partyIndex, category, incumbentPartyIndex)) {
+					continue;
+				}
+				voteShare *= cumulativeMultipliers.at(category);
+				if (!std::isfinite(voteShare) || voteShare < 0.0f) {
+					throw InvalidIteration();
+				}
+			}
+
+			float nonMajorFp = 0.0f;
+			for (auto const& [partyIndex, voteShare] :
+				seatFpVoteShare[seatIndex]) {
+				if (isMajor(partyIndex) ||
+					(run.natPartyIndex >= 0 &&
+						partyIndex == run.natPartyIndex) ||
+					partyIndex == CoalitionPartnerIndex) {
+					continue;
+				}
+				nonMajorFp += voteShare;
+			}
+			constexpr float MaxNonMajorFp = 95.0f;
+			if (nonMajorFp > MaxNonMajorFp) {
+				float const factor = MaxNonMajorFp / nonMajorFp;
+				for (auto& [partyIndex, voteShare] :
+					seatFpVoteShare[seatIndex]) {
+					if (isMajor(partyIndex) ||
+						(run.natPartyIndex >= 0 &&
+							partyIndex == run.natPartyIndex) ||
+						partyIndex == CoalitionPartnerIndex) {
+						continue;
+					}
+					voteShare *= factor;
+				}
+			}
+			allocateMajorPartyFp(seatIndex);
+		}
+
+		calculateNewFpVoteTotals();
+		if (hasInvalidValues(
+			"terminal bounded FP reconciliation, cycle " +
+				std::to_string(cycle))) {
+			throw InvalidIteration();
+		}
+		logDetailedFpReconciliationStage(
+			MaxFpReconciliationCycles - 1,
+			"terminal bounded solver " + std::to_string(cycle),
+			tempOverallFp);
+
+		if (overallFpError + 0.0001f < bestError) {
+			bestError = overallFpError;
+			bestSeatFp = seatFpVoteShare;
+			stagnantCycles = 0;
+		}
+		else {
+			++stagnantCycles;
+		}
+		if (bestError < AcceptableOverallFpError ||
+			stagnantCycles >= 3) {
+			break;
+		}
+	}
+
+	seatFpVoteShare = std::move(bestSeatFp);
+	calculateNewFpVoteTotals();
+}
+
+void SimulationIteration::calculateNewFpVoteTotals(
+	bool finalCheckpoint,
+	FloatByPartyIndex const* preTerminalFp,
+	float preTerminalFpError)
 {
 	// Nationals votes are held within party two until assignNationalsVotes().
 	// Reconcile against the combined Coalition target when a projection happens
@@ -2348,6 +2610,8 @@ void SimulationIteration::calculateNewFpVoteTotals(int reconciliationCycle)
 		float(protectedOthersVoteCount / totalVoteCount * 100.0);
 	float const adjustableOthers =
 		float(adjustableOthersVoteCount / totalVoteCount * 100.0);
+	float const literalOthers =
+		float(literalOthersVoteCount / totalVoteCount * 100.0);
 	float const targetOthers =
 		reconciliationTargets.at(OthersIndex);
 	constexpr float MinimumAdjustableOthersShare = 0.0001f;
@@ -2369,15 +2633,22 @@ void SimulationIteration::calculateNewFpVoteTotals(int reconciliationCycle)
 		throw InvalidIteration();
 	}
 
-	bool const terminalCheckpoint =
-		overallFpError < AcceptableOverallFpError ||
-		reconciliationCycle == MaxFpReconciliationCycles;
-	bool const logDetailedCycles = iterationIndex < 5;
-	bool const logTerminalSample =
-		iterationIndex < 100 && terminalCheckpoint;
-	if ((logDetailedCycles || logTerminalSample) &&
-		loggedReconciliationDiagnosticCycles.insert(
-			reconciliationCycle).second) {
+	// A sub-3% major-party target can conflict with seat-level TPP constraints
+	// and bounded preference flows. Keep the best reconciliation available, but
+	// do not report these inherently exceptional draws as general failures.
+	bool const hasExtremeMajorTarget =
+		getAt(reconciliationTargets, Mp::One, 0.0f) < 3.0f ||
+		getAt(reconciliationTargets, Mp::Two, 0.0f) < 3.0f;
+	if (finalCheckpoint &&
+		overallFpError > FpReconciliationWarningThreshold &&
+		literalOthers >= MinimumLiteralOthersForReconciliationWarning &&
+		!hasExtremeMajorTarget) {
+		run.recordWarning(
+			SimulationRun::WarningCategory::FpReconciliation,
+			iterationIndex,
+			"FP reconciliation retained an overall error above 0.6 "
+			"percentage points.");
+
 		auto const voteShare = [totalVoteCount](double voteCount) {
 			return float(voteCount / totalVoteCount * 100.0);
 		};
@@ -2386,17 +2657,19 @@ void SimulationIteration::calculateNewFpVoteTotals(int reconciliationCycle)
 				independentVoteCount +
 				untargetedNamedPartyVoteCount +
 				incumbentProtectedVoteCount);
-		std::string const cycleLabel =
-			reconciliationCycle == MaxFpReconciliationCycles ?
-			"final refresh" :
-			"cycle " + std::to_string(reconciliationCycle);
-
 		std::lock_guard<std::mutex> lock(recordMutex);
 		logger << "\n*** FP reconciliation diagnostic: iteration "
-			<< iterationIndex << ", " << cycleLabel
+			<< iterationIndex << ", final error above "
+			<< FpReconciliationWarningThreshold
 			<< ", retry " << retryCount << " ***\n";
 		PA_LOG_VAR(reconciliationTargets);
 		PA_LOG_VAR(tempOverallFp);
+		if (preTerminalFp) {
+			logger << *preTerminalFp << " - preTerminalFp; "
+				<< preTerminalFpError << " - preTerminalFpError\n";
+		}
+		logger << iterationOverallTpp << " - iterationOverallTpp; "
+			<< prefCorrection << " - prefCorrection\n";
 		logger << overallFpError << " - overallFpError; "
 			<< targetOthers << " - targetOthers; "
 			<< tempOverallFp.at(OthersIndex) << " - actualOthers; "
@@ -2409,8 +2682,7 @@ void SimulationIteration::calculateNewFpVoteTotals(int reconciliationCycle)
 				getAt(reconciliationTargets, Mp::Two, 0.0f)
 			<< " - partyTwoResidual; "
 			<< othersCorrectionFactor << " - othersCorrectionFactor\n";
-		logger << voteShare(literalOthersVoteCount)
-			<< " - literalOthers; "
+		logger << literalOthers << " - literalOthers; "
 			<< protectedOthers << " - factorProtectedOthers; "
 			<< correctionProtectedOthers << " - correctionProtectedOthers; "
 			<< voteShare(independentVoteCount) << " - independent; "
@@ -2455,7 +2727,8 @@ void SimulationIteration::calculatePreferenceCorrections()
 	if (!std::isfinite(prefCorrection)) throw InvalidIteration();
 }
 
-void SimulationIteration::applyCorrectionsToSeatFps()
+void SimulationIteration::applyCorrectionsToSeatFps(
+	int reconciliationCycle)
 {
 	for (auto const& [partyIndex, vote] : tempOverallFp) {
 		if (partyIndex == CoalitionPartnerIndex) continue;
@@ -2470,6 +2743,10 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 			}
 			float const correctionFactor =
 				overallFpTarget.at(partyIndex) / vote;
+			if (!std::isfinite(correctionFactor) ||
+				correctionFactor <= 0.0f) {
+				throw InvalidIteration();
+			}
 			for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 				Seat const& seat = project.seats().viewByIndex(seatIndex);
 				int const incumbentPartyIndex =
@@ -2485,10 +2762,28 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 						swingCap,
 						seatFpVoteShare[seatIndex].at(partyIndex) *
 							(correctionFactor - 1.0f));
-					seatFpVoteShare[seatIndex][partyIndex] =
-						predictorCorrectorTransformedSwing(
-							seatFpVoteShare[seatIndex].at(partyIndex),
-							correctionSwing);
+					if (partyIndex == EmergingPartyIndex) {
+						// Emerging-party support is often spread thinly across
+						// many seats. The capped logit derivative would suppress
+						// most of this aggregate correction at low seat shares.
+						float const currentVote =
+							seatFpVoteShare[seatIndex].at(partyIndex);
+						float const correctedVote =
+							correctionFactor < 1.0f ?
+							currentVote * correctionFactor :
+							currentVote + correctionSwing;
+						if (!std::isfinite(correctedVote)) {
+							throw InvalidIteration();
+						}
+						seatFpVoteShare[seatIndex][partyIndex] =
+							std::clamp(correctedVote, 0.01f, 99.0f);
+					}
+					else {
+						seatFpVoteShare[seatIndex][partyIndex] =
+							predictorCorrectorTransformedSwing(
+								seatFpVoteShare[seatIndex].at(partyIndex),
+								correctionSwing);
+					}
 				}
 			}
 		}
@@ -2561,15 +2856,113 @@ void SimulationIteration::applyCorrectionsToSeatFps()
 		"after applying minor-party FP corrections", false, false)) {
 		throw InvalidIteration();
 	}
+	logDetailedFpReconciliationStage(
+		reconciliationCycle,
+		"after minor-party corrections",
+		calculateCurrentFpTotalsForDiagnostics());
 	for (int seatIndex = 0; seatIndex < project.seats().count(); ++seatIndex) {
 		allocateMajorPartyFp(seatIndex);
 	}
 	if (hasInvalidValues("after reallocating major-party FPs")) {
 		throw InvalidIteration();
 	}
+	logDetailedFpReconciliationStage(
+		reconciliationCycle,
+		"after major-party reconstruction",
+		calculateCurrentFpTotalsForDiagnostics());
 }
 
-void SimulationIteration::correctMajorPartyFpBias()
+SimulationIteration::FloatByPartyIndex
+SimulationIteration::calculateCurrentFpTotalsForDiagnostics() const
+{
+	FloatByPartyIndex reconciliationTargets = overallFpTarget;
+	if (run.natPartyIndex >= 0 &&
+		reconciliationTargets.contains(run.natPartyIndex)) {
+		reconciliationTargets[Mp::Two] +=
+			reconciliationTargets.at(run.natPartyIndex);
+		reconciliationTargets.erase(run.natPartyIndex);
+	}
+	reconciliationTargets.try_emplace(OthersIndex, 0.0f);
+
+	std::map<int, double> partyVoteCount;
+	double totalVoteCount = 0.0;
+	for (int seatIndex = 0;
+		seatIndex < project.seats().count(); ++seatIndex) {
+		double const seatVoteCount =
+			double(run.pastSeatResults[seatIndex].turnoutCount);
+		for (auto const& [partyIndex, voteShare] :
+			seatFpVoteShare[seatIndex]) {
+			if (partyIndex == CoalitionPartnerIndex) continue;
+			double const voteCount =
+				double(voteShare) * seatVoteCount * 0.01;
+			totalVoteCount += voteCount;
+			if (run.natPartyIndex >= 0 &&
+				partyIndex == run.natPartyIndex) {
+				partyVoteCount[Mp::Two] += voteCount;
+			}
+			else if (partyIndex != OthersIndex &&
+				reconciliationTargets.contains(partyIndex)) {
+				partyVoteCount[partyIndex] += voteCount;
+			}
+			else {
+				partyVoteCount[OthersIndex] += voteCount;
+			}
+		}
+	}
+	if (!std::isfinite(totalVoteCount) || totalVoteCount <= 0.0) {
+		throw InvalidIteration();
+	}
+
+	FloatByPartyIndex totals;
+	for (auto const& [partyIndex, voteCount] : partyVoteCount) {
+		totals[partyIndex] =
+			float(voteCount / totalVoteCount * 100.0);
+	}
+	for (auto const& [partyIndex, target] : reconciliationTargets) {
+		totals.try_emplace(partyIndex, 0.0f);
+	}
+	return totals;
+}
+
+void SimulationIteration::logDetailedFpReconciliationStage(
+	int reconciliationCycle,
+	std::string const& stage,
+	std::map<int, float> const& totals) const
+{
+	bool const selectedIteration = std::find(
+		DetailedFpReconciliationIterations.begin(),
+		DetailedFpReconciliationIterations.end(),
+		iterationIndex) != DetailedFpReconciliationIterations.end();
+	bool const selectedCycle =
+		reconciliationCycle == 0 ||
+		reconciliationCycle >=
+			MaxFpReconciliationCycles -
+				DetailedFpReconciliationFinalCycles;
+	if (!selectedIteration || !selectedCycle) return;
+
+	FloatByPartyIndex reconciliationTargets = overallFpTarget;
+	if (run.natPartyIndex >= 0 &&
+		reconciliationTargets.contains(run.natPartyIndex)) {
+		reconciliationTargets[Mp::Two] +=
+			reconciliationTargets.at(run.natPartyIndex);
+		reconciliationTargets.erase(run.natPartyIndex);
+	}
+	reconciliationTargets.try_emplace(OthersIndex, 0.0f);
+
+	float error = 0.0f;
+	for (auto const& [partyIndex, target] : reconciliationTargets) {
+		error += std::abs(target - getAt(totals, partyIndex, 0.0f));
+	}
+
+	std::lock_guard<std::mutex> lock(recordMutex);
+	logger << "*** Detailed FP reconciliation: iteration "
+		<< iterationIndex << ", cycle " << reconciliationCycle
+		<< ", " << stage << " ***\n";
+	logger << totals << " - totals; " << error << " - overallFpError\n";
+}
+
+void SimulationIteration::correctMajorPartyFpBias(
+	bool accountForSeatNormalisation)
 {
 	float const majorFpCurrent =
 		getAt(tempOverallFp, Mp::One, 0.0f) +
@@ -2585,9 +2978,10 @@ void SimulationIteration::correctMajorPartyFpBias()
 		majorFpTarget <= 0.0f || majorFpTarget >= 100.0f) {
 		throw InvalidIteration();
 	}
-	// Calculate the multiplier that reaches the target after the seat is
-	// renormalised, while leaving the protected minor-party share in place.
-	float const adjustmentFactor =
+	// Start with the closed-form election-wide normalization factor. This is
+	// sufficiently fast for intermediate cycles and is refined below at the
+	// terminal checkpoint when seat-level normalization materially differs.
+	float adjustmentFactor =
 		(majorFpTarget * (majorFpCurrent - 100.0f)) /
 		(majorFpCurrent * (majorFpTarget - 100.0f));
 	float totalMinors = 0.0f;
@@ -2611,14 +3005,138 @@ void SimulationIteration::correctMajorPartyFpBias()
 	float const partyOnePrefAdvantage =
 		(partyOnePrefs * 2.0f - totalMinors) *
 		totalMinors * 0.01f;
-	float const partyOneTarget =
-		partyOneCurrent * adjustmentFactor -
-		partyOnePrefAdvantage * 0.005f;
-	float const partyTwoTarget =
-		partyTwoCurrent * adjustmentFactor +
-		partyOnePrefAdvantage * 0.005f;
-	float const partyOneAdjust = partyOneTarget / partyOneCurrent;
-	float const partyTwoAdjust = partyTwoTarget / partyTwoCurrent;
+
+	auto const partyAdjustments = [&](float factor) {
+		float const partyOneTarget =
+			partyOneCurrent * factor -
+			partyOnePrefAdvantage * 0.005f;
+		float const partyTwoTarget =
+			partyTwoCurrent * factor +
+			partyOnePrefAdvantage * 0.005f;
+		return std::pair{
+			partyOneTarget / partyOneCurrent,
+			partyTwoTarget / partyTwoCurrent};
+	};
+
+	if (accountForSeatNormalisation) {
+		// The closed-form factor above assumes election-wide normalisation.
+		// Seats are actually normalised separately, sometimes while preserving
+		// a strong local minor party, so solve the same one-dimensional problem
+		// against the normalization that will really be applied.
+		auto const projectedMajorFp = [&](float factor) {
+			auto const [partyOneAdjust, partyTwoAdjust] =
+				partyAdjustments(factor);
+			if (!std::isfinite(partyOneAdjust) ||
+				!std::isfinite(partyTwoAdjust) ||
+				partyOneAdjust <= 0.0f || partyTwoAdjust <= 0.0f) {
+				return -1.0f;
+			}
+
+			double weightedMajorFp = 0.0;
+			double totalTurnout = 0.0;
+			for (int seatIndex = 0;
+				seatIndex < project.seats().count(); ++seatIndex) {
+				auto const& seatFp = seatFpVoteShare[seatIndex];
+
+				int fixedParty = -10000;
+				float fixedVote = 0.0f;
+				for (auto const& [partyIndex, voteShare] : seatFp) {
+					if (partyIndex < Mp::Others) continue;
+					if (partyIndex == run.indPartyIndex) continue;
+					if (voteShare > fixedVote) {
+						fixedVote = voteShare;
+						fixedParty = partyIndex;
+					}
+				}
+
+				float const adjustedPartyOne =
+					getAt(seatFp, Mp::One, 0.0f) * partyOneAdjust;
+				float const adjustedPartyTwo =
+					getAt(seatFp, Mp::Two, 0.0f) * partyTwoAdjust;
+				float nonFixedTotal = 0.0f;
+				for (auto const& [partyIndex, voteShare] : seatFp) {
+					if (partyIndex == CoalitionPartnerIndex ||
+						partyIndex == fixedParty ||
+						partyIndex == Mp::One ||
+						partyIndex == Mp::Two) {
+						continue;
+					}
+					nonFixedTotal += voteShare;
+				}
+				float const totalToNormalise =
+					nonFixedTotal + adjustedPartyOne + adjustedPartyTwo;
+				float const normalisationTarget = 100.0f - fixedVote;
+				if (!std::isfinite(totalToNormalise) ||
+					totalToNormalise <= 0.0f ||
+					!std::isfinite(normalisationTarget) ||
+					normalisationTarget < 0.0f) {
+					return -1.0f;
+				}
+
+				float const normalisationFactor =
+					normalisationTarget / totalToNormalise;
+				double const turnout =
+					double(run.pastSeatResults[seatIndex].turnoutCount);
+				weightedMajorFp +=
+					double(adjustedPartyOne + adjustedPartyTwo) *
+					double(normalisationFactor) * turnout;
+				totalTurnout += turnout;
+			}
+			if (!std::isfinite(weightedMajorFp) ||
+				!std::isfinite(totalTurnout) ||
+				totalTurnout <= 0.0) {
+				return -1.0f;
+			}
+			return float(weightedMajorFp / totalTurnout);
+		};
+
+		float minimumFactor = 0.0001f;
+		float const preferenceAdjustment =
+			partyOnePrefAdvantage * 0.005f;
+		if (preferenceAdjustment > 0.0f) {
+			minimumFactor = std::max(
+				minimumFactor,
+				preferenceAdjustment / partyOneCurrent + 0.0001f);
+		}
+		else if (preferenceAdjustment < 0.0f) {
+			minimumFactor = std::max(
+				minimumFactor,
+				-preferenceAdjustment / partyTwoCurrent + 0.0001f);
+		}
+
+		float lowerFactor = minimumFactor;
+		float upperFactor = std::max(1.0f, adjustmentFactor);
+		float lowerMajorFp = projectedMajorFp(lowerFactor);
+		float upperMajorFp = projectedMajorFp(upperFactor);
+		while (upperMajorFp >= 0.0f &&
+			upperMajorFp < majorFpTarget &&
+			upperFactor < 100.0f) {
+			upperFactor *= 2.0f;
+			upperMajorFp = projectedMajorFp(upperFactor);
+		}
+		if (lowerMajorFp < 0.0f ||
+			upperMajorFp < majorFpTarget ||
+			lowerMajorFp > majorFpTarget) {
+			throw InvalidIteration();
+		}
+
+		constexpr int MajorFpSearchIterations = 20;
+		for (int i = 0; i < MajorFpSearchIterations; ++i) {
+			float const midpoint = (lowerFactor + upperFactor) * 0.5f;
+			float const midpointMajorFp = projectedMajorFp(midpoint);
+			if (midpointMajorFp < 0.0f) throw InvalidIteration();
+			if (midpointMajorFp < majorFpTarget) {
+				lowerFactor = midpoint;
+			}
+			else {
+				upperFactor = midpoint;
+			}
+		}
+		adjustmentFactor = (lowerFactor + upperFactor) * 0.5f;
+	}
+
+	auto const [partyOneAdjust, partyTwoAdjust] =
+		partyAdjustments(adjustmentFactor);
 	if (!std::isfinite(partyOneAdjust) ||
 		!std::isfinite(partyTwoAdjust) ||
 		partyOneAdjust <= 0.0f || partyTwoAdjust <= 0.0f) {

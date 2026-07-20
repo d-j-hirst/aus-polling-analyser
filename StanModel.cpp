@@ -1013,9 +1013,14 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample, int i
 	sample.preferenceFlow[partyCodeVec[1]] = 0.0f;
 	sample.exhaustRate[partyCodeVec[0]] = 0.0f;
 	sample.exhaustRate[partyCodeVec[1]] = 0.0f;
-	// Now we have the contribution to tpp from minors, so the difference between this and the total tpp gives the party-one fp
+	// Convert the target TPP share to non-exhausted vote points, then remove
+	// the preference points already supplied by minor parties. The preference
+	// contribution is already net of exhaustion and must not be scaled again.
 	float targetTpp = sample.voteShare[TppCode];
-	float partyOneFp = (sample.voteShare[TppCode] - partyOneTpp) * (100.0f - exhaustedFp) / 100.0f;
+	float const nonExhaustedFp = 100.0f - exhaustedFp;
+	float partyOneFp =
+		targetTpp * nonExhaustedFp * 0.01f -
+		partyOneTpp;
 	float partyTwoFp = 100.0f - (totalFp + partyOneFp);
 	float minMajorFp = std::min(partyOneFp, partyTwoFp);
 	if (minMajorFp >= 1.0f) {
