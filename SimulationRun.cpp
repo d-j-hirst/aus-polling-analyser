@@ -1,7 +1,8 @@
 #include "SimulationRun.h"
 
-#include "CountProgress.h"
+#include "General.h"
 #include "LivePreparation.h"
+#include "Log.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationCompletion.h"
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <exception>
 #include <mutex>
@@ -19,12 +21,82 @@
 #include <utility>
 #include <vector>
 
-using Mp = Simulation::MajorParty;
+namespace {
+	class ScopedBooleanState {
+	public:
+		ScopedBooleanState(bool& state, bool temporaryValue)
+			: state(state), previousValue(state)
+		{
+			state = temporaryValue;
+		}
+
+		~ScopedBooleanState()
+		{
+			state = previousValue;
+		}
+
+		ScopedBooleanState(ScopedBooleanState const&) = delete;
+		ScopedBooleanState& operator=(ScopedBooleanState const&) = delete;
+
+	private:
+		bool& state;
+		bool previousValue;
+	};
+
+	class LatestReportTransaction {
+	public:
+		explicit LatestReportTransaction(Simulation::Report& report)
+			: report(report), previousReport(report)
+		{
+		}
+
+		~LatestReportTransaction()
+		{
+			if (!committed) report = std::move(previousReport);
+		}
+
+		void commit() noexcept
+		{
+			committed = true;
+		}
+
+		LatestReportTransaction(LatestReportTransaction const&) = delete;
+		LatestReportTransaction& operator=(LatestReportTransaction const&) = delete;
+
+	private:
+		Simulation::Report& report;
+		Simulation::Report previousReport;
+		bool committed = false;
+	};
+
+	// Convert decimal betting odds (for example, $1.65) to an implied chance.
+	// The cap and longshot correction prevent very long odds from exerting
+	// disproportionate influence on the seat calibration.
+	float calculateImpliedChance(
+		float odds,
+		float evenOdds = 1.88f,
+		float cap = 15.0f)
+	{
+		float const cappedOdds = std::min(odds, cap);
+		float impliedChance = 1.0f / (cappedOdds * (2.0f / evenOdds));
+		float const longshotAdjustment = impliedChance < 0.4f ?
+			-0.6f * (0.4f - impliedChance) :
+			0.0f;
+		return basicTransformedSwing(
+			impliedChance * 100.0f,
+			longshotAdjustment * 100.0f) * 0.01f;
+	}
+}
 
 bool SimulationRun::run(FeedbackFunc feedback) {
 	{
 		std::lock_guard<std::mutex> lock(warningMutex);
 		warnings.clear();
+	}
+	if (sim.settings.numIterations <= 0) {
+		feedback(
+			"Could not run simulation: the configured iteration count must be positive.");
+		return false;
 	}
 
 	Projection const& thisProjection = project.projections().view(sim.settings.baseProjection);
@@ -53,6 +125,10 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 	}
 
 	project.seats().importInfo();
+	// Calibration and live-baseline sub-runs use latestReport as temporary
+	// workspace. Preserve the last successful report unless the complete main
+	// run reaches the commit point below.
+	LatestReportTransaction reportTransaction(sim.latestReport);
 
 	if (!runBettingOddsCalibrations(feedback)) return false;
 
@@ -89,6 +165,7 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 	reportWarnings(feedback);
 
 	sim.lastUpdated = wxDateTime::Now();
+	reportTransaction.commit();
 	return true;
 }
 
@@ -140,6 +217,9 @@ void SimulationRun::reportWarnings(FeedbackFunc feedback) const
 				break;
 			case WarningCategory::DiagnosticTest:
 				categoryCode = "DIAGNOSTIC_TEST";
+				break;
+			default:
+				categoryCode = "UNKNOWN";
 				break;
 			}
 			message +=
@@ -232,8 +312,9 @@ bool SimulationRun::runIterations(
 	}
 
 	if (!failure) {
-		if (totalRetries > 0) {
-			logger << "Completed " << phase << " with " << totalRetries <<
+		int const retryCount = totalRetries.load();
+		if (retryCount > 0) {
+			logger << "Completed " << phase << " with " << retryCount <<
 				" retried simulation iterations.\n";
 		}
 		return true;
@@ -271,72 +352,91 @@ bool SimulationRun::isLiveManual() const
 	return sim.isLiveManual() && !doingBettingOddsCalibrations && !doingLiveBaselineSimulation;
 }
 
-// Converts a betting odds (e.g. $1.65) into an implied chance.
-// Takes optional parameters for the rake and cap on odds.
-template<typename T,
-	std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-	inline T calculateImpliedChance(T odds, T evenOdds = T(1.88), T cap = T(15.0)) {
-	float cappedOdds = std::min(odds, cap);
-	// the last part of this line compensates for the typical bookmaker's margin
-	float impliedChance = T(1.0) / (cappedOdds * (T(2.0) / evenOdds));
-	// significant adjustment downwards to adjust for longshot bias.
-	float longshotAdjustment = impliedChance < T(0.4) ?
-		T(-0.6) * (T(0.4) - impliedChance) :
-		T(0);
-	impliedChance = basicTransformedSwing(impliedChance * T(100), longshotAdjustment * T(100)) * T(0.01);
-	return impliedChance;
-}
-
 bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 {
-	doingBettingOddsCalibrations = true;
+	ScopedBooleanState calibrationState(doingBettingOddsCalibrations, true);
 
 	// key is (seatIndex, partyIndex)
 	std::map<std::pair<int, int>, float> impliedChances;
 	for (auto const& [seatId, seat] : project.seats()) {
-		int seatIndex = project.seats().idToIndex(seatId);
-		for (auto [partyCode, odds] : seat.bettingOdds) {
-			int partyIndex = project.parties().indexByShortCode(partyCode);
-			if (partyIndex < 0) {
-				logger << "Warning: Betting odds did not match to a party for code " << partyCode << " in seat " << seat.name << ".\n";
-				continue;
+		int const seatIndex = project.seats().idToIndex(seatId);
+		for (auto const& [partyCode, odds] : seat.bettingOdds) {
+			if (!std::isfinite(odds) || odds <= 0.0f) {
+				feedback(
+					"Could not run betting odds calibrations: seat " +
+					seat.name + " has invalid betting odds for " +
+					partyCode + ".");
+				return false;
 			}
-			float thisImpliedChance = calculateImpliedChance(odds);
-			impliedChances[{seatIndex, partyIndex}] = thisImpliedChance;
+			int const partyIndex =
+				project.parties().indexByShortCode(partyCode);
+			if (partyIndex < 0) {
+				std::string const message =
+					"Could not run betting odds calibrations: party code " +
+					partyCode + " in seat " + seat.name +
+					" does not match a configured party.";
+				logger << message << "\n";
+				feedback(message);
+				return false;
+			}
+			impliedChances[{seatIndex, partyIndex}] =
+				calculateImpliedChance(odds);
 		}
 	}
 
 	oddsCalibrationMeans.clear();
 	oddsFinalMeans.clear();
+	bool const calibrationInputsChanged =
+		sim.cachedOddsIterations != sim.settings.numIterations ||
+		sim.cachedOddsInputs != impliedChances;
+	if (calibrationInputsChanged) {
+		// The live baseline incorporates the calibrated odds and uses the same
+		// configured sample size, so it must be regenerated as well.
+		sim.liveBaselineReport.reset();
+	}
 
-	if (!impliedChances.size()) {
+	if (impliedChances.empty()) {
+		sim.cachedOddsFinalMeans.clear();
+		sim.cachedOddsInputs.clear();
+		sim.cachedOddsIterations = sim.settings.numIterations;
 		logger << "*** Skipping betting odds calibrations as there are no odds currently entered ***\n";
-		doingBettingOddsCalibrations = false;
 		return true;
 	}
 
-	if (sim.isLive() && sim.cachedOddsFinalMeans.size()) {
-		logger << "*** Skipping betting odds calibrations for a live forecast as there are already cached results ***";
+	bool const cachedOddsMatch =
+		sim.isLive() &&
+		!sim.cachedOddsFinalMeans.empty() &&
+		!calibrationInputsChanged;
+	if (cachedOddsMatch) {
+		logger << "*** Skipping betting odds calibrations for a live forecast as there are already cached results ***\n";
 		oddsFinalMeans = sim.cachedOddsFinalMeans;
-		doingBettingOddsCalibrations = false;
 		return true;
+	}
+	if (sim.isLive() && !sim.cachedOddsFinalMeans.empty()) {
+		logger <<
+			"*** Recalculating cached live betting odds because the odds or "
+			"iteration count changed ***\n";
 	}
 
 	logger << "*** Doing betting odds calibrations ***\n";
 	PA_LOG_VAR(impliedChances);
 
-	std::map<std::pair<int, int>, float> previouslyHigh;
+	std::map<std::pair<int, int>, bool> previouslyHigh;
 	std::map<std::pair<int, int>, float> currentIncrement;
-	float initialValue = transformVoteShare(20.0f);
-	for (auto const [identifier, chance] : impliedChances) {
+	float const initialValue = transformVoteShare(20.0f);
+	for (auto const& impliedChance : impliedChances) {
+		auto const& identifier = impliedChance.first;
 		oddsCalibrationMeans[identifier] = initialValue;
 		previouslyHigh[identifier] = false;
 		currentIncrement[identifier] = 20.0f;
 	}
 
 	constexpr int NumRevisionRounds = 20;
-	for (int a = 0; a < NumRevisionRounds; ++a) {
-		auto newRun = SimulationRun(project, sim, true);
+	constexpr int CycleIterationsDivisor = 20;
+	int const cycleIterations =
+		std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
+	for (int revision = 0; revision < NumRevisionRounds; ++revision) {
+		SimulationRun newRun(project, sim, true);
 		SimulationPreparation preparations(project, sim, newRun);
 		try {
 			preparations.prepareForIterations();
@@ -344,41 +444,51 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		catch (SimulationPreparation::Exception const& e) {
 
 			feedback("Could not run betting odds calibrations due to the following issue: \n" + std::string(e.what()));
-			doingBettingOddsCalibrations = false;
 			return false;
 		}
 		newRun.oddsCalibrationMeans = oddsCalibrationMeans;
 
-		const int CycleIterationsDivisor = 20;
-		int cycleIterations = std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
-
-		// Make sure these iterationIndex values do not overlap with the main simulation run
+		// Keep calibration indices outside the main run. Reusing the same range
+		// in every revision compares successive adjustments against identical
+		// deterministic scenarios, reducing calibration noise.
 		if (!runIterations(
 			newRun, cycleIterations, sim.settings.numIterations,
 			"betting-odds calibration", feedback)) {
-			doingBettingOddsCalibrations = false;
 			return false;
 		}
 
 		SimulationCompletion completion(project, sim, newRun, cycleIterations);
 		completion.completeRun(feedback);
 
-		for (auto const [identifier, chance] : impliedChances) {
-			float winPercent = sim.latestReport.seatPartyWinPercent[identifier.first][identifier.second];
-			if (a == NumRevisionRounds - 1) {
+		// This directional search reduces its step when it crosses the target,
+		// but does not retain the tested mean with the smallest probability
+		// error. In particular, the final update below produces an untested next
+		// estimate. A future refinement should validate that estimate and choose
+		// the best result observed across all rounds.
+		for (auto const& [identifier, impliedChance] : impliedChances) {
+			auto const& seatWinPercent =
+				sim.latestReport.seatPartyWinPercent[identifier.first];
+			auto const winPercentIt = seatWinPercent.find(identifier.second);
+			float const winPercent = winPercentIt == seatWinPercent.end() ?
+				0.0f : winPercentIt->second;
+			if (revision == NumRevisionRounds - 1) {
 				PA_LOG_VAR(project.seats().viewByIndex(identifier.first).name);
 				PA_LOG_VAR(identifier);
 				PA_LOG_VAR(oddsCalibrationMeans[identifier]);
-				PA_LOG_VAR(impliedChances[identifier]);
+				PA_LOG_VAR(impliedChance);
 				PA_LOG_VAR(winPercent);
 			}
-			if (winPercent * 0.01f < impliedChances[identifier]) {
-				if (a && previouslyHigh[identifier]) currentIncrement[identifier] *= 0.4f;
+			if (winPercent * 0.01f < impliedChance) {
+				if (revision && previouslyHigh[identifier]) {
+					currentIncrement[identifier] *= 0.4f;
+				}
 				oddsCalibrationMeans[identifier] += currentIncrement[identifier];
 				previouslyHigh[identifier] = false;
 			}
 			else {
-				if (a && !previouslyHigh[identifier]) currentIncrement[identifier] *= 0.4f;
+				if (revision && !previouslyHigh[identifier]) {
+					currentIncrement[identifier] *= 0.4f;
+				}
 				oddsCalibrationMeans[identifier] -= currentIncrement[identifier];
 				previouslyHigh[identifier] = true;
 			}
@@ -388,19 +498,19 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 	oddsFinalMeans = oddsCalibrationMeans;
 	oddsCalibrationMeans.clear();
 	sim.cachedOddsFinalMeans = oddsFinalMeans;
+	sim.cachedOddsInputs = impliedChances;
+	sim.cachedOddsIterations = sim.settings.numIterations;
 
 	logger << "*** Finished betting odds calibrations ***\n";
-
-	doingBettingOddsCalibrations = false;
 	return true;
 }
 
 bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
-	doingLiveBaselineSimulation = true;
+	ScopedBooleanState baselineState(doingLiveBaselineSimulation, true);
 
 	logger << "*** Doing live baseline simulation ***\n";
 
-	auto newRun = SimulationRun(project, sim, false, true);
+	SimulationRun newRun(project, sim, false, true);
 	SimulationPreparation preparations(project, sim, newRun);
 	newRun.oddsFinalMeans = oddsFinalMeans;
 	newRun.oddsCalibrationMeans = oddsCalibrationMeans;
@@ -410,18 +520,16 @@ bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	catch (SimulationPreparation::Exception const& e) {
 
 		feedback("Could not run live baseline simulation due to the following issue: \n" + std::string(e.what()));
-		doingLiveBaselineSimulation = false;
 		return false;
 	}
 
-	const int CycleIterationsDivisor = 1;
-	int cycleIterations = std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
+	int const cycleIterations = std::max(10, sim.settings.numIterations);
 
-	// Make sure these iterationIndex values do not overlap with the main simulation run or the betting odds calibrations
+	// Keep baseline indices outside the main run. Overlap with the temporary
+	// calibration range is harmless because those results are discarded.
 	if (!runIterations(
 		newRun, cycleIterations, sim.settings.numIterations,
 		"live baseline simulation", feedback)) {
-		doingLiveBaselineSimulation = false;
 		return false;
 	}
 
@@ -430,7 +538,6 @@ bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	sim.liveBaselineReport = sim.latestReport;
 
 	logger << "*** Finished live baseline simulation ***\n";
-	doingLiveBaselineSimulation = false;
 	return true;
 }
 

@@ -146,7 +146,7 @@ public:
 		Rural
 	};
 
-	typedef std::function<void(std::string)> FeedbackFunc;
+	using FeedbackFunc = std::function<void(std::string)>;
 
 	enum class WarningCategory : std::uint8_t {
 		FpReconciliation,
@@ -157,9 +157,10 @@ public:
 	SimulationRun(PollingProject& project, Simulation& simulation, bool doingBettingOddsCalibrations = false, bool doingLiveBaselineSimulation = false) :
 		project(project), sim(simulation), doingBettingOddsCalibrations(doingBettingOddsCalibrations), doingLiveBaselineSimulation(doingLiveBaselineSimulation) {}
 
-	SimulationRun(SimulationRun const& otherRun) : project(otherRun.project), sim(otherRun.sim),
-		doingBettingOddsCalibrations(otherRun.doingBettingOddsCalibrations), doingLiveBaselineSimulation(otherRun.doingLiveBaselineSimulation) {}
-	SimulationRun& operator=(SimulationRun const& otherRun) = default;
+	// A run owns mutex-protected accumulators and must not be copied while
+	// worker threads may be writing to it.
+	SimulationRun(SimulationRun const&) = delete;
+	SimulationRun& operator=(SimulationRun const&) = delete;
 
 	bool run(FeedbackFunc feedback = [](std::string) {});
 
@@ -213,8 +214,6 @@ private:
 
 	mutable std::mutex warningMutex;
 	std::map<WarningCategory, Warning> warnings;
-
-	int currentIteration = 0;
 
 	float ppvcBiasNumerator = 0.0f;
 	float ppvcBiasDenominator = 0.0f; // should be the total number of PPVC votes counted

@@ -51,7 +51,28 @@ private:
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
 	void determineNationalsShare(int seatIndex);
-	void allocateMajorPartyFp(int seatIndex, float preferenceFlowDeviation = 0.0f);
+	struct MajorPartyFpDiagnostics {
+		float availableMajorFp = 0.0f;
+		float nonExhaustedVote = 0.0f;
+		float partyOnePreferences = 0.0f;
+		float partyTwoPreferences = 0.0f;
+		float directPartyOneFp = 0.0f;
+		float directPartyTwoFp = 0.0f;
+		float transformedPartyOneFp = 0.0f;
+		float transformedPartyTwoFp = 0.0f;
+		float preNormalisationPartyOneFp = 0.0f;
+		float preNormalisationPartyTwoFp = 0.0f;
+		float originalPartyOneTpp = 0.0f;
+		float adjustedPartyOneTpp = 0.0f;
+		int compatibilityPasses = 0;
+		bool usedDirectAllocation = false;
+	};
+	void allocateMajorPartyFp(
+		int seatIndex,
+		float preferenceFlowDeviation = 0.0f,
+		MajorPartyFpDiagnostics* diagnostics = nullptr);
+	void allocateMajorPartyFpsWithCompatibleTpp(
+		std::vector<MajorPartyFpDiagnostics>* diagnostics = nullptr);
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals(

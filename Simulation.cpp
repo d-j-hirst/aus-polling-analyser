@@ -24,9 +24,9 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 		feedback("The base model (" + baseModel.getName() + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
 		return;
 	}
-	lastUpdated = wxInvalidDateTime;
-	latestRun.reset(new SimulationRun(project, *this));
-	if (!latestRun->run(feedback)) return;
+	auto nextRun = std::make_shared<SimulationRun>(project, *this);
+	if (!nextRun->run(feedback)) return;
+	latestRun = std::move(nextRun);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	if (isLive()) checkLiveSeats(project, feedback);
 }

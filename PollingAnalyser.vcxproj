@@ -108,7 +108,7 @@
       <AdditionalIncludeDirectories>C:\wxWidgets-3.1.1\lib\vc_lib\mswu;C:\wxWidgets-3.1.1\include;.;C:\wxWidgets-3.0.2\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CURL_STATICLIB;WIN32;__WXMSW__;NDEBUG;_WINDOWS;NOPCH;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderOutputFile>.\vc_mswu\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
-      <AdditionalOptions> /opt:ref /opt:icf /EHsc</AdditionalOptions>
+      <AdditionalOptions> /EHsc</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <DisableSpecificWarnings>5054;4005;5232</DisableSpecificWarnings>
@@ -141,6 +141,8 @@
       <AdditionalDependencies>libcurl_a.lib;wxmsw31u_core.lib;wxbase31u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;wxmsw31u_adv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <LargeAddressAware>true</LargeAddressAware>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'">
@@ -202,7 +204,7 @@
       <PrecompiledHeaderOutputFile>.\vc_mswudll\PollingAnalyser\PollingAnalyser.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\vc_mswudll\PollingAnalyser\</ObjectFileName>
       <ProgramDataBaseFileName>vc_mswudll\PollingAnalyser.pdb</ProgramDataBaseFileName>
-      <AdditionalOptions> /opt:ref /opt:icf /EHsc </AdditionalOptions>
+      <AdditionalOptions> /EHsc </AdditionalOptions>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -227,6 +229,8 @@
       <OutputFile>vc_mswudll\PollingAnalyser.exe</OutputFile>
       <AdditionalLibraryDirectories>C:\wxWidgets-3.0.2\lib\vc_dll;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>wxmsw30u_core.lib;wxbase30u.lib;wxtiff.lib;wxjpeg.lib;wxpng.lib;wxzlib.lib;wxregexu.lib;wxexpat.lib;winmm.lib;comctl32.lib;rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -339,9 +343,9 @@
     <ClCompile Include="PartiesFrame.cpp" />
     <ClCompile Include="PartySettingsFrame.cpp" />
     <ClCompile Include="PollingAnalyser.cpp">
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"> /opt:ref /opt:icf /EHsc   /opt:ref /opt:icf /EHsc </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'"> /EHsc   /EHsc </AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DLL Debug|Win32'"> /EHsc   /EHsc </AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'"> /opt:ref /opt:icf /EHsc   /opt:ref /opt:icf /EHsc </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DLL Release|Win32'"> /EHsc   /EHsc </AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'"> /EHsc   /EHsc </AdditionalOptions>
     </ClCompile>
     <ClCompile Include="PollingProject.cpp" />

@@ -363,7 +363,11 @@ private:
 
 	std::vector<std::map<int, float>> previousLiveSeats;
 
-	std::map<std::pair<int, int>, float> cachedOddsFinalMeans; // store this so it doesn't have to be recalculated live
+	// Live runs reuse betting calibration only while its effective inputs and
+	// sample size remain unchanged.
+	std::map<std::pair<int, int>, float> cachedOddsFinalMeans;
+	std::map<std::pair<int, int>, float> cachedOddsInputs;
+	int cachedOddsIterations = 0;
 
 	//std::unique_ptr<SimulationRun> latestRun;
 	std::shared_ptr<SimulationRun> latestRun;
