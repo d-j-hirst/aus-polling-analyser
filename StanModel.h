@@ -24,8 +24,8 @@ public:
 	struct Spread {
 		void calculateExpectation();
 		constexpr static size_t Size = 101; // must be odd so that there is a single median value
-		std::array<float, Size> values;
-		float expectation;
+		std::array<float, Size> values{};
+		float expectation = 0.0f;
 	};
 
 	class Exception : public std::logic_error { 
@@ -46,7 +46,7 @@ public:
 		std::map<std::string, float> voteShare;
 		std::map<std::string, float> preferenceFlow;
 		std::map<std::string, float> exhaustRate;
-		int daysToElection;
+		int daysToElection = 0;
 	};
 
 	struct ModelledPoll {
@@ -65,8 +65,8 @@ public:
 
 	typedef Series const* SeriesOutput;
 
-	// Used for telling the model which parties are "major" -
-	// for the purpose of 
+	// Parties excluded from the aggregate Others series. This includes the
+	// Greens because their trend is modelled separately from the Others group.
 	typedef std::set<std::string> MajorPartyCodes;
 
 	StanModel(std::string name = "", std::string termCode = "", std::string partyCodes = "");
@@ -166,23 +166,26 @@ private:
 
 	typedef std::map<std::string, double> Fundamentals;
 
+	// Parses and validates the comma-separated party codes configured in the model.
+	bool loadPartyCodes(FeedbackFunc feedback);
+
 	// Loads the party group data from analysis/Data/party-groups.csv
-	void loadPartyGroups();
+	bool loadPartyGroups(FeedbackFunc feedback);
 
 	// Loads the fundamentals predictions from analysis/Fundamentals
-	void loadFundamentalsPredictions();
+	bool loadFundamentalsPredictions(FeedbackFunc feedback);
 
 	// Loads coefficients for model parameters from files
 	bool loadParameters(FeedbackFunc feedback);
 
 	// Loads parameters specifically relating to emerging others
-	void loadEmergingOthersParameters(FeedbackFunc feedback);
+	bool loadEmergingOthersParameters(FeedbackFunc feedback);
 
 	// Not actually needed for running trend adjustment but will eventually need to be queried for simulation reports
 	bool loadModelledPolls(FeedbackFunc feedback);
 	
 	// Load preference flows from a file.
-	void loadPreferenceFlows(FeedbackFunc feedback);
+	bool loadPreferenceFlows(FeedbackFunc feedback);
 
 	// Generates maps between parties and parameters for their preference flows
 	bool generatePreferenceMaps(FeedbackFunc feedback);
@@ -207,7 +210,7 @@ private:
 	ParameterSet interpolatedParameters(std::string const& partyGroup,
 		int day, double transformedTrend) const;
 
-	void updateAdjustedData(FeedbackFunc feedback, int numThreads);
+	bool updateAdjustedData(FeedbackFunc feedback, int numThreads);
 
 	void addEmergingOthers(StanModel::SupportSample& sample, int days,
 		int iterationIndex) const;
@@ -263,7 +266,7 @@ private:
 	ReversePartyGroups reversePartyGroups;
 
 	Fundamentals fundamentals;
-	EmergingPartyParameterSet emergingParameters;
+	EmergingPartyParameterSet emergingParameters{};
 
 	ParameterGridByPartyGroup parameters;
 

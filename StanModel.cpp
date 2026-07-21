@@ -9,7 +9,7 @@
 #include <future>
 #include <numeric>
 #include <sstream>
-#include <thread>
+#include <utility>
 
 constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
@@ -18,8 +18,6 @@ constexpr bool DoValidations = false;
 // the new format while the version tracks the expanded parameter-grid layout.
 constexpr std::uint32_t GeneratedDataMagic = 0x50414d32;
 constexpr std::uint32_t GeneratedDataVersion = 2;
-
-std::mutex debugMutex;
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
 	{ "ALP", "LNP", "LIB", "NAT", "GRN" };
@@ -31,21 +29,24 @@ enum class VariabilityTag : std::uint32_t {
 	EmergingOthers = 4,
   TppPreferenceFlow = 5,
   MajorFpPreferenceFlow = 6,
-  TppExhaustRate = 7,
+	TppExhaustRate = 7,
 	FpExhaustRate = 8,
-	TppFirstSelection = 9
+	TppFirstSelection = 9,
+	EmergingOthersSize = 10
 };
 
 StanModel::StanModel(std::string name, std::string termCode, std::string partyCodes)
 	
-	: name(name), termCode(termCode), partyCodes(partyCodes)
+	: name(std::move(name)), termCode(std::move(termCode)),
+	partyCodes(std::move(partyCodes))
 {
 }
 
 wxDateTime StanModel::getEndDate() const
 {
-	if (!rawSeriesCount()) return startDate;
-	return startDate + wxTimeSpan(4) + wxDateSpan::Days(rawSupport.begin()->second.timePoint.size() - 1);
+	if (!startDate.IsValid() || rawTppSupport.timePoint.empty()) return startDate;
+	return startDate + wxTimeSpan(4) +
+		wxDateSpan::Days(int(rawTppSupport.timePoint.size()) - 1);
 }
 
 void StanModel::loadData(FeedbackFunc feedback, int numThreads)
@@ -53,8 +54,11 @@ void StanModel::loadData(FeedbackFunc feedback, int numThreads)
 	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	if (!prepareForRun(feedback)) return;
 	logger << "Model end date: " << getEndDate().FormatISOCombined() << "\n";
-	logger << "Generated unnamed others series: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	updateAdjustedData(feedback, numThreads);
+	logger << "Prepared model inputs: " << wxDateTime::Now().FormatISOCombined() << "\n";
+	if (!updateAdjustedData(feedback, numThreads)) {
+		readyForProjection = false;
+		return;
+	}
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	lastUpdatedDate = wxDateTime::Now();
 	feedback("Finished loading models");
@@ -74,7 +78,8 @@ std::string StanModel::getTextReport() const
 {
 	std::stringstream ss;
 	ss << "Raw party support, assuming only sampling error:\n";
-	for (auto [key, series] : this->rawSupport) {
+	for (auto const& [key, series] : rawSupport) {
+		if (series.timePoint.empty()) continue;
 		ss << key << "\n";
 		ss << "1%: " << series.timePoint.back().values[1] << "\n";
 		ss << "10%: " << series.timePoint.back().values[10] << "\n";
@@ -84,7 +89,8 @@ std::string StanModel::getTextReport() const
 	}
 	ss << ";";
 	ss << "Adjusted party support, accounting for possible systemic bias and variability:\n";
-	for (auto [key, series] : this->adjustedSupport) {
+	for (auto const& [key, series] : adjustedSupport) {
+		if (series.timePoint.empty()) continue;
 		ss << key << "\n";
 		ss << "1%: " << series.timePoint.back().values[1] << "\n";
 		ss << "10%: " << series.timePoint.back().values[10] << "\n";
@@ -93,17 +99,20 @@ std::string StanModel::getTextReport() const
 		ss << "99%: " << series.timePoint.back().values[99] << "\n";
 		ss << "Expectation: " << series.timePoint.back().expectation << "\n";
 	}
-	ss << "TPP:\n";
-	ss << "1%: " << tppSupport.timePoint.back().values[1] << "\n";
-	ss << "10%: " << tppSupport.timePoint.back().values[10] << "\n";
-	ss << "50%: " << tppSupport.timePoint.back().values[50] << "\n";
-	ss << "90%: " << tppSupport.timePoint.back().values[90] << "\n";
-	ss << "99%: " << tppSupport.timePoint.back().values[99] << "\n";
-	ss << "Expectation: " << tppSupport.timePoint.back().expectation << "\n";
+	if (!tppSupport.timePoint.empty()) {
+		ss << "TPP:\n";
+		ss << "1%: " << tppSupport.timePoint.back().values[1] << "\n";
+		ss << "10%: " << tppSupport.timePoint.back().values[10] << "\n";
+		ss << "50%: " << tppSupport.timePoint.back().values[50] << "\n";
+		ss << "90%: " << tppSupport.timePoint.back().values[90] << "\n";
+		ss << "99%: " << tppSupport.timePoint.back().values[99] << "\n";
+		ss << "Expectation: " << tppSupport.timePoint.back().expectation << "\n";
+	}
 	if (DoValidations) {
 		ss << ";";
 		ss << "Post-sampling party support:\n";
-		for (auto [key, series] : this->validationSupport) {
+		for (auto const& [key, series] : validationSupport) {
+			if (series.timePoint.empty()) continue;
 			ss << key << "\n";
 			ss << "1%: " << series.timePoint.back().values[1] << "\n";
 			ss << "10%: " << series.timePoint.back().values[10] << "\n";
@@ -153,15 +162,24 @@ StanModel::Series const& StanModel::viewTPPSeries() const
 
 std::string StanModel::rawPartyCodeByIndex(int index) const
 {
+	if (index < 0 || index >= int(rawSupport.size())) return {};
 	return std::next(rawSupport.begin(), index)->first;
 }
 
 bool StanModel::prepareForRun(FeedbackFunc feedback)
 {
-	loadPartyGroups();
-	loadFundamentalsPredictions();
+	readyForProjection = false;
+	rawSupport.clear();
+	rawTppSupport = {};
+	adjustedSupport.clear();
+	tppSupport = {};
+	validationSupport.clear();
+	modelledPolls.clear();
+	if (!loadPartyCodes(feedback)) return false;
+	if (!loadPartyGroups(feedback)) return false;
+	if (!loadFundamentalsPredictions(feedback)) return false;
 	if (!loadParameters(feedback)) return false;
-	loadEmergingOthersParameters(feedback);
+	if (!loadEmergingOthersParameters(feedback)) return false;
 	if (!generatePreferenceMaps(feedback)) return false;
 	if (!loadModelledPolls(feedback)) return false;
 	if (!loadTrendData(feedback)) return false;
@@ -170,44 +188,130 @@ bool StanModel::prepareForRun(FeedbackFunc feedback)
 	return true;
 }
 
-void StanModel::loadPartyGroups()
+bool StanModel::loadPartyCodes(FeedbackFunc feedback)
+{
+	partyCodeVec = splitString(partyCodes, ",");
+	if (partyCodeVec.size() < 2) {
+		feedback("At least two party codes are required.");
+		return false;
+	}
+	std::set<std::string> uniqueCodes;
+	for (auto const& partyCode : partyCodeVec) {
+		if (partyCode.empty()) {
+			feedback("Party codes cannot be empty.");
+			return false;
+		}
+		if (!uniqueCodes.insert(partyCode).second) {
+			feedback("Duplicate party code in model: " + partyCode);
+			return false;
+		}
+	}
+	for (auto const& requiredCode : { OthersCode, UnnamedOthersCode,
+		EmergingOthersCode }) {
+		if (!contains(partyCodeVec, requiredCode)) {
+			feedback("The model needs a party with code " + requiredCode +
+				" to run properly.");
+			return false;
+		}
+	}
+	return true;
+}
+
+bool StanModel::loadPartyGroups(FeedbackFunc feedback)
 {
 	const std::string filename = "analysis/Data/party-groups.csv";
 	auto file = std::ifstream(filename);
-	if (!file) throw Exception("Party groups file not present! Expected a file at " + filename);
-	do {
-		std::string line;
-		std::getline(file, line);
-		if (!file) break;
+	if (!file) {
+		feedback("Party groups file not present. Expected a file at " + filename);
+		return false;
+	}
+	partyGroups.clear();
+	reversePartyGroups.clear();
+	for (std::string line; std::getline(file, line);) {
+		if (line.empty()) continue;
 		auto values = splitString(line, ",");
-		partyGroups[values[0]] = PartyGroup();
-		for (auto it = std::next(values.begin()); it != values.end(); ++it) {
-			std::string splitValue = splitString(*it, " ")[0];
-			partyGroups[values[0]].push_back(splitValue);
+		if (values.size() < 2 || values[0].empty()) {
+			feedback("Invalid party-group row: " + line);
+			return false;
 		}
-	} while (true);
+		auto& group = partyGroups[values[0]];
+		group.clear();
+		for (auto it = std::next(values.begin()); it != values.end(); ++it) {
+			auto splitValues = splitString(*it, " ");
+			if (splitValues.empty() || splitValues[0].empty()) {
+				feedback("Invalid party code in party-group row: " + line);
+				return false;
+			}
+			group.push_back(splitValues[0]);
+		}
+	}
 
 	for (auto const& [key, values] : partyGroups) {
 		for (auto const& value : values) {
-			reversePartyGroups[value] = key;
+			if (!reversePartyGroups.emplace(value, key).second) {
+				feedback("Party code appears in more than one party group: " + value);
+				return false;
+			}
 		}
 	}
+	for (auto const& partyCode : partyCodeVec) {
+		if (partyCode == EmergingOthersCode) continue;
+		if (!reversePartyGroups.count(partyCode)) {
+			feedback("No party group configured for party code: " + partyCode);
+			return false;
+		}
+	}
+	if (!reversePartyGroups.count(TppCode)) {
+		feedback("No party group configured for " + TppCode + ".");
+		return false;
+	}
+	return true;
 }
 
-void StanModel::loadFundamentalsPredictions()
+bool StanModel::loadFundamentalsPredictions(FeedbackFunc feedback)
 {
 	logger << "loading fundamentals predictions\n";
 	const std::string filename = "analysis/Fundamentals/fundamentals_" + termCode + ".csv";
 	auto file = std::ifstream(filename);
-	if (!file) throw Exception("Fundamentals prediction file not present! Expected a file at " + filename);
-	do {
-		std::string line;
-		std::getline(file, line);
-		if (!file) break;
-		auto values = splitString(line, ",");
-		std::string party = splitString(values[0], " ")[0];
-		fundamentals[party] = std::stod(values[1]);
-	} while (true);
+	if (!file) {
+		feedback("Fundamentals prediction file not present. Expected a file at " + filename);
+		return false;
+	}
+	fundamentals.clear();
+	try {
+		for (std::string line; std::getline(file, line);) {
+			if (line.empty()) continue;
+			auto values = splitString(line, ",");
+			if (values.size() < 2) throw Exception("Invalid fundamentals row: " + line);
+			auto partyValues = splitString(values[0], " ");
+			if (partyValues.empty() || partyValues[0].empty()) {
+				throw Exception("Invalid party code in fundamentals row: " + line);
+			}
+			double const value = std::stod(values[1]);
+			if (!std::isfinite(value) || value <= 0.0 || value >= 100.0) {
+				throw Exception("Fundamentals value must be between 0 and 100: " + line);
+			}
+			if (!fundamentals.emplace(partyValues[0], value).second) {
+				throw Exception("Duplicate fundamentals row for " + partyValues[0]);
+			}
+		}
+	}
+	catch (std::exception const& e) {
+		feedback(std::string("Could not load fundamentals predictions: ") + e.what());
+		return false;
+	}
+	for (auto const& partyCode : partyCodeVec) {
+		if (partyCode == EmergingOthersCode) continue;
+		if (!fundamentals.count(partyCode)) {
+			feedback("No fundamentals prediction configured for party code: " + partyCode);
+			return false;
+		}
+	}
+	if (!fundamentals.count(TppCode)) {
+		feedback("No fundamentals prediction configured for " + TppCode + ".");
+		return false;
+	}
+	return true;
 }
 
 bool StanModel::loadParameters(FeedbackFunc feedback)
@@ -294,15 +398,29 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 						return false;
 					}
 					for (int day = 0; day < numDays; ++day) {
-						series[day][parameter] =
+						double const value =
 							parseFinite(row[day + firstValueColumn]);
+						if ((parameter == int(InputParameters::LowerError) ||
+							parameter == int(InputParameters::UpperError)) && value < 0.0) {
+							throw std::domain_error("negative adjustment error");
+						}
+						if ((parameter == int(InputParameters::LowerKurtosis) ||
+							parameter == int(InputParameters::UpperKurtosis)) && value < 1.0) {
+							throw std::domain_error("invalid adjustment kurtosis");
+						}
+						if (parameter == int(InputParameters::MixFactor) &&
+							(value < 0.0 || value > 1.0)) {
+							throw std::domain_error("mix factor outside [0, 1]");
+						}
+						series[day][parameter] = value;
 					}
 				}
 				grid.push_back(ParameterLevel{ trendLevel, std::move(series) });
 			}
 		}
-		catch (std::exception const&) {
-			feedback("Error: Adjustment file contains an invalid or non-finite value: " + loadedFileName);
+		catch (std::exception const& e) {
+			feedback("Error: Adjustment file contains an invalid value: " +
+				loadedFileName + " (" + e.what() + ")");
 			return false;
 		}
 		parameters[partyGroup] = std::move(grid);
@@ -310,59 +428,84 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 	return true;
 }
 
-void StanModel::loadEmergingOthersParameters([[maybe_unused]] FeedbackFunc feedback)
+bool StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
 {
 	logger << "loading emerging others parameters\n";
 	const std::string filename = "analysis/Seat Statistics/statistics_emerging_party.csv";
 	auto file = std::ifstream(filename);
-	if (!file) throw Exception("Emerging others parameters not present! Expected a file at " + filename);
-	for (int parameter = 0; parameter < int(EmergingPartyParameters::Max); ++parameter) {
-		std::string line;
-		std::getline(file, line);
-		if (!file) break;
-		double value = std::stod(line);
-		emergingParameters[parameter] = value;
+	if (!file) {
+		feedback("Emerging others parameters not present. Expected a file at " + filename);
+		return false;
 	}
+	emergingParameters = {};
+	try {
+		for (int parameter = 0; parameter < int(EmergingPartyParameters::Max); ++parameter) {
+			std::string line;
+			if (!std::getline(file, line) || line.empty()) {
+				throw Exception("expected four parameter rows");
+			}
+			double const value = std::stod(line);
+			if (!std::isfinite(value)) throw Exception("parameter is not finite");
+			emergingParameters[parameter] = value;
+		}
+	}
+	catch (std::exception const& e) {
+		feedback(std::string("Could not load emerging-party parameters: ") + e.what());
+		return false;
+	}
+	if (emergingParameters[int(EmergingPartyParameters::Threshold)] <= 0.0 ||
+		emergingParameters[int(EmergingPartyParameters::Threshold)] >= 100.0 ||
+		emergingParameters[int(EmergingPartyParameters::EmergenceRate)] < 0.0 ||
+		emergingParameters[int(EmergingPartyParameters::EmergenceRate)] > 1.0 ||
+		emergingParameters[int(EmergingPartyParameters::Rmse)] < 0.0 ||
+		emergingParameters[int(EmergingPartyParameters::Kurtosis)] < 1.0) {
+		feedback("Emerging-party parameters are outside their valid ranges.");
+		return false;
+	}
+	return true;
 }
 
 bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 {
-	partyCodeVec = splitString(partyCodes, ",");
-	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
-		feedback("No party codes found!");
-		return false;
-	}
-	if (!contains(partyCodeVec, OthersCode)) {
-		feedback("No party corresponding to Others was given. The model needs a party with code " + OthersCode + " to run properly.");
-		return false;
-	}
-	if (!contains(partyCodeVec, UnnamedOthersCode)) {
-		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
-		return false;
-	}
-	if (!contains(partyCodeVec, EmergingOthersCode)) {
-		feedback("No party corresponding to Emerging Others was given. The model needs a party with code " + EmergingOthersCode + " to run properly.");
-		return false;
-	}
 	modelledPolls.clear();
 
 	// This section is used multiple times only inside this procedure, so define it once
-	auto loadPolls = [](std::vector<ModelledPoll>& polls, std::ifstream& file) {
+	auto loadPolls = [&feedback](std::vector<ModelledPoll>& polls,
+		std::ifstream& file, std::string const& filename) {
 		polls.clear();
 		std::string line;
 		std::getline(file, line); // first line is just a legend, skip it
-		do {
-			std::getline(file, line);
-			if (!file) break;
-			auto pollVals = splitString(line, ",");
-			ModelledPoll poll;
-			poll.pollster = pollVals[0];
-			poll.day = std::stoi(pollVals[1]);
-			poll.base = std::stof(pollVals[2]);
-			poll.adjusted = std::stof(pollVals[3]);
-			if (pollVals.size() >= 5) poll.reported = std::stof(pollVals[4]);
-			polls.push_back(poll);
-		} while (true);
+		try {
+			while (std::getline(file, line)) {
+				if (line.empty()) continue;
+				auto pollVals = splitString(line, ",");
+				if (pollVals.size() < 4 || pollVals[0].empty()) {
+					throw Exception("invalid poll row");
+				}
+				ModelledPoll poll;
+				poll.pollster = pollVals[0];
+				poll.day = std::stoi(pollVals[1]);
+				poll.base = std::stof(pollVals[2]);
+				poll.adjusted = std::stof(pollVals[3]);
+				if (!std::isfinite(poll.base) || !std::isfinite(poll.adjusted)) {
+					throw Exception("non-finite poll value");
+				}
+				if (pollVals.size() >= 5 && !pollVals[4].empty()) {
+					poll.reported = std::stof(pollVals[4]);
+					// NaN represents a poll with a TPP derived from its FP values but
+					// no separately reported TPP figure.
+					if (std::isinf(poll.reported)) {
+						throw Exception("infinite reported poll value");
+					}
+				}
+				polls.push_back(poll);
+			}
+		}
+		catch (std::exception const& e) {
+			feedback("Could not parse " + filename + ": " + e.what());
+			return false;
+		}
+		return true;
 	};
 
 	for (auto partyCode : partyCodeVec) {
@@ -376,10 +519,9 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 			return false;
 		}
 		auto& polls = modelledPolls[partyCode];
-		loadPolls(polls, file);
+		if (!loadPolls(polls, file, filename)) return false;
 	}
 	{
-		auto partyCode = partyCodeVec[0];
 		std::string filename = "analysis/Outputs/fp_polls_"
 			+ termCode + "_@TPP.csv";
 		auto file = std::ifstream(filename);
@@ -387,30 +529,56 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 			feedback("Could not load file: " + filename);
 			return false;
 		}
-		auto& polls = modelledPolls["@TPP"];
-		loadPolls(polls, file);
+		auto& polls = modelledPolls[TppCode];
+		if (!loadPolls(polls, file, filename)) return false;
 	}
 	return true;
 }
 
-void StanModel::loadPreferenceFlows([[maybe_unused]] FeedbackFunc feedback)
+bool StanModel::loadPreferenceFlows(FeedbackFunc feedback)
 {
 	preferenceFlowMap.clear();
 	preferenceExhaustMap.clear();
-	auto lines = extractElectionDataFromFile("analysis/Data/preference-estimates.csv", termCode);
-	for (auto const& line : lines) {
-		std::string party = splitString(line[2], " ")[0];
-		float thisPreferenceFlow = std::stof(line[3]);
-		preferenceFlowMap[party] = thisPreferenceFlow;
-		if (line.size() >= 5 && line[4][0] != '#') {
-			float thisExhaustRate = std::stof(line[4]);
-			preferenceExhaustMap[party] = thisExhaustRate;
-		}
-		else {
-			preferenceExhaustMap[party] = 0.0f;
+	try {
+		auto lines = extractElectionDataFromFile(
+			"analysis/Data/preference-estimates.csv", termCode);
+		if (lines.empty()) throw Exception("no rows found for " + termCode);
+		for (auto const& line : lines) {
+			if (line.size() < 4) throw Exception("preference row has too few columns");
+			auto partyValues = splitString(line[2], " ");
+			if (partyValues.empty() || partyValues[0].empty()) {
+				throw Exception("preference row has no party code");
+			}
+			std::string const& party = partyValues[0];
+			if (preferenceFlowMap.count(party)) {
+				throw Exception("duplicate preference row for " + party);
+			}
+			float const estimatedPreferenceFlow = std::stof(line[3]);
+			if (!std::isfinite(estimatedPreferenceFlow) ||
+				estimatedPreferenceFlow <= 0.0f || estimatedPreferenceFlow >= 100.0f) {
+				throw Exception("preference flow must be between 0 and 100 for " + party);
+			}
+			float exhaustRate = 0.0f;
+			if (line.size() >= 5 && !line[4].empty() && line[4][0] != '#') {
+				exhaustRate = std::stof(line[4]);
+				if (!std::isfinite(exhaustRate) ||
+					exhaustRate < 0.0f || exhaustRate >= 100.0f) {
+					throw Exception("exhaust rate must be in [0, 100) for " + party);
+				}
+			}
+			preferenceFlowMap[party] = estimatedPreferenceFlow;
+			preferenceExhaustMap[party] = exhaustRate;
 		}
 	}
+	catch (std::exception const& e) {
+		feedback(std::string("Could not load preference estimates: ") + e.what());
+		return false;
+	}
 
+	if (!preferenceFlowMap.count(OthersCode)) {
+		feedback("No preference estimate was supplied for " + OthersCode + ".");
+		return false;
+	}
 	preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
 	preferenceFlowMap[UnnamedOthersCode] = preferenceFlowMap[OthersCode];
 	preferenceExhaustMap[EmergingOthersCode] = preferenceExhaustMap[OthersCode];
@@ -419,38 +587,47 @@ void StanModel::loadPreferenceFlows([[maybe_unused]] FeedbackFunc feedback)
 	preferenceFlowMap[partyCodeVec[1]] = 0.0f;
 	preferenceExhaustMap[partyCodeVec[0]] = 0.0f;
 	preferenceExhaustMap[partyCodeVec[1]] = 0.0f;
+	return true;
 }
 
 bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 {
-	// partyCodeVec is already created by loadData
-	partyCodeVec = splitString(partyCodes, ",");
-	if (!partyCodeVec.size()) throw Exception("No party codes in this model!");
 	try {
-		loadPreferenceFlows(feedback);
-		//auto preferenceFlowVec = splitStringF(preferenceFlow, ",");
+		if (!loadPreferenceFlows(feedback)) return false;
 		auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
 		auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
 		bool validSizes = 
 			preferenceDeviationVec.size() == partyCodeVec.size() &&
 			preferenceSamplesVec.size() == partyCodeVec.size();
-		if (!validSizes) throw Exception("Party codes and parameter lines do not match!");
-		//preferenceFlowMap.clear();
+		if (!validSizes) throw Exception("Party codes and preference parameter lists do not match.");
 		preferenceDeviationMap.clear();
 		preferenceSamplesMap.clear();
 		for (int index = 0; index < int(partyCodeVec.size()); ++index) {
-			//preferenceFlowMap.insert({ partyCodeVec[index], preferenceFlowVec[index] });
-			preferenceDeviationMap.insert({ partyCodeVec[index], preferenceDeviationVec[index] });
-			preferenceSamplesMap.insert({ partyCodeVec[index], preferenceSamplesVec[index] });
+			float const deviation = preferenceDeviationVec[index];
+			float const samples = preferenceSamplesVec[index];
+			if (!std::isfinite(deviation) || deviation < 0.0f ||
+				!std::isfinite(samples) || samples < 0.0f) {
+				throw Exception("Preference deviations and sample counts must be finite and non-negative.");
+			}
+			preferenceDeviationMap[partyCodeVec[index]] = deviation;
+			preferenceSamplesMap[partyCodeVec[index]] = samples;
+		}
+		preferenceDeviationMap[EmergingOthersCode] = preferenceDeviationMap[OthersCode];
+		preferenceSamplesMap[EmergingOthersCode] = preferenceSamplesMap[OthersCode];
+		for (auto const& partyCode : partyCodeVec) {
+			if (partyCode == OthersCode) continue;
+			if (!preferenceFlowMap.count(partyCode) ||
+				!preferenceExhaustMap.count(partyCode) ||
+				!preferenceDeviationMap.count(partyCode) ||
+				!preferenceSamplesMap.count(partyCode)) {
+				throw Exception("Incomplete preference settings for party code: " + partyCode);
+			}
 		}
 	}
-	catch (std::invalid_argument) {
-		feedback("One or more model paramater lists could not be converted to floats!");
+	catch (std::exception const& e) {
+		feedback(std::string("Could not prepare preference settings: ") + e.what());
 		return false;
 	}
-	//preferenceFlowMap[EmergingOthersCode] = preferenceFlowMap[OthersCode];
-	preferenceDeviationMap[EmergingOthersCode] = preferenceDeviationMap[OthersCode];
-	preferenceSamplesMap[EmergingOthersCode] = preferenceSamplesMap[OthersCode];
 	PA_LOG_VAR(preferenceFlowMap);
 	PA_LOG_VAR(preferenceExhaustMap);
 	return true;
@@ -458,91 +635,98 @@ bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 
 bool StanModel::loadTrendData(FeedbackFunc feedback)
 {
-	partyCodeVec = splitString(partyCodes, ",");
-	if (!partyCodeVec.size() || (partyCodeVec.size() == 1 && !partyCodeVec[0].size())) {
-		feedback("No party codes found!");
-		return false;
-	}
-	if (!contains(partyCodeVec, OthersCode)) {
-		feedback("No party corresponding to Others was given. The model needs a party with code " + OthersCode + " to run properly.");
-		return false;
-	}
-	if (!contains(partyCodeVec, UnnamedOthersCode)) {
-		feedback("No party corresponding to Unnamed Others was given. The model needs a party with code " + UnnamedOthersCode + " to run properly.");
-		return false;
-	}
 	startDate = wxInvalidDateTime;
 	rawSupport.clear();
+	rawTppSupport = {};
+	int expectedSeriesLength = 0;
+
+	auto loadTrendSeries = [&](std::string const& filename, Series& series) {
+		auto file = std::ifstream(filename);
+		if (!file) {
+			feedback("Could not load file: " + filename);
+			return false;
+		}
+		try {
+			std::string line;
+			if (!std::getline(file, line) || !std::getline(file, line)) {
+				throw Exception("missing date row");
+			}
+			auto dateVals = splitString(line, ",");
+			if (dateVals.size() < 3) throw Exception("invalid date row");
+			int const day = std::stoi(dateVals[0]);
+			int const month = std::stoi(dateVals[1]);
+			int const year = std::stoi(dateVals[2]);
+			if (month < 1 || month > 12) throw Exception("invalid month in date row");
+			wxDateTime const seriesStartDate(
+				day, wxDateTime::Month(month - 1), year);
+			if (!seriesStartDate.IsValid()) throw Exception("invalid start date");
+			if (!startDate.IsValid()) {
+				startDate = seriesStartDate;
+			}
+			else if (!startDate.IsSameDate(seriesStartDate)) {
+				throw Exception("start date does not match the other trend files");
+			}
+
+			if (!std::getline(file, line)) throw Exception("missing percentile legend");
+			series.timePoint.clear();
+			while (std::getline(file, line)) {
+				if (line.empty()) continue;
+				auto trendVals = splitString(line, ",");
+				if (trendVals.size() < Spread::Size + 2) {
+					throw Exception("trend row has too few percentile values");
+				}
+				Spread spread;
+				float previousValue = -std::numeric_limits<float>::infinity();
+				for (int percentile = 0; percentile < Spread::Size; ++percentile) {
+					float const value = std::stof(trendVals[percentile + 2]);
+					if (!std::isfinite(value) || value < 0.0f || value > 100.0f) {
+						throw Exception("trend values must be finite and in [0, 100]");
+					}
+					if (value < previousValue) {
+						throw Exception("trend percentiles are not ordered");
+					}
+					spread.values[percentile] = value;
+					previousValue = value;
+				}
+				series.timePoint.push_back(spread);
+			}
+			if (series.timePoint.empty()) throw Exception("trend series contains no days");
+			if (!expectedSeriesLength) {
+				expectedSeriesLength = int(series.timePoint.size());
+			}
+			else if (int(series.timePoint.size()) != expectedSeriesLength) {
+				throw Exception("trend length does not match the other trend files");
+			}
+		}
+		catch (std::exception const& e) {
+			feedback("Could not parse " + filename + ": " + e.what());
+			return false;
+		}
+		return true;
+	};
+
 	for (auto partyCode : partyCodeVec) {
 		auto& series = rawSupport[partyCode]; // this needs to go here so that the Unnamed Others series is generated later on
 		if (partyCode == EmergingOthersCode) continue;
 		if (partyCode == UnnamedOthersCode) continue;
 		std::string filename = "analysis/Outputs/fp_trend_"
 			+ termCode + "_" + partyCode + " FP.csv";
-		auto file = std::ifstream(filename);
-		if (!file) {
-			feedback("Could not load file: " + filename);
-			return false;
-		}
-		series.timePoint.clear();
-		std::string line;
-		std::getline(file, line); // first line is just a legend, skip it
-		std::getline(file, line);
-		if (!startDate.IsValid()) {
-			auto dateVals = splitString(line, ",");
-			startDate = wxDateTime(std::stoi(dateVals[0]),
-				wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
-		}
-		std::getline(file, line); // this line is just a legend, skip it
-		do {
-			std::getline(file, line);
-			if (!file) break;
-			auto trendVals = splitString(line, ",");
-			series.timePoint.push_back(Spread());
-			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-				series.timePoint.back().values[percentile]
-					= std::stof(trendVals[percentile + 2]);
-			}
-		} while (true);
+		if (!loadTrendSeries(filename, series)) return false;
 	}
 	{
-		auto& series = rawTppSupport;
 		std::string filename = "analysis/Outputs/fp_trend_"
 			+ termCode + "_@TPP.csv";
-		auto file = std::ifstream(filename);
-		if (!file) {
-			feedback("Could not load file: " + filename);
-			return false;
-		}
-		series.timePoint.clear();
-		std::string line;
-		std::getline(file, line); // first line is just a legend, skip it
-		std::getline(file, line);
-		if (!startDate.IsValid()) {
-			auto dateVals = splitString(line, ",");
-			startDate = wxDateTime(std::stoi(dateVals[0]),
-				wxDateTime::Month(std::stoi(dateVals[1]) - 1), std::stoi(dateVals[2]));
-		}
-		std::getline(file, line); // this line is just a legend, skip it
-		do {
-			std::getline(file, line);
-			if (!file) break;
-			auto trendVals = splitString(line, ",");
-			series.timePoint.push_back(Spread());
-			for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-				series.timePoint.back().values[percentile]
-					= std::stof(trendVals[percentile + 2]);
-			}
-		} while (true);
+		if (!loadTrendSeries(filename, rawTppSupport)) return false;
 		PA_LOG_VAR(startDate.FormatISOCombined());
-		PA_LOG_VAR(series.timePoint.size());
+		PA_LOG_VAR(rawTppSupport.timePoint.size());
 	}
 	return true;
 }
 
 int StanModel::rawSupportDayOffset(wxDateTime date) const
 {
-	int const finalOffset = int(rawSupport.begin()->second.timePoint.size()) - 1;
+	int const finalOffset = int(rawTppSupport.timePoint.size()) - 1;
+	if (finalOffset < 0) return 0;
 	if (!date.IsValid()) return finalOffset;
 	int const requestedOffset = int(date.Subtract(startDate).GetDays());
 	return std::clamp(requestedOffset, 0, finalOffset);
@@ -597,7 +781,7 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 	int const dayOffset = rawSupportDayOffset(date);
 	SupportSample sample;
 	int index = 0;
-	for (auto [key, support] : rawSupport) {
+	for (auto const& [key, support] : rawSupport) {
 		++index;
 		if (key == EmergingOthersCode) {
 			sample.voteShare.insert({ key, 0.0 });
@@ -608,8 +792,11 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 		float quantile = mirroredQuantile(
 			iterationIndex, uint32_t(VariabilityTag::FpRawSupport), index);
 
-		int lowerBucket = std::clamp(int(floor(quantile * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
-		float upperMix = std::fmod(quantile * float(Spread::Size - 1), 1.0f);
+		float const spreadPosition = std::clamp(quantile, 0.0f, 1.0f) *
+			float(Spread::Size - 1);
+		int lowerBucket = std::clamp(
+			int(std::floor(spreadPosition)), 0, int(Spread::Size) - 2);
+		float upperMix = spreadPosition - float(lowerBucket);
 		float lowerVote = support.timePoint[dayOffset].values[lowerBucket];
 		float upperVote = support.timePoint[dayOffset].values[lowerBucket + 1];
 		float sampledVote = mix(lowerVote, upperVote, upperMix);
@@ -621,8 +808,11 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 	float quantile = mirroredQuantile(
 		iterationIndex, uint32_t(VariabilityTag::TppRawSupport), index);
 
-	int lowerBucket = std::clamp(int(floor(quantile * float(Spread::Size - 1))), 0, int(Spread::Size) - 2);
-	float upperMix = std::fmod(quantile * float(Spread::Size - 1), 1.0f);
+	float const spreadPosition = std::clamp(quantile, 0.0f, 1.0f) *
+		float(Spread::Size - 1);
+	int lowerBucket = std::clamp(
+		int(std::floor(spreadPosition)), 0, int(Spread::Size) - 2);
+	float upperMix = spreadPosition - float(lowerBucket);
 	float lowerVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket];
 	float upperVote = rawTppSupport.timePoint[dayOffset].values[lowerBucket + 1];
 	float sampledVote = mix(lowerVote, upperVote, upperMix);
@@ -644,6 +834,8 @@ StanModel::SupportSample StanModel::generateAdjustedSupportSample(wxDateTime dat
 void StanModel::generateUnnamedOthersSeries()
 {
 	if (rawSupport.count(OthersCode) && rawSupport.count(UnnamedOthersCode)) {
+		auto& unnamedOthers = rawSupport[UnnamedOthersCode].timePoint;
+		unnamedOthers.clear();
 		for (int time = 0; time < int(rawSupport[OthersCode].timePoint.size()); ++time) {
 			float namedMinorTotal = 0.0f;
 			for (auto const& [code, series] : rawSupport) {
@@ -659,7 +851,7 @@ void StanModel::generateUnnamedOthersSeries()
 			for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
 				spread.values[percentile] = rawSupport[OthersCode].timePoint[time].values[percentile] * proportion;
 			}
-			rawSupport[UnnamedOthersCode].timePoint.push_back(spread);
+			unnamedOthers.push_back(spread);
 		}
 	}
 }
@@ -669,10 +861,10 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 	int days, int iterationIndex) const
 {
 	constexpr int MinDays = 0;
-	// the "days" parameter used for trend adjustment calculation is the number of days to the end
-	// of the series, not the election itself - and the typical series ends 3 days before the election proper
-	// So, reduce the number of days by 3 so that it's approximating the "end of series" since that's what the
-	// adjustment model is trained on (in the average case)
+	if (numDays <= 0) throw Exception("No adjustment days are available.");
+	// Adjustment files are indexed to the end of their trend series rather than
+	// election day. Historical series typically stop about three days beforehand;
+	// the established four-day offset aligns the runtime index with that training data.
 	constexpr int DaysOffset = 4;
 	days = std::clamp(days - DaysOffset, MinDays, numDays - 1);
 	auto sample = rawSupportSample;
@@ -688,7 +880,10 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 		++index;
 		if (key == EmergingOthersCode) continue;
 		if (!tppFirst && key == TppCode) continue;
-		double transformedPolls = transformVoteShare(double(voteShare));
+		// Some historical trend tails are exactly zero. Keep the raw series intact,
+		// but avoid passing a boundary value through the logit transform.
+		double const transformedPolls = transformVoteShare(
+			std::clamp(double(voteShare), 0.001, 99.999));
 
 		const std::string partyGroup = reversePartyGroups.at(key);
 		ParameterSet const parameterSet = interpolatedParameters(
@@ -734,57 +929,14 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 		else {
 			double newVoteShare = detransformVoteShare(mixedDebiasedVote);
 			voteShare = float(newVoteShare);
-
-			//if ((key == "ALP" || key == "LNP") && days == 0) {
-			//	std::lock_guard lock(debugMutex);
-			//	PA_LOG_VAR(days);
-			//	PA_LOG_VAR(voteShare);
-			//	PA_LOG_VAR(partyGroup);
-			//	PA_LOG_VAR(transformedPolls);
-			//	PA_LOG_VAR(pollBiasToday);
-			//	PA_LOG_VAR(debiasedPolls);
-			//	PA_LOG_VAR(fundamentalsPrediction);
-			//	PA_LOG_VAR(fundamentalsBiasToday);
-			//	PA_LOG_VAR(debiasedFundamentalsAverage);
-			//	PA_LOG_VAR(mixFactor);
-			//	PA_LOG_VAR(mixedVoteShare);
-			//	PA_LOG_VAR(mixedBiasToday);
-			//	PA_LOG_VAR(mixedDebiasedVote);
-			//	PA_LOG_VAR(newVoteShare);
-			//	PA_LOG_VAR(voteShare);
-			//}
 		}
 	}
 
 	addEmergingOthers(sample, days, iterationIndex);
 	if (!tppFirst) {
-		//if (days == 0) {
-		//	std::lock_guard lock(debugMutex);
-		//	PA_LOG_VAR("Checkpoint A");
-		//	PA_LOG_VAR(sample.voteShare["ALP"]);
-		//	PA_LOG_VAR(sample.voteShare["LNP"]);
-		//}
 		normaliseSample(sample);
-		//if (days == 0) {
-		//	std::lock_guard lock(debugMutex);
-		//	PA_LOG_VAR("Checkpoint A");
-		//	PA_LOG_VAR(sample.voteShare["ALP"]);
-		//	PA_LOG_VAR(sample.voteShare["LNP"]);
-		//}
 		updateOthersValue(sample);
-		//if (days == 0) {
-		//	std::lock_guard lock(debugMutex);
-		//	PA_LOG_VAR("Checkpoint A");
-		//	PA_LOG_VAR(sample.voteShare["ALP"]);
-		//	PA_LOG_VAR(sample.voteShare["LNP"]);
-		//}
 		generateTppForSample(sample, iterationIndex);
-		//if (days == 0) {
-		//	std::lock_guard lock(debugMutex);
-		//	PA_LOG_VAR("Checkpoint A");
-		//	PA_LOG_VAR(sample.voteShare["ALP"]);
-		//	PA_LOG_VAR(sample.voteShare["LNP"]);
-		//}
 	}
 	else {
 		normaliseSample(sample);
@@ -795,12 +947,15 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 	return sample;
 }
 
-void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
+bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 {
-	int numIterations = 400;
-	adjustedSupport.clear(); // do this first as it should not be left with previous data
+	constexpr int BaseIterations = 400;
+	numThreads = std::max(1, numThreads);
+	adjustedSupport.clear(); // Never retain adjusted values from a previous run.
+	tppSupport.timePoint.clear();
 	try {
-		int seriesLength = rawSupport.begin()->second.timePoint.size();
+		int const seriesLength = int(rawTppSupport.timePoint.size());
+		if (!seriesLength) throw Exception("Raw trend data contains no time points.");
 		for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 			std::string partyName = partyCodeVec[partyIndex];
 			adjustedSupport[partyName] = Series();
@@ -813,10 +968,11 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
 					wxDateTime thisDate = startDate;
-					// Add 12 hours to avoid DST related shenanigans
+					// Move away from midnight to avoid crossing a day during DST changes.
 					thisDate.Add(wxTimeSpan(4)).Add(wxDateSpan(0, 0, 0, time));
 					// Extra accuracy for the final data point, since it's much more important than the rest
-					int localIterations = time == seriesLength - 1 ? numIterations * 100 : numIterations;
+					int const localIterations = time == seriesLength - 1
+						? BaseIterations * 100 : BaseIterations;
 					std::vector<std::vector<float>> samples(partyCodeVec.size(), std::vector<float>(localIterations));
 					std::vector<float> tppSamples(localIterations);
 					for (int iteration = 0; iteration < localIterations; ++iteration) {
@@ -826,35 +982,36 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 							thisDate, 0, iteration);
 						for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 							std::string partyName = partyCodeVec[partyIndex];
-							if (sample.voteShare.count(partyName)) {
-								samples[partyIndex][iteration] = sample.voteShare[partyName];
-							}
-							if (sample.voteShare.count(TppCode)) {
-								tppSamples[iteration] = sample.voteShare[TppCode];
-							}
+							samples[partyIndex][iteration] = sample.voteShare.at(partyName);
 						}
+						tppSamples[iteration] = sample.voteShare.at(TppCode);
 					}
 					for (int partyIndex = 0; partyIndex < int(partyCodeVec.size()); ++partyIndex) {
 						std::string partyName = partyCodeVec[partyIndex];
 						std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
 						for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-							int sampleIndex = std::min(localIterations - 1, percentile * localIterations / int(Spread::Size));
-							adjustedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
+							int const sampleIndex = int(std::lround(
+								double(percentile) * double(localIterations - 1) /
+								double(Spread::Size - 1)));
+							adjustedSupport.at(partyName).timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
 						}
 					}
 					std::sort(tppSamples.begin(), tppSamples.end());
 					for (int percentile = 0; percentile < Spread::Size; ++percentile) {
-						int sampleIndex = std::min(localIterations - 1, percentile * localIterations / int(Spread::Size));
+						int const sampleIndex = int(std::lround(
+							double(percentile) * double(localIterations - 1) /
+							double(Spread::Size - 1)));
 						tppSupport.timePoint[time].values[percentile] = tppSamples[sampleIndex];
 					}
 				}
 			};
-			std::vector<std::thread> threads;
+			std::vector<std::future<void>> workers;
 			for (int timeStart = timeStart1; timeStart < timeStart1 + numThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
-				threads.push_back(std::thread(std::bind(calculateTimeSupport, timeStart)));
+				workers.push_back(std::async(
+					std::launch::async, calculateTimeSupport, timeStart));
 			}
-			for (auto& thread : threads) {
-				if (thread.joinable()) thread.join();
+			for (auto& worker : workers) {
+				worker.get();
 			}
 		}
 
@@ -865,11 +1022,14 @@ void StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 		tppSupport.smooth(ModelSmoothingDays);
 	}
 
-	catch (std::logic_error& e) {
-		feedback(std::string("Warning: Mean and/or deviation adjustments not valid, skipping adjustment phase\n") + 
+	catch (std::logic_error const& e) {
+		feedback(std::string("Warning: Model adjustments could not be generated.\n") +
 			"Specific information: " + e.what());
-		return;
+		adjustedSupport.clear();
+		tppSupport.timePoint.clear();
+		return false;
 	}
+	return true;
 }
 
 void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days, int iterationIndex) const
@@ -882,20 +1042,26 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days, in
 	// Guessed values for a curve that makes the chance of a new party emerging
 	// decrease approaching election day. E.g. 100 days out it is halved, on election day it's about 16%
 	double emergenceChance = baseEmergenceRate * (1.0 - 1.0 / (double(days) * 0.01 + 1.2));
-	double quantile = variabilityUniform(
+	double const emergenceQuantile = variabilityUniform(
 		0.0f, 1.0f, 0, 0,
 		uint32_t(VariabilityTag::EmergingOthers), iterationIndex);
-	if (quantile > emergenceChance) {
+	if (emergenceQuantile > emergenceChance) {
 		sample.voteShare[EmergingOthersCode] = 0.0;
 		return;
 	}
 	// As above, but slightly different numbers and the curve takes longer to drop.
 	double rmse = baseEmergenceRmse * (1.0 - 1.0 / (double(days) * 0.03 + 1.4));
+	double const sizeQuantile = variabilityUniform(
+		0.0f, 1.0f, 0, 0,
+		uint32_t(VariabilityTag::EmergingOthersSize), iterationIndex);
 	double emergingOthersFpTargetTransformed = transformedThreshold
-		+ abs(RandomGenerator::flexibleDist(
-			0.0, rmse, rmse, kurtosis, kurtosis, quantile));
-	double emergingOthersFpTarget = detransformVoteShare(emergingOthersFpTargetTransformed);
-	// The normalisation procedure will reduce the value of 
+		+ std::abs(RandomGenerator::flexibleDist(
+			0.0, rmse, rmse, kurtosis, kurtosis, sizeQuantile));
+	constexpr double MaxEmergingPartyFpShare = 99.0;
+	double emergingOthersFpTarget = std::min(
+		detransformVoteShare(emergingOthersFpTargetTransformed),
+		MaxEmergingPartyFpShare);
+	// Correct for the reduction that will occur when the full sample is normalised.
 	double correctedFp = 100.0 * emergingOthersFpTarget / (100.0 - emergingOthersFpTarget);
 	sample.voteShare[EmergingOthersCode] = correctedFp;
 }
@@ -921,8 +1087,14 @@ void StanModel::normaliseSample(StanModel::SupportSample& sample)
 {
 	float sampleSum = std::accumulate(sample.voteShare.begin(), sample.voteShare.end(), 0.0f,
 		[](float a, decltype(sample.voteShare)::value_type b) {
+			if (!std::isfinite(b.second) || b.second < 0.0f) {
+				throw Exception("Vote sample contains an invalid party share.");
+			}
 			return (b.first == OthersCode || b.first == TppCode ? a : a + b.second); }
 		);
+	if (!std::isfinite(sampleSum) || sampleSum <= 0.0f) {
+		throw Exception("Vote sample cannot be normalised.");
+	}
 	float sampleAdjust = 100.0f / sampleSum;
 	for (auto& vote : sample.voteShare) {
 		if (vote.first != TppCode) {
@@ -935,35 +1107,47 @@ void StanModel::generateTppForSample(StanModel::SupportSample& sample, int itera
 {
 	float partyOneTpp = 0.0f;
 	float totalTpp = 0.0f;
-	for (auto [key, support] : sample.voteShare) {
-		if (key == OthersCode) continue;
-		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) continue;
-		float flow = preferenceFlowMap.at(key); // this is expressed textually as a percentage, convert to a proportion here
-		float deviation = preferenceDeviationMap.at(key);
+	int partyIndex = 0;
+	for (auto const& [key, support] : sample.voteShare) {
+		int const variationIndex = partyIndex++;
+		if (key == OthersCode || key == TppCode) continue;
+		float flow = preferenceFlowMap.at(key) * 0.01f;
+		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
 		float randomPreferenceVariation = 0.0f;
 		if (historicalSamples >= 2) {
 			float quantile = variabilityUniform(
-				0.0f, 1.0f, 0, 0,
+				0.0f, 1.0f, variationIndex, 0,
 				uint32_t(VariabilityTag::TppPreferenceFlow), iterationIndex);
 			randomPreferenceVariation = RandomGenerator::scaledTdistQuantile(
 				int(std::floor(historicalSamples)) - 1, quantile,
 				0.0f, deviation);
 		}
-		float randomisedFlow = basicTransformedSwing(flow, randomPreferenceVariation);
+		float randomisedFlow = randomPreferenceVariation == 0.0f
+			? flow
+			: basicTransformedSwing(
+				flow * 100.0f, randomPreferenceVariation * 100.0f) * 0.01f;
+		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		// distribution approximately taken from NSW elections
 		float quantile = variabilityUniform(
-			0.0f, 1.0f, 0, 0,
+			0.0f, 1.0f, variationIndex, 0,
 			uint32_t(VariabilityTag::TppExhaustRate), iterationIndex);
 		float randomExhaustVariation =
 			RandomGenerator::scaledTdistQuantile(
 				6, quantile, 0.0f, 0.054f);
-		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
-		sample.preferenceFlow.insert({ key, randomisedFlow });
-		sample.exhaustRate.insert({ key, randomisedExhaustRate });
-		partyOneTpp += support * randomisedFlow * 0.01f * (1.0f - randomisedExhaustRate);
+		float randomisedExhaustRate = exhaustRate
+			? basicTransformedSwing(
+				exhaustRate * 100.0f, randomExhaustVariation * 100.0f) * 0.01f
+			: 0.0f;
+		randomisedExhaustRate = std::clamp(randomisedExhaustRate, 0.0f, 1.0f);
+		sample.preferenceFlow[key] = randomisedFlow * 100.0f;
+		sample.exhaustRate[key] = randomisedExhaustRate;
+		partyOneTpp += support * randomisedFlow * (1.0f - randomisedExhaustRate);
 		totalTpp += support * (1.0f - randomisedExhaustRate);
+	}
+	if (!std::isfinite(totalTpp) || totalTpp <= 0.0f) {
+		throw Exception("No non-exhausted votes were available to calculate TPP.");
 	}
 	sample.voteShare[TppCode] = partyOneTpp * (100.0f / totalTpp);
 }
@@ -974,17 +1158,18 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample, int i
 	float totalFp = 0.0f;
 	float exhaustedFp = 0.0f;
 	// First add up all party-one preference from minor parties
-	for (auto [key, support] : sample.voteShare) {
+	int partyIndex = 0;
+	for (auto const& [key, support] : sample.voteShare) {
+		int const variationIndex = partyIndex++;
 		if (key == OthersCode) continue;
 		if (key == TppCode || key == partyCodeVec[0] || key == partyCodeVec[1]) continue;
-		if (!preferenceFlowMap.count(key) || !preferenceDeviationMap.count(key) || !preferenceSamplesMap.count(key)) continue;
 		float flow = preferenceFlowMap.at(key) * 0.01f; // this is expressed textually as a percentage, convert to a proportion here
 		float deviation = preferenceDeviationMap.at(key) * 0.01f;
 		float historicalSamples = preferenceSamplesMap.at(key);
 		float randomVariation = 0.0f;
 		if (historicalSamples >= 2) {
 			float quantile = variabilityUniform(
-				0.0f, 1.0f, 0, 0,
+				0.0f, 1.0f, variationIndex, 0,
 				uint32_t(VariabilityTag::MajorFpPreferenceFlow),
 				iterationIndex);
 			randomVariation = RandomGenerator::scaledTdistQuantile(
@@ -992,19 +1177,26 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample, int i
 				0.0f, deviation);
 		}
 
-		float randomisedFlow = basicTransformedSwing(flow, randomVariation);
+		float randomisedFlow = randomVariation == 0.0f
+			? flow
+			: basicTransformedSwing(
+				flow * 100.0f, randomVariation * 100.0f) * 0.01f;
 		randomisedFlow = std::clamp(randomisedFlow, 0.0f, 1.0f);
 		float exhaustRate = preferenceExhaustMap.at(key) * 0.01f;
 		// distribution approximately taken from NSW elections
 		float quantile = variabilityUniform(
-			0.0f, 1.0f, 0, 0,
+			0.0f, 1.0f, variationIndex, 0,
 			uint32_t(VariabilityTag::FpExhaustRate), iterationIndex);
 		float randomExhaustVariation =
 			RandomGenerator::scaledTdistQuantile(
 				6, quantile, 0.0f, 0.054f);
-		float randomisedExhaustRate = exhaustRate ? basicTransformedSwing(exhaustRate, randomExhaustVariation) : 0.0f;
-		sample.preferenceFlow.insert({ key, randomisedFlow * 100.0f });
-		sample.exhaustRate.insert({ key, randomisedExhaustRate });
+		float randomisedExhaustRate = exhaustRate
+			? basicTransformedSwing(
+				exhaustRate * 100.0f, randomExhaustVariation * 100.0f) * 0.01f
+			: 0.0f;
+		randomisedExhaustRate = std::clamp(randomisedExhaustRate, 0.0f, 1.0f);
+		sample.preferenceFlow[key] = randomisedFlow * 100.0f;
+		sample.exhaustRate[key] = randomisedExhaustRate;
 		partyOneTpp += support * randomisedFlow * (1.0f - randomisedExhaustRate);
 		totalFp += support;
 		exhaustedFp += support * randomisedExhaustRate;
@@ -1017,6 +1209,9 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample, int i
 	// the preference points already supplied by minor parties. The preference
 	// contribution is already net of exhaustion and must not be scaled again.
 	float targetTpp = sample.voteShare[TppCode];
+	if (!std::isfinite(targetTpp) || targetTpp <= 0.0f || targetTpp >= 100.0f) {
+		throw Exception("TPP target must be between 0 and 100.");
+	}
 	float const nonExhaustedFp = 100.0f - exhaustedFp;
 	float partyOneFp =
 		targetTpp * nonExhaustedFp * 0.01f -
@@ -1047,9 +1242,13 @@ void StanModel::generateMajorFpForSample(StanModel::SupportSample& sample, int i
 
 void StanModel::Series::smooth(int smoothingFactor)
 {
+	if (timePoint.empty()) return;
+	smoothingFactor = std::max(0, smoothingFactor);
 	Series newSeries = *this;
 	for (int index = 0; index < int(timePoint.size()); ++index) {
-		int thisSmoothing = std::min(smoothingFactor, std::min(std::abs(index), std::abs(int(timePoint.size()) - index - 1)));
+		int const thisSmoothing = std::min(
+			smoothingFactor,
+			std::min(index, int(timePoint.size()) - index - 1));
 		for (int percentile = 0; percentile < Spread::Size; ++percentile) {
 			double numerator = 0.0f;
 			double denominator = 0.0f;
@@ -1210,6 +1409,7 @@ bool StanModel::dumpGeneratedData(std::string filename) const {
 }
 
 bool StanModel::loadGeneratedData(std::string filename) {
+	readyForProjection = false;
 	std::ifstream file(filename, std::ios::binary);
 	if (!file) return false;
 
@@ -1231,7 +1431,7 @@ bool StanModel::loadGeneratedData(std::string filename) {
 		size_t size;
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
 		str.resize(size);
-		file.read(&str[0], size);
+		if (size) file.read(str.data(), size);
 	};
 	
 	auto readPartyParameters = [&file, &readString](PartyParameters& params) {
@@ -1394,11 +1594,16 @@ bool StanModel::loadGeneratedData(std::string filename) {
 	readPartyParameters(preferenceDeviationMap);
 	readPartyParameters(preferenceSamplesMap);
 	
-	// Read readyForProjection flag
-	file.read(reinterpret_cast<char*>(&readyForProjection), 
-			  sizeof(readyForProjection));
-	
-	return bool(file);
+	// Only expose the loaded model after the whole cache has been read.
+	bool loadedReadyForProjection = false;
+	file.read(reinterpret_cast<char*>(&loadedReadyForProjection),
+			  sizeof(loadedReadyForProjection));
+	if (!file || numDays <= 0 || partyCodeVec.size() < 2 ||
+		rawTppSupport.timePoint.empty()) {
+		return false;
+	}
+	readyForProjection = loadedReadyForProjection;
+	return true;
 }
 
 float StanModel::variabilityUniform(float low, float high, int itemIndex, std::uint64_t partyId, std::uint32_t tag, int iterationIndex) const {
