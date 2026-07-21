@@ -8,9 +8,11 @@
 #include <wx/datetime.h>
 
 #include <array>
-#include <list>
-#include <numeric>
-#include <random>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 const int NumProbabilityBoundIndices = 8;
@@ -45,7 +47,7 @@ public:
 		};
 
 		// User-defined name.
-		std::string name = "";
+		std::string name;
 
 		// Election codes (e.g. fed2019) for previous elections, most recent first
 		std::vector<std::string> prevTermCodes;
@@ -92,7 +94,7 @@ public:
 		// by itself but can do so with the support parties considered highly likely to be favourable
 		std::map<int, float> minorityPercent;
 
-		// Proportion of times the party doesn't make get enough support from favourable parties
+		// Proportion of times the party doesn't get enough support from favourable parties
 		// but still has more seats than any other party
 		std::map<int, float> mostSeatsPercent;
 
@@ -274,7 +276,7 @@ public:
 
 		float getTppSampleMedian() const;
 
-		// Get the given percentile for this party's overall primary vote.
+		// Get the given percentile for the party-one two-party-preferred vote.
 		// Percentile should be expressed as a percentage e.g. median as 50.0f.
 		float getTppSamplePercentile(float percentile) const;
 
@@ -284,7 +286,7 @@ public:
 
 		float getCoalitionFpSampleMedian() const;
 
-		// Get the given percentile for this party's overall primary vote.
+		// Get the given percentile for the combined Coalition primary vote.
 		// Percentile should be expressed as a percentage e.g. median as 50.0f.
 		float getCoalitionFpSamplePercentile(float percentile) const;
 
@@ -295,7 +297,7 @@ public:
 
 		SaveablePolls getSaveablePolls() const;
 
-		void retrieveSaveablePolls(SaveablePolls saveablePolls);
+		void retrieveSaveablePolls(SaveablePolls const& saveablePolls);
 	};
 
 	struct SavedReport {
@@ -306,10 +308,9 @@ public:
 
 	typedef std::vector<SavedReport> SavedReports;
 
-	Simulation()
-	{}
+	Simulation() = default;
 
-	Simulation(Settings settings) : settings(settings)
+	Simulation(Settings settings) : settings(std::move(settings))
 	{}
 
 	void run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
@@ -369,7 +370,6 @@ private:
 	std::map<std::pair<int, int>, float> cachedOddsInputs;
 	int cachedOddsIterations = 0;
 
-	//std::unique_ptr<SimulationRun> latestRun;
 	std::shared_ptr<SimulationRun> latestRun;
 
 	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.

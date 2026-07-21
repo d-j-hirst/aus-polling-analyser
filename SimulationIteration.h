@@ -51,28 +51,15 @@ private:
 	void prepareFpsForNormalisation(int seatIndex);
 	void determineSeatEmergingParties(int seatIndex);
 	void determineNationalsShare(int seatIndex);
-	struct MajorPartyFpDiagnostics {
-		float availableMajorFp = 0.0f;
+	struct MajorPartyFpAllocation {
 		float nonExhaustedVote = 0.0f;
-		float partyOnePreferences = 0.0f;
-		float partyTwoPreferences = 0.0f;
 		float directPartyOneFp = 0.0f;
 		float directPartyTwoFp = 0.0f;
-		float transformedPartyOneFp = 0.0f;
-		float transformedPartyTwoFp = 0.0f;
-		float preNormalisationPartyOneFp = 0.0f;
-		float preNormalisationPartyTwoFp = 0.0f;
-		float originalPartyOneTpp = 0.0f;
-		float adjustedPartyOneTpp = 0.0f;
-		int compatibilityPasses = 0;
-		bool usedDirectAllocation = false;
 	};
-	void allocateMajorPartyFp(
+	MajorPartyFpAllocation allocateMajorPartyFp(
 		int seatIndex,
-		float preferenceFlowDeviation = 0.0f,
-		MajorPartyFpDiagnostics* diagnostics = nullptr);
-	void allocateMajorPartyFpsWithCompatibleTpp(
-		std::vector<MajorPartyFpDiagnostics>* diagnostics = nullptr);
+		float preferenceFlowDeviation = 0.0f);
+	void allocateMajorPartyFpsWithCompatibleTpp();
 	void normaliseSeatFp(int seatIndex, int fixedParty = -10000, float fixedVote = 0.0f);
 	void reconcileSeatAndOverallFp();
 	void calculateNewFpVoteTotals(
@@ -80,14 +67,9 @@ private:
 		std::map<int, float> const* preTerminalFp = nullptr,
 		float preTerminalFpError = 0.0f);
 	void calculatePreferenceCorrections();
-	void applyCorrectionsToSeatFps(int reconciliationCycle);
+	void applyCorrectionsToSeatFps();
 	void correctMajorPartyFpBias(bool accountForSeatNormalisation = false);
 	void solveTerminalFpReconciliation();
-	std::map<int, float> calculateCurrentFpTotalsForDiagnostics() const;
-	void logDetailedFpReconciliationStage(
-		int reconciliationCycle,
-		std::string const& stage,
-		std::map<int, float> const& totals) const;
 	void incorporateLiveResults();
 	void determineSeatFinalResult(int seatIndex);
 	void assignNationalsVotes(int seatIndex, bool updateFromLive = true);

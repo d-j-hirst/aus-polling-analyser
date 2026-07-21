@@ -1,25 +1,114 @@
 #include "Simulation.h"
 
-#include "CountProgress.h"
 #include "General.h"
 #include "Log.h"
-#include "Party.h"
 #include "PollingProject.h"
-#include "Projection.h"
-#include "Region.h"
+#include "ProjectionCollection.h"
 #include "SpecialPartyCodes.h"
+
 #include <algorithm>
+#include <cmath>
+#include <numeric>
+#include <sstream>
+#include <tuple>
+#include <utility>
 
 #undef min
 #undef max
 
 using Mp = Simulation::MajorParty;
 
-const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = { 0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f };
+namespace {
+	using FrequencyDistribution = std::map<short, int>;
 
-void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedback)
+	int sampleCount(FrequencyDistribution const& frequency)
+	{
+		return std::accumulate(
+			frequency.begin(), frequency.end(), 0,
+			[](int sum, auto const& bucket) {
+				return sum + bucket.second;
+			});
+	}
+
+	float sampleExpectation(FrequencyDistribution const& frequency)
+	{
+		int const totalCount = sampleCount(frequency);
+		if (!totalCount) return 0.0f;
+		float const total = std::accumulate(
+			frequency.begin(), frequency.end(), 0.0f,
+			[](float sum, auto const& bucket) {
+				return sum + float(bucket.second) *
+					(float(bucket.first) * 0.1f + 0.05f);
+			});
+		return total / float(totalCount);
+	}
+
+	float samplePercentile(
+		FrequencyDistribution const& frequency, float percentile)
+	{
+		int const totalCount = sampleCount(frequency);
+		if (!totalCount) return 0.0f;
+		percentile = std::clamp(percentile, 0.0f, 100.0f);
+		int const targetCount =
+			int(std::floor(float(totalCount) * percentile * 0.01f));
+		int currentCount = 0;
+		for (auto const& [bucketKey, bucketCount] : frequency) {
+			int const previousCount = currentCount;
+			currentCount += bucketCount;
+			if (currentCount > targetCount) {
+				float const fractionThroughBucket =
+					float(targetCount - previousCount) /
+					float(currentCount - previousCount);
+				return float(bucketKey) * 0.1f +
+					fractionThroughBucket * 0.1f;
+			}
+		}
+		return std::min(100.0f, float(frequency.rbegin()->first) * 0.1f + 0.1f);
+	}
+
+	int seatCountPercentile(
+		std::vector<int> const& frequency, float percentile)
+	{
+		int const totalCount =
+			std::accumulate(frequency.begin(), frequency.end(), 0);
+		if (!totalCount || frequency.empty()) return 0;
+		percentile = std::clamp(percentile, 0.0f, 100.0f);
+		int const targetCount =
+			int(std::floor(float(totalCount) * percentile * 0.01f));
+		int currentCount = 0;
+		for (int seatCount = 0; seatCount < int(frequency.size()); ++seatCount) {
+			currentCount += frequency[seatCount];
+			if (currentCount > targetCount) return seatCount;
+		}
+		return int(frequency.size()) - 1;
+	}
+
+	float nonMajorOutcomePercent(std::map<int, float> const& outcomes)
+	{
+		return std::accumulate(
+			outcomes.begin(), outcomes.end(), 0.0f,
+			[](float total, auto const& outcome) {
+				return total +
+					(outcome.first == Mp::One || outcome.first == Mp::Two ?
+						0.0f : outcome.second);
+			});
+	}
+}
+
+const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = {
+	0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f,
+	75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f
+};
+
+void Simulation::run(PollingProject& project, SimulationRun::FeedbackFunc feedback)
 {
-	auto const& baseModel = project.projections().view(settings.baseProjection).getBaseModel(project.models());
+	if (project.projections().idToIndex(settings.baseProjection) ==
+		ProjectionCollection::InvalidIndex) {
+		feedback("The simulation does not have a valid base projection.");
+		return;
+	}
+	auto const& baseModel = project.projections()
+		.view(settings.baseProjection).getBaseModel(project.models());
 	if (!baseModel.isReadyForProjection()) {
 		feedback("The base model (" + baseModel.getName() + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
 		return;
@@ -33,52 +122,73 @@ void Simulation::run(PollingProject & project, SimulationRun::FeedbackFunc feedb
 
 void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback)
 {
-	typedef std::tuple<int, int, float> Change;
+	using Change = std::tuple<int, int, float>;
 	std::vector<Change> changes; // seat, party, change
 	if (previousLiveSeats.size() < latestReport.seatPartyWinPercent.size()) {
 		previousLiveSeats.resize(latestReport.seatPartyWinPercent.size());
 	}
-	int indPartyIndex = project.parties().indexByShortCode("IND");
+	int const indPartyIndex = project.parties().indexByShortCode("IND");
+	bool const hasIndependentParty = indPartyIndex >= 0;
 	for (int seatIndex = 0; seatIndex < int(latestReport.seatPartyWinPercent.size()); ++seatIndex) {
 		for (auto const& [partyIndex, winFrequency] : latestReport.seatPartyWinPercent[seatIndex]) {
-			if (partyIndex == indPartyIndex && !previousLiveSeats[seatIndex].contains(indPartyIndex) &&
+			if (hasIndependentParty && partyIndex == indPartyIndex &&
+				!previousLiveSeats[seatIndex].contains(indPartyIndex) &&
 				previousLiveSeats[seatIndex].contains(EmergingIndIndex)) {
 				// Special case where an emerging ind gets promoted to a normal ind, can handle this
 				float percentShift = winFrequency - previousLiveSeats[seatIndex][EmergingIndIndex];
-				if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
+				if (std::abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
 				continue;
 			}
 			else if (!previousLiveSeats[seatIndex].contains(partyIndex)) {
 				if (previousLiveSeats[seatIndex].size()) {
 					float percentShift = winFrequency;
-					if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
+					if (std::abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
 				}
 				continue;
 			}
 			float percentShift = winFrequency - previousLiveSeats[seatIndex][partyIndex];
-			if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
+			if (std::abs(percentShift) > 0.1f) changes.push_back({ seatIndex, partyIndex, percentShift });
 		}
-		if (previousLiveSeats[seatIndex].contains(indPartyIndex) &&	!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
-			// Special case where an emerging ind gets promoted to a normal ind, can handle this
+		if (hasIndependentParty &&
+			previousLiveSeats[seatIndex].contains(indPartyIndex) &&
+			!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
+			// An established independent is a reportable party even when its new
+			// probability map has no entry for the resulting zero.
 			float percentShift = -previousLiveSeats[seatIndex][indPartyIndex];
-			if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
-			continue;
+			if (std::abs(percentShift) > 0.1f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
 		}
-		if (previousLiveSeats[seatIndex].contains(EmergingIndIndex) &&
+		if (hasIndependentParty &&
+			previousLiveSeats[seatIndex].contains(EmergingIndIndex) &&
 			!previousLiveSeats[seatIndex].contains(indPartyIndex) &&
 			!latestReport.seatPartyWinPercent[seatIndex].contains(EmergingIndIndex) &&
 			!latestReport.seatPartyWinPercent[seatIndex].contains(indPartyIndex)) {
-			// Special case where an emerging ind gets promoted to a normal ind, can handle this
+			// Present a disappearing emerging independent through the reportable
+			// independent party rather than exposing the internal aggregate category.
 			float percentShift = -previousLiveSeats[seatIndex][EmergingIndIndex];
-			if (abs(percentShift) > 0.1f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
-			continue;
+			if (std::abs(percentShift) > 0.1f) changes.push_back({ seatIndex, indPartyIndex, percentShift });
+		}
+		for (auto const& [partyIndex, previousWinFrequency] :
+			previousLiveSeats[seatIndex]) {
+			if (partyIndex < 0 ||
+				partyIndex >= project.parties().count() ||
+				latestReport.seatPartyWinPercent[seatIndex].contains(partyIndex) ||
+				(hasIndependentParty && partyIndex == indPartyIndex)) {
+				continue;
+			}
+			float const percentShift = -previousWinFrequency;
+			if (std::abs(percentShift) > 0.1f) {
+				changes.push_back({ seatIndex, partyIndex, percentShift });
+			}
 		}
 	}
 	previousLiveSeats = latestReport.seatPartyWinPercent;
-	std::sort(changes.begin(), changes.end(), [](Change a, Change b) {return abs(std::get<2>(a)) > abs(std::get<2>(b)); });
+	std::sort(changes.begin(), changes.end(), [](Change a, Change b) {
+		return std::abs(std::get<2>(a)) > std::abs(std::get<2>(b));
+		});
 	std::stringstream messages;
-	for (auto change : changes) {
-		if (std::get<1>(change) < 0) continue; // band-aid fix for a crash bug, just skip messages like this for now
+	for (auto const& change : changes) {
+		// Internal aggregate categories are not meaningful in this notification.
+		if (std::get<1>(change) < 0) continue;
 		messages << project.seats().viewByIndex(std::get<0>(change)).name;
 		messages << ": " << formatFloat(std::get<2>(change), 1, true);
 		messages << " to " << project.parties().viewByIndex(std::get<1>(change)).name << "\n";
@@ -88,14 +198,14 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 
 void Simulation::replaceSettings(Simulation::Settings newSettings)
 {
-	settings = newSettings;
+	settings = std::move(newSettings);
 	lastUpdated = wxInvalidDateTime;
 }
 
 void Simulation::saveReport(std::string label)
 {
 	if (!isValid()) throw std::runtime_error("Tried to save a report although the simulation hasn't been run yet!");
-	savedReports.push_back({ latestReport, wxDateTime::Now(), label });
+	savedReports.push_back({ latestReport, wxDateTime::Now(), std::move(label) });
 }
 
 std::string Simulation::getLastUpdatedString() const
@@ -143,45 +253,37 @@ void Simulation::deleteReport(int reportIndex)
 
 float Simulation::Report::getPartyMajorityPercent(int whichParty) const
 {
-	if (majorityPercent.contains(whichParty)) {
-		return majorityPercent.at(whichParty);
-	}
-	else {
-		return 0.0f;
-	}
+	return getAt(majorityPercent, whichParty, 0.0f);
 }
 
 float Simulation::Report::getPartyMinorityPercent(int whichParty) const
 {
-	if (minorityPercent.contains(whichParty)) {
-		return minorityPercent.at(whichParty);
-	}
-	else {
-		return 0.0f;
-	}
+	return getAt(minorityPercent, whichParty, 0.0f);
 }
 
 float Simulation::Report::getHungPercent() const
 {
-	float mostSeatsSum = std::accumulate(mostSeatsPercent.begin(), mostSeatsPercent.end(), 0.0f,
-		[](float sum, decltype(mostSeatsPercent)::value_type a) {return sum + a.second; });
+	float const mostSeatsSum = std::accumulate(
+		mostSeatsPercent.begin(), mostSeatsPercent.end(), 0.0f,
+		[](float sum, auto const& outcome) {
+			return sum + outcome.second;
+		});
 	return mostSeatsSum + tiedPercent;
 }
 
 int Simulation::Report::internalRegionCount() const
 {
-	return regionPartyWinExpectation.size();
+	return int(regionPartyWinExpectation.size());
 }
 
 float Simulation::Report::getPartyWinExpectation(int partyIndex) const
 {
-	return partyWinExpectation.at(partyIndex);
+	return getAt(partyWinExpectation, partyIndex, 0.0f);
 }
 
 float Simulation::Report::getPartyWinMedian(int partyIndex) const
 {
-	if (partyWinMedian.contains(partyIndex)) return partyWinMedian.at(partyIndex);
-	return 0;
+	return getAt(partyWinMedian, partyIndex, 0.0f);
 }
 
 float Simulation::Report::getCoalitionWinExpectation() const
@@ -215,20 +317,31 @@ float Simulation::Report::getOthersWinExpectation() const
 float Simulation::Report::getRegionPartyWinExpectation(
 	int regionIndex, int partyIndex) const
 {
-	return regionPartyWinExpectation[regionIndex].at(partyIndex);
+	if (regionIndex < 0 ||
+		regionIndex >= int(regionPartyWinExpectation.size())) {
+		return 0.0f;
+	}
+	return getAt(regionPartyWinExpectation[regionIndex], partyIndex, 0.0f);
 }
 
 float Simulation::Report::getRegionCoalitionWinExpectation(int regionIndex) const
 {
-	if (!regionCoalitionWinExpectation.size()) {
-		return regionPartyWinExpectation[regionIndex].at(Mp::Two);
+	if (regionIndex < 0 ||
+		regionIndex >= int(regionPartyWinExpectation.size())) {
+		return 0.0f;
+	}
+	if (regionIndex >= int(regionCoalitionWinExpectation.size())) {
+		return getAt(regionPartyWinExpectation[regionIndex], Mp::Two, 0.0f);
 	}
 	return regionCoalitionWinExpectation[regionIndex];
 }
 
 float Simulation::Report::getRegionOthersWinExpectation(int regionIndex) const
 {
-	if (regionIndex < 0 || regionIndex >= int(regionPartyWinExpectation.size())) return 0.0f;
+	if (regionIndex < 0 ||
+		regionIndex >= int(regionPartyWinExpectation.size())) {
+		return 0.0f;
+	}
 	auto const& expectations = regionPartyWinExpectation[regionIndex];
 	float const totalExpectation = std::accumulate(
 		expectations.begin(), expectations.end(), 0.0f,
@@ -244,26 +357,40 @@ float Simulation::Report::getRegionOthersWinExpectation(int regionIndex) const
 
 float Simulation::Report::getPartySeatWinFrequency(int partyIndex, int seatIndex) const
 {
-	return partySeatWinFrequency.at(partyIndex)[seatIndex];
+	auto const partyFrequency = partySeatWinFrequency.find(partyIndex);
+	if (partyFrequency == partySeatWinFrequency.end() ||
+		seatIndex < 0 || seatIndex >= int(partyFrequency->second.size())) {
+		return 0.0f;
+	}
+	return float(partyFrequency->second[seatIndex]);
 }
 
 float Simulation::Report::getCoalitionWinFrequency(int seatIndex) const
 {
-	return coalitionSeatWinFrequency[seatIndex];
+	if (seatIndex < 0 || seatIndex >= int(coalitionSeatWinFrequency.size())) {
+		return 0.0f;
+	}
+	return float(coalitionSeatWinFrequency[seatIndex]);
 }
 
 float Simulation::Report::getOthersWinFrequency(int seatIndex) const
 {
-	return othersSeatWinFrequency[seatIndex];
+	if (seatIndex < 0 || seatIndex >= int(othersSeatWinFrequency.size())) {
+		return 0.0f;
+	}
+	return float(othersSeatWinFrequency[seatIndex]);
 }
 
 int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) const
 {
+	if (bound < 0 || bound >= NumProbabilityBoundIndices) return 0;
 	switch (whichParty) {
 	case MajorParty::One: return partyOneProbabilityBounds[bound];
-	case MajorParty::Two: return coalitionSeatWinFrequency.size() ? coalitionProbabilityBounds[bound] : partyTwoProbabilityBounds[bound];
+	case MajorParty::Two:
+		return coalitionSeatWinFrequency.empty() ?
+			partyTwoProbabilityBounds[bound] : coalitionProbabilityBounds[bound];
 	case MajorParty::Others: return othersProbabilityBounds[bound];
-	default: return 0.0f;
+	default: return 0;
 	}
 }
 
@@ -276,88 +403,70 @@ float Simulation::Report::getPartyOverallWinPercent(int whichParty) const
 {
 	float thisWinPercent = 0.0f;
 	float totalWinPercent = 0.0f;
-	for (auto [party, percent] : majorityPercent) {
+	for (auto const& [party, percent] : majorityPercent) {
 		if (party == whichParty) thisWinPercent += percent;
 		totalWinPercent += percent;
 	}
-	for (auto [party, percent] : minorityPercent) {
+	for (auto const& [party, percent] : minorityPercent) {
 		if (party == whichParty) thisWinPercent += percent;
 		totalWinPercent += percent;
 	}
-	for (auto [party, percent] : mostSeatsPercent) {
+	for (auto const& [party, percent] : mostSeatsPercent) {
 		if (party == whichParty) thisWinPercent += percent;
 		totalWinPercent += percent;
 	}
-	// Distribute exact ties in proportion to other wins
+	// Overall win percentages are currently published only for the two major
+	// sides, so split unresolved exact ties evenly between them.
 	return thisWinPercent + 0.5f * (100.0f - totalWinPercent);
 }
 
 float Simulation::Report::getOthersOverallWinPercent() const
 {
-	float othersOverallWinPercent = 0.0f;
-	float totalWinPercent = 0.0f;
-	for (auto [party, _] : this->partyName) {
-		if (majorityPercent.count(party)) {
-			if (party != 0 && party != 1) othersOverallWinPercent += majorityPercent.at(party);
-			totalWinPercent += majorityPercent.at(party);
-		}
-		if (minorityPercent.count(party)) {
-			if (party != 0 && party != 1) othersOverallWinPercent += minorityPercent.at(party);
-			totalWinPercent += minorityPercent.at(party);
-		}
-		if (mostSeatsPercent.count(party)) {
-			if (party != 0 && party != 1) othersOverallWinPercent += mostSeatsPercent.at(party);
-			totalWinPercent += mostSeatsPercent.at(party);
-		}
-	}
-	return othersOverallWinPercent;
+	// Outcome maps are authoritative. Party metadata may be absent in older
+	// reports, and special simulated outcomes do not necessarily have project
+	// party records.
+	return nonMajorOutcomePercent(majorityPercent) +
+		nonMajorOutcomePercent(minorityPercent) +
+		nonMajorOutcomePercent(mostSeatsPercent);
 }
 
 int Simulation::Report::getMinimumSeatFrequency(int partyIndex) const
 {
-	if (!partySeatWinFrequency.contains(partyIndex) ||
-		partySeatWinFrequency.at(partyIndex).empty()) {
+	auto const frequency = partySeatWinFrequency.find(partyIndex);
+	if (frequency == partySeatWinFrequency.end() || frequency->second.empty()) {
 		return 0;
 	}
-	for (int i = 0; i < int(partySeatWinFrequency.at(partyIndex).size()); ++i) {
-		if (partySeatWinFrequency.at(partyIndex)[i] > 0) return i;
+	for (int i = 0; i < int(frequency->second.size()); ++i) {
+		if (frequency->second[i] > 0) return i;
 	}
 	return 0;
 }
 
 int Simulation::Report::getMaximumSeatFrequency(int partyIndex) const
 {
-	if (!partySeatWinFrequency.contains(partyIndex) ||
-		partySeatWinFrequency.at(partyIndex).empty()) {
+	auto const frequency = partySeatWinFrequency.find(partyIndex);
+	if (frequency == partySeatWinFrequency.end() || frequency->second.empty()) {
 		return 0;
 	}
-	for (int i = int(partySeatWinFrequency.at(partyIndex).size()) - 1; i >= 0; --i) {
-		if (partySeatWinFrequency.at(partyIndex)[i] > 0) return i;
+	for (int i = int(frequency->second.size()) - 1; i >= 0; --i) {
+		if (frequency->second[i] > 0) return i;
 	}
 	return 0;
 }
 
 int Simulation::Report::getPartySeatsSampleCount(int partyIndex) const
 {
-	if (!partySeatWinFrequency.contains(partyIndex)) return 0;
-	return std::accumulate(partySeatWinFrequency.at(partyIndex).begin(), partySeatWinFrequency.at(partyIndex).end(), 0);
+	auto const frequency = partySeatWinFrequency.find(partyIndex);
+	return frequency == partySeatWinFrequency.end() ?
+		0 : std::accumulate(
+			frequency->second.begin(), frequency->second.end(), 0);
 }
 
 int Simulation::Report::getPartySeatsPercentile(int partyIndex, float percentile) const
 {
-	int totalCount = getPartySeatsSampleCount(partyIndex);
-	if (!totalCount) return 0.0f;
-	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
-	int currentCount = 0;
-	auto const& thisSeatFreqs = partySeatWinFrequency.at(partyIndex);
-	for (int seatCount = 0; seatCount < int(thisSeatFreqs.size()); ++seatCount) {
-		int bucketCount = thisSeatFreqs.at(seatCount);
-		currentCount += bucketCount;
-		if (currentCount > targetCount) {
-			return seatCount;
-		}
-	}
-	return 100.0f;
+	auto const frequency = partySeatWinFrequency.find(partyIndex);
+	if (frequency == partySeatWinFrequency.end()) return 0;
+	return seatCountPercentile(frequency->second, percentile);
 }
 
 int Simulation::Report::getCoalitionSeatsSampleCount() const
@@ -367,28 +476,17 @@ int Simulation::Report::getCoalitionSeatsSampleCount() const
 
 int Simulation::Report::getCoalitionSeatsPercentile(float percentile) const
 {
-	int totalCount = getCoalitionSeatsSampleCount();
-	if (!totalCount) return 0.0f;
-	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
-	int currentCount = 0;
-	auto const& thisSeatFreqs = coalitionSeatWinFrequency;
-	for (int seatCount = 0; seatCount < int(thisSeatFreqs.size()); ++seatCount) {
-		int bucketCount = thisSeatFreqs.at(seatCount);
-		currentCount += bucketCount;
-		if (currentCount > targetCount) {
-			return seatCount;
-		}
-	}
-	return 100.0f;
+	return seatCountPercentile(coalitionSeatWinFrequency, percentile);
 }
 
 int Simulation::Report::getModalSeatFrequencyCount(int partyIndex) const
 {
-	if (!partySeatWinFrequency.contains(partyIndex) ||
-		partySeatWinFrequency.at(partyIndex).empty()) {
+	auto const frequency = partySeatWinFrequency.find(partyIndex);
+	if (frequency == partySeatWinFrequency.end() || frequency->second.empty()) {
 		return 0;
 	}
-	return *std::max_element(partySeatWinFrequency.at(partyIndex).begin(), partySeatWinFrequency.at(partyIndex).end());
+	return *std::max_element(
+		frequency->second.begin(), frequency->second.end());
 }
 
 double Simulation::Report::getPartyOne2pp() const
@@ -401,37 +499,23 @@ double Simulation::Report::getPartyOne2pp() const
 
 int Simulation::Report::getFpSampleCount(int partyIndex) const
 {
-	if (!partyPrimaryFrequency.contains(partyIndex)) return 0;
-	return std::accumulate(partyPrimaryFrequency.at(partyIndex).begin(), partyPrimaryFrequency.at(partyIndex).end(), 0,
-		[](int sum, std::pair<short, int> a) {return sum + a.second; });
+	auto const frequency = partyPrimaryFrequency.find(partyIndex);
+	return frequency == partyPrimaryFrequency.end() ?
+		0 : sampleCount(frequency->second);
 }
 
 float Simulation::Report::getFpSampleExpectation(int partyIndex) const
 {
-	int totalCount = getFpSampleCount(partyIndex);
-	if (!totalCount) return 0.0f;
-	return std::accumulate(partyPrimaryFrequency.at(partyIndex).begin(), partyPrimaryFrequency.at(partyIndex).end(), 0.0f,
-		[](float sum, std::pair<short, int> a) {
-			return sum + float(a.second) * (float(a.first) * 0.1f + 0.05f);
-		}
-	) / float(totalCount);
+	auto const frequency = partyPrimaryFrequency.find(partyIndex);
+	return frequency == partyPrimaryFrequency.end() ?
+		0.0f : sampleExpectation(frequency->second);
 }
 
 float Simulation::Report::getFpSamplePercentile(int partyIndex, float percentile) const
 {
-	int totalCount = getFpSampleCount(partyIndex);
-	if (!totalCount) return 0.0f;
-	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
-	int currentCount = 0;
-	for (auto const& [bucketKey, bucketCount] : partyPrimaryFrequency.at(partyIndex)) {
-		int prevCount = currentCount;
-		currentCount += bucketCount;
-		if (currentCount > targetCount) {
-			float extra = (float(targetCount) - float(prevCount)) / (float(currentCount) - float(prevCount)) * 0.1f;
-			return float(bucketKey) * 0.1f + extra;
-		}
-	}
-	return 100.0f;
+	auto const frequency = partyPrimaryFrequency.find(partyIndex);
+	return frequency == partyPrimaryFrequency.end() ?
+		0.0f : samplePercentile(frequency->second, percentile);
 }
 
 float Simulation::Report::getFpSampleMedian(int partyIndex) const
@@ -441,19 +525,12 @@ float Simulation::Report::getFpSampleMedian(int partyIndex) const
 
 int Simulation::Report::getTppSampleCount() const
 {
-	return std::accumulate(tppFrequency.begin(), tppFrequency.end(), 0,
-		[](int sum, std::pair<short, int> a) {return sum + a.second; });
+	return sampleCount(tppFrequency);
 }
 
 float Simulation::Report::getTppSampleExpectation() const
 {
-	int totalCount = getTppSampleCount();
-	if (!totalCount) return 0;
-	return std::accumulate(tppFrequency.begin(), tppFrequency.end(), 0.0f,
-		[](float sum, std::pair<short, int> a) {
-			return sum + float(a.first) * float(a.second) * 0.1f;
-		}
-	) / float(totalCount);
+	return sampleExpectation(tppFrequency);
 }
 
 float Simulation::Report::getTppSampleMedian() const
@@ -463,36 +540,17 @@ float Simulation::Report::getTppSampleMedian() const
 
 float Simulation::Report::getTppSamplePercentile(float percentile) const
 {
-	int totalCount = getTppSampleCount();
-	if (!totalCount) return 0.0f;
-	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
-	int currentCount = 0;
-	for (auto const& [bucketKey, bucketCount] : tppFrequency) {
-		int prevCount = currentCount;
-		currentCount += bucketCount;
-		if (currentCount > targetCount) {
-			float extra = (float(targetCount) - float(prevCount)) / (float(currentCount) - float(prevCount)) * 0.1f;
-			return float(bucketKey) * 0.1f + extra;
-		}
-	}
-	return 100.0f;
+	return samplePercentile(tppFrequency, percentile);
 }
 
 int Simulation::Report::getCoalitionFpSampleCount() const
 {
-	return std::accumulate(coalitionFpFrequency.begin(), coalitionFpFrequency.end(), 0,
-		[](int sum, std::pair<short, int> a) {return sum + a.second; });
+	return sampleCount(coalitionFpFrequency);
 }
 
 float Simulation::Report::getCoalitionFpSampleExpectation() const
 {
-	int totalCount = getCoalitionFpSampleCount();
-	if (!totalCount) return 0;
-	return std::accumulate(coalitionFpFrequency.begin(), coalitionFpFrequency.end(), 0.0f,
-		[](float sum, std::pair<short, int> a) {
-			return sum + float(a.first) * float(a.second) * 0.1f;
-		}
-	) / float(totalCount);
+	return sampleExpectation(coalitionFpFrequency);
 }
 
 float Simulation::Report::getCoalitionFpSampleMedian() const
@@ -502,23 +560,15 @@ float Simulation::Report::getCoalitionFpSampleMedian() const
 
 float Simulation::Report::getCoalitionFpSamplePercentile(float percentile) const
 {
-	int totalCount = getCoalitionFpSampleCount();
-	if (!totalCount) return 0.0f;
-	int targetCount = int(floor(float(totalCount * percentile * 0.01f)));
-	int currentCount = 0;
-	for (auto const& [bucketKey, bucketCount] : coalitionFpFrequency) {
-		int prevCount = currentCount;
-		currentCount += bucketCount;
-		if (currentCount > targetCount) {
-			float extra = (float(targetCount) - float(prevCount)) / (float(currentCount) - float(prevCount)) * 0.1f;
-			return float(bucketKey) * 0.1f + extra;
-		}
-	}
-	return 100.0f;
+	return samplePercentile(coalitionFpFrequency, percentile);
 }
 
 int Simulation::Report::getOthersLeading(int regionIndex) const
 {
+	if (regionIndex < 0 ||
+		regionIndex >= int(regionPartyIncumbents.size())) {
+		return 0;
+	}
 	if (regionPartyIncumbents[regionIndex].size() < 3) return 0;
 	int othersLeading = std::accumulate(
 		regionPartyIncumbents[regionIndex].begin() + 2,
@@ -543,7 +593,7 @@ Simulation::Report::SaveablePolls Simulation::Report::getSaveablePolls() const
 	return saveablePolls;
 }
 
-void Simulation::Report::retrieveSaveablePolls(SaveablePolls saveablePolls)
+void Simulation::Report::retrieveSaveablePolls(SaveablePolls const& saveablePolls)
 {
 	modelledPolls.clear();
 	for (auto const& [party, polls] : saveablePolls) {
@@ -565,7 +615,14 @@ std::string Simulation::textReport(ProjectionCollection const& projections) cons
 	report << "Reporting Model: \n";
 	report << " Name: " << settings.name << "\n";
 	report << " Number of Iterations: " << settings.numIterations << "\n";
-	report << " Base Projection: " << projections.view(settings.baseProjection).getSettings().name << "\n";
+	report << " Base Projection: ";
+	if (projections.idToIndex(settings.baseProjection) ==
+		ProjectionCollection::InvalidIndex) {
+		report << "<invalid>\n";
+	}
+	else {
+		report << projections.view(settings.baseProjection).getSettings().name << "\n";
+	}
 	report << " Previous Election 2pp: " << settings.prevElection2pp << "\n";
 	report << " Live Status: " << getLiveString() << "\n";
 	return report.str();
