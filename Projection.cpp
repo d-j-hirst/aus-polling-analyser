@@ -35,13 +35,13 @@ void Projection::replaceSettings(Settings newSettings)
 {
 	settings = newSettings;
 	clearOutput();
-	startDate = wxInvalidDateTime;
+	startDate = {};
 }
 
 void Projection::invalidate()
 {
 	clearOutput();
-	startDate = wxInvalidDateTime;
+	startDate = {};
 }
 
 void Projection::clearOutput()
@@ -49,7 +49,7 @@ void Projection::clearOutput()
 	projectedSupport.clear();
 	tppSupport.timePoint.clear();
 	detailCreated.clear();
-	lastUpdated = wxInvalidDateTime;
+	lastUpdated = {};
 }
 
 void Projection::createTimePoint(int time, ModelCollection const& models, int numIterations)
@@ -63,7 +63,7 @@ void Projection::createTimePoint(int time, ModelCollection const& models, int nu
 	std::vector<std::vector<float>> samples(
 		model.partyCodeVec.size(), std::vector<float>(numIterations));
 	std::vector<float> tppSamples(numIterations);
-	auto const projectedDate = startDate + wxDateSpan::Days(time);
+	auto const projectedDate = startDate + time;
 	for (int iteration = 0; iteration < numIterations; ++iteration) {
 		// Explicit iteration keys make parallel time-point generation repeatable.
 		auto sample = generateSupportSample(models, projectedDate, iteration);
@@ -91,7 +91,7 @@ void Projection::createTimePoint(int time, ModelCollection const& models, int nu
 }
 
 bool Projection::run(ModelCollection const& models, FeedbackFunc feedback, int numThreads) {
-	if (!settings.endDate.IsValid()) {
+	if (!settings.endDate.isValid()) {
 		feedback("Could not generate projection: the projection end date is invalid.");
 		return false;
 	}
@@ -109,13 +109,13 @@ bool Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 		feedback("The base model (" + model.name + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
 		return false;
 	}
-	auto const projectionStartDate = model.getEndDate() + wxDateSpan::Days(1);
+	auto const projectionStartDate = model.getEndDate() + 1;
 	if (settings.endDate < projectionStartDate) {
 		feedback("Could not generate projection: the end date is earlier than the first available projection date.");
 		return false;
 	}
 
-	logger << "Starting projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
+	logger << "Starting projection run: " << Timestamp::now().formatIsoLocal() << "\n";
 
 	// Initial run is only for visual purposes so don't do too many iterations for that.
 	constexpr static int PreliminaryIterations = 300;
@@ -124,7 +124,7 @@ bool Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 	clearOutput();
 	startDate = projectionStartDate;
 	try {
-		int const seriesLength = (settings.endDate - startDate).GetDays() + 1;
+		int const seriesLength = settings.endDate - startDate + 1;
 		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
 			auto const& partyName = model.partyCodeVec[partyIndex];
 			projectedSupport[partyName].timePoint.resize(seriesLength);
@@ -157,27 +157,27 @@ bool Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 	}
 	catch (std::logic_error const& e) {
 		clearOutput();
-		startDate = wxInvalidDateTime;
+		startDate = {};
 		feedback(std::string("Could not generate projection\n") +
 			"Specific information: " + e.what());
 		return false;
 	}
 
 	try {
-		lastUpdated = wxDateTime::Now();
+		lastUpdated = Timestamp::now();
 		std::string report = textReport(models);
 		auto reportMessages = splitString(report, ";");
 		PA_LOG_VAR(reportMessages);
 	}
 	catch (std::logic_error const& e) {
 		clearOutput();
-		startDate = wxInvalidDateTime;
+		startDate = {};
 		feedback(std::string("Could not finalise projection\n") +
 			"Specific information: " + e.what());
 		return false;
 	}
 
-	logger << "Completed projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
+	logger << "Completed projection run: " << Timestamp::now().formatIsoLocal() << "\n";
 	return true;
 }
 StanModel::SeriesOutput Projection::viewPrimarySeries(std::string const& partyCode) const
@@ -192,17 +192,15 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 	return &std::next(projectedSupport.begin(), index)->second;
 }
 
-StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, wxDateTime date)
+StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, Date date)
 {
-	if (!date.IsValid()) {
+	if (!date.isValid()) {
 		throw std::logic_error("A valid date is required when requesting a nowcast sample.");
 	}
-	date.ResetTime();
 	auto projectionEndDate = settings.endDate;
-	if (!projectionEndDate.IsValid()) {
+	if (!projectionEndDate.isValid()) {
 		throw std::logic_error("A valid projection end date is required for nowcast sampling.");
 	}
-	projectionEndDate.ResetTime();
 	if (date > projectionEndDate) {
 		throw std::logic_error("The requested nowcast date is after the projection end date.");
 	}
@@ -219,12 +217,12 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 	// startDate and detailCreated are transient caches and are not saved with a
 	// project, so derive their required state from the persisted model and series.
 	auto const projectionStartDate =
-		getBaseModel(models).getEndDate() + wxDateSpan::Days(1);
-	int const endProjIndex = (projectionEndDate - projectionStartDate).GetDays();
+		getBaseModel(models).getEndDate() + 1;
+	int const endProjIndex = projectionEndDate - projectionStartDate;
 	if (endProjIndex < 0) {
 		return electionNowSupportSample;
 	}
-	int sampleProjIndex = (date - projectionStartDate).GetDays();
+	int sampleProjIndex = date - projectionStartDate;
 	sampleProjIndex = std::clamp(sampleProjIndex, 0, endProjIndex);
 
 	// Test that the projected support trend actually exists and extends to the
@@ -289,18 +287,17 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 	return electionNowSupportSample;
 }
 
-StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, wxDateTime date, int iterationIndex) const
+StanModel::SupportSample Projection::generateSupportSample(ModelCollection const& models, Date date, int iterationIndex) const
 {
 	auto const& model = getBaseModel(models);
-	if (!date.IsValid()) {
+	if (!date.isValid()) {
 		float totalOdds = 0.0f;
-		std::vector<std::pair<wxDateTime, float>> cumulativeOdds;
+		std::vector<std::pair<Date, float>> cumulativeOdds;
 		// Entries are decimal odds, so their relative sampling weights are 1 / odds.
 		for (auto [thisDate, odds] : settings.possibleDates) {
-			wxDateTime tempDate;
-			bool success = tempDate.ParseISODate(thisDate);
-			if (!success) continue;
-			if (tempDate < model.getEndDate()) continue;
+			auto const tempDate = Date::parseIso(thisDate);
+			if (!tempDate) continue;
+			if (*tempDate < model.getEndDate()) continue;
 			if (!std::isfinite(odds) || odds <= 0.0f) {
 				throw std::logic_error(
 					"Possible election-date odds must be finite and greater than zero.");
@@ -309,7 +306,7 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			if (!std::isfinite(totalOdds)) {
 				throw std::logic_error("Possible election-date odds produced a non-finite total weight.");
 			}
-			cumulativeOdds.push_back(std::pair(tempDate, totalOdds));
+			cumulativeOdds.push_back(std::pair(*tempDate, totalOdds));
 		}
 		if (cumulativeOdds.empty()) {
 			date = settings.endDate;
@@ -327,12 +324,10 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			}
 		}
 	}
-	if (!date.IsValid()) {
+	if (!date.isValid()) {
 		throw std::logic_error("No valid date is available for projection sampling.");
 	}
-	// Move away from midnight so DST changes cannot move date differences across a day boundary.
-	date += wxTimeSpan::Hours(4);
-	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
+	int daysAfterModelEnd = date - model.getEndDate();
 	daysAfterModelEnd = std::max(daysAfterModelEnd, MinDaysBeforeElection);
 	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd, iterationIndex);
 
@@ -359,7 +354,7 @@ std::string Projection::textReport(ModelCollection const& models) const
 	report << " End Date: " << getEndDateString() << "\n";
 	report << " Last Updated: " << getLastUpdatedString() << "\n";
 	report << ";"; // delimiter
-	auto sample = generateSupportSample(models, wxInvalidDateTime, 0);
+	auto sample = generateSupportSample(models, Date{}, 0);
 	report << "Final sample: \n";
 	for (auto const& [key, vote] : sample.voteShare) {
 		report << key << ": " << vote << "\n";

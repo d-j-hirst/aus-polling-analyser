@@ -1,28 +1,24 @@
 #pragma once
 
-// For compilers that support precompilation, includes "wx/wx.h".
-#include "wx/wxprec.h"
-
-#ifdef __BORLANDC__
-#pragma hdrstop
-#endif
-
-// for all others, include the necessary headers (this file is usually all you
-// need because it includes almost all "standard" wxWidgets headers)
-#ifndef WX_PRECOMP
-#include "wx/wx.h"
-#endif
+// General-purpose helpers shared by the core model and GUI. Keep this header
+// platform-independent; temporary wxWidgets adapters belong in WxDateUtils.h.
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <iterator>
+#include <limits>
 #include <map>
 #include <numeric>
 #include <sstream>
+#include <stdexcept>
 #include <string>
-#include <vector>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 constexpr int MinDaysBeforeElection = 4;
 
@@ -107,23 +103,6 @@ inline std::vector<int> splitStringI(std::string s, std::string const& delimiter
 	std::transform(stringTokens.begin(), stringTokens.end(), std::back_inserter(ints),
 		[](std::string s) {return std::stoi(s); });
 	return ints;
-}
-
-// Converts from a modified julian date number to a regular julian date number
-inline double mjdToJdn(double mjd) {
-	return mjd + 2400000.5;
-}
-
-// converts an MJD date to a wxDateTime date.
-inline wxDateTime mjdToDate(int mjd) {
-	if (mjd <= -1000000) return wxInvalidDateTime;
-	wxDateTime tempDate = wxDateTime(double(mjd) + 2400000.5);
-	tempDate.SetHour(18);
-	return tempDate;
-}
-
-inline int dateToIntMjd(wxDateTime date) {
-	return int(floor(date.GetModifiedJulianDayNumber()));
 }
 
 inline std::string boolToStr(bool b) {

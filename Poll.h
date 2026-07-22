@@ -1,11 +1,10 @@
 #pragma once
 
+#include "Date.h"
 #include "Pollster.h"
 #include "PartyCollection.h"
 #include "PollsterCollection.h"
 #include "General.h"
-
-#include <wx/datetime.h>
 
 #include <algorithm>
 #include <array>
@@ -19,13 +18,13 @@ public:
 	constexpr static float NullValue = -1.0f;
 
 	Pollster::Id pollster = Pollster::DefaultId;
-	wxDateTime date = wxDateTime::Now();
+	Date date = Date::todayLocal();
 	float reported2pp = 50.0f;
 	float respondent2pp = NullValue;
 	float calc2pp = NullValue;
 	std::array<float, PartyCollection::MaxParties + 1> primary; // others is always the final index.
 
-	Poll(Pollster::Id pollster, wxDateTime date, float reported2pp = NullValue, float respondent2pp = NullValue, float calc2pp = NullValue)
+	Poll(Pollster::Id pollster, Date date, float reported2pp = NullValue, float respondent2pp = NullValue, float calc2pp = NullValue)
 		: pollster(pollster), date(date), reported2pp(reported2pp), respondent2pp(respondent2pp), calc2pp(calc2pp) {
 		resetPrimaries();
 	}
@@ -81,7 +80,7 @@ public:
 		report << std::boolalpha;
 		report << "Reporting Poll: \n";
 		report << " Pollster: " << pollsters.view(pollster).name << "\n";
-		report << " Date: " << date.FormatDate() << "\n";
+		report << " Date: " << date.formatIso() << "\n";
 		report << " Reported 2pp: " << getReported2ppString() << "\n";
 		report << " Respondent 2pp: " << getRespondent2ppString() << "\n";
 		report << " Calculated 2pp: " << getCalc2ppString() << "\n";

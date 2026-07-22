@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Date.h"
 #include "ModelCollection.h"
 #include "RandomGenerator.h"
 #include "StanModel.h"
@@ -8,7 +9,6 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include <wx/datetime.h>
 
 class ModelCollection;
 
@@ -32,7 +32,7 @@ public:
 
 		std::vector<std::pair<std::string, float>> possibleDates;
 
-		wxDateTime endDate = wxDateTime::Now();
+		Date endDate = Date::todayLocal();
 	};
 
 	Projection()
@@ -44,20 +44,18 @@ public:
 	void replaceSettings(Settings newSettings);
 
 	std::string getEndDateString() const {
-		if (!settings.endDate.IsValid()) return "";
-		else return settings.endDate.FormatISODate().ToStdString();
+		return settings.endDate.formatIso();
 	}
 
 	std::string getLastUpdatedString() const {
-		if (!lastUpdated.IsValid()) return "";
-		else return lastUpdated.FormatISODate().ToStdString();
+		return lastUpdated.formatIsoDateLocal();
 	}
 
 	bool run(ModelCollection const& models, FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
 
 	Settings const& getSettings() const { return settings; }
 
-	wxDateTime getLastUpdatedDate() const { return lastUpdated; }
+	Timestamp getLastUpdatedDate() const { return lastUpdated; }
 
 	void invalidate();
 
@@ -72,10 +70,10 @@ public:
 	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
 
 	StanModel::SupportSample generateNowcastSupportSample(
-		ModelCollection const& models, int iterationIndex, wxDateTime date);
+		ModelCollection const& models, int iterationIndex, Date date);
 
 	StanModel::SupportSample generateSupportSample(
-		ModelCollection const& models, wxDateTime date,
+		ModelCollection const& models, Date date,
 		int iterationIndex) const;
 
 	int getPartyIndexFromCode(std::string const& code) const;
@@ -99,10 +97,10 @@ private:
 	Settings settings;
 
 	// Set when the projection is run
-	wxDateTime startDate = wxInvalidDateTime;
+	Date startDate;
 
-	// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
-	wxDateTime lastUpdated = wxInvalidDateTime;
+	// An invalid timestamp indicates that the projection has not been run.
+	Timestamp lastUpdated;
 
 	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 };

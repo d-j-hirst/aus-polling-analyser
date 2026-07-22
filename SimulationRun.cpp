@@ -104,7 +104,11 @@ namespace {
 bool SimulationRun::run(FeedbackFunc feedback) {
 	// Keep every phase of this run on the same local calendar date, even if a
 	// long simulation crosses midnight.
-	nowcastDate = wxDateTime::Today();
+	nowcastDate = Date::todayLocal();
+	if (!nowcastDate.isValid()) {
+		feedback("Could not determine the current local date for this simulation run.");
+		return false;
+	}
 	{
 		std::lock_guard<std::mutex> lock(warningMutex);
 		warnings.clear();
@@ -138,11 +142,10 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 
 	if (sim.isNowcast()) {
 		auto projectionEndDate = thisProjection.getSettings().endDate;
-		if (!projectionEndDate.IsValid()) {
+		if (!projectionEndDate.isValid()) {
 			feedback("Could not run nowcast: the base projection has no valid end date.");
 			return false;
 		}
-		projectionEndDate.ResetTime();
 		if (nowcastDate > projectionEndDate) {
 			feedback(
 				"Could not run nowcast: the current date is after the base "
@@ -151,7 +154,7 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 		}
 		logger << "Projection sampling mode: nowcast; projection: "
 			<< thisProjection.getSettings().name << "; date: "
-			<< nowcastDate.FormatISODate() << "\n";
+			<< nowcastDate.formatIso() << "\n";
 	}
 	else {
 		logger << "Projection sampling mode: forecast; projection: "
@@ -223,7 +226,7 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 
 	reportWarnings(feedback);
 
-	sim.lastUpdated = wxDateTime::Now();
+	sim.lastUpdated = Timestamp::now();
 	reportTransaction.commit();
 	return true;
 }

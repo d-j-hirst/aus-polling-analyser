@@ -3,6 +3,7 @@
 #include "General.h"
 #include "Log.h"
 #include "SpecialPartyCodes.h"
+#include "WorkspacePaths.h"
 
 #include <cmath>
 #include <fstream>
@@ -42,25 +43,25 @@ StanModel::StanModel(std::string name, std::string termCode, std::string partyCo
 {
 }
 
-wxDateTime StanModel::getEndDate() const
+Date StanModel::getEndDate() const
 {
-	if (!startDate.IsValid() || rawTppSupport.timePoint.empty()) return startDate;
-	return startDate + wxTimeSpan(4) +
-		wxDateSpan::Days(int(rawTppSupport.timePoint.size()) - 1);
+	if (!startDate.isValid() || rawTppSupport.timePoint.empty()) return startDate;
+	return startDate + int(rawTppSupport.timePoint.size()) - 1;
 }
 
-bool StanModel::loadData(FeedbackFunc feedback, int numThreads)
+bool StanModel::loadData(
+	WorkspacePaths const& paths, FeedbackFunc feedback, int numThreads)
 {
-	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	if (!prepareForRun(feedback)) return false;
-	logger << "Model end date: " << getEndDate().FormatISOCombined() << "\n";
-	logger << "Prepared model inputs: " << wxDateTime::Now().FormatISOCombined() << "\n";
+	logger << "Starting model run: " << Timestamp::now().formatIsoLocal() << "\n";
+	if (!prepareForRun(paths, feedback)) return false;
+	logger << "Model end date: " << getEndDate().formatIso() << "\n";
+	logger << "Prepared model inputs: " << Timestamp::now().formatIsoLocal() << "\n";
 	if (!updateAdjustedData(feedback, numThreads)) {
 		readyForProjection = false;
 		return false;
 	}
-	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	lastUpdatedDate = wxDateTime::Now();
+	logger << "updated adjusted data: " << Timestamp::now().formatIsoLocal() << "\n";
+	lastUpdatedDate = Timestamp::now();
 	feedback("Finished loading models");
 	return true;
 }
@@ -167,7 +168,8 @@ std::string StanModel::rawPartyCodeByIndex(int index) const
 	return std::next(rawSupport.begin(), index)->first;
 }
 
-bool StanModel::prepareForRun(FeedbackFunc feedback)
+bool StanModel::prepareForRun(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	readyForProjection = false;
 	rawSupport.clear();
@@ -177,13 +179,13 @@ bool StanModel::prepareForRun(FeedbackFunc feedback)
 	validationSupport.clear();
 	modelledPolls.clear();
 	if (!loadPartyCodes(feedback)) return false;
-	if (!loadPartyGroups(feedback)) return false;
-	if (!loadFundamentalsPredictions(feedback)) return false;
-	if (!loadParameters(feedback)) return false;
-	if (!loadEmergingOthersParameters(feedback)) return false;
-	if (!generatePreferenceMaps(feedback)) return false;
-	if (!loadModelledPolls(feedback)) return false;
-	if (!loadTrendData(feedback)) return false;
+	if (!loadPartyGroups(paths, feedback)) return false;
+	if (!loadFundamentalsPredictions(paths, feedback)) return false;
+	if (!loadParameters(paths, feedback)) return false;
+	if (!loadEmergingOthersParameters(paths, feedback)) return false;
+	if (!generatePreferenceMaps(paths, feedback)) return false;
+	if (!loadModelledPolls(paths, feedback)) return false;
+	if (!loadTrendData(paths, feedback)) return false;
 	generateUnnamedOthersSeries();
 	readyForProjection = true;
 	return true;
@@ -218,9 +220,11 @@ bool StanModel::loadPartyCodes(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadPartyGroups(FeedbackFunc feedback)
+bool StanModel::loadPartyGroups(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
-	const std::string filename = "analysis/Data/party-groups.csv";
+	const std::string filename = paths.resolveString(
+		"analysis/Data/party-groups.csv");
 	auto file = std::ifstream(filename);
 	if (!file) {
 		feedback("Party groups file not present. Expected a file at " + filename);
@@ -269,10 +273,12 @@ bool StanModel::loadPartyGroups(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadFundamentalsPredictions(FeedbackFunc feedback)
+bool StanModel::loadFundamentalsPredictions(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	logger << "loading fundamentals predictions\n";
-	const std::string filename = "analysis/Fundamentals/fundamentals_" + termCode + ".csv";
+	const std::string filename = paths.resolveString(
+		"analysis/Fundamentals/fundamentals_" + termCode + ".csv");
 	auto file = std::ifstream(filename);
 	if (!file) {
 		feedback("Fundamentals prediction file not present. Expected a file at " + filename);
@@ -315,7 +321,8 @@ bool StanModel::loadFundamentalsPredictions(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadParameters(FeedbackFunc feedback)
+bool StanModel::loadParameters(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	parameters = {};
 	numDays = 0;
@@ -323,8 +330,10 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 	for (auto const& [partyGroup, partyList] : partyGroups) {
 		// If there's a specific adjustment file for this election (usually only for hindcasts) use that
 		// Otherwise (as for future elections) just use the general versions that use all past elections
-		std::string electionFileName = "analysis/Adjustments/adjust_" + termCode + "_" + partyGroup + ".csv";
-		std::string generalFileName = "analysis/Adjustments/adjust_0none_" + partyGroup + ".csv";
+		std::string electionFileName = paths.resolveString(
+			"analysis/Adjustments/adjust_" + termCode + "_" + partyGroup + ".csv");
+		std::string generalFileName = paths.resolveString(
+			"analysis/Adjustments/adjust_0none_" + partyGroup + ".csv");
 		std::string loadedFileName = electionFileName;
 		auto file = std::ifstream(electionFileName);
 		if (!file) {
@@ -429,10 +438,12 @@ bool StanModel::loadParameters(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
+bool StanModel::loadEmergingOthersParameters(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	logger << "loading emerging others parameters\n";
-	const std::string filename = "analysis/Seat Statistics/statistics_emerging_party.csv";
+	const std::string filename = paths.resolveString(
+		"analysis/Seat Statistics/statistics_emerging_party.csv");
 	auto file = std::ifstream(filename);
 	if (!file) {
 		feedback("Emerging others parameters not present. Expected a file at " + filename);
@@ -466,7 +477,8 @@ bool StanModel::loadEmergingOthersParameters(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadModelledPolls(FeedbackFunc feedback)
+bool StanModel::loadModelledPolls(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	modelledPolls.clear();
 
@@ -512,8 +524,9 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 	for (auto partyCode : partyCodeVec) {
 		if (partyCode == EmergingOthersCode) continue;
 		if (partyCode == UnnamedOthersCode) continue; // calculate this later
-		std::string filename = "analysis/Outputs/fp_polls_"
-			+ termCode + "_" + partyCode + " FP.csv";
+		std::string filename = paths.resolveString(
+			"analysis/Outputs/fp_polls_" + termCode + "_" +
+			partyCode + " FP.csv");
 		auto file = std::ifstream(filename);
 		if (!file) {
 			feedback("Could not load file: " + filename);
@@ -523,8 +536,8 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 		if (!loadPolls(polls, file, filename)) return false;
 	}
 	{
-		std::string filename = "analysis/Outputs/fp_polls_"
-			+ termCode + "_@TPP.csv";
+		std::string filename = paths.resolveString(
+			"analysis/Outputs/fp_polls_" + termCode + "_@TPP.csv");
 		auto file = std::ifstream(filename);
 		if (!file) {
 			feedback("Could not load file: " + filename);
@@ -536,13 +549,15 @@ bool StanModel::loadModelledPolls(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadPreferenceFlows(FeedbackFunc feedback)
+bool StanModel::loadPreferenceFlows(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	preferenceFlowMap.clear();
 	preferenceExhaustMap.clear();
 	try {
 		auto lines = extractElectionDataFromFile(
-			"analysis/Data/preference-estimates.csv", termCode);
+			paths.resolveString("analysis/Data/preference-estimates.csv"),
+			termCode);
 		if (lines.empty()) throw Exception("no rows found for " + termCode);
 		for (auto const& line : lines) {
 			if (line.size() < 4) throw Exception("preference row has too few columns");
@@ -591,10 +606,11 @@ bool StanModel::loadPreferenceFlows(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
+bool StanModel::generatePreferenceMaps(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
 	try {
-		if (!loadPreferenceFlows(feedback)) return false;
+		if (!loadPreferenceFlows(paths, feedback)) return false;
 		auto preferenceDeviationVec = splitStringF(preferenceDeviation, ",");
 		auto preferenceSamplesVec = splitStringF(preferenceSamples, ",");
 		bool validSizes = 
@@ -634,9 +650,10 @@ bool StanModel::generatePreferenceMaps(FeedbackFunc feedback)
 	return true;
 }
 
-bool StanModel::loadTrendData(FeedbackFunc feedback)
+bool StanModel::loadTrendData(
+	WorkspacePaths const& paths, FeedbackFunc feedback)
 {
-	startDate = wxInvalidDateTime;
+	startDate = {};
 	rawSupport.clear();
 	rawTppSupport = {};
 	int expectedSeriesLength = 0;
@@ -658,13 +675,12 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 			int const month = std::stoi(dateVals[1]);
 			int const year = std::stoi(dateVals[2]);
 			if (month < 1 || month > 12) throw Exception("invalid month in date row");
-			wxDateTime const seriesStartDate(
-				day, wxDateTime::Month(month - 1), year);
-			if (!seriesStartDate.IsValid()) throw Exception("invalid start date");
-			if (!startDate.IsValid()) {
-				startDate = seriesStartDate;
+			auto const seriesStartDate = Date::fromYmd(year, month, day);
+			if (!seriesStartDate) throw Exception("invalid start date");
+			if (!startDate.isValid()) {
+				startDate = *seriesStartDate;
 			}
-			else if (!startDate.IsSameDate(seriesStartDate)) {
+			else if (startDate != *seriesStartDate) {
 				throw Exception("start date does not match the other trend files");
 			}
 
@@ -710,30 +726,31 @@ bool StanModel::loadTrendData(FeedbackFunc feedback)
 		auto& series = rawSupport[partyCode]; // this needs to go here so that the Unnamed Others series is generated later on
 		if (partyCode == EmergingOthersCode) continue;
 		if (partyCode == UnnamedOthersCode) continue;
-		std::string filename = "analysis/Outputs/fp_trend_"
-			+ termCode + "_" + partyCode + " FP.csv";
+		std::string filename = paths.resolveString(
+			"analysis/Outputs/fp_trend_" + termCode + "_" +
+			partyCode + " FP.csv");
 		if (!loadTrendSeries(filename, series)) return false;
 	}
 	{
-		std::string filename = "analysis/Outputs/fp_trend_"
-			+ termCode + "_@TPP.csv";
+		std::string filename = paths.resolveString(
+			"analysis/Outputs/fp_trend_" + termCode + "_@TPP.csv");
 		if (!loadTrendSeries(filename, rawTppSupport)) return false;
-		PA_LOG_VAR(startDate.FormatISOCombined());
+		PA_LOG_VAR(startDate.formatIso());
 		PA_LOG_VAR(rawTppSupport.timePoint.size());
 	}
 	return true;
 }
 
-int StanModel::rawSupportDayOffset(wxDateTime date) const
+int StanModel::rawSupportDayOffset(Date date) const
 {
 	int const finalOffset = int(rawTppSupport.timePoint.size()) - 1;
 	if (finalOffset < 0) return 0;
-	if (!date.IsValid()) return finalOffset;
-	int const requestedOffset = int(date.Subtract(startDate).GetDays());
+	if (!date.isValid()) return finalOffset;
+	int const requestedOffset = date - startDate;
 	return std::clamp(requestedOffset, 0, finalOffset);
 }
 
-double StanModel::rawMedianTrend(std::string const& partyCode, wxDateTime date) const
+double StanModel::rawMedianTrend(std::string const& partyCode, Date date) const
 {
 	int const dayOffset = rawSupportDayOffset(date);
 	Series const& series = partyCode == TppCode ? rawTppSupport : rawSupport.at(partyCode);
@@ -774,7 +791,7 @@ StanModel::ParameterSet StanModel::interpolatedParameters(
 	return result;
 }
 
-StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, int iterationIndex) const
+StanModel::SupportSample StanModel::generateRawSupportSample(Date date, int iterationIndex) const
 {
 	if (!rawSupport.size()) return SupportSample();
 	int seriesLength = rawSupport.begin()->second.timePoint.size();
@@ -785,7 +802,7 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 	for (auto const& [key, support] : rawSupport) {
 		++index;
 		if (key == EmergingOthersCode) {
-			sample.voteShare.insert({ key, 0.0 });
+			sample.voteShare.insert({ key, 0.0f });
 			continue;
 		}
 		// Mirroring ensures the underlying uniform distribution is symmetric, so that the
@@ -824,9 +841,9 @@ StanModel::SupportSample StanModel::generateRawSupportSample(wxDateTime date, in
 	return sample;
 }
 
-StanModel::SupportSample StanModel::generateAdjustedSupportSample(wxDateTime date, int days, int iterationIndex) const
+StanModel::SupportSample StanModel::generateAdjustedSupportSample(Date date, int days, int iterationIndex) const
 {
-	if (!date.IsValid()) date = getEndDate();
+	if (!date.isValid()) date = getEndDate();
 	auto rawSample = generateRawSupportSample(date, iterationIndex);
 	auto adjustedSample = adjustRawSupportSample(rawSample, date, days, iterationIndex);
 	return adjustedSample;
@@ -858,7 +875,7 @@ void StanModel::generateUnnamedOthersSeries()
 }
 
 StanModel::SupportSample StanModel::adjustRawSupportSample(
-	SupportSample const& rawSupportSample, wxDateTime date,
+	SupportSample const& rawSupportSample, Date date,
 	int days, int iterationIndex) const
 {
 	constexpr int MinDays = 0;
@@ -962,9 +979,7 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
-					wxDateTime thisDate = startDate;
-					// Move away from midnight to avoid crossing a day during DST changes.
-					thisDate.Add(wxTimeSpan(4)).Add(wxDateSpan(0, 0, 0, time));
+					Date const thisDate = startDate + time;
 					// Extra accuracy for the final data point, since it's much more important than the rest
 					int const localIterations = time == seriesLength - 1
 						? BaseIterations * 100 : BaseIterations;
@@ -1060,7 +1075,7 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days, in
 		MaxEmergingPartyFpShare);
 	// Correct for the reduction that will occur when the full sample is normalised.
 	double correctedFp = 100.0 * emergingOthersFpTarget / (100.0 - emergingOthersFpTarget);
-	sample.voteShare[EmergingOthersCode] = correctedFp;
+	sample.voteShare[EmergingOthersCode] = float(correctedFp);
 }
 
 void StanModel::Spread::calculateExpectation()
@@ -1269,7 +1284,8 @@ void StanModel::Series::smooth(int smoothingFactor)
 			double denominator = 0.0f;
 			for (int offset = -thisSmoothing; offset <= thisSmoothing; ++offset) {
 				int source = index + offset;
-				double weight = nCr(thisSmoothing, offset + thisSmoothing);
+				double weight = double(nCr(
+					thisSmoothing, offset + thisSmoothing));
 				numerator += double(timePoint[source].values[percentile]) * weight;
 				denominator += weight;
 			}
@@ -1283,7 +1299,7 @@ void StanModel::Series::smooth(int smoothingFactor)
 
 bool StanModel::dumpGeneratedData(std::string const& filename) const {
 	if (!readyForProjection || termCode.empty() || partyCodes.empty() ||
-		!startDate.IsValid()) {
+		!startDate.isValid()) {
 		return false;
 	}
 	std::ofstream file(filename, std::ios::binary);
@@ -1301,7 +1317,7 @@ bool StanModel::dumpGeneratedData(std::string const& filename) const {
 	file.write(reinterpret_cast<const char*>(&GeneratedDataVersion),
 		sizeof(GeneratedDataVersion));
 	writeString(termCode);
-	writeString(startDate.FormatISODate().ToStdString());
+	writeString(startDate.formatIso());
 	writeString(partyCodes);
 	
 	auto writePartyParameters = [&file, &writeString](const PartyParameters& params) {
@@ -1472,7 +1488,7 @@ bool StanModel::loadGeneratedData(
 	readString(cachedStartDate);
 	readString(cachedPartyCodes);
 	std::string const expectedStartDate =
-		startDate.IsValid() ? startDate.FormatISODate().ToStdString() : "";
+		startDate.formatIso();
 	if (!file || cachedTermCode != termCode ||
 		cachedStartDate != expectedStartDate ||
 		cachedPartyCodes != partyCodes) {

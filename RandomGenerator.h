@@ -100,8 +100,8 @@ public:
 		// two degrees of freedom, which is required for this normalisation.
 		df = std::clamp(df, 3, MaxDf);
 		prepareTdistLookup(df);
-		T lowerVal = tdistLookup[df][lookupIndex];
-		T upperVal = tdistLookup[df][lookupIndex + 1];
+			T lowerVal = T(tdistLookup[df][lookupIndex]);
+			T upperVal = T(tdistLookup[df][lookupIndex + 1]);
 		T normalised = upperVal * mixFactor + lowerVal * (T(1.0) - mixFactor);
 		return normalised * sd + mean;
 	}

@@ -8,6 +8,7 @@
 #include "Log.h"
 #include "ProjectionCollection.h"
 #include "TextInput.h"
+#include "WxDateUtils.h"
 
 using namespace std::placeholders; // for function object parameter binding
 
@@ -176,8 +177,10 @@ void EditSimulationFrame::createCurrentRealUrlInput(int& y)
 
 void EditSimulationFrame::createFedElectionDateInput(int& y)
 {
-	auto callback = [this](wxDateTime const& d) -> void {simulationSettings.fedElectionDate = d; };
-	fedElectionDateInput.reset(new DateInput(this, ControlId::FedElectionDate, "Federal Election Date: ", simulationSettings.fedElectionDate,
+	auto callback = [this](wxDateTime const& d) -> void {
+		simulationSettings.fedElectionDate = fromWxDate(d);
+	};
+	fedElectionDateInput.reset(new DateInput(this, ControlId::FedElectionDate, "Federal Election Date: ", toWxDate(simulationSettings.fedElectionDate),
 		wxPoint(2, y), callback));
 	y += fedElectionDateInput->Height + ControlPadding;
 }

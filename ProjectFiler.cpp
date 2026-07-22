@@ -222,9 +222,10 @@ void ProjectFiler::savePolls(SaveFileOutput& saveOutput)
 	saveOutput << project.pollCollection.sourceFile;
 	for (auto const& [key, thisPoll] : project.pollCollection) {
 		saveOutput.outputAsType<int32_t>(project.pollsters().idToIndex(thisPoll.pollster));
-		saveOutput.outputAsType<int32_t>(thisPoll.date.GetYear());
-		saveOutput.outputAsType<int32_t>(thisPoll.date.GetMonth());
-		saveOutput.outputAsType<int32_t>(thisPoll.date.GetDay());
+		saveOutput.outputAsType<int32_t>(thisPoll.date.year());
+		// Preserve the legacy wxDateTime zero-based month representation.
+		saveOutput.outputAsType<int32_t>(thisPoll.date.month() - 1);
+		saveOutput.outputAsType<int32_t>(thisPoll.date.day());
 		saveOutput << thisPoll.reported2pp;
 		saveOutput << thisPoll.respondent2pp;
 		saveOutput << thisPoll.calc2pp;
@@ -244,10 +245,12 @@ void ProjectFiler::loadPolls(SaveFileInput& saveInput, [[maybe_unused]] int vers
 	for (int pollIndex = 0; pollIndex < pollCount; ++pollIndex) {
 		Poll thisPoll;
 		thisPoll.pollster = saveInput.extract<int32_t>();
-		thisPoll.date.SetDay(1); // prevent issue with following commands resulting in an invalid date
-		thisPoll.date.SetYear(saveInput.extract<int32_t>());
-		thisPoll.date.SetMonth(wxDateTime::Month(saveInput.extract<int32_t>()));
-		thisPoll.date.SetDay(saveInput.extract<int32_t>());
+		int const year = saveInput.extract<int32_t>();
+		int const month = saveInput.extract<int32_t>() + 1;
+		int const day = saveInput.extract<int32_t>();
+		auto const date = Date::fromYmd(year, month, day);
+		if (!date) throw std::runtime_error("Project contains an invalid poll date.");
+		thisPoll.date = *date;
 		saveInput >> thisPoll.reported2pp;
 		saveInput >> thisPoll.respondent2pp;
 		saveInput >> thisPoll.calc2pp;
@@ -296,8 +299,8 @@ void ProjectFiler::saveModels(SaveFileOutput& saveOutput)
 		saveOutput << thisModel.preferenceFlow;
 		saveOutput << thisModel.preferenceDeviation;
 		saveOutput << thisModel.preferenceSamples;
-		saveOutput << thisModel.startDate.GetJulianDayNumber();
-		saveOutput << thisModel.lastUpdatedDate.GetJulianDayNumber();
+		saveOutput << thisModel.startDate.toLegacyJulianDay();
+		saveOutput << thisModel.lastUpdatedDate.toLegacyJulianDay();
 		saveOutput.outputAsType<uint32_t>(thisModel.rawSupport.size());
 		for (auto [seriesKey, series] : thisModel.rawSupport) {
 			saveOutput << seriesKey;
@@ -365,8 +368,9 @@ void ProjectFiler::loadModels(SaveFileInput& saveInput, int versionNum)
 			if (versionNum >= 11 && versionNum <= 14) {
 				for (int i = 0; i < 6; ++i) saveInput.extract<std::string>();
 			}
-			thisModel.startDate = wxDateTime(saveInput.extract<double>());
-			thisModel.lastUpdatedDate = wxDateTime(saveInput.extract<double>());
+			thisModel.startDate = Date::fromLegacyJulianDay(saveInput.extract<double>());
+			thisModel.lastUpdatedDate =
+				Timestamp::fromLegacyJulianDay(saveInput.extract<double>());
 			size_t numSeries = saveInput.extract<uint32_t>();
 			for (size_t seriesIndex = 0; seriesIndex < numSeries; ++seriesIndex) {
 				std::string seriesKey = saveInput.extract<std::string>();
@@ -396,9 +400,9 @@ void ProjectFiler::saveProjections(SaveFileOutput& saveOutput)
 		saveOutput << thisProjection.getSettings().name;
 		saveOutput.outputAsType<int32_t>(thisProjection.getSettings().numIterations);
 		saveOutput.outputAsType<int32_t>(project.models().idToIndex(thisProjection.getSettings().baseModel));
-		saveOutput << thisProjection.getSettings().endDate.GetJulianDayNumber();
+		saveOutput << thisProjection.getSettings().endDate.toLegacyJulianDay();
 		saveOutput << thisProjection.getSettings().possibleDates;
-		saveOutput << thisProjection.getLastUpdatedDate().GetJulianDayNumber();
+		saveOutput << thisProjection.getLastUpdatedDate().toLegacyJulianDay();
 		saveOutput.outputAsType<uint32_t>(thisProjection.projectedSupport.size());
 		for (auto [seriesKey, series] : thisProjection.projectedSupport) {
 			saveOutput << seriesKey;
@@ -416,11 +420,13 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, int versionNum)
 		saveInput >> thisProjection.settings.name;
 		thisProjection.settings.numIterations = saveInput.extract<int32_t>();
 		thisProjection.settings.baseModel = saveInput.extract<int32_t>();
-		thisProjection.settings.endDate = wxDateTime(saveInput.extract<double>());
+		thisProjection.settings.endDate =
+			Date::fromLegacyJulianDay(saveInput.extract<double>());
 		if (versionNum >= 28) {
 			saveInput >> thisProjection.settings.possibleDates;
 		}
-		thisProjection.lastUpdated = wxDateTime(saveInput.extract<double>());
+		thisProjection.lastUpdated =
+			Timestamp::fromLegacyJulianDay(saveInput.extract<double>());
 		if (versionNum <= 7) { // some legacy data no longer needed
 			for (int i = 0; i < 3; ++i) saveInput.extract<float>();
 			saveInput.extract<int32_t>();
@@ -447,7 +453,7 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, int versionNum)
 		else {
 			// Legacy output cannot be sampled by the current simulation engine.
 			// Keep the projection settings but require it to be rerun.
-			thisProjection.lastUpdated = wxInvalidDateTime;
+			thisProjection.lastUpdated = {};
 		}
 		
 		project.projectionCollection.add(thisProjection);
@@ -859,13 +865,13 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().preloadUrl;
 		saveOutput << thisSimulation.getSettings().currentTestUrl;
 		saveOutput << thisSimulation.getSettings().currentRealUrl;
-		saveOutput << thisSimulation.getSettings().fedElectionDate.GetJulianDayNumber();
-		saveOutput << thisSimulation.lastUpdated.GetJulianDayNumber();
+		saveOutput << thisSimulation.getSettings().fedElectionDate.toLegacyJulianDay();
+		saveOutput << thisSimulation.lastUpdated.toLegacyJulianDay();
 		saveReport(saveOutput, thisSimulation.latestReport);
 		saveOutput.outputAsType<uint32_t>(thisSimulation.savedReports.size());
 		for (auto const& savedReport : thisSimulation.savedReports) {
 			saveOutput << savedReport.label;
-			saveOutput << savedReport.dateSaved.GetJulianDayNumber();
+			saveOutput << savedReport.dateSaved.toLegacyJulianDay();
 			saveReport(saveOutput, savedReport.report);
 		}
 	}
@@ -900,11 +906,13 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 			saveInput >> thisSettings.currentRealUrl;
 		}
 		if (versionNum >= 55) {
-			thisSettings.fedElectionDate = wxDateTime(saveInput.extract<double>());
+			thisSettings.fedElectionDate =
+				Date::fromLegacyJulianDay(saveInput.extract<double>());
 		}
 		Simulation thisSimulation = Simulation(thisSettings);
 		if (versionNum >= 12) {
-			thisSimulation.lastUpdated = wxDateTime(saveInput.extract<double>());
+			thisSimulation.lastUpdated =
+				Timestamp::fromLegacyJulianDay(saveInput.extract<double>());
 			thisSimulation.latestReport = loadReport(saveInput, versionNum);
 		}
 		if (versionNum >= 13) {
@@ -912,7 +920,8 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 			for (size_t reportIndex = 0; reportIndex < numReports; ++reportIndex) {
 				Simulation::SavedReport savedReport;
 				saveInput >> savedReport.label;
-				savedReport.dateSaved = wxDateTime(saveInput.extract<double>());
+				savedReport.dateSaved =
+					Timestamp::fromLegacyJulianDay(saveInput.extract<double>());
 				savedReport.report = loadReport(saveInput, versionNum);
 				thisSimulation.savedReports.push_back(savedReport);
 			}

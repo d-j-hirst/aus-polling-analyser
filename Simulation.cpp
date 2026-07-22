@@ -200,19 +200,18 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 void Simulation::replaceSettings(Simulation::Settings newSettings)
 {
 	settings = std::move(newSettings);
-	lastUpdated = wxInvalidDateTime;
+	lastUpdated = {};
 }
 
 void Simulation::saveReport(std::string label)
 {
 	if (!isValid()) throw std::runtime_error("Tried to save a report although the simulation hasn't been run yet!");
-	savedReports.push_back({ latestReport, wxDateTime::Now(), std::move(label) });
+	savedReports.push_back({ latestReport, Timestamp::now(), std::move(label) });
 }
 
 std::string Simulation::getLastUpdatedString() const
 {
-	if (!lastUpdated.IsValid()) return "";
-	else return lastUpdated.FormatISODate().ToStdString();
+	return lastUpdated.formatIsoDateLocal();
 }
 
 std::string Simulation::getLiveString() const
@@ -397,7 +396,7 @@ int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) co
 
 bool Simulation::isValid() const
 {
-	return lastUpdated.IsValid();
+	return lastUpdated.isValid();
 }
 
 float Simulation::Report::getPartyOverallWinPercent(int whichParty) const

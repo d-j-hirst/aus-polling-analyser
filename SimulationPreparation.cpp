@@ -300,6 +300,12 @@ SimulationPreparation::SimulationPreparation(PollingProject& project, Simulation
 {
 }
 
+std::string SimulationPreparation::workspaceFile(
+	std::string const& relativePath) const
+{
+	return project.paths().resolveString(relativePath);
+}
+
 void SimulationPreparation::prepareForIterations()
 {
 	// Validate project structure before loading derived model inputs. This
@@ -509,8 +515,8 @@ void SimulationPreparation::validateIterationInputs() const
 
 	auto const& projection =
 		project.projections().view(sim.settings.baseProjection);
-	if (sim.settings.fedElectionDate.IsValid() &&
-		!projection.getSettings().endDate.IsValid()) {
+	if (sim.settings.fedElectionDate.isValid() &&
+		!projection.getSettings().endDate.isValid()) {
 		throw Exception(
 			"A federal election date was configured, but the base "
 			"projection has no valid end date.");
@@ -1074,7 +1080,8 @@ void SimulationPreparation::determineSpecificPartyIndices()
 void SimulationPreparation::loadPreviousPreferenceFlows() {
 	run.previousPreferenceFlow.clear();
 	run.previousExhaustRate.clear();
-	std::string const fileName = "analysis/Data/preference-estimates.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Data/preference-estimates.csv");
 	std::vector<std::vector<std::string>> lines;
 	try {
 		lines = extractElectionDataFromFile(fileName, run.getTermCode());
@@ -1208,9 +1215,9 @@ void SimulationPreparation::loadPastSeatResults()
 	run.pastSeatResults.assign(
 		project.seats().count(), SimulationRun::PastSeatResult());
 	run.totalPreviousTurnout = 0;
-	std::string const fileName =
+	std::string const fileName = workspaceFile(
 		"analysis/elections/results_" +
-		sim.settings.prevTermCodes[0] + ".csv";
+		sim.settings.prevTermCodes[0] + ".csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	bool fpMode = false;
@@ -1465,7 +1472,7 @@ void SimulationPreparation::loadSeatTypes()
 	run.seatTypes.assign(
 		project.seats().count(), SimulationRun::SeatType::InnerMetro);
 	std::vector<int> matchPriority(project.seats().count(), 0);
-	std::string const fileName = "analysis/Data/seat-types.csv";
+	std::string const fileName = workspaceFile("analysis/Data/seat-types.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -1517,28 +1524,28 @@ void SimulationPreparation::loadSeatTypes()
 void SimulationPreparation::loadGreensSeatStatistics()
 {
 	loadSeatStatisticsFile(
-		"analysis/Seat Statistics/statistics_GRN.csv",
+		workspaceFile("analysis/Seat Statistics/statistics_GRN.csv"),
 		run.greensSeatStatistics);
 }
 
 void SimulationPreparation::loadIndSeatStatistics()
 {
 	loadSeatStatisticsFile(
-		"analysis/Seat Statistics/statistics_IND.csv",
+		workspaceFile("analysis/Seat Statistics/statistics_IND.csv"),
 		run.indSeatStatistics);
 }
 
 void SimulationPreparation::loadOthSeatStatistics()
 {
 	loadSeatStatisticsFile(
-		"analysis/Seat Statistics/statistics_OTH.csv",
+		workspaceFile("analysis/Seat Statistics/statistics_OTH.csv"),
 		run.othSeatStatistics);
 }
 
 void SimulationPreparation::loadIndEmergence()
 {
-	std::string const fileName =
-		"analysis/Seat Statistics/statistics_emerging_IND.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Seat Statistics/statistics_emerging_IND.csv");
 	auto const values = loadRequiredFloatLines(fileName, 15);
 	if (values[0] <= 0.0f || values[0] >= 100.0f) {
 		throw Exception(
@@ -1573,8 +1580,8 @@ void SimulationPreparation::loadIndEmergence()
 
 void SimulationPreparation::loadPopulistSeatStatistics()
 {
-	std::string const fileName =
-		"analysis/Seat Statistics/statistics_populist.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Seat Statistics/statistics_populist.csv");
 	auto const values = loadRequiredFloatLines(fileName, 5);
 	run.populistStatistics.lowerRmse = values[0];
 	run.populistStatistics.upperRmse = values[1];
@@ -1591,14 +1598,14 @@ void SimulationPreparation::loadPopulistSeatModifiers()
 {
 	loadSeatModifierFile(
 		project, run.regionCode,
-		"analysis/Seat Statistics/modifiers_populist.csv",
+		workspaceFile("analysis/Seat Statistics/modifiers_populist.csv"),
 		run.seatPopulistModifiers);
 }
 
 void SimulationPreparation::loadCentristSeatStatistics()
 {
-	std::string const fileName =
-		"analysis/Seat Statistics/statistics_centrist.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Seat Statistics/statistics_centrist.csv");
 	auto const values = loadRequiredFloatLines(fileName, 5);
 	run.centristStatistics.lowerRmse = values[0];
 	run.centristStatistics.upperRmse = values[1];
@@ -1615,14 +1622,14 @@ void SimulationPreparation::loadCentristSeatModifiers()
 {
 	loadSeatModifierFile(
 		project, run.regionCode,
-		"analysis/Seat Statistics/modifiers_centrist.csv",
+		workspaceFile("analysis/Seat Statistics/modifiers_centrist.csv"),
 		run.seatCentristModifiers);
 }
 
 void SimulationPreparation::loadPreviousElectionBaselineVotes()
 {
 	run.previousFpVoteShare.clear();
-	std::string const fileName = "analysis/Data/prior-results.csv";
+	std::string const fileName = workspaceFile("analysis/Data/prior-results.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -1651,8 +1658,8 @@ void SimulationPreparation::loadPreviousElectionBaselineVotes()
 void SimulationPreparation::loadRegionBaseBehaviours()
 {
 	run.regionBaseBehaviour.clear();
-	std::string const fileName =
-		"analysis/Regional/" + run.getTermCode() + "-regions-base.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Regional/" + run.getTermCode() + "-regions-base.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -1691,8 +1698,8 @@ void SimulationPreparation::loadRegionPollBehaviours()
 {
 	run.regionPollBehaviour.clear();
 	run.generalPollBehaviour = SimulationRun::RegionPollBehaviour();
-	std::string const fileName =
-		"analysis/Regional/" + run.getTermCode() + "-regions-polled.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Regional/" + run.getTermCode() + "-regions-polled.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -1730,8 +1737,8 @@ void SimulationPreparation::loadRegionPollBehaviours()
 void SimulationPreparation::loadRegionMixBehaviours()
 {
 	run.regionMixBehaviour.clear();
-	std::string const fileName =
-		"analysis/Regional/" + run.getTermCode() + "-mix-regions.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Regional/" + run.getTermCode() + "-mix-regions.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -1765,8 +1772,8 @@ void SimulationPreparation::loadRegionMixBehaviours()
 void SimulationPreparation::loadOverallRegionMixParameters()
 {
 	run.regionMixParameters = SimulationRun::RegionMixParameters();
-	std::string const fileName =
-		"analysis/Regional/" + run.getTermCode() + "-mix-parameters.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Regional/" + run.getTermCode() + "-mix-parameters.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) {
 		// Not finding a file is fine, but log a message in case this isn't intended behaviour
@@ -1908,8 +1915,8 @@ void SimulationPreparation::loadRegionSwingDeviations()
 		return false;
 	};
 
-	std::string const baseName =
-		"analysis/Regional/" + run.getTermCode() + "-swing-deviations";
+	std::string const baseName = workspaceFile(
+		"analysis/Regional/" + run.getTermCode() + "-swing-deviations");
 	std::string const tppFileName = baseName + ".csv";
 	auto const tppValues = loadValues(tppFileName);
 	if (!tppValues.empty()) {
@@ -1948,8 +1955,8 @@ void SimulationPreparation::loadRegionSwingDeviations()
 void SimulationPreparation::loadTppSwingFactors()
 {
 	run.tppSwingFactors = SimulationRun::TppSwingFactors();
-	std::string const fileName =
-		"analysis/Seat Statistics/tpp-swing-factors.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Seat Statistics/tpp-swing-factors.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::map<std::string, float*> destinations = {
@@ -2004,8 +2011,8 @@ void SimulationPreparation::loadTppSwingFactors()
 void SimulationPreparation::loadNationalsParameters()
 {
 	run.nationalsParameters = SimulationRun::NationalsParameters();
-	std::string const fileName =
-		"analysis/Nationals/" + run.getTermCode() + "_stats.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Nationals/" + run.getTermCode() + "_stats.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string header;
@@ -2032,8 +2039,8 @@ void SimulationPreparation::loadNationalsParameters()
 
 void SimulationPreparation::loadNationalsSeatExpectations()
 {
-	std::string const fileName =
-		"analysis/Nationals/" + run.getTermCode() + "_seats.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Nationals/" + run.getTermCode() + "_seats.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -2082,8 +2089,8 @@ void SimulationPreparation::loadIndividualSeatParameters()
 		project.seats().count(),
 		SimulationRun::IndividualSeatParameters());
 	std::vector<int> matchPriority(project.seats().count(), 0);
-	std::string const fileName =
-		"analysis/Seat Statistics/individual-seat-factors.csv";
+	std::string const fileName = workspaceFile(
+		"analysis/Seat Statistics/individual-seat-factors.csv");
 	auto file = std::ifstream(fileName);
 	if (!file) throw Exception("Could not find file " + fileName + "!");
 	std::string line;
@@ -2200,7 +2207,7 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 		);
 	// Only the sampled date is needed here. A nowcast uses the run's fixed current
 	// date; other forecasts retain the projection's possible-date distribution.
-	auto const sampleDate = sim.isNowcast() ? run.nowcastDate : wxInvalidDateTime;
+	auto const sampleDate = sim.isNowcast() ? run.nowcastDate : Date{};
 	int const daysToElection = project.projections().view(
 		sim.settings.baseProjection).generateSupportSample(
 			project.models(), sampleDate, 0).daysToElection;

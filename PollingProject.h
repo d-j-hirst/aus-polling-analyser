@@ -13,6 +13,7 @@
 #include "FileOpeningState.h"
 #include "NewProjectData.h"
 #include "Points.h"
+#include "WorkspacePaths.h"
 
 #include "ElectionCollection.h"
 #include "ModelCollection.h"
@@ -76,6 +77,7 @@ public:
 	void refreshCalc2PP();
 
 	Config const& config() const { return configObj; }
+	WorkspacePaths const& paths() const { return workspacePaths; }
 
 	PartyCollection& parties() { return partyCollection; }
 	PartyCollection const& parties() const { return partyCollection; }
@@ -147,6 +149,7 @@ private:
 	// Basic constructor that handles everything required by the project regardless of whether
 	// it is a new or existing project.
 	PollingProject();
+	PollingProject(WorkspacePaths workspacePaths);
 
 	// Opens the project saved at the given filename.
 	// Returns 0 if successful, and 1 if opening failed.
@@ -180,6 +183,7 @@ private:
 	// Stores full text of the last macro to be run.
 	std::string lastMacro;
 
+	WorkspacePaths workspacePaths;
 	Config configObj;
 
 	PartyCollection partyCollection;

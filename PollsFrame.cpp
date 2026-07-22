@@ -138,7 +138,7 @@ void PollsFrame::addPollToPollData(Poll poll) {
 	if (poll.pollster != Pollster::InvalidId) pollsterName = project->pollsters().view(poll.pollster).name;
 	else pollsterName = "Invalid";
 	data.push_back(wxVariant(pollsterName)); // in case something goes wrong and we end up with a null pointer.
-	data.push_back(wxVariant(poll.date.FormatISODate()));
+	data.push_back(wxVariant(poll.date.formatIso()));
 	data.push_back(wxVariant(poll.getReported2ppString()));
 	data.push_back(wxVariant(poll.getRespondent2ppString()));
 	data.push_back(wxVariant(poll.getCalc2ppString()));

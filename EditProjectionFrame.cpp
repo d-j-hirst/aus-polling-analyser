@@ -8,6 +8,7 @@
 #include "Log.h"
 #include "ModelCollection.h"
 #include "TextInput.h"
+#include "WxDateUtils.h"
 
 #include <wx/datetime.h>
 
@@ -76,8 +77,10 @@ void EditProjectionFrame::createModelInput(int & y)
 
 void EditProjectionFrame::createEndDateInput(int & y)
 {
-	auto endDateCallback = [this](wxDateTime const& d) -> void {projectionSettings.endDate = d; };
-	endDateInput.reset(new DateInput(this, ControlId::EndDate, "End Date: ", projectionSettings.endDate,
+	auto endDateCallback = [this](wxDateTime const& d) -> void {
+		projectionSettings.endDate = fromWxDate(d);
+	};
+	endDateInput.reset(new DateInput(this, ControlId::EndDate, "End Date: ", toWxDate(projectionSettings.endDate),
 		wxPoint(2, y), endDateCallback));
 	y += endDateInput->Height + ControlPadding;
 }
@@ -136,8 +139,7 @@ void EditProjectionFrame::updatePossibleDates(std::string possibleDates)
 		for (auto dateOdds : splitString(possibleDates, ",")) {
 			auto split = splitString(dateOdds, ":");
 			if (split.size() != 2) return;
-			wxDateTime tempDate;
-			if (!tempDate.ParseISODate(split[0])) continue;
+			if (!Date::parseIso(split[0])) continue;
 			dates.push_back(std::pair(split[0], std::stof(split[1])));
 		}
 		projectionSettings.possibleDates = dates;

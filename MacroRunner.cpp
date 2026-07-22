@@ -177,7 +177,8 @@ std::optional<std::string> MacroRunner::run(
 			case Instruction::Type::DumpModel:
 				{
 					auto const& model = project_.models().access(instruction.id);
-					auto const filename = modelCacheFilename(model);
+					auto const filename = project_.paths().resolveString(
+						modelCacheFilename(model));
 					succeeded = model.dumpGeneratedData(filename);
 					if (!succeeded) {
 						messages.push_back("Could not write " + filename + ".");
@@ -187,7 +188,8 @@ std::optional<std::string> MacroRunner::run(
 			case Instruction::Type::LoadModel:
 				{
 					auto& model = project_.models().access(instruction.id);
-					auto const filename = modelCacheFilename(model);
+					auto const filename = project_.paths().resolveString(
+						modelCacheFilename(model));
 					succeeded = model.loadGeneratedData(
 						filename, captureFeedback);
 					if (succeeded) {
@@ -200,12 +202,13 @@ std::optional<std::string> MacroRunner::run(
 				break;
 			case Instruction::Type::PrepareModel:
 				succeeded = project_.models().access(instruction.id)
-					.prepareForRun(captureFeedback);
+					.prepareForRun(project_.paths(), captureFeedback);
 				project_.invalidateProjectionsFromModel(instruction.id);
 				break;
 			case Instruction::Type::RunModel:
 				succeeded = project_.models().access(instruction.id).loadData(
-					captureFeedback, project_.config().getModelThreads());
+					project_.paths(), captureFeedback,
+					project_.config().getModelThreads());
 				project_.invalidateProjectionsFromModel(instruction.id);
 				break;
 			case Instruction::Type::RunProjection:

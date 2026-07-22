@@ -1,11 +1,10 @@
 #pragma once
 
+#include "Date.h"
 #include "Party.h"
 #include "Projection.h"
 #include "Seat.h"
 #include "SimulationRun.h"
-
-#include <wx/datetime.h>
 
 #include <array>
 #include <map>
@@ -62,7 +61,7 @@ public:
 
 		Projection::Id baseProjection = Projection::InvalidId;
 
-		wxDateTime fedElectionDate = wxInvalidDateTime;
+		Date fedElectionDate;
 
 		float prevElection2pp = 50.0f;
 
@@ -304,7 +303,7 @@ public:
 
 	struct SavedReport {
 		Report report;
-		wxDateTime dateSaved;
+		Timestamp dateSaved;
 		std::string label;
 	};
 
@@ -375,8 +374,8 @@ private:
 
 	std::shared_ptr<SimulationRun> latestRun;
 
-	// If set to wxInvalidDateTime then we assume the simulation hasn't been run at all.
-	wxDateTime lastUpdated = wxInvalidDateTime;
+	// An invalid timestamp indicates that the simulation has not been run.
+	Timestamp lastUpdated;
 };
 
 inline Simulation::MajorParty operator++(Simulation::MajorParty& party) {

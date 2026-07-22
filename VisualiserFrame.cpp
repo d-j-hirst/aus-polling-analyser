@@ -2,6 +2,7 @@
 
 #include "General.h"
 #include "SpecialPartyCodes.h"
+#include "WxDateUtils.h"
 
 #include <algorithm>
 
@@ -205,7 +206,8 @@ void VisualiserFrame::zoom(float factor, int x)
 	float zoomFactor = pow(2.0f, -factor);
 	float effectiveX = std::max(std::min(float(x), gv.graphMargin + gv.graphWidth), gv.graphMargin);
 	float normX = ((effectiveX - gv.graphMargin) / gv.graphWidth);
-	int focusDate = std::max(std::min(int(getDateFromX(int(effectiveX)).GetMJD()), visEndDay), visStartDay);
+	int focusDate = std::max(std::min(
+		dateToIntMjd(getDateFromX(int(effectiveX))), visEndDay), visStartDay);
 	float newViewLength = std::max(16.0f, currentViewLength * zoomFactor);
 	setVisualiserBounds(focusDate - int(newViewLength * normX), focusDate + int(newViewLength * (1.0f - normX)));
 }
@@ -376,7 +378,7 @@ void VisualiserFrame::render(wxDC& dc) {
 	if (displayPolls) {
 		drawPollDots(dc);
 
-		if (mouseoverPoll != Poll::InvalidId && project->polls().view(mouseoverPoll).date.IsValid()) {
+		if (mouseoverPoll != Poll::InvalidId && project->polls().view(mouseoverPoll).date.isValid()) {
 			determineLabelRect();
 			drawMouseoverLabelRect(dc);
 			drawMouseoverPollText(dc);
@@ -449,7 +451,7 @@ void VisualiserFrame::determineGraphVerticalScale()
 
 	if (displayModels && selectedModel >= 0 && selectedModel < project->models().count()) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		if (model.getLastUpdatedDate().IsValid()) {
+		if (model.getLastUpdatedDate().isValid()) {
 			auto thisModel = project->models().viewByIndex(selectedModel);
 			if (selectedParty >= 0) {
 				auto series = viewSeriesFromModel(thisModel);
@@ -471,7 +473,7 @@ void VisualiserFrame::determineGraphVerticalScale()
 
 	if (displayProjections && selectedProjection >= 0 && selectedProjection < project->projections().count()) {
 		Projection const& projection = project->projections().viewByIndex(selectedProjection);
-		if (projection.getLastUpdatedDate().IsValid()) {
+		if (projection.getLastUpdatedDate().isValid()) {
 			auto thisProjection = project->projections().viewByIndex(selectedProjection);
 			if (selectedParty >= 0) {
 				auto series = viewSeriesFromProjection(thisProjection);
@@ -558,7 +560,7 @@ void VisualiserFrame::determineFirstAxisTick() {
 
 void VisualiserFrame::determineLaterAxisTicks() {
 	wxDateTime timeToAdd = gv.AxisTick[0];
-	for (int i = 0; timeToAdd.GetModifiedJulianDayNumber() < visEndDay; i++) {
+	for (int i = 0; dateToIntMjd(timeToAdd) < visEndDay; i++) {
 		if (i) gv.AxisTick.push_back(timeToAdd);
 		switch (gv.interval) {
 		case GraphicsVariables::AxisTickInterval::Day:
@@ -637,7 +639,7 @@ void VisualiserFrame::drawAxisTickLines(wxDC& dc) {
 void VisualiserFrame::drawModels(wxDC& dc) {
 	if (selectedModel != -1) {
 		StanModel const& model = project->models().viewByIndex(selectedModel);
-		if (model.getLastUpdatedDate().IsValid()) {
+		if (model.getLastUpdatedDate().isValid()) {
 			drawModel(model, dc);
 		}
 	}
@@ -651,8 +653,8 @@ void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 	auto thisTimePoint = series->timePoint.begin();
 	for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
-		int x = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i);
-		int x2 = getXFromDate(int(floor(model.getStartDate().GetMJD())) + i + 1);
+		int x = getXFromDate(dateToIntMjd(model.getStartDate()) + i);
+		int x2 = getXFromDate(dateToIntMjd(model.getStartDate()) + i + 1);
 		if (displayModels) {
 			for (auto range : SpreadRanges) {
 				int y_tl = getYFromVote((*thisTimePoint).values[range.upperPercentile]);
@@ -686,7 +688,7 @@ void VisualiserFrame::drawModel(StanModel const& model, wxDC& dc) {
 void VisualiserFrame::drawProjections(wxDC& dc) {
 	if (selectedProjection != -1) {
 		Projection const& projection = project->projections().viewByIndex(selectedProjection);
-		if (projection.getLastUpdatedDate().IsValid()) {
+		if (projection.getLastUpdatedDate().isValid()) {
 			drawProjection(projection, dc);
 		}
 	}
@@ -697,7 +699,7 @@ void VisualiserFrame::drawProjection(Projection const& projection, wxDC& dc) {
 	if (selectedParty < 0) return;
 	auto series = viewSeriesFromProjection(projection);
 	if (!series) return;
-	int projStartDay = int(floor(getProjectionStartDate(projection).GetMJD()));
+	int projStartDay = dateToIntMjd(getProjectionStartDate(projection));
 	auto thisTimePoint = series->timePoint.begin();
 	for (int i = 0; i < int(series->timePoint.size()) - 1; ++i) {
 		auto nextTimePoint = std::next(thisTimePoint);
@@ -735,7 +737,7 @@ void VisualiserFrame::drawPollDots(wxDC& dc) {
 	for (auto const& [id, poll] : project->polls()) {
 		float vote = getVoteFromPoll(poll);
 		if (vote < 0.0f) continue;
-		int x = getXFromDate(poll.date);
+		int x = getXFromDate(dateToIntMjd(poll.date));
 		int y = getYFromVote(vote);
 		// first draw the yellow outline for selected poll, if appropriate
 		if (id == mouseoverPoll) {
@@ -798,7 +800,7 @@ Poll::Id VisualiserFrame::getPollFromMouse(wxPoint point) {
 	long long closest = 10000000;
 	for (auto const& [id, poll] : project->polls()) {
 		// Normal ints would cause these calculations to overflow if used here
-		int64_t xDist = (abs(getXFromDate(poll.date) - point.x));
+		int64_t xDist = (abs(getXFromDate(dateToIntMjd(poll.date)) - point.x));
 		int64_t yDist = (abs(getYFromVote(getVoteFromPoll(poll)) - point.y));
 		int64_t totalDist = xDist * xDist + yDist * yDist;
 		if (totalDist < closest && totalDist < SelectMousePollDistanceSquared) {
@@ -815,8 +817,8 @@ int VisualiserFrame::getModelTimePointFromMouse(wxPoint point)
 		StanModel const& model = project->models().viewByIndex(selectedModel);
 		auto series = viewSeriesFromModel(model);
 		if (!series) return -1;
-		int xLeft = getXFromDate(int(floor(model.getStartDate().GetMJD())));
-		int xRight = getXFromDate(int(floor(model.getStartDate().GetMJD())) + int(series->timePoint.size()));
+		int xLeft = getXFromDate(dateToIntMjd(model.getStartDate()));
+		int xRight = getXFromDate(dateToIntMjd(model.getStartDate()) + int(series->timePoint.size()));
 		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
 		int timePoint = int(std::floor(proportion * float(series->timePoint.size())));
 		if (timePoint < 0) return -1;
@@ -834,8 +836,8 @@ int VisualiserFrame::getProjectionTimePointFromMouse(wxPoint point)
 		Projection const& projection = project->projections().viewByIndex(selectedProjection);
 		auto const& series = viewSeriesFromProjection(projection);
 		if (!series) return -1;
-		int xLeft = getXFromDate(int(floor(getProjectionStartDate(projection).GetMJD())));
-		int xRight = getXFromDate(int(floor(getProjectionStartDate(projection).GetMJD())) + int(series->timePoint.size()));
+		int xLeft = getXFromDate(dateToIntMjd(getProjectionStartDate(projection)));
+		int xRight = getXFromDate(dateToIntMjd(getProjectionStartDate(projection)) + int(series->timePoint.size()));
 		float proportion = float(point.x - xLeft) / float(xRight - xLeft);
 		int timePoint = int(std::floor(proportion * float(series->timePoint.size())));
 		if (timePoint < 0) return -1;
@@ -875,7 +877,7 @@ void VisualiserFrame::determineLabelRectFromPoll()
 	}
 	int height = nLines * PollInfoLineHeight + VerticalPaddingTotal;
 	int width = DefaultWidth;
-	int left = getXFromDate(thisPoll.date) - width;
+	int left = getXFromDate(dateToIntMjd(thisPoll.date)) - width;
 	int top = getYFromVote(getVoteFromPoll(thisPoll));
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
@@ -895,7 +897,7 @@ void VisualiserFrame::determineLabelRectFromModel()
 	int width = DefaultWidth;
 	auto const& series = viewSeriesFromModel(thisModel);
 	if (!series) return;
-	int left = getXFromDate(int(floor(thisModel.getStartDate().GetMJD())) + modelMouseoverTimepoint) - width;
+	int left = getXFromDate(dateToIntMjd(thisModel.getStartDate()) + modelMouseoverTimepoint) - width;
 	int top = getYFromVote(series->timePoint[modelMouseoverTimepoint].values[50]);
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
@@ -915,7 +917,7 @@ void VisualiserFrame::determineLabelRectFromProjection()
 	int width = DefaultWidth;
 	auto const& series = viewSeriesFromProjection(thisProjection);
 	if (!series) return;
-	int left = getXFromDate(int(floor(getProjectionStartDate(thisProjection).GetMJD())) + projectionMouseoverTimepoint) - width;
+	int left = getXFromDate(dateToIntMjd(getProjectionStartDate(thisProjection)) + projectionMouseoverTimepoint) - width;
 	int top = getYFromVote(series->timePoint[projectionMouseoverTimepoint].values[50]);
 	if (left < 0)
 		left += width + MousePointerHorzSpacing;
@@ -941,7 +943,7 @@ void VisualiserFrame::drawMouseoverPollText(wxDC& dc) {
 	else pollsterName = "Invalid";
 	dc.DrawText(pollsterName, currentPoint);
 	currentPoint += wxPoint(0, PollInfoLineHeight);
-	dc.DrawText(thisPoll.date.FormatISODate(), currentPoint);
+	dc.DrawText(thisPoll.date.formatIso(), currentPoint);
 	currentPoint += wxPoint(0, PollInfoLineHeight);
 	if (thisPoll.reported2pp >= 0) {
 		dc.DrawText("Previous-Election 2PP: " + thisPoll.getReported2ppString(), currentPoint);
@@ -976,7 +978,7 @@ void VisualiserFrame::drawMouseoverModelText(wxDC& dc)
 	auto const& thisSpread = thisSeries->timePoint[modelMouseoverTimepoint];
 	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
-	dc.DrawText(thisModel.getStartDate().Add(wxDateSpan(0, 0, 0, modelMouseoverTimepoint)).FormatISODate(), currentPoint);
+	dc.DrawText((thisModel.getStartDate() + modelMouseoverTimepoint).formatIso(), currentPoint);
 	currentPoint += wxPoint(0, PollInfoLineHeight);
 	for (auto it = SpreadRanges.begin(); it != SpreadRanges.end(); ++it) {
 		std::string lowerText = std::to_string(it->lowerPercentile) + "%: " + std::to_string(thisSpread.values[it->lowerPercentile]);
@@ -1003,7 +1005,7 @@ void VisualiserFrame::drawMouseoverProjectionText(wxDC& dc)
 	auto const& thisSpread = thisSeries->timePoint[projectionMouseoverTimepoint];
 	wxPoint currentPoint = mouseOverLabelRect.GetTopLeft() += wxPoint(PollInfoPadding, PollInfoPadding);
 	dc.SetPen(wxPen(PollInfoTextColour)); // black text
-	dc.DrawText(getProjectionStartDate(thisProjection).Add(wxDateSpan(0, 0, 0, projectionMouseoverTimepoint)).FormatISODate(), currentPoint);
+	dc.DrawText((getProjectionStartDate(thisProjection) + projectionMouseoverTimepoint).formatIso(), currentPoint);
 	currentPoint += wxPoint(0, PollInfoLineHeight);
 	for (auto it = SpreadRanges.begin(); it != SpreadRanges.end(); ++it) {
 		std::string lowerText = std::to_string(it->lowerPercentile) + "%: " + std::to_string(thisSpread.values[it->lowerPercentile]);
@@ -1058,10 +1060,10 @@ StanModel::SeriesOutput VisualiserFrame::viewSeriesFromProjection(Projection con
 	return nullptr;
 }
 
-wxDateTime VisualiserFrame::getProjectionStartDate(Projection const& projection)
+Date VisualiserFrame::getProjectionStartDate(Projection const& projection)
 {
 	StanModel const& model = project->models().view(projection.getSettings().baseModel);
-	return model.getEndDate() + wxDateSpan(0, 0, 0, 1);
+	return model.getEndDate() + 1;
 }
 
 void VisualiserFrame::OnPaint(wxPaintEvent& WXUNUSED(evt))

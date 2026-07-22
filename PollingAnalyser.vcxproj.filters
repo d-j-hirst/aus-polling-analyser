@@ -149,6 +149,12 @@
     <ClCompile Include="DateInput.cpp">
       <Filter>Source Files\Dialog Boxes</Filter>
     </ClCompile>
+    <ClCompile Include="Date.cpp">
+      <Filter>Source Files\Utility</Filter>
+    </ClCompile>
+	<ClCompile Include="WorkspacePaths.cpp">
+	  <Filter>Source Files\Utility</Filter>
+	</ClCompile>
     <ClCompile Include="ProjectionCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
@@ -412,6 +418,15 @@
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="General.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Date.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
+	<ClInclude Include="WorkspacePaths.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
+    <ClInclude Include="WxDateUtils.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
     <ClInclude Include="ResultsDownloader.h">

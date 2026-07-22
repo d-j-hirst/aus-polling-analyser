@@ -273,7 +273,7 @@ private:
 	// Returns null pointer if no matching series can be found
 	StanModel::SeriesOutput viewSeriesFromProjection(Projection const& projection) const;
 
-	wxDateTime getProjectionStartDate(Projection const& projection);
+	Date getProjectionStartDate(Projection const& projection);
 
 	// For handling horizontal panning of the visualiser
 	int panStart = -1;

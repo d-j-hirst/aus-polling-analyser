@@ -166,7 +166,8 @@ constexpr std::string_view KnownPostalCount = "iKnownPostalCount";
 void SeatCollection::exportInfo() const
 {
 	std::string termCode = project.models().viewByIndex(0).getTermCode();
-	std::ofstream os("analysis/seats/" + termCode + ".txt");
+	std::ofstream os(project.paths().resolveString(
+		"analysis/seats/" + termCode + ".txt"));
 	for (auto const& [id, seat] : seats) {
 		os << "#" << seat.name << "\n";
 		if (seat.previousName.size()) os << PreviousName << "=" << seat.previousName << "\n";
@@ -218,7 +219,8 @@ void SeatCollection::exportInfo() const
 void SeatCollection::importInfo()
 {
 	std::string termCode = project.models().viewByIndex(0).getTermCode();
-	std::string filename = "analysis/seats/" + termCode + ".txt";
+	std::string filename = project.paths().resolveString(
+		"analysis/seats/" + termCode + ".txt");
 	std::ifstream is(filename);
 	if (!is) {
 		logger << "Warning: Seat import failed, tried to open: " << filename;

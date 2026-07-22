@@ -8,13 +8,21 @@
 #include "ProjectFiler.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <iomanip>
+#include <utility>
 
 const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
 
 const std::string ConfigFilename = "config.cfg";
 
-PollingProject::PollingProject() :
+PollingProject::PollingProject()
+	: PollingProject(WorkspacePaths::discover())
+{}
+
+PollingProject::PollingProject(WorkspacePaths workspacePaths) :
+	workspacePaths(std::move(workspacePaths)),
+	configObj(this->workspacePaths.resolveString(ConfigFilename)),
 	partyCollection(*this),
 	pollsterCollection(*this),
 	pollCollection(*this),
@@ -24,8 +32,7 @@ PollingProject::PollingProject() :
 	seatCollection(*this),
 	simulationCollection(*this),
 	electionCollection(*this),
-	resultCoordinator(*this),
-	configObj(ConfigFilename)
+	resultCoordinator(*this)
 {}
 
 PollingProject::PollingProject(NewProjectData& newProjectData)
@@ -41,9 +48,9 @@ PollingProject::PollingProject(NewProjectData& newProjectData)
 }
 
 PollingProject::PollingProject(std::string pathName)
-	: PollingProject()
+	: PollingProject(WorkspacePaths::discover(pathName))
 {
-	lastFileName = pathName.substr(pathName.rfind("\\") + 1);
+	lastFileName = std::filesystem::path(pathName).filename().string();
 	logger << "Loading project from: " << lastFileName << "\n";
 	open(pathName);
 }
@@ -92,11 +99,11 @@ int PollingProject::getEarliestDate() const {
 int PollingProject::getLatestDate() const {
 	int latestDay = polls().getLatestDate();
 	for (auto const& [key, model] : models()) {
-		int date = int(floor(model.getEndDate().GetModifiedJulianDayNumber()));
+		int date = model.getEndDate().modifiedJulianDay();
 		if (date > latestDay) latestDay = date;
 	}
 	for (auto const& [key, projection] : projections()) {
-		int date = int(floor(projection.getSettings().endDate.GetModifiedJulianDayNumber()));
+		int date = projection.getSettings().endDate.modifiedJulianDay();
 		if (date > latestDay) latestDay = date;
 	}
 	return latestDay;

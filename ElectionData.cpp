@@ -2100,11 +2100,11 @@ void Results2::Election::updateQec(tinyxml2::XMLDocument const& xml)
     {"Independent", "IND"}
   };
 
-  id = xml.FirstChildElement("ecq")->FirstChildElement("election")->IntAttribute("id");
-  name = xml.FirstChildElement("ecq")->FirstChildElement("election")->IntAttribute("electionName");
-  auto districts = xml.FirstChildElement("ecq")
-    ->FirstChildElement("election")
-    ->FirstChildElement("districts");
+  auto const* election = xml.FirstChildElement("ecq")->FirstChildElement("election");
+  id = election->IntAttribute("id");
+  auto const* electionName = election->Attribute("electionName");
+  name = electionName ? electionName : "";
+  auto districts = election->FirstChildElement("districts");
   auto currentDistrict = districts->FirstChildElement("district");
   std::map<std::string, int> partyNameToPartyId;
   while (currentDistrict) {

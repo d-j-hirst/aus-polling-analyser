@@ -78,13 +78,13 @@ public:
 	int getEarliestDate() const;
 
 	// gets the date in MJD form of the earliest poll after (or at the same time as) the given date
-	int getEarliestDateFrom(wxDateTime const& dateAfter) const;
+	int getEarliestDateFrom(Date dateAfter) const;
 
 	// gets the date in MJD form of the most recent poll
 	int getLatestDate() const;
 
 	// gets the date in MJD form of the latest poll before (or at the same time as) the given date
-	int getLatestDateUpTo(wxDateTime const& dateBefore) const;
+	int getLatestDateUpTo(Date dateBefore) const;
 
 	// Removes all the polls from a particular pollster. Used when deleting a pollster.
 	void removePollsFromPollster(Pollster::Id pollster);

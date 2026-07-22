@@ -624,12 +624,11 @@ void SimulationCompletion::recordTrends()
 	sim.latestReport.trendPeriod = 5;
 	auto const& model = baseModel();
 	auto const startDate = model.getStartDate();
-	if (!startDate.IsValid()) {
+	if (!startDate.isValid()) {
 		throw std::runtime_error(
 			"Cannot record simulation trends because the model start date is invalid.");
 	}
-	sim.latestReport.trendStartDate =
-		startDate.FormatISODate().ToStdString();
+	sim.latestReport.trendStartDate = startDate.formatIso();
 	recordTcpTrend();
 	recordFpTrends();
 }
@@ -707,11 +706,12 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	// rather than a general report format. Its selected party columns preserve
 	// the layouts expected by the existing downstream workflow.
 	std::ofstream summaryFile;
+	auto const summaryFilename = project.paths().resolveString("live_summary.csv");
 	constexpr int MaxSummaryFileOpenAttempts = 3;
 	for (int attempt = 1;
 		attempt <= MaxSummaryFileOpenAttempts && !summaryFile.is_open();
 		++attempt) {
-		summaryFile.open("live_summary.csv");
+		summaryFile.open(summaryFilename);
 		if (!summaryFile.is_open() &&
 			attempt < MaxSummaryFileOpenAttempts) {
 			feedback(

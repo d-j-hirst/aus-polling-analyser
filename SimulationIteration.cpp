@@ -459,12 +459,12 @@ void SimulationIteration::initialiseIterationSpecificCounts()
 void SimulationIteration::determineFedStateCorrelation()
 {
 	auto fedElectionDate = sim.settings.fedElectionDate;
-	if (!fedElectionDate.IsValid()) {
+	if (!fedElectionDate.isValid()) {
 		fedStateCorrelation = 0.0f;
 		return;
 	}
 	auto projDate = project.projections().view(sim.settings.baseProjection).getSettings().endDate;
-	auto dateDiff = abs((projDate - fedElectionDate).GetDays());
+	auto dateDiff = std::abs(projDate - fedElectionDate);
 	float gammaMedian = 0.7f * exp(-0.00294f * float(dateDiff)); // increased from 0.5555f
 	fedStateCorrelation = gammaMedian * variabilityGamma(3.0f, 0.374f, 0, 0, uint32_t(VariabilityTag::FedStateCorrelation));
 }
@@ -480,7 +480,7 @@ void SimulationIteration::determineOverallTpp()
 		projection.generateNowcastSupportSample(
 			project.models(), sampleIndex, run.nowcastDate) :
 		projection.generateSupportSample(
-			project.models(), wxInvalidDateTime, sampleIndex);
+			project.models(), Date{}, sampleIndex);
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
 

@@ -238,7 +238,8 @@ void DisplayFrame::refreshSavedReports()
 	if (selectedSimulation >= 0 && selectedSimulation < project->simulations().count()) {
 		auto const& thisSimulation = project->simulations().viewByIndex(selectedSimulation);
 		for (auto const& savedReport : thisSimulation.viewSavedReports()) {
-			std::string label = savedReport.label + " - " + savedReport.dateSaved.FormatISODate().ToStdString();
+			std::string label = savedReport.label + " - " +
+				savedReport.dateSaved.formatIsoDateLocal();
 			saveReportArray.push_back(label);
 		}
 	}

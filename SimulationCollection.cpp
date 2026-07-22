@@ -4,42 +4,13 @@
 #include "PollingProject.h"
 
 #include <algorithm>
-#include <array>
-#include <cctype>
 #include <exception>
 #include <optional>
 
 namespace {
-	std::optional<wxDateTime> parseLiveReportDate(std::string const& dateCode)
+	std::optional<Timestamp> parseLiveReportDate(std::string const& dateCode)
 	{
-		if (dateCode.size() != 14 ||
-			!std::all_of(dateCode.begin(), dateCode.end(),
-				[](unsigned char character) { return std::isdigit(character); })) {
-			return std::nullopt;
-		}
-
-		int const year = std::stoi(dateCode.substr(0, 4));
-		int const month = std::stoi(dateCode.substr(4, 2));
-		int const day = std::stoi(dateCode.substr(6, 2));
-		int const hour = std::stoi(dateCode.substr(8, 2));
-		int const minute = std::stoi(dateCode.substr(10, 2));
-		int const second = std::stoi(dateCode.substr(12, 2));
-		if (year < 1 || month < 1 || month > 12 || hour > 23 ||
-			minute > 59 || second > 59) {
-			return std::nullopt;
-		}
-
-		constexpr std::array<int, 12> DaysInMonth = {
-			31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-		};
-		int maxDay = DaysInMonth[month - 1];
-		bool const isLeapYear = year % 4 == 0 &&
-			(year % 100 != 0 || year % 400 == 0);
-		if (month == 2 && isLeapYear) ++maxDay;
-		if (day < 1 || day > maxDay) return std::nullopt;
-
-		return wxDateTime(day, static_cast<wxDateTime::Month>(month - 1),
-			year, hour, minute, second);
+		return Timestamp::parseCompactLocal(dateCode);
 	}
 }
 
@@ -129,7 +100,7 @@ std::optional<std::string> SimulationCollection::uploadToServer(
 		Simulation::SavedReport sReport;
 		sReport.report = simulationIt->second.getLatestReport();
 		sReport.label = "New results";
-		sReport.dateSaved = wxDateTime::Now();
+		sReport.dateSaved = Timestamp::now();
 		if (!sReport.report.dateCode.empty()) {
 			auto const reportDate =
 				parseLiveReportDate(sReport.report.dateCode);

@@ -8,7 +8,7 @@
 const std::string DefaultFileName = "./analysis/Data/poll-data-fed.csv";
 
 struct PollInfo {
-	wxDateTime date;
+	Date date;
 	int pollsterId;
 	float tpp = std::numeric_limits<float>::quiet_NaN();
 	std::map<int, float> results;
@@ -75,18 +75,18 @@ int PollCollection::getEarliestDate() const {
 	if (!count()) return -100000000;
 	int earliestDay = 1000000000;
 	for (auto const&[key, poll] : polls) {
-		int date = dateToIntMjd(poll.date);
+		int date = poll.date.modifiedJulianDay();
 		if (date < earliestDay) earliestDay = date;
 	}
 	return earliestDay;
 }
 
-int PollCollection::getEarliestDateFrom(wxDateTime const& dateAfter) const {
+int PollCollection::getEarliestDateFrom(Date dateAfter) const {
 	if (!count()) return -100000000;
 	int earliestDay = 1000000000;
-	int afterThis = dateToIntMjd(dateAfter);
+	int afterThis = dateAfter.modifiedJulianDay();
 	for (auto const& [key, poll] : polls) {
-		int date = dateToIntMjd(poll.date);
+		int date = poll.date.modifiedJulianDay();
 		if (date < earliestDay && date >= afterThis) earliestDay = date;
 	}
 	return earliestDay;
@@ -96,19 +96,19 @@ int PollCollection::getLatestDate() const {
 	if (!count()) return -100000000;
 	int latestDay = -1000000000;
 	for (auto const& [key, poll] : polls) {
-		int date = dateToIntMjd(poll.date);
+		int date = poll.date.modifiedJulianDay();
 		if (date > latestDay) latestDay = date;
 	}
 	return latestDay;
 }
 
-int PollCollection::getLatestDateUpTo(wxDateTime const & dateBefore) const
+int PollCollection::getLatestDateUpTo(Date dateBefore) const
 {
 	if (!count()) return -100000000;
 	int latestDay = -1000000000;
-	int beforeThis = dateToIntMjd(dateBefore);
+	int beforeThis = dateBefore.modifiedJulianDay();
 	for (auto const& [key, poll] : polls) {
-		int date = dateToIntMjd(poll.date);
+		int date = poll.date.modifiedJulianDay();
 		if (date > latestDay && date <= beforeThis) latestDay = date;
 	}
 	return latestDay;
@@ -138,12 +138,13 @@ bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 {
 	if (sourceFile == "") sourceFile = DefaultFileName;
 	sourceFile = requestFunc("Enter a path for the poll data.", sourceFile);
-	auto file = std::ifstream(sourceFile);
+	auto const resolvedSourceFile = project.paths().resolveString(sourceFile);
+	auto file = std::ifstream(resolvedSourceFile);
 	if (!file) {
-		messageFunc("Polls file not present! Expected a file at " + sourceFile);
+		messageFunc("Polls file not present! Expected a file at " + resolvedSourceFile);
 		return false;
 	}
-	messageFunc("Successfully found file at: " + sourceFile);
+	messageFunc("Successfully found file at: " + resolvedSourceFile);
 	std::string line;
 	std::getline(file, line); // first line is just a legend, skip it
 	auto splitLine = splitString(line, ",");
@@ -170,15 +171,19 @@ bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 			}
 		}
 	}
-	wxDateTime cutoffDate(1, wxDateTime::Month(0), 9999);
+	Date const cutoffDate = Date::fromYmd(9999, 1, 1).value();
 	std::vector<PollInfo> pollInfos;
 	do {
 		std::getline(file, line);
 		if (!file) break;
 		splitLine = splitString(line, ",");
 		PollInfo pollInfo;
-		auto dateParts = splitStringI(splitLine[0], "-");
-		pollInfo.date = wxDateTime(dateParts[2], wxDateTime::Month(dateParts[1] - 1), dateParts[0]);
+		auto const parsedDate = Date::parseIso(splitLine[0]);
+		if (!parsedDate) {
+			messageFunc("Could not parse poll date: " + splitLine[0]);
+			return false;
+		}
+		pollInfo.date = *parsedDate;
 		if (pollInfo.date > cutoffDate) continue;
 		std::string pollsterName = splitLine[1];
 		try {

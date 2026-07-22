@@ -257,7 +257,8 @@ void ModelsFrame::collectData() {
 	ModelCollection::Index modelIndex = modelData->GetSelectedRow();
 	StanModel::Id modelId = project->models().indexToId(modelIndex);
 	StanModel& thisModel = project->models().access(modelId);
-	thisModel.loadData([](std::string s) {wxMessageBox(s); },
+	thisModel.loadData(project->paths(),
+		[](std::string s) {wxMessageBox(s); },
 		project->config().getModelThreads());
 	refreshDataTable();
 	refresher.refreshVisualiser();

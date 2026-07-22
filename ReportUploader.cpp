@@ -73,7 +73,7 @@ std::optional<std::string> ReportUploader::upload()
 	if (!modeString) {
 		return uploadFailure("the simulation has an invalid report mode.");
 	}
-	if (!thisReport.dateSaved.IsValid()) {
+	if (!thisReport.dateSaved.isValid()) {
 		return uploadFailure("the report does not have a valid saved date.");
 	}
 
@@ -86,7 +86,7 @@ std::optional<std::string> ReportUploader::upload()
 	j["termCode"] = termCode;
 	j["electionName"] = project.getElectionName();
 	j["reportLabel"] = thisReport.label;
-	j["reportDate"] = thisReport.dateSaved.ToUTC().FormatISOCombined();
+	j["reportDate"] = thisReport.dateSaved.formatIsoUtc();
 	bool const isLiveManual = settings.reportMode == Simulation::Settings::ReportMode::LiveForecast &&
 		settings.live == Simulation::Settings::Mode::LiveManual;
 	j["reportMode"] = *modeString;
@@ -196,14 +196,15 @@ std::optional<std::string> ReportUploader::upload()
 		return uploadFailure(std::string("the report could not be serialized: ") + e.what());
 	}
 
-	std::ofstream output(OutputFilename, std::ios::binary | std::ios::trunc);
+	auto const outputFilename = project.paths().resolveString(OutputFilename);
+	std::ofstream output(outputFilename, std::ios::binary | std::ios::trunc);
 	if (!output) {
-		return uploadFailure(std::string("could not open ") + OutputFilename + " for writing.");
+		return uploadFailure("could not open " + outputFilename + " for writing.");
 	}
 	output << serialisedReport;
 	output.close();
 	if (output.fail()) {
-		return uploadFailure(std::string("could not finish writing ") + OutputFilename + ".");
+		return uploadFailure("could not finish writing " + outputFilename + ".");
 	}
 	return std::nullopt;
 }

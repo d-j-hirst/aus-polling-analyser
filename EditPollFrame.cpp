@@ -6,6 +6,7 @@
 #include "General.h"
 #include "PartyCollection.h"
 #include "PollsterCollection.h"
+#include "WxDateUtils.h"
 
 constexpr int ControlPadding = 4;
 
@@ -57,8 +58,8 @@ void EditPollFrame::createPollsterInput(int & y)
 
 void EditPollFrame::createDateInput(int & y)
 {
-	auto dateCallback = [this](wxDateTime d) {poll.date = d; };
-	dateInput.reset(new DateInput(this, ControlId::Date, "Date: ", poll.date,
+	auto dateCallback = [this](wxDateTime d) { poll.date = fromWxDate(d); };
+	dateInput.reset(new DateInput(this, ControlId::Date, "Date: ", toWxDate(poll.date),
 		wxPoint(2, y), dateCallback));
 	y += dateInput->Height + ControlPadding;
 }

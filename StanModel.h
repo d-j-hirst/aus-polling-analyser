@@ -1,15 +1,17 @@
 #pragma once
 
+#include "Date.h"
 #include "RandomGenerator.h"
 
 #include <array>
+#include <functional>
 #include <limits>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
 
-#include <wx/datetime.h>
+class WorkspacePaths;
 
 class StanModel {
 public:
@@ -83,15 +85,16 @@ public:
 
 	std::string getPartyCodes() const { return partyCodes; }
 
-	wxDateTime getStartDate() const { return startDate; }
+	Date getStartDate() const { return startDate; }
 
 	// Return the date of this model's last modelled day
 	// (NOT one past the end)
-	wxDateTime getEndDate() const;
+	Date getEndDate() const;
 
-	wxDateTime getLastUpdatedDate() const { return lastUpdatedDate; }
+	Timestamp getLastUpdatedDate() const { return lastUpdatedDate; }
 
-	bool loadData(FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
+	bool loadData(WorkspacePaths const& paths,
+		FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
 
 	int rawSeriesCount() const;
 
@@ -118,7 +121,7 @@ public:
 
 	// Load everything needed to adjust samples, without running the model
 	// Returns false if this fails
-	bool prepareForRun(FeedbackFunc feedback);
+	bool prepareForRun(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	ModelledPolls const& viewModelledPolls() const { return modelledPolls; }
 
@@ -178,42 +181,42 @@ private:
 	bool loadPartyCodes(FeedbackFunc feedback);
 
 	// Loads the party group data from analysis/Data/party-groups.csv
-	bool loadPartyGroups(FeedbackFunc feedback);
+	bool loadPartyGroups(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	// Loads the fundamentals predictions from analysis/Fundamentals
-	bool loadFundamentalsPredictions(FeedbackFunc feedback);
+	bool loadFundamentalsPredictions(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	// Loads coefficients for model parameters from files
-	bool loadParameters(FeedbackFunc feedback);
+	bool loadParameters(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	// Loads parameters specifically relating to emerging others
-	bool loadEmergingOthersParameters(FeedbackFunc feedback);
+	bool loadEmergingOthersParameters(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	// Not actually needed for running trend adjustment but will eventually need to be queried for simulation reports
-	bool loadModelledPolls(FeedbackFunc feedback);
+	bool loadModelledPolls(WorkspacePaths const& paths, FeedbackFunc feedback);
 	
 	// Load preference flows from a file.
-	bool loadPreferenceFlows(FeedbackFunc feedback);
+	bool loadPreferenceFlows(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	// Generates maps between parties and parameters for their preference flows
-	bool generatePreferenceMaps(FeedbackFunc feedback);
+	bool generatePreferenceMaps(WorkspacePaths const& paths, FeedbackFunc feedback);
 
 	// Returns false on failure to load trend data
-	bool loadTrendData(FeedbackFunc feedback);
+	bool loadTrendData(WorkspacePaths const& paths, FeedbackFunc feedback);
 
-	SupportSample generateRawSupportSample(wxDateTime date, int iterationIndex) const;
+	SupportSample generateRawSupportSample(Date date, int iterationIndex) const;
 
-	SupportSample generateAdjustedSupportSample(wxDateTime date, int days,
+	SupportSample generateAdjustedSupportSample(Date date, int days,
 		int iterationIndex) const;
 
 	void generateUnnamedOthersSeries();
 
-	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, wxDateTime date,
+	SupportSample adjustRawSupportSample(SupportSample const& rawSupportSample, Date date,
 		int days, int iterationIndex) const;
 
-	int rawSupportDayOffset(wxDateTime date) const;
+	int rawSupportDayOffset(Date date) const;
 
-	double rawMedianTrend(std::string const& partyCode, wxDateTime date) const;
+	double rawMedianTrend(std::string const& partyCode, Date date) const;
 
 	ParameterSet interpolatedParameters(std::string const& partyGroup,
 		int day, double transformedTrend) const;
@@ -257,8 +260,8 @@ private:
 	std::string preferenceExhaust;
 	std::string preferenceDeviation;
 	std::string preferenceSamples;
-	wxDateTime startDate = wxInvalidDateTime;
-	wxDateTime lastUpdatedDate = wxInvalidDateTime;
+	Date startDate;
+	Timestamp lastUpdatedDate;
 
 	std::uint64_t variabilityBaseSeed = 0x9e3779b97f4a7c15ULL;
 

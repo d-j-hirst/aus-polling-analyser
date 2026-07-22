@@ -75,6 +75,7 @@ private:
 	void prepareProminentMinors();
 	void prepareRunningParties();
 	void calculateIndEmergenceModifier();
+	std::string workspaceFile(std::string const& relativePath) const;
 
 	void initializeGeneralLiveData();
 

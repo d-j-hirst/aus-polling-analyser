@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Date.h"
 #include "LiveV2.h"
 #include "Party.h"
 
@@ -9,7 +10,6 @@
 #include <map>
 #include <mutex>
 #include <string>
-#include <wx/datetime.h>
 
 class LiveV2::Election;
 class PollingProject;
@@ -212,7 +212,7 @@ private:
 	std::map<std::pair<int, int>, float> oddsFinalMeans; // transformed
 
 	bool doingLiveBaselineSimulation = false; // Are we running the baseline simulation (i.e. NOT final output) for live results? 
-	wxDateTime nowcastDate = wxInvalidDateTime;
+	Date nowcastDate;
 
 	mutable std::mutex warningMutex;
 	std::map<WarningCategory, Warning> warnings;
