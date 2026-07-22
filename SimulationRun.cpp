@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <exception>
@@ -86,9 +87,24 @@ namespace {
 			impliedChance * 100.0f,
 			longshotAdjustment * 100.0f) * 0.01f;
 	}
+
+	bool hasNowcastProjectionName(std::string const& name)
+	{
+		std::string normalisedName;
+		normalisedName.reserve(name.size());
+		for (unsigned char character : name) {
+			if (std::isalnum(character)) {
+				normalisedName.push_back(char(std::tolower(character)));
+			}
+		}
+		return normalisedName.find("nowcast") != std::string::npos;
+	}
 }
 
 bool SimulationRun::run(FeedbackFunc feedback) {
+	// Keep every phase of this run on the same local calendar date, even if a
+	// long simulation crosses midnight.
+	nowcastDate = wxDateTime::Today();
 	{
 		std::lock_guard<std::mutex> lock(warningMutex);
 		warnings.clear();
@@ -104,6 +120,49 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 	if (int(thisProjection.getProjectionLength()) == 0) {
 		feedback("Base projection has not yet been run. Run the simulation's base projection before running the simulation itself.");
 		return false;
+	}
+
+	int const projectionIndex =
+		project.projections().idToIndex(sim.settings.baseProjection);
+	if (projectionIndex >= 1 &&
+		hasNowcastProjectionName(thisProjection.getSettings().name)) {
+		std::string const message =
+			"This simulation appears to use a legacy nowcast configuration. "
+			"Nowcasts must use a full-election projection as their base. "
+			"Select the general election projection as the Base projection and "
+			"set Forecast/report mode to Nowcast.";
+		logger << "Warning: " << message << "\n";
+		feedback(message);
+		return false;
+	}
+
+	if (sim.isNowcast()) {
+		auto projectionEndDate = thisProjection.getSettings().endDate;
+		if (!projectionEndDate.IsValid()) {
+			feedback("Could not run nowcast: the base projection has no valid end date.");
+			return false;
+		}
+		projectionEndDate.ResetTime();
+		if (nowcastDate > projectionEndDate) {
+			feedback(
+				"Could not run nowcast: the current date is after the base "
+				"projection's election date.");
+			return false;
+		}
+		logger << "Projection sampling mode: nowcast; projection: "
+			<< thisProjection.getSettings().name << "; date: "
+			<< nowcastDate.FormatISODate() << "\n";
+	}
+	else {
+		logger << "Projection sampling mode: forecast; projection: "
+			<< thisProjection.getSettings().name;
+		if (thisProjection.getSettings().possibleDates.empty()) {
+			logger << "; date: " << thisProjection.getEndDateString();
+		}
+		else {
+			logger << "; dates: configured possible-date distribution";
+		}
+		logger << "\n";
 	}
 
 	if (sim.isLiveAutomatic()) {
@@ -437,6 +496,7 @@ bool SimulationRun::runBettingOddsCalibrations(FeedbackFunc feedback)
 		std::max(10, sim.settings.numIterations / CycleIterationsDivisor);
 	for (int revision = 0; revision < NumRevisionRounds; ++revision) {
 		SimulationRun newRun(project, sim, true);
+		newRun.nowcastDate = nowcastDate;
 		SimulationPreparation preparations(project, sim, newRun);
 		try {
 			preparations.prepareForIterations();
@@ -511,6 +571,7 @@ bool SimulationRun::runLiveBaselineSimulation(FeedbackFunc feedback) {
 	logger << "*** Doing live baseline simulation ***\n";
 
 	SimulationRun newRun(project, sim, false, true);
+	newRun.nowcastDate = nowcastDate;
 	SimulationPreparation preparations(project, sim, newRun);
 	newRun.oddsFinalMeans = oddsFinalMeans;
 	newRun.oddsCalibrationMeans = oddsCalibrationMeans;

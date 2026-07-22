@@ -471,14 +471,16 @@ void SimulationIteration::determineFedStateCorrelation()
 
 void SimulationIteration::determineOverallTpp()
 {
-	// Sample the simulation's configured projection, not necessarily the first
-	// projection in the project.
+	// A nowcast uses the selected full-election projection to infer support at the
+	// run date. Other forecasts leave the date unspecified so configured election-
+	// date probabilities are sampled independently in each iteration.
 	auto& projection = project.projections().access(sim.settings.baseProjection);
-	auto projectedSample = projection.generateNowcastSupportSample(
-		project.models(),
-		randomSampleIndex(),
-		project.projections().view(sim.settings.baseProjection).getSettings().endDate
-	);
+	int const sampleIndex = randomSampleIndex();
+	auto projectedSample = sim.isNowcast() ?
+		projection.generateNowcastSupportSample(
+			project.models(), sampleIndex, run.nowcastDate) :
+		projection.generateSupportSample(
+			project.models(), wxInvalidDateTime, sampleIndex);
 	daysToElection = projectedSample.daysToElection;
 	iterationOverallTpp = projectedSample.voteShare.at(TppCode);
 

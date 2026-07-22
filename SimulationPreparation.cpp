@@ -2198,9 +2198,12 @@ void SimulationPreparation::calculateIndEmergenceModifier()
 		[](const decltype(project.seats().begin())::value_type& seatPair) {
 			return seatPair.second.confirmedProminentIndependent && seatPair.second.minorViability.contains("IND") && seatPair.second.minorViability.at("IND") >= 0; }
 		);
-	int daysToElection = project.projections().view(
+	// Only the sampled date is needed here. A nowcast uses the run's fixed current
+	// date; other forecasts retain the projection's possible-date distribution.
+	auto const sampleDate = sim.isNowcast() ? run.nowcastDate : wxInvalidDateTime;
+	int const daysToElection = project.projections().view(
 		sim.settings.baseProjection).generateSupportSample(
-			project.models(), wxInvalidDateTime, 0).daysToElection;
+			project.models(), sampleDate, 0).daysToElection;
 	float expectedConfirmed = std::max(float(daysToElection) * -0.02f + 3.5f, 0.0f) * project.seats().count() / 100.0f;
 	run.indEmergenceModifier = std::min((float(numConfirmed) + 1.0f) / (expectedConfirmed + 1.0f), 2.5f);
 }

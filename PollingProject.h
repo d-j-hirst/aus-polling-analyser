@@ -155,8 +155,8 @@ private:
 	// Removes all the projections from a particular model. Used when deleting a model.
 	void removeProjectionsFromModel(StanModel::Id modelId);
 
-	// Removes all the simulations from a particular projection. Used when deleting a projection.
-	void removeSimulationsFromProjection(Projection::Id projectionId);
+	// Reassigns simulations from a deleted projection to the first remaining projection.
+	void resetSimulationsFromProjection(Projection::Id projectionId);
 
 	// If a party is removed, various parts of the project need to be adjusted to deal with this
 	void adjustSeatsAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId);

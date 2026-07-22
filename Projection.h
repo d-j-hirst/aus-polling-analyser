@@ -4,6 +4,9 @@
 #include "RandomGenerator.h"
 #include "StanModel.h"
 
+#include <cstdint>
+#include <functional>
+#include <string>
 #include <vector>
 #include <wx/datetime.h>
 
@@ -19,11 +22,6 @@ public:
 
 	constexpr static Id InvalidId = -1;
 
-	struct ProjectionDay {
-		double mean;
-		double sd;
-	};
-
 	struct Settings {
 		// User-defined name.
 		std::string name = "";
@@ -37,22 +35,11 @@ public:
 		wxDateTime endDate = wxDateTime::Now();
 	};
 
-	struct SaveData {
-		Settings settings;
-
-		// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
-		wxDateTime lastUpdated = wxInvalidDateTime;
-
-		std::vector<ProjectionDay> projection;
-	};
-
 	Projection()
 	{}
 
 	Projection(Settings settings)
 		: settings(settings) {}
-
-	Projection(SaveData saveData);
 
 	void replaceSettings(Settings newSettings);
 
@@ -66,38 +53,32 @@ public:
 		else return lastUpdated.FormatISODate().ToStdString();
 	}
 
-	void run(ModelCollection const& models, FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
-
-	void logRunStatistics();
-
-	void setAsNowCast(ModelCollection const& models);
+	bool run(ModelCollection const& models, FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
 
 	Settings const& getSettings() const { return settings; }
 
 	wxDateTime getLastUpdatedDate() const { return lastUpdated; }
 
-	void invalidate() { lastUpdated = wxInvalidDateTime; }
+	void invalidate();
 
-	double getMeanProjection(int index) const { return projection[index].mean; }
-	double getSdProjection(int index) const { return projection[index].sd; }
+	int getProjectionLength() const { if (projectedSupport.empty()) return 0; return int(projectedSupport.begin()->second.timePoint.size()); }
 
-	int getProjectionLength() const { if (!projectedSupport.size()) return 0; return int(projectedSupport.begin()->second.timePoint.size()); }
+	int primarySeriesCount() const { return int(projectedSupport.size()); }
 
-	int primarySeriesCount() const { return projectedSupport.size(); }
-
-	StanModel::SeriesOutput viewPrimarySeries(std::string code) const;
+	StanModel::SeriesOutput viewPrimarySeries(std::string const& code) const;
 
 	StanModel::SeriesOutput viewPrimarySeriesByIndex(int index) const;
 
 	StanModel::Series const& viewTPPSeries() const { return tppSupport; }
 
-	StanModel::SupportSample generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, wxDateTime date = wxInvalidDateTime);
+	StanModel::SupportSample generateNowcastSupportSample(
+		ModelCollection const& models, int iterationIndex, wxDateTime date);
 
 	StanModel::SupportSample generateSupportSample(
 		ModelCollection const& models, wxDateTime date,
 		int iterationIndex) const;
 
-	int getPartyIndexFromCode(std::string code) const;
+	int getPartyIndexFromCode(std::string const& code) const;
 
 	std::string textReport(ModelCollection const& models) const;
 
@@ -107,7 +88,9 @@ public:
 
 private:
 
-	void createTimePoint(int time, ModelCollection const& models);
+	void clearOutput();
+
+	void createTimePoint(int time, ModelCollection const& models, int numIterations);
 
 	std::vector<bool> detailCreated;
 	StanModel::PartySupport projectedSupport;
@@ -117,8 +100,6 @@ private:
 
 	// Set when the projection is run
 	wxDateTime startDate = wxInvalidDateTime;
-
-	std::vector<ProjectionDay> projection;
 
 	// If set to wxInvalidDateTime then we assume the model hasn't been run at all.
 	wxDateTime lastUpdated = wxInvalidDateTime;

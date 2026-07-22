@@ -56,6 +56,8 @@ public:
 
 		Mode live = Mode::Projection;
 
+		// Controls both how the report is labelled and whether projection support
+		// is sampled as a nowcast at the current date.
 		ReportMode reportMode = ReportMode::RegularForecast;
 
 		Projection::Id baseProjection = Projection::InvalidId;
@@ -313,7 +315,7 @@ public:
 	Simulation(Settings settings) : settings(std::move(settings))
 	{}
 
-	void run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
+	bool run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 
 	void checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 
@@ -344,6 +346,7 @@ public:
 	bool isLiveAutomatic() const { return settings.live == Settings::Mode::LiveAutomatic; }
 	bool isLiveManual() const { return settings.live == Settings::Mode::LiveManual; }
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
+	bool isNowcast() const { return settings.reportMode == Settings::ReportMode::Nowcast; }
 
 private:
 

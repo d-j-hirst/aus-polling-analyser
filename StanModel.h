@@ -43,10 +43,16 @@ public:
 	typedef std::map<std::string, Series> PartySupport;
 
 	struct SupportSample {
+		enum class CoherenceBasis {
+			FirstPreferences,
+			TwoPartyPreferred
+		};
+
 		std::map<std::string, float> voteShare;
 		std::map<std::string, float> preferenceFlow;
 		std::map<std::string, float> exhaustRate;
 		int daysToElection = 0;
+		CoherenceBasis coherenceBasis = CoherenceBasis::FirstPreferences;
 	};
 
 	struct ModelledPoll {
@@ -85,7 +91,7 @@ public:
 
 	wxDateTime getLastUpdatedDate() const { return lastUpdatedDate; }
 
-	void loadData(FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
+	bool loadData(FeedbackFunc feedback = [](std::string) {}, int numThreads = 1);
 
 	int rawSeriesCount() const;
 
@@ -119,10 +125,12 @@ public:
 	static void setMajorPartyCodes(MajorPartyCodes codes) { majorPartyCodes = codes; }
 	
 	// Dump generated data to a temporary file for later reuse
-	bool dumpGeneratedData(std::string filename) const;
+	bool dumpGeneratedData(std::string const& filename) const;
 	
 	// Load previously generated data from a file
-	bool loadGeneratedData(std::string filename);
+	bool loadGeneratedData(
+		std::string const& filename,
+		FeedbackFunc feedback = [](std::string) {});
 
 private:
 
@@ -218,6 +226,9 @@ private:
 	static void updateOthersValue(StanModel::SupportSample& sample);
 
 	static void normaliseSample(StanModel::SupportSample& sample);
+
+	void finaliseSupportSample(StanModel::SupportSample& sample,
+		int iterationIndex) const;
 
 	void generateTppForSample(StanModel::SupportSample& sample,
 		int iterationIndex) const;

@@ -134,20 +134,19 @@ void PollCollection::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, 
 	}
 }
 
-void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFunc)
+bool PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFunc)
 {
 	if (sourceFile == "") sourceFile = DefaultFileName;
 	sourceFile = requestFunc("Enter a path for the poll data.", sourceFile);
 	auto file = std::ifstream(sourceFile);
 	if (!file) {
 		messageFunc("Polls file not present! Expected a file at " + sourceFile);
-		return;
+		return false;
 	}
 	messageFunc("Successfully found file at: " + sourceFile);
 	std::string line;
 	std::getline(file, line); // first line is just a legend, skip it
 	auto splitLine = splitString(line, ",");
-	std::map<int, std::string> partyNames;
 	std::map<int, int> partyIds;
 	for (int heading = 3; heading < int(splitLine.size()); ++heading) {
 		auto splitHeading = splitString(splitLine[heading], " ");
@@ -167,6 +166,7 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 			}
 			if (!partyFound) {
 				messageFunc("Could not find a party with party code " + partyName + ". Please add this party code to a party and try again.");
+				return false;
 			}
 		}
 	}
@@ -196,8 +196,9 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 			}
 		}
 		if (!pollsterFound) {
-			messageFunc("Could not find a pollster with name " + pollsterName + ". Please add this party code to a party and try again.");
-			return;
+			messageFunc("Could not find a pollster with name " + pollsterName +
+				". Please add this pollster and try again.");
+			return false;
 		}
 		for (auto const& [column, id] : partyIds) {
 			try {
@@ -225,6 +226,7 @@ void PollCollection::collectPolls(RequestFunc requestFunc, MessageFunc messageFu
 		add(poll);
 	}
 	messageFunc("Polls loaded!");
+	return true;
 }
 
 void PollCollection::logAll(PartyCollection const& parties, PollsterCollection const& pollsters) const

@@ -14,10 +14,10 @@
 constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
-// Cached model files predate explicit headers. The magic value distinguishes
-// the new format while the version tracks the expanded parameter-grid layout.
+// The magic value identifies generated-model caches. Version 3 adds election
+// identity metadata so a cache cannot silently be loaded into another model.
 constexpr std::uint32_t GeneratedDataMagic = 0x50414d32;
-constexpr std::uint32_t GeneratedDataVersion = 2;
+constexpr std::uint32_t GeneratedDataVersion = 3;
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
 	{ "ALP", "LNP", "LIB", "NAT", "GRN" };
@@ -49,19 +49,20 @@ wxDateTime StanModel::getEndDate() const
 		wxDateSpan::Days(int(rawTppSupport.timePoint.size()) - 1);
 }
 
-void StanModel::loadData(FeedbackFunc feedback, int numThreads)
+bool StanModel::loadData(FeedbackFunc feedback, int numThreads)
 {
 	logger << "Starting model run: " << wxDateTime::Now().FormatISOCombined() << "\n";
-	if (!prepareForRun(feedback)) return;
+	if (!prepareForRun(feedback)) return false;
 	logger << "Model end date: " << getEndDate().FormatISOCombined() << "\n";
 	logger << "Prepared model inputs: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	if (!updateAdjustedData(feedback, numThreads)) {
 		readyForProjection = false;
-		return;
+		return false;
 	}
 	logger << "updated adjusted data: " << wxDateTime::Now().FormatISOCombined() << "\n";
 	lastUpdatedDate = wxDateTime::Now();
 	feedback("Finished loading models");
+	return true;
 }
 
 int StanModel::rawSeriesCount() const
@@ -874,6 +875,9 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 		0.0f, 1.0f, 0, 0,
 		uint32_t(VariabilityTag::TppFirstSelection), iterationIndex);
 	bool tppFirst = tppFirstQuantile < TppFirstChance;
+	sample.coherenceBasis = tppFirst ?
+		SupportSample::CoherenceBasis::TwoPartyPreferred :
+		SupportSample::CoherenceBasis::FirstPreferences;
 	constexpr bool IncludeVariation = true;
 	int index = 0;
 	for (auto& [key, voteShare] : sample.voteShare) {
@@ -933,16 +937,7 @@ StanModel::SupportSample StanModel::adjustRawSupportSample(
 	}
 
 	addEmergingOthers(sample, days, iterationIndex);
-	if (!tppFirst) {
-		normaliseSample(sample);
-		updateOthersValue(sample);
-		generateTppForSample(sample, iterationIndex);
-	}
-	else {
-		normaliseSample(sample);
-		generateMajorFpForSample(sample, iterationIndex);
-		updateOthersValue(sample);
-	}
+	finaliseSupportSample(sample, iterationIndex);
 	sample.daysToElection = days;
 	return sample;
 }
@@ -1054,6 +1049,8 @@ void StanModel::addEmergingOthers(StanModel::SupportSample& sample, int days, in
 	double const sizeQuantile = variabilityUniform(
 		0.0f, 1.0f, 0, 0,
 		uint32_t(VariabilityTag::EmergingOthersSize), iterationIndex);
+	// Fold the size distribution into one tail so every successful emergence
+	// remains above the threshold used to define and calibrate an emerging party.
 	double emergingOthersFpTargetTransformed = transformedThreshold
 		+ std::abs(RandomGenerator::flexibleDist(
 			0.0, rmse, rmse, kurtosis, kurtosis, sizeQuantile));
@@ -1100,6 +1097,24 @@ void StanModel::normaliseSample(StanModel::SupportSample& sample)
 		if (vote.first != TppCode) {
 			vote.second *= sampleAdjust;
 		}
+	}
+}
+
+void StanModel::finaliseSupportSample(
+	StanModel::SupportSample& sample, int iterationIndex) const
+{
+	// Each sample treats either FP or TPP as primary. Re-derive the dependent
+	// values after any later adjustment so FP, TPP and preference flows remain
+	// internally coherent.
+	normaliseSample(sample);
+	if (sample.coherenceBasis ==
+		SupportSample::CoherenceBasis::FirstPreferences) {
+		updateOthersValue(sample);
+		generateTppForSample(sample, iterationIndex);
+	}
+	else {
+		generateMajorFpForSample(sample, iterationIndex);
+		updateOthersValue(sample);
 	}
 }
 
@@ -1266,14 +1281,13 @@ void StanModel::Series::smooth(int smoothingFactor)
 	*this = newSeries;
 }
 
-bool StanModel::dumpGeneratedData(std::string filename) const {
+bool StanModel::dumpGeneratedData(std::string const& filename) const {
+	if (!readyForProjection || termCode.empty() || partyCodes.empty() ||
+		!startDate.IsValid()) {
+		return false;
+	}
 	std::ofstream file(filename, std::ios::binary);
 	if (!file) return false;
-
-	file.write(reinterpret_cast<const char*>(&GeneratedDataMagic),
-		sizeof(GeneratedDataMagic));
-	file.write(reinterpret_cast<const char*>(&GeneratedDataVersion),
-		sizeof(GeneratedDataVersion));
 	
 	// Define helper lambdas for serialization
 	auto writeString = [&file](const std::string& str) {
@@ -1281,6 +1295,14 @@ bool StanModel::dumpGeneratedData(std::string filename) const {
 		file.write(reinterpret_cast<const char*>(&size), sizeof(size));
 		file.write(str.c_str(), size);
 	};
+
+	file.write(reinterpret_cast<const char*>(&GeneratedDataMagic),
+		sizeof(GeneratedDataMagic));
+	file.write(reinterpret_cast<const char*>(&GeneratedDataVersion),
+		sizeof(GeneratedDataVersion));
+	writeString(termCode);
+	writeString(startDate.FormatISODate().ToStdString());
+	writeString(partyCodes);
 	
 	auto writePartyParameters = [&file, &writeString](const PartyParameters& params) {
 		size_t size = params.size();
@@ -1408,31 +1430,57 @@ bool StanModel::dumpGeneratedData(std::string filename) const {
 	return bool(file);
 }
 
-bool StanModel::loadGeneratedData(std::string filename) {
-	readyForProjection = false;
+bool StanModel::loadGeneratedData(
+	std::string const& filename, FeedbackFunc feedback)
+{
+	if (!feedback) feedback = [](std::string) {};
 	std::ifstream file(filename, std::ios::binary);
-	if (!file) return false;
+	if (!file) {
+		feedback("Generated model cache not found: " + filename);
+		return false;
+	}
 
-	std::uint32_t magic = 0;
-	file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
-	bool const legacyGeneratedData = magic != GeneratedDataMagic;
-	if (legacyGeneratedData) {
-		file.clear();
-		file.seekg(0);
-	}
-	else {
-		std::uint32_t version = 0;
-		file.read(reinterpret_cast<char*>(&version), sizeof(version));
-		if (version != GeneratedDataVersion) return false;
-	}
-	
-	// Define helper lambdas for deserialization
 	auto readString = [&file](std::string& str) {
-		size_t size;
+		size_t size = 0;
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
+		if (!file) return;
 		str.resize(size);
 		if (size) file.read(str.data(), size);
 	};
+
+	std::uint32_t magic = 0;
+	file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+	if (!file || magic != GeneratedDataMagic) {
+		feedback(
+			"Generated model cache has an unsupported legacy format. "
+			"Run dump-model again to regenerate it: " + filename);
+		return false;
+	}
+	std::uint32_t version = 0;
+	file.read(reinterpret_cast<char*>(&version), sizeof(version));
+	if (!file || version != GeneratedDataVersion) {
+		feedback(
+			"Generated model cache version is not supported. Run dump-model "
+			"again to regenerate it: " + filename);
+		return false;
+	}
+
+	std::string cachedTermCode;
+	std::string cachedStartDate;
+	std::string cachedPartyCodes;
+	readString(cachedTermCode);
+	readString(cachedStartDate);
+	readString(cachedPartyCodes);
+	std::string const expectedStartDate =
+		startDate.IsValid() ? startDate.FormatISODate().ToStdString() : "";
+	if (!file || cachedTermCode != termCode ||
+		cachedStartDate != expectedStartDate ||
+		cachedPartyCodes != partyCodes) {
+		feedback(
+			"Generated model cache does not match this model's election, "
+			"start date and party configuration: " + filename);
+		return false;
+	}
 	
 	auto readPartyParameters = [&file, &readString](PartyParameters& params) {
 		params.clear();
@@ -1495,40 +1543,26 @@ bool StanModel::loadGeneratedData(std::string filename) {
 		}
 	};
 	
-	auto readParameters = [&file, &readString, legacyGeneratedData](
-		ParameterGridByPartyGroup& params) {
+	auto readParameters = [&file, &readString](ParameterGridByPartyGroup& params) {
 		params.clear();
 		size_t mapSize;
 		file.read(reinterpret_cast<char*>(&mapSize), sizeof(mapSize));
 		for (size_t i = 0; i < mapSize; i++) {
 			std::string groupKey;
 			readString(groupKey);
-			if (legacyGeneratedData) {
+			size_t gridSize;
+			file.read(reinterpret_cast<char*>(&gridSize), sizeof(gridSize));
+			auto& grid = params[groupKey];
+			grid.resize(gridSize);
+			for (auto& level : grid) {
+				file.read(reinterpret_cast<char*>(&level.trendLevel),
+					sizeof(level.trendLevel));
 				size_t seriesSize;
 				file.read(reinterpret_cast<char*>(&seriesSize), sizeof(seriesSize));
-				ParameterLevel level;
 				level.series.resize(seriesSize);
-				for (size_t j = 0; j < seriesSize; j++) {
-					file.read(reinterpret_cast<char*>(&level.series[j]),
-						sizeof(level.series[j]));
-				}
-				params[groupKey].push_back(std::move(level));
-			}
-			else {
-				size_t gridSize;
-				file.read(reinterpret_cast<char*>(&gridSize), sizeof(gridSize));
-				auto& grid = params[groupKey];
-				grid.resize(gridSize);
-				for (auto& level : grid) {
-					file.read(reinterpret_cast<char*>(&level.trendLevel),
-						sizeof(level.trendLevel));
-					size_t seriesSize;
-					file.read(reinterpret_cast<char*>(&seriesSize), sizeof(seriesSize));
-					level.series.resize(seriesSize);
-					for (auto& parameterSet : level.series) {
-						file.read(reinterpret_cast<char*>(&parameterSet),
-							sizeof(parameterSet));
-					}
+				for (auto& parameterSet : level.series) {
+					file.read(reinterpret_cast<char*>(&parameterSet),
+						sizeof(parameterSet));
 				}
 			}
 		}
@@ -1555,54 +1589,77 @@ bool StanModel::loadGeneratedData(std::string filename) {
 		}
 	};
 	
-	// Read numDays
-	file.read(reinterpret_cast<char*>(&numDays), sizeof(numDays));
-	
-	// Read support series (rawSupport, adjustedSupport, tppSupport)
-	readSupportSeries(rawSupport);
-	readSeries(rawTppSupport);
-	readSupportSeries(adjustedSupport);
-	readSeries(tppSupport);
-	
-	// Read modelled polls
-	readModelledPolls(modelledPolls);
-	
-	// Read reversePartyGroups
-	readMap(reversePartyGroups);
-	
-	// Read fundamentals
-	readFundamentals(fundamentals);
-	
-	// Read parameters
-	readParameters(parameters);
-	
-	// Read emerging parameters
-	file.read(reinterpret_cast<char*>(&emergingParameters), 
-			  sizeof(emergingParameters));
-	
-	// Read party codes vector
-	size_t partyCodeSize;
+	// Read into temporary state so a truncated or invalid cache cannot partially
+	// replace a model which was already usable.
+	int loadedNumDays = 0;
+	PartySupport loadedRawSupport;
+	Series loadedRawTppSupport;
+	PartySupport loadedAdjustedSupport;
+	Series loadedTppSupport;
+	ModelledPolls loadedModelledPolls;
+	ReversePartyGroups loadedReversePartyGroups;
+	Fundamentals loadedFundamentals;
+	ParameterGridByPartyGroup loadedParameters;
+	EmergingPartyParameterSet loadedEmergingParameters{};
+	PartyCodes loadedPartyCodeVec;
+	PartyParameters loadedPreferenceFlowMap;
+	PartyParameters loadedPreferenceExhaustMap;
+	PartyParameters loadedPreferenceDeviationMap;
+	PartyParameters loadedPreferenceSamplesMap;
+
+	file.read(reinterpret_cast<char*>(&loadedNumDays), sizeof(loadedNumDays));
+	readSupportSeries(loadedRawSupport);
+	readSeries(loadedRawTppSupport);
+	readSupportSeries(loadedAdjustedSupport);
+	readSeries(loadedTppSupport);
+	readModelledPolls(loadedModelledPolls);
+	readMap(loadedReversePartyGroups);
+	readFundamentals(loadedFundamentals);
+	readParameters(loadedParameters);
+	file.read(reinterpret_cast<char*>(&loadedEmergingParameters),
+		sizeof(loadedEmergingParameters));
+
+	size_t partyCodeSize = 0;
 	file.read(reinterpret_cast<char*>(&partyCodeSize), sizeof(partyCodeSize));
-	partyCodeVec.resize(partyCodeSize);
-	for (size_t i = 0; i < partyCodeSize; i++) {
-		readString(partyCodeVec[i]);
+	loadedPartyCodeVec.resize(partyCodeSize);
+	for (auto& partyCode : loadedPartyCodeVec) {
+		readString(partyCode);
 	}
-	
-	// Read preference maps
-	readPartyParameters(preferenceFlowMap);
-	readPartyParameters(preferenceExhaustMap);
-	readPartyParameters(preferenceDeviationMap);
-	readPartyParameters(preferenceSamplesMap);
-	
-	// Only expose the loaded model after the whole cache has been read.
+
+	readPartyParameters(loadedPreferenceFlowMap);
+	readPartyParameters(loadedPreferenceExhaustMap);
+	readPartyParameters(loadedPreferenceDeviationMap);
+	readPartyParameters(loadedPreferenceSamplesMap);
+
 	bool loadedReadyForProjection = false;
 	file.read(reinterpret_cast<char*>(&loadedReadyForProjection),
-			  sizeof(loadedReadyForProjection));
-	if (!file || numDays <= 0 || partyCodeVec.size() < 2 ||
-		rawTppSupport.timePoint.empty()) {
+		sizeof(loadedReadyForProjection));
+	if (!file || !loadedReadyForProjection || loadedNumDays <= 0 ||
+		loadedPartyCodeVec != splitString(partyCodes, ",") ||
+		loadedRawTppSupport.timePoint.empty()) {
+		feedback(
+			"Generated model cache is incomplete or inconsistent with this "
+			"model: " + filename);
 		return false;
 	}
-	readyForProjection = loadedReadyForProjection;
+
+	numDays = loadedNumDays;
+	rawSupport = std::move(loadedRawSupport);
+	rawTppSupport = std::move(loadedRawTppSupport);
+	adjustedSupport = std::move(loadedAdjustedSupport);
+	tppSupport = std::move(loadedTppSupport);
+	modelledPolls = std::move(loadedModelledPolls);
+	reversePartyGroups = std::move(loadedReversePartyGroups);
+	fundamentals = std::move(loadedFundamentals);
+	parameters = std::move(loadedParameters);
+	emergingParameters = loadedEmergingParameters;
+	partyCodeVec = std::move(loadedPartyCodeVec);
+	preferenceFlowMap = std::move(loadedPreferenceFlowMap);
+	preferenceExhaustMap = std::move(loadedPreferenceExhaustMap);
+	preferenceDeviationMap = std::move(loadedPreferenceDeviationMap);
+	preferenceSamplesMap = std::move(loadedPreferenceSamplesMap);
+	validationSupport.clear();
+	readyForProjection = true;
 	return true;
 }
 

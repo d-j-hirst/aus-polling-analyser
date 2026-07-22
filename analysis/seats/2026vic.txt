@@ -650,9 +650,9 @@ sRegion=Rural North & East
 fTppMargin=-12.62
 fPreviousTppSwing=-12.62
 fTransposedFederalSwing=-3.4
-bSophomoreCandidate=1
+bRetirement=1
 bSophomoreParty=1
-sCandidateNames=Kim O'Keeffe,NAT
+sCandidateNames=
 #South Barwon
 sIncumbent=ALP
 sChallenger=LNP

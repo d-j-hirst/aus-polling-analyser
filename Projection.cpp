@@ -7,111 +7,145 @@
 
 #include <algorithm>
 #include <cmath>
-#include <map>
+#include <future>
+#include <mutex>
 #include <numeric>
 #include <sstream>
-#include <thread>
+#include <stdexcept>
 #include <vector>
 
 #undef max
 
-std::mutex detailCreationMutex;
+namespace {
+	std::mutex detailCreationMutex;
 
-enum class VariabilityTag : std::uint32_t {
-	SelectDate = 1,
-};
+	enum class VariabilityTag : std::uint32_t {
+		SelectDate = 1,
+	};
 
-Projection::Projection(SaveData saveData)
-	: settings(saveData.settings), lastUpdated(saveData.lastUpdated),
-	projection(saveData.projection)
-{
+	int percentileSampleIndex(int percentile, int sampleCount)
+	{
+		return int(std::lround(
+			double(percentile) * double(sampleCount - 1) /
+			double(StanModel::Spread::Size - 1)));
+	}
 }
 
 void Projection::replaceSettings(Settings newSettings)
 {
 	settings = newSettings;
+	clearOutput();
+	startDate = wxInvalidDateTime;
+}
+
+void Projection::invalidate()
+{
+	clearOutput();
+	startDate = wxInvalidDateTime;
+}
+
+void Projection::clearOutput()
+{
+	projectedSupport.clear();
+	tppSupport.timePoint.clear();
+	detailCreated.clear();
 	lastUpdated = wxInvalidDateTime;
 }
 
-void Projection::createTimePoint(int time, ModelCollection const& models)
+void Projection::createTimePoint(int time, ModelCollection const& models, int numIterations)
 {
+	// Projection runs build a low-cost series for display, then replace the few
+	// points required by nowcast adjustment with the configured sample count.
 	auto const& model = getBaseModel(models);
-	std::vector<std::vector<float>> samples(model.partyCodeVec.size(), std::vector<float>(settings.numIterations));
-	std::unique_ptr<std::vector<float>> tppSamples; // on heap to avoid 
-	tppSamples.reset(new std::vector<float>(std::vector<float>(settings.numIterations)));
-	for (int iteration = 0; iteration < settings.numIterations; ++iteration) {
-		auto projectedDate = startDate + wxDateSpan::Days(time);
+	if (numIterations <= 0) {
+		throw std::logic_error("Projection iteration count must be positive.");
+	}
+	std::vector<std::vector<float>> samples(
+		model.partyCodeVec.size(), std::vector<float>(numIterations));
+	std::vector<float> tppSamples(numIterations);
+	auto const projectedDate = startDate + wxDateSpan::Days(time);
+	for (int iteration = 0; iteration < numIterations; ++iteration) {
 		// Explicit iteration keys make parallel time-point generation repeatable.
 		auto sample = generateSupportSample(models, projectedDate, iteration);
 		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
-			std::string partyName = model.partyCodeVec[partyIndex];
-			if (sample.voteShare.count(partyName)) {
-				samples[partyIndex][iteration] = sample.voteShare[partyName];
-			}
-			if (sample.voteShare.count(TppCode)) {
-				(*tppSamples)[iteration] = sample.voteShare[TppCode];
-			}
+			auto const& partyName = model.partyCodeVec[partyIndex];
+			samples[partyIndex][iteration] = sample.voteShare.at(partyName);
 		}
-
+		tppSamples[iteration] = sample.voteShare.at(TppCode);
 	}
 	for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
-		std::string partyName = model.partyCodeVec[partyIndex];
+		auto const& partyName = model.partyCodeVec[partyIndex];
 		std::sort(samples[partyIndex].begin(), samples[partyIndex].end());
 		for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
-			int sampleIndex = std::min(settings.numIterations - 1, percentile * settings.numIterations / int(StanModel::Spread::Size));
-			projectedSupport[partyName].timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
+			int const sampleIndex = percentileSampleIndex(percentile, numIterations);
+			projectedSupport.at(partyName).timePoint[time].values[percentile] = samples[partyIndex][sampleIndex];
 		}
-		projectedSupport[partyName].timePoint[time].calculateExpectation();
+		projectedSupport.at(partyName).timePoint[time].calculateExpectation();
 	}
-	std::sort(tppSamples->begin(), tppSamples->end());
+	std::sort(tppSamples.begin(), tppSamples.end());
 	for (int percentile = 0; percentile < StanModel::Spread::Size; ++percentile) {
-		int sampleIndex = std::min(settings.numIterations - 1, percentile * settings.numIterations / int(StanModel::Spread::Size));
-		tppSupport.timePoint[time].values[percentile] = (*tppSamples)[sampleIndex];
+		int const sampleIndex = percentileSampleIndex(percentile, numIterations);
+		tppSupport.timePoint[time].values[percentile] = tppSamples[sampleIndex];
 	}
 	tppSupport.timePoint[time].calculateExpectation();
 }
 
-void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int numThreads) {
-	if (!settings.endDate.IsValid()) return;
+bool Projection::run(ModelCollection const& models, FeedbackFunc feedback, int numThreads) {
+	if (!settings.endDate.IsValid()) {
+		feedback("Could not generate projection: the projection end date is invalid.");
+		return false;
+	}
+	if (settings.numIterations <= 0) {
+		feedback("Could not generate projection: the iteration count must be positive.");
+		return false;
+	}
+	if (models.idToIndex(settings.baseModel) == ModelCollection::InvalidIndex) {
+		feedback("Could not generate projection: the configured base model does not exist.");
+		return false;
+	}
+	numThreads = std::max(1, numThreads);
 	auto const& model = getBaseModel(models);
 	if (!model.isReadyForProjection()) {
 		feedback("The base model (" + model.name + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
-		return;
+		return false;
 	}
-	startDate = model.getEndDate() + wxDateSpan::Days(1);
+	auto const projectionStartDate = model.getEndDate() + wxDateSpan::Days(1);
+	if (settings.endDate < projectionStartDate) {
+		feedback("Could not generate projection: the end date is earlier than the first available projection date.");
+		return false;
+	}
 
 	logger << "Starting projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
 
 	// Initial run is only for visual purposes so don't do too many iterations for that.
 	constexpr static int PreliminaryIterations = 300;
-	//constexpr static int PreliminaryIterations = 3000;
-	int iterationsMemory = settings.numIterations;
-	settings.numIterations = PreliminaryIterations;
-	projectedSupport.clear(); // do this first as it should not be left with previous data
+	// Clear all cached output together so a failed rerun cannot leave a mixture of
+	// old and partially generated projection data available to simulations.
+	clearOutput();
+	startDate = projectionStartDate;
 	try {
-		int seriesLength = (settings.endDate - startDate).GetDays() + 1;
+		int const seriesLength = (settings.endDate - startDate).GetDays() + 1;
 		for (int partyIndex = 0; partyIndex < int(model.partyCodeVec.size()); ++partyIndex) {
-			std::string partyName = model.partyCodeVec[partyIndex];
-			projectedSupport[partyName] = StanModel::Series();
+			auto const& partyName = model.partyCodeVec[partyIndex];
 			projectedSupport[partyName].timePoint.resize(seriesLength);
 		}
 		tppSupport.timePoint.resize(seriesLength);
-		detailCreated.clear();
 		detailCreated.resize(seriesLength, false);
 
 		constexpr int BatchSize = 10;
 		for (int timeStart1 = 0; timeStart1 < seriesLength; timeStart1 += numThreads * BatchSize) {
 			auto calculateTimeSupport = [&](int timeStart) {
 				for (int time = timeStart; time < timeStart + BatchSize && time < seriesLength; ++time) {
-					createTimePoint(time, models);
+					createTimePoint(time, models, PreliminaryIterations);
 				}
 			};
-			std::vector<std::thread> threads;
+			std::vector<std::future<void>> workers;
 			for (int timeStart = timeStart1; timeStart < timeStart1 + numThreads * BatchSize && timeStart < seriesLength; timeStart += BatchSize) {
-				threads.push_back(std::thread(std::bind(calculateTimeSupport, timeStart)));
+				workers.push_back(std::async(
+					std::launch::async, calculateTimeSupport, timeStart));
 			}
-			for (auto& thread : threads) {
-				if (thread.joinable()) thread.join();
+			for (auto& worker : workers) {
+				worker.get();
 			}
 		}
 
@@ -121,44 +155,35 @@ void Projection::run(ModelCollection const& models, FeedbackFunc feedback, int n
 		}
 		tppSupport.smooth(ProjectionSmoothingDays);
 	}
-	catch (std::logic_error & e) {
+	catch (std::logic_error const& e) {
+		clearOutput();
+		startDate = wxInvalidDateTime;
 		feedback(std::string("Could not generate projection\n") +
 			"Specific information: " + e.what());
-		return;
+		return false;
 	}
-	settings.numIterations = iterationsMemory;
+
+	try {
+		lastUpdated = wxDateTime::Now();
+		std::string report = textReport(models);
+		auto reportMessages = splitString(report, ";");
+		PA_LOG_VAR(reportMessages);
+	}
+	catch (std::logic_error const& e) {
+		clearOutput();
+		startDate = wxInvalidDateTime;
+		feedback(std::string("Could not finalise projection\n") +
+			"Specific information: " + e.what());
+		return false;
+	}
 
 	logger << "Completed projection run: " << wxDateTime::Now().FormatISOCombined() << "\n";
-
-	std::string report = textReport(models);
-	auto reportMessages = splitString(report, ";");
-	// for (auto message : reportMessages) feedback(message);
-	PA_LOG_VAR(reportMessages);
-	lastUpdated = wxDateTime::Now();
+	return true;
 }
-
-
-void Projection::logRunStatistics()
+StanModel::SeriesOutput Projection::viewPrimarySeries(std::string const& partyCode) const
 {
-	logger << "--------------------------------\n";
-	logger << "Projection completed.\n";
-	logger << "Final 2PP mean value: " << projection.back().mean << "\n";
-	logger << "Final 2PP standard deviation: " << projection.back().sd << "\n";
-}
-
-void Projection::setAsNowCast(ModelCollection const& models) {
-	auto model = models.view(settings.baseModel);
-	// Make sure the nowcast doesn't go past the end of the election period
-	auto electionPeriodLines = extractElectionDataFromFile("analysis/Data/election-cycles.csv", model.getTermCode());
-	wxDateTime parsedDate;
-	parsedDate.ParseDate(electionPeriodLines[0][3]);
-	settings.endDate = std::min(parsedDate, std::max(model.getEndDate() + wxDateSpan(0, 0, 0, MinDaysBeforeElection), wxDateTime::Now()));
-}
-
-StanModel::SeriesOutput Projection::viewPrimarySeries(std::string partyCode) const
-{
-	if (!projectedSupport.count(partyCode)) return StanModel::SeriesOutput();
-	return &projectedSupport.at(partyCode);
+	auto const series = projectedSupport.find(partyCode);
+	return series == projectedSupport.end() ? nullptr : &series->second;
 }
 
 StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
@@ -169,47 +194,77 @@ StanModel::SeriesOutput Projection::viewPrimarySeriesByIndex(int index) const
 
 StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollection const& models, int iterationIndex, wxDateTime date)
 {
+	if (!date.IsValid()) {
+		throw std::logic_error("A valid date is required when requesting a nowcast sample.");
+	}
+	date.ResetTime();
+	auto projectionEndDate = settings.endDate;
+	if (!projectionEndDate.IsValid()) {
+		throw std::logic_error("A valid projection end date is required for nowcast sampling.");
+	}
+	projectionEndDate.ResetTime();
+	if (date > projectionEndDate) {
+		throw std::logic_error("The requested nowcast date is after the projection end date.");
+	}
+
 	// Get an as-if-election-now sample
 	auto electionNowSupportSample = generateSupportSample(models, date, iterationIndex);
-	// convert dates to projection indices, adding 4 additional hours to smooth over any DST etc. related issues
-	int sampleProjIndex = (date - startDate).GetDays();
-	int endProjIndex = (settings.endDate - startDate).GetDays();
-	sampleProjIndex = std::clamp(sampleProjIndex, 0, endProjIndex);
 
-	// an invalid date indicates forecasting an actual election
-	// (possibly for a range of different election dates)
-	// so don't interpret as a now-cast
-	// similarly, if we're at the projection end date, also assume it's for an actual election
-	if (!date.IsValid() || (date - settings.endDate).GetDays() == 0) {
+	// At the projection endpoint this is an ordinary election forecast, with no
+	// need for the retrospective adjustment used for an earlier nowcast.
+	if (date == projectionEndDate) {
 		return electionNowSupportSample;
 	}
-	
+
+	// startDate and detailCreated are transient caches and are not saved with a
+	// project, so derive their required state from the persisted model and series.
+	auto const projectionStartDate =
+		getBaseModel(models).getEndDate() + wxDateSpan::Days(1);
+	int const endProjIndex = (projectionEndDate - projectionStartDate).GetDays();
+	if (endProjIndex < 0) {
+		return electionNowSupportSample;
+	}
+	int sampleProjIndex = (date - projectionStartDate).GetDays();
+	sampleProjIndex = std::clamp(sampleProjIndex, 0, endProjIndex);
+
 	// Test that the projected support trend actually exists and extends to the
 	// projection end date. If not, return the "election-now" sample
-	// It is assumed that the other parties and TPP will also be projected to the same point (or more)
 	if (endProjIndex >= std::ssize(tppSupport.timePoint)) {
 		return electionNowSupportSample;
 	}
-
-	int inverseProjIndex = endProjIndex - sampleProjIndex;
-
-	auto createDetailIfNeeded = [&](int index) {
-		if (!detailCreated[index]) {
-			logger << "Detailed projection:\n";
-			PA_LOG_VAR(index);
-			createTimePoint(index, models);
-			PA_LOG_VAR(tppSupport.timePoint.at(index).values[50]);
-			for (auto [party, series] : projectedSupport) {
-				PA_LOG_VAR(party);
-				PA_LOG_VAR(series.timePoint.at(index).values[50]);
-				PA_LOG_VAR(series.timePoint.at(index).expectation);
-			}
-			detailCreated[index] = true;
+	for (auto const& vote : electionNowSupportSample.voteShare) {
+		auto const& party = vote.first;
+		if (party == TppCode) continue;
+		auto const series = projectedSupport.find(party);
+		if (series == projectedSupport.end() ||
+			endProjIndex >= std::ssize(series->second.timePoint)) {
+			return electionNowSupportSample;
 		}
-	};
+	}
+
+	int const inverseProjIndex = endProjIndex - sampleProjIndex;
+	constexpr int MedianIndex = StanModel::Spread::Size / 2;
 
 	{
 		std::lock_guard lock(detailCreationMutex);
+		startDate = projectionStartDate;
+		if (detailCreated.size() != tppSupport.timePoint.size()) {
+			detailCreated.assign(tppSupport.timePoint.size(), false);
+		}
+		auto createDetailIfNeeded = [&](int index) {
+			if (!detailCreated[index]) {
+				logger << "Detailed projection:\n";
+				PA_LOG_VAR(index);
+				createTimePoint(index, models, settings.numIterations);
+				PA_LOG_VAR(tppSupport.timePoint.at(index).values[MedianIndex]);
+				for (auto const& [party, series] : projectedSupport) {
+					PA_LOG_VAR(party);
+					PA_LOG_VAR(series.timePoint.at(index).values[MedianIndex]);
+					PA_LOG_VAR(series.timePoint.at(index).expectation);
+				}
+				detailCreated[index] = true;
+			}
+		};
 		createDetailIfNeeded(inverseProjIndex);
 		createDetailIfNeeded(endProjIndex);
 		createDetailIfNeeded(sampleProjIndex);
@@ -217,17 +272,20 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 	}
 
 
-	for (auto [party, voteShare] : electionNowSupportSample.voteShare) {
-		float inverseExpectation = party == TppCode ? tppSupport.timePoint.at(inverseProjIndex).values[50] : projectedSupport.at(party).timePoint.at(inverseProjIndex).values[50];
-		float finalExpectation = party == TppCode ? tppSupport.timePoint.at(endProjIndex).values[50] : projectedSupport.at(party).timePoint.at(endProjIndex).values[50];
-		float sampleExpectation = party == TppCode ? tppSupport.timePoint.at(sampleProjIndex).values[50] : projectedSupport.at(party).timePoint.at(sampleProjIndex).values[50];
-		float initialExpectation = party == TppCode ? tppSupport.timePoint.at(0).values[50] : projectedSupport.at(party).timePoint.at(0).values[50];
-		float adjustment = initialExpectation - sampleExpectation + finalExpectation - inverseExpectation;
-		electionNowSupportSample.voteShare[party] = predictorCorrectorTransformedSwing(electionNowSupportSample.voteShare[party], adjustment);
+	for (auto& [party, voteShare] : electionNowSupportSample.voteShare) {
+		auto const& series = party == TppCode ? tppSupport : projectedSupport.at(party);
+		float const inverseExpectation = series.timePoint.at(inverseProjIndex).values[MedianIndex];
+		float const finalExpectation = series.timePoint.at(endProjIndex).values[MedianIndex];
+		float const sampleExpectation = series.timePoint.at(sampleProjIndex).values[MedianIndex];
+		float const initialExpectation = series.timePoint.at(0).values[MedianIndex];
+		float const adjustment = initialExpectation - sampleExpectation + finalExpectation - inverseExpectation;
+		voteShare = predictorCorrectorTransformedSwing(voteShare, adjustment);
 	}
-	// due to the transformations required to keep vote shares in (0, 100),
-	// the sample might not quite add to 100, so normalise it now
-	StanModel::normaliseSample(electionNowSupportSample);
+	// Retain the sample's original FP-first or TPP-first basis. The retrospective
+	// adjustments above move every series independently, so normalisation alone
+	// would leave the adjusted FP, TPP and preference flows incompatible.
+	getBaseModel(models).finaliseSupportSample(
+		electionNowSupportSample, iterationIndex);
 	return electionNowSupportSample;
 }
 
@@ -237,21 +295,30 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 	if (!date.IsValid()) {
 		float totalOdds = 0.0f;
 		std::vector<std::pair<wxDateTime, float>> cumulativeOdds;
+		// Entries are decimal odds, so their relative sampling weights are 1 / odds.
 		for (auto [thisDate, odds] : settings.possibleDates) {
 			wxDateTime tempDate;
 			bool success = tempDate.ParseISODate(thisDate);
 			if (!success) continue;
 			if (tempDate < model.getEndDate()) continue;
+			if (!std::isfinite(odds) || odds <= 0.0f) {
+				throw std::logic_error(
+					"Possible election-date odds must be finite and greater than zero.");
+			}
 			totalOdds += 1.0f / odds;
+			if (!std::isfinite(totalOdds)) {
+				throw std::logic_error("Possible election-date odds produced a non-finite total weight.");
+			}
 			cumulativeOdds.push_back(std::pair(tempDate, totalOdds));
 		}
-		if (!cumulativeOdds.size()) {
+		if (cumulativeOdds.empty()) {
 			date = settings.endDate;
 		}
 		else {
 			float selectedOdds = variabilityUniform(
 				0.0f, totalOdds, 0, 0,
 				uint32_t(VariabilityTag::SelectDate), iterationIndex);
+			date = cumulativeOdds.back().first;
 			for (int index = 0; index < int(cumulativeOdds.size()); ++index) {
 				if (selectedOdds < cumulativeOdds[index].second) {
 					date = cumulativeOdds[index].first;
@@ -260,7 +327,11 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 			}
 		}
 	}
-	date += wxTimeSpan(4); // adding four hours to make sure date comparisons are consistent
+	if (!date.IsValid()) {
+		throw std::logic_error("No valid date is available for projection sampling.");
+	}
+	// Move away from midnight so DST changes cannot move date differences across a day boundary.
+	date += wxTimeSpan::Hours(4);
 	int daysAfterModelEnd = (date - model.getEndDate()).GetDays();
 	daysAfterModelEnd = std::max(daysAfterModelEnd, MinDaysBeforeElection);
 	auto sample = model.generateAdjustedSupportSample(model.getEndDate(), daysAfterModelEnd, iterationIndex);
@@ -268,7 +339,7 @@ StanModel::SupportSample Projection::generateSupportSample(ModelCollection const
 	return sample;
 }
 
-int Projection::getPartyIndexFromCode(std::string code) const
+int Projection::getPartyIndexFromCode(std::string const& code) const
 {
 	int index = 0;
 	for (auto const& [key, series] : projectedSupport) {
@@ -290,7 +361,7 @@ std::string Projection::textReport(ModelCollection const& models) const
 	report << ";"; // delimiter
 	auto sample = generateSupportSample(models, wxInvalidDateTime, 0);
 	report << "Final sample: \n";
-	for (auto [key, vote] : sample.voteShare) {
+	for (auto const& [key, vote] : sample.voteShare) {
 		report << key << ": " << vote << "\n";
 	}
 	return report.str();

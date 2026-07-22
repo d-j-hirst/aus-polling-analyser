@@ -61,20 +61,16 @@ void ProjectionCollection::remove(Projection::Id id) {
 	project.adjustAfterProjectionRemoval(index, id);
 }
 
-void ProjectionCollection::run(Projection::Id id, Projection::FeedbackFunc feedback)
+bool ProjectionCollection::run(Projection::Id id, Projection::FeedbackFunc feedback)
 {
 	auto projectionIt = projections.find(id);
-	if (projectionIt == projections.end()) throw ProjectionDoesntExistException();
+	if (projectionIt == projections.end()) {
+		feedback("The requested projection does not exist.");
+		return false;
+	}
 	Projection& projection = projectionIt->second;
-	projection.run(project.models(), feedback, project.config().getModelThreads());
-}
-
-void ProjectionCollection::setAsNowCast(Projection::Id id)
-{
-	auto projectionIt = projections.find(id);
-	if (projectionIt == projections.end()) throw ProjectionDoesntExistException();
-	Projection& projection = projectionIt->second;
-	projection.setAsNowCast(project.models());
+	return projection.run(
+		project.models(), feedback, project.config().getModelThreads());
 }
 
 Projection& ProjectionCollection::access(Projection::Id id)
@@ -84,18 +80,6 @@ Projection& ProjectionCollection::access(Projection::Id id)
 
 int ProjectionCollection::count() const {
 	return projections.size();
-}
-
-void ProjectionCollection::startLoadingProjection()
-{
-	loadingProjection.emplace(Projection::SaveData());
-}
-
-void ProjectionCollection::finaliseLoadedProjection()
-{
-	if (!loadingProjection.has_value()) return;
-	add(Projection(loadingProjection.value()));
-	loadingProjection.reset();
 }
 
 void ProjectionCollection::logAll(ModelCollection const& models) const

@@ -428,10 +428,11 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, int versionNum)
 		if (versionNum <= 8) {
 			auto projLength = saveInput.extract<int32_t>();
 			for (int dayIndex = 0; dayIndex < projLength; ++dayIndex) {
-				Projection::ProjectionDay thisDay;
-				saveInput >> thisDay.mean;
-				saveInput >> thisDay.sd;
-				thisProjection.projection.push_back(thisDay);
+				// Legacy projections stored one TPP mean and standard deviation per
+				// day. Consume them to preserve file alignment; current projections
+				// instead use party and TPP support series.
+				saveInput.extract<double>();
+				saveInput.extract<double>();
 			}
 		}
 		if (versionNum >= 10) {
@@ -442,6 +443,11 @@ void ProjectFiler::loadProjections(SaveFileInput& saveInput, int versionNum)
 				thisProjection.projectedSupport.insert({ seriesKey, thisSeries });
 			}
 			thisProjection.tppSupport = loadSeries(saveInput, versionNum);
+		}
+		else {
+			// Legacy output cannot be sampled by the current simulation engine.
+			// Keep the projection settings but require it to be rerun.
+			thisProjection.lastUpdated = wxInvalidDateTime;
 		}
 		
 		project.projectionCollection.add(thisProjection);

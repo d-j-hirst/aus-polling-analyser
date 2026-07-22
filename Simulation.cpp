@@ -100,24 +100,25 @@ const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = {
 	75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f
 };
 
-void Simulation::run(PollingProject& project, SimulationRun::FeedbackFunc feedback)
+bool Simulation::run(PollingProject& project, SimulationRun::FeedbackFunc feedback)
 {
 	if (project.projections().idToIndex(settings.baseProjection) ==
 		ProjectionCollection::InvalidIndex) {
 		feedback("The simulation does not have a valid base projection.");
-		return;
+		return false;
 	}
 	auto const& baseModel = project.projections()
 		.view(settings.baseProjection).getBaseModel(project.models());
 	if (!baseModel.isReadyForProjection()) {
 		feedback("The base model (" + baseModel.getName() + ") is not ready for projecting. Please run the base model once before running projections it is based on.");
-		return;
+		return false;
 	}
 	auto nextRun = std::make_shared<SimulationRun>(project, *this);
-	if (!nextRun->run(feedback)) return;
+	if (!nextRun->run(feedback)) return false;
 	latestRun = std::move(nextRun);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	if (isLive()) checkLiveSeats(project, feedback);
+	return true;
 }
 
 void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback)
@@ -622,6 +623,21 @@ std::string Simulation::textReport(ProjectionCollection const& projections) cons
 	}
 	else {
 		report << projections.view(settings.baseProjection).getSettings().name << "\n";
+	}
+	report << " Forecast/report mode: ";
+	switch (settings.reportMode) {
+	case Settings::ReportMode::RegularForecast:
+		report << "Regular Forecast\n";
+		break;
+	case Settings::ReportMode::LiveForecast:
+		report << "Live Forecast\n";
+		break;
+	case Settings::ReportMode::Nowcast:
+		report << "Nowcast\n";
+		break;
+	default:
+		report << "Unknown\n";
+		break;
 	}
 	report << " Previous Election 2pp: " << settings.prevElection2pp << "\n";
 	report << " Live Status: " << getLiveString() << "\n";

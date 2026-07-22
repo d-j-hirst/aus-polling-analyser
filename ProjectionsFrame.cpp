@@ -12,7 +12,6 @@ enum ControlId {
 	Edit,
 	Remove,
 	CollectData,
-	NowCast,
 };
 
 // frame constructor
@@ -30,12 +29,11 @@ void ProjectionsFrame::setupToolbar()
 {
 	// Load the relevant bitmaps for the toolbar icons.
 	wxLogNull something;
-	wxBitmap toolBarBitmaps[5];
+	wxBitmap toolBarBitmaps[4];
 	toolBarBitmaps[0] = wxBitmap("bitmaps\\add.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[1] = wxBitmap("bitmaps\\edit.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[2] = wxBitmap("bitmaps\\remove.png", wxBITMAP_TYPE_PNG);
 	toolBarBitmaps[3] = wxBitmap("bitmaps\\run.png", wxBITMAP_TYPE_PNG);
-	toolBarBitmaps[4] = wxBitmap("bitmaps\\nowcast.png", wxBITMAP_TYPE_PNG);
 
 	// Initialize the toolbar.
 	toolBar = new wxToolBar(this, wxID_ANY);
@@ -45,7 +43,6 @@ void ProjectionsFrame::setupToolbar()
 	toolBar->AddTool(ControlId::Edit, "Edit Projection", toolBarBitmaps[1], wxNullBitmap, wxITEM_NORMAL, "Edit Projection");
 	toolBar->AddTool(ControlId::Remove, "Remove Projection", toolBarBitmaps[2], wxNullBitmap, wxITEM_NORMAL, "Remove Projection");
 	toolBar->AddTool(ControlId::CollectData, "Run Projection", toolBarBitmaps[3], wxNullBitmap, wxITEM_NORMAL, "Run Projection");
-	toolBar->AddTool(ControlId::NowCast, "Set as Now-Cast", toolBarBitmaps[4], wxNullBitmap, wxITEM_NORMAL, "Set as Now-Cast");
 
 	// Realize the toolbar, so that the tools display.
 	toolBar->Realize();
@@ -77,7 +74,6 @@ void ProjectionsFrame::bindEventHandlers()
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnEditProjection, this, ControlId::Edit);
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRemoveProjection, this, ControlId::Remove);
 	Bind(wxEVT_TOOL, &ProjectionsFrame::OnRunProjection, this, ControlId::CollectData);
-	Bind(wxEVT_TOOL, &ProjectionsFrame::OnNowCast, this, ControlId::NowCast);
 
 	// Need to update the interface if the selection changes
 	Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &ProjectionsFrame::OnSelectionChange, this, ControlId::DataView);
@@ -159,18 +155,6 @@ void ProjectionsFrame::OnRunProjection(wxCommandEvent& WXUNUSED(event)) {
 	return;
 }
 
-void ProjectionsFrame::OnNowCast(wxCommandEvent& WXUNUSED(event)) {
-
-	int projectionIndex = projectionData->GetSelectedRow();
-
-	// If the button is somehow clicked when there is no poll selected, just stop.
-	if (projectionIndex == -1) return;
-
-	setAsNowCast();
-
-	return;
-}
-
 // updates the interface after a change in item selection.
 void ProjectionsFrame::OnSelectionChange(wxDataViewEvent& WXUNUSED(event)) {
 	updateInterface();
@@ -243,18 +227,9 @@ void ProjectionsFrame::runProjection() {
 	if (project->config().getBeepOnCompletion()) beep();
 }
 
-// Sets the projection to be a "now-cast" (ends one day after the model ends)
-void ProjectionsFrame::setAsNowCast() {
-	int projectionIndex = projectionData->GetSelectedRow();
-	int projectionId = project->projections().indexToId(projectionIndex);
-	project->projections().setAsNowCast(projectionId);
-	refreshDataTable();
-}
-
 void ProjectionsFrame::updateInterface() {
 	bool somethingSelected = (projectionData->GetSelectedRow() != -1);
 	toolBar->EnableTool(ControlId::Edit, somethingSelected);
 	toolBar->EnableTool(ControlId::Remove, somethingSelected);
 	toolBar->EnableTool(ControlId::CollectData, somethingSelected);
-	toolBar->EnableTool(ControlId::NowCast, somethingSelected);
 }

@@ -141,7 +141,7 @@ void EditSimulationFrame::createReportModeInput(int& y)
 	reportModeArray.push_back("Nowcast");
 
 	auto callback = [this](int i) {simulationSettings.reportMode = Simulation::Settings::ReportMode(i); };
-	reportModeInput.reset(new ChoiceInput(this, ControlId::ReportMode, "Report Mode:", reportModeArray, int(simulationSettings.reportMode),
+	reportModeInput.reset(new ChoiceInput(this, ControlId::ReportMode, "Forecast/report mode:", reportModeArray, int(simulationSettings.reportMode),
 		wxPoint(2, y), callback));
 	y += liveInput->Height + ControlPadding;
 }

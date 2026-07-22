@@ -60,9 +60,6 @@ private:
 	// Runs the selected projection.
 	void OnRunProjection(wxCommandEvent& WXUNUSED(event));
 
-	// Sets the selected projection as a now-cast.
-	void OnNowCast(wxCommandEvent& WXUNUSED(event));
-
 	// updates the interface after a change in item selection.
 	void OnSelectionChange(wxDataViewEvent& event);
 
@@ -83,9 +80,6 @@ private:
 
 	// does everything required to run the currently selected projection, if possible.
 	void runProjection();
-
-	// Sets the projection to be a "now-cast" (ends one day after the model ends)
-	void setAsNowCast();
 
 	// Allows actions in this frame to trigger refreshes in other frames
 	ProjectFrame::Refresher refresher;

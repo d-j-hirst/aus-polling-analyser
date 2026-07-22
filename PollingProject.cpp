@@ -109,7 +109,7 @@ void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, StanModel::
 
 void PollingProject::adjustAfterProjectionRemoval(ProjectionCollection::Index, Projection::Id projectionId)
 {
-	removeSimulationsFromProjection(projectionId);
+	resetSimulationsFromProjection(projectionId);
 }
 
 void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionIndex, Region::Id regionId)
@@ -141,18 +141,26 @@ void PollingProject::open(std::string filename)
 }
 
 void PollingProject::removeProjectionsFromModel(StanModel::Id modelId) {
+	std::vector<Projection::Id> projectionsToRemove;
 	for (auto const& [key, projection] : projections()) {
-		if (projection.getSettings().baseModel == modelId) projections().remove(key);
+		if (projection.getSettings().baseModel == modelId) {
+			projectionsToRemove.push_back(key);
+		}
+	}
+	for (auto const projectionId : projectionsToRemove) {
+		projections().remove(projectionId);
 	}
 }
 
-void PollingProject::removeSimulationsFromProjection(Projection::Id projectionId)
+void PollingProject::resetSimulationsFromProjection(Projection::Id projectionId)
 {
-	for (int i = 0; i < simulations().count(); i++) {
-		Simulation const& simulation = simulations().viewByIndex(i);
+	Projection::Id const replacementProjection = projections().indexToId(0);
+	for (auto& simulationPair : simulations()) {
+		auto& simulation = simulationPair.second;
 		if (simulation.getSettings().baseProjection == projectionId) {
-			simulations().remove(simulations().indexToId(i));
-			i--;
+			auto settings = simulation.getSettings();
+			settings.baseProjection = replacementProjection;
+			simulation.replaceSettings(std::move(settings));
 		}
 	}
 }

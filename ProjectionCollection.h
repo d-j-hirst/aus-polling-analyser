@@ -3,7 +3,6 @@
 #include "Projection.h"
 
 #include <map>
-#include <optional>
 #include <stdexcept>
 
 class PollingProject;
@@ -53,9 +52,7 @@ public:
 	// Removes the projection with index "projectionIndex".
 	void remove(Projection::Id id);
 
-	void run(Projection::Id id, Projection::FeedbackFunc feedback = [](std::string) {});
-
-	void setAsNowCast(Projection::Id id);
+	bool run(Projection::Id id, Projection::FeedbackFunc feedback = [](std::string) {});
 
 	// Returns access to the projection with the given id
 	Projection& access(Projection::Id id);
@@ -72,10 +69,6 @@ public:
 	// Returns the number of projections.
 	int count() const;
 
-	void startLoadingProjection();
-
-	void finaliseLoadedProjection();
-
 	void logAll(ModelCollection const& models) const;
 
 	// Gets the begin iterator for the pollster list.
@@ -91,8 +84,6 @@ public:
 
 	// Gets the end iterator for the pollster list.
 	ProjectionContainer::const_iterator cend() const { return projections.cend(); }
-
-	std::optional<Projection::SaveData> loadingProjection;
 
 private:
 
