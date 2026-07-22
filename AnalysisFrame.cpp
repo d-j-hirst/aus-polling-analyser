@@ -1,5 +1,7 @@
 #include "AnalysisFrame.h"
 
+#include "ElectionCollection.h"
+
 #include "AnalysisFrameRenderer.h"
 #include "ElectionAnalyser.h"
 #include "General.h"

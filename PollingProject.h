@@ -1,21 +1,13 @@
 #pragma once
 
-#include <fstream>
 #include <functional>
-#include <list>
+#include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "Config.h"
-#include "ElectionData.h"
-#include "FileOpeningState.h"
-#include "NewProjectData.h"
-#include "Points.h"
 #include "WorkspacePaths.h"
 
-#include "ElectionCollection.h"
 #include "ModelCollection.h"
 #include "OutcomeCollection.h"
 #include "PartyCollection.h"
@@ -23,7 +15,6 @@
 #include "PollsterCollection.h"
 #include "ProjectionCollection.h"
 #include "RegionCollection.h"
-#include "ResultCoordinator.h"
 #include "SeatCollection.h"
 #include "SimulationCollection.h"
 #include "Projection.h"
@@ -34,9 +25,9 @@
 
 const int PA_MaxPollsters = 100;
 
-class LatestResultsDataRetriever;
-class PreloadDataRetriever;
-class PreviousElectionDataRetriever;
+class ElectionCollection;
+struct NewProjectData;
+class ResultCoordinator;
 
 // Parent class for the entire polling analysis project.
 // Does not "know" about the UI at all.
@@ -53,6 +44,8 @@ public:
 
 	// Initializes the polling project by loading from a file.
 	PollingProject(std::string pathName);
+
+	~PollingProject();
 
 	// Gets the name of the project.
 	std::string getName() { return name; }
@@ -124,14 +117,14 @@ public:
 	SimulationCollection& simulations() { return simulationCollection; }
 	SimulationCollection const& simulations() const { return simulationCollection; }
 
-	ResultCoordinator& results() { return resultCoordinator; }
-	ResultCoordinator const& results() const { return resultCoordinator; }
+	ResultCoordinator& results();
+	ResultCoordinator const& results() const;
 
 	OutcomeCollection& outcomes() { return outcomeCollection; }
 	OutcomeCollection const& outcomes() const { return outcomeCollection; }
 
-	ElectionCollection& elections() { return electionCollection; }
-	ElectionCollection const& elections() const { return electionCollection; }
+	ElectionCollection& elections();
+	ElectionCollection const& elections() const;
 
 	// Save this project to the given filename.
 	void save(std::string filename);
@@ -194,9 +187,9 @@ private:
 	RegionCollection regionCollection;
 	SeatCollection seatCollection;
 	SimulationCollection simulationCollection;
-	ResultCoordinator resultCoordinator;
+	std::unique_ptr<ResultCoordinator> resultCoordinator;
 	OutcomeCollection outcomeCollection;
-	ElectionCollection electionCollection;
+	std::unique_ptr<ElectionCollection> electionCollection;
 
 	static const Party invalidParty;
 

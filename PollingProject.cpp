@@ -1,11 +1,11 @@
 #include "PollingProject.h"
 
-#include "LatestResultsDataRetriever.h"
+#include "ElectionCollection.h"
 #include "Log.h"
 #include "MacroRunner.h"
-#include "PreloadDataRetriever.h"
-#include "PreviousElectionDataRetriever.h"
+#include "NewProjectData.h"
 #include "ProjectFiler.h"
+#include "ResultCoordinator.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -31,8 +31,8 @@ PollingProject::PollingProject(WorkspacePaths workspacePaths) :
 	regionCollection(*this),
 	seatCollection(*this),
 	simulationCollection(*this),
-	electionCollection(*this),
-	resultCoordinator(*this)
+	resultCoordinator(std::make_unique<ResultCoordinator>(*this)),
+	electionCollection(std::make_unique<ElectionCollection>(*this))
 {}
 
 PollingProject::PollingProject(NewProjectData& newProjectData)
@@ -53,6 +53,28 @@ PollingProject::PollingProject(std::string pathName)
 	lastFileName = std::filesystem::path(pathName).filename().string();
 	logger << "Loading project from: " << lastFileName << "\n";
 	open(pathName);
+}
+
+PollingProject::~PollingProject() = default;
+
+ResultCoordinator& PollingProject::results()
+{
+	return *resultCoordinator;
+}
+
+ResultCoordinator const& PollingProject::results() const
+{
+	return *resultCoordinator;
+}
+
+ElectionCollection& PollingProject::elections()
+{
+	return *electionCollection;
+}
+
+ElectionCollection const& PollingProject::elections() const
+{
+	return *electionCollection;
 }
 
 
@@ -82,8 +104,8 @@ void PollingProject::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, 
 {
 	polls().adjustAfterPartyRemoval(partyIndex, partyId);
 	adjustSeatsAfterPartyRemoval(partyIndex, partyId);
-	resultCoordinator.adjustAffiliationsAfterPartyRemoval(partyIndex, partyId);
-	resultCoordinator.adjustCandidatesAfterPartyRemoval(partyIndex, partyId);
+	results().adjustAffiliationsAfterPartyRemoval(partyIndex, partyId);
+	results().adjustCandidatesAfterPartyRemoval(partyIndex, partyId);
 }
 
 void PollingProject::adjustAfterPollsterRemoval(PollsterCollection::Index /*pollsterIndex*/, Party::Id pollsterId)

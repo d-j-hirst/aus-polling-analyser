@@ -1,5 +1,9 @@
 #include "MapFrame.h"
 
+#include "ElectionData.h"
+#include "PollingProject.h"
+#include "ResultCoordinator.h"
+
 #include "General.h"
 #include "MiscGeometry.h"
 

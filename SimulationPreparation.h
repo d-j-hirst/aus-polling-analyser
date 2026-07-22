@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ElectionData.h"
-
 #include <map>
 #include <stdexcept>
 #include <vector>

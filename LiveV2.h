@@ -213,47 +213,17 @@ public:
  * hierarchical relationships between booths, seats, and regions, and provides
  * methods to calculate swings and project results.
  */
-class Election {
+class Election : public LiveData::Provider {
 public:
   friend class LargeRegion;
   friend class LiveV2::Seat;
   friend class SimulationIteration;
 
-  struct FloatInformation {
-    float value = 0.0f;
-    float completion = 0.0f;
-    float confidence = 0.0f;
-  };
-
-  struct FloatBaselineInformation {
-    float baseline = 0.0f;
-    float completion = 0.0f;
-    float confidence = 0.0f;
-    float deviation = 0.0f;
-  };
-
-  struct Internals {
-    std::map<Results2::Booth::Type, float> boothTypeBiases;
-    std::map<Results2::VoteType, float> voteTypeBiases;
-    std::map<Results2::Booth::Type, float> boothTypeBiasStdDev;
-    std::map<Results2::VoteType, float> voteTypeBiasStdDev;
-    std::map<Results2::Booth::Type, float> boothTypeBiasesRaw;
-    std::map<Results2::VoteType, float> voteTypeBiasesRaw;
-    std::map<Results2::Booth::Type, float> boothTypeSourceCount;
-    std::map<Results2::VoteType, float> voteTypeSourceCount;
-    std::map<Results2::Booth::Type, float> boothTypeVoteCount;
-    std::map<Results2::VoteType, float> voteTypeVoteCount;
-    float projected2pp = 0.0f;
-    float raw2ppDeviation = 0.0f;
-  };
-
-  struct BoothSnapshot {
-    std::string seatName;
-    std::string boothName;
-    Results2::Booth::Type boothType = Results2::Booth::Type::Invalid;
-    Results2::VoteType voteType = Results2::VoteType::Invalid;
-    bool sameSeat = false;
-  };
+  using FloatInformation = LiveData::ValueInformation;
+  using FloatBaselineInformation = LiveData::BaselineInformation;
+  using TcpShareInformation = LiveData::TcpShareInformation;
+  using Internals = LiveData::Internals;
+  using BoothSnapshot = LiveData::BoothSnapshot;
 
 	Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run);
 
@@ -278,7 +248,7 @@ public:
    // completion: how much of the result is in, should determine how this is weighted versus pre-election and completion statistics
    // Note this should be used from a randomized instance of the live results simulation
    // to reflect uncertainty in the remaining live results
-  FloatBaselineInformation getFinalSpecificTppInformation() const {
+  FloatBaselineInformation getFinalSpecificTppInformation() const override {
     float baseline = node.tppShareBaseline.value_or(50.0f);
     float deviation = finalSpecificTppDeviation.value_or(0.0f);
     float confidence = node.tppConfidence;
@@ -286,19 +256,19 @@ public:
     return { baseline, completion, confidence, deviation, };
   }
 
-  std::map<int, float> getFinalSpecificFpDeviations() const {
+  std::map<int, float> getFinalSpecificFpDeviations() const override {
     return finalSpecificFpDeviations;
   }
 
-  float getRegionFinalSpecificTppDeviation(int regionIndex) const {
+  float getRegionFinalSpecificTppDeviation(int regionIndex) const override {
     return largeRegions[regionIndex].finalSpecificTppDeviation.value_or(0.0f);
   }
 
-  std::map<int, float> getRegionFinalSpecificFpDeviations(int regionIndex) const {
+  std::map<int, float> getRegionFinalSpecificFpDeviations(int regionIndex) const override {
     return largeRegions[regionIndex].finalSpecificFpDeviations;
   }
 
-  FloatBaselineInformation getSeatTppInformation(std::string const& seatName) const {
+  FloatBaselineInformation getSeatTppInformation(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
       float deviation = seats[seatIndex].finalSpecificTppDeviation.value_or(0.0f);
@@ -310,7 +280,7 @@ public:
     return {0.0f, 0.0f, 50.0f};
   }
 
-  std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const {
+  std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
       std::map<int, FloatBaselineInformation> result;
@@ -342,7 +312,7 @@ public:
     return {};
   }
 
-  float getSeatRawTppSwing(std::string const& seatName) const {
+  float getSeatRawTppSwing(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
       if (!seats[seatIndex].node.tppShareBaseline.has_value()) return 0.0f;
@@ -353,7 +323,7 @@ public:
     return 0.0f;
   }
 
-  float getSeatFpCompletion(std::string const& seatName) const {
+  float getSeatFpCompletion(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
 			return seats[seatIndex].node.fpCompletion;
@@ -361,7 +331,7 @@ public:
     return 0.0f;
   }
 
-  float getSeatTppCompletion(std::string const& seatName) const {
+  float getSeatTppCompletion(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       return seats[seatIndex].node.tppCompletion;
@@ -369,7 +339,7 @@ public:
     return 0.0f;
   }
 
-  float getSeatTcpCompletion(std::string const& seatName) const {
+  float getSeatTcpCompletion(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       return seats[seatIndex].node.tcpCompletion;
@@ -426,13 +396,7 @@ public:
     return {0.0f, 0.0f, 0.0f};
   }
 
-  struct TcpShareInformation {
-    std::map<int, float> shares; // transformed vote share
-    float completion = 0.0f;
-    float confidence = 0.0f;
-  };
-
-  TcpShareInformation getSeatTcpInformation(std::string const& seatName) const {
+  TcpShareInformation getSeatTcpInformation(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size())) {
       return {seats[seatIndex].node.tcpShares, seats[seatIndex].node.tcpCompletion, seats[seatIndex].node.tcpConfidence};
@@ -440,7 +404,7 @@ public:
     return {std::map<int, float>(), 0.0f, 0.0f};
   }
 
-  std::optional<FloatInformation> getSeatNationalsProportion(std::string const& seatName) const {
+  std::optional<FloatInformation> getSeatNationalsProportion(std::string const& seatName) const override {
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
     if (seatIndex != int(seats.size()) && seats[seatIndex].nationalsProportion.has_value()) {
       return std::make_optional<FloatInformation>(
@@ -456,10 +420,10 @@ public:
 
   // Returns untransformed vote share belonging to parties not included among the project's
   // significant parties, along with independents who don't make the threshold for significance
-  FloatInformation getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const;
+  FloatInformation getSeatOthersInformation(std::string const& seatName, std::map<int, float> const& representedParties) const override;
 
   // Expose some internals for diagnostics/analysis
-  Internals getInternals() const {
+  Internals getInternals() const override {
     Internals internals;
     internals.boothTypeBiases = boothTypeTppBiases;
     internals.voteTypeBiases = voteTypeTppBiases;
@@ -479,9 +443,10 @@ public:
     return internals;
   }
 
-  std::vector<BoothSnapshot> getBoothSnapshots() const;
+  std::vector<BoothSnapshot> getBoothSnapshots() const override;
 
-  LiveV2::Election generateScenario(int iterationIndex) const;
+  std::unique_ptr<LiveData::Provider> generateScenario(
+    int iterationIndex) const override;
 
 private:
   template<typename T, typename U>
@@ -492,9 +457,16 @@ private:
 
   void loadEstimatedPreferenceFlows();
 
-  void initializePartyMappings();
+  // Raw electoral-commission data is only needed while constructing the
+  // derived live model. Scenarios copy that model without retaining the raw
+  // elections or depending on their lifetime.
+  void initializePartyMappings(
+    Results2::Election const& previousElection,
+    Results2::Election const& currentElection);
 
-  void createNodesFromElectionData();
+  void createNodesFromElectionData(
+    Results2::Election const& previousElection,
+    Results2::Election const& currentElection);
 
   template<typename T>
   std::vector<Node const*> getThisAndParents(T& child) const;
@@ -508,9 +480,9 @@ private:
   void determineSeatPreferenceFlowDeviations();
   void determineBoothPreferenceFlowDeviations();
 
-  void includeBaselineResults();
+  void includeBaselineResults(Results2::Election const& currentElection);
 
-  void includeSeatBaselineResults();
+  void includeSeatBaselineResults(Results2::Election const& currentElection);
   void includeLargeRegionBaselineResults();
   void includeElectionBaselineResults();
 
@@ -581,7 +553,11 @@ private:
   void generateVariability(int iterationIndex);
 
   // map AEC candidate IDs to internal party IDs
-  int mapPartyId(int ecCandidateId, bool isPrevious);
+  int mapPartyId(
+    int ecCandidateId,
+    bool isPrevious,
+    Results2::Election const& previousElection,
+    Results2::Election const& currentElection);
 
   float variabilityNormal(float mean, float sd, int itemIndex, std::uint64_t partyId, std::uint32_t tag) const;
 
@@ -649,9 +625,6 @@ private:
 	PollingProject& project;
 	Simulation& sim;
 	SimulationRun& run;
-
-  Results2::Election const& previousElection;
-  Results2::Election const& currentElection;
 };
 
 } // namespace LiveV2

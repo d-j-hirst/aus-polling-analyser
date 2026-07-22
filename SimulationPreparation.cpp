@@ -1,6 +1,6 @@
 #include "SimulationPreparation.h"
 
-#include "LivePreparation.h"
+#include "LivePreparationBridge.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
@@ -371,11 +371,10 @@ void SimulationPreparation::prepareForIterations()
 	if (run.isLive()) initializeGeneralLiveData();
 	if (run.isLiveManual()) loadLiveManualResults();
 	if (run.isLiveAutomatic()) {
-		auto livePreparation = LivePreparation(project, sim, run);
 		try {
-			livePreparation.prepareLiveAutomatic();
+			LivePreparationBridge::prepareAutomatic(project, sim, run);
 		}
-		catch (LivePreparation::Exception const& e) {
+		catch (LivePreparationBridge::Exception const& e) {
 			throw Exception(e.what());
 		}
 	}

@@ -1,5 +1,7 @@
 #include "ProjectFiler.h"
 
+#include "ElectionCollection.h"
+#include "ElectionData.h"
 #include "PollingProject.h"
 #include "SaveIO.h"
 
@@ -960,8 +962,8 @@ void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int v
 
 void ProjectFiler::saveElections(SaveFileOutput& saveOutput)
 {
-	saveOutput.outputAsType<int32_t>(project.electionCollection.count());
-	for (auto const& [electionKey, thisElection] : project.electionCollection) {
+	saveOutput.outputAsType<int32_t>(project.elections().count());
+	for (auto const& [electionKey, thisElection] : project.elections()) {
 		saveOutput << thisElection.termCode;
 		saveOutput << thisElection.id; // this is the same as the key
 		saveOutput << thisElection.name;
@@ -1061,6 +1063,6 @@ void ProjectFiler::loadElections(SaveFileInput& saveInput, [[maybe_unused]] int 
 			saveInput >> thisSeat.postalVotesTcp;
 			thisElection.seats[thisSeat.id] = thisSeat;
 		}
-		project.electionCollection.add(thisElection);
+		project.elections().add(thisElection);
 	}
 }

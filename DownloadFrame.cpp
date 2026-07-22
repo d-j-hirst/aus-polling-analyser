@@ -1,5 +1,8 @@
 #include "DownloadFrame.h"
 
+#include "ElectionCollection.h"
+#include "ResultCoordinator.h"
+
 #include "LatestResultsDataRetriever.h"
 #include "Log.h"
 #include "PreloadDataRetriever.h"

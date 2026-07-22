@@ -112,7 +112,7 @@ void LiveBoothFrame::render(wxDC& dc)
 	dc.DrawText(wxString::FromUTF8("Booth: " + booth.boothName), wxPoint(20, y));
 }
 
-std::vector<LiveV2::Election::BoothSnapshot> LiveBoothFrame::getSnapshots() const
+std::vector<LiveData::BoothSnapshot> LiveBoothFrame::getSnapshots() const
 {
 	for (auto const& [key, simulation] : project->simulations()) {
 		if (!simulation.isLive()) continue;

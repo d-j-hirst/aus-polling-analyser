@@ -1,13 +1,10 @@
 #pragma once
 
-#include "ElectionData.h"
-#include "RegexNavigation.h"
+#include <string>
 
-#include "tinyxml2.h"
-
-#include <array>
-#include <unordered_map>
-#include <vector>
+namespace Results2 {
+	struct Election;
+}
 
 class PreviousElectionDataRetriever {
 public:

@@ -245,6 +245,9 @@
     <ClCompile Include="LivePreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="LivePreparationBridge.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="C:\C++ Libraries\dlib-19.24\dlib\all\source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -423,6 +426,12 @@
     <ClInclude Include="Date.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+	<ClInclude Include="LiveData.h">
+	  <Filter>Header Files\Data Objects</Filter>
+	</ClInclude>
+	<ClInclude Include="LivePreparationBridge.h">
+	  <Filter>Header Files\Process Objects</Filter>
+	</ClInclude>
 	<ClInclude Include="WorkspacePaths.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>

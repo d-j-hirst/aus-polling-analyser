@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LiveData.h"
 #include "Party.h"
 #include "SimulationRun.h"
 
@@ -111,7 +112,7 @@ private:
 	typedef std::map<int, float> FloatByPartyIndex;
 
 	// Per-attempt state. Add new generated values here to reset().
-	std::unique_ptr<LiveV2::Election> liveElection;
+	std::unique_ptr<LiveData::Provider> liveElection;
 	
 	std::vector<SimulationRun::PastSeatResult> pastSeatResults;
 	std::map<int, std::vector<int>> regionSeatCount; // party, then region

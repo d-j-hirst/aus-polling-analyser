@@ -16,14 +16,18 @@
 #include "wx/dcbuffer.h"
 
 #include "GenericChildFrame.h"
-#include "PollingProject.h"
 #include "Points.h"
 #include "ProjectFrame.h"
 
 #include <memory>
 
 class ProjectFrame;
+class PollingProject;
 class wxImage;
+
+namespace Results {
+	struct Booth;
+}
 
 // *** DisplayFrame ***
 // Frame that displays the results of election simulations

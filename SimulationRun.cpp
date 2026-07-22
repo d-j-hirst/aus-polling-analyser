@@ -1,7 +1,7 @@
 #include "SimulationRun.h"
 
 #include "General.h"
-#include "LivePreparation.h"
+#include "LivePreparationBridge.h"
 #include "Log.h"
 #include "PollingProject.h"
 #include "Simulation.h"
@@ -170,9 +170,9 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 
 	if (sim.isLiveAutomatic()) {
 		try {
-			LivePreparation::validateAutomaticSetup(project, sim);
+			LivePreparationBridge::validateAutomaticSetup(project, sim);
 		}
-		catch (LivePreparation::Exception const& e) {
+		catch (LivePreparationBridge::Exception const& e) {
 			feedback("Could not run live simulation because its live data is not set up:\n" +
 				std::string(e.what()));
 			return false;

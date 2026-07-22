@@ -352,8 +352,8 @@ int SimulationIteration::runIteration()
 			// Build the election-wide scenario first, then progressively distribute
 			// it through regions and seats before applying any live observations.
 			if (run.isLive() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-				liveElection = std::make_unique<LiveV2::Election>(
-					run.liveElection->generateScenario(randomSampleIndex()));
+				liveElection = run.liveElection->generateScenario(
+					randomSampleIndex());
 			}
 			loadPastSeatResults();
 			initialiseIterationSpecificCounts();

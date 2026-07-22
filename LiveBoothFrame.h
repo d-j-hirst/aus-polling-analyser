@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "GenericChildFrame.h"
+#include "LiveData.h"
 #include "PollingProject.h"
 #include "ProjectFrame.h"
 
@@ -38,7 +39,7 @@ private:
 
 	void render(wxDC& dc);
 
-	std::vector<LiveV2::Election::BoothSnapshot> getSnapshots() const;
+	std::vector<LiveData::BoothSnapshot> getSnapshots() const;
 
 	ProjectFrame::Refresher refresher;
 

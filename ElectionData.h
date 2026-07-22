@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LiveData.h"
 #include "tinyxml2.h"
 #include "json.h"
 
@@ -104,39 +105,10 @@ namespace Results {
 }
 
 namespace Results2 {
-	enum class VoteType {
-		Invalid,
-		Ordinary,
-		Absent,
-		Provisional,
-		PrePoll,
-		Postal,
-		Early,
-		IVote,
-		Telephone,
-		SIR,
-		EarlyProvisional, // "Early Voting Declaration Votes" for SA
-		EVM, // "Electoral Visitor/Mobile Declaration Votes" for SA
-		TIO, // "Telephone/Interstate/Overseas Declaration Votes" for SA
-	};
+	using VoteType = LiveData::VoteType;
 
 	inline std::string voteTypeName(VoteType v) {
-		auto nameMap = std::unordered_map<VoteType, std::string>{
-			{ VoteType::Ordinary, "Ordinary" },
-			{ VoteType::Absent, "Absent" },
-			{ VoteType::Provisional, "Provisional" },
-			{ VoteType::PrePoll, "PrePoll" },
-			{ VoteType::Postal, "Postal" },
-			{ VoteType::Early, "Early" },
-			{ VoteType::IVote, "iVote" },
-			{ VoteType::SIR, "SIR" },
-			{ VoteType::Telephone, "Telephone" },
-			{ VoteType::EarlyProvisional, "Early Provisional" },
-			{ VoteType::EVM, "EVM" },
-			{ VoteType::TIO, "TIO" },
-			{ VoteType::Invalid, "Invalid" }
-		};
-		return nameMap.at(v);
+		return std::string(LiveData::voteTypeName(v));
 	}
 
 	struct Party {
@@ -159,21 +131,10 @@ namespace Results2 {
 	};
 
 	struct Booth {
-		enum class Type {
-			Normal,
-			Ppvc,
-			Remote,
-			Prison,
-			Hospital,
-			Other,
-			Invalid
-		};
+		using Type = LiveData::BoothType;
 
 		static std::string boothTypeName(Type t) {
-			static const auto nameMap = std::unordered_map<Type, std::string>{ {Type::Normal, "Normal"},
-				{Type::Ppvc, "PPVC"}, {Type::Remote, "Remote"}, {Type::Prison, "Prison"}, {Type::Hospital, "Hospital"},
-				{Type::Other, "Other"}, {Type::Invalid, "Invalid"} };
-			return nameMap.at(t);
+			return std::string(LiveData::boothTypeName(t));
 		}
 
 		int32_t id;

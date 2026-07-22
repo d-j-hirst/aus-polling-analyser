@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Date.h"
+#include "LiveData.h"
 #include "Party.h"
 #include "Projection.h"
 #include "Seat.h"
@@ -328,7 +329,7 @@ public:
 
 	std::optional<Report> const& getLiveBaselineReport() const;
 
-	std::vector<LiveV2::Election::BoothSnapshot> getLiveBoothSnapshots() const;
+	std::vector<LiveData::BoothSnapshot> getLiveBoothSnapshots() const;
 
 	SavedReports const& viewSavedReports() const;
 

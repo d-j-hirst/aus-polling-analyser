@@ -1,5 +1,6 @@
 #include "PreviousElectionDataRetriever.h"
 
+#include "ElectionData.h"
 #include "General.h"
 #include "Log.h"
 

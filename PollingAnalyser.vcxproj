@@ -302,6 +302,7 @@
     <ClCompile Include="IntInput.cpp" />
     <ClCompile Include="LatestResultsDataRetriever.cpp" />
     <ClCompile Include="LivePreparation.cpp" />
+    <ClCompile Include="LivePreparationBridge.cpp" />
     <ClCompile Include="LiveBoothFrame.cpp" />
     <ClCompile Include="LiveV2.cpp" />
     <ClCompile Include="Log.cpp" />
@@ -443,6 +444,8 @@
     <ClInclude Include="EditSimulationFrame.h" />
     <ClInclude Include="FileOpeningState.h" />
     <ClInclude Include="Date.h" />
+	<ClInclude Include="LiveData.h" />
+	<ClInclude Include="LivePreparationBridge.h" />
 	<ClInclude Include="WorkspacePaths.h" />
     <ClInclude Include="General.h" />
     <ClInclude Include="WxDateUtils.h" />

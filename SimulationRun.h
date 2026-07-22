@@ -1,17 +1,20 @@
 #pragma once
 
 #include "Date.h"
-#include "LiveV2.h"
+#include "LiveData.h"
 #include "Party.h"
 
 #include <array>
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
 
-class LiveV2::Election;
+namespace LiveV2 {
+	class Election;
+}
 class PollingProject;
 class RegionCollection;
 class Seat;
@@ -174,7 +177,7 @@ public:
 	bool isLiveAutomatic() const;
 	bool isLiveManual() const;
 	bool isLive() const { return isLiveManual() || isLiveAutomatic(); }
-	LiveV2::Election const* getLiveElection() const { return liveElection.get(); }
+	LiveData::Provider const* getLiveElection() const { return liveElection.get(); }
 
 private:
 
@@ -205,7 +208,7 @@ private:
 
 	Simulation& sim;
 
-	std::unique_ptr<LiveV2::Election> liveElection;
+	std::unique_ptr<LiveData::Provider> liveElection;
 
 	bool doingBettingOddsCalibrations = false;
 	std::map<std::pair<int, int>, float> oddsCalibrationMeans; // transformed

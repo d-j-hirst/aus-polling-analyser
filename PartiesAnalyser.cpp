@@ -1,6 +1,7 @@
 #include "PartiesAnalyser.h"
 
 #include "ElectionCollection.h"
+#include "ElectionData.h"
 #include "Log.h"
 
 #include <sstream>

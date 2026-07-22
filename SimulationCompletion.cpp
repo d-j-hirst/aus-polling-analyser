@@ -1,5 +1,6 @@
 #include "SimulationCompletion.h"
 
+#include "LiveData.h"
 #include "PollingProject.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
@@ -859,7 +860,7 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 	};
 	summaryFile << "\nBooth type biases\n";
 	for (auto const& [boothType, bias] : internals.boothTypeBiases) {
-		summaryFile << Results2::Booth::boothTypeName(boothType) << ",";
+		summaryFile << LiveData::boothTypeName(boothType) << ",";
 	}
 	summaryFile << "\n";
 	writeValuesForKeys(
@@ -878,7 +879,7 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 		internals.boothTypeBiases, internals.boothTypeVoteCount);
 	summaryFile << "\nVote type biases\n";
 	for (auto const& [voteType, bias] : internals.voteTypeBiases) {
-		summaryFile << Results2::voteTypeName(voteType) << ",";
+		summaryFile << LiveData::voteTypeName(voteType) << ",";
 	}
 	summaryFile << "\n";
 	writeValuesForKeys(

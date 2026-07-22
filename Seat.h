@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ElectionData.h"
 #include "Party.h"
 #include "PartyCollection.h"
 #include "Region.h"

@@ -234,7 +234,7 @@ std::optional<Simulation::Report> const& Simulation::getLiveBaselineReport() con
 	return liveBaselineReport;
 }
 
-std::vector<LiveV2::Election::BoothSnapshot> Simulation::getLiveBoothSnapshots() const
+std::vector<LiveData::BoothSnapshot> Simulation::getLiveBoothSnapshots() const
 {
 	if (!latestRun || !latestRun->getLiveElection()) return {};
 	return latestRun->getLiveElection()->getBoothSnapshots();

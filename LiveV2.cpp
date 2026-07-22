@@ -1,6 +1,5 @@
 #include "LiveV2.h"
 
-#include "ElectionData.h"
 #include "General.h"
 #include "PollingProject.h"
 #include "RandomGenerator.h"
@@ -488,10 +487,11 @@ void LiveV2::LargeRegion::log(Election const& election, bool includeSeats, bool 
   }
 }
 
-LiveV2::Election LiveV2::Election::generateScenario(int iterationIndex) const {
-  auto newElection = *this;
+std::unique_ptr<LiveData::Provider> LiveV2::Election::generateScenario(
+  int iterationIndex) const {
+  auto newElection = std::make_unique<LiveV2::Election>(*this);
 
-  newElection.generateVariability(iterationIndex);
+  newElection->generateVariability(iterationIndex);
 
   return newElection;
 }
@@ -535,17 +535,17 @@ std::vector<LiveV2::Election::BoothSnapshot> LiveV2::Election::getBoothSnapshots
 }
 
 LiveV2::Election::Election(Results2::Election const& previousElection, Results2::Election const& currentElection, PollingProject& project, Simulation& sim, SimulationRun& run)
-	: project(project), sim(sim), run(run), previousElection(previousElection), currentElection(currentElection)
+	: project(project), sim(sim), run(run)
 {
   getNatPartyIndex();
   loadEstimatedPreferenceFlows();
-  initializePartyMappings();
-  createNodesFromElectionData();
+  initializePartyMappings(previousElection, currentElection);
+  createNodesFromElectionData(previousElection, currentElection);
   calculateTppEstimates(true); // This is done now so that we can observe deviations from preference flows
   aggregate(); // preliminary, for calculating preference flow and seat fp totals
   calculatePreferenceFlowDeviations();
   calculateTppEstimates(false); // Calculate again, this time using the observed deviations from preference flows
-  includeBaselineResults();
+  includeBaselineResults(currentElection);
   extrapolateBaselineSwings();
   calculateDeviationsFromBaseline();
   aggregate();
@@ -598,7 +598,9 @@ void Election::loadEstimatedPreferenceFlows() {
   }
 }
 
-void Election::initializePartyMappings() {
+void Election::initializePartyMappings(
+  Results2::Election const& previousElection,
+  Results2::Election const& currentElection) {
   for (auto const& [id, party] : currentElection.parties) {
     int simIndex = project.parties().indexByShortCode(party.shortCode);
     if (simIndex != -1) {
@@ -616,7 +618,9 @@ void Election::initializePartyMappings() {
   }
 }
 
-void Election::createNodesFromElectionData() {
+void Election::createNodesFromElectionData(
+  Results2::Election const& previousElection,
+  Results2::Election const& currentElection) {
   for (auto const [regionId, region] : project.regions()) {
     largeRegions.push_back(LargeRegion(region));
   }
@@ -659,7 +663,10 @@ void Election::createNodesFromElectionData() {
       booths.emplace_back(Booth(
           currentBooth, 
           previousBoothPtr,
-          [this](int partyId, bool isPrevious) { return this->mapPartyId(partyId, isPrevious); },
+          [this, &previousElection, &currentElection](int partyId, bool isPrevious) {
+            return mapPartyId(
+              partyId, isPrevious, previousElection, currentElection);
+          },
           seatIndex,
           natPartyIndex,
           sameSeat
@@ -708,7 +715,10 @@ void Election::createNodesFromElectionData() {
         prevFpVotes,
         prevTcpVotes,
         voteType,
-        [this](int partyId, bool isPrevious) { return this->mapPartyId(partyId, isPrevious); },
+        [this, &previousElection, &currentElection](int partyId, bool isPrevious) {
+          return mapPartyId(
+            partyId, isPrevious, previousElection, currentElection);
+        },
         seatIndex,
         natPartyIndex,
         true
@@ -969,16 +979,18 @@ void Election::determineBoothPreferenceFlowDeviations() {
   }
 }
 
-void Election::includeBaselineResults() {
+void Election::includeBaselineResults(
+  Results2::Election const& currentElection) {
   if (!sim.getLiveBaselineReport()) {
     return;
   }
-  includeSeatBaselineResults();
+  includeSeatBaselineResults(currentElection);
   includeLargeRegionBaselineResults();
   includeElectionBaselineResults();
 }
 
-void Election::includeSeatBaselineResults() {
+void Election::includeSeatBaselineResults(
+  Results2::Election const& currentElection) {
   auto const& baseline = sim.getLiveBaselineReport().value();
   for (int i = 0; i < int(baseline.seatName.size()); ++i) {
     auto const& name = baseline.seatName.at(i);
@@ -3321,7 +3333,11 @@ void Election::generateVariability(int iterationIndex) {
   }
 }
 
-int Election::mapPartyId(int ecCandidateId, bool isPrevious) {
+int Election::mapPartyId(
+  int ecCandidateId,
+  bool isPrevious,
+  Results2::Election const& previousElection,
+  Results2::Election const& currentElection) {
   // Note: only used when initially loading data from EC files
   // so not a bottleneck
 
