@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include "Simulation.h"
 
@@ -10,8 +11,9 @@ class ReportUploader {
 public:
 	ReportUploader(Simulation::SavedReport const& thisReport, Simulation const& simulation, PollingProject const& project);
 
-	// Returns string for success and failure.
-	std::string upload();
+	// Prepares the JSON consumed by uploads/upload_manager.py.
+	// Returns an error message on failure.
+	std::optional<std::string> upload();
 private:
 
 	Simulation const& simulation;

@@ -96,16 +96,33 @@ void DisplayFrame::OnSavedReportSelection(wxCommandEvent&)
 
 void DisplayFrame::OnUploadToServer(wxCommandEvent&)
 {
-	auto simIndex = project->simulations().indexToId(selectedSimulation);
-	if (selectedSaveReport == -1 && !project->simulations().viewByIndex(simIndex).isLive()) {
+	if (selectedSimulation < 0 ||
+		selectedSimulation >= project->simulations().count()) {
+		wxMessageBox("Could not prepare upload: no simulation selected.");
+		return;
+	}
+	auto const simulationId =
+		project->simulations().indexToId(selectedSimulation);
+	if (selectedSaveReport == -1 &&
+		!project->simulations().view(simulationId).isLive()) {
 		wxMessageBox("To minimise accidental additional updates, uploading \"Latest Forecast\" to the server is not allowed. Create a snapshot and upload that instead.");
 		return;
 	}
 	if (!project->getElectionName().size()) {
 		std::string electionName = wxGetTextFromUser("An election name has not yet been entered for this project. Enter a name for this election:", "Saved Report").ToStdString();
+		if (electionName.empty()) {
+			wxMessageBox("Report upload was not prepared because no election name was entered.");
+			return;
+		}
 		project->setElectionName(electionName);
 	}
-	project->simulations().uploadToServer(simIndex, selectedSaveReport);
+	auto const error = project->simulations().uploadToServer(
+		simulationId, selectedSaveReport);
+	if (error) {
+		wxMessageBox(*error, "Upload preparation failed",
+			wxOK | wxCENTRE | wxICON_ERROR);
+		return;
+	}
 	wxMessageBox("Successfully prepared upload of report. Use Python script: uploads/upload_manager.py to upload to the server.");
 }
 

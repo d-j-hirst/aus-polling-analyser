@@ -3,7 +3,45 @@
 #include "General.h"
 #include "PollingProject.h"
 
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <exception>
+#include <optional>
+
+namespace {
+	std::optional<wxDateTime> parseLiveReportDate(std::string const& dateCode)
+	{
+		if (dateCode.size() != 14 ||
+			!std::all_of(dateCode.begin(), dateCode.end(),
+				[](unsigned char character) { return std::isdigit(character); })) {
+			return std::nullopt;
+		}
+
+		int const year = std::stoi(dateCode.substr(0, 4));
+		int const month = std::stoi(dateCode.substr(4, 2));
+		int const day = std::stoi(dateCode.substr(6, 2));
+		int const hour = std::stoi(dateCode.substr(8, 2));
+		int const minute = std::stoi(dateCode.substr(10, 2));
+		int const second = std::stoi(dateCode.substr(12, 2));
+		if (year < 1 || month < 1 || month > 12 || hour > 23 ||
+			minute > 59 || second > 59) {
+			return std::nullopt;
+		}
+
+		constexpr std::array<int, 12> DaysInMonth = {
+			31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+		};
+		int maxDay = DaysInMonth[month - 1];
+		bool const isLeapYear = year % 4 == 0 &&
+			(year % 100 != 0 || year % 400 == 0);
+		if (month == 2 && isLeapYear) ++maxDay;
+		if (day < 1 || day > maxDay) return std::nullopt;
+
+		return wxDateTime(day, static_cast<wxDateTime::Month>(month - 1),
+			year, hour, minute, second);
+	}
+}
 
 SimulationCollection::SimulationCollection(PollingProject & project)
 	: project(project)
@@ -79,36 +117,37 @@ int SimulationCollection::count() const {
 	return simulations.size();
 }
 
-void SimulationCollection::uploadToServer(Simulation::Id id, int reportIndex)
+std::optional<std::string> SimulationCollection::uploadToServer(
+	Simulation::Id id, int reportIndex)
 {
 	auto simulationIt = simulations.find(id);
-	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
+	if (simulationIt == simulations.end()) {
+		return "Could not prepare report upload: the selected simulation does not exist.";
+	}
 	auto const& reports = simulationIt->second.viewSavedReports();
 	if (reportIndex == -1 && simulationIt->second.isLive()) {
 		Simulation::SavedReport sReport;
 		sReport.report = simulationIt->second.getLatestReport();
 		sReport.label = "New results";
 		sReport.dateSaved = wxDateTime::Now();
-		if (sReport.report.dateCode.size()) {
-			int year = std::stoi(sReport.report.dateCode.substr(0, 4));
-			int month = std::stoi(sReport.report.dateCode.substr(4, 2));
-			int day = std::stoi(sReport.report.dateCode.substr(6, 2));
-			int hour = std::stoi(sReport.report.dateCode.substr(8, 2));
-			int minute = std::stoi(sReport.report.dateCode.substr(10, 2));
-			int second = std::stoi(sReport.report.dateCode.substr(12, 2));
-			sReport.dateSaved = wxDateTime(day, wxDateTime::Month(month - 1), year, hour, minute, second);
+		if (!sReport.report.dateCode.empty()) {
+			auto const reportDate =
+				parseLiveReportDate(sReport.report.dateCode);
+			if (!reportDate) {
+				return "Could not prepare report upload: the live report has an "
+					"invalid date code (expected YYYYMMDDHHMMSS).";
+			}
+			sReport.dateSaved = *reportDate;
 		}
 		auto reportUploader = ReportUploader(sReport, simulationIt->second, project);
-		reportUploader.upload();
-		return;
+		return reportUploader.upload();
 	}
 	if (reportIndex <= -1 || reportIndex >= int(reports.size())) {
-		logger << "Invalid report!\n";
-		return;
+		return "Could not prepare report upload: the selected report does not exist.";
 	}
 	auto const& report = reports[reportIndex];
 	auto reportUploader = ReportUploader(report, simulationIt->second, project);
-	reportUploader.upload();
+	return reportUploader.upload();
 }
 
 void SimulationCollection::deleteReport(Simulation::Id id, int reportIndex)

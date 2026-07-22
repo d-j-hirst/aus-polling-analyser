@@ -1,12 +1,54 @@
 #include "ReportUploader.h"
 
+#include "Log.h"
 #include "PollingProject.h"
 
+#include <array>
 #include <fstream>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include "json.h"
 
 using json = nlohmann::json;
+
+namespace {
+	constexpr char OutputFilename[] = "uploads/latest_json.dat";
+	constexpr std::array<float, 15> PercentileThresholds = {
+		0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f,
+		75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f
+	};
+
+	template <typename Value, typename Getter>
+	std::vector<Value> percentileValues(Getter getter)
+	{
+		std::vector<Value> values;
+		values.reserve(PercentileThresholds.size());
+		for (float const percentile : PercentileThresholds) {
+			values.push_back(getter(percentile));
+		}
+		return values;
+	}
+
+	std::optional<std::string> uploadFailure(std::string const& detail)
+	{
+		std::string const message = "Could not prepare report upload: " + detail;
+		logger << message << "\n";
+		return message;
+	}
+
+	std::optional<std::string> reportModeCode(
+		Simulation::Settings::ReportMode reportMode)
+	{
+		switch (reportMode) {
+		case Simulation::Settings::ReportMode::RegularForecast: return "RF";
+		case Simulation::Settings::ReportMode::LiveForecast: return "LF";
+		case Simulation::Settings::ReportMode::Nowcast: return "NC";
+		}
+		return std::nullopt;
+	}
+}
 
 ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, Simulation const& simulation, PollingProject const& project)
 	: project(project), simulation(simulation), thisReport(thisReport)
@@ -15,25 +57,39 @@ ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, Simula
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StanModel::ModelledPoll, pollster, day, base, adjusted, reported)
 
-std::string ReportUploader::upload()
+std::optional<std::string> ReportUploader::upload()
 {
+	auto const& settings = simulation.getSettings();
+	if (project.projections().idToIndex(settings.baseProjection) ==
+		ProjectionCollection::InvalidIndex) {
+		return uploadFailure("the simulation does not have a valid base projection.");
+	}
+	auto const& projection = project.projections().view(settings.baseProjection);
+	if (project.models().idToIndex(projection.getSettings().baseModel) ==
+		ModelCollection::InvalidIndex) {
+		return uploadFailure("the simulation's base projection does not have a valid model.");
+	}
+	auto const modeString = reportModeCode(settings.reportMode);
+	if (!modeString) {
+		return uploadFailure("the simulation has an invalid report mode.");
+	}
+	if (!thisReport.dateSaved.IsValid()) {
+		return uploadFailure("the report does not have a valid saved date.");
+	}
+
 	json j;
-	// *** This term code retrieval from the model should be a temporary hack,
-	// replace with a global project setting
-	// once creating the UI for that can be justified
-	j["termCode"] = project.models().view(0).getTermCode();
+	// The election identity currently belongs to the model rather than the project.
+	auto const& termCode = projection.getBaseModel(project.models()).getTermCode();
+	if (termCode.empty()) {
+		return uploadFailure("the simulation's base model does not have an election term code.");
+	}
+	j["termCode"] = termCode;
 	j["electionName"] = project.getElectionName();
 	j["reportLabel"] = thisReport.label;
 	j["reportDate"] = thisReport.dateSaved.ToUTC().FormatISOCombined();
-	std::string modeString;
-	bool isLiveManual = simulation.getSettings().reportMode == Simulation::Settings::ReportMode::LiveForecast &&
-		simulation.getSettings().live == Simulation::Settings::Mode::LiveManual;
-	switch (simulation.getSettings().reportMode) {
-	case Simulation::Settings::ReportMode::RegularForecast: modeString = "RF"; break;
-	case Simulation::Settings::ReportMode::LiveForecast: modeString = "LF"; break;
-	case Simulation::Settings::ReportMode::Nowcast: modeString = "NC"; break;
-	}
-	j["reportMode"] = modeString;
+	bool const isLiveManual = settings.reportMode == Simulation::Settings::ReportMode::LiveForecast &&
+		settings.live == Simulation::Settings::Mode::LiveManual;
+	j["reportMode"] = *modeString;
 	j["partyName"] = thisReport.report.partyName;
 	j["partyAbbr"] = thisReport.report.partyAbbr;
 	j["overallWinPc"] = {
@@ -44,38 +100,33 @@ std::string ReportUploader::upload()
 	j["majorityWinPc"] = thisReport.report.majorityPercent;
 	j["minorityWinPc"] = thisReport.report.minorityPercent;
 	j["mostSeatsWinPc"] = thisReport.report.mostSeatsPercent;
-	const std::vector<float> thresholds = {0.1f, 0.5f, 1.0f, 2.5f, 5.0f, 10.0f, 25.0f, 50.0f, 75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f};
-	j["voteTotalThresholds"] = thresholds;
-	typedef std::vector<float> VF;
+	j["voteTotalThresholds"] = PercentileThresholds;
 	if (!isLiveManual) {
-		std::map<int, VF> fpFrequencies;
-		for (auto [partyIndex, frequencies] : thisReport.report.partyPrimaryFrequency) {
+		std::map<int, std::vector<float>> fpFrequencies;
+		for (auto const& partyFrequency : thisReport.report.partyPrimaryFrequency) {
+			int const partyIndex = partyFrequency.first;
 			if (thisReport.report.getFpSampleExpectation(partyIndex) > 0.0f) {
-				VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
-					[this, partyIndex](VF v, float percentile) {
-						v.push_back(thisReport.report.getFpSamplePercentile(partyIndex, percentile));
-						return v;
+				fpFrequencies[partyIndex] = percentileValues<float>(
+					[this, partyIndex](float percentile) {
+						return thisReport.report.getFpSamplePercentile(
+							partyIndex, percentile);
 					});
-				fpFrequencies[partyIndex] = partyThresholds;
 			}
 		}
 		j["fpFrequencies"] = fpFrequencies;
 	}
-	std::vector<float> tppFrequencies = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
-		[this](VF v, float percentile) {
-			v.push_back(thisReport.report.getTppSamplePercentile(percentile));
-			return v;
+	j["tppFrequencies"] = percentileValues<float>(
+		[this](float percentile) {
+			return thisReport.report.getTppSamplePercentile(percentile);
 		});
-	j["tppFrequencies"] = tppFrequencies;
-	typedef std::vector<int> VI;
-	std::map<int, VI> seatFrequencies;
-	for (auto [partyIndex, frequencies] : thisReport.report.partySeatWinFrequency) {
-		VI partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VI(),
-			[this, partyIndex](VI v, float percentile) {
-				v.push_back(thisReport.report.getPartySeatsPercentile(partyIndex, percentile));
-				return v;
+	std::map<int, std::vector<int>> seatFrequencies;
+	for (auto const& partyFrequency : thisReport.report.partySeatWinFrequency) {
+		int const partyIndex = partyFrequency.first;
+		seatFrequencies[partyIndex] = percentileValues<int>(
+			[this, partyIndex](float percentile) {
+				return thisReport.report.getPartySeatsPercentile(
+					partyIndex, percentile);
 			});
-		seatFrequencies[partyIndex] = partyThresholds;
 	}
 	j["seatCountFrequencies"] = seatFrequencies;
 	if (!isLiveManual) {
@@ -124,27 +175,35 @@ std::string ReportUploader::upload()
 	j["seatCandidateNames"] = seatCandidateNames;
 	j["seatSwingFactors"] = thisReport.report.swingFactors;
 	if (thisReport.report.getCoalitionFpSampleExpectation() > 0.0f) {
-		VF partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VF(),
-			[this](VF v, float percentile) {
-				v.push_back(thisReport.report.getCoalitionFpSamplePercentile(percentile));
-				return v;
+		j["coalitionFpFrequencies"] = percentileValues<float>(
+			[this](float percentile) {
+				return thisReport.report.getCoalitionFpSamplePercentile(percentile);
 			});
-		j["coalitionFpFrequencies"] = partyThresholds;
 	}
-	if (thisReport.report.coalitionSeatWinFrequency.size()) {
-		VI partyThresholds = std::accumulate(thresholds.begin(), thresholds.end(), VI(),
-			[this](VI v, float percentile) {
-				v.push_back(thisReport.report.getCoalitionSeatsPercentile(percentile));
-				return v;
+	if (!thisReport.report.coalitionSeatWinFrequency.empty()) {
+		j["coalitionSeatCountFrequencies"] = percentileValues<int>(
+			[this](float percentile) {
+				return thisReport.report.getCoalitionSeatsPercentile(percentile);
 			});
-		j["coalitionSeatCountFrequencies"] = partyThresholds;
 	}
-	std::ofstream file2("uploads/latest_json.dat");
+
+	std::string serialisedReport;
 	try {
-		file2 << std::setw(4) << j;
+		// Complete serialization before truncating the previous prepared report.
+		serialisedReport = j.dump(4);
 	}
-	catch (nlohmann::detail::type_error& e) {
-		logger << "caught error in value upload, message: " << e.what();
+	catch (nlohmann::json::exception const& e) {
+		return uploadFailure(std::string("the report could not be serialized: ") + e.what());
 	}
-	return "ok";
+
+	std::ofstream output(OutputFilename, std::ios::binary | std::ios::trunc);
+	if (!output) {
+		return uploadFailure(std::string("could not open ") + OutputFilename + " for writing.");
+	}
+	output << serialisedReport;
+	output.close();
+	if (output.fail()) {
+		return uploadFailure(std::string("could not finish writing ") + OutputFilename + ".");
+	}
+	return std::nullopt;
 }

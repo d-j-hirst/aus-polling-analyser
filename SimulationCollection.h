@@ -4,6 +4,8 @@
 #include "Simulation.h"
 
 #include <map>
+#include <optional>
+#include <string>
 
 class PollingProject;
 class ProjectionCollection;
@@ -70,7 +72,7 @@ public:
 	// Returns the number of simulations.
 	int count() const;
 
-	void uploadToServer(Simulation::Id id, int reportIndex);
+	std::optional<std::string> uploadToServer(Simulation::Id id, int reportIndex);
 
 	void deleteReport(Simulation::Id id, int reportIndex);
 
