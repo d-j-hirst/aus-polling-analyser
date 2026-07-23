@@ -1052,7 +1052,8 @@ bool StanModel::updateAdjustedData(FeedbackFunc feedback, int numThreads)
 	}
 
 	catch (std::logic_error const& e) {
-		feedback(std::string("Warning: Model adjustments could not be generated.\n") +
+		feedback(std::string("Warning: Model \"") + name +
+			"\" adjustments could not be generated.\n" +
 			"Specific information: " + e.what());
 		adjustedSupport.clear();
 		tppSupport.timePoint.clear();

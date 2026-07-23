@@ -198,7 +198,11 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 		messages << ": " << formatFloat(std::get<2>(change), 1, true);
 		messages << " to " << project.parties().viewByIndex(std::get<1>(change)).name << "\n";
 	}
-	feedback(messages.str());
+	auto const changeText = messages.str();
+	if (!changeText.empty()) {
+		feedback("Simulation \"" + settings.name +
+			"\" live seat changes:\n" + changeText);
+	}
 }
 
 void Simulation::replaceSettings(Simulation::Settings newSettings)

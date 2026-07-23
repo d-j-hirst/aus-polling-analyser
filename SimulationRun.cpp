@@ -277,7 +277,8 @@ void SimulationRun::reportWarnings(FeedbackFunc feedback) const
 			}
 			if (message.empty()) {
 				message =
-					"Simulation completed with the following warnings:";
+					"Simulation \"" + sim.settings.name +
+					"\" completed with the following warnings:";
 			}
 
 			std::string categoryCode;

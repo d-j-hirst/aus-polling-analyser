@@ -149,3 +149,27 @@ architectures can produce slightly different results because their
 floating-point maths and standard-library distribution implementations are not
 bit-for-bit identical. Use the same build when comparing exact benchmarks;
 cross-build results should instead be compared for statistical equivalence.
+
+### Portable Tests
+
+Run the portable core tests from the repository root:
+
+```bash
+CXX=g++ sh run-portable-tests.sh
+```
+
+On Windows:
+
+```bat
+run-portable-tests.cmd
+```
+
+The test runners compile the shared CLI source set once, then run unit,
+forecast-package, project-adapter, and CLI-boundary tests. They validate the
+committed forecast configurations without running full forecasts or requiring
+generated model outputs.
+
+GitHub Actions runs the same dependency check, CLI build, and portable tests on
+pinned Linux/GCC and Windows/MSVC environments for every push and pull request.
+The workflow can also be started manually. The wxWidgets GUI and complete
+forecast runs remain outside this initial automated check.

@@ -1,0 +1,47 @@
+name: Core CLI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (GCC)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check CLI dependency boundary
+        run: python3 tests/check_cli_dependencies.py
+
+      - name: Build CLI
+        run: CXX=g++ sh build-polling-cli.sh
+
+      - name: Run portable tests
+        run: CXX=g++ sh run-portable-tests.sh
+
+  windows:
+    name: Windows (MSVC)
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check CLI dependency boundary
+        shell: cmd
+        run: python tests\check_cli_dependencies.py
+
+      - name: Build CLI
+        shell: cmd
+        run: build-polling-cli.cmd
+
+      - name: Run portable tests
+        shell: cmd
+        run: run-portable-tests.cmd

@@ -1,0 +1,11 @@
+# Portable tests linked against the sources in cli-sources.txt.
+CliDependencyBoundaryTests
+CoreReportSummaryTests
+DateTests
+ForecastSpecificationProjectAdapterTests
+ForecastSpecificationTests
+LiveDataTests
+MacroTargetResolverTests
+RandomGeneratorTests
+TerminalMacroFeedbackTests
+WorkspacePathsTests
