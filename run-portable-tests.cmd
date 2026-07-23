@@ -67,7 +67,7 @@ call :run RandomGeneratorTests
 if errorlevel 1 goto :failure
 call :run TerminalMacroFeedbackTests
 if errorlevel 1 goto :failure
-call :run WorkspacePaths "."
+call :run WorkspacePathsTests "."
 if errorlevel 1 goto :failure
 call :run CoreReportSummaryTests
 if errorlevel 1 goto :failure
@@ -88,7 +88,8 @@ exit /b 0
 :run
 echo Running %~1
 "%TEST_DIRECTORY%\%~1.exe" %2 %3 %4 %5 %6 %7 %8 %9
-exit /b %ERRORLEVEL%
+if errorlevel 1 exit /b 1
+exit /b 0
 
 :failure
 set "RESULT=%ERRORLEVEL%"

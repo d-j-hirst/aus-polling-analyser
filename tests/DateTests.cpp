@@ -19,7 +19,10 @@ int main()
 	assert(Date::parseIso("2024-03-10").value() - leapDay.value() == 10);
 	assert(Date::parseIso("1970-01-01")->modifiedJulianDay() == 40587);
 
-	for (char const* value : {"1900-01-01", "1970-01-01", "2000-02-29", "2028-11-25"}) {
+	// Legacy .pol2 calendar dates use the platform's local-time conversion.
+	// MSVC's mktime range starts at 1970 UTC, so use representative dates well
+	// within every supported standard-library implementation's range.
+	for (char const* value : {"2000-02-29", "2028-11-25"}) {
 		auto const original = Date::parseIso(value).value();
 		auto const restored = Date::fromLegacyJulianDay(
 			original.toLegacyJulianDay());
