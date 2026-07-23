@@ -3,7 +3,10 @@
 #include "PartyCollection.h"
 #include "Seat.h"
 
+#include <filesystem>
 #include <map>
+#include <stdexcept>
+#include <utility>
 
 class PartyCollection;
 class PollingProject;
@@ -12,6 +15,12 @@ class RegionCollection;
 class SeatDoesntExistException : public std::runtime_error {
 public:
 	SeatDoesntExistException() : std::runtime_error("") {}
+};
+
+class SeatImportException : public std::runtime_error {
+public:
+	explicit SeatImportException(std::string message)
+		: std::runtime_error(std::move(message)) {}
 };
 
 class SeatCollection {
@@ -94,8 +103,17 @@ public:
 	// files; this function will help to ease the transition)
 	void exportInfo() const;
 
-	// Import seat info from the appropriate text file
+	// Use a specification-provided workspace-relative source for subsequent
+	// imports. Strict sources reject malformed input instead of continuing with
+	// incomplete seats.
+	void configureImportSource(
+		std::filesystem::path sourcePath, bool strict);
+
+	// Import seat info from the configured source, or from the legacy
+	// analysis/seats/<term>.txt path when no source has been configured.
 	void importInfo();
+
+	std::filesystem::path importSourcePath() const;
 
 	Seat& back() { return std::prev(seats.end())->second; }
 
@@ -125,4 +143,7 @@ private:
 	SeatContainer seats;
 
 	PollingProject& project;
+
+	std::filesystem::path configuredImportSource;
+	bool strictImportSource = false;
 };

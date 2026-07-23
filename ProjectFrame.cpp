@@ -255,18 +255,18 @@ void ProjectFrame::runMacro()
 	std::string newMacro = std::string(dialog.GetValue());
 	MacroWarningsDialog warningsDialog(this);
 	auto feedback = [this, &warningsDialog](
-		MacroRunner::FeedbackType type, std::string message) {
+		MacroFeedbackType type, std::string message) {
 		wxBell();
 		switch (type) {
-		case MacroRunner::FeedbackType::Fatal:
+		case MacroFeedbackType::Fatal:
 			wxMessageBox(message, "Macro failed",
 				wxOK | wxICON_ERROR, this);
 			break;
-		case MacroRunner::FeedbackType::ActionRequired:
+		case MacroFeedbackType::ActionRequired:
 			wxMessageBox(message, "Macro action required",
 				wxOK | wxICON_INFORMATION, this);
 			break;
-		case MacroRunner::FeedbackType::Warning:
+		case MacroFeedbackType::Warning:
 			warningsDialog.append(message);
 			break;
 		}

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <functional>
+#include "MacroFeedback.h"
+
 #include <optional>
 #include <string>
 
@@ -8,13 +9,8 @@ class PollingProject;
 
 class MacroRunner {
 public:
-	enum class FeedbackType {
-		Fatal,
-		ActionRequired,
-		Warning
-	};
-	using FeedbackFunc =
-		std::function<void(FeedbackType, std::string)>;
+	using FeedbackType = MacroFeedbackType;
+	using FeedbackFunc = MacroFeedbackFunc;
 
 	MacroRunner(PollingProject& project);
 	// Runs semicolon-delimited command:id instructions. Returns the first error,

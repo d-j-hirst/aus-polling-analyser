@@ -6,9 +6,10 @@
 #include "RandomGenerator.h"
 #include "Simulation.h"
 #include "SimulationRun.h"
+#include "SourceLocation.h"
 
+#include <cmath>
 #include <limits>
-#include <source_location>
 
 using Mp = Simulation::MajorParty;
 
@@ -32,7 +33,7 @@ constexpr int MaxTerminalFpReconciliationCycles = 10;
 namespace {
 	struct InvalidIteration {
 		explicit InvalidIteration(
-			std::source_location source = std::source_location::current())
+			SourceLocation source = SourceLocation::current())
 			: source(source) {
 		}
 
@@ -56,7 +57,7 @@ namespace {
 			return result;
 		}
 
-		std::source_location source;
+		SourceLocation source;
 		std::string context;
 	};
 
@@ -1233,7 +1234,7 @@ void SimulationIteration::determineSpecificPartyFp(
 	float recontestRateMixed = getMixedStat(StatType::RecontestRate);
 	float recontestIncumbentRateMixed = getMixedStat(StatType::RecontestIncumbentRate);
 	float timeToElectionFactor = std::clamp(
-		1.78f - 0.26f * log(float(std::max(daysToElection, 1))),
+		1.78f - 0.26f * std::log(float(std::max(daysToElection, 1))),
 		0.0f, 1.0f);
 
 	if (incumbentPartyIndex == partyIndex) {
@@ -1460,7 +1461,9 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 		}
 		rmse = std::max(rmse, 0.0f);
 		float quantile = variabilityBeta(indAlpha, indBeta, seatIndex, run.indPartyIndex, uint32_t(VariabilityTag::ConfirmedIndVariation)) * 0.5f + 0.5f;
-		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
+		float variableVote = std::abs(
+			rng.flexibleDist(
+				0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
 
 		constexpr float OddsWeight = 0.6f;
@@ -1501,7 +1504,7 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 					constexpr float MaxPollWeight = 0.8f;
 					constexpr float PollWeightBase = 0.6f;
 					float pollFactor = MaxPollWeight *
-						(1.0f - std::powf(PollWeightBase, sumOfWeights));
+						(1.0f - std::pow(PollWeightBase, sumOfWeights));
 					transformedVoteShare = mix(
 						transformedVoteShare, transformedPollFp, pollFactor);
 				}
@@ -1610,7 +1613,9 @@ void SimulationIteration::determineSeatEmergingInds(int seatIndex)
 		// so that the correlation created using the beta distribution works
 		// as intended
 		float quantile = variabilityBeta(indAlpha, indBeta, seatIndex, run.indPartyIndex, uint32_t(VariabilityTag::IndEmergenceQuantile)) * 0.5f + 0.5f;
-		float variableVote = abs(rng.flexibleDist(0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
+		float variableVote = std::abs(
+			rng.flexibleDist(
+				0.0f, rmse, rmse, kurtosis, kurtosis, quantile));
 		float transformedVoteShare = variableVote + run.indEmergence.fpThreshold;
 		seatFpVoteShare[seatIndex][EmergingIndIndex] += detransformVoteShare(transformedVoteShare);
 	}

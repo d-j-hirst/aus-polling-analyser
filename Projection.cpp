@@ -227,7 +227,8 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 
 	// Test that the projected support trend actually exists and extends to the
 	// projection end date. If not, return the "election-now" sample
-	if (endProjIndex >= std::ssize(tppSupport.timePoint)) {
+	auto const endProjectionIndex = static_cast<std::size_t>(endProjIndex);
+	if (endProjectionIndex >= tppSupport.timePoint.size()) {
 		return electionNowSupportSample;
 	}
 	for (auto const& vote : electionNowSupportSample.voteShare) {
@@ -235,7 +236,7 @@ StanModel::SupportSample Projection::generateNowcastSupportSample(ModelCollectio
 		if (party == TppCode) continue;
 		auto const series = projectedSupport.find(party);
 		if (series == projectedSupport.end() ||
-			endProjIndex >= std::ssize(series->second.timePoint)) {
+			endProjectionIndex >= series->second.timePoint.size()) {
 			return electionNowSupportSample;
 		}
 	}

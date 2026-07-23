@@ -71,6 +71,7 @@ public:
 
 	std::string formatIsoLocal() const;
 	std::string formatIsoDateLocal() const;
+	std::string formatIsoTimeLocal() const;
 	std::string formatIsoUtc() const;
 	Date localDate() const;
 

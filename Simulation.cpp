@@ -209,7 +209,10 @@ void Simulation::replaceSettings(Simulation::Settings newSettings)
 
 void Simulation::saveReport(std::string label)
 {
-	if (!isValid()) throw std::runtime_error("Tried to save a report although the simulation hasn't been run yet!");
+	if (!isValid()) {
+		throw std::runtime_error(
+			"Could not save report: the simulation has not been run.");
+	}
 	savedReports.push_back({ latestReport, Timestamp::now(), std::move(label) });
 }
 

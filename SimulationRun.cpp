@@ -189,7 +189,15 @@ bool SimulationRun::run(
 		return false;
 	}
 
-	project.seats().importInfo();
+	try {
+		project.seats().importInfo();
+	}
+	catch (SeatImportException const& exception) {
+		feedback(
+			"Could not run simulation because the seat configuration is invalid:\n" +
+			std::string(exception.what()));
+		return false;
+	}
 	// Calibration and live-baseline sub-runs use latestReport as temporary
 	// workspace. Preserve the last successful report unless the complete main
 	// run reaches the commit point below.

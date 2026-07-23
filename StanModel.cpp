@@ -5,6 +5,7 @@
 #include "SpecialPartyCodes.h"
 #include "WorkspacePaths.h"
 
+#include <cctype>
 #include <cmath>
 #include <fstream>
 #include <future>
@@ -15,10 +16,11 @@
 constexpr int MedianSpreadValue = StanModel::Spread::Size / 2;
 
 constexpr bool DoValidations = false;
-// The magic value identifies generated-model caches. Version 3 adds election
-// identity metadata so a cache cannot silently be loaded into another model.
+// The magic value identifies generated-model caches. Version 4 adds ABI
+// metadata because this temporary format contains native-width values.
 constexpr std::uint32_t GeneratedDataMagic = 0x50414d32;
-constexpr std::uint32_t GeneratedDataVersion = 3;
+constexpr std::uint32_t GeneratedDataVersion = 4;
+constexpr std::uint32_t GeneratedDataEndianMarker = 0x01020304;
 
 StanModel::MajorPartyCodes StanModel::majorPartyCodes = 
 	{ "ALP", "LNP", "LIB", "NAT", "GRN" };
@@ -189,6 +191,23 @@ bool StanModel::prepareForRun(
 	generateUnnamedOthersSeries();
 	readyForProjection = true;
 	return true;
+}
+
+std::string StanModel::generatedDataCacheFilename() const
+{
+	if (termCode.empty()) {
+		throw std::logic_error(
+			"The model needs an election term code before its cache can be used.");
+	}
+	for (unsigned char character : termCode) {
+		if (!std::isalnum(character) &&
+			character != '-' && character != '_') {
+			throw std::logic_error(
+				"The model term code contains a character that cannot be used "
+				"in a cache filename: " + termCode);
+		}
+	}
+	return "model-" + termCode + ".bin";
 }
 
 bool StanModel::loadPartyCodes(FeedbackFunc feedback)
@@ -1299,7 +1318,8 @@ void StanModel::Series::smooth(int smoothingFactor)
 
 bool StanModel::dumpGeneratedData(std::string const& filename) const {
 	if (!readyForProjection || termCode.empty() || partyCodes.empty() ||
-		!startDate.isValid()) {
+		!startDate.isValid() || adjustedSupport.empty() ||
+		tppSupport.timePoint.empty()) {
 		return false;
 	}
 	std::ofstream file(filename, std::ios::binary);
@@ -1316,6 +1336,28 @@ bool StanModel::dumpGeneratedData(std::string const& filename) const {
 		sizeof(GeneratedDataMagic));
 	file.write(reinterpret_cast<const char*>(&GeneratedDataVersion),
 		sizeof(GeneratedDataVersion));
+	std::array<std::uint8_t, 5> const scalarSizes = {
+		sizeof(std::size_t),
+		sizeof(int),
+		sizeof(float),
+		sizeof(double),
+		sizeof(bool),
+	};
+	file.write(
+		reinterpret_cast<char const*>(scalarSizes.data()),
+		scalarSizes.size());
+	std::uint32_t const parameterSetSize = sizeof(ParameterSet);
+	std::uint32_t const emergingParameterSetSize =
+		sizeof(EmergingPartyParameterSet);
+	file.write(
+		reinterpret_cast<char const*>(&parameterSetSize),
+		sizeof(parameterSetSize));
+	file.write(
+		reinterpret_cast<char const*>(&emergingParameterSetSize),
+		sizeof(emergingParameterSetSize));
+	file.write(
+		reinterpret_cast<char const*>(&GeneratedDataEndianMarker),
+		sizeof(GeneratedDataEndianMarker));
 	writeString(termCode);
 	writeString(startDate.formatIso());
 	writeString(partyCodes);
@@ -1478,6 +1520,41 @@ bool StanModel::loadGeneratedData(
 		feedback(
 			"Generated model cache version is not supported. Run dump-model "
 			"again to regenerate it: " + filename);
+		return false;
+	}
+	std::array<std::uint8_t, 5> cachedScalarSizes{};
+	file.read(
+		reinterpret_cast<char*>(cachedScalarSizes.data()),
+		cachedScalarSizes.size());
+	std::uint32_t cachedParameterSetSize = 0;
+	std::uint32_t cachedEmergingParameterSetSize = 0;
+	std::uint32_t cachedEndianMarker = 0;
+	file.read(
+		reinterpret_cast<char*>(&cachedParameterSetSize),
+		sizeof(cachedParameterSetSize));
+	file.read(
+		reinterpret_cast<char*>(&cachedEmergingParameterSetSize),
+		sizeof(cachedEmergingParameterSetSize));
+	file.read(
+		reinterpret_cast<char*>(&cachedEndianMarker),
+		sizeof(cachedEndianMarker));
+	std::array<std::uint8_t, 5> const expectedScalarSizes = {
+		sizeof(std::size_t),
+		sizeof(int),
+		sizeof(float),
+		sizeof(double),
+		sizeof(bool),
+	};
+	if (!file ||
+		cachedScalarSizes != expectedScalarSizes ||
+		cachedParameterSetSize != sizeof(ParameterSet) ||
+		cachedEmergingParameterSetSize !=
+			sizeof(EmergingPartyParameterSet) ||
+		cachedEndianMarker != GeneratedDataEndianMarker) {
+		feedback(
+			"Generated model cache is incompatible with this executable's "
+			"architecture or binary layout. Run dump-model again using this "
+			"build: " + filename);
 		return false;
 	}
 
@@ -1652,7 +1729,9 @@ bool StanModel::loadGeneratedData(
 		sizeof(loadedReadyForProjection));
 	if (!file || !loadedReadyForProjection || loadedNumDays <= 0 ||
 		loadedPartyCodeVec != splitString(partyCodes, ",") ||
-		loadedRawTppSupport.timePoint.empty()) {
+		loadedRawTppSupport.timePoint.empty() ||
+		loadedAdjustedSupport.empty() ||
+		loadedTppSupport.timePoint.empty()) {
 		feedback(
 			"Generated model cache is incomplete or inconsistent with this "
 			"model: " + filename);

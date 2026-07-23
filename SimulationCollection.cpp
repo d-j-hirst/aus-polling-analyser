@@ -5,14 +5,6 @@
 
 #include <algorithm>
 #include <exception>
-#include <optional>
-
-namespace {
-	std::optional<Timestamp> parseLiveReportDate(std::string const& dateCode)
-	{
-		return Timestamp::parseCompactLocal(dateCode);
-	}
-}
 
 SimulationCollection::SimulationCollection(PollingProject & project)
 	: project(project)
@@ -90,59 +82,6 @@ Simulation& SimulationCollection::access(Simulation::Id id)
 
 int SimulationCollection::count() const {
 	return simulations.size();
-}
-
-std::optional<std::string> SimulationCollection::uploadToServer(
-	Simulation::Id id, int reportIndex)
-{
-	auto simulationIt = simulations.find(id);
-	if (simulationIt == simulations.end()) {
-		return "Could not prepare report upload: the selected simulation does not exist.";
-	}
-	auto const& reports = simulationIt->second.viewSavedReports();
-	if (reportIndex == -1 && simulationIt->second.isLive()) {
-		Simulation::SavedReport sReport;
-		sReport.report = simulationIt->second.getLatestReport();
-		sReport.label = "New results";
-		sReport.dateSaved = Timestamp::now();
-		if (!sReport.report.dateCode.empty()) {
-			auto const reportDate =
-				parseLiveReportDate(sReport.report.dateCode);
-			if (!reportDate) {
-				return "Could not prepare report upload: the live report has an "
-					"invalid date code (expected YYYYMMDDHHMMSS).";
-			}
-			sReport.dateSaved = *reportDate;
-		}
-		auto reportUploader = ReportUploader(sReport, simulationIt->second, project);
-		return reportUploader.upload();
-	}
-	if (reportIndex <= -1 || reportIndex >= int(reports.size())) {
-		return "Could not prepare report upload: the selected report does not exist.";
-	}
-	auto const& report = reports[reportIndex];
-	auto reportUploader = ReportUploader(report, simulationIt->second, project);
-	return reportUploader.upload();
-}
-
-void SimulationCollection::deleteReport(Simulation::Id id, int reportIndex)
-{
-	auto simulationIt = simulations.find(id);
-	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
-	if (reportIndex <= -1 || reportIndex >= int(simulationIt->second.viewSavedReports().size())) {
-		logger << "Invalid report!\n";
-		return;
-	}
-	simulationIt->second.deleteReport(reportIndex);
-}
-
-void SimulationCollection::deleteAllReports(Simulation::Id id)
-{
-	auto simulationIt = simulations.find(id);
-	if (simulationIt == simulations.end()) throw SimulationDoesntExistException();
-	while (simulationIt->second.viewSavedReports().size() > 0) {
-		simulationIt->second.deleteReport(0);
-	}
 }
 
 void SimulationCollection::startLoadingSimulation()

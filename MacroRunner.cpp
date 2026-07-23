@@ -5,7 +5,6 @@
 #include "Log.h"
 #include "PollingProject.h"
 
-#include <cctype>
 #include <exception>
 #include <stdexcept>
 #include <utility>
@@ -14,39 +13,149 @@
 namespace {
 	struct Instruction {
 		enum class Type {
-			None,
 			CollectPolls,
 			DumpModel,
 			LoadModel,
 			PrepareModel,
 			RunModel,
 			RunProjection,
-			RunSimulation
+			RunSimulation,
+			SaveReport,
+			ExportReport,
 		};
-
-		Instruction(Type type, int id, std::string source) :
-			type(type), id(id), source(std::move(source)) {}
 
 		Type type;
 		int id;
 		std::string source;
+		std::string argument;
 	};
 
-	std::string modelCacheFilename(StanModel const& model)
+	struct LegacyMacroResolution {
+		std::vector<Instruction> instructions;
+		std::optional<std::string> error;
+	};
+
+	std::string trim(std::string const& value)
 	{
-		auto const termCode = model.getTermCode();
-		if (termCode.empty()) {
-			throw std::logic_error(
-				"The model needs an election term code before its cache can be used.");
-		}
-		for (unsigned char character : termCode) {
-			if (!std::isalnum(character) && character != '-' && character != '_') {
-				throw std::logic_error(
-					"The model term code contains a character that cannot be used "
-					"in a cache filename: " + termCode);
+		auto const first = value.find_first_not_of(" \t\r\n");
+		if (first == std::string::npos) return {};
+		auto const last = value.find_last_not_of(" \t\r\n");
+		return value.substr(first, last - first + 1);
+	}
+
+	LegacyMacroResolution resolveLegacyNumericTargets(
+		std::string const& macro)
+	{
+		LegacyMacroResolution result;
+		auto lines = splitString(macro, ";");
+		for (auto const& line : lines) {
+			auto const firstSeparator = line.find(':');
+			auto const command = firstSeparator == std::string::npos ?
+				line : line.substr(0, firstSeparator);
+			auto const secondSeparator = firstSeparator == std::string::npos ?
+				std::string::npos : line.find(':', firstSeparator + 1);
+			bool const hasReportLabel =
+				command == "save-report" || command == "export-report";
+			if (firstSeparator == std::string::npos ||
+				(!hasReportLabel && secondSeparator != std::string::npos) ||
+				(hasReportLabel && secondSeparator == std::string::npos)) {
+				result.error =
+					hasReportLabel ?
+						"Error: report command requires a simulation ID and label - " +
+							line :
+						"Error: not exactly 2 parts to this line - " + line;
+				result.instructions.clear();
+				return result;
 			}
+			auto const idText = line.substr(
+				firstSeparator + 1,
+				(secondSeparator == std::string::npos ?
+					line.size() : secondSeparator) -
+					firstSeparator - 1);
+			auto const argument = hasReportLabel ?
+				trim(line.substr(secondSeparator + 1)) : std::string{};
+			if (hasReportLabel && argument.empty()) {
+				result.error =
+					"Error: report label cannot be empty - " + line;
+				result.instructions.clear();
+				return result;
+			}
+			int id = -1;
+			size_t parsedLength = 0;
+			try {
+				id = std::stoi(idText, &parsedLength);
+			}
+			catch (std::invalid_argument const&) {
+				result.error =
+					"Error: 2nd part did not correspond to an integer - " +
+					line;
+				result.instructions.clear();
+				return result;
+			}
+			catch (std::out_of_range const&) {
+				result.error =
+					"Error: ID was outside the supported integer range - " +
+					line;
+				result.instructions.clear();
+				return result;
+			}
+			if (parsedLength != idText.size()) {
+				result.error =
+					"Error: 2nd part did not correspond to an integer - " +
+					line;
+				result.instructions.clear();
+				return result;
+			}
+			if (id < 0) {
+				result.error = "Error: Invalid ID - " + line;
+				result.instructions.clear();
+				return result;
+			}
+
+			std::optional<Instruction::Type> type;
+			if (command == "collect-polls") {
+				type = Instruction::Type::CollectPolls;
+			}
+			else if (command == "dump-model") {
+				type = Instruction::Type::DumpModel;
+			}
+			else if (command == "load-model") {
+				type = Instruction::Type::LoadModel;
+			}
+			else if (command == "prepare-model") {
+				type = Instruction::Type::PrepareModel;
+			}
+			else if (command == "run-model") {
+				type = Instruction::Type::RunModel;
+			}
+			else if (command == "set-nowcast") {
+				result.error =
+					"Error: set-nowcast is obsolete. Use a full-election base "
+					"projection and set the simulation's Forecast/report mode "
+					"to Nowcast - " + line;
+				result.instructions.clear();
+				return result;
+			}
+			else if (command == "run-projection") {
+				type = Instruction::Type::RunProjection;
+			}
+			else if (command == "run-simulation") {
+				type = Instruction::Type::RunSimulation;
+			}
+			else if (command == "save-report") {
+				type = Instruction::Type::SaveReport;
+			}
+			else if (command == "export-report") {
+				type = Instruction::Type::ExportReport;
+			}
+			if (!type) {
+				result.error = "Error: Invalid instruction - " + line;
+				result.instructions.clear();
+				return result;
+			}
+			result.instructions.push_back({ *type, id, line, argument });
 		}
-		return "model-" + termCode + ".bin";
+		return result;
 	}
 }
 
@@ -65,67 +174,13 @@ std::optional<std::string> MacroRunner::run(
 		return std::optional<std::string>(std::move(message));
 	};
 	logger << "Running macro: reading instructions\n";
-	auto lines = splitString(macro, ";");
-	std::vector<Instruction> instructions;
-	for (auto const& line : lines) {
-		auto parts = splitString(line, ":");
-		if (parts.size() != 2) {
-			return fatal("Error: not exactly 2 parts to this line - " + line);
-		}
-		int id = -1;
-		size_t parsedLength = 0;
-		try {
-			id = std::stoi(parts[1], &parsedLength);
-		}
-		catch (std::invalid_argument const&) {
-			return fatal("Error: 2nd part did not correspond to an integer - " + line);
-		}
-		catch (std::out_of_range const&) {
-			return fatal("Error: ID was outside the supported integer range - " + line);
-		}
-		if (parsedLength != parts[1].size()) {
-			return fatal("Error: 2nd part did not correspond to an integer - " + line);
-		}
-		if (id < 0) {
-			return fatal("Error: Invalid ID - " + line);
-		}
-		Instruction::Type type = Instruction::Type::None;
-		if (parts[0] == "collect-polls") {
-			type = Instruction::Type::CollectPolls;
-		}
-		else if (parts[0] == "dump-model") {
-			type = Instruction::Type::DumpModel;
-		}
-		else if (parts[0] == "load-model") {
-			type = Instruction::Type::LoadModel;
-		}
-		else if (parts[0] == "prepare-model") {
-			type = Instruction::Type::PrepareModel;
-		}
-		else if (parts[0] == "run-model") {
-			type = Instruction::Type::RunModel;
-		}
-		else if (parts[0] == "set-nowcast") {
-			return fatal(
-				"Error: set-nowcast is obsolete. Use a full-election base "
-				"projection and set the simulation's Forecast/report mode to "
-				"Nowcast - " + line);
-		}
-		else if (parts[0] == "run-projection") {
-			type = Instruction::Type::RunProjection;
-		}
-		else if (parts[0] == "run-simulation") {
-			type = Instruction::Type::RunSimulation;
-		}
-		if (type == Instruction::Type::None) {
-			return fatal("Error: Invalid instruction - " + line);
-		}
-		instructions.emplace_back(type, id, line);
+	auto resolved = resolveLegacyNumericTargets(macro);
+	if (resolved.error) {
+		return fatal(*resolved.error);
 	}
-
 	// Validate every reference before executing anything so a later typo cannot
 	// leave the project after only part of the macro has run.
-	for (auto const& instruction : instructions) {
+	for (auto const& instruction : resolved.instructions) {
 		bool const needsModel =
 			instruction.type == Instruction::Type::DumpModel ||
 			instruction.type == Instruction::Type::LoadModel ||
@@ -133,24 +188,28 @@ std::optional<std::string> MacroRunner::run(
 			instruction.type == Instruction::Type::RunModel;
 		bool const needsProjection =
 			instruction.type == Instruction::Type::RunProjection;
-		bool const needsSimulation =
-			instruction.type == Instruction::Type::RunSimulation;
+			bool const needsSimulation =
+				instruction.type == Instruction::Type::RunSimulation ||
+				instruction.type == Instruction::Type::SaveReport ||
+				instruction.type == Instruction::Type::ExportReport;
 		if (needsModel && project_.models().idToIndex(instruction.id) ==
 			ModelCollection::InvalidIndex) {
 			return fatal("Error: Model ID does not exist - " + instruction.source);
 		}
-		if (needsProjection && project_.projections().idToIndex(instruction.id) ==
+		if (needsProjection &&
+			project_.projections().idToIndex(instruction.id) ==
 			ProjectionCollection::InvalidIndex) {
 			return fatal("Error: Projection ID does not exist - " + instruction.source);
 		}
-		if (needsSimulation && project_.simulations().idToIndex(instruction.id) ==
+		if (needsSimulation &&
+			project_.simulations().idToIndex(instruction.id) ==
 			SimulationCollection::InvalidIndex) {
 			return fatal("Error: Simulation ID does not exist - " + instruction.source);
 		}
 	}
 
 	logger << "Running macro: reading instructions successful, now executing\n";
-	for (auto const& instruction : instructions) {
+	for (auto const& instruction : resolved.instructions) {
 		std::vector<std::string> messages;
 		auto captureFeedback = [&messages](std::string message) {
 			if (!message.empty()) messages.push_back(std::move(message));
@@ -180,34 +239,37 @@ std::optional<std::string> MacroRunner::run(
 			logger << "Running macro instruction: " << instruction.source << "\n";
 			switch (instruction.type) {
 			case Instruction::Type::CollectPolls:
-				// Poll collection has no target, but retains the conventional :0 suffix
-				// so all macro instructions continue to use the same grammar.
+				// Poll collection has no target, but retains the conventional :0
+				// suffix so legacy instructions keep a consistent grammar.
 				succeeded = project_.polls().collectPolls(
 					[](std::string, std::string defaultValue) {
 						return defaultValue;
 					},
 					captureFeedback);
 				break;
-			case Instruction::Type::DumpModel:
-				{
-					auto const& model = project_.models().access(instruction.id);
-					auto const filename = project_.paths().resolveString(
-						modelCacheFilename(model));
-					succeeded = model.dumpGeneratedData(filename);
+				case Instruction::Type::DumpModel:
+					{
+						auto const& model =
+							project_.models().access(instruction.id);
+						auto const filename = project_.paths().resolveString(
+							model.generatedDataCacheFilename());
+						succeeded = model.dumpGeneratedData(filename);
 					if (!succeeded) {
 						messages.push_back("Could not write " + filename + ".");
 					}
 				}
 				break;
-			case Instruction::Type::LoadModel:
-				{
-					auto& model = project_.models().access(instruction.id);
-					auto const filename = project_.paths().resolveString(
-						modelCacheFilename(model));
+				case Instruction::Type::LoadModel:
+					{
+						auto& model =
+							project_.models().access(instruction.id);
+						auto const filename = project_.paths().resolveString(
+							model.generatedDataCacheFilename());
 					succeeded = model.loadGeneratedData(
 						filename, captureFeedback);
 					if (succeeded) {
-						project_.invalidateProjectionsFromModel(instruction.id);
+						project_.invalidateProjectionsFromModel(
+							instruction.id);
 					}
 					else if (messages.empty()) {
 						messages.push_back("Could not load " + filename + ".");
@@ -220,25 +282,35 @@ std::optional<std::string> MacroRunner::run(
 				project_.invalidateProjectionsFromModel(instruction.id);
 				break;
 			case Instruction::Type::RunModel:
-				succeeded = project_.models().access(instruction.id).loadData(
+				succeeded = project_.models().access(
+					instruction.id).loadData(
 					project_.paths(), captureFeedback,
 					project_.config().getModelThreads());
 				project_.invalidateProjectionsFromModel(instruction.id);
 				break;
-			case Instruction::Type::RunProjection:
-				succeeded = project_.projections().run(
-					instruction.id, captureFeedback);
-				break;
-			case Instruction::Type::RunSimulation:
-				succeeded = project_.simulations().run(
-					instruction.id, captureSimulationFeedback,
-					actionRequiredFeedback);
-				break;
-			case Instruction::Type::None:
-				succeeded = false;
-				messages.push_back("The parsed instruction had no executable type.");
-				break;
-			}
+				case Instruction::Type::RunProjection:
+					succeeded = project_.projections().run(
+						instruction.id, captureFeedback);
+					break;
+				case Instruction::Type::RunSimulation:
+					succeeded = project_.simulations().run(
+						instruction.id, captureSimulationFeedback,
+						actionRequiredFeedback);
+					break;
+				case Instruction::Type::SaveReport:
+					project_.simulations().access(
+						instruction.id).saveReport(instruction.argument);
+					break;
+				case Instruction::Type::ExportReport:
+					{
+						auto const error =
+							project_.simulations().exportReportByLabel(
+								instruction.id, instruction.argument);
+						succeeded = !error;
+						if (error) messages.push_back(*error);
+					}
+					break;
+				}
 			if (!succeeded) return fatal(failureMessage());
 
 			// Most component feedback describes a failed operation and is consumed by

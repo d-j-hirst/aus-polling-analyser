@@ -12,7 +12,7 @@
 #include <vector>
 
 class WorkspacePaths;
-class ForecastSpecificationImporter;
+class ForecastSpecificationProjectAdapter;
 
 class StanModel {
 public:
@@ -20,7 +20,7 @@ public:
 	friend class EditModelFrame;
 	friend class ProjectFiler;
 	friend class Projection;
-	friend class ForecastSpecificationImporter;
+	friend class ForecastSpecificationProjectAdapter;
 
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
@@ -133,6 +133,10 @@ public:
 	
 	// Dump generated data to a temporary file for later reuse
 	bool dumpGeneratedData(std::string const& filename) const;
+
+	// Cache filenames include the election code; file contents validate the
+	// remaining model identity before they are accepted.
+	std::string generatedDataCacheFilename() const;
 	
 	// Load previously generated data from a file
 	bool loadGeneratedData(

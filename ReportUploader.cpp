@@ -31,9 +31,9 @@ namespace {
 		return values;
 	}
 
-	std::optional<std::string> uploadFailure(std::string const& detail)
+	std::optional<std::string> exportFailure(std::string const& detail)
 	{
-		std::string const message = "Could not prepare report upload: " + detail;
+		std::string const message = "Could not export report: " + detail;
 		logger << message << "\n";
 		return message;
 	}
@@ -57,31 +57,31 @@ ReportUploader::ReportUploader(Simulation::SavedReport const& thisReport, Simula
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StanModel::ModelledPoll, pollster, day, base, adjusted, reported)
 
-std::optional<std::string> ReportUploader::upload()
+std::optional<std::string> ReportUploader::exportReport()
 {
 	auto const& settings = simulation.getSettings();
 	if (project.projections().idToIndex(settings.baseProjection) ==
 		ProjectionCollection::InvalidIndex) {
-		return uploadFailure("the simulation does not have a valid base projection.");
+		return exportFailure("the simulation does not have a valid base projection.");
 	}
 	auto const& projection = project.projections().view(settings.baseProjection);
 	if (project.models().idToIndex(projection.getSettings().baseModel) ==
 		ModelCollection::InvalidIndex) {
-		return uploadFailure("the simulation's base projection does not have a valid model.");
+		return exportFailure("the simulation's base projection does not have a valid model.");
 	}
 	auto const modeString = reportModeCode(settings.reportMode);
 	if (!modeString) {
-		return uploadFailure("the simulation has an invalid report mode.");
+		return exportFailure("the simulation has an invalid report mode.");
 	}
 	if (!thisReport.dateSaved.isValid()) {
-		return uploadFailure("the report does not have a valid saved date.");
+		return exportFailure("the report does not have a valid saved date.");
 	}
 
 	json j;
 	// The election identity currently belongs to the model rather than the project.
 	auto const& termCode = projection.getBaseModel(project.models()).getTermCode();
 	if (termCode.empty()) {
-		return uploadFailure("the simulation's base model does not have an election term code.");
+		return exportFailure("the simulation's base model does not have an election term code.");
 	}
 	j["termCode"] = termCode;
 	j["electionName"] = project.getElectionName();
@@ -193,18 +193,18 @@ std::optional<std::string> ReportUploader::upload()
 		serialisedReport = j.dump(4);
 	}
 	catch (nlohmann::json::exception const& e) {
-		return uploadFailure(std::string("the report could not be serialized: ") + e.what());
+		return exportFailure(std::string("the report could not be serialized: ") + e.what());
 	}
 
 	auto const outputFilename = project.paths().resolveString(OutputFilename);
 	std::ofstream output(outputFilename, std::ios::binary | std::ios::trunc);
 	if (!output) {
-		return uploadFailure("could not open " + outputFilename + " for writing.");
+		return exportFailure("could not open " + outputFilename + " for writing.");
 	}
 	output << serialisedReport;
 	output.close();
 	if (output.fail()) {
-		return uploadFailure("could not finish writing " + outputFilename + ".");
+		return exportFailure("could not finish writing " + outputFilename + ".");
 	}
 	return std::nullopt;
 }

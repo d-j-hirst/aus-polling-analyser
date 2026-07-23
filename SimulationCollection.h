@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ReportUploader.h"
 #include "Simulation.h"
 
 #include <map>
@@ -76,6 +75,11 @@ public:
 	int count() const;
 
 	std::optional<std::string> uploadToServer(Simulation::Id id, int reportIndex);
+
+	// Serialize an exactly named saved report to the website JSON interchange
+	// file. This performs no network operation.
+	std::optional<std::string> exportReportByLabel(
+		Simulation::Id id, std::string const& reportLabel);
 
 	void deleteReport(Simulation::Id id, int reportIndex);
 

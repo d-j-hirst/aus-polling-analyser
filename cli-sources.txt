@@ -1,0 +1,35 @@
+# Portable forecast-pipeline sources shared by the CLI executable and its
+# boundary test. The executable adds PollingCli.cpp; GUI, live parsing and
+# network upload remains outside the CLI; local report serialization is shared.
+CliLivePreparationBridge.cpp
+Config.cpp
+CoreMacroRunner.cpp
+CoreReportSummary.cpp
+Date.cpp
+ForecastSpecificationIO.cpp
+ForecastSpecificationProjectAdapter.cpp
+General.cpp
+Log.cpp
+MacroTargetResolver.cpp
+ModelCollection.cpp
+OutcomeCollection.cpp
+PartyCollection.cpp
+PollCollection.cpp
+PollingProjectCore.cpp
+PollsterCollection.cpp
+Projection.cpp
+ProjectionCollection.cpp
+RandomGenerator.cpp
+ReportUploader.cpp
+RegionCollection.cpp
+SeatCollection.cpp
+Simulation.cpp
+SimulationCollection.cpp
+SimulationCollectionReports.cpp
+SimulationCompletion.cpp
+SimulationIteration.cpp
+SimulationPreparation.cpp
+SimulationRun.cpp
+StanModel.cpp
+TerminalMacroFeedback.cpp
+WorkspacePaths.cpp

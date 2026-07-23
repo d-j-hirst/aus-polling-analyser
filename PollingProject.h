@@ -1,12 +1,13 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "Config.h"
-#include "MacroRunner.h"
+#include "MacroFeedback.h"
 #include "WorkspacePaths.h"
 
 #include "ModelCollection.h"
@@ -27,6 +28,7 @@
 const int PA_MaxPollsters = 100;
 
 class ElectionCollection;
+class ForecastSpecificationProjectAdapter;
 struct NewProjectData;
 class ResultCoordinator;
 
@@ -36,6 +38,7 @@ class PollingProject {
 public:
 	friend class ProjectFiler;
 	friend class GeneralSettingsFrame;
+	friend class ForecastSpecificationProjectAdapter;
 
 	// Initializes the polling project using the project data
 	// selected on the New Project screen.
@@ -63,8 +66,8 @@ public:
 	// Runs the given macro. Returns the first fatal error, if any.
 	std::optional<std::string> runMacro(
 		std::string macro,
-		MacroRunner::FeedbackFunc feedback =
-			[](MacroRunner::FeedbackType, std::string) {});
+		MacroFeedbackFunc feedback =
+			[](MacroFeedbackType, std::string) {});
 
 	// Update the macro to the given value without running it.
 	void updateMacro(std::string macro);
@@ -140,7 +143,7 @@ public:
 	// Returns whether the project is valid (after opening from a file).
 	// If this is false then the project should be closed by
 	// calling reset on the smart pointer.
-	bool isValid();
+	bool isValid() const;
 
 	// Invalidates all the projections from a particular model. Used when editing a model.
 	void invalidateProjectionsFromModel(StanModel::Id modelId);
@@ -199,9 +202,11 @@ private:
 	RegionCollection regionCollection;
 	SeatCollection seatCollection;
 	SimulationCollection simulationCollection;
-	std::unique_ptr<ResultCoordinator> resultCoordinator;
+	mutable std::shared_ptr<ResultCoordinator> resultCoordinator;
 	OutcomeCollection outcomeCollection;
-	std::unique_ptr<ElectionCollection> electionCollection;
+	mutable std::shared_ptr<ElectionCollection> electionCollection;
+	std::function<void(PartyCollection::Index, Party::Id)>
+		legacyPartyRemovalHandler;
 
 	static const Party invalidParty;
 

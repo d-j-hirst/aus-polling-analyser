@@ -1,10 +1,14 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <fstream>
 #include <map>
 #include <optional>
 #include <set>
 #include <string>
+#include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -18,6 +22,8 @@ public:
 	void clear();
 
 	void setFlushFlag(bool val) { doFlush_ = val; }
+	void setEnabled(bool enabled);
+	bool isEnabled() const { return enabled_; }
 
 	template<typename T>
 	auto operator<<(const T& obj)
@@ -62,8 +68,11 @@ public:
 private:
 	void resetLog();
 
-	void flushIf() { if (doFlush_) fileStream_.flush(); }
+	void flushIf() {
+		if (enabled_ && doFlush_) fileStream_.flush();
+	}
 
+	bool enabled_ = true;
 	bool doFlush_ = true;
 
 	std::ofstream fileStream_;
@@ -75,6 +84,7 @@ template<typename T>
 auto Logger::operator<<(const T& obj)
 -> decltype(std::ofstream() << obj, *this)&
 {
+	if (!enabled_) return *this;
 	fileStream_ << obj;
 	flushIf();
 	return *this;
@@ -85,6 +95,7 @@ template<typename T,
 auto Logger::operator<<(const T& obj)
 -> decltype(std::ofstream() << static_cast<int>(obj), *this)&
 {
+	if (!enabled_) return *this;
 	fileStream_ << static_cast<int>(obj);
 	flushIf();
 	return *this;
@@ -94,6 +105,7 @@ template<typename T>
 auto Logger::operator<<(const T& obj)
 -> decltype(obj.FormatISODate(), *this)&
 {
+	if (!enabled_) return *this;
 	fileStream_ << obj.FormatISODate();
 	flushIf();
 	return *this;
@@ -101,6 +113,7 @@ auto Logger::operator<<(const T& obj)
 
 template<typename T>
 inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	fileStream_ << "[";
@@ -118,6 +131,7 @@ inline Logger& Logger::operator<<(const typename std::vector<T>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::set<T, U>& obj) {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	fileStream_ << "{";
@@ -135,6 +149,7 @@ inline Logger& Logger::operator<<(const typename std::set<T, U>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	fileStream_ << "{";
@@ -152,6 +167,7 @@ inline Logger& Logger::operator<<(const typename std::map<T, U>& obj) {
 
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const typename std::unordered_map<T, U>& obj) {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	fileStream_ << "{";
@@ -170,6 +186,7 @@ inline Logger& Logger::operator<<(const typename std::unordered_map<T, U>& obj) 
 template<typename T, int X>
 inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	fileStream_ << "[";
@@ -188,6 +205,7 @@ inline Logger& Logger::operator<<(const std::array<T, X>& obj)
 template<typename T, typename U>
 inline Logger& Logger::operator<<(const std::pair<T, U>& obj)
 {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	*this << "[" << obj.first << ", " << obj.second << "]";
@@ -199,6 +217,7 @@ inline Logger& Logger::operator<<(const std::pair<T, U>& obj)
 template<typename T, typename U, typename V>
 inline Logger& Logger::operator<<(const std::tuple<T, U, V>& obj)
 {
+	if (!enabled_) return *this;
 	bool prevFlush = doFlush_;
 	setFlushFlag(false);
 	*this << "[" << std::get<0>(obj) << ", " << std::get<1>(obj) << ", " << std::get<2>(obj) << "]";
@@ -209,6 +228,7 @@ inline Logger& Logger::operator<<(const std::tuple<T, U, V>& obj)
 
 template<typename T>
 inline Logger& Logger::operator<<(const std::optional<T>& obj) {
+	if (!enabled_) return *this;
 	if (obj) {
 		*this << obj.value();
 	} else {
@@ -218,12 +238,14 @@ inline Logger& Logger::operator<<(const std::optional<T>& obj) {
 }
 
 inline Logger& Logger::operator<<(const uint8_t& obj) {
+	if (!enabled_) return *this;
 	fileStream_ << static_cast<int>(obj);
 	flushIf();
 	return *this;
 }
 
 inline Logger& Logger::operator<<(const int8_t& obj) {
+	if (!enabled_) return *this;
 	fileStream_ << static_cast<int>(obj);
 	flushIf();
 	return *this;

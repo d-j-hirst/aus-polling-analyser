@@ -1,18 +1,11 @@
 #pragma once
 
-#include "ForecastSpecificationIO.h"
-
-#include <vector>
+#include "ForecastSpecificationProjectAdapter.h"
 
 class PollingProject;
 
-struct ForecastSpecificationImportResult {
-	bool applied = false;
-	std::vector<ForecastSpecificationDiagnostic> diagnostics;
-
-	bool valid() const;
-	std::string errorMessage() const;
-};
+using ForecastSpecificationImportResult =
+	ForecastSpecificationProjectApplyResult;
 
 // Loads the forecast package matching the legacy project's model term code and
 // applies its portable configuration in place. Projects without a matching

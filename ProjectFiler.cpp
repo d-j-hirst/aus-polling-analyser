@@ -952,7 +952,7 @@ void ProjectFiler::saveOutcomes(SaveFileOutput& saveOutput)
 		saveOutput << thisOutcome.percentCounted;
 		saveOutput.outputAsType<int32_t>(thisOutcome.boothsIn);
 		saveOutput.outputAsType<int32_t>(thisOutcome.totalBooths);
-		saveOutput << thisOutcome.updateTime.GetJulianDayNumber();
+		saveOutput << thisOutcome.updateTime.toLegacyJulianDay();
 	}
 }
 
@@ -966,7 +966,8 @@ void ProjectFiler::loadOutcomes(SaveFileInput& saveInput, [[maybe_unused]] int v
 		saveInput >> thisOutcome.percentCounted;
 		thisOutcome.boothsIn = saveInput.extract<int32_t>();
 		thisOutcome.totalBooths = saveInput.extract<int32_t>();
-		thisOutcome.updateTime = wxDateTime(saveInput.extract<double>());
+		thisOutcome.updateTime =
+			Timestamp::fromLegacyJulianDay(saveInput.extract<double>());
 		project.outcomeCollection.add(thisOutcome);
 	}
 }

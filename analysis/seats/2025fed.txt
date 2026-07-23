@@ -637,7 +637,7 @@ fTppMargin=12.5
 fPreviousTppSwing=2.52
 sPolls=GRN,17,4;GRN,9,4;GRN,11,4;GRN,14.5,3;ON,9.2,3;GRN,16,3;ON,7.5,3;GRN,14,3;GRN,17.8,3;ON,9.7,3
 sTppMrpPolls=Redbridge,2024-04-01,62.6;Redbridge,2024-07-31,58;Redbridge,2024-11-09,57;YouGov,2025-02-02,56.9;YouGov,2025-03-13,57.5;Redbridge,2025-04-03,62;YouGov,2025-05-15,60.2
-sCandidateNames=Richard Marles,ALP;Darren Buller,LNP;Emilie Flynn;GRN;Adam Helman,ON
+sCandidateNames=Richard Marles,ALP;Darren Buller,LNP;Emilie Flynn,GRN;Adam Helman,ON
 sRunningParties=LNP,ALP,GRN,ON,IND,OTH
 #Deakin
 sIncumbent=LNP
@@ -1035,7 +1035,7 @@ sChallenger=ALP
 sRegion=QLD
 fTppMargin=-10.63
 fByElectionSwing=-2.72
-fPreviousTppSwing=3.55Dickson
+fPreviousTppSwing=3.55
 sPolls=GRN,13,4;GRN,11,4;GRN,10,4;GRN,10.6,3;ON,11.5,3;GRN,10.8,3;ON,14.3,3;GRN,10,3;GRN,10.7,3;ON,10.3,3
 sTppMrpPolls=Redbridge,2024-04-01,40;Redbridge,2024-07-31,42;Redbridge,2024-11-09,41;YouGov,2025-02-02,38.9;YouGov,2025-03-13,41.6;Redbridge,2025-04-03,42;YouGov,2025-05-15,44.1
 sCandidateNames=Cameron Caldwell,LNP;Nick Muir,ON;Letita Del Fabbro,ALP;Andrew Stimson,GRN

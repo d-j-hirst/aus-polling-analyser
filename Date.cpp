@@ -3,9 +3,10 @@
 #include <array>
 #include <chrono>
 #include <cmath>
-#include <cstdio>
 #include <ctime>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 
 namespace {
 	constexpr std::int64_t MillisecondsPerSecond = 1000;
@@ -81,17 +82,18 @@ namespace {
 
 	std::string formatDateTime(std::tm const& value, bool includeTime)
 	{
-		char buffer[20] = {};
+		std::ostringstream output;
+		output << std::setfill('0') <<
+			std::setw(4) << value.tm_year + 1900 << '-' <<
+			std::setw(2) << value.tm_mon + 1 << '-' <<
+			std::setw(2) << value.tm_mday;
 		if (includeTime) {
-			std::snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02d",
-				value.tm_year + 1900, value.tm_mon + 1, value.tm_mday,
-				value.tm_hour, value.tm_min, value.tm_sec);
+			output << 'T' <<
+				std::setw(2) << value.tm_hour << ':' <<
+				std::setw(2) << value.tm_min << ':' <<
+				std::setw(2) << value.tm_sec;
 		}
-		else {
-			std::snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d",
-				value.tm_year + 1900, value.tm_mon + 1, value.tm_mday);
-		}
-		return buffer;
+		return output.str();
 	}
 
 	bool localTime(std::time_t value, std::tm& result)
@@ -185,10 +187,12 @@ std::string Date::formatIso() const
 {
 	if (!isValid()) return {};
 	auto const value = civilFromDays(serialDay);
-	char buffer[11] = {};
-	std::snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d",
-		value.year, value.month, value.day);
-	return buffer;
+	std::ostringstream output;
+	output << std::setfill('0') <<
+		std::setw(4) << value.year << '-' <<
+		std::setw(2) << value.month << '-' <<
+		std::setw(2) << value.day;
+	return output.str();
 }
 
 int Date::year() const
@@ -318,6 +322,19 @@ std::string Timestamp::formatIsoDateLocal() const
 	std::tm local = {};
 	if (!localTime(unixSeconds(unixMillis), local)) return {};
 	return formatDateTime(local, false);
+}
+
+std::string Timestamp::formatIsoTimeLocal() const
+{
+	if (!isValid()) return {};
+	std::tm local = {};
+	if (!localTime(unixSeconds(unixMillis), local)) return {};
+	std::ostringstream output;
+	output << std::setfill('0') <<
+		std::setw(2) << local.tm_hour << ':' <<
+		std::setw(2) << local.tm_min << ':' <<
+		std::setw(2) << local.tm_sec;
+	return output.str();
 }
 
 std::string Timestamp::formatIsoUtc() const

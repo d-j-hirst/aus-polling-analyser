@@ -8,33 +8,12 @@
 #include "ProjectFiler.h"
 #include "ResultCoordinator.h"
 
-#include <algorithm>
 #include <filesystem>
-#include <iomanip>
 #include <stdexcept>
 #include <utility>
 
-const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
-
-const std::string ConfigFilename = "config.cfg";
-
 PollingProject::PollingProject()
 	: PollingProject(WorkspacePaths::discover())
-{}
-
-PollingProject::PollingProject(WorkspacePaths workspacePaths) :
-	workspacePaths(std::move(workspacePaths)),
-	configObj(this->workspacePaths.resolveString(ConfigFilename)),
-	partyCollection(*this),
-	pollsterCollection(*this),
-	pollCollection(*this),
-	modelCollection(*this),
-	projectionCollection(*this),
-	regionCollection(*this),
-	seatCollection(*this),
-	simulationCollection(*this),
-	resultCoordinator(std::make_unique<ResultCoordinator>(*this)),
-	electionCollection(std::make_unique<ElectionCollection>(*this))
 {}
 
 PollingProject::PollingProject(NewProjectData& newProjectData)
@@ -57,37 +36,48 @@ PollingProject::PollingProject(std::string pathName)
 	open(pathName);
 }
 
-PollingProject::~PollingProject() = default;
-
 ResultCoordinator& PollingProject::results()
 {
+	if (!resultCoordinator) {
+		resultCoordinator = std::make_shared<ResultCoordinator>(*this);
+		legacyPartyRemovalHandler = [this](
+			PartyCollection::Index partyIndex, Party::Id partyId) {
+			resultCoordinator->adjustAffiliationsAfterPartyRemoval(
+				partyIndex, partyId);
+			resultCoordinator->adjustCandidatesAfterPartyRemoval(
+				partyIndex, partyId);
+		};
+	}
 	return *resultCoordinator;
 }
 
 ResultCoordinator const& PollingProject::results() const
 {
-	return *resultCoordinator;
+	return const_cast<PollingProject*>(this)->results();
 }
 
 ElectionCollection& PollingProject::elections()
 {
+	if (!electionCollection) {
+		electionCollection = std::make_shared<ElectionCollection>(*this);
+	}
 	return *electionCollection;
 }
 
 ElectionCollection const& PollingProject::elections() const
 {
-	return *electionCollection;
+	return const_cast<PollingProject*>(this)->elections();
 }
 
 
 std::optional<std::string> PollingProject::runMacro(
 	std::string macro,
-	MacroRunner::FeedbackFunc feedback)
+	MacroFeedbackFunc feedback)
 {
 	bool passesValidation = true;
 	if (!passesValidation) {
 		std::string const message = "Didn't pass validation!";
-		feedback(MacroRunner::FeedbackType::Fatal, message);
+		feedback(MacroFeedbackType::Fatal, message);
 		return message;
 	}
 	else {
@@ -99,57 +89,6 @@ std::optional<std::string> PollingProject::runMacro(
 void PollingProject::updateMacro(std::string macro)
 {
 	lastMacro = macro;
-}
-
-void PollingProject::refreshCalc2PP() {
-	for (auto it = polls().begin(); it != polls().end(); it++)
-		partyCollection.recalculatePollCalc2PP(it->second);
-}
-
-void PollingProject::adjustAfterPartyRemoval(PartyCollection::Index partyIndex, Party::Id partyId)
-{
-	polls().adjustAfterPartyRemoval(partyIndex, partyId);
-	adjustSeatsAfterPartyRemoval(partyIndex, partyId);
-	results().adjustAffiliationsAfterPartyRemoval(partyIndex, partyId);
-	results().adjustCandidatesAfterPartyRemoval(partyIndex, partyId);
-}
-
-void PollingProject::adjustAfterPollsterRemoval(PollsterCollection::Index /*pollsterIndex*/, Party::Id pollsterId)
-{
-	polls().removePollsFromPollster(pollsterId);
-}
-
-int PollingProject::getEarliestDate() const {
-	int earliestDay = polls().getEarliestDate();
-	return earliestDay;
-}
-
-int PollingProject::getLatestDate() const {
-	int latestDay = polls().getLatestDate();
-	for (auto const& [key, model] : models()) {
-		int date = model.getEndDate().modifiedJulianDay();
-		if (date > latestDay) latestDay = date;
-	}
-	for (auto const& [key, projection] : projections()) {
-		int date = projection.getSettings().endDate.modifiedJulianDay();
-		if (date > latestDay) latestDay = date;
-	}
-	return latestDay;
-}
-
-void PollingProject::adjustAfterModelRemoval(ModelCollection::Index, StanModel::Id modelId)
-{
-	removeProjectionsFromModel(modelId);
-}
-
-void PollingProject::adjustAfterProjectionRemoval(ProjectionCollection::Index, Projection::Id projectionId)
-{
-	resetSimulationsFromProjection(projectionId);
-}
-
-void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionIndex, Region::Id regionId)
-{
-	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
 PollingProject::SaveResult PollingProject::save(std::string filename)
@@ -191,63 +130,8 @@ PollingProject::SaveResult PollingProject::save(std::string filename)
 	return result;
 }
 
-bool PollingProject::isValid() {
-	return valid;
-}
-
-void PollingProject::invalidateProjectionsFromModel(StanModel::Id modelId) {
-	for (auto& [key, projection] : projections()) {
-		if (projection.getSettings().baseModel == modelId) projection.invalidate();
-	}
-}
-
 void PollingProject::open(std::string filename)
 {
 	ProjectFiler projectFiler(*this);
 	projectFiler.open(filename);
-}
-
-void PollingProject::removeProjectionsFromModel(StanModel::Id modelId) {
-	std::vector<Projection::Id> projectionsToRemove;
-	for (auto const& [key, projection] : projections()) {
-		if (projection.getSettings().baseModel == modelId) {
-			projectionsToRemove.push_back(key);
-		}
-	}
-	for (auto const projectionId : projectionsToRemove) {
-		projections().remove(projectionId);
-	}
-}
-
-void PollingProject::resetSimulationsFromProjection(Projection::Id projectionId)
-{
-	Projection::Id const replacementProjection = projections().indexToId(0);
-	for (auto& simulationPair : simulations()) {
-		auto& simulation = simulationPair.second;
-		if (simulation.getSettings().baseProjection == projectionId) {
-			auto settings = simulation.getSettings();
-			settings.baseProjection = replacementProjection;
-			simulation.replaceSettings(std::move(settings));
-		}
-	}
-}
-
-void PollingProject::adjustSeatsAfterPartyRemoval(PartyCollection::Index, Party::Id partyId) {
-	for (auto& seatPair : seats()) {
-		Seat& seat = seatPair.second;
-		if (seat.incumbent == partyId) seat.incumbent = (seat.challenger ? 0 : 1);
-		if (seat.challenger == partyId) seat.challenger = (seat.incumbent ? 0 : 1);
-	}
-}
-
-void PollingProject::adjustSeatsAfterRegionRemoval(RegionCollection::Index, Party::Id regionId)
-{
-	for (auto& seatPair : seats()) {
-		Seat& seat = seatPair.second;
-		if (seat.region == regionId) seat.region = regions().indexToId(0);
-	}
-}
-
-void PollingProject::finalizeFileLoading() {
-	partyCollection.finaliseFileLoading();
 }

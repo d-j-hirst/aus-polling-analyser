@@ -2,6 +2,7 @@
 
 #include "Outcome.h"
 
+#include <list>
 #include <map>
 
 class PollingProject;

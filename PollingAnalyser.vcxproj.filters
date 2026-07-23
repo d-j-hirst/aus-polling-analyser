@@ -35,6 +35,9 @@
     <ClCompile Include="PollingProject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PollingProjectCore.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
     <ClCompile Include="PollsFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
@@ -167,6 +170,9 @@
     <ClCompile Include="SimulationCollection.cpp">
       <Filter>Source Files\Project Sections</Filter>
     </ClCompile>
+    <ClCompile Include="SimulationCollectionReports.cpp">
+      <Filter>Source Files\Project Sections</Filter>
+    </ClCompile>
     <ClCompile Include="DisplayFrameRenderer.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
@@ -239,6 +245,12 @@
     <ClCompile Include="MacroRunner.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
+    <ClCompile Include="CoreMacroRunner.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="MacroTargetResolver.cpp">
+      <Filter>Source Files\Process Objects</Filter>
+    </ClCompile>
     <ClCompile Include="ElectionData.cpp">
       <Filter>Source Files\Data Objects</Filter>
     </ClCompile>
@@ -249,6 +261,9 @@
       <Filter>Source Files\Data Processing</Filter>
     </ClCompile>
     <ClCompile Include="ForecastSpecificationImport.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="ForecastSpecificationProjectAdapter.cpp">
       <Filter>Source Files\Data Processing</Filter>
     </ClCompile>
     <ClCompile Include="LivePreparation.cpp">
@@ -504,6 +519,9 @@
     <ClInclude Include="ForecastSpecificationImport.h">
       <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
+    <ClInclude Include="ForecastSpecificationProjectAdapter.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
     <ClInclude Include="ColourInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
     </ClInclude>
@@ -618,6 +636,9 @@
     <ClInclude Include="SpecialPartyCodes.h">
       <Filter>Header Files\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="SourceLocation.h">
+      <Filter>Header Files\Utility</Filter>
+    </ClInclude>
     <ClInclude Include="Config.h">
       <Filter>Header Files\Project Sections</Filter>
     </ClInclude>
@@ -632,6 +653,18 @@
     </ClInclude>
     <ClInclude Include="MacroRunner.h">
       <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="MacroFeedback.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreMacroRunner.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="MacroTargetResolver.h">
+      <Filter>Header Files\Process Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="ForecastSpecificationRuntimeIds.h">
+      <Filter>Header Files\Data Processing</Filter>
     </ClInclude>
     <ClInclude Include="Beep.h">
       <Filter>Header Files\Utility</Filter>

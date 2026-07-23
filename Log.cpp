@@ -14,8 +14,21 @@ Logger::Logger()
 }
 
 void Logger::clear() {
+	if (!enabled_) return;
 	fileStream_.close();
 	fileStream_.open(LogFileName);
+}
+
+void Logger::setEnabled(bool enabled)
+{
+	if (enabled_ == enabled) return;
+	enabled_ = enabled;
+	if (!enabled_) {
+		fileStream_.close();
+		return;
+	}
+	fileStream_.open(LogFileName);
+	resetLog();
 }
 
 void Logger::resetLog() {

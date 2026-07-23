@@ -111,7 +111,7 @@
       <AdditionalOptions> /EHsc</AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>5054;4005;5232</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;5054;4005;5232</DisableSpecificWarnings>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -252,7 +252,7 @@
       <AdditionalOptions> /EHsc </AdditionalOptions>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>5054;4005;5232</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;5054;4005;5232</DisableSpecificWarnings>
     </ClCompile>
     <Midl>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -290,6 +290,7 @@
     <ClCompile Include="ClusterAnalyser.cpp" />
     <ClCompile Include="ColourInput.cpp" />
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="CoreMacroRunner.cpp" />
     <ClCompile Include="Date.cpp" />
 	<ClCompile Include="WorkspacePaths.cpp" />
     <ClCompile Include="DateInput.cpp" />
@@ -300,6 +301,7 @@
     <ClCompile Include="ForecastSpecificationExport.cpp" />
     <ClCompile Include="ForecastSpecificationImport.cpp" />
     <ClCompile Include="ForecastSpecificationIO.cpp" />
+    <ClCompile Include="ForecastSpecificationProjectAdapter.cpp" />
     <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="GeneralSettingsFrame.cpp" />
     <ClCompile Include="IntInput.cpp" />
@@ -310,6 +312,7 @@
     <ClCompile Include="LiveV2.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="MacroRunner.cpp" />
+    <ClCompile Include="MacroTargetResolver.cpp" />
     <ClCompile Include="MapFrame.cpp" />
     <ClCompile Include="ModelCollection.cpp" />
     <ClCompile Include="OutcomeCollection.cpp" />
@@ -355,6 +358,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'"> /EHsc   /EHsc </AdditionalOptions>
     </ClCompile>
     <ClCompile Include="PollingProject.cpp" />
+    <ClCompile Include="PollingProjectCore.cpp" />
     <ClCompile Include="PollsFrame.cpp" />
     <ClCompile Include="PollstersFrame.cpp" />
     <ClCompile Include="Projection.cpp" />
@@ -365,6 +369,7 @@
     <ClCompile Include="SeatsFrame.cpp" />
     <ClCompile Include="Simulation.cpp" />
     <ClCompile Include="SimulationCollection.cpp" />
+    <ClCompile Include="SimulationCollectionReports.cpp" />
     <ClCompile Include="SimulationCompletion.cpp" />
     <ClCompile Include="SimulationIteration.cpp" />
     <ClCompile Include="SimulationPreparation.cpp" />
@@ -386,6 +391,7 @@
     <ClInclude Include="ClusterAnalyser.h" />
     <ClInclude Include="ColourInput.h" />
     <ClInclude Include="Config.h" />
+    <ClInclude Include="CoreMacroRunner.h" />
     <ClInclude Include="DateInput.h" />
     <ClInclude Include="DisplayFrameRenderer.h" />
     <ClInclude Include="ElectionAnalyser.h" />
@@ -396,6 +402,8 @@
     <ClInclude Include="ForecastSpecificationExport.h" />
     <ClInclude Include="ForecastSpecificationImport.h" />
     <ClInclude Include="ForecastSpecificationIO.h" />
+    <ClInclude Include="ForecastSpecificationProjectAdapter.h" />
+    <ClInclude Include="ForecastSpecificationRuntimeIds.h" />
     <ClInclude Include="GeneralSettingsFrame.h" />
     <ClInclude Include="json.h" />
     <ClInclude Include="LinearRegression.h" />
@@ -403,6 +411,8 @@
     <ClInclude Include="LiveBoothFrame.h" />
     <ClInclude Include="LiveV2.h" />
     <ClInclude Include="MacroRunner.h" />
+    <ClInclude Include="MacroFeedback.h" />
+    <ClInclude Include="MacroTargetResolver.h" />
     <ClInclude Include="OrthogonalRegression.h" />
     <ClInclude Include="ReportUploader.h" />
     <ClInclude Include="SpecialPartyCodes.h" />
@@ -426,6 +436,7 @@
     <ClInclude Include="SimulationIteration.h" />
     <ClInclude Include="SimulationPreparation.h" />
     <ClInclude Include="SimulationRun.h" />
+    <ClInclude Include="SourceLocation.h" />
     <ClInclude Include="StanModel.h" />
     <ClInclude Include="SwingAnalyser.h" />
     <ClInclude Include="TextInput.h" />

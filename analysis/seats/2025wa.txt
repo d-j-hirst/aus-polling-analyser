@@ -418,7 +418,7 @@ sChallenger=LIB
 sRegion=Perth
 fTppMargin=37.7
 fPreviousTppSwing=14.2
-fByElectionSwing=-22,52
+fByElectionSwing=-22.52
 sCandidateNames=Magenta Marshall,ALP;Hayley Edwards,LIB;Robert Delves,GRN
 sRunningParties=ALP,LIB,GRN,OTH***
 #Roe

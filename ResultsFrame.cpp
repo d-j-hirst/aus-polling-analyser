@@ -234,7 +234,8 @@ void ResultsFrame::addResultToResultData(Outcome result)
 	resultsData->SetCellBackgroundColour(row, 2, percentCountedColour);
 	resultsData->SetCellValue(row, 3, formatFloat(result.tcpSwingBasis, 1));
 	resultsData->SetCellBackgroundColour(row, 3, swingBasisColour);
-	resultsData->SetCellValue(row, 4, result.updateTime.FormatISOTime());
+	resultsData->SetCellValue(
+		row, 4, result.updateTime.formatIsoTimeLocal());
 	resultsData->SetCellValue(row, 5, projectedMarginString);
 	resultsData->SetCellBackgroundColour(row, 5, projectedMarginColour);
 	if (report && report->partyOneWinProportion.size()) {

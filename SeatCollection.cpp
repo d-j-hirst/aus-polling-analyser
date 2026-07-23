@@ -4,7 +4,13 @@
 #include "PollingProject.h"
 #include "RegionCollection.h"
 
+#include <cctype>
+#include <cmath>
 #include <exception>
+#include <fstream>
+#include <set>
+#include <sstream>
+#include <utility>
 
 SeatCollection::SeatCollection(PollingProject& project)
 	: project(project)
@@ -162,6 +168,45 @@ constexpr std::string_view KnownAbsentCount = "iKnownAbsentCount";
 constexpr std::string_view KnownProvisionalCount = "iKnownProvisionalCount";
 constexpr std::string_view KnownDecPrepollCount = "iKnownDecPrepollCount";
 constexpr std::string_view KnownPostalCount = "iKnownPostalCount";
+// Retained in a few seat files as human-readable poll metadata. It was never
+// represented in Seat and remains intentionally ignored by the core pipeline.
+constexpr std::string_view PollSources = "sPollSources";
+
+namespace {
+	float parseFiniteFloat(std::string const& value)
+	{
+		std::size_t consumed = 0;
+		float const parsed = std::stof(value, &consumed);
+		while (consumed < value.size() &&
+			std::isspace(static_cast<unsigned char>(value[consumed]))) {
+			++consumed;
+		}
+		if (consumed != value.size() || !std::isfinite(parsed)) {
+			throw std::runtime_error("expected a finite number");
+		}
+		return parsed;
+	}
+
+	int parseInteger(std::string const& value)
+	{
+		std::size_t consumed = 0;
+		int const parsed = std::stoi(value, &consumed);
+		while (consumed < value.size() &&
+			std::isspace(static_cast<unsigned char>(value[consumed]))) {
+			++consumed;
+		}
+		if (consumed != value.size()) {
+			throw std::runtime_error("expected an integer");
+		}
+		return parsed;
+	}
+
+	std::vector<std::string> splitSeatList(std::string const& value)
+	{
+		return splitString(value, value.find(';') == std::string::npos ?
+			"," : ";");
+	}
+}
 
 void SeatCollection::exportInfo() const
 {
@@ -216,127 +261,242 @@ void SeatCollection::exportInfo() const
 	}
 }
 
+void SeatCollection::configureImportSource(
+	std::filesystem::path sourcePath, bool strict)
+{
+	configuredImportSource = std::move(sourcePath);
+	strictImportSource = strict;
+}
+
+std::filesystem::path SeatCollection::importSourcePath() const
+{
+	if (!configuredImportSource.empty()) {
+		return project.paths().resolve(configuredImportSource);
+	}
+	if (!project.models().count()) return {};
+	auto const termCode = project.models().viewByIndex(0).getTermCode();
+	if (termCode.empty()) return {};
+	return project.paths().resolve(
+		std::filesystem::path("analysis/seats") / (termCode + ".txt"));
+}
+
 void SeatCollection::importInfo()
 {
-	std::string termCode = project.models().viewByIndex(0).getTermCode();
-	std::string filename = project.paths().resolveString(
-		"analysis/seats/" + termCode + ".txt");
-	std::ifstream is(filename);
-	if (!is) {
-		logger << "Warning: Seat import failed, tried to open: " << filename;
+	auto const sourcePath = importSourcePath();
+	auto const filename = sourcePath.string();
+	auto issue = [&](std::size_t line, std::string message) {
+		std::ostringstream output;
+		output << "Seat import failed for " << filename;
+		if (line) output << " at line " << line;
+		output << ": " << message;
+		if (strictImportSource) {
+			throw SeatImportException(output.str());
+		}
+		logger << "Warning: " << output.str() << "\n";
+	};
+
+	if (sourcePath.empty()) {
+		issue(0, "no seat source is configured");
 		return;
 	}
+	std::ifstream is(sourcePath);
+	if (!is) {
+		issue(0, "could not open the file");
+		return;
+	}
+
 	std::map<std::string, Seat> oldSeats;
 	for (auto const& [id, seat] : seats) {
-		std::string name = seat.name;
-		oldSeats[name] = seat;
+		oldSeats[seat.name] = seat;
 	}
-	seats.clear();
+
+	SeatContainer importedSeats;
+	int importedNextId = 0;
+	Seat* currentSeat = nullptr;
+	std::set<std::string> seatNames;
 	std::string line;
+	std::size_t lineNumber = 0;
 	while (std::getline(is, line)) {
-		if (!line.size()) continue;
-		line.erase(line.find_last_not_of(" \n\r\t") + 1); // trim whitespace
+		++lineNumber;
+		auto const lastCharacter = line.find_last_not_of(" \n\r\t");
+		if (lastCharacter == std::string::npos) continue;
+		line.erase(lastCharacter + 1);
 		if (line[0] == '#') {
-			add(Seat(line.substr(1)));
+			auto const name = line.substr(1);
+			if (name.empty()) {
+				issue(lineNumber, "seat name is empty");
+				continue;
+			}
+			if (!seatNames.insert(name).second) {
+				issue(lineNumber, "duplicate seat name " + name);
+				continue;
+			}
+			auto seatIt = importedSeats.emplace(
+				importedNextId++, Seat(name)).first;
+			currentSeat = &seatIt->second;
 			continue;
 		}
-		auto lineEls = splitString(line, "=");
-		if (lineEls.size() != 2) {
-			logger << "Warning: While loading seats, a line was not correctly entered: " << line;
+
+		auto const separator = line.find('=');
+		if (separator == std::string::npos ||
+			line.find('=', separator + 1) != std::string::npos) {
+			issue(lineNumber, "expected one key=value pair");
 			continue;
 		}
-		if (!seats.size()) {
-			logger << "Warning: While loading seats, a line for seat data was given before a seat name: " << line;
+		if (!currentSeat) {
+			issue(lineNumber, "seat data appears before the first seat name");
 			continue;
 		}
-		std::string tag = lineEls[0];
-		std::string val = lineEls[1];
-		Seat& seat = seats[nextId - 1];
-		if (tag == PreviousName) seat.previousName = val;
-		if (tag == UseFpResults) seat.useFpResults = val;
-		if (tag == Incumbent) seat.incumbent = project.parties().idByAbbreviation(val);
-		if (tag == Challenger) seat.challenger = project.parties().idByAbbreviation(val);
-		if (tag == Region) seat.region = project.regions().findbyName(val).first;
-		if (tag == TppMargin) seat.tppMargin = std::stof(val);
-		if (tag == PreviousTppSwing) seat.previousSwing = std::stof(val);
-		if (tag == MiscTppModifier) seat.miscTppModifier = std::stof(val);
-		if (tag == TransposedFederalSwing) seat.transposedTppSwing = std::stof(val);
-		if (tag == ByElectionSwing) seat.byElectionSwing = std::stof(val);
-		if (tag == SophomoreCandidate) seat.sophomoreCandidate = std::stoi(val) != 0;
-		if (tag == SophomoreParty) seat.sophomoreParty = std::stoi(val) != 0;
-		if (tag == Retirement) seat.retirement = std::stoi(val) != 0;
-		if (tag == Disendorsement) seat.disendorsement = std::stoi(val) != 0;
-		if (tag == PreviousDisendorsement) seat.previousDisendorsement = std::stoi(val) != 0;
-		if (tag == IncumbentRecontestConfirmed) seat.incumbentRecontestConfirmed = std::stoi(val) != 0;
-		if (tag == ConfirmedProminentIndependent) seat.confirmedProminentIndependent = std::stoi(val) != 0;
-		if (tag == ProminentMinors) seat.prominentMinors = splitString(val, ",");
-		if (tag == BettingOdds) {
-			auto splitByParty = splitString(val, ";");
-			for (auto party : splitByParty) {
-				auto vals = splitString(party, ",");
-				if (vals.size() < 2) continue;
-				seat.bettingOdds[vals[0]] = std::stof(vals[1]);
+
+		auto const tag = line.substr(0, separator);
+		auto const value = line.substr(separator + 1);
+		auto partyId = [&](std::string const& partyCode) {
+			auto id = project.parties().idByAbbreviation(partyCode);
+			if (id != Party::InvalidId) return id;
+			auto const index =
+				project.parties().indexByShortCode(partyCode);
+			if (index != PartyCollection::InvalidIndex) {
+				return project.parties().indexToId(index);
+			}
+			throw std::runtime_error(
+				"unknown party code " + partyCode);
+		};
+		auto fields = [&](std::string const& item, std::size_t required) {
+			auto values = splitString(item, ",");
+			if (values.size() != required) {
+				throw std::runtime_error(
+					"expected " + std::to_string(required) +
+					" comma-separated values");
+			}
+			return values;
+		};
+
+		try {
+			auto& seat = *currentSeat;
+			if (tag == PreviousName) seat.previousName = value;
+			else if (tag == UseFpResults) seat.useFpResults = value;
+			else if (tag == Incumbent) seat.incumbent = partyId(value);
+			else if (tag == Challenger) seat.challenger = partyId(value);
+			else if (tag == Region) {
+				seat.region = project.regions().findbyName(value).first;
+				if (seat.region == Region::InvalidId) {
+					throw std::runtime_error("unknown region " + value);
+				}
+			}
+			else if (tag == TppMargin)
+				seat.tppMargin = parseFiniteFloat(value);
+			else if (tag == PreviousTppSwing)
+				seat.previousSwing = parseFiniteFloat(value);
+			else if (tag == MiscTppModifier)
+				seat.miscTppModifier = parseFiniteFloat(value);
+			else if (tag == TransposedFederalSwing)
+				seat.transposedTppSwing = parseFiniteFloat(value);
+			else if (tag == ByElectionSwing)
+				seat.byElectionSwing = parseFiniteFloat(value);
+			else if (tag == SophomoreCandidate)
+				seat.sophomoreCandidate = parseInteger(value) != 0;
+			else if (tag == SophomoreParty)
+				seat.sophomoreParty = parseInteger(value) != 0;
+			else if (tag == Retirement)
+				seat.retirement = parseInteger(value) != 0;
+			else if (tag == Disendorsement)
+				seat.disendorsement = parseInteger(value) != 0;
+			else if (tag == PreviousDisendorsement)
+				seat.previousDisendorsement = parseInteger(value) != 0;
+			else if (tag == IncumbentRecontestConfirmed)
+				seat.incumbentRecontestConfirmed =
+					parseInteger(value) != 0;
+			else if (tag == ConfirmedProminentIndependent)
+				seat.confirmedProminentIndependent =
+					parseInteger(value) != 0;
+			else if (tag == ProminentMinors)
+				seat.prominentMinors = splitSeatList(value);
+			else if (tag == BettingOdds) {
+				for (auto const& item : splitString(value, ";")) {
+					auto const values = fields(item, 2);
+					seat.bettingOdds[values[0]] =
+						parseFiniteFloat(values[1]);
+				}
+			}
+			else if (tag == Polls) {
+				for (auto const& item : splitString(value, ";")) {
+					auto const values = fields(item, 3);
+					seat.polls[values[0]].push_back({
+						parseFiniteFloat(values[1]),
+						parseInteger(values[2]) });
+				}
+			}
+			else if (tag == TppPolls || tag == TppMrpPolls) {
+				auto& polls =
+					tag == TppPolls ? seat.tppPolls : seat.tppMrpPolls;
+				for (auto const& item : splitString(value, ";")) {
+					auto const values = fields(item, 3);
+					polls.push_back(
+						{ values[0], parseFiniteFloat(values[2]) });
+				}
+			}
+			else if (tag == RunningParties)
+				seat.runningParties = splitString(value, ",");
+			else if (tag == TcpChange || tag == MinorViability) {
+				auto& valuesByParty = tag == TcpChange ?
+					seat.tcpChange : seat.minorViability;
+				for (auto const& item : splitString(value, ";")) {
+					auto const values = fields(item, 2);
+					valuesByParty[values[0]] =
+						parseFiniteFloat(values[1]);
+				}
+			}
+			else if (tag == CandidateNames) {
+				if (!value.empty()) {
+					for (auto const& item : splitString(value, ";")) {
+						auto const values = fields(item, 2);
+						seat.candidateNames[values[0]] = values[1];
+					}
+				}
+			}
+			else if (tag == KnownPrepollPercent)
+				seat.knownPrepollPercent = parseFiniteFloat(value);
+			else if (tag == KnownPostalPercent)
+				seat.knownPostalPercent = parseFiniteFloat(value);
+			else if (tag == KnownAbsentCount)
+				seat.knownAbsentCount = parseInteger(value);
+			else if (tag == KnownProvisionalCount)
+				seat.knownProvisionalCount = parseInteger(value);
+			else if (tag == KnownDecPrepollCount)
+				seat.knownDecPrepollCount = parseInteger(value);
+			else if (tag == KnownPostalCount)
+				seat.knownPostalCount = parseInteger(value);
+			else if (tag != PollSources) {
+				throw std::runtime_error("unknown field " + tag);
 			}
 		}
-		if (tag == Polls) {
-			auto splitByParty = splitString(val, ";");
-			for (auto party : splitByParty) {
-				auto vals = splitString(party, ",");
-				if (vals.size() < 2) continue;
-				seat.polls[vals[0]].push_back({ std::stof(vals[1]), std::stoi(vals[2]) });
-			}
+		catch (std::exception const& exception) {
+			issue(lineNumber, exception.what());
 		}
-		if (tag == TppPolls) {
-			auto splitByPoll = splitString(val, ";");
-			for (auto poll : splitByPoll) {
-				auto vals = splitString(poll, ",");
-				if (vals.size() < 2) continue;
-				seat.tppPolls.push_back({ vals[0], std::stof(vals[2]) });
-			}
-		}
-		if (tag == TppMrpPolls) {
-			auto splitByPoll = splitString(val, ";");
-			for (auto poll : splitByPoll) {
-				auto vals = splitString(poll, ",");
-				if (vals.size() < 2) continue;
-				seat.tppMrpPolls.push_back({ vals[0], std::stof(vals[2]) });
-			}
-		}
-		if (tag == RunningParties) seat.runningParties = splitString(val, ",");
-		if (tag == TcpChange) {
-			auto splitByParty = splitString(val, ";");
-			for (auto party : splitByParty) {
-				auto vals = splitString(party, ",");
-				if (vals.size() < 2) continue;
-				seat.tcpChange[vals[0]] = std::stof(vals[1]);
-			}
-		}
-		if (tag == MinorViability) {
-			auto splitByParty = splitString(val, ";");
-			for (auto party : splitByParty) {
-				auto vals = splitString(party, ",");
-				if (vals.size() < 2) continue;
-				seat.minorViability[vals[0]] = std::stof(vals[1]);
-			}
-		}
-		if (tag == CandidateNames) {
-			auto splitByParty = splitString(val, ";");
-			for (auto party : splitByParty) {
-				auto vals = splitString(party, ",");
-				if (vals.size() < 2) continue;
-				seat.candidateNames[vals[0]] = vals[1];
-			}
-		}
-		if (tag == KnownPrepollPercent) seat.knownPrepollPercent = std::stof(val);
-		if (tag == KnownPostalPercent) seat.knownPostalPercent = std::stof(val);
-		if (tag == KnownAbsentCount) seat.knownAbsentCount = std::stoi(val);
-		if (tag == KnownProvisionalCount) seat.knownProvisionalCount = std::stoi(val);
-		if (tag == KnownDecPrepollCount) seat.knownDecPrepollCount = std::stoi(val);
-		if (tag == KnownPostalCount) seat.knownPostalCount = std::stoi(val);
-		// do something with the line
 	}
+
+	if (importedSeats.empty()) {
+		issue(0, "the file contains no seats");
+		return;
+	}
+	for (auto const& [id, seat] : importedSeats) {
+		if (seat.incumbent == Party::InvalidId) {
+			issue(0, "seat " + seat.name + " has no valid incumbent");
+		}
+		if (seat.challenger == Party::InvalidId) {
+			issue(0, "seat " + seat.name + " has no valid challenger");
+		}
+		if (seat.incumbent == seat.challenger) {
+			issue(0, "seat " + seat.name +
+				" has the same incumbent and challenger");
+		}
+		if (seat.region == Region::InvalidId) {
+			issue(0, "seat " + seat.name + " has no valid region");
+		}
+	}
+
 	for (auto const& [name, oldSeat] : oldSeats) {
-		for (auto& [id, newSeat] : seats) {
+		for (auto& [id, newSeat] : importedSeats) {
 			if (newSeat.name == name) {
 				newSeat.livePartyOne = oldSeat.livePartyOne;
 				newSeat.livePartyTwo = oldSeat.livePartyTwo;
@@ -347,5 +507,7 @@ void SeatCollection::importInfo()
 		}
 	}
 
-	logger << "Completed importing seat info\n";
+	seats = std::move(importedSeats);
+	nextId = importedNextId;
+	logger << "Completed importing seat info from " << filename << "\n";
 }

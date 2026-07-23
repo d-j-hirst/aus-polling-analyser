@@ -6,14 +6,15 @@
 
 class PollingProject;
 
-// "Uploads" this report. (Actually saves it in a folder so a python script can upload it).
+// Serializes a report for a separate upload client. No network access occurs
+// here; uploads/upload_manager.py handles authenticated submission.
 class ReportUploader {
 public:
 	ReportUploader(Simulation::SavedReport const& thisReport, Simulation const& simulation, PollingProject const& project);
 
 	// Prepares the JSON consumed by uploads/upload_manager.py.
 	// Returns an error message on failure.
-	std::optional<std::string> upload();
+	std::optional<std::string> exportReport();
 private:
 
 	Simulation const& simulation;
