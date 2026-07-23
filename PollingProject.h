@@ -145,8 +145,12 @@ public:
 	// calling reset on the smart pointer.
 	bool isValid() const;
 
-	// Invalidates all the projections from a particular model. Used when editing a model.
+	// Invalidates projections based on a model and simulations based on those
+	// projections. Generated reports remain available but are marked stale.
 	void invalidateProjectionsFromModel(StanModel::Id modelId);
+
+	// Invalidates simulations based on a projection without discarding reports.
+	void invalidateSimulationsFromProjection(Projection::Id projectionId);
 
 private:
 

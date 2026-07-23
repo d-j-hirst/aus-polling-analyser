@@ -210,6 +210,7 @@ void ProjectionsFrame::replaceProjection(Projection::Settings projectionSettings
 	int projectionId = project->projections().indexToId(projectionIndex);
 	project->projections().replace(projectionId, Projection(projectionSettings));
 	refreshDataTable();
+	refresher.refreshDisplay();
 }
 
 void ProjectionsFrame::removeProjection() {
@@ -224,6 +225,7 @@ void ProjectionsFrame::runProjection() {
 	int projectionId = project->projections().indexToId(projectionIndex);
 	project->projections().run(projectionId, [](std::string s) {wxMessageBox(s); });
 	refreshDataTable();
+	refresher.refreshDisplay();
 	if (project->config().getBeepOnCompletion()) beep();
 }
 

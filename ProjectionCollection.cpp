@@ -22,6 +22,7 @@ void ProjectionCollection::add(Projection projection) {
 
 void ProjectionCollection::replace(Projection::Id id, Projection projection) {
 	projections[id] = projection;
+	project.invalidateSimulationsFromProjection(id);
 }
 
 Projection const& ProjectionCollection::view(Projection::Id id) const {
@@ -69,8 +70,25 @@ bool ProjectionCollection::run(Projection::Id id, Projection::FeedbackFunc feedb
 		return false;
 	}
 	Projection& projection = projectionIt->second;
-	return projection.run(
-		project.models(), feedback, project.config().getModelThreads());
+	bool const previouslyValid = projection.getLastUpdatedDate().isValid();
+	bool succeeded = false;
+	try {
+		succeeded = projection.run(
+			project.models(), feedback, project.config().getModelThreads());
+	}
+	catch (...) {
+		// An unexpected failure may occur after Projection::run has cleared or
+		// partially replaced its output.
+		project.invalidateSimulationsFromProjection(id);
+		throw;
+	}
+	// A successful rerun changes the projection. A failed run can also clear
+	// previously valid output after passing initial validation.
+	if (succeeded ||
+		(previouslyValid && !projection.getLastUpdatedDate().isValid())) {
+		project.invalidateSimulationsFromProjection(id);
+	}
+	return succeeded;
 }
 
 Projection& ProjectionCollection::access(Projection::Id id)

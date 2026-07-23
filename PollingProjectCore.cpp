@@ -103,10 +103,21 @@ bool PollingProject::isValid() const
 void PollingProject::invalidateProjectionsFromModel(
 	StanModel::Id modelId)
 {
-	for (auto& [key, projection] : projections()) {
-		static_cast<void>(key);
+	for (auto& [projectionId, projection] : projections()) {
 		if (projection.getSettings().baseModel == modelId) {
 			projection.invalidate();
+			invalidateSimulationsFromProjection(projectionId);
+		}
+	}
+}
+
+void PollingProject::invalidateSimulationsFromProjection(
+	Projection::Id projectionId)
+{
+	for (auto& [simulationId, simulation] : simulations()) {
+		static_cast<void>(simulationId);
+		if (simulation.getSettings().baseProjection == projectionId) {
+			simulation.invalidate();
 		}
 	}
 }

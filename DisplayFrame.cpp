@@ -234,7 +234,16 @@ void DisplayFrame::refreshSavedReports()
 	// Create the choices for the combo box.
 	// Set the selected simulation to be the first simulation
 	wxArrayString saveReportArray;
-	saveReportArray.push_back("Latest Report");
+	std::string latestReportLabel = "Latest Report";
+	if (selectedSimulation >= 0 &&
+		selectedSimulation < project->simulations().count()) {
+		auto const& simulation =
+			project->simulations().viewByIndex(selectedSimulation);
+		if (simulation.hasLatestReport() && !simulation.isValid()) {
+			latestReportLabel += " (stale)";
+		}
+	}
+	saveReportArray.push_back(latestReportLabel);
 	if (selectedSimulation >= 0 && selectedSimulation < project->simulations().count()) {
 		auto const& thisSimulation = project->simulations().viewByIndex(selectedSimulation);
 		for (auto const& savedReport : thisSimulation.viewSavedReports()) {
@@ -263,7 +272,7 @@ void DisplayFrame::render(wxDC& dc)
 
 	Simulation const& simulation = project->simulations().view(project->simulations().indexToId(selectedSimulation));
 
-	if (!simulation.isValid() && selectedSaveReport == -1) return;
+	if (!simulation.hasLatestReport() && selectedSaveReport == -1) return;
 
 	Simulation::Report const& thisReport = (selectedSaveReport >= 0 ?
 		simulation.viewSavedReports()[selectedSaveReport].report :

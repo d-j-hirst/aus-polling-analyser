@@ -6,6 +6,7 @@
 #include "Log.h"
 
 #include <fstream>
+#include <utility>
 
 using namespace std::placeholders; // for function object parameter binding
 using namespace std::string_literals;
@@ -230,11 +231,14 @@ void ModelsFrame::addModelToModelData(StanModel model) {
 
 void ModelsFrame::replaceModel(StanModel model) {
 	int modelIndex = modelData->GetSelectedRow();
-	project->models().access(project->models().indexToId(modelIndex)) = model;
+	project->models().replace(
+		project->models().indexToId(modelIndex), std::move(model));
 
 	refreshDataTable();
 
 	refresher.refreshVisualiser();
+	refresher.refreshProjectionData();
+	refresher.refreshDisplay();
 }
 
 void ModelsFrame::removeModel() {

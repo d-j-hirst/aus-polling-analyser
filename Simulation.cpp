@@ -204,6 +204,11 @@ void Simulation::checkLiveSeats(PollingProject const& project, SimulationRun::Fe
 void Simulation::replaceSettings(Simulation::Settings newSettings)
 {
 	settings = std::move(newSettings);
+	invalidate();
+}
+
+void Simulation::invalidate()
+{
 	lastUpdated = {};
 }
 
@@ -404,6 +409,17 @@ int Simulation::Report::getProbabilityBound(int bound, MajorParty whichParty) co
 bool Simulation::isValid() const
 {
 	return lastUpdated.isValid();
+}
+
+bool Simulation::hasLatestReport() const
+{
+	// Unlike the freshness timestamp, report contents remain populated when
+	// upstream changes make a report stale. Check several long-lived fields for
+	// compatibility with reports loaded from older project formats.
+	return !latestReport.partyName.empty() ||
+		!latestReport.seatName.empty() ||
+		!latestReport.partySeatWinFrequency.empty() ||
+		!latestReport.tppFrequency.empty();
 }
 
 float Simulation::Report::getPartyOverallWinPercent(int whichParty) const

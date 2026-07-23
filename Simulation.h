@@ -340,9 +340,15 @@ public:
 
 	void replaceSettings(Simulation::Settings newSettings);
 
+	// Mark the current output as stale without discarding either the latest
+	// report or any explicitly saved reports.
+	void invalidate();
+
 	void saveReport(std::string label);
 
 	bool isValid() const;
+
+	bool hasLatestReport() const;
 
 	std::string textReport(ProjectionCollection const& projections) const;
 
@@ -378,7 +384,8 @@ private:
 
 	std::shared_ptr<SimulationRun> latestRun;
 
-	// An invalid timestamp indicates that the simulation has not been run.
+	// An invalid timestamp indicates that the simulation has not been run, or
+	// that its latest report is stale relative to upstream configuration.
 	Timestamp lastUpdated;
 };
 

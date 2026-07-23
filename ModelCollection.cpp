@@ -20,6 +20,7 @@ void ModelCollection::add(StanModel model) {
 
 void ModelCollection::replace(Id id, StanModel model) {
 	models[id] = model;
+	project.invalidateProjectionsFromModel(id);
 }
 
 StanModel const& ModelCollection::view(ModelCollection::Id id) const {
