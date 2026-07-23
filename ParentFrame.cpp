@@ -1,5 +1,7 @@
 #include "ParentFrame.h"
 
+#include "WorkspacePaths.h"
+
 // ----------------------------------------------------------------------------
 // constants
 // ----------------------------------------------------------------------------
@@ -21,6 +23,7 @@ enum class Item
 	SaveAs = wxID_SAVEAS,
 	RunMacro = Base + 1,
 	UpdateMacro,
+	ExportForecastConfiguration,
 
 	// Item ID for exiting the program
 	Exit = wxID_EXIT,
@@ -128,6 +131,11 @@ void ParentFrame::OnSaveAs(wxCommandEvent&)
 	}
 }
 
+void ParentFrame::OnExportForecastConfiguration(wxCommandEvent&)
+{
+	if (notebook) notebook->exportForecastConfiguration();
+}
+
 void ParentFrame::OnRunMacro(wxCommandEvent&)
 {
 	if (notebook) {
@@ -178,6 +186,10 @@ void ParentFrame::setupMenuBar()
 	fileMenu->Append(int(Item::Open), "&Open Project\tCtrl+O", "Open an existing project");
 	fileMenu->Append(int(Item::Save), "&Save\tCtrl+S", "Save this project under its previous filename");
 	fileMenu->Append(int(Item::SaveAs), "Save Project &As", "Save this project under a new filename");
+	fileMenu->Append(int(Item::ExportForecastConfiguration),
+		"&Export Forecast Configuration...",
+		"Export portable core forecast configuration");
+	fileMenu->AppendSeparator();
 	fileMenu->Append(int(Item::Exit), "E&xit\tAlt-X", "Exit this program");
 
 	// Create the macros menu
@@ -228,6 +240,8 @@ void ParentFrame::bindEventHandlers()
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnOpen, this, int(Item::Open));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnSave, this, int(Item::Save));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnSaveAs, this, int(Item::SaveAs));
+	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnExportForecastConfiguration,
+		this, int(Item::ExportForecastConfiguration));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnRunMacro, this, int(Item::RunMacro));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnUpdateMacro, this, int(Item::UpdateMacro));
 	Bind(wxEVT_COMMAND_MENU_SELECTED, &ParentFrame::OnAbout, this, int(Item::About));
@@ -265,7 +279,7 @@ std::string ParentFrame::receiveOpenProjectPathnameFromUser()
 	wxFileDialog* openFileDialog = new wxFileDialog(
 		this,
 		"Open Project",
-		"",
+		WorkspacePaths::discover().root().string(),
 		"",
 		"Detailed Polling Analysis files (*.pol2)|*.pol2|Polling Analysis files (*.pol)|*.pol",
 		wxFD_OPEN | wxFD_FILE_MUST_EXIST);

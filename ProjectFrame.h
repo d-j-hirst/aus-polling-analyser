@@ -87,10 +87,13 @@ public:
 	bool checkSave();
 
 	// Saves using the existing file name if possible, or opens a dialog if there is no existing name
-	void save();
+	bool save();
 
 	// Saves as a new file, always opening the file dialog
-	void saveAs();
+	bool saveAs();
+
+	// Exports portable core forecast configuration to a directory.
+	void exportForecastConfiguration();
 
 	// Run macros to do multiple project tasks at once
 	void runMacro();
@@ -124,7 +127,7 @@ private:
 	void setupPages();
 
 	// Saves the project under the given filename. Will display a message to indicate success/failure.
-	void saveUnderFilename(std::string const& pathName);
+	bool saveUnderFilename(std::string const& pathName);
 
 	// Cancel construction from an invalid file, displaying an error message to the user
 	void cancelConstructionFromFile();

@@ -242,6 +242,15 @@
     <ClCompile Include="ElectionData.cpp">
       <Filter>Source Files\Data Objects</Filter>
     </ClCompile>
+    <ClCompile Include="ForecastSpecificationIO.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="ForecastSpecificationExport.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
+    <ClCompile Include="ForecastSpecificationImport.cpp">
+      <Filter>Source Files\Data Processing</Filter>
+    </ClCompile>
     <ClCompile Include="LivePreparation.cpp">
       <Filter>Source Files\Process Objects</Filter>
     </ClCompile>
@@ -482,6 +491,18 @@
     </ClInclude>
     <ClInclude Include="FloatInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>
+    </ClInclude>
+    <ClInclude Include="ForecastSpecification.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="ForecastSpecificationIO.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="ForecastSpecificationExport.h">
+      <Filter>Header Files\Data Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="ForecastSpecificationImport.h">
+      <Filter>Header Files\Data Objects</Filter>
     </ClInclude>
     <ClInclude Include="ColourInput.h">
       <Filter>Header Files\Dialog Boxes</Filter>

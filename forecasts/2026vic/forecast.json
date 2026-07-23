@@ -1,0 +1,113 @@
+{
+  "data_sources": {
+    "seats": "analysis/seats/2026vic.txt"
+  },
+  "election_code": "2026vic",
+  "election_name": "2026 Victorian State Election",
+  "election_settings": {
+    "federal_election_date": "2025-05-03",
+    "live_sources": {
+      "current_real_url": "",
+      "current_test_url": "",
+      "preload_url": "",
+      "previous_results_url": "local:"
+    },
+    "previous_election_tpp": 55.0,
+    "previous_term_codes": [
+      "2022vic",
+      "2018vic"
+    ]
+  },
+  "files": {
+    "nonclassic_preferences": "nonclassic-preferences.csv",
+    "parties": "parties.csv",
+    "party_official_codes": "party-official-codes.csv",
+    "regions": "regions.csv"
+  },
+  "id": "forecast-2026vic",
+  "models": [
+    {
+      "id": "standard-model",
+      "name": "Standard Model",
+      "parties": [
+        {
+          "code": "ALP",
+          "preference_deviation": 0.0,
+          "preference_samples": 0.0
+        },
+        {
+          "code": "LNP",
+          "preference_deviation": 0.0,
+          "preference_samples": 0.0
+        },
+        {
+          "code": "GRN",
+          "preference_deviation": 3.7300000190734863,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "ONP",
+          "preference_deviation": 8.0600004196167,
+          "preference_samples": 18.0
+        },
+        {
+          "code": "OTH",
+          "preference_deviation": 5.210000038146973,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "xOTH",
+          "preference_deviation": 5.210000038146973,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "eOTH",
+          "preference_deviation": 5.210000038146973,
+          "preference_samples": 7.0
+        }
+      ],
+      "term_code": "2026vic"
+    }
+  ],
+  "party_settings": {
+    "major_party_one_id": "labor",
+    "major_party_two_id": "liberals"
+  },
+  "projections": [
+    {
+      "base_model_id": "standard-model",
+      "end_date": "2026-11-27",
+      "id": "standard-projection",
+      "name": "Standard Projection",
+      "num_iterations": 5000,
+      "possible_dates": []
+    }
+  ],
+  "schema_version": 1,
+  "simulations": [
+    {
+      "base_projection_id": "standard-projection",
+      "id": "standard-simulation",
+      "mode": "projection",
+      "name": "Standard Simulation",
+      "num_iterations": 250000,
+      "report_mode": "regular_forecast"
+    },
+    {
+      "base_projection_id": "standard-projection",
+      "id": "nowcast-simulation",
+      "mode": "projection",
+      "name": "Nowcast Simulation",
+      "num_iterations": 250000,
+      "report_mode": "nowcast"
+    },
+    {
+      "base_projection_id": "standard-projection",
+      "id": "live-simulation",
+      "mode": "live_automatic",
+      "name": "Live Simulation",
+      "num_iterations": 10000,
+      "report_mode": "live_forecast"
+    }
+  ]
+}

@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "Config.h"
 #include "WorkspacePaths.h"
@@ -48,7 +49,7 @@ public:
 	~PollingProject();
 
 	// Gets the name of the project.
-	std::string getName() { return name; }
+	std::string getName() const { return name; }
 
 	// Gets the file name that the project was last saved under.
 	std::string getLastFileName() { return lastFileName; }
@@ -57,6 +58,7 @@ public:
 	std::string getLastMacro() { return lastMacro; }
 
 	std::string getElectionName() const { return electionName; }
+	std::string const& getLoadError() const { return loadError; }
 
 	void setElectionName(std::string newName) { electionName = newName; }
 
@@ -126,8 +128,13 @@ public:
 	ElectionCollection& elections();
 	ElectionCollection const& elections() const;
 
-	// Save this project to the given filename.
-	void save(std::string filename);
+	struct SaveResult {
+		std::vector<std::string> warnings;
+	};
+
+	// Saves portable core configuration first when this election already has a
+	// forecast directory, then saves the legacy project add-on.
+	SaveResult save(std::string filename);
 
 	// Returns whether the project is valid (after opening from a file).
 	// If this is false then the project should be closed by
@@ -175,6 +182,10 @@ private:
 	
 	// Stores full text of the last macro to be run.
 	std::string lastMacro;
+
+	// Populated when a legacy project or its portable forecast package cannot
+	// be loaded. The GUI displays this rather than discarding validation detail.
+	std::string loadError;
 
 	WorkspacePaths workspacePaths;
 	Config configObj;

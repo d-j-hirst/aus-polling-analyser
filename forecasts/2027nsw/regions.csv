@@ -1,0 +1,13 @@
+index,id,name,population,analysis_code,previous_election_tpp
+0,north-coast,North Coast,1,,50
+1,northern-inland,Northern Inland,1,,50
+2,central-coast,Central Coast,1,,50
+3,south-coast,South Coast,1,,50
+4,southern-inland,Southern Inland,1,,50
+5,illawarra,Illawarra,1,,50
+6,northeast-sydney,Northeast Sydney,1,,50
+7,outer-west-sydney,Outer West Sydney,1,,50
+8,inner-west-sydney,Inner West Sydney,1,,50
+9,southwest-sydney,Southwest Sydney,1,,50
+10,southern-sydney,Southern Sydney,1,,50
+11,southeast-sydney,Southeast Sydney,1,,50

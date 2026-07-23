@@ -1,5 +1,7 @@
 #include "ProjectFiler.h"
 
+#include "ForecastSpecificationImport.h"
+
 #include "ElectionCollection.h"
 #include "ElectionData.h"
 #include "PollingProject.h"
@@ -100,6 +102,7 @@ void ProjectFiler::save(std::string filename)
 void ProjectFiler::open(std::string filename)
 {
 	project.valid = false;
+	project.loadError.clear();
 	SaveFileInput saveInput(filename);
 	const int versionNum = saveInput.extract<int>();
 	saveInput >> project.name;
@@ -116,6 +119,14 @@ void ProjectFiler::open(std::string filename)
 	loadSimulations(saveInput, versionNum);
 	loadOutcomes(saveInput, versionNum);
 	loadElections(saveInput, versionNum);
+
+	auto forecastImport =
+		ForecastSpecificationImporter::importForProject(project);
+	if (!forecastImport.valid()) {
+		project.loadError = "Could not apply the portable forecast configuration:\n" +
+			forecastImport.errorMessage();
+		return;
+	}
 
 	project.finalizeFileLoading();
 	project.valid = true;

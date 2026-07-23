@@ -1,0 +1,8 @@
+index,id,name,abbreviation,home_region_id,seat_target,relation_type,relation_target_party_id,ideology,preference_consistency
+0,labor,Labor,ALP,,10000,,,moderate_left,high
+1,liberals,Liberals,LIB,,10000,,,moderate_right,moderate
+2,greens,Greens,GRN,,10000,supports,labor,strong_left,high
+3,one-nation,One Nation,ONP,,10000,supports,liberals,strong_right,low
+4,nationals,Nationals,NAT,,10000,supports,liberals,moderate_right,high
+5,independent,Independent,IND,,10000,,,centrist,moderate
+6,united-australia-party,United Australia Party,UAP,,10000,supports,greens,strong_right,low

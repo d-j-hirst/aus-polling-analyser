@@ -297,6 +297,9 @@
     <ClCompile Include="ElectionAnalyser.cpp" />
     <ClCompile Include="ElectionCollection.cpp" />
     <ClCompile Include="ElectionData.cpp" />
+    <ClCompile Include="ForecastSpecificationExport.cpp" />
+    <ClCompile Include="ForecastSpecificationImport.cpp" />
+    <ClCompile Include="ForecastSpecificationIO.cpp" />
     <ClCompile Include="FloatInput.cpp" />
     <ClCompile Include="GeneralSettingsFrame.cpp" />
     <ClCompile Include="IntInput.cpp" />
@@ -389,6 +392,10 @@
     <ClInclude Include="ElectionCollection.h" />
     <ClInclude Include="ElectionData.h" />
     <ClInclude Include="FloatInput.h" />
+    <ClInclude Include="ForecastSpecification.h" />
+    <ClInclude Include="ForecastSpecificationExport.h" />
+    <ClInclude Include="ForecastSpecificationImport.h" />
+    <ClInclude Include="ForecastSpecificationIO.h" />
     <ClInclude Include="GeneralSettingsFrame.h" />
     <ClInclude Include="json.h" />
     <ClInclude Include="LinearRegression.h" />

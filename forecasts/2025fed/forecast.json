@@ -1,0 +1,129 @@
+{
+  "data_sources": {
+    "seats": "analysis/seats/2025fed.txt"
+  },
+  "election_code": "2025fed",
+  "election_name": "2025 Federal Election",
+  "election_settings": {
+    "live_sources": {
+      "current_real_url": "ftp://mediafeed.aec.gov.au/27966/Detailed/Light/",
+      "current_test_url": "",
+      "preload_url": "ftp://mediafeedarchive.aec.gov.au/27966/Detailed/Preload/aec-mediafeed-Detailed-Preload-27966-20220503123540.zip",
+      "previous_results_url": "ftp://mediafeedarchive.aec.gov.au/24310/Detailed/Verbose/aec-mediafeed-Detailed-Verbose-24310-20190729153147.zip"
+    },
+    "previous_election_tpp": 52.130001068115234,
+    "previous_term_codes": [
+      "2022fed",
+      "2019fed"
+    ]
+  },
+  "files": {
+    "nonclassic_preferences": "nonclassic-preferences.csv",
+    "parties": "parties.csv",
+    "party_official_codes": "party-official-codes.csv",
+    "regions": "regions.csv"
+  },
+  "id": "forecast-2025fed",
+  "models": [
+    {
+      "id": "standard-model",
+      "name": "Standard Model",
+      "parties": [
+        {
+          "code": "ALP",
+          "preference_deviation": 0.0,
+          "preference_samples": 0.0
+        },
+        {
+          "code": "LNP",
+          "preference_deviation": 0.0,
+          "preference_samples": 0.0
+        },
+        {
+          "code": "GRN",
+          "preference_deviation": 3.490000009536743,
+          "preference_samples": 8.0
+        },
+        {
+          "code": "ONP",
+          "preference_deviation": 8.0600004196167,
+          "preference_samples": 18.0
+        },
+        {
+          "code": "OTH",
+          "preference_deviation": 5.349999904632568,
+          "preference_samples": 8.0
+        },
+        {
+          "code": "xOTH",
+          "preference_deviation": 4.900000095367432,
+          "preference_samples": 8.0
+        },
+        {
+          "code": "eOTH",
+          "preference_deviation": 8.0600004196167,
+          "preference_samples": 18.0
+        }
+      ],
+      "term_code": "2025fed"
+    }
+  ],
+  "party_settings": {
+    "major_party_one_id": "labor",
+    "major_party_two_id": "liberals"
+  },
+  "projections": [
+    {
+      "base_model_id": "standard-model",
+      "end_date": "2025-05-03",
+      "id": "projection-2025-election-projection",
+      "name": "2025 Election Projection",
+      "num_iterations": 20000,
+      "possible_dates": [
+        {
+          "date": "2022-05-14",
+          "weight": 1.850000023841858
+        },
+        {
+          "date": "2022-05-21",
+          "weight": 1.850000023841858
+        }
+      ]
+    },
+    {
+      "base_model_id": "standard-model",
+      "end_date": "2025-05-04",
+      "id": "now-cast-projection",
+      "name": "Now-cast Projection",
+      "num_iterations": 20000,
+      "possible_dates": []
+    }
+  ],
+  "schema_version": 1,
+  "simulations": [
+    {
+      "base_projection_id": "projection-2025-election-projection",
+      "id": "standard-simulation",
+      "mode": "projection",
+      "name": "Standard Simulation",
+      "num_iterations": 200000,
+      "report_mode": "regular_forecast"
+    },
+    {
+      "base_projection_id": "now-cast-projection",
+      "id": "now-cast-simulation",
+      "mode": "projection",
+      "name": "Now-cast Simulation",
+      "num_iterations": 200000,
+      "report_mode": "nowcast"
+    },
+    {
+      "base_projection_id": "projection-2025-election-projection",
+      "id": "live-simulation",
+      "mode": "live_automatic",
+      "name": "Live Simulation",
+      "num_iterations": 25000,
+      "report_mode": "live_forecast"
+    }
+  ]
+}

@@ -109,10 +109,10 @@ public:
 	PartyContainer::const_iterator cend() const { return parties.cend(); }
 
 	void setOthersPreferenceFlow(float in_othersPreferenceFlow) { othersPreferenceFlow = in_othersPreferenceFlow; }
-	float getOthersPreferenceFlow() { return othersPreferenceFlow; }
+	float getOthersPreferenceFlow() const { return othersPreferenceFlow; }
 
 	void setOthersExhaustRate(float in_othersExhaustRate) { othersExhaustRate = in_othersExhaustRate; }
-	float getOthersExhaustRate() { return othersExhaustRate; }
+	float getOthersExhaustRate() const { return othersExhaustRate; }
 
 	// returns true if the two parties given are opposite major parties,
 	// or parties that count as if they were those parties

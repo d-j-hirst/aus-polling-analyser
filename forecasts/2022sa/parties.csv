@@ -1,0 +1,8 @@
+index,id,name,abbreviation,home_region_id,seat_target,relation_type,relation_target_party_id,ideology,preference_consistency
+0,labor,Labor,ALP,,10000,,,moderate_left,high
+1,liberals,Liberals,LNP,,10000,,,moderate_right,moderate
+2,green,Green,GRN,,10000,supports,labor,strong_left,high
+3,sa-best,SA Best,SAB,,10000,,,centrist,moderate
+4,democrats,Democrats,DEM,,10000,,,centrist,moderate
+5,family-first,Family First,FF,,10000,supports,liberals,strong_right,moderate
+6,independent,Independent,IND,,10000,,,centrist,low

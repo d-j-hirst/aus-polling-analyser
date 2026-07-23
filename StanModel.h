@@ -12,6 +12,7 @@
 #include <vector>
 
 class WorkspacePaths;
+class ForecastSpecificationImporter;
 
 class StanModel {
 public:
@@ -19,6 +20,7 @@ public:
 	friend class EditModelFrame;
 	friend class ProjectFiler;
 	friend class Projection;
+	friend class ForecastSpecificationImporter;
 
 	typedef int Id;
 	constexpr static Id InvalidId = -1;
@@ -84,6 +86,8 @@ public:
 	std::string getTermCode() const { return termCode; }
 
 	std::string getPartyCodes() const { return partyCodes; }
+	std::string getPreferenceDeviation() const { return preferenceDeviation; }
+	std::string getPreferenceSamples() const { return preferenceSamples; }
 
 	Date getStartDate() const { return startDate; }
 
@@ -256,8 +260,11 @@ private:
 	std::string name;
 	std::string termCode;
 	std::string partyCodes;
+	// Retained only for .pol2 compatibility. Current models load preference
+	// flow and exhaust estimates from analysis/Data/preference-estimates.csv.
 	std::string preferenceFlow;
-	std::string preferenceExhaust;
+	// These ordered lists remain source configuration and correspond to
+	// partyCodes. The parsed maps below are generated runtime state.
 	std::string preferenceDeviation;
 	std::string preferenceSamples;
 	Date startDate;

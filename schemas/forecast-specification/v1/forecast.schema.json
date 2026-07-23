@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://www.armariuminterreta.com/schemas/forecast-specification/v1/forecast.schema.json",
+  "title": "Polling Analyser Forecast Specification",
+  "description": "Version 1 manifest for portable core forecast configuration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "election_name",
+    "election_code",
+    "files",
+    "data_sources",
+    "party_settings",
+    "election_settings",
+    "models",
+    "projections",
+    "simulations"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "$ref": "#/definitions/identifier" },
+    "election_name": { "$ref": "#/definitions/nonEmptyString" },
+    "election_code": {
+      "type": "string",
+      "pattern": "^[0-9]{4}[a-z][a-z0-9_-]*$"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parties",
+        "party_official_codes",
+        "nonclassic_preferences",
+        "regions"
+      ],
+      "properties": {
+        "parties": { "$ref": "#/definitions/path" },
+        "party_official_codes": { "$ref": "#/definitions/path" },
+        "nonclassic_preferences": { "$ref": "#/definitions/path" },
+        "regions": { "$ref": "#/definitions/path" }
+      }
+    },
+    "data_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seats"],
+      "properties": {
+        "seats": { "$ref": "#/definitions/path" }
+      }
+    },
+    "party_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "major_party_one_id",
+        "major_party_two_id"
+      ],
+      "properties": {
+        "major_party_one_id": { "$ref": "#/definitions/identifier" },
+        "major_party_two_id": { "$ref": "#/definitions/identifier" }
+      }
+    },
+    "election_settings": { "$ref": "#/definitions/electionSettings" },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/model" }
+    },
+    "projections": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/projection" }
+    },
+    "simulations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/simulation" }
+    }
+  },
+  "definitions": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "modelParty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "preference_deviation",
+        "preference_samples"
+      ],
+      "properties": {
+        "code": { "$ref": "#/definitions/nonEmptyString" },
+        "preference_deviation": {
+          "type": "number",
+          "minimum": 0
+        },
+        "preference_samples": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "term_code", "parties"],
+      "properties": {
+        "id": { "$ref": "#/definitions/identifier" },
+        "name": { "$ref": "#/definitions/nonEmptyString" },
+        "term_code": {
+          "type": "string",
+          "pattern": "^[0-9]{4}[a-z][a-z0-9_-]*$"
+        },
+        "parties": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/modelParty" }
+        }
+      }
+    },
+    "possibleDate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "weight"],
+      "properties": {
+        "date": { "$ref": "#/definitions/date" },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "base_model_id",
+        "num_iterations",
+        "end_date",
+        "possible_dates"
+      ],
+      "properties": {
+        "id": { "$ref": "#/definitions/identifier" },
+        "name": { "$ref": "#/definitions/nonEmptyString" },
+        "base_model_id": { "$ref": "#/definitions/identifier" },
+        "num_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_date": { "$ref": "#/definitions/date" },
+        "possible_dates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/possibleDate" }
+        }
+      }
+    },
+    "liveSources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previous_results_url",
+        "preload_url",
+        "current_test_url",
+        "current_real_url"
+      ],
+      "properties": {
+        "previous_results_url": { "type": "string" },
+        "preload_url": { "type": "string" },
+        "current_test_url": { "type": "string" },
+        "current_real_url": { "type": "string" }
+      }
+    },
+    "electionSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["previous_term_codes", "previous_election_tpp"],
+      "properties": {
+        "previous_term_codes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]{4}[a-z][a-z0-9_-]*$"
+          }
+        },
+        "previous_election_tpp": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 100
+        },
+        "federal_election_date": { "$ref": "#/definitions/date" },
+        "live_sources": { "$ref": "#/definitions/liveSources" }
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "base_projection_id",
+        "num_iterations",
+        "mode",
+        "report_mode"
+      ],
+      "properties": {
+        "id": { "$ref": "#/definitions/identifier" },
+        "name": { "$ref": "#/definitions/nonEmptyString" },
+        "base_projection_id": { "$ref": "#/definitions/identifier" },
+        "num_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "enum": ["projection", "live_manual", "live_automatic"]
+        },
+        "report_mode": {
+          "enum": ["regular_forecast", "live_forecast", "nowcast"]
+        }
+      }
+    }
+  }
+}

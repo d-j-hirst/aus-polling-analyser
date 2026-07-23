@@ -1,0 +1,11 @@
+source_party_id,first_target_code,second_target_code,preference_to_first
+labor,GRN,LNP,76
+labor,ONP,LNP,33
+labor,IND,LNP,82
+liberals,GRN,ALP,24
+liberals,ONP,ALP,75
+liberals,IND,ALP,80
+greens,IND,LNP,85
+national,GRN,ALP,25
+national,ONP,ALP,56
+national,IND,ALP,80

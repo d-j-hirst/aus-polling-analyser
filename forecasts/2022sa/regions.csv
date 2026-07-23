@@ -1,0 +1,6 @@
+index,id,name,population,analysis_code,previous_election_tpp
+0,metro-inner-north,Metro Inner North,100000,,50
+1,metro-outer-north,Metro Outer North,100000,,50
+2,metro-south,Metro South,100000,,50
+3,inner-rural,Inner Rural,100000,,50
+4,outer-rural,Outer Rural,100000,,50

@@ -1,0 +1,9 @@
+index,id,name,abbreviation,home_region_id,seat_target,relation_type,relation_target_party_id,ideology,preference_consistency
+0,labor,Labor,ALP,,10000,,,moderate_left,high
+1,liberal-national-coalition,Liberal/National Coalition,LNP,,10000,,,moderate_right,moderate
+2,greens,Greens,GRN,,10000,supports,labor,strong_left,high
+3,independent,Independent,IND,,10000,,,centrist,moderate
+4,shooters-farmers-and-fishers,"Shooters, Farmers and Fishers",SFF,,10000,,,moderate_right,low
+5,one-nation,One Nation,ON,,10000,supports,liberal-national-coalition,strong_right,low
+6,democrats,Democrats,DEM,,10000,,,centrist,low
+7,national,National,NAT,,10000,coalition,liberal-national-coalition,moderate_right,high

@@ -1,0 +1,115 @@
+{
+  "data_sources": {
+    "seats": "analysis/seats/2026sa.txt"
+  },
+  "election_code": "2026sa",
+  "election_name": "2026 SA State Election",
+  "election_settings": {
+    "federal_election_date": "2025-05-03",
+    "previous_election_tpp": 54.59000015258789,
+    "previous_term_codes": [
+      "2022sa",
+      "2018sa"
+    ]
+  },
+  "files": {
+    "nonclassic_preferences": "nonclassic-preferences.csv",
+    "parties": "parties.csv",
+    "party_official_codes": "party-official-codes.csv",
+    "regions": "regions.csv"
+  },
+  "id": "forecast-2026sa",
+  "models": [
+    {
+      "id": "standard-model",
+      "name": "Standard Model",
+      "parties": [
+        {
+          "code": "ALP",
+          "preference_deviation": 0.0,
+          "preference_samples": 0.0
+        },
+        {
+          "code": "LNP",
+          "preference_deviation": 0.0,
+          "preference_samples": 0.0
+        },
+        {
+          "code": "GRN",
+          "preference_deviation": 3.7300000190734863,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "ONP",
+          "preference_deviation": 15.0,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "OTH",
+          "preference_deviation": 7.0,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "xOTH",
+          "preference_deviation": 7.0,
+          "preference_samples": 7.0
+        },
+        {
+          "code": "eOTH",
+          "preference_deviation": 7.0,
+          "preference_samples": 7.0
+        }
+      ],
+      "term_code": "2026sa"
+    }
+  ],
+  "party_settings": {
+    "major_party_one_id": "labor",
+    "major_party_two_id": "liberals"
+  },
+  "projections": [
+    {
+      "base_model_id": "standard-model",
+      "end_date": "2026-03-20",
+      "id": "standard-projection",
+      "name": "Standard Projection",
+      "num_iterations": 2000,
+      "possible_dates": []
+    },
+    {
+      "base_model_id": "standard-model",
+      "end_date": "2026-03-20",
+      "id": "nowcast",
+      "name": "Nowcast",
+      "num_iterations": 2000,
+      "possible_dates": []
+    }
+  ],
+  "schema_version": 1,
+  "simulations": [
+    {
+      "base_projection_id": "standard-projection",
+      "id": "standard-simulation",
+      "mode": "projection",
+      "name": "Standard Simulation",
+      "num_iterations": 200000,
+      "report_mode": "regular_forecast"
+    },
+    {
+      "base_projection_id": "nowcast",
+      "id": "nowcast-simulation",
+      "mode": "projection",
+      "name": "Nowcast Simulation",
+      "num_iterations": 200000,
+      "report_mode": "nowcast"
+    },
+    {
+      "base_projection_id": "standard-projection",
+      "id": "live-simulation",
+      "mode": "live_manual",
+      "name": "Live Simulation",
+      "num_iterations": 25000,
+      "report_mode": "live_forecast"
+    }
+  ]
+}

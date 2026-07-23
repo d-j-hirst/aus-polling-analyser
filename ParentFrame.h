@@ -51,6 +51,8 @@ private:
 	// Calls on the frame to open the dialog for saving a project, if appropriate
 	void OnSaveAs(wxCommandEvent& event);
 
+	void OnExportForecastConfiguration(wxCommandEvent& event);
+
 	// Calls on the frame to open the dialog for running a macro
 	void OnRunMacro(wxCommandEvent& event);
 

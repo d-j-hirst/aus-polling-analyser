@@ -1,6 +1,7 @@
 #include "PollingProject.h"
 
 #include "ElectionCollection.h"
+#include "ForecastSpecificationExport.h"
 #include "Log.h"
 #include "MacroRunner.h"
 #include "NewProjectData.h"
@@ -10,6 +11,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <iomanip>
+#include <stdexcept>
 #include <utility>
 
 const Party PollingProject::invalidParty = Party("Invalid", 50.0f, 0.0f, "INV", Party::CountAsParty::None);
@@ -146,11 +148,43 @@ void PollingProject::adjustAfterRegionRemoval(RegionCollection::Index regionInde
 	adjustSeatsAfterRegionRemoval(regionIndex, regionId);
 }
 
-void PollingProject::save(std::string filename)
+PollingProject::SaveResult PollingProject::save(std::string filename)
 {
+	SaveResult result;
+	std::string termCode;
+	if (models().count() > 0) {
+		termCode = models().viewByIndex(0).getTermCode();
+	}
+	auto const forecastDirectory = paths().resolve(
+		std::filesystem::path("forecasts") / termCode);
+	std::error_code pathError;
+	bool const forecastDirectoryExists = !termCode.empty() &&
+		std::filesystem::is_directory(forecastDirectory, pathError);
+	if (pathError) {
+		throw std::runtime_error(
+			"Could not inspect the forecast configuration directory: " +
+			pathError.message());
+	}
+	if (forecastDirectoryExists) {
+		auto forecastExport =
+			exportForecastSpecification(*this, forecastDirectory);
+		if (!forecastExport.valid()) {
+			throw std::runtime_error(
+				"Portable forecast configuration validation failed:\n" +
+				forecastExport.errorMessage());
+		}
+	}
+	else {
+		result.warnings.push_back(
+			"Portable forecast configuration was not exported because no "
+			"forecasts/" + (termCode.empty() ? std::string("<term-code>") : termCode) +
+			" folder exists.");
+	}
+
 	ProjectFiler projectFiler(*this);
-	lastFileName = filename;
 	projectFiler.save(filename);
+	lastFileName = filename;
+	return result;
 }
 
 bool PollingProject::isValid() {

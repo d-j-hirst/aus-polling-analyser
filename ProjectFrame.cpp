@@ -16,6 +16,10 @@
 #include "MapFrame.h"
 #include "LiveBoothFrame.h"
 #include "GeneralSettingsFrame.h"
+#include "ForecastSpecificationExport.h"
+
+#include <exception>
+#include <filesystem>
 
 enum TabsEnum {
 	Tab_Parties,
@@ -118,24 +122,22 @@ bool ProjectFrame::checkSave() {
 			return true;
 		}
 		else if (response == wxID_YES) {
-			save();
+			if (!save()) return true;
 		}
 	}
 	return false;
 }
 
-void ProjectFrame::save()
+bool ProjectFrame::save()
 {
 	if (!project->getLastFileName().empty()) {
-		saveUnderFilename(project->getLastFileName());
+		return saveUnderFilename(project->getLastFileName());
 	}
-	else {
-		saveAs();
-	}
+	return saveAs();
 }
 
-void ProjectFrame::saveAs() {
-	if (!project.get()) return; // There is no project to save.
+bool ProjectFrame::saveAs() {
+	if (!project.get()) return false; // There is no project to save.
 
 								// initialize the save dialog
 	wxFileDialog* saveFileDialog = new wxFileDialog(
@@ -147,10 +149,61 @@ void ProjectFrame::saveAs() {
 		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
 	if (saveFileDialog->ShowModal() == wxID_CANCEL)
-		return;     // the user changed their mind...
+		return false;     // the user changed their mind...
 
 	std::string pathName = saveFileDialog->GetPath().ToStdString();
-	saveUnderFilename(pathName);
+	return saveUnderFilename(pathName);
+}
+
+void ProjectFrame::exportForecastConfiguration()
+{
+	if (!project) return;
+	auto defaultDirectory = project->paths().resolve("forecasts");
+	if (project->models().count() > 0 &&
+		!project->models().viewByIndex(0).getTermCode().empty()) {
+		defaultDirectory /= project->models().viewByIndex(0).getTermCode();
+	}
+	wxDirDialog dialog(this, "Export Forecast Configuration",
+		defaultDirectory.string(),
+		wxDD_DEFAULT_STYLE | wxDD_NEW_DIR_BUTTON);
+	if (dialog.ShowModal() == wxID_CANCEL) return;
+
+	auto const directory = std::filesystem::path(dialog.GetPath().ToStdString());
+	bool existingFiles = false;
+	for (auto const* filename : { "forecast.json", "parties.csv",
+		"party-official-codes.csv", "nonclassic-preferences.csv", "regions.csv" }) {
+		std::error_code error;
+		if (std::filesystem::exists(directory / filename, error) && !error) {
+			existingFiles = true;
+			break;
+		}
+	}
+	if (existingFiles) {
+		auto const response = wxMessageBox(
+			"The selected directory already contains forecast configuration files. "
+			"Replace them?", "Confirm Forecast Export",
+			wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+		if (response != wxYES) return;
+	}
+
+	auto result = exportForecastSpecification(*project, directory);
+	if (result.valid()) {
+		std::string message = "Forecast configuration exported and validated successfully.";
+		for (auto const& diagnostic : result.diagnostics) {
+			if (diagnostic.severity != ForecastSpecificationDiagnostic::Severity::Warning) continue;
+			message += "\n\nWarning: " + diagnostic.location + ": " + diagnostic.message;
+		}
+		wxMessageBox(message,
+			"Forecast Export", wxOK | wxICON_INFORMATION, this);
+		return;
+	}
+
+	std::string message = "Forecast configuration could not be exported:\n";
+	for (auto const& diagnostic : result.diagnostics) {
+		if (diagnostic.severity != ForecastSpecificationDiagnostic::Severity::Error) continue;
+		message += "\n" + diagnostic.location + ": " + diagnostic.message;
+	}
+	wxMessageBox(message, "Forecast Export", wxOK | wxICON_ERROR, this);
 }
 
 void ProjectFrame::runMacro()
@@ -237,33 +290,49 @@ void ProjectFrame::setupPages() {
 	createPage<LiveBoothFrame>(liveBoothFrame);
 }
 
-void ProjectFrame::saveUnderFilename(std::string const& pathName)
+bool ProjectFrame::saveUnderFilename(std::string const& pathName)
 {
 	try {
-		project->save(pathName);
+		auto const result = project->save(pathName);
+		std::string messageText = "File successfully saved: " + pathName;
+		for (auto const& warning : result.warnings) {
+			messageText += "\n\nWarning: " + warning;
+		}
+		wxMessageDialog message(this, messageText, "Save Complete",
+			wxOK | wxCENTRE | (result.warnings.empty() ?
+				wxICON_INFORMATION : wxICON_WARNING));
+		message.ShowModal();
+		return true;
+	}
+	catch (std::exception const& error)
+	{
+		wxMessageDialog message(
+			this, "Could not save file.\n\n" + std::string(error.what()),
+			"Save Error",
+			wxOK | wxCENTRE | wxICON_ERROR);
+		message.ShowModal();
+		return false;
 	}
 	catch (...)
 	{
-		wxMessageDialog* message = new wxMessageDialog(
-			this,
-			"Could not save file.",
-			"Save Error",
-			wxOK | wxCENTRE | wxICON_ERROR);
-		message->ShowModal();
-		return;
+		wxMessageDialog message(this,
+			"Could not save file because of an unknown error.",
+			"Save Error", wxOK | wxCENTRE | wxICON_ERROR);
+		message.ShowModal();
+		return false;
 	}
-	wxMessageDialog* message = new wxMessageDialog(
-		this,
-		"File successfully saved: " + pathName);
-	message->ShowModal();
 }
 
 void ProjectFrame::cancelConstructionFromFile()
 {
+	std::string messageText = "Could not open file.";
+	if (project && !project->getLoadError().empty()) {
+		messageText += "\n\n" + project->getLoadError();
+	}
 	wxMessageDialog* message = new wxMessageDialog(
 		this,
-		"Could not open file.",
-		"Save Error",
+		messageText,
+		"Open Error",
 		wxOK | wxCENTRE | wxICON_ERROR);
 	message->ShowModal();
 
