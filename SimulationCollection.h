@@ -55,7 +55,10 @@ public:
 	// Removes the simulation with index "simulationIndex".
 	void remove(Simulation::Id id);
 
-	bool run(Simulation::Id id, SimulationRun::FeedbackFunc feedback = [](std::string) {});
+	bool run(
+		Simulation::Id id,
+		SimulationRun::FeedbackFunc feedback = [](std::string) {},
+		SimulationRun::ActionRequiredFunc actionRequired = {});
 
 	// Returns access to the simulation with the given id
 	Simulation& access(Simulation::Id id);

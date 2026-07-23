@@ -100,8 +100,12 @@ const std::vector<float> Simulation::Report::CurrentlyUsedProbabilityBands = {
 	75.0f, 90.0f, 95.0f, 97.5f, 99.0f, 99.5f, 99.9f
 };
 
-bool Simulation::run(PollingProject& project, SimulationRun::FeedbackFunc feedback)
+bool Simulation::run(
+	PollingProject& project,
+	SimulationRun::FeedbackFunc feedback,
+	SimulationRun::ActionRequiredFunc actionRequired)
 {
+	if (!actionRequired) actionRequired = feedback;
 	if (project.projections().idToIndex(settings.baseProjection) ==
 		ProjectionCollection::InvalidIndex) {
 		feedback("The simulation does not have a valid base projection.");
@@ -114,7 +118,7 @@ bool Simulation::run(PollingProject& project, SimulationRun::FeedbackFunc feedba
 		return false;
 	}
 	auto nextRun = std::make_shared<SimulationRun>(project, *this);
-	if (!nextRun->run(feedback)) return false;
+	if (!nextRun->run(feedback, actionRequired)) return false;
 	latestRun = std::move(nextRun);
 	PA_LOG_VAR(latestReport.getCoalitionFpSampleMedian());
 	if (isLive()) checkLiveSeats(project, feedback);

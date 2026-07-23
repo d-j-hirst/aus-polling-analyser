@@ -12,12 +12,15 @@ class StanModel;
 class SimulationCompletion {
 public:
 	typedef std::function<void(std::string)> FeedbackFunc;
+	using ActionRequiredFunc = std::function<void(std::string)>;
 
 	SimulationCompletion(PollingProject& project, Simulation& sim, SimulationRun& run, int iterations);
 
 	// cycleIterations needs to be given as an argument as it will
 	// be different for calibration runs.
-	void completeRun(FeedbackFunc feedback = [](std::string) {});
+	void completeRun(
+		FeedbackFunc feedback = [](std::string) {},
+		ActionRequiredFunc actionRequired = {});
 private:
 
 	// statistic calculations
@@ -42,7 +45,9 @@ private:
 	void recordFpTrends();
 	void recordReportSettings();
 	void recordModelledPolls();
-	void exportSummary(FeedbackFunc feedback);
+	void exportSummary(
+		FeedbackFunc feedback,
+		ActionRequiredFunc actionRequired);
 
 	StanModel const& baseModel() const;
 

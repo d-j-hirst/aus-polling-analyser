@@ -4341,8 +4341,7 @@ float SimulationIteration::variabilityBeta(float alpha, float beta, int itemInde
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(partyId));
 	key = RandomGenerator::mixKey(key, static_cast<std::uint64_t>(tag));
 	std::mt19937_64 engine(RandomGenerator::splitmix64(key));
-	boost::random::beta_distribution<float> dist(alpha, beta);
-	return dist(engine);
+	return RandomGenerator::betaFromEngine(alpha, beta, engine);
 }
 
 int SimulationIteration::randomSampleIndex() const

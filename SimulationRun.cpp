@@ -101,7 +101,10 @@ namespace {
 	}
 }
 
-bool SimulationRun::run(FeedbackFunc feedback) {
+bool SimulationRun::run(
+	FeedbackFunc feedback,
+	ActionRequiredFunc actionRequired) {
+	if (!actionRequired) actionRequired = feedback;
 	// Keep every phase of this run on the same local calendar date, even if a
 	// long simulation crosses midnight.
 	nowcastDate = Date::todayLocal();
@@ -214,7 +217,7 @@ bool SimulationRun::run(FeedbackFunc feedback) {
 	if (!runIterations(*this, cycleIterations, 0, "simulation", feedback)) return false;
 
 	SimulationCompletion completion(project, sim, *this, cycleIterations);
-	completion.completeRun(feedback);
+	completion.completeRun(feedback, actionRequired);
 
 	auto const mainRunElapsed =
 		std::chrono::steady_clock::now() - mainRunStart;

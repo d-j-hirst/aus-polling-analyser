@@ -105,7 +105,9 @@ SimulationCompletion::SimulationCompletion(
 {
 }
 
-void SimulationCompletion::completeRun(FeedbackFunc feedback)
+void SimulationCompletion::completeRun(
+	FeedbackFunc feedback,
+	ActionRequiredFunc actionRequired)
 {
 	recordNames();
 
@@ -142,7 +144,7 @@ void SimulationCompletion::completeRun(FeedbackFunc feedback)
 	recordReportSettings();
 
 	if (run.isLiveAutomatic() && !run.doingBettingOddsCalibrations && !run.doingLiveBaselineSimulation) {
-		exportSummary(feedback);
+		exportSummary(feedback, actionRequired);
 	}
 
 	logger << "Simulation successfully completed.\n";
@@ -701,8 +703,11 @@ void SimulationCompletion::recordModelledPolls()
 	sim.latestReport.modelledPolls = baseModel().viewModelledPolls();
 }
 
-void SimulationCompletion::exportSummary(FeedbackFunc feedback)
+void SimulationCompletion::exportSummary(
+	FeedbackFunc feedback,
+	ActionRequiredFunc actionRequired)
 {
+	if (!actionRequired) actionRequired = feedback;
 	// This remains a purpose-built operational export for automatic live runs,
 	// rather than a general report format. Its selected party columns preserve
 	// the layouts expected by the existing downstream workflow.
@@ -715,7 +720,7 @@ void SimulationCompletion::exportSummary(FeedbackFunc feedback)
 		summaryFile.open(summaryFilename);
 		if (!summaryFile.is_open() &&
 			attempt < MaxSummaryFileOpenAttempts) {
-			feedback(
+			actionRequired(
 				"Could not write live_summary.csv. Close the file if it is "
 				"open, then dismiss this message to retry (" +
 				std::to_string(attempt) + " of " +

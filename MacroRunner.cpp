@@ -56,31 +56,38 @@ MacroRunner::MacroRunner(PollingProject& project)
 }
 
 std::optional<std::string> MacroRunner::run(
-	std::string const& macro, MacroRunner::FeedbackFunc feedback)
+	std::string const& macro,
+	MacroRunner::FeedbackFunc feedback)
 {
-	if (!feedback) feedback = [](std::string) {};
+	if (!feedback) feedback = [](FeedbackType, std::string) {};
+	auto fatal = [&](std::string message) {
+		feedback(FeedbackType::Fatal, message);
+		return std::optional<std::string>(std::move(message));
+	};
 	logger << "Running macro: reading instructions\n";
 	auto lines = splitString(macro, ";");
 	std::vector<Instruction> instructions;
 	for (auto const& line : lines) {
 		auto parts = splitString(line, ":");
-		if (parts.size() != 2) return "Error: not exactly 2 parts to this line - " + line;
+		if (parts.size() != 2) {
+			return fatal("Error: not exactly 2 parts to this line - " + line);
+		}
 		int id = -1;
 		size_t parsedLength = 0;
 		try {
 			id = std::stoi(parts[1], &parsedLength);
 		}
 		catch (std::invalid_argument const&) {
-			return "Error: 2nd part did not correspond to an integer - " + line;
+			return fatal("Error: 2nd part did not correspond to an integer - " + line);
 		}
 		catch (std::out_of_range const&) {
-			return "Error: ID was outside the supported integer range - " + line;
+			return fatal("Error: ID was outside the supported integer range - " + line);
 		}
 		if (parsedLength != parts[1].size()) {
-			return "Error: 2nd part did not correspond to an integer - " + line;
+			return fatal("Error: 2nd part did not correspond to an integer - " + line);
 		}
 		if (id < 0) {
-			return "Error: Invalid ID - " + line;
+			return fatal("Error: Invalid ID - " + line);
 		}
 		Instruction::Type type = Instruction::Type::None;
 		if (parts[0] == "collect-polls") {
@@ -99,10 +106,10 @@ std::optional<std::string> MacroRunner::run(
 			type = Instruction::Type::RunModel;
 		}
 		else if (parts[0] == "set-nowcast") {
-			return
+			return fatal(
 				"Error: set-nowcast is obsolete. Use a full-election base "
 				"projection and set the simulation's Forecast/report mode to "
-				"Nowcast - " + line;
+				"Nowcast - " + line);
 		}
 		else if (parts[0] == "run-projection") {
 			type = Instruction::Type::RunProjection;
@@ -111,7 +118,7 @@ std::optional<std::string> MacroRunner::run(
 			type = Instruction::Type::RunSimulation;
 		}
 		if (type == Instruction::Type::None) {
-			return "Error: Invalid instruction - " + line;
+			return fatal("Error: Invalid instruction - " + line);
 		}
 		instructions.emplace_back(type, id, line);
 	}
@@ -130,15 +137,15 @@ std::optional<std::string> MacroRunner::run(
 			instruction.type == Instruction::Type::RunSimulation;
 		if (needsModel && project_.models().idToIndex(instruction.id) ==
 			ModelCollection::InvalidIndex) {
-			return "Error: Model ID does not exist - " + instruction.source;
+			return fatal("Error: Model ID does not exist - " + instruction.source);
 		}
 		if (needsProjection && project_.projections().idToIndex(instruction.id) ==
 			ProjectionCollection::InvalidIndex) {
-			return "Error: Projection ID does not exist - " + instruction.source;
+			return fatal("Error: Projection ID does not exist - " + instruction.source);
 		}
 		if (needsSimulation && project_.simulations().idToIndex(instruction.id) ==
 			SimulationCollection::InvalidIndex) {
-			return "Error: Simulation ID does not exist - " + instruction.source;
+			return fatal("Error: Simulation ID does not exist - " + instruction.source);
 		}
 	}
 
@@ -146,7 +153,14 @@ std::optional<std::string> MacroRunner::run(
 	for (auto const& instruction : instructions) {
 		std::vector<std::string> messages;
 		auto captureFeedback = [&messages](std::string message) {
+			if (!message.empty()) messages.push_back(std::move(message));
+		};
+		auto captureSimulationFeedback = [&](std::string message) {
+			if (message.empty()) return;
 			messages.push_back(std::move(message));
+		};
+		auto actionRequiredFeedback = [&](std::string message) {
+			feedback(FeedbackType::ActionRequired, std::move(message));
 		};
 		auto failureMessage = [&]() {
 			std::string message = "Error while executing macro instruction - " +
@@ -216,24 +230,35 @@ std::optional<std::string> MacroRunner::run(
 					instruction.id, captureFeedback);
 				break;
 			case Instruction::Type::RunSimulation:
-				// Simulation feedback can be interactive, such as asking the user to
-				// close an output file before retrying, so it must not be deferred.
-				succeeded = project_.simulations().run(instruction.id, feedback);
+				succeeded = project_.simulations().run(
+					instruction.id, captureSimulationFeedback,
+					actionRequiredFeedback);
 				break;
 			case Instruction::Type::None:
 				succeeded = false;
 				messages.push_back("The parsed instruction had no executable type.");
 				break;
 			}
-			if (!succeeded) return failureMessage();
+			if (!succeeded) return fatal(failureMessage());
+
+			// Most component feedback describes a failed operation and is consumed by
+			// failureMessage(). Successful simulation feedback consists of warnings or
+			// live-result notices; explicit "Warning:" messages from other commands are
+			// warnings as well.
+			for (auto const& message : messages) {
+				if (instruction.type == Instruction::Type::RunSimulation ||
+					message.starts_with("Warning:")) {
+					feedback(FeedbackType::Warning, message);
+				}
+			}
 		}
 		catch (std::exception const& e) {
 			messages.push_back(e.what());
-			return failureMessage();
+			return fatal(failureMessage());
 		}
 		catch (...) {
 			messages.push_back("An unknown exception occurred.");
-			return failureMessage();
+			return fatal(failureMessage());
 		}
 	}
 

@@ -2,14 +2,16 @@
 
 #include "Log.h"
 
-#include <boost/random/beta_distribution.hpp>
-
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
 #include <random>
+#include <stdexcept>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 class RandomGenerator {
@@ -71,9 +73,39 @@ public:
 
 	template<typename T,
 		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
-		static T beta(T alpha = T(1.0), T beta = T(1.0)) {
-		boost::random::beta_distribution dist(alpha, beta);
-		return dist(gen);
+	static T beta(T alpha = T(1.0), T beta = T(1.0)) {
+		return betaFromEngine(alpha, beta, gen);
+	}
+
+	// A beta variate is the share of one of two independent unit-scale gamma
+	// variates. Keeping the engine explicit supports deterministic keyed draws.
+	template<typename T, typename Engine,
+		std::enable_if_t<std::is_floating_point<T>::value, int> = 0>
+	static T betaFromEngine(T alpha, T beta, Engine& engine) {
+		if (!std::isfinite(alpha) || !std::isfinite(beta) ||
+			alpha <= T(0.0) || beta <= T(0.0)) {
+			throw std::invalid_argument(
+				"Beta distribution parameters must be finite and positive.");
+		}
+		std::gamma_distribution<T> alphaDistribution(alpha, T(1.0));
+		std::gamma_distribution<T> betaDistribution(beta, T(1.0));
+		for (int attempt = 0; attempt < 32; ++attempt) {
+			T const alphaValue = alphaDistribution(engine);
+			T const betaValue = betaDistribution(engine);
+			if (!std::isfinite(alphaValue) || !std::isfinite(betaValue) ||
+				(alphaValue == T(0.0) && betaValue == T(0.0))) continue;
+			if (alphaValue == T(0.0)) return T(0.0);
+			if (betaValue == T(0.0)) return T(1.0);
+			// Ratio forms avoid overflow when both gamma draws are very large.
+			if (alphaValue >= betaValue) {
+				return T(1.0) /
+					(T(1.0) + betaValue / alphaValue);
+			}
+			T const ratio = alphaValue / betaValue;
+			return ratio / (T(1.0) + ratio);
+		}
+		throw std::runtime_error(
+			"Could not generate a finite beta-distribution sample.");
 	}
 
 	template<typename T,

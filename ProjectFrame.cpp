@@ -21,6 +21,47 @@
 #include <exception>
 #include <filesystem>
 
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/utils.h>
+
+namespace {
+	class MacroWarningsDialog : public wxDialog {
+	public:
+		explicit MacroWarningsDialog(wxWindow* parent) :
+			wxDialog(parent, wxID_ANY, "Macro warnings", wxDefaultPosition,
+				wxSize(650, 380), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+		{
+			text_ = new wxTextCtrl(
+				this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+				wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
+			auto* sizer = new wxBoxSizer(wxVERTICAL);
+			sizer->Add(text_, 1, wxEXPAND | wxALL, 8);
+			SetSizer(sizer);
+
+			Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent&) { Hide(); });
+		}
+
+		void append(std::string const& warning)
+		{
+			if (!allWarnings_.empty()) allWarnings_ += "\n\n";
+			allWarnings_ += warning;
+			text_->SetValue(allWarnings_);
+			text_->ShowPosition(text_->GetLastPosition());
+			if (!IsShown()) Show();
+			Raise();
+			Update();
+		}
+
+		bool empty() const { return allWarnings_.empty(); }
+		std::string const& text() const { return allWarnings_; }
+
+	private:
+		wxTextCtrl* text_ = nullptr;
+		std::string allWarnings_;
+	};
+}
+
 enum TabsEnum {
 	Tab_Parties,
 	Tab_Pollsters,
@@ -212,9 +253,38 @@ void ProjectFrame::runMacro()
 	int result = dialog.ShowModal();
 	if (result == wxID_CANCEL) return;
 	std::string newMacro = std::string(dialog.GetValue());
-	auto error = project->runMacro(newMacro, [](std::string s) {wxMessageBox(s); });
-	if (error.has_value()) {
-		wxMessageBox(error.value());
+	MacroWarningsDialog warningsDialog(this);
+	auto feedback = [this, &warningsDialog](
+		MacroRunner::FeedbackType type, std::string message) {
+		wxBell();
+		switch (type) {
+		case MacroRunner::FeedbackType::Fatal:
+			wxMessageBox(message, "Macro failed",
+				wxOK | wxICON_ERROR, this);
+			break;
+		case MacroRunner::FeedbackType::ActionRequired:
+			wxMessageBox(message, "Macro action required",
+				wxOK | wxICON_INFORMATION, this);
+			break;
+		case MacroRunner::FeedbackType::Warning:
+			warningsDialog.append(message);
+			break;
+		}
+	};
+	auto error = project->runMacro(newMacro, feedback);
+	warningsDialog.Hide();
+	if (!error.has_value() && !warningsDialog.empty()) {
+		wxBell();
+		wxMessageBox(
+			"Macro completed with the following warnings:\n\n" +
+			warningsDialog.text(),
+			"Macro completed with warnings",
+			wxOK | wxICON_WARNING, this);
+	}
+	else if (!error.has_value()) {
+		wxBell();
+		wxMessageBox("Macro completed successfully", "Macro completed",
+			wxOK | wxICON_INFORMATION, this);
 	}
 	Refresher refresher(*this);
 	refresher.refreshPollData();

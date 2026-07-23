@@ -315,7 +315,10 @@ public:
 	Simulation(Settings settings) : settings(std::move(settings))
 	{}
 
-	bool run(PollingProject& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
+	bool run(
+		PollingProject& project,
+		SimulationRun::FeedbackFunc feedback = [](std::string) {},
+		SimulationRun::ActionRequiredFunc actionRequired = {});
 
 	void checkLiveSeats(PollingProject const& project, SimulationRun::FeedbackFunc feedback = [](std::string) {});
 

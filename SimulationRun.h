@@ -151,6 +151,7 @@ public:
 	};
 
 	using FeedbackFunc = std::function<void(std::string)>;
+	using ActionRequiredFunc = std::function<void(std::string)>;
 
 	enum class WarningCategory : std::uint8_t {
 		FpReconciliation,
@@ -166,7 +167,9 @@ public:
 	SimulationRun(SimulationRun const&) = delete;
 	SimulationRun& operator=(SimulationRun const&) = delete;
 
-	bool run(FeedbackFunc feedback = [](std::string) {});
+	bool run(
+		FeedbackFunc feedback = [](std::string) {},
+		ActionRequiredFunc actionRequired = {});
 
 	std::string getTermCode() const;
 

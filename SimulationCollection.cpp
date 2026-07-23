@@ -68,15 +68,19 @@ void SimulationCollection::remove(Simulation::Id id) {
 	simulations.erase(simulationIt);
 }
 
-bool SimulationCollection::run(Simulation::Id id, SimulationRun::FeedbackFunc feedback)
+bool SimulationCollection::run(
+	Simulation::Id id,
+	SimulationRun::FeedbackFunc feedback,
+	SimulationRun::ActionRequiredFunc actionRequired)
 {
+	if (!actionRequired) actionRequired = feedback;
 	auto simulationIt = simulations.find(id);
 	if (simulationIt == simulations.end()) {
 		feedback("The requested simulation does not exist.");
 		return false;
 	}
 	Simulation& simulation = simulationIt->second;
-	return simulation.run(project, feedback);
+	return simulation.run(project, feedback, actionRequired);
 }
 
 Simulation& SimulationCollection::access(Simulation::Id id)

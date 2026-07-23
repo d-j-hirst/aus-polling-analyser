@@ -80,15 +80,19 @@ ElectionCollection const& PollingProject::elections() const
 }
 
 
-std::optional<std::string> PollingProject::runMacro(std::string macro, FeedbackFunc feedback)
+std::optional<std::string> PollingProject::runMacro(
+	std::string macro,
+	MacroRunner::FeedbackFunc feedback)
 {
 	bool passesValidation = true;
 	if (!passesValidation) {
-		return "Didn't pass validation!";
+		std::string const message = "Didn't pass validation!";
+		feedback(MacroRunner::FeedbackType::Fatal, message);
+		return message;
 	}
 	else {
 		lastMacro = macro;
-		return MacroRunner(*this).run(macro, feedback);
+		return MacroRunner(*this).run(macro, std::move(feedback));
 	}
 }
 
