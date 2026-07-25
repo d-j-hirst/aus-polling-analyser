@@ -15,48 +15,48 @@
       "semantic_revision": 1,
       "files": {
         "2019fed.txt": {
-          "sha256": "167065b8c6ea69f801645dca025fe2aa7ecdabbe936b89d8cfcd716df26d300a",
-          "size_bytes": 23004,
+          "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
+          "size_bytes": 21842,
           "recorded_mtime_utc": "2023-03-08T11:41:18.139461Z"
         },
         "2019nsw.txt": {
-          "sha256": "09f98bc919ce9e56dae0e0133e5d42ddacdcaa85f824fe872badc2563e64ee0c",
-          "size_bytes": 12011,
+          "sha256": "70e88c06f5494880e5e975ce58e7efce666954c193fcbdfc1ede2580240911dd",
+          "size_bytes": 11374,
           "recorded_mtime_utc": "2023-03-15T11:04:51.362731Z"
         },
         "2022fed.txt": {
-          "sha256": "dcde14b81b6b4b39804f59474bb7b87561ef4ab07b8e664672615c1fca8e0689",
-          "size_bytes": 52150,
+          "sha256": "486fd71e2a43c1a89d789b531bf02f3fe01123220f1c41aa1385a5df7c5a5698",
+          "size_bytes": 49891,
           "recorded_mtime_utc": "2026-03-21T04:14:12.706517Z"
         },
         "2022sa.txt": {
-          "sha256": "0ea908827bd0a59d04adaa7a362bdce766378be79473a9c919be7ed7375bb2fe",
-          "size_bytes": 7437,
+          "sha256": "605dcfb3b548e9d522abcd18372f032b2d3e4bfccd441dba0c8c20ea114049f7",
+          "size_bytes": 7071,
           "recorded_mtime_utc": "2023-03-08T11:39:51.540035Z"
         },
         "2022vic.txt": {
-          "sha256": "de3eafd96ea250e0f1f02426aa27199e2811830700454ddecbc402269d612861",
-          "size_bytes": 29507,
+          "sha256": "13f00c5ab196f427bc34573077b0b8c1a3067ab4009e123b4df6b913a036b886",
+          "size_bytes": 28422,
           "recorded_mtime_utc": "2023-03-08T11:37:48.072649Z"
         },
         "2023nsw.txt": {
-          "sha256": "0472a709b457395b3349c971cfaa7af22e274bfa23781686ae03022d8deafad7",
-          "size_bytes": 25929,
+          "sha256": "a324cacfaf45789638764a8870e0425d31e504f802f35abe58db4d809dcd9133",
+          "size_bytes": 24984,
           "recorded_mtime_utc": "2023-03-25T04:45:05.036649Z"
         },
         "2024qld.txt": {
-          "sha256": "f2c0f235eab7993746515b25a31f41e9ec39c18bf65f8f416e1e8a2721efe244",
-          "size_bytes": 22610,
+          "sha256": "e5302502be940cf260d413e3483d1d3045edeaf974b9360eb7f30c201575a9a0",
+          "size_bytes": 21805,
           "recorded_mtime_utc": "2024-10-25T13:02:24.535014Z"
         },
         "2025fed.txt": {
-          "sha256": "03d17be23ecc8421856e353018fee03d7a4e165a44dd5b2f5a197ad78efa84f1",
-          "size_bytes": 79262,
+          "sha256": "bf4000b90170552b1e548a32bc7562f52ea1cec547c56e0a0b91ed2c48935464",
+          "size_bytes": 77571,
           "recorded_mtime_utc": "2026-07-23T04:11:27.864257Z"
         },
         "2025wa.txt": {
-          "sha256": "4626c4d0b3fec3b872a653db06a5e2258ccc279ccce24cf0041524ae0443f104",
-          "size_bytes": 13789,
+          "sha256": "c3b0f4a8e9feb8027ff8b3210d84929fc28d05b532cbea5ca63f971d5a2764b1",
+          "size_bytes": 13262,
           "recorded_mtime_utc": "2026-07-23T04:10:31.700663Z"
         },
         "2026sa.txt": {
@@ -65,18 +65,18 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "e5133934bdc4592eb1b35e1f99170a7c87467b0d8104ee1858653a7d6e3f3134",
-          "size_bytes": 17273,
+          "sha256": "102166e16563e0dcb047e813eb5cd69900051c352a4a557c8c5b36fd4e0997fb",
+          "size_bytes": 16518,
           "recorded_mtime_utc": "2026-07-21T22:00:49.844929Z"
         },
         "2027nsw.txt": {
-          "sha256": "0e64ed058af6fa8604ffd880af089ad6e20bf0ab03bba05395a372bc935b0e30",
-          "size_bytes": 17359,
+          "sha256": "3cd50ea2510b00263868659b59fcbbcbf23c30555b932b8db35a318cf2e5f47b",
+          "size_bytes": 16566,
           "recorded_mtime_utc": "2026-04-15T06:46:20.582550Z"
         },
         "2028fed.txt": {
-          "sha256": "16c154e96ea59b89b85f1dd9aeef52c4373124d61ed5a49eb092919ddcba97dd",
-          "size_bytes": 30807,
+          "sha256": "97bf5236a2818c43fca1125c6b91317f2b2921bec70cdca2d8dd39b360780374",
+          "size_bytes": 29474,
           "recorded_mtime_utc": "2026-07-15T01:43:03.129030Z"
         }
       },

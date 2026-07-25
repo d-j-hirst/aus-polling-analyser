@@ -21,7 +21,8 @@ def generate_synthetic_tpps(display_analysis=False):
     recorder = approvals_provenance.SyntheticTppRecorder(
         [os.path.basename(sys.executable)] + sys.argv
     )
-    Approvals(display_analysis, recorder)
+    analysis = Approvals(display_analysis, recorder)
+    return analysis.synthetic_tpps_by_region
 
 
 class Approvals:
@@ -327,6 +328,13 @@ class Approvals:
                 if not election in self.synthetic_tpps:
                     self.synthetic_tpps[election] = []
                 self.synthetic_tpps[election].append(stpp_item)
+        # fp_model consumes this in-memory snapshot. The CSV files remain for
+        # provenance and standalone consumers, but a concurrent generator
+        # cannot change observations already selected for the current run.
+        self.synthetic_tpps_by_region = {
+            area: tuple(approvals)
+            for area, approvals in files.items()
+        }
         self.output_files = {}
         for area, approvals in files.items():
             filename = f'Synthetic TPPs/{area}.csv'

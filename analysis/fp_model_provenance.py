@@ -744,9 +744,9 @@ class CutoffTrendRecorder(FinalTrendRecorder):
         )
         federal_prior_files = sorted(set(federal_prior_files))
         if federal_prior_files:
-            dependencies["poll_trend_outputs"] = (
+            dependencies["cutoff_poll_outputs"] = (
                 generated_provenance.file_dependency(
-                    "poll_trend_outputs",
+                    "cutoff_poll_outputs",
                     federal_prior_files,
                     ANALYSIS_DIRECTORY,
                 )

@@ -756,6 +756,19 @@ def generation_run(command, source_revision, environment):
     }
 
 
+def _schema_reference(manifest_path):
+    resolved_schema = SCHEMA_PATH.resolve()
+    manifest_folder = Path(manifest_path).resolve().parent
+    try:
+        relative_schema = os.path.relpath(
+            str(resolved_schema), str(manifest_folder)
+        )
+    except ValueError:
+        # A file URI is portable when Windows paths are on different drives.
+        return resolved_schema.as_uri()
+    return Path(relative_schema).as_posix()
+
+
 def update_manifest(
     path, records, runs, path_base="..", description=None
 ):
@@ -774,11 +787,8 @@ def update_manifest(
             raise GeneratedProvenanceError(
                 "description is required when creating a manifest"
             )
-        relative_schema = os.path.relpath(
-            str(SCHEMA_PATH.resolve()), str(path.resolve().parent)
-        )
         manifest = {
-            "$schema": Path(relative_schema).as_posix(),
+            "$schema": _schema_reference(path),
             "schema_version": SCHEMA_VERSION,
             "path_base": path_base,
             "description": description,

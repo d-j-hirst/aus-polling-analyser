@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import pipeline_registry
 import source_provenance
@@ -64,6 +65,28 @@ class SourceProvenanceTests(unittest.TestCase):
         self.assertEqual(
             comparison,
             {"added": [], "removed": [], "modified": [], "touched": []},
+        )
+
+    def test_line_endings_do_not_change_source_fingerprint(self):
+        self.source_path.write_bytes(
+            b"date,value\r\n2026-01-01,50\r\n"
+        )
+        comparison = source_provenance.check_manifest(self.manifest_path)[
+            "raw_polls"
+        ]
+        self.assertEqual(comparison["modified"], [])
+
+    def test_cross_drive_schema_reference_uses_file_uri(self):
+        with mock.patch(
+            "source_provenance.os.path.relpath",
+            side_effect=ValueError("different drives"),
+        ):
+            reference = source_provenance._schema_reference(
+                self.manifest_path
+            )
+        self.assertEqual(
+            reference,
+            source_provenance.SCHEMA_PATH.resolve().as_uri(),
         )
 
     def test_output_affecting_change_increments_semantic_revision(self):

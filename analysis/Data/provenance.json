@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-07-25T08:12:17Z",
+  "updated_at_utc": "2026-07-25T14:54:56Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -18,13 +18,13 @@
       "semantic_revision": 1,
       "files": {
         "election-cycles.csv": {
-          "sha256": "9030be06567fd9cd310579c8c635492e5645c64c7a713e624ff49a94e6021b19",
-          "size_bytes": 2474,
+          "sha256": "f473724c13fb19c2854d991f6a9a200ee4d56810d9057d069fbc04bf62c6a88c",
+          "size_bytes": 2397,
           "recorded_mtime_utc": "2025-07-20T10:09:04.856905Z"
         },
         "future-elections.csv": {
-          "sha256": "240feda17b7ce2e94ba60dbccc7ab8b96dae67255cd3083d0515083465241389",
-          "size_bytes": 47,
+          "sha256": "93a20eb73dedf2c8f8dabb7259755dabab8eaba8d348999b5ead0fb6aecb8a12",
+          "size_bytes": 43,
           "recorded_mtime_utc": "2026-05-23T07:53:28.312018Z"
         },
         "old-elections.csv": {
@@ -33,8 +33,8 @@
           "recorded_mtime_utc": "2024-02-06T22:38:21.537110Z"
         },
         "polled-elections.csv": {
-          "sha256": "f91cdfc6fc9b69108e7d8b2a37047fff0b33d0b28ac44835dfc996095322f0e4",
-          "size_bytes": 718,
+          "sha256": "8c3170ce2c96def9320042f4da8f157f085258919a1a923f358fdaa92c664763",
+          "size_bytes": 645,
           "recorded_mtime_utc": "2026-05-23T09:40:19.967775Z"
         }
       },
@@ -71,33 +71,33 @@
       "semantic_revision": 1,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "22c8567bf73630d6ca7bb57d9bd1353588da77316d1a559465656cf39453b0b9",
-          "size_bytes": 288127,
+          "sha256": "a9321be006a654aa3f28da85dece676aa1598eaf1baa59cf17de4fb958fc159f",
+          "size_bytes": 284151,
           "recorded_mtime_utc": "2026-07-20T07:17:27.420751Z"
         },
         "poll-data-nsw.csv": {
-          "sha256": "55dc33e9b15be7403e679ff32d50d74178b1bcb4292e0d34d1fffb068dad70dd",
-          "size_bytes": 27596,
+          "sha256": "e369cee23374c45129778c67a22ac6a816a1bc2d74005ff8043d3b37841bf7ff",
+          "size_bytes": 27125,
           "recorded_mtime_utc": "2026-07-20T06:05:06.239731Z"
         },
         "poll-data-qld.csv": {
-          "sha256": "6c8ac16ef0c84635b554ddbbd9bcb2e2102c89f0e178b290c442f5fae46e3526",
-          "size_bytes": 23734,
+          "sha256": "26f673fd24dfda3cbf6eef2cd7f7bff7f19abeb01a565088efa6023f46eb980a",
+          "size_bytes": 23336,
           "recorded_mtime_utc": "2026-06-16T08:38:09.808470Z"
         },
         "poll-data-sa.csv": {
-          "sha256": "45d8a28e5c975c259f958a917dda61698d2ac758329ad99389c96c7a4bec1c94",
-          "size_bytes": 19692,
+          "sha256": "042dabfb83246731b600d792834aed55faa21a905260d279aea5e48c12ae2da7",
+          "size_bytes": 19401,
           "recorded_mtime_utc": "2026-06-25T04:43:55.030005Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "67bb082f9f7ee95a6cb4d2a27b5a531aac3fa8331b2bf32309a08698c64a3a18",
-          "size_bytes": 38084,
+          "sha256": "200add8b37feab126e13568a036b6975e3464acbc443bd3b781a6f774108c53a",
+          "size_bytes": 37482,
           "recorded_mtime_utc": "2026-07-13T14:40:29.580076Z"
         },
         "poll-data-wa.csv": {
-          "sha256": "1a8c6fd7eb007d94f1c299b69a719be8a4e53c41fd2d91e59e7e8019bcaaf977",
-          "size_bytes": 21783,
+          "sha256": "368c226facac3b2c0436710969f2f1bdf2798ab120aa2f16200d72265baf7871",
+          "size_bytes": 21465,
           "recorded_mtime_utc": "2026-06-15T03:03:18.850553Z"
         }
       },
@@ -143,13 +143,13 @@
           "recorded_mtime_utc": "2025-07-20T10:09:28.175499Z"
         },
         "discontinuities.csv": {
-          "sha256": "5dd4e0b7475f71fe906af152b3a9c35e6ef11382d5253f2562ff78523561e457",
-          "size_bytes": 928,
+          "sha256": "c6b3efb11fc4646b6a14a9eb3a7b5cbe5e670e8ff5171ea8c9a243741c01d56f",
+          "size_bytes": 923,
           "recorded_mtime_utc": "2024-01-24T13:17:35.261027Z"
         },
         "significant-parties.csv": {
-          "sha256": "3f754c8069c97bf0d44045708d7dc1f1f1e1358160d08428e389c899d4a861eb",
-          "size_bytes": 3685,
+          "sha256": "48f45096852689f5ab59c0dc9cebe18199d6c87619fecec2f774cde9afb0d26e",
+          "size_bytes": 3607,
           "recorded_mtime_utc": "2026-07-25T08:11:13.960239Z"
         }
       },
@@ -255,12 +255,12 @@
         "prior-results.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "prior-results.csv": {
-          "sha256": "16df3b4cc304d8c5154db4424461904cd88e8c7e83398742f952bbed8cfc86fc",
-          "size_bytes": 30432,
-          "recorded_mtime_utc": "2026-02-14T11:34:54.391421Z"
+          "sha256": "e6c0cb98f31a37dff53534a1cf0e1582df8cdfd802501719919b00d7fb8fd797",
+          "size_bytes": 29895,
+          "recorded_mtime_utc": "2026-07-25T09:34:21.554376Z"
         }
       },
       "events": [
@@ -272,6 +272,24 @@
           "affects_outputs": true,
           "semantic_revision": 1,
           "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "prior-results.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T145456Z-correction-prior-result-inputs-f5b1b142",
+          "recorded_at_utc": "2026-07-25T14:54:56Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "fix duplicate rows",
           "files": [
             "prior-results.csv"
           ],
@@ -293,8 +311,8 @@
       "semantic_revision": 1,
       "files": {
         "eventual-results.csv": {
-          "sha256": "61448ff28af237bf95a8086e9ee1989f09388b5378724e74f73bb58ac688c54b",
-          "size_bytes": 9321,
+          "sha256": "9cb32f22182259c7a2bb1f75eabc6c729e219892fa46dcb255a9f2d753f145cd",
+          "size_bytes": 8900,
           "recorded_mtime_utc": "2026-05-23T07:55:37.888421Z"
         }
       },
@@ -328,8 +346,8 @@
       "semantic_revision": 1,
       "files": {
         "linked-pollsters.csv": {
-          "sha256": "a95c8ba52322c362ad6706efd9b3772887d4165af438ac7d928f9822bf448867",
-          "size_bytes": 97,
+          "sha256": "40159dd06b35e1eda3d124526df31c1a4378a3d15c102d764c569d1dc21d5d20",
+          "size_bytes": 93,
           "recorded_mtime_utc": "2024-06-21T03:06:41.510952Z"
         }
       },
@@ -363,8 +381,8 @@
       "semantic_revision": 1,
       "files": {
         "government-leaders.csv": {
-          "sha256": "7987a1c278ab83fa86184f2a2f65b8b1c6e7355dd363e4b3df5bc6beb39009a2",
-          "size_bytes": 2389,
+          "sha256": "e5be173c7294afb5d06c852eb1aead3e1abb23761bf8e3d0a9610f18b516ffe7",
+          "size_bytes": 2302,
           "recorded_mtime_utc": "2025-07-20T10:16:42.884996Z"
         }
       },
@@ -398,8 +416,8 @@
       "semantic_revision": 1,
       "files": {
         "party-groups.csv": {
-          "sha256": "23cc5201bcf50da978c8bd6cd0f96baf6cd5547269a6373282390b694a990d8b",
-          "size_bytes": 150,
+          "sha256": "6df934384043d4734619fd60f177f17329810e8359b4d02e3c64869892af2e54",
+          "size_bytes": 144,
           "recorded_mtime_utc": "2026-01-12T07:25:02.198850Z"
         }
       },
@@ -434,13 +452,13 @@
       "semantic_revision": 1,
       "files": {
         "federal-situation.csv": {
-          "sha256": "8b9a9d85406931d6e055c86bb272a378a3e935e016c184f127037e9a5b78f499",
-          "size_bytes": 1298,
+          "sha256": "40d65021a583339092791f8407ab2f2bf988b6cc43177c47ab5b21ee29adafa6",
+          "size_bytes": 1244,
           "recorded_mtime_utc": "2025-07-20T10:15:23.622209Z"
         },
         "incumbency.csv": {
-          "sha256": "3f71a9acc93500eda2b50451ab4efe440d32aa27bd3d372f733186aff71c959d",
-          "size_bytes": 2050,
+          "sha256": "fe9195943d25168659cd27d967be4a8699ac983b3493eac1572bb1b6f2f20488",
+          "size_bytes": 1972,
           "recorded_mtime_utc": "2025-07-20T10:18:27.813260Z"
         }
       },
@@ -475,8 +493,8 @@
       "semantic_revision": 1,
       "files": {
         "party-simplification.csv": {
-          "sha256": "36de3b5fdde4b8bc759db344d250181a842f457f365a646028d3d2f05316dca4",
-          "size_bytes": 6168,
+          "sha256": "723e2429f416298b0be80e977a6c971750c3cd57b00af7bc2536c066e83ce45d",
+          "size_bytes": 5946,
           "recorded_mtime_utc": "2025-08-18T07:49:37.499409Z"
         }
       },
@@ -514,28 +532,28 @@
       "semantic_revision": 2,
       "files": {
         "by-elections.csv": {
-          "sha256": "a31ee5aff10803390f88df4bd42eac8e800db3104e76c7562cf0fb8aaef982a1",
-          "size_bytes": 3994,
+          "sha256": "1582e6f9fad43b96af2fe32d3f7226c66de012881da06aa8fe8da3db89d9611e",
+          "size_bytes": 3907,
           "recorded_mtime_utc": "2025-07-20T10:05:17.154977Z"
         },
         "region-polls-fed.csv": {
-          "sha256": "6956b44d4ee32e1a04ff4679164ff7fe6e599988144dd2b1910445a024418874",
-          "size_bytes": 1718,
+          "sha256": "b45ff7cb8ee4b7f0a92df1dee48dad1e2b99efa01060527ca8943c7c3c7ef98c",
+          "size_bytes": 1689,
           "recorded_mtime_utc": "2023-04-15T12:38:34.454199Z"
         },
         "seat-regions.csv": {
-          "sha256": "6419f961ea93235ef3268e5bad8d670f11440fe6fd6c39245300a90e4d289e2e",
-          "size_bytes": 3069,
+          "sha256": "f0fd5dd0f6a55343101b0bb6b938892b152169bcaa465230d4349b9221017b4a",
+          "size_bytes": 2889,
           "recorded_mtime_utc": "2021-10-12T04:20:48.449548Z"
         },
         "seat-types.csv": {
-          "sha256": "a0346f8c5511197ab0027d17a2ceb64c30bdcdc417709a0d3a1135072d2a03d7",
-          "size_bytes": 13847,
+          "sha256": "7ba611ac83dacef2d1b039611877a18ec05c1de9e6b46f0235b16e0532d44473",
+          "size_bytes": 12999,
           "recorded_mtime_utc": "2026-07-24T01:44:35.852101Z"
         },
         "tpp-fed-regions.csv": {
-          "sha256": "c59a2f9dbe5fe90d5a60b61f59f738974ced40ed07a83db68ba96cc797c2e9ec",
-          "size_bytes": 3539,
+          "sha256": "bfeace0a7d6c5b881625116e9307aa8f1bc02343f195b88bfe56f21ec8acdfc5",
+          "size_bytes": 3397,
           "recorded_mtime_utc": "2022-07-04T01:13:55.201885Z"
         }
       },

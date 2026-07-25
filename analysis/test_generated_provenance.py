@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import generated_provenance
 import source_provenance
@@ -123,6 +124,19 @@ class GeneratedProvenanceTests(unittest.TestCase):
             "https://json-schema.org/draft/2020-12/schema",
         )
         self.assertEqual(schema["properties"]["schema_version"]["const"], 1)
+
+    def test_cross_drive_schema_reference_uses_file_uri(self):
+        with mock.patch(
+            "generated_provenance.os.path.relpath",
+            side_effect=ValueError("different drives"),
+        ):
+            reference = generated_provenance._schema_reference(
+                self.generated_manifest_path
+            )
+        self.assertEqual(
+            reference,
+            generated_provenance.SCHEMA_PATH.resolve().as_uri(),
+        )
 
     def test_multiple_work_units_share_one_manifest(self):
         second_output = self.output_directory / "results_2026sa.csv"

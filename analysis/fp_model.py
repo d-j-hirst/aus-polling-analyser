@@ -1,5 +1,6 @@
 import argparse
 import calibration_provenance
+import csv
 import datetime
 import fp_model_provenance
 import math
@@ -47,6 +48,32 @@ major_parties = ['ALP FP', 'LNP FP', 'LIB FP']
 
 class ConfigError(ValueError):
     pass
+
+
+def order_parties_for_model(parties):
+    """Return the dependency order required by the sequential party fits."""
+
+    if len(parties) != len(set(parties)):
+        raise ConfigError(
+            'Significant-party configuration contains duplicate parties: {}'
+            .format(', '.join(parties))
+        )
+
+    median_inputs = set(others_parties + ['GRN FP', 'NAT FP'])
+
+    def dependency_rank(party):
+        if party in median_inputs:
+            return 0
+        if party == 'OTH FP':
+            return 1
+        if party in major_parties:
+            return 2
+        if party == '@TPP':
+            return 3
+        return 0
+
+    # sorted() is stable, preserving the configured order within each stage.
+    return sorted(parties, key=dependency_rank)
 
 
 class Config:
@@ -115,11 +142,16 @@ class Config:
         if args.seed is not None and not 1 <= args.seed < 2 ** 31:
             raise ConfigError('The --seed value must be between 1 and 2^31-1.')
         self.seed = args.seed
+        self.synthetic_tpps_by_region = None
         self.prepare_election_list()
 
     def prepare_election_list(self):
         with open('./Data/polled-elections.csv', 'r') as f:
-            elections = ElectionCode.load_elections_from_file(f)
+            completed_elections = ElectionCode.load_elections_from_file(f)
+
+        # Cutoffs calibrate historical forecasts against known results. Never
+        # extend cutoff batches into the separately configured future cycles.
+        elections = list(completed_elections)
         if not self.cutoff_mode:
             with open('./Data/future-elections.csv', 'r') as f:
                 elections += ElectionCode.load_elections_from_file(f)
@@ -137,6 +169,11 @@ class Config:
                 raise ConfigError('Error in "elections" argument: first part '
                                   'of election name could not be converted '
                                   'into an integer')
+            if self.cutoff_mode and code not in completed_elections:
+                raise ConfigError(
+                    'Cutoff generation only supports completed elections '
+                    'listed in Data/polled-elections.csv.'
+                )
             if code not in elections:
                 raise ConfigError('Error in "elections" argument: '
                                   'value given did not match any election '
@@ -169,7 +206,7 @@ class ModellingData:
         # and arrange the data for the rest of the program to efficiently use
         with open('./Data/significant-parties.csv', 'r') as f:
             self.parties = {
-                (a[0], a[1]): a[2:] for a in
+                (a[0], a[1]): order_parties_for_model(a[2:]) for a in
                 [b.strip().split(',') for b in f.readlines()]}
 
         with open('./Data/preference-estimates.csv', 'r') as f:
@@ -296,6 +333,9 @@ class ElectionData:
             ]
             series = load_fed_trend_series_for_party(
                 LoadFedTrendSeriesForPartyInputs(
+                    available_through=(
+                        self.end if config.cutoff_mode else None
+                    ),
                     fed_cycles=party_fed_cycles,
                     party=party,
                     pure=config.pure,
@@ -610,16 +650,76 @@ def select_overlapping_fed_cycles(inputs: SelectOverlappingFedCyclesInputs):
 
 @dataclass
 class LoadFedTrendMedianInputs:
+    available_through: Optional[pd.Timestamp]
+    election_end: Optional[pd.Timestamp]
     election_year: int
     party: str
     pure: bool
     used_files: list
 
+
+def load_fed_cutoff_median(inputs: LoadFedTrendMedianInputs):
+    """Load the latest federal cutoff available by the state endpoint."""
+
+    filename = fp_model_provenance.cutoff_output_path(
+        '{}fed'.format(inputs.election_year)
+    )
+    if not filename.is_file():
+        return None
+
+    selected = None
+    with filename.open(newline='', encoding='utf-8-sig') as source:
+        reader = csv.DictReader(source)
+        if reader.fieldnames is None or '50%' not in reader.fieldnames:
+            raise ConfigError(
+                'Federal cutoff file has no median column: {}'.format(
+                    filename
+                )
+            )
+        for line_number, row in enumerate(reader, start=2):
+            if row.get('Party') != inputs.party:
+                continue
+            try:
+                endpoint_date = (
+                    inputs.election_end
+                    - pd.to_timedelta(
+                        int(row['PollTrendEndDays']),
+                        unit='D',
+                    )
+                )
+                median = float(row['50%'])
+                if not math.isfinite(median):
+                    raise ValueError('non-finite median')
+            except (TypeError, ValueError) as error:
+                raise ConfigError(
+                    '{}:{} has invalid federal cutoff data for {}'.format(
+                        filename,
+                        line_number,
+                        inputs.party,
+                    )
+                ) from error
+            if (
+                endpoint_date <= inputs.available_through
+                and (
+                    selected is None
+                    or endpoint_date > selected[0]
+                )
+            ):
+                selected = (endpoint_date, median)
+
+    if selected is None:
+        return None
+    inputs.used_files.append(str(filename))
+    return pd.Series([selected[1]], index=[selected[0]])
+
+
 def load_fed_trend_median(inputs: LoadFedTrendMedianInputs):
     election_year = inputs.election_year
     party = inputs.party
 
-    # TODO: if we ever use cutoff files, add Cutoffs/ + _{cutoff}d here
+    if inputs.available_through is not None:
+        return load_fed_cutoff_median(inputs)
+
     pure_suffix = '_pure' if inputs.pure else ''
     filename = (
         f'./Outputs/fp_trend_{election_year}fed_{party}'
@@ -646,6 +746,7 @@ def load_fed_trend_median(inputs: LoadFedTrendMedianInputs):
 
 @dataclass
 class LoadFedTrendSeriesForPartyInputs:
+    available_through: Optional[pd.Timestamp]
     fed_cycles: List[Tuple[int, pd.Timestamp, pd.Timestamp]]
     party: str
     pure: bool
@@ -659,6 +760,8 @@ def load_fed_trend_series_for_party(inputs: LoadFedTrendSeriesForPartyInputs):
 
     for year, start, end in fed_cycles:
         series = load_fed_trend_median(LoadFedTrendMedianInputs(
+            available_through=inputs.available_through,
+            election_end=end,
             election_year=year,
             party=party,
             pure=inputs.pure,
@@ -755,10 +858,101 @@ class RunContext:
     reduced_series: ReducedSeries
 
 
+class StanDiagnosticsRecorder:
+    """Accumulate non-fatal HMC diagnostic failures for one batch."""
+
+    EXPECTED_CHECKS = {
+        'n_eff',
+        'Rhat',
+        'divergence',
+        'treedepth',
+        'energy',
+    }
+
+    def __init__(self, path='./Outputs/fp_model_diagnostics.log'):
+        self.path = path
+        self.model_count = 0
+        self.issue_counts = {}
+        self.issue_count = 0
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as output:
+            output.write(
+                'Stan diagnostic failures for the current fp_model batch\n'
+            )
+
+    def record(
+        self,
+        election,
+        party,
+        excluded_pollster,
+        random_seed,
+        checks,
+    ):
+        self.model_count += 1
+        failed = {
+            check
+            for check, passed in checks.items()
+            if not passed
+        }
+        failed.update(
+            'unavailable:{}'.format(check)
+            for check in self.EXPECTED_CHECKS - set(checks)
+        )
+        if not failed:
+            return
+
+        self.issue_count += 1
+        for check in failed:
+            self.issue_counts[check] = (
+                self.issue_counts.get(check, 0) + 1
+            )
+        pollster = excluded_pollster or '<none>'
+        with open(self.path, 'a') as output:
+            output.write(
+                '{} | {} | excluded pollster {} | seed {} | failed: {}\n'
+                .format(
+                    election,
+                    party,
+                    pollster,
+                    random_seed,
+                    ', '.join(sorted(failed)),
+                )
+            )
+
+    def report(self, completed=True):
+        if self.issue_counts:
+            counts = ', '.join(
+                '{}={}'.format(check, count)
+                for check, count in sorted(self.issue_counts.items())
+            )
+            summary = (
+                '{} of {} Stan models had diagnostic problems ({}). '
+                'See {}.'
+                .format(
+                    self.issue_count,
+                    self.model_count,
+                    counts,
+                    self.path,
+                )
+            )
+        else:
+            summary = (
+                'All {} completed Stan models passed the available HMC '
+                'diagnostic checks.'.format(self.model_count)
+            )
+        if not completed:
+            summary = 'Batch terminated before completion. ' + summary
+        with open(self.path, 'a') as output:
+            output.write(summary + '\n')
+        print(summary)
+
+
 @dataclass
 class ModelInputs:
     chains: int
+    diagnostics_recorder: StanDiagnosticsRecorder
     e_data: ElectionData
+    excluded_pollster: str
     iterations: int
     model_params: ModelParams
     party: str
@@ -968,28 +1162,43 @@ def should_use_approvals(party_context: PartyContext) -> bool:
     return config.use_approvals() and (party == "@TPP" or party in major_parties)
 
 
-def load_approvals(party_context: PartyContext) -> List[List[str]]:
+def load_approvals(
+    party_context: PartyContext
+) -> List[Tuple[pd.Timestamp, float, float]]:
+    config = party_context.config
     e_data = party_context.e_data
-    with open(f'Synthetic TPPs/{e_data.e_tuple[1]}.csv') as f:
-        approvals = [
-            line.strip().split(',')
-            for line in f.readlines()
+    if config.synthetic_tpps_by_region is not None:
+        return [
+            (pd.Timestamp(date), float(tpp), float(weight))
+            for date, pollster, tpp, weight
+            in config.synthetic_tpps_by_region.get(e_data.e_tuple[1], ())
         ]
-    return approvals
+    with open(f'Synthetic TPPs/{e_data.e_tuple[1]}.csv') as f:
+        return [
+            (pd.Timestamp(line[0]), float(line[2]), float(line[3]))
+            for line in (
+                row.strip().split(',')
+                for row in f.readlines()
+            )
+        ]
 
 
 def filter_approvals_by_cycle(
-    approvals: List[List[str]],
+    approvals: List[Tuple[pd.Timestamp, float, float]],
     party_context: PartyContext
 ) -> List[Tuple[pd.Timestamp, float, float]]:
     e_data = party_context.e_data
     return [
-        (   #date, tpp, info weight
-            pd.Timestamp(line[0]),
-            float(line[2]), float(line[3])
+        approval
+        for approval in approvals
+        if (
+            approval[0] >= e_data.start_date
+            # Use the actual final voting-intention poll date, not merely the
+            # configured election/cutoff boundary. Approval observations must
+            # not extend either a cutoff or an ordinary trend into the future.
+            and approval[0] <= e_data.end
+            and approval[2] > 0
         )
-        for line in approvals if (pd.Timestamp(line[0]) >= e_data.start_date
-            and pd.Timestamp(line[0]) <= e_data.end_date)
     ]
 
 
@@ -1125,12 +1334,16 @@ def maybe_add_approvals(inputs: ApprovalsInputs) -> PollVectors:
         approvals = load_approvals(party_context)
         # Filter the approvals to only include those within the cycle of the election
         approvals = filter_approvals_by_cycle(approvals, party_context)
-        # Create the FP series from the approvals, if necessary
-        approvals = adjust_approvals_for_party(approvals, party_context)
         # Make sure that the approvals are all within the range of days that have polls
-        # (they might not be with cutoffs or other reasons)
+        # before indexing any already-generated minor-party trend. This is
+        # particularly important for cutoff runs, whose trend is truncated.
         approvals_in_range, approval_days_in_range = \
              filter_approvals_by_poll_range(approvals, party_context)
+        # Create the FP series from the approvals, if necessary
+        approvals_in_range = adjust_approvals_for_party(
+            approvals_in_range,
+            party_context,
+        )
 
         # Append the approvals to the poll vectors
         # so that they act as (low-impact) polls in the model
@@ -1290,7 +1503,10 @@ def build_reduced_series(inputs: ReducedSeriesInputs) -> ReducedSeries:
         tDiscontinuities.append(0)
     # Calculate the (reduced) day index for the election day
     # (this determines when the lowered sigma for the campaign starts)
-    tElectionDay = inputs.e_data.election_day // model_params.tFactor
+    # Raw day zero maps to Stan day one, matching the poll-day conversion.
+    tElectionDay = (
+        inputs.e_data.election_day // model_params.tFactor + 1
+    )
     # Calculate the thresholds between new and old house effects
     # (this determines when the house effects are mixed)
     tHouseEffectNew = model_params.houseEffectNew // model_params.tFactor
@@ -1417,7 +1633,15 @@ def run_stan_model(model_inputs: ModelInputs):
     print('Stan Finished ...')
 
     # Check technical model diagnostics
-    print(pystan.diagnostics.check_hmc_diagnostics(fit))
+    diagnostic_results = pystan.diagnostics.check_hmc_diagnostics(fit)
+    print(diagnostic_results)
+    model_inputs.diagnostics_recorder.record(
+        election=''.join(e_data.e_tuple),
+        party=model_inputs.party,
+        excluded_pollster=model_inputs.excluded_pollster,
+        random_seed=model_inputs.random_seed,
+        checks=diagnostic_results,
+    )
 
     return fit
 
@@ -1481,7 +1705,9 @@ def iter_trend_days(inputs: IterTrendDaysInputs):
     # This is the index of the first day in the summary table (STAN output)
     # that corresponds to the first day in the model
     offset = tDayCount + poll_vectors.n_houses * 2
-    median_col = math.floor((4 + len(output_probs_t)) / 2)
+    # The first three Stan summary columns are mean, standard error and
+    # standard deviation; percentile columns start at index three.
+    median_col = 3 + output_probs_t.index(0.5)
 
     for summary_day in range(tDayCount):
         for duplicate_num in range(model_params.tFactor):
@@ -2012,6 +2238,7 @@ def write_outputs(output_context: OutputContext, fit):
 @dataclass
 class RunPartyInputs:
     config: Config
+    diagnostics_recorder: StanDiagnosticsRecorder
     e_data: ElectionData
     excluded_pollster: str
     m_data: ModellingData
@@ -2101,8 +2328,10 @@ def run_party(inputs: RunPartyInputs) -> Optional[OutputContext]:
         stan_data=stan_data,
         iterations=m_data.desired_iterations[e_data.e_tuple],
         chains=15,
+        diagnostics_recorder=inputs.diagnostics_recorder,
         party=party,
         e_data=e_data,
+        excluded_pollster=excluded_pollster,
         model_params=model_params,
         random_seed=inputs.random_seed,
     )
@@ -2174,18 +2403,46 @@ def finalise_calibrations(e_data):
     return output_files
 
 
-def check_suspension():
-    message_seen = False
-    while True:
-        if not os.path.exists(os.path.join(os.getcwd(), f'suspend.txt')): break
-        with open(f'suspend.txt', 'r') as f:
-            a = f.read()
-            if a != '1':
-                break
-        if not message_seen:
-            message_seen = True
-            print('Suspended, waiting for resume')
-        time.sleep(60)
+def check_suspension(
+    suspension_path='suspend.txt',
+    before_pause=None,
+    input_func=input,
+    sleep_func=time.sleep,
+):
+    """Pause safely between Stan fits when the control file contains 1."""
+
+    def suspension_requested():
+        try:
+            with open(suspension_path, 'r', encoding='utf-8') as control_file:
+                return control_file.read().strip() == '1'
+        except FileNotFoundError:
+            return False
+
+    if not suspension_requested():
+        return False
+
+    if before_pause is not None:
+        before_pause()
+
+    try:
+        input_func(
+            'Suspension requested. Completed outputs have been saved. '
+            'Press Enter to resume: '
+        )
+        with open(suspension_path, 'w', encoding='utf-8') as control_file:
+            control_file.write('0\n')
+    except EOFError:
+        # Detached runs have no keyboard input, so retain the old file-based
+        # resume path rather than terminating a long-running batch.
+        print(
+            'No interactive input is available; change suspend.txt from 1 '
+            'to 0 to resume.'
+        )
+        while suspension_requested():
+            sleep_func(5)
+
+    print('Resuming fp_model generation.')
+    return True
 
 
 def build_config() -> Config:
@@ -2205,7 +2462,7 @@ def build_model_params() -> ModelParams:
 
 def maybe_generate_approvals(config: Config) -> None:
     if config.use_approvals():
-        generate_synthetic_tpps()
+        config.synthetic_tpps_by_region = generate_synthetic_tpps()
 
 
 def build_election_data(inputs: ElectionDataInputs) -> Optional[ElectionData]:
@@ -2320,6 +2577,7 @@ def run_models() -> None:
     print('Python version: {}'.format(sys.version))
     print('pystan version: {}'.format(pystan.__version__))
 
+    diagnostics_recorder = StanDiagnosticsRecorder()
     try:
         config = build_config()
 
@@ -2448,6 +2706,9 @@ def run_models() -> None:
                 continue
             calibration_trace_files = []
             for excluded_pollster in e_data.pollster_exclusions:
+                # Each exclusion is an independent fit. Never allow a skipped
+                # party to leave a median from the previous pollster round.
+                e_data.others_medians = {}
                 # Don't waste time calculating the no-pollster-excluded trend
                 # if there are no pollster-excluded trends to compare it to
                 # (and that is the only purpose for which it is calculated)
@@ -2470,7 +2731,13 @@ def run_models() -> None:
                         continue
 
                     if not config.priority:
-                        check_suspension()
+                        check_suspension(
+                            before_pause=(
+                                provenance_recorder.flush
+                                if provenance_recorder is not None
+                                else None
+                            )
+                        )
 
                     # This has to be done here because it updates the TPP based on
                     # others_medians, allowing the estimation of the size of
@@ -2504,6 +2771,7 @@ def run_models() -> None:
                     )
                     output_context = run_party(RunPartyInputs(
                         config=config,
+                        diagnostics_recorder=diagnostics_recorder,
                         e_data=e_data,
                         excluded_pollster=excluded_pollster,
                         m_data=m_data,
@@ -2627,10 +2895,12 @@ def run_models() -> None:
 
     # indicate completion (delete these lines if not the original author)
     except Exception as e:
+        diagnostics_recorder.report(completed=False)
         with open(f'itsdone.txt', 'w') as f:
             f.write('2')
         raise
     
+    diagnostics_recorder.report()
     with open(f'itsdone.txt', 'w') as f:
         f.write('1')
 

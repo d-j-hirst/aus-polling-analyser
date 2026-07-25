@@ -16,53 +16,53 @@
       "semantic_revision": 1,
       "files": {
         "2024qld-polls.csv": {
-          "sha256": "263c27bd4fb66560ba96b1bd6d528d6278239df6cbb40a7f601756722d930bc8",
-          "size_bytes": 595,
+          "sha256": "6156cbbd99889ac3f69d5e6d938cab3d17e454cb79ce6c53bb033b8064d25c76",
+          "size_bytes": 589,
           "recorded_mtime_utc": "2024-10-19T00:35:07.007035Z"
         },
         "2025fed-polls.csv": {
-          "sha256": "9b2da1172f37671dda3c97ba3e05ba46b3f82656dd4cabefccb220f4a8d319f5",
-          "size_bytes": 6108,
+          "sha256": "f9f4bb5a0795c190a52e977a04becc2ba688a9c62d958d9f850209866a0f184c",
+          "size_bytes": 6035,
           "recorded_mtime_utc": "2025-05-02T05:23:44.536016Z"
         },
         "2026vic-polls-ON.csv": {
-          "sha256": "2b72bad38fe9db8dd7ff2b72d9e1336d755a9d4cda359d004ae7fa71d00ef162",
-          "size_bytes": 340,
+          "sha256": "01d3e50f5ef459698a078853db10d599c6143b1883a5e68616416f1f4d2db8ad",
+          "size_bytes": 335,
           "recorded_mtime_utc": "2026-03-07T05:23:13.403802Z"
         },
         "2026vic-polls.csv": {
-          "sha256": "c08e095d8d34051ce726f519c11ba15d76c4d11cceead873e564747c6662e78b",
-          "size_bytes": 400,
+          "sha256": "8bc41fa25030a510dca240ed4a4c51f434563c1fc881fcee42a03ecd64c25bf0",
+          "size_bytes": 395,
           "recorded_mtime_utc": "2026-03-07T05:10:05.615454Z"
         },
         "2027nsw-polls-ON.csv": {
-          "sha256": "b6ac869ba514013a639fba85426239b1b93c84a0ec9ccc8880bdce2e272ff870",
-          "size_bytes": 138,
+          "sha256": "aa96d0b91206e2158ee8c333d5c2fea624bd622b11b862980364df5dc725d947",
+          "size_bytes": 136,
           "recorded_mtime_utc": "2026-02-23T07:13:02.539151Z"
         },
         "2027nsw-polls.csv": {
-          "sha256": "9c0475e9f4edf523ce5d5ec819533e5d623974f9681ead209997f91f9c8d6c46",
-          "size_bytes": 157,
+          "sha256": "853bfb62137a427853326b379d29b07b6bffb0487c6f8678e2cf4666e9ae444b",
+          "size_bytes": 154,
           "recorded_mtime_utc": "2026-02-23T08:30:56.385194Z"
         },
         "2028fed-polls-ON.csv": {
-          "sha256": "881e8a7ad7c81c3c3131c7d3cc346219549ef5f7be009f0c3698408c261363a3",
-          "size_bytes": 1830,
+          "sha256": "4adf35c71cfd0f3942de08aff47a03e81e911490d435c1a7df792006c86a7e5f",
+          "size_bytes": 1800,
           "recorded_mtime_utc": "2026-07-12T10:24:56.141371Z"
         },
         "2028fed-polls.csv": {
-          "sha256": "1726f12850e9d7e4b89f1186798176e523380ebbbb7822fc8c32e8845dfb5304",
-          "size_bytes": 2880,
+          "sha256": "1143d41ba4a3e42ab177b5bc6ab399edde086dd9605477406ffa3ebb02fc791e",
+          "size_bytes": 2844,
           "recorded_mtime_utc": "2026-07-12T10:24:57.060550Z"
         },
         "2028qld-polls-ON.csv": {
-          "sha256": "ebcee18523d6e7b43408569fd6cacdcd6358ebdfb57f43e82b2c2589ef1a109b",
-          "size_bytes": 163,
+          "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
+          "size_bytes": 161,
           "recorded_mtime_utc": "2026-02-23T08:31:16.218215Z"
         },
         "2028qld-polls.csv": {
-          "sha256": "19489216e319a199af839e5e1371f5e1cbb555f8320ccaa0d8b97eaa4ea880ec",
-          "size_bytes": 188,
+          "sha256": "4506671196a67d22da17a18b4cdb031034b9ecf8f60a99a8adf9700f86d343ac",
+          "size_bytes": 186,
           "recorded_mtime_utc": "2026-02-23T08:30:50.723079Z"
         }
       },

@@ -468,9 +468,15 @@ def _atomic_write_json(path, value):
 
 
 def _schema_reference(manifest_path):
-    relative_schema = os.path.relpath(
-        str(SCHEMA_PATH.resolve()), str(Path(manifest_path).resolve().parent)
-    )
+    resolved_schema = SCHEMA_PATH.resolve()
+    manifest_folder = Path(manifest_path).resolve().parent
+    try:
+        relative_schema = os.path.relpath(
+            str(resolved_schema), str(manifest_folder)
+        )
+    except ValueError:
+        # Windows cannot express a relative path between different drives.
+        return resolved_schema.as_uri()
     return Path(relative_schema).as_posix()
 
 
@@ -506,21 +512,23 @@ def _source_folder(manifest_path, manifest):
     return folder
 
 
-def _hash_file(path):
+def _canonical_source_bytes(path):
+    # Git normalizes text files to LF, while Windows worktrees commonly use
+    # CRLF. Source provenance tracks logical text rather than checkout format.
+    return path.read_bytes().replace(b"\r\n", b"\n")
+
+
+def _hash_bytes(value):
     digest = hashlib.sha256()
-    with path.open("rb") as source_file:
-        while True:
-            block = source_file.read(1024 * 1024)
-            if not block:
-                break
-            digest.update(block)
+    digest.update(value)
     return digest.hexdigest()
 
 
 def _fingerprint_file(path):
+    canonical_bytes = _canonical_source_bytes(path)
     return {
-        "sha256": _hash_file(path),
-        "size_bytes": path.stat().st_size,
+        "sha256": _hash_bytes(canonical_bytes),
+        "size_bytes": len(canonical_bytes),
         "recorded_mtime_utc": _mtime_utc(path),
     }
 

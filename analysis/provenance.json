@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-25T06:36:26Z",
+  "updated_at_utc": "2026-07-25T14:50:00Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -15,8 +15,8 @@
       "semantic_revision": 1,
       "files": {
         "election_store.py": {
-          "sha256": "e4072da18218c177249e9fc54e53a8c035ccc7a8f94fede38f49290974ee13c9",
-          "size_bytes": 4082,
+          "sha256": "2cdb0be520656329c57485e04a0cd9e779a98532d79833d82e4c9ac0af10fd73",
+          "size_bytes": 4064,
           "recorded_mtime_utc": "2026-07-24T01:26:33.803541Z"
         }
       },
@@ -122,8 +122,8 @@
       "semantic_revision": 1,
       "files": {
         "election_check.py": {
-          "sha256": "a754530d797440c2f476c5104db733e45cf133119fc829adc157f3a562331977",
-          "size_bytes": 8231,
+          "sha256": "f7096f062bf5341b61dd51bc24a1d3920accf1c045ec719688d95b9d421b32fa",
+          "size_bytes": 8060,
           "recorded_mtime_utc": "2026-07-23T23:49:24.193482Z"
         }
       },
@@ -157,8 +157,8 @@
       "semantic_revision": 1,
       "files": {
         "election_data.py": {
-          "sha256": "18edf17be6b32fae0fb1a684c2227b69c52432806869a7576a818b4df1051976",
-          "size_bytes": 19584,
+          "sha256": "a7bc8dabe051085df4e41ce58370be75211b99aa17d82e8daaeb5800b9a21ed0",
+          "size_bytes": 19210,
           "recorded_mtime_utc": "2026-07-24T01:28:20.099921Z"
         }
       },
@@ -228,8 +228,8 @@
       "semantic_revision": 1,
       "files": {
         "election_code.py": {
-          "sha256": "6cb4be4feca718a59be8c177ef91298c1e976628f3c0c87326118ee67d8bf9b5",
-          "size_bytes": 1017,
+          "sha256": "6f005437460b471f56924fba2ca10fa33c58c2f01f4323cdc7bbef8b06d1548e",
+          "size_bytes": 983,
           "recorded_mtime_utc": "2024-02-06T23:43:00.133930Z"
         }
       },
@@ -298,8 +298,8 @@
       "semantic_revision": 1,
       "files": {
         "poll_transform.py": {
-          "sha256": "57d6abe6a861a3e23447cbd04d9b50339f2042fec97e6a1b676cfb7ee8c1c82c",
-          "size_bytes": 345,
+          "sha256": "8587a769f1c7b26a74912cb46e7d2462f99ff2d81e14ab7df7330095e05dd9af",
+          "size_bytes": 331,
           "recorded_mtime_utc": "2021-08-24T08:39:06.450378Z"
         }
       },
@@ -333,8 +333,8 @@
       "semantic_revision": 1,
       "files": {
         "sample_kurtosis.py": {
-          "sha256": "81420c0c3687e4ad3d27d5622270b4ba085ad617c754af297e78995e46311032",
-          "size_bytes": 1525,
+          "sha256": "710a4efa1b4d45399624e0db1c0b195d5b8bc800fce98f2829743c3b356a616c",
+          "size_bytes": 1487,
           "recorded_mtime_utc": "2026-07-18T00:03:10.598835Z"
         }
       },
@@ -365,12 +365,12 @@
         "fp_model.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 5,
+      "semantic_revision": 6,
       "files": {
         "fp_model.py": {
-          "sha256": "c133942cf4d5cbf4cb3f3285dc60348dfeb97a6cc8d3bea0da050d705ba93351",
-          "size_bytes": 97063,
-          "recorded_mtime_utc": "2026-07-25T05:31:17.173698Z"
+          "sha256": "785f2d7b21b621c5836e12d3b17fb7083df438e71379cb47c8a4b4fd32f99607",
+          "size_bytes": 106355,
+          "recorded_mtime_utc": "2026-07-25T14:48:43.601218Z"
         }
       },
       "events": [
@@ -539,6 +539,60 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260725T103441Z-correction-fp-model-script-a46ca827",
+          "recorded_at_utc": "2026-07-25T10:34:41Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "summary": "Correct cutoff priors, approval-date filtering, calibration state reset, model indexing and party dependency ordering; retain nonfatal batch diagnostics.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T144306Z-other-fp-model-script-0e83cc27",
+          "recorded_at_utc": "2026-07-25T14:43:06Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "summary": "Pause between Stan fits on request, persist buffered provenance before waiting, and resume interactively without changing model calculations.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T145000Z-correction-fp-model-script-f55be3a1",
+          "recorded_at_utc": "2026-07-25T14:50:00Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "summary": "Restrict cutoff election selection explicitly to completed elections in polled-elections.csv, including all and onwards batches.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -551,8 +605,8 @@
       "semantic_revision": 1,
       "files": {
         "stan_cache.py": {
-          "sha256": "ff1f67f42ce0cdbbac92d87bdcccb424343131aea4b73aa698afb9c6ef6c4ae4",
-          "size_bytes": 885,
+          "sha256": "653f9225c5a88f2c2c363a505d3305bbee6d9e15d13aa5fb86cdf2d4d6d3e045",
+          "size_bytes": 853,
           "recorded_mtime_utc": "2024-09-10T16:12:07.721599Z"
         }
       },
@@ -639,8 +693,8 @@
       "semantic_revision": 1,
       "files": {
         "pollster_analysis.py": {
-          "sha256": "9ee0765b95cdedb941c174195a68bcde732d49e26e880f50eecb79463a1c90d5",
-          "size_bytes": 25940,
+          "sha256": "9c2034db1a91f3154913240d850c57998de825a10abcd8e93ada326f0245b47f",
+          "size_bytes": 25475,
           "recorded_mtime_utc": "2026-07-24T03:00:45.948631Z"
         }
       },
@@ -727,9 +781,9 @@
       "semantic_revision": 2,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "2c2b8d57fc2afad63214b217c2719e5960abe30c5b91e29a0d79dffb565bc5b2",
-          "size_bytes": 36192,
-          "recorded_mtime_utc": "2026-07-25T05:31:16.899302Z"
+          "sha256": "e9113739eba4ed376502287301a3e61ad84f8d8f6f19502d67835a48c7adaf17",
+          "size_bytes": 36194,
+          "recorded_mtime_utc": "2026-07-25T10:09:53.665759Z"
         }
       },
       "events": [
@@ -876,6 +930,24 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260725T103441Z-schema-fp-model-provenance-script-6f17db9c",
+          "recorded_at_utc": "2026-07-25T10:34:41Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Record cutoff state trends against point-in-time federal cutoff priors rather than complete federal trends.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -888,9 +960,9 @@
       "semantic_revision": 1,
       "files": {
         "approvals.py": {
-          "sha256": "1889bcebed5c3301e9515dbb3364046e06e6d2146c33d41a935e4576c7329c81",
-          "size_bytes": 13959,
-          "recorded_mtime_utc": "2026-07-24T10:17:45.296877Z"
+          "sha256": "dcda2a27590e398049f686ea64e94d2a24e194bca8d9c4c20f5e9c3329f2d8a7",
+          "size_bytes": 14378,
+          "recorded_mtime_utc": "2026-07-25T10:02:41.822981Z"
         }
       },
       "events": [
@@ -902,6 +974,24 @@
           "affects_outputs": true,
           "semantic_revision": 1,
           "summary": "Recorded the initial synthetic-TPP implementation baseline; existing outputs were not reproduced or validated.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T103441Z-correction-approvals-script-15c4f680",
+          "recorded_at_utc": "2026-07-25T10:34:41Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Return generated synthetic TPP observations in memory so concurrent trend runs do not exchange data through shared CSV files.",
           "files": [
             "approvals.py"
           ],

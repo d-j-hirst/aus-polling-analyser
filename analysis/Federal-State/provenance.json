@@ -15,48 +15,48 @@
       "semantic_revision": 1,
       "files": {
         "booths-2018sa.txt": {
-          "sha256": "61470a8069a69b331592d7a9e0d385030c03a7b2f5d3813391c1838804dc7260",
-          "size_bytes": 14577,
+          "sha256": "3ded9fc7600987ad2fa8271e8a30519f87c641beb73eeed5f6c4f7d7f77cfd90",
+          "size_bytes": 13868,
           "recorded_mtime_utc": "2022-12-31T07:36:50.977098Z"
         },
         "booths-2018vic.txt": {
-          "sha256": "66016e2bd5331c4cb919a7ffee8f6979ed10f88fe9fabc8eba101ebc5ac5c1ef",
-          "size_bytes": 42190,
+          "sha256": "64026cee9b6178be1ad273ea627f2635f96b9069bec8f9e3ac276d275666bbe6",
+          "size_bytes": 40284,
           "recorded_mtime_utc": "2022-09-12T00:44:49.165193Z"
         },
         "booths-2019nsw.txt": {
-          "sha256": "44528235e8bee1b4e3dcd68b19f31f4bfbd8ed2b12e138f7d70d2a4146c3ac7d",
-          "size_bytes": 62747,
+          "sha256": "d9631883d6e9502dfbba50c4147eb984993f3ab4d4e5258bfc404f5ba1711b56",
+          "size_bytes": 60023,
           "recorded_mtime_utc": "2022-09-13T00:24:51.570326Z"
         },
         "booths-2022sa.txt": {
-          "sha256": "1ff5554dadc4e6cc5ad294f84e683cb5bc2d9ac2b0df268f8805342827c98439",
-          "size_bytes": 14619,
+          "sha256": "9f8030b38f124f8434d8bac0d5ad172b8c2983d34ef33883739d5d7c2ad7ad79",
+          "size_bytes": 13911,
           "recorded_mtime_utc": "2022-12-31T07:36:50.980100Z"
         },
         "booths-2022vic.txt": {
-          "sha256": "c0c0d56c91f9a5389b83b7287ff993b6f812a8a8123cc0c68b0e96d195478e21",
-          "size_bytes": 43528,
+          "sha256": "90ad453708352870f4380c3b7141a8591e836de227e896186af8e43a55f5eaad",
+          "size_bytes": 41601,
           "recorded_mtime_utc": "2022-09-04T08:57:12.565391Z"
         },
         "booths-2023nsw.txt": {
-          "sha256": "7b18a1df4b48c16efe2c10958764d400956447c5d19475dadcd77c75873a10c9",
-          "size_bytes": 65066,
+          "sha256": "ac71553fd18bdd73ad50dcb7c32529d9d67b2c44aa8eef386f645ce7cb1aa492",
+          "size_bytes": 62278,
           "recorded_mtime_utc": "2023-01-03T09:52:32.315161Z"
         },
         "booths-2026sa.txt": {
-          "sha256": "02f329a5981c86565295f1dec98b72a40c2553fbc67742b73b120b948570279c",
-          "size_bytes": 14690,
+          "sha256": "2319aef7f0b45b0140a53983f0531639bdce72e5daa445f98c006431b7ca42a0",
+          "size_bytes": 13982,
           "recorded_mtime_utc": "2025-11-04T08:42:41.758364Z"
         },
         "booths-2026vic.txt": {
-          "sha256": "62727dcf3ce4f5b2561d6a8af1dc0cef8926c8f8c2d50f48c218a937c442c8f9",
-          "size_bytes": 44901,
+          "sha256": "0422c004c62b8976d7ff186b750b0f4dc9b9e7955ac01c72c8af75f32e9f00c0",
+          "size_bytes": 42949,
           "recorded_mtime_utc": "2025-11-08T08:00:09.502081Z"
         },
         "booths-2027nsw.txt": {
-          "sha256": "70f5769cf4753fda065388184e412c21746c92792a85e0d95d9e493ecd5bb18c",
-          "size_bytes": 67851,
+          "sha256": "3a2c0fc2bf21cea863f2c7c96c49d12bdd8aaccb91e80a3e0d3af053916fff5b",
+          "size_bytes": 64977,
           "recorded_mtime_utc": "2026-01-18T09:58:17.281597Z"
         }
       },
