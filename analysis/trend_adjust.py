@@ -22,6 +22,9 @@ anchors for the current poll trend.
 from election_code import ElectionCode, no_target_election_marker
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import one_tail_kurtosis
+import generated_provenance
+from trend_adjust_cutoffs import CutoffTrendData, CutoffTrendError
+import trend_adjust_provenance
 
 from scipy.interpolate import UnivariateSpline
 from sklearn.linear_model import ElasticNetCV
@@ -30,7 +33,9 @@ from numpy import array, transpose, dot, average, amax, amin, median
 
 import argparse
 import math
+import os
 import statistics
+import sys
 
 TREND_ADJUSTMENT_LEVELS = [-100, -80, -60, -40, -20, 0]
 TREND_SIMILARITY_STDDEV = 15
@@ -305,47 +310,71 @@ class Inputs:
 class PollTrend:
     def __init__(self, inputs, config):
         self._data = {}
+        self._party_lists = {}
+        self.cutoff_record_keys = []
         for election, party_list in inputs.polled_parties.items():
-            for party in party_list:
-                if party == unnamed_others_code:
-                    continue
-                trend_filename = (f'./Outputs/fp_trend_{election.year()}'
-                                  f'{election.region()}_{party}.csv')
-                if config.show_loaded_files:
-                    print(trend_filename)
-                data = import_trend_file(trend_filename)
-                self._data[ElectionPartyCode(election, party)] = data
-            self._data[ElectionPartyCode(election, unnamed_others_code)] = \
-                self.create_exclusive_others_series(election, party_list)
+            cutoff_filename = (
+                f'./Outputs/Cutoffs/cutoffs_{election.short()}.csv'
+            )
+            if config.show_loaded_files:
+                print(cutoff_filename)
+            data = CutoffTrendData(cutoff_filename)
+            configured_parties = [
+                party for party in party_list
+                if party != unnamed_others_code
+            ]
+            data.require_parties(configured_parties)
+            election_key = election.pair()
+            self._data[election_key] = data
+            # Inputs later appends the derived xOTH category in place. Keep
+            # the source-party list as it existed when cutoff rows were loaded.
+            self._party_lists[election_key] = tuple(party_list)
+            self.cutoff_record_keys.append(
+                "cutoff_poll_outputs:{}".format(election.short())
+            )
 
     def value_at(self, party_code, day, percentile, default_value=None):
-        if day >= len(self._data[party_code]) or day < 0:
-            return default_value
-        return self._data[party_code][day][percentile]
+        election_key = (party_code.year(), party_code.region())
+        if party_code.party() == unnamed_others_code:
+            return self.exclusive_others_value_at(
+                election_key, day, percentile, default_value
+            )
+        return self._data[election_key].value_at(
+            party_code.party(), day, percentile, default_value
+        )
 
-    # Create exclusive others raw series
-    def create_exclusive_others_series(self, election, party_list):
-        series = []
+    def exclusive_others_value_at(
+        self, election_key, day, percentile, default_value
+    ):
+        """Derive unnamed Others after interpolating its components."""
+
+        data = self._data[election_key]
+        party_list = self._party_lists[election_key]
         # Base of 3% for unnamed others mirrors the C++ code
         unnamed_others_base = 3
-        for day in range(0, len(self._data[
-                ElectionPartyCode(election, party_list[0])])):
-                
-            median = 0  # Median values for minor parties
-            for party in party_list:
-                if party not in not_others:
-                    code = ElectionPartyCode(election, party)
-                    median += self.value_at(code, day, 50)
-            oth_code = ElectionPartyCode(election, 'OTH FP')
-            oth_median = self.value_at(oth_code, day, 50)
-            modified_oth_median = max(oth_median, median + unnamed_others_base)
-            xoth_proportion = 1 - median / modified_oth_median
-            spread = []
-            for value in range(0, 101):
-                oth_value = self.value_at(oth_code, day, value)
-                spread.append(oth_value * xoth_proportion)
-            series.append(spread)
-        return series
+        named_medians = [
+            data.value_at(party, day, 50, default_value)
+            for party in party_list
+            if party not in not_others
+        ]
+        oth_median = data.value_at(
+            'OTH FP', day, 50, default_value
+        )
+        oth_value = data.value_at(
+            'OTH FP', day, percentile, default_value
+        )
+        if (
+            oth_median is None
+            or oth_value is None
+            or any(value is None for value in named_medians)
+        ):
+            return default_value
+        named_median = sum(named_medians)
+        modified_oth_median = max(
+            oth_median, named_median + unnamed_others_base
+        )
+        xoth_proportion = 1 - named_median / modified_oth_median
+        return oth_value * xoth_proportion
 
 
 class Outputs:
@@ -403,12 +432,15 @@ def create_fundamentals_inputs(inputs, target_election, party, avg_len):
 
 
 def save_fundamentals(results):
+    output_paths = {}
     for election, election_data in results.items():
         filename = (f'./Fundamentals/fundamentals_{election.year()}'
                     f'{election.region()}.csv')
         with open(filename, 'w') as f:
             for party, prediction in election_data.items():
                  f.write(f'{party},{prediction}\n')
+        output_paths[election] = filename
+    return output_paths
 
 
 def run_fundamentals_regression(config, inputs, excluded_election):
@@ -644,16 +676,7 @@ def run_fundamentals_regression(config, inputs, excluded_election):
             if e_p_c in inputs.eventual_results:
                 print(f'{e_p_c} - actual: {inputs.eventual_results[e_p_c]}')
 
-    save_fundamentals(to_file)
-
-
-def import_trend_file(filename):
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-    lines = [line.strip().split(',')[2:] for line in lines[3:]]
-    lines = [[float(a) for a in line] for line in lines]
-    lines.reverse()
-    return lines
+    return save_fundamentals(to_file).get(excluded_election)
 
 
 # force_monotone: will look at the endpoints
@@ -1166,9 +1189,11 @@ def save_party_data(config, party_data_by_level, exclude, party_group):
                 prefix=target_trend)
         if config.show_written_files:
             print(f'Wrote parameter data to: {filename}')
+    return filename
 
 
 def test_procedure(config, inputs, poll_trend, exclude):
+    output_paths = {}
     for party_group in party_groups.keys():
         print(f'*** DETERMINING TREND ADJUSTMENTS FOR PARTY GROUP'
               f' {party_group} ***')
@@ -1181,10 +1206,12 @@ def test_procedure(config, inputs, poll_trend, exclude):
                 poll_trend=poll_trend,
                 party_group=party_group,
                 target_trend=target_trend)
-        save_party_data(config=config,
-                        party_data_by_level=party_data_by_level,
-                        exclude=exclude,
-                        party_group=party_group)
+        output_paths[party_group] = save_party_data(
+            config=config,
+            party_data_by_level=party_data_by_level,
+            exclude=exclude,
+            party_group=party_group)
+    return output_paths
 
 
 def load_adjustment_data(filename):
@@ -1268,16 +1295,16 @@ def check_poll_predictiveness(config):
             party = "@TPP"
             adjust_filename = (f'./Adjustments/adjust_{election.year()}'
                         f'{election.region()}_{party_group}.csv')
-            trend_filename = (f'./Outputs/fp_trend_{election.year()}'
-                            f'{election.region()}_{party}.csv')
-            try:
-                trend_data = import_trend_file(trend_filename)
-            except FileNotFoundError:
+            cutoff_filename = (
+                f'./Outputs/Cutoffs/cutoffs_{election.short()}.csv'
+            )
+            if not os.path.isfile(cutoff_filename):
                 continue
-            # print(f"election: {election}")
-            try:
-                poll_trend = trend_data[poll_day][50]
-            except IndexError:
+            trend_data = CutoffTrendData(cutoff_filename)
+            poll_trend = trend_data.value_at(
+                party, poll_day, 50, default_value=None
+            )
+            if poll_trend is None:
                 continue
             adjustment_data = load_adjustment_data(adjust_filename)
             parameters = adjustment_parameters_at(
@@ -1352,19 +1379,54 @@ def trend_adjust():
         return
 
     if config.check != "only":
+        try:
+            recorder = trend_adjust_provenance.TrendAdjustmentRecorder(
+                [os.path.basename(__file__)] + sys.argv[1:]
+            )
+        except generated_provenance.GeneratedProvenanceError as e:
+            print('Could not prepare trend-adjustment provenance:')
+            print(str(e))
+            return
 
         for exclude in config.elections:
             print(f'Analysing pollsters for {exclude}')
             print(f'Beginning trend adjustment algorithm for: {exclude}')
             inputs = Inputs(exclude)
-            poll_trend = PollTrend(inputs, config)
+            try:
+                poll_trend = PollTrend(inputs, config)
+            except CutoffTrendError as e:
+                print('Could not load historical cutoff trends:')
+                print(str(e))
+                return
 
             # Leave this until now so it doesn't interfere with initialization
             # of poll_trend
             inputs.determine_eventual_others_results()
-            run_fundamentals_regression(config, inputs, exclude)
-
-            test_procedure(config, inputs, poll_trend, exclude)
+            try:
+                dependencies = recorder.dependencies_for(
+                    poll_trend.cutoff_record_keys
+                )
+            except generated_provenance.GeneratedProvenanceError as e:
+                print('Could not validate trend-adjustment dependencies:')
+                print(str(e))
+                return
+            fundamentals_output = run_fundamentals_regression(
+                config, inputs, exclude
+            )
+            adjustment_outputs = test_procedure(
+                config, inputs, poll_trend, exclude
+            )
+            try:
+                recorder.record(
+                    target_election=exclude.short(),
+                    adjustment_outputs=adjustment_outputs,
+                    fundamentals_output=fundamentals_output,
+                    dependencies=dependencies,
+                )
+            except generated_provenance.GeneratedProvenanceError as e:
+                print('Could not record trend-adjustment provenance:')
+                print(str(e))
+                return
             print(f'Completed trend adjustment algorithm for: {exclude}')
 
     if config.check == "only" or config.check == "yes":

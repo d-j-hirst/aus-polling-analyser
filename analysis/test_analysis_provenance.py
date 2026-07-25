@@ -1,0 +1,691 @@
+import json
+import tempfile
+import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+from unittest import mock
+
+import analysis_provenance
+import generated_provenance
+import source_provenance
+
+
+class AnalysisProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.base = Path(self.temporary_directory.name)
+        self.script_path = self.base / "election_store.py"
+        self.script_path.write_text("print('original')\n", encoding="utf-8")
+        self.source_manifest_path = self.base / "provenance.json"
+        source_provenance.initialize_manifest(
+            self.source_manifest_path, "Test tracked code."
+        )
+        source_provenance.add_category(
+            self.source_manifest_path,
+            "election_store_script",
+            "Test election export script.",
+            ["election_store.py"],
+        )
+
+        self.output_directory = self.base / "elections"
+        self.output_directory.mkdir()
+        self.output_path = self.output_directory / "results_2025fed.csv"
+        self.output_path.write_text("Election results\n", encoding="utf-8")
+        self.generated_manifest_path = (
+            self.output_directory / "generated-provenance.json"
+        )
+        dependency = generated_provenance.source_manifest_dependency(
+            "election_store_script",
+            self.source_manifest_path,
+            self.base,
+        )
+        record = generated_provenance.generation_record(
+            category="election_result_exports",
+            stage="export_election_results",
+            scope=generated_provenance.generation_scope(
+                elections=["2025fed"]
+            ),
+            run="test-run",
+            dependencies={"election_store_script": dependency},
+            outputs=generated_provenance.output_fingerprints(
+                [self.output_path], self.base
+            ),
+            random_seed=None,
+        )
+        generated_provenance.update_manifest(
+            self.generated_manifest_path,
+            {"election_result_exports:2025fed": record},
+            {
+                "test-run": {
+                    "generated_at_utc": "2026-01-01T00:00:00Z",
+                    "command": ["python3", "election_store.py"],
+                    "source_revision": {
+                        "system": "git",
+                        "revision": "a" * 40,
+                        "dirty": False,
+                    },
+                    "environment": {
+                        "python_version": "3.8.0",
+                        "python_implementation": "CPython",
+                        "platform": "test",
+                    },
+                }
+            },
+            path_base="..",
+            description="Test generated data.",
+        )
+
+    def tearDown(self):
+        self.temporary_directory.cleanup()
+
+    def _audit(self):
+        return analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+        )
+
+    def test_unregistered_script_change_is_reported(self):
+        self.script_path.write_text("print('changed')\n", encoding="utf-8")
+
+        result = self._audit()
+
+        self.assertTrue(
+            any("unregistered modified" in issue for issue in result["issues"])
+        )
+
+    def test_negligible_script_change_permits_existing_output(self):
+        self.script_path.write_text("print('changed')\n", encoding="utf-8")
+        analysis_provenance.register_changes(
+            [self.script_path],
+            "Comment-only change.",
+            "negligible",
+            source_manifest_paths=[self.source_manifest_path],
+        )
+
+        self.assertEqual(self._audit()["issues"], [])
+
+    def test_material_script_change_stales_existing_output(self):
+        self.script_path.write_text("print('changed')\n", encoding="utf-8")
+        analysis_provenance.register_changes(
+            [self.script_path],
+            "Changed export behaviour.",
+            "material",
+            source_manifest_paths=[self.source_manifest_path],
+        )
+
+        result = self._audit()
+        self.assertIn(
+            "Changed export behaviour. [material; methodology]",
+            result["root_causes"]["election_store_script"],
+        )
+        self.assertIn(
+            "election_result_exports",
+            result["impacts"]["immediate"]["cpp_seat_simulation"],
+        )
+
+    def test_terminal_impacts_separate_calibration_paths(self):
+        registry = {
+            "stages": [
+                {
+                    "id": "calibrate_pollsters",
+                    "inputs": ["raw_polls"],
+                    "outputs": ["calibration"],
+                },
+                {
+                    "id": "normal_trend",
+                    "inputs": ["raw_polls", "calibration"],
+                    "outputs": ["poll_trend"],
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["poll_trend"],
+                }
+            ],
+        }
+
+        impacts = analysis_provenance._terminal_impacts(
+            {"raw_polls"}, registry
+        )
+
+        self.assertEqual(
+            impacts["immediate"]["cpp_stan_model"], {"poll_trend"}
+        )
+        self.assertEqual(
+            impacts["calibration"]["cpp_stan_model"], {"poll_trend"}
+        )
+        self.assertNotIn(
+            "cpp_stan_model", impacts["calibration_only"]
+        )
+
+    def test_cutoff_stage_is_classified_as_slow_calibration_work(self):
+        self.assertIn(
+            "generate_cutoff_poll_trends",
+            analysis_provenance.CALIBRATION_STAGES,
+        )
+
+    def test_missing_required_regional_work_unit_is_reported(self):
+        work_unit = (
+            "regional_swing_deviations:2027nsw:ONP FP"
+        )
+        with mock.patch.object(
+            analysis_provenance.region_model_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ), mock.patch.object(
+            analysis_provenance.region_model_provenance,
+            "required_work_units",
+            return_value={work_unit: {}},
+        ):
+            result = self._audit()
+
+        self.assertIn(
+            "regional_swing_deviations",
+            result["other_root_causes"],
+        )
+        self.assertIn(
+            "2027nsw/ONP FP",
+            result["other_root_causes"][
+                "regional_swing_deviations"
+            ][0],
+        )
+
+    def test_regional_records_without_current_poll_work_are_ignored(self):
+        with mock.patch.object(
+            analysis_provenance.region_model_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ), mock.patch.object(
+            analysis_provenance.region_model_provenance,
+            "required_work_units",
+            return_value={},
+        ):
+            result = self._audit()
+
+        self.assertNotIn(
+            "regional_swing_deviations",
+            result["root_causes"],
+        )
+
+    def test_terminal_impacts_separate_synthetic_tpp_paths(self):
+        registry = {
+            "stages": [
+                {
+                    "id": "generate_pure_poll_trends",
+                    "inputs": ["raw_polls"],
+                    "outputs": ["pure_poll_outputs"],
+                },
+                {
+                    "id": "generate_synthetic_tpp",
+                    "inputs": ["pure_poll_outputs"],
+                    "outputs": ["synthetic_tpp_outputs"],
+                },
+                {
+                    "id": "generate_poll_trends",
+                    "inputs": ["synthetic_tpp_outputs"],
+                    "outputs": ["poll_trend_outputs"],
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["poll_trend_outputs"],
+                }
+            ],
+        }
+
+        impacts = analysis_provenance._terminal_impacts(
+            {"pure_poll_outputs"}, registry
+        )
+
+        self.assertEqual(
+            impacts["synthetic_tpp_only"]["cpp_stan_model"],
+            {"poll_trend_outputs"},
+        )
+        self.assertNotIn("cpp_stan_model", impacts["immediate"])
+        self.assertNotIn("cpp_stan_model", impacts["calibration_only"])
+
+    def test_audited_generated_dependency_is_not_reported_twice(self):
+        upstream_manifest = self.base / "upstream.json"
+        downstream_manifest = self.base / "downstream.json"
+        manifest = {
+            "path_base": ".",
+        }
+        record = {
+            "dependencies": {
+                "pollster_parameters": {
+                    "kind": "generated_manifest",
+                    "manifest": "upstream.json",
+                }
+            }
+        }
+
+        self.assertTrue(
+            analysis_provenance._is_audited_transitive_issue(
+                "stale generated dependency pollster_parameters "
+                "(pollster_parameters:2028fed)",
+                record,
+                downstream_manifest,
+                manifest,
+                {upstream_manifest.resolve(), downstream_manifest.resolve()},
+            )
+        )
+        self.assertFalse(
+            analysis_provenance._is_audited_transitive_issue(
+                "stale generated dependency pollster_parameters "
+                "(pollster_parameters:2028fed)",
+                record,
+                downstream_manifest,
+                manifest,
+                {downstream_manifest.resolve()},
+            )
+        )
+
+    def test_targeted_audit_excludes_unselected_legacy_elections(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        selected = manifest["records"][
+            "election_result_exports:2025fed"
+        ]
+        selected["status"] = "legacy"
+        selected["dependencies"] = {}
+        selected["random_seed"] = None
+        other = json.loads(json.dumps(selected))
+        other["scope"]["elections"] = ["1997nsw"]
+        other_output = self.output_directory / "results_1997nsw.csv"
+        other_output.write_text("Other election\n", encoding="utf-8")
+        other["outputs"] = {
+            "elections/results_1997nsw.csv":
+                generated_provenance.fingerprint_file(other_output)
+        }
+        manifest["records"] = {
+            "election_result_exports:2025fed": selected,
+            "election_result_exports:1997nsw": other,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        result = analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+            target_elections=["2025fed"],
+        )
+
+        self.assertEqual(result["target_elections"], ["2025fed"])
+        self.assertIn(
+            "1 pre-provenance work unit(s)",
+            result["root_causes"]["election_result_exports"][0],
+        )
+        self.assertIn(
+            "work units: 2025fed",
+            result["root_causes"]["election_result_exports"][0],
+        )
+
+    def test_work_unit_examples_are_sorted_and_limited(self):
+        records = [
+            (
+                "pure_poll_outputs:2028fed:Party {:02d}".format(index),
+                {
+                    "category": "pure_poll_outputs",
+                    "dependencies": {},
+                },
+                ["legacy provenance baseline; generation inputs unknown"],
+            )
+            for index in range(17, 0, -1)
+        ]
+
+        description = analysis_provenance._generated_root_description(
+            "pure_poll_outputs", records, {}
+        )
+
+        self.assertIn(
+            "work units: 2028fed/Party 01, 2028fed/Party 02, "
+            "2028fed/Party 03",
+            description,
+        )
+        self.assertIn("2028fed/Party 15, ... (+2 more)", description)
+        self.assertNotIn("2028fed/Party 16", description)
+
+    def test_target_selection_follows_file_dependency_to_other_election(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        federal = manifest["records"][
+            "election_result_exports:2025fed"
+        ]
+        state_output = self.output_directory / "results_2026vic.csv"
+        state_output.write_text("State election\n", encoding="utf-8")
+        state = generated_provenance.generation_record(
+            category="election_result_exports",
+            stage="export_election_results",
+            scope=generated_provenance.generation_scope(
+                elections=["2026vic"]
+            ),
+            run=federal["run"],
+            dependencies={
+                "election_result_exports":
+                    generated_provenance.file_dependency(
+                        "election_result_exports",
+                        [self.output_path],
+                        self.base,
+                    )
+            },
+            outputs=generated_provenance.output_fingerprints(
+                [state_output], self.base
+            ),
+            random_seed=None,
+        )
+        manifest["records"][
+            "election_result_exports:2026vic"
+        ] = state
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2026vic"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {
+                "election_result_exports:2025fed",
+                "election_result_exports:2026vic",
+            },
+        )
+
+    def test_target_selection_follows_multiple_federal_prior_files(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"][
+            "election_result_exports:2025fed"
+        ]
+        records = {}
+        federal_outputs = []
+        for election in ("2025fed", "2028fed"):
+            output = self.output_directory / (
+                "fp_trend_{}_ONP FP_pure.csv".format(election)
+            )
+            output.write_text("{}\n".format(election), encoding="utf-8")
+            record = json.loads(json.dumps(template))
+            record["scope"]["elections"] = [election]
+            record["outputs"] = {
+                output.relative_to(self.base).as_posix():
+                    generated_provenance.fingerprint_file(output)
+            }
+            key = "pure_poll_outputs:{}:ONP FP".format(election)
+            records[key] = record
+            federal_outputs.append(output)
+
+        state_output = self.output_directory / (
+            "fp_trend_2026vic_ONP FP_pure.csv"
+        )
+        state_output.write_text("2026vic\n", encoding="utf-8")
+        state = json.loads(json.dumps(template))
+        state["scope"]["elections"] = ["2026vic"]
+        state["dependencies"] = {
+            "pure_poll_outputs": generated_provenance.file_dependency(
+                "pure_poll_outputs", federal_outputs, self.base
+            )
+        }
+        state["outputs"] = {
+            state_output.relative_to(self.base).as_posix():
+                generated_provenance.fingerprint_file(state_output)
+        }
+        records["pure_poll_outputs:2026vic:ONP FP"] = state
+        manifest["records"] = records
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2026vic"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            set(records),
+        )
+
+    def test_legacy_calibration_is_reported_as_calibration_path_issue(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        record = manifest["records"]["election_result_exports:2025fed"]
+        record["status"] = "legacy"
+        record["category"] = "poll_calibration_traces"
+        record["stage"] = "calibrate_pollsters"
+        record["dependencies"] = {}
+        record["random_seed"] = None
+        manifest["records"] = {
+            "poll_calibration_traces:2025fed:ALP:full": record
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        registry = {
+            "stages": [
+                {
+                    "id": "calibrate_pollsters",
+                    "inputs": ["raw_polls"],
+                    "outputs": ["poll_calibration_traces"],
+                },
+                {
+                    "id": "normal_trend",
+                    "inputs": ["poll_calibration_traces"],
+                    "outputs": ["poll_trend"],
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["poll_trend"],
+                }
+            ],
+        }
+
+        result = analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+            registry=registry,
+        )
+        output = StringIO()
+        with redirect_stdout(output):
+            analysis_provenance._print_audit(result)
+
+        self.assertEqual(result["other_root_causes"], {})
+        self.assertIn(
+            "poll_calibration_traces",
+            result["calibration_root_causes"],
+        )
+        self.assertIn(
+            "Calibration-path-only provenance issues:",
+            output.getvalue(),
+        )
+        self.assertNotIn("inputs and seeds", output.getvalue())
+        self.assertIn(
+            "Missing historical seed metadata is informational only",
+            output.getvalue(),
+        )
+
+    def test_mixed_root_is_not_reported_as_calibration_only(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        immediate_record = manifest["records"][
+            "election_result_exports:2025fed"
+        ]
+        immediate_record["category"] = "poll_trend_outputs"
+        immediate_record["stage"] = "generate_poll_trends"
+        calibration_record = json.loads(json.dumps(immediate_record))
+        calibration_record["category"] = "poll_calibration_traces"
+        calibration_record["stage"] = "calibrate_pollsters"
+        calibration_record["outputs"] = {
+            next(iter(immediate_record["outputs"])): dict(
+                next(iter(immediate_record["outputs"].values()))
+            )
+        }
+        calibration_record["outputs"]["elections/calibration.csv"] = (
+            calibration_record["outputs"].pop(
+                next(iter(calibration_record["outputs"]))
+            )
+        )
+        (self.output_directory / "calibration.csv").write_text(
+            "Calibration\n", encoding="utf-8"
+        )
+        calibration_record["outputs"]["elections/calibration.csv"] = (
+            generated_provenance.fingerprint_file(
+                self.output_directory / "calibration.csv"
+            )
+        )
+        manifest["records"] = {
+            "poll_trend_outputs:2025fed": immediate_record,
+            "poll_calibration_traces:2025fed": calibration_record,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        self.script_path.write_text("print('changed')\n", encoding="utf-8")
+        analysis_provenance.register_changes(
+            [self.script_path],
+            "Changed shared model code.",
+            "material",
+            source_manifest_paths=[self.source_manifest_path],
+        )
+        registry = {
+            "stages": [
+                {
+                    "id": "calibrate_pollsters",
+                    "inputs": ["election_store_script"],
+                    "outputs": ["poll_calibration_traces"],
+                },
+                {
+                    "id": "generate_poll_trends",
+                    "inputs": ["election_store_script"],
+                    "outputs": ["poll_trend_outputs"],
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["poll_trend_outputs"],
+                }
+            ],
+        }
+
+        result = analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+            registry=registry,
+        )
+
+        self.assertIn(
+            "election_store_script", result["other_root_causes"]
+        )
+        self.assertNotIn(
+            "election_store_script", result["calibration_root_causes"]
+        )
+        self.assertIn(
+            "poll_trend_outputs",
+            result["impacts"]["immediate"]["cpp_stan_model"],
+        )
+
+    def test_regenerated_normal_output_leaves_calibration_only_path(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        record = manifest["records"]["election_result_exports:2025fed"]
+        record["category"] = "poll_calibration_traces"
+        record["stage"] = "calibrate_pollsters"
+        manifest["records"] = {
+            "poll_calibration_traces:2025fed": record
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        self.script_path.write_text("print('changed')\n", encoding="utf-8")
+        analysis_provenance.register_changes(
+            [self.script_path],
+            "Changed shared model code.",
+            "material",
+            source_manifest_paths=[self.source_manifest_path],
+        )
+        registry = {
+            "stages": [
+                {
+                    "id": "calibrate_pollsters",
+                    "inputs": ["election_store_script"],
+                    "outputs": ["poll_calibration_traces"],
+                },
+                {
+                    "id": "analyse_pollsters",
+                    "inputs": ["poll_calibration_traces"],
+                    "outputs": ["pollster_parameters"],
+                },
+                {
+                    "id": "generate_poll_trends",
+                    "inputs": [
+                        "election_store_script",
+                        "pollster_parameters",
+                    ],
+                    "outputs": ["poll_trend_outputs"],
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["poll_trend_outputs"],
+                }
+            ],
+        }
+
+        result = analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+            registry=registry,
+        )
+
+        self.assertIn(
+            "election_store_script", result["calibration_root_causes"]
+        )
+        self.assertEqual(result["other_root_causes"], {})
+        self.assertIn(
+            "poll_trend_outputs",
+            result["impacts"]["calibration_only"]["cpp_stan_model"],
+        )
+
+    def test_empty_interactive_selection_cancels_before_configuration(self):
+        changes = [
+            {
+                "path": self.script_path,
+                "relative_path": "election_store.py",
+                "category": "election_store_script",
+                "change_kind": "modified",
+            }
+        ]
+        with mock.patch.object(
+            analysis_provenance,
+            "_unregistered_files",
+            return_value=changes,
+        ), mock.patch.object(
+            analysis_provenance,
+            "_menu_checkbox",
+            return_value=[],
+        ), mock.patch.object(
+            analysis_provenance,
+            "_menu_select",
+        ) as next_prompt:
+            analysis_provenance._interactive_register()
+
+        next_prompt.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

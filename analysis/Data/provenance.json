@@ -1,0 +1,590 @@
+{
+  "$schema": "../source_provenance.schema.json",
+  "schema_version": 1,
+  "folder": ".",
+  "description": "Authored polling, election, modelling and seat-analysis inputs.",
+  "created_at_utc": "2026-07-23T23:19:50Z",
+  "updated_at_utc": "2026-07-25T08:12:17Z",
+  "categories": {
+    "election_catalogue": {
+      "description": "Known elections and their polling periods.",
+      "file_patterns": [
+        "polled-elections.csv",
+        "future-elections.csv",
+        "old-elections.csv",
+        "election-cycles.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "election-cycles.csv": {
+          "sha256": "9030be06567fd9cd310579c8c635492e5645c64c7a713e624ff49a94e6021b19",
+          "size_bytes": 2474,
+          "recorded_mtime_utc": "2025-07-20T10:09:04.856905Z"
+        },
+        "future-elections.csv": {
+          "sha256": "240feda17b7ce2e94ba60dbccc7ab8b96dae67255cd3083d0515083465241389",
+          "size_bytes": 47,
+          "recorded_mtime_utc": "2026-05-23T07:53:28.312018Z"
+        },
+        "old-elections.csv": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0,
+          "recorded_mtime_utc": "2024-02-06T22:38:21.537110Z"
+        },
+        "polled-elections.csv": {
+          "sha256": "f91cdfc6fc9b69108e7d8b2a37047fff0b33d0b28ac44835dfc996095322f0e4",
+          "size_bytes": 718,
+          "recorded_mtime_utc": "2026-05-23T09:40:19.967775Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232129Z-baseline-election-catalogue-dc51b237",
+          "recorded_at_utc": "2026-07-23T23:21:29Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "election-cycles.csv",
+            "future-elections.csv",
+            "old-elections.csv",
+            "polled-elections.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "raw_poll_data": {
+      "description": "Raw voting-intention and approval observations by jurisdiction.",
+      "file_patterns": [
+        "poll-data-*.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "poll-data-fed.csv": {
+          "sha256": "22c8567bf73630d6ca7bb57d9bd1353588da77316d1a559465656cf39453b0b9",
+          "size_bytes": 288127,
+          "recorded_mtime_utc": "2026-07-20T07:17:27.420751Z"
+        },
+        "poll-data-nsw.csv": {
+          "sha256": "55dc33e9b15be7403e679ff32d50d74178b1bcb4292e0d34d1fffb068dad70dd",
+          "size_bytes": 27596,
+          "recorded_mtime_utc": "2026-07-20T06:05:06.239731Z"
+        },
+        "poll-data-qld.csv": {
+          "sha256": "6c8ac16ef0c84635b554ddbbd9bcb2e2102c89f0e178b290c442f5fae46e3526",
+          "size_bytes": 23734,
+          "recorded_mtime_utc": "2026-06-16T08:38:09.808470Z"
+        },
+        "poll-data-sa.csv": {
+          "sha256": "45d8a28e5c975c259f958a917dda61698d2ac758329ad99389c96c7a4bec1c94",
+          "size_bytes": 19692,
+          "recorded_mtime_utc": "2026-06-25T04:43:55.030005Z"
+        },
+        "poll-data-vic.csv": {
+          "sha256": "67bb082f9f7ee95a6cb4d2a27b5a531aac3fa8331b2bf32309a08698c64a3a18",
+          "size_bytes": 38084,
+          "recorded_mtime_utc": "2026-07-13T14:40:29.580076Z"
+        },
+        "poll-data-wa.csv": {
+          "sha256": "1a8c6fd7eb007d94f1c299b69a719be8a4e53c41fd2d91e59e7e8019bcaaf977",
+          "size_bytes": 21783,
+          "recorded_mtime_utc": "2026-06-15T03:03:18.850553Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232130Z-baseline-raw-poll-data-68239168",
+          "recorded_at_utc": "2026-07-23T23:21:30Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "poll-data-fed.csv",
+            "poll-data-nsw.csv",
+            "poll-data-qld.csv",
+            "poll-data-sa.csv",
+            "poll-data-vic.csv",
+            "poll-data-wa.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "poll_model_configuration": {
+      "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",
+      "file_patterns": [
+        "significant-parties.csv",
+        "discontinuities.csv",
+        "desired-iterations.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "desired-iterations.csv": {
+          "sha256": "c7dc09f871dce7dc4d6869a711a72be8ebc65c7e7de776723a0ac9ac0ccf2eac",
+          "size_bytes": 1009,
+          "recorded_mtime_utc": "2025-07-20T10:09:28.175499Z"
+        },
+        "discontinuities.csv": {
+          "sha256": "5dd4e0b7475f71fe906af152b3a9c35e6ef11382d5253f2562ff78523561e457",
+          "size_bytes": 928,
+          "recorded_mtime_utc": "2024-01-24T13:17:35.261027Z"
+        },
+        "significant-parties.csv": {
+          "sha256": "3f754c8069c97bf0d44045708d7dc1f1f1e1358160d08428e389c899d4a861eb",
+          "size_bytes": 3685,
+          "recorded_mtime_utc": "2026-07-25T08:11:13.960239Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232131Z-baseline-poll-model-configuration-2e2b6936",
+          "recorded_at_utc": "2026-07-23T23:21:31Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "desired-iterations.csv",
+            "discontinuities.csv",
+            "significant-parties.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T071338Z-correction-poll-model-configuration-d65729ba",
+          "recorded_at_utc": "2026-07-24T07:13:38Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Remove duplicate 1993sa significant-party configuration.",
+          "files": [
+            "significant-parties.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "1993sa"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T081217Z-correction-poll-model-configuration-35ae5658",
+          "recorded_at_utc": "2026-07-25T08:12:17Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Removed the unobservable 1993 SA Democrat series from the modelled-party list; no polls reported it and cutoff generation already skipped it.",
+          "files": [
+            "significant-parties.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "preference_estimates": {
+      "description": "Preference-flow and exhaust-rate estimates used by trend generation and simulation.",
+      "file_patterns": [
+        "preference-estimates.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "preference-estimates.csv": {
+          "sha256": "66cab0693399c5cbdd4a0e934ba1f773ad4e5ee30f7abaf58a8fda11f8bd5bbb",
+          "size_bytes": 5687,
+          "recorded_mtime_utc": "2026-02-14T11:42:01.042550Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232134Z-baseline-preference-estimates-c4dc4649",
+          "recorded_at_utc": "2026-07-23T23:21:34Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "preference-estimates.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "prior_result_inputs": {
+      "description": "Summarised previous-election results used as polling and regional-model priors.",
+      "file_patterns": [
+        "prior-results.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "prior-results.csv": {
+          "sha256": "16df3b4cc304d8c5154db4424461904cd88e8c7e83398742f952bbed8cfc86fc",
+          "size_bytes": 30432,
+          "recorded_mtime_utc": "2026-02-14T11:34:54.391421Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232135Z-baseline-prior-result-inputs-4af55ec0",
+          "recorded_at_utc": "2026-07-23T23:21:35Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "prior-results.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "eventual_result_inputs": {
+      "description": "Final election outcomes used to calibrate pollsters and trend adjustments.",
+      "file_patterns": [
+        "eventual-results.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "eventual-results.csv": {
+          "sha256": "61448ff28af237bf95a8086e9ee1989f09388b5378724e74f73bb58ac688c54b",
+          "size_bytes": 9321,
+          "recorded_mtime_utc": "2026-05-23T07:55:37.888421Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232136Z-baseline-eventual-result-inputs-7ac4d753",
+          "recorded_at_utc": "2026-07-23T23:21:36Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "eventual-results.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "pollster_relationships": {
+      "description": "Aliases linking pollster brands whose historical evidence should be shared.",
+      "file_patterns": [
+        "linked-pollsters.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "linked-pollsters.csv": {
+          "sha256": "a95c8ba52322c362ad6706efd9b3772887d4165af438ac7d928f9822bf448867",
+          "size_bytes": 97,
+          "recorded_mtime_utc": "2024-06-21T03:06:41.510952Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232137Z-baseline-pollster-relationships-5f61d0b3",
+          "recorded_at_utc": "2026-07-23T23:21:37Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "linked-pollsters.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "approval_context": {
+      "description": "Leadership periods used to interpret approval observations.",
+      "file_patterns": [
+        "government-leaders.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "government-leaders.csv": {
+          "sha256": "7987a1c278ab83fa86184f2a2f65b8b1c6e7355dd363e4b3df5bc6beb39009a2",
+          "size_bytes": 2389,
+          "recorded_mtime_utc": "2025-07-20T10:16:42.884996Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232137Z-baseline-approval-context-5cbddbe3",
+          "recorded_at_utc": "2026-07-23T23:21:37Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "government-leaders.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "party_group_definitions": {
+      "description": "Mappings from modelled parties to adjustment and simulation categories.",
+      "file_patterns": [
+        "party-groups.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "party-groups.csv": {
+          "sha256": "23cc5201bcf50da978c8bd6cd0f96baf6cd5547269a6373282390b694a990d8b",
+          "size_bytes": 150,
+          "recorded_mtime_utc": "2026-01-12T07:25:02.198850Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232138Z-baseline-party-group-definitions-f08266d7",
+          "recorded_at_utc": "2026-07-23T23:21:38Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "party-groups.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "trend_context": {
+      "description": "Incumbency and federal/state political context used by trend_adjust.py.",
+      "file_patterns": [
+        "incumbency.csv",
+        "federal-situation.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "federal-situation.csv": {
+          "sha256": "8b9a9d85406931d6e055c86bb272a378a3e935e016c184f127037e9a5b78f499",
+          "size_bytes": 1298,
+          "recorded_mtime_utc": "2025-07-20T10:15:23.622209Z"
+        },
+        "incumbency.csv": {
+          "sha256": "3f71a9acc93500eda2b50451ab4efe440d32aa27bd3d372f733186aff71c959d",
+          "size_bytes": 2050,
+          "recorded_mtime_utc": "2025-07-20T10:18:27.813260Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232138Z-baseline-trend-context-c15af2c3",
+          "recorded_at_utc": "2026-07-23T23:21:38Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "federal-situation.csv",
+            "incumbency.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "election_result_rules": {
+      "description": "Rules mapping raw election-result party names to stable analytical categories.",
+      "file_patterns": [
+        "party-simplification.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "party-simplification.csv": {
+          "sha256": "36de3b5fdde4b8bc759db344d250181a842f457f365a646028d3d2f05316dca4",
+          "size_bytes": 6168,
+          "recorded_mtime_utc": "2025-08-18T07:49:37.499409Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232139Z-baseline-election-result-rules-36234036",
+          "recorded_at_utc": "2026-07-23T23:21:39Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "party-simplification.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "seat_analysis_inputs": {
+      "description": "Seat classifications, by-elections and historical regional polling used by election_analysis.py.",
+      "file_patterns": [
+        "seat-types.csv",
+        "seat-regions.csv",
+        "by-elections.csv",
+        "tpp-fed-regions.csv",
+        "region-polls-fed.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "by-elections.csv": {
+          "sha256": "a31ee5aff10803390f88df4bd42eac8e800db3104e76c7562cf0fb8aaef982a1",
+          "size_bytes": 3994,
+          "recorded_mtime_utc": "2025-07-20T10:05:17.154977Z"
+        },
+        "region-polls-fed.csv": {
+          "sha256": "6956b44d4ee32e1a04ff4679164ff7fe6e599988144dd2b1910445a024418874",
+          "size_bytes": 1718,
+          "recorded_mtime_utc": "2023-04-15T12:38:34.454199Z"
+        },
+        "seat-regions.csv": {
+          "sha256": "6419f961ea93235ef3268e5bad8d670f11440fe6fd6c39245300a90e4d289e2e",
+          "size_bytes": 3069,
+          "recorded_mtime_utc": "2021-10-12T04:20:48.449548Z"
+        },
+        "seat-types.csv": {
+          "sha256": "a0346f8c5511197ab0027d17a2ceb64c30bdcdc417709a0d3a1135072d2a03d7",
+          "size_bytes": 13847,
+          "recorded_mtime_utc": "2026-07-24T01:44:35.852101Z"
+        },
+        "tpp-fed-regions.csv": {
+          "sha256": "c59a2f9dbe5fe90d5a60b61f59f738974ced40ed07a83db68ba96cc797c2e9ec",
+          "size_bytes": 3539,
+          "recorded_mtime_utc": "2022-07-04T01:13:55.201885Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232141Z-baseline-seat-analysis-inputs-369731ab",
+          "recorded_at_utc": "2026-07-23T23:21:41Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "by-elections.csv",
+            "region-polls-fed.csv",
+            "seat-regions.csv",
+            "seat-types.csv",
+            "tpp-fed-regions.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T014452Z-coverage_extension-seat-analysis-inputs-e907d3ef",
+          "recorded_at_utc": "2026-07-24T01:44:52Z",
+          "change_type": "coverage_extension",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Added missing 2023 NSW redistributed-seat classifications from their predecessor seats.",
+          "files": [
+            "seat-types.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2023nsw"
+            ],
+            "parties": [],
+            "stages": [
+              "analyse_elections"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

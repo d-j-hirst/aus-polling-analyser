@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:polling-analyser:schema:generated-provenance:v1",
+  "title": "Polling Analyser bundled generated-data provenance manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "path_base",
+    "description",
+    "updated_at_utc",
+    "runs",
+    "records"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "path_base": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "runs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/generationRun"
+      }
+    },
+    "records": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/generationRecord"
+      }
+    }
+  },
+  "$defs": {
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mtime_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all",
+        "elections",
+        "parties",
+        "qualifiers"
+      ],
+      "properties": {
+        "all": {
+          "type": "boolean"
+        },
+        "elections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "qualifiers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sourceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "revision",
+        "dirty"
+      ],
+      "properties": {
+        "system": {
+          "const": "git"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dirty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python_version",
+        "python_implementation",
+        "platform",
+        "packages"
+      ],
+      "properties": {
+        "python_version": {
+          "type": "string"
+        },
+        "python_implementation": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "packages": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "digest",
+        "semantic_revision",
+        "manifest",
+        "files",
+        "records"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "source_manifest",
+            "files",
+            "generated_manifest"
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "semantic_revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "manifest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "records": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "generationRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generated_at_utc",
+        "command",
+        "source_revision",
+        "environment"
+      ],
+      "properties": {
+        "generated_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_revision": {
+          "$ref": "#/$defs/sourceRevision"
+        },
+        "environment": {
+          "$ref": "#/$defs/environment"
+        }
+      }
+    },
+    "generationRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "category",
+        "stage",
+        "scope",
+        "run",
+        "random_seed",
+        "dependencies",
+        "outputs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "generated",
+            "legacy"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "run": {
+          "type": "string",
+          "minLength": 1
+        },
+        "random_seed": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/dependency"
+          }
+        },
+        "outputs": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/fingerprint"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,952 @@
+{
+  "schema_version": 1,
+  "path_base": "analysis",
+  "description": "Dependency registry for authored inputs, Python-generated forecast data, and their principal consumers.",
+  "dependency_types": {
+    "inputs": "Required inputs. These edges determine the strict regeneration order.",
+    "optional_inputs": "Inputs used when present, with an explicit fallback when absent.",
+    "feedback_inputs": "Previously generated inputs that can influence a new generation of the same or an upstream category. These edges are excluded from the strict DAG and require separate review."
+  },
+  "categories": {
+    "election_catalogue": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/polled-elections.csv",
+        "Data/future-elections.csv",
+        "Data/old-elections.csv",
+        "Data/election-cycles.csv"
+      ],
+      "description": "Defines known elections and their polling periods."
+    },
+    "raw_poll_data": {
+      "kind": "authored",
+      "scope": "jurisdiction",
+      "core": true,
+      "paths": [
+        "Data/poll-data-*.csv"
+      ],
+      "description": "Raw voting-intention and approval observations."
+    },
+    "poll_model_configuration": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/significant-parties.csv",
+        "Data/discontinuities.csv",
+        "Data/desired-iterations.csv"
+      ],
+      "description": "Party coverage, discontinuities and sampling settings used by fp_model.py."
+    },
+    "preference_estimates": {
+      "kind": "authored",
+      "scope": "election-party",
+      "core": true,
+      "paths": [
+        "Data/preference-estimates.csv"
+      ],
+      "description": "Preference-flow and exhaust-rate estimates used by poll trends, trend adjustment and C++ simulation."
+    },
+    "prior_result_inputs": {
+      "kind": "authored",
+      "scope": "election-party",
+      "core": true,
+      "paths": [
+        "Data/prior-results.csv"
+      ],
+      "description": "Summarised previous-election results used as polling and regional-model priors."
+    },
+    "eventual_result_inputs": {
+      "kind": "authored",
+      "scope": "election-party",
+      "core": true,
+      "paths": [
+        "Data/eventual-results.csv"
+      ],
+      "description": "Final election outcomes used to calibrate pollster bias and trend adjustments."
+    },
+    "pollster_relationships": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/linked-pollsters.csv"
+      ],
+      "description": "Aliases linking pollster brands whose historical evidence should be shared."
+    },
+    "approval_context": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/government-leaders.csv"
+      ],
+      "description": "Leadership periods used to interpret approval observations."
+    },
+    "party_group_definitions": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/party-groups.csv"
+      ],
+      "description": "Mappings from modelled parties to adjustment and simulation categories."
+    },
+    "trend_context": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/incumbency.csv",
+        "Data/federal-situation.csv"
+      ],
+      "description": "Incumbency and federal/state political context used by trend_adjust.py."
+    },
+    "election_result_rules": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/party-simplification.csv"
+      ],
+      "description": "Rules that map raw election-result party names to stable analytical categories."
+    },
+    "election_store_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "election_store.py"
+      ],
+      "description": "Election-result export orchestration and serialization."
+    },
+    "election_check_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "election_check.py"
+      ],
+      "description": "Election-result validation and party simplification."
+    },
+    "election_data_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "election_data.py"
+      ],
+      "description": "Election-result acquisition, parsing, source corrections and internal pickle handling."
+    },
+    "election_code_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "election_code.py"
+      ],
+      "description": "Stable election identifiers used throughout election-result processing."
+    },
+    "election_analysis_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "election_analysis.py"
+      ],
+      "description": "Historical seat, regional and Coalition-allocation analysis."
+    },
+    "poll_transform_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "poll_transform.py"
+      ],
+      "description": "Vote-share transforms and bounds shared by Python analysis stages."
+    },
+    "sample_kurtosis_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "sample_kurtosis.py"
+      ],
+      "description": "RMSE and kurtosis estimators shared by Python analysis stages."
+    },
+    "trend_adjust_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "trend_adjust.py"
+      ],
+      "description": "Fundamentals regression and historical trend-adjustment calibration."
+    },
+    "trend_adjust_provenance_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "trend_adjust_provenance.py"
+      ],
+      "description": "Dependency selection and bundled provenance recording for fundamentals and trend adjustments."
+    },
+    "trend_adjust_cutoffs_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "trend_adjust_cutoffs.py"
+      ],
+      "description": "Strict loading and triangular-root interpolation of historical cutoff trends."
+    },
+    "fp_model_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "fp_model.py"
+      ],
+      "description": "Poll-trend data preparation, Stan execution and output serialization."
+    },
+    "stan_cache_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "stan_cache.py"
+      ],
+      "description": "Compilation and local caching of Stan model executables."
+    },
+    "calibration_provenance_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "calibration_provenance.py"
+      ],
+      "description": "Work-unit seeds, calibration provenance recording and legacy calibration baselining."
+    },
+    "fp_model_provenance_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "fp_model_provenance.py"
+      ],
+      "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends."
+    },
+    "region_model_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "region_model.py"
+      ],
+      "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output."
+    },
+    "region_model_provenance_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "region_model_provenance.py"
+      ],
+      "description": "Work-unit discovery and bundled provenance recording for regional swing models."
+    },
+    "approvals_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "approvals.py"
+      ],
+      "description": "Regression of leader approval observations against pure TPP trends to produce synthetic TPP polls."
+    },
+    "approvals_provenance_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "approvals_provenance.py"
+      ],
+      "description": "Approval-term selection and bundled provenance recording for synthetic TPP outputs."
+    },
+    "pollster_analysis_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "pollster_analysis.py"
+      ],
+      "description": "Reduction of calibration evidence into compact election-level pollster parameters."
+    },
+    "pollster_analysis_provenance_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "pollster_analysis_provenance.py"
+      ],
+      "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs."
+    },
+    "seat_analysis_inputs": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Data/seat-types.csv",
+        "Data/seat-regions.csv",
+        "Data/by-elections.csv",
+        "Data/tpp-fed-regions.csv",
+        "Data/region-polls-fed.csv"
+      ],
+      "description": "Seat classifications, by-elections and historical regional polling used by election_analysis.py."
+    },
+    "regional_poll_inputs": {
+      "kind": "authored",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Regional/*-polls.csv",
+        "Regional/*-polls-ON.csv"
+      ],
+      "description": "Election-specific regional poll breakdowns used by region_model.py."
+    },
+    "fp_stan_model": {
+      "kind": "authored",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Models/fp_model.stan"
+      ],
+      "description": "Stan model source used by poll-trend and calibration generation."
+    },
+    "regional_stan_models": {
+      "kind": "authored",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Models/region_model_*.stan"
+      ],
+      "description": "Election-specific Stan models used by regional trend generation."
+    },
+    "dormant_adjustment_stan_model": {
+      "kind": "authored",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "Models/adjust_model.stan"
+      ],
+      "description": "Legacy adjustment model retained in the repository but not used by the current pipeline."
+    },
+    "forecast_seats": {
+      "kind": "authored",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "seats/*.txt"
+      ],
+      "description": "Current seat configuration consumed directly by the C++ forecast pipeline."
+    },
+    "election_result_cache": {
+      "kind": "cache",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "elections/*_results.pkl"
+      ],
+      "description": "Downloaded and parsed historical seat results. Deleting a file forces a network refresh."
+    },
+    "election_result_exports": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "elections/results_*.csv"
+      ],
+      "description": "Checked historical seat results in the format consumed by SimulationPreparation."
+    },
+    "seat_statistics": {
+      "kind": "generated",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "Seat Statistics/*.csv"
+      ],
+      "description": "Historical regressions and distributions used by seat simulation."
+    },
+    "nationals_allocations": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Nationals/*_stats.csv",
+        "Nationals/*_seats.csv"
+      ],
+      "description": "Coalition allocation parameters and seat-level Nationals shares."
+    },
+    "federal_regional_statistics": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Regional/*fed-regions-base.csv",
+        "Regional/*fed-regions-polled.csv",
+        "Regional/*fed-mix-regions.csv",
+        "Regional/*fed-mix-parameters.csv"
+      ],
+      "description": "Historical federal regional behaviour and poll-mix parameters generated by election_analysis.py."
+    },
+    "regional_swing_deviations": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Regional/*-swing-deviations.csv",
+        "Regional/*-swing-deviations-ON.csv",
+        "Regional/*-swing-deviations-on.csv"
+      ],
+      "description": "Election-specific regional swing distributions generated by region_model.py."
+    },
+    "poll_calibration_traces": {
+      "kind": "generated",
+      "scope": "calibration-unit",
+      "core": true,
+      "paths": [
+        "Outputs/Calibration/fp_trend_*",
+        "Outputs/Calibration/fp_polls_*",
+        "Outputs/Calibration/fp_house_effects_*"
+      ],
+      "exclude_paths": [
+        "Outputs/Calibration/fp_trend_*_biascal.csv",
+        "Outputs/Calibration/fp_polls_*_biascal.csv",
+        "Outputs/Calibration/fp_house_effects_*_biascal.csv"
+      ],
+      "description": "Large leave-one-pollster-out calibration traces. Most downstream calculations use only compact summaries."
+    },
+    "poll_calibration_summaries": {
+      "kind": "generated",
+      "scope": "calibration-unit",
+      "core": true,
+      "paths": [
+        "Outputs/Calibration/calib_*.csv"
+      ],
+      "description": "Compact leave-one-pollster-out error summaries produced after calibration."
+    },
+    "bias_calibration_outputs": {
+      "kind": "generated",
+      "scope": "calibration-unit",
+      "core": true,
+      "paths": [
+        "Outputs/Calibration/fp_trend_*_biascal.csv",
+        "Outputs/Calibration/fp_polls_*_biascal.csv",
+        "Outputs/Calibration/fp_house_effects_*_biascal.csv"
+      ],
+      "description": "Bias-calibration trends, adjusted polls and house effects used by pollster_analysis.py."
+    },
+    "pollster_parameters": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Outputs/Calibration/variability-*.csv",
+        "Outputs/Calibration/he_weighting-*.csv",
+        "Outputs/Calibration/biases-*.csv"
+      ],
+      "exclude_paths": [
+        "Outputs/Calibration/* BASELINE CHECK.csv"
+      ],
+      "description": "Compact pollster variability, house-effect weighting and bias parameters consumed by normal and pure poll-trend runs."
+    },
+    "pure_poll_outputs": {
+      "kind": "generated",
+      "scope": "election-party",
+      "core": true,
+      "paths": [
+        "Outputs/fp_trend_*_pure.csv",
+        "Outputs/fp_polls_*_pure.csv",
+        "Outputs/fp_house_effects_*_pure.csv"
+      ],
+      "description": "Voting-intention-only trends used principally to derive synthetic TPP observations from approval polling."
+    },
+    "synthetic_tpp_outputs": {
+      "kind": "generated",
+      "scope": "jurisdiction",
+      "core": true,
+      "paths": [
+        "Synthetic TPPs/*.csv"
+      ],
+      "description": "Synthetic TPP observations estimated from leader approval polling."
+    },
+    "poll_trend_outputs": {
+      "kind": "generated",
+      "scope": "election-party",
+      "core": true,
+      "paths": [
+        "Outputs/fp_trend_*.csv",
+        "Outputs/fp_polls_*.csv",
+        "Outputs/fp_house_effects_*.csv"
+      ],
+      "exclude_paths": [
+        "Outputs/fp_trend_*_pure.csv",
+        "Outputs/fp_polls_*_pure.csv",
+        "Outputs/fp_house_effects_*_pure.csv"
+      ],
+      "description": "Normal poll trends, adjusted polls and house effects consumed by trend adjustment and the C++ model."
+    },
+    "trend_adjustments": {
+      "kind": "generated",
+      "scope": "election-party-group",
+      "core": true,
+      "paths": [
+        "Adjustments/adjust_*.csv"
+      ],
+      "exclude_paths": [
+        "Adjustments/* BASELINE CHECK.csv"
+      ],
+      "description": "Time-dependent corrections balancing polling trends and fundamentals."
+    },
+    "fundamentals": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Fundamentals/fundamentals_*.csv"
+      ],
+      "description": "Election and party fundamentals estimates used by the C++ StanModel stage."
+    },
+    "booth_result_archives": {
+      "kind": "generated",
+      "scope": "election",
+      "core": false,
+      "paths": [
+        "Booth Results/*.json"
+      ],
+      "description": "Jurisdiction-specific booth results used by live-election preparation."
+    },
+    "federal_state_booth_mappings": {
+      "kind": "authored",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Federal-State/booths-*.txt"
+      ],
+      "description": "Manual mappings from federal booths to state seats. federal_state.py uses them to derive the fTransposedFederalSwing values maintained in forecast seat files."
+    },
+    "federal_state_result_cache": {
+      "kind": "cache",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Federal-State/*.pkl"
+      ],
+      "description": "Downloaded federal booth results used with the authored booth mappings to calculate federal swing deviations for state seats."
+    },
+    "cutoff_poll_outputs": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Outputs/Cutoffs/cutoffs_*.csv"
+      ],
+      "description": "Consolidated point-in-time historical poll-model fits generated without polls published after each cutoff and consumed by trend_adjust.py."
+    }
+  },
+  "stages": [
+    {
+      "id": "cache_election_results",
+      "description": "Download and cache historical election results when the corresponding pickle is absent.",
+      "command": "python3 election_data.py",
+      "inputs": [
+        "election_data_script",
+        "election_code_script"
+      ],
+      "outputs": [
+        "election_result_cache"
+      ],
+      "core": true,
+      "network": true,
+      "cost": "hours",
+      "supports_partial": true,
+      "notes": "The supported election list and source-specific overrides are maintained in election_data.py. This acquisition stage has no file-category input beyond its source revision."
+    },
+    {
+      "id": "export_election_results",
+      "description": "Validate cached results, simplify party names and export the CSVs consumed by C++.",
+      "command": "python3 election_store.py",
+      "inputs": [
+        "election_result_rules",
+        "election_store_script",
+        "election_check_script",
+        "election_data_script",
+        "election_code_script"
+      ],
+      "outputs": [
+        "election_result_exports"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "minutes",
+      "supports_partial": false,
+      "notes": "Export is cache-only at runtime. For provenance, each election's pickle and CSV are certified together as internal outputs of the election-result code path rather than treating the pickle as an independently authored input."
+    },
+    {
+      "id": "analyse_elections",
+      "description": "Fit historical seat, regional and Coalition-allocation models.",
+      "command": "python3 election_analysis.py",
+      "inputs": [
+        "election_catalogue",
+        "election_result_cache",
+        "election_result_rules",
+        "election_check_script",
+        "election_data_script",
+        "election_code_script",
+        "election_analysis_script",
+        "poll_transform_script",
+        "sample_kurtosis_script",
+        "seat_analysis_inputs"
+      ],
+      "outputs": [
+        "seat_statistics",
+        "nationals_allocations",
+        "federal_regional_statistics"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "minutes",
+      "supports_partial": false
+    },
+    {
+      "id": "calibrate_pollsters",
+      "description": "Run leave-one-pollster-out trend models and write detailed traces plus compact error summaries.",
+      "command": "python3 fp_model.py --calibrate --election <election>",
+      "inputs": [
+        "election_catalogue",
+        "raw_poll_data",
+        "poll_model_configuration",
+        "preference_estimates",
+        "prior_result_inputs",
+        "fp_model_script",
+        "stan_cache_script",
+        "calibration_provenance_script",
+        "election_code_script",
+        "fp_stan_model"
+      ],
+      "feedback_inputs": [
+        "poll_trend_outputs"
+      ],
+      "outputs": [
+        "poll_calibration_traces",
+        "poll_calibration_summaries"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "weeks",
+      "supports_partial": true,
+      "notes": "Known likely bug: state calibration currently reads normal federal outputs. It should use matching federal calibration output, preferring the same excluded pollster and falling back to the full calibration trend."
+    },
+    {
+      "id": "calibrate_pollster_bias",
+      "description": "Generate full-series bias-calibration trends and house effects.",
+      "command": "python3 fp_model.py --bias --election <election>",
+      "inputs": [
+        "election_catalogue",
+        "raw_poll_data",
+        "poll_model_configuration",
+        "preference_estimates",
+        "prior_result_inputs",
+        "fp_model_script",
+        "stan_cache_script",
+        "calibration_provenance_script",
+        "election_code_script",
+        "fp_stan_model"
+      ],
+      "feedback_inputs": [
+        "poll_trend_outputs"
+      ],
+      "outputs": [
+        "bias_calibration_outputs"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "days",
+      "supports_partial": true,
+      "notes": "Known likely bug: state bias calibration currently reads normal federal outputs. It should use federal _biascal output."
+    },
+    {
+      "id": "analyse_pollsters",
+      "description": "Reduce calibration output into per-election pollster parameters.",
+      "command": "python3 pollster_analysis.py --election <election>",
+      "inputs": [
+        "election_catalogue",
+        "bias_calibration_outputs",
+        "poll_model_configuration",
+        "pollster_relationships",
+        "eventual_result_inputs",
+        "pollster_analysis_script",
+        "pollster_analysis_provenance_script",
+        "election_code_script"
+      ],
+      "optional_inputs": [
+        "poll_calibration_summaries"
+      ],
+      "outputs": [
+        "pollster_parameters"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "minutes",
+      "supports_partial": true,
+      "notes": "Some calculations still inspect detailed poll and house-effect files. This boundary is the main target for calibration compaction."
+    },
+    {
+      "id": "generate_pure_poll_trends",
+      "description": "Generate voting-intention-only trends used by approval analysis.",
+      "command": "python3 fp_model.py --pure --election <election>",
+      "inputs": [
+        "election_catalogue",
+        "raw_poll_data",
+        "poll_model_configuration",
+        "preference_estimates",
+        "prior_result_inputs",
+        "pollster_parameters",
+        "fp_model_script",
+        "fp_model_provenance_script",
+        "calibration_provenance_script",
+        "stan_cache_script",
+        "election_code_script",
+        "fp_stan_model"
+      ],
+      "optional_inputs": [
+        "pure_poll_outputs"
+      ],
+      "outputs": [
+        "pure_poll_outputs"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "days",
+      "supports_partial": true,
+      "notes": "State pure runs optionally use existing pure trends from every overlapping federal cycle as minor-party priors, restricted to parties significant in both elections. Federal runs do not use federal trend outputs as priors. Full regeneration should therefore run the relevant federal pure trends before dependent state trends. Only pure TPP trend and poll files are known to be consumed by approvals.py; other pure party outputs require a later consumer audit."
+    },
+    {
+      "id": "generate_synthetic_tpp",
+      "description": "Regress approval observations against historical pure TPP trends.",
+      "command": "python3 approvals.py",
+      "inputs": [
+        "election_catalogue",
+        "raw_poll_data",
+        "approval_context",
+        "pure_poll_outputs",
+        "approvals_script",
+        "approvals_provenance_script",
+        "election_code_script"
+      ],
+      "outputs": [
+        "synthetic_tpp_outputs"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "minutes",
+      "supports_partial": false
+    },
+    {
+      "id": "generate_poll_trends",
+      "description": "Generate the normal trends, adjusted polls and house effects used by forecasts.",
+      "command": "python3 fp_model.py --election <election>",
+      "inputs": [
+        "election_catalogue",
+        "raw_poll_data",
+        "poll_model_configuration",
+        "preference_estimates",
+        "prior_result_inputs",
+        "pollster_parameters",
+        "synthetic_tpp_outputs",
+        "fp_model_script",
+        "fp_model_provenance_script",
+        "stan_cache_script",
+        "election_code_script",
+        "fp_stan_model"
+      ],
+      "feedback_inputs": [
+        "poll_trend_outputs"
+      ],
+      "outputs": [
+        "poll_trend_outputs"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "days",
+      "supports_partial": true,
+      "notes": "The command regenerates synthetic TPP files internally. State normal runs should follow federal normal runs. Federal runs should not read their own existing output as a prior."
+    },
+    {
+      "id": "generate_cutoff_poll_trends",
+      "description": "Generate consolidated point-in-time historical trend fits at the triangular cutoff schedule used by trend adjustment.",
+      "command": "python3 fp_model.py --election <election> --cutoff",
+      "inputs": [
+        "election_catalogue",
+        "raw_poll_data",
+        "poll_model_configuration",
+        "preference_estimates",
+        "prior_result_inputs",
+        "pollster_parameters",
+        "synthetic_tpp_outputs",
+        "fp_model_script",
+        "fp_model_provenance_script",
+        "calibration_provenance_script",
+        "stan_cache_script",
+        "election_code_script",
+        "fp_stan_model"
+      ],
+      "feedback_inputs": [
+        "poll_trend_outputs"
+      ],
+      "outputs": [
+        "cutoff_poll_outputs"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "weeks",
+      "supports_partial": true,
+      "notes": "The schedule contains the same 46 triangular day points used by trend_adjust.py, from 0 through 1035 days before election day. Scheduled points that contain no new polling information are skipped. Each invocation replaces the consolidated file for every requested election, then writes completed endpoints incrementally. Each file contains all parties, the scheduled day, the actual latest-poll endpoint, posterior percentiles and Stan seeds. Trend adjustment indexes and interpolates by the actual endpoint rather than treating a stale poll as if it occurred on the scheduled day. This slow stage is classified with calibration work."
+    },
+    {
+      "id": "generate_trend_adjustments",
+      "description": "Estimate fundamentals and trend-adjustment parameters from historical trends and election results.",
+      "command": "python3 trend_adjust.py --election <election-or-none>",
+      "inputs": [
+        "election_catalogue",
+        "cutoff_poll_outputs",
+        "poll_model_configuration",
+        "preference_estimates",
+        "prior_result_inputs",
+        "eventual_result_inputs",
+        "party_group_definitions",
+        "trend_context",
+        "trend_adjust_script",
+        "trend_adjust_provenance_script",
+        "poll_transform_script",
+        "sample_kurtosis_script",
+        "election_code_script"
+      ],
+      "outputs": [
+        "trend_adjustments",
+        "fundamentals"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "minutes",
+      "supports_partial": true,
+      "notes": "Each target is recorded only after all configured party-group adjustments and its fundamentals file have been written. Fundamentals depend only on authored election/context data; adjustment records additionally depend on the consolidated cutoff work unit for every historical election used to calibrate that target. Missing interior endpoints are interpolated in triangular-root time using the actual poll endpoint, dates after the latest poll retain its value, and dates before the first poll provide no observation."
+    },
+    {
+      "id": "generate_regional_swings",
+      "description": "Fit election-specific regional swing deviations.",
+      "command": "python3 region_model.py --election <election> [--party ON]",
+      "inputs": [
+        "election_catalogue",
+        "regional_poll_inputs",
+        "region_model_script",
+        "region_model_provenance_script",
+        "poll_transform_script",
+        "stan_cache_script",
+        "election_code_script",
+        "regional_stan_models"
+      ],
+      "outputs": [
+        "regional_swing_deviations"
+      ],
+      "core": true,
+      "network": false,
+      "cost": "hours",
+      "supports_partial": true,
+      "notes": "A TPP or ONP work unit is required only when its election-specific Regional/*-polls*.csv file contains at least one non-Election poll row. Missing and baseline-only files are skipped rather than treated as stale generated data."
+    },
+    {
+      "id": "fetch_live_booth_results",
+      "description": "Run the jurisdiction-specific scraper needed to archive historical booth results for live analysis.",
+      "command": "python3 fetch_election_data_<jurisdiction>.py",
+      "inputs": [
+        "election_catalogue"
+      ],
+      "outputs": [
+        "booth_result_archives"
+      ],
+      "core": false,
+      "network": true,
+      "cost": "minutes",
+      "supports_partial": true,
+      "notes": "Scrapers are jurisdiction-specific and currently have different command-line behaviour."
+    },
+    {
+      "id": "analyse_federal_state_relationships",
+      "description": "Download/cache federal booth results and calculate federal swing deviations for manual transfer into state forecast seat files.",
+      "command": "python3 federal_state.py --election <election>",
+      "inputs": [
+        "election_catalogue",
+        "federal_state_booth_mappings"
+      ],
+      "outputs": [
+        "federal_state_result_cache"
+      ],
+      "core": false,
+      "network": true,
+      "cost": "hours",
+      "supports_partial": true,
+      "notes": "The derived seat deviations are printed rather than written directly. They are manually copied into fTransposedFederalSwing in seats/*.txt, so changes require review and an authored forecast_seats provenance update."
+    }
+  ],
+  "consumers": [
+    {
+      "id": "cpp_stan_model",
+      "description": "C++ model preparation and projection.",
+      "inputs": [
+        "poll_trend_outputs",
+        "trend_adjustments",
+        "fundamentals",
+        "seat_statistics",
+        "party_group_definitions",
+        "preference_estimates"
+      ]
+    },
+    {
+      "id": "cpp_seat_simulation",
+      "description": "C++ seat-level simulation preparation and execution.",
+      "inputs": [
+        "election_result_exports",
+        "seat_statistics",
+        "nationals_allocations",
+        "federal_regional_statistics",
+        "regional_swing_deviations",
+        "forecast_seats",
+        "seat_analysis_inputs",
+        "preference_estimates",
+        "prior_result_inputs"
+      ]
+    },
+    {
+      "id": "cpp_live_analysis",
+      "description": "Optional C++ live-election analysis.",
+      "inputs": [
+        "booth_result_archives",
+        "election_result_exports",
+        "forecast_seats",
+        "preference_estimates"
+      ]
+    },
+    {
+      "id": "seat_configuration_maintenance",
+      "description": "Manual preparation of state forecast seat files, including fTransposedFederalSwing values derived by federal_state.py.",
+      "inputs": [
+        "federal_state_booth_mappings",
+        "federal_state_result_cache",
+        "forecast_seats"
+      ]
+    }
+  ]
+}

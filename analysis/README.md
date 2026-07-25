@@ -1,5 +1,29 @@
 # Python Analysis
 
+The generated-data dependency graph, regeneration order, calibration caveats
+and planned provenance system are documented in [PIPELINE.md](PIPELINE.md).
+The corresponding machine-readable registry is
+[`pipeline_registry.json`](pipeline_registry.json).
+
+Audit authored inputs, monitored scripts and generated provenance with:
+
+```bash
+python3 analysis_provenance.py audit
+```
+
+Run `python3 analysis_provenance.py` without arguments for an interactive menu.
+InquirerPy is used when installed, with a plain terminal fallback otherwise.
+Limit an audit to one election, or repeat the option for a custom group:
+
+```bash
+python3 analysis_provenance.py audit --election 2028fed
+python3 analysis_provenance.py audit \
+  --election 2026vic --election 2027nsw --election 2028fed
+```
+
+Targeted audits include generated work units for the named elections plus
+cross-election work units explicitly recorded as their dependencies.
+
 ## Environment
 
 Run these commands from the `analysis/` directory. `fp_model.py` is unlikely to
@@ -47,12 +71,75 @@ multi-election run:
 python3 fp_model.py --election 2016-fed-onwards
 ```
 
+### Calibration
+
+Generate leave-one-pollster-out calibration data for one election:
+
+```bash
+python3 fp_model.py --election 2025-fed --calibrate
+```
+
+Generate its pollster-bias calibration:
+
+```bash
+python3 fp_model.py --election 2025-fed --bias
+```
+
+These stages can be very slow. Add `--seed N` to make their Stan sampling
+reproducible. Completed calibration work units are recorded in the ignored
+generated-provenance bundle. Existing pre-provenance calibration files can be
+fingerprinted, without claiming they were reproduced, using:
+
+```bash
+python3 calibration_provenance.py baseline
+```
+
+Reduce the calibration evidence into the compact parameters used by normal
+poll-trend runs:
+
+```bash
+python3 pollster_analysis.py --election 2028-fed
+```
+
+This records the election's `variability`, `he_weighting` and `biases` files
+as one generated work unit. Existing parameter files can be fingerprinted as
+legacy outputs without rerunning the analysis:
+
+```bash
+python3 pollster_analysis_provenance.py baseline
+```
+
+Generate voting-intention-only trends, excluding approval and TPP-only
+observations:
+
+```bash
+python3 fp_model.py --election 2028-fed --pure
+```
+
+Each completed election-party fit records its trend, adjusted-poll and
+house-effect files in `Outputs/pure-generated-provenance.json`. Existing pure
+outputs can be fingerprinted as legacy work units without rerunning Stan:
+
+```bash
+python3 fp_model_provenance.py baseline
+```
+
 ## Trend Adjustments
 
 `trend_adjust.py` compares generated trends with historical results. It writes
 time-dependent parameters to `Adjustments/` and fundamentals estimates to
 `Fundamentals/`. Targeting a past election excludes its result from training,
 which prevents look-ahead when hindcasting.
+
+Each completed target is recorded in
+`Adjustments/generated-provenance.json`. Adjustment records depend on the
+historical point-in-time cutoff work units actually loaded. Fundamentals
+records retain only their authored election and context dependencies. Existing
+files can be fingerprinted as legacy outputs without rerunning the analysis:
+
+```bash
+python3 trend_adjust_provenance.py baseline
+```
 
 Generate adjustments for one hindcast:
 

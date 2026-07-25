@@ -1,0 +1,1310 @@
+{
+  "$schema": "source_provenance.schema.json",
+  "schema_version": 1,
+  "folder": ".",
+  "description": "Monitored Python analysis code.",
+  "created_at_utc": "2026-07-24T00:41:17Z",
+  "updated_at_utc": "2026-07-25T06:36:26Z",
+  "categories": {
+    "election_store_script": {
+      "description": "Election-result export orchestration and serialization.",
+      "file_patterns": [
+        "election_store.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "election_store.py": {
+          "sha256": "e4072da18218c177249e9fc54e53a8c035ccc7a8f94fede38f49290974ee13c9",
+          "size_bytes": 4082,
+          "recorded_mtime_utc": "2026-07-24T01:26:33.803541Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T004157Z-baseline-election-store-script-32d43780",
+          "recorded_at_utc": "2026-07-24T00:41:57Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T005714Z-formatting-election-store-script-dc2d70a2",
+          "recorded_at_utc": "2026-07-24T00:57:14Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Insert newline for test purposes",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T012348Z-formatting-election-store-script-b515122a",
+          "recorded_at_utc": "2026-07-24T01:23:48Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Removed the temporary newline used to test provenance registration.",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T012555Z-formatting-election-store-script-7d3b0661",
+          "recorded_at_utc": "2026-07-24T01:25:55Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Another test newline",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T012648Z-formatting-election-store-script-a33c91b1",
+          "recorded_at_utc": "2026-07-24T01:26:48Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Revert previous change",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "election_check_script": {
+      "description": "Election-result validation and party simplification.",
+      "file_patterns": [
+        "election_check.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "election_check.py": {
+          "sha256": "a754530d797440c2f476c5104db733e45cf133119fc829adc157f3a562331977",
+          "size_bytes": 8231,
+          "recorded_mtime_utc": "2026-07-23T23:49:24.193482Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T004159Z-baseline-election-check-script-e62aecda",
+          "recorded_at_utc": "2026-07-24T00:41:59Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "election_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "election_data_script": {
+      "description": "Election-result acquisition, parsing, source corrections and internal pickle handling.",
+      "file_patterns": [
+        "election_data.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "election_data.py": {
+          "sha256": "18edf17be6b32fae0fb1a684c2227b69c52432806869a7576a818b4df1051976",
+          "size_bytes": 19584,
+          "recorded_mtime_utc": "2026-07-24T01:28:20.099921Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T004200Z-baseline-election-data-script-601f7dc8",
+          "recorded_at_utc": "2026-07-24T00:42:00Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T012810Z-formatting-election-data-script-d9ca86c9",
+          "recorded_at_utc": "2026-07-24T01:28:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "insert test newline",
+          "files": [
+            "election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T012839Z-formatting-election-data-script-b8ed252a",
+          "recorded_at_utc": "2026-07-24T01:28:39Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "remove test newline",
+          "files": [
+            "election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "election_code_script": {
+      "description": "Stable election identifiers used throughout election-result processing.",
+      "file_patterns": [
+        "election_code.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "election_code.py": {
+          "sha256": "6cb4be4feca718a59be8c177ef91298c1e976628f3c0c87326118ee67d8bf9b5",
+          "size_bytes": 1017,
+          "recorded_mtime_utc": "2024-02-06T23:43:00.133930Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T004200Z-baseline-election-code-script-8a692b73",
+          "recorded_at_utc": "2026-07-24T00:42:00Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "election_code.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "election_analysis_script": {
+      "description": "Historical seat, regional and Coalition-allocation analysis.",
+      "file_patterns": [
+        "election_analysis.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "election_analysis.py": {
+          "sha256": "b4dcc6c6b7964639b9314b6a670f05143e53a1f3c1aca5bace8ea7150081b4c7",
+          "size_bytes": 87052,
+          "recorded_mtime_utc": "2026-07-24T01:39:24.276873Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T013953Z-baseline-election-analysis-script-fe3c8474",
+          "recorded_at_utc": "2026-07-24T01:39:53Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "election_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "poll_transform_script": {
+      "description": "Vote-share transforms and bounds shared by Python analysis stages.",
+      "file_patterns": [
+        "poll_transform.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "poll_transform.py": {
+          "sha256": "57d6abe6a861a3e23447cbd04d9b50339f2042fec97e6a1b676cfb7ee8c1c82c",
+          "size_bytes": 345,
+          "recorded_mtime_utc": "2021-08-24T08:39:06.450378Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T013956Z-baseline-poll-transform-script-7c8c1840",
+          "recorded_at_utc": "2026-07-24T01:39:56Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "poll_transform.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "sample_kurtosis_script": {
+      "description": "RMSE and kurtosis estimators shared by Python analysis stages.",
+      "file_patterns": [
+        "sample_kurtosis.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "sample_kurtosis.py": {
+          "sha256": "81420c0c3687e4ad3d27d5622270b4ba085ad617c754af297e78995e46311032",
+          "size_bytes": 1525,
+          "recorded_mtime_utc": "2026-07-18T00:03:10.598835Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T013957Z-baseline-sample-kurtosis-script-709bd004",
+          "recorded_at_utc": "2026-07-24T01:39:57Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial monitored-code baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "sample_kurtosis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "fp_model_script": {
+      "description": "Poll-trend data preparation, Stan execution and output serialization.",
+      "file_patterns": [
+        "fp_model.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 5,
+      "files": {
+        "fp_model.py": {
+          "sha256": "c133942cf4d5cbf4cb3f3285dc60348dfeb97a6cc8d3bea0da050d705ba93351",
+          "size_bytes": 97063,
+          "recorded_mtime_utc": "2026-07-25T05:31:17.173698Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T020604Z-baseline-fp-model-script-57832c3a",
+          "recorded_at_utc": "2026-07-24T02:06:04Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial fp_model calibration and poll-trend implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T041155Z-schema-fp-model-script-3db3e7eb",
+          "recorded_at_utc": "2026-07-24T04:11:55Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Added pure-trend provenance preflight and recording; generated poll-trend CSV calculations are unchanged.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T044219Z-methodology-fp-model-script-e71d0e00",
+          "recorded_at_utc": "2026-07-24T04:42:19Z",
+          "change_type": "methodology",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Changed pure state trends to use federal pure trends, rather than final federal trends, as minor-party priors.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "generate_pure_poll_trends"
+            ]
+          }
+        },
+        {
+          "id": "20260724T044725Z-correction-fp-model-script-3cf7e953",
+          "recorded_at_utc": "2026-07-24T04:47:25Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "summary": "Prevented federal pure trends from using their own existing cycle as a prior while retaining earlier federal-cycle priors.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "generate_pure_poll_trends"
+            ]
+          }
+        },
+        {
+          "id": "20260724T054409Z-correction-fp-model-script-34515e91",
+          "recorded_at_utc": "2026-07-24T05:44:09Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "summary": "Restrict federal trend priors to overlapping state election cycles.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T070733Z-correction-fp-model-script-cc7b672d",
+          "recorded_at_utc": "2026-07-24T07:07:33Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "summary": "Restrict state federal priors to parties significant in both elections.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T104309Z-schema-fp-model-script-e8f5a32b",
+          "recorded_at_utc": "2026-07-24T10:43:09Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "summary": "Record federal pure-trend priors against only the party that consumes them.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T132803Z-schema-fp-model-script-8f738198",
+          "recorded_at_utc": "2026-07-24T13:28:03Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "summary": "Record final poll-trend provenance without changing model calculations.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T062444Z-other-fp-model-script-d653d61e",
+          "recorded_at_utc": "2026-07-25T06:24:44Z",
+          "change_type": "other",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "summary": "Batch offset outputs",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "stan_cache_script": {
+      "description": "Compilation and local caching of Stan model executables.",
+      "file_patterns": [
+        "stan_cache.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "stan_cache.py": {
+          "sha256": "ff1f67f42ce0cdbbac92d87bdcccb424343131aea4b73aa698afb9c6ef6c4ae4",
+          "size_bytes": 885,
+          "recorded_mtime_utc": "2024-09-10T16:12:07.721599Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T020613Z-baseline-stan-cache-script-a5a61837",
+          "recorded_at_utc": "2026-07-24T02:06:13Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial Stan cache implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "stan_cache.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "calibration_provenance_script": {
+      "description": "Work-unit seeds, calibration provenance recording and legacy calibration baselining.",
+      "file_patterns": [
+        "calibration_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "calibration_provenance.py": {
+          "sha256": "a71114638a8b97fb9308bcf2c5f186d11ab746b05afd434da039820ca8d48fb5",
+          "size_bytes": 11160,
+          "recorded_mtime_utc": "2026-07-24T02:26:41.560941Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T020631Z-baseline-calibration-provenance-script-2ca26f78",
+          "recorded_at_utc": "2026-07-24T02:06:31Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial calibration provenance implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T022914Z-schema-calibration-provenance-script-69e138fa",
+          "recorded_at_utc": "2026-07-24T02:29:14Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Narrowed calibration's Stan dependency from all Stan files to fp_model.stan only; numerical calibration behaviour is unchanged.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "pollster_analysis_script": {
+      "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
+      "file_patterns": [
+        "pollster_analysis.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "pollster_analysis.py": {
+          "sha256": "9ee0765b95cdedb941c174195a68bcde732d49e26e880f50eecb79463a1c90d5",
+          "size_bytes": 25940,
+          "recorded_mtime_utc": "2026-07-24T03:00:45.948631Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T030251Z-baseline-pollster-analysis-script-f8b40585",
+          "recorded_at_utc": "2026-07-24T03:02:51Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial pollster-analysis implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "pollster_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "pollster_analysis_provenance_script": {
+      "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs.",
+      "file_patterns": [
+        "pollster_analysis_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "pollster_analysis_provenance.py": {
+          "sha256": "2952d9357154a7676598117ad77c91b80db92fb9984df8fdcb09ebd61a5e8097",
+          "size_bytes": 7907,
+          "recorded_mtime_utc": "2026-07-24T03:24:09.452522Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T030251Z-baseline-pollster-analysis-provenance-script-25484dfa",
+          "recorded_at_utc": "2026-07-24T03:02:51Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial pollster-analysis provenance implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T032432Z-formatting-pollster-analysis-provenance-script-187b7cb4",
+          "recorded_at_utc": "2026-07-24T03:24:32Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Allowed prior-only pollster analysis when no historical leave-one-pollster-out summaries apply; generated CSV calculations are unchanged.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "fp_model_provenance_script": {
+      "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
+      "file_patterns": [
+        "fp_model_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "fp_model_provenance.py": {
+          "sha256": "2c2b8d57fc2afad63214b217c2719e5960abe30c5b91e29a0d79dffb565bc5b2",
+          "size_bytes": 36192,
+          "recorded_mtime_utc": "2026-07-25T05:31:16.899302Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T041141Z-baseline-fp-model-provenance-script-6a23818a",
+          "recorded_at_utc": "2026-07-24T04:11:41Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial pure poll-trend provenance implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T044223Z-schema-fp-model-provenance-script-909d9776",
+          "recorded_at_utc": "2026-07-24T04:42:23Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Recorded federal pure trends, rather than final federal trends, as pure state prior dependencies; numerical outputs are unchanged by this helper edit.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T051816Z-other-fp-model-provenance-script-c5399017",
+          "recorded_at_utc": "2026-07-24T05:18:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Infer overlapping federal priors for legacy state pure-trend records.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T070843Z-other-fp-model-provenance-script-2a6b7e81",
+          "recorded_at_utc": "2026-07-24T07:08:43Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Match legacy federal-prior dependencies to mutually significant parties.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T071840Z-other-fp-model-provenance-script-49f1ea34",
+          "recorded_at_utc": "2026-07-24T07:18:40Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Safely prune irrelevant federal-prior files from existing pure-trend records.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T104622Z-other-fp-model-provenance-script-1daa7ae5",
+          "recorded_at_utc": "2026-07-24T10:46:22Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Make legacy and migrated federal-prior dependencies party-specific.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T132925Z-schema-fp-model-provenance-script-e15fcce0",
+          "recorded_at_utc": "2026-07-24T13:29:25Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Track final poll-trend work units and their direct generated dependencies.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T062444Z-other-fp-model-provenance-script-9687765e",
+          "recorded_at_utc": "2026-07-25T06:24:44Z",
+          "change_type": "other",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Batch offset outputs",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "approvals_script": {
+      "description": "Synthetic TPP regression from leader approval observations and pure TPP trends.",
+      "file_patterns": [
+        "approvals.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "approvals.py": {
+          "sha256": "1889bcebed5c3301e9515dbb3364046e06e6d2146c33d41a935e4576c7329c81",
+          "size_bytes": 13959,
+          "recorded_mtime_utc": "2026-07-24T10:17:45.296877Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T101813Z-baseline-approvals-script-cf148974",
+          "recorded_at_utc": "2026-07-24T10:18:13Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial synthetic-TPP implementation baseline; existing outputs were not reproduced or validated.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "approvals_provenance_script": {
+      "description": "Synthetic-TPP dependency selection, bundled provenance recording and legacy baselining.",
+      "file_patterns": [
+        "approvals_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "approvals_provenance.py": {
+          "sha256": "c60ae44a6f4e1d44ed13b967e753b01a70881bf74477ca26d2f6b4474161bc6d",
+          "size_bytes": 11130,
+          "recorded_mtime_utc": "2026-07-24T10:25:32.666759Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T102013Z-baseline-approvals-provenance-script-e572411c",
+          "recorded_at_utc": "2026-07-24T10:20:13Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the initial synthetic-TPP provenance implementation baseline; existing outputs were not reproduced or validated.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260724T103016Z-correction-approvals-provenance-script-28f2746e",
+          "recorded_at_utc": "2026-07-24T10:30:16Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Ignore dormant future elections without configured cycles when selecting approval terms.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "region_model_script": {
+      "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output.",
+      "file_patterns": [
+        "region_model.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "region_model.py": {
+          "sha256": "ab12fc5630473018f18126ca73038e68f50359dbad0c8324ca9f7b813d9a7b7c",
+          "size_bytes": 26990,
+          "recorded_mtime_utc": "2026-07-25T04:23:00.525095Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260725T041709Z-baseline-region-model-script-68b32ab8",
+          "recorded_at_utc": "2026-07-25T04:17:09Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the regional model implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "region_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T042538Z-other-region-model-script-7c8635da",
+          "recorded_at_utc": "2026-07-25T04:25:38Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Remove unused imports and the unused prior-results load; regional model outputs and actual dependencies are unchanged.",
+          "files": [
+            "region_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "region_model_provenance_script": {
+      "description": "Work-unit discovery and bundled provenance recording for regional swing models.",
+      "file_patterns": [
+        "region_model_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "region_model_provenance.py": {
+          "sha256": "12cebda3ac5a3e79434d527828648886e67decd6d641ba6063f247340917bed0",
+          "size_bytes": 9206,
+          "recorded_mtime_utc": "2026-07-25T04:23:51.324948Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260725T041718Z-baseline-region-model-provenance-script-173fe1c5",
+          "recorded_at_utc": "2026-07-25T04:17:18Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the regional provenance helper baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "region_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T042152Z-correction-region-model-provenance-script-84b92307",
+          "recorded_at_utc": "2026-07-25T04:21:52Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Validate every real regional poll row when determining required work units; current work-unit selection is unchanged.",
+          "files": [
+            "region_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T042601Z-correction-region-model-provenance-script-8fe43a10",
+          "recorded_at_utc": "2026-07-25T04:26:01Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Remove the unused prior-results dependency from regional work units; model outputs and effective inputs are unchanged.",
+          "files": [
+            "region_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "trend_adjust_script": {
+      "description": "Fundamentals regression and historical trend-adjustment calibration.",
+      "file_patterns": [
+        "trend_adjust.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "trend_adjust.py": {
+          "sha256": "07621888b3d8510d56455ba2b98b0b940eb33fe15df0157febedcdd31ffcd418",
+          "size_bytes": 69448,
+          "recorded_mtime_utc": "2026-07-25T06:29:15.342836Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260725T055816Z-baseline-trend-adjust-script-bc14ce40",
+          "recorded_at_utc": "2026-07-25T05:58:16Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the trend-adjustment implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "trend_adjust.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T063008Z-methodology-trend-adjust-script-10ec0566",
+          "recorded_at_utc": "2026-07-25T06:30:08Z",
+          "change_type": "methodology",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Replace complete-cycle historical trends with leakage-safe cutoff trends interpolated by actual endpoint in triangular-root time.",
+          "files": [
+            "trend_adjust.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "generate_trend_adjustments"
+            ]
+          }
+        }
+      ]
+    },
+    "trend_adjust_provenance_script": {
+      "description": "Dependency selection and bundled provenance recording for fundamentals and trend adjustments.",
+      "file_patterns": [
+        "trend_adjust_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "trend_adjust_provenance.py": {
+          "sha256": "fe67d872fa8b53f7714d7e259108ba378862b655384587cecbc29f1d6f504e07",
+          "size_bytes": 14172,
+          "recorded_mtime_utc": "2026-07-25T06:27:05.093423Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260725T055827Z-baseline-trend-adjust-provenance-script-cc0b72a7",
+          "recorded_at_utc": "2026-07-25T05:58:27Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the trend-adjustment provenance implementation baseline; existing generated outputs were not reproduced or validated.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T060129Z-schema-trend-adjust-provenance-script-20ad1fa8",
+          "recorded_at_utc": "2026-07-25T06:01:29Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Cache selected generated dependencies while baselining trend-adjustment outputs; numerical outputs are unchanged.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T060421Z-schema-trend-adjust-provenance-script-0b838639",
+          "recorded_at_utc": "2026-07-25T06:04:21Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Restrict fundamentals provenance to dependencies used by the fundamentals calculation; numerical outputs are unchanged.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T061554Z-schema-trend-adjust-provenance-script-0238d150",
+          "recorded_at_utc": "2026-07-25T06:15:54Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Record historical cutoff work units as required correctness dependencies of trend adjustments; numerical calculations are unchanged.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T063116Z-schema-trend-adjust-provenance-script-a82770f0",
+          "recorded_at_utc": "2026-07-25T06:31:16Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Replace final-trend dependencies with required cutoff work units and report missing cutoff elections; numerical outputs are unchanged.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "trend_adjust_cutoffs_script": {
+      "description": "Strict loading and triangular-root interpolation of historical cutoff trends.",
+      "file_patterns": [
+        "trend_adjust_cutoffs.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "trend_adjust_cutoffs.py": {
+          "sha256": "c953d43b8f54b8eede0a4d6c09d6e978e320833d8b117eae40cf49164e54735c",
+          "size_bytes": 7188,
+          "recorded_mtime_utc": "2026-07-25T06:35:56.664222Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260725T063000Z-baseline-trend-adjust-cutoffs-script-777d993e",
+          "recorded_at_utc": "2026-07-25T06:30:00Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the cutoff interpolation implementation baseline; existing trend-adjustment outputs were not reproduced or validated.",
+          "files": [
+            "trend_adjust_cutoffs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T063626Z-correction-trend-adjust-cutoffs-script-b5063d1b",
+          "recorded_at_utc": "2026-07-25T06:36:26Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Reject malformed rows with extra columns and confirm completion markers are ignored; valid cutoff calculations are unchanged.",
+          "files": [
+            "trend_adjust_cutoffs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    }
+  }
+}

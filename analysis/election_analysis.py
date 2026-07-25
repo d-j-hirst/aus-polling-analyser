@@ -10,6 +10,17 @@ from scipy.interpolate import UnivariateSpline
 from election_check import get_checked_elections
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import calc_rmse, one_tail_kurtosis, two_tail_kurtosis
+import generated_provenance
+from pathlib import Path
+import sys
+
+
+ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
+GENERATED_MANIFEST = (
+    ANALYSIS_DIRECTORY
+    / 'Seat Statistics'
+    / 'generated-provenance.json'
+)
 
 ind_bucket_size = 2
 fp_threshold = detransform_vote_share(int(math.floor(transform_vote_share(8)
@@ -1708,6 +1719,146 @@ def analyse_nationals(elections, all_elections):
                 f.write(f'{predictions[i][0]},{predictions[i][1]}\n')
 
 
+def record_generated_provenance():
+    dependencies = {}
+    for category in (
+        'election_analysis_script',
+        'election_check_script',
+        'election_data_script',
+        'election_code_script',
+        'poll_transform_script',
+        'sample_kurtosis_script',
+    ):
+        dependencies[category] = (
+            generated_provenance.source_manifest_dependency(
+                category,
+                ANALYSIS_DIRECTORY / 'provenance.json',
+                ANALYSIS_DIRECTORY,
+            )
+        )
+    for category in (
+        'election_catalogue',
+        'election_result_rules',
+        'seat_analysis_inputs',
+    ):
+        dependencies[category] = (
+            generated_provenance.source_manifest_dependency(
+                category,
+                ANALYSIS_DIRECTORY / 'Data' / 'provenance.json',
+                ANALYSIS_DIRECTORY,
+            )
+        )
+
+    election_manifest = (
+        ANALYSIS_DIRECTORY
+        / 'elections'
+        / 'generated-provenance.json'
+    )
+    election_records = generated_provenance.load_manifest(
+        election_manifest
+    )['records']
+    dependencies['election_result_cache'] = (
+        generated_provenance.generated_manifest_dependency(
+            'election_result_cache',
+            election_manifest,
+            sorted(election_records),
+            ANALYSIS_DIRECTORY,
+        )
+    )
+
+    source_revision = generated_provenance.current_source_revision(
+        ANALYSIS_DIRECTORY
+    )
+    environment = generated_provenance.current_environment()
+    command = [Path(sys.executable).name] + sys.argv
+    run_id, run = generated_provenance.generation_run(
+        command=command,
+        source_revision=source_revision,
+        environment=environment,
+    )
+    records = {}
+
+    seat_statistics = sorted(
+        (ANALYSIS_DIRECTORY / 'Seat Statistics').glob('*.csv')
+    )
+    records['seat_statistics:all'] = (
+        generated_provenance.generation_record(
+            category='seat_statistics',
+            stage='analyse_elections',
+            scope=generated_provenance.generation_scope(
+                all_scopes=True
+            ),
+            run=run_id,
+            dependencies=dependencies,
+            outputs=generated_provenance.output_fingerprints(
+                seat_statistics, ANALYSIS_DIRECTORY
+            ),
+            random_seed=None,
+        )
+    )
+
+    nationals_by_election = {}
+    for output_path in sorted(
+        (ANALYSIS_DIRECTORY / 'Nationals').glob('*.csv')
+    ):
+        election = output_path.stem.split('_', 1)[0]
+        nationals_by_election.setdefault(election, []).append(output_path)
+    for election, outputs in nationals_by_election.items():
+        records[f'nationals_allocations:{election}'] = (
+            generated_provenance.generation_record(
+                category='nationals_allocations',
+                stage='analyse_elections',
+                scope=generated_provenance.generation_scope(
+                    elections=[election]
+                ),
+                run=run_id,
+                dependencies=dependencies,
+                outputs=generated_provenance.output_fingerprints(
+                    outputs, ANALYSIS_DIRECTORY
+                ),
+                random_seed=None,
+            )
+        )
+
+    regional_outputs = sorted(
+        path
+        for pattern in (
+            '2028fed-regions-base.csv',
+            '2028fed-regions-polled.csv',
+            '2028fed-mix-regions.csv',
+            '2028fed-mix-parameters.csv',
+        )
+        for path in (ANALYSIS_DIRECTORY / 'Regional').glob(pattern)
+    )
+    records['federal_regional_statistics:2028fed'] = (
+        generated_provenance.generation_record(
+            category='federal_regional_statistics',
+            stage='analyse_elections',
+            scope=generated_provenance.generation_scope(
+                elections=['2028fed']
+            ),
+            run=run_id,
+            dependencies=dependencies,
+            outputs=generated_provenance.output_fingerprints(
+                regional_outputs, ANALYSIS_DIRECTORY
+            ),
+            random_seed=None,
+        )
+    )
+
+    generated_provenance.update_manifest(
+        GENERATED_MANIFEST,
+        records,
+        {run_id: run},
+        path_base='..',
+        description=(
+            'Bundled provenance for historical seat, Nationals and '
+            'federal regional analysis.'
+        ),
+    )
+    print(f'Recorded generated provenance in {GENERATED_MANIFEST}')
+
+
 
 if __name__ == '__main__':
     all_elections = get_all_elections()
@@ -1726,4 +1877,5 @@ if __name__ == '__main__':
     analyse_seat_swings(elections, seat_types, seat_regions, by_elections)
     analyse_green_independent_correlation(elections)
     analyse_nationals(elections, all_elections)
+    record_generated_provenance()
     print("Analysis completed.")

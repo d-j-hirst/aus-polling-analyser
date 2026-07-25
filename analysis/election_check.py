@@ -147,8 +147,8 @@ def best_performances(elections):
             print(f'Election: {c[0].region()}{c[0].year()}, Seat: {c[1]}, Name: {c[2]}, fp %: {c[3]}')
 
 
-def get_checked_elections():
-    elections = AllElections()
+def get_checked_elections(allow_download=True):
+    elections = AllElections(allow_download=allow_download)
     # Automatic checks that enforce consistency of election data
     check_fp_percent_total(elections)
     check_fp_percent_match(elections)

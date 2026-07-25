@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:polling-analyser:schema:source-provenance:v1",
+  "title": "Polling Analyser maintained-input provenance manifest",
+  "description": "Records physical fingerprints and manually assessed semantic changes for maintained source data or code in one folder.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "folder",
+    "description",
+    "created_at_utc",
+    "updated_at_utc",
+    "categories"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "folder": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/category"
+      }
+    }
+  },
+  "$defs": {
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "file_patterns",
+        "exclude_patterns",
+        "semantic_revision",
+        "files",
+        "events"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "exclude_patterns": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "semantic_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/fileFingerprint"
+          }
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/changeEvent"
+          }
+        }
+      }
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^(?:[A-Za-z]:|/|\\\\)"
+      }
+    },
+    "fileFingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "size_bytes",
+        "recorded_mtime_utc"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recorded_mtime_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "changeEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "recorded_at_utc",
+        "change_type",
+        "magnitude",
+        "affects_outputs",
+        "semantic_revision",
+        "summary",
+        "files",
+        "scope"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recorded_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "change_type": {
+          "enum": [
+            "baseline",
+            "correction",
+            "coverage_extension",
+            "source_refresh",
+            "methodology",
+            "schema",
+            "formatting",
+            "other"
+          ]
+        },
+        "magnitude": {
+          "enum": [
+            "unknown",
+            "negligible",
+            "minor",
+            "material",
+            "major"
+          ]
+        },
+        "affects_outputs": {
+          "type": "boolean"
+        },
+        "semantic_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          }
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "const": "baseline"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "magnitude": {
+                "const": "unknown"
+              },
+              "affects_outputs": {
+                "const": true
+              },
+              "semantic_revision": {
+                "const": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "magnitude": {
+                "not": {
+                  "const": "unknown"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "affects_outputs": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "magnitude": {
+                "const": "negligible"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all",
+        "elections",
+        "parties",
+        "stages"
+      ],
+      "properties": {
+        "all": {
+          "type": "boolean"
+        },
+        "elections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "stages": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "all": {
+              "const": true
+            },
+            "elections": {
+              "maxItems": 0
+            },
+            "parties": {
+              "maxItems": 0
+            },
+            "stages": {
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "all": {
+              "const": false
+            }
+          },
+          "anyOf": [
+            {
+              "properties": {
+                "elections": {
+                  "minItems": 1
+                }
+              }
+            },
+            {
+              "properties": {
+                "parties": {
+                  "minItems": 1
+                }
+              }
+            },
+            {
+              "properties": {
+                "stages": {
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coverage_through": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    }
+  }
+}

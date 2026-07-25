@@ -300,6 +300,10 @@ __pycache__/
 /analysis/stan-cache
 /analysis/Data/poll-data-fed-test.xlsx
 /analysis/Data/poll-data-fed-test2.xlsx
+# Generated provenance describes local output state and belongs in archives,
+# not Git. Source provenance uses the distinct plain provenance.json name.
+**/generated-provenance.json
+**/*-generated-provenance.json
 */env
 /analysis/Adjustments/*
 /Federal Election 2022 test v14.pol2
@@ -316,10 +320,14 @@ __pycache__/
 /vc_mswu/PollingAnalyser/PollingAnalyser.iobj
 /vc_mswu/PollingAnalyser
 /vc_mswud/PollingAnalyser
-/analysis/Regional/2022fed-mix-parameters.csv
-/analysis/Regional/2022fed-mix-regions.csv
-/analysis/Regional/2022fed-regions-polled.csv
-/analysis/Regional/2022fed-regions-base.csv
+# Regional model and federal regional-analysis outputs. Authored
+# Regional/*-polls*.csv inputs remain tracked.
+/analysis/Regional/*-swing-deviations.csv
+/analysis/Regional/*-swing-deviations-*.csv
+/analysis/Regional/*fed-mix-parameters.csv
+/analysis/Regional/*fed-mix-regions.csv
+/analysis/Regional/*fed-regions-polled.csv
+/analysis/Regional/*fed-regions-base.csv
 /analysis/Model Election Comparisons.xlsx
 /analysis/Poll data converter.xlsx
 .env

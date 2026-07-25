@@ -1,0 +1,139 @@
+{
+  "$schema": "../source_provenance.schema.json",
+  "schema_version": 1,
+  "folder": ".",
+  "description": "Authored Stan model definitions used by the Python analysis pipeline.",
+  "created_at_utc": "2026-07-23T23:22:00Z",
+  "updated_at_utc": "2026-07-24T02:25:51Z",
+  "categories": {
+    "fp_stan_model": {
+      "description": "Stan model source used by poll-trend and calibration generation.",
+      "file_patterns": [
+        "fp_model.stan"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "fp_model.stan": {
+          "sha256": "c74343cc35d57b2e1ba86bb01c655d7836e5083056a9ae07efa8c56ed554046c",
+          "size_bytes": 6098,
+          "recorded_mtime_utc": "2026-02-27T22:11:49.825625Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T022551Z-baseline-fp-stan-model",
+          "recorded_at_utc": "2026-07-24T02:25:51Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Split the initial Stan-source baseline by consumer; generated outputs were not reproduced or validated.",
+          "files": [
+            "fp_model.stan"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "regional_stan_models": {
+      "description": "Election-specific Stan models used by regional trend generation.",
+      "file_patterns": [
+        "region_model_*.stan"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "region_model_2024qld.stan": {
+          "sha256": "68fe49ada3cf216f415e2c1479cec0631eedb732b64ae26e4da4e333beefbd54",
+          "size_bytes": 5058,
+          "recorded_mtime_utc": "2026-02-23T07:09:56.540598Z"
+        },
+        "region_model_2025fed.stan": {
+          "sha256": "176c218760a645019a75f36e67ad73b313f64b2de0faa149172021c6d77d7dd5",
+          "size_bytes": 2934,
+          "recorded_mtime_utc": "2026-02-23T07:09:57.532034Z"
+        },
+        "region_model_2026vic.stan": {
+          "sha256": "e764c859bbdda7cdf223910ac8e787546948134c7a22fb2b26e24cf88b050b95",
+          "size_bytes": 2814,
+          "recorded_mtime_utc": "2026-03-07T05:18:49.840532Z"
+        },
+        "region_model_2027nsw.stan": {
+          "sha256": "72d4dc219cedcac02b13b7dc89fc43c95f9fc59a561d0c36141f41b1f953bb9f",
+          "size_bytes": 1494,
+          "recorded_mtime_utc": "2026-02-23T07:06:56.548185Z"
+        },
+        "region_model_2028qld.stan": {
+          "sha256": "bdec55b05450358ded6c10112f4df0e6f6b988495af532c07217a70e5fe6c0ce",
+          "size_bytes": 1806,
+          "recorded_mtime_utc": "2026-02-23T08:16:41.940378Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T022551Z-baseline-regional-stan-models",
+          "recorded_at_utc": "2026-07-24T02:25:51Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Split the initial Stan-source baseline by consumer; generated outputs were not reproduced or validated.",
+          "files": [
+            "region_model_2024qld.stan",
+            "region_model_2025fed.stan",
+            "region_model_2026vic.stan",
+            "region_model_2027nsw.stan",
+            "region_model_2028qld.stan"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "dormant_adjustment_stan_model": {
+      "description": "Legacy adjustment model retained in the repository but not used by the current pipeline.",
+      "file_patterns": [
+        "adjust_model.stan"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "adjust_model.stan": {
+          "sha256": "24a90523ecc068e986b8e11e235006048eb11021c0a642c1ce30585e621ca284",
+          "size_bytes": 4509,
+          "recorded_mtime_utc": "2024-09-18T04:16:36.021298Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260724T022551Z-baseline-dormant-adjustment-stan-model",
+          "recorded_at_utc": "2026-07-24T02:25:51Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Split the initial Stan-source baseline by consumer; generated outputs were not reproduced or validated.",
+          "files": [
+            "adjust_model.stan"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    }
+  }
+}

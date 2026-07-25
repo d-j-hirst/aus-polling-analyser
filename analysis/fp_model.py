@@ -1,10 +1,13 @@
 import argparse
+import calibration_provenance
 import datetime
+import fp_model_provenance
 import math
 import numpy as np
 import os
 import pandas as pd
 import pystan
+import secrets
 import sys
 import statistics
 import time
@@ -66,11 +69,14 @@ class Config:
                             'pollster that can then be used to calibrate '
                             'the house effects in actual forecast runs. '
                             'Ignored if --calibrate is also used.')
-        parser.add_argument('--cutoff', action='store', type=int,
-                            help='Exclude polls occurring fewer than this many'
-                            ' days before an election. Useful for creating'
-                            ' hindcasts for previous elections.', 
-                            default=0)
+        parser.add_argument(
+            '--cutoff',
+            action='store_true',
+            help=(
+                'Generate every historical point-in-time fit in the cutoff '
+                'schedule used by trend_adjust.py.'
+            ),
+        )
         parser.add_argument('--pure', action='store_true',
                             help="Only use primary voting intention results, "
                             'not approval ratings, TPP-only polls or other '
@@ -79,19 +85,42 @@ class Config:
         parser.add_argument('--priority', action='store_true',
                             help="Never suspend this model.",
                             default=0)
-        self.election_instructions = parser.parse_args().election.lower()
-        self.calibrate_pollsters = parser.parse_args().calibrate == True
+        parser.add_argument(
+            '--seed',
+            action='store',
+            type=int,
+            help=(
+                'Base random seed. Calibration derives a separate stable '
+                'Stan seed for each election, party and excluded pollster.'
+            ),
+        )
+        args = parser.parse_args()
+        if args.election is None:
+            raise ConfigError('The --election argument is required.')
+        self.election_instructions = args.election.lower()
+        self.calibrate_pollsters = args.calibrate
         self.calibrate_bias = (not self.calibrate_pollsters and 
-                               parser.parse_args().bias == True)
-        self.cutoff = parser.parse_args().cutoff
-        self.pure = parser.parse_args().pure == True
-        self.priority = parser.parse_args().priority == True
+                               args.bias)
+        self.cutoff_mode = args.cutoff
+        self.cutoff_days = 0
+        self.pure = args.pure
+        self.priority = args.priority
+        if self.cutoff_mode and (
+            self.calibrate_pollsters or self.calibrate_bias or self.pure
+        ):
+            raise ConfigError(
+                '--cutoff cannot be combined with --calibrate, --bias or '
+                '--pure.'
+            )
+        if args.seed is not None and not 1 <= args.seed < 2 ** 31:
+            raise ConfigError('The --seed value must be between 1 and 2^31-1.')
+        self.seed = args.seed
         self.prepare_election_list()
 
     def prepare_election_list(self):
         with open('./Data/polled-elections.csv', 'r') as f:
             elections = ElectionCode.load_elections_from_file(f)
-        if self.cutoff == 0:
+        if not self.cutoff_mode:
             with open('./Data/future-elections.csv', 'r') as f:
                 elections += ElectionCode.load_elections_from_file(f)
         if self.election_instructions == 'all':
@@ -215,9 +244,11 @@ class ElectionData:
                             for date in self.base_df['MidDate']]
         self.start_date = m_data.election_cycles[tup][0]
         self.end_date = (m_data.election_cycles[tup][1] - 
-                    pd.to_timedelta(config.cutoff, unit="D"))
+                    pd.to_timedelta(config.cutoff_days, unit="D"))
         self.base_df = self.base_df[self.base_df['MidDate'] >= self.start_date]
         self.base_df = self.base_df[self.base_df['MidDate'] <= self.end_date]
+        if self.base_df.empty:
+            return
 
         # convert dates to days from start
         # do this before removing polls with N/A values so that
@@ -228,15 +259,18 @@ class ElectionData:
         self.end = self.base_df['MidDate'].max()
         # federal trend medians for selected minor parties
         self.fed_trends = {}
+        self.federal_prior_files = []
+        self.federal_prior_files_by_party = {}
 
-        # pick the most recent federal cycle covering the model end date
-        # Federal trends are used to calculate the prior series for minor parties
-        # This establishes a baseline for the minor parties' prior series
-        # before polls are taken into account
-        # We need to collect them from all relevant federal cycles
-        # and then align them so that they're numbered according to the state's dates
-        fed_cycles = select_fed_cycles_for_model_end(
-            SelectFedCyclesForModelEndInputs(m_data=m_data, model_end=self.end)
+        # Federal trends provide date-aligned minor-party priors for state
+        # elections. Federal elections must not consume federal trend outputs:
+        # doing so creates either self-feedback or a dependency on a prior
+        # election cycle rather than an independent fit of the federal polls.
+        fed_cycles = select_overlapping_fed_cycles(
+            SelectOverlappingFedCyclesInputs(
+                m_data=m_data,
+                election=self.e_tuple,
+            )
         )
 
         if len(fed_cycles) > 0:
@@ -245,14 +279,36 @@ class ElectionData:
             print("No federal cycles found for model prior")
 
         fed_minor_parties = others_parties + ['GRN FP', 'OTH FP']
+        state_significant_parties = set(m_data.parties[tup])
         for party in fed_minor_parties:
-            if party in major_parties or party in ['@TPP']:
+            if (
+                party in major_parties
+                or party in ['@TPP']
+                or party not in state_significant_parties
+            ):
                 continue
+            party_fed_cycles = [
+                cycle
+                for cycle in fed_cycles
+                if party in m_data.parties.get(
+                    (str(cycle[0]), 'fed'), []
+                )
+            ]
             series = load_fed_trend_series_for_party(
-                LoadFedTrendSeriesForPartyInputs(fed_cycles=fed_cycles, party=party)
+                LoadFedTrendSeriesForPartyInputs(
+                    fed_cycles=party_fed_cycles,
+                    party=party,
+                    pure=config.pure,
+                    used_files=self.federal_prior_files_by_party.setdefault(
+                        party, []
+                    ),
+                )
             )
             if series is not None:
                 self.fed_trends[party] = series
+            self.federal_prior_files.extend(
+                self.federal_prior_files_by_party[party]
+            )
 
         self.fed_trends_aligned = {}
         for party, series in self.fed_trends.items():
@@ -525,54 +581,53 @@ class ModelParams:
 
 
 @dataclass
-class SelectFedCyclesForModelEndInputs:
+class SelectOverlappingFedCyclesInputs:
     m_data: ModellingData
-    model_end: pd.Timestamp
-    max_cycles: int = 2
+    election: Tuple[str, str]
 
-def select_fed_cycles_for_model_end(inputs: SelectFedCyclesForModelEndInputs):
+
+def select_overlapping_fed_cycles(inputs: SelectOverlappingFedCyclesInputs):
+    """Return federal cycles overlapping a state election cycle."""
+
     m_data = inputs.m_data
-    model_end = inputs.model_end
-    max_cycles = inputs.max_cycles
+    election = inputs.election
+    if election[1] == 'fed':
+        return []
 
+    election_start, election_end = m_data.election_cycles[election]
     fed_cycles = [
         (year, start, end)
         for (year, region), (start, end) in m_data.election_cycles.items()
-        if region == 'fed'
+        if (
+            region == 'fed'
+            and start <= election_end
+            and election_start <= end
+        )
     ]
-    # sort by start date
     fed_cycles.sort(key=lambda x: x[1])
-
-    # find the most recent cycle that starts before model_end
-    idx = None
-    for i, (_, start, end) in enumerate(fed_cycles):
-        if start <= model_end <= end:
-            idx = i
-            break
-        if start <= model_end:
-            idx = i
-    
-    if idx is None:
-          return [fed_cycles[0]]
-
-    # take this cycle and the previous one (if available)
-    start_idx = max(0, idx - (max_cycles - 1))
-    return fed_cycles[start_idx:idx + 1]
+    return fed_cycles
 
 
 @dataclass
 class LoadFedTrendMedianInputs:
     election_year: int
     party: str
+    pure: bool
+    used_files: list
 
 def load_fed_trend_median(inputs: LoadFedTrendMedianInputs):
     election_year = inputs.election_year
     party = inputs.party
 
     # TODO: if we ever use cutoff files, add Cutoffs/ + _{cutoff}d here
-    filename = f'./Outputs/fp_trend_{election_year}fed_{party}.csv'
+    pure_suffix = '_pure' if inputs.pure else ''
+    filename = (
+        f'./Outputs/fp_trend_{election_year}fed_{party}'
+        f'{pure_suffix}.csv'
+    )
     if not os.path.exists(filename):
         return None
+    inputs.used_files.append(filename)
 
     # read header lines
     with open(filename, 'r') as f:
@@ -593,6 +648,8 @@ def load_fed_trend_median(inputs: LoadFedTrendMedianInputs):
 class LoadFedTrendSeriesForPartyInputs:
     fed_cycles: List[Tuple[int, pd.Timestamp, pd.Timestamp]]
     party: str
+    pure: bool
+    used_files: list
 
 def load_fed_trend_series_for_party(inputs: LoadFedTrendSeriesForPartyInputs):
     fed_cycles = inputs.fed_cycles
@@ -601,7 +658,12 @@ def load_fed_trend_series_for_party(inputs: LoadFedTrendSeriesForPartyInputs):
     combined = None
 
     for year, start, end in fed_cycles:
-        series = load_fed_trend_median(LoadFedTrendMedianInputs(election_year=year, party=party))
+        series = load_fed_trend_median(LoadFedTrendMedianInputs(
+            election_year=year,
+            party=party,
+            pure=inputs.pure,
+            used_files=inputs.used_files,
+        ))
         if series is None:
             continue
 
@@ -670,15 +732,17 @@ def output_filename(inputs: OutputFilenameInputs):
         "Calibration/" if config.calibrate_pollsters
         or config.calibrate_bias else ""
     )
-    cutoff = e_data.days_to_election
-    cutoff_str = "Cutoffs/" if config.cutoff > 0 else ""
-    folder = (f'./Outputs/{calib_str}{cutoff_str}')
+    if config.cutoff_mode:
+        raise ConfigError(
+            'Cutoff mode writes through CutoffOutputStore, not legacy '
+            'per-party output filenames.'
+        )
+    folder = (f'./Outputs/{calib_str}')
     pure_append = f'_pure' if config.pure else ''
-    cutoff_append = f'_{cutoff}d' if config.cutoff > 0 else ''
 
     return (
         f'{folder}fp_{file_type}_{e_tag}_{party}{pollster_append}'
-        f'{pure_append}{cutoff_append}.csv'
+        f'{pure_append}.csv'
     )
 
 
@@ -698,6 +762,7 @@ class ModelInputs:
     iterations: int
     model_params: ModelParams
     party: str
+    random_seed: int
     stan_data: dict
 
 
@@ -724,6 +789,7 @@ class OutputContext:
     excluded_pollster: str
     party: str
     poll_prep_result: PollPrepResult
+    random_seed: int
     run_context: RunContext
 
 
@@ -1342,6 +1408,7 @@ def run_stan_model(model_inputs: ModelInputs):
     fit = sm.sampling(data=model_inputs.stan_data,
                         iter=model_inputs.iterations,
                         chains=model_inputs.chains,
+                        seed=model_inputs.random_seed,
                         control={'max_treedepth': model_params.stan_max_treedepth,
                                 'adapt_delta': model_params.stan_adapt_delta})
     finish_time = perf_counter()
@@ -1474,8 +1541,7 @@ def write_trend(inputs: WriteTrendInputs):
         to_write = f"{day.effective_day},{party}"
         to_write += "," + ",".join(str(round(v, 3)) for v in day.day_infos)
         to_write += "\n"
-        if not (config.cutoff > 0 and day.effective_day < e_data.n_days - 1):
-            trend_file.write(to_write)
+        trend_file.write(to_write)
         day_data.append(day.day_infos)
 
     trend_file.close()
@@ -1517,6 +1583,49 @@ def prepare_others_medians(inputs: PrepareOthersMediansInputs):
                 if oth_party in others_parties:
                     e_data.others_medians[party][day.effective_day] -= \
                         e_data.others_medians[oth_party][day.effective_day]
+
+
+def write_cutoff_trend(
+    output_context: OutputContext,
+    writing_context: WritingContext,
+):
+    """Store only the endpoint distribution needed by downstream calibration."""
+
+    trend_days = iter_trend_days(IterTrendDaysInputs(
+        e_data=output_context.e_data,
+        run_context=output_context.run_context,
+        summary=writing_context.summary,
+        output_probs_t=writing_context.output_probs_t,
+    ))
+    final_day = None
+    for final_day in trend_days:
+        pass
+    if final_day is None:
+        raise ConfigError(
+            'Stan output contained no trend days for {}.'.format(
+                output_context.party
+            )
+        )
+
+    election = ''.join(output_context.e_data.e_tuple)
+    output_context.config.cutoff_output_store.write(
+        election=election,
+        party=output_context.party,
+        scheduled_cutoff_days=output_context.config.cutoff_days,
+        poll_trend_end_days=output_context.e_data.days_to_election,
+        random_seed=output_context.random_seed,
+        probabilities=writing_context.output_probs_t,
+        values=final_day.day_infos,
+    )
+    print(
+        'Saved scheduled cutoff {}d (poll trend ends {}d out) for {} in {}'
+        .format(
+            output_context.config.cutoff_days,
+            output_context.e_data.days_to_election,
+            output_context.party,
+            fp_model_provenance.cutoff_output_path(election),
+        )
+    )
 
 
 @dataclass
@@ -1855,6 +1964,14 @@ def write_outputs(output_context: OutputContext, fit):
     
     writing_context = prepare_writing(fit)
 
+    if config.cutoff_mode:
+        prepare_others_medians(PrepareOthersMediansInputs(
+            output_context=output_context,
+            writing_context=writing_context,
+        ))
+        write_cutoff_trend(output_context, writing_context)
+        return
+
     trend_outputs = write_trend(WriteTrendInputs(
         output_context=output_context,
         writing_context=writing_context,
@@ -1900,8 +2017,9 @@ class RunPartyInputs:
     m_data: ModellingData
     model_params: ModelParams
     party: str
+    random_seed: int
 
-def run_party(inputs: RunPartyInputs) -> None:
+def run_party(inputs: RunPartyInputs) -> Optional[OutputContext]:
     config = inputs.config
     e_data = inputs.e_data
     excluded_pollster = inputs.excluded_pollster
@@ -1986,6 +2104,7 @@ def run_party(inputs: RunPartyInputs) -> None:
         party=party,
         e_data=e_data,
         model_params=model_params,
+        random_seed=inputs.random_seed,
     )
 
     verify_timeline_consistency(party_context)
@@ -1998,10 +2117,12 @@ def run_party(inputs: RunPartyInputs) -> None:
         config=config,
         excluded_pollster=excluded_pollster,
         poll_prep_result=poll_prep_result,
+        random_seed=inputs.random_seed,
         run_context=run_context,
     )
 
     write_outputs(output_context, fit)
+    return output_context
 
 
 def finalise_calibrations(e_data):
@@ -2010,6 +2131,7 @@ def finalise_calibrations(e_data):
     #     print(f'{key}: {val}')
     total_weight = {}
     total_weighted_dev = {}
+    output_files = []
     for key, val in e_data.poll_calibrations.items():
         if (key[0] != ''):
             full_val = e_data.poll_calibrations[('', key[1], key[2], key[3])]
@@ -2048,6 +2170,8 @@ def finalise_calibrations(e_data):
         with open(filename, 'w') as f:
             f.write(f'{weighted_average_deviation},'
                     f'{weight},\n{polls_string[key]}')
+        output_files.append(filename)
+    return output_files
 
 
 def check_suspension():
@@ -2121,21 +2245,8 @@ class ShouldSkipPartyOutputInputs:
     party: str
 
 def should_skip_party_output(inputs: ShouldSkipPartyOutputInputs) -> bool:
-    party = inputs.party
-    # Avoid unnecessary duplication of effort for cutoffs that would be identical
-    if inputs.config.cutoff > 0:
-        trend_filename = output_filename(OutputFilenameInputs(
-            config=inputs.config,
-            e_data=inputs.e_data,
-            excluded_pollster=inputs.excluded_pollster,
-            file_type='trend',
-            party=party,
-        ))
-        print(trend_filename)
-
-        if os.path.exists(trend_filename):
-            print(f'Trend file for {party} in election {inputs.desired_election.short()} already exists, skipping')
-            return True
+    # Cutoff mode deliberately reruns every party after an interrupted cutoff:
+    # later party fits can depend on medians prepared by earlier fits.
     return False
 
 
@@ -2157,6 +2268,53 @@ def maybe_create_tpp_series(inputs: MaybeCreateTppSeriesInputs) -> None:
         )
 
 
+def cutoff_work_items(config, m_data, schedule):
+    """Return distinct scheduled cutoff and actual poll-endpoint pairs."""
+
+    poll_dates_by_region = {}
+    for election in config.elections:
+        election_tuple = (str(election.year()), election.region())
+        region = election.region()
+        if region not in poll_dates_by_region:
+            poll_data = pd.read_csv(
+                data_source[region],
+                usecols=['MidDate'],
+            )
+            parsed_dates = pd.to_datetime(
+                poll_data['MidDate'],
+                errors='raise',
+            )
+            poll_dates_by_region[region] = [
+                poll_date.date()
+                for poll_date in parsed_dates
+                if not pd.isna(poll_date)
+            ]
+
+        cycle_start, election_day = m_data.election_cycles[election_tuple]
+        cycle_poll_dates = [
+            poll_date
+            for poll_date in poll_dates_by_region[region]
+            if cycle_start.date() <= poll_date <= election_day.date()
+        ]
+        effective_cutoffs = (
+            fp_model_provenance.effective_cutoff_schedule(
+                election_day.date(),
+                cycle_poll_dates,
+                schedule,
+            )
+        )
+        print(
+            '{} has {} distinct poll information sets across {} scheduled '
+            'cutoff points.'.format(
+                election.short(),
+                len(effective_cutoffs),
+                len(schedule),
+            )
+        )
+        for scheduled_days, poll_trend_end_days in effective_cutoffs:
+            yield election, scheduled_days, poll_trend_end_days
+
+
 def run_models() -> None:
     # check version information
     print('Python version: {}'.format(sys.version))
@@ -2166,12 +2324,76 @@ def run_models() -> None:
         config = build_config()
 
         model_params = build_model_params()
+        base_seed = (
+            config.seed
+            if config.seed is not None
+            else secrets.randbelow(2 ** 31 - 1) + 1
+        )
+        print('Base random seed: {}'.format(base_seed))
+        provenance_recorder = (
+            calibration_provenance.CalibrationRecorder(
+                [os.path.basename(sys.executable)] + sys.argv
+            )
+            if config.calibrate_pollsters or config.calibrate_bias
+            else None
+        )
+        pure_provenance_recorder = (
+            fp_model_provenance.PureTrendRecorder(
+                [os.path.basename(sys.executable)] + sys.argv
+            )
+            if (
+                config.pure
+                and not config.calibrate_pollsters
+                and not config.calibrate_bias
+                and not config.cutoff_mode
+            )
+            else None
+        )
+        final_provenance_recorder = (
+            fp_model_provenance.FinalTrendRecorder(
+                [os.path.basename(sys.executable)] + sys.argv
+            )
+            if config.use_approvals() and not config.cutoff_mode
+            else None
+        )
+        cutoff_provenance_recorder = (
+            fp_model_provenance.CutoffTrendRecorder(
+                [os.path.basename(sys.executable)] + sys.argv
+            )
+            if config.use_approvals() and config.cutoff_mode
+            else None
+        )
 
         maybe_generate_approvals(config)
 
         m_data = ModellingData()
+        if config.cutoff_mode:
+            cutoff_schedule = fp_model_provenance.cutoff_schedule()
+            config.cutoff_output_store = (
+                fp_model_provenance.CutoffOutputStore()
+            )
+            print(
+                'Loaded {} triangular cutoff points shared with '
+                'trend_adjust.py.'
+                .format(len(cutoff_schedule))
+            )
+            work_items = cutoff_work_items(
+                config,
+                m_data,
+                cutoff_schedule,
+            )
+        else:
+            work_items = (
+                (election, 0, 0) for election in config.elections
+            )
 
-        for desired_election in config.elections:
+        cutoff_elections_started = set()
+        for (
+            desired_election,
+            requested_cutoff_days,
+            expected_poll_trend_end_days,
+        ) in work_items:
+            config.cutoff_days = requested_cutoff_days
             e_data = build_election_data(ElectionDataInputs(
                 config=config,
                 m_data=m_data,
@@ -2179,7 +2401,52 @@ def run_models() -> None:
             ))
             if e_data is None:
                 continue
-
+            election_tag = ''.join(e_data.e_tuple)
+            if (
+                config.cutoff_mode
+                and election_tag not in cutoff_elections_started
+            ):
+                # A cutoff invocation is one complete election batch. Never
+                # mix imported or older rows with newly generated fits.
+                config.cutoff_output_store.reset(election_tag)
+                cutoff_elections_started.add(election_tag)
+                print(
+                    'Started a fresh consolidated cutoff file for {}.'
+                    .format(election_tag)
+                )
+            if (
+                config.cutoff_mode
+                and e_data.days_to_election
+                != expected_poll_trend_end_days
+            ):
+                raise ConfigError(
+                    'Scheduled cutoff {}d for {} resolved to a {}d poll '
+                    'endpoint, but preflight resolved it to {}d.'.format(
+                        requested_cutoff_days,
+                        desired_election.short(),
+                        e_data.days_to_election,
+                        expected_poll_trend_end_days,
+                    )
+                )
+            if (
+                config.cutoff_mode
+                and config.cutoff_output_store.is_complete(
+                    election_tag,
+                    requested_cutoff_days,
+                    e_data.days_to_election,
+                )
+            ):
+                print(
+                    'Scheduled cutoff {}d (poll trend ends {}d out) for '
+                    'election {} is complete, skipping.'
+                    .format(
+                        requested_cutoff_days,
+                        e_data.days_to_election,
+                        desired_election.short(),
+                    )
+                )
+                continue
+            calibration_trace_files = []
             for excluded_pollster in e_data.pollster_exclusions:
                 # Don't waste time calculating the no-pollster-excluded trend
                 # if there are no pollster-excluded trends to compare it to
@@ -2215,17 +2482,148 @@ def run_models() -> None:
                         party=party,
                     ))
 
-                    run_party(RunPartyInputs(
+                    mode = (
+                        'pollster-bias'
+                        if config.calibrate_bias
+                        else 'pollster-calibration'
+                        if config.calibrate_pollsters
+                        else 'cutoff-{}d'.format(
+                            e_data.days_to_election
+                        )
+                        if config.cutoff_mode
+                        else 'poll-trend'
+                    )
+                    random_seed = (
+                        calibration_provenance.derive_stan_seed(
+                            base_seed,
+                            election_tag,
+                            party,
+                            excluded_pollster,
+                            mode,
+                        )
+                    )
+                    output_context = run_party(RunPartyInputs(
                         config=config,
                         e_data=e_data,
                         excluded_pollster=excluded_pollster,
                         m_data=m_data,
                         model_params=model_params,
                         party=party,
+                        random_seed=random_seed,
                     ))
+                    if (
+                        provenance_recorder is not None
+                        and output_context is not None
+                    ):
+                        output_files = [
+                            output_filename_ctx(output_context, kind)
+                            for kind in (
+                                'trend',
+                                'polls',
+                                'house_effects',
+                            )
+                        ]
+                        provenance_recorder.record_model_outputs(
+                            election=election_tag,
+                            party=party,
+                            excluded_pollster=excluded_pollster,
+                            bias_calibration=config.calibrate_bias,
+                            outputs=output_files,
+                            random_seed=random_seed,
+                            feedback_files=sorted(set(
+                                e_data.federal_prior_files
+                            )),
+                        )
+                        if config.calibrate_pollsters:
+                            calibration_trace_files.extend(output_files)
+                    if (
+                        pure_provenance_recorder is not None
+                        and output_context is not None
+                    ):
+                        pure_dependencies = (
+                            pure_provenance_recorder.dependencies_for(
+                                election_tag,
+                                e_data.federal_prior_files_by_party.get(
+                                    party, []
+                                ),
+                            )
+                        )
+                        output_files = [
+                            output_filename_ctx(output_context, kind)
+                            for kind in (
+                                'trend',
+                                'polls',
+                                'house_effects',
+                            )
+                        ]
+                        pure_provenance_recorder.record(
+                            election=election_tag,
+                            party=party,
+                            outputs=output_files,
+                            dependencies=pure_dependencies,
+                            random_seed=random_seed,
+                        )
+                    if (
+                        final_provenance_recorder is not None
+                        and output_context is not None
+                    ):
+                        final_dependencies = (
+                            final_provenance_recorder.dependencies_for(
+                                election_tag,
+                                party,
+                                e_data.federal_prior_files_by_party.get(
+                                    party, []
+                                ),
+                            )
+                        )
+                        output_files = [
+                            output_filename_ctx(output_context, kind)
+                            for kind in (
+                                'trend',
+                                'polls',
+                                'house_effects',
+                            )
+                        ]
+                        final_provenance_recorder.record(
+                            election=election_tag,
+                            party=party,
+                            outputs=output_files,
+                            dependencies=final_dependencies,
+                            random_seed=random_seed,
+                        )
+                # Preserve completed work-unit provenance if a later Stan fit
+                # or a later excluded-pollster block is interrupted.
+                if provenance_recorder is not None:
+                    provenance_recorder.flush()
 
             if config.calibrate_pollsters:
-                finalise_calibrations(e_data=e_data)
+                summary_files = finalise_calibrations(e_data=e_data)
+                if provenance_recorder is not None and summary_files:
+                    provenance_recorder.record_summaries(
+                        election=election_tag,
+                        outputs=summary_files,
+                        trace_files=calibration_trace_files,
+                    )
+                    provenance_recorder.flush()
+            if cutoff_provenance_recorder is not None:
+                config.cutoff_output_store.mark_complete(
+                    election_tag,
+                    requested_cutoff_days,
+                    e_data.days_to_election,
+                )
+                cutoff_dependencies = (
+                    cutoff_provenance_recorder.dependencies_for_election(
+                        election_tag,
+                        e_data.federal_prior_files,
+                    )
+                )
+                cutoff_provenance_recorder.record(
+                    election=election_tag,
+                    output=fp_model_provenance.cutoff_output_path(
+                        election_tag
+                    ),
+                    dependencies=cutoff_dependencies,
+                )
 
     # indicate completion (delete these lines if not the original author)
     except Exception as e:

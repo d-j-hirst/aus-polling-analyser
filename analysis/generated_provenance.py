@@ -1,0 +1,1155 @@
+"""Create and check bundled provenance manifests for generated analysis data."""
+
+import argparse
+import concurrent.futures
+import hashlib
+import importlib.metadata
+import json
+import os
+import platform
+import subprocess
+import sys
+import tempfile
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+
+import source_provenance
+
+
+SCHEMA_VERSION = 1
+SCHEMA_PATH = Path(__file__).with_name("generated_provenance.schema.json")
+SHA256_LENGTH = 64
+GENERATED_MANIFEST_SUFFIX = "generated-provenance.json"
+
+
+class GeneratedProvenanceError(ValueError):
+    """Raised when generated provenance is invalid or cannot be verified."""
+
+
+def _validate_manifest_path(path):
+    if not Path(path).name.endswith(GENERATED_MANIFEST_SUFFIX):
+        raise GeneratedProvenanceError(
+            "generated provenance must use a filename ending in "
+            "'{}'; plain provenance.json is reserved for committed source "
+            "provenance".format(GENERATED_MANIFEST_SUFFIX)
+        )
+
+
+def utc_now():
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def _require_string(value, context):
+    if not isinstance(value, str) or not value:
+        raise GeneratedProvenanceError(
+            "{} must be a non-empty string".format(context)
+        )
+
+
+def _validate_datetime(value, context):
+    _require_string(value, context)
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise GeneratedProvenanceError(
+            "{} must be an ISO date-time".format(context)
+        ) from error
+
+
+def _validate_relative_path(value, context, allow_parent=False):
+    _require_string(value, context)
+    if "\\" in value:
+        raise GeneratedProvenanceError(
+            "{} must use forward slashes".format(context)
+        )
+    path = PurePosixPath(value)
+    if path.is_absolute() or (not allow_parent and ".." in path.parts):
+        raise GeneratedProvenanceError(
+            "{} must be a portable relative path".format(context)
+        )
+
+
+def _validate_fingerprint(value, context):
+    if not {"sha256", "size_bytes"} <= set(value) or (
+        set(value) - {"sha256", "size_bytes", "mtime_ns"}
+    ):
+        raise GeneratedProvenanceError(
+            "{} has invalid fields".format(context)
+        )
+    digest = value["sha256"]
+    if (
+        not isinstance(digest, str)
+        or len(digest) != SHA256_LENGTH
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise GeneratedProvenanceError(
+            "{}.sha256 is invalid".format(context)
+        )
+    if (
+        not isinstance(value["size_bytes"], int)
+        or isinstance(value["size_bytes"], bool)
+        or value["size_bytes"] < 0
+    ):
+        raise GeneratedProvenanceError(
+            "{}.size_bytes is invalid".format(context)
+        )
+    if "mtime_ns" in value and (
+        not isinstance(value["mtime_ns"], int)
+        or isinstance(value["mtime_ns"], bool)
+        or value["mtime_ns"] < 0
+    ):
+        raise GeneratedProvenanceError(
+            "{}.mtime_ns is invalid".format(context)
+        )
+
+
+def _validate_scope(scope, context):
+    if set(scope) != {"all", "elections", "parties", "qualifiers"}:
+        raise GeneratedProvenanceError(
+            "{} has invalid fields".format(context)
+        )
+    if not isinstance(scope["all"], bool):
+        raise GeneratedProvenanceError(
+            "{}.all must be a boolean".format(context)
+        )
+    for field in ("elections", "parties"):
+        values = scope[field]
+        if (
+            not isinstance(values, list)
+            or any(not isinstance(value, str) or not value for value in values)
+            or len(values) != len(set(values))
+        ):
+            raise GeneratedProvenanceError(
+                "{}.{} must contain unique strings".format(context, field)
+            )
+    if not isinstance(scope["qualifiers"], dict) or any(
+        not isinstance(key, str)
+        or not key
+        or not isinstance(value, str)
+        for key, value in scope["qualifiers"].items()
+    ):
+        raise GeneratedProvenanceError(
+            "{}.qualifiers must map strings to strings".format(context)
+        )
+    has_specific_scope = (
+        scope["elections"] or scope["parties"] or scope["qualifiers"]
+    )
+    if scope["all"] == bool(has_specific_scope):
+        raise GeneratedProvenanceError(
+            "{} must select all scopes or at least one specific scope".format(
+                context
+            )
+        )
+
+
+def _validate_dependency(dependency, context):
+    required = {
+        "kind",
+        "digest",
+        "semantic_revision",
+        "manifest",
+        "files",
+        "records",
+    }
+    if set(dependency) != required:
+        raise GeneratedProvenanceError(
+            "{} has invalid fields".format(context)
+        )
+    if dependency["kind"] not in {
+        "source_manifest",
+        "files",
+        "generated_manifest",
+    }:
+        raise GeneratedProvenanceError(
+            "{}.kind is invalid".format(context)
+        )
+    _validate_fingerprint(
+        {"sha256": dependency["digest"], "size_bytes": 0},
+        "{}.digest".format(context),
+    )
+    revision = dependency["semantic_revision"]
+    if revision is not None and (
+        not isinstance(revision, int)
+        or isinstance(revision, bool)
+        or revision < 1
+    ):
+        raise GeneratedProvenanceError(
+            "{}.semantic_revision is invalid".format(context)
+        )
+    files = dependency["files"]
+    if (
+        not isinstance(files, list)
+        or any(not isinstance(path, str) for path in files)
+        or len(files) != len(set(files))
+    ):
+        raise GeneratedProvenanceError(
+            "{}.files is invalid".format(context)
+        )
+    for index, path in enumerate(files):
+        _validate_relative_path(
+            path, "{}.files[{}]".format(context, index)
+        )
+    records = dependency["records"]
+    if (
+        not isinstance(records, list)
+        or any(not isinstance(key, str) or not key for key in records)
+        or len(records) != len(set(records))
+    ):
+        raise GeneratedProvenanceError(
+            "{}.records is invalid".format(context)
+        )
+    if dependency["kind"] == "source_manifest":
+        if (
+            revision is None
+            or not dependency["manifest"]
+            or files
+            or records
+        ):
+            raise GeneratedProvenanceError(
+                "{} source-manifest dependency is incomplete".format(context)
+            )
+        _validate_relative_path(
+            dependency["manifest"], "{}.manifest".format(context)
+        )
+    elif dependency["kind"] == "files":
+        if (
+            dependency["manifest"] is not None
+            or revision is not None
+            or not files
+            or records
+        ):
+            raise GeneratedProvenanceError(
+                "{} file dependency is incomplete".format(context)
+            )
+    elif (
+        not dependency["manifest"]
+        or revision is not None
+        or files
+        or not records
+    ):
+        raise GeneratedProvenanceError(
+            "{} generated-manifest dependency is incomplete".format(context)
+        )
+    if dependency["manifest"] is not None:
+        _validate_relative_path(
+            dependency["manifest"], "{}.manifest".format(context)
+        )
+
+
+def validate_manifest(manifest):
+    required = {
+        "$schema",
+        "schema_version",
+        "path_base",
+        "description",
+        "updated_at_utc",
+        "runs",
+        "records",
+    }
+    if set(manifest) != required:
+        raise GeneratedProvenanceError("manifest has invalid fields")
+    if manifest["schema_version"] != SCHEMA_VERSION:
+        raise GeneratedProvenanceError(
+            "unsupported schema_version {}".format(manifest["schema_version"])
+        )
+    _require_string(manifest["$schema"], "manifest.$schema")
+    _validate_relative_path(
+        manifest["path_base"], "manifest.path_base", allow_parent=True
+    )
+    _require_string(manifest["description"], "manifest.description")
+    _validate_datetime(
+        manifest["updated_at_utc"], "manifest.updated_at_utc"
+    )
+    if not isinstance(manifest["runs"], dict):
+        raise GeneratedProvenanceError("manifest.runs must be an object")
+    for run_id, run in manifest["runs"].items():
+        _require_string(run_id, "run id")
+        if set(run) != {
+            "generated_at_utc",
+            "command",
+            "source_revision",
+            "environment",
+        }:
+            raise GeneratedProvenanceError(
+                "run '{}' has invalid fields".format(run_id)
+            )
+        _validate_datetime(
+            run["generated_at_utc"],
+            "run '{}'.generated_at_utc".format(run_id),
+        )
+        if (
+            not isinstance(run["command"], list)
+            or not run["command"]
+            or any(not isinstance(value, str) for value in run["command"])
+        ):
+            raise GeneratedProvenanceError(
+                "run '{}'.command is invalid".format(run_id)
+            )
+        revision = run["source_revision"]
+        if (
+            set(revision) != {"system", "revision", "dirty"}
+            or revision["system"] != "git"
+            or (
+                revision["revision"] is not None
+                and not isinstance(revision["revision"], str)
+            )
+            or not isinstance(revision["dirty"], bool)
+        ):
+            raise GeneratedProvenanceError(
+                "run '{}'.source_revision is invalid".format(run_id)
+            )
+        environment = run["environment"]
+        if set(environment) != {
+            "python_version",
+            "python_implementation",
+            "platform",
+            "packages",
+        }:
+            raise GeneratedProvenanceError(
+                "run '{}'.environment is invalid".format(run_id)
+            )
+        if any(
+            not isinstance(environment[field], str)
+            for field in (
+                "python_version",
+                "python_implementation",
+                "platform",
+            )
+        ) or (
+            not isinstance(environment["packages"], dict)
+            or any(
+                not isinstance(name, str)
+                or not name
+                or not isinstance(version, str)
+                for name, version in environment["packages"].items()
+            )
+        ):
+            raise GeneratedProvenanceError(
+                "run '{}'.environment is invalid".format(run_id)
+            )
+
+    if not isinstance(manifest["records"], dict):
+        raise GeneratedProvenanceError("manifest.records must be an object")
+
+    output_owners = {}
+    for record_key, record in manifest["records"].items():
+        _require_string(record_key, "record key")
+        expected_fields = {
+            "status",
+            "category",
+            "stage",
+            "scope",
+            "run",
+            "random_seed",
+            "dependencies",
+            "outputs",
+        }
+        if set(record) != expected_fields:
+            raise GeneratedProvenanceError(
+                "record '{}' has invalid fields".format(record_key)
+            )
+        if record["status"] not in {"generated", "legacy"}:
+            raise GeneratedProvenanceError(
+                "{}.status is invalid".format(record_key)
+            )
+        _require_string(record["category"], "{}.category".format(record_key))
+        _require_string(record["stage"], "{}.stage".format(record_key))
+        _validate_scope(record["scope"], "{}.scope".format(record_key))
+        if record["run"] not in manifest["runs"]:
+            raise GeneratedProvenanceError(
+                "{} references unknown run '{}'".format(
+                    record_key, record["run"]
+                )
+            )
+        random_seed = record["random_seed"]
+        if not (
+            random_seed is None
+            or isinstance(random_seed, str)
+            or (
+                isinstance(random_seed, int)
+                and not isinstance(random_seed, bool)
+            )
+        ):
+            raise GeneratedProvenanceError(
+                "{}.random_seed is invalid".format(record_key)
+            )
+        if not isinstance(record["dependencies"], dict):
+            raise GeneratedProvenanceError(
+                "{}.dependencies is invalid".format(record_key)
+            )
+        for category, dependency in record["dependencies"].items():
+            _require_string(category, "dependency category")
+            _validate_dependency(
+                dependency,
+                "{}.dependencies['{}']".format(record_key, category),
+            )
+        if not isinstance(record["outputs"], dict) or not record["outputs"]:
+            raise GeneratedProvenanceError(
+                "{}.outputs must not be empty".format(record_key)
+            )
+        for path, fingerprint in record["outputs"].items():
+            _validate_relative_path(path, "{} output".format(record_key))
+            _validate_fingerprint(
+                fingerprint,
+                "{}.outputs['{}']".format(record_key, path),
+            )
+            if path in output_owners:
+                raise GeneratedProvenanceError(
+                    "output '{}' is owned by both '{}' and '{}'".format(
+                        path, output_owners[path], record_key
+                    )
+                )
+            output_owners[path] = record_key
+
+
+def load_manifest(path):
+    _validate_manifest_path(path)
+    try:
+        with Path(path).open("r", encoding="utf-8") as manifest_file:
+            manifest = json.load(manifest_file)
+    except FileNotFoundError as error:
+        raise GeneratedProvenanceError(
+            "generated manifest does not exist: {}".format(path)
+        ) from error
+    except json.JSONDecodeError as error:
+        raise GeneratedProvenanceError(
+            "could not parse {}: {}".format(path, error)
+        ) from error
+    # Early v1 manifests predate generated-record dependencies. Upgrade them
+    # in memory so the next successful generation can rewrite the current
+    # shape without requiring users to delete local provenance.
+    for record in manifest.get("records", {}).values():
+        record.setdefault("status", "generated")
+        for dependency in record.get("dependencies", {}).values():
+            dependency.setdefault("records", [])
+    for run in manifest.get("runs", {}).values():
+        run.get("environment", {}).setdefault("packages", {})
+    validate_manifest(manifest)
+    return manifest
+
+
+def _atomic_write_json(path, value):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            newline="\n",
+            dir=str(path.parent),
+            prefix=".{}.".format(path.name),
+            suffix=".tmp",
+            delete=False,
+        ) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+            json.dump(value, temporary_file, indent=2)
+            temporary_file.write("\n")
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+        os.replace(str(temporary_path), str(path))
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
+
+
+def _hash_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as input_file:
+        for block in iter(lambda: input_file.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def fingerprint_file(path):
+    path = Path(path)
+    if not path.is_file():
+        raise GeneratedProvenanceError(
+            "required file does not exist: {}".format(path)
+        )
+    stat = path.stat()
+    return {
+        "sha256": _hash_file(path),
+        "size_bytes": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
+def fingerprint_digest(fingerprints):
+    digest = hashlib.sha256()
+    for path, fingerprint in sorted(fingerprints.items()):
+        digest.update(path.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(fingerprint["sha256"].encode("ascii"))
+        digest.update(b"\0")
+        digest.update(str(fingerprint["size_bytes"]).encode("ascii"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def _relative_to_base(path, base_directory):
+    try:
+        return Path(path).resolve().relative_to(
+            Path(base_directory).resolve()
+        ).as_posix()
+    except ValueError as error:
+        raise GeneratedProvenanceError(
+            "{} is outside provenance path base {}".format(
+                path, base_directory
+            )
+        ) from error
+
+
+def file_dependency(
+    category, files, base_directory, fingerprint_cache=None
+):
+    relative_files = sorted(
+        _relative_to_base(path, base_directory) for path in files
+    )
+    fingerprints = {}
+    for path in relative_files:
+        absolute_path = (Path(base_directory) / path).resolve()
+        cache_key = str(absolute_path)
+        if (
+            fingerprint_cache is not None
+            and cache_key in fingerprint_cache
+        ):
+            fingerprint = fingerprint_cache[cache_key]
+        else:
+            fingerprint = fingerprint_file(absolute_path)
+            if fingerprint_cache is not None:
+                fingerprint_cache[cache_key] = fingerprint
+        fingerprints[path] = fingerprint
+    return {
+        "kind": "files",
+        "digest": fingerprint_digest(fingerprints),
+        "semantic_revision": None,
+        "manifest": None,
+        "files": relative_files,
+        "records": [],
+    }
+
+
+def source_manifest_dependency(
+    category_id, manifest_path, base_directory
+):
+    manifest = source_provenance.load_manifest(manifest_path)
+    try:
+        category = manifest["categories"][category_id]
+    except KeyError as error:
+        raise GeneratedProvenanceError(
+            "source manifest {} has no category '{}'".format(
+                manifest_path, category_id
+            )
+        ) from error
+    comparison = source_provenance.check_manifest(manifest_path)[category_id]
+    physical_changes = (
+        comparison["added"]
+        + comparison["removed"]
+        + comparison["modified"]
+    )
+    if physical_changes:
+        raise GeneratedProvenanceError(
+            "source category '{}' has unrecorded content changes: {}".format(
+                category_id, ", ".join(physical_changes)
+            )
+        )
+    fingerprints = {
+        path: {
+            "sha256": fingerprint["sha256"],
+            "size_bytes": fingerprint["size_bytes"],
+        }
+        for path, fingerprint in category["files"].items()
+    }
+    return {
+        "kind": "source_manifest",
+        "digest": fingerprint_digest(fingerprints),
+        "semantic_revision": category["semantic_revision"],
+        "manifest": _relative_to_base(manifest_path, base_directory),
+        "files": [],
+        "records": [],
+    }
+
+
+def _generated_records_digest(manifest, record_keys):
+    records = {}
+    for record_key in sorted(record_keys):
+        try:
+            record = manifest["records"][record_key]
+        except KeyError as error:
+            raise GeneratedProvenanceError(
+                "generated manifest has no record '{}'".format(record_key)
+            ) from error
+        # Execution time and environment do not make an unchanged generated
+        # result stale. The record's inputs, scope and output hashes do.
+        records[record_key] = {
+            key: value
+            for key, value in record.items()
+            if key not in {"run", "outputs"}
+        }
+        records[record_key]["outputs"] = {
+            path: {
+                "sha256": fingerprint["sha256"],
+                "size_bytes": fingerprint["size_bytes"],
+            }
+            for path, fingerprint in record["outputs"].items()
+        }
+    serialized = json.dumps(
+        records, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()
+
+
+def generated_manifest_dependency(
+    category,
+    manifest_path,
+    record_keys,
+    base_directory,
+    allow_stale=False,
+    _context=None,
+):
+    record_keys = sorted(set(record_keys))
+    if not record_keys:
+        raise GeneratedProvenanceError(
+            "generated dependency '{}' has no records".format(category)
+        )
+    context = _context or ManifestCheckContext()
+    manifest = context.load_manifest(manifest_path)
+    checked_records = check_manifest(
+        manifest_path,
+        record_keys=record_keys,
+        _context=context,
+    )
+    stale_records = {}
+    for record_key in record_keys:
+        if record_key not in checked_records:
+            stale_records[record_key] = ["missing record"]
+        elif checked_records[record_key]:
+            stale_records[record_key] = checked_records[record_key]
+    if stale_records and not allow_stale:
+        raise GeneratedProvenanceError(
+            "generated dependency '{}' is stale: {}".format(
+                category,
+                ", ".join(sorted(stale_records)),
+            )
+        )
+    return {
+        "kind": "generated_manifest",
+        "digest": _generated_records_digest(manifest, record_keys),
+        "semantic_revision": None,
+        "manifest": _relative_to_base(manifest_path, base_directory),
+        "files": [],
+        "records": record_keys,
+    }
+
+
+def output_fingerprints(files, base_directory):
+    return {
+        _relative_to_base(path, base_directory): fingerprint_file(path)
+        for path in sorted(Path(path) for path in files)
+    }
+
+
+def current_source_revision(base_directory):
+    def run_git(*arguments):
+        return subprocess.run(
+            ["git", "-C", str(base_directory)] + list(arguments),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).stdout.strip()
+
+    try:
+        revision = run_git("rev-parse", "HEAD")
+        dirty = bool(run_git("status", "--porcelain", "--untracked-files=all"))
+    except (OSError, subprocess.CalledProcessError):
+        revision = None
+        dirty = True
+    return {"system": "git", "revision": revision, "dirty": dirty}
+
+
+def current_environment(package_names=None):
+    packages = {}
+    for package_name in sorted(set(package_names or [])):
+        try:
+            packages[package_name] = importlib.metadata.version(package_name)
+        except importlib.metadata.PackageNotFoundError:
+            packages[package_name] = "not-installed"
+    return {
+        "python_version": platform.python_version(),
+        "python_implementation": platform.python_implementation(),
+        "platform": platform.platform(),
+        "packages": packages,
+    }
+
+
+def generation_scope(elections=None, parties=None, qualifiers=None, all_scopes=False):
+    scope = {
+        "all": bool(all_scopes),
+        "elections": sorted(set(elections or [])),
+        "parties": sorted(set(parties or [])),
+        "qualifiers": dict(sorted((qualifiers or {}).items())),
+    }
+    _validate_scope(scope, "scope")
+    return scope
+
+
+def generation_record(
+    category,
+    stage,
+    scope,
+    run,
+    dependencies,
+    outputs,
+    random_seed=None,
+    status="generated",
+):
+    record = {
+        "status": status,
+        "category": category,
+        "stage": stage,
+        "scope": scope,
+        "run": run,
+        "random_seed": random_seed,
+        "dependencies": dict(dependencies),
+        "outputs": dict(outputs),
+    }
+    temporary_manifest = {
+        "$schema": "generated_provenance.schema.json",
+        "schema_version": SCHEMA_VERSION,
+        "path_base": ".",
+        "description": "Validation wrapper.",
+        "updated_at_utc": utc_now(),
+        "runs": {
+            run: {
+                "generated_at_utc": utc_now(),
+                "command": ["validation"],
+                "source_revision": {
+                    "system": "git",
+                    "revision": None,
+                    "dirty": True,
+                },
+                "environment": current_environment(),
+            }
+        },
+        "records": {"record": record},
+    }
+    validate_manifest(temporary_manifest)
+    return record
+
+
+def generation_run(command, source_revision, environment):
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = "{}-{}".format(timestamp, uuid.uuid4().hex[:8])
+    return run_id, {
+        "generated_at_utc": utc_now(),
+        "command": list(command),
+        "source_revision": dict(source_revision),
+        "environment": dict(environment),
+    }
+
+
+def update_manifest(
+    path, records, runs, path_base="..", description=None
+):
+    path = Path(path)
+    _validate_manifest_path(path)
+    if path.exists():
+        manifest = load_manifest(path)
+        if manifest["path_base"] != path_base:
+            raise GeneratedProvenanceError(
+                "{} path_base is '{}', expected '{}'".format(
+                    path, manifest["path_base"], path_base
+                )
+            )
+    else:
+        if not description:
+            raise GeneratedProvenanceError(
+                "description is required when creating a manifest"
+            )
+        relative_schema = os.path.relpath(
+            str(SCHEMA_PATH.resolve()), str(path.resolve().parent)
+        )
+        manifest = {
+            "$schema": Path(relative_schema).as_posix(),
+            "schema_version": SCHEMA_VERSION,
+            "path_base": path_base,
+            "description": description,
+            "updated_at_utc": utc_now(),
+            "runs": {},
+            "records": {},
+        }
+    normalized_runs = {}
+    for run_id, run in runs.items():
+        normalized_run = dict(run)
+        normalized_run["environment"] = dict(run["environment"])
+        normalized_run["environment"].setdefault("packages", {})
+        normalized_runs[run_id] = normalized_run
+    manifest["runs"].update(normalized_runs)
+    manifest["records"].update(records)
+    referenced_runs = {
+        record["run"] for record in manifest["records"].values()
+    }
+    manifest["runs"] = {
+        run_id: run
+        for run_id, run in manifest["runs"].items()
+        if run_id in referenced_runs
+    }
+    manifest["updated_at_utc"] = utc_now()
+    validate_manifest(manifest)
+    _atomic_write_json(path, manifest)
+    return manifest
+
+
+class ManifestCheckContext:
+    """Share filesystem and dependency checks across one audit operation."""
+
+    def __init__(self):
+        self.manifests = {}
+        self.record_issues = {}
+        self.records_in_progress = set()
+        self.source_cache = {}
+        self.file_fingerprints = {}
+        self.output_stats = {}
+
+    def load_manifest(self, path):
+        resolved_path = str(Path(path).resolve())
+        if resolved_path not in self.manifests:
+            self.manifests[resolved_path] = load_manifest(resolved_path)
+        return self.manifests[resolved_path]
+
+    @staticmethod
+    def _stat_output(path):
+        try:
+            return path, Path(path).stat()
+        except FileNotFoundError:
+            return path, None
+
+    def prime_output_stats(self, paths):
+        """Stat selected outputs concurrently on high-latency filesystems."""
+
+        pending = sorted(
+            {
+                str(Path(path))
+                for path in paths
+                if str(Path(path)) not in self.output_stats
+            }
+        )
+        if not pending:
+            return
+        worker_count = min(32, len(pending))
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=worker_count
+        ) as executor:
+            for path, stat in executor.map(self._stat_output, pending):
+                self.output_stats[path] = stat
+
+    def output_stat(self, path):
+        path_key = str(Path(path))
+        if path_key not in self.output_stats:
+            _, stat = self._stat_output(path_key)
+            self.output_stats[path_key] = stat
+        return self.output_stats[path_key]
+
+
+def check_record(
+    record,
+    base_directory,
+    source_cache=None,
+    generated_cache=None,
+    output_stat_cache=None,
+    check_context=None,
+):
+    source_cache = (
+        check_context.source_cache
+        if check_context is not None
+        else source_cache if source_cache is not None else {}
+    )
+    generated_cache = (
+        generated_cache if generated_cache is not None else {}
+    )
+    use_output_stat_cache = output_stat_cache is not None
+    output_stat_cache = output_stat_cache or {}
+    issues = []
+    if record["status"] == "legacy":
+        issues.append(
+            "legacy provenance baseline; generation inputs unknown"
+        )
+    for path, expected in record["outputs"].items():
+        actual_path = Path(base_directory) / path
+        if check_context is not None:
+            stat = check_context.output_stat(actual_path)
+        else:
+            stat = (
+                output_stat_cache.get(str(actual_path))
+                if use_output_stat_cache
+                else actual_path.stat() if actual_path.is_file() else None
+            )
+        if stat is None:
+            issues.append("missing output {}".format(path))
+            continue
+        if stat.st_size != expected["size_bytes"]:
+            issues.append("changed output {}".format(path))
+            continue
+        if expected.get("mtime_ns") == stat.st_mtime_ns:
+            continue
+        if fingerprint_file(actual_path)["sha256"] != expected["sha256"]:
+            issues.append("changed output {}".format(path))
+
+    target_scope = source_provenance._build_scope(
+        all_scopes=record["scope"]["all"],
+        elections=record["scope"]["elections"],
+        parties=record["scope"]["parties"],
+        stages=[] if record["scope"]["all"] else [record["stage"]],
+    )
+    for category_id, dependency in record["dependencies"].items():
+        if dependency["kind"] == "files":
+            current = file_dependency(
+                category_id,
+                [Path(base_directory) / path for path in dependency["files"]],
+                base_directory,
+                fingerprint_cache=(
+                    check_context.file_fingerprints
+                    if check_context is not None
+                    else None
+                ),
+            )
+            if current["digest"] != dependency["digest"]:
+                issues.append("changed dependency {}".format(category_id))
+            continue
+
+        manifest_path = Path(base_directory) / dependency["manifest"]
+        if dependency["kind"] == "generated_manifest":
+            cache_key = str(manifest_path.resolve())
+            try:
+                if check_context is not None:
+                    generated_manifest = check_context.load_manifest(
+                        manifest_path
+                    )
+                    existing_record_keys = [
+                        record_key
+                        for record_key in dependency["records"]
+                        if record_key in generated_manifest["records"]
+                    ]
+                    checked_records = check_manifest(
+                        manifest_path,
+                        record_keys=existing_record_keys,
+                        _context=check_context,
+                    )
+                elif cache_key not in generated_cache:
+                    generated_cache[cache_key] = (
+                        load_manifest(manifest_path),
+                        check_manifest(manifest_path),
+                    )
+                if check_context is None:
+                    generated_manifest, checked_records = generated_cache[
+                        cache_key
+                    ]
+                stale_records = [
+                    record_key
+                    for record_key in dependency["records"]
+                    if record_key not in checked_records
+                    or checked_records[record_key]
+                ]
+                if stale_records:
+                    issues.append(
+                        "stale generated dependency {} ({})".format(
+                            category_id, ", ".join(stale_records)
+                        )
+                    )
+                    continue
+                current_digest = _generated_records_digest(
+                    generated_manifest, dependency["records"]
+                )
+                if current_digest != dependency["digest"]:
+                    issues.append(
+                        "changed dependency {}".format(category_id)
+                    )
+            except GeneratedProvenanceError as error:
+                issues.append(
+                    "invalid dependency {}: {}".format(
+                        category_id, error
+                    )
+                )
+            continue
+
+        cache_key = (str(manifest_path.resolve()), category_id)
+        try:
+            if cache_key not in source_cache:
+                source_manifest = source_provenance.load_manifest(
+                    manifest_path
+                )
+                category = source_manifest["categories"][category_id]
+                current_files = source_provenance.snapshot_category(
+                    manifest_path, source_manifest, category
+                )
+                comparison = source_provenance.compare_snapshots(
+                    category["files"], current_files
+                )
+                source_cache[cache_key] = (category, comparison)
+            category, comparison = source_cache[cache_key]
+        except (source_provenance.ProvenanceError, KeyError) as error:
+            issues.append(
+                "invalid dependency {}: {}".format(category_id, error)
+            )
+            continue
+        if any(
+            comparison[field]
+            for field in ("added", "removed", "modified")
+        ):
+            issues.append(
+                "unrecorded source change {}".format(category_id)
+            )
+            continue
+        try:
+            events = source_provenance.semantic_events_affecting(
+                category,
+                dependency["semantic_revision"],
+                target_scope,
+            )
+        except source_provenance.ProvenanceError as error:
+            issues.append(
+                "invalid dependency {}: {}".format(category_id, error)
+            )
+            continue
+        if events:
+            issues.append(
+                "new semantic dependency revision {} ({})".format(
+                    category_id,
+                    ", ".join(
+                        str(event["semantic_revision"]) for event in events
+                    ),
+                )
+            )
+    return issues
+
+
+def check_manifest(path, record_keys=None, _context=None):
+    """Check selected records, sharing repeated work across dependencies."""
+
+    context = _context or ManifestCheckContext()
+    resolved_path = Path(path).resolve()
+    manifest = context.load_manifest(resolved_path)
+    base_directory = (
+        resolved_path.parent / manifest["path_base"]
+    ).resolve()
+    if record_keys is None:
+        selected_keys = list(manifest["records"])
+    else:
+        selected_keys = list(dict.fromkeys(record_keys))
+        missing_keys = [
+            record_key
+            for record_key in selected_keys
+            if record_key not in manifest["records"]
+        ]
+        if missing_keys:
+            raise GeneratedProvenanceError(
+                "{} has no generated record(s): {}".format(
+                    resolved_path, ", ".join(missing_keys)
+                )
+            )
+
+    context.prime_output_stats(
+        base_directory / output_path
+        for record_key in selected_keys
+        for output_path in manifest["records"][record_key]["outputs"]
+    )
+    checked_records = {}
+    for record_key in selected_keys:
+        cache_key = (str(resolved_path), record_key)
+        if cache_key not in context.record_issues:
+            if cache_key in context.records_in_progress:
+                raise GeneratedProvenanceError(
+                    "cyclic generated dependency at {}:{}".format(
+                        resolved_path, record_key
+                    )
+                )
+            context.records_in_progress.add(cache_key)
+            try:
+                context.record_issues[cache_key] = check_record(
+                    manifest["records"][record_key],
+                    base_directory,
+                    check_context=context,
+                )
+            finally:
+                context.records_in_progress.remove(cache_key)
+        checked_records[record_key] = context.record_issues[cache_key]
+    return checked_records
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        description="Validate bundled generated-data provenance."
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    validate_parser = subparsers.add_parser("validate")
+    validate_parser.add_argument("manifests", nargs="+", type=Path)
+    check_parser = subparsers.add_parser("check")
+    check_parser.add_argument("manifests", nargs="+", type=Path)
+    return parser
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    try:
+        if args.command == "validate":
+            for path in args.manifests:
+                load_manifest(path)
+                print("{}: valid".format(path))
+            return 0
+        if args.command == "check":
+            has_issues = False
+            for path in args.manifests:
+                print("{}:".format(path))
+                manifest = load_manifest(path)
+                results = check_manifest(path)
+                legacy_issue = (
+                    "legacy provenance baseline; generation inputs unknown"
+                )
+                legacy_count = 0
+                for record_key, issues in results.items():
+                    display_issues = list(issues)
+                    if (
+                        manifest["records"][record_key]["status"] == "legacy"
+                        and legacy_issue in display_issues
+                    ):
+                        legacy_count += 1
+                        display_issues.remove(legacy_issue)
+                    if display_issues:
+                        has_issues = True
+                        print("  {}: STALE OR INVALID".format(record_key))
+                        for issue in display_issues:
+                            print("    {}".format(issue))
+                if legacy_count:
+                    has_issues = True
+                    print(
+                        "  {} legacy record(s) have unknown generation "
+                        "inputs.".format(legacy_count)
+                    )
+                    print(
+                        "  Missing historical seed metadata is "
+                        "informational only."
+                    )
+                current_count = sum(
+                    not issues for issues in results.values()
+                )
+                if current_count:
+                    print(
+                        "  {} record(s) current.".format(current_count)
+                    )
+            return 2 if has_issues else 0
+    except GeneratedProvenanceError as error:
+        print("Error: {}".format(error), file=sys.stderr)
+        return 2
+    raise AssertionError("unhandled command")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

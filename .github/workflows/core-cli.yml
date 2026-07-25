@@ -15,10 +15,14 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check CLI dependency boundary
         run: python3 tests/check_cli_dependencies.py
+
+      - name: Test analysis metadata tools
+        working-directory: analysis
+        run: python3 -B -m unittest test_pipeline_registry.py test_source_provenance.py test_generated_provenance.py test_calibration_provenance.py test_pollster_analysis_provenance.py test_fp_model_provenance.py test_analysis_provenance.py
 
       - name: Build CLI
         run: CXX=g++ sh build-polling-cli.sh
@@ -32,11 +36,16 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check CLI dependency boundary
         shell: cmd
         run: python tests\check_cli_dependencies.py
+
+      - name: Test analysis metadata tools
+        working-directory: analysis
+        shell: cmd
+        run: python -B -m unittest test_pipeline_registry.py test_source_provenance.py test_generated_provenance.py test_calibration_provenance.py test_pollster_analysis_provenance.py test_fp_model_provenance.py test_analysis_provenance.py
 
       - name: Build CLI
         shell: cmd

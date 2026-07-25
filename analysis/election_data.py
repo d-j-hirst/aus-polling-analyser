@@ -152,47 +152,53 @@ class CandidateResult:
 
 
 class AllElections:
-    def __init__(self):
+    def __init__(self, allow_download=True):
         self.elections = {}
         fed_years = [2025, 2022, 2019, 2016, 2013, 2010, 2007, 2004, 2001, 1998, 1996,
                     1993, 1990, 1987, 1984, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='fed'): 
             ElectionResults(f'{year} Federal Election',
-            lambda: generic_download('fed', year))
+            lambda year=year: generic_download(
+                'fed', year, allow_download=allow_download))
             for year in fed_years})
         nsw_years = [2023, 2019, 2015, 2011, 2007, 2003, 1999, 1995, 1991, 1988,
                     1984, 1981]
         self.elections.update({
             ElectionCode(year=year, region='nsw'): 
             ElectionResults(f'{year} NSW Election',
-            lambda: generic_download('nsw', year))
+            lambda year=year: generic_download(
+                'nsw', year, allow_download=allow_download))
             for year in nsw_years})
         vic_years = [2022, 2018, 2014, 2010, 2006, 2002, 1999, 1996, 1992]
         self.elections.update({
             ElectionCode(year=year, region='vic'): 
             ElectionResults(f'{year} VIC Election',
-            lambda: generic_download('vic', year))
+            lambda year=year: generic_download(
+                'vic', year, allow_download=allow_download))
             for year in vic_years})
         qld_years = [2024, 2020, 2017, 2015, 2012, 2009, 2006, 2004, 2001, 1998,
                     1995, 1992, 1989, 1986, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='qld'): 
             ElectionResults(f'{year} QLD Election',
-            lambda: generic_download('qld', year))
+            lambda year=year: generic_download(
+                'qld', year, allow_download=allow_download))
             for year in qld_years})
         sa_years = [2022, 2018, 2014, 2010, 2006, 2002, 1997]
         self.elections.update({
             ElectionCode(year=year, region='sa'): 
             ElectionResults(f'{year} SA Election',
-            lambda: generic_download('sa', year))
+            lambda year=year: generic_download(
+                'sa', year, allow_download=allow_download))
             for year in sa_years})
         wa_years = [2025, 2021, 2017, 2013, 2008, 2005, 2001, 1996, 1993, 1989,
                     1986, 1983, 1980]
         self.elections.update({
             ElectionCode(year=year, region='wa'): 
             ElectionResults(f'{year} WA Election',
-            lambda: generic_download('wa', year))
+            lambda year=year: generic_download(
+                'wa', year, allow_download=allow_download))
             for year in wa_years})
     
     def __getitem__(self, key):
@@ -274,14 +280,18 @@ def fetch_seat_urls_state(state):
     return seat_urls
 
 
-def generic_download(state, year):
+def generic_download(state, year, allow_download=True):
     filename = f'elections/{year}{state}_results.pkl'
     try:
         with open(filename, 'rb') as pkl:
             all_results = pickle.load(pkl)
         return all_results.results
     except FileNotFoundError:
-        pass
+        if not allow_download:
+            raise FileNotFoundError(
+                f'Required cached election results are missing: {filename}. '
+                'Run election_data.py when the source results are available.'
+            )
     all_results = SavedResults()
     seat_urls = fetch_seat_urls_state(state)
     for seat_name, url_list in seat_urls.items():

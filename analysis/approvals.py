@@ -1,6 +1,9 @@
 import math
 import datetime
+import approvals_provenance
+import os
 import statistics
+import sys
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -15,14 +18,34 @@ poll_files = ['fed','nsw','vic','qld','wa','sa']
 # In each case, only data prior to the poll by >=14 days is used to generate the
 # synthetic TPP.
 def generate_synthetic_tpps(display_analysis=False):
-    Approvals(display_analysis)
+    recorder = approvals_provenance.SyntheticTppRecorder(
+        [os.path.basename(sys.executable)] + sys.argv
+    )
+    Approvals(display_analysis, recorder)
 
 
 class Approvals:
-    def __init__(self, display_analysis):
+    def __init__(self, display_analysis, provenance_recorder=None):
         print("Generating synthetic TPPs")
         self.load_data()
+        dependencies = (
+            provenance_recorder.dependencies_for(
+                {
+                    "{}{}".format(*election)
+                    for election, approvals in self.approvals.items()
+                    if approvals
+                }
+            )
+            if provenance_recorder is not None
+            else None
+        )
         self.create_synthetic_tpps()
+        if provenance_recorder is not None:
+            provenance_recorder.record(
+                self.output_files,
+                self.output_elections,
+                dependencies,
+            )
         if (display_analysis): self.analyse_synthetic_tpps()
         print("Finished generating synthetic TPPs")
     
@@ -57,7 +80,10 @@ class Approvals:
                 (a[0], a[1])
                 for a in [b.strip().split(',') for b in f.readlines()]
             }
+        approval_terms = approvals_provenance.approval_elections()
         for election in self.elections:
+            if "{}{}".format(*election) not in approval_terms:
+                continue
             self.load_election(election)
         for poll_file in poll_files:
             self.load_approvals(poll_file)
@@ -276,6 +302,7 @@ class Approvals:
 
     def create_synthetic_tpps(self):
         files = {}
+        self.output_elections = {}
         self.synthetic_tpps = {}
         for election in sorted(self.approvals.keys(), key=lambda x: x[0]):
 
@@ -290,16 +317,23 @@ class Approvals:
                 if self.is_coalition(election, day):
                     synthetic_tpp = 100 - synthetic_tpp
                 if not election[1] in files: files[election[1]] = []
+                if election[1] not in self.output_elections:
+                    self.output_elections[election[1]] = set()
+                self.output_elections[election[1]].add(
+                    "{}{}".format(*election)
+                )
                 stpp_item = (date, pollster, synthetic_tpp, weight_sum)
                 files[election[1]].append(stpp_item)
                 if not election in self.synthetic_tpps:
                     self.synthetic_tpps[election] = []
                 self.synthetic_tpps[election].append(stpp_item)
+        self.output_files = {}
         for area, approvals in files.items():
             filename = f'Synthetic TPPs/{area}.csv'
             with open(filename, 'w') as f:
                 for date, pollster, tpp, weight_sum in approvals:
                     f.write(f'{date.isoformat()},{pollster},{round(tpp, 3)},{round(weight_sum, 4)}\n')
+            self.output_files[area] = filename
     
     def analyse_synthetic_tpps(self):
         errors = []

@@ -1,0 +1,100 @@
+{
+  "$schema": "../source_provenance.schema.json",
+  "schema_version": 1,
+  "folder": ".",
+  "description": "Authored election-specific regional polling inputs.",
+  "created_at_utc": "2026-07-23T23:21:58Z",
+  "updated_at_utc": "2026-07-23T23:21:59Z",
+  "categories": {
+    "regional_poll_inputs": {
+      "description": "Election-specific regional poll breakdowns used by region_model.py.",
+      "file_patterns": [
+        "*-polls.csv",
+        "*-polls-ON.csv"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "2024qld-polls.csv": {
+          "sha256": "263c27bd4fb66560ba96b1bd6d528d6278239df6cbb40a7f601756722d930bc8",
+          "size_bytes": 595,
+          "recorded_mtime_utc": "2024-10-19T00:35:07.007035Z"
+        },
+        "2025fed-polls.csv": {
+          "sha256": "9b2da1172f37671dda3c97ba3e05ba46b3f82656dd4cabefccb220f4a8d319f5",
+          "size_bytes": 6108,
+          "recorded_mtime_utc": "2025-05-02T05:23:44.536016Z"
+        },
+        "2026vic-polls-ON.csv": {
+          "sha256": "2b72bad38fe9db8dd7ff2b72d9e1336d755a9d4cda359d004ae7fa71d00ef162",
+          "size_bytes": 340,
+          "recorded_mtime_utc": "2026-03-07T05:23:13.403802Z"
+        },
+        "2026vic-polls.csv": {
+          "sha256": "c08e095d8d34051ce726f519c11ba15d76c4d11cceead873e564747c6662e78b",
+          "size_bytes": 400,
+          "recorded_mtime_utc": "2026-03-07T05:10:05.615454Z"
+        },
+        "2027nsw-polls-ON.csv": {
+          "sha256": "b6ac869ba514013a639fba85426239b1b93c84a0ec9ccc8880bdce2e272ff870",
+          "size_bytes": 138,
+          "recorded_mtime_utc": "2026-02-23T07:13:02.539151Z"
+        },
+        "2027nsw-polls.csv": {
+          "sha256": "9c0475e9f4edf523ce5d5ec819533e5d623974f9681ead209997f91f9c8d6c46",
+          "size_bytes": 157,
+          "recorded_mtime_utc": "2026-02-23T08:30:56.385194Z"
+        },
+        "2028fed-polls-ON.csv": {
+          "sha256": "881e8a7ad7c81c3c3131c7d3cc346219549ef5f7be009f0c3698408c261363a3",
+          "size_bytes": 1830,
+          "recorded_mtime_utc": "2026-07-12T10:24:56.141371Z"
+        },
+        "2028fed-polls.csv": {
+          "sha256": "1726f12850e9d7e4b89f1186798176e523380ebbbb7822fc8c32e8845dfb5304",
+          "size_bytes": 2880,
+          "recorded_mtime_utc": "2026-07-12T10:24:57.060550Z"
+        },
+        "2028qld-polls-ON.csv": {
+          "sha256": "ebcee18523d6e7b43408569fd6cacdcd6358ebdfb57f43e82b2c2589ef1a109b",
+          "size_bytes": 163,
+          "recorded_mtime_utc": "2026-02-23T08:31:16.218215Z"
+        },
+        "2028qld-polls.csv": {
+          "sha256": "19489216e319a199af839e5e1371f5e1cbb555f8320ccaa0d8b97eaa4ea880ec",
+          "size_bytes": 188,
+          "recorded_mtime_utc": "2026-02-23T08:30:50.723079Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260723T232159Z-baseline-regional-poll-inputs-8b0292b4",
+          "recorded_at_utc": "2026-07-23T23:21:59Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Recorded the current authored source state as the initial provenance baseline; generated outputs were not reproduced or validated.",
+          "files": [
+            "2024qld-polls.csv",
+            "2025fed-polls.csv",
+            "2026vic-polls-ON.csv",
+            "2026vic-polls.csv",
+            "2027nsw-polls-ON.csv",
+            "2027nsw-polls.csv",
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv",
+            "2028qld-polls-ON.csv",
+            "2028qld-polls.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    }
+  }
+}

@@ -3,11 +3,23 @@ import math
 import numpy as np
 import os
 import pandas as pd
+import sys
 from mailbox import linesep
 from election_code import ElectionCode
+import generated_provenance
+import pollster_analysis_provenance
 from statsmodels.stats.weightstats import DescrStatsW
 
 directory = 'Outputs/Calibration'
+
+
+def output_paths(target_election):
+    code = f'{target_election.year()}{target_election.region()}'
+    return [
+        f'{directory}/variability-{code}.csv',
+        f'{directory}/he_weighting-{code}.csv',
+        f'{directory}/biases-{code}.csv',
+    ]
 
 
 class ConfigError(ValueError):
@@ -529,13 +541,34 @@ if __name__ == '__main__':
         config = Config()
         cycles = get_election_cycles()
         links = get_links()
+        recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
+            [os.path.basename(__file__)] + sys.argv[1:]
+        )
         for election in config.elections:
+            election_code = f'{election.year()}{election.region()}'
+            dependencies = recorder.dependencies_for(
+                election_code,
+                lambda candidate, target: check_dates(
+                    ElectionCode(int(candidate[:4]), candidate[4:]),
+                    ElectionCode(int(target[:4]), target[4:]),
+                    cycles,
+                    equals=True,
+                ),
+            )
             analyse_variability(election, cycles, links)
             analyse_house_effects(election, cycles, links)
             analyse_bias(election, cycles, links)
+            recorder.record(
+                election_code,
+                output_paths(election),
+                dependencies,
+            )
         with open(f'itsdone.txt', 'w') as f:
             f.write('1')
-    except ConfigError as e:
+    except (
+        ConfigError,
+        generated_provenance.GeneratedProvenanceError,
+    ) as e:
         print('Could not process configuration due to the following issue:')
         print(str(e))
         with open(f'itsdone.txt', 'w') as f:

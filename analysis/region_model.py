@@ -1,15 +1,17 @@
 import argparse
 import math
-import numpy as np
 import pandas as pd
 import pystan
+import region_model_provenance
+import secrets
+import sys
 from election_code import ElectionCode
 from datetime import timedelta
 from time import perf_counter
 
 from stan_cache import stan_cache
 
-from poll_transform import transform_vote_share, detransform_vote_share, clamp
+from poll_transform import transform_vote_share
 
 
 fed_regions = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'WSTAN']
@@ -41,8 +43,21 @@ class Config:
       help='Party to generate regional trends for. Currently only supports ON. '
            'If not specified, will do 2PP.',
       default='')
-    self.election_instructions = parser.parse_args().election.lower()
-    self.party_instructions = parser.parse_args().party.lower()
+    parser.add_argument(
+      '--seed',
+      action='store',
+      type=int,
+      help='Base random seed used to derive reproducible per-election seeds.')
+    args = parser.parse_args()
+    if args.election is None:
+      raise ConfigError('The --election argument is required.')
+    self.election_instructions = args.election.lower()
+    self.party_instructions = args.party.lower()
+    if self.party_instructions not in ('', 'on'):
+      raise ConfigError('The --party argument currently supports only "ON".')
+    if args.seed is not None and not 1 <= args.seed < 2 ** 31:
+      raise ConfigError('The --seed value must be between 1 and 2^31-1.')
+    self.seed = args.seed
     self.prepare_election_list()
 
   def prepare_election_list(self):
@@ -87,15 +102,6 @@ class Config:
 
 class ModellingData:
   def __init__(self):
-    # Load the file containing prior results for each election
-    with open('./Data/prior-results.csv', 'r') as f:
-      self.prior_results = {
-        ((a[0], a[1]), a[2]): float(a[3])
-        for a in [
-          b.strip().split(',') for b in f.readlines()
-        ]
-    }
-        
     # Load the dates of next and previous elections
     # We will only model polls between those two dates
     with open('./Data/election-cycles.csv', 'r') as f:
@@ -112,21 +118,26 @@ class ModellingData:
             
 
 class ElectionData:
-  def __init__(self, config, m_data, desired_election):
+  def __init__(self, m_data, desired_election, input_path):
     self.e_tuple = (str(desired_election.year()),
                       desired_election.region())           
     tup = self.e_tuple
     self.others_medians = {}
 
     # collect the model data
-    party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
-    filename = f'./Regional/{desired_election.short()}-polls{party_part}.csv'
-    self.base_df = pd.read_csv(filename)
+    self.base_df = pd.read_csv(input_path)
 
     print(self.base_df)
 
+    previous_results = (
+      self.base_df[self.base_df.Firm == 'Election'].to_dict('records')
+    )
+    if len(previous_results) > 1:
+      raise ConfigError(
+        '{} contains more than one Election baseline row.'.format(input_path)
+      )
     self.previous_results = (
-      self.base_df[self.base_df.Firm == 'Election'].to_dict('records')[0]
+      previous_results[0] if previous_results else None
     )
 
     self.base_df = self.base_df[self.base_df.Firm != 'Election']
@@ -169,7 +180,7 @@ class ElectionData:
       self.base_df.loc[i, 'EndDayNum'] = int(self.base_df.loc[i, 'EndDay'] + 1)
 
 
-def run_model_fed2025(config, e_data):
+def run_model_fed2025(e_data, random_seed, output_path):
   df = e_data.base_df.copy()
 
   prev_nat = e_data.previous_results['National']
@@ -233,6 +244,7 @@ def run_model_fed2025(config, e_data):
   fit = sm.sampling(data=stan_data,
                       iter=iterations,
                       chains=chains,
+                      seed=random_seed,
                       control={'max_treedepth': 18,
                               'adapt_delta': 0.8})
   finish_time = perf_counter()
@@ -256,10 +268,7 @@ def run_model_fed2025(config, e_data):
   required_rows = [modified_day_count * a - 1 for a in range(1, num_regions + 1)]
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
-  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
-  with open(
-    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
-  ) as f:
+  with open(output_path, 'w') as f:
     f.write('nsw,vic,qld,wa,sa,tan\n')
     f.write(','.join([str(a) for a in state_vals]))
   for offset in reversed(range(0, 5)):
@@ -268,7 +277,7 @@ def run_model_fed2025(config, e_data):
     print(state_vals)
 
 
-def run_model_qld2024(e_data):
+def run_model_qld2024(e_data, random_seed, output_path):
   df = e_data.base_df.copy()
 
   df['StateSwing'] = df['State'] - 53.2
@@ -346,6 +355,7 @@ def run_model_qld2024(e_data):
   fit = sm.sampling(data=stan_data,
                       iter=iterations,
                       chains=chains,
+                      seed=random_seed,
                       control={'max_treedepth': 18,
                               'adapt_delta': 0.8})
   finish_time = perf_counter()
@@ -369,14 +379,12 @@ def run_model_qld2024(e_data):
   required_rows = [modified_day_count * a - 1 for a in range(1, num_regions + 1)]
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
-  with open(
-    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations.csv', 'w'
-  ) as f:
+  with open(output_path, 'w') as f:
     f.write('is,os,core,coru,cere,ceru,fnre,fnru\n')
     f.write(','.join([str(a) for a in state_vals]))
 
 
-def run_model_vic2026(config, e_data):
+def run_model_vic2026(e_data, random_seed, output_path):
   df = e_data.base_df.copy()
 
   prev_nat = e_data.previous_results['State']
@@ -441,6 +449,7 @@ def run_model_vic2026(config, e_data):
   fit = sm.sampling(data=stan_data,
                       iter=iterations,
                       chains=chains,
+                      seed=random_seed,
                       control={'max_treedepth': 18,
                               'adapt_delta': 0.8})
   finish_time = perf_counter()
@@ -466,10 +475,7 @@ def run_model_vic2026(config, e_data):
   print(summary['summary'].tolist())
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
-  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
-  with open(
-    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
-  ) as f:
+  with open(output_path, 'w') as f:
     f.write('innerMetro,outerMetro,provincial,rural\n')
     f.write(','.join([str(a) for a in state_vals]))
   for offset in reversed(range(0, 5)):
@@ -478,7 +484,7 @@ def run_model_vic2026(config, e_data):
     print(state_vals)
 
 
-def run_model_nsw2027(config, e_data):
+def run_model_nsw2027(e_data, random_seed, output_path):
   df = e_data.base_df.copy()
 
   print(e_data)
@@ -540,6 +546,7 @@ def run_model_nsw2027(config, e_data):
   fit = sm.sampling(data=stan_data,
                       iter=iterations,
                       chains=chains,
+                      seed=random_seed,
                       control={'max_treedepth': 18,
                               'adapt_delta': 0.8})
   finish_time = perf_counter()
@@ -565,10 +572,7 @@ def run_model_nsw2027(config, e_data):
   print(summary['summary'].tolist())
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
-  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
-  with open(
-    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
-  ) as f:
+  with open(output_path, 'w') as f:
     f.write('metro,regional\n')
     f.write(','.join([str(a) for a in state_vals]))
   for offset in reversed(range(0, 5)):
@@ -577,7 +581,7 @@ def run_model_nsw2027(config, e_data):
     print(state_vals)
 
 
-def run_model_qld2028(config, e_data):
+def run_model_qld2028(e_data, random_seed, output_path):
   df = e_data.base_df.copy()
 
   print(e_data)
@@ -640,6 +644,7 @@ def run_model_qld2028(config, e_data):
   fit = sm.sampling(data=stan_data,
                       iter=iterations,
                       chains=chains,
+                      seed=random_seed,
                       control={'max_treedepth': 18,
                               'adapt_delta': 0.8})
   finish_time = perf_counter()
@@ -665,10 +670,7 @@ def run_model_qld2028(config, e_data):
   print(summary['summary'].tolist())
   state_vals = [summary['summary'].tolist()[a][0] for a in required_rows]
   print(state_vals)
-  party_part = '' if config.party_instructions == '' else '-' + config.party_instructions
-  with open(
-    f'./Regional/{e_data.e_tuple[0]}{e_data.e_tuple[1]}-swing-deviations{party_part}.csv', 'w'
-  ) as f:
+  with open(output_path, 'w') as f:
     f.write('metro,seq,regional\n')
     f.write(','.join([str(a) for a in state_vals]))
   for offset in reversed(range(0, 5)):
@@ -686,41 +688,103 @@ def run_models():
     return
 
   m_data = ModellingData()
+  party = region_model_provenance.canonical_party(
+    config.party_instructions
+  )
+  work_items = []
+  for desired_election in config.elections:
+    election = desired_election.short()
+    input_path = region_model_provenance.input_path(election, party)
+    if input_path is None:
+      print(
+        'No regional polling file for {} and {}, skipping.'.format(
+          election, party
+        )
+      )
+      continue
+    if not region_model_provenance.has_actual_poll_data(input_path):
+      print(
+        '{} contains no actual regional polls, skipping.'.format(input_path)
+      )
+      continue
+    work_items.append((desired_election, input_path))
 
-  # Load the list of election periods we want to model
-  desired_elections = config.elections
+  if not work_items:
+    print('No regional model work was required.')
+    return
 
-  for desired_election in desired_elections:
-    e_data = ElectionData(
-      config=config,
-      m_data=m_data,
-      desired_election=desired_election
+  base_seed = (
+    config.seed
+    if config.seed is not None
+    else secrets.randbelow(2 ** 31 - 1) + 1
+  )
+  print('Base random seed: {}'.format(base_seed))
+  recorder = region_model_provenance.RegionalModelRecorder(
+    [sys.executable] + sys.argv
+  )
+
+  for desired_election, input_path in work_items:
+    election = desired_election.short()
+    random_seed = region_model_provenance.derive_stan_seed(
+      base_seed, election, party
     )
+    output_path = region_model_provenance.output_path(election, party)
+    e_data = ElectionData(
+      m_data=m_data,
+      desired_election=desired_election,
+      input_path=input_path,
+    )
+
+    needs_baseline = not (
+      desired_election.year() == 2024
+      and desired_election.region() == 'qld'
+    )
+    if needs_baseline and e_data.previous_results is None:
+      raise ConfigError(
+        '{} requires an Election baseline row.'.format(input_path)
+      )
 
     if desired_election.year() >= 2025 and desired_election.region() == 'fed':
       run_model_fed2025(
-        config=config,
         e_data=e_data,
+        random_seed=random_seed,
+        output_path=output_path,
       )
     elif desired_election.year() >= 2028 and desired_election.region() == 'qld':
       run_model_qld2028(
-        config=config,
         e_data=e_data,
+        random_seed=random_seed,
+        output_path=output_path,
       )
     elif desired_election.year() == 2024 and desired_election.region() == 'qld':
       run_model_qld2024(
         e_data=e_data,
+        random_seed=random_seed,
+        output_path=output_path,
       )
     elif desired_election.year() == 2026 and desired_election.region() == 'vic':
       run_model_vic2026(
-        config=config,
         e_data=e_data,
+        random_seed=random_seed,
+        output_path=output_path,
       )
     elif desired_election.year() == 2027 and desired_election.region() == 'nsw':
       run_model_nsw2027(
-        config=config,
         e_data=e_data,
+        random_seed=random_seed,
+        output_path=output_path,
       )
+    else:
+      raise ConfigError(
+        'No regional model implementation exists for {}.'.format(election)
+      )
+
+    recorder.record(
+      election=election,
+      party=party,
+      output=output_path,
+      random_seed=random_seed,
+    )
 
 if __name__ == '__main__':
     run_models()
