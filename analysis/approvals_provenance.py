@@ -163,11 +163,30 @@ def _source_dependencies():
     }
 
 
+def generation_dependencies(elections=None):
+    """Snapshot the direct inputs used to derive synthetic observations."""
+
+    if elections is None:
+        elections = approval_elections()
+    dependencies = _source_dependencies()
+    records = available_pure_tpp_records(elections)
+    if records:
+        dependencies["pure_poll_outputs"] = (
+            generated_provenance.generated_manifest_dependency(
+                "pure_poll_outputs",
+                PURE_MANIFEST_PATH,
+                records,
+                ANALYSIS_DIRECTORY,
+                allow_stale=True,
+            )
+        )
+    return dependencies
+
+
 class SyntheticTppRecorder:
     """Preflight dependencies and certify a complete jurisdiction output."""
 
     def __init__(self, command):
-        self.source_dependencies = _source_dependencies()
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
             source_revision=generated_provenance.current_source_revision(
@@ -179,19 +198,7 @@ class SyntheticTppRecorder:
         )
 
     def dependencies_for(self, elections):
-        dependencies = dict(self.source_dependencies)
-        records = available_pure_tpp_records(elections)
-        if records:
-            dependencies["pure_poll_outputs"] = (
-                generated_provenance.generated_manifest_dependency(
-                    "pure_poll_outputs",
-                    PURE_MANIFEST_PATH,
-                    records,
-                    ANALYSIS_DIRECTORY,
-                    allow_stale=True,
-                )
-            )
-        return dependencies
+        return generation_dependencies(elections)
 
     def record(self, output_files, output_elections, dependencies):
         records = {}

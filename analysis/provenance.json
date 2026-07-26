@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-26T00:18:09Z",
+  "updated_at_utc": "2026-07-26T05:30:29Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -960,12 +960,12 @@
         "fp_model_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "e9113739eba4ed376502287301a3e61ad84f8d8f6f19502d67835a48c7adaf17",
-          "size_bytes": 36194,
-          "recorded_mtime_utc": "2026-07-25T10:09:53.665759Z"
+          "sha256": "474ccb5564e587e3698c9f8bccaf50c5d82f679be05f88b85042f3b6a0e94a8e",
+          "size_bytes": 35475,
+          "recorded_mtime_utc": "2026-07-26T05:29:46.031824Z"
         }
       },
       "events": [
@@ -1130,6 +1130,24 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260726T053029Z-correction-fp-model-provenance-script-8d92ef96",
+          "recorded_at_utc": "2026-07-26T05:30:29Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "summary": "Record approval and pure-trend inputs directly instead of treating diagnostic synthetic TPP files as an execution boundary.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -1228,12 +1246,12 @@
         "approvals_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "approvals_provenance.py": {
-          "sha256": "c60ae44a6f4e1d44ed13b967e753b01a70881bf74477ca26d2f6b4474161bc6d",
-          "size_bytes": 11130,
-          "recorded_mtime_utc": "2026-07-24T10:25:32.666759Z"
+          "sha256": "e06b6f62336b972772e1f1ab77e49c7493f83202cd0d726f987a7772a4ce8239",
+          "size_bytes": 11253,
+          "recorded_mtime_utc": "2026-07-26T05:27:07.297374Z"
         }
       },
       "events": [
@@ -1263,6 +1281,24 @@
           "affects_outputs": false,
           "semantic_revision": 1,
           "summary": "Ignore dormant future elections without configured cycles when selecting approval terms.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T053029Z-correction-approvals-provenance-script-eddd4d16",
+          "recorded_at_utc": "2026-07-26T05:30:29Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Record approval and pure-trend inputs directly instead of treating diagnostic synthetic TPP files as an execution boundary.",
           "files": [
             "approvals_provenance.py"
           ],

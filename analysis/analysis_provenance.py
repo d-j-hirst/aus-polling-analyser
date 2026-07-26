@@ -7,9 +7,10 @@ this module applies the project's manifest locations and impact policy.
 
 import argparse
 import fnmatch
+import json
 import re
 import sys
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 import generated_provenance
@@ -73,6 +74,7 @@ CALIBRATION_STAGES = {
 }
 SYNTHETIC_TPP_STAGES = {
     "generate_pure_poll_trends",
+    # Retained for pre-registry-v2 generated manifests.
     "generate_synthetic_tpp",
 }
 PATH_IMMEDIATE = "immediate"
@@ -81,6 +83,14 @@ PATH_CALIBRATION = "calibration"
 DEPENDENCY_FIELDS = ("inputs", "optional_inputs", "feedback_inputs")
 ELECTION_CODE_PATTERN = re.compile(r"^\d{4}[a-z]+$")
 WORK_UNIT_EXAMPLE_LIMIT = 15
+WORK_UNIT_STATUS_PRECEDENCE = {
+    "current": 0,
+    "stale": 1,
+    "legacy": 2,
+    "missing": 3,
+    "altered": 4,
+    "blocked": 5,
+}
 
 
 class AnalysisProvenanceError(ValueError):
@@ -155,6 +165,72 @@ def _generated_issue_root(issue, record):
     if dependency_match:
         return dependency_match.group(1)
     return record["category"]
+
+
+def _generated_issue_code(issue):
+    if issue == "legacy provenance baseline; generation inputs unknown":
+        return "legacy"
+    prefixes = (
+        ("missing output ", "missing_output"),
+        ("changed output ", "altered_output"),
+        ("changed dependency ", "changed_dependency"),
+        ("stale generated dependency ", "stale_generated_dependency"),
+        ("invalid dependency ", "invalid_dependency"),
+        ("unrecorded source change ", "unregistered_source_change"),
+        ("new semantic dependency revision ", "new_semantic_revision"),
+    )
+    for prefix, code in prefixes:
+        if issue.startswith(prefix):
+            return code
+    return "unknown"
+
+
+def _work_unit_status(issues):
+    statuses = {"current"}
+    for issue in issues:
+        code = _generated_issue_code(issue)
+        if code == "legacy":
+            statuses.add("legacy")
+        elif code == "missing_output":
+            statuses.add("missing")
+        elif code == "altered_output":
+            statuses.add("altered")
+        elif code in {
+            "invalid_dependency",
+            "unregistered_source_change",
+            "unknown",
+        }:
+            statuses.add("blocked")
+        else:
+            statuses.add("stale")
+    return max(statuses, key=WORK_UNIT_STATUS_PRECEDENCE.get)
+
+
+def _manifest_label(path):
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(ANALYSIS_DIRECTORY).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def _generated_path_class(
+    record,
+    category_id,
+    calibration_outputs,
+    synthetic_tpp_outputs,
+):
+    if (
+        record["stage"] in CALIBRATION_STAGES
+        or category_id in calibration_outputs
+    ):
+        return PATH_CALIBRATION
+    if (
+        record["stage"] in SYNTHETIC_TPP_STAGES
+        or category_id in synthetic_tpp_outputs
+    ):
+        return PATH_SYNTHETIC_TPP
+    return PATH_IMMEDIATE
 
 
 def _is_audited_transitive_issue(
@@ -308,14 +384,22 @@ def _terminal_impacts(root_categories, registry, path_seeds=None):
         stage_inputs = set()
         for field in DEPENDENCY_FIELDS:
             stage_inputs.update(stage.get(field, []))
-        edge_path = (
-            PATH_CALIBRATION
-            if stage["id"] in CALIBRATION_STAGES
-            else PATH_SYNTHETIC_TPP
-            if stage["id"] in SYNTHETIC_TPP_STAGES
-            else PATH_IMMEDIATE
+        synthetic_inputs = set(
+            stage.get("dependency_path_classes", {}).get(
+                PATH_SYNTHETIC_TPP, []
+            )
         )
         for input_category in stage_inputs:
+            edge_path = (
+                PATH_CALIBRATION
+                if stage["id"] in CALIBRATION_STAGES
+                else PATH_SYNTHETIC_TPP
+                if (
+                    stage["id"] in SYNTHETIC_TPP_STAGES
+                    or input_category in synthetic_inputs
+                )
+                else PATH_IMMEDIATE
+            )
             for output_category in stage["outputs"]:
                 edges[input_category].append(
                     (output_category, edge_path)
@@ -560,6 +644,9 @@ def audit_repository(
     root_path_modes = defaultdict(set)
     impact_seeds = set()
     internal_errors = []
+    source_issues = []
+    work_units = []
+    manifest_issues = []
     touched = []
     generated_check_context = (
         generated_provenance.ManifestCheckContext()
@@ -580,10 +667,21 @@ def audit_repository(
             )
             for change_kind in ("added", "removed", "modified"):
                 for path in comparison[change_kind]:
+                    message = "unregistered {} file {}".format(
+                        change_kind, path
+                    )
                     root_causes[category_id].add(
-                        "unregistered {} file {}".format(
-                            change_kind, path
-                        )
+                        message
+                    )
+                    source_issues.append(
+                        {
+                            "category": category_id,
+                            "status": "blocked",
+                            "code": "unregistered_source_change",
+                            "change_kind": change_kind,
+                            "path": path,
+                            "message": message,
+                        }
                     )
                     root_path_modes[category_id].add(PATH_IMMEDIATE)
                     impact_seeds.add((category_id, PATH_IMMEDIATE))
@@ -623,10 +721,17 @@ def audit_repository(
     }
     for manifest_path in generated_manifest_paths:
         if not Path(manifest_path).is_file():
-            unknown_generated.append(
-                "{} has no generated provenance manifest".format(
-                    manifest_path
-                )
+            message = "{} has no generated provenance manifest".format(
+                manifest_path
+            )
+            unknown_generated.append(message)
+            manifest_issues.append(
+                {
+                    "manifest": _manifest_label(manifest_path),
+                    "status": "unknown",
+                    "code": "missing_generated_manifest",
+                    "message": message,
+                }
             )
             continue
         try:
@@ -656,7 +761,16 @@ def audit_repository(
                 _context=generated_check_context,
             )
         except generated_provenance.GeneratedProvenanceError as error:
-            internal_errors.append("{}: {}".format(manifest_path, error))
+            message = "{}: {}".format(manifest_path, error)
+            internal_errors.append(message)
+            manifest_issues.append(
+                {
+                    "manifest": _manifest_label(manifest_path),
+                    "status": "blocked",
+                    "code": "invalid_generated_manifest",
+                    "message": message,
+                }
+            )
             continue
         records_by_root = defaultdict(list)
         for record_key, record_issues in checked_records.items():
@@ -676,22 +790,58 @@ def audit_repository(
                 _generated_issue_root(issue, record)
                 for issue in direct_issues
             }
+            path_classes = {
+                _generated_path_class(
+                    record,
+                    _generated_issue_root(issue, record),
+                    calibration_outputs,
+                    synthetic_tpp_outputs,
+                )
+                for issue in record_issues
+            }
+            if not path_classes:
+                path_classes.add(
+                    _generated_path_class(
+                        record,
+                        record["category"],
+                        calibration_outputs,
+                        synthetic_tpp_outputs,
+                    )
+                )
+            work_units.append(
+                {
+                    "record_key": record_key,
+                    "category": record["category"],
+                    "stage": record["stage"],
+                    "scope": record["scope"],
+                    "manifest": _manifest_label(manifest_path),
+                    "status": _work_unit_status(record_issues),
+                    "blocking": (
+                        _work_unit_status(record_issues)
+                        in {"altered", "blocked"}
+                    ),
+                    "path_classes": sorted(path_classes),
+                    "issues": [
+                        {
+                            "code": _generated_issue_code(issue),
+                            "root_category": _generated_issue_root(
+                                issue, record
+                            ),
+                            "message": issue,
+                        }
+                        for issue in record_issues
+                    ],
+                }
+            )
             for category_id in roots:
                 records_by_root[category_id].append(
                     (record_key, record, direct_issues)
                 )
-                path_class = (
-                    PATH_CALIBRATION
-                    if (
-                        record["stage"] in CALIBRATION_STAGES
-                        or category_id in calibration_outputs
-                    )
-                    else PATH_SYNTHETIC_TPP
-                    if (
-                        record["stage"] in SYNTHETIC_TPP_STAGES
-                        or category_id in synthetic_tpp_outputs
-                    )
-                    else PATH_IMMEDIATE
+                path_class = _generated_path_class(
+                    record,
+                    category_id,
+                    calibration_outputs,
+                    synthetic_tpp_outputs,
                 )
                 root_path_modes[category_id].add(path_class)
                 impact_seeds.add(
@@ -728,6 +878,30 @@ def audit_repository(
                 .format(error)
             )
         if missing_regional_work_units:
+            for work_unit in missing_regional_work_units:
+                work_units.append(
+                    {
+                        "record_key": work_unit,
+                        "category": "regional_swing_deviations",
+                        "stage": "generate_regional_swings",
+                        "scope": None,
+                        "manifest": _manifest_label(
+                            region_model_provenance.MANIFEST_PATH
+                        ),
+                        "status": "missing",
+                        "blocking": False,
+                        "path_classes": [PATH_IMMEDIATE],
+                        "issues": [
+                            {
+                                "code": "missing_record",
+                                "root_category":
+                                    "regional_swing_deviations",
+                                "message":
+                                    "required work unit has no generated record",
+                            }
+                        ],
+                    }
+                )
             shown = missing_regional_work_units[
                 :WORK_UNIT_EXAMPLE_LIMIT
             ]
@@ -779,6 +953,29 @@ def audit_repository(
                 )
             )
         if missing_cutoff_work_units:
+            for work_unit in missing_cutoff_work_units:
+                work_units.append(
+                    {
+                        "record_key": work_unit,
+                        "category": "cutoff_poll_outputs",
+                        "stage": "generate_cutoff_poll_trends",
+                        "scope": None,
+                        "manifest": _manifest_label(
+                            trend_adjust_provenance.CUTOFF_MANIFEST_PATH
+                        ),
+                        "status": "missing",
+                        "blocking": False,
+                        "path_classes": [PATH_CALIBRATION],
+                        "issues": [
+                            {
+                                "code": "missing_record",
+                                "root_category": "cutoff_poll_outputs",
+                                "message":
+                                    "required work unit has no generated record",
+                            }
+                        ],
+                    }
+                )
             shown = missing_cutoff_work_units[
                 :WORK_UNIT_EXAMPLE_LIMIT
             ]
@@ -832,6 +1029,22 @@ def audit_repository(
         for detail in sorted(root_causes[category_id])
     ]
     issues.extend(internal_errors)
+    work_units.sort(
+        key=lambda item: (
+            item["category"],
+            item["record_key"],
+            item["manifest"],
+        )
+    )
+    status_counts = Counter(
+        work_unit["status"] for work_unit in work_units
+    )
+    has_blockers = bool(
+        internal_errors
+        or any(issue["status"] == "blocked" for issue in source_issues)
+        or any(issue["status"] == "blocked" for issue in manifest_issues)
+        or any(work_unit["blocking"] for work_unit in work_units)
+    )
     return {
         "issues": issues,
         "root_causes": {
@@ -845,6 +1058,16 @@ def audit_repository(
         "impacts": impacts,
         "touched": touched,
         "unknown_generated": unknown_generated,
+        "source_issues": source_issues,
+        "work_units": work_units,
+        "manifest_issues": manifest_issues,
+        "summary": {
+            "work_unit_status_counts": {
+                status: status_counts.get(status, 0)
+                for status in WORK_UNIT_STATUS_PRECEDENCE
+            },
+            "has_blockers": has_blockers,
+        },
         "target_elections": (
             sorted(target_elections) if target_elections else []
         ),
@@ -942,6 +1165,31 @@ def _add_scope_arguments(parser):
     parser.add_argument("--election", action="append", default=[])
     parser.add_argument("--party", action="append", default=[])
     parser.add_argument("--stage", action="append", default=[])
+
+
+def _json_compatible(value):
+    if isinstance(value, dict):
+        return {
+            str(key): _json_compatible(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (set, frozenset)):
+        return sorted(_json_compatible(item) for item in value)
+    if isinstance(value, (list, tuple)):
+        return [_json_compatible(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
+    return value
+
+
+def audit_json(result):
+    """Return a stable machine-readable representation of an audit result."""
+
+    return json.dumps(
+        _json_compatible(result),
+        indent=2,
+        sort_keys=True,
+    )
 
 
 def _print_audit(result):
@@ -1309,6 +1557,12 @@ def build_parser():
             "upstream dependencies. Repeat for a custom election group."
         ),
     )
+    audit_parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Choose human-readable output or structured JSON.",
+    )
     register_parser = subparsers.add_parser(
         "register-change",
         help="Assess changed tracked files and update their manifests.",
@@ -1333,7 +1587,10 @@ def main(argv=None):
             return run_interactive()
         if args.command == "audit":
             result = audit_repository(target_elections=args.election)
-            _print_audit(result)
+            if args.format == "json":
+                print(audit_json(result))
+            else:
+                _print_audit(result)
             return 2 if result["issues"] else 0
 
         if args.command == "register-change":

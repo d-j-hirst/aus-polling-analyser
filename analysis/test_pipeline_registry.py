@@ -42,20 +42,61 @@ class PipelineRegistryTests(unittest.TestCase):
         )
         self.assertLess(
             positions["generate_pure_poll_trends"],
-            positions["generate_synthetic_tpp"],
-        )
-        self.assertLess(
-            positions["generate_synthetic_tpp"],
             positions["generate_poll_trends"],
         )
         self.assertLess(
             positions["generate_poll_trends"],
             positions["generate_trend_adjustments"],
         )
-        self.assertLess(
-            positions["generate_poll_trends"],
-            positions["generate_cutoff_poll_trends"],
+
+    def test_final_trend_embeds_approval_generation(self):
+        stages = {
+            stage["id"]: stage for stage in self.registry["stages"]
+        }
+        self.assertNotIn("generate_synthetic_tpp", stages)
+        final_stage = stages["generate_poll_trends"]
+        self.assertIn("pure_poll_outputs", final_stage["inputs"])
+        self.assertIn("approvals_script", final_stage["inputs"])
+        self.assertIn("synthetic_tpp_outputs", final_stage["outputs"])
+        self.assertIn("poll_trend_outputs", final_stage["outputs"])
+        self.assertEqual(
+            final_stage["dependency_path_classes"]["synthetic_tpp"],
+            [
+                "approval_context",
+                "pure_poll_outputs",
+                "approvals_script",
+                "approvals_provenance_script",
+            ],
         )
+
+    def test_fp_model_execution_uses_argument_array_and_wrapper(self):
+        stages = {
+            stage["id"]: stage for stage in self.registry["stages"]
+        }
+        command = pipeline_registry.stage_command(
+            stages["generate_pure_poll_trends"],
+            {"election_cli": "2028-fed"},
+            python_executable="/test/python",
+        )
+        self.assertEqual(
+            command,
+            [
+                "/test/python",
+                "run_fp_model.py",
+                "--pure",
+                "--election",
+                "2028-fed",
+            ],
+        )
+
+    def test_missing_execution_template_value_is_rejected(self):
+        stage = {
+            stage["id"]: stage for stage in self.registry["stages"]
+        }["generate_poll_trends"]
+        with self.assertRaisesRegex(
+            pipeline_registry.RegistryError, "election_cli"
+        ):
+            pipeline_registry.stage_command(stage, {})
 
     def test_unknown_dependency_is_rejected(self):
         registry = copy.deepcopy(self.registry)

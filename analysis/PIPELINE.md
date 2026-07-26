@@ -4,10 +4,16 @@ This document describes how authored analysis inputs become the generated data
 used by the C++ forecast pipeline. The machine-readable version of the same
 dependency map is in `pipeline_registry.json`.
 
-The registry describes and validates the known dependency graph and prints a
-regeneration order. `analysis_provenance.py` combines that graph with source
-and generated-data manifests to detect stale work units and trace their impact
-to the C++ model. Generator orchestration is not yet automated.
+The registry describes and validates the known dependency graph, safe
+subprocess argument templates and a regeneration order.
+`analysis_provenance.py` combines that graph with source and generated-data
+manifests to detect stale work units and trace their impact to the C++ model.
+Generator orchestration is not yet automated.
+
+The planned `pipeline.py` entry point will be a thin planner and runner. It
+will consume registry command templates and structured provenance results
+rather than duplicating dependency or freshness logic. Its eventual commands
+will be `status`, `plan` and `run`.
 
 ## Inspecting the Registry
 
@@ -21,6 +27,13 @@ python3 pipeline_registry.py --check-paths
 The first command validates category references, producers and the strict
 dependency graph. The second also checks that every authored input pattern
 currently matches at least one file.
+
+Runnable stages contain an `execution` object with a script, argument array,
+working directory, task scope and run class. The future orchestrator will
+prepend the active Python interpreter and invoke the array without a shell.
+Placeholders such as `{election_cli}` are validated before execution. A null
+execution entry marks a documented stage whose interface is not yet safe for
+automated use.
 
 ## Data Categories
 
@@ -69,8 +82,7 @@ Polling inputs + Stan models
   -> leave-one-pollster-out calibration and bias calibration
   -> compact pollster parameters
   -> pure poll trends
-  -> synthetic TPP observations
-  -> normal poll trends
+  -> normal poll trends (deriving synthetic TPP observations in memory)
   -> point-in-time historical cutoff trends
   -> trend adjustments and fundamentals
 
@@ -103,22 +115,20 @@ the authoritative source if this order changes.
 5. Run bias calibration with `fp_model.py --bias`.
 6. Reduce calibration output with `pollster_analysis.py`.
 7. Generate voting-intention-only trends with `fp_model.py --pure`.
-8. Generate synthetic TPP observations with `approvals.py`.
-9. Generate normal poll trends with `fp_model.py`.
-10. Generate historical point-in-time fits with
+8. Generate normal poll trends with `fp_model.py`; this invokes the approval
+   analysis and passes synthetic TPP observations directly to the model.
+9. Generate historical point-in-time fits with
     `fp_model.py --cutoff`.
-11. Generate adjustments and fundamentals with `trend_adjust.py`.
-12. Generate election-specific regional swing deviations with
+10. Generate adjustments and fundamentals with `trend_adjust.py`.
+11. Generate election-specific regional swing deviations with
     `region_model.py`.
 
-Steps 1-3, 4-11 and 12 are largely independent branches. A normal C++ forecast
+Steps 1-3, 4-10 and 11 are largely independent branches. A normal C++ forecast
 requires the relevant outputs from each branch, but it does not require every
 historical election or every calibration unit to have been regenerated at the
 same time.
 
-Step 10 is the intended leakage-safe dependency for step 11, but that edge is
-not implemented yet. Until it is, regenerated adjustments remain affected by
-the look-ahead issue described below.
+Step 9 is the leakage-safe dependency for step 10.
 
 ## Calibration and Partial Freshness
 
@@ -510,10 +520,12 @@ therefore depends on the historical pure TPP work units with approval evidence,
 not just the target election.
 
 The ignored `Synthetic TPPs/generated-provenance.json` bundle contains one
-legacy or generated work unit for each jurisdiction CSV. Each record is scoped
-to approval-bearing terms in that jurisdiction, while its dependency set
-contains every available approval-bearing pure TPP work unit because each
-regression can draw historical evidence from every jurisdiction.
+legacy or generated diagnostic work unit for each jurisdiction CSV. Each
+record is scoped to approval-bearing terms in that jurisdiction, while its
+dependency set contains every available approval-bearing pure TPP work unit
+because each regression can draw historical evidence from every jurisdiction.
+`fp_model.py` passes the same generated observations directly to final-trend
+models, so those CSV files are not an execution boundary.
 
 Synthetic-TPP-path staleness is non-blocking during routine updates because
 regenerating every historical pure trend is moderately expensive. It is shown
@@ -539,11 +551,12 @@ excluded and remain a separate pipeline stage.
 
 Every final work unit records the relevant source categories and the target
 election's pollster-parameter record. TPP, Labor and Coalition work units also
-record the synthetic-TPP output for their jurisdiction because only those
-models add approval-derived observations. Minor-party records do not claim
-that dependency. A state minor-party record additionally fingerprints only
-the same party's final federal trend files actually opened from overlapping
-federal cycles. Federal records do not depend on other federal trends.
+record the approval-analysis sources and historical pure TPP work units used
+to derive their in-memory observations. They do not depend on the diagnostic
+synthetic-TPP CSV. Minor-party records do not claim approval dependencies. A
+state minor-party record additionally fingerprints only the same party's final
+federal trend files actually opened from overlapping federal cycles. Federal
+records do not depend on other federal trends.
 
 Existing canonical final-output triplets can be fingerprinted without
 claiming their original source versions or Stan seeds:
@@ -769,10 +782,11 @@ ordinary regeneration sequence.
 
 The next infrastructure stages are:
 
-1. Add category-level generation manifests, content fingerprints and explicit
-   `current`, `stale`, `partial`, `unknown` and `invalid` states.
-2. Add planning and status commands without changing generator behaviour.
-3. Add atomic promotion, resumable work units and per-stage logs.
+1. Add `pipeline.py status` and `plan` over the structured audit API without
+   changing generator behaviour.
+2. Add election-level staging, validated promotion, locking, run journals and
+   per-stage logs.
+3. Add `pipeline.py run`, profiles and target selection over the same plans.
 4. Review generators in dependency order and tighten their schemas,
    validation, documentation and output boundaries.
 5. Replace detailed calibration output with compact summaries where all
@@ -790,8 +804,12 @@ Future regeneration planning must support two additional explicit flows:
 Routine poll updates remain jurisdiction-specific:
 
 ```text
-jurisdiction pure trends -> synthetic TPP -> jurisdiction normal trends
+jurisdiction pure trends -> jurisdiction normal trends
 ```
+
+The second step includes approval regression. `Synthetic TPPs/*.csv` files are
+diagnostic snapshots of those in-memory observations, not an independently
+scheduled data boundary.
 
 Trend adjustments are a separate periodic operation rather than an automatic
 part of every poll update.

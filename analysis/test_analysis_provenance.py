@@ -105,6 +105,65 @@ class AnalysisProvenanceTests(unittest.TestCase):
 
         self.assertEqual(self._audit()["issues"], [])
 
+    def test_machine_status_reports_current_and_altered_work_units(self):
+        current = self._audit()
+        self.assertEqual(current["work_units"][0]["status"], "current")
+        self.assertFalse(current["summary"]["has_blockers"])
+
+        self.output_path.write_text(
+            "Manually altered results\n", encoding="utf-8"
+        )
+        altered = self._audit()
+        self.assertEqual(altered["work_units"][0]["status"], "altered")
+        self.assertTrue(altered["work_units"][0]["blocking"])
+        self.assertTrue(altered["summary"]["has_blockers"])
+        self.assertEqual(
+            altered["work_units"][0]["issues"][0]["code"],
+            "altered_output",
+        )
+
+    def test_machine_status_reports_unregistered_sources_as_blocking(self):
+        self.script_path.write_text("print('changed')\n", encoding="utf-8")
+
+        result = self._audit()
+
+        self.assertEqual(
+            result["source_issues"][0]["code"],
+            "unregistered_source_change",
+        )
+        self.assertEqual(result["source_issues"][0]["status"], "blocked")
+        self.assertTrue(result["summary"]["has_blockers"])
+
+    def test_audit_json_converts_sets_to_stable_lists(self):
+        result = self._audit()
+        result["impacts"]["immediate"]["cpp_stan_model"].add(
+            "poll_trend_outputs"
+        )
+
+        decoded = json.loads(analysis_provenance.audit_json(result))
+
+        self.assertEqual(
+            decoded["impacts"]["immediate"]["cpp_stan_model"],
+            ["poll_trend_outputs"],
+        )
+
+    def test_audit_cli_can_emit_json(self):
+        result = self._audit()
+        output = StringIO()
+        with mock.patch.object(
+            analysis_provenance,
+            "audit_repository",
+            return_value=result,
+        ), redirect_stdout(output):
+            return_code = analysis_provenance.main(
+                ["audit", "--election", "2025fed", "--format", "json"]
+            )
+
+        self.assertEqual(return_code, 0)
+        decoded = json.loads(output.getvalue())
+        self.assertEqual(decoded["target_elections"], [])
+        self.assertIn("work_units", decoded)
+
     def test_material_script_change_stales_existing_output(self):
         self.script_path.write_text("print('changed')\n", encoding="utf-8")
         analysis_provenance.register_changes(
@@ -218,13 +277,11 @@ class AnalysisProvenanceTests(unittest.TestCase):
                     "outputs": ["pure_poll_outputs"],
                 },
                 {
-                    "id": "generate_synthetic_tpp",
-                    "inputs": ["pure_poll_outputs"],
-                    "outputs": ["synthetic_tpp_outputs"],
-                },
-                {
                     "id": "generate_poll_trends",
-                    "inputs": ["synthetic_tpp_outputs"],
+                    "inputs": ["raw_polls", "pure_poll_outputs"],
+                    "dependency_path_classes": {
+                        "synthetic_tpp": ["pure_poll_outputs"],
+                    },
                     "outputs": ["poll_trend_outputs"],
                 },
             ],
@@ -246,6 +303,14 @@ class AnalysisProvenanceTests(unittest.TestCase):
         )
         self.assertNotIn("cpp_stan_model", impacts["immediate"])
         self.assertNotIn("cpp_stan_model", impacts["calibration_only"])
+
+        direct_impacts = analysis_provenance._terminal_impacts(
+            {"raw_polls"}, registry
+        )
+        self.assertEqual(
+            direct_impacts["immediate"]["cpp_stan_model"],
+            {"poll_trend_outputs"},
+        )
 
     def test_audited_generated_dependency_is_not_reported_twice(self):
         upstream_manifest = self.base / "upstream.json"

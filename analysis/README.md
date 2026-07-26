@@ -23,6 +23,15 @@ python3 analysis_provenance.py audit \
 
 Targeted audits include generated work units for the named elections plus
 cross-election work units explicitly recorded as their dependencies.
+Automation can request the same result without parsing terminal prose:
+
+```bash
+python3 analysis_provenance.py audit --election 2028fed --format json
+```
+
+The JSON distinguishes current, stale, legacy, missing, altered and blocked
+work units. Unregistered source changes and invalid dependencies are blockers;
+legacy outputs remain identifiable and usable while awaiting regeneration.
 
 ## Environment
 

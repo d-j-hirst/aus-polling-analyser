@@ -434,13 +434,13 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             "files": [],
             "records": ["pollster_parameters:2026vic"],
         }
-        synthetic_dependency = {
+        approval_dependency = {
             "kind": "generated_manifest",
             "digest": "b" * 64,
             "semantic_revision": None,
-            "manifest": "synthetic.json",
+            "manifest": "pure.json",
             "files": [],
-            "records": ["synthetic_tpp_outputs:vic"],
+            "records": ["pure_poll_outputs:2026vic:@TPP"],
         }
         feedback_dependency = {
             "kind": "files",
@@ -455,9 +455,13 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             "_source_dependencies",
             return_value={},
         ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "generation_dependencies",
+            return_value={"pure_poll_outputs": approval_dependency},
+        ), mock.patch.object(
             generated_provenance,
             "generated_manifest_dependency",
-            side_effect=[pollster_dependency, synthetic_dependency],
+            return_value=pollster_dependency,
         ), mock.patch.object(
             generated_provenance,
             "file_dependency",
@@ -477,8 +481,8 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             pollster_dependency,
         )
         self.assertEqual(
-            major_dependencies["synthetic_tpp_outputs"],
-            synthetic_dependency,
+            major_dependencies["pure_poll_outputs"],
+            approval_dependency,
         )
         self.assertNotIn("poll_trend_outputs", major_dependencies)
 
@@ -486,6 +490,10 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             fp_model_provenance,
             "_source_dependencies",
             return_value={},
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "generation_dependencies",
+            return_value={"pure_poll_outputs": approval_dependency},
         ), mock.patch.object(
             generated_provenance,
             "generated_manifest_dependency",

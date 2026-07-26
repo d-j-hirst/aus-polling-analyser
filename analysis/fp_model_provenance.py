@@ -22,6 +22,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+import approvals_provenance
 import generated_provenance
 
 
@@ -39,11 +40,6 @@ POLLSTER_MANIFEST_PATH = (
     OUTPUT_DIRECTORY
     / "Calibration"
     / "pollster-generated-provenance.json"
-)
-SYNTHETIC_MANIFEST_PATH = (
-    ANALYSIS_DIRECTORY
-    / "Synthetic TPPs"
-    / "generated-provenance.json"
 )
 MANIFEST_DESCRIPTION = (
     "Bundled provenance for voting-intention-only poll trends, adjusted "
@@ -636,23 +632,12 @@ class PureTrendRecorder:
         )
 
 
-def _synthetic_tpp_dependency(election):
-    region = ELECTION_CODE_PATTERN.fullmatch(election).group(2)
-    return generated_provenance.generated_manifest_dependency(
-        "synthetic_tpp_outputs",
-        SYNTHETIC_MANIFEST_PATH,
-        ["synthetic_tpp_outputs:{}".format(region)],
-        ANALYSIS_DIRECTORY,
-        allow_stale=True,
-    )
-
-
 class FinalTrendRecorder:
     """Preflight dependencies and certify completed final-trend work units."""
 
     def __init__(self, command):
         self.source_dependencies = _source_dependencies()
-        self.synthetic_dependencies = {}
+        self.approval_dependencies = None
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
             source_revision=generated_provenance.current_source_revision(
@@ -663,13 +648,12 @@ class FinalTrendRecorder:
             ),
         )
 
-    def _synthetic_dependency(self, election):
-        region = ELECTION_CODE_PATTERN.fullmatch(election).group(2)
-        if region not in self.synthetic_dependencies:
-            self.synthetic_dependencies[region] = (
-                _synthetic_tpp_dependency(election)
+    def _approval_dependencies(self):
+        if self.approval_dependencies is None:
+            self.approval_dependencies = (
+                approvals_provenance.generation_dependencies()
             )
-        return self.synthetic_dependencies[region]
+        return self.approval_dependencies
 
     def dependencies_for(
         self, election, party, federal_prior_files
@@ -685,9 +669,7 @@ class FinalTrendRecorder:
             )
         )
         if party in APPROVAL_PARTIES:
-            dependencies["synthetic_tpp_outputs"] = (
-                self._synthetic_dependency(election)
-            )
+            dependencies.update(self._approval_dependencies())
         federal_prior_files = sorted(set(federal_prior_files))
         if federal_prior_files:
             dependencies["poll_trend_outputs"] = (
@@ -739,9 +721,7 @@ class CutoffTrendRecorder(FinalTrendRecorder):
                 allow_stale=True,
             )
         )
-        dependencies["synthetic_tpp_outputs"] = (
-            self._synthetic_dependency(election)
-        )
+        dependencies.update(self._approval_dependencies())
         federal_prior_files = sorted(set(federal_prior_files))
         if federal_prior_files:
             dependencies["cutoff_poll_outputs"] = (
@@ -840,7 +820,7 @@ def _legacy_final_dependencies(
     party,
     cycles,
     significant_parties,
-    synthetic_dependencies,
+    approval_dependencies,
 ):
     dependencies = {}
     federal_prior_files = _legacy_federal_prior_files(
@@ -859,14 +839,7 @@ def _legacy_final_dependencies(
             )
         )
     if party in APPROVAL_PARTIES:
-        region = ELECTION_CODE_PATTERN.fullmatch(election).group(2)
-        if region not in synthetic_dependencies:
-            synthetic_dependencies[region] = (
-                _synthetic_tpp_dependency(election)
-            )
-        dependencies["synthetic_tpp_outputs"] = (
-            synthetic_dependencies[region]
-        )
+        dependencies.update(approval_dependencies)
     return dependencies
 
 
@@ -904,8 +877,12 @@ def _legacy_final_records():
         )
 
     records = {}
-    synthetic_dependencies = {}
+    approval_dependencies = None
     for (election, party), outputs_by_kind in grouped.items():
+        if party in APPROVAL_PARTIES and approval_dependencies is None:
+            approval_dependencies = (
+                approvals_provenance.generation_dependencies()
+            )
         records[_final_record_key(election, party)] = (
             generated_provenance.generation_record(
                 category="poll_trend_outputs",
@@ -920,7 +897,7 @@ def _legacy_final_records():
                     party,
                     cycles,
                     significant_parties,
-                    synthetic_dependencies,
+                    approval_dependencies or {},
                 ),
                 outputs=generated_provenance.output_fingerprints(
                     outputs_by_kind.values(), ANALYSIS_DIRECTORY

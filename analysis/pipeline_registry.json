@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "path_base": "analysis",
   "description": "Dependency registry for authored inputs, Python-generated forecast data, and their principal consumers.",
   "dependency_types": {
@@ -483,13 +483,13 @@
       "description": "Voting-intention-only trends used principally to derive synthetic TPP observations from approval polling."
     },
     "synthetic_tpp_outputs": {
-      "kind": "generated",
+      "kind": "diagnostic",
       "scope": "jurisdiction",
-      "core": true,
+      "core": false,
       "paths": [
         "Synthetic TPPs/*.csv"
       ],
-      "description": "Synthetic TPP observations estimated from leader approval polling."
+      "description": "Diagnostic snapshots of synthetic TPP observations estimated during final-trend generation. Final trends consume the same observations directly in memory rather than reading these files."
     },
     "poll_trend_outputs": {
       "kind": "generated",
@@ -570,6 +570,13 @@
       "id": "cache_election_results",
       "description": "Download and cache historical election results when the corresponding pickle is absent.",
       "command": "python3 election_data.py",
+      "execution": {
+        "script": "election_data.py",
+        "arguments": [],
+        "working_directory": ".",
+        "task_scope": "global",
+        "run_class": "source"
+      },
       "inputs": [
         "election_data_script",
         "election_code_script"
@@ -587,6 +594,13 @@
       "id": "export_election_results",
       "description": "Validate cached results, simplify party names and export the CSVs consumed by C++.",
       "command": "python3 election_store.py",
+      "execution": {
+        "script": "election_store.py",
+        "arguments": [],
+        "working_directory": ".",
+        "task_scope": "global",
+        "run_class": "source"
+      },
       "inputs": [
         "election_result_rules",
         "election_store_script",
@@ -607,6 +621,13 @@
       "id": "analyse_elections",
       "description": "Fit historical seat, regional and Coalition-allocation models.",
       "command": "python3 election_analysis.py",
+      "execution": {
+        "script": "election_analysis.py",
+        "arguments": [],
+        "working_directory": ".",
+        "task_scope": "global",
+        "run_class": "analysis"
+      },
       "inputs": [
         "election_catalogue",
         "election_result_cache",
@@ -633,6 +654,17 @@
       "id": "calibrate_pollsters",
       "description": "Run leave-one-pollster-out trend models and write detailed traces plus compact error summaries.",
       "command": "python3 fp_model.py --calibrate --election <election>",
+      "execution": {
+        "script": "run_fp_model.py",
+        "arguments": [
+          "--calibrate",
+          "--election",
+          "{election_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "calibration"
+      },
       "inputs": [
         "election_catalogue",
         "raw_poll_data",
@@ -662,6 +694,17 @@
       "id": "calibrate_pollster_bias",
       "description": "Generate full-series bias-calibration trends and house effects.",
       "command": "python3 fp_model.py --bias --election <election>",
+      "execution": {
+        "script": "run_fp_model.py",
+        "arguments": [
+          "--bias",
+          "--election",
+          "{election_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "calibration"
+      },
       "inputs": [
         "election_catalogue",
         "raw_poll_data",
@@ -690,6 +733,16 @@
       "id": "analyse_pollsters",
       "description": "Reduce calibration output into per-election pollster parameters.",
       "command": "python3 pollster_analysis.py --election <election>",
+      "execution": {
+        "script": "pollster_analysis.py",
+        "arguments": [
+          "--election",
+          "{election_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "calibration"
+      },
       "inputs": [
         "election_catalogue",
         "bias_calibration_outputs",
@@ -716,6 +769,17 @@
       "id": "generate_pure_poll_trends",
       "description": "Generate voting-intention-only trends used by approval analysis.",
       "command": "python3 fp_model.py --pure --election <election>",
+      "execution": {
+        "script": "run_fp_model.py",
+        "arguments": [
+          "--pure",
+          "--election",
+          "{election_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "regular_with_approvals"
+      },
       "inputs": [
         "election_catalogue",
         "raw_poll_data",
@@ -743,30 +807,19 @@
       "notes": "State pure runs optionally use existing pure trends from every overlapping federal cycle as minor-party priors, restricted to parties significant in both elections. Federal runs do not use federal trend outputs as priors. Full regeneration should therefore run the relevant federal pure trends before dependent state trends. Only pure TPP trend and poll files are known to be consumed by approvals.py; other pure party outputs require a later consumer audit."
     },
     {
-      "id": "generate_synthetic_tpp",
-      "description": "Regress approval observations against historical pure TPP trends.",
-      "command": "python3 approvals.py",
-      "inputs": [
-        "election_catalogue",
-        "raw_poll_data",
-        "approval_context",
-        "pure_poll_outputs",
-        "approvals_script",
-        "approvals_provenance_script",
-        "election_code_script"
-      ],
-      "outputs": [
-        "synthetic_tpp_outputs"
-      ],
-      "core": true,
-      "network": false,
-      "cost": "minutes",
-      "supports_partial": false
-    },
-    {
       "id": "generate_poll_trends",
-      "description": "Generate the normal trends, adjusted polls and house effects used by forecasts.",
+      "description": "Generate approval-derived observations and the normal trends, adjusted polls and house effects used by forecasts.",
       "command": "python3 fp_model.py --election <election>",
+      "execution": {
+        "script": "run_fp_model.py",
+        "arguments": [
+          "--election",
+          "{election_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "regular"
+      },
       "inputs": [
         "election_catalogue",
         "raw_poll_data",
@@ -774,29 +827,52 @@
         "preference_estimates",
         "prior_result_inputs",
         "pollster_parameters",
-        "synthetic_tpp_outputs",
+        "approval_context",
+        "pure_poll_outputs",
+        "approvals_script",
+        "approvals_provenance_script",
         "fp_model_script",
         "fp_model_provenance_script",
         "stan_cache_script",
         "election_code_script",
         "fp_stan_model"
       ],
+      "dependency_path_classes": {
+        "synthetic_tpp": [
+          "approval_context",
+          "pure_poll_outputs",
+          "approvals_script",
+          "approvals_provenance_script"
+        ]
+      },
       "feedback_inputs": [
         "poll_trend_outputs"
       ],
       "outputs": [
+        "synthetic_tpp_outputs",
         "poll_trend_outputs"
       ],
       "core": true,
       "network": false,
       "cost": "days",
       "supports_partial": true,
-      "notes": "The command regenerates synthetic TPP files internally. State normal runs should follow federal normal runs. Federal runs should not read their own existing output as a prior."
+      "notes": "The command derives synthetic TPP observations from pure trends and passes them directly to the final models. The jurisdiction CSV is retained as a diagnostic snapshot, not as an input boundary. State normal runs should follow federal normal runs. Federal runs should not read their own existing output as a prior."
     },
     {
       "id": "generate_cutoff_poll_trends",
       "description": "Generate consolidated point-in-time historical trend fits at the triangular cutoff schedule used by trend adjustment.",
       "command": "python3 fp_model.py --election <election> --cutoff",
+      "execution": {
+        "script": "run_fp_model.py",
+        "arguments": [
+          "--election",
+          "{election_cli}",
+          "--cutoff"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "cutoffs"
+      },
       "inputs": [
         "election_catalogue",
         "raw_poll_data",
@@ -804,7 +880,10 @@
         "preference_estimates",
         "prior_result_inputs",
         "pollster_parameters",
-        "synthetic_tpp_outputs",
+        "approval_context",
+        "pure_poll_outputs",
+        "approvals_script",
+        "approvals_provenance_script",
         "fp_model_script",
         "fp_model_provenance_script",
         "calibration_provenance_script",
@@ -828,6 +907,16 @@
       "id": "generate_trend_adjustments",
       "description": "Estimate fundamentals and trend-adjustment parameters from historical trends and election results.",
       "command": "python3 trend_adjust.py --election <election-or-none>",
+      "execution": {
+        "script": "trend_adjust.py",
+        "arguments": [
+          "--election",
+          "{election_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election",
+        "run_class": "adjustments"
+      },
       "inputs": [
         "election_catalogue",
         "cutoff_poll_outputs",
@@ -857,6 +946,18 @@
       "id": "generate_regional_swings",
       "description": "Fit election-specific regional swing deviations.",
       "command": "python3 region_model.py --election <election> [--party ON]",
+      "execution": {
+        "script": "region_model.py",
+        "arguments": [
+          "--election",
+          "{election_cli}",
+          "--party",
+          "{party_cli}"
+        ],
+        "working_directory": ".",
+        "task_scope": "election-party",
+        "run_class": "regional"
+      },
       "inputs": [
         "election_catalogue",
         "regional_poll_inputs",
@@ -880,6 +981,7 @@
       "id": "fetch_live_booth_results",
       "description": "Run the jurisdiction-specific scraper needed to archive historical booth results for live analysis.",
       "command": "python3 fetch_election_data_<jurisdiction>.py",
+      "execution": null,
       "inputs": [
         "election_catalogue"
       ],
@@ -896,6 +998,7 @@
       "id": "analyse_federal_state_relationships",
       "description": "Download/cache federal booth results and calculate federal swing deviations for manual transfer into state forecast seat files.",
       "command": "python3 federal_state.py --election <election>",
+      "execution": null,
       "inputs": [
         "election_catalogue",
         "federal_state_booth_mappings"

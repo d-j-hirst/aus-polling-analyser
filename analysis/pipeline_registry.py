@@ -1,7 +1,9 @@
 """Validate and inspect the Python analysis dependency registry.
 
-This module deliberately uses only the Python standard library. It documents
-the current pipeline but does not yet run generators or calculate freshness.
+This module deliberately uses only the Python standard library. It defines
+the dependency graph and safe subprocess argument templates that the future
+pipeline orchestrator will consume. Freshness remains the responsibility of
+analysis_provenance.py.
 """
 
 import argparse
@@ -14,6 +16,16 @@ from pathlib import Path
 REGISTRY_PATH = Path(__file__).with_name("pipeline_registry.json")
 CATEGORY_KINDS = {"authored", "code", "generated", "cache", "diagnostic"}
 DEPENDENCY_FIELDS = ("inputs", "optional_inputs", "feedback_inputs")
+TASK_SCOPES = {"global", "election", "election-party"}
+DEPENDENCY_PATH_CLASSES = {"synthetic_tpp"}
+EXECUTION_FIELDS = (
+    "script",
+    "arguments",
+    "working_directory",
+    "task_scope",
+    "run_class",
+)
+ARGUMENT_TEMPLATE_FIELDS = {"election_cli", "party_cli"}
 
 
 class RegistryError(ValueError):
@@ -138,6 +150,145 @@ def _validate_stage_dependencies(stage, category_ids):
             )
         )
 
+    dependency_path_classes = stage.get("dependency_path_classes", {})
+    if not isinstance(dependency_path_classes, dict):
+        raise RegistryError(
+            "stage '{}' dependency_path_classes must be an object".format(
+                stage_id
+            )
+        )
+    unknown_path_classes = (
+        set(dependency_path_classes) - DEPENDENCY_PATH_CLASSES
+    )
+    if unknown_path_classes:
+        raise RegistryError(
+            "stage '{}' has unsupported dependency path class(es): {}"
+            .format(stage_id, ", ".join(sorted(unknown_path_classes)))
+        )
+    dependencies = set()
+    for field in DEPENDENCY_FIELDS:
+        dependencies.update(stage.get(field, []))
+    classified_dependencies = set()
+    for path_class, values in dependency_path_classes.items():
+        _require_string_list(
+            values,
+            "stage '{}' dependency_path_classes '{}'".format(
+                stage_id, path_class
+            ),
+        )
+        unknown_dependencies = sorted(set(values) - dependencies)
+        if unknown_dependencies:
+            raise RegistryError(
+                "stage '{}' classifies non-dependencies as '{}': {}"
+                .format(
+                    stage_id,
+                    path_class,
+                    ", ".join(unknown_dependencies),
+                )
+            )
+        overlap = classified_dependencies & set(values)
+        if overlap:
+            raise RegistryError(
+                "stage '{}' assigns multiple path classes to: {}".format(
+                    stage_id, ", ".join(sorted(overlap))
+                )
+            )
+        classified_dependencies.update(values)
+
+
+def _argument_template_fields(argument, context):
+    fields = set()
+    position = 0
+    while position < len(argument):
+        opening = argument.find("{", position)
+        if opening < 0:
+            break
+        closing = argument.find("}", opening + 1)
+        if closing < 0:
+            raise RegistryError("{} has an unmatched '{{'".format(context))
+        field = argument[opening + 1:closing]
+        if not field or "{" in field:
+            raise RegistryError(
+                "{} has an invalid template field".format(context)
+            )
+        fields.add(field)
+        position = closing + 1
+    if "}" in argument[position:]:
+        raise RegistryError("{} has an unmatched '}}'".format(context))
+    return fields
+
+
+def _validate_stage_execution(stage):
+    stage_id = stage["id"]
+    execution = stage.get("execution")
+    if execution is None:
+        return
+    if not isinstance(execution, dict):
+        raise RegistryError(
+            "stage '{}' execution must be an object or null".format(stage_id)
+        )
+    _require_keys(
+        execution,
+        EXECUTION_FIELDS,
+        "stage '{}' execution".format(stage_id),
+    )
+    unknown_fields = sorted(set(execution) - set(EXECUTION_FIELDS))
+    if unknown_fields:
+        raise RegistryError(
+            "stage '{}' execution has unknown field(s): {}".format(
+                stage_id, ", ".join(unknown_fields)
+            )
+        )
+    for field in ("script", "working_directory", "run_class"):
+        if not isinstance(execution[field], str) or not execution[field]:
+            raise RegistryError(
+                "stage '{}' execution {} must be a non-empty string".format(
+                    stage_id, field
+                )
+            )
+    _require_string_list(
+        execution["arguments"],
+        "stage '{}' execution arguments".format(stage_id),
+        allow_empty=True,
+    )
+    task_scope = execution["task_scope"]
+    if task_scope not in TASK_SCOPES:
+        raise RegistryError(
+            "stage '{}' has unsupported task_scope '{}'".format(
+                stage_id, task_scope
+            )
+        )
+    template_fields = set()
+    for index, argument in enumerate(execution["arguments"]):
+        template_fields.update(
+            _argument_template_fields(
+                argument,
+                "stage '{}' execution argument {}".format(stage_id, index),
+            )
+        )
+    unknown_template_fields = sorted(
+        template_fields - ARGUMENT_TEMPLATE_FIELDS
+    )
+    if unknown_template_fields:
+        raise RegistryError(
+            "stage '{}' execution uses unknown template field(s): {}".format(
+                stage_id, ", ".join(unknown_template_fields)
+            )
+        )
+    required_fields = {
+        "global": set(),
+        "election": {"election_cli"},
+        "election-party": {"election_cli", "party_cli"},
+    }[task_scope]
+    if not required_fields <= template_fields:
+        raise RegistryError(
+            "stage '{}' execution for task_scope '{}' must use: {}".format(
+                stage_id,
+                task_scope,
+                ", ".join(sorted(required_fields)),
+            )
+        )
+
 
 def _validate_stages(registry):
     stages = registry.get("stages")
@@ -158,6 +309,7 @@ def _validate_stages(registry):
                 "id",
                 "description",
                 "command",
+                "execution",
                 "inputs",
                 "outputs",
                 "core",
@@ -189,6 +341,7 @@ def _validate_stages(registry):
                 )
 
         _validate_stage_dependencies(stage, category_ids)
+        _validate_stage_execution(stage)
 
         for category_id in stage["outputs"]:
             if registry["categories"][category_id]["kind"] == "authored":
@@ -336,7 +489,7 @@ def validate_registry(registry):
         ),
         "registry",
     )
-    if registry["schema_version"] != 1:
+    if registry["schema_version"] != 2:
         raise RegistryError(
             "unsupported schema_version {}".format(
                 registry["schema_version"]
@@ -346,6 +499,32 @@ def validate_registry(registry):
     _validate_stages(registry)
     _validate_consumers(registry)
     topological_stage_order(registry, core_only=False)
+
+
+def stage_command(stage, variables=None, python_executable=None):
+    """Build one shell-free subprocess command from a stage template."""
+
+    import sys
+
+    execution = stage.get("execution")
+    if execution is None:
+        raise RegistryError(
+            "stage '{}' is not available to the orchestrator".format(
+                stage["id"]
+            )
+        )
+    variables = variables or {}
+    command = [python_executable or sys.executable, execution["script"]]
+    for argument in execution["arguments"]:
+        try:
+            command.append(argument.format_map(variables))
+        except KeyError as error:
+            raise RegistryError(
+                "stage '{}' requires template value '{}'".format(
+                    stage["id"], error.args[0]
+                )
+            ) from error
+    return command
 
 
 def validate_authored_paths(registry, analysis_directory):
