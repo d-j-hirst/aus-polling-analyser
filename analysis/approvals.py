@@ -27,7 +27,7 @@ def generate_synthetic_tpps(display_analysis=False):
 
 class Approvals:
     def __init__(self, display_analysis, provenance_recorder=None):
-        print("Generating synthetic TPPs")
+        print('*** Generating synthetic TPPs ***')
         self.load_data()
         dependencies = (
             provenance_recorder.dependencies_for(
@@ -47,8 +47,9 @@ class Approvals:
                 self.output_elections,
                 dependencies,
             )
-        if (display_analysis): self.analyse_synthetic_tpps()
-        print("Finished generating synthetic TPPs")
+        if display_analysis:
+            self.analyse_synthetic_tpps()
+        print('*** Finished generating synthetic TPPs ***')
     
     def load_data(self):
         self.trends = {}
@@ -128,7 +129,6 @@ class Approvals:
         filename = f'Data/poll-data-{poll_file}.csv'
         cols = ['MidDate', 'Firm', 'GLApp', 'GLDis']
         df = pd.read_csv(filename, usecols=cols)
-        print(filename)
         approvals = [
             (
                 datetime.date.fromisoformat(date),

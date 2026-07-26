@@ -45,9 +45,130 @@ others_parties = ['ONP FP', 'UAP FP', 'SFF FP', 'CA FP',
 
 major_parties = ['ALP FP', 'LNP FP', 'LIB FP']
 
+unnamed_others_base = 3.0
+unnamed_others_diagnostic_threshold = 1.0
+unnamed_others_diagnostic_limit = 10
+
 
 class ConfigError(ValueError):
     pass
+
+
+def derive_unnamed_others_median(inclusive_others, named_minor_total):
+    """Return a positive residual without discarding named-party evidence.
+
+    Separate fits can briefly put named minor parties above inclusive Others,
+    particularly when a newly reported party moves sharply. This mirrors the
+    established trend-adjustment and C++ treatment: retain ordinary subtraction
+    when there is at least a three-point residual, otherwise reduce the
+    inclusive-Others distribution proportionally. The result is always between
+    zero and the original inclusive-Others median.
+    """
+
+    if (
+        not math.isfinite(inclusive_others)
+        or not math.isfinite(named_minor_total)
+        or inclusive_others < 0
+        or named_minor_total < 0
+    ):
+        raise ConfigError(
+            'Cannot derive unnamed Others from invalid medians: '
+            'inclusive={}, named={}.'.format(
+                inclusive_others, named_minor_total
+            )
+        )
+
+    denominator = max(
+        inclusive_others,
+        named_minor_total + unnamed_others_base,
+    )
+    unnamed_others = (
+        inclusive_others
+        * (1.0 - named_minor_total / denominator)
+    )
+    # Guard against insignificant floating-point excursions at the bounds.
+    return min(inclusive_others, max(0.0, unnamed_others))
+
+
+class UnnamedOthersDiagnosticsRecorder:
+    """Keep a bounded summary of materially low raw xOTH estimates."""
+
+    def __init__(
+        self,
+        threshold=unnamed_others_diagnostic_threshold,
+        example_limit=unnamed_others_diagnostic_limit,
+    ):
+        self.threshold = threshold
+        self.example_limit = example_limit
+        self.issue_count = 0
+        self.examples = []
+
+    def record(
+        self,
+        election,
+        mode,
+        day,
+        inclusive_others,
+        named_minor_total,
+        adjusted_unnamed_others,
+    ):
+        raw_unnamed_others = inclusive_others - named_minor_total
+        if raw_unnamed_others >= self.threshold:
+            return
+
+        self.issue_count += 1
+        self.examples.append((
+            raw_unnamed_others,
+            election,
+            mode,
+            day,
+            inclusive_others,
+            named_minor_total,
+            adjusted_unnamed_others,
+        ))
+        self.examples.sort(key=lambda example: example[0])
+        del self.examples[self.example_limit:]
+
+    def report(self, completed=True):
+        if not self.issue_count:
+            return
+
+        status = (
+            'Batch completed'
+            if completed
+            else 'Batch terminated before completion'
+        )
+        print(
+            '{} with {} raw unnamed-Others median estimate(s) below '
+            '{:.1f}%. Lowest {}:'.format(
+                status,
+                self.issue_count,
+                self.threshold,
+                len(self.examples),
+            )
+        )
+        for (
+            raw_unnamed_others,
+            election,
+            mode,
+            day,
+            inclusive_others,
+            named_minor_total,
+            adjusted_unnamed_others,
+        ) in self.examples:
+            print(
+                '  {} | {} | trend day {} | raw xOTH {:+.3f}% '
+                '(OTH {:.3f}% - named {:.3f}%); adjusted to {:.3f}%'
+                .format(
+                    election,
+                    mode,
+                    day,
+                    raw_unnamed_others,
+                    inclusive_others,
+                    named_minor_total,
+                    adjusted_unnamed_others,
+                )
+            )
 
 
 def order_parties_for_model(parties):
@@ -74,6 +195,85 @@ def order_parties_for_model(parties):
 
     # sorted() is stable, preserving the configured order within each stage.
     return sorted(parties, key=dependency_rank)
+
+
+def load_election_cycles(path='./Data/election-cycles.csv'):
+    with open(path, 'r') as source:
+        return {
+            (row[0], row[1]): (
+                pd.Timestamp(row[2]),
+                pd.Timestamp(row[3]),
+            )
+            for row in csv.reader(source)
+            if row
+        }
+
+
+def overlapping_federal_elections(election, election_cycles):
+    """Return federal terms whose configured periods overlap an election."""
+
+    if election.region() == 'fed':
+        return []
+
+    election_key = (str(election.year()), election.region())
+    if election_key not in election_cycles:
+        return []
+    election_start, election_end = election_cycles[election_key]
+    federal_elections = [
+        ElectionCode(year, region)
+        for (year, region), (start, end) in election_cycles.items()
+        if (
+            region == 'fed'
+            and start <= election_end
+            and election_start <= end
+        )
+    ]
+    federal_elections.sort(
+        key=lambda code: (
+            election_cycles[(str(code.year()), code.region())][0],
+            code.year(),
+        )
+    )
+    return federal_elections
+
+
+def order_elections_by_federal_dependencies(
+    elections,
+    election_cycles,
+    assumed_complete=(),
+):
+    """Stably place selected federal prerequisites before state elections."""
+
+    selected = {
+        (str(election.year()), election.region()): election
+        for election in elections
+    }
+    assumed_complete_keys = {
+        (str(election.year()), election.region())
+        for election in assumed_complete
+    }
+    ordered = []
+    emitted = set()
+
+    def emit(election):
+        key = (str(election.year()), election.region())
+        if key in emitted or key in assumed_complete_keys:
+            return
+        for dependency in overlapping_federal_elections(
+            election, election_cycles
+        ):
+            dependency_key = (
+                str(dependency.year()),
+                dependency.region(),
+            )
+            if dependency_key in selected:
+                emit(selected[dependency_key])
+        emitted.add(key)
+        ordered.append(election)
+
+    for election in elections:
+        emit(election)
+    return ordered
 
 
 class Config:
@@ -132,6 +332,9 @@ class Config:
         self.cutoff_days = 0
         self.pure = args.pure
         self.priority = args.priority
+        self.unnamed_others_diagnostics = (
+            UnnamedOthersDiagnosticsRecorder()
+        )
         if self.cutoff_mode and (
             self.calibrate_pollsters or self.calibrate_bias or self.pure
         ):
@@ -148,6 +351,7 @@ class Config:
     def prepare_election_list(self):
         with open('./Data/polled-elections.csv', 'r') as f:
             completed_elections = ElectionCode.load_elections_from_file(f)
+        election_cycles = load_election_cycles()
 
         # Cutoffs calibrate historical forecasts against known results. Never
         # extend cutoff batches into the separately configured future cycles.
@@ -156,7 +360,8 @@ class Config:
             with open('./Data/future-elections.csv', 'r') as f:
                 elections += ElectionCode.load_elections_from_file(f)
         if self.election_instructions == 'all':
-            self.elections = elections
+            selected_elections = elections
+            assumed_complete = []
         else:
             parts = self.election_instructions.split('-')
             if len(parts) < 2:
@@ -179,17 +384,35 @@ class Config:
                                   'value given did not match any election '
                                   'given in Data/polled-elections.csv')
             if len(parts) == 2:
-                self.elections = [code]
+                selected_elections = [code]
+                assumed_complete = []
             elif parts[2] == 'onwards':
                 try:
-                    self.elections = (elections[elections.index(code):])
+                    selected_elections = elections[elections.index(code):]
                 except ValueError:
                     raise ConfigError('Error in "elections" argument: '
                                   'value given did not match any election '
                                   'given in Data/polled-elections.csv')
+                # Starting from a state election means its federal priors are
+                # already available. Do not pull those federal terms back into
+                # the batch merely because their election dates occur later.
+                assumed_complete = overlapping_federal_elections(
+                    code, election_cycles
+                )
+                selected_elections = [
+                    election
+                    for election in selected_elections
+                    if election not in assumed_complete
+                ]
             else:
                 raise ConfigError('Invalid instruction in "elections"'
                                   'argument.')
+
+        self.elections = order_elections_by_federal_dependencies(
+            selected_elections,
+            election_cycles,
+            assumed_complete,
+        )
 
     def use_approvals(self):
         return (
@@ -238,16 +461,7 @@ class ModellingData:
 
         # Load the dates of next and previous elections
         # We will only model polls between those two dates
-        with open('./Data/election-cycles.csv', 'r') as f:
-            self.election_cycles = {
-                (a[0], a[1]):
-                (
-                    pd.Timestamp(a[2]),
-                    pd.Timestamp(a[3])
-                )
-                for a in [b.strip().split(',')
-                for b in f.readlines()]
-            }
+        self.election_cycles = load_election_cycles()
 
 
 @dataclass
@@ -310,10 +524,13 @@ class ElectionData:
             )
         )
 
-        if len(fed_cycles) > 0:
-            print(f"Using federal cycles for model prior: {', '.join(f'{c[0]}' for c in fed_cycles)}")
+        if fed_cycles:
+            federal_years = ', '.join(cycle[0] for cycle in fed_cycles)
+            print(
+                f'Using federal cycles for model prior: {federal_years}'
+            )
         else:
-            print("No federal cycles found for model prior")
+            print('No federal cycles found for model prior')
 
         fed_minor_parties = others_parties + ['GRN FP', 'OTH FP']
         state_significant_parties = set(m_data.parties[tup])
@@ -469,10 +686,6 @@ class ElectionData:
         # do not want to overwrite the OTH FP column until after the TPP has been calculated
         self.combine_others_parties()
 
-        print(desired_election)
-        print("Note: TPP values will not be accurate until the contribution others-medians are calculated.")
-        print(self.base_df)
-    
     def combine_others_parties(self):
         # push misc parties into Others, as explained above
         # The OTH FP column now should include the vote share of (non-Greens) "minor" parties
@@ -631,21 +844,19 @@ def select_overlapping_fed_cycles(inputs: SelectOverlappingFedCyclesInputs):
 
     m_data = inputs.m_data
     election = inputs.election
-    if election[1] == 'fed':
-        return []
-
-    election_start, election_end = m_data.election_cycles[election]
-    fed_cycles = [
-        (year, start, end)
-        for (year, region), (start, end) in m_data.election_cycles.items()
-        if (
-            region == 'fed'
-            and start <= election_end
-            and election_start <= end
+    federal_elections = overlapping_federal_elections(
+        ElectionCode(election[0], election[1]),
+        m_data.election_cycles,
+    )
+    return [
+        (
+            str(federal_election.year()),
+            *m_data.election_cycles[
+                (str(federal_election.year()), 'fed')
+            ],
         )
+        for federal_election in federal_elections
     ]
-    fed_cycles.sort(key=lambda x: x[1])
-    return fed_cycles
 
 
 @dataclass
@@ -1046,8 +1257,6 @@ def get_prior_result(party_context: PartyContext) -> float:
         prior_result = model_params.prior_tpp_default  # placeholder TPP
     else:
         prior_result = model_params.prior_min_result  # percentage
-    print(party)
-    print(prior_result)
 
     return prior_result
 
@@ -1272,7 +1481,11 @@ def filter_approvals_by_poll_range(
     ]
 
     if len(approvals_in_range) < len(approvals):
-        print(f"Skipping {len(approvals) - len(approvals_in_range)} approval entries outside poll range")
+        skipped_approvals = len(approvals) - len(approvals_in_range)
+        print(
+            f'Skipping {skipped_approvals} approval entries outside '
+            'the poll range'
+        )
 
     return approvals_in_range, approval_days_in_range
 
@@ -1586,8 +1799,6 @@ def build_stan_data(run_context):
         'houseEffectNew': reduced_series.tHouseEffectNew
     }
 
-    print(stan_data)
-
     return stan_data
 
 
@@ -1614,10 +1825,11 @@ def run_stan_model(model_inputs: ModelInputs):
 
     # Report dates for model, this means we can easily check if new
     # data has actually been saved without waiting for model to run
-    print('Beginning sampling for ' + model_inputs.party + ' ...')
+    print(f'*** Beginning sampling for {model_inputs.party} ***')
     end = e_data.start + timedelta(days=int(e_data.n_days))
-    print('Start date of model: ' + e_data.start.strftime('%Y-%m-%d\n'))
-    print('End date of model: ' + end.strftime('%Y-%m-%d\n'))
+    print(f'Start date of model: {e_data.start:%Y-%m-%d}')
+    print(f'End date of model: {end:%Y-%m-%d}')
+    print()
 
     # Do model sampling. Time for diagnostic purposes
     start_time = perf_counter()
@@ -1630,7 +1842,7 @@ def run_stan_model(model_inputs: ModelInputs):
     finish_time = perf_counter()
     print('Time elapsed: ' + format(finish_time - start_time, '.2f')
             + ' seconds')
-    print('Stan Finished ...')
+    print(f'*** Finished sampling for {model_inputs.party} ***')
 
     # Check technical model diagnostics
     diagnostic_results = pystan.diagnostics.check_hmc_diagnostics(fit)
@@ -1803,12 +2015,40 @@ def prepare_others_medians(inputs: PrepareOthersMediansInputs):
         summary=summary,
         output_probs_t=output_probs_t,
     )):
-        e_data.others_medians[party][day.effective_day] = day.median_val
         if party == 'OTH FP':
-            for oth_party in e_data.others_medians.keys():
-                if oth_party in others_parties:
-                    e_data.others_medians[party][day.effective_day] -= \
-                        e_data.others_medians[oth_party][day.effective_day]
+            named_minor_total = sum(
+                medians[day.effective_day]
+                for oth_party, medians in e_data.others_medians.items()
+                if oth_party in others_parties
+            )
+            unnamed_others = derive_unnamed_others_median(
+                day.median_val,
+                named_minor_total,
+            )
+            e_data.others_medians[party][
+                day.effective_day
+            ] = unnamed_others
+            if output_context.config.use_approvals():
+                mode = (
+                    'scheduled cutoff {}d / poll endpoint {}d'.format(
+                        output_context.config.cutoff_days,
+                        e_data.days_to_election,
+                    )
+                    if output_context.config.cutoff_mode
+                    else 'final trend'
+                )
+                output_context.config.unnamed_others_diagnostics.record(
+                    election=''.join(e_data.e_tuple),
+                    mode=mode,
+                    day=day.effective_day,
+                    inclusive_others=day.median_val,
+                    named_minor_total=named_minor_total,
+                    adjusted_unnamed_others=unnamed_others,
+                )
+        else:
+            e_data.others_medians[party][
+                day.effective_day
+            ] = day.median_val
 
 
 def write_cutoff_trend(
@@ -2356,8 +2596,6 @@ def run_party(inputs: RunPartyInputs) -> Optional[OutputContext]:
 
 def finalise_calibrations(e_data):
     polls_string = {}
-    # for key, val in e_data.poll_calibrations.items():
-    #     print(f'{key}: {val}')
     total_weight = {}
     total_weighted_dev = {}
     output_files = []
@@ -2739,6 +2977,17 @@ def run_models() -> None:
                             )
                         )
 
+                    preparation_target = election_tag
+                    if config.cutoff_mode:
+                        preparation_target += (
+                            f' at poll endpoint '
+                            f'{e_data.days_to_election}d'
+                        )
+                    print(
+                        f'*** Beginning preparation for {party} in '
+                        f'{preparation_target} ***'
+                    )
+
                     # This has to be done here because it updates the TPP based on
                     # others_medians, allowing the estimation of the size of
                     # minor parties that some pollsters don't report
@@ -2896,11 +3145,14 @@ def run_models() -> None:
     # indicate completion (delete these lines if not the original author)
     except Exception as e:
         diagnostics_recorder.report(completed=False)
+        if 'config' in locals():
+            config.unnamed_others_diagnostics.report(completed=False)
         with open(f'itsdone.txt', 'w') as f:
             f.write('2')
         raise
     
     diagnostics_recorder.report()
+    config.unnamed_others_diagnostics.report()
     with open(f'itsdone.txt', 'w') as f:
         f.write('1')
 

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-25T14:50:00Z",
+  "updated_at_utc": "2026-07-26T00:18:09Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -365,12 +365,12 @@
         "fp_model.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 6,
+      "semantic_revision": 7,
       "files": {
         "fp_model.py": {
-          "sha256": "785f2d7b21b621c5836e12d3b17fb7083df438e71379cb47c8a4b4fd32f99607",
-          "size_bytes": 106355,
-          "recorded_mtime_utc": "2026-07-25T14:48:43.601218Z"
+          "sha256": "f3972b9b933d948a05603942e07526e23f16c5362779823511ba9227f7d92160",
+          "size_bytes": 114362,
+          "recorded_mtime_utc": "2026-07-26T00:17:25.765563Z"
         }
       },
       "events": [
@@ -584,6 +584,188 @@
           "affects_outputs": false,
           "semantic_revision": 6,
           "summary": "Restrict cutoff election selection explicitly to completed elections in polled-elections.csv, including all and onwards batches.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T232046Z-methodology-fp-model-script-622c31ba",
+          "recorded_at_utc": "2026-07-25T23:20:46Z",
+          "change_type": "methodology",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 7,
+          "summary": "Kept unnamed Others positive in approval-derived FP fits and ordered federal trends before dependent state trends.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "1987fed",
+              "1988nsw",
+              "1988vic",
+              "1989qld",
+              "1989sa",
+              "1989wa",
+              "1990fed",
+              "1991nsw",
+              "1992qld",
+              "1992vic",
+              "1993fed",
+              "1993sa",
+              "1993wa",
+              "1995nsw",
+              "1995qld",
+              "1996fed",
+              "1996vic",
+              "1996wa",
+              "1997sa",
+              "1998fed",
+              "1998qld",
+              "1999nsw",
+              "1999vic",
+              "2001fed",
+              "2001qld",
+              "2001wa",
+              "2002sa",
+              "2002vic",
+              "2003nsw",
+              "2004fed",
+              "2004qld",
+              "2005wa",
+              "2006qld",
+              "2006sa",
+              "2006vic",
+              "2007fed",
+              "2007nsw",
+              "2008wa",
+              "2009qld",
+              "2010fed",
+              "2010sa",
+              "2010vic",
+              "2011nsw",
+              "2012qld",
+              "2013fed",
+              "2013wa",
+              "2014sa",
+              "2014vic",
+              "2015nsw",
+              "2015qld",
+              "2016fed",
+              "2017qld",
+              "2017wa",
+              "2018sa",
+              "2018vic",
+              "2019fed",
+              "2019nsw",
+              "2020qld",
+              "2021wa",
+              "2022fed",
+              "2022sa",
+              "2022vic",
+              "2023nsw",
+              "2024qld",
+              "2025fed",
+              "2025wa",
+              "2026sa",
+              "2026vic",
+              "2027nsw",
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": [
+              "generate_cutoff_poll_trends",
+              "generate_poll_trends"
+            ]
+          }
+        },
+        {
+          "id": "20260725T234559Z-formatting-fp-model-script-2133a688",
+          "recorded_at_utc": "2026-07-25T23:45:59Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Removed or disabled verbose console diagnostics without changing model calculations.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T000427Z-formatting-fp-model-script-183efe9a",
+          "recorded_at_utc": "2026-07-26T00:04:27Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Console output changes",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T001004Z-formatting-fp-model-script-8aa7a508",
+          "recorded_at_utc": "2026-07-26T00:10:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Console output changes",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T001115Z-formatting-fp-model-script-d39f8cd3",
+          "recorded_at_utc": "2026-07-26T00:11:15Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Console output fix",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T001809Z-formatting-fp-model-script-e94c124e",
+          "recorded_at_utc": "2026-07-26T00:18:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Reduced noisy diagnostics and clarified high-level poll-model progress output without changing calculations.",
           "files": [
             "fp_model.py"
           ],
@@ -960,9 +1142,9 @@
       "semantic_revision": 1,
       "files": {
         "approvals.py": {
-          "sha256": "dcda2a27590e398049f686ea64e94d2a24e194bca8d9c4c20f5e9c3329f2d8a7",
-          "size_bytes": 14378,
-          "recorded_mtime_utc": "2026-07-25T10:02:41.822981Z"
+          "sha256": "390a77d282ac2212909a7683305aa6a491bdddb771448a50bb8bed9b7c293541",
+          "size_bytes": 14380,
+          "recorded_mtime_utc": "2026-07-26T00:17:25.450405Z"
         }
       },
       "events": [
@@ -992,6 +1174,42 @@
           "affects_outputs": false,
           "semantic_revision": 1,
           "summary": "Return generated synthetic TPP observations in memory so concurrent trend runs do not exchange data through shared CSV files.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T000427Z-formatting-approvals-script-edde5b6a",
+          "recorded_at_utc": "2026-07-26T00:04:27Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Console output changes",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T001809Z-formatting-approvals-script-1bbbab65",
+          "recorded_at_utc": "2026-07-26T00:18:09Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Reduced noisy diagnostics and clarified high-level poll-model progress output without changing calculations.",
           "files": [
             "approvals.py"
           ],
@@ -1386,6 +1604,95 @@
           "summary": "Reject malformed rows with extra columns and confirm completion markers are ignored; valid cutoff calculations are unchanged.",
           "files": [
             "trend_adjust_cutoffs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "fp_model_console_wrapper": {
+      "description": "Argument-compatible fp_model launcher that filters repetitive Stan timing output.",
+      "file_patterns": [
+        "run_fp_model.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "run_fp_model.py": {
+          "sha256": "dc127be504c8f0682ce28cc994f8ff6daf541186e5f0ab16a700ad8fe5d0c88f",
+          "size_bytes": 7198,
+          "recorded_mtime_utc": "2026-07-25T23:57:47.005425Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260725T234451Z-baseline-fp-model-console-wrapper-c0928425",
+          "recorded_at_utc": "2026-07-25T23:44:51Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Baseline for the fp_model console-output wrapper.",
+          "files": [
+            "run_fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T235416Z-other-fp-model-console-wrapper-a2b41003",
+          "recorded_at_utc": "2026-07-25T23:54:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Limited Stan iteration progress display to the first line per fit and one line every five seconds thereafter.",
+          "files": [
+            "run_fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T235604Z-other-fp-model-console-wrapper-a46c5337",
+          "recorded_at_utc": "2026-07-25T23:56:04Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Applied the five-second Stan iteration display limit across the full batch rather than resetting it for each fit.",
+          "files": [
+            "run_fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T235813Z-other-fp-model-console-wrapper-5a91907f",
+          "recorded_at_utc": "2026-07-25T23:58:13Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Condensed Stan warm-up, sampling and total elapsed-time blocks to one console line.",
+          "files": [
+            "run_fp_model.py"
           ],
           "scope": {
             "all": true,

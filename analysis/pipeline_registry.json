@@ -212,6 +212,15 @@
       ],
       "description": "Poll-trend data preparation, Stan execution and output serialization."
     },
+    "fp_model_console_wrapper": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "run_fp_model.py"
+      ],
+      "description": "Argument-compatible fp_model launcher that filters repetitive Stan timing output."
+    },
     "stan_cache_script": {
       "kind": "code",
       "scope": "global",

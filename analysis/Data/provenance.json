@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-07-25T14:54:56Z",
+  "updated_at_utc": "2026-07-25T23:19:32Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -68,7 +68,7 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "poll-data-fed.csv": {
           "sha256": "a9321be006a654aa3f28da85dece676aa1598eaf1baa59cf17de4fb958fc159f",
@@ -86,9 +86,9 @@
           "recorded_mtime_utc": "2026-06-16T08:38:09.808470Z"
         },
         "poll-data-sa.csv": {
-          "sha256": "042dabfb83246731b600d792834aed55faa21a905260d279aea5e48c12ae2da7",
+          "sha256": "5469a39e0948319a0de26952dac912bab387b97388d2de1dfa9e5ed3bab33f4f",
           "size_bytes": 19401,
-          "recorded_mtime_utc": "2026-06-25T04:43:55.030005Z"
+          "recorded_mtime_utc": "2026-07-25T22:51:05.594447Z"
         },
         "poll-data-vic.csv": {
           "sha256": "200add8b37feab126e13568a036b6975e3464acbc443bd3b781a6f774108c53a",
@@ -121,6 +121,26 @@
           "scope": {
             "all": true,
             "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260725T231932Z-correction-raw-poll-data-e02ca692",
+          "recorded_at_utc": "2026-07-25T23:19:32Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "summary": "Corrected the February 2016 SA Galaxy poll date.",
+          "files": [
+            "poll-data-sa.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2018sa"
+            ],
             "parties": [],
             "stages": []
           }

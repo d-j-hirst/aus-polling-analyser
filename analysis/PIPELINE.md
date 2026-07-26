@@ -564,6 +564,11 @@ parties. Pure runs load federal pure trends. Calibration and normal runs still
 load normal federal trends, and missing files are silently replaced by
 historical priors. Federal elections do not use this path.
 
+For `all` and `-onwards` batches, selected federal elections are now moved
+ahead of the state elections that consume them. An `-onwards` batch beginning
+with a state election assumes that state's overlapping federal trends are
+already complete and does not run those federal elections again.
+
 Consequently:
 
 * a clean bootstrap without existing output can differ from an incremental

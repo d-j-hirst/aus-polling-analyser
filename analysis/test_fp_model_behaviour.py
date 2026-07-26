@@ -32,6 +32,163 @@ class PartyOrderingTests(unittest.TestCase):
         )
 
 
+class UnnamedOthersTests(unittest.TestCase):
+    def test_ordinary_residual_is_unchanged(self):
+        self.assertAlmostEqual(
+            fp_model.derive_unnamed_others_median(20.0, 12.0),
+            8.0,
+        )
+
+    def test_incoherent_components_use_soft_positive_residual(self):
+        result = fp_model.derive_unnamed_others_median(
+            16.338,
+            17.574,
+        )
+
+        self.assertAlmostEqual(
+            result,
+            16.338 * 3.0 / 20.574,
+        )
+        self.assertGreater(result, 0.0)
+        self.assertLessEqual(result, 16.338)
+
+    def test_no_named_parties_does_not_impose_three_point_floor(self):
+        self.assertAlmostEqual(
+            fp_model.derive_unnamed_others_median(1.5, 0.0),
+            1.5,
+        )
+
+    def test_diagnostics_keep_only_the_lowest_examples(self):
+        recorder = fp_model.UnnamedOthersDiagnosticsRecorder(
+            threshold=1.0,
+            example_limit=2,
+        )
+        for raw_residual in (0.5, -1.0, 0.25):
+            recorder.record(
+                election='test',
+                mode='test',
+                day=0,
+                inclusive_others=10.0 + raw_residual,
+                named_minor_total=10.0,
+                adjusted_unnamed_others=2.0,
+            )
+
+        self.assertEqual(recorder.issue_count, 3)
+        self.assertEqual(
+            [round(example[0], 2) for example in recorder.examples],
+            [-1.0, 0.25],
+        )
+
+
+class ElectionBatchOrderingTests(unittest.TestCase):
+    def setUp(self):
+        self.elections = {
+            code.short(): code
+            for code in [
+                fp_model.ElectionCode(2025, 'fed'),
+                fp_model.ElectionCode(2026, 'vic'),
+                fp_model.ElectionCode(2027, 'nsw'),
+                fp_model.ElectionCode(2028, 'fed'),
+                fp_model.ElectionCode(2029, 'wa'),
+                fp_model.ElectionCode(2031, 'fed'),
+            ]
+        }
+        self.cycles = {
+            ('2025', 'fed'): (
+                pd.Timestamp('2022-05-22'),
+                pd.Timestamp('2025-05-03'),
+            ),
+            ('2026', 'vic'): (
+                pd.Timestamp('2022-11-27'),
+                pd.Timestamp('2026-11-28'),
+            ),
+            ('2027', 'nsw'): (
+                pd.Timestamp('2023-03-26'),
+                pd.Timestamp('2027-03-27'),
+            ),
+            ('2028', 'fed'): (
+                pd.Timestamp('2025-05-04'),
+                pd.Timestamp('2028-05-20'),
+            ),
+            ('2029', 'wa'): (
+                pd.Timestamp('2025-03-09'),
+                pd.Timestamp('2029-03-10'),
+            ),
+            ('2031', 'fed'): (
+                pd.Timestamp('2028-05-21'),
+                pd.Timestamp('2031-05-17'),
+            ),
+        }
+
+    def test_federal_dependencies_are_emitted_before_states(self):
+        original = [
+            self.elections[code]
+            for code in (
+                '2025fed',
+                '2026vic',
+                '2027nsw',
+                '2028fed',
+                '2029wa',
+                '2031fed',
+            )
+        ]
+
+        ordered = fp_model.order_elections_by_federal_dependencies(
+            original,
+            self.cycles,
+        )
+
+        self.assertEqual(
+            [election.short() for election in ordered],
+            [
+                '2025fed',
+                '2028fed',
+                '2026vic',
+                '2027nsw',
+                '2031fed',
+                '2029wa',
+            ],
+        )
+
+    def test_state_onwards_assumes_its_federal_terms_are_complete(self):
+        starting_state = self.elections['2026vic']
+        suffix = [
+            self.elections[code]
+            for code in (
+                '2026vic',
+                '2027nsw',
+                '2028fed',
+                '2029wa',
+                '2031fed',
+            )
+        ]
+        assumed_complete = fp_model.overlapping_federal_elections(
+            starting_state,
+            self.cycles,
+        )
+        selected = [
+            election
+            for election in suffix
+            if election not in assumed_complete
+        ]
+
+        ordered = fp_model.order_elections_by_federal_dependencies(
+            selected,
+            self.cycles,
+            assumed_complete,
+        )
+
+        self.assertEqual(
+            [election.short() for election in ordered],
+            [
+                '2026vic',
+                '2027nsw',
+                '2031fed',
+                '2029wa',
+            ],
+        )
+
+
 class SuspensionTests(unittest.TestCase):
     def test_active_control_file_flushes_and_resets_after_enter(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

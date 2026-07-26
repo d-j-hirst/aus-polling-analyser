@@ -55,6 +55,15 @@ Generate one election:
 python3 fp_model.py --election 2022-fed
 ```
 
+To retain progress output while hiding Stan's repetitive per-chain gradient
+timing estimates, use the argument-compatible wrapper. It also limits
+`Iteration:` updates to approximately one every five seconds across the full
+batch and condenses each three-line elapsed-time summary to one line:
+
+```bash
+python3 run_fp_model.py --election 2022-fed
+```
+
 Generate every configured election:
 
 ```bash
@@ -70,6 +79,13 @@ multi-election run:
 ```bash
 python3 fp_model.py --election 2016-fed-onwards
 ```
+
+Multi-election runs preserve the configured order where possible, but move
+each selected federal trend ahead of state trends whose election cycles
+overlap it. When an `-onwards` run starts from a state election, that state's
+overlapping federal trends are assumed to be complete and are not run again;
+later federal trends are still moved ahead of state trends that depend on
+them.
 
 ### Calibration
 
