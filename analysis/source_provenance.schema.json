@@ -80,6 +80,10 @@
           "type": "integer",
           "minimum": 1
         },
+        "provenance_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
         "files": {
           "type": "object",
           "additionalProperties": {
@@ -153,6 +157,7 @@
             "baseline",
             "correction",
             "coverage_extension",
+            "new_polling",
             "source_refresh",
             "methodology",
             "schema",
@@ -164,6 +169,7 @@
           "enum": [
             "unknown",
             "negligible",
+            "provenance-only",
             "minor",
             "material",
             "major"
@@ -175,6 +181,14 @@
         "semantic_revision": {
           "type": "integer",
           "minimum": 1
+        },
+        "provenance_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provenance_upgrade": {
+          "type": "string",
+          "minLength": 1
         },
         "summary": {
           "type": "string",
@@ -229,17 +243,43 @@
         {
           "if": {
             "properties": {
-              "affects_outputs": {
-                "const": false
+              "magnitude": {
+                "enum": [
+                  "minor",
+                  "material",
+                  "major"
+                ]
               }
             }
           },
           "then": {
             "properties": {
-              "magnitude": {
-                "const": "negligible"
+              "affects_outputs": {
+                "const": true
               }
             }
+          },
+          "else": {
+            "properties": {
+              "affects_outputs": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "magnitude": {
+                "const": "provenance-only"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "provenance_revision",
+              "provenance_upgrade"
+            ]
           }
         }
       ]

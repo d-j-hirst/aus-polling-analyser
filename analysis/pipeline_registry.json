@@ -221,6 +221,29 @@
       ],
       "description": "Argument-compatible fp_model launcher that filters repetitive Stan timing output."
     },
+    "pipeline_orchestration_tools": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "pipeline.py",
+        "pipeline_registry.py",
+        "pipeline_registry.json",
+        "analysis_provenance.py"
+      ],
+      "description": "Read-only dependency inspection, freshness status and regeneration planning tools."
+    },
+    "provenance_core_tools": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "source_provenance.py",
+        "generated_provenance.py",
+        "generated_provenance.schema.json"
+      ],
+      "description": "Shared source and generated-data fingerprinting, validation and dependency-checking utilities."
+    },
     "stan_cache_script": {
       "kind": "code",
       "scope": "global",
@@ -741,7 +764,7 @@
         ],
         "working_directory": ".",
         "task_scope": "election",
-        "run_class": "calibration"
+        "run_class": "pollster_analysis"
       },
       "inputs": [
         "election_catalogue",
@@ -891,9 +914,6 @@
         "election_code_script",
         "fp_stan_model"
       ],
-      "feedback_inputs": [
-        "poll_trend_outputs"
-      ],
       "outputs": [
         "cutoff_poll_outputs"
       ],
@@ -901,7 +921,7 @@
       "network": false,
       "cost": "weeks",
       "supports_partial": true,
-      "notes": "The schedule contains the same 46 triangular day points used by trend_adjust.py, from 0 through 1035 days before election day. Scheduled points that contain no new polling information are skipped. Each invocation replaces the consolidated file for every requested election, then writes completed endpoints incrementally. Each file contains all parties, the scheduled day, the actual latest-poll endpoint, posterior percentiles and Stan seeds. Trend adjustment indexes and interpolates by the actual endpoint rather than treating a stale poll as if it occurred on the scheduled day. This slow stage is classified with calibration work."
+      "notes": "The schedule contains the same 46 triangular day points used by trend_adjust.py, from 0 through 1035 days before election day. Scheduled points that contain no new polling information are skipped. Each invocation builds a replacement consolidated file in a working path and promotes it only after every endpoint is complete. Each file contains all parties, the scheduled day, the actual latest-poll endpoint, posterior percentiles and Stan seeds. Trend adjustment indexes and interpolates by the actual endpoint rather than treating a stale poll as if it occurred on the scheduled day. State cutoffs use matching federal cutoff files available by the state endpoint, not normal federal trend files. Because this stage is exceptionally slow, cutoff plans require current calibration, pollster-parameter and pure-trend dependencies rather than tolerating inherited staleness."
     },
     {
       "id": "generate_trend_adjustments",

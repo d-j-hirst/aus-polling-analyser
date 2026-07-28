@@ -1,6 +1,7 @@
 """Create and check bundled provenance manifests for generated analysis data."""
 
 import argparse
+import copy
 import concurrent.futures
 import hashlib
 import importlib.metadata
@@ -157,7 +158,11 @@ def _validate_dependency(dependency, context):
         "files",
         "records",
     }
-    if set(dependency) != required:
+    allowed = required | {
+        "non_invalidating_records",
+        "provenance_revision",
+    }
+    if not required <= set(dependency) or not set(dependency) <= allowed:
         raise GeneratedProvenanceError(
             "{} has invalid fields".format(context)
         )
@@ -182,6 +187,17 @@ def _validate_dependency(dependency, context):
         raise GeneratedProvenanceError(
             "{}.semantic_revision is invalid".format(context)
         )
+    provenance_revision = dependency.get(
+        "provenance_revision", revision
+    )
+    if provenance_revision is not None and (
+        not isinstance(provenance_revision, int)
+        or isinstance(provenance_revision, bool)
+        or provenance_revision < 1
+    ):
+        raise GeneratedProvenanceError(
+            "{}.provenance_revision is invalid".format(context)
+        )
     files = dependency["files"]
     if (
         not isinstance(files, list)
@@ -204,9 +220,26 @@ def _validate_dependency(dependency, context):
         raise GeneratedProvenanceError(
             "{}.records is invalid".format(context)
         )
+    non_invalidating_records = dependency.get(
+        "non_invalidating_records", []
+    )
+    if (
+        not isinstance(non_invalidating_records, list)
+        or any(
+            not isinstance(key, str) or not key
+            for key in non_invalidating_records
+        )
+        or len(non_invalidating_records)
+        != len(set(non_invalidating_records))
+        or not set(non_invalidating_records) <= set(records)
+    ):
+        raise GeneratedProvenanceError(
+            "{}.non_invalidating_records is invalid".format(context)
+        )
     if dependency["kind"] == "source_manifest":
         if (
             revision is None
+            or provenance_revision is None
             or not dependency["manifest"]
             or files
             or records
@@ -221,6 +254,7 @@ def _validate_dependency(dependency, context):
         if (
             dependency["manifest"] is not None
             or revision is not None
+            or provenance_revision is not None
             or not files
             or records
         ):
@@ -230,11 +264,20 @@ def _validate_dependency(dependency, context):
     elif (
         not dependency["manifest"]
         or revision is not None
+        or provenance_revision is not None
         or files
         or not records
     ):
         raise GeneratedProvenanceError(
             "{} generated-manifest dependency is incomplete".format(context)
+        )
+    if (
+        non_invalidating_records
+        and dependency["kind"] != "generated_manifest"
+    ):
+        raise GeneratedProvenanceError(
+            "{} only generated-manifest dependencies may contain "
+            "non-invalidating records".format(context)
         )
     if dependency["manifest"] is not None:
         _validate_relative_path(
@@ -340,7 +383,7 @@ def validate_manifest(manifest):
     output_owners = {}
     for record_key, record in manifest["records"].items():
         _require_string(record_key, "record key")
-        expected_fields = {
+        required_fields = {
             "status",
             "category",
             "stage",
@@ -350,9 +393,40 @@ def validate_manifest(manifest):
             "dependencies",
             "outputs",
         }
-        if set(record) != expected_fields:
+        allowed_fields = required_fields | {"provenance_maintenance"}
+        if (
+            not required_fields <= set(record)
+            or not set(record) <= allowed_fields
+        ):
             raise GeneratedProvenanceError(
                 "record '{}' has invalid fields".format(record_key)
+            )
+        maintenance = record.get("provenance_maintenance", [])
+        if not isinstance(maintenance, list):
+            raise GeneratedProvenanceError(
+                "{}.provenance_maintenance is invalid".format(record_key)
+            )
+        for index, entry in enumerate(maintenance):
+            entry_context = "{}.provenance_maintenance[{}]".format(
+                record_key, index
+            )
+            if not isinstance(entry, dict) or set(entry) != {
+                "event_id",
+                "source_category",
+                "upgrade",
+                "applied_at_utc",
+            }:
+                raise GeneratedProvenanceError(
+                    "{} has invalid fields".format(entry_context)
+                )
+            for field in ("event_id", "source_category", "upgrade"):
+                _require_string(
+                    entry[field],
+                    "{}.{}".format(entry_context, field),
+                )
+            _validate_datetime(
+                entry["applied_at_utc"],
+                "{}.applied_at_utc".format(entry_context),
             )
         if record["status"] not in {"generated", "legacy"}:
             raise GeneratedProvenanceError(
@@ -426,8 +500,13 @@ def load_manifest(path):
     # shape without requiring users to delete local provenance.
     for record in manifest.get("records", {}).values():
         record.setdefault("status", "generated")
+        record.setdefault("provenance_maintenance", [])
         for dependency in record.get("dependencies", {}).values():
             dependency.setdefault("records", [])
+            dependency.setdefault(
+                "provenance_revision",
+                dependency.get("semantic_revision"),
+            )
     for run in manifest.get("runs", {}).values():
         run.get("environment", {}).setdefault("packages", {})
     validate_manifest(manifest)
@@ -530,6 +609,7 @@ def file_dependency(
         "kind": "files",
         "digest": fingerprint_digest(fingerprints),
         "semantic_revision": None,
+        "provenance_revision": None,
         "manifest": None,
         "files": relative_files,
         "records": [],
@@ -571,6 +651,8 @@ def source_manifest_dependency(
         "kind": "source_manifest",
         "digest": fingerprint_digest(fingerprints),
         "semantic_revision": category["semantic_revision"],
+        "provenance_revision":
+            source_provenance.category_provenance_revision(category),
         "manifest": _relative_to_base(manifest_path, base_directory),
         "files": [],
         "records": [],
@@ -589,10 +671,12 @@ def _generated_records_digest(manifest, record_keys):
         # Execution time and environment do not make an unchanged generated
         # result stale. The record's inputs, scope and output hashes do.
         records[record_key] = {
-            key: value
+            key: copy.deepcopy(value)
             for key, value in record.items()
-            if key not in {"run", "outputs"}
+            if key not in {"run", "outputs", "provenance_maintenance"}
         }
+        for dependency in records[record_key]["dependencies"].values():
+            dependency.pop("provenance_revision", None)
         records[record_key]["outputs"] = {
             path: {
                 "sha256": fingerprint["sha256"],
@@ -612,22 +696,35 @@ def generated_manifest_dependency(
     record_keys,
     base_directory,
     allow_stale=False,
+    non_invalidating_records=(),
     _context=None,
 ):
     record_keys = sorted(set(record_keys))
+    non_invalidating_records = sorted(set(non_invalidating_records))
     if not record_keys:
         raise GeneratedProvenanceError(
             "generated dependency '{}' has no records".format(category)
         )
     context = _context or ManifestCheckContext()
     manifest = context.load_manifest(manifest_path)
+    if not set(non_invalidating_records) <= set(record_keys):
+        raise GeneratedProvenanceError(
+            "non-invalidating records for '{}' are not dependencies".format(
+                category
+            )
+        )
+    tracked_record_keys = [
+        record_key
+        for record_key in record_keys
+        if record_key not in non_invalidating_records
+    ]
     checked_records = check_manifest(
         manifest_path,
         record_keys=record_keys,
         _context=context,
     )
     stale_records = {}
-    for record_key in record_keys:
+    for record_key in tracked_record_keys:
         if record_key not in checked_records:
             stale_records[record_key] = ["missing record"]
         elif checked_records[record_key]:
@@ -639,14 +736,22 @@ def generated_manifest_dependency(
                 ", ".join(sorted(stale_records)),
             )
         )
-    return {
+    dependency = {
         "kind": "generated_manifest",
-        "digest": _generated_records_digest(manifest, record_keys),
+        "digest": _generated_records_digest(
+            manifest, tracked_record_keys
+        ),
         "semantic_revision": None,
+        "provenance_revision": None,
         "manifest": _relative_to_base(manifest_path, base_directory),
         "files": [],
         "records": record_keys,
     }
+    if non_invalidating_records:
+        dependency["non_invalidating_records"] = (
+            non_invalidating_records
+        )
+    return dependency
 
 
 def output_fingerprints(files, base_directory):
@@ -720,6 +825,7 @@ def generation_record(
         "random_seed": random_seed,
         "dependencies": dict(dependencies),
         "outputs": dict(outputs),
+        "provenance_maintenance": [],
     }
     temporary_manifest = {
         "$schema": "generated_provenance.schema.json",
@@ -962,9 +1068,17 @@ def check_record(
                     generated_manifest, checked_records = generated_cache[
                         cache_key
                     ]
-                stale_records = [
+                non_invalidating_records = set(
+                    dependency.get("non_invalidating_records", [])
+                )
+                tracked_records = [
                     record_key
                     for record_key in dependency["records"]
+                    if record_key not in non_invalidating_records
+                ]
+                stale_records = [
+                    record_key
+                    for record_key in tracked_records
                     if record_key not in checked_records
                     or checked_records[record_key]
                 ]
@@ -974,9 +1088,8 @@ def check_record(
                             category_id, ", ".join(stale_records)
                         )
                     )
-                    continue
                 current_digest = _generated_records_digest(
-                    generated_manifest, dependency["records"]
+                    generated_manifest, tracked_records
                 )
                 if current_digest != dependency["digest"]:
                     issues.append(
@@ -1035,6 +1148,36 @@ def check_record(
                     category_id,
                     ", ".join(
                         str(event["semantic_revision"]) for event in events
+                    ),
+                )
+            )
+            continue
+        try:
+            provenance_events = (
+                source_provenance.provenance_events_affecting(
+                    category,
+                    dependency.get(
+                        "provenance_revision",
+                        dependency["semantic_revision"],
+                    ),
+                    target_scope,
+                )
+            )
+        except source_provenance.ProvenanceError as error:
+            issues.append(
+                "invalid dependency {}: {}".format(category_id, error)
+            )
+            continue
+        if provenance_events:
+            issues.append(
+                "provenance-only dependency revision {} ({})".format(
+                    category_id,
+                    ", ".join(
+                        "{}:{}".format(
+                            event["id"],
+                            event["provenance_upgrade"],
+                        )
+                        for event in provenance_events
                     ),
                 )
             )

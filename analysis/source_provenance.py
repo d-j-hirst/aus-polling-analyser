@@ -24,6 +24,7 @@ CHANGE_TYPES = {
     "baseline",
     "correction",
     "coverage_extension",
+    "new_polling",
     "source_refresh",
     "methodology",
     "schema",
@@ -31,7 +32,14 @@ CHANGE_TYPES = {
     "other",
 }
 RECORD_CHANGE_TYPES = CHANGE_TYPES - {"baseline"}
-MAGNITUDES = {"unknown", "negligible", "minor", "material", "major"}
+MAGNITUDES = {
+    "unknown",
+    "negligible",
+    "provenance-only",
+    "minor",
+    "material",
+    "major",
+}
 RECORD_MAGNITUDES = MAGNITUDES - {"unknown"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
@@ -215,7 +223,23 @@ def _validate_file_fingerprint(fingerprint, context):
     )
 
 
-def _validate_event(event, context, expected_previous_revision, is_first):
+def _event_provenance_revision(event):
+    return event.get("provenance_revision", event["semantic_revision"])
+
+
+def category_provenance_revision(category):
+    return category.get(
+        "provenance_revision", category["semantic_revision"]
+    )
+
+
+def _validate_event(
+    event,
+    context,
+    expected_previous_revision,
+    expected_previous_provenance_revision,
+    is_first,
+):
     _require_exact_keys(
         event,
         required={
@@ -229,7 +253,11 @@ def _validate_event(event, context, expected_previous_revision, is_first):
             "files",
             "scope",
         },
-        optional={"source"},
+        optional={
+            "source",
+            "provenance_revision",
+            "provenance_upgrade",
+        },
         context=context,
     )
     _require_non_empty_string(event["id"], "{}.id".format(context))
@@ -258,6 +286,22 @@ def _validate_event(event, context, expected_previous_revision, is_first):
         raise ProvenanceError(
             "{}.semantic_revision must be a positive integer".format(context)
         )
+    provenance_revision = _event_provenance_revision(event)
+    if (
+        not isinstance(provenance_revision, int)
+        or isinstance(provenance_revision, bool)
+        or provenance_revision < 1
+    ):
+        raise ProvenanceError(
+            "{}.provenance_revision must be a positive integer".format(
+                context
+            )
+        )
+    if "provenance_upgrade" in event:
+        _require_non_empty_string(
+            event["provenance_upgrade"],
+            "{}.provenance_upgrade".format(context),
+        )
     _require_non_empty_string(event["summary"], "{}.summary".format(context))
     _validate_string_list(
         event["files"],
@@ -282,6 +326,7 @@ def _validate_event(event, context, expected_previous_revision, is_first):
                 )
             )
         expected_revision = 1
+        expected_provenance_revision = 1
     else:
         if event["change_type"] == "baseline":
             raise ProvenanceError(
@@ -291,16 +336,34 @@ def _validate_event(event, context, expected_previous_revision, is_first):
             raise ProvenanceError(
                 "{} non-baseline magnitude must be assessed".format(context)
             )
-        if not event["affects_outputs"] and event["magnitude"] != "negligible":
+        if event["affects_outputs"] != (
+            event["magnitude"] in {"minor", "material", "major"}
+        ):
             raise ProvenanceError(
-                "{} non-output-affecting changes must have negligible magnitude".format(
+                "{} affects_outputs does not match its magnitude".format(
                     context
                 )
+            )
+        if event["magnitude"] == "provenance-only":
+            if "provenance_upgrade" not in event:
+                raise ProvenanceError(
+                    "{} provenance-only change requires provenance_upgrade"
+                    .format(context)
+                )
+        elif "provenance_upgrade" in event:
+            raise ProvenanceError(
+                "{} only provenance-only changes may specify "
+                "provenance_upgrade".format(context)
             )
         expected_revision = (
             expected_previous_revision + 1
             if event["affects_outputs"]
             else expected_previous_revision
+        )
+        expected_provenance_revision = (
+            expected_previous_provenance_revision + 1
+            if event["magnitude"] != "negligible"
+            else expected_previous_provenance_revision
         )
 
     if event["semantic_revision"] != expected_revision:
@@ -309,7 +372,15 @@ def _validate_event(event, context, expected_previous_revision, is_first):
                 context, event["semantic_revision"], expected_revision
             )
         )
-    return expected_revision
+    if provenance_revision != expected_provenance_revision:
+        raise ProvenanceError(
+            "{} provenance revision is {}, expected {}".format(
+                context,
+                provenance_revision,
+                expected_provenance_revision,
+            )
+        )
+    return expected_revision, expected_provenance_revision
 
 
 def _validate_category(category_id, category):
@@ -325,7 +396,7 @@ def _validate_category(category_id, category):
             "files",
             "events",
         },
-        optional=set(),
+        optional={"provenance_revision"},
         context=context,
     )
     _require_non_empty_string(
@@ -364,12 +435,14 @@ def _validate_category(category_id, category):
 
     event_ids = set()
     revision = 0
+    provenance_revision = 0
     for index, event in enumerate(category["events"]):
         event_context = "{}.events[{}]".format(context, index)
-        revision = _validate_event(
+        revision, provenance_revision = _validate_event(
             event,
             event_context,
             expected_previous_revision=revision,
+            expected_previous_provenance_revision=provenance_revision,
             is_first=(index == 0),
         )
         if event["id"] in event_ids:
@@ -381,6 +454,15 @@ def _validate_category(category_id, category):
         raise ProvenanceError(
             "{} semantic revision is {}, but its events end at {}".format(
                 context, category["semantic_revision"], revision
+            )
+        )
+    if category_provenance_revision(category) != provenance_revision:
+        raise ProvenanceError(
+            "{} provenance revision is {}, but its events end at {}"
+            .format(
+                context,
+                category_provenance_revision(category),
+                provenance_revision,
             )
         )
 
@@ -695,6 +777,35 @@ def semantic_events_affecting(category, after_revision, target_scope):
     ]
 
 
+def provenance_events_affecting(
+    category, after_revision, target_scope
+):
+    """Return relevant metadata-only events newer than a recorded revision."""
+
+    if (
+        not isinstance(after_revision, int)
+        or isinstance(after_revision, bool)
+        or after_revision < 0
+    ):
+        raise ProvenanceError(
+            "after_revision must be a non-negative integer"
+        )
+    current_revision = category_provenance_revision(category)
+    if after_revision > current_revision:
+        raise ProvenanceError(
+            "after_revision {} is newer than category provenance revision {}"
+            .format(after_revision, current_revision)
+        )
+    _validate_scope(target_scope, "target_scope")
+    return [
+        event
+        for event in category["events"]
+        if event["magnitude"] == "provenance-only"
+        and _event_provenance_revision(event) > after_revision
+        and scope_affects_target(event["scope"], target_scope)
+    ]
+
+
 def _scope_description(scope):
     if scope["all"]:
         return "all scopes"
@@ -798,6 +909,7 @@ def record_change(
     scope,
     source=None,
     allow_empty=False,
+    provenance_upgrade=None,
 ):
     manifest = load_manifest(manifest_path)
     try:
@@ -818,9 +930,19 @@ def record_change(
                 ", ".join(sorted(RECORD_MAGNITUDES))
             )
         )
-    if not affects_outputs and magnitude != "negligible":
+    if affects_outputs != (
+        magnitude in {"minor", "material", "major"}
+    ):
         raise ProvenanceError(
-            "non-output-affecting changes must have negligible magnitude"
+            "affects_outputs does not match the selected magnitude"
+        )
+    if magnitude == "provenance-only" and not provenance_upgrade:
+        raise ProvenanceError(
+            "provenance-only changes require a provenance upgrade"
+        )
+    if magnitude != "provenance-only" and provenance_upgrade is not None:
+        raise ProvenanceError(
+            "only provenance-only changes may specify a provenance upgrade"
         )
     _require_non_empty_string(summary, "summary")
     _validate_scope(scope, "scope")
@@ -842,6 +964,10 @@ def record_change(
         )
 
     next_revision = category["semantic_revision"] + (1 if affects_outputs else 0)
+    next_provenance_revision = (
+        category_provenance_revision(category)
+        + (0 if magnitude == "negligible" else 1)
+    )
     event = {
         "id": _event_id(change_type, category_id),
         "recorded_at_utc": utc_now(),
@@ -849,15 +975,19 @@ def record_change(
         "magnitude": magnitude,
         "affects_outputs": affects_outputs,
         "semantic_revision": next_revision,
+        "provenance_revision": next_provenance_revision,
         "summary": summary,
         "files": changed_paths,
         "scope": scope,
     }
     if source is not None:
         event["source"] = source
+    if provenance_upgrade is not None:
+        event["provenance_upgrade"] = provenance_upgrade
 
     category["files"] = current_files
     category["semantic_revision"] = next_revision
+    category["provenance_revision"] = next_provenance_revision
     category["events"].append(event)
     manifest["updated_at_utc"] = utc_now()
     validate_manifest(manifest)
@@ -993,6 +1123,7 @@ def build_parser():
     record_parser.add_argument(
         "--affects-outputs", required=True, type=_yes_no
     )
+    record_parser.add_argument("--provenance-upgrade")
     _add_scope_arguments(record_parser)
     record_parser.add_argument("--allow-empty", action="store_true")
     _add_source_arguments(record_parser)
@@ -1064,11 +1195,14 @@ def main(argv=None):
                 scope,
                 source=_source_from_args(args),
                 allow_empty=args.allow_empty,
+                provenance_upgrade=args.provenance_upgrade,
             )
             print(
-                "Recorded {} at semantic revision {} ({} file(s))".format(
+                "Recorded {} at semantic revision {} and provenance "
+                "revision {} ({} file(s))".format(
                     event["id"],
                     event["semantic_revision"],
+                    event["provenance_revision"],
                     len(_changed_paths(comparison)),
                 )
             )

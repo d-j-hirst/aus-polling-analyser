@@ -458,7 +458,7 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             fp_model_provenance.approvals_provenance,
             "generation_dependencies",
             return_value={"pure_poll_outputs": approval_dependency},
-        ), mock.patch.object(
+        ) as approval_call, mock.patch.object(
             generated_provenance,
             "generated_manifest_dependency",
             return_value=pollster_dependency,
@@ -485,6 +485,9 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             approval_dependency,
         )
         self.assertNotIn("poll_trend_outputs", major_dependencies)
+        approval_call.assert_called_once_with(
+            ["2026vic"], non_invalidating_elections=()
+        )
 
         with mock.patch.object(
             fp_model_provenance,
@@ -521,6 +524,104 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             feedback_dependency,
         )
         generated_call.assert_called_once()
+
+    def test_election_without_approval_polls_omits_approval_dependencies(self):
+        pollster_dependency = {
+            "kind": "generated_manifest",
+            "digest": "a" * 64,
+            "semantic_revision": None,
+            "manifest": "pollster.json",
+            "files": [],
+            "records": ["pollster_parameters:1975fed"],
+        }
+        with mock.patch.object(
+            fp_model_provenance,
+            "_source_dependencies",
+            return_value={},
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "approval_elections",
+            return_value={"1987fed"},
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "generation_dependencies",
+        ) as approval_call, mock.patch.object(
+            generated_provenance,
+            "generated_manifest_dependency",
+            return_value=pollster_dependency,
+        ):
+            recorder = fp_model_provenance.CutoffTrendRecorder(
+                ["python3", "fp_model.py", "--cutoff"]
+            )
+            dependencies = recorder.dependencies_for_election(
+                "1975fed",
+                [],
+            )
+
+        self.assertEqual(
+            dependencies,
+            {"pollster_parameters": pollster_dependency},
+        )
+        approval_call.assert_not_called()
+
+    def test_cutoffs_tolerate_current_pure_approval_dependencies(self):
+        pollster_dependency = {
+            "kind": "generated_manifest",
+            "digest": "a" * 64,
+            "semantic_revision": None,
+            "manifest": "pollster.json",
+            "files": [],
+            "records": ["pollster_parameters:2025fed"],
+        }
+        approval_dependency = {
+            "kind": "generated_manifest",
+            "digest": "b" * 64,
+            "semantic_revision": None,
+            "manifest": "pure.json",
+            "files": [],
+            "records": [
+                "pure_poll_outputs:2025fed:@TPP",
+                "pure_poll_outputs:2028fed:@TPP",
+            ],
+            "non_invalidating_records": [
+                "pure_poll_outputs:2028fed:@TPP"
+            ],
+        }
+        with mock.patch.object(
+            fp_model_provenance,
+            "_source_dependencies",
+            return_value={},
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "approval_elections",
+            return_value={"2025fed"},
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "current_elections",
+            return_value={"2026vic", "2028fed"},
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "generation_dependencies",
+            return_value={"pure_poll_outputs": approval_dependency},
+        ) as approval_call, mock.patch.object(
+            generated_provenance,
+            "generated_manifest_dependency",
+            return_value=pollster_dependency,
+        ):
+            recorder = fp_model_provenance.CutoffTrendRecorder(
+                ["python3", "fp_model.py", "--cutoff"]
+            )
+            dependencies = recorder.dependencies_for_election(
+                "2025fed", []
+            )
+
+        self.assertEqual(
+            dependencies["pure_poll_outputs"], approval_dependency
+        )
+        approval_call.assert_called_once_with(
+            ["2025fed"],
+            non_invalidating_elections=("2026vic", "2028fed"),
+        )
 
 
 class CutoffTrendProvenanceTests(unittest.TestCase):

@@ -183,6 +183,28 @@ class AnalysisProvenanceTests(unittest.TestCase):
             result["impacts"]["immediate"]["cpp_seat_simulation"],
         )
 
+    def test_provenance_only_change_requires_metadata_not_data(self):
+        self.script_path.write_text(
+            "print('metadata only')\n", encoding="utf-8"
+        )
+        analysis_provenance.register_changes(
+            [self.script_path],
+            "Changed generated provenance bookkeeping.",
+            "provenance-only",
+            provenance_upgrade="refresh-source-dependency-v1",
+            source_manifest_paths=[self.source_manifest_path],
+        )
+
+        result = self._audit()
+        matching = [
+            work_unit
+            for work_unit in result["work_units"]
+            if work_unit["record_key"] == "election_result_exports:2025fed"
+        ]
+        self.assertEqual(matching[0]["status"], "provenance-stale")
+        self.assertEqual(len(result["provenance_maintenance"]), 1)
+        self.assertEqual(result["impacts"]["immediate"], {})
+
     def test_terminal_impacts_separate_calibration_paths(self):
         registry = {
             "stages": [
@@ -518,6 +540,147 @@ class AnalysisProvenanceTests(unittest.TestCase):
             selected[self.generated_manifest_path.resolve()],
             set(records),
         )
+
+    def test_target_selection_skips_non_invalidating_lineage(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        current_key = "pure_poll_outputs:2028fed:@TPP"
+        current_record = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        current_record["category"] = "pure_poll_outputs"
+        current_record["scope"]["elections"] = ["2028fed"]
+
+        cutoff_output = self.output_directory / "cutoffs_2026sa.csv"
+        cutoff_output.write_text("cutoffs\n", encoding="utf-8")
+        cutoff_record = json.loads(json.dumps(current_record))
+        cutoff_record["category"] = "cutoff_poll_outputs"
+        cutoff_record["stage"] = "generate_cutoff_poll_trends"
+        cutoff_record["scope"]["elections"] = ["2026sa"]
+        cutoff_record["dependencies"] = {
+            "pure_poll_outputs": {
+                "kind": "generated_manifest",
+                "digest": "0" * 64,
+                "semantic_revision": None,
+                "manifest": "elections/generated-provenance.json",
+                "files": [],
+                "records": [current_key],
+                "non_invalidating_records": [current_key],
+            }
+        }
+        cutoff_record["outputs"] = {
+            cutoff_output.relative_to(self.base).as_posix():
+                generated_provenance.fingerprint_file(cutoff_output)
+        }
+        cutoff_key = "cutoff_poll_outputs:2026sa"
+        manifest["records"] = {
+            current_key: current_record,
+            cutoff_key: cutoff_record,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2026sa"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {cutoff_key},
+        )
+
+    def test_legacy_trend_infers_same_election_pollster_dependency(self):
+        pollster_manifest_path = (
+            self.output_directory
+            / "pollster-generated-provenance.json"
+        )
+        pollster_output = self.output_directory / "variability-2026vic.csv"
+        pollster_output.write_text("pollsters\n", encoding="utf-8")
+        pollster_record = generated_provenance.generation_record(
+            category="pollster_parameters",
+            stage="analyse_pollsters",
+            scope=generated_provenance.generation_scope(
+                elections=["2026vic"]
+            ),
+            run="test-run",
+            dependencies={},
+            outputs=generated_provenance.output_fingerprints(
+                [pollster_output], self.base
+            ),
+            random_seed=None,
+        )
+        generated_provenance.update_manifest(
+            pollster_manifest_path,
+            {"pollster_parameters:2026vic": pollster_record},
+            {
+                "test-run": {
+                    "generated_at_utc": "2026-01-01T00:00:00Z",
+                    "command": ["python3", "pollster_analysis.py"],
+                    "source_revision": {
+                        "system": "git",
+                        "revision": "a" * 40,
+                        "dirty": False,
+                    },
+                    "environment": {
+                        "python_version": "3.8.0",
+                        "python_implementation": "CPython",
+                        "platform": "test",
+                    },
+                }
+            },
+            path_base="..",
+            description="Test pollster parameters.",
+        )
+
+        trend_manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        trend_record = trend_manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        trend_record["status"] = "legacy"
+        trend_record["category"] = "pure_poll_outputs"
+        trend_record["stage"] = "generate_pure_poll_trends"
+        trend_record["scope"]["elections"] = ["2026vic"]
+        trend_record["dependencies"] = {}
+        trend_manifest["records"] = {
+            "pure_poll_outputs:2026vic:@TPP": trend_record
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(trend_manifest), encoding="utf-8"
+        )
+
+        selected, dependencies = (
+            analysis_provenance._selected_generated_records(
+                [
+                    self.generated_manifest_path,
+                    pollster_manifest_path,
+                ],
+                {"2026vic"},
+                include_dependencies=True,
+            )
+        )
+
+        pollster_id = (
+            "{}::pollster_parameters:2026vic".format(
+                analysis_provenance._manifest_label(
+                    pollster_manifest_path
+                )
+            )
+        )
+        trend_id = "{}::pure_poll_outputs:2026vic:@TPP".format(
+            analysis_provenance._manifest_label(
+                self.generated_manifest_path
+            )
+        )
+        self.assertIn(
+            "pollster_parameters:2026vic",
+            selected[pollster_manifest_path.resolve()],
+        )
+        self.assertIn(pollster_id, dependencies[trend_id])
 
     def test_legacy_calibration_is_reported_as_calibration_path_issue(self):
         manifest = generated_provenance.load_manifest(

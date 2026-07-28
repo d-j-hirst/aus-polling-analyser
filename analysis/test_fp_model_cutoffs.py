@@ -79,6 +79,12 @@ class CutoffOutputStoreTests(unittest.TestCase):
                 )
 
                 path = fp_model_provenance.cutoff_output_path("2025fed")
+                working_path = (
+                    fp_model_provenance.cutoff_working_path("2025fed")
+                )
+                self.assertFalse(path.exists())
+                self.assertTrue(working_path.exists())
+                store.promote("2025fed")
                 with path.open(newline="", encoding="utf-8") as source:
                     rows = list(csv.reader(source))
 
@@ -95,9 +101,14 @@ class CutoffOutputStoreTests(unittest.TestCase):
                 ],
             )
             self.assertEqual(len(rows), 4)
-            self.assertFalse(path.with_suffix(".csv.tmp").exists())
+            self.assertFalse(working_path.exists())
+            self.assertFalse(
+                working_path.with_suffix(
+                    working_path.suffix + ".tmp"
+                ).exists()
+            )
 
-    def test_reset_removes_existing_rows_and_file(self):
+    def test_reset_removes_draft_but_preserves_certified_file(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
             with mock.patch.object(
@@ -116,12 +127,111 @@ class CutoffOutputStoreTests(unittest.TestCase):
                     values=(48.1, 50.2, 52.3),
                 )
                 path = fp_model_provenance.cutoff_output_path("2025fed")
+                store.mark_complete("2025fed", 28, 30)
+                store.promote("2025fed")
                 self.assertTrue(path.exists())
+                certified_contents = path.read_bytes()
 
+                store.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=21,
+                    poll_trend_end_days=22,
+                    random_seed=456,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.2, 50.3, 52.4),
+                )
+                working_path = (
+                    fp_model_provenance.cutoff_working_path("2025fed")
+                )
+                self.assertTrue(working_path.exists())
+                self.assertEqual(path.read_bytes(), certified_contents)
                 store.reset("2025fed")
 
-                self.assertFalse(path.exists())
+                self.assertTrue(path.exists())
+                self.assertEqual(path.read_bytes(), certified_contents)
+                self.assertFalse(working_path.exists())
                 self.assertFalse(store.contains("2025fed", "@TPP", 28, 30))
+
+    def test_incomplete_draft_cannot_be_promoted(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                store = fp_model_provenance.CutoffOutputStore()
+                store.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+
+                with self.assertRaisesRegex(
+                    fp_model_provenance
+                    .generated_provenance.GeneratedProvenanceError,
+                    "Cannot promote incomplete cutoff",
+                ):
+                    store.promote("2025fed")
+
+                self.assertFalse(
+                    fp_model_provenance
+                    .cutoff_output_path("2025fed")
+                    .exists()
+                )
+
+    def test_failed_certification_restores_output_and_keeps_draft(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                store = fp_model_provenance.CutoffOutputStore()
+                path = fp_model_provenance.cutoff_output_path("2025fed")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                previous_contents = (
+                    "ScheduledCutoffDays,PollTrendEndDays,Party,"
+                    "StanSeed,0%,50%,100%\n"
+                    "35,36,#COMPLETE,,,,\n"
+                    "35,36,@TPP,456,47.9,50.0,52.1\n"
+                )
+                path.write_text(previous_contents, encoding="utf-8")
+                store.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+                store.mark_complete("2025fed", 28, 30)
+
+                def fail_certification(output):
+                    raise RuntimeError("certification failed")
+
+                with self.assertRaisesRegex(RuntimeError, "failed"):
+                    store.promote(
+                        "2025fed",
+                        certify=fail_certification,
+                    )
+
+                self.assertEqual(
+                    path.read_text(encoding="utf-8"),
+                    previous_contents,
+                )
+                self.assertTrue(
+                    fp_model_provenance
+                    .cutoff_working_path("2025fed")
+                    .is_file()
+                )
 
 
 if __name__ == "__main__":

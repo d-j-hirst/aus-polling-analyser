@@ -140,8 +140,13 @@ def cutoff_output_path(election):
     return CUTOFF_OUTPUT_DIRECTORY / "cutoffs_{}.csv".format(election)
 
 
+def cutoff_working_path(election):
+    path = cutoff_output_path(election)
+    return path.with_suffix(path.suffix + ".in-progress")
+
+
 class CutoffOutputStore:
-    """Maintain one atomically updated point-in-time trend file per election."""
+    """Build one election in a draft before atomically promoting it."""
 
     KEY_COLUMNS = (
         "ScheduledCutoffDays",
@@ -158,16 +163,25 @@ class CutoffOutputStore:
     def reset(self, election):
         """Start a fresh cutoff batch for an election."""
 
-        self._headers.pop(election, None)
-        self._rows.pop(election, None)
-        path = cutoff_output_path(election)
-        if path.exists():
-            path.unlink()
+        self._headers[election] = None
+        self._rows[election] = {}
+        working_path = cutoff_working_path(election)
+        for path in (
+            working_path,
+            working_path.with_suffix(working_path.suffix + ".tmp"),
+        ):
+            if path.exists():
+                path.unlink()
 
     def _load(self, election):
         if election in self._rows:
             return
-        path = cutoff_output_path(election)
+        working_path = cutoff_working_path(election)
+        path = (
+            working_path
+            if working_path.is_file()
+            else cutoff_output_path(election)
+        )
         rows = {}
         header = None
         if path.is_file():
@@ -311,8 +325,71 @@ class CutoffOutputStore:
         ]
         self._write_atomic(election)
 
+    def promote(self, election, certify=None):
+        """Replace the certified output only after the batch is complete.
+
+        If certification fails, restore the previous certified file and keep
+        the completed draft so the expensive batch can be certified again.
+        """
+
+        self._load(election)
+        completed_cutoffs = {
+            scheduled_days
+            for scheduled_days, party in self._rows[election]
+            if party == self.COMPLETE_MARKER
+        }
+        incomplete_cutoffs = {
+            scheduled_days
+            for scheduled_days, party in self._rows[election]
+            if (
+                party != self.COMPLETE_MARKER
+                and scheduled_days not in completed_cutoffs
+            )
+        }
+        if incomplete_cutoffs:
+            raise generated_provenance.GeneratedProvenanceError(
+                "Cannot promote incomplete cutoff(s) for {}: {}".format(
+                    election,
+                    ", ".join(
+                        str(value)
+                        for value in sorted(incomplete_cutoffs)
+                    ),
+                )
+            )
+        working_path = cutoff_working_path(election)
+        if not working_path.is_file():
+            raise generated_provenance.GeneratedProvenanceError(
+                "Cannot promote missing cutoff working file: {}".format(
+                    working_path
+                )
+            )
+        final_path = cutoff_output_path(election)
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+        if certify is None:
+            os.replace(working_path, final_path)
+            return
+
+        backup_path = final_path.with_suffix(
+            final_path.suffix + ".previous"
+        )
+        if backup_path.exists():
+            backup_path.unlink()
+        had_certified_output = final_path.is_file()
+        if had_certified_output:
+            os.replace(final_path, backup_path)
+        os.replace(working_path, final_path)
+        try:
+            certify(final_path)
+        except Exception:
+            os.replace(final_path, working_path)
+            if had_certified_output:
+                os.replace(backup_path, final_path)
+            raise
+        if backup_path.exists():
+            backup_path.unlink()
+
     def _write_atomic(self, election):
-        path = cutoff_output_path(election)
+        path = cutoff_working_path(election)
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary_path = path.with_suffix(path.suffix + ".tmp")
         with temporary_path.open(
@@ -637,7 +714,10 @@ class FinalTrendRecorder:
 
     def __init__(self, command):
         self.source_dependencies = _source_dependencies()
-        self.approval_dependencies = None
+        self.approval_dependencies = {}
+        self.approval_elections = set(
+            approvals_provenance.approval_elections()
+        )
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
             source_revision=generated_provenance.current_source_revision(
@@ -648,12 +728,21 @@ class FinalTrendRecorder:
             ),
         )
 
-    def _approval_dependencies(self):
-        if self.approval_dependencies is None:
-            self.approval_dependencies = (
-                approvals_provenance.generation_dependencies()
+    def _approval_dependencies(
+        self, election, non_invalidating_elections=()
+    ):
+        cache_key = (
+            election,
+            tuple(sorted(set(non_invalidating_elections))),
+        )
+        if cache_key not in self.approval_dependencies:
+            self.approval_dependencies[cache_key] = (
+                approvals_provenance.generation_dependencies(
+                    [election],
+                    non_invalidating_elections=cache_key[1],
+                )
             )
-        return self.approval_dependencies
+        return self.approval_dependencies[cache_key]
 
     def dependencies_for(
         self, election, party, federal_prior_files
@@ -668,8 +757,8 @@ class FinalTrendRecorder:
                 allow_stale=True,
             )
         )
-        if party in APPROVAL_PARTIES:
-            dependencies.update(self._approval_dependencies())
+        if party in APPROVAL_PARTIES and election in self.approval_elections:
+            dependencies.update(self._approval_dependencies(election))
         federal_prior_files = sorted(set(federal_prior_files))
         if federal_prior_files:
             dependencies["poll_trend_outputs"] = (
@@ -721,7 +810,16 @@ class CutoffTrendRecorder(FinalTrendRecorder):
                 allow_stale=True,
             )
         )
-        dependencies.update(self._approval_dependencies())
+        if election in self.approval_elections:
+            # Current forecast cycles can gain polls several times a week.
+            # Preserve those pure-trend inputs in cutoff lineage, but do not
+            # invalidate an expensive historical cutoff batch when they move.
+            dependencies.update(
+                self._approval_dependencies(
+                    election,
+                    approvals_provenance.current_elections(),
+                )
+            )
         federal_prior_files = sorted(set(federal_prior_files))
         if federal_prior_files:
             dependencies["cutoff_poll_outputs"] = (

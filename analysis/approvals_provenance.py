@@ -48,6 +48,25 @@ def _configured_elections():
     return elections
 
 
+def current_elections():
+    """Return active forecast terms whose source data can still change."""
+
+    path = DATA_DIRECTORY / "future-elections.csv"
+    elections = set()
+    with path.open(newline="", encoding="utf-8-sig") as source:
+        for line_number, row in enumerate(csv.reader(source), start=1):
+            if not row:
+                continue
+            if len(row) < 2:
+                raise generated_provenance.GeneratedProvenanceError(
+                    "{}:{} must contain year and region".format(
+                        path, line_number
+                    )
+                )
+            elections.add("{}{}".format(row[0], row[1]))
+    return elections
+
+
 def _election_cycles():
     path = DATA_DIRECTORY / "election-cycles.csv"
     cycles = {}
@@ -89,8 +108,8 @@ def _valid_number(value):
         return False
 
 
-def approval_elections():
-    """Return configured election terms containing valid approval polls."""
+def approval_dates_by_election():
+    """Return valid approval-poll dates grouped into configured terms."""
 
     configured = _configured_elections()
     cycles = _election_cycles()
@@ -103,7 +122,7 @@ def approval_elections():
         region = election[4:]
         elections_by_region.setdefault(region, []).append(election)
 
-    selected = set()
+    selected = {}
     for region in POLL_REGIONS:
         path = DATA_DIRECTORY / "poll-data-{}.csv".format(region)
         with path.open(newline="", encoding="utf-8-sig") as source:
@@ -132,8 +151,49 @@ def approval_elections():
                 for election in elections_by_region.get(region, []):
                     start, end = cycles[election]
                     if start <= poll_date <= end:
-                        selected.add(election)
+                        selected.setdefault(election, set()).add(poll_date)
     return selected
+
+
+def approval_elections():
+    """Return configured election terms containing valid approval polls."""
+
+    return set(approval_dates_by_election())
+
+
+def synthetic_dependency_elections(target_elections):
+    """Return pure trends capable of training target synthetic observations.
+
+    The approval regression can use observations from any jurisdiction that
+    are at least 13 days earlier than a target observation. Consequently a
+    target term depends on earlier approval-bearing terms as well as itself,
+    but not on terms whose observations all occur later.
+    """
+
+    dates_by_election = approval_dates_by_election()
+    target_dates = [
+        poll_date
+        for election in target_elections
+        for poll_date in dates_by_election.get(election, ())
+    ]
+    if not target_dates:
+        return set()
+    latest_training_date = max(target_dates).toordinal() - 13
+    training_elections = {
+        election
+        for election, poll_dates in dates_by_election.items()
+        if any(
+            poll_date.toordinal() <= latest_training_date
+            for poll_date in poll_dates
+        )
+    }
+    # Target poll dates determine each approval observation's weight even
+    # when that term has no earlier observation eligible for regression.
+    return training_elections | {
+        election
+        for election in target_elections
+        if dates_by_election.get(election)
+    }
 
 
 def available_pure_tpp_records(elections):
@@ -163,14 +223,24 @@ def _source_dependencies():
     }
 
 
-def generation_dependencies(elections=None):
+def generation_dependencies(
+    elections=None, non_invalidating_elections=()
+):
     """Snapshot the direct inputs used to derive synthetic observations."""
 
     if elections is None:
         elections = approval_elections()
+    else:
+        elections = synthetic_dependency_elections(elections)
+    non_invalidating_elections = set(non_invalidating_elections)
     dependencies = _source_dependencies()
     records = available_pure_tpp_records(elections)
     if records:
+        non_invalidating_records = [
+            record
+            for record in records
+            if record.split(":", 2)[1] in non_invalidating_elections
+        ]
         dependencies["pure_poll_outputs"] = (
             generated_provenance.generated_manifest_dependency(
                 "pure_poll_outputs",
@@ -178,6 +248,7 @@ def generation_dependencies(elections=None):
                 records,
                 ANALYSIS_DIRECTORY,
                 allow_stale=True,
+                non_invalidating_records=non_invalidating_records,
             )
         )
     return dependencies

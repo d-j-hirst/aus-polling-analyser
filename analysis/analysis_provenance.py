@@ -15,6 +15,7 @@ from pathlib import Path
 
 import generated_provenance
 import pipeline_registry
+import provenance_maintenance
 import region_model_provenance
 import source_provenance
 import trend_adjust_provenance
@@ -66,7 +67,13 @@ GENERATED_MANIFEST_PATHS = (
     / "Regional"
     / "generated-provenance.json",
 )
-IMPACT_LEVELS = ("negligible", "minor", "material", "major")
+IMPACT_LEVELS = (
+    "negligible",
+    "provenance-only",
+    "minor",
+    "material",
+    "major",
+)
 CALIBRATION_STAGES = {
     "calibrate_pollsters",
     "calibrate_pollster_bias",
@@ -85,11 +92,12 @@ ELECTION_CODE_PATTERN = re.compile(r"^\d{4}[a-z]+$")
 WORK_UNIT_EXAMPLE_LIMIT = 15
 WORK_UNIT_STATUS_PRECEDENCE = {
     "current": 0,
-    "stale": 1,
-    "legacy": 2,
-    "missing": 3,
-    "altered": 4,
-    "blocked": 5,
+    "provenance-stale": 1,
+    "stale": 2,
+    "legacy": 3,
+    "missing": 4,
+    "altered": 5,
+    "blocked": 6,
 }
 
 
@@ -178,6 +186,10 @@ def _generated_issue_code(issue):
         ("invalid dependency ", "invalid_dependency"),
         ("unrecorded source change ", "unregistered_source_change"),
         ("new semantic dependency revision ", "new_semantic_revision"),
+        (
+            "provenance-only dependency revision ",
+            "provenance_only_revision",
+        ),
     )
     for prefix, code in prefixes:
         if issue.startswith(prefix):
@@ -195,6 +207,8 @@ def _work_unit_status(issues):
             statuses.add("missing")
         elif code == "altered_output":
             statuses.add("altered")
+        elif code == "provenance_only_revision":
+            statuses.add("provenance-stale")
         elif code in {
             "invalid_dependency",
             "unregistered_source_change",
@@ -528,16 +542,25 @@ def _record_matches_elections(record, target_elections):
     )
 
 
+def _generated_work_unit_id(manifest_path, record_key):
+    return "{}::{}".format(_manifest_label(manifest_path), record_key)
+
+
 def _selected_generated_records(
-    manifest_paths, target_elections, check_context=None
+    manifest_paths,
+    target_elections,
+    check_context=None,
+    include_dependencies=False,
 ):
     """Select target records and all generated work units they reference."""
 
     if target_elections is None:
-        return None
+        return (None, {}) if include_dependencies else None
 
     manifests = {}
+    manifest_labels = {}
     output_owners = {}
+    record_locations = {}
     for manifest_path in manifest_paths:
         resolved_path = Path(manifest_path).resolve()
         if not resolved_path.is_file():
@@ -548,10 +571,15 @@ def _selected_generated_records(
             else generated_provenance.load_manifest(resolved_path)
         )
         manifests[resolved_path] = manifest
+        manifest_labels[resolved_path] = _manifest_label(resolved_path)
         base_directory = (
             resolved_path.parent / manifest["path_base"]
         ).resolve()
         for record_key, record in manifest["records"].items():
+            record_locations[record_key] = (
+                resolved_path,
+                record_key,
+            )
             for output_path in record["outputs"]:
                 # The manifest schema guarantees portable relative paths and
                 # base_directory is already resolved. Resolving every output
@@ -563,7 +591,13 @@ def _selected_generated_records(
                 )
 
     selected = {path: set() for path in manifests}
+    dependencies = defaultdict(set)
     queue = deque()
+
+    def work_unit_id(manifest_path, record_key):
+        return "{}::{}".format(
+            manifest_labels[manifest_path], record_key
+        )
 
     def select(manifest_path, record_key):
         if (
@@ -592,7 +626,24 @@ def _selected_generated_records(
                 dependency_manifest = (
                     base_directory / dependency["manifest"]
                 ).resolve()
+                non_invalidating_records = set(
+                    dependency.get("non_invalidating_records", [])
+                )
                 for dependency_record in dependency["records"]:
+                    if dependency_record in non_invalidating_records:
+                        continue
+                    if (
+                        dependency_manifest in manifests
+                        and dependency_record
+                        in manifests[dependency_manifest]["records"]
+                    ):
+                        dependencies[
+                            work_unit_id(manifest_path, record_key)
+                        ].add(
+                            work_unit_id(
+                                dependency_manifest, dependency_record
+                            )
+                        )
                     select(dependency_manifest, dependency_record)
             elif dependency["kind"] == "files":
                 for dependency_file in dependency["files"]:
@@ -600,7 +651,33 @@ def _selected_generated_records(
                         base_directory / dependency_file
                     )
                     if owner:
+                        dependencies[
+                            work_unit_id(manifest_path, record_key)
+                        ].add(
+                            work_unit_id(*owner)
+                        )
                         select(*owner)
+        if record["stage"] in {
+            "generate_pure_poll_trends",
+            "generate_poll_trends",
+            "generate_cutoff_poll_trends",
+        }:
+            elections = record["scope"]["elections"]
+            if len(elections) == 1:
+                pollster_key = "pollster_parameters:{}".format(
+                    elections[0]
+                )
+                owner = record_locations.get(pollster_key)
+                if owner is not None:
+                    dependencies[
+                        work_unit_id(manifest_path, record_key)
+                    ].add(work_unit_id(*owner))
+                    select(*owner)
+    if include_dependencies:
+        return selected, {
+            work_unit_id: sorted(dependency_ids)
+            for work_unit_id, dependency_ids in dependencies.items()
+        }
     return selected
 
 
@@ -658,6 +735,29 @@ def audit_repository(
         except source_provenance.ProvenanceError as error:
             internal_errors.append("{}: {}".format(manifest_path, error))
             continue
+        for category_id, category in source_manifest["categories"].items():
+            for event in category["events"]:
+                if event["magnitude"] != "provenance-only":
+                    continue
+                try:
+                    provenance_maintenance.validate_upgrade_id(
+                        event["provenance_upgrade"]
+                    )
+                except (
+                    provenance_maintenance.ProvenanceMaintenanceError
+                ) as error:
+                    message = "{}: {}".format(category_id, error)
+                    source_issues.append(
+                        {
+                            "category": category_id,
+                            "status": "blocked",
+                            "code": "unknown_provenance_upgrade",
+                            "change_kind": "metadata",
+                            "path": None,
+                            "message": message,
+                        }
+                    )
+                    internal_errors.append(message)
         for category_id, comparison in comparisons.items():
             generated_check_context.source_cache[
                 (str(Path(manifest_path).resolve()), category_id)
@@ -702,11 +802,16 @@ def audit_repository(
     calibration_outputs = _calibration_output_categories(registry)
     synthetic_tpp_outputs = _synthetic_tpp_output_categories(registry)
     selected_generated_records = None
+    generated_dependencies = {}
     try:
-        selected_generated_records = _selected_generated_records(
+        (
+            selected_generated_records,
+            generated_dependencies,
+        ) = _selected_generated_records(
             generated_manifest_paths,
             target_elections,
             check_context=generated_check_context,
+            include_dependencies=True,
         )
     except generated_provenance.GeneratedProvenanceError as error:
         internal_errors.append(str(error))
@@ -773,6 +878,7 @@ def audit_repository(
             )
             continue
         records_by_root = defaultdict(list)
+        manifest_label = _manifest_label(manifest_path)
         for record_key, record_issues in checked_records.items():
             record = manifest["records"][record_key]
             direct_issues = [
@@ -786,9 +892,15 @@ def audit_repository(
                     audited_generated_paths,
                 )
             ]
+            data_direct_issues = [
+                issue
+                for issue in direct_issues
+                if _generated_issue_code(issue)
+                != "provenance_only_revision"
+            ]
             roots = {
                 _generated_issue_root(issue, record)
-                for issue in direct_issues
+                for issue in data_direct_issues
             }
             path_classes = {
                 _generated_path_class(
@@ -798,6 +910,8 @@ def audit_repository(
                     synthetic_tpp_outputs,
                 )
                 for issue in record_issues
+                if _generated_issue_code(issue)
+                != "provenance_only_revision"
             }
             if not path_classes:
                 path_classes.add(
@@ -808,18 +922,30 @@ def audit_repository(
                         synthetic_tpp_outputs,
                     )
                 )
+            work_unit_status = _work_unit_status(record_issues)
             work_units.append(
                 {
+                    "id": "{}::{}".format(
+                        manifest_label, record_key
+                    ),
                     "record_key": record_key,
                     "category": record["category"],
                     "stage": record["stage"],
                     "scope": record["scope"],
-                    "manifest": _manifest_label(manifest_path),
-                    "status": _work_unit_status(record_issues),
-                    "blocking": (
-                        _work_unit_status(record_issues)
-                        in {"altered", "blocked"}
+                    "manifest": manifest_label,
+                    "target_match": (
+                        target_elections is None
+                        or _record_matches_elections(
+                            record, target_elections
+                        )
                     ),
+                    "dependencies": generated_dependencies.get(
+                        "{}::{}".format(manifest_label, record_key),
+                        [],
+                    ),
+                    "status": work_unit_status,
+                    "blocking": work_unit_status
+                    in {"altered", "blocked"},
                     "path_classes": sorted(path_classes),
                     "issues": [
                         {
@@ -835,7 +961,7 @@ def audit_repository(
             )
             for category_id in roots:
                 records_by_root[category_id].append(
-                    (record_key, record, direct_issues)
+                    (record_key, record, data_direct_issues)
                 )
                 path_class = _generated_path_class(
                     record,
@@ -879,15 +1005,25 @@ def audit_repository(
             )
         if missing_regional_work_units:
             for work_unit in missing_regional_work_units:
+                _, election, party = work_unit.split(":", 2)
                 work_units.append(
                     {
+                        "id": _generated_work_unit_id(
+                            region_model_provenance.MANIFEST_PATH,
+                            work_unit,
+                        ),
                         "record_key": work_unit,
                         "category": "regional_swing_deviations",
                         "stage": "generate_regional_swings",
-                        "scope": None,
+                        "scope": generated_provenance.generation_scope(
+                            elections=[election],
+                            parties=[party],
+                        ),
                         "manifest": _manifest_label(
                             region_model_provenance.MANIFEST_PATH
                         ),
+                        "target_match": True,
+                        "dependencies": [],
                         "status": "missing",
                         "blocking": False,
                         "path_classes": [PATH_IMMEDIATE],
@@ -954,15 +1090,24 @@ def audit_repository(
             )
         if missing_cutoff_work_units:
             for work_unit in missing_cutoff_work_units:
+                _, election = work_unit.split(":", 1)
                 work_units.append(
                     {
+                        "id": _generated_work_unit_id(
+                            trend_adjust_provenance.CUTOFF_MANIFEST_PATH,
+                            work_unit,
+                        ),
                         "record_key": work_unit,
                         "category": "cutoff_poll_outputs",
                         "stage": "generate_cutoff_poll_trends",
-                        "scope": None,
+                        "scope": generated_provenance.generation_scope(
+                            elections=[election],
+                        ),
                         "manifest": _manifest_label(
                             trend_adjust_provenance.CUTOFF_MANIFEST_PATH
                         ),
+                        "target_match": True,
+                        "dependencies": [],
                         "status": "missing",
                         "blocking": False,
                         "path_classes": [PATH_CALIBRATION],
@@ -1060,6 +1205,21 @@ def audit_repository(
         "unknown_generated": unknown_generated,
         "source_issues": source_issues,
         "work_units": work_units,
+        "provenance_maintenance": [
+            {
+                "record_key": work_unit["record_key"],
+                "manifest": work_unit["manifest"],
+                "stage": work_unit["stage"],
+                "scope": work_unit["scope"],
+                "issues": [
+                    issue
+                    for issue in work_unit["issues"]
+                    if issue["code"] == "provenance_only_revision"
+                ],
+            }
+            for work_unit in work_units
+            if work_unit["status"] == "provenance-stale"
+        ],
         "manifest_issues": manifest_issues,
         "summary": {
             "work_unit_status_counts": {
@@ -1080,13 +1240,14 @@ def register_changes(
     impact,
     change_type=None,
     scope=None,
+    provenance_upgrade=None,
     source_manifest_paths=SOURCE_MANIFEST_PATHS,
 ):
     """Register assessed changes to explicitly named tracked files.
 
-    A negligible change does not increment the semantic revision and therefore
-    permits downstream generated data to remain in use. Every higher impact
-    invalidates matching generated work units until they are regenerated.
+    Negligible changes require no downstream action. Provenance-only changes
+    schedule explicit metadata upgrades without invalidating generated data.
+    Minor and higher changes require data regeneration.
     """
 
     if impact not in IMPACT_LEVELS:
@@ -1095,6 +1256,17 @@ def register_changes(
         )
     if not summary or not summary.strip():
         raise AnalysisProvenanceError("summary must not be empty")
+    if impact == "provenance-only":
+        try:
+            provenance_maintenance.validate_upgrade_id(
+                provenance_upgrade
+            )
+        except provenance_maintenance.ProvenanceMaintenanceError as error:
+            raise AnalysisProvenanceError(str(error)) from error
+    elif provenance_upgrade is not None:
+        raise AnalysisProvenanceError(
+            "only provenance-only changes accept a provenance upgrade"
+        )
     if change_type is None:
         change_type = "formatting" if impact == "negligible" else "methodology"
     if change_type not in source_provenance.RECORD_CHANGE_TYPES:
@@ -1145,7 +1317,7 @@ def register_changes(
             )
 
     events = []
-    affects_outputs = impact != "negligible"
+    affects_outputs = impact in {"minor", "material", "major"}
     for manifest_path, category_id in sorted(grouped_paths):
         event, _ = source_provenance.record_change(
             manifest_path,
@@ -1155,6 +1327,7 @@ def register_changes(
             impact,
             affects_outputs,
             scope,
+            provenance_upgrade=provenance_upgrade,
         )
         events.append((manifest_path, category_id, event))
     return events
@@ -1229,6 +1402,19 @@ def _print_audit(result):
         print(
             "  Missing historical seed metadata is informational only; "
             "unknown input lineage determines legacy status."
+        )
+    if result["provenance_maintenance"]:
+        print(
+            "Metadata maintenance required for {} generated work unit(s)."
+            .format(len(result["provenance_maintenance"]))
+        )
+        shown = result["provenance_maintenance"][
+            :WORK_UNIT_EXAMPLE_LIMIT
+        ]
+        print(
+            "  {}".format(
+                ", ".join(item["record_key"] for item in shown)
+            )
         )
     for issue in result["internal_errors"]:
         print("ERROR: {}".format(issue))
@@ -1461,6 +1647,15 @@ def _interactive_register():
     summary = _menu_text("Brief change summary")
     if not summary:
         raise AnalysisProvenanceError("summary must not be empty")
+    provenance_upgrade = None
+    if impact == "provenance-only":
+        provenance_upgrade = _menu_select(
+            "Metadata upgrade path",
+            [
+                {"name": value, "value": value}
+                for value in provenance_maintenance.upgrade_ids()
+            ],
+        )
     scope = _interactive_scope()
     if not _menu_confirm("Register this assessment?", default=True):
         print("Registration cancelled.")
@@ -1471,13 +1666,16 @@ def _interactive_register():
         impact,
         change_type=change_type,
         scope=scope,
+        provenance_upgrade=provenance_upgrade,
     )
     for manifest_path, category_id, event in events:
         print(
-            "Registered {} in {} at semantic revision {}.".format(
+            "Registered {} in {} at semantic revision {} and provenance "
+            "revision {}.".format(
                 category_id,
                 manifest_path,
                 event["semantic_revision"],
+                event["provenance_revision"],
             )
         )
 
@@ -1573,6 +1771,10 @@ def build_parser():
         "--impact", required=True, choices=IMPACT_LEVELS
     )
     register_parser.add_argument(
+        "--provenance-upgrade",
+        choices=provenance_maintenance.upgrade_ids(),
+    )
+    register_parser.add_argument(
         "--change-type",
         choices=sorted(source_provenance.RECORD_CHANGE_TYPES),
     )
@@ -1609,13 +1811,16 @@ def main(argv=None):
                 args.impact,
                 change_type=args.change_type,
                 scope=scope,
+                provenance_upgrade=args.provenance_upgrade,
             )
             for manifest_path, category_id, event in events:
                 print(
-                    "Registered {} in {} at semantic revision {}.".format(
+                    "Registered {} in {} at semantic revision {} and "
+                    "provenance revision {}.".format(
                         category_id,
                         manifest_path,
                         event["semantic_revision"],
+                        event["provenance_revision"],
                     )
                 )
             result = audit_repository()

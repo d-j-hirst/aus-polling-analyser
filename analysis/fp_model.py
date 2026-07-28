@@ -2806,8 +2806,16 @@ def cutoff_work_items(config, m_data, schedule):
                 len(schedule),
             )
         )
-        for scheduled_days, poll_trend_end_days in effective_cutoffs:
-            yield election, scheduled_days, poll_trend_end_days
+        for cutoff_index, (
+            scheduled_days,
+            poll_trend_end_days,
+        ) in enumerate(effective_cutoffs):
+            yield (
+                election,
+                scheduled_days,
+                poll_trend_end_days,
+                cutoff_index == len(effective_cutoffs) - 1,
+            )
 
 
 def run_models() -> None:
@@ -2880,14 +2888,16 @@ def run_models() -> None:
             )
         else:
             work_items = (
-                (election, 0, 0) for election in config.elections
+                (election, 0, 0, True) for election in config.elections
             )
 
         cutoff_elections_started = set()
+        cutoff_federal_prior_files = {}
         for (
             desired_election,
             requested_cutoff_days,
             expected_poll_trend_end_days,
+            final_cutoff_for_election,
         ) in work_items:
             config.cutoff_days = requested_cutoff_days
             e_data = build_election_data(ElectionDataInputs(
@@ -2907,7 +2917,7 @@ def run_models() -> None:
                 config.cutoff_output_store.reset(election_tag)
                 cutoff_elections_started.add(election_tag)
                 print(
-                    'Started a fresh consolidated cutoff file for {}.'
+                    'Started a fresh consolidated cutoff working file for {}.'
                     .format(election_tag)
                 )
             if (
@@ -3128,19 +3138,33 @@ def run_models() -> None:
                     requested_cutoff_days,
                     e_data.days_to_election,
                 )
-                cutoff_dependencies = (
-                    cutoff_provenance_recorder.dependencies_for_election(
-                        election_tag,
-                        e_data.federal_prior_files,
+                cutoff_federal_prior_files.setdefault(
+                    election_tag, set()
+                ).update(e_data.federal_prior_files)
+                if final_cutoff_for_election:
+                    cutoff_dependencies = (
+                        cutoff_provenance_recorder
+                        .dependencies_for_election(
+                            election_tag,
+                            sorted(
+                                cutoff_federal_prior_files[election_tag]
+                            ),
+                        )
                     )
-                )
-                cutoff_provenance_recorder.record(
-                    election=election_tag,
-                    output=fp_model_provenance.cutoff_output_path(
-                        election_tag
-                    ),
-                    dependencies=cutoff_dependencies,
-                )
+                    config.cutoff_output_store.promote(
+                        election_tag,
+                        certify=lambda output: (
+                            cutoff_provenance_recorder.record(
+                                election=election_tag,
+                                output=output,
+                                dependencies=cutoff_dependencies,
+                            )
+                        ),
+                    )
+                    print(
+                        'Completed and promoted consolidated cutoff file '
+                        'for {}.'.format(election_tag)
+                    )
 
     # indicate completion (delete these lines if not the original author)
     except Exception as e:

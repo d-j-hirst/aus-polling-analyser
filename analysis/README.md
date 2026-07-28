@@ -33,6 +33,84 @@ The JSON distinguishes current, stale, legacy, missing, altered and blocked
 work units. Unregistered source changes and invalid dependencies are blockers;
 legacy outputs remain identifiable and usable while awaiting regeneration.
 
+## Pipeline Status And Planning
+
+Open the interactive status and planning interface:
+
+```bash
+python3 pipeline.py
+```
+
+The equivalent explicit commands are:
+
+```bash
+python3 pipeline.py status --election 2026vic
+python3 pipeline.py plan --election 2026vic --profile regular
+python3 pipeline.py plan --election 2026vic \
+  --profile regular-with-approvals
+python3 pipeline.py plan --election 2026vic --profile cutoffs
+python3 pipeline.py run --election 2026vic --profile calibration
+python3 pipeline.py plan --profile metadata
+python3 pipeline.py run --profile metadata
+```
+
+Status is aggregated by default. Plans are grouped by generation stage; add
+`--details` to show every command or `--format json` for the complete
+machine-readable plan. The cutoff profile selects historical elections needed
+to calibrate the target election's trend adjustments; it does not generate a
+cutoff for the target itself. Unlike regular profiles, cutoff planning does
+not tolerate inherited calibration or synthetic-TPP staleness: it schedules
+the recorded calibration, pollster-parameter and pure-trend prerequisites
+before the expensive cutoff fits. Pure trends belonging to current terms are
+the exception when they only supply historical approval evidence: they remain
+documented but do not repeatedly invalidate completed cutoffs as new polls
+arrive. Status and planning are read-only and do not run generators.
+
+The calibration profile runs only the leave-one-pollster-out and bias
+calibration fits. After those complete, build a separate regular or
+regular-with-approvals plan for the forecast elections being updated. That
+second audit will detect changed calibration digests, refresh the applicable
+pollster analysis, and then schedule only the required target trends.
+
+The `run` command currently supports only this calibration profile. It
+prevalidates the complete plan, executes one election command at a time,
+streams the model output to the terminal, and stops on the first failure.
+After every successful command it rebuilds the plan and requires the completed
+task to have cleared. Completed calibration units are already recorded by the
+generators, so rerunning after an interruption naturally skips them. This
+initial executor writes directly to the existing calibration outputs; do not
+run overlapping pipeline invocations.
+
+If a post-task audit fails, the runner reports an action-required message and
+waits for Enter before checking again. It continues this cycle until
+provenance is valid and the completed task has cleared, or the user stops the
+run with Ctrl-C. Completed generator output is not rerun merely because a
+temporary source-registration issue occurred at the task boundary.
+
+Source changes use these impact levels:
+
+* `negligible`: no generated data or generated metadata needs updating.
+* `provenance-only`: data remains valid, but explicitly identified metadata
+  maintenance is required.
+* `minor`: data generation may change modestly and affected work is stale.
+* `material` and `major`: increasingly substantial generation changes.
+
+Every `provenance-only` registration requires a registered metadata upgrade
+ID. The metadata profile applies pending upgrades in event order while
+preserving the original generation run, random seed and output fingerprints.
+If a work unit is also stale from a `minor` or larger change, metadata
+maintenance skips it because regeneration will replace its metadata.
+
+For example:
+
+```bash
+python3 analysis_provenance.py register-change fp_model_provenance.py \
+  --summary "Updated dependency bookkeeping without changing trends." \
+  --impact provenance-only \
+  --provenance-upgrade refresh-source-dependency-v1 \
+  --all-scopes
+```
+
 ## Environment
 
 Run these commands from the `analysis/` directory. `fp_model.py` is unlikely to

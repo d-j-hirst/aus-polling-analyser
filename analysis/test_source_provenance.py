@@ -117,6 +117,9 @@ class SourceProvenanceTests(unittest.TestCase):
             ["2028fed"],
         )
 
+    def test_new_polling_is_a_supported_change_type(self):
+        self.assertIn("new_polling", source_provenance.RECORD_CHANGE_TYPES)
+
     def test_timestamp_only_change_does_not_require_semantic_revision(self):
         original_stat = self.source_path.stat()
         os.utime(
@@ -157,7 +160,7 @@ class SourceProvenanceTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             source_provenance.ProvenanceError,
-            "must have negligible magnitude",
+            "affects_outputs does not match",
         ):
             source_provenance.record_change(
                 self.manifest_path,
@@ -170,6 +173,44 @@ class SourceProvenanceTests(unittest.TestCase):
             )
 
         self.assertEqual(self.manifest_path.read_bytes(), original_manifest)
+
+    def test_provenance_only_change_advances_only_metadata_revision(self):
+        self.source_path.write_text(
+            "date,value\n2026-01-01,51\n", encoding="utf-8"
+        )
+        event, _ = source_provenance.record_change(
+            self.manifest_path,
+            "raw_polls",
+            "Changed provenance bookkeeping only.",
+            "schema",
+            "provenance-only",
+            False,
+            source_provenance._build_scope(all_scopes=True),
+            provenance_upgrade="refresh-source-dependency-v1",
+        )
+        manifest = source_provenance.load_manifest(self.manifest_path)
+        category = manifest["categories"]["raw_polls"]
+
+        self.assertEqual(event["semantic_revision"], 1)
+        self.assertEqual(event["provenance_revision"], 2)
+        self.assertEqual(category["semantic_revision"], 1)
+        self.assertEqual(category["provenance_revision"], 2)
+        self.assertEqual(
+            source_provenance.semantic_events_affecting(
+                category,
+                1,
+                source_provenance._build_scope(all_scopes=True),
+            ),
+            [],
+        )
+        self.assertEqual(
+            source_provenance.provenance_events_affecting(
+                category,
+                1,
+                source_provenance._build_scope(all_scopes=True),
+            ),
+            [event],
+        )
 
     def test_output_affecting_scope_must_be_explicit(self):
         with self.assertRaisesRegex(

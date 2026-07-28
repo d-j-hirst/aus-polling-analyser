@@ -63,6 +63,17 @@ class ApprovalsProvenanceTests(unittest.TestCase):
 
             self.assertEqual(elections, {"1987fed", "2026vic"})
 
+    def test_current_elections_come_only_from_future_catalogue(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            data, outputs, synthetic = self._write_data(base)
+            with mock.patch.object(
+                approvals_provenance, "DATA_DIRECTORY", data
+            ):
+                elections = approvals_provenance.current_elections()
+
+            self.assertEqual(elections, {"2029wa"})
+
     def test_available_records_require_both_pure_tpp_files(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)
@@ -87,6 +98,65 @@ class ApprovalsProvenanceTests(unittest.TestCase):
             self.assertEqual(
                 records, ["pure_poll_outputs:1987fed:@TPP"]
             )
+
+    def test_target_dependencies_include_only_earlier_approval_terms(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            data, outputs, synthetic = self._write_data(base)
+            with mock.patch.object(
+                approvals_provenance, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                approvals_provenance, "DATA_DIRECTORY", data
+            ), mock.patch.object(
+                approvals_provenance, "OUTPUT_DIRECTORY", outputs
+            ), mock.patch.object(
+                approvals_provenance,
+                "SYNTHETIC_DIRECTORY",
+                synthetic,
+            ):
+                dependencies = (
+                    approvals_provenance.synthetic_dependency_elections(
+                        {"2026vic"}
+                    )
+                )
+
+            self.assertEqual(dependencies, {"1987fed", "2026vic"})
+
+    def test_current_pure_records_can_be_non_invalidating(self):
+        with mock.patch.object(
+            approvals_provenance,
+            "_source_dependencies",
+            return_value={},
+        ), mock.patch.object(
+            approvals_provenance,
+            "synthetic_dependency_elections",
+            return_value={"1987fed", "2026vic"},
+        ), mock.patch.object(
+            approvals_provenance,
+            "available_pure_tpp_records",
+            return_value=[
+                "pure_poll_outputs:1987fed:@TPP",
+                "pure_poll_outputs:2026vic:@TPP",
+            ],
+        ), mock.patch.object(
+            generated_provenance,
+            "generated_manifest_dependency",
+            return_value={"dependency": "pure"},
+        ) as dependency_call:
+            dependencies = approvals_provenance.generation_dependencies(
+                ["2025fed"],
+                non_invalidating_elections={"2026vic"},
+            )
+
+        self.assertEqual(
+            dependencies, {"pure_poll_outputs": {"dependency": "pure"}}
+        )
+        self.assertEqual(
+            dependency_call.call_args.kwargs[
+                "non_invalidating_records"
+            ],
+            ["pure_poll_outputs:2026vic:@TPP"],
+        )
 
 
 if __name__ == "__main__":

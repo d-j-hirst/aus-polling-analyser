@@ -377,6 +377,104 @@ class GeneratedProvenanceTests(unittest.TestCase):
             )
         )
 
+        upstream_manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        upstream_manifest["records"][
+            "election_result_exports:2025fed"
+        ]["random_seed"] = 123
+        self.generated_manifest_path.write_text(
+            json.dumps(upstream_manifest), encoding="utf-8"
+        )
+        issues = generated_provenance.check_manifest(downstream_manifest)[
+            "seat_statistics:all"
+        ]
+        self.assertIn(
+            "changed dependency election_result_exports", issues
+        )
+
+    def test_non_invalidating_generated_record_preserves_lineage(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        record_key = "election_result_exports:2025fed"
+        dependency = generated_provenance.generated_manifest_dependency(
+            "election_result_exports",
+            self.generated_manifest_path,
+            [record_key],
+            self.base,
+            non_invalidating_records=[record_key],
+        )
+        self.assertEqual(dependency["records"], [record_key])
+        self.assertEqual(
+            dependency["non_invalidating_records"], [record_key]
+        )
+
+        downstream_output = self.base / "downstream.csv"
+        downstream_output.write_text("downstream\n", encoding="utf-8")
+        downstream_manifest = (
+            self.base / "downstream-generated-provenance.json"
+        )
+        downstream_record = generated_provenance.generation_record(
+            category="downstream",
+            stage="test",
+            scope=generated_provenance.generation_scope(all_scopes=True),
+            run="downstream-run",
+            dependencies={"election_result_exports": dependency},
+            outputs=generated_provenance.output_fingerprints(
+                [downstream_output], self.base
+            ),
+            random_seed=None,
+        )
+        generated_provenance.update_manifest(
+            downstream_manifest,
+            {"downstream:all": downstream_record},
+            {
+                "downstream-run": {
+                    "generated_at_utc": "2026-01-02T00:00:00Z",
+                    "command": ["python3", "test.py"],
+                    "source_revision": {
+                        "system": "git",
+                        "revision": "b" * 40,
+                        "dirty": False,
+                    },
+                    "environment": {
+                        "python_version": "3.8.0",
+                        "python_implementation": "CPython",
+                        "platform": "test",
+                    },
+                }
+            },
+            path_base=".",
+            description="Test non-invalidating dependency.",
+        )
+
+        self.output_path.write_text("changed result\n", encoding="utf-8")
+        self.assertEqual(
+            generated_provenance.check_manifest(downstream_manifest)[
+                "downstream:all"
+            ],
+            [],
+        )
+
+    def test_non_invalidating_records_must_be_dependencies(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        with self.assertRaisesRegex(
+            generated_provenance.GeneratedProvenanceError,
+            "are not dependencies",
+        ):
+            generated_provenance.generated_manifest_dependency(
+                "election_result_exports",
+                self.generated_manifest_path,
+                ["election_result_exports:2025fed"],
+                self.base,
+                non_invalidating_records=[
+                    "election_result_exports:2026sa"
+                ],
+            )
+
     def test_early_v1_dependency_shape_is_upgraded_in_memory(self):
         manifest = self._write_manifest(
             {"election_result_exports:2025fed": self._record()}

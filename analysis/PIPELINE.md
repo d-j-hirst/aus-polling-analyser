@@ -8,12 +8,13 @@ The registry describes and validates the known dependency graph, safe
 subprocess argument templates and a regeneration order.
 `analysis_provenance.py` combines that graph with source and generated-data
 manifests to detect stale work units and trace their impact to the C++ model.
-Generator orchestration is not yet automated.
 
-The planned `pipeline.py` entry point will be a thin planner and runner. It
-will consume registry command templates and structured provenance results
-rather than duplicating dependency or freshness logic. Its eventual commands
-will be `status`, `plan` and `run`.
+`pipeline.py` is the thin orchestration entry point. Its implemented `status`
+and `plan` commands consume registry command templates and structured
+provenance results rather than duplicating dependency or freshness logic.
+Running it without arguments opens an interactive interface. Its initial
+`run` command executes calibration-only plans directly through the existing
+generators. Other profiles remain planning-only.
 
 ## Inspecting the Registry
 
@@ -29,8 +30,8 @@ dependency graph. The second also checks that every authored input pattern
 currently matches at least one file.
 
 Runnable stages contain an `execution` object with a script, argument array,
-working directory, task scope and run class. The future orchestrator will
-prepend the active Python interpreter and invoke the array without a shell.
+working directory, task scope and run class. The orchestrator prepends the
+active Python interpreter and invokes the array without a shell.
 Placeholders such as `{election_cli}` are validated before execution. A null
 execution entry marks a documented stage whose interface is not yet safe for
 automated use.
@@ -133,10 +134,10 @@ Step 9 is the leakage-safe dependency for step 10.
 ## Calibration and Partial Freshness
 
 Poll calibration is exceptionally expensive and may take more than a month to
-regenerate. The intended future orchestration must therefore:
+regenerate. Calibration generators record completed units incrementally. The
+initial orchestrator uses those records as its progress boundary:
 
 * retain the last successful output for every calibration unit;
-* promote a replacement only after that unit completes and validates;
 * allow current and older valid units to coexist;
 * record exactly which generations were used by downstream summaries;
 * report partial or stale data without rejecting it by default;
@@ -145,6 +146,63 @@ regenerate. The intended future orchestration must therefore:
 Missing, corrupt or schema-incompatible data should eventually be classified as
 invalid. Valid but old data is a provenance warning, not automatically an
 error.
+
+The orchestration `calibration` profile deliberately stops after the raw
+leave-one-pollster-out and bias fits. Pollster analysis and pure/final trends
+are scheduled later through a regular profile scoped to the elections being
+updated. This avoids doing broad downstream work partway through a calibration
+refresh, when later calibration units would immediately invalidate it again.
+
+Run that profile with:
+
+```bash
+python3 pipeline.py run --election 2026sa --profile calibration
+```
+
+The complete plan is checked before execution. Commands then run sequentially
+with their output attached to the current terminal. After each command,
+`pipeline.py` rebuilds the plan and verifies that the completed task has
+cleared under the normal provenance rules. A non-zero subprocess status,
+provenance blocker or uncleared task stops the run. Rerunning the command
+replans from the completed records and therefore provides basic resumption.
+If the post-task audit fails, the runner treats this as action-required rather
+than immediately terminating: it displays the problem and repeatedly waits
+for Enter before retrying. Ctrl-C remains the explicit way to stop.
+
+This first executor intentionally writes directly to the established
+calibration paths. It has no general staging, locking or run journal;
+concurrent pipeline invocations are unsupported. Those facilities should only
+be added for stages where partial publication causes a demonstrated workflow
+problem.
+
+## Change Impact And Metadata Maintenance
+
+Source change impact has separate data and provenance meanings:
+
+* `negligible` changes can be ignored by both generated data and metadata.
+* `provenance-only` changes leave generated values valid but require an
+  explicit metadata upgrade.
+* `minor`, `material` and `major` changes may affect generated values and
+  therefore increment the data semantic revision.
+
+Categories track both a semantic revision and a provenance revision.
+Provenance-only events increment only the latter and must name an upgrade
+registered in `provenance_maintenance.py`. Generated records behind that
+revision are `provenance-stale`, which is separate from ordinary data
+staleness.
+
+Run all currently applicable metadata work with:
+
+```bash
+python3 pipeline.py plan --profile metadata
+python3 pipeline.py run --profile metadata
+```
+
+Upgrades are applied in recorded event order. Maintenance preserves the
+original generation run, timestamp, random seed, outputs and output hashes,
+while recording the upgrade ID and application time. A work unit with any
+data-affecting staleness is excluded: regeneration supersedes all pending
+metadata upgrades and writes a complete current record.
 
 Detailed calibration trends currently dominate analysis storage. Downstream
 pollster analysis mostly consumes compact statistics, but some calculations
@@ -690,12 +748,25 @@ needs the endpoint distribution.
 
 The ignored `Outputs/cutoff-generated-provenance.json` manifest records each
 consolidated election file and its current dependencies. Each cutoff invocation
-starts a fresh file for every requested election, preventing old, imported or
-partially generated rows from being mixed with a new batch. Completed
-endpoints are written incrementally during that invocation.
+starts a fresh `.in-progress` working file for every requested election,
+preventing old, imported or partially generated rows from being mixed with a
+new batch. Completed endpoints are saved incrementally to that draft so pauses
+do not lose work. The previous certified CSV remains untouched until every
+endpoint is complete, when the draft is atomically promoted and its manifest
+record is updated.
 
-Cutoff generation takes a similar amount of time to poll calibration, so stale
-cutoff records are reported as calibration-path-only issues. A scoped
+Cutoff generation takes a similar amount of time to poll calibration. Routine
+trends may knowingly retain stale calibration ancestry, but the cutoff
+planning profile requires every recorded calibration, pollster-parameter and
+pure-trend dependency to be current before scheduling cutoff fits. This avoids
+spending weeks regenerating cutoffs that are already known to require another
+run. The exception is a pure TPP trend from a term listed in
+`future-elections.csv`: if that trend contributes approval evidence to a
+historical cutoff, it remains recorded in the cutoff's lineage but does not
+invalidate the cutoff when new current polling moves it. New data normally has
+little effect on the earlier portion used by the historical fit, while making
+these expensive cutoffs chase every current poll would keep them perpetually
+stale. Historical pure-trend dependencies remain strict. A scoped
 `raw_poll_data` change invalidates only cutoff records for the election or
 elections named when that change is registered.
 
@@ -782,14 +853,12 @@ ordinary regeneration sequence.
 
 The next infrastructure stages are:
 
-1. Add `pipeline.py status` and `plan` over the structured audit API without
-   changing generator behaviour.
-2. Add election-level staging, validated promotion, locking, run journals and
-   per-stage logs.
-3. Add `pipeline.py run`, profiles and target selection over the same plans.
-4. Review generators in dependency order and tighten their schemas,
+1. Extend `pipeline.py run` to other profiles where orchestration is useful.
+2. Add narrowly scoped staging or validation where direct multi-file writes
+   create a demonstrated risk.
+3. Review generators in dependency order and tighten their schemas,
    validation, documentation and output boundaries.
-5. Replace detailed calibration output with compact summaries where all
+4. Replace detailed calibration output with compact summaries where all
    consumers permit it.
 
 Future regeneration planning must support two additional explicit flows:

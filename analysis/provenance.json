@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-26T05:30:29Z",
+  "updated_at_utc": "2026-07-27T01:41:24Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -368,9 +368,9 @@
       "semantic_revision": 7,
       "files": {
         "fp_model.py": {
-          "sha256": "f3972b9b933d948a05603942e07526e23f16c5362779823511ba9227f7d92160",
-          "size_bytes": 114362,
-          "recorded_mtime_utc": "2026-07-26T00:17:25.765563Z"
+          "sha256": "5d050728ed81a7037618784cee19374918606789d17665bed2c31fe0b32e3a24",
+          "size_bytes": 115308,
+          "recorded_mtime_utc": "2026-07-26T12:06:15.422191Z"
         }
       },
       "events": [
@@ -775,6 +775,42 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260726T074514Z-other-fp-model-script-a8af2d6d",
+          "recorded_at_utc": "2026-07-26T07:45:14Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Generate consolidated cutoff elections in drafts and promote only complete batches.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T121549Z-correction-fp-model-script-11b7a646",
+          "recorded_at_utc": "2026-07-26T12:15:49Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "summary": "Roll back cutoff promotion when final provenance certification fails.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -960,12 +996,12 @@
         "fp_model_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 2,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "474ccb5564e587e3698c9f8bccaf50c5d82f679be05f88b85042f3b6a0e94a8e",
-          "size_bytes": 35475,
-          "recorded_mtime_utc": "2026-07-26T05:29:46.031824Z"
+          "sha256": "ab7a941a180752d53a2430b8ee15797fc16a41811e5e73976d460aaf91badc0d",
+          "size_bytes": 39045,
+          "recorded_mtime_utc": "2026-07-26T12:48:08.826203Z"
         }
       },
       "events": [
@@ -1107,10 +1143,12 @@
             "fp_model_provenance.py"
           ],
           "scope": {
-            "all": true,
+            "all": false,
             "elections": [],
             "parties": [],
-            "stages": []
+            "stages": [
+              "generate_cutoff_poll_trends"
+            ]
           }
         },
         {
@@ -1135,10 +1173,64 @@
           "id": "20260726T053029Z-correction-fp-model-provenance-script-8d92ef96",
           "recorded_at_utc": "2026-07-26T05:30:29Z",
           "change_type": "correction",
-          "magnitude": "minor",
-          "affects_outputs": true,
-          "semantic_revision": 3,
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
           "summary": "Record approval and pure-trend inputs directly instead of treating diagnostic synthetic TPP files as an execution boundary.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T074615Z-other-fp-model-provenance-script-77a53b52",
+          "recorded_at_utc": "2026-07-26T07:46:15Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Keep certified cutoff files unchanged while incrementally saving pause-safe working drafts.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T121925Z-correction-fp-model-provenance-script-375c7e26",
+          "recorded_at_utc": "2026-07-26T12:19:25Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Scope approval dependencies to elections that consumed approval observations and preserve certified cutoffs when certification fails.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T125430Z-correction-fp-model-provenance-script-4839516d",
+          "recorded_at_utc": "2026-07-26T12:54:30Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Allow cutoff provenance to retain current-term pure trends without invalidating historical fits.",
           "files": [
             "fp_model_provenance.py"
           ],
@@ -1249,9 +1341,9 @@
       "semantic_revision": 2,
       "files": {
         "approvals_provenance.py": {
-          "sha256": "e06b6f62336b972772e1f1ab77e49c7493f83202cd0d726f987a7772a4ce8239",
-          "size_bytes": 11253,
-          "recorded_mtime_utc": "2026-07-26T05:27:07.297374Z"
+          "sha256": "4f98148007f9617ca61cb517144ea8890d3eabbe1dcc6fa9e81a97a12ac54ff6",
+          "size_bytes": 13789,
+          "recorded_mtime_utc": "2026-07-26T12:48:08.551021Z"
         }
       },
       "events": [
@@ -1299,6 +1391,42 @@
           "affects_outputs": true,
           "semantic_revision": 2,
           "summary": "Record approval and pure-trend inputs directly instead of treating diagnostic synthetic TPP files as an execution boundary.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T124226Z-correction-approvals-provenance-script-dcfdcc5b",
+          "recorded_at_utc": "2026-07-26T12:42:26Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Track target pure TPP inputs and all earlier approval-bearing trends capable of training synthetic observations.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T125515Z-correction-approvals-provenance-script-cffe75bf",
+          "recorded_at_utc": "2026-07-26T12:55:15Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "summary": "Classify current-term pure trends as non-invalidating only for historical cutoff lineage.",
           "files": [
             "approvals_provenance.py"
           ],
@@ -1738,6 +1866,506 @@
           }
         }
       ]
+    },
+    "pipeline_orchestration_tools": {
+      "description": "Pipeline registry, structured audit, planning, execution and metadata-maintenance tools.",
+      "file_patterns": [
+        "pipeline.py",
+        "pipeline_registry.py",
+        "pipeline_registry.json",
+        "analysis_provenance.py",
+        "provenance_maintenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "provenance_revision": 4,
+      "files": {
+        "analysis_provenance.py": {
+          "sha256": "8abe233cb2ee3a3b2237b4e92fa423f6d9d717b45727c9124322dfdf89675053",
+          "size_bytes": 64345,
+          "recorded_mtime_utc": "2026-07-27T00:30:05.884341Z"
+        },
+        "pipeline.py": {
+          "sha256": "d466a927177b45025ef7c8db91a68c81158931d1a53935c0c1c423eff52f7bca",
+          "size_bytes": 46979,
+          "recorded_mtime_utc": "2026-07-27T00:28:25.284385Z"
+        },
+        "pipeline_registry.json": {
+          "sha256": "26fe10ff19e14c1d39479d0e41ad05f70c88b2e3c844ace30b0b4b6d13f3b4df",
+          "size_bytes": 36343,
+          "recorded_mtime_utc": "2026-07-26T13:39:38.112073Z"
+        },
+        "pipeline_registry.py": {
+          "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
+          "size_bytes": 20533,
+          "recorded_mtime_utc": "2026-07-26T05:35:53.353473Z"
+        },
+        "provenance_maintenance.py": {
+          "sha256": "c07813076fe2e5bc3382418d930902685958248b7fbb7d53c85644afd66cceb6",
+          "size_bytes": 5886,
+          "recorded_mtime_utc": "2026-07-27T00:12:42.068063Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260726T062134Z-baseline-pipeline-orchestration-tools-9205fc05",
+          "recorded_at_utc": "2026-07-26T06:21:34Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Establish executable pipeline registry, structured status and profile-aware regeneration planning.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py",
+            "pipeline_registry.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T062646Z-formatting-pipeline-orchestration-tools-9966d347",
+          "recorded_at_utc": "2026-07-26T06:26:46Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Avoid repeated mounted-filesystem path resolution while constructing the work-unit dependency graph.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T074854Z-formatting-pipeline-orchestration-tools-80f0f990",
+          "recorded_at_utc": "2026-07-26T07:48:54Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Reuse each computed work-unit status while constructing structured audit output.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T113041Z-correction-pipeline-orchestration-tools-7abd0107",
+          "recorded_at_utc": "2026-07-26T11:30:41Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Treat all scoped historical cutoff prerequisites as executable roots for the cutoff planning profile.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T114215Z-correction-pipeline-orchestration-tools-6c383b6a",
+          "recorded_at_utc": "2026-07-26T11:42:15Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Defer downstream work whose only staleness is unchanged stale dependencies, and plan every applicable historical cutoff prerequisite.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T122022Z-correction-pipeline-orchestration-tools-7aad3a19",
+          "recorded_at_utc": "2026-07-26T12:20:22Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Defer downstream work while changed dependencies are themselves stale.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T122208Z-correction-pipeline-orchestration-tools-db484bca",
+          "recorded_at_utc": "2026-07-26T12:22:08Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Treat regenerated outputs with unchanged stale ancestry as accepted while keeping changed dependencies actionable.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T123927Z-correction-pipeline-orchestration-tools-5d6c16c7",
+          "recorded_at_utc": "2026-07-26T12:39:28Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Require current calibration and pure-trend prerequisites for cutoff plans and monitor the executable registry.",
+          "files": [
+            "pipeline.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T125627Z-correction-pipeline-orchestration-tools-b78acf2d",
+          "recorded_at_utc": "2026-07-26T12:56:27Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Exclude non-invalidating lineage edges from audit traversal and monitor the generated provenance schema.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T132252Z-correction-pipeline-orchestration-tools-70fc2391",
+          "recorded_at_utc": "2026-07-26T13:22:52Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Remove the obsolete normal-trend feedback edge from historical cutoff planning.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T134133Z-correction-pipeline-orchestration-tools-d31f88e2",
+          "recorded_at_utc": "2026-07-26T13:41:33Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Make calibration planning calibration-only and defer target-specific pollster and trend refreshes to regular profiles.",
+          "files": [
+            "pipeline.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T135236Z-correction-pipeline-orchestration-tools-4cd4dfb4",
+          "recorded_at_utc": "2026-07-26T13:52:36Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Propagate planned all-profile regeneration forward to downstream work units that will be invalidated.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T135532Z-correction-pipeline-orchestration-tools-9f6d538f",
+          "recorded_at_utc": "2026-07-26T13:55:32Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Infer omitted same-election pollster dependencies for legacy trend and cutoff records.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T142803Z-methodology-pipeline-orchestration-tools-8a1045c7",
+          "recorded_at_utc": "2026-07-26T14:28:03Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "provenance_upgrade": "no-generated-metadata-change-v1",
+          "summary": "Added sequential calibration-plan execution with terminal progress and provenance completion checks.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260727T002446Z-methodology-pipeline-orchestration-tools-1a36cf82",
+          "recorded_at_utc": "2026-07-27T00:24:46Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 3,
+          "summary": "Add ordered metadata-only maintenance and retry post-task provenance checks after user intervention.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py",
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260727T002913Z-methodology-pipeline-orchestration-tools-cf94dda8",
+          "recorded_at_utc": "2026-07-27T00:29:13Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Validate metadata upgrade IDs during audits and clarify metadata-only plan output.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260727T003107Z-formatting-pipeline-orchestration-tools-c0bc5722",
+          "recorded_at_utc": "2026-07-27T00:31:07Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Display provenance revisions alongside semantic revisions after registration.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
+    },
+    "provenance_core_tools": {
+      "description": "Shared source and generated-data fingerprinting, validation and dependency-checking utilities.",
+      "file_patterns": [
+        "source_provenance.py",
+        "source_provenance.schema.json",
+        "generated_provenance.py",
+        "generated_provenance.schema.json"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "generated_provenance.py": {
+          "sha256": "c781c2aca45fa23808cfb70d6cbcbc2a0e2958d9be4ab813357a4942c6e4589d",
+          "size_bytes": 45236,
+          "recorded_mtime_utc": "2026-07-27T00:11:37.729147Z"
+        },
+        "generated_provenance.schema.json": {
+          "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
+          "size_bytes": 7380,
+          "recorded_mtime_utc": "2026-07-27T00:11:25.197301Z"
+        },
+        "source_provenance.py": {
+          "sha256": "20dde6198f30715662e89dcb315858161a8892577b1270ff8d0cc1126c07fd98",
+          "size_bytes": 42578,
+          "recorded_mtime_utc": "2026-07-27T01:40:18.328662Z"
+        },
+        "source_provenance.schema.json": {
+          "sha256": "a267c2576785975215a8b34f825209804e7fcbd5d73bfa458b44456639bfaa76",
+          "size_bytes": 8699,
+          "recorded_mtime_utc": "2026-07-27T01:40:19.016930Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260726T114155Z-baseline-provenance-core-tools-f6312292",
+          "recorded_at_utc": "2026-07-26T11:41:55Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Track the core provenance infrastructure itself as authored source.",
+          "files": [
+            "generated_provenance.py",
+            "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260726T125549Z-schema-provenance-core-tools-9e311270",
+          "recorded_at_utc": "2026-07-26T12:55:49Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "summary": "Support documented generated dependencies that do not invalidate downstream outputs.",
+          "files": [
+            "generated_provenance.py",
+            "generated_provenance.schema.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260727T002351Z-methodology-provenance-core-tools-d614f8f2",
+          "recorded_at_utc": "2026-07-27T00:23:51Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Separate metadata-only provenance revisions from data-affecting semantic revisions.",
+          "files": [
+            "generated_provenance.py",
+            "generated_provenance.schema.json",
+            "source_provenance.py",
+            "source_provenance.schema.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260727T003019Z-formatting-provenance-core-tools-fb4e0133",
+          "recorded_at_utc": "2026-07-27T00:30:19Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Display provenance revisions alongside semantic revisions after registration.",
+          "files": [
+            "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260727T014124Z-schema-provenance-core-tools-984b4d69",
+          "recorded_at_utc": "2026-07-27T01:41:24Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 3,
+          "summary": "Added an explicit new-polling change type for newly released polling data.",
+          "files": [
+            "source_provenance.py",
+            "source_provenance.schema.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        }
+      ],
+      "provenance_revision": 3
     }
   }
 }

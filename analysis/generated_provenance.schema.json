@@ -185,6 +185,13 @@
           ],
           "minimum": 1
         },
+        "provenance_revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
         "manifest": {
           "type": [
             "string",
@@ -200,6 +207,14 @@
           }
         },
         "records": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "non_invalidating_records": {
           "type": "array",
           "uniqueItems": true,
           "items": {
@@ -291,6 +306,37 @@
           "minProperties": 1,
           "additionalProperties": {
             "$ref": "#/$defs/fingerprint"
+          }
+        },
+        "provenance_maintenance": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "source_category",
+              "upgrade",
+              "applied_at_utc"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_category": {
+                "type": "string",
+                "minLength": 1
+              },
+              "upgrade": {
+                "type": "string",
+                "minLength": 1
+              },
+              "applied_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
           }
         }
       }
