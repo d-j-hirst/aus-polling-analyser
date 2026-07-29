@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-29T03:48:58Z",
+  "updated_at_utc": "2026-07-29T04:04:46Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -2522,9 +2522,9 @@
       "semantic_revision": 1,
       "files": {
         "generated_provenance.py": {
-          "sha256": "b4f9960e60a2c7a36d90087fe63196731379c94e1b7731f4e5754ddfa29b5b76",
-          "size_bytes": 50446,
-          "recorded_mtime_utc": "2026-07-29T02:41:18.468429Z"
+          "sha256": "5823ab8885d6708217f563058d33fc6692997afe29534303da56992c4ddd7f25",
+          "size_bytes": 52014,
+          "recorded_mtime_utc": "2026-07-29T04:04:36.051613Z"
         },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
@@ -2703,9 +2703,49 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T040237Z-correction-provenance-core-tools-873e9924",
+          "recorded_at_utc": "2026-07-29T04:02:37Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 7,
+          "summary": "Canonicalize equivalent Windows path spellings when caching file metadata and hashes during provenance audits.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T040446Z-correction-provenance-core-tools-2902e2c7",
+          "recorded_at_utc": "2026-07-29T04:04:46Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 8,
+          "summary": "Avoid filesystem path resolution for provenance cache keys on POSIX while retaining Windows short-path canonicalization.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 8
     }
   }
 }

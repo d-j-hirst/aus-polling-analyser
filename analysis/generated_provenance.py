@@ -606,6 +606,25 @@ def _hash_file(path):
     return digest.hexdigest()
 
 
+def _canonical_path_key(path):
+    """Return one cache key for equivalent filesystem spellings.
+
+    Windows can expose the same temporary directory through both an 8.3 short
+    name and its expanded name. ``Path.resolve`` collapses that distinction;
+    ``normcase`` also handles Windows' case-insensitive path semantics.
+    """
+
+    path = Path(path)
+    if os.name == "nt":
+        # Windows resolution expands 8.3 aliases such as RUNNER~1.
+        path = path.resolve()
+    else:
+        # POSIX has no 8.3 aliases. Avoid filesystem traversal here because an
+        # audit may normalize thousands of files on a mounted Windows volume.
+        path = Path(os.path.abspath(str(path)))
+    return os.path.normcase(str(path))
+
+
 def fingerprint_file(path):
     path = Path(path)
     if not path.is_file():
@@ -653,17 +672,29 @@ def file_dependency(
     )
     fingerprints = {}
     for path in relative_files:
-        absolute_path = (Path(base_directory) / path).resolve()
-        cache_key = str(absolute_path)
-        if (
-            fingerprint_cache is not None
-            and cache_key in fingerprint_cache
-        ):
-            fingerprint = fingerprint_cache[cache_key]
-        else:
+        unresolved_path = Path(base_directory) / path
+        absolute_path = unresolved_path.resolve()
+        cache_keys = (
+            str(unresolved_path),
+            str(absolute_path),
+            _canonical_path_key(absolute_path),
+        )
+        fingerprint = None
+        if fingerprint_cache is not None:
+            fingerprint = next(
+                (
+                    fingerprint_cache[cache_key]
+                    for cache_key in cache_keys
+                    if cache_key in fingerprint_cache
+                ),
+                None,
+            )
+        if fingerprint is None:
             fingerprint = fingerprint_file(absolute_path)
             if fingerprint_cache is not None:
-                fingerprint_cache[cache_key] = fingerprint
+                fingerprint_cache[
+                    _canonical_path_key(absolute_path)
+                ] = fingerprint
         fingerprints[path] = fingerprint
     return {
         "kind": "files",
@@ -1015,6 +1046,7 @@ class ManifestCheckContext:
         self.expected_output_fingerprints = {}
         self.output_stats = {}
         self.resolved_paths = {}
+        self.path_keys = {}
 
     def resolve_path(self, path):
         path_key = str(Path(path))
@@ -1022,17 +1054,24 @@ class ManifestCheckContext:
             self.resolved_paths[path_key] = Path(path).resolve()
         return self.resolved_paths[path_key]
 
+    def path_key(self, path):
+        unresolved_key = str(Path(path))
+        if unresolved_key not in self.path_keys:
+            self.path_keys[unresolved_key] = _canonical_path_key(path)
+        return self.path_keys[unresolved_key]
+
     def load_manifest(self, path):
         resolved_path = str(self.resolve_path(path))
-        if resolved_path not in self.manifests:
+        manifest_key = os.path.normcase(resolved_path)
+        if manifest_key not in self.manifests:
             manifest = load_manifest(resolved_path)
-            self.manifests[resolved_path] = manifest
+            self.manifests[manifest_key] = manifest
             base_directory = self.resolve_path(
                 Path(resolved_path).parent / manifest["path_base"]
             )
             for record in manifest["records"].values():
                 for output_path, fingerprint in record["outputs"].items():
-                    path_key = str(base_directory / output_path)
+                    path_key = self.path_key(base_directory / output_path)
                     existing = self.expected_output_fingerprints.get(path_key)
                     if existing is None:
                         self.expected_output_fingerprints[path_key] = (
@@ -1041,7 +1080,7 @@ class ManifestCheckContext:
                     elif existing != fingerprint:
                         # Conflicting records cannot provide a safe fast path.
                         self.expected_output_fingerprints[path_key] = False
-        return self.manifests[resolved_path]
+        return self.manifests[manifest_key]
 
     @staticmethod
     def _stat_output(path):
@@ -1053,13 +1092,15 @@ class ManifestCheckContext:
     def prime_output_stats(self, paths):
         """Stat selected outputs concurrently on high-latency filesystems."""
 
-        pending = sorted(
-            {
-                str(Path(path))
-                for path in paths
-                if str(Path(path)) not in self.output_stats
-            }
-        )
+        pending_by_key = {
+            self.path_key(path): Path(path)
+            for path in paths
+            if self.path_key(path) not in self.output_stats
+        }
+        pending = [
+            pending_by_key[path_key]
+            for path_key in sorted(pending_by_key)
+        ]
         if not pending:
             return
         worker_count = min(32, len(pending))
@@ -1067,22 +1108,22 @@ class ManifestCheckContext:
             max_workers=worker_count
         ) as executor:
             for path, stat in executor.map(self._stat_output, pending):
-                self.output_stats[path] = stat
+                self.output_stats[self.path_key(path)] = stat
 
     def output_stat(self, path):
-        path_key = str(Path(path))
+        path_key = self.path_key(path)
         if path_key not in self.output_stats:
-            _, stat = self._stat_output(path_key)
+            _, stat = self._stat_output(Path(path))
             self.output_stats[path_key] = stat
         return self.output_stats[path_key]
 
     def fingerprint_file(self, path):
         """Hash a file only when recorded output metadata cannot verify it."""
 
-        path_key = str(Path(path))
+        path_key = self.path_key(path)
         if path_key in self.file_fingerprints:
             return self.file_fingerprints[path_key]
-        stat = self.output_stat(path_key)
+        stat = self.output_stat(path)
         expected = self.expected_output_fingerprints.get(path_key)
         if (
             stat is not None
@@ -1092,7 +1133,7 @@ class ManifestCheckContext:
         ):
             fingerprint = expected
         else:
-            fingerprint = fingerprint_file(path_key)
+            fingerprint = fingerprint_file(Path(path))
         self.file_fingerprints[path_key] = fingerprint
         return fingerprint
 
