@@ -66,6 +66,8 @@ artifacts/
 *.tmp
 *.tmp_proj
 *.log
+/analysis/Logs/
+*generated-provenance.json.lock
 *.vspscc
 *.vssscc
 .builds

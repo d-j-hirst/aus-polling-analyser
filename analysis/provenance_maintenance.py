@@ -107,7 +107,7 @@ def pending_upgrades(record, base_directory):
     )
 
 
-def maintain_record(manifest_path, record_key):
+def _maintain_record_once(manifest_path, record_key):
     """Apply every pending metadata upgrade to one generated work unit."""
 
     manifest_path = Path(manifest_path).resolve()
@@ -183,5 +183,18 @@ def maintain_record(manifest_path, record_key):
         {record_key: record},
         {},
         path_base=manifest["path_base"],
+        expected_records={record_key: original_record},
     )
     return len(upgrades)
+
+
+def maintain_record(manifest_path, record_key):
+    """Apply upgrades, retrying if a generator publishes at the same time."""
+
+    while True:
+        try:
+            return _maintain_record_once(manifest_path, record_key)
+        except generated_provenance.ConcurrentManifestUpdate:
+            # Re-read and reapply upgrades instead of replacing a newer record
+            # with metadata derived from the previous one.
+            continue

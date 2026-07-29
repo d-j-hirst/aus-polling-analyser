@@ -1,4 +1,21 @@
+"""Diagnostics and party normalisation for cached election results.
+
+The numerical checks are advisory because published historical percentages
+are often rounded and a small number of known source rows exceed the chosen
+tolerances. Party simplification is behavioural: downstream seat analysis and
+the C++ simulation consume the resulting common party labels.
+"""
+
+from pathlib import Path
+
 from election_data import AllElections
+
+
+ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
+PARTY_SIMPLIFICATION_FILE = (
+    ANALYSIS_DIRECTORY / 'Data' / 'party-simplification.csv'
+)
+
 
 def check_seat_numbers(elections):
     for code, election in elections.elections.items():
@@ -96,9 +113,27 @@ def check_tcp_percent_calc(elections):
 
 
 def combine_parties(elections):
-    with open('./Data/party-simplification.csv', 'r') as f:
-        conversions = {a[0].replace(';', ','): a[1] for a in
-            [b.strip().split(',') for b in f.readlines()]}
+    """Apply the shared historical-party categories used by later analysis."""
+    conversions = {}
+    with open(PARTY_SIMPLIFICATION_FILE, 'r', encoding='utf-8') as file:
+        for line_number, line in enumerate(file, start=1):
+            values = line.rstrip('\r\n').split(',')
+            if len(values) != 2:
+                raise ValueError(
+                    f'{PARTY_SIMPLIFICATION_FILE}:{line_number} must contain '
+                    'exactly two comma-separated fields'
+                )
+            source_party = values[0].replace(';', ',')
+            simplified_party = values[1]
+            if (
+                source_party in conversions
+                and conversions[source_party] != simplified_party
+            ):
+                raise ValueError(
+                    f'{PARTY_SIMPLIFICATION_FILE}:{line_number} gives '
+                    f'conflicting categories for {source_party!r}'
+                )
+            conversions[source_party] = simplified_party
     for code, election in elections.elections.items():
         for seat_result in election.seat_results:
             for fp_candidate in seat_result.fp:
@@ -148,8 +183,10 @@ def best_performances(elections):
 
 
 def get_checked_elections(allow_download=True):
+    """Load all configured elections, report anomalies and normalise parties."""
     elections = AllElections(allow_download=allow_download)
-    # Automatic checks that enforce consistency of election data
+    # These checks expose source anomalies but do not reject known rounding
+    # differences. Structural parsing failures are raised by election_data.
     check_fp_percent_total(elections)
     check_fp_percent_match(elections)
     check_fp_percent_calc(elections)

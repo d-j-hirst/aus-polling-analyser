@@ -914,6 +914,107 @@ class AnalysisProvenanceTests(unittest.TestCase):
 
         next_prompt.assert_not_called()
 
+    def test_interactive_scope_defaults_to_specific_elections(self):
+        def select_scope(message, choices, default=None):
+            self.assertEqual(message, "Change scope")
+            self.assertEqual(default, "specific")
+            self.assertEqual(choices[0]["value"], "specific")
+            return "specific"
+
+        with mock.patch.object(
+            analysis_provenance,
+            "_menu_select",
+            side_effect=select_scope,
+        ), mock.patch.object(
+            analysis_provenance,
+            "_menu_text",
+            side_effect=["2028fed", "", ""],
+        ):
+            scope = analysis_provenance._interactive_scope()
+
+        self.assertFalse(scope["all"])
+        self.assertEqual(scope["elections"], ["2028fed"])
+
+    def test_all_election_scope_requires_separate_affirmation(self):
+        scope = source_provenance._build_scope(all_scopes=True)
+        with mock.patch.object(
+            analysis_provenance,
+            "_menu_confirm",
+            return_value=False,
+        ) as confirm:
+            accepted = analysis_provenance._confirm_all_election_scope(scope)
+
+        self.assertFalse(accepted)
+        confirm.assert_called_once_with(
+            "This scope can affect every election. Continue with "
+            "all-election impact?",
+            default=False,
+        )
+
+    def test_election_scope_does_not_require_extra_affirmation(self):
+        scope = source_provenance._build_scope(elections=["2028fed"])
+        with mock.patch.object(
+            analysis_provenance,
+            "_menu_confirm",
+        ) as confirm:
+            accepted = analysis_provenance._confirm_all_election_scope(scope)
+
+        self.assertTrue(accepted)
+        confirm.assert_not_called()
+
+    def test_party_only_scope_requires_all_election_affirmation(self):
+        scope = source_provenance._build_scope(parties=["ONP FP"])
+        with mock.patch.object(
+            analysis_provenance,
+            "_menu_confirm",
+            return_value=True,
+        ) as confirm:
+            accepted = analysis_provenance._confirm_all_election_scope(scope)
+
+        self.assertTrue(accepted)
+        confirm.assert_called_once()
+
+    def test_declined_all_election_scope_cancels_registration(self):
+        changes = [
+            {
+                "path": self.script_path,
+                "relative_path": "election_store.py",
+                "category": "election_store_script",
+                "change_kind": "modified",
+            }
+        ]
+        with mock.patch.object(
+            analysis_provenance,
+            "_unregistered_files",
+            return_value=changes,
+        ), mock.patch.object(
+            analysis_provenance,
+            "_menu_checkbox",
+            return_value=[str(self.script_path)],
+        ), mock.patch.object(
+            analysis_provenance,
+            "_menu_select",
+            side_effect=["negligible", "formatting"],
+        ), mock.patch.object(
+            analysis_provenance,
+            "_menu_text",
+            return_value="Formatting only.",
+        ), mock.patch.object(
+            analysis_provenance,
+            "_interactive_scope",
+            return_value=source_provenance._build_scope(all_scopes=True),
+        ), mock.patch.object(
+            analysis_provenance,
+            "_confirm_all_election_scope",
+            return_value=False,
+        ), mock.patch.object(
+            analysis_provenance,
+            "register_changes",
+        ) as register:
+            analysis_provenance._interactive_register()
+
+        register.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

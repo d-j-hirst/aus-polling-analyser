@@ -13,6 +13,9 @@ python3 analysis_provenance.py audit
 
 Run `python3 analysis_provenance.py` without arguments for an interactive menu.
 InquirerPy is used when installed, with a plain terminal fallback otherwise.
+Interactive change registration defaults to an election-specific scope. A
+scope that can affect every election requires a separate confirmation that
+defaults to declining the broad impact.
 Limit an audit to one election, or repeat the option for a custom group:
 
 ```bash
@@ -49,10 +52,19 @@ python3 pipeline.py plan --election 2026vic --profile regular
 python3 pipeline.py plan --election 2026vic \
   --profile regular-with-approvals
 python3 pipeline.py plan --election 2026vic --profile cutoffs
+python3 pipeline.py run --election 2026vic --profile regular
+python3 pipeline.py run --election 2026vic \
+  --profile regular-with-approvals
 python3 pipeline.py run --election 2026vic --profile calibration
+python3 pipeline.py run --election 2026vic --profile cutoffs
 python3 pipeline.py plan --profile metadata
 python3 pipeline.py run --profile metadata
 ```
+
+Each `run` writes an ignored log under `Logs/Pipeline/` while preserving live
+stdout and stderr in the terminal. The log records the profile and targets,
+task commands and boundaries, subprocess output, elapsed time, exit status,
+post-task provenance problems, and final completion status.
 
 Status is aggregated by default. Plans are grouped by generation stage; add
 `--details` to show every command or `--format json` for the complete
@@ -72,20 +84,34 @@ regular-with-approvals plan for the forecast elections being updated. That
 second audit will detect changed calibration digests, refresh the applicable
 pollster analysis, and then schedule only the required target trends.
 
-The `run` command currently supports only this calibration profile. It
-prevalidates the complete plan, executes one election command at a time,
-streams the model output to the terminal, and stops on the first failure.
-After every successful command it rebuilds the plan and requires the completed
-task to have cleared. Completed calibration units are already recorded by the
-generators, so rerunning after an interruption naturally skips them. This
-initial executor writes directly to the existing calibration outputs; do not
-run overlapping pipeline invocations.
+The `run` command supports regular trends, regular trends with refreshed
+approval inputs, calibration, historical cutoffs and metadata maintenance.
+The `all` profile remains planning-only because it includes broader source
+acquisition and global analysis stages. Generation runs prevalidate the
+complete plan, execute one election command at a time, stream model output to
+the terminal, and stop on the first failure. After every successful command
+the runner rebuilds the plan and requires the completed task to have cleared.
+Each rebuild uses a fresh Python process, so changes to provenance tooling
+during a long Stan task do not leave the runner using obsolete imported code.
+The initial plan includes downstream work that its own tasks are expected to
+invalidate. Work made stale by changes recorded after the run starts is
+held until the primary snapshot is complete, then included in one automatic
+follow-up pass. If still more work becomes actionable, the runner asks before
+each additional refreshed pass. Rerunning after an interruption naturally
+skips work already recorded by the generators. The executor writes directly
+to existing output paths. Separate pipeline runs may operate concurrently;
+generated provenance manifests are locked only during their brief
+read-modify-write updates. Avoid deliberately running the same work unit
+twice because its generator may target the same data files.
 
 If a post-task audit fails, the runner reports an action-required message and
 waits for Enter before checking again. It continues this cycle until
 provenance is valid and the completed task has cleared, or the user stops the
 run with Ctrl-C. Completed generator output is not rerun merely because a
 temporary source-registration issue occurred at the task boundary.
+A task that wrote new generated records but was made stale by a newer change
+is accepted against the current execution snapshot and moved to the next
+follow-up pass.
 
 Source changes use these impact levels:
 
@@ -260,20 +286,34 @@ support anchors from `-100` to `0`. The C++ model selects the surrounding
 anchors from the median poll trend and linearly interpolates their parameters.
 Legacy eight-row files remain supported as unconditioned adjustments.
 
-## Seat Analysis
+## Election Results And Seat Analysis
 
-`election_analysis.py` calculates individual-seat inputs, including:
+Historical lower-house results pass through three separate stages:
 
-* Download data (from Wikipedia, as it has consistent formatting and is easy to fix at the source) and perform a number of checks for data consistency to avoid errors. (These should be largely unnecessary as the errors found have been fixed and relevant pages are being actively watched for changes, but are still undertaken as a precaution.) Once downloaded the results for each election are saved locally as a .pkl file; move/delete these to force a new download.
-* Analyse trends in seat results for minor parties and independents (both emerging and incumbent).
-* Analyse trends in regional breakdowns (currently limited to major state breakdowns in federal polls).
-* Analyse trends in TPP seat results including e.g. incumbency and state effects.
+1. `election_data.py` downloads missing elections from Wikipedia and stores the
+   parsed objects in `elections/<term>_results.pkl`. Existing caches are reused;
+   move or delete a cache only when that election needs to be downloaded again.
+   The downloader contains explicit corrections for unusual source tables and
+   may need another correction when a newly completed election is added.
+2. `election_store.py` loads the caches without network access, reports
+   consistency diagnostics, applies common historical party categories and
+   writes `elections/results_<term>.csv` for the C++ simulation.
+3. `election_analysis.py` uses the same checked cache objects to calculate
+   seat-level inputs. These cover minor parties and independents, federal
+   regional effects, TPP seat variation, incumbency and Coalition allocation.
 
-Run it with:
+Run the complete branch from `analysis/` with:
 
 ```bash
+python3 election_data.py
+python3 election_store.py
 python3 election_analysis.py
 ```
+
+Wikipedia is used because its historical tables are relatively consistent and
+source errors can be corrected publicly. The numerical checks remain advisory:
+published percentages are rounded, so small differences from vote-count
+calculations are expected and displayed for review.
 
 ## File Permissions
 

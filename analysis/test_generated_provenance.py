@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -61,6 +62,99 @@ class GeneratedProvenanceTests(unittest.TestCase):
             generated_provenance.load_manifest(
                 self.output_directory / "provenance.json"
             )
+
+    def test_manifest_write_lock_waits_only_for_same_manifest(self):
+        first_entered = threading.Event()
+        release_first = threading.Event()
+        second_entered = threading.Event()
+
+        def hold_first_lock():
+            with generated_provenance._ManifestWriteLock(
+                self.generated_manifest_path
+            ):
+                first_entered.set()
+                release_first.wait(timeout=2)
+
+        def wait_for_same_manifest():
+            first_entered.wait(timeout=2)
+            with generated_provenance._ManifestWriteLock(
+                self.generated_manifest_path
+            ):
+                second_entered.set()
+
+        first = threading.Thread(target=hold_first_lock)
+        second = threading.Thread(target=wait_for_same_manifest)
+        first.start()
+        second.start()
+        self.assertTrue(first_entered.wait(timeout=2))
+        self.assertFalse(second_entered.wait(timeout=0.1))
+        with generated_provenance._ManifestWriteLock(
+            self.output_directory / "other-generated-provenance.json"
+        ):
+            self.assertFalse(second_entered.is_set())
+        release_first.set()
+        first.join(timeout=2)
+        second.join(timeout=2)
+        self.assertFalse(first.is_alive())
+        self.assertFalse(second.is_alive())
+        self.assertTrue(second_entered.is_set())
+
+    def test_manifest_updates_use_the_write_lock(self):
+        events = []
+
+        class TrackingLock:
+            def __init__(self, path):
+                events.append(("create", Path(path)))
+
+            def __enter__(self):
+                events.append(("enter", None))
+
+            def __exit__(self, exception_type, exception, traceback):
+                events.append(("exit", exception_type))
+
+        with mock.patch.object(
+            generated_provenance,
+            "_ManifestWriteLock",
+            TrackingLock,
+        ):
+            self._write_manifest({"test_outputs:2025fed": self._record()})
+
+        self.assertEqual(
+            events,
+            [
+                ("create", self.generated_manifest_path),
+                ("enter", None),
+                ("exit", None),
+            ],
+        )
+
+    def test_conditional_update_preserves_a_concurrent_record(self):
+        record_key = "test_outputs:2025fed"
+        self._write_manifest({record_key: self._record()})
+        original = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )["records"][record_key]
+        newer = json.loads(json.dumps(original))
+        newer["random_seed"] = 456
+        self._write_manifest({record_key: newer})
+        stale_replacement = json.loads(json.dumps(original))
+        stale_replacement["random_seed"] = 789
+
+        with self.assertRaises(
+            generated_provenance.ConcurrentManifestUpdate
+        ):
+            generated_provenance.update_manifest(
+                self.generated_manifest_path,
+                {record_key: stale_replacement},
+                {},
+                path_base="..",
+                expected_records={record_key: original},
+            )
+
+        current = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )["records"][record_key]
+        self.assertEqual(current["random_seed"], 456)
 
     def _record(self, election="2025fed", output_path=None):
         output_path = output_path or self.output_path
@@ -264,6 +358,81 @@ class GeneratedProvenanceTests(unittest.TestCase):
             )["election_result_exports:2025fed"],
             [],
         )
+
+    def test_recorded_output_metadata_avoids_rehashing_file_dependency(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        downstream_output = self.output_directory / "downstream.csv"
+        downstream_output.write_text("downstream\n", encoding="utf-8")
+        downstream_record = generated_provenance.generation_record(
+            category="downstream",
+            stage="test_downstream",
+            scope=generated_provenance.generation_scope(
+                elections=["2025fed"]
+            ),
+            run="test-run",
+            dependencies={
+                "election_result_exports":
+                    generated_provenance.file_dependency(
+                        "election_result_exports",
+                        [self.output_path],
+                        self.base,
+                    ),
+            },
+            outputs=generated_provenance.output_fingerprints(
+                [downstream_output], self.base
+            ),
+            random_seed=None,
+        )
+        context = generated_provenance.ManifestCheckContext()
+        context.load_manifest(self.generated_manifest_path)
+
+        with mock.patch(
+            "generated_provenance._hash_file",
+            side_effect=AssertionError("unchanged dependency was rehashed"),
+        ):
+            issues = generated_provenance.check_record(
+                downstream_record,
+                self.base,
+                check_context=context,
+            )
+
+        self.assertEqual(issues, [])
+
+    def test_changed_dependency_metadata_still_uses_content_hash(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        dependency = generated_provenance.file_dependency(
+            "election_result_exports",
+            [self.output_path],
+            self.base,
+        )
+        context = generated_provenance.ManifestCheckContext()
+        context.load_manifest(self.generated_manifest_path)
+        stat = self.output_path.stat()
+        os.utime(
+            self.output_path,
+            ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000),
+        )
+
+        with mock.patch(
+            "generated_provenance._hash_file",
+            wraps=generated_provenance._hash_file,
+        ) as hash_file:
+            current = generated_provenance.file_dependency(
+                "election_result_exports",
+                [self.output_path],
+                self.base,
+                fingerprint_cache={
+                    str(self.output_path):
+                        context.fingerprint_file(self.output_path)
+                },
+            )
+
+        self.assertEqual(current["digest"], dependency["digest"])
+        hash_file.assert_called_once_with(self.output_path)
 
     def test_scoped_source_change_only_stales_matching_work_unit(self):
         self._write_manifest(

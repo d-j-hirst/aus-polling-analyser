@@ -12,9 +12,10 @@ manifests to detect stale work units and trace their impact to the C++ model.
 `pipeline.py` is the thin orchestration entry point. Its implemented `status`
 and `plan` commands consume registry command templates and structured
 provenance results rather than duplicating dependency or freshness logic.
-Running it without arguments opens an interactive interface. Its initial
-`run` command executes calibration-only plans directly through the existing
-generators. Other profiles remain planning-only.
+Running it without arguments opens an interactive interface. Its `run` command
+executes regular, approval-refresh, calibration and historical-cutoff plans
+directly through the existing generators. The broad `all` profile remains
+planning-only.
 
 ## Inspecting the Registry
 
@@ -159,21 +160,64 @@ Run that profile with:
 python3 pipeline.py run --election 2026sa --profile calibration
 ```
 
+Routine and historical profiles use the same interface:
+
+```bash
+python3 pipeline.py run --election 2026vic --profile regular
+python3 pipeline.py run --election 2026vic \
+  --profile regular-with-approvals
+python3 pipeline.py run --election 2026vic --profile cutoffs
+```
+
+`regular` uses existing pure trends when deriving approval information;
+`regular-with-approvals` first regenerates the required pure trends. `cutoffs`
+also schedules any stale calibration, pollster-analysis and pure-trend
+prerequisites because expensive historical fits should not knowingly be built
+on stale inputs.
+
 The complete plan is checked before execution. Commands then run sequentially
 with their output attached to the current terminal. After each command,
 `pipeline.py` rebuilds the plan and verifies that the completed task has
 cleared under the normal provenance rules. A non-zero subprocess status,
 provenance blocker or uncleared task stops the run. Rerunning the command
 replans from the completed records and therefore provides basic resumption.
+Post-task rebuilds run in a fresh Python process. This keeps a long-running
+pipeline compatible with provenance and orchestration code updated while Stan
+was working, rather than repeatedly applying modules imported hours earlier.
+
+Generation runs use a fixed execution horizon. Before starting, the planner
+adds downstream work that will be invalidated by tasks already in the plan.
+The executor then runs only that snapshot. Refreshed audits may remove planned
+tasks that are no longer needed, but they do not insert tasks created by later
+source or methodology changes ahead of unfinished snapshot work. Once the
+primary snapshot is complete, all deferred tasks form one automatic follow-up
+snapshot. If further changes create work during that pass, the runner displays
+the tasks and asks whether to refresh and run another pass. The same prompt
+follows every additional pass, preventing frequent current poll updates from
+silently extending calibration or cutoff runs indefinitely.
+
 If the post-task audit fails, the runner treats this as action-required rather
 than immediately terminating: it displays the problem and repeatedly waits
 for Enter before retrying. Ctrl-C remains the explicit way to stop.
+If a generator demonstrably wrote new records but a newer change made them
+stale after the execution snapshot, the task is treated as completed for that
+snapshot and moved to the next pass. If the original staleness remains or
+expected records were not updated, the action-required check still applies.
 
-This first executor intentionally writes directly to the established
-calibration paths. It has no general staging, locking or run journal;
-concurrent pipeline invocations are unsupported. Those facilities should only
-be added for stages where partial publication causes a demonstrated workflow
-problem.
+Every explicit or interactive run creates an ignored log in `Logs/Pipeline/`.
+Subprocess stdout and stderr continue to appear live in the terminal and are
+also copied to the log. Structured lifecycle lines record the profile,
+targets, command, working directory, task position, elapsed time, exit status,
+post-task provenance failures, follow-up count and final run status.
+
+The executor intentionally writes directly to the established output paths.
+Pipeline runs may operate concurrently: Stan execution and generation of
+unrelated work units are not locked. Generated provenance manifests use a
+short per-manifest lock only while merging and atomically publishing new
+records, preventing concurrent completions from losing each other's metadata.
+Running the same work unit twice is still unsupported because its generator
+may target the same data files. Cutoff generation separately uses an
+election-level working file and promotes it only after that election succeeds.
 
 ## Change Impact And Metadata Maintenance
 
@@ -366,7 +410,10 @@ scope the change is conservatively recorded as affecting all work.
 
 Run `python3 analysis_provenance.py` without arguments for an interactive audit
 and registration menu. It uses InquirerPy when available and falls back to
-plain terminal prompts otherwise, so InquirerPy remains optional.
+plain terminal prompts otherwise, so InquirerPy remains optional. Registration
+defaults to selecting specific elections. An explicit all-work scope, or a
+party/stage-only scope that can affect every election, requires an additional
+all-election confirmation that defaults to `No`.
 
 ## Generated Provenance
 
@@ -853,12 +900,11 @@ ordinary regeneration sequence.
 
 The next infrastructure stages are:
 
-1. Extend `pipeline.py run` to other profiles where orchestration is useful.
-2. Add narrowly scoped staging or validation where direct multi-file writes
+1. Add narrowly scoped staging or validation where direct multi-file writes
    create a demonstrated risk.
-3. Review generators in dependency order and tighten their schemas,
+2. Review generators in dependency order and tighten their schemas,
    validation, documentation and output boundaries.
-4. Replace detailed calibration output with compact summaries where all
+3. Replace detailed calibration output with compact summaries where all
    consumers permit it.
 
 Future regeneration planning must support two additional explicit flows:

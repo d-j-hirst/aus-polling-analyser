@@ -1,3 +1,12 @@
+"""Export cached historical results in the format consumed by C++.
+
+The pickle cache preserves Python objects for statistical analysis. This
+script applies the shared party categories and writes the deliberately simple
+line-based CSV consumed by ``SimulationPreparation::loadPastSeatResults``.
+Candidate names are not quoted; the C++ reader parses stable result fields from
+the end of each row so names containing commas remain supported.
+"""
+
 from election_check import get_checked_elections
 import generated_provenance
 
@@ -28,11 +37,13 @@ def write_election_to_file(file, election_code, election_results):
 
 
 def store_elections(elections):
+    """Write every configured election and return its provenance output list."""
+    output_directory = ANALYSIS_DIRECTORY / 'elections'
+    output_directory.mkdir(parents=True, exist_ok=True)
     stored_elections = []
     for election_code, election_results in elections.items():
         filename = (
-            ANALYSIS_DIRECTORY
-            / 'elections'
+            output_directory
             / (
                 f'results_{election_code.year()}'
                 f'{election_code.region()}.csv'

@@ -1,20 +1,26 @@
 """Inspect, plan and run regeneration of the Python analysis pipeline.
 
-Status and planning cover the complete registered graph. Execution is
-deliberately narrower for now: calibration plans run existing generators
-directly and rely on their provenance records for progress and completion.
+Status and planning cover the complete registered graph. Execution supports
+the routine trend, approval-refresh, calibration and historical-cutoff
+profiles by running existing generators directly and using their provenance
+records for progress and completion.
 """
 
 import argparse
 import json
+import os
 import re
 import shlex
 import subprocess
 import sys
+import threading
+import time
 from collections import Counter, defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 import analysis_provenance
+import generated_provenance
 import pipeline_registry
 import provenance_maintenance
 
@@ -73,16 +79,137 @@ PROFILE_ROOT_RUN_CLASSES = {
     "cutoffs": {"cutoffs"},
     "all": None,
 }
+EXECUTABLE_GENERATION_PROFILES = (
+    "regular",
+    "regular-with-approvals",
+    "calibration",
+    "cutoffs",
+)
 REGIONAL_PARTY_ARGUMENTS = {
     "@TPP": "",
     "ONP FP": "ON",
 }
 DISPLAY_EXAMPLE_LIMIT = 10
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
+PIPELINE_LOG_DIRECTORY = ANALYSIS_DIRECTORY / "Logs" / "Pipeline"
 
 
 class PipelineError(ValueError):
     """Raised when a status or plan cannot be constructed safely."""
+
+
+def _utc_timestamp():
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+class PipelineRunLog:
+    """Tee task output and lifecycle events to one durable run log."""
+
+    def __init__(
+        self,
+        profile,
+        target_elections,
+        log_directory=PIPELINE_LOG_DIRECTORY,
+    ):
+        timestamp = datetime.now(timezone.utc)
+        target_label = "-".join(sorted(target_elections)) or "all"
+        filename = "{}_{}_{}_{}.log".format(
+            timestamp.strftime("%Y%m%dT%H%M%S%fZ"),
+            profile,
+            target_label,
+            os.getpid(),
+        )
+        Path(log_directory).mkdir(parents=True, exist_ok=True)
+        self.path = Path(log_directory) / filename
+        self._file = self.path.open(
+            "x", encoding="utf-8", buffering=1
+        )
+        self._write_lock = threading.Lock()
+        self._closed = False
+        self.event(
+            "RUN START",
+            profile=profile,
+            targets=sorted(target_elections),
+        )
+
+    def event(self, name, **details):
+        timestamp = _utc_timestamp()
+        fields = " ".join(
+            "{}={}".format(
+                key,
+                json.dumps(value, ensure_ascii=True, sort_keys=True),
+            )
+            for key, value in sorted(details.items())
+        )
+        line = "[{}] {}{}".format(
+            timestamp, name, " " + fields if fields else ""
+        )
+        with self._write_lock:
+            self._file.write(line + "\n")
+
+    def _copy_stream(self, stream, terminal):
+        try:
+            for line in iter(stream.readline, ""):
+                with self._write_lock:
+                    terminal.write(line)
+                    terminal.flush()
+                    self._file.write(line)
+        finally:
+            stream.close()
+
+    def run_command(self, command, working_directory):
+        environment = os.environ.copy()
+        environment["PYTHONUNBUFFERED"] = "1"
+        process = subprocess.Popen(
+            command,
+            cwd=str(working_directory),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            env=environment,
+        )
+        output_threads = [
+            threading.Thread(
+                target=self._copy_stream,
+                args=(process.stdout, sys.stdout),
+                daemon=True,
+            ),
+            threading.Thread(
+                target=self._copy_stream,
+                args=(process.stderr, sys.stderr),
+                daemon=True,
+            ),
+        ]
+        for output_thread in output_threads:
+            output_thread.start()
+        try:
+            return_code = process.wait()
+        finally:
+            for output_thread in output_threads:
+                output_thread.join()
+        return subprocess.CompletedProcess(command, return_code)
+
+    def close(self, succeeded=True):
+        if self._closed:
+            return
+        self.event("RUN COMPLETE" if succeeded else "RUN FAILED")
+        self._file.close()
+        self._closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception, traceback):
+        self.close(succeeded=exception_type is None)
+        return False
 
 
 def _json_output(value):
@@ -555,7 +682,7 @@ def build_plan(audit, registry, profiles):
             producer_by_category,
             selected_run_classes,
         )
-        if "all" in profiles
+        if initially_planned
         else set()
     )
     grouped = {}
@@ -617,6 +744,7 @@ def build_plan(audit, registry, profiles):
             continue
         if (
             not require_fresh_dependencies
+            and not dependency_refresh
             and _is_inherited_only_staleness(work_unit)
         ):
             accepted_stale_work_units.append(work_unit["record_key"])
@@ -657,6 +785,8 @@ def build_plan(audit, registry, profiles):
                     "run_class": run_class,
                     "status_counts": Counter(),
                     "work_units": [],
+                    "record_refs": [],
+                    "issue_signatures": set(),
                 },
             )
             planned_status = (
@@ -667,6 +797,20 @@ def build_plan(audit, registry, profiles):
             )
             task["status_counts"][planned_status] += 1
             task["work_units"].append(work_unit["record_key"])
+            task["record_refs"].append(
+                {
+                    "manifest": work_unit["manifest"],
+                    "record_key": work_unit["record_key"],
+                }
+            )
+            task["issue_signatures"].update(
+                "{}|{}|{}".format(
+                    issue.get("code", ""),
+                    issue.get("root_category", ""),
+                    issue.get("message", ""),
+                )
+                for issue in work_unit["issues"]
+            )
 
     tasks = []
     if not blockers:
@@ -705,6 +849,15 @@ def build_plan(audit, registry, profiles):
                     "status": _task_status(status_counts),
                     "status_counts": status_counts,
                     "work_units": sorted(task["work_units"]),
+                    "record_refs": sorted(
+                        task["record_refs"],
+                        key=lambda ref: (
+                            ref["manifest"], ref["record_key"]
+                        ),
+                    ),
+                    "issue_signatures": sorted(
+                        task["issue_signatures"]
+                    ),
                     "command": command,
                     "working_directory": stage["execution"][
                         "working_directory"
@@ -969,7 +1122,58 @@ def _task_identity(task):
     )
 
 
-def _refresh_after_task(task, refresh_plan, input_func=input):
+def _generation_task_identity(task):
+    return task["stage"], task["election"], task["party"]
+
+
+def _task_record_markers(task):
+    """Return run IDs proving which generated records existed before a task."""
+
+    markers = {}
+    manifests = {}
+    for reference in task.get("record_refs", []):
+        manifest_label = reference["manifest"]
+        if manifest_label not in manifests:
+            manifest_path = (
+                ANALYSIS_DIRECTORY / manifest_label
+            ).resolve()
+            manifests[manifest_label] = generated_provenance.load_manifest(
+                manifest_path
+            )
+        record_key = reference["record_key"]
+        record = manifests[manifest_label]["records"].get(record_key)
+        markers[(manifest_label, record_key)] = (
+            record.get("run") if record else None
+        )
+    return markers
+
+
+def _task_records_advanced(task, previous_markers):
+    if not previous_markers:
+        return False
+    current_markers = _task_record_markers(task)
+    return all(
+        current_markers.get(key) is not None
+        and current_markers.get(key) != previous_run
+        for key, previous_run in previous_markers.items()
+    )
+
+
+def _task_has_new_staleness(snapshot_task, refreshed_task):
+    return (
+        set(refreshed_task["work_units"])
+        != set(snapshot_task["work_units"])
+        or set(refreshed_task.get("issue_signatures", []))
+        != set(snapshot_task.get("issue_signatures", []))
+    )
+
+
+def _refresh_after_task(
+    task,
+    refresh_plan,
+    input_func=input,
+    run_log=None,
+):
     """Wait until post-task provenance is valid and the task has cleared."""
 
     while True:
@@ -998,6 +1202,13 @@ def _refresh_after_task(task, refresh_plan, input_func=input):
         ) as error:
             failure = str(error)
 
+        if run_log is not None:
+            run_log.event(
+                "TASK PROVENANCE ACTION REQUIRED",
+                stage=task["stage"],
+                target=_task_target(task),
+                problem=failure,
+            )
         print(
             "\nACTION REQUIRED: post-task provenance check failed:\n"
             "{}\n"
@@ -1009,45 +1220,104 @@ def _refresh_after_task(task, refresh_plan, input_func=input):
         input_func()
 
 
-def execute_calibration_plan(plan, refresh_plan, input_func=input):
-    """Execute one prevalidated calibration plan sequentially.
+def _refresh_generation_task(
+    task,
+    previous_markers,
+    refresh_plan,
+    input_func=input,
+    run_log=None,
+):
+    """Validate snapshot completion, deferring only newer external work."""
 
-    Calibration generators already record completed work incrementally. After
-    each command, rebuilding the plan is therefore both the completion check
-    and the minimal resume mechanism: a successful task must disappear from
-    the refreshed plan.
-    """
+    while True:
+        failure = None
+        try:
+            refreshed = refresh_plan()
+            if refreshed["blockers"]:
+                failure = refreshed["blockers"][0]["message"]
+            else:
+                matching_task = next(
+                    (
+                        current_task
+                        for current_task in refreshed["tasks"]
+                        if _generation_task_identity(current_task)
+                        == _generation_task_identity(task)
+                    ),
+                    None,
+                )
+                if matching_task is None:
+                    return refreshed
+                if (
+                    _task_has_new_staleness(task, matching_task)
+                    and _task_records_advanced(task, previous_markers)
+                ):
+                    return refreshed
+                failure = (
+                    "{} {} remains scheduled after completion".format(
+                        task["stage"], _task_target(task)
+                    )
+                )
+        except (
+            analysis_provenance.AnalysisProvenanceError,
+            generated_provenance.GeneratedProvenanceError,
+            pipeline_registry.RegistryError,
+            provenance_maintenance.ProvenanceMaintenanceError,
+            OSError,
+            ValueError,
+        ) as error:
+            failure = str(error)
 
-    if plan["profiles"] != ["calibration"]:
-        raise PipelineError(
-            "pipeline execution currently supports only the calibration "
-            "profile"
+        if run_log is not None:
+            run_log.event(
+                "TASK PROVENANCE ACTION REQUIRED",
+                stage=task["stage"],
+                target=_task_target(task),
+                problem=failure,
+            )
+        print(
+            "\nACTION REQUIRED: post-task provenance check failed:\n"
+            "{}\n"
+            "Resolve the issue, then press Enter to retry. "
+            "Press Ctrl-C to stop the pipeline.".format(failure),
+            file=sys.stderr,
+            flush=True,
         )
-    if plan["blockers"]:
-        raise PipelineError("cannot execute a blocked pipeline plan")
+        input_func()
 
-    tasks = list(plan["tasks"])
-    if not tasks:
-        print("No calibration tasks are required.")
-        return
 
-    current_plan = plan
+def _execute_generation_snapshot(
+    snapshot_tasks,
+    current_plan,
+    refresh_plan,
+    phase,
+    input_func,
+    run_log=None,
+):
+    """Execute one fixed task snapshot and return the refreshed plan."""
+
     completed = 0
-    for index, task in enumerate(tasks, start=1):
-        current_tasks = {
-            _task_identity(current_task)
-            for current_task in current_plan["tasks"]
-        }
-        if _task_identity(task) not in current_tasks:
+    for index, task in enumerate(snapshot_tasks, start=1):
+        matching_task = next(
+            (
+                current_task
+                for current_task in current_plan["tasks"]
+                if _generation_task_identity(current_task)
+                == _generation_task_identity(task)
+            ),
+            None,
+        )
+        if matching_task is None:
             continue
+        previous_markers = _task_record_markers(task)
 
         print(
             "\n"
             "============================================================\n"
-            "PIPELINE TASK {}/{}: {} {}\n"
+            "PIPELINE {} TASK {}/{}: {} {}\n"
             "============================================================".format(
+                phase,
                 index,
-                len(tasks),
+                len(snapshot_tasks),
                 task["stage"],
                 _task_target(task),
             ),
@@ -1057,18 +1327,51 @@ def execute_calibration_plan(plan, refresh_plan, input_func=input):
         working_directory = (
             ANALYSIS_DIRECTORY / task["working_directory"]
         ).resolve()
+        started = time.monotonic()
+        if run_log is not None:
+            run_log.event(
+                "TASK START",
+                phase=phase,
+                position=index,
+                task_count=len(snapshot_tasks),
+                stage=task["stage"],
+                target=_task_target(task),
+                command=shlex.join(task["command"]),
+                working_directory=str(working_directory),
+            )
         try:
-            result = subprocess.run(
-                task["command"],
-                cwd=str(working_directory),
+            result = (
+                run_log.run_command(task["command"], working_directory)
+                if run_log is not None
+                else subprocess.run(
+                    task["command"],
+                    cwd=str(working_directory),
+                )
             )
         except OSError as error:
+            if run_log is not None:
+                run_log.event(
+                    "TASK START FAILED",
+                    stage=task["stage"],
+                    target=_task_target(task),
+                    problem=str(error),
+                )
             raise PipelineError(
                 "could not start {} {}: {}".format(
                     task["stage"], _task_target(task), error
                 )
             ) from error
         if result.returncode:
+            if run_log is not None:
+                run_log.event(
+                    "TASK FAILED",
+                    stage=task["stage"],
+                    target=_task_target(task),
+                    exit_status=result.returncode,
+                    duration_seconds=round(
+                        time.monotonic() - started, 3
+                    ),
+                )
             raise PipelineError(
                 "{} {} failed with exit code {}".format(
                     task["stage"],
@@ -1077,24 +1380,222 @@ def execute_calibration_plan(plan, refresh_plan, input_func=input):
                 )
             )
 
-        current_plan = _refresh_after_task(
-            task, refresh_plan, input_func=input_func
+        current_plan = _refresh_generation_task(
+            task,
+            previous_markers,
+            refresh_plan,
+            input_func=input_func,
+            run_log=run_log,
         )
         completed += 1
+        if run_log is not None:
+            run_log.event(
+                "TASK VERIFIED",
+                stage=task["stage"],
+                target=_task_target(task),
+                exit_status=result.returncode,
+                duration_seconds=round(time.monotonic() - started, 3),
+            )
         print(
-            "PIPELINE TASK {}/{} RECORDED AS COMPLETE\n"
+            "PIPELINE {} TASK {}/{} RECORDED AS COMPLETE\n"
             "============================================================"
-            .format(index, len(tasks)),
+            .format(phase, index, len(snapshot_tasks)),
             flush=True,
         )
+    return current_plan, completed
 
+
+def _confirm_additional_follow_up(tasks, input_func):
     print(
-        "\nCalibration run completed successfully: {} command(s) run."
-        .format(completed)
+        "\n{} task(s) became actionable during the follow-up pass."
+        .format(len(tasks)),
+        flush=True,
+    )
+    for task in tasks[:DISPLAY_EXAMPLE_LIMIT]:
+        print("  {} {}".format(task["stage"], _task_target(task)))
+    if len(tasks) > DISPLAY_EXAMPLE_LIMIT:
+        print(
+            "  ... and {} more".format(
+                len(tasks) - DISPLAY_EXAMPLE_LIMIT
+            )
+        )
+    print(
+        "Run another refreshed follow-up pass? [y/N]",
+        flush=True,
+    )
+    try:
+        response = input_func().strip().casefold()
+    except EOFError:
+        return False
+    return response in {"y", "yes"}
+
+
+def _refresh_follow_up_plan(refresh_plan, input_func):
+    while True:
+        try:
+            refreshed = refresh_plan()
+            if not refreshed["blockers"]:
+                return refreshed
+            failure = refreshed["blockers"][0]["message"]
+        except (
+            analysis_provenance.AnalysisProvenanceError,
+            generated_provenance.GeneratedProvenanceError,
+            pipeline_registry.RegistryError,
+            provenance_maintenance.ProvenanceMaintenanceError,
+            OSError,
+            ValueError,
+        ) as error:
+            failure = str(error)
+        print(
+            "\nACTION REQUIRED: could not prepare the follow-up pass:\n"
+            "{}\n"
+            "Resolve the issue, then press Enter to retry. "
+            "Press Ctrl-C to stop the pipeline.".format(failure),
+            file=sys.stderr,
+            flush=True,
+        )
+        input_func()
+
+
+def execute_generation_plan(
+    plan,
+    refresh_plan,
+    input_func=input,
+    run_log=None,
+):
+    """Execute a primary snapshot plus user-controlled follow-up passes."""
+
+    if (
+        len(plan["profiles"]) != 1
+        or plan["profiles"][0] not in EXECUTABLE_GENERATION_PROFILES
+    ):
+        raise PipelineError(
+            "expected one executable generation profile: {}".format(
+                ", ".join(EXECUTABLE_GENERATION_PROFILES)
+            )
+        )
+    if plan["blockers"]:
+        raise PipelineError("cannot execute a blocked pipeline plan")
+
+    profile = plan["profiles"][0]
+    if not plan["tasks"]:
+        print("No {} tasks are required.".format(profile))
+        return {
+            "completed": 0,
+            "follow_up_passes": 0,
+            "deferred_tasks": [],
+        }
+
+    current_plan, completed = _execute_generation_snapshot(
+        list(plan["tasks"]),
+        plan,
+        refresh_plan,
+        "PRIMARY",
+        input_func,
+        run_log,
+    )
+    follow_up_passes = 0
+    if current_plan["tasks"]:
+        follow_up_passes = 1
+        follow_up_tasks = list(current_plan["tasks"])
+        print(
+            "\nPrimary snapshot complete. Running {} follow-up task(s)."
+            .format(len(follow_up_tasks)),
+            flush=True,
+        )
+        current_plan, pass_completed = _execute_generation_snapshot(
+            follow_up_tasks,
+            current_plan,
+            refresh_plan,
+            "FOLLOW-UP {}".format(follow_up_passes),
+            input_func,
+            run_log,
+        )
+        completed += pass_completed
+
+    while (
+        current_plan["tasks"]
+        and _confirm_additional_follow_up(
+            current_plan["tasks"], input_func
+        )
+    ):
+        current_plan = _refresh_follow_up_plan(
+            refresh_plan, input_func
+        )
+        if not current_plan["tasks"]:
+            break
+        follow_up_passes += 1
+        follow_up_tasks = list(current_plan["tasks"])
+        current_plan, pass_completed = _execute_generation_snapshot(
+            follow_up_tasks,
+            current_plan,
+            refresh_plan,
+            "FOLLOW-UP {}".format(follow_up_passes),
+            input_func,
+            run_log,
+        )
+        completed += pass_completed
+
+    deferred_tasks = list(current_plan["tasks"])
+    print(
+        "\n{} run completed successfully: {} command(s) run.".format(
+            profile, completed
+        )
+    )
+    if deferred_tasks:
+        print(
+            "{} task(s) remain deferred to the next run:".format(
+                len(deferred_tasks)
+            )
+        )
+        for task in deferred_tasks[:DISPLAY_EXAMPLE_LIMIT]:
+            print(
+                "  {} {}".format(task["stage"], _task_target(task))
+            )
+        if len(deferred_tasks) > DISPLAY_EXAMPLE_LIMIT:
+            print(
+                "  ... and {} more".format(
+                    len(deferred_tasks) - DISPLAY_EXAMPLE_LIMIT
+                )
+            )
+    if run_log is not None:
+        run_log.event(
+            "PLAN COMPLETE",
+            commands_run=completed,
+            follow_up_passes=follow_up_passes,
+            deferred_tasks=len(deferred_tasks),
+        )
+    return {
+        "completed": completed,
+        "follow_up_passes": follow_up_passes,
+        "deferred_tasks": deferred_tasks,
+    }
+
+
+def execute_calibration_plan(
+    plan,
+    refresh_plan,
+    input_func=input,
+    run_log=None,
+):
+    """Backward-compatible calibration-specific entry point."""
+
+    if plan["profiles"] != ["calibration"]:
+        raise PipelineError("expected a calibration plan")
+    return execute_generation_plan(
+        plan,
+        refresh_plan,
+        input_func=input_func,
+        run_log=run_log,
     )
 
 
-def execute_metadata_plan(plan, refresh_plan, input_func=input):
+def execute_metadata_plan(
+    plan,
+    refresh_plan,
+    input_func=input,
+    run_log=None,
+):
     """Apply ordered metadata upgrades without running data generators."""
 
     if plan["profiles"] != ["metadata"]:
@@ -1120,6 +1621,18 @@ def execute_metadata_plan(plan, refresh_plan, input_func=input):
             ),
             flush=True,
         )
+        started = time.monotonic()
+        if run_log is not None:
+            run_log.event(
+                "TASK START",
+                phase="METADATA",
+                position=index,
+                task_count=len(plan["tasks"]),
+                stage=task["stage"],
+                target=_task_target(task),
+                command="metadata-maintenance",
+                working_directory=str(ANALYSIS_DIRECTORY),
+            )
         manifest_path = (
             ANALYSIS_DIRECTORY / task["manifest"]
         ).resolve()
@@ -1127,11 +1640,68 @@ def execute_metadata_plan(plan, refresh_plan, input_func=input):
             manifest_path, task["work_units"][0]
         )
         current_plan = _refresh_after_task(
-            task, refresh_plan, input_func=input_func
+            task,
+            refresh_plan,
+            input_func=input_func,
+            run_log=run_log,
         )
+        if run_log is not None:
+            run_log.event(
+                "TASK VERIFIED",
+                stage=task["stage"],
+                target=_task_target(task),
+                upgrades_applied=count,
+                duration_seconds=round(time.monotonic() - started, 3),
+            )
         print(
             "Applied {} ordered provenance upgrade(s).".format(count),
             flush=True,
+        )
+    if run_log is not None:
+        run_log.event(
+            "PLAN COMPLETE",
+            commands_run=0,
+            metadata_tasks=len(plan["tasks"]),
+        )
+
+
+def _execute_plan_with_log(
+    plan,
+    refresh_plan,
+    target_elections,
+    input_func=input,
+):
+    profile = plan["profiles"][0]
+    try:
+        run_log = PipelineRunLog(profile, target_elections or [])
+    except OSError as error:
+        raise PipelineError(
+            "could not create pipeline log: {}".format(error)
+        ) from error
+    print(
+        "Pipeline log: {}".format(
+            run_log.path.relative_to(ANALYSIS_DIRECTORY)
+        ),
+        flush=True,
+    )
+    run_log.event(
+        "PLAN READY",
+        tasks=len(plan["tasks"]),
+        blockers=len(plan["blockers"]),
+    )
+    with run_log:
+        if profile == "metadata":
+            return execute_metadata_plan(
+                plan,
+                refresh_plan,
+                input_func=input_func,
+                run_log=run_log,
+            )
+        return execute_generation_plan(
+            plan,
+            refresh_plan,
+            input_func=input_func,
+            run_log=run_log,
         )
     print("\nMetadata maintenance completed successfully.")
 
@@ -1211,6 +1781,50 @@ def _load_audit(target_elections):
     return registry, audit
 
 
+def _load_plan_fresh(target_elections, profiles):
+    """Build a refreshed plan with the current on-disk Python modules."""
+
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "plan",
+        "--format",
+        "json",
+    ]
+    for election in sorted(target_elections):
+        command.extend(("--election", election))
+    for profile in sorted(profiles):
+        command.extend(("--profile", profile))
+    result = subprocess.run(
+        command,
+        cwd=str(ANALYSIS_DIRECTORY),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    try:
+        plan = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        problem = result.stderr.strip() or result.stdout.strip()
+        raise PipelineError(
+            "fresh pipeline plan failed{}: {}".format(
+                " with exit code {}".format(result.returncode)
+                if result.returncode
+                else "",
+                problem or "no machine-readable output",
+            )
+        ) from error
+    if result.returncode not in {0, 2}:
+        raise PipelineError(
+            "fresh pipeline plan failed with exit code {}: {}".format(
+                result.returncode,
+                result.stderr.strip() or "no error output",
+            )
+        )
+    return plan
+
+
 def run_interactive():
     """Open a menu-driven status and planning interface."""
 
@@ -1221,7 +1835,7 @@ def run_interactive():
             (
                 ("Show status", "status"),
                 ("Build regeneration plan", "plan"),
-                ("Run calibration plan", "run-calibration"),
+                ("Run generation plan", "run-generation"),
                 ("Run metadata maintenance", "run-metadata"),
                 ("Exit", "exit"),
             ),
@@ -1233,7 +1847,7 @@ def run_interactive():
                 []
                 if action == "run-metadata"
                 else _interactive_elections(
-                    required=action in {"plan", "run-calibration"}
+                    required=action in {"plan", "run-generation"}
                 )
             )
             if elections is None:
@@ -1242,23 +1856,39 @@ def run_interactive():
             registry, audit = _load_audit(target_elections)
             if action == "status":
                 print_status(build_status(audit, registry))
-            elif action == "run-calibration":
-                plan = build_plan(audit, registry, {"calibration"})
+            elif action == "run-generation":
+                profile = _interactive_select(
+                    "Choose a run profile",
+                    (
+                        ("Regular", "regular"),
+                        (
+                            "Regular with approval refresh",
+                            "regular-with-approvals",
+                        ),
+                        ("Calibration only", "calibration"),
+                        (
+                            "Historical cutoffs needed by target adjustments",
+                            "cutoffs",
+                        ),
+                    ),
+                )
+                if profile is None:
+                    return 0
+                plan = build_plan(audit, registry, {profile})
                 print_plan(plan)
                 if (
                     not plan["blockers"]
                     and plan["tasks"]
                     and _interactive_confirm(
-                        "Run these calibration commands now?"
+                        "Run these {} commands now?".format(profile)
                     )
                 ):
-                    execute_calibration_plan(
+                    _execute_plan_with_log(
                         plan,
-                        lambda: build_plan(
-                            _load_audit(target_elections)[1],
-                            registry,
-                            {"calibration"},
+                        lambda: _load_plan_fresh(
+                            target_elections, {profile}
                         ),
+                        target_elections,
                     )
             elif action == "run-metadata":
                 plan = build_plan(audit, registry, {"metadata"})
@@ -1270,13 +1900,12 @@ def run_interactive():
                         "Apply these metadata upgrades now?"
                     )
                 ):
-                    execute_metadata_plan(
+                    _execute_plan_with_log(
                         plan,
-                        lambda: build_plan(
-                            _load_audit(target_elections)[1],
-                            registry,
-                            {"metadata"},
+                        lambda: _load_plan_fresh(
+                            target_elections, {"metadata"}
                         ),
+                        target_elections,
                     )
             else:
                 profile = _interactive_select(
@@ -1371,9 +2000,9 @@ def build_parser():
     _add_election_arguments(run_parser)
     run_parser.add_argument(
         "--profile",
-        choices=("calibration", "metadata"),
+        choices=EXECUTABLE_GENERATION_PROFILES + ("metadata",),
         default="calibration",
-        help="Select calibration generation or metadata-only maintenance.",
+        help="Select a generation profile or metadata-only maintenance.",
     )
     return parser
 
@@ -1397,23 +2026,21 @@ def main(argv=None):
 
         if args.command == "run":
             profiles = {args.profile}
-            if args.profile == "calibration" and not target_elections:
+            if args.profile != "metadata" and not target_elections:
                 raise PipelineError(
-                    "the calibration profile requires --election"
+                    "generation profiles require at least one --election"
                 )
             plan = build_plan(audit, registry, profiles)
             print_plan(plan)
             if plan["blockers"]:
                 return 2
-            refresh = lambda: build_plan(
-                _load_audit(target_elections)[1],
-                registry,
+            refresh = lambda: _load_plan_fresh(
+                target_elections,
                 profiles,
             )
-            if args.profile == "metadata":
-                execute_metadata_plan(plan, refresh)
-            else:
-                execute_calibration_plan(plan, refresh)
+            _execute_plan_with_log(
+                plan, refresh, target_elections
+            )
             return 0
 
         profiles = set(args.profile or ["regular"])

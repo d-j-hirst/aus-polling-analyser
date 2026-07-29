@@ -11,21 +11,81 @@ import platform
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 import source_provenance
 
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
+
 
 SCHEMA_VERSION = 1
 SCHEMA_PATH = Path(__file__).with_name("generated_provenance.schema.json")
 SHA256_LENGTH = 64
 GENERATED_MANIFEST_SUFFIX = "generated-provenance.json"
+LOCK_RETRY_SECONDS = 0.05
 
 
 class GeneratedProvenanceError(ValueError):
     """Raised when generated provenance is invalid or cannot be verified."""
+
+
+class ConcurrentManifestUpdate(GeneratedProvenanceError):
+    """Raised when a record changed before its replacement was published."""
+
+
+class _ManifestWriteLock:
+    """Serialize the brief read-modify-write transaction for one manifest."""
+
+    def __init__(self, manifest_path):
+        manifest_path = Path(manifest_path)
+        self.path = manifest_path.with_name(manifest_path.name + ".lock")
+        self._file = None
+
+    def __enter__(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._file = self.path.open("a+b")
+        try:
+            if os.name == "nt":
+                self._file.seek(0, os.SEEK_END)
+                if self._file.tell() == 0:
+                    self._file.write(b"\0")
+                    self._file.flush()
+                while True:
+                    try:
+                        self._file.seek(0)
+                        msvcrt.locking(
+                            self._file.fileno(), msvcrt.LK_NBLCK, 1
+                        )
+                        break
+                    except OSError:
+                        time.sleep(LOCK_RETRY_SECONDS)
+            else:
+                fcntl.flock(self._file.fileno(), fcntl.LOCK_EX)
+        except BaseException:
+            self._file.close()
+            self._file = None
+            raise
+        return self
+
+    def __exit__(self, exception_type, exception, traceback):
+        try:
+            if os.name == "nt":
+                self._file.seek(0)
+                msvcrt.locking(
+                    self._file.fileno(), msvcrt.LK_UNLCK, 1
+                )
+            else:
+                fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)
+        finally:
+            self._file.close()
+            self._file = None
+        return False
 
 
 def _validate_manifest_path(path):
@@ -876,52 +936,71 @@ def _schema_reference(manifest_path):
 
 
 def update_manifest(
-    path, records, runs, path_base="..", description=None
+    path,
+    records,
+    runs,
+    path_base="..",
+    description=None,
+    expected_records=None,
 ):
     path = Path(path)
     _validate_manifest_path(path)
-    if path.exists():
-        manifest = load_manifest(path)
-        if manifest["path_base"] != path_base:
-            raise GeneratedProvenanceError(
-                "{} path_base is '{}', expected '{}'".format(
-                    path, manifest["path_base"], path_base
+    with _ManifestWriteLock(path):
+        if path.exists():
+            manifest = load_manifest(path)
+            if manifest["path_base"] != path_base:
+                raise GeneratedProvenanceError(
+                    "{} path_base is '{}', expected '{}'".format(
+                        path, manifest["path_base"], path_base
+                    )
                 )
-            )
-    else:
-        if not description:
-            raise GeneratedProvenanceError(
-                "description is required when creating a manifest"
-            )
-        manifest = {
-            "$schema": _schema_reference(path),
-            "schema_version": SCHEMA_VERSION,
-            "path_base": path_base,
-            "description": description,
-            "updated_at_utc": utc_now(),
-            "runs": {},
-            "records": {},
+        else:
+            if expected_records:
+                raise ConcurrentManifestUpdate(
+                    "{} was created during a record update".format(path)
+                )
+            if not description:
+                raise GeneratedProvenanceError(
+                    "description is required when creating a manifest"
+                )
+            manifest = {
+                "$schema": _schema_reference(path),
+                "schema_version": SCHEMA_VERSION,
+                "path_base": path_base,
+                "description": description,
+                "updated_at_utc": utc_now(),
+                "runs": {},
+                "records": {},
+            }
+        for record_key, expected_record in (
+            expected_records or {}
+        ).items():
+            if manifest["records"].get(record_key) != expected_record:
+                raise ConcurrentManifestUpdate(
+                    "{} record '{}' changed during update".format(
+                        path, record_key
+                    )
+                )
+        normalized_runs = {}
+        for run_id, run in runs.items():
+            normalized_run = dict(run)
+            normalized_run["environment"] = dict(run["environment"])
+            normalized_run["environment"].setdefault("packages", {})
+            normalized_runs[run_id] = normalized_run
+        manifest["runs"].update(normalized_runs)
+        manifest["records"].update(records)
+        referenced_runs = {
+            record["run"] for record in manifest["records"].values()
         }
-    normalized_runs = {}
-    for run_id, run in runs.items():
-        normalized_run = dict(run)
-        normalized_run["environment"] = dict(run["environment"])
-        normalized_run["environment"].setdefault("packages", {})
-        normalized_runs[run_id] = normalized_run
-    manifest["runs"].update(normalized_runs)
-    manifest["records"].update(records)
-    referenced_runs = {
-        record["run"] for record in manifest["records"].values()
-    }
-    manifest["runs"] = {
-        run_id: run
-        for run_id, run in manifest["runs"].items()
-        if run_id in referenced_runs
-    }
-    manifest["updated_at_utc"] = utc_now()
-    validate_manifest(manifest)
-    _atomic_write_json(path, manifest)
-    return manifest
+        manifest["runs"] = {
+            run_id: run
+            for run_id, run in manifest["runs"].items()
+            if run_id in referenced_runs
+        }
+        manifest["updated_at_utc"] = utc_now()
+        validate_manifest(manifest)
+        _atomic_write_json(path, manifest)
+        return manifest
 
 
 class ManifestCheckContext:
@@ -933,12 +1012,35 @@ class ManifestCheckContext:
         self.records_in_progress = set()
         self.source_cache = {}
         self.file_fingerprints = {}
+        self.expected_output_fingerprints = {}
         self.output_stats = {}
+        self.resolved_paths = {}
+
+    def resolve_path(self, path):
+        path_key = str(Path(path))
+        if path_key not in self.resolved_paths:
+            self.resolved_paths[path_key] = Path(path).resolve()
+        return self.resolved_paths[path_key]
 
     def load_manifest(self, path):
-        resolved_path = str(Path(path).resolve())
+        resolved_path = str(self.resolve_path(path))
         if resolved_path not in self.manifests:
-            self.manifests[resolved_path] = load_manifest(resolved_path)
+            manifest = load_manifest(resolved_path)
+            self.manifests[resolved_path] = manifest
+            base_directory = self.resolve_path(
+                Path(resolved_path).parent / manifest["path_base"]
+            )
+            for record in manifest["records"].values():
+                for output_path, fingerprint in record["outputs"].items():
+                    path_key = str(base_directory / output_path)
+                    existing = self.expected_output_fingerprints.get(path_key)
+                    if existing is None:
+                        self.expected_output_fingerprints[path_key] = (
+                            fingerprint
+                        )
+                    elif existing != fingerprint:
+                        # Conflicting records cannot provide a safe fast path.
+                        self.expected_output_fingerprints[path_key] = False
         return self.manifests[resolved_path]
 
     @staticmethod
@@ -973,6 +1075,26 @@ class ManifestCheckContext:
             _, stat = self._stat_output(path_key)
             self.output_stats[path_key] = stat
         return self.output_stats[path_key]
+
+    def fingerprint_file(self, path):
+        """Hash a file only when recorded output metadata cannot verify it."""
+
+        path_key = str(Path(path))
+        if path_key in self.file_fingerprints:
+            return self.file_fingerprints[path_key]
+        stat = self.output_stat(path_key)
+        expected = self.expected_output_fingerprints.get(path_key)
+        if (
+            stat is not None
+            and expected
+            and expected.get("mtime_ns") == stat.st_mtime_ns
+            and expected["size_bytes"] == stat.st_size
+        ):
+            fingerprint = expected
+        else:
+            fingerprint = fingerprint_file(path_key)
+        self.file_fingerprints[path_key] = fingerprint
+        return fingerprint
 
 
 def check_record(
@@ -1027,23 +1149,37 @@ def check_record(
     )
     for category_id, dependency in record["dependencies"].items():
         if dependency["kind"] == "files":
-            current = file_dependency(
-                category_id,
-                [Path(base_directory) / path for path in dependency["files"]],
-                base_directory,
-                fingerprint_cache=(
-                    check_context.file_fingerprints
-                    if check_context is not None
-                    else None
-                ),
-            )
+            dependency_files = [
+                Path(base_directory) / path
+                for path in dependency["files"]
+            ]
+            if check_context is None:
+                current = file_dependency(
+                    category_id,
+                    dependency_files,
+                    base_directory,
+                )
+            else:
+                fingerprints = {
+                    relative_path: check_context.fingerprint_file(
+                        Path(base_directory) / relative_path
+                    )
+                    for relative_path in dependency["files"]
+                }
+                current = {
+                    "digest": fingerprint_digest(fingerprints),
+                }
             if current["digest"] != dependency["digest"]:
                 issues.append("changed dependency {}".format(category_id))
             continue
 
         manifest_path = Path(base_directory) / dependency["manifest"]
         if dependency["kind"] == "generated_manifest":
-            cache_key = str(manifest_path.resolve())
+            cache_key = str(
+                check_context.resolve_path(manifest_path)
+                if check_context is not None
+                else manifest_path.resolve()
+            )
             try:
                 if check_context is not None:
                     generated_manifest = check_context.load_manifest(
@@ -1103,7 +1239,14 @@ def check_record(
                 )
             continue
 
-        cache_key = (str(manifest_path.resolve()), category_id)
+        cache_key = (
+            str(
+                check_context.resolve_path(manifest_path)
+                if check_context is not None
+                else manifest_path.resolve()
+            ),
+            category_id,
+        )
         try:
             if cache_key not in source_cache:
                 source_manifest = source_provenance.load_manifest(
@@ -1188,11 +1331,11 @@ def check_manifest(path, record_keys=None, _context=None):
     """Check selected records, sharing repeated work across dependencies."""
 
     context = _context or ManifestCheckContext()
-    resolved_path = Path(path).resolve()
+    resolved_path = context.resolve_path(path)
     manifest = context.load_manifest(resolved_path)
-    base_directory = (
+    base_directory = context.resolve_path(
         resolved_path.parent / manifest["path_base"]
-    ).resolve()
+    )
     if record_keys is None:
         selected_keys = list(manifest["records"])
     else:

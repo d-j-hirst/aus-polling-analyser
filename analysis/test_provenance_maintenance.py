@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import generated_provenance
 import provenance_maintenance
@@ -133,6 +134,32 @@ class ProvenanceMaintenanceTests(unittest.TestCase):
             provenance_maintenance.maintain_record(
                 self.generated_manifest, "test_outputs:2026vic"
             )
+
+    def test_metadata_upgrade_retries_after_concurrent_publication(self):
+        self._record_provenance_change()
+        original_update = generated_provenance.update_manifest
+        attempts = 0
+
+        def update_with_one_conflict(*args, **kwargs):
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise generated_provenance.ConcurrentManifestUpdate(
+                    "test conflict"
+                )
+            return original_update(*args, **kwargs)
+
+        with mock.patch.object(
+            generated_provenance,
+            "update_manifest",
+            side_effect=update_with_one_conflict,
+        ):
+            applied = provenance_maintenance.maintain_record(
+                self.generated_manifest, "test_outputs:2026vic"
+            )
+
+        self.assertEqual(attempts, 2)
+        self.assertEqual(applied, 1)
 
 
 if __name__ == "__main__":

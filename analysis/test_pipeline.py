@@ -1,7 +1,11 @@
+import json
+import sys
+import tempfile
 import unittest
 from collections import defaultdict
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+from pathlib import Path
 from unittest import mock
 
 import generated_provenance
@@ -108,6 +112,84 @@ class PipelineTests(unittest.TestCase):
             audit, self.registry, include_details=True
         )
         self.assertEqual(len(detailed["work_units"]), 1)
+
+    def test_run_log_tees_subprocess_output_and_records_lifecycle(self):
+        terminal_stdout = StringIO()
+        terminal_stderr = StringIO()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with redirect_stdout(terminal_stdout), redirect_stderr(
+                terminal_stderr
+            ):
+                with pipeline.PipelineRunLog(
+                    "regular",
+                    ["2026vic"],
+                    log_directory=Path(temporary_directory),
+                ) as run_log:
+                    run_log.event("PLAN READY", tasks=1)
+                    result = run_log.run_command(
+                        [
+                            sys.executable,
+                            "-c",
+                            (
+                                "import sys; "
+                                "print('standard output', flush=True); "
+                                "print('standard error', file=sys.stderr, "
+                                "flush=True)"
+                            ),
+                        ],
+                        Path(temporary_directory),
+                    )
+                log_text = run_log.path.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("standard output", terminal_stdout.getvalue())
+        self.assertIn("standard error", terminal_stderr.getvalue())
+        self.assertIn("RUN START", log_text)
+        self.assertIn("PLAN READY", log_text)
+        self.assertIn("standard output", log_text)
+        self.assertIn("standard error", log_text)
+        self.assertIn("RUN COMPLETE", log_text)
+
+    def test_fresh_plan_uses_a_new_python_process(self):
+        expected = {
+            "profiles": ["calibration"],
+            "blockers": [],
+            "tasks": [],
+        }
+        completed = mock.Mock(
+            returncode=0,
+            stdout=json.dumps(expected),
+            stderr="",
+        )
+
+        with mock.patch.object(
+            pipeline.subprocess, "run", return_value=completed
+        ) as run:
+            result = pipeline._load_plan_fresh(
+                {"2028fed", "2026sa"}, {"calibration"}
+            )
+
+        self.assertEqual(result, expected)
+        run.assert_called_once_with(
+            [
+                sys.executable,
+                str(Path(pipeline.__file__).resolve()),
+                "plan",
+                "--format",
+                "json",
+                "--election",
+                "2026sa",
+                "--election",
+                "2028fed",
+                "--profile",
+                "calibration",
+            ],
+            cwd=str(pipeline.ANALYSIS_DIRECTORY),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
 
     def test_regular_plan_groups_party_records_into_one_election(self):
         audit = audit_result(
@@ -306,6 +388,262 @@ class PipelineTests(unittest.TestCase):
                     lambda: plan,
                     input_func=mock.Mock(side_effect=KeyboardInterrupt),
                 )
+
+    def test_generation_executor_runs_regular_profile(self):
+        task = {
+            "stage": "generate_poll_trends",
+            "run_class": "regular",
+            "election": "2026vic",
+            "party": None,
+            "status": "stale",
+            "status_counts": {"stale": 1},
+            "work_units": ["poll_trend_outputs:2026vic:@TPP"],
+            "command": [
+                "python",
+                "run_fp_model.py",
+                "--election",
+                "2026-vic",
+            ],
+            "working_directory": ".",
+        }
+        plan = {
+            "profiles": ["regular"],
+            "blockers": [],
+            "tasks": [task],
+        }
+        clear = {
+            "profiles": ["regular"],
+            "blockers": [],
+            "tasks": [],
+        }
+
+        with mock.patch.object(
+            pipeline.subprocess,
+            "run",
+            return_value=mock.Mock(returncode=0),
+        ) as run:
+            pipeline.execute_generation_plan(plan, lambda: clear)
+
+        run.assert_called_once_with(
+            task["command"],
+            cwd=str(pipeline.ANALYSIS_DIRECTORY.resolve()),
+        )
+
+    def test_generation_executor_records_task_lifecycle(self):
+        task = {
+            "stage": "generate_poll_trends",
+            "run_class": "regular",
+            "election": "2026vic",
+            "party": None,
+            "status": "stale",
+            "status_counts": {"stale": 1},
+            "work_units": ["poll_trend_outputs:2026vic:@TPP"],
+            "command": ["python", "run_fp_model.py", "--election", "2026-vic"],
+            "working_directory": ".",
+        }
+        plan = {
+            "profiles": ["regular"],
+            "blockers": [],
+            "tasks": [task],
+        }
+        clear = {
+            "profiles": ["regular"],
+            "blockers": [],
+            "tasks": [],
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            with pipeline.PipelineRunLog(
+                "regular",
+                ["2026vic"],
+                log_directory=Path(temporary_directory),
+            ) as run_log, mock.patch.object(
+                run_log,
+                "run_command",
+                return_value=mock.Mock(returncode=0),
+            ):
+                pipeline.execute_generation_plan(
+                    plan,
+                    lambda: clear,
+                    run_log=run_log,
+                )
+            log_text = run_log.path.read_text(encoding="utf-8")
+
+        self.assertIn("TASK START", log_text)
+        self.assertIn("TASK VERIFIED", log_text)
+        self.assertIn("PLAN COMPLETE", log_text)
+        self.assertIn('"generate_poll_trends"', log_text)
+
+    def test_generation_executor_rejects_all_profile(self):
+        plan = {
+            "profiles": ["all"],
+            "blockers": [],
+            "tasks": [],
+        }
+
+        with self.assertRaisesRegex(
+            pipeline.PipelineError,
+            "expected one executable generation profile",
+        ):
+            pipeline.execute_generation_plan(plan, lambda: plan)
+
+    def test_generation_executor_runs_one_automatic_follow_up(self):
+        upstream = {
+            "stage": "analyse_pollsters",
+            "run_class": "pollster_analysis",
+            "election": "2026vic",
+            "party": None,
+            "status": "stale",
+            "status_counts": {"stale": 1},
+            "work_units": ["pollster_parameters:2026vic"],
+            "command": [
+                "python",
+                "pollster_analysis.py",
+                "--election",
+                "2026-vic",
+            ],
+            "working_directory": ".",
+        }
+        downstream = {
+            **upstream,
+            "stage": "generate_poll_trends",
+            "run_class": "regular",
+            "work_units": ["poll_trend_outputs:2026vic:@TPP"],
+            "command": [
+                "python",
+                "run_fp_model.py",
+                "--election",
+                "2026-vic",
+            ],
+        }
+        initial = {
+            "profiles": ["regular"],
+            "blockers": [],
+            "tasks": [upstream],
+        }
+        refreshed = iter(
+            [
+                {
+                    "profiles": ["regular"],
+                    "blockers": [],
+                    "tasks": [downstream],
+                },
+                {
+                    "profiles": ["regular"],
+                    "blockers": [],
+                    "tasks": [],
+                },
+            ]
+        )
+
+        with mock.patch.object(
+            pipeline.subprocess,
+            "run",
+            return_value=mock.Mock(returncode=0),
+        ) as run:
+            result = pipeline.execute_generation_plan(
+                initial, lambda: next(refreshed)
+            )
+
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(result["completed"], 2)
+        self.assertEqual(result["follow_up_passes"], 1)
+        self.assertEqual(result["deferred_tasks"], [])
+
+    def test_generation_executor_prompts_before_further_follow_ups(self):
+        task = {
+            "stage": "generate_poll_trends",
+            "run_class": "regular",
+            "election": "2028fed",
+            "party": None,
+            "status": "stale",
+            "status_counts": {"stale": 1},
+            "work_units": ["poll_trend_outputs:2028fed:@TPP"],
+            "record_refs": [
+                {
+                    "manifest": "Outputs/generated-provenance.json",
+                    "record_key": "poll_trend_outputs:2028fed:@TPP",
+                }
+            ],
+            "issue_signatures": ["old source revision"],
+            "command": [
+                "python",
+                "run_fp_model.py",
+                "--election",
+                "2028-fed",
+            ],
+            "working_directory": ".",
+        }
+        first_update = {
+            **task,
+            "issue_signatures": ["new source revision"],
+        }
+        second_update = {
+            **task,
+            "issue_signatures": ["newer source revision"],
+        }
+        third_update = {
+            **task,
+            "issue_signatures": ["newest source revision"],
+        }
+        initial = {
+            "profiles": ["regular"],
+            "blockers": [],
+            "tasks": [task],
+        }
+        refreshed = iter(
+            [
+                {
+                    "profiles": ["regular"],
+                    "blockers": [],
+                    "tasks": [first_update],
+                },
+                {
+                    "profiles": ["regular"],
+                    "blockers": [],
+                    "tasks": [second_update],
+                },
+                {
+                    "profiles": ["regular"],
+                    "blockers": [],
+                    "tasks": [second_update],
+                },
+                {
+                    "profiles": ["regular"],
+                    "blockers": [],
+                    "tasks": [third_update],
+                },
+            ]
+        )
+        input_func = mock.Mock(side_effect=["y", "n"])
+
+        with mock.patch.object(
+            pipeline.subprocess,
+            "run",
+            return_value=mock.Mock(returncode=0),
+        ), mock.patch.object(
+            pipeline,
+            "_task_record_markers",
+            side_effect=[
+                {("manifest", "record"): "old-run"},
+                {("manifest", "record"): "run-1"},
+                {("manifest", "record"): "run-1"},
+                {("manifest", "record"): "run-2"},
+                {("manifest", "record"): "run-2"},
+                {("manifest", "record"): "run-3"},
+            ],
+        ) as markers:
+            result = pipeline.execute_generation_plan(
+                initial,
+                lambda: next(refreshed),
+                input_func=input_func,
+            )
+
+        self.assertEqual(result["completed"], 3)
+        self.assertEqual(result["follow_up_passes"], 2)
+        self.assertEqual(result["deferred_tasks"], [third_update])
+        self.assertEqual(input_func.call_args_list, [mock.call(), mock.call()])
+        self.assertEqual(markers.call_count, 6)
 
     def test_post_task_provenance_failure_retries_after_input(self):
         task = {
@@ -508,6 +846,41 @@ class PipelineTests(unittest.TestCase):
             [
                 ("analyse_pollsters", "2026vic"),
                 ("generate_poll_trends", "2026vic"),
+            ],
+        )
+
+    def test_regular_plan_precomputes_downstream_refresh(self):
+        pollsters = work_unit(
+            "pollster_parameters:2026vic",
+            "pollster_parameters",
+            "analyse_pollsters",
+            "stale",
+            "2026vic",
+        )
+        final = work_unit(
+            "poll_trend_outputs:2026vic:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "current",
+            "2026vic",
+            "@TPP",
+            dependencies=[pollsters["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([pollsters, final]),
+            self.registry,
+            {"regular"},
+        )
+
+        self.assertEqual(
+            [
+                (task["stage"], task["status"])
+                for task in plan["tasks"]
+            ],
+            [
+                ("analyse_pollsters", "stale"),
+                ("generate_poll_trends", "dependency-refresh"),
             ],
         )
 
@@ -956,6 +1329,22 @@ class PipelineTests(unittest.TestCase):
             pipeline, "_interactive_select", return_value="exit"
         ):
             self.assertEqual(pipeline.main([]), 0)
+
+    def test_run_parser_accepts_each_generation_profile(self):
+        parser = pipeline.build_parser()
+
+        for profile in pipeline.EXECUTABLE_GENERATION_PROFILES:
+            with self.subTest(profile=profile):
+                args = parser.parse_args(
+                    [
+                        "run",
+                        "--election",
+                        "2026vic",
+                        "--profile",
+                        profile,
+                    ]
+                )
+                self.assertEqual(args.profile, profile)
 
     def test_text_plan_is_concise_unless_details_are_requested(self):
         audit = audit_result(

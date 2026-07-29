@@ -1,8 +1,23 @@
+"""Acquire and cache historical lower-house election results.
+
+The downloader intentionally remains source-specific. Wikipedia's historical
+tables are not a stable data API, so new elections and unusual old tables may
+need explicit corrections below. Once downloaded, the pickle is the working
+cache used by election analysis and by ``election_store.py``; routine analysis
+does not contact the network.
+"""
+
+import os
+from pathlib import Path
 import pickle
 import re
-import requests
+
 from election_code import ElectionCode
 
+
+ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
+ELECTION_CACHE_DIRECTORY = ANALYSIS_DIRECTORY / 'elections'
+REQUEST_TIMEOUT_SECONDS = 30
 
 state_page = {'nsw': 'New South Wales',
               'vic': "Victoria (Australia)",
@@ -24,6 +39,35 @@ previous_names = [
 ]
 
 default_headers = {'User-Agent': 'AEF Occasional Data Updating (https://www.aeforecasts.com/; aeforecasts@gmail.com)'}
+
+
+def _download_page(url, headers):
+    """Return the historical byte-string representation used by the parser."""
+    # Keep requests optional for cache-only consumers such as election_store.
+    import requests
+
+    response = requests.get(
+        url,
+        headers=headers,
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    # The parsing rules below predate requests' text decoding and explicitly
+    # handle byte escape sequences. Preserve that representation here.
+    return str(response.content)
+
+
+def _write_pickle_atomically(filename, value):
+    """Replace a cache only after its complete pickle has been written."""
+    temporary_filename = filename.with_name(filename.name + '.tmp')
+    try:
+        with open(temporary_filename, 'wb') as pkl:
+            pickle.dump(value, pkl, pickle.HIGHEST_PROTOCOL)
+        os.replace(temporary_filename, filename)
+    finally:
+        if temporary_filename.exists():
+            temporary_filename.unlink()
+
 
 class ElectionResults:
     def __init__(self, name, download):
@@ -228,8 +272,15 @@ class AllElections:
 
 
 def collect_seat_urls(seat_url_dict, url, pattern):
-    content_category = str(requests.get(url, headers=default_headers).content)
-    content_category = content_category.split('div class="mw-category mw-category-columns"')[1].split('<noscript>')[0]
+    content_category = _download_page(url, default_headers)
+    try:
+        content_category = content_category.split(
+            'div class="mw-category mw-category-columns"', 1
+        )[1].split('<noscript>', 1)[0]
+    except IndexError as error:
+        raise ValueError(
+            f'Could not locate the seat list in Wikipedia category {url}'
+        ) from error
     matches_category = re.findall(pattern, content_category)
     for match in matches_category:
         name = match[1].split(" (")[0].replace('&#039;', "'")
@@ -263,9 +314,10 @@ def fetch_seat_urls_state(state):
         collect_seat_urls(seat_urls,
                           f'https://en.wikipedia.org/w/index.php?title=Category:New_South_Wales_state_electoral_results_by_district&pagefrom=Marrickville',
                           state_pattern)
-        if (state == 'nsw'):
-            for seat_name in ['Kellyville', 'Leppington', 'Wahroonga', 'Winston Hills']:
-                seat_urls[seat_name] = {f'wiki/Electoral_district_of_{seat_name.replace(" ", "_")}'}
+        for seat_name in ['Kellyville', 'Leppington', 'Wahroonga', 'Winston Hills']:
+            seat_urls[seat_name] = {
+                f'wiki/Electoral_district_of_{seat_name.replace(" ", "_")}'
+            }
     elif state == 'vic':
         collect_seat_urls(seat_urls,
                           f'https://en.wikipedia.org/w/index.php?title=Category:Victoria_(state)_state_electoral_results_by_district',
@@ -281,7 +333,7 @@ def fetch_seat_urls_state(state):
 
 
 def generic_download(state, year, allow_download=True):
-    filename = f'elections/{year}{state}_results.pkl'
+    filename = ELECTION_CACHE_DIRECTORY / f'{year}{state}_results.pkl'
     try:
         with open(filename, 'rb') as pkl:
             all_results = pickle.load(pkl)
@@ -292,18 +344,22 @@ def generic_download(state, year, allow_download=True):
                 f'Required cached election results are missing: {filename}. '
                 'Run election_data.py when the source results are available.'
             )
+    ELECTION_CACHE_DIRECTORY.mkdir(parents=True, exist_ok=True)
     all_results = SavedResults()
     seat_urls = fetch_seat_urls_state(state)
     for seat_name, url_list in seat_urls.items():
-        for url in url_list:
+        # A seat can have several historical page aliases. Sorting makes a
+        # clean cache rebuild reproducible when only one alias contains the
+        # requested election.
+        for url in sorted(url_list):
             seat_results = SeatResults(seat_name)
             full_url = f'https://en.wikipedia.org/{url}'
-            # This lines makes sure we don't get old data
+            # Avoid a cached page when acquiring a newly completed election.
             headers = {
                 'User-Agent' : default_headers['User-Agent'],
                 'Cache-Control': 'no-cache'
             }
-            content = str(requests.get(full_url, headers=headers).content)
+            content = _download_page(full_url, headers)
             content = content.replace('\\r','\r').replace('\\n','\n').replace("\\'","'")
             content = content.replace('&amp;','&').replace('\\xe2\\x88\\x92', '-')
             content = content.replace('\\xe2\\x80\\x93', '-')
@@ -373,6 +429,11 @@ def generic_download(state, year, allow_download=True):
                         votes=int('0'+match[2].replace(',','').replace('.','').strip()),
                         percent=float(match[3].strip()),
                         swing=swing))
+                if len(seat_results.tcp) < 2:
+                    raise ValueError(
+                        f'Could not parse two TCP candidates for '
+                        f'{year}{state} seat {seat_name}'
+                    )
                 if seat_name == 'Barambah' and year == 1989:
                     seat_results.tcp[0].votes = 8497
                     seat_results.tcp[1].votes = 3404
@@ -403,20 +464,38 @@ def generic_download(state, year, allow_download=True):
                     pass  # If one of the above values is none,
                         # it's fine to just skip the check altogether
             else:
+                # In a two-candidate contest with no separate TCP table, the
+                # FP rows are also the best available TCP result.
                 seat_results.tcp = seat_results.fp
-                if None not in (x.swing for x in seat_results.tcp):
+                if all(x.swing is not None for x in seat_results.tcp):
                     # Remove swing where the tcp swing isn't the same
                     # as fp swing (evidenced by it not adding to 0)
                     if sum(x.swing for x in seat_results.tcp) != 0:
                         for x in seat_results.tcp:
                             x.swing = None
             seat_results.order()
+            if any(
+                existing.name == seat_results.name
+                for existing in all_results.results
+            ):
+                raise ValueError(
+                    f'Duplicate result found for {year}{state} seat '
+                    f'{seat_results.name}'
+                )
             all_results.results.append(seat_results)
-    with open(filename, 'wb') as pkl:
-        pickle.dump(all_results, pkl, pickle.HIGHEST_PROTOCOL)
+    _write_pickle_atomically(filename, all_results)
     print(f'Downloaded election from Wikipedia: {year}{state}')
     return all_results.results
 
 
+def main():
+    # When this file is executed directly, classes defined in it would normally
+    # be pickled as ``__main__.SavedResults`` etc. Importing the collection via
+    # its stable module name keeps new caches readable by later processes.
+    from election_data import AllElections as ImportableAllElections
+
+    ImportableAllElections()
+
+
 if __name__ == '__main__':
-    elections = AllElections()
+    main()

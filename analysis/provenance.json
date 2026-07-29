@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-27T01:41:24Z",
+  "updated_at_utc": "2026-07-29T03:48:58Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -15,9 +15,9 @@
       "semantic_revision": 1,
       "files": {
         "election_store.py": {
-          "sha256": "2cdb0be520656329c57485e04a0cd9e779a98532d79833d82e4c9ac0af10fd73",
-          "size_bytes": 4064,
-          "recorded_mtime_utc": "2026-07-24T01:26:33.803541Z"
+          "sha256": "20b6e6cd1743240aa12016f7fec73e70037e2292676a314ac399525055c72fa1",
+          "size_bytes": 4673,
+          "recorded_mtime_utc": "2026-07-29T03:46:18.220234Z"
         }
       },
       "events": [
@@ -110,8 +110,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T034858Z-correction-election-store-script-82e6be48",
+          "recorded_at_utc": "2026-07-29T03:48:58Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented the cache-to-C++ export boundary and made export-directory handling path-independent without changing output.",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "election_check_script": {
       "description": "Election-result validation and party simplification.",
@@ -122,9 +142,9 @@
       "semantic_revision": 1,
       "files": {
         "election_check.py": {
-          "sha256": "f7096f062bf5341b61dd51bc24a1d3920accf1c045ec719688d95b9d421b32fa",
-          "size_bytes": 8060,
-          "recorded_mtime_utc": "2026-07-23T23:49:24.193482Z"
+          "sha256": "717084da48fa9149e0c1094ed4fb31b425967958a2aab709c3c1c695555b4acf",
+          "size_bytes": 9579,
+          "recorded_mtime_utc": "2026-07-29T03:45:08.488521Z"
         }
       },
       "events": [
@@ -145,8 +165,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T034858Z-correction-election-check-script-96964ffe",
+          "recorded_at_utc": "2026-07-29T03:48:58Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented advisory checks and made party-simplification loading path-independent with strict format validation.",
+          "files": [
+            "election_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "election_data_script": {
       "description": "Election-result acquisition, parsing, source corrections and internal pickle handling.",
@@ -157,9 +197,9 @@
       "semantic_revision": 1,
       "files": {
         "election_data.py": {
-          "sha256": "a7bc8dabe051085df4e41ce58370be75211b99aa17d82e8daaeb5800b9a21ed0",
-          "size_bytes": 19210,
-          "recorded_mtime_utc": "2026-07-24T01:28:20.099921Z"
+          "sha256": "839158914bcf43964579306e78284c50b033e2111531ddd6e3e8f151cbaaa08a",
+          "size_bytes": 22176,
+          "recorded_mtime_utc": "2026-07-29T03:46:15.800018Z"
         }
       },
       "events": [
@@ -216,8 +256,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T034816Z-correction-election-data-script-db11a8b3",
+          "recorded_at_utc": "2026-07-29T03:48:16Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Made election acquisition path-independent, bounded and atomic, and ensured directly generated pickle caches retain an importable class identity.",
+          "files": [
+            "election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "election_code_script": {
       "description": "Stable election identifiers used throughout election-result processing.",
@@ -1878,17 +1938,17 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
-      "provenance_revision": 4,
+      "provenance_revision": 15,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "8abe233cb2ee3a3b2237b4e92fa423f6d9d717b45727c9124322dfdf89675053",
-          "size_bytes": 64345,
-          "recorded_mtime_utc": "2026-07-27T00:30:05.884341Z"
+          "sha256": "22f09ce4d2a149a70008210926d9446305c17b1e53c83ffeba20ac5bc20f09e8",
+          "size_bytes": 65358,
+          "recorded_mtime_utc": "2026-07-29T01:52:42.130365Z"
         },
         "pipeline.py": {
-          "sha256": "d466a927177b45025ef7c8db91a68c81158931d1a53935c0c1c423eff52f7bca",
-          "size_bytes": 46979,
-          "recorded_mtime_utc": "2026-07-27T00:28:25.284385Z"
+          "sha256": "95efff566251cd1d4f5feabc011174d5140df3a58909fc958f56c1336d58ac6a",
+          "size_bytes": 66029,
+          "recorded_mtime_utc": "2026-07-29T03:19:39.033128Z"
         },
         "pipeline_registry.json": {
           "sha256": "26fe10ff19e14c1d39479d0e41ad05f70c88b2e3c844ace30b0b4b6d13f3b4df",
@@ -1901,9 +1961,9 @@
           "recorded_mtime_utc": "2026-07-26T05:35:53.353473Z"
         },
         "provenance_maintenance.py": {
-          "sha256": "c07813076fe2e5bc3382418d930902685958248b7fbb7d53c85644afd66cceb6",
-          "size_bytes": 5886,
-          "recorded_mtime_utc": "2026-07-27T00:12:42.068063Z"
+          "sha256": "a00ceba017457af436aa5da2709d9e73cf29170899446a15ab0b6f300a1cbd69",
+          "size_bytes": 6395,
+          "recorded_mtime_utc": "2026-07-29T02:41:20.347262Z"
         }
       },
       "events": [
@@ -2227,6 +2287,226 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260728T235622Z-methodology-pipeline-orchestration-tools-17a71d23",
+          "recorded_at_utc": "2026-07-28T23:56:22Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 5,
+          "summary": "Enabled sequential execution for regular, approval-refresh and cutoff pipeline profiles using the existing provenance-checked runner.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T000348Z-correction-pipeline-orchestration-tools-95df5081",
+          "recorded_at_utc": "2026-07-29T00:03:48Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 6,
+          "summary": "Made generation execution follow refreshed plans until all newly actionable downstream tasks are complete.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T002802Z-correction-pipeline-orchestration-tools-25509ae0",
+          "recorded_at_utc": "2026-07-29T00:28:02Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 7,
+          "summary": "Freeze generation runs to their initial downstream-closed task snapshot and defer work created by later changes.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T004407Z-correction-pipeline-orchestration-tools-be4610dc",
+          "recorded_at_utc": "2026-07-29T00:44:07Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 8,
+          "summary": "Run one automatic post-snapshot follow-up and prompt before each further refreshed pass.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T010459Z-correction-pipeline-orchestration-tools-3a2475d6",
+          "recorded_at_utc": "2026-07-29T01:04:59Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 9,
+          "summary": "Made election-scoped registration the interactive default and required explicit confirmation for all-election impacts.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T015426Z-correction-pipeline-orchestration-tools-03be7495",
+          "recorded_at_utc": "2026-07-29T01:54:26Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 10,
+          "summary": "Avoided rehashing unchanged recorded outputs and cached repeated manifest path resolution during provenance audits.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T021538Z-coverage_extension-pipeline-orchestration-tools-c87872f2",
+          "recorded_at_utc": "2026-07-29T02:15:38Z",
+          "change_type": "coverage_extension",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 11,
+          "summary": "Added durable per-run pipeline logs with subprocess output teeing and structured task lifecycle records.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T021724Z-correction-pipeline-orchestration-tools-56b22297",
+          "recorded_at_utc": "2026-07-29T02:17:24Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 12,
+          "summary": "Kept logged child-process progress unbuffered while teeing it to the terminal and run log.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T023939Z-correction-pipeline-orchestration-tools-4d536915",
+          "recorded_at_utc": "2026-07-29T02:39:39Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 13,
+          "summary": "Allow concurrent pipeline runs by removing the process-wide execution lock; shared generated manifests are protected only during publication.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T024233Z-correction-pipeline-orchestration-tools-0d0604e1",
+          "recorded_at_utc": "2026-07-29T02:42:33Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 14,
+          "summary": "Retry metadata-only upgrades from the latest record when a generator publishes the same work unit concurrently.",
+          "files": [
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T032123Z-correction-pipeline-orchestration-tools-a8e3762d",
+          "recorded_at_utc": "2026-07-29T03:21:23Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 15,
+          "summary": "Build every post-task plan in a fresh process so long-running pipelines do not validate with provenance modules superseded during Stan execution.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ]
     },
@@ -2242,9 +2522,9 @@
       "semantic_revision": 1,
       "files": {
         "generated_provenance.py": {
-          "sha256": "c781c2aca45fa23808cfb70d6cbcbc2a0e2958d9be4ab813357a4942c6e4589d",
-          "size_bytes": 45236,
-          "recorded_mtime_utc": "2026-07-27T00:11:37.729147Z"
+          "sha256": "b4f9960e60a2c7a36d90087fe63196731379c94e1b7731f4e5754ddfa29b5b76",
+          "size_bytes": 50446,
+          "recorded_mtime_utc": "2026-07-29T02:41:18.468429Z"
         },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
@@ -2363,9 +2643,69 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T015427Z-correction-provenance-core-tools-ed1373c0",
+          "recorded_at_utc": "2026-07-29T01:54:27Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Avoided rehashing unchanged recorded outputs and cached repeated manifest path resolution during provenance audits.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T023959Z-correction-provenance-core-tools-afa161e5",
+          "recorded_at_utc": "2026-07-29T02:39:59Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 5,
+          "summary": "Serialize each generated-manifest read-modify-write transaction so concurrent work-unit completions cannot lose metadata records.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T024158Z-correction-provenance-core-tools-c92ceb96",
+          "recorded_at_utc": "2026-07-29T02:41:58Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 6,
+          "summary": "Add conditional record publication so metadata maintenance cannot overwrite a record completed concurrently by a generator.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 6
     }
   }
 }

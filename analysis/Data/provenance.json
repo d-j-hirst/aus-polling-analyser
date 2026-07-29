@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-07-28T12:55:35Z",
+  "updated_at_utc": "2026-07-29T03:24:04Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -68,12 +68,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 9,
+      "semantic_revision": 10,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "ddf5a5d083265532c59c6ca6daf0eec4763d7bf98f930f7325dd08cf84f32fe2",
-          "size_bytes": 284430,
-          "recorded_mtime_utc": "2026-07-28T12:33:08.896938Z"
+          "sha256": "318af045713d27622cafb81bbd64197bafb43d815fbd6f5eaef02ca8aa6db3ee",
+          "size_bytes": 284522,
+          "recorded_mtime_utc": "2026-07-29T03:23:19.072508Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "e369cee23374c45129778c67a22ac6a816a1bc2d74005ff8043d3b37841bf7ff",
@@ -291,9 +291,51 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T002307Z-new_polling-raw-poll-data-29bde48b",
+          "recorded_at_utc": "2026-07-29T00:23:07Z",
+          "change_type": "new_polling",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Essential poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T032404Z-correction-raw-poll-data-9ac7a927",
+          "recorded_at_utc": "2026-07-29T03:24:04Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Remove \"Date estimated\" comment, the estimated date was correct",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 9
+      "provenance_revision": 10
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",
@@ -303,7 +345,7 @@
         "desired-iterations.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "desired-iterations.csv": {
           "sha256": "c7dc09f871dce7dc4d6869a711a72be8ebc65c7e7de776723a0ac9ac0ccf2eac",
@@ -311,9 +353,9 @@
           "recorded_mtime_utc": "2025-07-20T10:09:28.175499Z"
         },
         "discontinuities.csv": {
-          "sha256": "c6b3efb11fc4646b6a14a9eb3a7b5cbe5e670e8ff5171ea8c9a243741c01d56f",
-          "size_bytes": 923,
-          "recorded_mtime_utc": "2024-01-24T13:17:35.261027Z"
+          "sha256": "680934b3586d8cb1a84c5171286b841a72ba91c3ecd686d19e3164748964618e",
+          "size_bytes": 934,
+          "recorded_mtime_utc": "2026-07-29T00:59:27.373937Z"
         },
         "significant-parties.csv": {
           "sha256": "48f45096852689f5ab59c0dc9cebe18199d6c87619fecec2f774cde9afb0d26e",
@@ -379,8 +421,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T013030Z-other-poll-model-configuration-584febdf",
+          "recorded_at_utc": "2026-07-29T01:30:30Z",
+          "change_type": "other",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Change in Victorian Premier",
+          "files": [
+            "discontinuities.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 3
     },
     "preference_estimates": {
       "description": "Preference-flow and exhaust-rate estimates used by trend generation and simulation.",
@@ -546,12 +610,12 @@
         "government-leaders.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "government-leaders.csv": {
-          "sha256": "e5be173c7294afb5d06c852eb1aead3e1abb23761bf8e3d0a9610f18b516ffe7",
-          "size_bytes": 2302,
-          "recorded_mtime_utc": "2025-07-20T10:16:42.884996Z"
+          "sha256": "a81377d6b51365b4ae68f82346f5cc30dad6b935a43f5db606cca68ecd1b1c3c",
+          "size_bytes": 2329,
+          "recorded_mtime_utc": "2026-07-29T01:24:12.512002Z"
         }
       },
       "events": [
@@ -572,8 +636,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T013029Z-other-approval-context-72fdfe5c",
+          "recorded_at_utc": "2026-07-29T01:30:29Z",
+          "change_type": "other",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Change in Victorian Premier",
+          "files": [
+            "government-leaders.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "party_group_definitions": {
       "description": "Mappings from modelled parties to adjustment and simulation categories.",

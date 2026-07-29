@@ -253,6 +253,7 @@ def _is_audited_transitive_issue(
     manifest_path,
     manifest,
     audited_manifest_paths,
+    resolve_path=None,
 ):
     """Avoid reporting an upstream generated issue again downstream."""
 
@@ -265,12 +266,14 @@ def _is_audited_transitive_issue(
     dependency = record["dependencies"].get(match.group(1))
     if not dependency or dependency["kind"] != "generated_manifest":
         return False
-    base_directory = (
-        Path(manifest_path).resolve().parent / manifest["path_base"]
-    ).resolve()
-    dependency_manifest = (
+    resolve_path = resolve_path or (lambda path: Path(path).resolve())
+    resolved_manifest = resolve_path(manifest_path)
+    base_directory = resolve_path(
+        resolved_manifest.parent / manifest["path_base"]
+    )
+    dependency_manifest = resolve_path(
         base_directory / dependency["manifest"]
-    ).resolve()
+    )
     return dependency_manifest in audited_manifest_paths
 
 
@@ -824,6 +827,14 @@ def audit_repository(
         for path in generated_manifest_paths
         if Path(path).is_file()
     }
+    # File dependencies often point to outputs recorded in another manifest.
+    # Preload those fingerprints so unchanged dependencies need only a stat.
+    for manifest_path in audited_generated_paths:
+        try:
+            generated_check_context.load_manifest(manifest_path)
+        except generated_provenance.GeneratedProvenanceError:
+            # The normal loop below reports invalid manifests in context.
+            pass
     for manifest_path in generated_manifest_paths:
         if not Path(manifest_path).is_file():
             message = "{} has no generated provenance manifest".format(
@@ -890,6 +901,7 @@ def audit_repository(
                     manifest_path,
                     manifest,
                     audited_generated_paths,
+                    generated_check_context.resolve_path,
                 )
             ]
             data_direct_issues = [
@@ -1572,13 +1584,13 @@ def _interactive_scope():
     scope_type = _menu_select(
         "Change scope",
         [
-            {"name": "All downstream work", "value": "all"},
             {
-                "name": "Specific elections, parties or stages",
+                "name": "Specific elections, parties or stages (recommended)",
                 "value": "specific",
             },
+            {"name": "All downstream work", "value": "all"},
         ],
-        default="all",
+        default="specific",
     )
     if scope_type == "all":
         return source_provenance._build_scope(all_scopes=True)
@@ -1598,6 +1610,16 @@ def _interactive_scope():
         elections=elections,
         parties=parties,
         stages=stages,
+    )
+
+
+def _confirm_all_election_scope(scope):
+    if not scope["all"] and scope["elections"]:
+        return True
+    return _menu_confirm(
+        "This scope can affect every election. Continue with "
+        "all-election impact?",
+        default=False,
     )
 
 
@@ -1657,6 +1679,9 @@ def _interactive_register():
             ],
         )
     scope = _interactive_scope()
+    if not _confirm_all_election_scope(scope):
+        print("Registration cancelled.")
+        return
     if not _menu_confirm("Register this assessment?", default=True):
         print("Registration cancelled.")
         return
