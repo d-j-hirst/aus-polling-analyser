@@ -596,6 +596,16 @@ def _selected_generated_records(
     selected = {path: set() for path in manifests}
     dependencies = defaultdict(set)
     queue = deque()
+    completed_calibration_elections = {
+        election
+        for manifest in manifests.values()
+        for record in manifest["records"].values()
+        if (
+            record["category"] == "poll_calibration_summaries"
+            and record["status"] == "generated"
+        )
+        for election in record["scope"]["elections"]
+    }
 
     def work_unit_id(manifest_path, record_key):
         return "{}::{}".format(
@@ -614,8 +624,20 @@ def _selected_generated_records(
 
     for manifest_path, manifest in manifests.items():
         for record_key, record in manifest["records"].items():
-            if _record_matches_elections(record, target_elections):
-                select(manifest_path, record_key)
+            if not _record_matches_elections(record, target_elections):
+                continue
+            if (
+                record["category"] == "poll_calibration_traces"
+                and completed_calibration_elections.intersection(
+                    record["scope"]["elections"]
+                )
+            ):
+                # A generated summary names the exact traces used by the
+                # completed calibration batch. Follow those dependencies
+                # instead of treating superseded legacy trace names as active
+                # work forever.
+                continue
+            select(manifest_path, record_key)
 
     while queue:
         manifest_path, record_key = queue.popleft()

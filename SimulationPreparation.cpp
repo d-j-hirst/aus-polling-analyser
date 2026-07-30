@@ -336,6 +336,7 @@ void SimulationPreparation::prepareForIterations()
 	loadCentristSeatStatistics();
 	loadCentristSeatModifiers();
 	loadOthSeatStatistics();
+	loadGreensIndependentCorrelation();
 
 	loadIndividualSeatParameters();
 	loadPastSeatResults();
@@ -1539,6 +1540,14 @@ void SimulationPreparation::loadOthSeatStatistics()
 	loadSeatStatisticsFile(
 		workspaceFile("analysis/Seat Statistics/statistics_OTH.csv"),
 		run.othSeatStatistics);
+}
+
+void SimulationPreparation::loadGreensIndependentCorrelation()
+{
+	std::string const fileName = workspaceFile(
+		"analysis/Seat Statistics/GRN_IND_correlation.csv");
+	run.greensIndependentCorrelation =
+		loadRequiredFloatLines(fileName, 1).front();
 }
 
 void SimulationPreparation::loadIndEmergence()

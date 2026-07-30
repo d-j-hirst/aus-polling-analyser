@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-07-27T01:47:16Z",
+  "updated_at_utc": "2026-07-29T15:53:30Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -13,12 +13,12 @@
         "*-polls-ON.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "2024qld-polls.csv": {
-          "sha256": "6156cbbd99889ac3f69d5e6d938cab3d17e454cb79ce6c53bb033b8064d25c76",
-          "size_bytes": 589,
-          "recorded_mtime_utc": "2024-10-19T00:35:07.007035Z"
+          "sha256": "87b685e3a3be3c726a75e09ffebcefa603b4c55ad3556e937a2db810e3f94412",
+          "size_bytes": 681,
+          "recorded_mtime_utc": "2026-07-29T15:52:33.700763Z"
         },
         "2025fed-polls.csv": {
           "sha256": "f9f4bb5a0795c190a52e977a04becc2ba688a9c62d958d9f850209866a0f184c",
@@ -41,9 +41,9 @@
           "recorded_mtime_utc": "2026-02-23T07:13:02.539151Z"
         },
         "2027nsw-polls.csv": {
-          "sha256": "853bfb62137a427853326b379d29b07b6bffb0487c6f8678e2cf4666e9ae444b",
-          "size_bytes": 154,
-          "recorded_mtime_utc": "2026-02-23T08:30:56.385194Z"
+          "sha256": "cb836ece04ae0936bb7298fd6c36da8e3021abcaf8690a21e0b8b2b06b8051d4",
+          "size_bytes": 152,
+          "recorded_mtime_utc": "2026-07-29T14:17:40.248107Z"
         },
         "2028fed-polls-ON.csv": {
           "sha256": "32cb8060784358a92908286d7abb42bc625e95834946ee601605f5f1e8261dcf",
@@ -115,9 +115,59 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T142525Z-correction-regional-poll-inputs-aab94eed",
+          "recorded_at_utc": "2026-07-29T14:25:25Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Correct NSW Metro and Regional election baselines from fractional to percentage vote-share units.",
+          "files": [
+            "2027nsw-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2027nsw"
+            ],
+            "parties": [
+              "@TPP"
+            ],
+            "stages": [
+              "generate_regional_swings"
+            ]
+          }
+        },
+        {
+          "id": "20260729T155330Z-schema-regional-poll-inputs-45a723a1",
+          "recorded_at_utc": "2026-07-29T15:53:30Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Move the existing 2020 Queensland regional baselines from region_model.py into an Election row without changing their values.",
+          "files": [
+            "2024qld-polls.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2024qld"
+            ],
+            "parties": [
+              "@TPP"
+            ],
+            "stages": [
+              "generate_regional_swings"
+            ]
+          }
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 3
     }
   }
 }

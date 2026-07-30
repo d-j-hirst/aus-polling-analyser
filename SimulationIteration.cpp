@@ -1678,7 +1678,8 @@ void SimulationIteration::adjustForFpCorrelations(int seatIndex)
 	float indSwing = currentInd - pastInd;
 	// Prevent minor inds (especially past ones) from affecting the overall trend too much
 	float scaling = std::clamp(std::max(currentInd, pastInd) / 8.0f - 0.5f, 0.0f, 1.0f);
-	float projectedGrnEffect = -0.3981311670993329f * indSwing * scaling;
+	float projectedGrnEffect =
+		run.greensIndependentCorrelation * indSwing * scaling;
 	float transformedGrnFp = transformVoteShare(seatFpVoteShare[seatIndex][run.grnPartyIndex]);
 	transformedGrnFp += projectedGrnEffect;
 	seatFpVoteShare[seatIndex][run.grnPartyIndex] = detransformVoteShare(transformedGrnFp);

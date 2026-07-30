@@ -55,6 +55,7 @@ private:
 	void loadGreensSeatStatistics();
 	void loadIndSeatStatistics();
 	void loadOthSeatStatistics();
+	void loadGreensIndependentCorrelation();
 	void loadIndEmergence();
 	void loadPopulistSeatStatistics();
 	void loadPopulistSeatModifiers();

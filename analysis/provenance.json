@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-29T04:04:46Z",
+  "updated_at_utc": "2026-07-29T15:53:36Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -15,9 +15,9 @@
       "semantic_revision": 1,
       "files": {
         "election_store.py": {
-          "sha256": "20b6e6cd1743240aa12016f7fec73e70037e2292676a314ac399525055c72fa1",
-          "size_bytes": 4673,
-          "recorded_mtime_utc": "2026-07-29T03:46:18.220234Z"
+          "sha256": "9493f32460853cb30142a6c734d53ff59d59f0c8e22e0edfa3cc6603583175ea",
+          "size_bytes": 5389,
+          "recorded_mtime_utc": "2026-07-29T13:57:50.072189Z"
         }
       },
       "events": [
@@ -120,6 +120,25 @@
           "semantic_revision": 1,
           "provenance_revision": 1,
           "summary": "Documented the cache-to-C++ export boundary and made export-directory handling path-independent without changing output.",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T135917Z-correction-election-store-script-73ba7f66",
+          "recorded_at_utc": "2026-07-29T13:59:17Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Refresh stale checked-election exports before historical analysis records them as dependencies.",
           "files": [
             "election_store.py"
           ],
@@ -320,12 +339,12 @@
         "election_analysis.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 4,
       "files": {
         "election_analysis.py": {
-          "sha256": "b4dcc6c6b7964639b9314b6a670f05143e53a1f3c1aca5bace8ea7150081b4c7",
-          "size_bytes": 87052,
-          "recorded_mtime_utc": "2026-07-24T01:39:24.276873Z"
+          "sha256": "976acebe14a8fca5c8503294011fb71d2a50908dc66965f59d361b0db0b64696",
+          "size_bytes": 89777,
+          "recorded_mtime_utc": "2026-07-29T13:57:53.672423Z"
         }
       },
       "events": [
@@ -346,8 +365,108 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T064243Z-correction-election-analysis-script-53fa96ee",
+          "recorded_at_utc": "2026-07-29T06:42:43Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Correct Independent vote units and disappearing-independent correlation samples; clarify and harden historical analysis.",
+          "files": [
+            "election_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T074509Z-correction-election-analysis-script-264491a8",
+          "recorded_at_utc": "2026-07-29T07:45:09Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Express the regional polling horizon as a three-election minimum rather than a fixed snapshot count.",
+          "files": [
+            "election_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T132110Z-correction-election-analysis-script-b3b55a9d",
+          "recorded_at_utc": "2026-07-29T13:21:10Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Use only each regional polling snapshot's selected mixing factor when estimating regional bias and error.",
+          "files": [
+            "election_analysis.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": [
+              "analyse_elections"
+            ]
+          }
+        },
+        {
+          "id": "20260729T132740Z-formatting-election-analysis-script-b3577bff",
+          "recorded_at_utc": "2026-07-29T13:27:40Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Remove verbose Nationals swing aggregate diagnostics from routine console output.",
+          "files": [
+            "election_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T135917Z-correction-election-analysis-script-fc900ee3",
+          "recorded_at_utc": "2026-07-29T13:59:17Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Refresh stale checked-election exports before historical analysis records them as dependencies.",
+          "files": [
+            "election_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 4
     },
     "poll_transform_script": {
       "description": "Vote-share transforms and bounds shared by Python analysis stages.",
@@ -1505,12 +1624,12 @@
         "region_model.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "region_model.py": {
-          "sha256": "ab12fc5630473018f18126ca73038e68f50359dbad0c8324ca9f7b813d9a7b7c",
-          "size_bytes": 26990,
-          "recorded_mtime_utc": "2026-07-25T04:23:00.525095Z"
+          "sha256": "222f651a4dec9d6e0e9e15a6092c3b0345fba410c8442e789c1dceb50928c2c3",
+          "size_bytes": 25483,
+          "recorded_mtime_utc": "2026-07-29T15:52:30.039302Z"
         }
       },
       "events": [
@@ -1549,8 +1668,91 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260729T142453Z-correction-region-model-script-4180fe62",
+          "recorded_at_utc": "2026-07-29T14:24:53Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Validate regional model inputs, centralise repeated Stan execution, select output parameters by name, and return failure for invalid configuration without changing valid model calculations.",
+          "files": [
+            "region_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T142755Z-correction-region-model-script-1d841673",
+          "recorded_at_utc": "2026-07-29T14:27:55Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Defer Stan loading until validated input reaches sampling and summarize diagnostics without altering valid model calculations.",
+          "files": [
+            "region_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T143119Z-correction-region-model-script-1590e095",
+          "recorded_at_utc": "2026-07-29T14:31:19Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Record generated regional base seeds in replayable provenance commands without changing sampling.",
+          "files": [
+            "region_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260729T155336Z-methodology-region-model-script-a1120abf",
+          "recorded_at_utc": "2026-07-29T15:53:36Z",
+          "change_type": "methodology",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Calculate 2024 Queensland regional deviations on the transformed vote-share scale used by the other regional models.",
+          "files": [
+            "region_model.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2024qld"
+            ],
+            "parties": [
+              "@TPP"
+            ],
+            "stages": [
+              "generate_regional_swings"
+            ]
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "region_model_provenance_script": {
       "description": "Work-unit discovery and bundled provenance recording for regional swing models.",
@@ -1938,12 +2140,12 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
-      "provenance_revision": 15,
+      "provenance_revision": 16,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "22f09ce4d2a149a70008210926d9446305c17b1e53c83ffeba20ac5bc20f09e8",
-          "size_bytes": 65358,
-          "recorded_mtime_utc": "2026-07-29T01:52:42.130365Z"
+          "sha256": "2ba17a816e04e00659c7c4e7382ef8cf379b5fec3d63cb3a409e3f9c5c9fd1f4",
+          "size_bytes": 66237,
+          "recorded_mtime_utc": "2026-07-29T06:23:04.142220Z"
         },
         "pipeline.py": {
           "sha256": "95efff566251cd1d4f5feabc011174d5140df3a58909fc958f56c1336d58ac6a",
@@ -2499,6 +2701,26 @@
           "summary": "Build every post-task plan in a fresh process so long-running pipelines do not validate with provenance modules superseded during Stan execution.",
           "files": [
             "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260729T062346Z-correction-pipeline-orchestration-tools-280cf790",
+          "recorded_at_utc": "2026-07-29T06:23:46Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 16,
+          "summary": "Ignore superseded legacy calibration traces after a generated summary identifies the current trace set.",
+          "files": [
+            "analysis_provenance.py"
           ],
           "scope": {
             "all": true,

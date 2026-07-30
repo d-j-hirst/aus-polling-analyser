@@ -1,4 +1,5 @@
 ﻿StartDate,EndDate,Firm,Size,State,Inner Suburbs,Outer Suburbs,Coasts,Regional,C+R,SE,Central,Far North,Regional ex-rural,Rural,Pure Regional
+#N/A,#N/A,Election,#N/A,53.2,60.18,61.75,45.79,47,46.53,55.34,45.13,51.31,49.25,40.95,53.65
 2023-08-26,2023-09-06,Redbridge,1,45,#N/A,#N/A,#N/A,#N/A,#N/A,47,37,45,#N/A,#N/A,#N/A
 2024-02-01,2024-05-15,Redbridge,1,43,49,43,39,45,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A
 2024-05-15,2024-08-27,Redbridge,1,45.5,63,45,#N/A,#N/A,42,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A

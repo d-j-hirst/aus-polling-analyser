@@ -373,6 +373,7 @@ private:
 	SeatStatistics greensSeatStatistics;
 	SeatStatistics indSeatStatistics;
 	SeatStatistics othSeatStatistics;
+	float greensIndependentCorrelation = 0.0f;
 	IndEmergence indEmergence;
 	PopulistStatistics populistStatistics;
 	PopulistStatistics centristStatistics;

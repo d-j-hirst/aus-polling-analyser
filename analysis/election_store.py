@@ -126,6 +126,30 @@ def record_generated_provenance(stored_elections):
     print(f'Recorded generated provenance in {GENERATED_MANIFEST}')
 
 
+def ensure_election_exports(elections):
+    """Refresh exports when their files or provenance are no longer current."""
+
+    record_keys = [
+        f'election_result_exports:{election_code.short()}'
+        for election_code, _ in elections.items()
+    ]
+    try:
+        generated_provenance.generated_manifest_dependency(
+            'election_result_exports',
+            GENERATED_MANIFEST,
+            record_keys,
+            ANALYSIS_DIRECTORY,
+        )
+        return False
+    except (
+        FileNotFoundError,
+        generated_provenance.GeneratedProvenanceError,
+    ):
+        stored_elections = store_elections(elections)
+        record_generated_provenance(stored_elections)
+        return True
+
+
 if __name__ == '__main__':
     try:
         elections = get_checked_elections(allow_download=False)

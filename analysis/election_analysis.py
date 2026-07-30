@@ -1,18 +1,34 @@
-from election_code import ElectionCode
+"""Generate historical inputs used by the C++ seat simulation.
+
+The script fits three related groups of models from checked election results:
+seat-level party and swing behaviour, federal regional polling behaviour, and
+the allocation of Coalition votes between Liberal and Nationals candidates.
+These analyses share the same historical cache but produce independent CSV
+families under ``Seat Statistics``, ``Regional`` and ``Nationals``.
+
+Run the complete script after the election-result cache and its checked CSV
+exports have been updated. Outputs are written sequentially; generated
+provenance is recorded only after every analysis has completed successfully.
+"""
+
 import copy
 import math
-import numpy
+from pathlib import Path
 import statistics
+import sys
+
+import numpy
 import statsmodels.api as sm
-from sklearn.linear_model import LinearRegression
-from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
+from scipy.optimize import curve_fit
+from sklearn.linear_model import LinearRegression
+
 from election_check import get_checked_elections
+from election_code import ElectionCode
+from election_store import ensure_election_exports
+import generated_provenance
 from poll_transform import transform_vote_share, detransform_vote_share, clamp
 from sample_kurtosis import calc_rmse, one_tail_kurtosis, two_tail_kurtosis
-import generated_provenance
-from pathlib import Path
-import sys
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
@@ -25,6 +41,15 @@ GENERATED_MANIFEST = (
 ind_bucket_size = 2
 fp_threshold = detransform_vote_share(int(math.floor(transform_vote_share(8)
     / ind_bucket_size)) * ind_bucket_size)
+independent_others_limit = 8
+
+
+def extend_region_errors_with_selected_factor(
+        region_errors, errors_by_factor, selected_factor):
+    """Accumulate only residuals produced by the selected mixing factor."""
+
+    for region, errors in errors_by_factor[selected_factor].items():
+        region_errors.setdefault(region, []).extend(errors)
 
 
 def create_bucket_template(bucket_info):
@@ -294,11 +319,35 @@ def effective_others(party, election_results, fp_percent):
 
 
 def total_others_vote_share(election_results):
-    votes = sum(votes for party, votes in election_results.fp_by_party.items()
-                if party not in larger_parties
-                and (election_results.total_fp_percentage_party(party) < 3
-                     or party == "Independent" and votes <= 8))
+    """Return statewide vote represented by the seat-level Others model.
+
+    Small parties are included below 3%. Independents are an exception because
+    their statewide aggregate can be larger while still consisting of local,
+    unrelated candidacies that belong in the same seat-level model.
+    """
+
+    votes = sum(
+        votes
+        for party, votes in election_results.fp_by_party.items()
+        if (
+            party not in larger_parties
+            and (
+                election_results.total_fp_percentage_party(party) < 3
+                or (
+                    party == "Independent"
+                    and election_results.total_fp_percentage_party(party)
+                    <= independent_others_limit
+                )
+            )
+        )
+    )
     return votes / election_results.total_fp_votes() * 100
+
+
+def has_material_independent_vote(previous_vote, next_vote):
+    """Whether either endpoint has enough independent support to model."""
+
+    return max(previous_vote, next_vote) >= independent_others_limit
 
 
 def analyse_existing_independents(elections):
@@ -419,7 +468,6 @@ def analyse_emerging_independents(elections, seat_types):
         'seat_rural': [],
         'seat_provincial': [],
         'seat_outer_metro': [],
-        'seat_rural': [],
         'seat_prev_others': [],
         'cand_fp_vote': [],
         'cand_fed': [],
@@ -599,7 +647,7 @@ def analyse_minors(elections, seat_types, seat_regions, settings):
         inputs_array = numpy.transpose(numpy.array([avg_mults]))
         results_array = numpy.array(vote_shares)
         reg = LinearRegression(fit_intercept=use_intercepts).fit(inputs_array, results_array)
-        coef = reg.coef_
+        coef = reg.coef_[0]
         intercept = reg.intercept_
         residuals = [transform_vote_share(vote_shares[index]) -
                     transform_vote_share(coef * avg_mults[index] + intercept)
@@ -673,14 +721,14 @@ def analyse_minors(elections, seat_types, seat_regions, settings):
 
     # Calculate estimated data for those seats that didn't have enough
     # existing results to determine a multiplier before
-    for seat_id, type in seat_types.items():
+    for seat_id, seat_type in seat_types.items():
         if seat_id not in avg_mult_seat:
             avg_mult_seat[seat_id] = vote_intercept
-            if type == 3:
+            if seat_type == 3:
                 avg_mult_seat[seat_id] += rural_coefficient
-            if type == 2:
+            if seat_type == 2:
                 avg_mult_seat[seat_id] += provincial_coefficient
-            if type == 1:
+            if seat_type == 1:
                 avg_mult_seat[seat_id] += outer_metro_coefficient
 
     # Save general populist party variability data
@@ -998,7 +1046,11 @@ def analyse_region_swings():
     best_rmses = []
     best_kurtoses = []
     region_errors = {'all': []}
-    for poll_number in range(0, 9):
+    # Later snapshots are available for progressively fewer elections. Keep
+    # only points supported by at least three independent election samples;
+    # with the current source data this retains snapshots 0 through 8.
+    minimum_elections_per_snapshot = 3
+    for poll_number in range(highest_poll_number):
         poll_deviations = {}
         next_deviations = {}
         for election, election_polls in poll_lists.items():
@@ -1011,7 +1063,13 @@ def analyse_region_swings():
                 poll_deviations[region].append(region_polls.deviations[poll_number])
                 next_deviations[region].append(region_polls.next_deviation)
 
-        if len(poll_deviations[region]) < 2:
+        if (
+            not poll_deviations
+            or any(
+                len(region_values) < minimum_elections_per_snapshot
+                for region_values in poll_deviations.values()
+            )
+        ):
             break
 
         if poll_number == 0:
@@ -1033,8 +1091,9 @@ def analyse_region_swings():
 
         mixed_rmses = {}
         mixed_kurtoses = {}
+        errors_by_factor = {}
         for mix_factor in [a / 100 for a in range(1, 101)]:
-            mixed_errors = []
+            factor_region_errors = {'all': []}
 
             for election, poll_overall_tpp in poll_overall_tpps.items():
                 for region in poll_deviations.keys():
@@ -1062,12 +1121,13 @@ def analyse_region_swings():
                     mixed_deviation = (polled_final_deviation * mix_factor +
                                     naive_deviation * (1 - mix_factor))
                     mixed_error = mixed_deviation - actual_deviation
-                    mixed_errors.append(mixed_error)
-                    if region not in region_errors:
-                        region_errors[region] = []
-                    region_errors[region].append(mixed_error)
-                    region_errors['all'].append(mixed_error)
+                    factor_region_errors.setdefault(region, []).append(
+                        mixed_error
+                    )
+                    factor_region_errors['all'].append(mixed_error)
 
+            mixed_errors = factor_region_errors['all']
+            errors_by_factor[mix_factor] = factor_region_errors
             mixed_rmse = calc_rmse(mixed_errors)
             mixed_rmses[mix_factor] = mixed_rmse
             mixed_kurtosis = one_tail_kurtosis(mixed_errors)
@@ -1077,6 +1137,9 @@ def analyse_region_swings():
         best_mix_factors.append(best_mix_factor)
         best_rmses.append(mixed_rmses[best_mix_factor])
         best_kurtoses.append(mixed_kurtoses[best_mix_factor])
+        extend_region_errors_with_selected_factor(
+            region_errors, errors_by_factor, best_mix_factor
+        )
 
     all_rmse = calc_rmse(region_errors['all'])
     output_filename = (f'./Regional/{target_year}fed-mix-regions.csv')
@@ -1515,7 +1578,7 @@ def analyse_green_independent_correlation(elections):
                                 if x.party == 'Independent')
         next_ind = sum(x.percent for x in d['next_seat_results'].fp
                                 if x.party == 'Independent')
-        if max(this_ind == 0, next_ind) < 8:
+        if not has_material_independent_vote(this_ind, next_ind):
             return
         greens_swing = (transform_vote_share(next_greens)
                         - transform_vote_share(this_greens)
@@ -1596,7 +1659,11 @@ def analyse_nationals(elections, all_elections):
                 swing_count = 0
                 for seat in data.seat_results:
                     this_nationals_share = get_nationals_share(data, seat.name)
-                    if (this_nationals_share is None or this_nationals_share == 0 or this_nationals_share == 100):
+                    if (
+                        this_nationals_share is None
+                        or this_nationals_share == 0
+                        or this_nationals_share == 1
+                    ):
                         continue
                     if previous_results is not None:
                         previous_nationals_share = get_nationals_share(previous_results, seat.name)
@@ -1625,8 +1692,6 @@ def analyse_nationals(elections, all_elections):
                         else:
                             transformed_old_nationals_shares.append(transformed_previous_nationals_shares[-1])
                 if (swing_count > 4): ## avoid using really small samples
-                    print("swing_count", swing_count)
-                    print("swing_sum", swing_sum)
                     transformed_swing_averages.append(swing_sum / swing_count)
 
         if len(transformed_nationals_shares) < 4:
@@ -1654,7 +1719,6 @@ def analyse_nationals(elections, all_elections):
         # calculate sample kurtosis of residuals
         this_kurtosis = two_tail_kurtosis(adjusted_residuals)
 
-        print("transformed_swing_averages", transformed_swing_averages)
         swing_rmse = numpy.sqrt(numpy.mean([a * a for a in transformed_swing_averages]))
         swing_kurtosis = (
             two_tail_kurtosis(transformed_swing_averages)
@@ -1860,9 +1924,15 @@ def record_generated_provenance():
 
 
 
-if __name__ == '__main__':
+def main():
+    """Run every historical analysis before certifying the output bundle."""
+
     all_elections = get_all_elections()
     elections = get_checked_elections()
+    # A deliberately deleted cache may have been downloaded again above.
+    # Synchronise the checked CSV exports and their provenance before using
+    # them as a certified dependency of this analysis.
+    ensure_election_exports(elections)
     seat_types = load_seat_types()
     seat_regions = load_seat_regions()
     by_elections = load_by_elections()
@@ -1879,3 +1949,7 @@ if __name__ == '__main__':
     analyse_nationals(elections, all_elections)
     record_generated_provenance()
     print("Analysis completed.")
+
+
+if __name__ == '__main__':
+    main()

@@ -857,8 +857,8 @@ from both the generated category and the legacy baseline.
 deviations. Adding `--party ON` runs the corresponding One Nation model where
 that input is available. The stage reads
 `Regional/<election>-polls[-ON].csv`, an election-specific Stan model under
-`Models/`, the baseline row in that poll file and election-cycle dates, then
-writes `Regional/<election>-swing-deviations[-on].csv`.
+`Models/`, and the baseline row in that poll file, then writes
+`Regional/<election>-swing-deviations[-on].csv`.
 
 Regional poll files are authored inputs and remain in Git. Swing-deviation
 files and the federal `regions-base`, `regions-polled`, `mix-regions` and

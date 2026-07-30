@@ -592,6 +592,89 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {cutoff_key},
         )
 
+    def test_generated_calibration_summary_selects_only_its_traces(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+
+        current_output = self.output_directory / "current-trace.csv"
+        current_output.write_text("current\n", encoding="utf-8")
+        current_trace = json.loads(json.dumps(template))
+        current_trace["category"] = "poll_calibration_traces"
+        current_trace["stage"] = "calibrate_pollsters"
+        current_trace["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"],
+            parties=["@TPP"],
+            qualifiers={"excluded_pollster": "Fox & Hedgehog"},
+        )
+        current_trace["outputs"] = (
+            generated_provenance.output_fingerprints(
+                [current_output], self.base
+            )
+        )
+
+        legacy_output = self.output_directory / "legacy-trace.csv"
+        legacy_output.write_text("legacy\n", encoding="utf-8")
+        legacy_trace = json.loads(json.dumps(current_trace))
+        legacy_trace["status"] = "legacy"
+        legacy_trace["scope"]["qualifiers"]["excluded_pollster"] = (
+            "Fox&Hedgehog"
+        )
+        legacy_trace["dependencies"] = {}
+        legacy_trace["outputs"] = (
+            generated_provenance.output_fingerprints(
+                [legacy_output], self.base
+            )
+        )
+        legacy_trace["random_seed"] = None
+
+        summary_output = self.output_directory / "summary.csv"
+        summary_output.write_text("summary\n", encoding="utf-8")
+        summary = json.loads(json.dumps(template))
+        summary["category"] = "poll_calibration_summaries"
+        summary["stage"] = "calibrate_pollsters"
+        summary["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        summary["dependencies"] = {
+            "poll_calibration_traces":
+                generated_provenance.file_dependency(
+                    "poll_calibration_traces",
+                    [current_output],
+                    self.base,
+                )
+        }
+        summary["outputs"] = generated_provenance.output_fingerprints(
+            [summary_output], self.base
+        )
+
+        current_key = (
+            "poll_calibration_traces:2028fed:@TPP:Fox & Hedgehog"
+        )
+        legacy_key = "poll_calibration_traces:2028fed:@TPP:Fox&Hedgehog"
+        summary_key = "poll_calibration_summaries:2028fed"
+        manifest["records"] = {
+            current_key: current_trace,
+            legacy_key: legacy_trace,
+            summary_key: summary,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2028fed"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {current_key, summary_key},
+        )
+
     def test_legacy_trend_infers_same_election_pollster_dependency(self):
         pollster_manifest_path = (
             self.output_directory
