@@ -169,11 +169,13 @@ python3 pipeline.py run --election 2026vic \
 python3 pipeline.py run --election 2026vic --profile cutoffs
 ```
 
-`regular` uses existing pure trends when deriving approval information;
-`regular-with-approvals` first regenerates the required pure trends. `cutoffs`
-also schedules any stale calibration, pollster-analysis and pure-trend
-prerequisites because expensive historical fits should not knowingly be built
-on stale inputs.
+`regular` regenerates the selected election's pure trend before its final
+trend, keeping the approval fit aligned with the same current polls and
+pollster parameters. `regular-with-approvals` additionally regenerates stale
+historical pure trends used to fit approval relationships. `cutoffs` also
+schedules any stale calibration, pollster-analysis and pure-trend prerequisites
+because expensive historical fits should not knowingly be built on stale
+inputs.
 
 The complete plan is checked before execution. Commands then run sequentially
 with their output attached to the current terminal. After each command,
@@ -560,6 +562,9 @@ files per target election:
 
 The generated inputs actually read are the poll, trend and house-effect files
 from bias calibration and, when available, compact `calib_*.csv` summaries.
+The reducer now receives the exact filenames selected by those manifest
+records rather than scanning the calibration directory, so retained backups
+and superseded calibration files cannot enter the calculation.
 The earliest elections may have no leave-one-pollster-out summaries; in that
 case variability analysis intentionally uses its configured prior alone.
 Ordinary
@@ -585,7 +590,9 @@ Those exact record dependencies remain attached to the new work unit, so the
 parameters and their downstream poll trends remain reported as stale only
 through calibration paths until the selected calibration units are refreshed.
 The three outputs are certified together only after all analyses for the
-target election complete.
+target election complete. They are first written to an election-specific
+staging directory and replace the prior files only after all three reductions
+succeed.
 
 ### Pure Poll-Trend Provenance
 

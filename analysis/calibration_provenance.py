@@ -8,6 +8,7 @@ certified as reproducible generations.
 """
 
 import argparse
+import csv
 import hashlib
 import sys
 from collections import defaultdict
@@ -36,6 +37,42 @@ SOURCE_DEPENDENCIES = {
     "fp_stan_model": ANALYSIS_DIRECTORY / "Models" / "provenance.json",
 }
 MODEL_OUTPUT_KINDS = ("trend", "polls", "house_effects")
+SIGNIFICANT_PARTIES_PATH = (
+    ANALYSIS_DIRECTORY / "Data" / "significant-parties.csv"
+)
+
+
+def configured_parties_by_election(path=None):
+    """Return the parties currently produced by each calibration run."""
+
+    path = Path(path or SIGNIFICANT_PARTIES_PATH)
+    parties = {}
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as source:
+            for line_number, row in enumerate(csv.reader(source), start=1):
+                if not row:
+                    continue
+                if len(row) < 3:
+                    raise generated_provenance.GeneratedProvenanceError(
+                        "{}:{} must contain an election and parties".format(
+                            path, line_number
+                        )
+                    )
+                election = "{}{}".format(row[0], row[1])
+                if election in parties:
+                    raise generated_provenance.GeneratedProvenanceError(
+                        "{}:{} duplicates election {}".format(
+                            path, line_number, election
+                        )
+                    )
+                parties[election] = set(row[2:])
+    except OSError as error:
+        raise generated_provenance.GeneratedProvenanceError(
+            "could not read significant parties from {}: {}".format(
+                path, error
+            )
+        ) from error
+    return parties
 
 
 def _trace_record_key(election, party, excluded_pollster):

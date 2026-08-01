@@ -675,6 +675,116 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {current_key, summary_key},
         )
 
+    def test_target_selection_ignores_superseded_bias_party(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        current = json.loads(json.dumps(template))
+        current["category"] = "bias_calibration_outputs"
+        current["stage"] = "calibrate_pollster_bias"
+        current["scope"] = generated_provenance.generation_scope(
+            elections=["2025fed"], parties=["@TPP"]
+        )
+        legacy = json.loads(json.dumps(current))
+        legacy["status"] = "legacy"
+        legacy["scope"]["parties"] = ["UAP FP"]
+        legacy["dependencies"] = {}
+        legacy["random_seed"] = None
+        legacy_output = self.output_directory / "legacy-uap-bias.csv"
+        legacy_output.write_text("legacy\n", encoding="utf-8")
+        legacy["outputs"] = generated_provenance.output_fingerprints(
+            [legacy_output], self.base
+        )
+        current_key = "bias_calibration_outputs:2025fed:@TPP"
+        legacy_key = "bias_calibration_outputs:2025fed:UAP FP"
+        manifest["records"] = {
+            current_key: current,
+            legacy_key: legacy,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "configured_parties_by_election",
+            return_value={"2025fed": {"@TPP"}},
+        ):
+            selected = analysis_provenance._selected_generated_records(
+                [self.generated_manifest_path],
+                {"2025fed"},
+            )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {current_key},
+        )
+
+    def test_dependency_selection_ignores_superseded_bias_party(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        legacy_output = self.output_directory / "legacy-uap-bias.csv"
+        legacy_output.write_text("legacy\n", encoding="utf-8")
+        legacy = json.loads(json.dumps(template))
+        legacy["status"] = "legacy"
+        legacy["category"] = "bias_calibration_outputs"
+        legacy["stage"] = "calibrate_pollster_bias"
+        legacy["scope"] = generated_provenance.generation_scope(
+            elections=["2025fed"], parties=["UAP FP"]
+        )
+        legacy["dependencies"] = {}
+        legacy["outputs"] = generated_provenance.output_fingerprints(
+            [legacy_output], self.base
+        )
+        legacy["random_seed"] = None
+
+        consumer_output = self.output_directory / "consumer.csv"
+        consumer_output.write_text("consumer\n", encoding="utf-8")
+        consumer = json.loads(json.dumps(template))
+        consumer["scope"]["elections"] = ["2028fed"]
+        consumer["dependencies"] = {
+            "bias_calibration_outputs":
+                generated_provenance.file_dependency(
+                    "bias_calibration_outputs",
+                    [legacy_output],
+                    self.base,
+                )
+        }
+        consumer["outputs"] = generated_provenance.output_fingerprints(
+            [consumer_output], self.base
+        )
+        legacy_key = "bias_calibration_outputs:2025fed:UAP FP"
+        consumer_key = "election_result_exports:2028fed"
+        manifest["records"] = {
+            legacy_key: legacy,
+            consumer_key: consumer,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "configured_parties_by_election",
+            return_value={"2025fed": {"@TPP"}},
+        ):
+            selected = analysis_provenance._selected_generated_records(
+                [self.generated_manifest_path],
+                {"2028fed"},
+            )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {consumer_key},
+        )
+
     def test_legacy_trend_infers_same_election_pollster_dependency(self):
         pollster_manifest_path = (
             self.output_directory

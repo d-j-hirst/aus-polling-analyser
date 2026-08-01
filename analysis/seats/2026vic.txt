@@ -421,7 +421,8 @@ sRegion=Northern Melbourne
 fTppMargin=11.6
 fPreviousTppSwing=-13.3
 fTransposedFederalSwing=-2.0
-sCandidateNames=Lily D'Ambrosio,ALP
+bRetirement=1
+sCandidateNames=
 #Monbulk
 sIncumbent=ALP
 sChallenger=LNP

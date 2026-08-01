@@ -51,7 +51,11 @@ TASK_STATUS_PRIORITY = {
 }
 PROFILE_RUN_CLASSES = {
     "metadata": set(),
-    "regular": {"pollster_analysis", "regular"},
+    "regular": {
+        "pollster_analysis",
+        "regular",
+        "regular_with_approvals",
+    },
     "regular-with-approvals": {
         "pollster_analysis",
         "regular",
@@ -71,13 +75,18 @@ PROFILE_RUN_CLASSES = {
 }
 PROFILE_ROOT_RUN_CLASSES = {
     "metadata": set(),
-    "regular": {"regular"},
+    "regular": {"regular", "regular_with_approvals"},
     "regular-with-approvals": {"regular", "regular_with_approvals"},
     "calibration": {"calibration"},
     # Calibration and pure trends are prerequisites, not independent roots,
     # when planning historical cutoff work for a target adjustment.
     "cutoffs": {"cutoffs"},
     "all": None,
+}
+# A routine update regenerates the selected election's pure trend, but does not
+# expand into every historical pure trend used to fit approval relationships.
+PROFILE_TARGET_ONLY_RUN_CLASSES = {
+    "regular": {"regular_with_approvals"},
 }
 EXECUTABLE_GENERATION_PROFILES = (
     "regular",
@@ -289,6 +298,22 @@ def _root_run_classes(profiles, registry):
     return selected
 
 
+def _target_only_run_classes(profiles):
+    """Return run classes restricted to explicitly selected elections."""
+
+    if "all" in profiles:
+        return set()
+    target_only = set()
+    for profile in profiles:
+        target_only.update(PROFILE_TARGET_ONLY_RUN_CLASSES.get(profile, set()))
+    # A broader profile removes any target-only restriction for its classes.
+    for profile in profiles:
+        if profile == "regular":
+            continue
+        target_only.difference_update(PROFILE_RUN_CLASSES[profile])
+    return target_only
+
+
 def _issue_summary(issue):
     return {
         "status": issue["status"],
@@ -490,6 +515,7 @@ def _reachable_work_unit_ids(
     producer_by_category,
     selected_run_classes,
     root_run_classes,
+    target_only_run_classes,
 ):
     """Select profile roots and follow only current stage dependencies."""
 
@@ -564,7 +590,13 @@ def _reachable_work_unit_ids(
                 stage_by_id,
                 producer_by_category,
             )
-            if _run_class(dependency_stage) in selected_run_classes:
+            dependency_run_class = _run_class(dependency_stage)
+            if (
+                dependency_run_class in target_only_run_classes
+                and not dependency.get("target_match", True)
+            ):
+                continue
+            if dependency_run_class in selected_run_classes:
                 select(dependency)
 
     return reachable
@@ -651,6 +683,7 @@ def build_plan(audit, registry, profiles):
     )
     selected_run_classes = _selected_run_classes(profiles, registry)
     root_run_classes = _root_run_classes(profiles, registry)
+    target_only_run_classes = _target_only_run_classes(profiles)
     reachable_work_units = _reachable_work_unit_ids(
         audit["work_units"],
         registry,
@@ -658,6 +691,7 @@ def build_plan(audit, registry, profiles):
         producer_by_category,
         selected_run_classes,
         root_run_classes,
+        target_only_run_classes,
     )
     initially_planned = {
         work_unit.get("id", work_unit["record_key"])
@@ -880,6 +914,7 @@ def build_plan(audit, registry, profiles):
         "requires_fresh_dependencies": require_fresh_dependencies,
         "root_run_classes": sorted(root_run_classes),
         "selected_run_classes": sorted(selected_run_classes),
+        "target_only_run_classes": sorted(target_only_run_classes),
         "blockers": blockers,
         "warnings": warnings,
         "accepted_stale_work_units": sorted(accepted_stale_work_units),
@@ -1397,6 +1432,7 @@ def _execute_generation_snapshot(
                 duration_seconds=round(time.monotonic() - started, 3),
             )
         print(
+            "============================================================\n"
             "PIPELINE {} TASK {}/{} RECORDED AS COMPLETE\n"
             "============================================================"
             .format(phase, index, len(snapshot_tasks)),

@@ -8,6 +8,50 @@ import pollster_analysis_provenance
 
 
 class PollsterAnalysisProvenanceTests(unittest.TestCase):
+    def test_selected_inputs_exclude_unrecorded_legacy_files(self):
+        manifest = {
+            "records": {
+                "current-summary": {
+                    "outputs": {
+                        (
+                            "Outputs/Calibration/"
+                            "calib_2028fed_Fox & Hedgehog_@TPP.csv"
+                        ): {},
+                    },
+                },
+                "unselected-legacy": {
+                    "outputs": {
+                        (
+                            "Outputs/Calibration/"
+                            "calib_2028fed_Fox&Hedgehog_@TPP.csv"
+                        ): {},
+                    },
+                },
+                "bias": {
+                    "outputs": {
+                        (
+                            "Outputs/Calibration/"
+                            "fp_polls_2028fed_@TPP_biascal.csv"
+                        ): {},
+                    },
+                },
+            }
+        }
+        selected = {
+            "poll_calibration_summaries": ["current-summary"],
+            "bias_calibration_outputs": ["bias"],
+        }
+
+        self.assertEqual(
+            pollster_analysis_provenance._calibration_input_filenames(
+                manifest, selected
+            ),
+            [
+                "calib_2028fed_Fox & Hedgehog_@TPP.csv",
+                "fp_polls_2028fed_@TPP_biascal.csv",
+            ],
+        )
+
     def test_baseline_groups_only_canonical_outputs_by_election(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-29T15:53:36Z",
+  "updated_at_utc": "2026-07-31T15:49:02Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -1037,9 +1037,9 @@
       "semantic_revision": 1,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "a71114638a8b97fb9308bcf2c5f186d11ab746b05afd434da039820ca8d48fb5",
-          "size_bytes": 11160,
-          "recorded_mtime_utc": "2026-07-24T02:26:41.560941Z"
+          "sha256": "654dae099287e081e8689746e1bcfd3ad9db6b11cea6eef98a5efa60acfa60f1",
+          "size_bytes": 12566,
+          "recorded_mtime_utc": "2026-07-31T15:46:13.855959Z"
         }
       },
       "events": [
@@ -1078,8 +1078,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260731T154658Z-correction-calibration-provenance-script-a080147b",
+          "recorded_at_utc": "2026-07-31T15:46:58Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Exclude superseded calibration-party records from root planning while retaining explicitly referenced historical dependencies.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
@@ -1087,12 +1107,12 @@
         "pollster_analysis.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 3,
       "files": {
         "pollster_analysis.py": {
-          "sha256": "9c2034db1a91f3154913240d850c57998de825a10abcd8e93ada326f0245b47f",
-          "size_bytes": 25475,
-          "recorded_mtime_utc": "2026-07-24T03:00:45.948631Z"
+          "sha256": "334a2d368e8f643849f50170d7625b636bc874ee0cdbeec0e233c055de530dd4",
+          "size_bytes": 31122,
+          "recorded_mtime_utc": "2026-07-30T00:50:34.997189Z"
         }
       },
       "events": [
@@ -1113,8 +1133,47 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260730T004303Z-correction-pollster-analysis-script-2563f846",
+          "recorded_at_utc": "2026-07-30T00:43:03Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Pool LIB FP consistently with Coalition evidence, reject non-finite calibration values, stage election outputs, and return failure for handled errors.",
+          "files": [
+            "pollster_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260730T005057Z-correction-pollster-analysis-script-5017b299",
+          "recorded_at_utc": "2026-07-30T00:50:57Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Read house-effect medians from the 50% header rather than the historical fixed column, which became the 5th percentile after calibration output expanded to one-percent increments.",
+          "files": [
+            "pollster_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 3
     },
     "pollster_analysis_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs.",
@@ -1122,12 +1181,12 @@
         "pollster_analysis_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "pollster_analysis_provenance.py": {
-          "sha256": "2952d9357154a7676598117ad77c91b80db92fb9984df8fdcb09ebd61a5e8097",
-          "size_bytes": 7907,
-          "recorded_mtime_utc": "2026-07-24T03:24:09.452522Z"
+          "sha256": "f5502f71702f3ee05f0d11473c464fe46004221a13e9c093cfa10ea589621547",
+          "size_bytes": 9053,
+          "recorded_mtime_utc": "2026-07-30T00:39:03.940425Z"
         }
       },
       "events": [
@@ -1166,8 +1225,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260730T004309Z-correction-pollster-analysis-provenance-script-6f7b9d89",
+          "recorded_at_utc": "2026-07-30T00:43:09Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Provide the reducer with the exact calibration filenames selected by its recorded manifest dependencies, excluding superseded files.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "fp_model_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
@@ -1428,12 +1507,12 @@
         "approvals.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "approvals.py": {
-          "sha256": "390a77d282ac2212909a7683305aa6a491bdddb771448a50bb8bed9b7c293541",
-          "size_bytes": 14380,
-          "recorded_mtime_utc": "2026-07-26T00:17:25.450405Z"
+          "sha256": "4ab5266cd9d65a2cfae4619356c36af2f7b2027b2734bb091ac32b28530dffe1",
+          "size_bytes": 19292,
+          "recorded_mtime_utc": "2026-07-30T04:33:11.356436Z"
         }
       },
       "events": [
@@ -1508,8 +1587,66 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260730T041851Z-correction-approvals-script-dded50ed",
+          "recorded_at_utc": "2026-07-30T04:18:51Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Clarified synthetic TPP generation, validated pure-trend inputs and regression failures, and corrected cumulative diagnostic thresholds without changing current model calculations.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260730T042005Z-formatting-approvals-script-714b7de5",
+          "recorded_at_utc": "2026-07-30T04:20:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Completed non-behavioural readability cleanup after the synthetic TPP review.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260730T043334Z-correction-approvals-script-0fb4e5d2",
+          "recorded_at_utc": "2026-07-30T04:33:34Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Clamp synthetic-TPP confidence at zero and one, and make approval-regression accumulation order deterministic.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "approvals_provenance_script": {
       "description": "Synthetic-TPP dependency selection, bundled provenance recording and legacy baselining.",
@@ -2143,14 +2280,14 @@
       "provenance_revision": 16,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "2ba17a816e04e00659c7c4e7382ef8cf379b5fec3d63cb3a409e3f9c5c9fd1f4",
-          "size_bytes": 66237,
-          "recorded_mtime_utc": "2026-07-29T06:23:04.142220Z"
+          "sha256": "7316e9bbea95a8eb581a7619a2a7908ce61bb7355166d821a54053f1b22bb272",
+          "size_bytes": 67805,
+          "recorded_mtime_utc": "2026-07-31T15:48:51.721831Z"
         },
         "pipeline.py": {
-          "sha256": "95efff566251cd1d4f5feabc011174d5140df3a58909fc958f56c1336d58ac6a",
-          "size_bytes": 66029,
-          "recorded_mtime_utc": "2026-07-29T03:19:39.033128Z"
+          "sha256": "4a1471ffd8a049aa47c7a012398fa7db2418c4e6a49dc53ee5f1e0f638492a9d",
+          "size_bytes": 67409,
+          "recorded_mtime_utc": "2026-07-30T03:17:13.247319Z"
         },
         "pipeline_registry.json": {
           "sha256": "26fe10ff19e14c1d39479d0e41ad05f70c88b2e3c844ace30b0b4b6d13f3b4df",
@@ -2729,6 +2866,82 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260730T024122Z-other-pipeline-orchestration-tools-2af81ab1",
+          "recorded_at_utc": "2026-07-30T02:41:22Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 16,
+          "summary": "Regular pipeline runs now regenerate target-election pure trends before final trends without refreshing unrelated historical pure trends.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260730T031737Z-formatting-pipeline-orchestration-tools-dcdf651b",
+          "recorded_at_utc": "2026-07-30T03:17:37Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 16,
+          "summary": "Display symmetric separator lines above and below pipeline task-completion messages.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260731T154658Z-correction-pipeline-orchestration-tools-40785686",
+          "recorded_at_utc": "2026-07-31T15:46:58Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 16,
+          "summary": "Exclude superseded calibration-party records from root planning while retaining explicitly referenced historical dependencies.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260731T154902Z-correction-pipeline-orchestration-tools-aca596bd",
+          "recorded_at_utc": "2026-07-31T15:49:02Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 16,
+          "summary": "Ignore superseded calibration parties when stale downstream metadata still references their retained historical files.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },

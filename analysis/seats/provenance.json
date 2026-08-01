@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-07-23T23:22:01Z",
+  "updated_at_utc": "2026-07-30T14:16:05Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "102166e16563e0dcb047e813eb5cd69900051c352a4a557c8c5b36fd4e0997fb",
-          "size_bytes": 16518,
-          "recorded_mtime_utc": "2026-07-21T22:00:49.844929Z"
+          "sha256": "703860d6e99fd2ce134b8fad64e362e9eea0db1d5857e3ee197bd758d39ebd04",
+          "size_bytes": 16513,
+          "recorded_mtime_utc": "2026-07-30T13:01:35.319717Z"
         },
         "2027nsw.txt": {
           "sha256": "3cd50ea2510b00263868659b59fcbbcbf23c30555b932b8db35a318cf2e5f47b",
@@ -110,8 +110,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260730T141605Z-other-forecast-seats-3fa773cd",
+          "recorded_at_utc": "2026-07-30T14:16:05Z",
+          "change_type": "other",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Retirement in Mill Park",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     }
   }
 }

@@ -14,6 +14,7 @@ from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 import generated_provenance
+import calibration_provenance
 import pipeline_registry
 import provenance_maintenance
 import region_model_provenance
@@ -606,6 +607,22 @@ def _selected_generated_records(
         )
         for election in record["scope"]["elections"]
     }
+    configured_calibration_parties = (
+        calibration_provenance.configured_parties_by_election()
+    )
+
+    def is_superseded_calibration_record(record):
+        if record["category"] not in {
+            "poll_calibration_traces",
+            "bias_calibration_outputs",
+        }:
+            return False
+        elections = record["scope"]["elections"]
+        parties = record["scope"]["parties"]
+        if len(elections) != 1 or len(parties) != 1:
+            return False
+        configured = configured_calibration_parties.get(elections[0])
+        return configured is not None and parties[0] not in configured
 
     def work_unit_id(manifest_path, record_key):
         return "{}::{}".format(
@@ -625,6 +642,10 @@ def _selected_generated_records(
     for manifest_path, manifest in manifests.items():
         for record_key, record in manifest["records"].items():
             if not _record_matches_elections(record, target_elections):
+                continue
+            if is_superseded_calibration_record(record):
+                # Keep old outputs and metadata for traceability, but do not
+                # schedule a command that no longer produces that party.
                 continue
             if (
                 record["category"] == "poll_calibration_traces"
@@ -657,6 +678,16 @@ def _selected_generated_records(
                 for dependency_record in dependency["records"]:
                     if dependency_record in non_invalidating_records:
                         continue
+                    dependency_value = manifests.get(
+                        dependency_manifest, {}
+                    ).get("records", {}).get(dependency_record)
+                    if (
+                        dependency_value is not None
+                        and is_superseded_calibration_record(
+                            dependency_value
+                        )
+                    ):
+                        continue
                     if (
                         dependency_manifest in manifests
                         and dependency_record
@@ -676,6 +707,11 @@ def _selected_generated_records(
                         base_directory / dependency_file
                     )
                     if owner:
+                        owner_record = manifests[owner[0]]["records"][
+                            owner[1]
+                        ]
+                        if is_superseded_calibration_record(owner_record):
+                            continue
                         dependencies[
                             work_unit_id(manifest_path, record_key)
                         ].add(

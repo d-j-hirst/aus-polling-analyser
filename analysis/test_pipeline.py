@@ -417,7 +417,8 @@ class PipelineTests(unittest.TestCase):
             "tasks": [],
         }
 
-        with mock.patch.object(
+        output = StringIO()
+        with redirect_stdout(output), mock.patch.object(
             pipeline.subprocess,
             "run",
             return_value=mock.Mock(returncode=0),
@@ -427,6 +428,12 @@ class PipelineTests(unittest.TestCase):
         run.assert_called_once_with(
             task["command"],
             cwd=str(pipeline.ANALYSIS_DIRECTORY.resolve()),
+        )
+        self.assertIn(
+            "============================================================\n"
+            "PIPELINE PRIMARY TASK 1/1 RECORDED AS COMPLETE\n"
+            "============================================================",
+            output.getvalue(),
         )
 
     def test_generation_executor_records_task_lifecycle(self):
@@ -1120,6 +1127,55 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(
             [task["stage"] for task in plan["tasks"]],
             ["generate_pure_poll_trends", "generate_poll_trends"],
+        )
+
+    def test_regular_profile_regenerates_only_target_pure_trend(self):
+        target_pure = work_unit(
+            "pure_poll_outputs:2026vic:@TPP",
+            "pure_poll_outputs",
+            "generate_pure_poll_trends",
+            "stale",
+            "2026vic",
+            "@TPP",
+        )
+        historical_pure = work_unit(
+            "pure_poll_outputs:1992vic:@TPP",
+            "pure_poll_outputs",
+            "generate_pure_poll_trends",
+            "stale",
+            "1992vic",
+            "@TPP",
+            target_match=False,
+        )
+        final = work_unit(
+            "poll_trend_outputs:2026vic:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "stale",
+            "2026vic",
+            "@TPP",
+            dependencies=[target_pure["id"], historical_pure["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([target_pure, historical_pure, final]),
+            self.registry,
+            {"regular"},
+        )
+
+        self.assertEqual(
+            [
+                (task["stage"], task["election"])
+                for task in plan["tasks"]
+            ],
+            [
+                ("generate_pure_poll_trends", "2026vic"),
+                ("generate_poll_trends", "2026vic"),
+            ],
+        )
+        self.assertEqual(
+            plan["target_only_run_classes"],
+            ["regular_with_approvals"],
         )
 
     def test_regular_plan_follows_direct_final_trend_dependency(self):

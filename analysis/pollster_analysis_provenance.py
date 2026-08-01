@@ -71,10 +71,13 @@ def _source_dependencies():
     }
 
 
-def _calibration_record_keys(target_election, include_election):
-    manifest = generated_provenance.load_manifest(
-        CALIBRATION_MANIFEST_PATH
-    )
+def _calibration_record_keys(
+    target_election, include_election, manifest=None
+):
+    if manifest is None:
+        manifest = generated_provenance.load_manifest(
+            CALIBRATION_MANIFEST_PATH
+        )
     selected = {category: [] for category in CALIBRATION_CATEGORIES}
     for record_key, record in manifest["records"].items():
         category = record["category"]
@@ -84,6 +87,17 @@ def _calibration_record_keys(target_election, include_election):
         if election and include_election(election, target_election):
             selected[category].append(record_key)
     return selected
+
+
+def _calibration_input_filenames(manifest, selected):
+    """Return the exact active files represented by selected records."""
+
+    return sorted({
+        Path(output).name
+        for record_keys in selected.values()
+        for record_key in record_keys
+        for output in manifest["records"][record_key]["outputs"]
+    })
 
 
 class PollsterAnalysisRecorder:
@@ -101,11 +115,8 @@ class PollsterAnalysisRecorder:
             ),
         )
 
-    def dependencies_for(self, target_election, include_election):
+    def _dependencies_for_selected(self, target_election, selected):
         dependencies = dict(self.source_dependencies)
-        selected = _calibration_record_keys(
-            target_election, include_election
-        )
         for category, record_keys in selected.items():
             if not record_keys:
                 if category in OPTIONAL_CALIBRATION_CATEGORIES:
@@ -125,6 +136,30 @@ class PollsterAnalysisRecorder:
                 )
             )
         return dependencies
+
+    def inputs_for(self, target_election, include_election):
+        """Return matching provenance dependencies and their input files."""
+
+        manifest = generated_provenance.load_manifest(
+            CALIBRATION_MANIFEST_PATH
+        )
+        selected = _calibration_record_keys(
+            target_election, include_election, manifest
+        )
+        return (
+            self._dependencies_for_selected(target_election, selected),
+            _calibration_input_filenames(manifest, selected),
+        )
+
+    def dependencies_for(self, target_election, include_election):
+        """Compatibility wrapper for callers that only need provenance."""
+
+        selected = _calibration_record_keys(
+            target_election, include_election
+        )
+        return self._dependencies_for_selected(
+            target_election, selected
+        )
 
     def record(self, election, outputs, dependencies):
         record = generated_provenance.generation_record(

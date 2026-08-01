@@ -8,6 +8,27 @@ import generated_provenance
 
 
 class CalibrationProvenanceTests(unittest.TestCase):
+    def test_configured_parties_are_loaded_by_election(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "significant-parties.csv"
+            path.write_text(
+                "2025,fed,ALP FP,LNP FP,@TPP\n"
+                "2026,vic,ALP FP,LNP FP,GRN FP,@TPP\n",
+                encoding="utf-8",
+            )
+
+            parties = calibration_provenance.configured_parties_by_election(
+                path
+            )
+
+        self.assertEqual(
+            parties["2025fed"], {"ALP FP", "LNP FP", "@TPP"}
+        )
+        self.assertEqual(
+            parties["2026vic"],
+            {"ALP FP", "LNP FP", "GRN FP", "@TPP"},
+        )
+
     def test_stan_seed_is_stable_and_work_unit_specific(self):
         first = calibration_provenance.derive_stan_seed(
             1234, "2028fed", "@TPP", "Newspoll", "pollster-calibration"

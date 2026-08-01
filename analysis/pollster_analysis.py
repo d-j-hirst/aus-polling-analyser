@@ -1,16 +1,46 @@
+"""Reduce historical calibration runs into pollster-level model parameters.
+
+For each target election, this script combines applicable historical
+calibration evidence with conservative priors and writes:
+
+* typical poll error by pollster and party;
+* the relative strength assigned to estimated house effects; and
+* historical pollster bias means and standard deviations.
+
+Only calibration files selected by the generated provenance manifest are
+consumed. This prevents retained backups or superseded calibration runs from
+silently affecting current parameters.
+"""
+
 import argparse
 import math
 import numpy as np
 import os
 import pandas as pd
 import sys
-from mailbox import linesep
+import tempfile
+from pathlib import Path
+
 from election_code import ElectionCode
 import generated_provenance
 import pollster_analysis_provenance
 from statsmodels.stats.weightstats import DescrStatsW
 
 directory = 'Outputs/Calibration'
+LIBERAL_PARTY = 'LIB FP'
+COALITION_PARTY = 'LNP FP'
+
+
+def canonical_party(party):
+    """Pool state Liberal evidence with the national Coalition series."""
+
+    return COALITION_PARTY if party == LIBERAL_PARTY else party
+
+
+def output_party(party, target_uses_liberal):
+    if target_uses_liberal and party == COALITION_PARTY:
+        return LIBERAL_PARTY
+    return party
 
 
 def output_paths(target_election):
@@ -26,16 +56,42 @@ class ConfigError(ValueError):
     pass
 
 
+def parse_finite_float(value, context):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as error:
+        raise ConfigError(
+            '{} is not numeric: {!r}.'.format(context, value)
+        ) from error
+    if not math.isfinite(parsed):
+        raise ConfigError('{} is not finite.'.format(context))
+    return parsed
+
+
+def parse_poll_day(line, filename):
+    fields = line.rstrip('\r\n').split(',')
+    if len(fields) <= 1:
+        raise ConfigError(
+            '{} contains a short poll row.'.format(filename)
+        )
+    return parse_finite_float(
+        fields[1], '{} poll day'.format(filename)
+    )
+
+
 class Config:
-    def __init__(self):
+    def __init__(self, argv=None):
         parser = argparse.ArgumentParser(
             description='Determine trend adjustment parameters')
         parser.add_argument('--election', action='store', type=str,
+                            required=True,
                             help='Generate forecast trend for this election.'
                             ' Enter as 1234-xxx format,'
                             ' e.g. 2013-fed. Write "all" '
                             'to do it for all elections.')
-        self.election_instructions = parser.parse_args().election.lower()
+        self.election_instructions = (
+            parser.parse_args(argv).election.lower()
+        )
         self.prepare_election_list()
 
     def prepare_election_list(self):
@@ -92,11 +148,15 @@ def get_election_cycles():
     
 
 def get_links():
-    links = {
-        line.strip().split(',')[0]:  line.strip().split(',')[1:] for line in
-        open('Data/linked-pollsters.csv', 'r').readlines()
-    }
-    return links
+    with open('Data/linked-pollsters.csv', 'r') as input_file:
+        return {
+            parts[0]: parts[1:]
+            for parts in (
+                [field.strip() for field in line.split(',')]
+                for line in input_file
+                if line.strip()
+            )
+        }
 
 
 def get_significant_parties(target_election):
@@ -110,8 +170,10 @@ def get_significant_parties(target_election):
 
 
 def check_dates(election, target_election, cycles, equals=False):
-    # Returns True is the election should be used for the target election
-    if election.year() > target_election.year(): return False
+    """Return whether an election's evidence predates the target endpoint."""
+
+    if election.year() > target_election.year():
+        return False
     if election.year() == target_election.year():
         # If we're in the same year, make sure that the election is earlier
         # than the target election (i.e. don't use the target election itself
@@ -129,8 +191,6 @@ def check_dates(election, target_election, cycles, equals=False):
             ][1]):
                 return False
         else:
-            print(cycles[(election.year(), election.region())][1])
-            print(cycles[(target_election.year(), target_election.region())][1])
             if (cycles[
                 (election.year(), election.region())
             ][1] >= cycles[
@@ -140,11 +200,12 @@ def check_dates(election, target_election, cycles, equals=False):
     return True
 
 
-def analyse_variability(target_election, cycles, links):
+def analyse_variability(
+    target_election, cycles, links, filenames, output_path
+):
     # The trend calibration process for each prior election has to be done
     # before performing this analysis (via fp_model.py --calibrate)
     print("Analysing variability")
-    filenames = os.listdir(directory)
     # This dictionary will contain the weighted error sums for each
     # pollster/party combination
     weighted_error_sums = {}
@@ -164,10 +225,10 @@ def analyse_variability(target_election, cycles, links):
         if year != target_election.year(): continue
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
-        if party == "LIB FP": party = "LNP FP"; lib = True
+        if party == LIBERAL_PARTY:
+            lib = True
+        party = canonical_party(party)
         with open(f'{directory}/{filename}', 'r') as f:
-            print("opening biascal file")
-            print(filename)
             data = f.readlines()[1:]
             for line in data:
                 pollster = line.split(',')[0]
@@ -175,6 +236,7 @@ def analyse_variability(target_election, cycles, links):
                 # Add a small amount to the weight when a new pollster/party is
                 # encountered to establish prior expectation and avoid
                 # overfitting to the first few data points
+                # A mean absolute error of 2 over seven pseudo-observations.
                 weighted_error_sums[key] = 14
                 weight_sums[key] = 7
 
@@ -185,7 +247,7 @@ def analyse_variability(target_election, cycles, links):
         # so that we can see the variability of that pollster from the trend
         # line created from all other pollsters
         _, election, pollster, party = filename.split(".")[0].split('_')
-        if party == "LIB FP": party = "LNP FP"
+        party = canonical_party(party)
         election = ElectionCode(int(election[:4]), election[4:])
         # Don't use elections from the future
         if not check_dates(election, target_election, cycles, equals=True): continue
@@ -194,8 +256,25 @@ def analyse_variability(target_election, cycles, links):
             # The first line of the file contains the weighted error and weight
             # The rest of the file is not required for this analysis
             # (it contains the deviations and weights for each poll)
-            stat_strs = f.readlines()[0].split(',')[:2]
-            error, weight = float(stat_strs[0]), float(stat_strs[1])
+            stat_strs = f.readline().split(',')[:2]
+            if len(stat_strs) < 2:
+                raise ConfigError(
+                    '{} lacks its weighted error summary.'.format(
+                        filename
+                    )
+                )
+            error = parse_finite_float(
+                stat_strs[0], '{} weighted error'.format(filename)
+            )
+            weight = parse_finite_float(
+                stat_strs[1], '{} weight'.format(filename)
+            )
+            if error < 0 or weight < 0:
+                raise ConfigError(
+                    '{} contains a negative error or weight.'.format(
+                        filename
+                    )
+                )
             # If this pollster/party isn't in the dictionary, skip it
             # as we don't need it for the target election
             if key not in weighted_error_sums:
@@ -204,14 +283,13 @@ def analyse_variability(target_election, cycles, links):
             weighted_error_sums[key] += weight * error
             weight_sums[key] += weight
 
-    with open(f'{directory}/variability-{target_election.year()}{target_election.region()}.csv', 'w') as f:
+    linked_keys = set(sum(links.values(), []))
+    with open(output_path, 'w') as f:
         # Store the standard deviation in error and sum of weights
         # for each pollster/party combination
-        print(links)
-        print(weight_sums)
         for key in sorted(weight_sums.keys()):
             # Don't do linked pollsters yet
-            if key[0] in sum(links.values(), []): continue
+            if key[0] in linked_keys: continue
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum
@@ -225,37 +303,45 @@ def analyse_variability(target_election, cycles, links):
                     link_weight = 21
                     weight_sums[linked_key] += link_weight
                     weighted_error_sums[linked_key] += error_average * link_weight
-            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
-            f.write(f'{key[0]},{key[1]},{error_stddev},{weight_sum - 7}\n')
+            party = output_party(key[1], lib)
+            f.write(f'{key[0]},{party},{error_stddev},{weight_sum - 7}\n')
         for key in sorted(weight_sums.keys()):
             # Non-linked pollsters have already been done
-            if key[0] not in sum(links.values(), []): continue
+            if key[0] not in linked_keys: continue
             weight_sum = weight_sums[key]
             weighted_error_sum = weighted_error_sums[key]
             error_average = weighted_error_sum / weight_sum
             error_stddev = error_average / math.sqrt(2 / math.pi)
-            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
-            f.write(f'{key[0]},{key[1]},{error_stddev},{weight_sum - 7}\n')
+            party = output_party(key[1], lib)
+            f.write(f'{key[0]},{party},{error_stddev},{weight_sum - 7}\n')
     
     print('Variability analysis successfully completed')
 
 
-# get number of polls in election
 def get_n_polls(filenames):
+    """Count recent polls used to weight house-effect and bias evidence."""
+
     n_polls = {}
     for filename in filenames:
         if (filename[:4]) != 'fp_p': continue
         if 'biascal' not in filename: continue
         election, party = filename.split(".")[0].split('_')[2:4]
         election = ElectionCode(int(election[:4]), election[4:])
+        party = canonical_party(party)
         with open(f'{directory}/{filename}', 'r') as f:
             lines = f.readlines()[1:]
-            final_day = max(int(float(a.split(',')[1]) + 0.01) for a in lines)
+            if not lines:
+                continue
+            poll_days = [
+                parse_poll_day(line, filename) for line in lines
+            ]
+            final_day = max(int(day + 0.01) for day in poll_days)
             # Only count polls that would contribute to "new" house effect
             start_day = final_day - 183
             for line in lines:
                 pollster = line.split(',')[0]
-                if int(float(line.split(',')[1]) + 0.01) < start_day: continue
+                poll_day = parse_poll_day(line, filename)
+                if int(poll_day + 0.01) < start_day: continue
                 key = (election, pollster, party)
                 if key not in n_polls:
                     n_polls[key] = 0
@@ -267,23 +353,67 @@ def get_n_polls(filenames):
     return n_polls
 
 
-def load_new_house_effects(f):
+def load_new_house_effects(f, filename):
+    header = None
     lines = []
     for line in f:
-        if line[:4] == 'Hous' or line[:4] == 'New ': continue
+        if line[:4] == 'Hous':
+            header = line.rstrip('\r\n').split(',')
+            continue
+        if line[:4] == 'New ': continue
         if line[:4] == 'Old ': break
         lines.append(line)
-    return {
-        line.split(',')[0]: float(line.split(',')[7])
-        for line in lines
-    }
+    if header is None or '50%' not in header:
+        raise ConfigError(
+            '{} lacks a house-effect median column.'.format(filename)
+        )
+    median_index = header.index('50%')
+    house_effects = {}
+    for line in lines:
+        fields = line.rstrip('\r\n').split(',')
+        if len(fields) <= median_index:
+            raise ConfigError(
+                '{} contains a short house-effect row.'.format(filename)
+            )
+        house_effects[fields[0]] = parse_finite_float(
+            fields[median_index],
+            '{} {} median house effect'.format(filename, fields[0]),
+        )
+    return house_effects
+
+
+def load_final_trend_median(input_file, filename):
+    """Read the last model day's median by its percentile header."""
+
+    rows = [line.rstrip('\r\n').split(',') for line in input_file]
+    if len(rows) < 4 or '50%' not in rows[2]:
+        raise ConfigError(
+            '{} lacks a usable trend percentile header.'.format(filename)
+        )
+    median_index = rows[2].index('50%')
+    if len(rows[-1]) <= median_index:
+        raise ConfigError(
+            '{} final trend row lacks its median value.'.format(filename)
+        )
+    try:
+        median = float(rows[-1][median_index])
+    except ValueError as error:
+        raise ConfigError(
+            '{} final trend median is not numeric.'.format(filename)
+        ) from error
+    if not math.isfinite(median):
+        raise ConfigError(
+            '{} final trend median is not finite.'.format(filename)
+        )
+    return median
 
 
 # Which pollsters' house effects are usually close to the middle
 # of their elections' trend lines
-def analyse_house_effects(target_election, cycles, links):
+def analyse_house_effects(
+    target_election, cycles, links, filenames, output_path
+):
     print("Analysing house effects")
-    filenames = os.listdir(directory)
     n_polls = get_n_polls(filenames)
     
     # This dictionary will contain the weighted house effect sums for each
@@ -303,7 +433,9 @@ def analyse_house_effects(target_election, cycles, links):
         if year != target_election.year(): continue
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
-        if party == "LIB FP": party = "LNP FP"; lib = True
+        if party == LIBERAL_PARTY:
+            lib = True
+        party = canonical_party(party)
         with open(f'{directory}/{filename}', 'r') as f:
             data = f.readlines()[1:]
             for line in data:
@@ -312,6 +444,7 @@ def analyse_house_effects(target_election, cycles, links):
                 # Add a small amount to the weight when a new pollster/party is
                 # encountered to establish prior expectation and avoid
                 # overfitting to the first few data points
+                # Prior mean absolute house effect of 2.5.
                 abs_he_sums[key] = 1
                 abs_he_weights[key] = 0.4
     
@@ -319,13 +452,13 @@ def analyse_house_effects(target_election, cycles, links):
         if (filename[:4]) != 'fp_h': continue
         if 'biascal' not in filename: continue
         election, party = filename.split(".")[0].split('_')[3:5]
-        if party == "LIB FP": party = "LNP FP"
+        party = canonical_party(party)
         election = ElectionCode(int(election[:4]), election[4:])
         if not check_dates(election, target_election, cycles, equals=True): continue
 
         # Load the relevant data as (pollster:median house effect) dict pairs
         with open(f'{directory}/{filename}', 'r') as f:
-            data = load_new_house_effects(f)
+            data = load_new_house_effects(f, filename)
         
         # if there is only one pollster, then don't use data from this election
         # at all, as it is trivially zero
@@ -338,7 +471,6 @@ def analyse_house_effects(target_election, cycles, links):
                 continue
             pollster_key = (election, pollster, party)
             all_key = (election, 'all', party)
-            # print(n_polls)
             if pollster_key not in n_polls: continue
             pollster_n_polls = n_polls[pollster_key]
             all_n_polls = n_polls[all_key]
@@ -354,9 +486,9 @@ def analyse_house_effects(target_election, cycles, links):
             abs_he_sums[key] += abs(adjusted_median) * total_weight
             abs_he_weights[key] += 1 * total_weight
 
-    linked_keys = sum(links.values(), [])
+    linked_keys = set(sum(links.values(), []))
     
-    with open(f'{directory}/he_weighting-{target_election.year()}{target_election.region()}.csv', 'w') as f:
+    with open(output_path, 'w') as f:
         for key in sorted(abs_he_sums.keys()):
             # Don't do linked pollsters yet
             if key[0] in linked_keys: continue
@@ -371,23 +503,24 @@ def analyse_house_effects(target_election, cycles, links):
                     link_weight = 1.2
                     abs_he_weights[linked_key] += link_weight
                     abs_he_sums[linked_key] += average_he * link_weight
-            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
-            f.write(f'{key[0]},{key[1]},{weighting}\n')
+            party = output_party(key[1], lib)
+            f.write(f'{key[0]},{party},{weighting}\n')
         for key in sorted(abs_he_sums.keys()):
             # Non-linked pollsters have already been done
             if key[0] not in linked_keys: continue
             average_he = abs_he_sums[key] / abs_he_weights[key]
             weighting = 1 / average_he
-            if key[1] == "LNP FP" and lib: key = (key[0], "LIB FP")
-            f.write(f'{key[0]},{key[1]},{weighting}\n')
+            party = output_party(key[1], lib)
+            f.write(f'{key[0]},{party},{weighting}\n')
     
     print('House effect analysis successfully completed')
 
 
 # Whether the pollster has any consistent bias
-def analyse_bias(target_election, cycles, links):
+def analyse_bias(
+    target_election, cycles, links, calib_filenames, output_path
+):
     print("Analysing bias")
-    calib_filenames = os.listdir(directory)
     n_polls = get_n_polls(calib_filenames)
     
     # get ordered list of elections
@@ -403,8 +536,17 @@ def analyse_bias(target_election, cycles, links):
         for line in f:
             split_line = (a.strip() for a in line.split(',')[:4])
             year, region, party, median = split_line
-            key = (ElectionCode(int(year), region), party)
-            median = float(median)
+            key = (
+                ElectionCode(int(year), region),
+                canonical_party(party),
+            )
+            median = parse_finite_float(
+                median,
+                '{} {} eventual result'.format(
+                    ElectionCode(int(year), region).short(),
+                    party,
+                ),
+            )
             results[key] = median
     
     # get poll trend medians for each election/party
@@ -414,26 +556,25 @@ def analyse_bias(target_election, cycles, links):
         for filename in calib_filenames:
             file_marker = f'fp_trend_{election.year()}{election.region()}'
             if (file_marker in filename and 'biascal' in filename):
-                party = filename.split('_')[3]
+                party = canonical_party(filename.split('_')[3])
                 with open(f'{directory}/{filename}', 'r') as f:
-                    last_line = f.readlines()[-1]
-                    # 52 is the value of the line where the median
-                    # of the distribution is found
-                    median = last_line.split(',')[52]
-                    trend_medians[(election, party)] = \
-                        float(median)
+                    trend_medians[(election, party)] = (
+                        load_final_trend_median(f, filename)
+                    )
     
     bias_infos = []
     bias_list = {}
     weight_list = {}
-    filenames = os.listdir(directory)
     lib = False
     target_pollsters = set()
     target_parties = set()
-    significant_parties = set(get_significant_parties(target_election))
+    significant_parties = {
+        canonical_party(party)
+        for party in get_significant_parties(target_election)
+    }
 
     # Get all target-election pollsters and parties that have calibration files.
-    for filename in filenames:
+    for filename in calib_filenames:
         if 'biascal' not in filename or 'polls' not in filename: continue
         election = filename.split('.')[0].split('_')[2]
         year = int(election[:4])
@@ -441,7 +582,9 @@ def analyse_bias(target_election, cycles, links):
         if year != target_election.year(): continue
         if region != target_election.region(): continue
         party = filename.split('.')[0].split('_')[3]
-        if party == "LIB FP": party = "LNP FP"; lib = True
+        if party == LIBERAL_PARTY:
+            lib = True
+        party = canonical_party(party)
         if significant_parties and party not in significant_parties:
             continue
         target_parties.add(party)
@@ -455,6 +598,7 @@ def analyse_bias(target_election, cycles, links):
     for pollster in target_pollsters:
         for party in target_parties:
             key = (pollster, party)
+            # Symmetric pseudo-observations give a zero bias with SD 4.
             bias_list[key] = [4, -4]
             weight_list[key] = [0.5, 0.5]
 
@@ -467,12 +611,17 @@ def analyse_bias(target_election, cycles, links):
         for filename in calib_filenames:
             file_marker = f'fp_house_effects_{election.year()}{election.region()}'
             if (file_marker in filename and 'biascal' in filename):
-                party = filename.split('_')[4]
-                if party == "LIB FP": party = "LNP FP"
+                party = canonical_party(filename.split('_')[4])
                 with open(f'{directory}/{filename}', 'r') as f:
-                    data = load_new_house_effects(f)
+                    data = load_new_house_effects(f, filename)
                 key = (election, party)
                 if key not in results: continue
+                if key not in trend_medians:
+                    raise ConfigError(
+                        'Missing bias-calibration trend for {} {}.'.format(
+                            election.short(), party
+                        )
+                    )
                 trend_median = trend_medians[key]
                 for pollster, house_effect in data.items():
                     target_key = (pollster, party)
@@ -502,12 +651,19 @@ def analyse_bias(target_election, cycles, links):
                         weight *= 0.2
                     bias_list[target_key].append(bias)
                     weight_list[target_key].append(weight)
+    linked_keys = set(sum(links.values(), []))
     for target_key in sorted(bias_list.keys()):
         # Don't do linked pollsters yet
-        if target_key[0] in sum(links.values(), []): continue
+        if target_key[0] in linked_keys: continue
         bias_arr = np.array(bias_list[target_key])
         weight_arr = np.array(weight_list[target_key])
         desc = DescrStatsW(bias_arr, weights=weight_arr)
+        mean = parse_finite_float(
+            desc.mean, '{} {} bias mean'.format(*target_key)
+        )
+        stddev = parse_finite_float(
+            desc.std, '{} {} bias standard deviation'.format(*target_key)
+        )
         # Adjust data for any linked pollsters
         if target_key[0] in links:
             linked = links[target_key[0]]
@@ -516,60 +672,104 @@ def analyse_bias(target_election, cycles, links):
                 if linked_key not in bias_list: continue
                 link_weight = 1.5
                 weight_list[linked_key] += [link_weight, link_weight]
-                bias_list[linked_key] += [desc.mean + desc.std, desc.mean - desc.std]
-        if target_key[1] == "LNP FP" and lib: target_key = (target_key[0], "LIB FP")
-        bias_infos.append((target_key[0], target_key[1], desc.mean, desc.std))
+                bias_list[linked_key] += [
+                    mean + stddev,
+                    mean - stddev,
+                ]
+        party = output_party(target_key[1], lib)
+        bias_infos.append((target_key[0], party, mean, stddev))
     for target_key in sorted(bias_list.keys()):
         # Non-linked pollsters have already been done
-        if target_key[0] not in sum(links.values(), []): continue
+        if target_key[0] not in linked_keys: continue
         bias_arr = np.array(bias_list[target_key])
         weight_arr = np.array(weight_list[target_key])
         desc = DescrStatsW(bias_arr, weights=weight_arr)
-        if target_key[1] == "LNP FP" and lib: target_key = (target_key[0], "LIB FP")
-        bias_infos.append((target_key[0], target_key[1], desc.mean, desc.std))
+        mean = parse_finite_float(
+            desc.mean, '{} {} bias mean'.format(*target_key)
+        )
+        stddev = parse_finite_float(
+            desc.std, '{} {} bias standard deviation'.format(*target_key)
+        )
+        party = output_party(target_key[1], lib)
+        bias_infos.append((target_key[0], party, mean, stddev))
 
-    with open(f'{directory}/biases-{target_election.year()}{target_election.region()}.csv', 'w') as f:
+    with open(output_path, 'w') as f:
         for bias_info in bias_infos:
             f.write(','.join(str(a) for a in bias_info) + '\n')
 
     print('Bias analysis successfully completed')
 
 
-if __name__ == '__main__':
+def write_completion_status(status):
+    with open('itsdone.txt', 'w') as output_file:
+        output_file.write(str(status))
 
-    try:
-        config = Config()
-        cycles = get_election_cycles()
-        links = get_links()
-        recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
-            [os.path.basename(__file__)] + sys.argv[1:]
+
+def run_analysis(argv=None):
+    config = Config(argv)
+    cycles = get_election_cycles()
+    links = get_links()
+    command_arguments = sys.argv[1:] if argv is None else list(argv)
+    recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
+        [Path(__file__).name] + command_arguments
+    )
+    for election in config.elections:
+        election_code = election.short()
+        dependencies, filenames = recorder.inputs_for(
+            election_code,
+            lambda candidate, target: check_dates(
+                ElectionCode(int(candidate[:4]), candidate[4:]),
+                ElectionCode(int(target[:4]), target[4:]),
+                cycles,
+                equals=True,
+            ),
         )
-        for election in config.elections:
-            election_code = f'{election.year()}{election.region()}'
-            dependencies = recorder.dependencies_for(
-                election_code,
-                lambda candidate, target: check_dates(
-                    ElectionCode(int(candidate[:4]), candidate[4:]),
-                    ElectionCode(int(target[:4]), target[4:]),
-                    cycles,
-                    equals=True,
-                ),
+        final_paths = output_paths(election)
+        # Generate all three related files before replacing any current output.
+        with tempfile.TemporaryDirectory(
+            prefix='pollster-analysis-{}-'.format(election_code),
+            dir=directory,
+        ) as staging_directory:
+            staged_paths = [
+                str(Path(staging_directory) / Path(path).name)
+                for path in final_paths
+            ]
+            analyse_variability(
+                election, cycles, links, filenames, staged_paths[0]
             )
-            analyse_variability(election, cycles, links)
-            analyse_house_effects(election, cycles, links)
-            analyse_bias(election, cycles, links)
-            recorder.record(
-                election_code,
-                output_paths(election),
-                dependencies,
+            analyse_house_effects(
+                election, cycles, links, filenames, staged_paths[1]
             )
-        with open(f'itsdone.txt', 'w') as f:
-            f.write('1')
+            analyse_bias(
+                election, cycles, links, filenames, staged_paths[2]
+            )
+            for staged_path, final_path in zip(
+                staged_paths, final_paths
+            ):
+                os.replace(staged_path, final_path)
+        recorder.record(
+            election_code,
+            final_paths,
+            dependencies,
+        )
+    write_completion_status(1)
+    return 0
+
+
+def main(argv=None):
+    try:
+        return run_analysis(argv)
     except (
         ConfigError,
         generated_provenance.GeneratedProvenanceError,
     ) as e:
-        print('Could not process configuration due to the following issue:')
-        print(str(e))
-        with open(f'itsdone.txt', 'w') as f:
-            f.write('2')
+        print(
+            'Could not analyse pollsters: {}'.format(e),
+            file=sys.stderr,
+        )
+        write_completion_status(2)
+        return 2
+
+
+if __name__ == '__main__':
+    sys.exit(main())
