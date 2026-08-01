@@ -1,4 +1,8 @@
-"""Calculate poll/fundamentals mixes and forecast-error adjustments."""
+"""Calculate poll/fundamentals mixes and forecast-error adjustments.
+
+Parent: trend_adjust.py provides validated data and publishes this module's
+mixed forecast-error estimates through the output stage.
+"""
 
 import math
 import statistics
@@ -629,5 +633,4 @@ def generate_adjustments(
             party_group=party_group,
             output_directory=output_directory)
     return output_paths
-
 

@@ -1,4 +1,8 @@
-"""Load and interpolate consolidated historical cutoff trends."""
+"""Load and interpolate consolidated historical cutoff trends.
+
+Parent: trend_adjust.py uses this module to supply historical point-in-time
+trend inputs for fitting forecast adjustments.
+"""
 
 import bisect
 import csv

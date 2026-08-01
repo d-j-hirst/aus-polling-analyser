@@ -1,4 +1,8 @@
-"""Optional historical diagnostics for saved trend adjustments."""
+"""Optional historical diagnostics for saved trend adjustments.
+
+Parent: trend_adjust.py coordinates generation; this optional module checks
+the predictiveness of the saved adjustment outputs.
+"""
 
 import math
 import os
@@ -102,4 +106,3 @@ def check_poll_predictiveness(config):
             print(f"mixed RMSE:         {math.sqrt(statistics.mean([abs(a) ** 2 for a in mixed_errors]))}")
         except statistics.StatisticsError:
             print("Could not check statistics as there were no data. Make sure you use --election all so that the program uses all available elections")
-

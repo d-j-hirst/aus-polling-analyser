@@ -1,4 +1,8 @@
-"""Serialize, validate and publish trend-adjustment outputs."""
+"""Serialize, validate and publish trend-adjustment outputs.
+
+Parent: trend_adjust.py owns the workflow; this module writes and validates
+the fundamentals and adjustment files produced by its calculation stages.
+"""
 
 import math
 import os

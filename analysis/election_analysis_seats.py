@@ -1,4 +1,8 @@
-"""Seat swing, Green-independent correlation and Coalition-allocation analysis."""
+"""Seat swing, Green-independent correlation and Coalition-allocation analysis.
+
+Parent: election_analysis.py coordinates this seat-level component with the
+party and regional analyses before certifying their shared output bundle.
+"""
 
 import statistics
 
@@ -598,5 +602,4 @@ def analyse_nationals(elections, all_elections):
             f.write(f'seat,prediction\n')
             for i in range(len(predictions)):
                 f.write(f'{predictions[i][0]},{predictions[i][1]}\n')
-
 

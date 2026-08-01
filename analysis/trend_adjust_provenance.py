@@ -1,4 +1,8 @@
-"""Track fundamentals and trend-adjustment outputs."""
+"""Track fundamentals and trend-adjustment outputs.
+
+Parent: trend_adjust.py invokes this module after generation to record the
+provenance of its fundamentals and adjustment output families.
+"""
 
 import argparse
 import csv

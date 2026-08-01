@@ -142,6 +142,88 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             },
         )
 
+    def test_dependency_selection_excludes_unused_party_records(self):
+        manifest = {
+            "records": {
+                "bias-alp": {
+                    "category": "bias_calibration_outputs",
+                    "scope": {
+                        "elections": ["2025fed"],
+                        "parties": ["ALP FP"],
+                    },
+                },
+                "bias-uap": {
+                    "category": "bias_calibration_outputs",
+                    "scope": {
+                        "elections": ["2025fed"],
+                        "parties": ["UAP FP"],
+                    },
+                },
+                "summary-unscoped": {
+                    "category": "poll_calibration_summaries",
+                    "scope": {"elections": ["2025fed"]},
+                },
+            }
+        }
+
+        selected = pollster_analysis_provenance._calibration_record_keys(
+            "2028fed",
+            lambda candidate, target: candidate <= target,
+            target_parties=["ALP FP"],
+            manifest=manifest,
+        )
+
+        self.assertEqual(
+            selected,
+            {
+                "poll_calibration_summaries": ["summary-unscoped"],
+                "bias_calibration_outputs": ["bias-alp"],
+            },
+        )
+
+    def test_obsolete_calibration_party_dependency_is_reported(self):
+        record = {
+            "category": "pollster_parameters",
+            "scope": {"elections": ["2028fed"]},
+            "dependencies": {
+                "bias_calibration_outputs": {
+                    "manifest": "calibration-generated-provenance.json",
+                    "records": ["bias-alp", "bias-uap"],
+                },
+            },
+        }
+        calibration_manifest = {
+            "records": {
+                "bias-alp": {
+                    "scope": {"parties": ["ALP FP"]},
+                },
+                "bias-uap": {
+                    "scope": {"parties": ["UAP FP"]},
+                },
+            }
+        }
+        with mock.patch.object(
+            pollster_analysis_provenance,
+            "_target_parties",
+            return_value={"ALP FP"},
+        ), mock.patch.object(
+            generated_provenance,
+            "load_manifest",
+            return_value=calibration_manifest,
+        ):
+            issues = (
+                pollster_analysis_provenance
+                .obsolete_calibration_dependency_issues(record, Path("."))
+            )
+
+        self.assertEqual(
+            issues,
+            [
+                "obsolete calibration-party dependency "
+                "bias_calibration_outputs (bias-uap)"
+            ],
+        )
+
     def test_completed_work_unit_records_stale_calibration_dependencies(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)

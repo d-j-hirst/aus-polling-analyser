@@ -19,9 +19,47 @@ def _refresh_source_dependency(record, context):
     """Refresh a source dependency after metadata-only bookkeeping changes."""
 
 
+def _refresh_pollster_calibration_dependencies(record, context):
+    """Prune calibration parties the pollster reducers cannot consume."""
+
+    import pollster_analysis_provenance
+
+    pollster_analysis_provenance.refresh_calibration_dependencies(
+        record, context["base_directory"]
+    )
+
+
+def _refresh_direct_generated_dependencies(record, context):
+    """Re-fingerprint direct generated inputs after a metadata-only repair."""
+
+    base_directory = context["base_directory"]
+    for category_id, dependency in list(record["dependencies"].items()):
+        if dependency["kind"] != "generated_manifest":
+            continue
+        manifest_path = (
+            Path(base_directory) / dependency["manifest"]
+        ).resolve()
+        record["dependencies"][category_id] = (
+            generated_provenance.generated_manifest_dependency(
+                category_id,
+                manifest_path,
+                dependency["records"],
+                base_directory,
+                allow_stale=False,
+                non_invalidating_records=dependency.get(
+                    "non_invalidating_records", ()
+                ),
+            )
+        )
+
+
 UPGRADES = {
     "no-generated-metadata-change-v1": _no_generated_metadata_change,
     "refresh-source-dependency-v1": _refresh_source_dependency,
+    "refresh-pollster-calibration-dependencies-v1":
+        _refresh_pollster_calibration_dependencies,
+    "refresh-direct-generated-dependencies-v1":
+        _refresh_direct_generated_dependencies,
 }
 
 
@@ -107,6 +145,57 @@ def pending_upgrades(record, base_directory):
     )
 
 
+def _repairable_issue(issue, upgrades):
+    """Return whether an explicit pending upgrade can repair ``issue``."""
+
+    if issue.startswith("provenance-only dependency revision "):
+        return True
+    upgrade_ids = {
+        item["event"]["provenance_upgrade"] for item in upgrades
+    }
+    if "refresh-pollster-calibration-dependencies-v1" in upgrade_ids and (
+        issue.startswith(
+            "stale generated dependency poll_calibration_summaries "
+        )
+        or issue.startswith(
+            "stale generated dependency bias_calibration_outputs "
+        )
+    ):
+        return True
+    return (
+        "refresh-direct-generated-dependencies-v1" in upgrade_ids
+        and (
+            issue.startswith("stale generated dependency ")
+            or issue.startswith("changed dependency ")
+        )
+    )
+
+
+def can_maintain_record(manifest_path, record_key):
+    """Whether an explicit metadata upgrade can safely repair one record."""
+
+    manifest_path = Path(manifest_path).resolve()
+    try:
+        manifest = generated_provenance.load_manifest(manifest_path)
+    except generated_provenance.GeneratedProvenanceError:
+        return False
+    record = manifest["records"].get(record_key)
+    if record is None:
+        return False
+    base_directory = (manifest_path.parent / manifest["path_base"]).resolve()
+    try:
+        upgrades = pending_upgrades(record, base_directory)
+    except (
+        ProvenanceMaintenanceError,
+        generated_provenance.GeneratedProvenanceError,
+    ):
+        return False
+    if not upgrades:
+        return False
+    issues = generated_provenance.check_record(record, base_directory)
+    return all(_repairable_issue(issue, upgrades) for issue in issues)
+
+
 def _maintain_record_once(manifest_path, record_key):
     """Apply every pending metadata upgrade to one generated work unit."""
 
@@ -121,14 +210,24 @@ def _maintain_record_once(manifest_path, record_key):
     base_directory = (
         manifest_path.parent / manifest["path_base"]
     ).resolve()
-    issues = generated_provenance.check_record(
-        original_record,
-        base_directory,
-    )
+    try:
+        upgrades = pending_upgrades(original_record, base_directory)
+    except ProvenanceMaintenanceError as error:
+        issues = generated_provenance.check_record(
+            original_record, base_directory
+        )
+        if issues:
+            raise ProvenanceMaintenanceError(
+                "{} cannot receive metadata maintenance: {}".format(
+                    record_key, "; ".join(issues)
+                )
+            ) from error
+        raise
+    issues = generated_provenance.check_record(original_record, base_directory)
     data_issues = [
         issue
         for issue in issues
-        if not issue.startswith("provenance-only dependency revision ")
+        if not _repairable_issue(issue, upgrades)
     ]
     if data_issues:
         raise ProvenanceMaintenanceError(
@@ -138,7 +237,6 @@ def _maintain_record_once(manifest_path, record_key):
         )
 
     record = copy.deepcopy(original_record)
-    upgrades = pending_upgrades(record, base_directory)
     if not upgrades:
         return 0
 
@@ -152,6 +250,7 @@ def _maintain_record_once(manifest_path, record_key):
                 "source_category": item["category"],
                 "source_manifest": item["manifest"],
                 "event": event,
+                "base_directory": base_directory,
             },
         )
         applied.append(

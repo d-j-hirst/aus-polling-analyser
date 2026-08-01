@@ -329,7 +329,11 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "pollster_analysis.py"
+        "pollster_analysis.py",
+        "pollster_analysis_common.py",
+        "pollster_analysis_variability.py",
+        "pollster_analysis_house_effects.py",
+        "pollster_analysis_bias.py"
       ],
       "description": "Reduction of calibration evidence into compact election-level pollster parameters."
     },

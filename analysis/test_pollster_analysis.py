@@ -68,8 +68,9 @@ class PollsterAnalysisTests(unittest.TestCase):
                 "Example,20,31\n",
                 encoding="utf-8",
             )
-            with mock.patch.object(
-                self.analysis, "directory", temporary_directory
+            with mock.patch.dict(
+                self.analysis.get_n_polls.__globals__,
+                {"directory": temporary_directory},
             ):
                 counts = self.analysis.get_n_polls([filename])
 

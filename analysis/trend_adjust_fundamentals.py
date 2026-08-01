@@ -1,4 +1,8 @@
-"""Fit and validate the fundamentals component of trend adjustment."""
+"""Fit and validate the fundamentals component of trend adjustment.
+
+Parent: trend_adjust.py combines this fundamentals estimate with poll trends
+through the mixing stage to generate forecast adjustments.
+"""
 
 import math
 import statistics

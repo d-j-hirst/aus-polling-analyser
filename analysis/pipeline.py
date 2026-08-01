@@ -944,7 +944,16 @@ def build_metadata_plan(audit):
     tasks = []
     if not blockers:
         for work_unit in audit["work_units"]:
-            if work_unit["status"] != "provenance-stale":
+            manifest_path = (
+                ANALYSIS_DIRECTORY / work_unit["manifest"]
+            ).resolve()
+            maintainable = provenance_maintenance.can_maintain_record(
+                manifest_path, work_unit["record_key"]
+            )
+            if (
+                work_unit["status"] != "provenance-stale"
+                and not maintainable
+            ):
                 continue
             tasks.append(
                 {
@@ -1203,6 +1212,22 @@ def _task_has_new_staleness(snapshot_task, refreshed_task):
     )
 
 
+def _scheduled_task_failure(task):
+    """Describe why a completed task is still present in a refreshed plan."""
+
+    reasons = sorted({
+        signature.split("|", 2)[-1]
+        for signature in task.get("issue_signatures", [])
+        if signature
+    })
+    suffix = ""
+    if reasons:
+        suffix = ": {}".format("; ".join(reasons))
+    return "{} {} remains scheduled after completion{}".format(
+        task["stage"], _task_target(task), suffix
+    )
+
+
 def _refresh_after_task(
     task,
     refresh_plan,
@@ -1217,17 +1242,18 @@ def _refresh_after_task(
             refreshed = refresh_plan()
             if refreshed["blockers"]:
                 failure = refreshed["blockers"][0]["message"]
-            elif _task_identity(task) in {
-                _task_identity(current_task)
-                for current_task in refreshed["tasks"]
-            }:
-                failure = (
-                    "{} {} remains scheduled after completion".format(
-                        task["stage"], _task_target(task)
-                    )
-                )
             else:
-                return refreshed
+                matching_task = next(
+                    (
+                        current_task
+                        for current_task in refreshed["tasks"]
+                        if _task_identity(current_task) == _task_identity(task)
+                    ),
+                    None,
+                )
+                if matching_task is None:
+                    return refreshed
+                failure = _scheduled_task_failure(matching_task)
         except (
             analysis_provenance.AnalysisProvenanceError,
             pipeline_registry.RegistryError,
@@ -1287,11 +1313,7 @@ def _refresh_generation_task(
                     and _task_records_advanced(task, previous_markers)
                 ):
                     return refreshed
-                failure = (
-                    "{} {} remains scheduled after completion".format(
-                        task["stage"], _task_target(task)
-                    )
-                )
+                failure = _scheduled_task_failure(matching_task)
         except (
             analysis_provenance.AnalysisProvenanceError,
             generated_provenance.GeneratedProvenanceError,

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-01T08:33:57Z",
+  "updated_at_utc": "2026-08-01T13:02:33Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -351,24 +351,24 @@
           "recorded_mtime_utc": "2026-08-01T08:31:56.393285Z"
         },
         "election_analysis_common.py": {
-          "sha256": "1900ee7e1acdae55f3e5c115d7586ce444fd476e32d9b6020f0589c85a77cd63",
-          "size_bytes": 11018,
-          "recorded_mtime_utc": "2026-08-01T08:32:28.809848Z"
+          "sha256": "54aac08d3834d09590f57a709dd8df5b4203e6ae67f7bf3e8006fab0b20b288f",
+          "size_bytes": 11035,
+          "recorded_mtime_utc": "2026-08-01T08:45:13.736440Z"
         },
         "election_analysis_parties.py": {
-          "sha256": "1b9cc27b634e2ef809456faed8ef4d686e599973e6a00a55cb144b45001e8653",
-          "size_bytes": 28975,
-          "recorded_mtime_utc": "2026-08-01T08:32:29.200932Z"
+          "sha256": "175d9d4c3a0dcc4a4d70f336dd9a2921440948f52617718f01dcb868c69f3c5b",
+          "size_bytes": 29104,
+          "recorded_mtime_utc": "2026-08-01T08:45:17.799390Z"
         },
         "election_analysis_regions.py": {
-          "sha256": "20bbd3c35bf8dc57bf1b7059349ec4169767d9db73dc6de3d6d608aed8d33b8c",
-          "size_bytes": 13223,
-          "recorded_mtime_utc": "2026-08-01T08:32:29.646293Z"
+          "sha256": "542bd5b85aa813fac84bbfc6038191c1778a093b9c160196b7180242f3d93f8b",
+          "size_bytes": 13370,
+          "recorded_mtime_utc": "2026-08-01T08:45:21.432618Z"
         },
         "election_analysis_seats.py": {
-          "sha256": "93f9e65dcedf146af9d220aa9b1c16bdefa35447c0bd60971f1007fa3cbce7c8",
-          "size_bytes": 31842,
-          "recorded_mtime_utc": "2026-08-01T08:31:55.162510Z"
+          "sha256": "29be5c4a68876e2c2da9739c8dde2204204a840ea77191bf74c160256e02f95b",
+          "size_bytes": 31993,
+          "recorded_mtime_utc": "2026-08-01T08:45:23.832379Z"
         }
       },
       "events": [
@@ -512,6 +512,28 @@
             "stages": []
           },
           "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T084704Z-formatting-election-analysis-script-db857c60",
+          "recorded_at_utc": "2026-08-01T08:47:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Add parent-flow context to extracted analysis modules for human reviewers without changing generated-data behavior.",
+          "files": [
+            "election_analysis_common.py",
+            "election_analysis_parties.py",
+            "election_analysis_regions.py",
+            "election_analysis_seats.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 5
@@ -1152,15 +1174,39 @@
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
       "file_patterns": [
-        "pollster_analysis.py"
+        "pollster_analysis.py",
+        "pollster_analysis_common.py",
+        "pollster_analysis_variability.py",
+        "pollster_analysis_house_effects.py",
+        "pollster_analysis_bias.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 3,
       "files": {
         "pollster_analysis.py": {
-          "sha256": "334a2d368e8f643849f50170d7625b636bc874ee0cdbeec0e233c055de530dd4",
-          "size_bytes": 31122,
-          "recorded_mtime_utc": "2026-07-30T00:50:34.997189Z"
+          "sha256": "30dda9bf84ddb945d5fb928803c723de485d9a7d0fca5c850c4bf1919674401d",
+          "size_bytes": 3540,
+          "recorded_mtime_utc": "2026-08-01T12:38:27.485528Z"
+        },
+        "pollster_analysis_bias.py": {
+          "sha256": "900625beddbb4b799d94b11527be6ed76fa34f02a070d78bded3dd7b6a870e0a",
+          "size_bytes": 8656,
+          "recorded_mtime_utc": "2026-08-01T12:39:35.721721Z"
+        },
+        "pollster_analysis_common.py": {
+          "sha256": "73663110a25cee5642e13de5b8713ad46b131af7d7cf8198fb56e471b941df24",
+          "size_bytes": 6672,
+          "recorded_mtime_utc": "2026-08-01T08:43:47.498714Z"
+        },
+        "pollster_analysis_house_effects.py": {
+          "sha256": "ee72ed975478a30debc271e2a9e945c5569cc78bfa359c1cfefb70cc3170a9f7",
+          "size_bytes": 8733,
+          "recorded_mtime_utc": "2026-08-01T08:43:53.412080Z"
+        },
+        "pollster_analysis_variability.py": {
+          "sha256": "f704fd4506751c5afa768a61354f3a895cb767ae49c2695cb0e161a89b2ff546",
+          "size_bytes": 5905,
+          "recorded_mtime_utc": "2026-08-01T08:43:49.705850Z"
         }
       },
       "events": [
@@ -1219,9 +1265,73 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T084646Z-formatting-pollster-analysis-script-48230422",
+          "recorded_at_utc": "2026-08-01T08:46:46Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 4,
+          "summary": "Split pollster parameter reduction into shared input, variability, house-effect and bias modules without changing calculations or published files.",
+          "files": [
+            "pollster_analysis.py",
+            "pollster_analysis_bias.py",
+            "pollster_analysis_common.py",
+            "pollster_analysis_house_effects.py",
+            "pollster_analysis_variability.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T123914Z-correction-pollster-analysis-script-4cf21eb3",
+          "recorded_at_utc": "2026-08-01T12:39:14Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 5,
+          "summary": "Exclude calibration-party records that cannot affect the target pollster parameters, avoiding stale dependencies from retired parties.",
+          "files": [
+            "pollster_analysis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T123953Z-formatting-pollster-analysis-script-35441059",
+          "recorded_at_utc": "2026-08-01T12:39:53Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Restore the bias reducer's explicit dependency on the moved poll-count loader after the provenance-only pollster-analysis split.",
+          "files": [
+            "pollster_analysis_bias.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 6
     },
     "pollster_analysis_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs.",
@@ -1232,9 +1342,9 @@
       "semantic_revision": 2,
       "files": {
         "pollster_analysis_provenance.py": {
-          "sha256": "f5502f71702f3ee05f0d11473c464fe46004221a13e9c093cfa10ea589621547",
-          "size_bytes": 9053,
-          "recorded_mtime_utc": "2026-07-30T00:39:03.940425Z"
+          "sha256": "a3dcab0b5831e47661c8dc353dd31570c56b3da2694f7c89c4d32efff7a8d3d8",
+          "size_bytes": 14872,
+          "recorded_mtime_utc": "2026-08-01T13:01:34.528653Z"
         }
       },
       "events": [
@@ -1292,9 +1402,70 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T123914Z-correction-pollster-analysis-provenance-script-0caff9ae",
+          "recorded_at_utc": "2026-08-01T12:39:14Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Exclude calibration-party records that cannot affect the target pollster parameters, avoiding stale dependencies from retired parties.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T124530Z-correction-pollster-analysis-provenance-script-94add562",
+          "recorded_at_utc": "2026-08-01T12:45:30Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 4,
+          "summary": "Provide a scoped metadata migration that removes irrelevant legacy calibration-party dependencies from pollster parameter records.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-pollster-calibration-dependencies-v1"
+        },
+        {
+          "id": "20260801T130233Z-correction-pollster-analysis-provenance-script-7e1627cf",
+          "recorded_at_utc": "2026-08-01T13:02:33Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 4,
+          "summary": "Detect pollster provenance records that retain calibration parties no longer significant for their target election, so planning refreshes parameters before dependent trends.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 4
     },
     "fp_model_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
@@ -1305,9 +1476,9 @@
       "semantic_revision": 2,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "ab7a941a180752d53a2430b8ee15797fc16a41811e5e73976d460aaf91badc0d",
-          "size_bytes": 39045,
-          "recorded_mtime_utc": "2026-07-26T12:48:08.826203Z"
+          "sha256": "fba4fdc51caf82a96a18edc14674a52fc6a48310ea8250f2712a3a9435415c1c",
+          "size_bytes": 39298,
+          "recorded_mtime_utc": "2026-08-01T12:45:12.707853Z"
         }
       },
       "events": [
@@ -1546,8 +1717,31 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T124539Z-correction-fp-model-provenance-script-25862589",
+          "recorded_at_utc": "2026-08-01T12:45:39Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Provide a scoped metadata migration that refreshes pure-trend generated-input fingerprints after an upstream provenance-only correction.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-direct-generated-dependencies-v1"
         }
-      ]
+      ],
+      "provenance_revision": 3
     },
     "approvals_script": {
       "description": "Synthetic TPP regression from leader approval observations and pure TPP trends.",
@@ -2028,24 +2222,24 @@
           "recorded_mtime_utc": "2026-08-01T07:49:56.059613Z"
         },
         "trend_adjust_data.py": {
-          "sha256": "0c27907ee38e8c4d11f738cbc79d16ac5e3179b19d903fef3ae3afa05f63dcd2",
-          "size_bytes": 13605,
-          "recorded_mtime_utc": "2026-08-01T07:41:29.203742Z"
+          "sha256": "49c96cf4a66924f28a29a04e5d37c9e79a294629ab86010ab84bdd5d1fb7462f",
+          "size_bytes": 13744,
+          "recorded_mtime_utc": "2026-08-01T08:45:31.343992Z"
         },
         "trend_adjust_fundamentals.py": {
-          "sha256": "155991c2e4e2751fd2dfac1b9c6d5bc2e352e70664697fee540860cd3c368c97",
-          "size_bytes": 16465,
-          "recorded_mtime_utc": "2026-08-01T07:48:44.888431Z"
+          "sha256": "b181853d2ad3ff4f62489681e21d7af9826248fc7a0fa55e168bd725050598b6",
+          "size_bytes": 16603,
+          "recorded_mtime_utc": "2026-08-01T08:45:34.312429Z"
         },
         "trend_adjust_io.py": {
-          "sha256": "9580413a828a805006f8e11a73819d0e8df3580a77ba435ec75262f2722a74a1",
-          "size_bytes": 13786,
-          "recorded_mtime_utc": "2026-08-01T07:46:45.503110Z"
+          "sha256": "1f4f7a45cb4080e55613885213fa5aacaaa591d3d9bf680c4b7189b2d9168db0",
+          "size_bytes": 13938,
+          "recorded_mtime_utc": "2026-08-01T08:45:36.652259Z"
         },
         "trend_adjust_mixing.py": {
-          "sha256": "4d6a45cea7429a572a1697dabe5244bb8521cf847f3bb91a51578f2bf73cfd38",
-          "size_bytes": 24895,
-          "recorded_mtime_utc": "2026-08-01T07:43:24.964399Z"
+          "sha256": "a2931d98d1ed9d8f4dfcf8e06b12dd481f25dd6daeede5b1d454dce38bf6277f",
+          "size_bytes": 25029,
+          "recorded_mtime_utc": "2026-08-01T08:45:40.784186Z"
         }
       },
       "events": [
@@ -2188,6 +2382,28 @@
             "stages": []
           },
           "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T084704Z-formatting-trend-adjust-script-921356f8",
+          "recorded_at_utc": "2026-08-01T08:47:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 7,
+          "summary": "Add parent-flow context to extracted analysis modules for human reviewers without changing generated-data behavior.",
+          "files": [
+            "trend_adjust_data.py",
+            "trend_adjust_fundamentals.py",
+            "trend_adjust_io.py",
+            "trend_adjust_mixing.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 7
@@ -2201,9 +2417,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_provenance.py": {
-          "sha256": "05d09fdee00ab978f4f1f6267fa288db9cd0d2524e9add6dbb0483142d0fcf67",
-          "size_bytes": 14272,
-          "recorded_mtime_utc": "2026-08-01T07:49:56.658778Z"
+          "sha256": "cb905947481dcffb28160dce8e7f9e6e0bdec66ddfae1f50bf85ea33328ce247",
+          "size_bytes": 14412,
+          "recorded_mtime_utc": "2026-08-01T08:45:44.632185Z"
         }
       },
       "events": [
@@ -2316,6 +2532,25 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260801T084704Z-formatting-trend-adjust-provenance-script-54f42dd1",
+          "recorded_at_utc": "2026-08-01T08:47:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Add parent-flow context to extracted analysis modules for human reviewers without changing generated-data behavior.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -2329,9 +2564,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_cutoffs.py": {
-          "sha256": "c953d43b8f54b8eede0a4d6c09d6e978e320833d8b117eae40cf49164e54735c",
-          "size_bytes": 7188,
-          "recorded_mtime_utc": "2026-07-25T06:35:56.664222Z"
+          "sha256": "f171fd36cc6ee812237c81a217f40ffab7d48f1f4fce724cad4f24c7902053f2",
+          "size_bytes": 7313,
+          "recorded_mtime_utc": "2026-08-01T08:45:28.804219Z"
         }
       },
       "events": [
@@ -2370,8 +2605,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T084704Z-formatting-trend-adjust-cutoffs-script-33d9112e",
+          "recorded_at_utc": "2026-08-01T08:47:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Add parent-flow context to extracted analysis modules for human reviewers without changing generated-data behavior.",
+          "files": [
+            "trend_adjust_cutoffs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "fp_model_console_wrapper": {
       "description": "Argument-compatible fp_model launcher that filters repetitive Stan timing output.",
@@ -2473,22 +2728,22 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
-      "provenance_revision": 18,
+      "provenance_revision": 22,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "7316e9bbea95a8eb581a7619a2a7908ce61bb7355166d821a54053f1b22bb272",
-          "size_bytes": 67805,
-          "recorded_mtime_utc": "2026-07-31T15:48:51.721831Z"
+          "sha256": "2093f1e6a01aec257e68bff68d58a01eb64715e963da7d917471de9a6d3d1030",
+          "size_bytes": 68467,
+          "recorded_mtime_utc": "2026-08-01T13:01:37.244806Z"
         },
         "pipeline.py": {
-          "sha256": "4a1471ffd8a049aa47c7a012398fa7db2418c4e6a49dc53ee5f1e0f638492a9d",
-          "size_bytes": 67409,
-          "recorded_mtime_utc": "2026-07-30T03:17:13.247319Z"
+          "sha256": "5d57aeff62572d97a645ad2e95067cbd4e45ba7b77215712b6ee941637c83ae0",
+          "size_bytes": 68126,
+          "recorded_mtime_utc": "2026-08-01T12:56:52.398431Z"
         },
         "pipeline_registry.json": {
-          "sha256": "1c8e1286036ea92e12d17b432fa37a66bd63238be4570c8bdd913299f4ddbad2",
-          "size_bytes": 36889,
-          "recorded_mtime_utc": "2026-08-01T08:33:33.993111Z"
+          "sha256": "501716a0af97df689b420c8952adaf4d719de73ad58b6f5b0286b8c556104ff1",
+          "size_bytes": 37055,
+          "recorded_mtime_utc": "2026-08-01T08:46:40.219601Z"
         },
         "pipeline_registry.py": {
           "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
@@ -2496,9 +2751,9 @@
           "recorded_mtime_utc": "2026-07-26T05:35:53.353473Z"
         },
         "provenance_maintenance.py": {
-          "sha256": "a00ceba017457af436aa5da2709d9e73cf29170899446a15ab0b6f300a1cbd69",
-          "size_bytes": 6395,
-          "recorded_mtime_utc": "2026-07-29T02:41:20.347262Z"
+          "sha256": "eadc6a83d36900c1130a5be5354dbf62337714d51c8738b86c383794c44f7a1f",
+          "size_bytes": 9913,
+          "recorded_mtime_utc": "2026-08-01T12:56:00.194117Z"
         }
       },
       "events": [
@@ -3178,6 +3433,106 @@
             "stages": []
           },
           "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T084646Z-formatting-pipeline-orchestration-tools-45c89031",
+          "recorded_at_utc": "2026-08-01T08:46:46Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 19,
+          "summary": "Split pollster parameter reduction into shared input, variability, house-effect and bias modules without changing calculations or published files.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T124608Z-correction-pipeline-orchestration-tools-63c9ba19",
+          "recorded_at_utc": "2026-08-01T12:46:08Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 20,
+          "summary": "Allow explicit scoped metadata migrations to repair validated generated-dependency lineage without rerunning unchanged data.",
+          "files": [
+            "pipeline.py",
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260801T125621Z-correction-pipeline-orchestration-tools-dc38a9dd",
+          "recorded_at_utc": "2026-08-01T12:56:21Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 21,
+          "summary": "Constrain dependency-lineage metadata repairs to explicit calibration categories and safely ignore unavailable manifests while planning metadata work.",
+          "files": [
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260801T125702Z-formatting-pipeline-orchestration-tools-73f879cc",
+          "recorded_at_utc": "2026-08-01T12:57:02Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 22,
+          "summary": "Include the refreshed task's recorded stale reason in post-task action-required feedback.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260801T130233Z-correction-pipeline-orchestration-tools-56babf73",
+          "recorded_at_utc": "2026-08-01T13:02:33Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 22,
+          "summary": "Detect pollster provenance records that retain calibration parties no longer significant for their target election, so planning refreshes parameters before dependent trends.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -3427,9 +3782,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_check.py": {
-          "sha256": "247ce2fc6470e49aff81d1fa3f496648c50a90cd86b76245c5375b541e5ca490",
-          "size_bytes": 5616,
-          "recorded_mtime_utc": "2026-08-01T07:43:39.630175Z"
+          "sha256": "2834cd96df5ae19bb3fa7dfecc17d03cc20c3aeebb053f5ba6ac1770ad7d440e",
+          "size_bytes": 5745,
+          "recorded_mtime_utc": "2026-08-01T08:45:25.828523Z"
         }
       },
       "events": [
@@ -3450,8 +3805,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T084704Z-formatting-trend-adjust-check-script-249381bc",
+          "recorded_at_utc": "2026-08-01T08:47:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Add parent-flow context to extracted analysis modules for human reviewers without changing generated-data behavior.",
+          "files": [
+            "trend_adjust_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     }
   }
 }

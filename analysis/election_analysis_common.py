@@ -1,8 +1,8 @@
 """Shared numerical helpers for historical election analysis.
 
-These helpers operate on the checked-election result objects but do not own an
-output family. Party, seat and regional analyses import them without changing
-the calculations previously defined in election_analysis.py.
+Parent: election_analysis.py coordinates the party, regional and seat output
+families. These helpers operate on checked-election results but do not own an
+output family, allowing those analysis modules to share unchanged calculations.
 """
 
 import math

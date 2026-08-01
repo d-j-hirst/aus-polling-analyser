@@ -1,4 +1,8 @@
-"""Federal regional-polling analysis used by the seat simulation."""
+"""Federal regional-polling analysis used by the seat simulation.
+
+Parent: election_analysis.py runs this federal regional component alongside
+the party and seat analyses that form the historical analysis bundle.
+"""
 
 import copy
 import math
@@ -292,4 +296,3 @@ def analyse_region_swings():
 
 
 majors = ['Liberal', 'National', 'Liberal National', 'Labor', 'Country Liberal']
-

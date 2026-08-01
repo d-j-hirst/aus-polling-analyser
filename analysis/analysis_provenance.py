@@ -16,6 +16,7 @@ from pathlib import Path
 import generated_provenance
 import calibration_provenance
 import pipeline_registry
+import pollster_analysis_provenance
 import provenance_maintenance
 import region_model_provenance
 import source_provenance
@@ -187,6 +188,10 @@ def _generated_issue_code(issue):
         ("invalid dependency ", "invalid_dependency"),
         ("unrecorded source change ", "unregistered_source_change"),
         ("new semantic dependency revision ", "new_semantic_revision"),
+        (
+            "obsolete calibration-party dependency ",
+            "obsolete_calibration_party_dependency",
+        ),
         (
             "provenance-only dependency revision ",
             "provenance_only_revision",
@@ -950,6 +955,18 @@ def audit_repository(
         manifest_label = _manifest_label(manifest_path)
         for record_key, record_issues in checked_records.items():
             record = manifest["records"][record_key]
+            record_issues = list(record_issues)
+            if record["category"] == "pollster_parameters":
+                record_issues.extend(
+                    pollster_analysis_provenance
+                    .obsolete_calibration_dependency_issues(
+                        record,
+                        (
+                            Path(manifest_path).parent
+                            / manifest["path_base"]
+                        ).resolve(),
+                    )
+                )
             direct_issues = [
                 issue
                 for issue in record_issues

@@ -1,4 +1,8 @@
-"""Historical models for Greens, independent and other minor-party votes."""
+"""Historical models for Greens, independent and other minor-party votes.
+
+Parent: election_analysis.py invokes this module as part of the historical
+seat-analysis bundle before provenance is recorded.
+"""
 
 import copy
 import math

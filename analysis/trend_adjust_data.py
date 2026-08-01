@@ -1,4 +1,8 @@
-"""Load and validate the authored inputs used by trend adjustment."""
+"""Load and validate the authored inputs used by trend adjustment.
+
+Parent: trend_adjust.py coordinates the overall adjustment workflow and
+passes these validated inputs to fundamentals and mixing stages.
+"""
 
 from dataclasses import dataclass
 from datetime import date

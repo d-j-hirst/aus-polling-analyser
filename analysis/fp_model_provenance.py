@@ -93,6 +93,11 @@ FEDERAL_PRIOR_PARTIES = {
 }
 ELECTION_CODE_PATTERN = re.compile(r"^(\d{4})([a-z]+)$")
 CUTOFF_DAY_TEST_COUNT = 46
+# Registered only for scoped metadata maintenance after an upstream generated
+# record has had a dependency-only correction. It never changes trend values.
+DIRECT_GENERATED_DEPENDENCY_REFRESH_UPGRADE = (
+    "refresh-direct-generated-dependencies-v1"
+)
 
 
 def cutoff_schedule():

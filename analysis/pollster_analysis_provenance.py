@@ -49,6 +49,11 @@ CALIBRATION_CATEGORIES = (
 OPTIONAL_CALIBRATION_CATEGORIES = {
     "poll_calibration_summaries",
 }
+# This named migration is registered when legacy records need their overly
+# broad calibration-party dependencies corrected without rerunning reducers.
+CALIBRATION_DEPENDENCY_REFRESH_UPGRADE = (
+    "refresh-pollster-calibration-dependencies-v1"
+)
 
 
 def _record_key(election):
@@ -71,21 +76,44 @@ def _source_dependencies():
     }
 
 
+def _canonical_calibration_party(party):
+    """Match the reducer's pooling of state Liberal data with Coalition."""
+
+    return "LNP FP" if party == "LIB FP" else party
+
+
 def _calibration_record_keys(
-    target_election, include_election, manifest=None
+    target_election, include_election, target_parties=None, manifest=None
 ):
+    """Select only calibration records that can affect the target outputs."""
+
     if manifest is None:
         manifest = generated_provenance.load_manifest(
             CALIBRATION_MANIFEST_PATH
         )
+    target_parties = {
+        _canonical_calibration_party(party)
+        for party in (target_parties or ())
+    }
     selected = {category: [] for category in CALIBRATION_CATEGORIES}
     for record_key, record in manifest["records"].items():
         category = record["category"]
         if category not in selected:
             continue
         election = _scope_election(record)
-        if election and include_election(election, target_election):
-            selected[category].append(record_key)
+        if not election or not include_election(election, target_election):
+            continue
+        record_parties = {
+            _canonical_calibration_party(party)
+            for party in record["scope"].get("parties", ())
+        }
+        # Some legacy or aggregate records lack a party scope. Keep them
+        # conservatively because their relevance cannot be inferred here.
+        if target_parties and record_parties and not (
+            target_parties & record_parties
+        ):
+            continue
+        selected[category].append(record_key)
     return selected
 
 
@@ -98,6 +126,123 @@ def _calibration_input_filenames(manifest, selected):
         for record_key in record_keys
         for output in manifest["records"][record_key]["outputs"]
     })
+
+
+def _target_parties(election):
+    """Read the target's configured parties without importing reducers."""
+
+    significant_parties_path = (
+        ANALYSIS_DIRECTORY / "Data" / "significant-parties.csv"
+    )
+    match = re.fullmatch(r"(\d{4})([a-z]+)", election)
+    if not match:
+        raise generated_provenance.GeneratedProvenanceError(
+            "invalid pollster-parameter election '{}'".format(election)
+        )
+    with open(significant_parties_path, encoding="utf-8") as input_file:
+        for line in input_file:
+            fields = [field.strip() for field in line.split(",")]
+            if fields[:2] == [match.group(1), match.group(2)]:
+                return {
+                    _canonical_calibration_party(party)
+                    for party in fields[2:]
+                }
+    raise generated_provenance.GeneratedProvenanceError(
+        "no significant-party configuration exists for {}".format(election)
+    )
+
+
+def refresh_calibration_dependencies(record, base_directory):
+    """Remove obsolete party-specific calibration edges without rerunning.
+
+    Earlier provenance baselines conservatively treated every historical party
+    calibration as an input to every target.  The reducers never read a
+    calibration party outside the target's significant-party set, so pruning
+    those stale edges corrects metadata only; it does not alter the published
+    pollster parameter files.
+    """
+
+    election = _scope_election(record)
+    if record["category"] != "pollster_parameters" or not election:
+        return False
+    target_parties = _target_parties(election)
+    changed = False
+    for category in CALIBRATION_CATEGORIES:
+        dependency = record["dependencies"].get(category)
+        if dependency is None:
+            continue
+        manifest_path = (
+            Path(base_directory) / dependency["manifest"]
+        ).resolve()
+        manifest = generated_provenance.load_manifest(manifest_path)
+        retained_keys = []
+        for record_key in dependency["records"]:
+            calibration_record = manifest["records"].get(record_key)
+            if calibration_record is None:
+                retained_keys.append(record_key)
+                continue
+            parties = {
+                _canonical_calibration_party(party)
+                for party in calibration_record["scope"].get("parties", ())
+            }
+            # Keep unscoped aggregate records conservatively.
+            if not parties or target_parties & parties:
+                retained_keys.append(record_key)
+        if retained_keys == dependency["records"]:
+            continue
+        record["dependencies"][category] = (
+            generated_provenance.generated_manifest_dependency(
+                category,
+                manifest_path,
+                retained_keys,
+                base_directory,
+                allow_stale=False,
+                non_invalidating_records=dependency.get(
+                    "non_invalidating_records", ()
+                ),
+            )
+        )
+        changed = True
+    return changed
+
+
+def obsolete_calibration_dependency_issues(record, base_directory):
+    """Report party-specific calibration edges no longer used by a record.
+
+    This is deliberately narrower than recomputing the complete historical
+    selection. It identifies the dangerous legacy case: a record tracks a
+    calibration party which the current reducer would ignore because that
+    party is no longer significant for the target election.
+    """
+
+    election = _scope_election(record)
+    if record["category"] != "pollster_parameters" or not election:
+        return []
+    target_parties = _target_parties(election)
+    issues = []
+    for category in CALIBRATION_CATEGORIES:
+        dependency = record["dependencies"].get(category)
+        if dependency is None:
+            continue
+        manifest_path = (
+            Path(base_directory) / dependency["manifest"]
+        ).resolve()
+        manifest = generated_provenance.load_manifest(manifest_path)
+        for record_key in dependency["records"]:
+            calibration_record = manifest["records"].get(record_key)
+            if calibration_record is None:
+                continue
+            parties = {
+                _canonical_calibration_party(party)
+                for party in calibration_record["scope"].get("parties", ())
+            }
+            if parties and not target_parties & parties:
+                issues.append(
+                    "obsolete calibration-party dependency {} ({})".format(
+                        category, record_key
+                    )
+                )
+    return issues
 
 
 class PollsterAnalysisRecorder:
@@ -137,25 +282,27 @@ class PollsterAnalysisRecorder:
             )
         return dependencies
 
-    def inputs_for(self, target_election, include_election):
+    def inputs_for(self, target_election, include_election, target_parties=None):
         """Return matching provenance dependencies and their input files."""
 
         manifest = generated_provenance.load_manifest(
             CALIBRATION_MANIFEST_PATH
         )
         selected = _calibration_record_keys(
-            target_election, include_election, manifest
+            target_election, include_election, target_parties, manifest
         )
         return (
             self._dependencies_for_selected(target_election, selected),
             _calibration_input_filenames(manifest, selected),
         )
 
-    def dependencies_for(self, target_election, include_election):
+    def dependencies_for(
+        self, target_election, include_election, target_parties=None
+    ):
         """Compatibility wrapper for callers that only need provenance."""
 
         selected = _calibration_record_keys(
-            target_election, include_election
+            target_election, include_election, target_parties
         )
         return self._dependencies_for_selected(
             target_election, selected
