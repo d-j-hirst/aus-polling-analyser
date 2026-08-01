@@ -65,10 +65,6 @@ class TrendAdjustmentProvenanceTests(unittest.TestCase):
             data_directory.mkdir()
             adjustments_directory.mkdir()
             fundamentals_directory.mkdir()
-            (data_directory / "party-groups.csv").write_text(
-                "ALP,ALP FP\nTPP,@TPP\n",
-                encoding="utf-8",
-            )
             source_file = analysis_directory / "source.txt"
             source_file.write_text("source\n", encoding="utf-8")
             cutoff_file = analysis_directory / "cutoff.csv"
@@ -141,6 +137,7 @@ class TrendAdjustmentProvenanceTests(unittest.TestCase):
                             adjustment_outputs,
                             fundamentals_output,
                             dependencies,
+                            expected_groups=("ALP", "TPP"),
                         )
 
             manifest = generated_provenance.load_manifest(manifest_path)

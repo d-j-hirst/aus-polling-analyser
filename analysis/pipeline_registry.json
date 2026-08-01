@@ -181,9 +181,22 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "trend_adjust.py"
+        "trend_adjust.py",
+        "trend_adjust_data.py",
+        "trend_adjust_fundamentals.py",
+        "trend_adjust_io.py",
+        "trend_adjust_mixing.py"
       ],
       "description": "Fundamentals regression and historical trend-adjustment calibration."
+    },
+    "trend_adjust_check_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "trend_adjust_check.py"
+      ],
+      "description": "Read-only historical diagnostics for saved trend adjustments."
     },
     "trend_adjust_provenance_script": {
       "kind": "code",

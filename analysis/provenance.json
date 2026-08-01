@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-07-31T15:49:02Z",
+  "updated_at_utc": "2026-08-01T07:51:57Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -1965,15 +1965,39 @@
     "trend_adjust_script": {
       "description": "Fundamentals regression and historical trend-adjustment calibration.",
       "file_patterns": [
-        "trend_adjust.py"
+        "trend_adjust.py",
+        "trend_adjust_data.py",
+        "trend_adjust_fundamentals.py",
+        "trend_adjust_io.py",
+        "trend_adjust_mixing.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 5,
       "files": {
         "trend_adjust.py": {
-          "sha256": "07621888b3d8510d56455ba2b98b0b940eb33fe15df0157febedcdd31ffcd418",
-          "size_bytes": 69448,
-          "recorded_mtime_utc": "2026-07-25T06:29:15.342836Z"
+          "sha256": "10a97b5599748eb2b005dec23e6528b0c10f6c4713f23145341cc7da6cb37610",
+          "size_bytes": 11393,
+          "recorded_mtime_utc": "2026-08-01T07:49:56.059613Z"
+        },
+        "trend_adjust_data.py": {
+          "sha256": "0c27907ee38e8c4d11f738cbc79d16ac5e3179b19d903fef3ae3afa05f63dcd2",
+          "size_bytes": 13605,
+          "recorded_mtime_utc": "2026-08-01T07:41:29.203742Z"
+        },
+        "trend_adjust_fundamentals.py": {
+          "sha256": "155991c2e4e2751fd2dfac1b9c6d5bc2e352e70664697fee540860cd3c368c97",
+          "size_bytes": 16465,
+          "recorded_mtime_utc": "2026-08-01T07:48:44.888431Z"
+        },
+        "trend_adjust_io.py": {
+          "sha256": "9580413a828a805006f8e11a73819d0e8df3580a77ba435ec75262f2722a74a1",
+          "size_bytes": 13786,
+          "recorded_mtime_utc": "2026-08-01T07:46:45.503110Z"
+        },
+        "trend_adjust_mixing.py": {
+          "sha256": "4d6a45cea7429a572a1697dabe5244bb8521cf847f3bb91a51578f2bf73cfd38",
+          "size_bytes": 24895,
+          "recorded_mtime_utc": "2026-08-01T07:43:24.964399Z"
         }
       },
       "events": [
@@ -2014,8 +2038,111 @@
               "generate_trend_adjustments"
             ]
           }
+        },
+        {
+          "id": "20260801T061120Z-correction-trend-adjust-script-680d7be3",
+          "recorded_at_utc": "2026-08-01T06:11:20Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Corrected duplicate xOTH fundamentals observations and exact TPP-to-primary alignment; clarified and validated trend-adjustment calculations.",
+          "files": [
+            "trend_adjust.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260801T064353Z-correction-trend-adjust-script-ecc8af51",
+          "recorded_at_utc": "2026-08-01T06:43:53Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 4,
+          "summary": "Use the current year for generic adjustment relevance and stage complete election outputs before publication.",
+          "files": [
+            "trend_adjust.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260801T072213Z-correction-trend-adjust-script-cdf981f0",
+          "recorded_at_utc": "2026-08-01T07:22:13Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 5,
+          "summary": "Replace endpoint-only mix selection with a cached coarse grid and bounded refinement of the two best candidate basins; consistently use the generic adjustment reference year in mix weighting.",
+          "files": [
+            "trend_adjust.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260801T074732Z-formatting-trend-adjust-script-39773527",
+          "recorded_at_utc": "2026-08-01T07:47:32Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Split trend adjustment into explicit data, fundamentals, mixing, serialization and orchestration modules without changing generated calculations.",
+          "files": [
+            "trend_adjust.py",
+            "trend_adjust_data.py",
+            "trend_adjust_fundamentals.py",
+            "trend_adjust_io.py",
+            "trend_adjust_mixing.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260801T075039Z-formatting-trend-adjust-script-6c9dd57a",
+          "recorded_at_utc": "2026-08-01T07:50:39Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 7,
+          "summary": "Complete the module boundary cleanup and remove compatibility re-exports from the trend-adjustment entry point.",
+          "files": [
+            "trend_adjust.py",
+            "trend_adjust_fundamentals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
         }
-      ]
+      ],
+      "provenance_revision": 7
     },
     "trend_adjust_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for fundamentals and trend adjustments.",
@@ -2026,9 +2153,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_provenance.py": {
-          "sha256": "fe67d872fa8b53f7714d7e259108ba378862b655384587cecbc29f1d6f504e07",
-          "size_bytes": 14172,
-          "recorded_mtime_utc": "2026-07-25T06:27:05.093423Z"
+          "sha256": "05d09fdee00ab978f4f1f6267fa288db9cd0d2524e9add6dbb0483142d0fcf67",
+          "size_bytes": 14272,
+          "recorded_mtime_utc": "2026-08-01T07:49:56.658778Z"
         }
       },
       "events": [
@@ -2121,8 +2248,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T075054Z-formatting-trend-adjust-provenance-script-60d7ba3e",
+          "recorded_at_utc": "2026-08-01T07:50:54Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Allow the trend-adjustment runner to pass its already-loaded party groups into provenance output validation.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "trend_adjust_cutoffs_script": {
       "description": "Strict loading and triangular-root interpolation of historical cutoff trends.",
@@ -2277,7 +2425,7 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
-      "provenance_revision": 16,
+      "provenance_revision": 17,
       "files": {
         "analysis_provenance.py": {
           "sha256": "7316e9bbea95a8eb581a7619a2a7908ce61bb7355166d821a54053f1b22bb272",
@@ -2290,9 +2438,9 @@
           "recorded_mtime_utc": "2026-07-30T03:17:13.247319Z"
         },
         "pipeline_registry.json": {
-          "sha256": "26fe10ff19e14c1d39479d0e41ad05f70c88b2e3c844ace30b0b4b6d13f3b4df",
-          "size_bytes": 36343,
-          "recorded_mtime_utc": "2026-07-26T13:39:38.112073Z"
+          "sha256": "c8a4add24e384f836f7cf6f1f48fe1f2ec04c28eaad808bad8d5c8ff8fc3b9ba",
+          "size_bytes": 36732,
+          "recorded_mtime_utc": "2026-08-01T07:51:45.855580Z"
         },
         "pipeline_registry.py": {
           "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
@@ -2942,6 +3090,26 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T075157Z-schema-pipeline-orchestration-tools-a9945c68",
+          "recorded_at_utc": "2026-08-01T07:51:57Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 17,
+          "summary": "Track the split trend-adjustment modules and their read-only diagnostics in the pipeline source registry.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ]
     },
@@ -3181,6 +3349,41 @@
         }
       ],
       "provenance_revision": 8
+    },
+    "trend_adjust_check_script": {
+      "description": "Read-only historical diagnostics for saved trend adjustments.",
+      "file_patterns": [
+        "trend_adjust_check.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "trend_adjust_check.py": {
+          "sha256": "247ce2fc6470e49aff81d1fa3f496648c50a90cd86b76245c5375b541e5ca490",
+          "size_bytes": 5616,
+          "recorded_mtime_utc": "2026-08-01T07:43:39.630175Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260801T074726Z-baseline-trend-adjust-check-script-c995d9f0",
+          "recorded_at_utc": "2026-08-01T07:47:26Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Separated optional trend-adjustment diagnostics from generation code.",
+          "files": [
+            "trend_adjust_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
     }
   }
 }

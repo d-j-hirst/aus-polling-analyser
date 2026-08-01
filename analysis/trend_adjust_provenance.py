@@ -194,6 +194,7 @@ class TrendAdjustmentRecorder:
         adjustment_outputs,
         fundamentals_output,
         dependencies,
+        expected_groups=None,
     ):
         target_election = str(target_election)
         adjustment_outputs = {
@@ -207,7 +208,9 @@ class TrendAdjustmentRecorder:
                 )
             )
         fundamentals_output = Path(fundamentals_output)
-        expected_groups = set(adjustment_groups())
+        expected_groups = set(
+            adjustment_groups() if expected_groups is None else expected_groups
+        )
         if set(adjustment_outputs) != expected_groups:
             raise generated_provenance.GeneratedProvenanceError(
                 "{} adjustment outputs do not match configured groups; "
