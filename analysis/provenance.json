@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-01T13:02:33Z",
+  "updated_at_utc": "2026-08-01T13:28:10Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -2000,15 +2000,33 @@
     "region_model_script": {
       "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output.",
       "file_patterns": [
-        "region_model.py"
+        "region_model.py",
+        "region_model_common.py",
+        "region_model_stan.py",
+        "region_model_mappings.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 2,
       "files": {
         "region_model.py": {
-          "sha256": "222f651a4dec9d6e0e9e15a6092c3b0345fba410c8442e789c1dceb50928c2c3",
-          "size_bytes": 25483,
-          "recorded_mtime_utc": "2026-07-29T15:52:30.039302Z"
+          "sha256": "065ab664cafbef4b9577b8b098073ccd71c413959ef7dd99c74c1b952961e2b6",
+          "size_bytes": 3332,
+          "recorded_mtime_utc": "2026-08-01T13:26:06.624381Z"
+        },
+        "region_model_common.py": {
+          "sha256": "3236bed7579e677f84bc6e316286f56bf2d8c31264cce28c398e7aabfd019e40",
+          "size_bytes": 12620,
+          "recorded_mtime_utc": "2026-08-01T13:24:40.353287Z"
+        },
+        "region_model_mappings.py": {
+          "sha256": "40fa7ea5eff7f0cd8baf3f0cf6673ed6032a376b7f8e045edd6bbe9f776b53e7",
+          "size_bytes": 7083,
+          "recorded_mtime_utc": "2026-08-01T13:25:35.908441Z"
+        },
+        "region_model_stan.py": {
+          "sha256": "6ec496ac6de2ed1e1605f6e2ad17c7230ea530dd5c448c0a70a815591d6b3cb3",
+          "size_bytes": 2657,
+          "recorded_mtime_utc": "2026-08-01T13:24:42.540710Z"
         }
       },
       "events": [
@@ -2129,9 +2147,32 @@
               "generate_regional_swings"
             ]
           }
+        },
+        {
+          "id": "20260801T132709Z-formatting-region-model-script-f957d731",
+          "recorded_at_utc": "2026-08-01T13:27:09Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Split regional model contracts, shared Stan execution, and explicit election mappings into reviewed modules without changing valid regional calculations.",
+          "files": [
+            "region_model.py",
+            "region_model_common.py",
+            "region_model_mappings.py",
+            "region_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 3
     },
     "region_model_provenance_script": {
       "description": "Work-unit discovery and bundled provenance recording for regional swing models.",
@@ -2741,9 +2782,9 @@
           "recorded_mtime_utc": "2026-08-01T12:56:52.398431Z"
         },
         "pipeline_registry.json": {
-          "sha256": "501716a0af97df689b420c8952adaf4d719de73ad58b6f5b0286b8c556104ff1",
-          "size_bytes": 37055,
-          "recorded_mtime_utc": "2026-08-01T08:46:40.219601Z"
+          "sha256": "f2d41ce1d259ff95cb163468842b5f1bf894b212182f72f75167a9213ca06d90",
+          "size_bytes": 37157,
+          "recorded_mtime_utc": "2026-08-01T13:26:37.336831Z"
         },
         "pipeline_registry.py": {
           "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
@@ -3526,6 +3567,25 @@
           "summary": "Detect pollster provenance records that retain calibration parties no longer significant for their target election, so planning refreshes parameters before dependent trends.",
           "files": [
             "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260801T132810Z-formatting-pipeline-orchestration-tools-ff7bdc4f",
+          "recorded_at_utc": "2026-08-01T13:28:10Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 22,
+          "summary": "Track the split regional-model implementation modules as one pipeline code category without changing generation commands or data.",
+          "files": [
+            "pipeline_registry.json"
           ],
           "scope": {
             "all": true,

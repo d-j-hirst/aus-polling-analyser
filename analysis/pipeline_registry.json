@@ -293,7 +293,10 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "region_model.py"
+        "region_model.py",
+        "region_model_common.py",
+        "region_model_stan.py",
+        "region_model_mappings.py"
       ],
       "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output."
     },
