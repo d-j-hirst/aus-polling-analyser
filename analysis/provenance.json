@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-01T13:28:10Z",
+  "updated_at_utc": "2026-08-01T22:23:18Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -579,12 +579,12 @@
         "sample_kurtosis.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "sample_kurtosis.py": {
-          "sha256": "710a4efa1b4d45399624e0db1c0b195d5b8bc800fce98f2829743c3b356a616c",
-          "size_bytes": 1487,
-          "recorded_mtime_utc": "2026-07-18T00:03:10.598835Z"
+          "sha256": "d58b7837d587c16cc9c30b2b66986063d9f789abfd3cd58435de287431000ac2",
+          "size_bytes": 4847,
+          "recorded_mtime_utc": "2026-08-01T22:23:10.645323Z"
         }
       },
       "events": [
@@ -605,8 +605,66 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T221939Z-correction-sample-kurtosis-script-a9476d1a",
+          "recorded_at_utc": "2026-08-01T22:19:39Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Validated shared RMSE and kurtosis inputs, added a neutral zero-variance fallback, and centred two-tailed kurtosis samples.",
+          "files": [
+            "sample_kurtosis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260801T222128Z-correction-sample-kurtosis-script-832dea78",
+          "recorded_at_utc": "2026-08-01T22:21:28Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Reject non-numeric estimator inputs with descriptive validation errors.",
+          "files": [
+            "sample_kurtosis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260801T222318Z-correction-sample-kurtosis-script-b4ef3e1f",
+          "recorded_at_utc": "2026-08-01T22:23:18Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Check supplied kurtosis-weight lengths before validating their numeric values and clarify the all-zero fallback.",
+          "files": [
+            "sample_kurtosis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "fp_model_script": {
       "description": "Poll-trend data preparation, Stan execution and output serialization.",
