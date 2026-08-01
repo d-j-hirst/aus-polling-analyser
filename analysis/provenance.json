@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-01T07:51:57Z",
+  "updated_at_utc": "2026-08-01T08:33:57Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -336,15 +336,39 @@
     "election_analysis_script": {
       "description": "Historical seat, regional and Coalition-allocation analysis.",
       "file_patterns": [
-        "election_analysis.py"
+        "election_analysis.py",
+        "election_analysis_common.py",
+        "election_analysis_parties.py",
+        "election_analysis_regions.py",
+        "election_analysis_seats.py"
       ],
       "exclude_patterns": [],
       "semantic_revision": 4,
       "files": {
         "election_analysis.py": {
-          "sha256": "976acebe14a8fca5c8503294011fb71d2a50908dc66965f59d361b0db0b64696",
-          "size_bytes": 89777,
-          "recorded_mtime_utc": "2026-07-29T13:57:53.672423Z"
+          "sha256": "4ffb3c260e7e93bcaaac2de57c705e568ec475d15e202922696231ca20f70b29",
+          "size_bytes": 7096,
+          "recorded_mtime_utc": "2026-08-01T08:31:56.393285Z"
+        },
+        "election_analysis_common.py": {
+          "sha256": "1900ee7e1acdae55f3e5c115d7586ce444fd476e32d9b6020f0589c85a77cd63",
+          "size_bytes": 11018,
+          "recorded_mtime_utc": "2026-08-01T08:32:28.809848Z"
+        },
+        "election_analysis_parties.py": {
+          "sha256": "1b9cc27b634e2ef809456faed8ef4d686e599973e6a00a55cb144b45001e8653",
+          "size_bytes": 28975,
+          "recorded_mtime_utc": "2026-08-01T08:32:29.200932Z"
+        },
+        "election_analysis_regions.py": {
+          "sha256": "20bbd3c35bf8dc57bf1b7059349ec4169767d9db73dc6de3d6d608aed8d33b8c",
+          "size_bytes": 13223,
+          "recorded_mtime_utc": "2026-08-01T08:32:29.646293Z"
+        },
+        "election_analysis_seats.py": {
+          "sha256": "93f9e65dcedf146af9d220aa9b1c16bdefa35447c0bd60971f1007fa3cbce7c8",
+          "size_bytes": 31842,
+          "recorded_mtime_utc": "2026-08-01T08:31:55.162510Z"
         }
       },
       "events": [
@@ -464,9 +488,33 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T083357Z-formatting-election-analysis-script-60b1188d",
+          "recorded_at_utc": "2026-08-01T08:33:57Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Split historical election analysis into focused helper, party, regional and seat modules without changing model calculations or output formats.",
+          "files": [
+            "election_analysis.py",
+            "election_analysis_common.py",
+            "election_analysis_parties.py",
+            "election_analysis_regions.py",
+            "election_analysis_seats.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
         }
       ],
-      "provenance_revision": 4
+      "provenance_revision": 5
     },
     "poll_transform_script": {
       "description": "Vote-share transforms and bounds shared by Python analysis stages.",
@@ -2425,7 +2473,7 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
-      "provenance_revision": 17,
+      "provenance_revision": 18,
       "files": {
         "analysis_provenance.py": {
           "sha256": "7316e9bbea95a8eb581a7619a2a7908ce61bb7355166d821a54053f1b22bb272",
@@ -2438,9 +2486,9 @@
           "recorded_mtime_utc": "2026-07-30T03:17:13.247319Z"
         },
         "pipeline_registry.json": {
-          "sha256": "c8a4add24e384f836f7cf6f1f48fe1f2ec04c28eaad808bad8d5c8ff8fc3b9ba",
-          "size_bytes": 36732,
-          "recorded_mtime_utc": "2026-08-01T07:51:45.855580Z"
+          "sha256": "1c8e1286036ea92e12d17b432fa37a66bd63238be4570c8bdd913299f4ddbad2",
+          "size_bytes": 36889,
+          "recorded_mtime_utc": "2026-08-01T08:33:33.993111Z"
         },
         "pipeline_registry.py": {
           "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
@@ -3110,6 +3158,26 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260801T083357Z-formatting-pipeline-orchestration-tools-2f3b9159",
+          "recorded_at_utc": "2026-08-01T08:33:57Z",
+          "change_type": "formatting",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 18,
+          "summary": "Split historical election analysis into focused helper, party, regional and seat modules without changing model calculations or output formats.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "refresh-source-dependency-v1"
         }
       ]
     },

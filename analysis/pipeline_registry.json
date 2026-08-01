@@ -154,7 +154,11 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "election_analysis.py"
+        "election_analysis.py",
+        "election_analysis_common.py",
+        "election_analysis_parties.py",
+        "election_analysis_regions.py",
+        "election_analysis_seats.py"
       ],
       "description": "Historical seat, regional and Coalition-allocation analysis."
     },
