@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-02T00:00:11Z",
+  "updated_at_utc": "2026-08-02T02:03:48Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -1130,9 +1130,9 @@
       "semantic_revision": 1,
       "files": {
         "stan_cache.py": {
-          "sha256": "56f9f80a9fa8ede83e0de1b2a292103912d957e9dd1073cb719066c4873a7338",
-          "size_bytes": 1693,
-          "recorded_mtime_utc": "2026-08-01T23:59:40.756148Z"
+          "sha256": "da95ab2793b2365df32f025e90de2e65d312d3c1181b85d62d6a82a0a235d844",
+          "size_bytes": 1861,
+          "recorded_mtime_utc": "2026-08-02T01:10:43.644571Z"
         }
       },
       "events": [
@@ -1182,6 +1182,25 @@
           "semantic_revision": 1,
           "provenance_revision": 1,
           "summary": "Removed the unused Stan-cache name parameter while preserving the established cache filename format.",
+          "files": [
+            "stan_cache.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T011120Z-correction-stan-cache-script-a875e172",
+          "recorded_at_utc": "2026-08-02T01:11:20Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Prevent slash-bearing Python version text from creating nested Stan cache paths.",
           "files": [
             "stan_cache.py"
           ],
@@ -2879,9 +2898,9 @@
           "recorded_mtime_utc": "2026-08-01T12:56:52.398431Z"
         },
         "pipeline_registry.json": {
-          "sha256": "f2d41ce1d259ff95cb163468842b5f1bf894b212182f72f75167a9213ca06d90",
-          "size_bytes": 37157,
-          "recorded_mtime_utc": "2026-08-01T13:26:37.336831Z"
+          "sha256": "73f7085412971b7d68aa5e2d570eda4c16ab4f0314698c91de667f21354537e5",
+          "size_bytes": 37457,
+          "recorded_mtime_utc": "2026-08-02T02:01:44.040953Z"
         },
         "pipeline_registry.py": {
           "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
@@ -3690,6 +3709,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T020208Z-schema-pipeline-orchestration-tools-a20c637c",
+          "recorded_at_utc": "2026-08-02T02:02:08Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 22,
+          "summary": "Declared the ancillary federal-state analysis script and its explicit registry dependency.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -3984,6 +4022,80 @@
         }
       ],
       "provenance_revision": 1
+    },
+    "federal_state_script": {
+      "description": "Federal booth-to-state-seat comparison, local exceptions and manual fTransposedFederalSwing diagnostics.",
+      "file_patterns": [
+        "federal_state.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "federal_state.py": {
+          "sha256": "7d12b45b155c0f45b7abd0baabf458c5b7f8f879ef1ecb4e9506af1aeacfdd89",
+          "size_bytes": 40240,
+          "recorded_mtime_utc": "2026-08-02T02:03:41.127587Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260802T020059Z-baseline-federal-state-script-f3c0d7bd",
+          "recorded_at_utc": "2026-08-02T02:00:59Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Started tracking the ancillary federal-state analysis script after separating raw AEC caches from runtime assumptions.",
+          "files": [
+            "federal_state.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T020322Z-correction-federal-state-script-7e8d67f5",
+          "recorded_at_utc": "2026-08-02T02:03:22Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Parse the AEC division state cell by element rather than whitespace-sensitive sibling position.",
+          "files": [
+            "federal_state.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T020348Z-formatting-federal-state-script-bd433ff8",
+          "recorded_at_utc": "2026-08-02T02:03:48Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Use BeautifulSoup string matching to retain the existing party lookup without the deprecated text argument.",
+          "files": [
+            "federal_state.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ],
+      "provenance_revision": 2
     }
   }
 }

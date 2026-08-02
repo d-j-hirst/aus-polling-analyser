@@ -401,7 +401,7 @@ Spence,Gawler West
 Spence,Gawler East
 Spence,Willaston
 Spence,Hewett
-#Mackillop
+#MacKillop
 Barker,Pinnaroo
 Barker,Lameroo
 Barker,Peake

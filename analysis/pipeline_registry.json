@@ -593,6 +593,15 @@
       ],
       "description": "Manual mappings from federal booths to state seats. federal_state.py uses them to derive the fTransposedFederalSwing values maintained in forecast seat files."
     },
+    "federal_state_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "federal_state.py"
+      ],
+      "description": "Federal booth-to-state-seat comparison and manual fTransposedFederalSwing diagnostics."
+    },
     "federal_state_result_cache": {
       "kind": "cache",
       "scope": "election",
@@ -1045,7 +1054,8 @@
       "execution": null,
       "inputs": [
         "election_catalogue",
-        "federal_state_booth_mappings"
+        "federal_state_booth_mappings",
+        "federal_state_script"
       ],
       "outputs": [
         "federal_state_result_cache"

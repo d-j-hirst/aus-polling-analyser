@@ -1824,7 +1824,6 @@ New England,Newling
 New England,North Star
 New England,Nowendoc
 New England,Kentucky
-New England,Kingstown
 New England,Rocky River
 New England,Ross Hill
 New England,Tingha
@@ -2424,7 +2423,6 @@ New England,Caroona
 New England,Currabubula
 New England,Duri
 New England,Dungowan
-New England,Duri
 New England,Hillvue
 New England,Hillvue West
 New England,Kootingal

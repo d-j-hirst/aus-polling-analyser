@@ -24,11 +24,14 @@ def _cache_filename(model_code):
     """Return the legacy-compatible cache path for one compiled Stan model."""
 
     code_hash = md5(model_code.encode('ascii')).hexdigest()
-    filename = CACHE_DIRECTORY + (
+    filename = (
         '-' + sys.version + '-' + pystan.__version__ + '-' + code_hash +
         '.pkl.gz'
     )
-    return re.sub('[^a-zA-Z0-9_ ,/\\.\\-]', '', filename)
+    # sys.version can contain a source-control path such as "tags/v3.12".
+    # It belongs in the cache filename, never in a directory beneath it.
+    filename = re.sub('[^a-zA-Z0-9_ ,.\\-]', '', filename)
+    return CACHE_DIRECTORY + filename
 
 
 def _write_cache_atomically(filename, model):

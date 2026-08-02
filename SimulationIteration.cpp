@@ -1494,6 +1494,10 @@ void SimulationIteration::determineSeatConfirmedInds(int seatIndex)
 					float weight = myPow(QualityWeightBase, poll.second);
 					if (!std::isfinite(weight) || weight <= 0.0f) continue;
 					float pollRaw = poll.first;
+					// Historical seat polls understated strong independent and
+					// pseudo-independent candidates, especially at low readings.
+					// This shrunk correction is deliberately IND-only: equivalent
+					// evidence is not available for general minor-party candidates.
 					pollRaw = pollRaw * 0.503f + 15.59f;
 					weightedSum += pollRaw * weight;
 					sumOfWeights += weight;

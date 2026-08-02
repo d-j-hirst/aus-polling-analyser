@@ -55,6 +55,18 @@ class StanCacheTests(unittest.TestCase):
             ["model_code"],
         )
 
+    def test_version_text_cannot_create_a_nested_cache_path(self):
+        with mock.patch.object(
+            self.cache.sys,
+            "version",
+            "3.12.10 (tags/v3.12.10:abc, Apr 8 2025)",
+        ):
+            filename = Path(self.cache._cache_filename("model { }"))
+
+        self.assertEqual(filename.parent, Path("stan-cache"))
+        self.assertNotIn("/", filename.name)
+        self.assertNotIn("\\", filename.name)
+
     def test_replaces_a_corrupt_cache_without_leaving_temporary_files(self):
         filename = Path(self.cache._cache_filename("model { }"))
         filename.parent.mkdir()

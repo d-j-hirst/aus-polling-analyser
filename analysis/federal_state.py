@@ -5,11 +5,20 @@ from bs4 import BeautifulSoup
 import numpy
 import statsmodels.api as sm
 
-class ConfigError(ValueError):
+class FederalStateError(ValueError):
     pass
 
 
-warnings = ''
+class ConfigError(FederalStateError):
+    pass
+
+
+class MappingError(FederalStateError):
+    pass
+
+
+class ResultsError(FederalStateError):
+    pass
 
 
 overall_tpp_swings = {
@@ -78,7 +87,7 @@ tpp_swings = {
                'Flinders': 5.7, 'Florey': -0.6, 'Frome': 10, 'Gibson': 12.5,
                'Giles': 6.1, 'Hammond': 11.7, 'Hartley': 3, 'Heysen': 5.7,
                'Hurtle Vale': 7.2, 'Kaurna': 4.1, 'Kavel': 9.8, 'King': 3.5,
-               'Lee': 5.9, 'Light': 11.1, 'Mackillop': 2.6, 'Mawson': 13.1,
+               'Lee': 5.9, 'Light': 11.1, 'MacKillop': 2.6, 'Mawson': 13.1,
                'Morialta': 8, 'Morphett': 6.4, 'Mount Gambier': 4.4,
                'Narungga': 4.1, 'Newland': 5.4, 'Playford': -2.7,
                'Port Adelaide': 5, 'Ramsay': 1.4, 'Reynell': 7.3,
@@ -154,7 +163,7 @@ tpp_swings = {
                'Flinders': 2.6, 'Florey': 1.9, 'Frome': -1.3, 'Gibson': -5.6,
                'Giles': 10, 'Hammond': -2.7, 'Hartley': -4.7, 'Heysen': 3.8,
                'Hurtle Vale': 4, 'Kaurna': 5.7, 'Kavel': -1, 'King': -0.7,
-               'Lee': 2.3, 'Light': 5.9, 'Mackillop': 1.7, 'Mawson': 4.5,
+               'Lee': 2.3, 'Light': 5.9, 'MacKillop': 1.7, 'Mawson': 4.5,
                'Morialta': 1.5, 'Morphett': -2.6, 'Mount Gambier': 2.9,
                'Narungga': -3.3, 'Newland': -1.8, 'Playford': 4.6,
                'Port Adelaide': 2.8, 'Ramsay': 1.2, 'Reynell': 3.4,
@@ -380,7 +389,7 @@ adjust_tpp_state = {
         'Narungga': -0.72,
         'Finniss': -0.72,
         'Heysen': -0.72,
-        'Mackillop': -0.72,
+        'MacKillop': -0.72,
     },
     '2019nsw': {
         'Blue Mountains': 1.9,
@@ -450,7 +459,7 @@ adjust_tpp_state = {
         'Kew': -0.72,
         'Bass': -1.04,
         'Lowan': -1.04,
-        'Benalla': -1.04,
+        'Euroa': -1.04,
         'Yan Yean': 5,
     },
     '2018sa': {
@@ -587,14 +596,36 @@ class Config:
                             ' e.g. 2027-nsw.')
         parser.add_argument('--hideseats', action='store_true',
                             help='Hide individual seat output')
-        self.election = parser.parse_args().election.lower().replace('-', '')
-        self.hide_seats = parser.parse_args().hideseats
+        arguments = parser.parse_args()
+        if not arguments.election:
+            raise ConfigError('An election must be provided with --election.')
+
+        self.election = arguments.election.lower().replace('-', '')
+        if self.election not in overall_tpp_swings:
+            available = ', '.join(sorted(overall_tpp_swings))
+            raise ConfigError(
+                f'Unknown election {arguments.election!r}. Available elections: '
+                f'{available}.'
+            )
+        self.hide_seats = arguments.hideseats
 
 
 class Results:
+    """Compatibility type for the previous derived-result cache format."""
+
     def __init__(self):
         self.greens_swings = {}
         self.tpp_swings = {}
+        self.vote_totals = {}
+
+
+class RawResults:
+    """AEC booth data before local assumptions and manual corrections."""
+
+    def __init__(self):
+        self.greens_swings = {}
+        self.tpp_swings = {}
+        self.tpp_percentages = {}
         self.vote_totals = {}
 
 
@@ -602,77 +633,116 @@ def election_filename(election):
     return f'Federal-State/{election}.pkl'
 
 
+def fetch_page(url, description):
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        raise ResultsError(f'Could not download {description}: {error}') from error
+    return BeautifulSoup(response.content, 'html.parser')
+
+
+def required_sibling(element, headers, description):
+    if element is None:
+        raise ResultsError(f'Could not find {description}.')
+    sibling = element.find_next_sibling('td', headers=headers)
+    if sibling is None:
+        raise ResultsError(f'Could not find {description} value.')
+    return sibling
+
+
+def parse_float(cell, description):
+    try:
+        return float(cell.get_text(strip=True))
+    except ValueError as error:
+        raise ResultsError(f'Could not parse {description}.') from error
+
+
 def fetch_results(election):
+    """Download raw AEC booth data without applying local assumptions."""
     URL = fed_results_urls[election]
     aec_code = aec_election_code[election]
-    page = requests.get(URL)
-
-    soup = BeautifulSoup(page.content, 'html.parser')
+    soup = fetch_page(URL, f'{election} federal division results')
 
     seat_els = soup.find_all('td', class_='filterDivision')
 
     current_state = election[4:].upper()
 
-    overall_greens_swing = overall_grn_swings[election]
-    ignore_greens_seats = ignore_greens_seats_election[election]
-    assume_tpp_seats = assume_tpp_seats_election[election]
-
-    results = Results()
+    results = RawResults()
 
     for seat_el in seat_els:
-        state = seat_el.next_sibling.next_sibling.text
-        if state != current_state: continue
+        state_element = seat_el.find_next_sibling('td')
+        if state_element is None:
+            raise ResultsError('Could not find a federal division state.')
+        state = state_element.get_text(strip=True)
+        if state != current_state:
+            continue
         seat_link = seat_el.find('a')
-        seat_name = seat_el.text
-        if (seat_name == "Watson"):
-            print("Found Watson")
+        if seat_link is None:
+            raise ResultsError('Could not find a federal division result link.')
+        seat_name = seat_el.get_text(strip=True)
         seat_path = seat_link['href']
         seat_URL = f'{base_url}/{aec_code}/Website/{seat_path}'
-        seat_page = requests.get(seat_URL)
-        seat_soup = BeautifulSoup(seat_page.content, 'html.parser')
+        seat_soup = fetch_page(seat_URL, f'{seat_name} division results')
         booth_els = seat_soup.find_all('td', headers='ppPp')
         for booth_el in booth_els:
-            booth_name = booth_el.text
-            if (seat_name == "Watson"):
-                print(f"booth {booth_name} found")
+            booth_name = booth_el.get_text(strip=True)
             booth_link = booth_el.find('a')
+            if booth_link is None:
+                raise ResultsError(
+                    f'Could not find the link for {seat_name} booth {booth_name}.'
+                )
             booth_path = booth_link['href']
             booth_URL = f'{base_url}/{aec_code}/Website/{booth_path}'
-            booth_page = requests.get(booth_URL)
-            booth_soup = BeautifulSoup(booth_page.content, 'html.parser')
+            booth_soup = fetch_page(
+                booth_URL, f'{seat_name} booth {booth_name} results'
+            )
             fp_greens_el = booth_soup.find('td', headers='fpPty',
                                             string=grn_name[election])
-            fp_greens_swing = float(fp_greens_el.find_next_sibling(
-                                    'td', headers='fpSwg').text)
+            fp_greens_swing = parse_float(
+                required_sibling(
+                    fp_greens_el, 'fpSwg',
+                    f'{seat_name} booth {booth_name} Greens swing',
+                ),
+                f'{seat_name} booth {booth_name} Greens swing',
+            )
             formal_el = booth_soup.find('td', headers='fpCan',
                                         string="Formal")
-            fp_formal_text = formal_el.find_next_sibling(
-                                        'td', headers='fpVot').text
-            fp_formal_int = int(fp_formal_text.replace(',', ''))
-            if seat_name in ignore_greens_seats:
-                fp_greens_swing = overall_greens_swing
-            if seat_name in assume_tpp_seats:
-                tpp_alp_swing = assume_tpp_seats[seat_name]
-                tpp_alp_pct = None
-            else:
-                tpp_alp_el = booth_soup.find('td',
-                                            headers='tcpPty',
-                                             text=alp_name[election])
-                tpp_alp_pct = float(tpp_alp_el.find_next_sibling(
-                                        'td', headers='tcpPct').text)
-                tpp_alp_swing = float(tpp_alp_el.find_next_sibling(
-                                        'td', headers='tcpSwg').text)
+            fp_formal_text = required_sibling(
+                formal_el, 'fpVot', f'{seat_name} booth {booth_name} formal vote'
+            ).get_text(strip=True)
+            try:
+                fp_formal_int = int(fp_formal_text.replace(',', ''))
+            except ValueError as error:
+                raise ResultsError(
+                    f'Could not parse {seat_name} booth {booth_name} formal vote.'
+                ) from error
+
+            tpp_alp_el = booth_soup.find(
+                'td', headers='tcpPty', string=alp_name[election]
+            )
+            tpp_alp_pct = None
+            tpp_alp_swing = None
+            if tpp_alp_el is not None:
+                tpp_alp_pct = parse_float(
+                    required_sibling(
+                        tpp_alp_el, 'tcpPct',
+                        f'{seat_name} booth {booth_name} TPP percentage',
+                    ),
+                    f'{seat_name} booth {booth_name} TPP percentage',
+                )
+                tpp_alp_swing = parse_float(
+                    required_sibling(
+                        tpp_alp_el, 'tcpSwg',
+                        f'{seat_name} booth {booth_name} TPP swing',
+                    ),
+                    f'{seat_name} booth {booth_name} TPP swing',
+                )
+
             booth_key = (seat_name, booth_name)
             results.greens_swings[booth_key] = fp_greens_swing
-            if tpp_alp_pct is not None:
-                if (abs(tpp_alp_swing - tpp_alp_pct) < 0.02 or
-                        fp_formal_int == 0):
-                    results.tpp_swings[booth_key] = 0
-                    results.vote_totals[booth_key] = 0
-                    continue
-            if seat_name in adjust_tpp_federal[election]:
-                tpp_alp_swing -= adjust_tpp_federal[election][seat_name]
             results.tpp_swings[booth_key] = tpp_alp_swing
+            results.tpp_percentages[booth_key] = tpp_alp_pct
             results.vote_totals[booth_key] = fp_formal_int
         print(f'Downloaded booths for seat: {seat_name}')
     filename = election_filename(election)
@@ -681,51 +751,194 @@ def fetch_results(election):
     return results
 
 
+def is_raw_results(results):
+    return isinstance(results, RawResults) and hasattr(results, 'tpp_percentages')
+
+
 def obtain_results(election):
     filename = election_filename(election)
-    greens_swings = {}
-    tpp_swings = {}
-    vote_totals = {}
     results = None
     try:
         with open(filename, 'rb') as pkl:
             results = pickle.load(pkl)
-    except FileNotFoundError:
+    except (AttributeError, EOFError, FileNotFoundError, pickle.UnpicklingError):
         pass
 
-    if results is None:
+    if not is_raw_results(results):
+        if results is not None:
+            print('Refreshing legacy derived booth cache as raw AEC data.')
         results = fetch_results(election)
     return results
 
 
-def parse_booth_file(election):
+def apply_local_assumptions(raw_results, election):
+    """Apply local exceptions after loading cached AEC data."""
+    results = Results()
+    overall_greens_swing = overall_grn_swings[election]
+    ignored_greens_seats = ignore_greens_seats_election[election]
+    assumed_tpp_seats = assume_tpp_seats_election[election]
+
+    for booth_key, formal_votes in raw_results.vote_totals.items():
+        federal_seat = booth_key[0]
+        greens_swing = raw_results.greens_swings[booth_key]
+        if federal_seat in ignored_greens_seats:
+            greens_swing = overall_greens_swing
+
+        tpp_swing = raw_results.tpp_swings[booth_key]
+        tpp_percentage = raw_results.tpp_percentages[booth_key]
+        if federal_seat in assumed_tpp_seats:
+            tpp_swing = assumed_tpp_seats[federal_seat]
+            tpp_percentage = None
+        elif tpp_swing is None or tpp_percentage is None:
+            raise ResultsError(
+                f'{federal_seat} booth {booth_key[1]} lacks an ALP TPP result '
+                'and has no configured assumption.'
+            )
+
+        # AEC reports a percentage as the swing for booths without a comparable
+        # predecessor. Retain the booth in the raw cache but exclude it here.
+        if (tpp_percentage is not None and
+                (abs(tpp_swing - tpp_percentage) < 0.02 or formal_votes == 0)):
+            formal_votes = 0
+            tpp_swing = 0
+        elif federal_seat in adjust_tpp_federal[election]:
+            tpp_swing -= adjust_tpp_federal[election][federal_seat]
+
+        results.greens_swings[booth_key] = greens_swing
+        results.tpp_swings[booth_key] = tpp_swing
+        results.vote_totals[booth_key] = formal_votes
+    return results
+
+
+def parse_booth_mapping(mapping_filename):
     seat_booths = {}
-    with open(f'Federal-State/booths-{election}.txt') as f:
-        lines = f.readlines()
-        current_seat = None
-        for line in lines:
-            if line[0] == '#':
+    current_seat = None
+    with open(mapping_filename, encoding='utf-8') as mapping_file:
+        for line_number, raw_line in enumerate(mapping_file, start=1):
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith('#'):
                 current_seat = line[1:].strip()
+                if not current_seat:
+                    raise MappingError(
+                        f'{mapping_filename}:{line_number} has an empty state seat.'
+                    )
+                if current_seat in seat_booths:
+                    raise MappingError(
+                        f'{mapping_filename}:{line_number} repeats state seat '
+                        f'{current_seat!r}.'
+                    )
                 seat_booths[current_seat] = set()
-            else:
-                booth = tuple(line.strip().split(','))
-                seat_booths[current_seat].add(booth)
+                continue
+
+            booth = tuple(part.strip() for part in line.split(','))
+            if current_seat is None:
+                raise MappingError(
+                    f'{mapping_filename}:{line_number} appears before a state seat.'
+                )
+            if len(booth) != 2 or not all(booth):
+                raise MappingError(
+                    f'{mapping_filename}:{line_number} must be "Federal seat,booth".'
+                )
+            if booth in seat_booths[current_seat]:
+                raise MappingError(
+                    f'{mapping_filename}:{line_number} repeats booth {booth!r} '
+                    f'for {current_seat}.'
+                )
+            seat_booths[current_seat].add(booth)
+
+    if not seat_booths:
+        raise MappingError(f'{mapping_filename} contains no state-seat mappings.')
     return seat_booths
 
 
-def add_weighted_swings(seat_booths, results, election):
-    global warnings
+def parse_booth_file(election):
+    return parse_booth_mapping(f'Federal-State/booths-{election}.txt')
+
+
+def validate_mapping(seat_booths, results):
+    """Validate authored mapping coverage before calculating any seat values."""
+    booth_to_state_seats = {}
+    missing_booths = []
+    zero_weight_seats = []
+    for state_seat, booth_keys in seat_booths.items():
+        total_weight = 0
+        for booth_key in booth_keys:
+            booth_to_state_seats.setdefault(booth_key, []).append(state_seat)
+            if booth_key not in results.vote_totals:
+                missing_booths.append((state_seat, booth_key))
+                continue
+            total_weight += results.vote_totals[booth_key]
+        if total_weight == 0:
+            zero_weight_seats.append(state_seat)
+
+    duplicate_booths = {
+        booth_key: state_seats
+        for booth_key, state_seats in booth_to_state_seats.items()
+        if len(state_seats) > 1
+    }
+    problems = []
+    if missing_booths:
+        examples = ', '.join(
+            f'{state_seat}: {booth_key[0]}/{booth_key[1]}'
+            for state_seat, booth_key in missing_booths[:5]
+        )
+        problems.append(f'missing federal booth result(s): {examples}')
+    if duplicate_booths:
+        examples = ', '.join(
+            f'{booth_key[0]}/{booth_key[1]} -> {", ".join(state_seats)}'
+            for booth_key, state_seats in list(duplicate_booths.items())[:5]
+        )
+        problems.append(f'federal booth mapped to multiple state seats: {examples}')
+    if zero_weight_seats:
+        problems.append(
+            'state seat(s) have no usable comparable federal votes: ' +
+            ', '.join(zero_weight_seats[:5])
+        )
+    if problems:
+        raise MappingError('; '.join(problems))
+
+
+def mapping_diagnostics(seat_booths, results):
+    mapped_booths = {
+        booth_key for booth_keys in seat_booths.values() for booth_key in booth_keys
+    }
+    unused_booths = [
+        booth_key for booth_key, vote_total in results.vote_totals.items()
+        if (vote_total > 0 and booth_key not in mapped_booths and
+            is_unexpected_unmapped_booth(booth_key[1]))
+    ]
+    if unused_booths:
+        print(f'Unmapped comparison booths: {unused_booths}')
+
+
+def is_unexpected_unmapped_booth(booth_name):
+    """Exclude result groups that cannot be geographically assigned to one seat."""
+    return not (
+        'EAV' in booth_name or
+        ' Team' in booth_name or
+        'Divisional Office' in booth_name or
+        'BLV' in booth_name or
+        'Adelaide (' in booth_name or
+        'Melbourne (' in booth_name or
+        'Sydney (' in booth_name or
+        'Ultimo (' in booth_name or
+        'Wynyard (' in booth_name or
+        'Polling Day' in booth_name or
+        ('Adelaide ' in booth_name and ' PPVC' in booth_name) or
+        ('Melbourne ' in booth_name and ' PPVC' in booth_name) or
+        ('Sydney ' in booth_name and ' PPVC' in booth_name) or
+        ('Haymarket ' in booth_name and ' PPVC' in booth_name)
+    )
+
+
+def add_weighted_swings(seat_booths, results):
     weighted_greens_swings = {}
     weighted_tpp_swings = {}
     total_weights = {}
-    booth_usage = {key: 0 for key in results.vote_totals.keys()}
     for seat, booth_keys in seat_booths.items():
         for booth_key in booth_keys:
-            if booth_key not in results.vote_totals:
-                warnings += (f'Warning: booth {booth_key[1]} '
-                             f'in seat {booth_key[0]} not found!\n')
-                continue
-            booth_usage[booth_key] += 1
             greens_swing = results.greens_swings[booth_key]
             tpp_swing = results.tpp_swings[booth_key]
             vote_total = results.vote_totals[booth_key]
@@ -736,33 +949,19 @@ def add_weighted_swings(seat_booths, results, election):
             weighted_greens_swings[seat] += greens_swing * vote_total
             weighted_tpp_swings[seat] += tpp_swing * vote_total
             total_weights[seat] += vote_total
-    unused_booths = [a for a, b in booth_usage.items() if b == 0
-        and 'EAV' not in a[1] and ' Team' not in a[1]
-        and 'Divisional Office' not in a[1] and 'BLV' not in a[1] and
-        'Adelaide (' not in a[1] and 'Melbourne (' not in a[1]
-        and 'Sydney (' not in a[1] and 'Ultimo (' not in a[1]
-        and 'Wynyard (' not in a[1]
-        and 'Polling Day' not in a[1]
-        and not (('Adelaide ') in a[1] and (' PPVC') in a[1])
-        and not (('Melbourne ') in a[1] and (' PPVC') in a[1])
-        and not (('Sydney ') in a[1] and (' PPVC') in a[1])
-        and not (('Haymarket ') in a[1] and (' PPVC') in a[1])]
-    duplicated_booths = [a for a, b in booth_usage.items() if b > 1]
-    warnings += (f'Duplicated booths: {duplicated_booths}\n')
-    #if election != '2023nsw':
-    warnings += (f'Unused booths: {unused_booths}\n')
     return (weighted_greens_swings, weighted_tpp_swings, total_weights)
 
 
 def calculate_deviations(config, seat_booths, results, election):
 
+    validate_mapping(seat_booths, results)
+    mapping_diagnostics(seat_booths, results)
     weighted_greens_swings, weighted_tpp_swings, total_weights = \
-        add_weighted_swings(seat_booths, results, election)
+        add_weighted_swings(seat_booths, results)
 
     overall_greens_swing = overall_grn_swings[election]
     overall_tpp_swing = overall_tpp_swings[election]
 
-    seat_names = []
     tpp_list = []
     grn_list = []
     for seat, weighted_greens_swing in weighted_greens_swings.items():
@@ -831,7 +1030,8 @@ def calculate_deviations(config, seat_booths, results, election):
 def analyse_specific_election(config):
     election = config.election
 
-    results = obtain_results(election)
+    raw_results = obtain_results(election)
+    results = apply_local_assumptions(raw_results, election)
 
     seat_booths = parse_booth_file(election)
 
@@ -841,12 +1041,11 @@ def analyse_specific_election(config):
 def analyse():
     try:
         config = Config()
-    except ConfigError as e:
+        analyse_specific_election(config)
+    except FederalStateError as e:
         print('Could not process configuration due to the following issue:')
         print(str(e))
         return
-    analyse_specific_election(config)
-    print(warnings.strip())
 
 
 if __name__ == '__main__':

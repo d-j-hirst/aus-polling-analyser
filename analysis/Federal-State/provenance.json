@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored mappings from federal polling booths to state seats.",
   "created_at_utc": "2026-07-23T23:22:02Z",
-  "updated_at_utc": "2026-07-23T23:22:02Z",
+  "updated_at_utc": "2026-08-02T02:53:11Z",
   "categories": {
     "federal_state_booth_mappings": {
       "description": "Manual federal-booth to state-seat mappings used to derive fTransposedFederalSwing.",
@@ -12,12 +12,12 @@
         "booths-*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 3,
       "files": {
         "booths-2018sa.txt": {
-          "sha256": "3ded9fc7600987ad2fa8271e8a30519f87c641beb73eeed5f6c4f7d7f77cfd90",
-          "size_bytes": 13868,
-          "recorded_mtime_utc": "2022-12-31T07:36:50.977098Z"
+          "sha256": "c43b324beb5c6249f4bb9171d1f67d7d0445804996a9b03f7cb0eaa669a8aecf",
+          "size_bytes": 13869,
+          "recorded_mtime_utc": "2026-08-02T01:55:16.452628Z"
         },
         "booths-2018vic.txt": {
           "sha256": "64026cee9b6178be1ad273ea627f2635f96b9069bec8f9e3ac276d275666bbe6",
@@ -30,9 +30,9 @@
           "recorded_mtime_utc": "2022-09-13T00:24:51.570326Z"
         },
         "booths-2022sa.txt": {
-          "sha256": "9f8030b38f124f8434d8bac0d5ad172b8c2983d34ef33883739d5d7c2ad7ad79",
-          "size_bytes": 13911,
-          "recorded_mtime_utc": "2022-12-31T07:36:50.980100Z"
+          "sha256": "48ee4e83c5d14f255ba9097673f0719e6bfa6c394bcdd679ff9af3aba15036d8",
+          "size_bytes": 13912,
+          "recorded_mtime_utc": "2026-08-02T01:55:19.340177Z"
         },
         "booths-2022vic.txt": {
           "sha256": "90ad453708352870f4380c3b7141a8591e836de227e896186af8e43a55f5eaad",
@@ -45,9 +45,9 @@
           "recorded_mtime_utc": "2023-01-03T09:52:32.315161Z"
         },
         "booths-2026sa.txt": {
-          "sha256": "2319aef7f0b45b0140a53983f0531639bdce72e5daa445f98c006431b7ca42a0",
-          "size_bytes": 13982,
-          "recorded_mtime_utc": "2025-11-04T08:42:41.758364Z"
+          "sha256": "7191d1f8b6b2494149274a17bd30ab8fb5920d7ccd209fa82eaea24181603807",
+          "size_bytes": 13983,
+          "recorded_mtime_utc": "2026-08-02T01:55:22.096509Z"
         },
         "booths-2026vic.txt": {
           "sha256": "0422c004c62b8976d7ff186b750b0f4dc9b9e7955ac01c72c8af75f32e9f00c0",
@@ -55,9 +55,9 @@
           "recorded_mtime_utc": "2025-11-08T08:00:09.502081Z"
         },
         "booths-2027nsw.txt": {
-          "sha256": "3a2c0fc2bf21cea863f2c7c96c49d12bdd8aaccb91e80a3e0d3af053916fff5b",
-          "size_bytes": 64977,
-          "recorded_mtime_utc": "2026-01-18T09:58:17.281597Z"
+          "sha256": "c1630733f04b664b261326e448615c9257998033c02195ed38844c9f2f6137f7",
+          "size_bytes": 64939,
+          "recorded_mtime_utc": "2026-08-02T02:53:04.879586Z"
         }
       },
       "events": [
@@ -86,8 +86,55 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T015903Z-correction-federal-state-booth-mappings-205d3fa6",
+          "recorded_at_utc": "2026-08-02T01:59:03Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Standardised the MacKillop state-seat spelling in historical federal-booth mappings.",
+          "files": [
+            "booths-2018sa.txt",
+            "booths-2022sa.txt",
+            "booths-2026sa.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2018sa",
+              "2022sa",
+              "2026sa"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T025311Z-correction-federal-state-booth-mappings-469199ec",
+          "recorded_at_utc": "2026-08-02T02:53:11Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Removed duplicated New England booths from the Northern Tablelands and Tamworth 2027 NSW mappings.",
+          "files": [
+            "booths-2027nsw.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2027nsw"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 3
     }
   }
 }

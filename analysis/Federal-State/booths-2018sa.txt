@@ -400,7 +400,7 @@ Spence,Gawler West
 Spence,Gawler East
 Spence,Willaston
 Spence,Hewett
-#Mackillop
+#MacKillop
 Barker,Meningie
 Barker,Narrung
 Barker,Coonalpyn

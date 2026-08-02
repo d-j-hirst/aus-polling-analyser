@@ -372,7 +372,7 @@ Spence,Munno Para
 Spence,Munno Para PPVC
 Spence,Munno Para West
 Spence,Willaston
-#Mackillop
+#MacKillop
 Barker,Beachport
 Barker,Bordertown
 Barker,Coomandook
