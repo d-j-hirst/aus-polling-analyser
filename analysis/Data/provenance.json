@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-08-02T10:08:14Z",
+  "updated_at_utc": "2026-08-02T16:38:33Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -508,12 +508,12 @@
         "prior-results.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "prior-results.csv": {
-          "sha256": "e6c0cb98f31a37dff53534a1cf0e1582df8cdfd802501719919b00d7fb8fd797",
-          "size_bytes": 29895,
-          "recorded_mtime_utc": "2026-07-25T09:34:21.554376Z"
+          "sha256": "b835a3445d9a8f48a9fdda83fb13dea2e5400395cf87ab5765dc01398b6e3669",
+          "size_bytes": 29836,
+          "recorded_mtime_utc": "2026-08-02T16:37:56.346436Z"
         }
       },
       "events": [
@@ -552,8 +552,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T163833Z-correction-prior-result-inputs-6c53ed29",
+          "recorded_at_utc": "2026-08-02T16:38:33Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Remove duplicate 1992 VIC OTH FP row and relabel miskeyed 1992 QLD xOTH FP row as 1989 to match the historical series.",
+          "files": [
+            "prior-results.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 3
     },
     "eventual_result_inputs": {
       "description": "Final election outcomes used to calibrate pollsters and trend adjustments.",

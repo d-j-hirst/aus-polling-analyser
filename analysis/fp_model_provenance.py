@@ -16,7 +16,10 @@ Main functions:
 * ``cutoff_schedule`` and ``effective_cutoff_schedule`` select point-in-time
   model endpoints from configured triangular days and actual poll arrivals.
 * ``CutoffOutputStore`` stages and incrementally records one consolidated
-  cutoff file while a long-running election completes.
+  cutoff file while a long-running election completes. Resume identity uses
+  schedule/parties/seeds, stable provenance dependencies and a local
+  ``source_fingerprint``; accumulating federal cutoff parents are tracked
+  separately and validated by content digest.
 * ``PureTrendRecorder``, ``FinalTrendRecorder`` and ``CutoffTrendRecorder``
   publish completed fp_model work-unit provenance.
 * ``baseline_existing_*`` records older output files as legacy compatibility
@@ -36,6 +39,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import approvals_provenance
+import fp_model_checkpoints
 import generated_provenance
 
 
@@ -193,6 +197,57 @@ def _write_json_atomically(path, payload):
         raise
 
 
+_CUTOFF_RESUME_EXCLUDED_KEYS = frozenset({
+    "endpoint_parties",
+    "federal_prior_files",
+    "federal_prior_digest",
+})
+
+
+def _federal_prior_digest(files):
+    files = sorted({str(Path(path)) for path in files})
+    if not files:
+        return ""
+    return fp_model_checkpoints.fingerprint_files(files)
+
+
+def _cutoff_resume_identity(metadata):
+    """Stable identity for whether a cutoff draft may resume.
+
+    Federal prior files accumulate as later endpoints are prepared, so their
+    paths and digests are tracked separately and validated against current
+    file contents rather than being part of the equality key. Provenance
+    ``dependencies`` are compared without the evolving ``cutoff_poll_outputs``
+    entry. ``source_fingerprint`` captures local code/Stan contents so
+    uncommitted edits invalidate resume even before manifests are re-recorded.
+    """
+
+    identity = {
+        key: value for key, value in metadata.items()
+        if key not in _CUTOFF_RESUME_EXCLUDED_KEYS
+    }
+    dependencies = identity.get("dependencies")
+    if isinstance(dependencies, dict):
+        identity["dependencies"] = {
+            key: value for key, value in dependencies.items()
+            if key != "cutoff_poll_outputs"
+        }
+    return identity
+
+
+def _normalize_cutoff_metadata(metadata):
+    files = sorted({
+        str(Path(path))
+        for path in metadata.get("federal_prior_files") or []
+    })
+    metadata = dict(metadata)
+    metadata["federal_prior_files"] = files
+    metadata["federal_prior_digest"] = _federal_prior_digest(files)
+    # Normalize tuples and other JSON-compatible containers so equality
+    # remains stable after a cross-process round trip.
+    return json.loads(json.dumps(metadata, sort_keys=True))
+
+
 class CutoffOutputStore:
     """Build one election in a draft before atomically promoting it."""
 
@@ -214,7 +269,7 @@ class CutoffOutputStore:
 
         # Normalize tuples and other JSON-compatible containers so equality
         # remains stable after a cross-process round trip.
-        metadata = json.loads(json.dumps(metadata, sort_keys=True))
+        metadata = _normalize_cutoff_metadata(metadata)
         working_path = cutoff_working_path(election)
         metadata_path = cutoff_working_metadata_path(election)
         if working_path.is_file() and metadata_path.is_file():
@@ -223,19 +278,17 @@ class CutoffOutputStore:
                     existing = json.load(source)
             except (OSError, TypeError, ValueError):
                 existing = None
-            existing_identity = (
-                {
-                    key: value for key, value in existing.items()
-                    if key != "endpoint_parties"
-                }
-                if isinstance(existing, dict)
-                else None
-            )
-            requested_identity = {
-                key: value for key, value in metadata.items()
-                if key != "endpoint_parties"
-            }
-            if existing_identity == requested_identity:
+            if (
+                isinstance(existing, dict)
+                and _cutoff_resume_identity(existing)
+                == _cutoff_resume_identity(metadata)
+                and (
+                    existing.get("federal_prior_digest", "")
+                    == _federal_prior_digest(
+                        existing.get("federal_prior_files") or []
+                    )
+                )
+            ):
                 try:
                     self._metadata[election] = existing
                     self._load(election)
@@ -250,6 +303,32 @@ class CutoffOutputStore:
         self._metadata[election] = metadata
         _write_json_atomically(metadata_path, metadata)
         return False
+
+    def update_federal_priors(
+        self, election, federal_prior_files, dependencies=None
+    ):
+        """Refresh mid-run federal prior identity used for resume validation."""
+
+        metadata = self._metadata.get(election)
+        if metadata is None:
+            return
+        metadata["federal_prior_files"] = sorted({
+            str(Path(path)) for path in federal_prior_files
+        })
+        metadata["federal_prior_digest"] = _federal_prior_digest(
+            metadata["federal_prior_files"]
+        )
+        if dependencies is not None:
+            metadata["dependencies"] = json.loads(
+                json.dumps(dependencies, sort_keys=True)
+            )
+        _write_json_atomically(
+            cutoff_working_metadata_path(election), metadata
+        )
+
+    def federal_prior_files(self, election):
+        metadata = self._metadata.get(election) or {}
+        return list(metadata.get("federal_prior_files") or [])
 
     def _validate_resumed_draft(self, election):
         metadata = self._metadata[election]
@@ -623,11 +702,12 @@ class CutoffOutputStore:
             )
         final_path = cutoff_output_path(election)
         final_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path = cutoff_working_metadata_path(election)
         if certify is None:
             os.replace(working_path, final_path)
-            metadata_path = cutoff_working_metadata_path(election)
             if metadata_path.exists():
                 metadata_path.unlink()
+            self._metadata.pop(election, None)
             return
 
         backup_path = final_path.with_suffix(
@@ -635,9 +715,8 @@ class CutoffOutputStore:
         )
         if backup_path.exists():
             backup_path.unlink()
-        metadata_path = cutoff_working_metadata_path(election)
-        if metadata_path.exists():
-            metadata_path.unlink()
+        # Keep resume metadata until certification succeeds so a failed
+        # certify/rollback can still resume the completed draft.
         had_certified_output = final_path.is_file()
         if had_certified_output:
             os.replace(final_path, backup_path)
@@ -651,6 +730,9 @@ class CutoffOutputStore:
             raise
         if backup_path.exists():
             backup_path.unlink()
+        if metadata_path.exists():
+            metadata_path.unlink()
+        self._metadata.pop(election, None)
 
     def _write_atomic(self, election):
         path = cutoff_working_path(election)
@@ -681,8 +763,8 @@ def _cutoff_record_key(election):
     return "cutoff_poll_outputs:{}".format(election)
 
 
-def _source_dependencies(include_checkpoint=False):
-    dependencies = {
+def _source_dependencies():
+    return {
         category: generated_provenance.source_manifest_dependency(
             category,
             manifest_path,
@@ -690,15 +772,6 @@ def _source_dependencies(include_checkpoint=False):
         )
         for category, manifest_path in SOURCE_DEPENDENCIES.items()
     }
-    if include_checkpoint:
-        dependencies["fp_model_checkpoint_script"] = (
-            generated_provenance.source_manifest_dependency(
-                "fp_model_checkpoint_script",
-                ANALYSIS_DIRECTORY / "provenance.json",
-                ANALYSIS_DIRECTORY,
-            )
-        )
-    return dependencies
 
 
 def _load_election_cycles():
@@ -1076,9 +1149,9 @@ class CutoffTrendRecorder(FinalTrendRecorder):
 
     def __init__(self, command):
         super().__init__(command)
-        self.source_dependencies = _source_dependencies(
-            include_checkpoint=True
-        )
+        # Cutoffs stage progress in CutoffOutputStore drafts, not calibration
+        # checkpoints, so checkpoint helper code is not a cutoff dependency.
+        self.source_dependencies = _source_dependencies()
 
     def preflight_election(self, election):
         """Reject stale local inputs before an expensive cutoff batch starts."""

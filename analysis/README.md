@@ -157,10 +157,14 @@ source env/bin/activate
 
 ## Poll Trends
 
-`fp_model.py` generates poll trends from poll data and supporting inputs. A run
-can take one to four hours depending on the election and processor. Outputs
-include the trend, adjusted polls, and house-effect estimates for each modelled
-party grouping and TPP.
+`fp_model.py` is the command-line entry point; implementation lives in
+`fp_model_constants.py`, `fp_model_data.py`, `fp_model_prepare.py`,
+`fp_model_stan.py`, `fp_model_outputs.py` and `fp_model_runner.py`. It
+generates poll trends from poll data and supporting inputs. A run can take one
+to four hours depending on the election and processor. Outputs include the
+trend, adjusted polls, and house-effect estimates for each modelled party
+grouping and TPP. Unnamed-Others soft-tail adjustment affects output
+serialization only and does not change Stan sampling.
 
 Generate one election:
 
@@ -262,10 +266,12 @@ python3 prior_chain_diagnostic.py --chain-lengths 31,181 --stan
 ```
 
 `low_share_diagnostic.py` compares the current raw Gaussian inference plus
-exponential reported-output tails with bounded exponential and smooth-logit
-alternatives. Those alternatives remain isolated from production; the
-exponential inference comparison showed materially poorer effective sample
-size in the seeded low-share pilot, and a full random-walk parameterization
+the production smooth soft-tail reported-output mapping (identity on
+``[0.5, 99.5]`` with a narrow blend into the legacy exponential tails) with
+bounded exponential-inference and smooth-logit alternatives. Inference
+alternatives remain isolated from production; the exponential inference
+comparison showed materially poorer effective sample size in the seeded
+low-share pilot, and a full random-walk parameterization
 decision would be required before adopting the smooth alternative.
 
 Reduce the calibration evidence into the compact parameters used by normal

@@ -63,6 +63,38 @@ class ExponentialTailTransformTests(unittest.TestCase):
         )
 
 
+class ProductionSoftTailTransformTests(unittest.TestCase):
+    def test_identity_band_matches_latent_exactly(self):
+        for share in (0.5, 1.0, 50.0, 99.0, 99.5):
+            self.assertEqual(
+                diagnostic.production_soft_tail_share(share),
+                share,
+            )
+
+    def test_matches_exponential_tail_outside_blend_region(self):
+        for share in (-5.0, 0.0, 0.44, 99.56, 100.0, 105.0):
+            self.assertAlmostEqual(
+                diagnostic.production_soft_tail_share(share),
+                diagnostic.exponential_tail_share(share),
+                places=10,
+            )
+
+    def test_blend_region_is_monotone_and_within_bounds(self):
+        shares = np.linspace(-2.0, 102.0, 500)
+        transformed = diagnostic.production_soft_tail_share(shares)
+        self.assertTrue(np.all(np.diff(transformed) >= -1e-12))
+        self.assertTrue(np.all(transformed > 0.0))
+        self.assertTrue(np.all(transformed < 100.0))
+
+    def test_upper_and_lower_tails_are_symmetric(self):
+        for latent_share in (-5.0, 0.0, 0.49, 20.0):
+            self.assertAlmostEqual(
+                diagnostic.production_soft_tail_share(100.0 - latent_share),
+                100.0
+                - diagnostic.production_soft_tail_share(latent_share),
+            )
+
+
 class SmoothLogitTransformTests(unittest.TestCase):
     def test_zero_latent_is_fifty_percent(self):
         self.assertEqual(diagnostic.smooth_logit_share(0.0), 50.0)

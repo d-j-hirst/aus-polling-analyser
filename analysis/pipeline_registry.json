@@ -225,7 +225,13 @@
       "scope": "global",
       "core": true,
       "paths": [
-        "fp_model.py"
+        "fp_model.py",
+        "fp_model_constants.py",
+        "fp_model_data.py",
+        "fp_model_prepare.py",
+        "fp_model_stan.py",
+        "fp_model_outputs.py",
+        "fp_model_runner.py"
       ],
       "description": "Poll-trend data preparation, Stan execution and output serialization."
     },
@@ -1082,7 +1088,6 @@
         "approvals_script",
         "approvals_provenance_script",
         "fp_model_script",
-        "fp_model_checkpoint_script",
         "fp_model_provenance_script",
         "calibration_provenance_script",
         "stan_cache_script",

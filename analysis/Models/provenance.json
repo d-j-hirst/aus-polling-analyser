@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored Stan model definitions used by the Python analysis pipeline.",
   "created_at_utc": "2026-07-23T23:22:00Z",
-  "updated_at_utc": "2026-08-02T14:54:03Z",
+  "updated_at_utc": "2026-08-02T16:42:46Z",
   "categories": {
     "fp_stan_model": {
       "description": "Stan model source used by poll-trend and calibration generation.",
@@ -12,12 +12,12 @@
         "fp_model.stan"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "fp_model.stan": {
-          "sha256": "4eea7aa5859837a5e6e4d874d3db47eb7f8801bb21985314c7895bd124a5fd6d",
-          "size_bytes": 5947,
-          "recorded_mtime_utc": "2026-08-02T14:29:25.921752Z"
+          "sha256": "0911faaa554095e845ae27731b8788687fd7c0089f5bc3e953b3a68b0858e37b",
+          "size_bytes": 7337,
+          "recorded_mtime_utc": "2026-08-02T16:40:58.327872Z"
         }
       },
       "events": [
@@ -57,9 +57,47 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T161129Z-methodology-fp-stan-model-1565073b",
+          "recorded_at_utc": "2026-08-02T16:11:29Z",
+          "change_type": "methodology",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Replace generated-output exponential corner with smooth soft-tail mapping; inference on preliminaryVoteShare is unchanged.",
+          "files": [
+            "fp_model.stan"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T164246Z-correction-fp-stan-model-ea6932b3",
+          "recorded_at_utc": "2026-08-02T16:42:46Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Declare soft-tail locals at block start so Stan 2.x/PyStan 2.19 can parse the generated-output mapping.",
+          "files": [
+            "fp_model.stan"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 3
     },
     "regional_stan_models": {
       "description": "Election-specific Stan models used by regional trend generation.",

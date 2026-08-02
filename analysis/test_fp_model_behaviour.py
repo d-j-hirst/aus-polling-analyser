@@ -7,7 +7,79 @@ from unittest import mock
 
 import pandas as pd
 
-import fp_model
+import calibration_provenance
+import fp_model_checkpoints
+import fp_model_constants
+import fp_model_data
+import fp_model_outputs
+import fp_model_prepare
+import fp_model_provenance
+import fp_model_runner
+import fp_model_stan
+from election_code import ElectionCode
+
+
+# This suite exercises the implementation modules directly.  fp_model.py is
+# intentionally only the command-line entry point, not a compatibility barrel.
+fp_model = SimpleNamespace(
+    CALIBRATION_PRIOR_DIRECTORY=(
+        fp_model_constants.CALIBRATION_PRIOR_DIRECTORY
+    ),
+    CAMPAIGN_WINDOW_DAYS=fp_model_constants.CAMPAIGN_WINDOW_DAYS,
+    DEFAULT_BASE_SEED=fp_model_constants.DEFAULT_BASE_SEED,
+    FINAL_WINDOW_DAYS=fp_model_constants.FINAL_WINDOW_DAYS,
+    STAN_SEED_NAMESPACE=fp_model_constants.STAN_SEED_NAMESPACE,
+    BuildPollCalibrationInputs=fp_model_outputs.BuildPollCalibrationInputs,
+    ComputerPollsterHouseEffectsInputs=(
+        fp_model_outputs.ComputerPollsterHouseEffectsInputs
+    ),
+    Config=fp_model_data.Config,
+    ConfigError=fp_model_data.ConfigError,
+    ElectionCode=ElectionCode,
+    ExcludedPoll=fp_model_outputs.ExcludedPoll,
+    IterTrendDaysInputs=fp_model_outputs.IterTrendDaysInputs,
+    LoadFedTrendMedianInputs=fp_model_data.LoadFedTrendMedianInputs,
+    ModelParams=fp_model_data.ModelParams,
+    PriorSeries=fp_model_data.PriorSeries,
+    ReducedSeriesInputs=fp_model_prepare.ReducedSeriesInputs,
+    StanDiagnosticsRecorder=fp_model_stan.StanDiagnosticsRecorder,
+    UnnamedOthersDiagnosticsRecorder=fp_model_data.UnnamedOthersDiagnosticsRecorder,
+    build_poll_calibration=fp_model_outputs.build_poll_calibration,
+    build_reduced_series=fp_model_prepare.build_reduced_series,
+    calibration_checkpoint_payload=fp_model_data.calibration_checkpoint_payload,
+    calibration_provenance=calibration_provenance,
+    check_suspension=fp_model_runner.check_suspension,
+    compute_pollster_house_effects=(
+        fp_model_outputs.compute_pollster_house_effects
+    ),
+    derive_unnamed_others_median=fp_model_data.derive_unnamed_others_median,
+    filter_approvals_by_cycle=fp_model_prepare.filter_approvals_by_cycle,
+    filter_approvals_by_poll_range=fp_model_prepare.filter_approvals_by_poll_range,
+    finalise_calibrations=fp_model_outputs.finalise_calibrations,
+    fp_model_checkpoints=fp_model_checkpoints,
+    fp_model_provenance=fp_model_provenance,
+    house_effect_new_factor=fp_model_data.house_effect_new_factor,
+    iter_trend_days=fp_model_outputs.iter_trend_days,
+    load_approvals=fp_model_prepare.load_approvals,
+    load_fed_cutoff_median=fp_model_data.load_fed_cutoff_median,
+    load_fed_trend_median=fp_model_data.load_fed_trend_median,
+    order_elections_by_federal_dependencies=(
+        fp_model_data.order_elections_by_federal_dependencies
+    ),
+    order_parties_for_model=fp_model_prepare.order_parties_for_model,
+    os=fp_model_data.os,
+    overlapping_federal_elections=fp_model_data.overlapping_federal_elections,
+    prepare_poll_df=fp_model_prepare.prepare_poll_df,
+    restore_calibration_checkpoint=fp_model_data.restore_calibration_checkpoint,
+    stan_seed_mode=fp_model_data.stan_seed_mode,
+    sys=fp_model_data.sys,
+    transition_entering_calendar_offset=(
+        fp_model_data.transition_entering_calendar_offset
+    ),
+    write_federal_calibration_priors=(
+        fp_model_outputs.write_federal_calibration_priors
+    ),
+)
 
 
 class PartyOrderingTests(unittest.TestCase):
@@ -367,7 +439,7 @@ class FederalCalibrationPriorTests(unittest.TestCase):
             )
             used_files = []
             with mock.patch.object(
-                fp_model, 'CALIBRATION_PRIOR_DIRECTORY', directory
+                fp_model_constants, 'CALIBRATION_PRIOR_DIRECTORY', directory
             ):
                 series = fp_model.load_fed_trend_median(
                     fp_model.LoadFedTrendMedianInputs(
@@ -391,7 +463,7 @@ class FederalCalibrationPriorTests(unittest.TestCase):
     def test_missing_calibration_prior_does_not_fall_back_to_final_trend(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             with mock.patch.object(
-                fp_model,
+                fp_model_constants,
                 'CALIBRATION_PRIOR_DIRECTORY',
                 Path(temporary_directory),
             ), mock.patch.object(
@@ -435,7 +507,7 @@ class FederalCalibrationPriorTests(unittest.TestCase):
                 },
             )
             with mock.patch.object(
-                fp_model, 'CALIBRATION_PRIOR_DIRECTORY', directory
+                fp_model_constants, 'CALIBRATION_PRIOR_DIRECTORY', directory
             ):
                 output = fp_model.write_federal_calibration_priors(e_data)
 
@@ -470,7 +542,7 @@ class FederalCalibrationPriorTests(unittest.TestCase):
                 },
             )
             with mock.patch.object(
-                fp_model, 'CALIBRATION_PRIOR_DIRECTORY', directory
+                fp_model_constants, 'CALIBRATION_PRIOR_DIRECTORY', directory
             ):
                 with self.assertRaisesRegex(
                     fp_model.ConfigError, 'incomplete party coverage'

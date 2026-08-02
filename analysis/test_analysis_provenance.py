@@ -770,6 +770,250 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {current_key, summary_key},
         )
 
+    def test_detailed_bias_outputs_ignored_after_modern_bias_staging(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+
+        detailed_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "fp_trend_2028fed_@TPP_biascal.csv"
+        )
+        detailed_output.parent.mkdir(parents=True, exist_ok=True)
+        detailed_output.write_text("detailed\n", encoding="utf-8")
+        detailed = json.loads(json.dumps(template))
+        detailed["category"] = "bias_calibration_outputs"
+        detailed["stage"] = "calibrate_pollster_bias"
+        detailed["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"],
+            parties=["@TPP"],
+        )
+        detailed["dependencies"] = {}
+        detailed["outputs"] = generated_provenance.output_fingerprints(
+            [detailed_output], self.base
+        )
+
+        staging_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Staging"
+            / "2028fed-bias.csv"
+        )
+        staging_output.parent.mkdir(parents=True, exist_ok=True)
+        staging_output.write_text("staging\n", encoding="utf-8")
+        staging = json.loads(json.dumps(template))
+        staging["category"] = "bias_calibration_compatibility_inputs"
+        staging["stage"] = "calibrate_pollster_bias"
+        staging["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        staging["dependencies"] = {}
+        staging["outputs"] = generated_provenance.output_fingerprints(
+            [staging_output], self.base
+        )
+
+        compact_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Summaries"
+            / "2028fed.csv"
+        )
+        compact_output.parent.mkdir(parents=True, exist_ok=True)
+        compact_output.write_text("compact\n", encoding="utf-8")
+        compact = json.loads(json.dumps(template))
+        compact["category"] = "poll_calibration_summaries"
+        compact["stage"] = "compact_calibration_summaries"
+        compact["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        compact["outputs"] = generated_provenance.output_fingerprints(
+            [compact_output], self.base
+        )
+
+        detailed_key = "bias_calibration_outputs:2028fed:@TPP"
+        staging_key = (
+            "bias_calibration_compatibility_inputs:2028fed:summary:"
+            "bias-staging"
+        )
+        compact_key = "poll_calibration_summaries:2028fed:compact"
+        manifest["records"] = {
+            detailed_key: detailed,
+            staging_key: staging,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        compact["dependencies"] = {
+            "bias_calibration_compatibility_inputs":
+                generated_provenance.generated_manifest_dependency(
+                    "bias_calibration_compatibility_inputs",
+                    self.generated_manifest_path,
+                    [detailed_key],
+                    self.base,
+                    allow_stale=True,
+                )
+        }
+        manifest["records"][compact_key] = compact
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2028fed"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {compact_key},
+        )
+
+    def test_detailed_bias_outputs_remain_selected_without_modern_bias(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+
+        detailed_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "fp_trend_2028fed_@TPP_biascal.csv"
+        )
+        detailed_output.parent.mkdir(parents=True, exist_ok=True)
+        detailed_output.write_text("detailed\n", encoding="utf-8")
+        detailed = json.loads(json.dumps(template))
+        detailed["category"] = "bias_calibration_outputs"
+        detailed["stage"] = "calibrate_pollster_bias"
+        detailed["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"],
+            parties=["@TPP"],
+        )
+        detailed["dependencies"] = {}
+        detailed["outputs"] = generated_provenance.output_fingerprints(
+            [detailed_output], self.base
+        )
+
+        compact_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Summaries"
+            / "2028fed.csv"
+        )
+        compact_output.parent.mkdir(parents=True, exist_ok=True)
+        compact_output.write_text("compact\n", encoding="utf-8")
+        compact = json.loads(json.dumps(template))
+        compact["category"] = "poll_calibration_summaries"
+        compact["stage"] = "compact_calibration_summaries"
+        compact["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        compact["dependencies"] = {}
+        compact["outputs"] = generated_provenance.output_fingerprints(
+            [compact_output], self.base
+        )
+
+        detailed_key = "bias_calibration_outputs:2028fed:@TPP"
+        compact_key = "poll_calibration_summaries:2028fed:compact"
+        manifest["records"] = {
+            detailed_key: detailed,
+            compact_key: compact,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2028fed"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {detailed_key, compact_key},
+        )
+
+    def test_precompact_calib_summary_is_ignored_when_compact_exists(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+
+        legacy_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "calib_2028fed_Newspoll_@TPP.csv"
+        )
+        legacy_output.parent.mkdir(parents=True, exist_ok=True)
+        legacy_output.write_text("legacy summary\n", encoding="utf-8")
+        legacy_summary = json.loads(json.dumps(template))
+        legacy_summary["category"] = "poll_calibration_summaries"
+        legacy_summary["stage"] = "calibrate_pollsters"
+        legacy_summary["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        legacy_summary["dependencies"] = {}
+        legacy_summary["outputs"] = (
+            generated_provenance.output_fingerprints(
+                [legacy_output], self.base
+            )
+        )
+
+        compact_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Summaries"
+            / "2028fed.csv"
+        )
+        compact_output.parent.mkdir(parents=True, exist_ok=True)
+        compact_output.write_text("compact summary\n", encoding="utf-8")
+        compact_summary = json.loads(json.dumps(template))
+        compact_summary["category"] = "poll_calibration_summaries"
+        compact_summary["stage"] = "compact_calibration_summaries"
+        compact_summary["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        compact_summary["dependencies"] = {}
+        compact_summary["outputs"] = (
+            generated_provenance.output_fingerprints(
+                [compact_output], self.base
+            )
+        )
+
+        legacy_key = "poll_calibration_summaries:2028fed"
+        compact_key = "poll_calibration_summaries:2028fed:compact"
+        manifest["records"] = {
+            legacy_key: legacy_summary,
+            compact_key: compact_summary,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2028fed"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {compact_key},
+        )
+
     def test_missing_compact_summary_is_discovered_from_bias_evidence(self):
         manifest = generated_provenance.load_manifest(
             self.generated_manifest_path

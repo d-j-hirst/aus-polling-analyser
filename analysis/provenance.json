@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-02T15:04:59Z",
+  "updated_at_utc": "2026-08-02T22:31:53Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -808,15 +808,51 @@
     "fp_model_script": {
       "description": "Poll-trend data preparation, Stan execution and output serialization.",
       "file_patterns": [
-        "fp_model.py"
+        "fp_model.py",
+        "fp_model_constants.py",
+        "fp_model_data.py",
+        "fp_model_prepare.py",
+        "fp_model_stan.py",
+        "fp_model_outputs.py",
+        "fp_model_runner.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 10,
+      "semantic_revision": 11,
       "files": {
         "fp_model.py": {
-          "sha256": "39fff54d6334e432953f4e839f3556dc9df4f54e5e251a2d04a11753fc7f0833",
-          "size_bytes": 166425,
-          "recorded_mtime_utc": "2026-08-02T14:57:05.189494Z"
+          "sha256": "43375a87cf1bf3f13a1a5dd5a300070ad4d7753d3bec785dacd4c990a8a67f64",
+          "size_bytes": 801,
+          "recorded_mtime_utc": "2026-08-02T16:22:14.952007Z"
+        },
+        "fp_model_constants.py": {
+          "sha256": "7ef8dd26324d9e9b33cf342c82fe9c215cf9fe6275de0ca5944e75095c89ef0b",
+          "size_bytes": 3071,
+          "recorded_mtime_utc": "2026-08-02T15:53:45.364243Z"
+        },
+        "fp_model_data.py": {
+          "sha256": "fb7e78d32e39f06683e35e653a5e8e242fd7cdbfbac2b23981e87d7789b9482a",
+          "size_bytes": 62812,
+          "recorded_mtime_utc": "2026-08-02T16:23:19.950380Z"
+        },
+        "fp_model_outputs.py": {
+          "sha256": "895fb1f1dc210174818353f27d91080118e0c731dc747d1879196c5038dee27c",
+          "size_bytes": 36522,
+          "recorded_mtime_utc": "2026-08-02T16:21:45.447053Z"
+        },
+        "fp_model_prepare.py": {
+          "sha256": "bfaddd6b2668c6330139dc278d7aab9542df84c6b5f8592a59c1ff099fce7357",
+          "size_bytes": 29956,
+          "recorded_mtime_utc": "2026-08-02T15:57:03.802512Z"
+        },
+        "fp_model_runner.py": {
+          "sha256": "8ddebb4ee9cb779610e1b9309f660f1538e0e10b651b16c1baee3a23616c2ef9",
+          "size_bytes": 34972,
+          "recorded_mtime_utc": "2026-08-02T16:30:35.856194Z"
+        },
+        "fp_model_stan.py": {
+          "sha256": "04ca98e97a03b10cc4c0de984c17936befa0bf4d1fd3d21c13256131bf4c324e",
+          "size_bytes": 5493,
+          "recorded_mtime_utc": "2026-08-02T15:57:04.315870Z"
         }
       },
       "events": [
@@ -1378,9 +1414,99 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T155100Z-refactor-fp-model-script-modules",
+          "recorded_at_utc": "2026-08-02T15:51:00Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Split fp_model.py into focused submodules while keeping the facade entry point; numerical poll-trend behaviour is unchanged.",
+          "files": [
+            "fp_model.py",
+            "fp_model_constants.py",
+            "fp_model_data.py",
+            "fp_model_prepare.py",
+            "fp_model_stan.py",
+            "fp_model_outputs.py",
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T161213Z-other-fp-model-script-41794a38",
+          "recorded_at_utc": "2026-08-02T16:12:13Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Refresh fp_model module fingerprints after soft-tail output mapping and modular split.",
+          "files": [
+            "fp_model.py",
+            "fp_model_constants.py",
+            "fp_model_data.py",
+            "fp_model_outputs.py",
+            "fp_model_prepare.py",
+            "fp_model_runner.py",
+            "fp_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T162420Z-other-fp-model-script-3de809f1",
+          "recorded_at_utc": "2026-08-02T16:24:20Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Fix modular runner imports and reduce fp_model.py to its command-line surface.",
+          "files": [
+            "fp_model.py",
+            "fp_model_data.py",
+            "fp_model_outputs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T163222Z-correction-fp-model-script-3f388556",
+          "recorded_at_utc": "2026-08-02T16:32:22Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 11,
+          "provenance_revision": 11,
+          "summary": "Refresh cutoff draft federal-prior identity as endpoints accumulate so interrupt/resume invalidates when upstream federal cutoffs change.",
+          "files": [
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 10
+      "provenance_revision": 11
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
@@ -2160,12 +2286,12 @@
         "fp_model_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 4,
+      "semantic_revision": 5,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "a75acca91d1949c9f3a348b91aee446f8b2f84fdda9cd407851c78b366d2cad0",
-          "size_bytes": 51015,
-          "recorded_mtime_utc": "2026-08-02T15:04:38.732327Z"
+          "sha256": "36c6616558ce3c7f5706871a301143c693f1762d7505b21de0083868d3c659ba",
+          "size_bytes": 53785,
+          "recorded_mtime_utc": "2026-08-02T16:31:27.063972Z"
         }
       },
       "events": [
@@ -2540,9 +2666,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T163220Z-correction-fp-model-provenance-script-cedbd1ee",
+          "recorded_at_utc": "2026-08-02T16:32:20Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Preserve cutoff resume metadata across failed certification and validate accumulating federal prior digests separately from stable resume identity.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 5
+      "provenance_revision": 6
     },
     "approvals_script": {
       "description": "Synthetic TPP regression from leader approval observations and pure TPP trends.",
@@ -3733,12 +3878,12 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 4,
-      "provenance_revision": 29,
+      "provenance_revision": 31,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "e74934cd8f93211dae6ded684329c023c9dfe096e3ba917e559b2273ed02f117",
-          "size_bytes": 78516,
-          "recorded_mtime_utc": "2026-08-02T11:45:47.314825Z"
+          "sha256": "4d14ebdc90257a05eaef8aa8b1fea4d0382df158df183eef8f2ed83e5b01d450",
+          "size_bytes": 81791,
+          "recorded_mtime_utc": "2026-08-02T22:30:38.367651Z"
         },
         "generated_data_archive.py": {
           "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
@@ -3751,9 +3896,9 @@
           "recorded_mtime_utc": "2026-08-02T12:27:53.283630Z"
         },
         "pipeline_registry.json": {
-          "sha256": "b876db61c7f2d522e3e9c0df031de0f476f2f8c0577a750ded725f4c213a5e55",
-          "size_bytes": 42400,
-          "recorded_mtime_utc": "2026-08-02T15:03:53.267870Z"
+          "sha256": "cef9957b089c790115b42d024b7250b7b6927c5f8807c46635a128602ae11641",
+          "size_bytes": 42543,
+          "recorded_mtime_utc": "2026-08-02T16:30:21.965347Z"
         },
         "pipeline_registry.py": {
           "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
@@ -4941,6 +5086,84 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T161214Z-schema-pipeline-orchestration-tools-72fdf2d5",
+          "recorded_at_utc": "2026-08-02T16:12:14Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 29,
+          "summary": "Expand fp_model_script paths to all implementation modules.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T163224Z-other-pipeline-orchestration-tools-2f7e1ce1",
+          "recorded_at_utc": "2026-08-02T16:32:24Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 29,
+          "summary": "Drop unused fp_model_checkpoint_script from cutoff stage inputs to avoid over-invalidation.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T220938Z-correction-pipeline-orchestration-tools-fef9b4ef",
+          "recorded_at_utc": "2026-08-02T22:09:38Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 30,
+          "summary": "Ignore pre-compact calib_*.csv summary records when a compact Summaries/*.csv sibling exists so modern calibrate cannot be stuck on orphaned legacy summary provenance.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T223153Z-correction-pipeline-orchestration-tools-74c3e0b9",
+          "recorded_at_utc": "2026-08-02T22:31:53Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 31,
+          "summary": "Supersede detailed bias_calibration_outputs once modern bias staging or seeds exist so calibrate_pollster_bias cannot stick on unreproduced fp_*_biascal.csv records.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ]
     },
@@ -5781,9 +6004,9 @@
       "semantic_revision": 1,
       "files": {
         "low_share_diagnostic.py": {
-          "sha256": "0b84c700aa888d726a5b7bc32692692fa57d44df054f4cc989f060f3626ba512",
-          "size_bytes": 15131,
-          "recorded_mtime_utc": "2026-08-02T14:37:28.773085Z"
+          "sha256": "0fdb6124efefb886353ee6b2a89e01765733f41965e983a5c12d8f02302b2839",
+          "size_bytes": 17014,
+          "recorded_mtime_utc": "2026-08-02T15:50:43.304772Z"
         },
         "prior_chain_diagnostic.py": {
           "sha256": "2a8e2582143375797116f1576c86eaa80ced9bea56d96325b47b99334aa9e1cf",
@@ -5810,8 +6033,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T161216Z-coverage_extension-fp-model-diagnostic-tools-2d310166",
+          "recorded_at_utc": "2026-08-02T16:12:16Z",
+          "change_type": "coverage_extension",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Add production soft-tail reference mapping alongside exponential-tail diagnostics.",
+          "files": [
+            "low_share_diagnostic.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     }
   }
 }

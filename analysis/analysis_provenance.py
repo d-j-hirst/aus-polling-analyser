@@ -658,6 +658,29 @@ def _selected_generated_records(
         )
         for election in record["scope"]["elections"]
     }
+    modern_bias_elections = {
+        election
+        for manifest in manifests.values()
+        for record in manifest["records"].values()
+        if (
+            record["status"] == "generated"
+            and (
+                (
+                    record["category"]
+                    == "bias_calibration_compatibility_inputs"
+                    and any(
+                        output.startswith(
+                            "Outputs/Calibration/Staging/"
+                        )
+                        and output.endswith("-bias.csv")
+                        for output in record["outputs"]
+                    )
+                )
+                or record["category"] == "bias_calibration_stan_seeds"
+            )
+        )
+        for election in record["scope"]["elections"]
+    }
     configured_calibration_parties = (
         calibration_provenance.configured_parties_by_election()
     )
@@ -677,6 +700,52 @@ def _selected_generated_records(
         configured = configured_calibration_parties.get(elections[0])
         return configured is not None and parties[0] not in configured
 
+    def is_orphaned_precompact_summary(record):
+        # Older leave-one-out runs recorded wide calib_*.csv bundles under
+        # poll_calibration_summaries with stage calibrate_pollsters. Modern
+        # calibrate no longer refreshes those records; Summaries/*.csv is the
+        # active summary artifact. Keep the old metadata, but do not schedule
+        # Stan calibration forever after a compact sibling exists.
+        if record["category"] != "poll_calibration_summaries":
+            return False
+        if any(
+            output.startswith("Outputs/Calibration/Summaries/")
+            for output in record["outputs"]
+        ):
+            return False
+        return bool(
+            completed_calibration_elections.intersection(
+                record["scope"]["elections"]
+            )
+        )
+
+    def is_superseded_detailed_bias_output(record):
+        # Modern --bias writes Staging/*-bias.csv and Seeds/*-bias.csv. It no
+        # longer refreshes party-level fp_*_biascal.csv records. Once modern
+        # bias evidence exists, keep those detailed outputs for archives but
+        # do not schedule calibrate_pollster_bias forever via compact-summary
+        # dependency edges.
+        if record["category"] != "bias_calibration_outputs":
+            return False
+        return bool(
+            modern_bias_elections.intersection(
+                record["scope"]["elections"]
+            )
+        )
+
+    def is_completed_calibration_detail(record):
+        if record["category"] not in {
+            "poll_calibration_compatibility_inputs",
+            "bias_calibration_compatibility_inputs",
+            "poll_calibration_traces",
+        }:
+            return False
+        return bool(
+            completed_calibration_elections.intersection(
+                record["scope"]["elections"]
+            )
+        )
+
     def work_unit_id(manifest_path, record_key):
         return "{}::{}".format(
             manifest_labels[manifest_path], record_key
@@ -687,6 +756,12 @@ def _selected_generated_records(
             manifest_path not in manifests
             or record_key not in manifests[manifest_path]["records"]
             or record_key in selected[manifest_path]
+        ):
+            return
+        record = manifests[manifest_path]["records"][record_key]
+        if (
+            is_orphaned_precompact_summary(record)
+            or is_superseded_detailed_bias_output(record)
         ):
             return
         selected[manifest_path].add(record_key)
@@ -700,17 +775,11 @@ def _selected_generated_records(
                 # Keep old outputs and metadata for traceability, but do not
                 # schedule a command that no longer produces that party.
                 continue
-            if (
-                record["category"] in {
-                    "poll_calibration_compatibility_inputs",
-                    "bias_calibration_compatibility_inputs",
-                    "poll_calibration_traces",
-                    "bias_calibration_outputs",
-                }
-                and completed_calibration_elections.intersection(
-                    record["scope"]["elections"]
-                )
-            ):
+            if is_orphaned_precompact_summary(record):
+                continue
+            if is_superseded_detailed_bias_output(record):
+                continue
+            if is_completed_calibration_detail(record):
                 # A generated summary names the exact traces used by the
                 # completed calibration batch. Follow those dependencies
                 # instead of treating superseded legacy trace names as active
@@ -741,8 +810,16 @@ def _selected_generated_records(
                     ).get("records", {}).get(dependency_record)
                     if (
                         dependency_value is not None
-                        and is_superseded_calibration_record(
-                            dependency_value
+                        and (
+                            is_superseded_calibration_record(
+                                dependency_value
+                            )
+                            or is_orphaned_precompact_summary(
+                                dependency_value
+                            )
+                            or is_superseded_detailed_bias_output(
+                                dependency_value
+                            )
                         )
                     ):
                         continue
@@ -768,7 +845,13 @@ def _selected_generated_records(
                         owner_record = manifests[owner[0]]["records"][
                             owner[1]
                         ]
-                        if is_superseded_calibration_record(owner_record):
+                        if (
+                            is_superseded_calibration_record(owner_record)
+                            or is_orphaned_precompact_summary(owner_record)
+                            or is_superseded_detailed_bias_output(
+                                owner_record
+                            )
+                        ):
                             continue
                         dependencies[
                             work_unit_id(manifest_path, record_key)

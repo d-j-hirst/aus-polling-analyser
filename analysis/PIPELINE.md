@@ -128,6 +128,11 @@ the authoritative source if this order changes.
 12. Generate election-specific regional swing deviations with
     `region_model.py`.
 
+`fp_model.py` remains the CLI entry point; implementation is split across
+`fp_model_constants.py`, `fp_model_data.py`, `fp_model_prepare.py`,
+`fp_model_stan.py`, `fp_model_outputs.py` and `fp_model_runner.py`. The
+unnamed-Others soft-tail adjustment is applied during output reduction only.
+
 Steps 1-3, 4-10 and 11 are largely independent branches. A normal C++ forecast
 requires the relevant outputs from each branch, but it does not require every
 historical election or every calibration unit to have been regenerated at the
@@ -514,7 +519,9 @@ in every scope because their impact has not yet been assessed.
 The currently monitored code path covers `election_store.py`,
 `election_check.py`, `election_data.py`, `election_code.py`,
 `election_analysis.py`, `poll_transform.py`, `sample_kurtosis.py`,
-`fp_model.py`, `stan_cache.py`, `calibration_provenance.py`,
+`fp_model.py`, `fp_model_constants.py`, `fp_model_data.py`,
+`fp_model_prepare.py`, `fp_model_stan.py`, `fp_model_outputs.py`,
+`fp_model_runner.py`, `stan_cache.py`, `calibration_provenance.py`,
 `fp_model_provenance.py`, `pollster_analysis.py` and
 `pollster_analysis_provenance.py`, `trend_adjust.py` and
 `trend_adjust_provenance.py`. Each script has its own category so that
@@ -638,7 +645,7 @@ CSVs into work units rather than creating one sidecar per file:
 
 Future `fp_model.py --calibrate` and `--bias` runs replace successfully
 completed legacy work units with certified `generated` records. Each record
-contains the semantic revisions of `fp_model.py`, `stan_cache.py`,
+contains the semantic revisions of the `fp_model*.py` modules, `stan_cache.py`,
 `election_code.py`, the provenance helper, the configured data inputs and the
 specific `Models/fp_model.stan` source. Regional and dormant Stan models are
 tracked separately and therefore do not unnecessarily invalidate poll

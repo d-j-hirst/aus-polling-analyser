@@ -151,6 +151,7 @@ class PipelineRegistryTests(unittest.TestCase):
 
         self.assertIn("fp_model_provenance_script", stage["inputs"])
         self.assertIn("calibration_provenance_script", stage["inputs"])
+        self.assertNotIn("fp_model_checkpoint_script", stage["inputs"])
         self.assertNotIn(
             "poll_trend_outputs", stage.get("feedback_inputs", [])
         )

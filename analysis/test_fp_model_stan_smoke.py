@@ -2,7 +2,7 @@ import math
 import os
 import unittest
 
-import fp_model
+import fp_model_stan
 
 
 @unittest.skipUnless(
@@ -11,7 +11,7 @@ import fp_model
 )
 class ProductionStanSmokeTests(unittest.TestCase):
     def test_small_seeded_fit_returns_finite_adjusted_vote_share(self):
-        model = fp_model.load_stan_model()
+        model = fp_model_stan.load_stan_model()
         fit = model.sampling(
             data={
                 "pollCount": 1,

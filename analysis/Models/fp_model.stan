@@ -1,3 +1,50 @@
+functions {
+    real exponential_tail_share(real share) {
+        if (share < 0.5) {
+            return 0.5 * exp(share - 0.5);
+        }
+        if (share > 99.5) {
+            return 100.0 - 0.5 * exp(99.5 - share);
+        }
+        return share;
+    }
+
+    real smoothstep(real t) {
+        real clamped = fmin(fmax(t, 0.0), 1.0);
+        return clamped * clamped * (3.0 - 2.0 * clamped);
+    }
+
+    // Identity on [0.5, 99.5]; smooth C1 blend into exponential tails outside.
+    // Stan 2.x requires every local declaration before any statement in a block.
+    real soft_tail_share(real share) {
+        real identity_low = 0.5;
+        real identity_high = 99.5;
+        real blend_width = 0.05;
+        real exponential_low = identity_low - blend_width;
+        real exponential_high = identity_high + blend_width;
+        real exponential;
+        real blend;
+
+        if (share >= identity_low && share <= identity_high) {
+            return share;
+        }
+        if (share < identity_low) {
+            exponential = exponential_tail_share(share);
+            if (share <= exponential_low) {
+                return exponential;
+            }
+            blend = smoothstep((share - exponential_low) / blend_width);
+            return (1.0 - blend) * exponential + blend * share;
+        }
+        exponential = exponential_tail_share(share);
+        if (share >= exponential_high) {
+            return exponential;
+        }
+        blend = smoothstep((exponential_high - share) / blend_width);
+        return (1.0 - blend) * exponential + blend * share;
+    }
+}
+
 data {
     // data size
     int<lower=1> pollCount;
@@ -130,15 +177,9 @@ model {
 generated quantities {
     vector[dayCount] adjustedVoteShare;
     
-    // modifiy values near to or beyond edge cases so that they're still valid vote shares
+    // Map unbounded latent shares to valid reported vote shares without
+    // changing the Gaussian inference on preliminaryVoteShare.
     for (day in 1:dayCount) {
-        real share = preliminaryVoteShare[day];
-        if (share < 0.5) {
-            adjustedVoteShare[day] = 0.5 * exp(share-0.5);
-        } else if (share > 99.5) {
-            adjustedVoteShare[day] = 100.0 - 0.5 * exp(99.5 - share);
-        } else {
-            adjustedVoteShare[day] = share;
-        }
+        adjustedVoteShare[day] = soft_tail_share(preliminaryVoteShare[day]);
     }
 } 

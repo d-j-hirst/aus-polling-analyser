@@ -39,7 +39,7 @@ class CutoffScheduleTests(unittest.TestCase):
 
 class CutoffOutputStoreTests(unittest.TestCase):
     @staticmethod
-    def metadata(fingerprint="inputs-a"):
+    def metadata(fingerprint="inputs-a", federal_prior_files=None):
         return {
             "schema_version": 1,
             "election": "2025fed",
@@ -59,6 +59,7 @@ class CutoffOutputStoreTests(unittest.TestCase):
             "seed_namespace": "fp-model-v1",
             "dependencies": {"source": "current"},
             "source_fingerprint": fingerprint,
+            "federal_prior_files": list(federal_prior_files or []),
         }
 
     def test_matching_draft_resumes_across_store_instances(self):
@@ -409,6 +410,13 @@ class CutoffOutputStoreTests(unittest.TestCase):
                     "35,36,@TPP,456,47.9,50.0,52.1\n"
                 )
                 path.write_text(previous_contents, encoding="utf-8")
+                metadata = self.metadata()
+                metadata["expected_endpoints"] = [{
+                    "scheduled_cutoff_days": 28,
+                    "poll_trend_end_days": 30,
+                }]
+                metadata["parties"] = ["@TPP"]
+                store.begin("2025fed", metadata)
                 store.write(
                     election="2025fed",
                     party="@TPP",
@@ -418,7 +426,12 @@ class CutoffOutputStoreTests(unittest.TestCase):
                     probabilities=(0.001, 0.5, 0.999),
                     values=(48.1, 50.2, 52.3),
                 )
-                store.mark_complete("2025fed", 28, 30)
+                store.mark_complete(
+                    "2025fed",
+                    28,
+                    30,
+                    expected_parties=("@TPP",),
+                )
 
                 def fail_certification(output):
                     raise RuntimeError("certification failed")
@@ -437,6 +450,98 @@ class CutoffOutputStoreTests(unittest.TestCase):
                     fp_model_provenance
                     .cutoff_working_path("2025fed")
                     .is_file()
+                )
+                self.assertTrue(
+                    fp_model_provenance
+                    .cutoff_working_metadata_path("2025fed")
+                    .is_file()
+                )
+                resumed = fp_model_provenance.CutoffOutputStore()
+                self.assertTrue(resumed.begin("2025fed", metadata))
+                self.assertTrue(resumed.is_complete("2025fed", 28, 30))
+
+    def test_growing_federal_priors_do_not_invalidate_resume(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            prior_a = directory / "fed_a.csv"
+            prior_b = directory / "fed_b.csv"
+            prior_a.write_text("a\n", encoding="utf-8")
+            prior_b.write_text("b\n", encoding="utf-8")
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                first = fp_model_provenance.CutoffOutputStore()
+                first.begin(
+                    "2025fed",
+                    self.metadata(federal_prior_files=[str(prior_a)]),
+                )
+                first.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+                first.update_federal_priors(
+                    "2025fed",
+                    [prior_a, prior_b],
+                    dependencies={
+                        "source": "current",
+                        "cutoff_poll_outputs": {"files": ["fed_a", "fed_b"]},
+                    },
+                )
+
+                resumed = fp_model_provenance.CutoffOutputStore()
+                self.assertTrue(
+                    resumed.begin(
+                        "2025fed",
+                        self.metadata(federal_prior_files=[str(prior_a)]),
+                    )
+                )
+                self.assertEqual(
+                    set(resumed.federal_prior_files("2025fed")),
+                    {str(prior_a), str(prior_b)},
+                )
+
+    def test_changed_federal_prior_contents_invalidate_resume(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            prior = directory / "fed_a.csv"
+            prior.write_text("a\n", encoding="utf-8")
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                first = fp_model_provenance.CutoffOutputStore()
+                first.begin(
+                    "2025fed",
+                    self.metadata(federal_prior_files=[str(prior)]),
+                )
+                first.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+                prior.write_text("changed\n", encoding="utf-8")
+
+                resumed = fp_model_provenance.CutoffOutputStore()
+                self.assertFalse(
+                    resumed.begin(
+                        "2025fed",
+                        self.metadata(federal_prior_files=[str(prior)]),
+                    )
+                )
+                self.assertFalse(
+                    resumed.contains("2025fed", "@TPP", 28, 30)
                 )
 
 

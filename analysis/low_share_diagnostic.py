@@ -19,6 +19,9 @@ import numpy as np
 
 
 MODEL_PATH = Path(__file__).parent / "Models" / "low_share_diagnostic.stan"
+SOFT_TAIL_IDENTITY_LOW = 0.5
+SOFT_TAIL_IDENTITY_HIGH = 99.5
+SOFT_TAIL_BLEND_WIDTH = 0.05
 APPROACH_CODES = {
     "raw": 1,
     "exponential": 2,
@@ -78,6 +81,51 @@ def exponential_tail_share(latent_share):
     flat_transformed[upper] = (
         100.0 - 0.5 * np.exp(99.5 - flat_values[upper])
     )
+    transformed = flat_transformed.reshape(values.shape)
+    return _return_scalar_when_scalar(latent_share, transformed)
+
+
+def _smoothstep(t):
+    values = np.asarray(t, dtype=float)
+    clamped = np.clip(values, 0.0, 1.0)
+    return clamped * clamped * (3.0 - 2.0 * clamped)
+
+
+def production_soft_tail_share(latent_share):
+    """Apply the production generated-output soft-tail mapping."""
+
+    values = np.asarray(latent_share, dtype=float)
+    flat_values = values.reshape(-1)
+    flat_transformed = np.empty_like(flat_values)
+    identity_low = SOFT_TAIL_IDENTITY_LOW
+    identity_high = SOFT_TAIL_IDENTITY_HIGH
+    blend_width = SOFT_TAIL_BLEND_WIDTH
+    exponential_low = identity_low - blend_width
+    exponential_high = identity_high + blend_width
+
+    for index, share in enumerate(flat_values):
+        if identity_low <= share <= identity_high:
+            flat_transformed[index] = share
+            continue
+        if share < identity_low:
+            exponential = exponential_tail_share(share)
+            if share <= exponential_low:
+                flat_transformed[index] = exponential
+                continue
+            blend = _smoothstep((share - exponential_low) / blend_width)
+            flat_transformed[index] = (
+                (1.0 - blend) * exponential + blend * share
+            )
+            continue
+        exponential = exponential_tail_share(share)
+        if share >= exponential_high:
+            flat_transformed[index] = exponential
+            continue
+        blend = _smoothstep((exponential_high - share) / blend_width)
+        flat_transformed[index] = (
+            (1.0 - blend) * exponential + blend * share
+        )
+
     transformed = flat_transformed.reshape(values.shape)
     return _return_scalar_when_scalar(latent_share, transformed)
 
@@ -181,10 +229,12 @@ def transform_share(latent_share, approach):
         return raw_share(latent_share)
     if approach == "exponential":
         return exponential_tail_share(latent_share)
+    if approach == "soft_tail":
+        return production_soft_tail_share(latent_share)
     if approach == "logit":
         return smooth_logit_share(latent_share)
     raise ValueError(
-        "approach must be one of: raw, exponential, logit."
+        "approach must be one of: raw, exponential, soft_tail, logit."
     )
 
 
@@ -198,7 +248,7 @@ def inverse_transform_share(share, approach):
     if approach == "logit":
         return smooth_logit_inverse(share)
     raise ValueError(
-        "approach must be one of: raw, exponential, logit."
+        "approach must be one of: raw, exponential, soft_tail, logit."
     )
 
 
@@ -252,7 +302,7 @@ def build_stan_data(
 
     if approach not in APPROACH_CODES:
         raise ValueError(
-            "approach must be one of: raw, exponential, logit."
+            "approach must be one of: raw, exponential, soft_tail, logit."
         )
     mean = _finite_float(prior_mean, "prior_mean")
     sigma = _finite_float(prior_sigma, "prior_sigma")
