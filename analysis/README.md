@@ -200,6 +200,19 @@ overlapping federal trends are assumed to be complete and are not run again;
 later federal trends are still moved ahead of state trends that depend on
 them.
 
+Generate consolidated historical poll-endpoint fits with:
+
+```bash
+python3 fp_model.py --election 2025-fed --cutoff
+```
+
+Cutoff generation keeps the certified output untouched while writing a
+fingerprinted `.in-progress` draft and JSON sidecar. A matching rerun skips
+complete endpoints and reruns every party for the interrupted endpoint before
+atomic promotion. These are poll-data-as-of hindcasts, not complete historical
+information-vintage reconstructions: pollster parameters and approval evidence
+come from the selected current generated inputs.
+
 ### Calibration
 
 Generate leave-one-pollster-out calibration data for one election:
@@ -214,14 +227,46 @@ Generate its pollster-bias calibration:
 python3 fp_model.py --election 2025-fed --bias
 ```
 
-These stages can be very slow. Add `--seed N` to make their Stan sampling
-reproducible. Completed calibration work units are recorded in the ignored
-generated-provenance bundle. Existing pre-provenance calibration files can be
-fingerprinted, without claiming they were reproduced, using:
+These stages can be very slow. Runs use a versioned default base seed and derive
+a separate stable seed from the election, party, mode, actual cutoff endpoint
+and excluded pollster. `--seed N` overrides the base seed. Pure and final fits
+have distinct seed namespaces. Every completed calibration and bias fit seed is
+persisted under `Outputs/Calibration/Seeds/`.
+
+Default calibration runs request only the posterior median consumed by the
+reducer; `--calibration-traces` retains all 101 detailed percentiles. After each
+complete excluded-pollster block, an atomic local checkpoint is written below
+`Outputs/Calibration/Checkpoints/`. A matching rerun resumes complete blocks
+and repeats only the interrupted block. Successfully published calibration
+staging removes those restart files. The established MAE/full-fit estimator is
+unchanged, while versioned held-out-poll evidence is retained under
+`Outputs/Calibration/Evidence/` for later estimator comparisons.
+
+HMC diagnostic failures remain non-fatal and are appended, with mode and seed,
+to `Outputs/fp_model_diagnostics.log`; sampling exceptions and invalid model
+outputs still fail the run. Completed calibration work units are recorded in
+the ignored generated-provenance bundle. Existing pre-provenance calibration
+files can be fingerprinted, without claiming they were reproduced, using:
 
 ```bash
 python3 calibration_provenance.py baseline
 ```
+
+The production daily-prior strength and scaling are unchanged. Inspect its
+finite-chain endpoint behavior with the exact Gaussian solver, optionally
+cross-checked against a configurable standalone Stan model:
+
+```bash
+python3 prior_chain_diagnostic.py --chain-lengths 15,31,91,181,365
+python3 prior_chain_diagnostic.py --chain-lengths 31,181 --stan
+```
+
+`low_share_diagnostic.py` compares the current raw Gaussian inference plus
+exponential reported-output tails with bounded exponential and smooth-logit
+alternatives. Those alternatives remain isolated from production; the
+exponential inference comparison showed materially poorer effective sample
+size in the seeded low-share pilot, and a full random-walk parameterization
+decision would be required before adopting the smooth alternative.
 
 Reduce the calibration evidence into the compact parameters used by normal
 poll-trend runs:
@@ -360,8 +405,10 @@ replaces `Archived/` only after validation succeeds.
 The archive includes generated/cache roots such as `Outputs`, `Adjustments`,
 `Fundamentals`, `Seat Statistics`, `Nationals` and `elections`. It includes only
 the generated files from mixed `Regional` and `Federal-State` directories, not
-their authored inputs. Calibration diagnostic traces and incomplete staging
-files are deliberately excluded. Retained legacy `calib_*` and detailed
-calibration trend/poll/house-effect files are also excluded: compact
-`Outputs/Calibration/Summaries/` files are the only calibration evidence in a
-new archive.
+their authored inputs. Calibration diagnostic traces, local calibration
+checkpoints, cutoff `.in-progress` drafts and incomplete staging files are
+deliberately excluded. Retained legacy `calib_*` and detailed calibration
+trend/poll/house-effect files are also excluded. Compact summaries and
+versioned residual evidence and resolved seed manifests under
+`Outputs/Calibration/Summaries/`, `Outputs/Calibration/Evidence/` and
+`Outputs/Calibration/Seeds/` are retained.

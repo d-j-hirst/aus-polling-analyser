@@ -5,6 +5,13 @@ unit: one election, party and excluded pollster for leave-one-pollster-out
 calibration, or one election and party for bias calibration. Existing files
 predating provenance are fingerprinted as legacy rather than falsely
 certified as reproducible generations.
+
+Main functions:
+* ``configured_parties_by_election`` validates the calibration party set.
+* ``derive_stan_seed`` provides stable per-work-unit seeds.
+* ``CalibrationRecorder`` records completed leave-one-out and bias work units.
+* ``baseline_existing_outputs`` registers older calibration traces as legacy
+  compatibility inputs without asserting that they are current.
 """
 
 import argparse
@@ -26,6 +33,10 @@ MANIFEST_DESCRIPTION = (
 )
 POLL_COMPATIBILITY_CATEGORY = "poll_calibration_compatibility_inputs"
 BIAS_COMPATIBILITY_CATEGORY = "bias_calibration_compatibility_inputs"
+FEDERAL_PRIOR_CATEGORY = "federal_calibration_priors"
+RESIDUAL_EVIDENCE_CATEGORY = "poll_calibration_residual_evidence"
+POLL_SEED_CATEGORY = "poll_calibration_stan_seeds"
+BIAS_SEED_CATEGORY = "bias_calibration_stan_seeds"
 SOURCE_DEPENDENCIES = {
     "election_catalogue": ANALYSIS_DIRECTORY / "Data" / "provenance.json",
     "raw_poll_data": ANALYSIS_DIRECTORY / "Data" / "provenance.json",
@@ -34,6 +45,10 @@ SOURCE_DEPENDENCIES = {
     "preference_estimates": ANALYSIS_DIRECTORY / "Data" / "provenance.json",
     "prior_result_inputs": ANALYSIS_DIRECTORY / "Data" / "provenance.json",
     "fp_model_script": ANALYSIS_DIRECTORY / "provenance.json",
+    "fp_model_checkpoint_script": ANALYSIS_DIRECTORY / "provenance.json",
+    "calibration_provenance_script":
+        ANALYSIS_DIRECTORY / "provenance.json",
+    "calibration_summary_script": ANALYSIS_DIRECTORY / "provenance.json",
     "stan_cache_script": ANALYSIS_DIRECTORY / "provenance.json",
     "election_code_script": ANALYSIS_DIRECTORY / "provenance.json",
     "fp_stan_model": ANALYSIS_DIRECTORY / "Models" / "provenance.json",
@@ -43,6 +58,8 @@ SIGNIFICANT_PARTIES_PATH = (
     ANALYSIS_DIRECTORY / "Data" / "significant-parties.csv"
 )
 
+
+# Configuration loading and deterministic work-unit identity
 
 def configured_parties_by_election(path=None):
     """Return the parties currently produced by each calibration run."""
@@ -128,11 +145,15 @@ def derive_stan_seed(base_seed, election, party, excluded_pollster, mode):
     return int.from_bytes(digest[:8], "big") % (2 ** 31 - 1) + 1
 
 
+# Completed-calibration recording and legacy baselining
+
 class CalibrationRecorder:
     """Buffer and atomically persist completed calibration work units."""
 
     def __init__(self, command):
         self.dependencies = _source_dependencies()
+        if "--bias" in command:
+            self.dependencies.pop("fp_model_checkpoint_script", None)
         self.pending_records = {}
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
@@ -153,12 +174,13 @@ class CalibrationRecorder:
         outputs,
         random_seed,
         feedback_files,
+        feedback_category="poll_trend_outputs",
     ):
         dependencies = dict(self.dependencies)
         if feedback_files:
-            dependencies["poll_trend_outputs"] = (
+            dependencies[feedback_category] = (
                 generated_provenance.file_dependency(
-                    "poll_trend_outputs",
+                    feedback_category,
                     feedback_files,
                     ANALYSIS_DIRECTORY,
                 )
@@ -198,7 +220,30 @@ class CalibrationRecorder:
             )
         )
 
-    def record_summaries(self, election, outputs, trace_files):
+    def record_federal_priors(self, election, output):
+        """Record the compact full-fit federal series used by state calibration."""
+
+        self.pending_records["{}:{}".format(
+            FEDERAL_PRIOR_CATEGORY, election
+        )] = generated_provenance.generation_record(
+            category=FEDERAL_PRIOR_CATEGORY,
+            stage="calibrate_pollsters",
+            scope=_scope(election),
+            run=self.run_id,
+            dependencies=dict(self.dependencies),
+            outputs=generated_provenance.output_fingerprints(
+                [output], ANALYSIS_DIRECTORY
+            ),
+            random_seed=None,
+        )
+
+    def record_summaries(
+        self,
+        election,
+        outputs,
+        trace_files,
+        residual_evidence=None,
+    ):
         dependencies = dict(self.dependencies)
         if trace_files:
             dependencies["poll_calibration_traces"] = (
@@ -221,6 +266,20 @@ class CalibrationRecorder:
                 random_seed=None,
             )
         )
+        if residual_evidence is not None:
+            self.pending_records["{}:{}".format(
+                RESIDUAL_EVIDENCE_CATEGORY, election
+            )] = generated_provenance.generation_record(
+                category=RESIDUAL_EVIDENCE_CATEGORY,
+                stage="calibrate_pollsters",
+                scope=_scope(election),
+                run=self.run_id,
+                dependencies=dependencies,
+                outputs=generated_provenance.output_fingerprints(
+                    [residual_evidence], ANALYSIS_DIRECTORY
+                ),
+                random_seed=None,
+            )
 
     def record_bias_staging(self, election, output):
         """Record the small direct-output hand-off from the bias pass."""
@@ -233,6 +292,35 @@ class CalibrationRecorder:
         )] = generated_provenance.generation_record(
             category=BIAS_COMPATIBILITY_CATEGORY,
             stage="calibrate_pollster_bias",
+            scope=_scope(election),
+            run=self.run_id,
+            dependencies=dict(self.dependencies),
+            outputs=generated_provenance.output_fingerprints(
+                [output], ANALYSIS_DIRECTORY
+            ),
+            random_seed=None,
+        )
+
+    def record_seed_manifest(self, election, mode, output):
+        """Record the compact resolved-seed manifest for one calibration mode."""
+
+        if mode not in {"calibration", "bias"}:
+            raise generated_provenance.GeneratedProvenanceError(
+                "Calibration seed mode must be calibration or bias."
+            )
+        category = (
+            POLL_SEED_CATEGORY if mode == "calibration"
+            else BIAS_SEED_CATEGORY
+        )
+        self.pending_records["{}:{}:{}".format(
+            category, election, mode
+        )] = generated_provenance.generation_record(
+            category=category,
+            stage=(
+                "calibrate_pollsters"
+                if mode == "calibration"
+                else "calibrate_pollster_bias"
+            ),
             scope=_scope(election),
             run=self.run_id,
             dependencies=dict(self.dependencies),

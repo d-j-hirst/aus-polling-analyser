@@ -2,6 +2,11 @@
 
 Parent: trend_adjust.py coordinates generation; this optional module checks
 the predictiveness of the saved adjustment outputs.
+
+Main functions:
+* ``check_poll_predictiveness`` loads saved historical adjustments, compares
+  their forecast error against baseline/poll/fundamentals alternatives, and
+  prints diagnostic summaries. It never modifies generated data.
 """
 
 import math
@@ -13,6 +18,8 @@ from poll_transform import transform_vote_share, detransform_vote_share
 from trend_adjust_cutoffs import CutoffTrendData
 from trend_adjust_io import load_adjustment_data, adjustment_parameters_at
 
+
+# Read-only historical diagnostic calculation
 
 def check_poll_predictiveness(config):
     """Compare saved TPP methods at the user-requested forecast horizon."""

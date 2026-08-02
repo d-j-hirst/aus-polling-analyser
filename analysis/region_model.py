@@ -4,6 +4,12 @@ This entry point selects elections, coordinates provenance, and dispatches the
 explicit Stan-data mappings. Shared contracts and data preparation live in
 region_model_common.py; sampling/output helpers live in region_model_stan.py;
 and election-specific Stan interfaces live in region_model_mappings.py.
+
+Main functions:
+* ``run_models`` validates requested election data, dispatches the matching
+  Stan mapping and records one regional-swing output per election.
+* ``main`` exposes the command-line entry point and converts configuration
+  failures into clear diagnostics.
 """
 
 import secrets
@@ -43,6 +49,8 @@ from region_model_stan import (
 )
 import region_model_provenance
 
+
+# Core regional-model orchestration
 
 def run_models():
   """Generate each requested regional model that has actual poll data."""
@@ -106,6 +114,8 @@ def run_models():
     )
   return 0
 
+
+# Command-line entry point
 
 def main():
   try:

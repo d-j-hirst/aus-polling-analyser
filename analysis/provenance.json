@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-02T07:57:21Z",
+  "updated_at_utc": "2026-08-02T15:04:59Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -15,9 +15,9 @@
       "semantic_revision": 1,
       "files": {
         "election_store.py": {
-          "sha256": "9493f32460853cb30142a6c734d53ff59d59f0c8e22e0edfa3cc6603583175ea",
-          "size_bytes": 5389,
-          "recorded_mtime_utc": "2026-07-29T13:57:50.072189Z"
+          "sha256": "0473ac2aa8bd3e59d64335a92c3f338cf3253020a69776916ce02b1fa2bcfb7e",
+          "size_bytes": 5887,
+          "recorded_mtime_utc": "2026-08-02T08:09:04.014460Z"
         }
       },
       "events": [
@@ -148,6 +148,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081758Z-formatting-election-store-script-bd908689",
+          "recorded_at_utc": "2026-08-02T08:17:58Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "election_store.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -161,9 +180,9 @@
       "semantic_revision": 1,
       "files": {
         "election_check.py": {
-          "sha256": "717084da48fa9149e0c1094ed4fb31b425967958a2aab709c3c1c695555b4acf",
-          "size_bytes": 9579,
-          "recorded_mtime_utc": "2026-07-29T03:45:08.488521Z"
+          "sha256": "a8b574f90fec3f04374bab77b6f9f692451485e9aea91fd020316696a6402a60",
+          "size_bytes": 10024,
+          "recorded_mtime_utc": "2026-08-02T08:07:22.210807Z"
         }
       },
       "events": [
@@ -203,6 +222,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081759Z-formatting-election-check-script-5e86801d",
+          "recorded_at_utc": "2026-08-02T08:17:59Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "election_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -216,9 +254,9 @@
       "semantic_revision": 1,
       "files": {
         "election_data.py": {
-          "sha256": "839158914bcf43964579306e78284c50b033e2111531ddd6e3e8f151cbaaa08a",
-          "size_bytes": 22176,
-          "recorded_mtime_utc": "2026-07-29T03:46:15.800018Z"
+          "sha256": "bb69c77c0add7b32c77a7bba14d84ae4a0bc77726ec92eaf5f29e5b33eb73cff",
+          "size_bytes": 22763,
+          "recorded_mtime_utc": "2026-08-02T08:09:03.044105Z"
         }
       },
       "events": [
@@ -294,6 +332,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081759Z-formatting-election-data-script-e95f8d43",
+          "recorded_at_utc": "2026-08-02T08:17:59Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "election_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -307,9 +364,9 @@
       "semantic_revision": 1,
       "files": {
         "election_code.py": {
-          "sha256": "6f005437460b471f56924fba2ca10fa33c58c2f01f4323cdc7bbef8b06d1548e",
-          "size_bytes": 983,
-          "recorded_mtime_utc": "2024-02-06T23:43:00.133930Z"
+          "sha256": "7ba41da4739b2156964bf0111a723dbedeb315267ed7e2488e0f478d0d7b399b",
+          "size_bytes": 1481,
+          "recorded_mtime_utc": "2026-08-02T08:07:03.600559Z"
         }
       },
       "events": [
@@ -330,8 +387,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081759Z-formatting-election-code-script-635971c3",
+          "recorded_at_utc": "2026-08-02T08:17:59Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "election_code.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "election_analysis_script": {
       "description": "Historical seat, regional and Coalition-allocation analysis.",
@@ -346,29 +423,29 @@
       "semantic_revision": 4,
       "files": {
         "election_analysis.py": {
-          "sha256": "4ffb3c260e7e93bcaaac2de57c705e568ec475d15e202922696231ca20f70b29",
-          "size_bytes": 7096,
-          "recorded_mtime_utc": "2026-08-01T08:31:56.393285Z"
+          "sha256": "a71339c150dd24ef401435b1605cdf29387a78b161e5408a37b011d84f38b639",
+          "size_bytes": 7473,
+          "recorded_mtime_utc": "2026-08-02T08:09:05.127534Z"
         },
         "election_analysis_common.py": {
-          "sha256": "54aac08d3834d09590f57a709dd8df5b4203e6ae67f7bf3e8006fab0b20b288f",
-          "size_bytes": 11035,
-          "recorded_mtime_utc": "2026-08-01T08:45:13.736440Z"
+          "sha256": "bee528be90fccb4cd2958ee6411bd5a1d9fdda0ba0f58ef79885c43e130c8f03",
+          "size_bytes": 11445,
+          "recorded_mtime_utc": "2026-08-02T08:10:26.677914Z"
         },
         "election_analysis_parties.py": {
-          "sha256": "175d9d4c3a0dcc4a4d70f336dd9a2921440948f52617718f01dcb868c69f3c5b",
-          "size_bytes": 29104,
-          "recorded_mtime_utc": "2026-08-01T08:45:17.799390Z"
+          "sha256": "d26d8249e518cd119ea531f13e6601a7428f2417b9661f34b14c8064dcfd1407",
+          "size_bytes": 29668,
+          "recorded_mtime_utc": "2026-08-02T08:10:27.324988Z"
         },
         "election_analysis_regions.py": {
-          "sha256": "542bd5b85aa813fac84bbfc6038191c1778a093b9c160196b7180242f3d93f8b",
-          "size_bytes": 13370,
-          "recorded_mtime_utc": "2026-08-01T08:45:21.432618Z"
+          "sha256": "025335926066eab731b55a47457008e08ffb5ce961d25de4ba27b9b284067164",
+          "size_bytes": 13732,
+          "recorded_mtime_utc": "2026-08-02T08:10:27.951606Z"
         },
         "election_analysis_seats.py": {
-          "sha256": "29be5c4a68876e2c2da9739c8dde2204204a840ea77191bf74c160256e02f95b",
-          "size_bytes": 31993,
-          "recorded_mtime_utc": "2026-08-01T08:45:23.832379Z"
+          "sha256": "ba05a4bd811d094cb9e8147128efdc1f0378f9533a749e767df00ed8b6de1a7d",
+          "size_bytes": 32451,
+          "recorded_mtime_utc": "2026-08-02T08:10:28.567344Z"
         }
       },
       "events": [
@@ -534,6 +611,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081800Z-formatting-election-analysis-script-ce554ae2",
+          "recorded_at_utc": "2026-08-02T08:18:00Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "election_analysis.py",
+            "election_analysis_common.py",
+            "election_analysis_parties.py",
+            "election_analysis_regions.py",
+            "election_analysis_seats.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 5
@@ -547,9 +647,9 @@
       "semantic_revision": 1,
       "files": {
         "poll_transform.py": {
-          "sha256": "8587a769f1c7b26a74912cb46e7d2462f99ff2d81e14ab7df7330095e05dd9af",
-          "size_bytes": 331,
-          "recorded_mtime_utc": "2021-08-24T08:39:06.450378Z"
+          "sha256": "d6854b715164114ca96b07b92291d9935b2902cd008727fb3a88274d85e6d310",
+          "size_bytes": 845,
+          "recorded_mtime_utc": "2026-08-02T08:07:07.472085Z"
         }
       },
       "events": [
@@ -570,8 +670,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081800Z-formatting-poll-transform-script-e4b23166",
+          "recorded_at_utc": "2026-08-02T08:18:00Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "poll_transform.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "sample_kurtosis_script": {
       "description": "RMSE and kurtosis estimators shared by Python analysis stages.",
@@ -582,9 +702,9 @@
       "semantic_revision": 2,
       "files": {
         "sample_kurtosis.py": {
-          "sha256": "d58b7837d587c16cc9c30b2b66986063d9f789abfd3cd58435de287431000ac2",
-          "size_bytes": 4847,
-          "recorded_mtime_utc": "2026-08-01T22:23:10.645323Z"
+          "sha256": "309f76d396d148ef54f7c1058c99350a08da3942b4e7918bee319b4c4e646ce2",
+          "size_bytes": 5349,
+          "recorded_mtime_utc": "2026-08-02T08:07:09.176192Z"
         }
       },
       "events": [
@@ -662,6 +782,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081801Z-formatting-sample-kurtosis-script-894463ed",
+          "recorded_at_utc": "2026-08-02T08:18:01Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "sample_kurtosis.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -672,12 +811,12 @@
         "fp_model.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 7,
+      "semantic_revision": 10,
       "files": {
         "fp_model.py": {
-          "sha256": "220d9b61d1f03562a89500ba11d781065213dd6a29c89b2f89f80918d0f0c1e2",
-          "size_bytes": 123174,
-          "recorded_mtime_utc": "2026-08-02T05:10:15.234087Z"
+          "sha256": "39fff54d6334e432953f4e839f3556dc9df4f54e5e251a2d04a11753fc7f0833",
+          "size_bytes": 166425,
+          "recorded_mtime_utc": "2026-08-02T14:57:05.189494Z"
         }
       },
       "events": [
@@ -1141,9 +1280,107 @@
               "compact_calibration_summaries"
             ]
           }
+        },
+        {
+          "id": "20260802T081801Z-formatting-fp-model-script-98e0dc68",
+          "recorded_at_utc": "2026-08-02T08:18:01Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T101721Z-correction-fp-model-script-2a1ed033",
+          "recorded_at_utc": "2026-08-02T10:17:21Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Reject stale cutoff prerequisites before expensive Stan work begins.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T114742Z-correction-fp-model-script-a1a716d0",
+          "recorded_at_utc": "2026-08-02T11:47:42Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 8,
+          "provenance_revision": 8,
+          "summary": "Use compact federal calibration priors for state calibration instead of normal final trends.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters"
+            ]
+          }
+        },
+        {
+          "id": "20260802T144844Z-correction-fp-model-script-db64053f",
+          "recorded_at_utc": "2026-08-02T14:48:44Z",
+          "change_type": "correction",
+          "magnitude": "material",
+          "affects_outputs": true,
+          "semantic_revision": 9,
+          "provenance_revision": 9,
+          "summary": "Correct compressed campaign and discontinuity indexing; align exported house-effect mixing; add strict validation, deterministic seeds, compact calibration recovery and median-only reduction.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150104Z-correction-fp-model-script-253b5235",
+          "recorded_at_utc": "2026-08-02T15:01:04Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 10,
+          "provenance_revision": 10,
+          "summary": "Complete resolved-seed persistence and filter cutoff schedules to usable poll rows.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 7
+      "provenance_revision": 10
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
@@ -1154,9 +1391,9 @@
       "semantic_revision": 1,
       "files": {
         "stan_cache.py": {
-          "sha256": "da95ab2793b2365df32f025e90de2e65d312d3c1181b85d62d6a82a0a235d844",
-          "size_bytes": 1861,
-          "recorded_mtime_utc": "2026-08-02T01:10:43.644571Z"
+          "sha256": "afc3112471bd3a6426a876d0c3665747a1626ba29e106f86ef36c16dfc3ce450",
+          "size_bytes": 2403,
+          "recorded_mtime_utc": "2026-08-02T08:07:13.219375Z"
         }
       },
       "events": [
@@ -1234,6 +1471,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081801Z-formatting-stan-cache-script-7a2ac493",
+          "recorded_at_utc": "2026-08-02T08:18:01Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "stan_cache.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -1244,12 +1500,12 @@
         "calibration_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 3,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "2f6267aeda61fe52f78c2c70cc1a25a0dc9b16f65f94d8e3d9773960b4f833ad",
-          "size_bytes": 14021,
-          "recorded_mtime_utc": "2026-08-02T05:10:33.347774Z"
+          "sha256": "a3b54f0ad8e0a0e1b3054748398c7bcb337cdc11e879bb798a74d146ef0cf62e",
+          "size_bytes": 17506,
+          "recorded_mtime_utc": "2026-08-02T15:03:46.346089Z"
         }
       },
       "events": [
@@ -1346,9 +1602,107 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081801Z-formatting-calibration-provenance-script-9e61182d",
+          "recorded_at_utc": "2026-08-02T08:18:01Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T114819Z-correction-calibration-provenance-script-f65dc012",
+          "recorded_at_utc": "2026-08-02T11:48:19Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Record compact federal calibration-prior outputs and their state-calibration dependencies.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters"
+            ]
+          }
+        },
+        {
+          "id": "20260802T144846Z-schema-calibration-provenance-script-4c03980e",
+          "recorded_at_utc": "2026-08-02T14:48:46Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Record calibration residual evidence and complete recovery dependencies alongside federal priors and compact staging.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150106Z-schema-calibration-provenance-script-afc159ed",
+          "recorded_at_utc": "2026-08-02T15:01:06Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 4,
+          "summary": "Record mode-specific completed-fit seed manifests as generated calibration outputs.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150403Z-schema-calibration-provenance-script-9d4f543b",
+          "recorded_at_utc": "2026-08-02T15:04:03Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 4,
+          "summary": "Limit calibration checkpoint provenance to leave-one-out runs; bias fits do not consume restart checkpoints.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 4
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
@@ -1361,37 +1715,37 @@
         "pollster_analysis_bias.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 5,
+      "semantic_revision": 3,
       "files": {
         "pollster_analysis.py": {
-          "sha256": "8e4f2ab0c1f157afed68058e3adce1fb28533b3b4d3751e32d55f7c41e00f754",
-          "size_bytes": 3836,
-          "recorded_mtime_utc": "2026-08-02T04:28:58.300063Z"
+          "sha256": "977a6584cb754849eeb68b10ef74dfdfb29e959b3263c1a1dbf72c998e4e1358",
+          "size_bytes": 4343,
+          "recorded_mtime_utc": "2026-08-02T08:09:05.905223Z"
         },
         "pollster_analysis_bias.py": {
-          "sha256": "3820179d0ee1754d31a8073aeff353468462a04070e342aa6aeffe8301584156",
-          "size_bytes": 7229,
-          "recorded_mtime_utc": "2026-08-02T04:32:27.532693Z"
+          "sha256": "8df7d3e875c710bdbdf4bba4aeeb0f693c15bb3a9f731b0420617bb0a3237838",
+          "size_bytes": 7405,
+          "recorded_mtime_utc": "2026-08-02T08:11:37.036114Z"
         },
         "pollster_analysis_common.py": {
-          "sha256": "8ed06d49c60f702cedde26c3549eca8d32cc88c48d66d66dfb8406c3c4c059d1",
-          "size_bytes": 6382,
-          "recorded_mtime_utc": "2026-08-02T04:23:40.234817Z"
+          "sha256": "2dec0e43c3eb1bd161d4202d12ce6d66b891ca95d182b2680bb25a1e8141ccbc",
+          "size_bytes": 6902,
+          "recorded_mtime_utc": "2026-08-02T08:11:22.720202Z"
         },
         "pollster_analysis_evidence.py": {
-          "sha256": "3ff4cb0b5532c4cc3f1812f0deb5ecc6154c3188e59b405f46c71540e055d8c2",
-          "size_bytes": 12098,
-          "recorded_mtime_utc": "2026-08-02T04:28:55.255703Z"
+          "sha256": "d1178cb3201deed1616f4a6f169af65a055df090f8473f5f6dd7a424d2828ef6",
+          "size_bytes": 12543,
+          "recorded_mtime_utc": "2026-08-02T08:11:25.979865Z"
         },
         "pollster_analysis_house_effects.py": {
-          "sha256": "ce6dbb62f0384bc75cbc058c49abbc068e1ae52fed4ef73c9ceb7c77d0fedf58",
-          "size_bytes": 4710,
-          "recorded_mtime_utc": "2026-08-02T04:23:40.644156Z"
+          "sha256": "adb71d006baf389af5f0f8857458b86572c4334168f373aca3b0f518a76df861",
+          "size_bytes": 4966,
+          "recorded_mtime_utc": "2026-08-02T08:11:33.030050Z"
         },
         "pollster_analysis_variability.py": {
-          "sha256": "6ae4a8c57649a3bcd725ff733ffdb7f4a0aa7b911c47c55333790873805a6e6d",
-          "size_bytes": 4170,
-          "recorded_mtime_utc": "2026-08-02T04:09:49.050193Z"
+          "sha256": "1f3bd9dbb27bdba9ba86128644a9b62abceee73674cf50655414c228733ad86e",
+          "size_bytes": 4369,
+          "recorded_mtime_utc": "2026-08-02T08:11:30.059701Z"
         }
       },
       "events": [
@@ -1519,10 +1873,10 @@
           "id": "20260802T042024Z-methodology-pollster-analysis-script-75bdf45d",
           "recorded_at_utc": "2026-08-02T04:20:24Z",
           "change_type": "methodology",
-          "magnitude": "minor",
-          "affects_outputs": true,
-          "semantic_revision": 4,
-          "provenance_revision": 7,
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
           "summary": "Refactored pollster reducers behind typed compact-summary evidence with legacy detailed-file fallback.",
           "files": [
             "pollster_analysis.py",
@@ -1545,8 +1899,8 @@
           "change_type": "correction",
           "magnitude": "negligible",
           "affects_outputs": false,
-          "semantic_revision": 4,
-          "provenance_revision": 7,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
           "summary": "Removed superseded direct calibration-file parsing helpers after routing reducers through typed evidence.",
           "files": [
             "pollster_analysis.py",
@@ -1564,10 +1918,10 @@
           "id": "20260802T043308Z-correction-pollster-analysis-script-1fe431e5",
           "recorded_at_utc": "2026-08-02T04:33:08Z",
           "change_type": "correction",
-          "magnitude": "minor",
-          "affects_outputs": true,
-          "semantic_revision": 5,
-          "provenance_revision": 8,
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
           "summary": "Prefer complete compact calibration evidence while safely falling back to matching legacy inputs when a compact summary is malformed or incomplete.",
           "files": [
             "pollster_analysis.py",
@@ -1580,9 +1934,33 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081802Z-formatting-pollster-analysis-script-a7e47569",
+          "recorded_at_utc": "2026-08-02T08:18:02Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "pollster_analysis.py",
+            "pollster_analysis_bias.py",
+            "pollster_analysis_common.py",
+            "pollster_analysis_evidence.py",
+            "pollster_analysis_house_effects.py",
+            "pollster_analysis_variability.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 8
+      "provenance_revision": 6
     },
     "pollster_analysis_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs.",
@@ -1590,12 +1968,12 @@
         "pollster_analysis_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 2,
       "files": {
         "pollster_analysis_provenance.py": {
-          "sha256": "80b7702b22f99b75fac0d543957b55e28dc0be4d97e7fb10131ac75ef4f53fd4",
-          "size_bytes": 16824,
-          "recorded_mtime_utc": "2026-08-02T04:11:25.669693Z"
+          "sha256": "5280fad32552febd4a067d69f02dd571994f20ccc3cfdcc95d7fa14e5d1e9009",
+          "size_bytes": 17381,
+          "recorded_mtime_utc": "2026-08-02T08:14:09.284542Z"
         }
       },
       "events": [
@@ -1739,11 +2117,30 @@
           "id": "20260802T042024Z-correction-pollster-analysis-provenance-script-1b3d20e8",
           "recorded_at_utc": "2026-08-02T04:20:24Z",
           "change_type": "correction",
-          "magnitude": "minor",
-          "affects_outputs": true,
-          "semantic_revision": 3,
-          "provenance_revision": 6,
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 5,
           "summary": "Select compact calibration summaries per election before falling back to detailed compatibility records.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T081802Z-formatting-pollster-analysis-provenance-script-090e6786",
+          "recorded_at_utc": "2026-08-02T08:18:02Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 5,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
           "files": [
             "pollster_analysis_provenance.py"
           ],
@@ -1755,7 +2152,7 @@
           }
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 5
     },
     "fp_model_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
@@ -1763,12 +2160,12 @@
         "fp_model_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 4,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "fba4fdc51caf82a96a18edc14674a52fc6a48310ea8250f2712a3a9435415c1c",
-          "size_bytes": 39298,
-          "recorded_mtime_utc": "2026-08-01T12:45:12.707853Z"
+          "sha256": "a75acca91d1949c9f3a348b91aee446f8b2f84fdda9cd407851c78b366d2cad0",
+          "size_bytes": 51015,
+          "recorded_mtime_utc": "2026-08-02T15:04:38.732327Z"
         }
       },
       "events": [
@@ -2029,9 +2426,123 @@
             "stages": []
           },
           "provenance_upgrade": "refresh-direct-generated-dependencies-v1"
+        },
+        {
+          "id": "20260802T081802Z-formatting-fp-model-provenance-script-487454c2",
+          "recorded_at_utc": "2026-08-02T08:18:02Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T101721Z-correction-fp-model-provenance-script-aa65e399",
+          "recorded_at_utc": "2026-08-02T10:17:21Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Require current pollster parameters when preflighting cutoff provenance.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T144848Z-correction-fp-model-provenance-script-a80d9377",
+          "recorded_at_utc": "2026-08-02T14:48:48Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 4,
+          "summary": "Resume only fingerprint-compatible cutoff drafts while preserving certified files and enforcing complete endpoint contracts.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150108Z-correction-fp-model-provenance-script-1a74b912",
+          "recorded_at_utc": "2026-08-02T15:01:08Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Validate resumed cutoff rows and discard corrupt local drafts without touching certified output.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150406Z-schema-fp-model-provenance-script-c33b47b7",
+          "recorded_at_utc": "2026-08-02T15:04:06Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Limit checkpoint provenance to cutoff outputs so pure and final trends are not invalidated by recovery-only changes.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150459Z-schema-fp-model-provenance-script-a032c3e4",
+          "recorded_at_utc": "2026-08-02T15:04:59Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Construct cutoff-only checkpoint dependencies through the shared source dependency loader.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 5
     },
     "approvals_script": {
       "description": "Synthetic TPP regression from leader approval observations and pure TPP trends.",
@@ -2042,9 +2553,9 @@
       "semantic_revision": 2,
       "files": {
         "approvals.py": {
-          "sha256": "4ab5266cd9d65a2cfae4619356c36af2f7b2027b2734bb091ac32b28530dffe1",
-          "size_bytes": 19292,
-          "recorded_mtime_utc": "2026-07-30T04:33:11.356436Z"
+          "sha256": "f789d3c01cd18cf2f762f9705a27a2485baa9c8b7314bf0fbcf5cf641ee94356",
+          "size_bytes": 19742,
+          "recorded_mtime_utc": "2026-08-02T08:09:06.469041Z"
         }
       },
       "events": [
@@ -2176,6 +2687,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081802Z-formatting-approvals-script-e5f91cf8",
+          "recorded_at_utc": "2026-08-02T08:18:02Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "approvals.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -2189,9 +2719,9 @@
       "semantic_revision": 2,
       "files": {
         "approvals_provenance.py": {
-          "sha256": "4f98148007f9617ca61cb517144ea8890d3eabbe1dcc6fa9e81a97a12ac54ff6",
-          "size_bytes": 13789,
-          "recorded_mtime_utc": "2026-07-26T12:48:08.551021Z"
+          "sha256": "c1e5069fbd4d21391a554ddc7ec4f5629ff793388e10e8755abf053e68c1bc9a",
+          "size_bytes": 14516,
+          "recorded_mtime_utc": "2026-08-02T08:13:01.267280Z"
         }
       },
       "events": [
@@ -2284,8 +2814,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081803Z-formatting-approvals-provenance-script-82c5ed7d",
+          "recorded_at_utc": "2026-08-02T08:18:03Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "approvals_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 2
     },
     "region_model_script": {
       "description": "Election-specific regional poll preparation, Stan execution and swing-deviation output.",
@@ -2299,24 +2849,24 @@
       "semantic_revision": 2,
       "files": {
         "region_model.py": {
-          "sha256": "065ab664cafbef4b9577b8b098073ccd71c413959ef7dd99c74c1b952961e2b6",
-          "size_bytes": 3332,
-          "recorded_mtime_utc": "2026-08-01T13:26:06.624381Z"
+          "sha256": "9e5d3f818b2d5d9c29e53b814a87b9808038e4fdcc984bf24b3742a384a9b5f6",
+          "size_bytes": 3667,
+          "recorded_mtime_utc": "2026-08-02T08:09:07.145825Z"
         },
         "region_model_common.py": {
-          "sha256": "3236bed7579e677f84bc6e316286f56bf2d8c31264cce28c398e7aabfd019e40",
-          "size_bytes": 12620,
-          "recorded_mtime_utc": "2026-08-01T13:24:40.353287Z"
+          "sha256": "76217daa95046f5c9c54016b24663b9426c06b0c65699e386921bd9700bef388",
+          "size_bytes": 13177,
+          "recorded_mtime_utc": "2026-08-02T08:10:29.178792Z"
         },
         "region_model_mappings.py": {
-          "sha256": "40fa7ea5eff7f0cd8baf3f0cf6673ed6032a376b7f8e045edd6bbe9f776b53e7",
-          "size_bytes": 7083,
-          "recorded_mtime_utc": "2026-08-01T13:25:35.908441Z"
+          "sha256": "dee1935b3863946e18107090b3bb6d9a9549dd112a815ac5f365889770ecca5c",
+          "size_bytes": 7389,
+          "recorded_mtime_utc": "2026-08-02T08:10:30.239635Z"
         },
         "region_model_stan.py": {
-          "sha256": "6ec496ac6de2ed1e1605f6e2ad17c7230ea530dd5c448c0a70a815591d6b3cb3",
-          "size_bytes": 2657,
-          "recorded_mtime_utc": "2026-08-01T13:24:42.540710Z"
+          "sha256": "9d6144d8e988bdf462e7401d258dd910014ccba0bb1a103fb4fdea16ca2d4912",
+          "size_bytes": 2986,
+          "recorded_mtime_utc": "2026-08-02T08:10:29.763206Z"
         }
       },
       "events": [
@@ -2460,6 +3010,28 @@
             "stages": []
           },
           "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260802T081803Z-formatting-region-model-script-402936d7",
+          "recorded_at_utc": "2026-08-02T08:18:03Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "region_model.py",
+            "region_model_common.py",
+            "region_model_mappings.py",
+            "region_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 3
@@ -2473,9 +3045,9 @@
       "semantic_revision": 1,
       "files": {
         "region_model_provenance.py": {
-          "sha256": "12cebda3ac5a3e79434d527828648886e67decd6d641ba6063f247340917bed0",
-          "size_bytes": 9206,
-          "recorded_mtime_utc": "2026-07-25T04:23:51.324948Z"
+          "sha256": "8a1f293214a49069aee663fbd92797ce802dad8e80f0dfb644d9a5329a11561f",
+          "size_bytes": 9884,
+          "recorded_mtime_utc": "2026-08-02T08:14:05.431834Z"
         }
       },
       "events": [
@@ -2532,8 +3104,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081803Z-formatting-region-model-provenance-script-96a2d271",
+          "recorded_at_utc": "2026-08-02T08:18:03Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "region_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "trend_adjust_script": {
       "description": "Fundamentals regression and historical trend-adjustment calibration.",
@@ -2548,29 +3140,29 @@
       "semantic_revision": 5,
       "files": {
         "trend_adjust.py": {
-          "sha256": "10a97b5599748eb2b005dec23e6528b0c10f6c4713f23145341cc7da6cb37610",
-          "size_bytes": 11393,
-          "recorded_mtime_utc": "2026-08-01T07:49:56.059613Z"
+          "sha256": "beffac4ae1daf9cd26516a4f77da92d331658399551d9ae358cd27a3fb5a0d9c",
+          "size_bytes": 11913,
+          "recorded_mtime_utc": "2026-08-02T08:09:07.817365Z"
         },
         "trend_adjust_data.py": {
-          "sha256": "49c96cf4a66924f28a29a04e5d37c9e79a294629ab86010ab84bdd5d1fb7462f",
-          "size_bytes": 13744,
-          "recorded_mtime_utc": "2026-08-01T08:45:31.343992Z"
+          "sha256": "6d69ef13163a5289fcf120a72bda932d749c6b5c612ea3681b67949c0995450a",
+          "size_bytes": 14316,
+          "recorded_mtime_utc": "2026-08-02T08:10:30.826010Z"
         },
         "trend_adjust_fundamentals.py": {
-          "sha256": "b181853d2ad3ff4f62489681e21d7af9826248fc7a0fa55e168bd725050598b6",
-          "size_bytes": 16603,
-          "recorded_mtime_utc": "2026-08-01T08:45:34.312429Z"
+          "sha256": "5c73d6c9743516fe5d27daf11102fdde70bdf8eabe38e61079d57a0d76ca0a0b",
+          "size_bytes": 17050,
+          "recorded_mtime_utc": "2026-08-02T08:10:31.340329Z"
         },
         "trend_adjust_io.py": {
-          "sha256": "1f4f7a45cb4080e55613885213fa5aacaaa591d3d9bf680c4b7189b2d9168db0",
-          "size_bytes": 13938,
-          "recorded_mtime_utc": "2026-08-01T08:45:36.652259Z"
+          "sha256": "ccb3a780b7d550c6065c106961fdadf4e0be145e41a56000ab81d915f7d24d55",
+          "size_bytes": 14545,
+          "recorded_mtime_utc": "2026-08-02T08:11:10.692703Z"
         },
         "trend_adjust_mixing.py": {
-          "sha256": "a2931d98d1ed9d8f4dfcf8e06b12dd481f25dd6daeede5b1d454dce38bf6277f",
-          "size_bytes": 25029,
-          "recorded_mtime_utc": "2026-08-01T08:45:40.784186Z"
+          "sha256": "bf88527f6da4bbf5827a6197d37af5b2a362ef5218f0bee6ca544d735a5ae5dc",
+          "size_bytes": 25529,
+          "recorded_mtime_utc": "2026-08-02T08:10:31.874073Z"
         }
       },
       "events": [
@@ -2735,6 +3327,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081803Z-formatting-trend-adjust-script-4e6a3a79",
+          "recorded_at_utc": "2026-08-02T08:18:03Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 7,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "trend_adjust.py",
+            "trend_adjust_data.py",
+            "trend_adjust_fundamentals.py",
+            "trend_adjust_io.py",
+            "trend_adjust_mixing.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 7
@@ -2748,9 +3363,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_provenance.py": {
-          "sha256": "cb905947481dcffb28160dce8e7f9e6e0bdec66ddfae1f50bf85ea33328ce247",
-          "size_bytes": 14412,
-          "recorded_mtime_utc": "2026-08-01T08:45:44.632185Z"
+          "sha256": "f7a2eebe1b65c09df3f9a23ad098d9ce0ac8c3d0b6dc4b57d91ba395e5a271f2",
+          "size_bytes": 14952,
+          "recorded_mtime_utc": "2026-08-02T08:14:13.788248Z"
         }
       },
       "events": [
@@ -2882,6 +3497,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081804Z-formatting-trend-adjust-provenance-script-00017f3e",
+          "recorded_at_utc": "2026-08-02T08:18:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "trend_adjust_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -2895,9 +3529,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_cutoffs.py": {
-          "sha256": "f171fd36cc6ee812237c81a217f40ffab7d48f1f4fce724cad4f24c7902053f2",
-          "size_bytes": 7313,
-          "recorded_mtime_utc": "2026-08-01T08:45:28.804219Z"
+          "sha256": "46bd9d11004fc3b03f90257b2d4f87ce846c84a8cb877ebd508c1bc83a854c93",
+          "size_bytes": 7659,
+          "recorded_mtime_utc": "2026-08-02T08:11:18.144537Z"
         }
       },
       "events": [
@@ -2955,6 +3589,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081804Z-formatting-trend-adjust-cutoffs-script-357ef570",
+          "recorded_at_utc": "2026-08-02T08:18:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "trend_adjust_cutoffs.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -2968,9 +3621,9 @@
       "semantic_revision": 1,
       "files": {
         "run_fp_model.py": {
-          "sha256": "dc127be504c8f0682ce28cc994f8ff6daf541186e5f0ab16a700ad8fe5d0c88f",
-          "size_bytes": 7198,
-          "recorded_mtime_utc": "2026-07-25T23:57:47.005425Z"
+          "sha256": "64520ca2a5f4a6526d3a7acc4aec76ff4f403145db609a480a9953e8a3ba315f",
+          "size_bytes": 7497,
+          "recorded_mtime_utc": "2026-08-02T08:07:20.448136Z"
         }
       },
       "events": [
@@ -3045,8 +3698,28 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081804Z-formatting-fp-model-console-wrapper-b5852e77",
+          "recorded_at_utc": "2026-08-02T08:18:04Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "run_fp_model.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "pipeline_orchestration_tools": {
       "description": "Pipeline registry, structured audit, planning, execution and metadata-maintenance tools.",
@@ -3059,38 +3732,38 @@
         "provenance_maintenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
-      "provenance_revision": 24,
+      "semantic_revision": 4,
+      "provenance_revision": 29,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "e30156aa8c7474b5a9e8ebfb69d4096fbbe32d00740aadf6908691b3edf507d3",
-          "size_bytes": 72352,
-          "recorded_mtime_utc": "2026-08-02T05:11:36.772996Z"
+          "sha256": "e74934cd8f93211dae6ded684329c023c9dfe096e3ba917e559b2273ed02f117",
+          "size_bytes": 78516,
+          "recorded_mtime_utc": "2026-08-02T11:45:47.314825Z"
         },
         "generated_data_archive.py": {
-          "sha256": "98de3d2372effa1a2e04f721fa0cee8e15e00d2631e98913bbc3f5896e21ca42",
-          "size_bytes": 18529,
-          "recorded_mtime_utc": "2026-08-02T07:56:58.806372Z"
+          "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
+          "size_bytes": 19420,
+          "recorded_mtime_utc": "2026-08-02T14:35:10.380217Z"
         },
         "pipeline.py": {
-          "sha256": "687ac4bd17fc6d0eaa8f966269f3717dcf0955a670af771909635f63ce822939",
-          "size_bytes": 71353,
-          "recorded_mtime_utc": "2026-08-02T07:38:44.419651Z"
+          "sha256": "326ec1b74accd8717a93efa2a27e0e6314e0fb195425a5afae01d6b4434775f6",
+          "size_bytes": 85232,
+          "recorded_mtime_utc": "2026-08-02T12:27:53.283630Z"
         },
         "pipeline_registry.json": {
-          "sha256": "c1fcf34a954bf2d570ac86995f22a5f57a87139f649f80c72cbeb453c46573c6",
-          "size_bytes": 39433,
-          "recorded_mtime_utc": "2026-08-02T05:12:58.322006Z"
+          "sha256": "b876db61c7f2d522e3e9c0df031de0f476f2f8c0577a750ded725f4c213a5e55",
+          "size_bytes": 42400,
+          "recorded_mtime_utc": "2026-08-02T15:03:53.267870Z"
         },
         "pipeline_registry.py": {
-          "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
-          "size_bytes": 20533,
-          "recorded_mtime_utc": "2026-07-26T05:35:53.353473Z"
+          "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
+          "size_bytes": 21039,
+          "recorded_mtime_utc": "2026-08-02T08:12:56.808701Z"
         },
         "provenance_maintenance.py": {
-          "sha256": "eadc6a83d36900c1130a5be5354dbf62337714d51c8738b86c383794c44f7a1f",
-          "size_bytes": 9913,
-          "recorded_mtime_utc": "2026-08-01T12:56:00.194117Z"
+          "sha256": "4a43f688326056ad5e1a25e1c0bcd02c56b7306a1d06517ed0cfc7582aa3a533",
+          "size_bytes": 11100,
+          "recorded_mtime_utc": "2026-08-02T12:23:58.094664Z"
         }
       },
       "events": [
@@ -4010,6 +4683,264 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081805Z-formatting-pipeline-orchestration-tools-f894ecb5",
+          "recorded_at_utc": "2026-08-02T08:18:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 24,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "analysis_provenance.py",
+            "generated_data_archive.py",
+            "pipeline.py",
+            "pipeline_registry.py",
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T102809Z-correction-pipeline-orchestration-tools-71e45a43",
+          "recorded_at_utc": "2026-08-02T10:28:09Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 25,
+          "summary": "Plan missing historical cutoff records with their pollster and non-current pure-TPP prerequisites before starting cutoff generation.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T105007Z-correction-pipeline-orchestration-tools-72ae401b",
+          "recorded_at_utc": "2026-08-02T10:50:07Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 25,
+          "summary": "Report malformed or future recorded source revisions as audit dependency issues rather than crashing root-cause formatting.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T111138Z-correction-pipeline-orchestration-tools-407c2033",
+          "recorded_at_utc": "2026-08-02T11:11:38Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 26,
+          "summary": "Classify historical cutoff staleness separately from calibration staleness in audit and pipeline status output.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T114912Z-correction-pipeline-orchestration-tools-f96edd6d",
+          "recorded_at_utc": "2026-08-02T11:49:12Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 27,
+          "summary": "Classify retained calibration traces as diagnostic-only and route state calibration feedback through compact federal calibration priors.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T120159Z-correction-pipeline-orchestration-tools-63b733ff",
+          "recorded_at_utc": "2026-08-02T12:01:59Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 27,
+          "summary": "Do not schedule data generation solely because inherited staleness is accompanied by provenance-only metadata updates.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T121552Z-correction-pipeline-orchestration-tools-a31c96dd",
+          "recorded_at_utc": "2026-08-02T12:15:52Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 27,
+          "summary": "Use fast manifest-only discovery with visible progress for metadata-maintenance planning; retain full validation immediately before each update.",
+          "files": [
+            "pipeline.py",
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T122412Z-correction-pipeline-orchestration-tools-845d97ae",
+          "recorded_at_utc": "2026-08-02T12:24:12Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 27,
+          "summary": "Prevalidate metadata-maintenance candidates with visible progress, skip records requiring regeneration, and defer concurrent lineage changes without aborting the remaining upgrades.",
+          "files": [
+            "pipeline.py",
+            "provenance_maintenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T122812Z-formatting-pipeline-orchestration-tools-e8d46fee",
+          "recorded_at_utc": "2026-08-02T12:28:12Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 27,
+          "summary": "Show visible metadata-validation progress for command-line runs as well as interactive maintenance.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T144853Z-schema-pipeline-orchestration-tools-30ea7dfe",
+          "recorded_at_utc": "2026-08-02T14:48:53Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 28,
+          "summary": "Track residual calibration evidence and exclude local calibration checkpoints and cutoff drafts from permanent archives.",
+          "files": [
+            "generated_data_archive.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150113Z-schema-pipeline-orchestration-tools-5161beda",
+          "recorded_at_utc": "2026-08-02T15:01:13Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 29,
+          "summary": "Register mode-specific calibration seed outputs in the generated dependency graph.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150159Z-schema-pipeline-orchestration-tools-fe401e97",
+          "recorded_at_utc": "2026-08-02T15:01:59Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 29,
+          "summary": "Register standalone fp-model diagnostic scripts and Stan models as non-core authored categories.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150408Z-schema-pipeline-orchestration-tools-c091e44d",
+          "recorded_at_utc": "2026-08-02T15:04:08Z",
+          "change_type": "schema",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 29,
+          "summary": "Match checkpoint dependencies only to leave-one-out calibration and cutoff stages.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -4025,9 +4956,9 @@
       "semantic_revision": 1,
       "files": {
         "generated_provenance.py": {
-          "sha256": "5823ab8885d6708217f563058d33fc6692997afe29534303da56992c4ddd7f25",
-          "size_bytes": 52014,
-          "recorded_mtime_utc": "2026-07-29T04:04:36.051613Z"
+          "sha256": "c7106ce2bbdcda7bc444e799052119bf0401e605d7f326df0ed109a239516dc0",
+          "size_bytes": 53603,
+          "recorded_mtime_utc": "2026-08-02T10:44:20.142708Z"
         },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
@@ -4035,9 +4966,9 @@
           "recorded_mtime_utc": "2026-07-27T00:11:25.197301Z"
         },
         "source_provenance.py": {
-          "sha256": "20dde6198f30715662e89dcb315858161a8892577b1270ff8d0cc1126c07fd98",
-          "size_bytes": 42578,
-          "recorded_mtime_utc": "2026-07-27T01:40:18.328662Z"
+          "sha256": "5ecbdd572637626872bf336098a883411523b8650fafaf23522b9fdc9e16c8f5",
+          "size_bytes": 43207,
+          "recorded_mtime_utc": "2026-08-02T08:12:44.408803Z"
         },
         "source_provenance.schema.json": {
           "sha256": "a267c2576785975215a8b34f825209804e7fcbd5d73bfa458b44456639bfaa76",
@@ -4246,6 +5177,64 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T081805Z-formatting-provenance-core-tools-7ac6cfef",
+          "recorded_at_utc": "2026-08-02T08:18:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 8,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "generated_provenance.py",
+            "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T104259Z-correction-provenance-core-tools-855ca47c",
+          "recorded_at_utc": "2026-08-02T10:42:59Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 8,
+          "summary": "Treat provenance-only dependency revisions as metadata maintenance rather than stale data when validating generated inputs.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T104447Z-correction-provenance-core-tools-2f6f8c19",
+          "recorded_at_utc": "2026-08-02T10:44:47Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 8,
+          "summary": "Do not propagate provenance-only dependency revisions as stale generated data through downstream manifest checks.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 8
@@ -4259,9 +5248,9 @@
       "semantic_revision": 1,
       "files": {
         "trend_adjust_check.py": {
-          "sha256": "2834cd96df5ae19bb3fa7dfecc17d03cc20c3aeebb053f5ba6ac1770ad7d440e",
-          "size_bytes": 5745,
-          "recorded_mtime_utc": "2026-08-01T08:45:25.828523Z"
+          "sha256": "f3ce4adbc7feb69c2cba95f473639c511973437bbbff7452e66b0f95f8a16f51",
+          "size_bytes": 6027,
+          "recorded_mtime_utc": "2026-08-02T08:11:14.012399Z"
         }
       },
       "events": [
@@ -4301,6 +5290,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081805Z-formatting-trend-adjust-check-script-17d37448",
+          "recorded_at_utc": "2026-08-02T08:18:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "trend_adjust_check.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 1
@@ -4314,9 +5322,9 @@
       "semantic_revision": 2,
       "files": {
         "federal_state.py": {
-          "sha256": "7d12b45b155c0f45b7abd0baabf458c5b7f8f879ef1ecb4e9506af1aeacfdd89",
-          "size_bytes": 40240,
-          "recorded_mtime_utc": "2026-08-02T02:03:41.127587Z"
+          "sha256": "82f2873d686c9630809e6068e4741ad1fe66a860a4e902dd1dbf3bbe3c56498e",
+          "size_bytes": 41530,
+          "recorded_mtime_utc": "2026-08-02T08:14:40.338567Z"
         }
       },
       "events": [
@@ -4375,6 +5383,25 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081805Z-formatting-federal-state-script-868caf8f",
+          "recorded_at_utc": "2026-08-02T08:18:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "federal_state.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 2
@@ -4385,12 +5412,12 @@
         "calibration_summary.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 4,
       "files": {
         "calibration_summary.py": {
-          "sha256": "6bc3fda1e4f59132e6f739808c0315a8d96e51e3f1c2302fc54f706191852d5f",
-          "size_bytes": 32720,
-          "recorded_mtime_utc": "2026-08-02T05:07:34.156142Z"
+          "sha256": "77612c38ba5701f0ad6d898e1890bfe903a7b93e94928a23763a88e6ce8e4611",
+          "size_bytes": 38144,
+          "recorded_mtime_utc": "2026-08-02T14:56:48.757826Z"
         }
       },
       "events": [
@@ -4473,9 +5500,66 @@
               "compact_calibration_summaries"
             ]
           }
+        },
+        {
+          "id": "20260802T081805Z-formatting-calibration-summary-script-c80bf705",
+          "recorded_at_utc": "2026-08-02T08:18:05Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T144850Z-schema-calibration-summary-script-57bc21ad",
+          "recorded_at_utc": "2026-08-02T14:48:50Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 4,
+          "summary": "Publish versioned per-held-out-poll residual evidence without changing the established compact MAE schema.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150111Z-schema-calibration-summary-script-4a0082af",
+          "recorded_at_utc": "2026-08-02T15:01:11Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 5,
+          "summary": "Add atomic mode-specific Stan seed manifests alongside residual calibration evidence.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 3
+      "provenance_revision": 5
     },
     "calibration_summary_provenance_script": {
       "description": "Generated provenance recording for compact calibration summaries.",
@@ -4486,9 +5570,9 @@
       "semantic_revision": 1,
       "files": {
         "calibration_summary_provenance.py": {
-          "sha256": "5490d1e1ebfc02c05eecf974a567d94fd2a8e9c510ce9a82c423ef3a2c3fb01b",
-          "size_bytes": 12801,
-          "recorded_mtime_utc": "2026-08-02T05:10:36.812946Z"
+          "sha256": "3b060571bd3478d3e5c3d49b83055abad51eb2b1f245d916b40bdb8c3dd79123",
+          "size_bytes": 16020,
+          "recorded_mtime_utc": "2026-08-02T11:43:51.380262Z"
         }
       },
       "events": [
@@ -4588,9 +5672,146 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T081806Z-formatting-calibration-summary-provenance-script-78dd2401",
+          "recorded_at_utc": "2026-08-02T08:18:06Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Documented module roles, main functions and calculation boundaries for human review.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T114856Z-correction-calibration-summary-provenance-script-b0ed44a3",
+          "recorded_at_utc": "2026-08-02T11:48:56Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Prefer authoritative generated calib bundles over retained detailed traces when compacting calibration summaries.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "compact_calibration_summaries"
+            ]
+          }
         }
       ],
       "provenance_revision": 4
+    },
+    "fp_model_checkpoint_script": {
+      "description": "Atomic fingerprinted restart checkpoints used by fp_model calibration.",
+      "file_patterns": [
+        "fp_model_checkpoints.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "fp_model_checkpoints.py": {
+          "sha256": "a629f7336056d5245dbc8b9061972979beec7b1af4d6fe2f798f59d5e1e312c5",
+          "size_bytes": 6075,
+          "recorded_mtime_utc": "2026-08-02T14:56:21.358670Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260802T144835Z-baseline-fp-model-checkpoint-script-c070cab3",
+          "recorded_at_utc": "2026-08-02T14:48:35Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Add isolated calibration restart checkpoints with strict work-unit identity and atomic publication.",
+          "files": [
+            "fp_model_checkpoints.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T150115Z-schema-fp-model-checkpoint-script-dd4e36e8",
+          "recorded_at_utc": "2026-08-02T15:01:15Z",
+          "change_type": "schema",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Carry completed-fit seed identities through atomic calibration checkpoint resumes.",
+          "files": [
+            "fp_model_checkpoints.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ],
+      "provenance_revision": 2
+    },
+    "fp_model_diagnostic_tools": {
+      "description": "Standalone exact and Stan diagnostics for fp-model prior chains and low-share transforms.",
+      "file_patterns": [
+        "prior_chain_diagnostic.py",
+        "low_share_diagnostic.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "low_share_diagnostic.py": {
+          "sha256": "0b84c700aa888d726a5b7bc32692692fa57d44df054f4cc989f060f3626ba512",
+          "size_bytes": 15131,
+          "recorded_mtime_utc": "2026-08-02T14:37:28.773085Z"
+        },
+        "prior_chain_diagnostic.py": {
+          "sha256": "2a8e2582143375797116f1576c86eaa80ced9bea56d96325b47b99334aa9e1cf",
+          "size_bytes": 21969,
+          "recorded_mtime_utc": "2026-08-02T14:50:11.195744Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260802T145402Z-baseline-fp-model-diagnostic-tools-c559183f",
+          "recorded_at_utc": "2026-08-02T14:54:02Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Add non-production diagnostics for daily-prior boundary behavior and low-share HMC comparisons.",
+          "files": [
+            "low_share_diagnostic.py",
+            "prior_chain_diagnostic.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ]
     }
   }
 }

@@ -155,6 +155,19 @@ class PipelineRegistryTests(unittest.TestCase):
             "poll_trend_outputs", stage.get("feedback_inputs", [])
         )
 
+    def test_state_calibration_uses_calibration_priors_not_final_trends(self):
+        stages = {
+            stage["id"]: stage for stage in self.registry["stages"]
+        }
+        self.assertIn(
+            "federal_calibration_priors",
+            stages["calibrate_pollsters"]["outputs"],
+        )
+        for stage_id in ("calibrate_pollsters", "calibrate_pollster_bias"):
+            feedback_inputs = stages[stage_id].get("feedback_inputs", [])
+            self.assertIn("federal_calibration_priors", feedback_inputs)
+            self.assertNotIn("poll_trend_outputs", feedback_inputs)
+
     def test_regional_generation_tracks_code_and_provenance(self):
         stages = {
             stage["id"]: stage for stage in self.registry["stages"]

@@ -1,9 +1,30 @@
+"""Compare booth-level federal swings with later state-seat swings.
+
+This is an ancillary historical-analysis tool. It loads raw AEC booth results,
+applies explicit local comparability assumptions, validates a manually curated
+federal-booth-to-state-seat mapping, then fits and prints TPP/Greens
+correlations. Its outputs are currently reviewed and inserted into seat data
+manually rather than consumed automatically by the forecast pipeline.
+
+Main functions:
+* ``Config`` validates the selected supported state election.
+* ``fetch_results`` and ``obtain_results`` acquire/cache raw AEC booth data.
+* ``apply_local_assumptions`` keeps downloaded data separate from documented
+  electoral comparability overrides.
+* ``parse_booth_mapping`` and ``validate_mapping`` load and validate authored
+  state-seat mappings before calculations.
+* ``calculate_deviations`` performs the weighted swing and OLS calculations.
+* ``analyse_specific_election`` coordinates the complete one-election run.
+"""
+
 import pickle
 import argparse
 import requests
 from bs4 import BeautifulSoup
 import numpy
 import statsmodels.api as sm
+
+# Explicit configuration and result-validation errors
 
 class FederalStateError(ValueError):
     pass
@@ -586,6 +607,8 @@ adjust_tpp_federal = {
 }
 
 
+# Command-line validation and result-cache types
+
 class Config:
     def __init__(self):
         parser = argparse.ArgumentParser(
@@ -657,6 +680,8 @@ def parse_float(cell, description):
     except ValueError as error:
         raise ResultsError(f'Could not parse {description}.') from error
 
+
+# AEC loading and raw-cache processing
 
 def fetch_results(election):
     """Download raw AEC booth data without applying local assumptions."""
@@ -810,6 +835,8 @@ def apply_local_assumptions(raw_results, election):
     return results
 
 
+# Authored mapping loading and validation
+
 def parse_booth_mapping(mapping_filename):
     seat_booths = {}
     current_seat = None
@@ -933,6 +960,8 @@ def is_unexpected_unmapped_booth(booth_name):
     )
 
 
+# Core weighted swing and correlation calculations
+
 def add_weighted_swings(seat_booths, results):
     weighted_greens_swings = {}
     weighted_tpp_swings = {}
@@ -1026,6 +1055,8 @@ def calculate_deviations(config, seat_booths, results, election):
         print(f'Statistics for federal-state GRN correlations - {election}')
         print(fii.summary())
 
+
+# One-election orchestration and command-line entry point
 
 def analyse_specific_election(config):
     election = config.election

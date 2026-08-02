@@ -3,6 +3,10 @@
 Parent: pollster_analysis.py combines this reducer with the variability and
 house-effect reducers, publishing the three related files atomically per
 target election.
+
+Main functions:
+* ``analyse_bias`` performs the weighted calibration-trend reduction and
+  writes per-pollster bias parameters for one target election.
 """
 
 import math
@@ -21,6 +25,8 @@ from pollster_analysis_house_effects import (
     get_n_polls,
 )
 
+
+# Core bias reduction
 
 def analyse_bias(
     target_election, cycles, links, evidence, output_path

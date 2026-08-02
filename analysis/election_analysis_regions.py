@@ -2,6 +2,12 @@
 
 Parent: election_analysis.py runs this federal regional component alongside
 the party and seat analyses that form the historical analysis bundle.
+
+Main functions:
+* ``analyse_region_swings`` performs the actual regional polling/swing
+  regression and writes the selected-factor output consumed by simulation.
+* ``regress_and_write_to_file`` fits and serializes one regional relationship.
+* ``RegionPolls`` holds aligned observations while the calculation is built.
 """
 
 import copy
@@ -37,6 +43,8 @@ class RegionPolls:
                 f'population: {self.population}, '
                 f'polls: {self.polls}, deviations: {self.deviations}')
 
+
+# Core federal regional-swing calculation
 
 def regress_and_write_to_file(f, inputs, outputs, region):
     inputs_array = numpy.transpose(numpy.array([inputs]))

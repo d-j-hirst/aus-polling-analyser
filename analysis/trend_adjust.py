@@ -3,6 +3,13 @@
 This command coordinates input loading, fundamentals fitting, poll/fundamentals
 mixing, output validation and provenance recording. The calculation stages live
 in focused modules so they can be understood and tested independently.
+
+Main functions:
+* ``Config`` validates requested elections, horizons and authored inputs.
+* ``generate_staged_target_outputs`` performs one target election's core
+  fundamentals/mixing calculation and validates its staged files.
+* ``trend_adjust`` loads all inputs, orders targets, promotes complete output
+  bundles and records their provenance.
 """
 
 import argparse
@@ -30,6 +37,8 @@ from trend_adjust_io import (
 )
 from trend_adjust_check import check_poll_predictiveness
 
+
+# Command-line configuration and input validation
 
 class ConfigError(ValueError):
     pass
@@ -143,6 +152,8 @@ class Config:
             self.elections = [code]
 
 
+# Core fundamentals and forecast-error adjustment processing
+
 def generate_staged_target_outputs(config, inputs, poll_trend, exclude):
     """Generate, validate and promote one election's complete output set."""
 
@@ -170,6 +181,8 @@ def generate_staged_target_outputs(config, inputs, poll_trend, exclude):
             fundamentals_output, adjustment_outputs, inputs.party_groups
         )
 
+
+# Workflow orchestration, output promotion and provenance
 
 def trend_adjust():
     try:

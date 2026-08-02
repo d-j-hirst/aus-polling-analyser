@@ -4,6 +4,14 @@ This module deliberately uses only the Python standard library. It defines
 the dependency graph and safe subprocess argument templates that the future
 pipeline orchestrator will consume. Freshness remains the responsibility of
 analysis_provenance.py.
+
+Main functions:
+* ``load_registry`` reads the authored graph definition.
+* ``validate_registry`` checks category, dependency, consumer and execution
+  metadata before the graph is used.
+* ``topological_stage_order`` produces the strict executable stage order.
+* ``stage_command`` expands a validated stage template into a subprocess argv.
+* ``validate_authored_paths`` verifies that declared authored inputs exist.
 """
 
 import argparse
@@ -27,6 +35,8 @@ EXECUTION_FIELDS = (
 )
 ARGUMENT_TEMPLATE_FIELDS = {"election_cli", "party_cli"}
 
+
+# Registry loading and schema validation
 
 class RegistryError(ValueError):
     """Raised when the dependency registry is structurally invalid."""
@@ -410,6 +420,8 @@ def _validate_consumers(registry):
             )
         )
 
+
+# Dependency ordering and command construction
 
 def topological_stage_order(registry, core_only=True):
     """Return the strict stage order, excluding optional and feedback edges."""

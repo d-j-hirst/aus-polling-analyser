@@ -4,7 +4,6 @@ data {
     int<lower=1> dayCount;
     int<lower=1> houseCount;
     int<lower=0> discontinuityCount;
-    real<lower=0.0, upper=100.0> priorResult;
     
     // poll data
     real<lower=0.0, upper=100.0> pollObservations[pollCount]; // poll data
@@ -22,7 +21,8 @@ data {
     real<lower=-100.0, upper=100.0> biases[houseCount]; // previously observed biases for each house count
     real<lower=0.0> sigmas[pollCount]; // poll quality adjustment
     
-    int<lower=1> electionDay;
+    int<lower=1> campaignStartDay;
+    int<lower=1> finalStartDay;
     
     // day-to-day change, higher in a campaign and especially in the final two weeks
     real<lower=0.0> dailySigma;
@@ -39,7 +39,6 @@ data {
 }
 
 transformed data {
-    real adjustedPriorResult = priorResult;
     int<lower=0> housePollCount[houseCount] = rep_array(0, houseCount);
     vector<lower=0.0, upper=1.0>[houseCount] houseWeight;
     real totalHouseWeight = 0.0;
@@ -56,9 +55,6 @@ transformed data {
     totalHouseWeight = sum(houseWeight);
     houseWeight = houseWeight / totalHouseWeight;
     weightedBias = weightedBiasSum / totalHouseWeight;
-    if (priorResult < 0.5) {
-        adjustedPriorResult = log(priorResult * 2.0) + 0.5;
-    }
 }
 
 parameters {
@@ -94,10 +90,10 @@ model {
         if (isDisc == 0) {
             // increased volatility during campaign
             real effectiveSigma = dailySigma;
-            if (day >= electionDay - 14) { // maximum volatility two weeks before result
+            if (day >= finalStartDay) { // maximum volatility two weeks before result
                 effectiveSigma = finalSigma;
             }
-            else if (day >= electionDay - 42) { // heightened volatility six weeks before result
+            else if (day >= campaignStartDay) { // heightened volatility six weeks before result
                 effectiveSigma = campaignSigma;
             }
             preliminaryVoteShare[day + 1] ~ 

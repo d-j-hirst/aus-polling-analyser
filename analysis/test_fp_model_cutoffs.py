@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 import fp_model_provenance
+import trend_adjust_cutoffs
 
 
 class CutoffScheduleTests(unittest.TestCase):
@@ -37,6 +38,162 @@ class CutoffScheduleTests(unittest.TestCase):
 
 
 class CutoffOutputStoreTests(unittest.TestCase):
+    @staticmethod
+    def metadata(fingerprint="inputs-a"):
+        return {
+            "schema_version": 1,
+            "election": "2025fed",
+            "expected_endpoints": [
+                {
+                    "scheduled_cutoff_days": 28,
+                    "poll_trend_end_days": 30,
+                },
+                {
+                    "scheduled_cutoff_days": 21,
+                    "poll_trend_end_days": 22,
+                },
+            ],
+            "parties": ["@TPP", "ALP FP"],
+            "probability_columns": ["0%", "50%", "100%"],
+            "base_seed": 123,
+            "seed_namespace": "fp-model-v1",
+            "dependencies": {"source": "current"},
+            "source_fingerprint": fingerprint,
+        }
+
+    def test_matching_draft_resumes_across_store_instances(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                first = fp_model_provenance.CutoffOutputStore()
+                self.assertFalse(first.begin("2025fed", self.metadata()))
+                for party in ("@TPP", "ALP FP"):
+                    first.write(
+                        election="2025fed",
+                        party=party,
+                        scheduled_cutoff_days=28,
+                        poll_trend_end_days=30,
+                        random_seed=123,
+                        probabilities=(0.001, 0.5, 0.999),
+                        values=(48.1, 50.2, 52.3),
+                    )
+                first.mark_complete(
+                    "2025fed",
+                    28,
+                    30,
+                    expected_parties=("@TPP", "ALP FP"),
+                )
+
+                resumed = fp_model_provenance.CutoffOutputStore()
+                self.assertTrue(resumed.begin("2025fed", self.metadata()))
+                self.assertTrue(resumed.is_complete("2025fed", 28, 30))
+                self.assertFalse(resumed.is_complete("2025fed", 21, 22))
+
+    def test_incompatible_draft_is_discarded_without_touching_certified_output(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                final_path = fp_model_provenance.cutoff_output_path("2025fed")
+                final_path.parent.mkdir(parents=True, exist_ok=True)
+                final_path.write_text("certified\n", encoding="utf-8")
+                first = fp_model_provenance.CutoffOutputStore()
+                first.begin("2025fed", self.metadata())
+                first.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+
+                replacement = fp_model_provenance.CutoffOutputStore()
+                self.assertFalse(
+                    replacement.begin(
+                        "2025fed", self.metadata(fingerprint="inputs-b")
+                    )
+                )
+                self.assertFalse(
+                    replacement.contains("2025fed", "@TPP", 28, 30)
+                )
+                self.assertEqual(
+                    final_path.read_text(encoding="utf-8"),
+                    "certified\n",
+                )
+
+    def test_corrupt_matching_draft_is_discarded(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                first = fp_model_provenance.CutoffOutputStore()
+                first.begin("2025fed", self.metadata())
+                first.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+                working = fp_model_provenance.cutoff_working_path(
+                    "2025fed"
+                )
+                working.write_text(
+                    working.read_text(encoding="utf-8").replace(
+                        "48.1,50.2,52.3", "not-a-number,50.2,52.3"
+                    ),
+                    encoding="utf-8",
+                )
+
+                resumed = fp_model_provenance.CutoffOutputStore()
+                self.assertFalse(resumed.begin("2025fed", self.metadata()))
+                self.assertFalse(
+                    resumed.contains("2025fed", "@TPP", 28, 30)
+                )
+
+    def test_metadata_requires_every_expected_endpoint_before_promotion(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                store = fp_model_provenance.CutoffOutputStore()
+                store.begin("2025fed", self.metadata())
+                store.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=(0.001, 0.5, 0.999),
+                    values=(48.1, 50.2, 52.3),
+                )
+                store.mark_complete(
+                    "2025fed", 28, 30, expected_parties=("@TPP",)
+                )
+                with self.assertRaisesRegex(
+                    fp_model_provenance
+                    .generated_provenance.GeneratedProvenanceError,
+                    "has no completed party manifest",
+                ):
+                    store.promote("2025fed")
+
     def test_rows_are_upserted_atomically(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
@@ -106,6 +263,55 @@ class CutoffOutputStoreTests(unittest.TestCase):
                 working_path.with_suffix(
                     working_path.suffix + ".tmp"
                 ).exists()
+            )
+
+    def test_promoted_full_percentile_file_matches_trend_adjust_contract(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            directory = Path(temporary_directory)
+            probabilities = tuple(
+                [0.001]
+                + [index * 0.01 for index in range(1, 100)]
+                + [0.999]
+            )
+            values = tuple(40.0 + index * 0.2 for index in range(101))
+            metadata = self.metadata()
+            metadata["expected_endpoints"] = [{
+                "scheduled_cutoff_days": 28,
+                "poll_trend_end_days": 30,
+            }]
+            metadata["parties"] = ["@TPP"]
+            metadata["probability_columns"] = [
+                "{}%".format(round(probability * 100))
+                for probability in probabilities
+            ]
+            with mock.patch.object(
+                fp_model_provenance,
+                "CUTOFF_OUTPUT_DIRECTORY",
+                directory,
+            ):
+                store = fp_model_provenance.CutoffOutputStore()
+                store.begin("2025fed", metadata)
+                store.write(
+                    election="2025fed",
+                    party="@TPP",
+                    scheduled_cutoff_days=28,
+                    poll_trend_end_days=30,
+                    random_seed=123,
+                    probabilities=probabilities,
+                    values=values,
+                )
+                store.mark_complete(
+                    "2025fed", 28, 30, expected_parties=("@TPP",)
+                )
+                store.promote("2025fed")
+                loaded = trend_adjust_cutoffs.CutoffTrendData(
+                    fp_model_provenance.cutoff_output_path("2025fed")
+                )
+
+            loaded.require_parties(["@TPP"])
+            self.assertAlmostEqual(
+                loaded.value_at("@TPP", 30, 50),
+                values[50],
             )
 
     def test_reset_removes_draft_but_preserves_certified_file(self):

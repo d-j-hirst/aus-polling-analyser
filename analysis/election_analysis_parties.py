@@ -2,6 +2,16 @@
 
 Parent: election_analysis.py invokes this module as part of the historical
 seat-analysis bundle before provenance is recorded.
+
+Main functions:
+* ``analyse_greens`` and ``analyse_existing_independents`` fit continuing
+  seat-level minor-party behaviour.
+* ``analyse_emerging_independents`` and ``analyse_emerging_parties`` model
+  new entrants from historical seat context.
+* ``analyse_populist_minors``, ``analyse_centrist_minors`` and
+  ``analyse_others`` produce the remaining party-family parameters.
+* ``load_seat_*`` and ``load_by_elections`` are authored-input loaders used by
+  the core analysis functions.
 """
 
 import copy
@@ -30,6 +40,8 @@ from election_code import ElectionCode
 from poll_transform import clamp, transform_vote_share
 from sample_kurtosis import calc_rmse, two_tail_kurtosis
 
+
+# Core historical party-vote analyses
 
 def analyse_greens(elections):
     bucket_info = {'interval': 10, 'min': -90, 'max': -30}
@@ -189,6 +201,8 @@ def analyse_existing_independents(elections):
 
     smooth_buckets_and_save(d, buckets, bucket_info, to_smooth)
 
+
+# Authored contextual-input loading
 
 def load_seat_types():
     with open('Data/seat-types.csv', 'r') as f:

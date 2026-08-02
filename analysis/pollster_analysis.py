@@ -4,6 +4,13 @@ This entry point selects calibration evidence, stages the three output files
 for each election, and records their provenance. The numerical reducers live
 in focused modules: pollster_analysis_variability,
 pollster_analysis_house_effects and pollster_analysis_bias.
+
+Main functions:
+* ``run_analysis`` parses and validates the target election, loads approved
+  calibration evidence, stages the output bundle and publishes it atomically.
+* ``analyse_evidence`` invokes the three numerical reducers that perform the
+  actual pollster-parameter calculations.
+* ``write_completion_status`` reports the terminal state for legacy callers.
 """
 
 import os
@@ -38,10 +45,14 @@ import pollster_analysis_provenance
 from pollster_analysis_variability import analyse_variability
 
 
+# Completion status and output staging helpers
+
 def write_completion_status(status):
     with open('itsdone.txt', 'w') as output_file:
         output_file.write(str(status))
 
+
+# Core pollster-parameter calculations
 
 def analyse_evidence(election, cycles, links, evidence, output_directory):
     """Stage and publish one election's three reducers from typed evidence."""
@@ -72,6 +83,8 @@ def analyse_evidence(election, cycles, links, evidence, output_directory):
             os.replace(staged_path, final_path)
     return [str(path) for path in final_paths]
 
+
+# Command-line loading, validation and publication
 
 def run_analysis(argv=None):
     config = Config(argv)

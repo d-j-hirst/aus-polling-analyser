@@ -2,6 +2,16 @@
 
 Parent: trend_adjust.py coordinates the overall adjustment workflow and
 passes these validated inputs to fundamentals and mixing stages.
+
+Main functions:
+* ``PartyGroupConfig`` and ``ElectionPartyCode`` normalize authored party
+  group settings and output filenames.
+* ``Inputs`` loads, validates and exposes all historical context consumed by
+  the fundamentals and mixing calculations.
+* ``PollTrend`` loads historical cutoff/poll trend series and supplies the
+  point-in-time values used in adjustment fitting.
+* ``adjustment_reference_year`` and ``prior_result_average`` implement small
+  shared historical-selection rules.
 """
 
 from dataclasses import dataclass
@@ -85,6 +95,8 @@ class TrendAdjustmentDataError(ValueError):
     """Raised when authored inputs cannot produce valid adjustments."""
 
 
+# Shared date and prior-result helpers
+
 def adjustment_reference_year(excluded_election, current_year=None):
     """Return the year against which historical poll errors are weighted.
 
@@ -111,6 +123,8 @@ def prior_result_average(values, requested_count):
     trimmed = sorted(selected)[1:-1]
     return sum(trimmed) / len(trimmed)
 
+
+# Authored-input loading and validation
 
 class Inputs:
     """Authored election inputs used by both adjustment calculations."""

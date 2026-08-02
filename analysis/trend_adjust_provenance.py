@@ -2,6 +2,14 @@
 
 Parent: trend_adjust.py invokes this module after generation to record the
 provenance of its fundamentals and adjustment output families.
+
+Main functions:
+* ``historical_elections`` and ``required_cutoff_work_units`` select the
+  complete historical inputs needed for an adjustment target.
+* ``adjustment_*`` and ``fundamentals_*`` helpers resolve output and record
+  identities consistently with trend_adjust.py.
+* ``TrendAdjustmentRecorder`` publishes one validated target's output bundle.
+* ``baseline_existing_outputs`` preserves older adjustment files as legacy.
 """
 
 import argparse
@@ -59,6 +67,8 @@ FUNDAMENTALS_PATTERN = re.compile(
     r"fundamentals_(0none|\d{4}[a-z]+)\.csv"
 )
 
+
+# Historical input and output-path selection
 
 def _csv_rows(path):
     with Path(path).open(newline="", encoding="utf-8-sig") as source:
@@ -167,6 +177,8 @@ def _cutoff_dependency(
         _context=check_context,
     )
 
+
+# Generated fundamentals and adjustment provenance publication
 
 class TrendAdjustmentRecorder:
     """Preflight dependencies and certify one completed target run."""

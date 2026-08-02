@@ -2,6 +2,10 @@
 
 Parent: pollster_analysis.py stages this output with the house-effect and bias
 files, publishing all three only after the target election succeeds.
+
+Main functions:
+* ``analyse_variability`` performs the weighted leave-one-out error reduction
+  and writes per-pollster variability parameters for one target election.
 """
 
 import math
@@ -12,6 +16,8 @@ from pollster_analysis_common import (
     output_party,
 )
 
+
+# Core variability reduction
 
 def analyse_variability(
     target_election, cycles, links, evidence, output_path

@@ -2,6 +2,12 @@
 
 Parent: trend_adjust.py uses this module to supply historical point-in-time
 trend inputs for fitting forecast adjustments.
+
+Main functions:
+* ``triangular_root`` maps actual poll endpoints back onto the triangular
+  cutoff schedule used to space historical fits.
+* ``CutoffTrendData`` loads, validates and interpolates consolidated cutoff
+  rows for point-in-time trend access.
 """
 
 import bisect
@@ -25,6 +31,8 @@ COMPLETE_MARKER = "#COMPLETE"
 class CutoffTrendError(ValueError):
     """Raised when consolidated cutoff data are absent or malformed."""
 
+
+# Cutoff-schedule arithmetic
 
 def triangular_root(days):
     """Return the continuous index whose triangular number is ``days``."""
@@ -53,6 +61,8 @@ def _nonnegative_integer(value, field, path, line_number):
         )
     return parsed
 
+
+# Consolidated cutoff loading, validation and interpolation
 
 class CutoffTrendData:
     """Posterior percentiles indexed by party and actual poll endpoint."""

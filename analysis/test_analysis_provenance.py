@@ -241,11 +241,67 @@ class AnalysisProvenanceTests(unittest.TestCase):
             "cpp_stan_model", impacts["calibration_only"]
         )
 
-    def test_cutoff_stage_is_classified_as_slow_calibration_work(self):
-        self.assertIn(
+    def test_cutoff_stage_has_its_own_slow_historical_path(self):
+        self.assertNotIn(
             "generate_cutoff_poll_trends",
             analysis_provenance.CALIBRATION_STAGES,
         )
+        self.assertIn(
+            "generate_cutoff_poll_trends",
+            analysis_provenance.CUTOFF_STAGES,
+        )
+
+    def test_root_event_lookup_tolerates_a_future_recorded_revision(self):
+        manifest = source_provenance.load_manifest(
+            self.source_manifest_path
+        )
+        category = manifest["categories"]["election_store_script"]
+
+        event = analysis_provenance._latest_relevant_event(
+            category,
+            category["semantic_revision"] + 1,
+            {
+                "all": True,
+                "elections": [],
+                "parties": [],
+                "stage": "export_election_results",
+            },
+        )
+
+        self.assertIsNone(event)
+
+    def test_missing_cutoff_links_current_pollsters_and_historical_pure_tpp(self):
+        pollster_id = analysis_provenance._generated_work_unit_id(
+            analysis_provenance.pollster_analysis_provenance.MANIFEST_PATH,
+            "pollster_parameters:2026sa",
+        )
+        historical_pure_id = analysis_provenance._generated_work_unit_id(
+            analysis_provenance.approvals_provenance.PURE_MANIFEST_PATH,
+            "pure_poll_outputs:2025fed:@TPP",
+        )
+        current_pure_id = analysis_provenance._generated_work_unit_id(
+            analysis_provenance.approvals_provenance.PURE_MANIFEST_PATH,
+            "pure_poll_outputs:2028fed:@TPP",
+        )
+        with mock.patch.object(
+            analysis_provenance.approvals_provenance,
+            "approval_elections",
+            return_value={"2026sa"},
+        ), mock.patch.object(
+            analysis_provenance.approvals_provenance,
+            "synthetic_dependency_elections",
+            return_value={"2025fed", "2028fed"},
+        ), mock.patch.object(
+            analysis_provenance.approvals_provenance,
+            "current_elections",
+            return_value={"2028fed"},
+        ):
+            dependencies = analysis_provenance._missing_cutoff_dependencies(
+                "2026sa",
+                {pollster_id, historical_pure_id, current_pure_id},
+            )
+
+        self.assertEqual(dependencies, [pollster_id, historical_pure_id])
 
     def test_missing_required_regional_work_unit_is_reported(self):
         work_unit = (
@@ -333,6 +389,38 @@ class AnalysisProvenanceTests(unittest.TestCase):
             direct_impacts["immediate"]["cpp_stan_model"],
             {"poll_trend_outputs"},
         )
+
+    def test_terminal_impacts_separate_cutoff_paths(self):
+        registry = {
+            "stages": [
+                {
+                    "id": "generate_cutoff_poll_trends",
+                    "inputs": ["approvals_script"],
+                    "outputs": ["cutoff_poll_outputs"],
+                },
+                {
+                    "id": "generate_trend_adjustments",
+                    "inputs": ["cutoff_poll_outputs"],
+                    "outputs": ["trend_adjustments"],
+                },
+            ],
+            "consumers": [
+                {
+                    "id": "cpp_stan_model",
+                    "inputs": ["trend_adjustments"],
+                }
+            ],
+        }
+
+        impacts = analysis_provenance._terminal_impacts(
+            {"approvals_script"}, registry
+        )
+
+        self.assertEqual(
+            impacts["cutoff_only"]["cpp_stan_model"],
+            {"trend_adjustments"},
+        )
+        self.assertNotIn("cpp_stan_model", impacts["calibration_only"])
 
     def test_audited_generated_dependency_is_not_reported_twice(self):
         upstream_manifest = self.base / "upstream.json"
@@ -1009,6 +1097,57 @@ class AnalysisProvenanceTests(unittest.TestCase):
             "Missing historical seed metadata is informational only",
             output.getvalue(),
         )
+
+    def test_diagnostic_trace_is_not_a_calibration_path_issue(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        record = manifest["records"]["election_result_exports:2025fed"]
+        record["status"] = "legacy"
+        record["category"] = "poll_calibration_traces"
+        record["stage"] = "calibrate_pollsters"
+        record["dependencies"] = {}
+        record["random_seed"] = None
+        manifest["records"] = {
+            "poll_calibration_traces:2025fed:ALP:full": record
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        registry = {
+            "categories": {
+                "poll_calibration_traces": {"kind": "diagnostic"},
+            },
+            "stages": [
+                {
+                    "id": "calibrate_pollsters",
+                    "inputs": ["raw_polls"],
+                    "outputs": ["poll_calibration_traces"],
+                },
+            ],
+            "consumers": [],
+        }
+
+        result = analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+            registry=registry,
+        )
+        output = StringIO()
+        with redirect_stdout(output):
+            analysis_provenance._print_audit(result)
+
+        self.assertEqual(result["calibration_root_causes"], {})
+        self.assertEqual(
+            result["diagnostic_notices"],
+            {
+                "poll_calibration_traces": (
+                    "1 non-current detailed work unit(s) are retained for "
+                    "diagnosis only and do not affect regeneration planning."
+                )
+            },
+        )
+        self.assertIn("Diagnostic provenance notices:", output.getvalue())
 
     def test_mixed_root_is_not_reported_as_calibration_only(self):
         manifest = generated_provenance.load_manifest(

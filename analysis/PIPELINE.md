@@ -155,7 +155,21 @@ The orchestration `calibration` profile completes the leave-one-pollster-out
 and bias fits, directly promotes one compact summary per election, and also
 compacts any retained legacy inputs that lack one. Detailed calibration files
 are opt-in diagnostics via `--calibration-traces`, written below a unique
-`Outputs/Calibration/Diagnostics/` run directory. Pollster analysis and pure/final trends are scheduled
+`Outputs/Calibration/Diagnostics/` run directory. Ordinary calibration and
+bias fits request only the posterior median they consume. Each complete
+excluded-pollster block is saved atomically below
+`Outputs/Calibration/Checkpoints/`; a matching process restart restores those
+blocks and reruns only the interrupted block. Successful leave-one-out
+publication removes the local restart directory.
+
+The established MAE/full-fit reduction is unchanged. The already-computed
+held-out-poll residuals, full-fit deviations and weights are also published as
+versioned evidence below `Outputs/Calibration/Evidence/` for later estimator
+comparisons. HMC checks remain advisory: failures are appended with election,
+party, mode and resolved seed to `Outputs/fp_model_diagnostics.log`, while
+sampling exceptions, malformed inputs and invalid model outputs still fail.
+
+Pollster analysis and pure/final trends are scheduled
 later through a regular profile scoped to the elections being updated. This
 avoids doing broad downstream work partway through a calibration refresh, when
 later calibration units would immediately invalidate it again.
@@ -205,6 +219,41 @@ python3 pipeline.py run --election 2026vic --profile cutoffs
 * `all` is available for inspection through `plan`, but is intentionally not
   executable. It exists to show the breadth of a complete rebuild without
   making a single command accidentally start every expensive stage.
+
+`fp_model.py --cutoff` keeps the previously certified consolidated election
+file untouched while writing a `.in-progress` draft. A JSON sidecar binds that
+draft to the model/input fingerprints, seed namespace, expected endpoints,
+party layout and percentile schema. A new process resumes matching complete
+endpoints, reruns every party for an incomplete endpoint, discards only an
+incompatible draft and promotes atomically after the full contract is present.
+
+These files are poll-data-as-of hindcasts, not complete reconstructions of what
+would have been known in real time. The poll endpoint and applicable federal
+cutoff prior are historical, but pollster parameters and the approval
+relationship use the selected current generated evidence rather than a
+versioned historical training snapshot. This known non-as-of limitation must be
+kept in mind when interpreting trend-adjustment calibration.
+
+The primary Stan model maps campaign and final volatility windows from 42 and
+14 calendar days into compressed model coordinates, removes the random-walk
+transition entering each configured discontinuity date, and uses the same
+compressed old/new house-effect interpolation in Stan and exported poll files.
+The Gaussian likelihood is unchanged. The exponential-tail share adjustment
+remains generated-output-only pending isolated runtime and HMC comparisons
+against a smooth alternative.
+
+The standalone exact Gaussian prior-chain check leaves production prior
+strength unchanged. For a homogeneous federal prior sigma of 16 and the
+`tFactor=2` ordinary transition sigma of `0.25 * sqrt(2)`, the infinite-chain
+interior marginal SD is about 1.682 and the centre is within 1% of that limit
+after 209 compressed nodes (about 418 calendar days). The tool also reports
+every day's posterior mean/SD by distance from both ends and can check selected
+scenarios against Stan. In the seeded isolated low-share comparison, all three
+approaches had no divergences, but moving the existing exponential-tail
+transform into inference reduced minimum ESS from about 383 to 86. The smooth
+logit scalar comparison was better behaved, but adopting it in the full random
+walk requires a separate parameterization decision; production inference
+therefore remains unchanged.
 
 The interactive interface exposes the same profiles. `regular` is the usual
 choice after a routine poll or current-election update; calibration and
@@ -322,11 +371,13 @@ Archive payloads contain full generated/cache roots such as `Outputs`,
 `Adjustments`, `Fundamentals`, `Seat Statistics`, `Nationals` and `elections`.
 For the mixed `Regional` and `Federal-State` directories they contain only
 generated files, never authored regional polls or booth mappings. Diagnostic
-calibration traces, incomplete staging files and retained legacy calibration
-details are excluded. Compact `Outputs/Calibration/Summaries/` files are the
-only calibration evidence retained in a new archive. Archives created before
-this workflow lack the validation manifest and are legacy reference data, not
-reproducible restore inputs.
+calibration traces, incomplete staging files, local calibration checkpoints,
+cutoff `.in-progress` drafts and retained legacy calibration details are
+excluded. Compact `Outputs/Calibration/Summaries/` files and versioned
+`Outputs/Calibration/Evidence/` residual files plus
+`Outputs/Calibration/Seeds/` manifests are retained in a new archive. Archives
+created before this workflow lack the validation manifest and are legacy
+reference data, not reproducible restore inputs.
 
 ## Source Provenance
 
@@ -594,16 +645,19 @@ tracked separately and therefore do not unnecessarily invalidate poll
 calibration. Python, NumPy, pandas and pystan versions are retained in the run
 environment.
 
-Stan receives a separate deterministic seed for each election, party and
-excluded pollster. Supply `--seed N` to reproduce a complete calibration run;
-if omitted, a random base seed is generated and each exact derived work-unit
-seed is still recorded. Provenance is flushed after every excluded-pollster
-block, so an interruption loses metadata only for the currently running block.
+Stan receives a separate deterministic seed derived from a versioned default
+base seed, election, party, excluded pollster and mode. Pure, final,
+calibration, bias and each actual cutoff endpoint occupy distinct namespaces.
+Supply `--seed N` to override the base seed; every resolved work-unit seed is
+recorded, with completed calibration and bias fit seeds retained under
+`Outputs/Calibration/Seeds/`. Provenance and atomic restart data are flushed
+after every excluded-pollster block, so an interruption repeats only the
+current block.
 
-State calibration still reads existing normal federal minor-party trends as
-priors. The precise files found at run time are recorded as
-`poll_trend_outputs` dependencies. This preserves visibility of the known
-feedback path until calibration-specific federal trends replace it.
+State calibration reads compact full-fit federal calibration priors rather
+than normal final trends. Their uniqueness, configured party coverage, dates
+and medians are validated before atomic publication, and the precise files
+found at run time are recorded as `federal_calibration_priors` dependencies.
 
 The repository audit reports legacy or stale calibration records separately:
 

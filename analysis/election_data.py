@@ -5,6 +5,14 @@ tables are not a stable data API, so new elections and unusual old tables may
 need explicit corrections below. Once downloaded, the pickle is the working
 cache used by election analysis and by ``election_store.py``; routine analysis
 does not contact the network.
+
+Main functions:
+* ``ElectionResults``, ``SeatResults`` and ``CandidateResult`` are the cached
+  result data structures shared with checking and export stages.
+* ``generic_download`` contains the source-specific parsing and correction
+  logic that performs the actual acquisition/processing work for one election.
+* ``AllElections`` loads, caches and retrieves election result sets.
+* ``main`` refreshes the configured historical cache from source pages.
 """
 
 import os
@@ -40,6 +48,8 @@ previous_names = [
 
 default_headers = {'User-Agent': 'AEF Occasional Data Updating (https://www.aeforecasts.com/; aeforecasts@gmail.com)'}
 
+
+# Downloading and cache publication infrastructure
 
 def _download_page(url, headers):
     """Return the historical byte-string representation used by the parser."""
@@ -271,6 +281,8 @@ class AllElections:
                       key=lambda x: x.year())
 
 
+# Source parsing and election-result acquisition
+
 def collect_seat_urls(seat_url_dict, url, pattern):
     content_category = _download_page(url, default_headers)
     try:
@@ -487,6 +499,8 @@ def generic_download(state, year, allow_download=True):
     print(f'Downloaded election from Wikipedia: {year}{state}')
     return all_results.results
 
+
+# Command-line cache refresh
 
 def main():
     # When this file is executed directly, classes defined in it would normally

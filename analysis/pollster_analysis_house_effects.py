@@ -2,6 +2,11 @@
 
 Parent: pollster_analysis.py invokes this reducer between variability and bias
 analysis, staging its output until the full election-level bundle passes.
+
+Main functions:
+* ``get_n_polls`` validates the recent-poll counts attached to evidence.
+* ``analyse_house_effects`` calculates and writes house-effect weighting
+  parameters for one target election.
 """
 
 import math
@@ -13,6 +18,8 @@ from pollster_analysis_common import (
     output_party,
 )
 
+
+# Evidence validation and core house-effect reduction
 
 def get_n_polls(evidence):
     """Count recent polls used to weight house-effect and bias evidence."""

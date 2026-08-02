@@ -204,6 +204,84 @@ class CalibrationSummaryTests(unittest.TestCase):
             ).exists()
         )
 
+    def test_residual_evidence_round_trips_optional_percentiles(self):
+        row = calibration_summary.build_residual_evidence_row(
+            election="2028-fed",
+            party="@TPP",
+            pollster="DemosAU",
+            poll_day_index=17,
+            poll_index=3,
+            values=(
+                51.0,
+                50.5,
+                50.75,
+                None,
+                0.25,
+                None,
+                1.5,
+                0.1,
+                0.75,
+                1.125,
+            ),
+        )
+        path = calibration_summary.residual_evidence_path(
+            self.directory, "2028fed"
+        )
+
+        calibration_summary.write_residual_evidence_atomically(path, [row])
+
+        with path.open(newline="", encoding="utf-8") as source:
+            rows = list(csv.DictReader(source))
+        self.assertEqual(
+            tuple(rows[0]),
+            calibration_summary.RESIDUAL_EVIDENCE_FIELDS,
+        )
+        self.assertEqual(rows[0]["schema_version"], "1")
+        self.assertEqual(rows[0]["pollster"], "DemosAU")
+        self.assertEqual(rows[0]["loo_percentile"], "")
+        self.assertEqual(rows[0]["probability_deviation"], "")
+        self.assertEqual(rows[0]["final_weight"], "1.125")
+
+    def test_residual_evidence_rejects_non_finite_values(self):
+        with self.assertRaisesRegex(
+            calibration_summary.CalibrationSummaryError, "not finite"
+        ):
+            calibration_summary.build_residual_evidence_row(
+                election="2028fed",
+                party="@TPP",
+                pollster="DemosAU",
+                poll_day_index=17,
+                poll_index=3,
+                values=(1, 2, 3, 0.5, float("nan"), 0.1, 1, 2, 3, 4),
+            )
+
+    def test_seed_manifest_records_completed_mode_specific_fits(self):
+        seeds = {
+            ("calibration", "DemosAU", "@TPP"): 123,
+            ("calibration", "", "@TPP"): 456,
+            ("bias", "", "@TPP"): 789,
+        }
+        rows = calibration_summary.build_seed_rows(
+            "2028fed", "calibration", seeds
+        )
+        path = calibration_summary.seed_manifest_path(
+            self.directory, "2028fed", "calibration"
+        )
+
+        calibration_summary.write_seed_manifest_atomically(path, rows)
+
+        with path.open(newline="", encoding="utf-8") as source:
+            saved = list(csv.DictReader(source))
+        self.assertEqual(len(saved), 2)
+        self.assertEqual(
+            {row["stan_seed"] for row in saved},
+            {"123", "456"},
+        )
+        self.assertEqual(
+            {row["mode"] for row in saved},
+            {"calibration"},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

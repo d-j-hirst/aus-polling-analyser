@@ -4,6 +4,14 @@ One work unit contains the variability, house-effect weighting and bias files
 for a target election. Historical calibration may legitimately remain stale
 for long periods, so generation is permitted from stale calibration records;
 that inherited calibration staleness remains visible in the resulting record.
+
+Main functions:
+* ``_calibration_record_keys`` and ``_calibration_input_paths`` select the
+  calibration evidence actually consumed by one target election.
+* ``refresh_calibration_dependencies`` performs a metadata-only repair when
+  irrelevant historical party dependencies were previously recorded.
+* ``PollsterAnalysisRecorder`` publishes the three-file pollster output unit.
+* ``baseline_existing_outputs`` registers old parameter files as legacy.
 """
 
 import argparse
@@ -54,6 +62,8 @@ CALIBRATION_DEPENDENCY_REFRESH_UPGRADE = (
     "refresh-pollster-calibration-dependencies-v1"
 )
 
+
+# Calibration-evidence selection and validation
 
 def _record_key(election):
     return "pollster_parameters:{}".format(election)
@@ -290,6 +300,8 @@ def obsolete_calibration_dependency_issues(record, base_directory):
                 )
     return issues
 
+
+# Generated pollster-parameter provenance publication
 
 class PollsterAnalysisRecorder:
     """Prepare dependencies and certify completed election work units."""

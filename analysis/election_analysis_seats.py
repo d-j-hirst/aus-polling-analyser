@@ -2,6 +2,14 @@
 
 Parent: election_analysis.py coordinates this seat-level component with the
 party and regional analyses before certifying their shared output bundle.
+
+Main functions:
+* ``analyse_seat_swings`` calculates seat-swing distributions and contextual
+  modifiers used by the C++ seat simulation.
+* ``analyse_green_independent_correlation`` estimates the joint behaviour of
+  Green and independent support.
+* ``analyse_nationals`` derives Coalition-allocation inputs.
+* ``get_all_elections`` loads the auxiliary results required by the last step.
 """
 
 import statistics
@@ -18,6 +26,8 @@ from election_code import ElectionCode
 from poll_transform import detransform_vote_share, transform_vote_share
 from sample_kurtosis import calc_rmse, one_tail_kurtosis, two_tail_kurtosis
 
+
+# Core seat-level historical calculations
 
 def analyse_seat_swings(elections, seat_types, seat_regions, by_elections):
     alp_swings = {}
@@ -421,6 +431,8 @@ def analyse_green_independent_correlation(elections):
         f.write(f'{fit.params[0]}')
 
 
+# Auxiliary input loading
+
 def get_all_elections():
     with open('./Data/polled-elections.csv', 'r') as f:
         polled_elections = ElectionCode.load_elections_from_file(f)
@@ -602,4 +614,3 @@ def analyse_nationals(elections, all_elections):
             f.write(f'seat,prediction\n')
             for i in range(len(predictions)):
                 f.write(f'{predictions[i][0]},{predictions[i][1]}\n')
-

@@ -4,6 +4,13 @@ All command-line arguments and stdin are passed through to fp_model.py. Output
 is streamed immediately so Stan iteration updates and suspension prompts remain
 visible, while the unhelpful gradient-timing block printed for every chain is
 discarded.
+
+This wrapper does not load model data or alter sampling. The underlying
+``fp_model.py`` process owns validation and processing.
+
+Main functions:
+* ``StanOutputFilter`` recognises and compresses selected Stan output blocks.
+* ``run`` starts fp_model.py, streams its output and forwards exit status.
 """
 
 import os

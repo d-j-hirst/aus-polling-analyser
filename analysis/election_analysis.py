@@ -5,6 +5,12 @@ and swing behaviour, federal regional polling behaviour, and the allocation
 of Coalition votes between Liberal and Nationals candidates. The numerical
 models live in focused modules; this entry point owns shared setup and the
 single provenance record written after all analyses succeed.
+
+Main functions:
+* ``main`` loads normalized election data and performs the ordered analysis
+  bundle through the imported party, regional and seat model functions.
+* ``record_generated_provenance`` records the complete output set only after
+  all component calculations have succeeded.
 """
 
 from pathlib import Path
@@ -46,6 +52,8 @@ GENERATED_MANIFEST = (
     / 'generated-provenance.json'
 )
 
+
+# Output validation and provenance publication
 
 def record_generated_provenance():
     dependencies = {}
@@ -187,6 +195,8 @@ def record_generated_provenance():
     print(f'Recorded generated provenance in {GENERATED_MANIFEST}')
 
 
+
+# Core historical analysis orchestration
 
 def main():
     """Run every historical analysis before certifying the output bundle."""

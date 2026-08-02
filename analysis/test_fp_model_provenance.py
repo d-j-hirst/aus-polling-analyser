@@ -539,6 +539,10 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             "_source_dependencies",
             return_value={},
         ), mock.patch.object(
+            generated_provenance,
+            "generation_run",
+            return_value=("test-run", {}),
+        ), mock.patch.object(
             fp_model_provenance.approvals_provenance,
             "approval_elections",
             return_value={"1987fed"},
@@ -563,6 +567,39 @@ class FinalTrendProvenanceTests(unittest.TestCase):
             {"pollster_parameters": pollster_dependency},
         )
         approval_call.assert_not_called()
+
+    def test_cutoffs_require_current_pollster_parameters(self):
+        pollster_dependency = {
+            "kind": "generated_manifest",
+            "digest": "a" * 64,
+            "semantic_revision": None,
+            "manifest": "pollster.json",
+            "files": [],
+            "records": ["pollster_parameters:1975fed"],
+        }
+        with mock.patch.object(
+            fp_model_provenance,
+            "_source_dependencies",
+            return_value={},
+        ), mock.patch.object(
+            generated_provenance,
+            "generation_run",
+            return_value=("test-run", {}),
+        ), mock.patch.object(
+            fp_model_provenance.approvals_provenance,
+            "approval_elections",
+            return_value=set(),
+        ), mock.patch.object(
+            generated_provenance,
+            "generated_manifest_dependency",
+            return_value=pollster_dependency,
+        ) as generated_call:
+            recorder = fp_model_provenance.CutoffTrendRecorder(
+                ["python3", "fp_model.py", "--cutoff"]
+            )
+            recorder.preflight_election("1975fed")
+
+        self.assertFalse(generated_call.call_args.kwargs["allow_stale"])
 
     def test_cutoffs_tolerate_current_pure_approval_dependencies(self):
         pollster_dependency = {

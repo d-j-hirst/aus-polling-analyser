@@ -204,6 +204,43 @@ class CalibrationSummaryProvenanceTests(unittest.TestCase):
             ["current"],
         )
 
+    def test_generated_loo_bundle_supersedes_trace_remnants(self):
+        manifest = {
+            "records": {
+                "loo-bundle": {
+                    "category": "poll_calibration_summaries",
+                    "status": "generated",
+                    "scope": {"elections": ["2028fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/calib_2028fed_DemosAU_@TPP.csv": {}
+                    },
+                },
+                "current-trace": {
+                    "category": "poll_calibration_traces",
+                    "status": "generated",
+                    "scope": {"elections": ["2028fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/fp_trend_2028fed_@TPP_DemosAU.csv": {}
+                    },
+                },
+                "legacy-trace": {
+                    "category": "poll_calibration_traces",
+                    "status": "legacy",
+                    "scope": {"elections": ["2028fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/fp_trend_2028fed_@TPP_Old.csv": {}
+                    },
+                },
+            }
+        }
+
+        self.assertEqual(
+            calibration_summary_provenance.compatibility_record_keys(
+                "2028fed", "poll_calibration_compatibility_inputs", manifest
+            ),
+            ["loo-bundle"],
+        )
+
     def test_records_only_parents_with_consumed_outputs(self):
         manifest = {
             "records": {

@@ -1,8 +1,15 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Sep 13 00:51:38 2020
+"""Compile and cache Stan models without changing their sampling behaviour.
 
-@author: danny
+This is infrastructure rather than statistical processing. Callers provide
+the Stan source; this module derives a safe interpreter-specific cache name,
+loads a valid compiled model when available, and atomically replaces corrupt
+or missing cache entries after compilation.
+
+Main functions:
+* ``_cache_filename`` derives a filesystem-safe cache key from source and
+  Python/PyStan versions.
+* ``_write_cache_atomically`` publishes a newly compiled cache entry safely.
+* ``stan_cache`` loads or compiles one model for callers such as fp_model.py.
 """
 
 import gzip

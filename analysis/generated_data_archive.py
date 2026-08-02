@@ -2,6 +2,17 @@
 
 Parent flow: ``pipeline.py`` interactive archive actions.  The archive mirrors
 generated/cache data only; authored files in mixed directories remain local.
+
+Main functions:
+* ``preflight_build`` requires a complete current provenance audit and rejects
+  staging files before an archive can be created.
+* ``_managed_relative_paths`` selects permanent generated output paths while
+  excluding large compatibility calibration traces.
+* ``validate_archive`` verifies archive manifest structure and every payload
+  fingerprint before restore.
+* ``build_archive`` stages, validates and promotes a replacement archive.
+* ``restore_archive`` stages and validates a saved archive before replacing
+  only generated directory content in the working tree.
 """
 
 import hashlib
@@ -39,8 +50,11 @@ ALLOWED_ROOTS = set(FULL_ROOTS) | set(PARTIAL_ROOTS)
 EXCLUDED_OUTPUT_PREFIXES = (
     "Outputs/Calibration/Diagnostics/",
     "Outputs/Calibration/Staging/",
+    "Outputs/Calibration/Checkpoints/",
 )
 
+
+# Archive payload selection and preflight validation
 
 class GeneratedDataArchiveError(ValueError):
     """Raised when an archive cannot safely be built or restored."""
@@ -94,6 +108,11 @@ def _is_excluded_output(relative_path):
     ):
         return True
     path = PurePosixPath(relative_path)
+    if (
+        path.parts[:2] == ("Outputs", "Cutoffs")
+        and ".in-progress" in path.name
+    ):
+        return True
     if path.parts[:2] != ("Outputs", "Calibration"):
         return False
     # Compact summaries are the permanent calibration archive format. The
@@ -216,6 +235,8 @@ def preflight_build(analysis_directory, audit_runner=analysis_provenance.audit_r
         "work_units": len(audit.get("work_units", [])),
     }
 
+
+# Archive-manifest construction and validation
 
 def _archive_manifest(files):
     return {
@@ -375,6 +396,8 @@ def _promote_directory(staging_directory, destination_directory):
     else:
         _remove_tree(backup)
 
+
+# Staged archive build and restore
 
 def build_archive(analysis_directory, archive_directory=None, audit_runner=analysis_provenance.audit_repository):
     """Build, validate and atomically replace the archive after strict preflight."""

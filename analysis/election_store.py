@@ -5,6 +5,14 @@ script applies the shared party categories and writes the deliberately simple
 line-based CSV consumed by ``SimulationPreparation::loadPastSeatResults``.
 Candidate names are not quoted; the C++ reader parses stable result fields from
 the end of each row so names containing commas remain supported.
+
+Main functions:
+* ``write_election_to_file`` serializes one normalized result set into the
+  C++-compatible results CSV format.
+* ``store_elections`` performs the actual export for all loaded elections.
+* ``record_generated_provenance`` certifies the successfully written exports.
+* ``ensure_election_exports`` is the idempotent public entry point used by
+  later historical-analysis stages.
 """
 
 from election_check import get_checked_elections
@@ -19,6 +27,8 @@ GENERATED_MANIFEST = (
     ANALYSIS_DIRECTORY / 'elections' / 'generated-provenance.json'
 )
 
+
+# CSV serialization
 
 def write_candidate_to_file(file, c):
     file.write(f'{c.name},{c.party},{c.votes},{c.percent},{c.swing}\n')
@@ -35,6 +45,8 @@ def write_election_to_file(file, election_code, election_results):
         for tcp in seat.tcp:
             write_candidate_to_file(file, tcp)
 
+
+# Core export processing and provenance recording
 
 def store_elections(elections):
     """Write every configured election and return its provenance output list."""
@@ -125,6 +137,8 @@ def record_generated_provenance(stored_elections):
     )
     print(f'Recorded generated provenance in {GENERATED_MANIFEST}')
 
+
+# Public idempotent entry point
 
 def ensure_election_exports(elections):
     """Refresh exports when their files or provenance are no longer current."""

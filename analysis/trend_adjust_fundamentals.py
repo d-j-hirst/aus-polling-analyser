@@ -2,6 +2,14 @@
 
 Parent: trend_adjust.py combines this fundamentals estimate with poll trends
 through the mixing stage to generate forecast adjustments.
+
+Main functions:
+* ``create_fundamentals_inputs`` assembles contextual predictors for one
+  party/election estimate.
+* ``build_fundamentals_training_set`` and ``fit_fundamentals_model`` perform
+  the core historical regression fitting.
+* ``predict_fundamentals`` applies the fitted model to a target election.
+* ``run_fundamentals_regression`` coordinates fitting, validation and output.
 """
 
 import math
@@ -17,6 +25,8 @@ from trend_adjust_data import (
 )
 from trend_adjust_io import save_fundamentals
 
+
+# Core fundamentals predictor construction and regression
 
 def create_fundamentals_inputs(inputs, target_election, party):
     """Build the contextual predictors for one fundamentals estimate."""

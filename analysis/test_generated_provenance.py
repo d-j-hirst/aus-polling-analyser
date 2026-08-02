@@ -300,6 +300,104 @@ class GeneratedProvenanceTests(unittest.TestCase):
             ["election_result_exports:2025fed"],
         )
 
+    def test_dependency_allows_provenance_only_upgrades(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        self.rules_path.write_text(
+            "Original,Grouped\n# metadata only\n", encoding="utf-8"
+        )
+        source_provenance.record_change(
+            self.source_manifest_path,
+            "election_result_rules",
+            "Document a metadata-only source update.",
+            "formatting",
+            "provenance-only",
+            False,
+            source_provenance._build_scope(all_scopes=True),
+            provenance_upgrade="no-generated-metadata-change-v1",
+        )
+
+        dependency = generated_provenance.generated_manifest_dependency(
+            "election_result_exports",
+            self.generated_manifest_path,
+            ["election_result_exports:2025fed"],
+            self.base,
+        )
+
+        self.assertEqual(
+            dependency["records"],
+            ["election_result_exports:2025fed"],
+        )
+
+    def test_provenance_only_upgrades_do_not_stale_downstream_records(self):
+        record_key = "election_result_exports:2025fed"
+        self._write_manifest({record_key: self._record()})
+        dependency = generated_provenance.generated_manifest_dependency(
+            "election_result_exports",
+            self.generated_manifest_path,
+            [record_key],
+            self.base,
+        )
+        downstream_directory = self.base / "Seat Statistics"
+        downstream_directory.mkdir()
+        downstream_output = downstream_directory / "statistics.csv"
+        downstream_output.write_text("statistics\n", encoding="utf-8")
+        downstream_record = generated_provenance.generation_record(
+            category="seat_statistics",
+            stage="analyse_elections",
+            scope=generated_provenance.generation_scope(all_scopes=True),
+            run="downstream-run",
+            dependencies={"election_result_exports": dependency},
+            outputs=generated_provenance.output_fingerprints(
+                [downstream_output], self.base
+            ),
+            random_seed=None,
+        )
+        downstream_manifest = (
+            downstream_directory / "generated-provenance.json"
+        )
+        generated_provenance.update_manifest(
+            downstream_manifest,
+            {"seat_statistics:all": downstream_record},
+            {
+                "downstream-run": {
+                    "generated_at_utc": "2026-01-02T00:00:00Z",
+                    "command": ["python3", "election_analysis.py"],
+                    "source_revision": {
+                        "system": "git",
+                        "revision": "b" * 40,
+                        "dirty": False,
+                    },
+                    "environment": {
+                        "python_version": "3.8.0",
+                        "python_implementation": "CPython",
+                        "platform": "test",
+                    },
+                }
+            },
+            path_base="..",
+            description="Test downstream output.",
+        )
+        self.rules_path.write_text(
+            "Original,Grouped\n# metadata only\n", encoding="utf-8"
+        )
+        source_provenance.record_change(
+            self.source_manifest_path,
+            "election_result_rules",
+            "Document a metadata-only source update.",
+            "formatting",
+            "provenance-only",
+            False,
+            source_provenance._build_scope(all_scopes=True),
+            provenance_upgrade="no-generated-metadata-change-v1",
+        )
+
+        self.assertEqual(
+            generated_provenance.check_manifest(downstream_manifest),
+            {"seat_statistics:all": []},
+        )
+
     def test_updating_one_record_preserves_other_work_units(self):
         second_output = self.output_directory / "results_2026sa.csv"
         second_output.write_text("More election results\n", encoding="utf-8")

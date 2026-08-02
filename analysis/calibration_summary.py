@@ -7,6 +7,15 @@ house-effect medians, and the count of recent polls behind each house effect.
 This utility extracts that subset without modifying or deleting the existing
 files.  Later consumers can migrate to these summaries while retaining a
 legacy-file fallback.
+
+Main functions:
+* ``read_*`` functions load and strictly validate the legacy calibration
+  evidence required for a compact summary.
+* ``compact_election`` performs the actual reduction for one election.
+* ``write_summary_atomically`` and ``promote_direct_summary`` publish a
+  complete summary without exposing partial files.
+* ``compact`` selects requested elections and coordinates provenance-aware
+  batch compaction.
 """
 
 import argparse
@@ -25,6 +34,8 @@ SCHEMA_VERSION = "1"
 RECENT_POLL_WINDOW_DAYS = 183
 SUMMARY_DIRECTORY_NAME = "Summaries"
 STAGING_DIRECTORY_NAME = "Staging"
+RESIDUAL_EVIDENCE_DIRECTORY_NAME = "Evidence"
+SEED_DIRECTORY_NAME = "Seeds"
 SUMMARY_FIELDS = (
     "schema_version",
     "record_type",
@@ -40,6 +51,34 @@ SUMMARY_FIELDS = (
 RECORD_LEAVE_ONE_OUT = "leave_one_out"
 RECORD_BIAS_TREND = "bias_trend"
 RECORD_BIAS_POLLSTER = "bias_pollster"
+RESIDUAL_EVIDENCE_SCHEMA_VERSION = "1"
+RESIDUAL_EVIDENCE_FIELDS = (
+    "schema_version",
+    "election",
+    "party",
+    "pollster",
+    "poll_day_index",
+    "poll_index",
+    "observed_vote",
+    "loo_trend_median",
+    "adjusted_vote",
+    "loo_percentile",
+    "loo_deviation",
+    "probability_deviation",
+    "neighbour_weight",
+    "full_deviation",
+    "quotient_weight",
+    "final_weight",
+)
+SEED_SCHEMA_VERSION = "1"
+SEED_FIELDS = (
+    "schema_version",
+    "election",
+    "mode",
+    "excluded_pollster",
+    "party",
+    "stan_seed",
+)
 
 ELECTION_PATTERN = r"(?P<election>[0-9]{4}[a-z]+)"
 PARTY_PATTERN = r"(?P<party>@TPP|[^_]+ FP)"
@@ -65,6 +104,8 @@ class LeaveOneOutRecord:
     weighted_abs_error: float
     error_weight: float
 
+
+# Legacy-input discovery, loading and validation
 
 def _finite_float(value, description):
     try:
@@ -408,6 +449,8 @@ def direct_staging_path(calibration_directory, election, component):
     )
 
 
+# Core calibration-evidence reduction
+
 def build_leave_one_out_rows(election, values):
     """Create compact leave-one-out rows from in-memory reducer values."""
 
@@ -659,10 +702,152 @@ def compact_election(
     )
 
 
+# Staging, atomic publication and direct-summary support
+
 def summary_path(calibration_directory, election):
     return Path(calibration_directory) / SUMMARY_DIRECTORY_NAME / "{}.csv".format(
         election
     )
+
+
+def residual_evidence_path(calibration_directory, election):
+    return (
+        Path(calibration_directory)
+        / RESIDUAL_EVIDENCE_DIRECTORY_NAME
+        / "{}.csv".format(normalize_election(election))
+    )
+
+
+def build_residual_evidence_row(
+    election,
+    party,
+    pollster,
+    poll_day_index,
+    poll_index,
+    values,
+):
+    """Build one versioned held-out-poll record for later reducer research."""
+
+    row = {
+        "schema_version": RESIDUAL_EVIDENCE_SCHEMA_VERSION,
+        "election": normalize_election(election),
+        "party": str(party),
+        "pollster": str(pollster),
+        "poll_day_index": int(poll_day_index),
+        "poll_index": int(poll_index),
+    }
+    for field, value in zip(
+        RESIDUAL_EVIDENCE_FIELDS[6:],
+        values,
+    ):
+        row[field] = "" if value is None else _finite_float(
+            value,
+            "{} {} residual {}".format(election, pollster, field),
+        )
+    return row
+
+
+def write_residual_evidence_atomically(path, rows):
+    """Publish complete per-poll calibration evidence without partial files."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=".{}-".format(path.stem),
+        suffix=".tmp",
+        text=True,
+    )
+    try:
+        with os.fdopen(descriptor, "w", newline="", encoding="utf-8") as output:
+            writer = csv.DictWriter(
+                output,
+                fieldnames=RESIDUAL_EVIDENCE_FIELDS,
+                lineterminator="\n",
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary_name, path)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def seed_manifest_path(calibration_directory, election, mode):
+    normalized_mode = str(mode).strip().lower()
+    if normalized_mode not in {"calibration", "bias"}:
+        raise CalibrationSummaryError(
+            "seed manifest mode must be calibration or bias"
+        )
+    return (
+        Path(calibration_directory)
+        / SEED_DIRECTORY_NAME
+        / "{}-{}.csv".format(normalize_election(election), normalized_mode)
+    )
+
+
+def build_seed_rows(election, mode, resolved_seeds):
+    rows = []
+    for (seed_mode, excluded_pollster, party), seed in sorted(
+        resolved_seeds.items()
+    ):
+        if seed_mode != mode:
+            continue
+        try:
+            seed = int(seed)
+        except (TypeError, ValueError) as error:
+            raise CalibrationSummaryError(
+                "{} {} has a non-integer Stan seed".format(election, party)
+            ) from error
+        if not 1 <= seed < 2 ** 31:
+            raise CalibrationSummaryError(
+                "{} {} has an out-of-range Stan seed".format(election, party)
+            )
+        rows.append({
+            "schema_version": SEED_SCHEMA_VERSION,
+            "election": normalize_election(election),
+            "mode": mode,
+            "excluded_pollster": excluded_pollster,
+            "party": party,
+            "stan_seed": seed,
+        })
+    return rows
+
+
+def write_seed_manifest_atomically(path, rows):
+    """Persist every completed calibration fit seed for reproducibility."""
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=".{}-".format(path.stem),
+        suffix=".tmp",
+        text=True,
+    )
+    try:
+        with os.fdopen(descriptor, "w", newline="", encoding="utf-8") as output:
+            writer = csv.DictWriter(
+                output,
+                fieldnames=SEED_FIELDS,
+                lineterminator="\n",
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary_name, path)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def write_summary_atomically(path, rows):
@@ -778,6 +963,8 @@ def promote_direct_summary(calibration_directory, election):
     bias_path.unlink()
     return summary_path(calibration_directory, election), len(rows)
 
+
+# Batch selection and command-line entry point
 
 def normalize_election(value):
     normalized = value.strip().lower().replace("-", "")

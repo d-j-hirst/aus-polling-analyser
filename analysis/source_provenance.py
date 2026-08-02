@@ -3,6 +3,15 @@
 Source manifests are intentionally separate from generated-data manifests.
 They are designed to be committed to Git and normally maintained as one file
 per source folder. This utility uses only the Python standard library.
+
+Main functions:
+* ``snapshot_category`` and ``compare_snapshots`` calculate canonical
+  source-file fingerprints and identify physical changes.
+* ``record_change`` validates a declared impact, advances provenance revisions
+  and atomically records the source event.
+* ``semantic_events_affecting`` and ``provenance_events_affecting`` select
+  scoped changes relevant to a generated work unit.
+* ``check_manifest`` validates a committed manifest against its source folder.
 """
 
 import argparse
@@ -43,6 +52,8 @@ MAGNITUDES = {
 RECORD_MAGNITUDES = MAGNITUDES - {"unknown"}
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
+
+# Manifest schema validation
 
 class ProvenanceError(ValueError):
     """Raised when a manifest or requested provenance operation is invalid."""
@@ -619,6 +630,8 @@ def _matches_any(path, patterns):
     return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
 
 
+# Source fingerprinting and change detection
+
 def snapshot_category(manifest_path, manifest, category):
     folder = _source_folder(manifest_path, manifest)
     matched_paths = set()
@@ -815,6 +828,8 @@ def _scope_description(scope):
             parts.append("{}={}".format(field, "|".join(scope[field])))
     return ", ".join(parts)
 
+
+# Source-manifest mutation and scoped impact queries
 
 def add_category(
     manifest_path,
@@ -1076,6 +1091,8 @@ def _add_scope_arguments(parser):
     parser.add_argument("--party", action="append", default=[])
     parser.add_argument("--stage", action="append", default=[])
 
+
+# Command-line interface
 
 def build_parser():
     parser = argparse.ArgumentParser(

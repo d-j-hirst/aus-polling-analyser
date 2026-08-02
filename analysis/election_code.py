@@ -1,3 +1,16 @@
+"""Provide the small immutable election identifier used across the pipeline.
+
+This module performs no data processing. It keeps election identifiers
+consistent between CSV loading, generated-data manifests and model stages.
+
+Main functions and methods:
+* ``ElectionCode`` stores a year and jurisdiction and supplies stable equality,
+  hashing and display forms.
+* ``ElectionCode.load_elections_from_file`` parses ordered election lists and
+  can stop before an explicitly excluded election.
+"""
+
+
 class ElectionCode:
     def __init__(self, year, region):
         self._internal = (int(year), str(region))

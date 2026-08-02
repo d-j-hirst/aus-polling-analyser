@@ -3,6 +3,12 @@
 Parent: region_model.py orchestrates election work. The explicit Stan-data
 mappings remain in region_model_mappings.py; this module owns their shared
 compile, sampling, diagnostics, and final-day extraction behaviour.
+
+Main functions:
+* ``sample_region_model`` compiles/loads the selected Stan model and performs
+  the actual posterior sampling calculation.
+* ``latest_parameter_means`` extracts the final-day posterior values.
+* ``write_latest_parameter_means`` serializes the values for the caller.
 """
 
 import math
@@ -10,6 +16,8 @@ from time import perf_counter
 
 from region_model_common import ConfigError
 
+
+# Core Stan sampling and posterior reduction
 
 def sample_region_model(
     e_data, stan_data, model_path, random_seed, chains, iterations

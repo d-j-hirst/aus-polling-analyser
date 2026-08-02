@@ -1,4 +1,16 @@
-"""Track election-specific regional swing model outputs."""
+"""Track election-specific regional swing model outputs.
+
+Parent: region_model.py validates and runs a concrete election mapping, then
+uses this module to record its result. This module determines whether actual
+regional polling is present before requiring an election work unit.
+
+Main functions:
+* ``input_path`` and ``output_path`` resolve the supported regional files.
+* ``has_actual_poll_data`` and ``required_work_units`` decide whether an
+  election has enough input to require generation.
+* ``RegionalModelRecorder`` records a completed election/party output.
+* ``baseline_existing_outputs`` retains older files as legacy provenance.
+"""
 
 import argparse
 import csv
@@ -31,6 +43,8 @@ SOURCE_DEPENDENCIES = {
         ANALYSIS_DIRECTORY / "Models" / "provenance.json",
 }
 
+
+# Path resolution and input eligibility
 
 class RegionalProvenanceError(
     generated_provenance.GeneratedProvenanceError
@@ -175,6 +189,8 @@ def _source_dependencies():
         for category, manifest_path in SOURCE_DEPENDENCIES.items()
     }
 
+
+# Generated regional-output provenance publication
 
 class RegionalModelRecorder:
     """Certify completed regional model work units."""

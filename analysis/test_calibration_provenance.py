@@ -168,6 +168,135 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 {next(iter(manifest["records"])): []},
             )
 
+    def test_federal_prior_is_recorded_as_calibration_output(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            calibration_directory = base / "Outputs" / "Calibration"
+            prior = calibration_directory / "Priors" / "2028fed.csv"
+            prior.parent.mkdir(parents=True)
+            prior.write_text(
+                "Date,Party,50%\n2026-01-01,ONP FP,6.25\n",
+                encoding="utf-8",
+            )
+            manifest_path = calibration_directory / "generated-provenance.json"
+
+            with mock.patch.object(
+                calibration_provenance, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                calibration_provenance, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(
+                calibration_provenance,
+                "_source_dependencies",
+                return_value={},
+            ):
+                recorder = calibration_provenance.CalibrationRecorder(
+                    ["python3", "fp_model.py", "--calibrate"]
+                )
+                recorder.record_federal_priors("2028fed", prior)
+                recorder.flush()
+
+            manifest = generated_provenance.load_manifest(manifest_path)
+            record = manifest["records"]["federal_calibration_priors:2028fed"]
+            self.assertEqual(
+                record["category"], "federal_calibration_priors"
+            )
+            self.assertEqual(record["stage"], "calibrate_pollsters")
+            self.assertEqual(record["scope"]["elections"], ["2028fed"])
+
+    def test_residual_evidence_has_a_separate_generated_record(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            calibration_directory = base / "Outputs" / "Calibration"
+            staging = (
+                calibration_directory
+                / "Staging"
+                / "2028fed-leave-one-out.csv"
+            )
+            evidence = (
+                calibration_directory / "Evidence" / "2028fed.csv"
+            )
+            staging.parent.mkdir(parents=True)
+            evidence.parent.mkdir(parents=True)
+            staging.write_text("staging\n", encoding="utf-8")
+            evidence.write_text("evidence\n", encoding="utf-8")
+            manifest_path = calibration_directory / "generated-provenance.json"
+
+            with mock.patch.object(
+                calibration_provenance, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                calibration_provenance, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(
+                calibration_provenance,
+                "_source_dependencies",
+                return_value={},
+            ):
+                recorder = calibration_provenance.CalibrationRecorder(
+                    ["python3", "fp_model.py", "--calibrate"]
+                )
+                recorder.record_summaries(
+                    "2028fed",
+                    [staging],
+                    [],
+                    residual_evidence=evidence,
+                )
+                recorder.flush()
+
+            manifest = generated_provenance.load_manifest(manifest_path)
+            record = manifest["records"][
+                "poll_calibration_residual_evidence:2028fed"
+            ]
+            self.assertEqual(
+                record["category"],
+                "poll_calibration_residual_evidence",
+            )
+            self.assertEqual(
+                list(record["outputs"]),
+                ["Outputs/Calibration/Evidence/2028fed.csv"],
+            )
+
+    def test_mode_specific_seed_manifest_has_separate_category(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            output = (
+                base
+                / "Outputs"
+                / "Calibration"
+                / "Seeds"
+                / "2028fed-calibration.csv"
+            )
+            output.parent.mkdir(parents=True)
+            output.write_text("seeds\n", encoding="utf-8")
+            manifest_path = (
+                base
+                / "Outputs"
+                / "Calibration"
+                / "generated-provenance.json"
+            )
+            with mock.patch.object(
+                calibration_provenance, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                calibration_provenance, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(
+                calibration_provenance,
+                "_source_dependencies",
+                return_value={},
+            ):
+                recorder = calibration_provenance.CalibrationRecorder(
+                    ["python3", "fp_model.py", "--calibrate"]
+                )
+                recorder.record_seed_manifest(
+                    "2028fed", "calibration", output
+                )
+                recorder.flush()
+
+            manifest = generated_provenance.load_manifest(manifest_path)
+            record = manifest["records"][
+                "poll_calibration_stan_seeds:2028fed:calibration"
+            ]
+            self.assertEqual(
+                record["category"], "poll_calibration_stan_seeds"
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

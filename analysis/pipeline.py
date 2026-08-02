@@ -4,6 +4,17 @@ Status and planning cover the complete registered graph. Execution supports
 the routine trend, approval-refresh, calibration and historical-cutoff
 profiles by running existing generators directly and using their provenance
 records for progress and completion.
+
+Main functions:
+* ``build_status`` converts provenance audit records into machine-readable
+  work-unit status without running generators.
+* ``build_plan`` selects the required work units for requested profiles and
+  orders them by registered dependencies.
+* ``execute_generation_plan`` runs a fixed primary snapshot, then optional
+  follow-up passes for changes that occur while it runs.
+* ``execute_metadata_plan`` applies ordered provenance-only upgrades without
+  regenerating data.
+* ``run_interactive`` is the human-facing menu, including archive actions.
 """
 
 import argparse
@@ -24,6 +35,7 @@ import generated_data_archive
 import generated_provenance
 import pipeline_registry
 import provenance_maintenance
+import source_provenance
 
 try:
     from InquirerPy import inquirer
@@ -106,6 +118,8 @@ DISPLAY_EXAMPLE_LIMIT = 10
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
 PIPELINE_LOG_DIRECTORY = ANALYSIS_DIRECTORY / "Logs" / "Pipeline"
 
+
+# Run logging and common plan metadata
 
 class PipelineError(ValueError):
     """Raised when a status or plan cannot be constructed safely."""
@@ -326,6 +340,8 @@ def _issue_summary(issue):
     }
 
 
+# Audit interpretation and dependency-plan construction
+
 def build_status(audit, registry, include_details=False):
     """Return a concise status model suitable for text or JSON rendering."""
 
@@ -379,6 +395,7 @@ def build_status(audit, registry, include_details=False):
     root_categories = {
         "immediate": sorted(audit["other_root_causes"]),
         "synthetic_tpp": sorted(audit["synthetic_tpp_root_causes"]),
+        "cutoff": sorted(audit["cutoff_root_causes"]),
         "calibration": sorted(audit["calibration_root_causes"]),
     }
     status = {
@@ -473,10 +490,21 @@ def _task_status(status_counts):
 
 
 def _is_inherited_only_staleness(work_unit):
+    """Whether a stale record can be consumed without regenerating data.
+
+    Provenance-only source revisions require metadata maintenance, not a new
+    model run.  They commonly appear beside an inherited stale calibration
+    dependency, and must not turn that otherwise tolerated lineage into a
+    data-generation task.
+    """
+
     if work_unit["status"] != "stale" or not work_unit["issues"]:
         return False
     return all(
-        issue["code"] == "stale_generated_dependency"
+        issue["code"] in {
+            "stale_generated_dependency",
+            "provenance_only_revision",
+        }
         for issue in work_unit["issues"]
     )
 
@@ -1010,6 +1038,249 @@ def build_metadata_plan(audit):
     }
 
 
+def _metadata_source_blockers(progress=None):
+    """Return fast blockers from authored manifests, without output hashing."""
+
+    if progress is not None:
+        progress("Checking authored source provenance...")
+    blockers = []
+    for manifest_path in analysis_provenance.SOURCE_MANIFEST_PATHS:
+        try:
+            manifest = source_provenance.load_manifest(manifest_path)
+            comparisons = source_provenance.check_manifest(manifest_path)
+        except source_provenance.ProvenanceError as error:
+            blockers.append(
+                {
+                    "status": "blocked",
+                    "code": "source_manifest_error",
+                    "message": "{}: {}".format(manifest_path, error),
+                }
+            )
+            continue
+        for category_id, comparison in comparisons.items():
+            changed_paths = []
+            for change_kind in ("added", "removed", "modified"):
+                changed_paths.extend(comparison[change_kind])
+            if changed_paths:
+                blockers.append(
+                    {
+                        "status": "blocked",
+                        "code": "unregistered_source_change",
+                        "message": (
+                            "{} has unregistered source change(s): {}"
+                            .format(
+                                category_id,
+                                ", ".join(sorted(changed_paths)[:10]),
+                            )
+                        ),
+                    }
+                )
+    return blockers
+
+
+def _metadata_task(manifest_path, manifest_label, record_key, record):
+    """Build a metadata task from a manifest record with pending upgrades."""
+
+    return {
+        "stage": "maintain_provenance",
+        "source_stage": record["stage"],
+        "run_class": "metadata",
+        "election": (
+            record["scope"]["elections"][0]
+            if len(record["scope"]["elections"]) == 1
+            else None
+        ),
+        "party": (
+            record["scope"]["parties"][0]
+            if len(record["scope"]["parties"]) == 1
+            else None
+        ),
+        "status": "provenance-stale",
+        "status_counts": {"provenance-stale": 1},
+        "work_units": [record_key],
+        "manifest": manifest_label,
+        "command": [
+            "metadata-maintenance",
+            manifest_label,
+            record_key,
+        ],
+        "working_directory": ".",
+    }
+
+
+def load_metadata_plan(target_elections, progress=None):
+    """Plan only metadata upgrades that can be applied without regeneration.
+
+    Candidate discovery avoids output hashing. Candidates are then validated
+    with shared filesystem caches before they are presented to the user. This
+    can still take time for a large archive, so it reports progress instead of
+    presenting a plan that could fail immediately on an unrelated stale input.
+    Each selected task is revalidated again by ``maintain_record`` immediately
+    before publication to handle concurrent data generation safely.
+    """
+
+    blockers = _metadata_source_blockers(progress=progress)
+    tasks = []
+    deferred_candidates = 0
+    if not blockers:
+        manifests = {}
+        source_manifest_cache = {}
+        if target_elections:
+            if progress is not None:
+                progress("Selecting provenance records for {}...".format(
+                    ", ".join(sorted(target_elections))
+                ))
+            selected_records, _ = analysis_provenance._selected_generated_records(
+                analysis_provenance.GENERATED_MANIFEST_PATHS,
+                target_elections,
+                include_dependencies=True,
+            )
+            selected_records = selected_records or {}
+            for manifest_path, record_keys in selected_records.items():
+                manifests[Path(manifest_path).resolve()] = set(record_keys)
+        else:
+            for manifest_path in analysis_provenance.GENERATED_MANIFEST_PATHS:
+                resolved_path = Path(manifest_path).resolve()
+                if not resolved_path.is_file():
+                    continue
+                manifest = generated_provenance.load_manifest(resolved_path)
+                manifests[resolved_path] = set(manifest["records"])
+
+        manifest_items = sorted(manifests.items())
+        total_records = sum(len(record_keys) for _, record_keys in manifest_items)
+        checked_records = 0
+        for manifest_index, (manifest_path, record_keys) in enumerate(
+            manifest_items, start=1
+        ):
+            if progress is not None:
+                progress(
+                    "Inspecting metadata upgrades in provenance bundle {}/{}: {}"
+                    .format(
+                        manifest_index,
+                        len(manifest_items),
+                        manifest_path.name,
+                    )
+                )
+            manifest = generated_provenance.load_manifest(manifest_path)
+            base_directory = (
+                manifest_path.parent / manifest["path_base"]
+            ).resolve()
+            manifest_label = analysis_provenance._manifest_label(
+                manifest_path
+            )
+            for record_key in sorted(record_keys):
+                checked_records += 1
+                if progress is not None and checked_records % 100 == 0:
+                    progress(
+                        "Checked {}/{} metadata records...".format(
+                            checked_records, total_records
+                        )
+                    )
+                record = manifest["records"].get(record_key)
+                if record is None:
+                    continue
+                try:
+                    upgrades = provenance_maintenance.pending_upgrades(
+                        record,
+                        base_directory,
+                        source_manifest_cache=source_manifest_cache,
+                    )
+                except provenance_maintenance.ProvenanceMaintenanceError:
+                    # A semantic change requires data regeneration and is not
+                    # a metadata-maintenance candidate.
+                    continue
+                if upgrades:
+                    tasks.append(
+                        _metadata_task(
+                            manifest_path,
+                            manifest_label,
+                            record_key,
+                            record,
+                        )
+                    )
+
+        if tasks:
+            if progress is not None:
+                progress(
+                    "Validating {} metadata candidate(s) before planning..."
+                    .format(len(tasks))
+                )
+            validation_context = generated_provenance.ManifestCheckContext()
+            eligible_tasks = []
+            for task_index, task in enumerate(tasks, start=1):
+                if progress is not None and (
+                    task_index == 1
+                    or task_index % 10 == 0
+                    or task_index == len(tasks)
+                ):
+                    progress(
+                        "Validating metadata candidate {}/{}...".format(
+                            task_index, len(tasks)
+                        )
+                    )
+                manifest_path = (
+                    ANALYSIS_DIRECTORY / task["manifest"]
+                ).resolve()
+                try:
+                    maintainable = provenance_maintenance.can_maintain_record(
+                        manifest_path,
+                        task["work_units"][0],
+                        source_manifest_cache=source_manifest_cache,
+                        check_context=validation_context,
+                    )
+                except (
+                    generated_provenance.GeneratedProvenanceError,
+                    OSError,
+                    ValueError,
+                ):
+                    maintainable = False
+                if maintainable:
+                    eligible_tasks.append(task)
+                else:
+                    deferred_candidates += 1
+            tasks = eligible_tasks
+            if progress is not None:
+                progress(
+                    "Validated {}/{} metadata candidates.".format(
+                        len(tasks), len(tasks) + deferred_candidates
+                    )
+                )
+
+    tasks.sort(key=lambda task: (task["manifest"], task["work_units"][0]))
+    return {
+        "schema_version": 1,
+        "target_elections": sorted(target_elections or []),
+        "profiles": ["metadata"],
+        "requires_fresh_dependencies": False,
+        "root_run_classes": ["metadata"],
+        "selected_run_classes": ["metadata"],
+        "blockers": blockers,
+        "warnings": [
+            {
+                "code": "metadata_tasks_revalidated",
+                "message": (
+                    "Each selected metadata task is revalidated immediately "
+                    "before its manifest is updated."
+                ),
+            }
+        ] + (
+            [
+                {
+                    "code": "metadata_candidates_deferred",
+                    "message": (
+                        "{} metadata candidate(s) require data regeneration "
+                        "and were deferred."
+                    ).format(deferred_candidates),
+                }
+            ]
+            if deferred_candidates
+            else []
+        ),
+        "accepted_stale_work_units": [],
+        "tasks": tasks if not blockers else [],
+    }
+
+
 def _format_counts(counts):
     return ", ".join(
         "{} {}".format(counts.get(status, 0), status)
@@ -1039,9 +1310,10 @@ def print_status(status):
     roots = status["root_categories"]
     print(
         "Issue roots: {} immediate, {} approval-path-only, "
-        "{} calibration-path-only".format(
+        "{} cutoff-path-only, {} calibration-path-only".format(
             len(roots["immediate"]),
             len(roots["synthetic_tpp"]),
+            len(roots["cutoff"]),
             len(roots["calibration"]),
         )
     )
@@ -1064,6 +1336,7 @@ def print_status(status):
     for path_class, label in (
         ("immediate", "C++ inputs requiring prompt regeneration"),
         ("synthetic_tpp_only", "C++ inputs stale only through approvals"),
+        ("cutoff_only", "C++ inputs stale only through historical cutoffs"),
         ("calibration_only", "C++ inputs stale only through calibration"),
     ):
         impacts = cpp_impacts.get(path_class, {})
@@ -1121,7 +1394,12 @@ def print_plan(plan, include_details=False):
             print("No regeneration tasks are required for this profile.")
         return
 
-    print("{} regeneration task(s):".format(len(plan["tasks"])))
+    task_description = (
+        "metadata maintenance task(s)"
+        if plan["profiles"] == ["metadata"]
+        else "regeneration task(s)"
+    )
+    print("{} {}:".format(len(plan["tasks"]), task_description))
     if not include_details:
         tasks_by_stage = defaultdict(list)
         for task in plan["tasks"]:
@@ -1523,6 +1801,8 @@ def _refresh_follow_up_plan(refresh_plan, input_func):
         input_func()
 
 
+# Subprocess execution, progress checks and follow-up passes
+
 def execute_generation_plan(
     plan,
     refresh_plan,
@@ -1672,12 +1952,9 @@ def execute_metadata_plan(
         print("No metadata maintenance is required.")
         return
 
-    current_plan = plan
+    completed = 0
+    deferred = []
     for index, task in enumerate(plan["tasks"], start=1):
-        if _task_identity(task) not in {
-            _task_identity(item) for item in current_plan["tasks"]
-        }:
-            continue
         print(
             "\n"
             "============================================================\n"
@@ -1702,15 +1979,29 @@ def execute_metadata_plan(
         manifest_path = (
             ANALYSIS_DIRECTORY / task["manifest"]
         ).resolve()
-        count = provenance_maintenance.maintain_record(
-            manifest_path, task["work_units"][0]
-        )
-        current_plan = _refresh_after_task(
-            task,
-            refresh_plan,
-            input_func=input_func,
-            run_log=run_log,
-        )
+        try:
+            count = provenance_maintenance.maintain_record(
+                manifest_path, task["work_units"][0]
+            )
+        except provenance_maintenance.ProvenanceMaintenanceError as error:
+            deferred.append((task, str(error)))
+            if run_log is not None:
+                run_log.event(
+                    "TASK DEFERRED",
+                    phase="METADATA",
+                    stage=task["stage"],
+                    target=_task_target(task),
+                    problem=str(error),
+                )
+            print(
+                "METADATA TASK {}/{} DEFERRED: data regeneration is now "
+                "required; no manifest was changed.\n{}".format(
+                    index, len(plan["tasks"]), error
+                ),
+                flush=True,
+            )
+            continue
+        completed += 1
         if run_log is not None:
             run_log.event(
                 "TASK VERIFIED",
@@ -1723,12 +2014,34 @@ def execute_metadata_plan(
             "Applied {} ordered provenance upgrade(s).".format(count),
             flush=True,
         )
+    print(
+        "\nMetadata maintenance completed: {} task(s) updated{}.".format(
+            completed,
+            "; {} deferred for data regeneration".format(len(deferred))
+            if deferred
+            else "",
+        ),
+        flush=True,
+    )
+    if deferred:
+        print("Deferred metadata task(s):", flush=True)
+        for task, _ in deferred[:DISPLAY_EXAMPLE_LIMIT]:
+            print("  {}".format(task["work_units"][0]), flush=True)
+        if len(deferred) > DISPLAY_EXAMPLE_LIMIT:
+            print(
+                "  ... and {} more".format(
+                    len(deferred) - DISPLAY_EXAMPLE_LIMIT
+                ),
+                flush=True,
+            )
     if run_log is not None:
         run_log.event(
             "PLAN COMPLETE",
             commands_run=0,
-            metadata_tasks=len(plan["tasks"]),
+            metadata_tasks=completed,
+            deferred_tasks=len(deferred),
         )
+    return {"completed": completed, "deferred": deferred}
 
 
 def _execute_plan_with_log(
@@ -1900,6 +2213,8 @@ def _load_plan_fresh(target_elections, profiles):
     return plan
 
 
+# Command-line and interactive user interfaces
+
 def run_interactive():
     """Open a menu-driven status and planning interface."""
 
@@ -1987,6 +2302,53 @@ def run_interactive():
             if elections is None:
                 return 0
             target_elections = _normalize_elections(elections)
+            if action == "run-metadata":
+                plan = load_metadata_plan(target_elections, progress=print)
+                print_plan(plan)
+                if (
+                    not plan["blockers"]
+                    and plan["tasks"]
+                    and _interactive_confirm(
+                        "Apply these metadata upgrades now?"
+                    )
+                ):
+                    _execute_plan_with_log(
+                        plan,
+                        lambda: _load_plan_fresh(
+                            target_elections, {"metadata"}
+                        ),
+                        target_elections,
+                    )
+                print()
+                continue
+
+            selected_plan_profile = None
+            if action == "plan":
+                selected_plan_profile = _interactive_select(
+                    "Choose a run profile",
+                    (
+                        ("Regular", "regular"),
+                        (
+                            "Regular with approval refresh",
+                            "regular-with-approvals",
+                        ),
+                        ("Calibration only", "calibration"),
+                        ("Metadata maintenance", "metadata"),
+                        (
+                            "Historical cutoffs needed by target adjustments",
+                            "cutoffs",
+                        ),
+                        ("All executable stages", "all"),
+                    ),
+                )
+                if selected_plan_profile is None:
+                    return 0
+                if selected_plan_profile == "metadata":
+                    print_plan(
+                        load_metadata_plan(target_elections, progress=print)
+                    )
+                    print()
+                    continue
             registry, audit = _load_audit(target_elections)
             if action == "status":
                 print_status(build_status(audit, registry))
@@ -2024,44 +2386,10 @@ def run_interactive():
                         ),
                         target_elections,
                     )
-            elif action == "run-metadata":
-                plan = build_plan(audit, registry, {"metadata"})
-                print_plan(plan)
-                if (
-                    not plan["blockers"]
-                    and plan["tasks"]
-                    and _interactive_confirm(
-                        "Apply these metadata upgrades now?"
-                    )
-                ):
-                    _execute_plan_with_log(
-                        plan,
-                        lambda: _load_plan_fresh(
-                            target_elections, {"metadata"}
-                        ),
-                        target_elections,
-                    )
             else:
-                profile = _interactive_select(
-                    "Choose a run profile",
-                    (
-                        ("Regular", "regular"),
-                        (
-                            "Regular with approval refresh",
-                            "regular-with-approvals",
-                        ),
-                        ("Calibration only", "calibration"),
-                        ("Metadata maintenance", "metadata"),
-                        (
-                            "Historical cutoffs needed by target adjustments",
-                            "cutoffs",
-                        ),
-                        ("All executable stages", "all"),
-                    ),
+                print_plan(
+                    build_plan(audit, registry, {selected_plan_profile})
                 )
-                if profile is None:
-                    return 0
-                print_plan(build_plan(audit, registry, {profile}))
         except (
             PipelineError,
             generated_data_archive.GeneratedDataArchiveError,
@@ -2148,6 +2476,37 @@ def main(argv=None):
         if args.command in {None, "interactive"}:
             return run_interactive()
         target_elections = _normalize_elections(args.election)
+        if args.command == "run" and args.profile == "metadata":
+            plan = load_metadata_plan(
+                target_elections,
+                progress=lambda message: print(message, file=sys.stderr),
+            )
+            print_plan(plan)
+            if plan["blockers"]:
+                return 2
+            _execute_plan_with_log(
+                plan,
+                lambda: _load_plan_fresh(target_elections, {"metadata"}),
+                target_elections,
+            )
+            return 0
+
+        if args.command == "plan":
+            profiles = set(args.profile or ["regular"])
+            if profiles == {"metadata"}:
+                progress = (
+                    lambda message: print(message, file=sys.stderr)
+                )
+                plan = load_metadata_plan(
+                    target_elections,
+                    progress=progress,
+                )
+                if args.format == "json":
+                    print(_json_output(plan))
+                else:
+                    print_plan(plan, include_details=args.details)
+                return 2 if plan["blockers"] else 0
+
         registry, audit = _load_audit(target_elections)
         if args.command == "status":
             status = build_status(
@@ -2161,7 +2520,7 @@ def main(argv=None):
 
         if args.command == "run":
             profiles = {args.profile}
-            if args.profile != "metadata" and not target_elections:
+            if not target_elections:
                 raise PipelineError(
                     "generation profiles require at least one --election"
                 )

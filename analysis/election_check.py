@@ -4,6 +4,13 @@ The numerical checks are advisory because published historical percentages
 are often rounded and a small number of known source rows exceed the chosen
 tolerances. Party simplification is behavioural: downstream seat analysis and
 the C++ simulation consume the resulting common party labels.
+
+Main functions:
+* ``get_checked_elections`` loads cached results, applies party simplification
+  and returns the normalized in-memory result set.
+* ``combine_parties`` performs the behavioural raw-party-to-common-party
+  transformation used by downstream analysis.
+* ``check_*`` functions are non-blocking diagnostics for cached source rows.
 """
 
 from pathlib import Path
@@ -16,6 +23,8 @@ PARTY_SIMPLIFICATION_FILE = (
     ANALYSIS_DIRECTORY / 'Data' / 'party-simplification.csv'
 )
 
+
+# Advisory validation and diagnostics
 
 def check_seat_numbers(elections):
     for code, election in elections.elections.items():
@@ -112,6 +121,8 @@ def check_tcp_percent_calc(elections):
                     print(f'{election.name} - {seat_result.name} - has tcp vote count data that can be converted to a percentage')
 
 
+# Core result normalization
+
 def combine_parties(elections):
     """Apply the shared historical-party categories used by later analysis."""
     conversions = {}
@@ -181,6 +192,8 @@ def best_performances(elections):
         for c in candidate_list[:10]:
             print(f'Election: {c[0].region()}{c[0].year()}, Seat: {c[1]}, Name: {c[2]}, fp %: {c[3]}')
 
+
+# Loading and public entry point
 
 def get_checked_elections(allow_download=True):
     """Load all configured elections, report anomalies and normalise parties."""

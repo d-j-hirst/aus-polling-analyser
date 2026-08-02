@@ -1,4 +1,17 @@
-"""Record provenance for synthetic TPP observations derived from approvals."""
+"""Record provenance for synthetic TPP observations derived from approvals.
+
+This module selects the pure trends and approval-poll periods that contribute
+to each jurisdiction's diagnostic synthetic-TPP output. The direct in-memory
+consumer remains fp_model.py; these records make that ancestry auditable.
+
+Main functions:
+* ``approval_dates_by_election`` and ``approval_elections`` identify which
+  historical election work units have usable approval evidence.
+* ``synthetic_dependency_elections`` selects the pure-trend parents required
+  by a requested target election.
+* ``SyntheticTppRecorder`` publishes generated synthetic-TPP provenance.
+* ``baseline_existing_outputs`` registers prior files as legacy.
+"""
 
 import argparse
 import csv
@@ -29,6 +42,8 @@ SOURCE_DEPENDENCIES = {
     "election_code_script": ANALYSIS_DIRECTORY / "provenance.json",
 }
 
+
+# Election and approval-input selection
 
 def _configured_elections():
     elections = set()
@@ -253,6 +268,8 @@ def generation_dependencies(
         )
     return dependencies
 
+
+# Generated synthetic-TPP provenance publication
 
 class SyntheticTppRecorder:
     """Preflight dependencies and certify a complete jurisdiction output."""

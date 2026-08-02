@@ -3,6 +3,14 @@
 Parent: pollster_analysis.py coordinates the variability, house-effect and bias
 reducers after this module selects an election and its calibration inputs. The
 functions here intentionally preserve the former entry-point interfaces.
+
+Main functions:
+* ``Config`` validates command-line election selection for the entry point.
+* ``get_election_cycles``, ``get_links`` and ``get_significant_parties`` load
+  the authored context used to select comparable calibration evidence.
+* ``canonical_party`` and ``output_party`` keep Coalition/Liberal evidence
+  aligned across federal and state output conventions.
+* ``check_dates`` implements the historical comparability rule.
 """
 
 import argparse
@@ -15,6 +23,8 @@ directory = 'Outputs/Calibration'
 LIBERAL_PARTY = 'LIB FP'
 COALITION_PARTY = 'LNP FP'
 
+
+# Party normalization and output naming
 
 def canonical_party(party):
     """Pool state Liberal evidence with the national Coalition series."""
@@ -36,6 +46,8 @@ def output_paths(target_election):
         f'{directory}/biases-{code}.csv',
     ]
 
+
+# Command-line and authored-input loading
 
 class ConfigError(ValueError):
     pass

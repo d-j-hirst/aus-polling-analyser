@@ -1,3 +1,15 @@
+"""Validate samples and calculate the dispersion measures used by models.
+
+This module contains no pipeline loading or output code. It centralises the
+finite-value and effective-sample checks so numerical stages can rely on
+well-defined RMSE and tail-kurtosis estimates.
+
+Main functions:
+* ``calc_rmse`` calculates sample dispersion around a nominated centre.
+* ``one_tail_kurtosis`` estimates a weighted one-sided tail shape.
+* ``two_tail_kurtosis`` estimates ordinary two-sided sample kurtosis.
+"""
+
 import math
 import numpy as np
 

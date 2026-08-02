@@ -2,6 +2,15 @@
 
 Parent: trend_adjust.py owns the workflow; this module writes and validates
 the fundamentals and adjustment files produced by its calculation stages.
+
+Main functions:
+* ``write_smoothed_series`` expands sparse triangular-day calculation results
+  into the daily series required by the C++ model.
+* ``save_fundamentals`` and ``save_party_data`` serialize calculation outputs.
+* ``load_adjustment_data`` and ``adjustment_parameters_at`` validate and read
+  saved adjustment files for diagnostics and consumers.
+* ``validate_generated_*`` and ``promote_staged_outputs`` ensure only complete
+  validated output bundles become visible.
 """
 
 import math
@@ -18,6 +27,8 @@ from trend_adjust_data import (
     TrendAdjustmentDataError,
 )
 
+
+# Output-series calculation and serialization
 
 def write_smoothed_series(
     config,
@@ -145,6 +156,8 @@ def save_party_data(
     return str(filename)
 
 
+# Consumer loading and validation
+
 def load_adjustment_data(filename):
     """Load either a legacy single grid or support-level parameter grids."""
 
@@ -227,6 +240,8 @@ def adjustment_parameters_at(grids, transformed_trend, day):
         for index in range(len(lower_rows))
     ]
 
+
+# Staged-output validation and publication
 
 def validate_generated_fundamentals(filename):
     """Validate one newly generated fundamentals file before promotion."""

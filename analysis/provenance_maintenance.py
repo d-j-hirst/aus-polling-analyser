@@ -1,4 +1,16 @@
-"""Apply explicit metadata-only upgrades to generated provenance records."""
+"""Apply explicit metadata-only upgrades to generated provenance records.
+
+This module never regenerates analysis data. It applies versioned repair
+functions only when a source event explicitly declares a compatible
+``provenance-only`` upgrade path; material changes remain regeneration work.
+
+Main functions:
+* ``pending_upgrades`` selects ordered applicable upgrades for one record.
+* ``can_maintain_record`` checks whether all current issues are repairable
+  without regenerating the work unit.
+* ``maintain_record`` applies the upgrades sequentially and republishes the
+  manifest through generated_provenance.
+"""
 
 import copy
 from pathlib import Path
@@ -6,6 +18,8 @@ from pathlib import Path
 import generated_provenance
 import source_provenance
 
+
+# Registered metadata-upgrade implementations
 
 class ProvenanceMaintenanceError(ValueError):
     """Raised when metadata cannot be upgraded without regeneration."""
@@ -63,6 +77,8 @@ UPGRADES = {
 }
 
 
+# Upgrade selection, validation and publication
+
 def upgrade_ids():
     return tuple(sorted(UPGRADES))
 
@@ -84,10 +100,15 @@ def _target_scope(record):
     )
 
 
-def pending_upgrades(record, base_directory):
+def pending_upgrades(record, base_directory, source_manifest_cache=None):
     """Return applicable provenance-only source events in execution order."""
 
     pending = []
+    source_manifest_cache = (
+        source_manifest_cache
+        if source_manifest_cache is not None
+        else {}
+    )
     target_scope = _target_scope(record)
     for category_id, dependency in record["dependencies"].items():
         if dependency["kind"] != "source_manifest":
@@ -95,7 +116,11 @@ def pending_upgrades(record, base_directory):
         manifest_path = (
             Path(base_directory) / dependency["manifest"]
         ).resolve()
-        source_manifest = source_provenance.load_manifest(manifest_path)
+        if manifest_path not in source_manifest_cache:
+            source_manifest_cache[manifest_path] = (
+                source_provenance.load_manifest(manifest_path)
+            )
+        source_manifest = source_manifest_cache[manifest_path]
         try:
             category = source_manifest["categories"][category_id]
         except KeyError as error:
@@ -171,7 +196,12 @@ def _repairable_issue(issue, upgrades):
     )
 
 
-def can_maintain_record(manifest_path, record_key):
+def can_maintain_record(
+    manifest_path,
+    record_key,
+    source_manifest_cache=None,
+    check_context=None,
+):
     """Whether an explicit metadata upgrade can safely repair one record."""
 
     manifest_path = Path(manifest_path).resolve()
@@ -184,7 +214,11 @@ def can_maintain_record(manifest_path, record_key):
         return False
     base_directory = (manifest_path.parent / manifest["path_base"]).resolve()
     try:
-        upgrades = pending_upgrades(record, base_directory)
+        upgrades = pending_upgrades(
+            record,
+            base_directory,
+            source_manifest_cache=source_manifest_cache,
+        )
     except (
         ProvenanceMaintenanceError,
         generated_provenance.GeneratedProvenanceError,
@@ -192,7 +226,11 @@ def can_maintain_record(manifest_path, record_key):
         return False
     if not upgrades:
         return False
-    issues = generated_provenance.check_record(record, base_directory)
+    issues = generated_provenance.check_record(
+        record,
+        base_directory,
+        check_context=check_context,
+    )
     return all(_repairable_issue(issue, upgrades) for issue in issues)
 
 

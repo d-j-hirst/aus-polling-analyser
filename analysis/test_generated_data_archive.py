@@ -48,21 +48,98 @@ class GeneratedDataArchiveTests(unittest.TestCase):
         summary = self.analysis / "Outputs" / "Calibration" / "Summaries" / "2028fed.csv"
         summary.parent.mkdir()
         summary.write_text("compact summary\n", encoding="utf-8")
+        evidence = (
+            self.analysis
+            / "Outputs"
+            / "Calibration"
+            / "Evidence"
+            / "2028fed.csv"
+        )
+        evidence.parent.mkdir()
+        evidence.write_text("residual evidence\n", encoding="utf-8")
+        seed_manifest = (
+            self.analysis
+            / "Outputs"
+            / "Calibration"
+            / "Seeds"
+            / "2028fed-calibration.csv"
+        )
+        seed_manifest.parent.mkdir()
+        seed_manifest.write_text("resolved seeds\n", encoding="utf-8")
+        checkpoint = (
+            self.analysis
+            / "Outputs"
+            / "Calibration"
+            / "Checkpoints"
+            / "2028fed"
+            / "full.json"
+        )
+        checkpoint.parent.mkdir(parents=True)
+        checkpoint.write_text("{}\n", encoding="utf-8")
+        cutoff_draft = (
+            self.analysis
+            / "Outputs"
+            / "Cutoffs"
+            / "fp_cutoffs_2025fed.csv.in-progress"
+        )
+        cutoff_draft.parent.mkdir(parents=True, exist_ok=True)
+        cutoff_draft.write_text("draft\n", encoding="utf-8")
+        cutoff_sidecar = cutoff_draft.with_suffix(
+            cutoff_draft.suffix + ".json"
+        )
+        cutoff_sidecar.write_text("{}\n", encoding="utf-8")
 
         result = generated_data_archive.build_archive(
             self.analysis, audit_runner=self.current_audit
         )
 
         archive = result["archive_directory"]
-        self.assertEqual(result["files"], 9)
+        self.assertEqual(result["files"], 11)
         self.assertTrue((archive / generated_data_archive.ARCHIVE_MANIFEST_NAME).is_file())
         self.assertFalse((archive / "Outputs" / "Calibration" / "Diagnostics").exists())
+        self.assertFalse((archive / "Outputs" / "Calibration" / "Checkpoints").exists())
         self.assertFalse((archive / "Outputs" / "Calibration" / legacy.name).exists())
+        self.assertFalse(
+            (
+                archive
+                / "Outputs"
+                / "Cutoffs"
+                / cutoff_draft.name
+            ).exists()
+        )
+        self.assertFalse(
+            (
+                archive
+                / "Outputs"
+                / "Cutoffs"
+                / cutoff_sidecar.name
+            ).exists()
+        )
         self.assertEqual(
             (archive / "Outputs" / "Calibration" / "Summaries" / "2028fed.csv").read_text(
                 encoding="utf-8"
             ),
             "compact summary\n",
+        )
+        self.assertEqual(
+            (
+                archive
+                / "Outputs"
+                / "Calibration"
+                / "Evidence"
+                / "2028fed.csv"
+            ).read_text(encoding="utf-8"),
+            "residual evidence\n",
+        )
+        self.assertEqual(
+            (
+                archive
+                / "Outputs"
+                / "Calibration"
+                / "Seeds"
+                / "2028fed-calibration.csv"
+            ).read_text(encoding="utf-8"),
+            "resolved seeds\n",
         )
         self.assertEqual(
             generated_data_archive.validate_archive(archive)["schema_version"],

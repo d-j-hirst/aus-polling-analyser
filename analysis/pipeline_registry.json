@@ -270,6 +270,25 @@
       ],
       "description": "Compilation and local caching of Stan model executables."
     },
+    "fp_model_checkpoint_script": {
+      "kind": "code",
+      "scope": "global",
+      "core": true,
+      "paths": [
+        "fp_model_checkpoints.py"
+      ],
+      "description": "Atomic fingerprinted restart checkpoints for completed fp-model calibration blocks."
+    },
+    "fp_model_diagnostic_tools": {
+      "kind": "code",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "prior_chain_diagnostic.py",
+        "low_share_diagnostic.py"
+      ],
+      "description": "Standalone exact and Stan diagnostics for prior-chain boundaries and low-share transforms."
+    },
     "calibration_provenance_script": {
       "kind": "code",
       "scope": "global",
@@ -400,6 +419,16 @@
       ],
       "description": "Stan model source used by poll-trend and calibration generation."
     },
+    "fp_diagnostic_stan_models": {
+      "kind": "authored",
+      "scope": "global",
+      "core": false,
+      "paths": [
+        "Models/prior_chain_diagnostic.stan",
+        "Models/low_share_diagnostic.stan"
+      ],
+      "description": "Standalone Stan models used only for fp-model diagnostic comparisons."
+    },
     "regional_stan_models": {
       "kind": "authored",
       "scope": "election",
@@ -505,6 +534,22 @@
       ],
       "description": "Temporary leave-one-out hand-off files plus legacy detailed calibration inputs retained for archive compatibility."
     },
+    "poll_calibration_traces": {
+      "kind": "diagnostic",
+      "scope": "calibration-unit",
+      "core": false,
+      "paths": [
+        "Outputs/Calibration/fp_trend_*.csv",
+        "Outputs/Calibration/fp_polls_*.csv",
+        "Outputs/Calibration/fp_house_effects_*.csv"
+      ],
+      "exclude_paths": [
+        "Outputs/Calibration/fp_trend_*_biascal.csv",
+        "Outputs/Calibration/fp_polls_*_biascal.csv",
+        "Outputs/Calibration/fp_house_effects_*_biascal.csv"
+      ],
+      "description": "Legacy detailed leave-one-out calibration traces retained for diagnosis and compatibility; compact summaries are the executable calibration evidence."
+    },
     "bias_calibration_compatibility_inputs": {
       "kind": "generated",
       "scope": "calibration-unit",
@@ -517,6 +562,15 @@
       ],
       "description": "Temporary bias-calibration hand-off files plus legacy detailed inputs retained for archive compatibility."
     },
+    "federal_calibration_priors": {
+      "kind": "generated",
+      "scope": "election",
+      "core": true,
+      "paths": [
+        "Outputs/Calibration/Priors/*.csv"
+      ],
+      "description": "Compact full-federal calibration median series used only as state-calibration priors."
+    },
     "poll_calibration_summaries": {
       "kind": "generated",
       "scope": "election",
@@ -525,6 +579,33 @@
         "Outputs/Calibration/Summaries/*.csv"
       ],
       "description": "Compact election-level calibration summaries, preserving inherited compatibility-input staleness."
+    },
+    "poll_calibration_residual_evidence": {
+      "kind": "generated",
+      "scope": "election",
+      "core": false,
+      "paths": [
+        "Outputs/Calibration/Evidence/*.csv"
+      ],
+      "description": "Versioned held-out-poll residual evidence retained for later calibration-estimator comparisons."
+    },
+    "poll_calibration_stan_seeds": {
+      "kind": "generated",
+      "scope": "election",
+      "core": false,
+      "paths": [
+        "Outputs/Calibration/Seeds/*-calibration.csv"
+      ],
+      "description": "Versioned resolved Stan seeds for every completed leave-one-out fit."
+    },
+    "bias_calibration_stan_seeds": {
+      "kind": "generated",
+      "scope": "election",
+      "core": false,
+      "paths": [
+        "Outputs/Calibration/Seeds/*-bias.csv"
+      ],
+      "description": "Versioned resolved Stan seeds for every completed bias fit."
     },
     "pollster_parameters": {
       "kind": "generated",
@@ -750,22 +831,27 @@
         "preference_estimates",
         "prior_result_inputs",
         "fp_model_script",
+        "fp_model_checkpoint_script",
         "stan_cache_script",
         "calibration_provenance_script",
+        "calibration_summary_script",
         "election_code_script",
         "fp_stan_model"
       ],
       "feedback_inputs": [
-        "poll_trend_outputs"
+        "federal_calibration_priors"
       ],
       "outputs": [
-        "poll_calibration_compatibility_inputs"
+        "poll_calibration_compatibility_inputs",
+        "federal_calibration_priors",
+        "poll_calibration_residual_evidence",
+        "poll_calibration_stan_seeds"
       ],
       "core": true,
       "network": false,
       "cost": "weeks",
       "supports_partial": true,
-      "notes": "Known likely bug: state calibration currently reads normal federal outputs. It should use matching federal calibration output, preferring the same excluded pollster and falling back to the full calibration trend."
+      "notes": "Federal full fits publish compact calibration priors before overlapping state calibration tasks."
     },
     {
       "id": "calibrate_pollster_bias",
@@ -791,20 +877,22 @@
         "fp_model_script",
         "stan_cache_script",
         "calibration_provenance_script",
+        "calibration_summary_script",
         "election_code_script",
         "fp_stan_model"
       ],
       "feedback_inputs": [
-        "poll_trend_outputs"
+        "federal_calibration_priors"
       ],
       "outputs": [
-        "bias_calibration_compatibility_inputs"
+        "bias_calibration_compatibility_inputs",
+        "bias_calibration_stan_seeds"
       ],
       "core": true,
       "network": false,
       "cost": "days",
       "supports_partial": true,
-      "notes": "Known likely bug: state bias calibration currently reads normal federal outputs. It should use federal _biascal output."
+      "notes": "State bias calibration consumes the matching full-federal calibration priors, never normal final trends."
     },
     {
       "id": "compact_calibration_summaries",
@@ -994,6 +1082,7 @@
         "approvals_script",
         "approvals_provenance_script",
         "fp_model_script",
+        "fp_model_checkpoint_script",
         "fp_model_provenance_script",
         "calibration_provenance_script",
         "stan_cache_script",

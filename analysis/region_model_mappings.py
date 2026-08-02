@@ -4,6 +4,12 @@ Parent: region_model.py dispatches these functions after shared validation.
 Each function intentionally keeps its Stan parameter names and regional
 aggregation choices visible: regional definitions differ by election and are
 not interchangeable configuration.
+
+Main functions:
+* ``run_model_*`` functions construct a concrete Stan payload and execute the
+  corresponding election-specific regional calculation.
+* ``runner_for`` validates and returns the appropriate mapping for an
+  election selected by region_model.py.
 """
 
 from region_model_common import (
@@ -21,6 +27,8 @@ from region_model_stan import (
   write_latest_parameter_means,
 )
 
+
+# Election-specific core Stan-data mappings
 
 def run_model_fed2025(e_data, random_seed, output_path):
   df = e_data.base_df.copy()

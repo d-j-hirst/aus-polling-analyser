@@ -4,6 +4,15 @@ Parent: region_model.py is the command-line entry point. It selects work,
 dispatches the election-specific mappings, and records generated provenance.
 This module keeps validation and data preparation consistent across those
 mappings without imposing a common Stan-data layout on them.
+
+Main functions:
+* ``model_contract`` defines the required input/output shape for each
+  supported election-specific mapping.
+* ``validate_*`` functions reject malformed baseline and regional-poll data
+  before any Stan work begins.
+* ``ElectionData`` loads one validated election's inputs for a mapping.
+* ``prepare_poll_timing`` and ``add_transformed_swing_deviations`` perform
+  shared data preparation used by the core mappings.
 """
 
 import argparse
@@ -30,6 +39,8 @@ MISSING_OBSERVATION = -10000
 DAYS_PER_MODEL_STEP = 5
 BASELINE_WEIGHT_TOLERANCE = 2.0
 
+
+# Contract definitions and validation
 
 class ConfigError(ValueError):
   pass
@@ -207,6 +218,8 @@ def validate_regional_input(
       )
 
 
+# Command-line configuration and data loading
+
 class Config:
   """Parse the regional-model command line and select configured elections."""
 
@@ -340,6 +353,8 @@ class ElectionData:
         self.base_df.loc[index, 'EndDay'] + 1
       )
 
+
+# Shared numerical input preparation
 
 def prepare_poll_timing(e_data, df):
   """Represent each poll across its fieldwork period on a five-day grid."""

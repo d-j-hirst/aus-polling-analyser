@@ -3,6 +3,14 @@
 Parent: election_analysis.py coordinates the party, regional and seat output
 families. These helpers operate on checked-election results but do not own an
 output family, allowing those analysis modules to share unchanged calculations.
+
+Main functions:
+* ``collect_election_data`` creates aligned historical observations for a
+  requested seat-level measure.
+* ``run_bucket_regressions`` and ``smooth_buckets_and_save`` perform the
+  reusable regression and smoothing calculations.
+* ``effective_*`` and ``total_others_vote_share`` normalize party-vote inputs
+  before individual party models consume them.
 """
 
 import math
@@ -24,6 +32,8 @@ larger_parties = [
     'Labor', 'Liberal', 'Liberal National', 'Greens', 'Democrats',
     'National', 'Nationals', 'One Nation', 'Country Liberal'
 ]
+
+# Shared numerical processing helpers
 
 def extend_region_errors_with_selected_factor(
         region_errors, errors_by_factor, selected_factor):

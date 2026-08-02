@@ -11,14 +11,27 @@ incrementally during the run.
 Pollster parameters may retain deliberately stale calibration ancestry. The
 generated dependency preserves that ancestry while allowing routine trend
 generation to continue.
+
+Main functions:
+* ``cutoff_schedule`` and ``effective_cutoff_schedule`` select point-in-time
+  model endpoints from configured triangular days and actual poll arrivals.
+* ``CutoffOutputStore`` stages and incrementally records one consolidated
+  cutoff file while a long-running election completes.
+* ``PureTrendRecorder``, ``FinalTrendRecorder`` and ``CutoffTrendRecorder``
+  publish completed fp_model work-unit provenance.
+* ``baseline_existing_*`` records older output files as legacy compatibility
+  data without falsely marking them current.
 """
 
 import argparse
 import bisect
 import csv
+import json
+import math
 import os
 import re
 import sys
+import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -100,6 +113,8 @@ DIRECT_GENERATED_DEPENDENCY_REFRESH_UPGRADE = (
 )
 
 
+# Cutoff schedule selection and consolidated-file staging
+
 def cutoff_schedule():
     """Return the triangular day schedule also used by trend_adjust.py."""
 
@@ -150,6 +165,34 @@ def cutoff_working_path(election):
     return path.with_suffix(path.suffix + ".in-progress")
 
 
+def cutoff_working_metadata_path(election):
+    path = cutoff_working_path(election)
+    return path.with_suffix(path.suffix + ".json")
+
+
+def _write_json_atomically(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=".{}-".format(path.stem),
+        suffix=".tmp",
+        text=True,
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            json.dump(payload, output, indent=2, sort_keys=True)
+            output.write("\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary_name, path)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 class CutoffOutputStore:
     """Build one election in a draft before atomically promoting it."""
 
@@ -164,16 +207,150 @@ class CutoffOutputStore:
     def __init__(self):
         self._headers = {}
         self._rows = {}
+        self._metadata = {}
+
+    def begin(self, election, metadata):
+        """Resume a matching draft or start a new isolated cutoff batch."""
+
+        # Normalize tuples and other JSON-compatible containers so equality
+        # remains stable after a cross-process round trip.
+        metadata = json.loads(json.dumps(metadata, sort_keys=True))
+        working_path = cutoff_working_path(election)
+        metadata_path = cutoff_working_metadata_path(election)
+        if working_path.is_file() and metadata_path.is_file():
+            try:
+                with metadata_path.open(encoding="utf-8") as source:
+                    existing = json.load(source)
+            except (OSError, TypeError, ValueError):
+                existing = None
+            existing_identity = (
+                {
+                    key: value for key, value in existing.items()
+                    if key != "endpoint_parties"
+                }
+                if isinstance(existing, dict)
+                else None
+            )
+            requested_identity = {
+                key: value for key, value in metadata.items()
+                if key != "endpoint_parties"
+            }
+            if existing_identity == requested_identity:
+                try:
+                    self._metadata[election] = existing
+                    self._load(election)
+                    self._validate_resumed_draft(election)
+                    return True
+                except generated_provenance.GeneratedProvenanceError:
+                    # A corrupt local restart aid must never block regeneration
+                    # or affect the previously certified output.
+                    pass
+
+        self.reset(election)
+        self._metadata[election] = metadata
+        _write_json_atomically(metadata_path, metadata)
+        return False
+
+    def _validate_resumed_draft(self, election):
+        metadata = self._metadata[election]
+        expected_header = list(self.KEY_COLUMNS) + list(
+            metadata.get("probability_columns", [])
+        )
+        if self._headers[election] != expected_header:
+            raise generated_provenance.GeneratedProvenanceError(
+                "Cutoff draft header does not match its sidecar."
+            )
+        expected_endpoints = {
+            int(entry["scheduled_cutoff_days"]):
+                int(entry["poll_trend_end_days"])
+            for entry in metadata.get("expected_endpoints", [])
+        }
+        configured_parties = set(metadata.get("parties", []))
+        endpoint_parties = metadata.setdefault("endpoint_parties", {})
+        changed = False
+        completed = []
+        for (scheduled_days, party), row in self._rows[election].items():
+            poll_end_days = int(row[1])
+            if (
+                scheduled_days not in expected_endpoints
+                or expected_endpoints[scheduled_days] != poll_end_days
+            ):
+                raise generated_provenance.GeneratedProvenanceError(
+                    "Cutoff draft contains an unexpected endpoint."
+                )
+            if party == self.COMPLETE_MARKER:
+                completed.append((scheduled_days, poll_end_days))
+                continue
+            if party not in configured_parties:
+                raise generated_provenance.GeneratedProvenanceError(
+                    "Cutoff draft contains an unexpected party."
+                )
+            try:
+                seed = int(row[3])
+                values = [float(value) for value in row[4:]]
+            except ValueError as error:
+                raise generated_provenance.GeneratedProvenanceError(
+                    "Cutoff draft contains a malformed seed or percentile."
+                ) from error
+            if (
+                seed < 1
+                or any(
+                    not math.isfinite(value) or not 0 <= value <= 100
+                    for value in values
+                )
+            ):
+                raise generated_provenance.GeneratedProvenanceError(
+                    "Cutoff draft contains an invalid seed or percentile."
+                )
+
+        for scheduled_days, poll_end_days in completed:
+            key = "{}:{}".format(scheduled_days, poll_end_days)
+            parties = endpoint_parties.get(key)
+            if (
+                not isinstance(parties, list)
+                or any(party not in configured_parties for party in parties)
+                or any(
+                    (scheduled_days, party) not in self._rows[election]
+                    for party in parties
+                )
+            ):
+                del self._rows[election][
+                    (scheduled_days, self.COMPLETE_MARKER)
+                ]
+                endpoint_parties.pop(key, None)
+                changed = True
+
+        completed_keys = {
+            "{}:{}".format(scheduled_days, poll_end_days)
+            for scheduled_days, poll_end_days in completed
+            if (
+                scheduled_days, self.COMPLETE_MARKER
+            ) in self._rows[election]
+        }
+        for key in list(endpoint_parties):
+            if key not in completed_keys:
+                del endpoint_parties[key]
+                changed = True
+        if changed:
+            _write_json_atomically(
+                cutoff_working_metadata_path(election), metadata
+            )
+            self._write_atomic(election)
 
     def reset(self, election):
         """Start a fresh cutoff batch for an election."""
 
         self._headers[election] = None
         self._rows[election] = {}
+        self._metadata.pop(election, None)
         working_path = cutoff_working_path(election)
         for path in (
             working_path,
             working_path.with_suffix(working_path.suffix + ".tmp"),
+            cutoff_working_metadata_path(election),
+            cutoff_working_metadata_path(election).with_suffix(
+                cutoff_working_metadata_path(election).suffix + ".tmp"
+            ),
         ):
             if path.exists():
                 path.unlink()
@@ -311,6 +488,7 @@ class CutoffOutputStore:
         election,
         scheduled_cutoff_days,
         poll_trend_end_days,
+        expected_parties=None,
     ):
         self._load(election)
         header = self._headers[election]
@@ -319,6 +497,42 @@ class CutoffOutputStore:
                 "Cannot complete cutoff {} for {} without any trend rows."
                 .format(scheduled_cutoff_days, election)
             )
+        expected_parties = (
+            None
+            if expected_parties is None
+            else sorted(set(expected_parties))
+        )
+        if expected_parties is not None:
+            missing = [
+                party for party in expected_parties
+                if not self.contains(
+                    election,
+                    party,
+                    scheduled_cutoff_days,
+                    poll_trend_end_days,
+                )
+            ]
+            if missing:
+                raise generated_provenance.GeneratedProvenanceError(
+                    "Cannot complete cutoff {} for {}; missing parties: {}"
+                    .format(
+                        scheduled_cutoff_days,
+                        election,
+                        ", ".join(missing),
+                    )
+                )
+            metadata = self._metadata.get(election)
+            if metadata is not None:
+                key = "{}:{}".format(
+                    int(scheduled_cutoff_days),
+                    int(poll_trend_end_days),
+                )
+                metadata.setdefault("endpoint_parties", {})[key] = (
+                    expected_parties
+                )
+                _write_json_atomically(
+                    cutoff_working_metadata_path(election), metadata
+                )
         self._rows[election][
             (int(scheduled_cutoff_days), self.COMPLETE_MARKER)
         ] = [
@@ -361,6 +575,45 @@ class CutoffOutputStore:
                     ),
                 )
             )
+        metadata = self._metadata.get(election)
+        if metadata is not None:
+            endpoint_parties = metadata.get("endpoint_parties", {})
+            for expected in metadata.get("expected_endpoints", []):
+                scheduled_days = int(expected["scheduled_cutoff_days"])
+                poll_end_days = int(expected["poll_trend_end_days"])
+                key = "{}:{}".format(scheduled_days, poll_end_days)
+                parties = endpoint_parties.get(key)
+                if parties is None:
+                    raise generated_provenance.GeneratedProvenanceError(
+                        "Cannot promote {}: cutoff {} has no completed party "
+                        "manifest.".format(election, scheduled_days)
+                    )
+                if not self.is_complete(
+                    election, scheduled_days, poll_end_days
+                ):
+                    raise generated_provenance.GeneratedProvenanceError(
+                        "Cannot promote {}: cutoff {} is incomplete.".format(
+                            election, scheduled_days
+                        )
+                    )
+                missing = [
+                    party for party in parties
+                    if not self.contains(
+                        election,
+                        party,
+                        scheduled_days,
+                        poll_end_days,
+                    )
+                ]
+                if missing:
+                    raise generated_provenance.GeneratedProvenanceError(
+                        "Cannot promote {} cutoff {}; missing parties: {}"
+                        .format(
+                            election,
+                            scheduled_days,
+                            ", ".join(missing),
+                        )
+                    )
         working_path = cutoff_working_path(election)
         if not working_path.is_file():
             raise generated_provenance.GeneratedProvenanceError(
@@ -372,6 +625,9 @@ class CutoffOutputStore:
         final_path.parent.mkdir(parents=True, exist_ok=True)
         if certify is None:
             os.replace(working_path, final_path)
+            metadata_path = cutoff_working_metadata_path(election)
+            if metadata_path.exists():
+                metadata_path.unlink()
             return
 
         backup_path = final_path.with_suffix(
@@ -379,6 +635,9 @@ class CutoffOutputStore:
         )
         if backup_path.exists():
             backup_path.unlink()
+        metadata_path = cutoff_working_metadata_path(election)
+        if metadata_path.exists():
+            metadata_path.unlink()
         had_certified_output = final_path.is_file()
         if had_certified_output:
             os.replace(final_path, backup_path)
@@ -422,8 +681,8 @@ def _cutoff_record_key(election):
     return "cutoff_poll_outputs:{}".format(election)
 
 
-def _source_dependencies():
-    return {
+def _source_dependencies(include_checkpoint=False):
+    dependencies = {
         category: generated_provenance.source_manifest_dependency(
             category,
             manifest_path,
@@ -431,6 +690,15 @@ def _source_dependencies():
         )
         for category, manifest_path in SOURCE_DEPENDENCIES.items()
     }
+    if include_checkpoint:
+        dependencies["fp_model_checkpoint_script"] = (
+            generated_provenance.source_manifest_dependency(
+                "fp_model_checkpoint_script",
+                ANALYSIS_DIRECTORY / "provenance.json",
+                ANALYSIS_DIRECTORY,
+            )
+        )
+    return dependencies
 
 
 def _load_election_cycles():
@@ -652,6 +920,8 @@ def _prune_irrelevant_federal_priors(
     return True
 
 
+# Pure, final and cutoff work-unit provenance publication
+
 class PureTrendRecorder:
     """Preflight dependencies and certify completed pure-trend work units."""
 
@@ -804,6 +1074,21 @@ class FinalTrendRecorder:
 class CutoffTrendRecorder(FinalTrendRecorder):
     """Certify the current consolidated cutoff output for one election."""
 
+    def __init__(self, command):
+        super().__init__(command)
+        self.source_dependencies = _source_dependencies(
+            include_checkpoint=True
+        )
+
+    def preflight_election(self, election):
+        """Reject stale local inputs before an expensive cutoff batch starts."""
+
+        # Federal cutoff parents are discovered while individual state-party
+        # fits are prepared. Pollster parameters and approval/pure-trend input
+        # are known before any fit, so validate them before resetting or
+        # sampling the election's consolidated output.
+        self.dependencies_for_election(election, [])
+
     def dependencies_for_election(self, election, federal_prior_files):
         dependencies = dict(self.source_dependencies)
         dependencies["pollster_parameters"] = (
@@ -812,7 +1097,9 @@ class CutoffTrendRecorder(FinalTrendRecorder):
                 POLLSTER_MANIFEST_PATH,
                 ["pollster_parameters:{}".format(election)],
                 ANALYSIS_DIRECTORY,
-                allow_stale=True,
+                # Cutoffs calibrate historical adjustments and must not be
+                # generated from stale pollster parameters.
+                allow_stale=False,
             )
         )
         if election in self.approval_elections:

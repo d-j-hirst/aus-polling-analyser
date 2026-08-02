@@ -3,6 +3,15 @@
 This is the repository-level interface for provenance operations. The lower
 level source_provenance module remains useful for manifest maintenance, while
 this module applies the project's manifest locations and impact policy.
+
+Main functions:
+* ``audit_repository`` walks registered source and generated manifests,
+  classifies work-unit freshness and reports terminal C++ input impacts.
+* ``register_changes`` validates and records a scoped source-data or code
+  change against the appropriate source manifest.
+* ``audit_json`` exposes the same audit result to pipeline.py without parsing
+  human-readable terminal output.
+* ``run_interactive`` provides the routine audit and change-registration menu.
 """
 
 import argparse
@@ -14,6 +23,7 @@ from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 import generated_provenance
+import approvals_provenance
 import calibration_provenance
 import pipeline_registry
 import pollster_analysis_provenance
@@ -80,8 +90,8 @@ CALIBRATION_STAGES = {
     "calibrate_pollsters",
     "calibrate_pollster_bias",
     "compact_calibration_summaries",
-    "generate_cutoff_poll_trends",
 }
+CUTOFF_STAGES = {"generate_cutoff_poll_trends"}
 SYNTHETIC_TPP_STAGES = {
     "generate_pure_poll_trends",
     # Retained for pre-registry-v2 generated manifests.
@@ -89,6 +99,7 @@ SYNTHETIC_TPP_STAGES = {
 }
 PATH_IMMEDIATE = "immediate"
 PATH_SYNTHETIC_TPP = "synthetic_tpp"
+PATH_CUTOFF = "cutoff"
 PATH_CALIBRATION = "calibration"
 DEPENDENCY_FIELDS = ("inputs", "optional_inputs", "feedback_inputs")
 ELECTION_CODE_PATTERN = re.compile(r"^\d{4}[a-z]+$")
@@ -103,6 +114,8 @@ WORK_UNIT_STATUS_PRECEDENCE = {
     "blocked": 6,
 }
 
+
+# Source and generated-record selection helpers
 
 class AnalysisProvenanceError(ValueError):
     """Raised when a repository-level provenance operation is invalid."""
@@ -239,8 +252,11 @@ def _generated_path_class(
     record,
     category_id,
     calibration_outputs,
+    cutoff_outputs,
     synthetic_tpp_outputs,
 ):
+    if record["stage"] in CUTOFF_STAGES or category_id in cutoff_outputs:
+        return PATH_CUTOFF
     if (
         record["stage"] in CALIBRATION_STAGES
         or category_id in calibration_outputs
@@ -291,9 +307,16 @@ def _latest_relevant_event(category, recorded_revision, scope):
         parties=scope["parties"],
         stages=[] if scope["all"] else [scope["stage"]],
     )
-    events = source_provenance.semantic_events_affecting(
-        category, recorded_revision, target_scope
-    )
+    try:
+        events = source_provenance.semantic_events_affecting(
+            category, recorded_revision, target_scope
+        )
+    except source_provenance.ProvenanceError:
+        # Generated-data validation reports a malformed or future source
+        # revision as a blocking dependency issue.  Root-cause formatting
+        # must preserve that result rather than turning the audit into a
+        # traceback while trying to name a latest event.
+        return None
     return events[-1] if events else None
 
 
@@ -403,6 +426,7 @@ def _terminal_impacts(root_categories, registry, path_seeds=None):
 
     edges = defaultdict(list)
     calibration_outputs = _calibration_output_categories(registry)
+    cutoff_outputs = _cutoff_output_categories(registry)
     synthetic_tpp_outputs = _synthetic_tpp_output_categories(registry)
     for stage in registry["stages"]:
         stage_inputs = set()
@@ -415,7 +439,9 @@ def _terminal_impacts(root_categories, registry, path_seeds=None):
         )
         for input_category in stage_inputs:
             edge_path = (
-                PATH_CALIBRATION
+                PATH_CUTOFF
+                if stage["id"] in CUTOFF_STAGES
+                else PATH_CALIBRATION
                 if stage["id"] in CALIBRATION_STAGES
                 else PATH_SYNTHETIC_TPP
                 if (
@@ -439,6 +465,7 @@ def _terminal_impacts(root_categories, registry, path_seeds=None):
     impacts = {
         PATH_IMMEDIATE: defaultdict(set),
         PATH_SYNTHETIC_TPP: defaultdict(set),
+        PATH_CUTOFF: defaultdict(set),
         PATH_CALIBRATION: defaultdict(set),
     }
     seeds = path_seeds
@@ -446,7 +473,9 @@ def _terminal_impacts(root_categories, registry, path_seeds=None):
         seeds = {
             (
                 root_category,
-                PATH_CALIBRATION
+                PATH_CUTOFF
+                if root_category in cutoff_outputs
+                else PATH_CALIBRATION
                 if root_category in calibration_outputs
                 else PATH_SYNTHETIC_TPP
                 if root_category in synthetic_tpp_outputs
@@ -476,26 +505,27 @@ def _terminal_impacts(root_categories, registry, path_seeds=None):
                 queue.append(
                     (output_category, next_path)
                 )
-    impacts["synthetic_tpp_only"] = defaultdict(set)
-    for consumer_id, categories in impacts[PATH_SYNTHETIC_TPP].items():
-        synthetic_only_categories = (
-            categories - impacts[PATH_IMMEDIATE].get(consumer_id, set())
-        )
-        if synthetic_only_categories:
-            impacts["synthetic_tpp_only"][consumer_id].update(
-                synthetic_only_categories
-            )
-    impacts["calibration_only"] = defaultdict(set)
-    for consumer_id, categories in impacts[PATH_CALIBRATION].items():
-        calibration_only_categories = (
-            categories
-            - impacts[PATH_IMMEDIATE].get(consumer_id, set())
-            - impacts[PATH_SYNTHETIC_TPP].get(consumer_id, set())
-        )
-        if calibration_only_categories:
-            impacts["calibration_only"][consumer_id].update(
-                calibration_only_categories
-            )
+    for path_class in (
+        PATH_SYNTHETIC_TPP,
+        PATH_CUTOFF,
+        PATH_CALIBRATION,
+    ):
+        only_key = "{}_only".format(path_class)
+        impacts[only_key] = defaultdict(set)
+        other_path_classes = {
+            PATH_IMMEDIATE,
+            PATH_SYNTHETIC_TPP,
+            PATH_CUTOFF,
+            PATH_CALIBRATION,
+        } - {path_class}
+        for consumer_id, categories in impacts[path_class].items():
+            only_categories = set(categories)
+            for other_path_class in other_path_classes:
+                only_categories -= impacts[other_path_class].get(
+                    consumer_id, set()
+                )
+            if only_categories:
+                impacts[only_key][consumer_id].update(only_categories)
     return impacts
 
 
@@ -506,6 +536,17 @@ def _calibration_output_categories(registry):
         category_id
         for stage in registry["stages"]
         if stage["id"] in CALIBRATION_STAGES
+        for category_id in stage["outputs"]
+    }
+
+
+def _cutoff_output_categories(registry):
+    """Return categories whose records are produced by historical cutoffs."""
+
+    return {
+        category_id
+        for stage in registry["stages"]
+        if stage["id"] in CUTOFF_STAGES
         for category_id in stage["outputs"]
     }
 
@@ -785,6 +826,41 @@ def _missing_cutoff_work_units(target_elections):
     return sorted(set(required) - recorded)
 
 
+def _missing_cutoff_dependencies(election, available_work_unit_ids):
+    """Return already-audited prerequisites for a missing cutoff record.
+
+    A newly required consolidated cutoff has no manifest record from which to
+    discover its parents.  Mirror the recorder's preflight dependencies here
+    so the pipeline refreshes them before starting expensive Stan work.  Pure
+    trends for active future elections are intentionally omitted: cutoff
+    provenance records them as non-invalidating because routine new polling
+    should not continually restart historical cutoff generation.
+    """
+
+    dependencies = [
+        _generated_work_unit_id(
+            pollster_analysis_provenance.MANIFEST_PATH,
+            "pollster_parameters:{}".format(election),
+        )
+    ]
+    if election in approvals_provenance.approval_elections():
+        for pure_election in sorted(
+            approvals_provenance.synthetic_dependency_elections([election])
+            - approvals_provenance.current_elections()
+        ):
+            dependencies.append(
+                _generated_work_unit_id(
+                    approvals_provenance.PURE_MANIFEST_PATH,
+                    "pure_poll_outputs:{}:@TPP".format(pure_election),
+                )
+            )
+    return [
+        dependency
+        for dependency in dependencies
+        if dependency in available_work_unit_ids
+    ]
+
+
 def _missing_calibration_summary_work_units(target_elections):
     """Return compact summaries missing from otherwise usable bias evidence.
 
@@ -828,6 +904,8 @@ def _missing_calibration_summary_work_units(target_elections):
     return sorted(elections_with_bias - elections_with_summary)
 
 
+# Core freshness audit and impact propagation
+
 def audit_repository(
     source_manifest_paths=SOURCE_MANIFEST_PATHS,
     generated_manifest_paths=GENERATED_MANIFEST_PATHS,
@@ -845,6 +923,7 @@ def audit_repository(
     source_issues = []
     work_units = []
     manifest_issues = []
+    diagnostic_work_units = defaultdict(list)
     touched = []
     generated_check_context = (
         generated_provenance.ManifestCheckContext()
@@ -921,7 +1000,50 @@ def audit_repository(
         internal_errors.append(str(error))
 
     calibration_outputs = _calibration_output_categories(registry)
+    cutoff_outputs = _cutoff_output_categories(registry)
     synthetic_tpp_outputs = _synthetic_tpp_output_categories(registry)
+    audits_cutoff_outputs = (
+        trend_adjust_provenance.CUTOFF_MANIFEST_PATH.resolve()
+        in {
+            Path(path).resolve()
+            for path in generated_manifest_paths
+        }
+    )
+    missing_cutoff_work_units = []
+    if audits_cutoff_outputs:
+        try:
+            missing_cutoff_work_units = _missing_cutoff_work_units(
+                target_elections
+            )
+        except (
+            generated_provenance.GeneratedProvenanceError,
+            OSError,
+        ) as error:
+            internal_errors.append(
+                "could not determine required cutoff work: {}".format(
+                    error
+                )
+            )
+
+    # Missing consolidated cutoff records have no stored lineage. Include
+    # their prerequisites in this audit so the synthetic records below can
+    # make them explicit pipeline dependencies.
+    selected_elections = target_elections
+    if target_elections is not None and missing_cutoff_work_units:
+        selected_elections = set(target_elections)
+        cutoff_elections = {
+            work_unit.split(":", 1)[1]
+            for work_unit in missing_cutoff_work_units
+        }
+        selected_elections.update(cutoff_elections)
+        for election in cutoff_elections:
+            if election in approvals_provenance.approval_elections():
+                selected_elections.update(
+                    approvals_provenance.synthetic_dependency_elections(
+                        [election]
+                    )
+                    - approvals_provenance.current_elections()
+                )
     selected_generated_records = None
     generated_dependencies = {}
     try:
@@ -930,7 +1052,7 @@ def audit_repository(
             generated_dependencies,
         ) = _selected_generated_records(
             generated_manifest_paths,
-            target_elections,
+            selected_elections,
             check_context=generated_check_context,
             include_dependencies=True,
         )
@@ -1049,6 +1171,7 @@ def audit_repository(
                     record,
                     _generated_issue_root(issue, record),
                     calibration_outputs,
+                    cutoff_outputs,
                     synthetic_tpp_outputs,
                 )
                 for issue in record_issues
@@ -1061,6 +1184,7 @@ def audit_repository(
                         record,
                         record["category"],
                         calibration_outputs,
+                        cutoff_outputs,
                         synthetic_tpp_outputs,
                     )
                 )
@@ -1101,6 +1225,17 @@ def audit_repository(
                     ],
                 }
             )
+            category = registry.get("categories", {}).get(
+                record["category"], {}
+            )
+            if category.get("kind") == "diagnostic":
+                if data_direct_issues:
+                    diagnostic_work_units[record["category"]].append(
+                        (record_key, work_unit_status)
+                    )
+                # Retained detailed files are useful for investigations, but
+                # they are not part of a current executable data path.
+                continue
             for category_id in roots:
                 records_by_root[category_id].append(
                     (record_key, record, data_direct_issues)
@@ -1109,6 +1244,7 @@ def audit_repository(
                     record,
                     category_id,
                     calibration_outputs,
+                    cutoff_outputs,
                     synthetic_tpp_outputs,
                 )
                 root_path_modes[category_id].add(path_class)
@@ -1208,29 +1344,11 @@ def audit_repository(
                 ("regional_swing_deviations", PATH_IMMEDIATE)
             )
 
-    audits_cutoff_outputs = (
-        trend_adjust_provenance.CUTOFF_MANIFEST_PATH.resolve()
-        in {
-            Path(path).resolve()
-            for path in generated_manifest_paths
-        }
-    )
     if audits_cutoff_outputs:
-        missing_cutoff_work_units = []
-        try:
-            missing_cutoff_work_units = _missing_cutoff_work_units(
-                target_elections
-            )
-        except (
-            generated_provenance.GeneratedProvenanceError,
-            OSError,
-        ) as error:
-            internal_errors.append(
-                "could not determine required cutoff work: {}".format(
-                    error
-                )
-            )
         if missing_cutoff_work_units:
+            available_work_unit_ids = {
+                work_unit["id"] for work_unit in work_units
+            }
             for work_unit in missing_cutoff_work_units:
                 _, election = work_unit.split(":", 1)
                 work_units.append(
@@ -1249,10 +1367,12 @@ def audit_repository(
                             trend_adjust_provenance.CUTOFF_MANIFEST_PATH
                         ),
                         "target_match": True,
-                        "dependencies": [],
+                        "dependencies": _missing_cutoff_dependencies(
+                            election, available_work_unit_ids
+                        ),
                         "status": "missing",
                         "blocking": False,
-                        "path_classes": [PATH_CALIBRATION],
+                        "path_classes": [PATH_CUTOFF],
                         "issues": [
                             {
                                 "code": "missing_record",
@@ -1285,10 +1405,10 @@ def audit_repository(
                 )
             )
             root_path_modes["cutoff_poll_outputs"].add(
-                PATH_CALIBRATION
+                PATH_CUTOFF
             )
             impact_seeds.add(
-                ("cutoff_poll_outputs", PATH_CALIBRATION)
+                ("cutoff_poll_outputs", PATH_CUTOFF)
             )
 
     missing_calibration_summaries = []
@@ -1351,11 +1471,20 @@ def audit_repository(
         for category_id, details in sorted(root_causes.items())
         if root_path_modes[category_id] == {PATH_CALIBRATION}
     }
+    cutoff_root_causes = {
+        category_id: sorted(details)
+        for category_id, details in sorted(root_causes.items())
+        if root_path_modes[category_id] == {PATH_CUTOFF}
+    }
     other_root_causes = {
         category_id: sorted(details)
         for category_id, details in sorted(root_causes.items())
         if root_path_modes[category_id]
-        not in ({PATH_SYNTHETIC_TPP}, {PATH_CALIBRATION})
+        not in (
+            {PATH_SYNTHETIC_TPP},
+            {PATH_CUTOFF},
+            {PATH_CALIBRATION},
+        )
     }
     issues = [
         "{}: {}".format(category_id, detail)
@@ -1379,6 +1508,14 @@ def audit_repository(
         or any(issue["status"] == "blocked" for issue in manifest_issues)
         or any(work_unit["blocking"] for work_unit in work_units)
     )
+    diagnostic_notices = {
+        category: (
+            "{} non-current detailed work unit(s) are retained for "
+            "diagnosis only and do not affect regeneration planning."
+            .format(len(records))
+        )
+        for category, records in sorted(diagnostic_work_units.items())
+    }
     return {
         "issues": issues,
         "root_causes": {
@@ -1386,6 +1523,7 @@ def audit_repository(
             for category_id, details in sorted(root_causes.items())
         },
         "synthetic_tpp_root_causes": synthetic_tpp_root_causes,
+        "cutoff_root_causes": cutoff_root_causes,
         "calibration_root_causes": calibration_root_causes,
         "other_root_causes": other_root_causes,
         "internal_errors": internal_errors,
@@ -1410,6 +1548,7 @@ def audit_repository(
             if work_unit["status"] == "provenance-stale"
         ],
         "manifest_issues": manifest_issues,
+        "diagnostic_notices": diagnostic_notices,
         "summary": {
             "work_unit_status_counts": {
                 status: status_counts.get(status, 0)
@@ -1422,6 +1561,8 @@ def audit_repository(
         ),
     }
 
+
+# Source-change registration and interactive interface
 
 def register_changes(
     paths,
@@ -1579,6 +1720,15 @@ def _print_audit(result):
             print("  {}:".format(category_id))
             for detail in details:
                 print("    {}".format(detail))
+    if result["cutoff_root_causes"]:
+        print("Historical-cutoff-path-only provenance issues:")
+        print(
+            "  Historical cutoff regeneration may be deferred temporarily."
+        )
+        for category_id, details in result["cutoff_root_causes"].items():
+            print("  {}:".format(category_id))
+            for detail in details:
+                print("    {}".format(detail))
     if result["calibration_root_causes"]:
         print("Calibration-path-only provenance issues:")
         print("  Slow calibration regeneration may be tolerated temporarily.")
@@ -1592,6 +1742,10 @@ def _print_audit(result):
             "  Missing historical seed metadata is informational only; "
             "unknown input lineage determines legacy status."
         )
+    if result["diagnostic_notices"]:
+        print("Diagnostic provenance notices:")
+        for category_id, detail in result["diagnostic_notices"].items():
+            print("  {}: {}".format(category_id, detail))
     if result["provenance_maintenance"]:
         print(
             "Metadata maintenance required for {} generated work unit(s)."

@@ -2,6 +2,14 @@
 
 Parent: trend_adjust.py provides validated data and publishes this module's
 mixed forecast-error estimates through the output stage.
+
+Main functions:
+* ``get_bias_data`` and ``get_single_election_data`` assemble historical
+  point-in-time errors for an excluded election.
+* ``find_best_mix`` uses a coarse grid then narrowed interval search to choose
+  a poll/fundamentals mix efficiently.
+* ``get_party_data`` reduces one party group's historical error distribution.
+* ``generate_adjustments`` performs the core all-election adjustment fit.
 """
 
 import math
@@ -37,6 +45,8 @@ PRIOR_ERRORS = {
     'TPP': 1.5,
 }
 
+
+# Shared robust summary helpers
 
 def smoothed_median(container, smoothing):
     s = sorted(container)
@@ -98,6 +108,8 @@ class BiasData:
         self.studied_poll_parties = []
         self.poll_error_sources = []
 
+
+# Core historical error construction and mix optimization
 
 def get_bias_data(exclude, inputs, poll_trend, party_group,
                   day, studied_election, target_trend):
@@ -633,4 +645,3 @@ def generate_adjustments(
             party_group=party_group,
             output_directory=output_directory)
     return output_paths
-

@@ -4,6 +4,14 @@ The model relates historical net approval ratings to the voting-intention-only
 TPP trend available before each observation. The resulting observations are
 passed directly to normal fp_model runs; jurisdiction CSVs are retained as
 diagnostic and provenance artefacts.
+
+Main functions:
+* ``load_pure_trend`` and ``load_pure_poll_days`` validate the historical
+  voting-intention inputs available to the approval model.
+* ``Approvals`` loads approval observations and fits the approval-to-TPP
+  relationships for a jurisdiction.
+* ``generate_synthetic_tpps`` performs the actual synthetic-observation
+  processing used directly by normal fp_model runs.
 """
 
 import csv
@@ -27,6 +35,8 @@ MAX_WEIGHT_FLATTENING_ROUNDS = 100
 class ApprovalDataError(ValueError):
     """Raised when an approval-model input cannot be used safely."""
 
+
+# Input loading and validation
 
 def load_pure_trend(path):
     """Load a pure TPP median series by its percentile header."""
@@ -138,6 +148,8 @@ def approval_confidence_factor(initial_param_ratio):
 # approval poll based on the approval rating and other factors.
 # In each case, only data at least 13 days before the poll is used to generate
 # synthetic TPP.
+# Core approval-to-TPP processing
+
 def generate_synthetic_tpps(display_analysis=False):
     recorder = approvals_provenance.SyntheticTppRecorder(
         [os.path.basename(sys.executable)] + sys.argv

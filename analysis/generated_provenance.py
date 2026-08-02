@@ -1,4 +1,18 @@
-"""Create and check bundled provenance manifests for generated analysis data."""
+"""Create and check bundled provenance manifests for generated analysis data.
+
+This shared persistence layer does not perform forecast calculations. Generator
+stages provide their outputs and direct dependencies; this module fingerprints
+them, records one bundled manifest, then checks whether those exact inputs and
+outputs remain current.
+
+Main functions:
+* ``file_dependency``, ``source_manifest_dependency`` and
+  ``generated_manifest_dependency`` build validated direct-dependency records.
+* ``generation_record`` and ``generation_run`` create standard work-unit
+  metadata for a completed generator invocation.
+* ``update_manifest`` atomically publishes one or more generated records.
+* ``check_record`` and ``check_manifest`` perform the core freshness checks.
+"""
 
 import argparse
 import copy
@@ -30,6 +44,8 @@ SHA256_LENGTH = 64
 GENERATED_MANIFEST_SUFFIX = "generated-provenance.json"
 LOCK_RETRY_SECONDS = 0.05
 
+
+# Manifest schema validation and safe concurrent writes
 
 class GeneratedProvenanceError(ValueError):
     """Raised when generated provenance is invalid or cannot be verified."""
@@ -625,6 +641,8 @@ def _canonical_path_key(path):
     return os.path.normcase(str(path))
 
 
+# File/dependency fingerprint construction
+
 def fingerprint_file(path):
     path = Path(path)
     if not path.is_file():
@@ -781,6 +799,16 @@ def _generated_records_digest(manifest, record_keys):
     return hashlib.sha256(serialized).hexdigest()
 
 
+def _data_affecting_issues(issues):
+    """Exclude maintainable metadata-only notices from freshness checks."""
+
+    return [
+        issue
+        for issue in issues
+        if not issue.startswith("provenance-only dependency revision ")
+    ]
+
+
 def generated_manifest_dependency(
     category,
     manifest_path,
@@ -818,8 +846,16 @@ def generated_manifest_dependency(
     for record_key in tracked_record_keys:
         if record_key not in checked_records:
             stale_records[record_key] = ["missing record"]
-        elif checked_records[record_key]:
-            stale_records[record_key] = checked_records[record_key]
+        else:
+            # Metadata-only source revisions make a record maintainable, not
+            # unsafe to consume.  Callers that require fresh data should
+            # reject only data-affecting ancestry here; the audit can still
+            # schedule separate provenance maintenance.
+            data_issues = _data_affecting_issues(
+                checked_records[record_key]
+            )
+            if data_issues:
+                stale_records[record_key] = data_issues
     if stale_records and not allow_stale:
         raise GeneratedProvenanceError(
             "generated dependency '{}' is stale: {}".format(
@@ -896,6 +932,8 @@ def generation_scope(elections=None, parties=None, qualifiers=None, all_scopes=F
     _validate_scope(scope, "scope")
     return scope
 
+
+# Standard generation-record construction and publication
 
 def generation_record(
     category,
@@ -1033,6 +1071,8 @@ def update_manifest(
         _atomic_write_json(path, manifest)
         return manifest
 
+
+# Core generated-data freshness checking
 
 class ManifestCheckContext:
     """Share filesystem and dependency checks across one audit operation."""
@@ -1257,7 +1297,9 @@ def check_record(
                     record_key
                     for record_key in tracked_records
                     if record_key not in checked_records
-                    or checked_records[record_key]
+                    or _data_affecting_issues(
+                        checked_records[record_key]
+                    )
                 ]
                 if stale_records:
                     issues.append(

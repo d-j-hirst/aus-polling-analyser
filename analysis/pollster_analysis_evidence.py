@@ -5,6 +5,14 @@ typed evidence returned here to its numerical reducers.  Compact election
 summaries are preferred when present.  The legacy adapter is the only place
 outside calibration_summary.py that interprets historical calibration file
 names and layouts.
+
+Main functions:
+* ``CalibrationEvidence`` is the typed in-memory input contract consumed by
+  the pollster reducers.
+* ``_read_compact_summary`` validates the preferred compact evidence format.
+* ``_read_legacy_files`` adapts old calibration traces when no compact summary
+  is available.
+* ``load_calibration_evidence`` selects the preferred complete evidence set.
 """
 
 import csv
@@ -63,6 +71,8 @@ class CalibrationEvidence:
         return counts
 
 
+# Typed record parsing and validation
+
 def _election(code, context):
     try:
         return ElectionCode(int(code[:4]), code[4:])
@@ -87,6 +97,8 @@ def _nonnegative_count(value, context):
         raise ConfigError("{} is not a non-negative integer.".format(context))
     return int(parsed)
 
+
+# Compact and legacy evidence loading
 
 def _read_compact_summary(path):
     """Read one complete compact election unit without legacy file parsing."""

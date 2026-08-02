@@ -72,12 +72,15 @@ def audit_result(work_units, source_issues=None, manifest_issues=None):
         },
         "other_root_causes": {},
         "synthetic_tpp_root_causes": {},
+        "cutoff_root_causes": {},
         "calibration_root_causes": {},
         "impacts": {
             "immediate": defaultdict(set),
             "synthetic_tpp": defaultdict(set),
+            "cutoff": defaultdict(set),
             "calibration": defaultdict(set),
             "synthetic_tpp_only": defaultdict(set),
+            "cutoff_only": defaultdict(set),
             "calibration_only": defaultdict(set),
         },
     }
@@ -112,6 +115,35 @@ class PipelineTests(unittest.TestCase):
             audit, self.registry, include_details=True
         )
         self.assertEqual(len(detailed["work_units"]), 1)
+
+    def test_diagnostic_calibration_traces_are_not_executable_tasks(self):
+        trace = work_unit(
+            "poll_calibration_traces:1991nsw:@TPP:full",
+            "poll_calibration_traces",
+            "calibrate_pollsters",
+            "legacy",
+            "1991nsw",
+            "@TPP",
+            target_match=False,
+        )
+        current_summary = work_unit(
+            "poll_calibration_summaries:2028fed",
+            "poll_calibration_summaries",
+            "calibrate_pollsters",
+            "stale",
+            "2028fed",
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([trace, current_summary]),
+            self.registry,
+            {"calibration"},
+        )
+
+        self.assertEqual(
+            [(task["stage"], task["election"]) for task in plan["tasks"]],
+            [("calibrate_pollsters", "2028fed")],
+        )
 
     def test_run_log_tees_subprocess_output_and_records_lifecycle(self):
         terminal_stdout = StringIO()
@@ -966,8 +998,169 @@ class PipelineTests(unittest.TestCase):
         plan = pipeline.build_plan(audit, self.registry, {"cutoffs"})
 
         self.assertEqual(plan["tasks"], [])
-        self.assertEqual(plan["blockers"][0]["stage"],
-                         "generate_cutoff_poll_trends")
+        self.assertEqual(
+            plan["blockers"][0]["stage"],
+            "generate_cutoff_poll_trends",
+        )
+
+    def test_metadata_plan_prevalidates_candidates_before_confirmation(self):
+        manifest_path = pipeline.ANALYSIS_DIRECTORY / "test-metadata.json"
+        manifest = {
+            "path_base": ".",
+            "records": {
+                "poll_trend_outputs:2028fed:@TPP": {
+                    "stage": "generate_poll_trends",
+                    "scope": generated_provenance.generation_scope(
+                        elections=["2028fed"], parties=["@TPP"]
+                    ),
+                }
+            },
+        }
+        selected = {manifest_path: set(manifest["records"])}
+        upgrade = {"event": {"id": "metadata-event"}}
+
+        with mock.patch.object(
+            pipeline,
+            "_metadata_source_blockers",
+            return_value=[],
+        ), mock.patch.object(
+            pipeline.analysis_provenance,
+            "_selected_generated_records",
+            return_value=(selected, {}),
+        ), mock.patch.object(
+            pipeline.generated_provenance,
+            "load_manifest",
+            return_value=manifest,
+        ), mock.patch.object(
+            pipeline.provenance_maintenance,
+            "pending_upgrades",
+            return_value=[upgrade],
+        ), mock.patch.object(
+            pipeline.provenance_maintenance,
+            "can_maintain_record",
+            return_value=True,
+        ) as can_maintain:
+            plan = pipeline.load_metadata_plan({"2028fed"})
+
+        can_maintain.assert_called_once()
+        self.assertEqual(len(plan["tasks"]), 1)
+        self.assertEqual(
+            plan["tasks"][0]["work_units"],
+            ["poll_trend_outputs:2028fed:@TPP"],
+        )
+
+    def test_metadata_plan_defers_candidates_needing_regeneration(self):
+        manifest_path = pipeline.ANALYSIS_DIRECTORY / "test-metadata.json"
+        manifest = {
+            "path_base": ".",
+            "records": {
+                "poll_trend_outputs:2028fed:@TPP": {
+                    "stage": "generate_poll_trends",
+                    "scope": generated_provenance.generation_scope(
+                        elections=["2028fed"], parties=["@TPP"]
+                    ),
+                }
+            },
+        }
+        selected = {manifest_path: set(manifest["records"])}
+        upgrade = {"event": {"id": "metadata-event"}}
+
+        with mock.patch.object(
+            pipeline,
+            "_metadata_source_blockers",
+            return_value=[],
+        ), mock.patch.object(
+            pipeline.analysis_provenance,
+            "_selected_generated_records",
+            return_value=(selected, {}),
+        ), mock.patch.object(
+            pipeline.generated_provenance,
+            "load_manifest",
+            return_value=manifest,
+        ), mock.patch.object(
+            pipeline.provenance_maintenance,
+            "pending_upgrades",
+            return_value=[upgrade],
+        ), mock.patch.object(
+            pipeline.provenance_maintenance,
+            "can_maintain_record",
+            return_value=False,
+        ):
+            plan = pipeline.load_metadata_plan({"2028fed"})
+
+        self.assertEqual(plan["tasks"], [])
+        self.assertEqual(
+            plan["warnings"][1]["message"],
+            "1 metadata candidate(s) require data regeneration and were deferred.",
+        )
+
+    def test_metadata_executor_defers_changed_candidate_and_continues(self):
+        first = {
+            "stage": "maintain_provenance",
+            "source_stage": "generate_poll_trends",
+            "run_class": "metadata",
+            "election": "2026vic",
+            "party": "@TPP",
+            "status": "provenance-stale",
+            "status_counts": {"provenance-stale": 1},
+            "work_units": ["poll_trend_outputs:2026vic:@TPP"],
+            "manifest": "Outputs/test-generated-provenance.json",
+            "command": ["metadata-maintenance"],
+            "working_directory": ".",
+        }
+        second = dict(first)
+        second["work_units"] = ["poll_trend_outputs:2028fed:@TPP"]
+        plan = {"profiles": ["metadata"], "blockers": [], "tasks": [first, second]}
+
+        with mock.patch.object(
+            pipeline.provenance_maintenance,
+            "maintain_record",
+            side_effect=[
+                pipeline.provenance_maintenance.ProvenanceMaintenanceError(
+                    "requires data regeneration"
+                ),
+                1,
+            ],
+        ) as maintain:
+            result = pipeline.execute_metadata_plan(plan, lambda: plan)
+
+        self.assertEqual(maintain.call_count, 2)
+        self.assertEqual(result["completed"], 1)
+        self.assertEqual(len(result["deferred"]), 1)
+
+    def test_metadata_cli_uses_fast_plan_without_full_audit(self):
+        plan = {
+            "schema_version": 1,
+            "target_elections": ["2028fed"],
+            "profiles": ["metadata"],
+            "requires_fresh_dependencies": False,
+            "root_run_classes": ["metadata"],
+            "selected_run_classes": ["metadata"],
+            "blockers": [],
+            "warnings": [],
+            "accepted_stale_work_units": [],
+            "tasks": [],
+        }
+        output = StringIO()
+        with mock.patch.object(
+            pipeline,
+            "load_metadata_plan",
+            return_value=plan,
+        ) as load_plan, mock.patch.object(
+            pipeline,
+            "_load_audit",
+            side_effect=AssertionError("full audit was called"),
+        ), redirect_stdout(output):
+            return_code = pipeline.main([
+                "plan",
+                "--election",
+                "2028fed",
+                "--profile",
+                "metadata",
+            ])
+
+        self.assertEqual(return_code, 0)
+        load_plan.assert_called_once()
 
     def test_cutoff_plan_includes_historical_target_prerequisites(self):
         historical = work_unit(
@@ -1207,6 +1400,74 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(
             plan["target_only_run_classes"],
             ["regular_with_approvals"],
+        )
+
+    def test_approval_refresh_tolerates_inherited_staleness_with_metadata(self):
+        """Metadata upgrades must not force historical calibration reducers."""
+
+        pollsters = work_unit(
+            "pollster_parameters:1987fed",
+            "pollster_parameters",
+            "analyse_pollsters",
+            "stale",
+            "1987fed",
+            target_match=False,
+        )
+        pollsters["issues"] = [
+            {
+                "code": "stale_generated_dependency",
+                "root_category": "poll_calibration_summaries",
+                "message": "stale compact calibration summary",
+            },
+            {
+                "code": "provenance_only_revision",
+                "root_category": "pollster_analysis_script",
+                "message": "metadata upgrade required",
+            },
+        ]
+        pure = work_unit(
+            "pure_poll_outputs:1987fed:@TPP",
+            "pure_poll_outputs",
+            "generate_pure_poll_trends",
+            "stale",
+            "1987fed",
+            "@TPP",
+            target_match=False,
+            dependencies=[pollsters["id"]],
+        )
+        pure["issues"] = [
+            {
+                "code": "stale_generated_dependency",
+                "root_category": "pollster_parameters",
+                "message": "stale pollster parameters",
+            }
+        ]
+        final = work_unit(
+            "poll_trend_outputs:2028fed:@TPP",
+            "poll_trend_outputs",
+            "generate_poll_trends",
+            "stale",
+            "2028fed",
+            "@TPP",
+            dependencies=[pure["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([pollsters, pure, final]),
+            self.registry,
+            {"regular-with-approvals"},
+        )
+
+        self.assertEqual(
+            [(task["stage"], task["election"]) for task in plan["tasks"]],
+            [("generate_poll_trends", "2028fed")],
+        )
+        self.assertEqual(
+            plan["accepted_stale_work_units"],
+            [
+                "pollster_parameters:1987fed",
+                "pure_poll_outputs:1987fed:@TPP",
+            ],
         )
 
     def test_regular_plan_follows_direct_final_trend_dependency(self):

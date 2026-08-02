@@ -1,3 +1,15 @@
+"""Transform vote shares between percentage and model-friendly log-odds scales.
+
+This is a mathematical support module: it loads no files and writes no
+outputs. Its functions define the common transformation used by historical
+analysis, trend adjustment and regional modelling.
+
+Main functions:
+* ``clamp`` constrains a numeric value to inclusive bounds.
+* ``transform_vote_share`` converts a percentage to the scaled logit scale.
+* ``detransform_vote_share`` converts the scaled logit value to a percentage.
+"""
+
 import math
 
 def clamp(n, min_n, max_n):

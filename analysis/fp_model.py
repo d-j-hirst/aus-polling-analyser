@@ -1,28 +1,53 @@
+"""Fit primary-vote and TPP poll trends, calibration evidence and cutoffs.
+
+The command has four modes: ordinary final trends, voting-intention-only
+``--pure`` trends, leave-one-pollster-out/bias calibration, and historical
+``--cutoff`` fits. Validation and file loading are kept in configuration and
+data-preparation helpers; the model calculation itself starts with
+``run_party`` and the functions it calls to prepare Stan inputs, sample the
+model, and reduce posterior draws.
+
+Main functions:
+* ``Config`` validates command-line mode, election selection and run settings.
+* ``build_election_data`` and ``prepare_poll_df`` load and validate one
+  election/party's inputs before sampling.
+* ``build_poll_vectors``, ``build_prior_series`` and ``build_stan_data``
+  construct the typed Stan input payload.
+* ``run_stan_model`` performs the actual Stan sampling calculation.
+* ``run_party`` reduces and writes one party fit; ``calibrate_pollsters``
+  records calibration evidence for excluded pollsters.
+* ``run_models`` orders elections and orchestrates the requested batch.
+"""
+
 import argparse
 import calibration_provenance
 import calibration_summary
 import calibration_summary_provenance
 import csv
 import datetime
+import fp_model_checkpoints
 import fp_model_provenance
 import math
 import numpy as np
 import os
 import pandas as pd
 import pystan
-import secrets
 import sys
 import statistics
+import tempfile
 import time
 from approvals import generate_synthetic_tpps
 from dataclasses import dataclass
 from datetime import timedelta
 from election_code import ElectionCode
+from pathlib import Path
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Tuple
 
 from stan_cache import stan_cache
 
+
+# Configuration and cross-election dependency helpers
 
 # File paths for polling data in each jurisdiction
 data_source = {
@@ -33,6 +58,12 @@ data_source = {
     'wa': './Data/poll-data-wa.csv',
     'sa': './Data/poll-data-sa.csv',
 }
+CALIBRATION_PRIOR_DIRECTORY = Path('./Outputs/Calibration/Priors')
+CAMPAIGN_WINDOW_DAYS = 42
+FINAL_WINDOW_DAYS = 14
+DEFAULT_BASE_SEED = 20260803
+STAN_SEED_NAMESPACE = 'fp-model-v1'
+_STAN_MODEL_CACHE = {}
 
 
 # N.B. The "Others" (OTH) "party" values include votes for these other
@@ -54,6 +85,192 @@ unnamed_others_diagnostic_limit = 10
 
 class ConfigError(ValueError):
     pass
+
+
+def compressed_day_number(day_number, t_factor):
+    """Map a one-based calendar day number to a one-based model node."""
+
+    if t_factor < 1:
+        raise ValueError('t_factor must be at least one')
+    if day_number < 1:
+        raise ValueError('day_number must be at least one')
+    return (int(day_number) - 1) // int(t_factor) + 1
+
+
+def compressed_calendar_offset(day_offset, t_factor):
+    """Map a zero-based calendar offset to a one-based model node."""
+
+    if day_offset < 0:
+        raise ValueError('day_offset must not be negative')
+    return compressed_day_number(int(day_offset) + 1, t_factor)
+
+
+def transition_entering_calendar_offset(day_offset, t_factor):
+    """Return the model transition entering a zero-based calendar offset.
+
+    Transition ``n`` links model node ``n`` to node ``n + 1``. An event on
+    calendar day zero has no preceding in-model transition and returns zero.
+    """
+
+    if t_factor < 1:
+        raise ValueError('t_factor must be at least one')
+    if day_offset < 0:
+        raise ValueError('day_offset must not be negative')
+    if day_offset == 0:
+        return 0
+    return (int(day_offset) + int(t_factor) - 1) // int(t_factor)
+
+
+def house_effect_new_factor(days_before_present, new_threshold, old_threshold):
+    """Return the fraction of the new house effect used at one poll."""
+
+    if not old_threshold > new_threshold >= 0:
+        raise ValueError(
+            'old house-effect threshold must exceed the new threshold'
+        )
+    if days_before_present >= old_threshold:
+        return 0.0
+    if days_before_present >= new_threshold:
+        return (
+            (old_threshold - days_before_present)
+            / (old_threshold - new_threshold)
+        )
+    return 1.0
+
+
+def stan_seed_mode(config, e_data):
+    """Return a stable mode label for one independently sampled fit."""
+
+    if config.calibrate_bias:
+        return 'bias'
+    if config.calibrate_pollsters:
+        return 'calibration'
+    if config.cutoff_mode:
+        return 'cutoff-{}d'.format(e_data.days_to_election)
+    if config.pure:
+        return 'pure'
+    return 'final'
+
+
+def calibration_checkpoint_source_files(e_data):
+    """Return direct files whose contents affect one calibration checkpoint."""
+
+    files = [
+        Path(__file__),
+        Path(fp_model_checkpoints.__file__),
+        Path(calibration_provenance.__file__),
+        Path(calibration_summary.__file__),
+        Path('./Models/fp_model.stan'),
+        Path(data_source[e_data.e_tuple[1]]),
+        Path('./Data/significant-parties.csv'),
+        Path('./Data/preference-estimates.csv'),
+        Path('./Data/prior-results.csv'),
+        Path('./Data/discontinuities.csv'),
+        Path('./Data/desired-iterations.csv'),
+        Path('./Data/election-cycles.csv'),
+    ]
+    files.extend(Path(path) for path in e_data.federal_prior_files)
+    return files
+
+
+def calibration_checkpoint_identity(
+    config,
+    e_data,
+    excluded_pollster,
+    base_seed,
+    parties,
+):
+    election = ''.join(e_data.e_tuple)
+    mode = stan_seed_mode(config, e_data)
+    seeds = {
+        party: calibration_provenance.derive_stan_seed(
+            base_seed,
+            election,
+            party,
+            excluded_pollster,
+            '{}:{}'.format(STAN_SEED_NAMESPACE, mode),
+        )
+        for party in parties
+    }
+    return {
+        'election': election,
+        'excluded_pollster': excluded_pollster,
+        'mode': mode,
+        'base_seed': base_seed,
+        'seed_namespace': STAN_SEED_NAMESPACE,
+        'parties': list(parties),
+        'party_seeds': seeds,
+        'source_fingerprint': fp_model_checkpoints.fingerprint_files(
+            calibration_checkpoint_source_files(e_data)
+        ),
+    }
+
+
+def calibration_checkpoint_payload(e_data, excluded_pollster):
+    records = []
+    for key, values in sorted(
+        e_data.poll_calibrations.items(),
+        key=lambda item: (
+            item[0][0], item[0][2], item[0][1], item[0][3]
+        ),
+    ):
+        if key[0] != excluded_pollster:
+            continue
+        records.append({
+            'day_index': int(key[1]),
+            'party': str(key[2]),
+            'poll_index': int(key[3]),
+            'values': [
+                None if value is None else float(value)
+                for value in values
+            ],
+        })
+    federal_priors = {
+        party: [
+            [pd.Timestamp(date).strftime('%Y-%m-%d'), float(median)]
+            for date, median in values
+        ]
+        for party, values in sorted(
+            e_data.calibration_federal_priors.items()
+        )
+    }
+    stan_seeds = [
+        {'party': party, 'seed': int(seed)}
+        for (mode, pollster, party), seed in sorted(
+            e_data.resolved_stan_seeds.items()
+        )
+        if mode == 'calibration' and pollster == excluded_pollster
+    ]
+    return records, federal_priors, stan_seeds
+
+
+def restore_calibration_checkpoint(e_data, identity, payload):
+    excluded_pollster = identity['excluded_pollster']
+    for record in payload['poll_calibrations']:
+        values = record.get('values')
+        if not isinstance(values, list) or len(values) != 7:
+            raise ConfigError(
+                'Calibration checkpoint for {} has an invalid poll record.'
+                .format(identity['election'])
+            )
+        key = (
+            excluded_pollster,
+            int(record['day_index']),
+            str(record['party']),
+            int(record['poll_index']),
+        )
+        e_data.poll_calibrations[key] = tuple(values)
+    e_data.calibration_federal_priors.update({
+        party: [
+            (pd.Timestamp(date), float(median))
+            for date, median in values
+        ]
+        for party, values in payload['federal_priors'].items()
+    })
+    for record in payload['stan_seeds']:
+        e_data.resolved_stan_seeds[
+            ('calibration', excluded_pollster, record['party'])
+        ] = int(record['seed'])
 
 
 def derive_unnamed_others_median(inclusive_others, named_minor_total):
@@ -200,15 +417,152 @@ def order_parties_for_model(parties):
 
 
 def load_election_cycles(path='./Data/election-cycles.csv'):
-    with open(path, 'r') as source:
-        return {
-            (row[0], row[1]): (
-                pd.Timestamp(row[2]),
-                pd.Timestamp(row[3]),
+    cycles = {}
+    try:
+        with open(path, 'r', newline='', encoding='utf-8-sig') as source:
+            for line_number, row in enumerate(csv.reader(source), start=1):
+                if not row or not any(field.strip() for field in row):
+                    continue
+                if len(row) != 4:
+                    raise ConfigError(
+                        '{}:{} must contain year, region, start and end'
+                        .format(path, line_number)
+                    )
+                year, region, start_text, end_text = (
+                    field.strip() for field in row
+                )
+                key = (year, region)
+                if not year or not region:
+                    raise ConfigError(
+                        '{}:{} has an empty election identifier'.format(
+                            path, line_number
+                        )
+                    )
+                if key in cycles:
+                    raise ConfigError(
+                        '{}:{} duplicates election {}{}'.format(
+                            path, line_number, year, region
+                        )
+                    )
+                try:
+                    start = pd.Timestamp(start_text)
+                    end = pd.Timestamp(end_text)
+                except (TypeError, ValueError) as error:
+                    raise ConfigError(
+                        '{}:{} has an invalid election date'.format(
+                            path, line_number
+                        )
+                    ) from error
+                if pd.isna(start) or pd.isna(end) or start > end:
+                    raise ConfigError(
+                        '{}:{} has an invalid election period'.format(
+                            path, line_number
+                        )
+                    )
+                cycles[key] = (start, end)
+    except OSError as error:
+        raise ConfigError(
+            'Could not read election cycles from {}: {}'.format(path, error)
+        ) from error
+    return cycles
+
+
+def load_authored_rows(path, minimum_columns):
+    """Load non-empty authored CSV rows with basic shape validation."""
+
+    rows = []
+    try:
+        with open(path, newline='', encoding='utf-8-sig') as source:
+            for line_number, row in enumerate(csv.reader(source), start=1):
+                if not row or not any(field.strip() for field in row):
+                    continue
+                row = [field.strip() for field in row]
+                if len(row) < minimum_columns:
+                    raise ConfigError(
+                        '{}:{} has {} columns; expected at least {}'.format(
+                            path, line_number, len(row), minimum_columns
+                        )
+                    )
+                rows.append((line_number, row))
+    except OSError as error:
+        raise ConfigError(
+            'Could not read authored input {}: {}'.format(path, error)
+        ) from error
+    return rows
+
+
+def finite_float(value, context):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as error:
+        raise ConfigError('{} is not numeric'.format(context)) from error
+    if not math.isfinite(parsed):
+        raise ConfigError('{} is not finite'.format(context))
+    return parsed
+
+
+def vote_share(value, context):
+    parsed = finite_float(value, context)
+    if not 0 <= parsed <= 100:
+        raise ConfigError('{} is outside 0–100'.format(context))
+    return parsed
+
+
+def unique_mapping(items, path):
+    """Build a mapping while rejecting duplicate authored keys."""
+
+    result = {}
+    for line_number, key, value in items:
+        if key in result:
+            raise ConfigError(
+                '{}:{} duplicates key {}'.format(path, line_number, key)
             )
-            for row in csv.reader(source)
-            if row
-        }
+        result[key] = value
+    return result
+
+
+def load_pollster_parameter_file(path, value_names, validators):
+    """Load a headerless pollster/party parameter file strictly."""
+
+    mapping = {}
+    expected_columns = 2 + len(value_names)
+    for line_number, row in load_authored_rows(path, expected_columns):
+        if len(row) != expected_columns:
+            raise ConfigError(
+                '{}:{} has {} columns; expected {}'.format(
+                    path, line_number, len(row), expected_columns
+                )
+            )
+        key = (row[0], row[1])
+        if not key[0] or not key[1]:
+            raise ConfigError(
+                '{}:{} has an empty pollster or party'.format(
+                    path, line_number
+                )
+            )
+        if key in mapping:
+            raise ConfigError(
+                '{}:{} duplicates {} / {}'.format(
+                    path, line_number, *key
+                )
+            )
+        values = []
+        for offset, (name, validator) in enumerate(
+            zip(value_names, validators), start=2
+        ):
+            value = finite_float(
+                row[offset],
+                '{}:{} {}'.format(path, line_number, name),
+            )
+            if not validator(value):
+                raise ConfigError(
+                    '{}:{} has invalid {} {}'.format(
+                        path, line_number, name, value
+                    )
+                )
+            values.append(value)
+        mapping[key] = values[0] if len(values) == 1 else tuple(values)
+    return mapping
 
 
 def overlapping_federal_elections(election, election_cycles):
@@ -278,6 +632,8 @@ def order_elections_by_federal_dependencies(
     return ordered
 
 
+# Command-line validation and authored-input loading
+
 class Config:
     def __init__(self):
         parser = argparse.ArgumentParser(
@@ -328,13 +684,15 @@ class Config:
             action='store',
             type=int,
             help=(
-                'Base random seed. Calibration derives a separate stable '
-                'Stan seed for each election, party and excluded pollster.'
+                'Base random seed. Every mode derives a stable Stan seed for '
+                'its election, party, endpoint and excluded pollster.'
             ),
         )
         args = parser.parse_args()
         if args.election is None:
             raise ConfigError('The --election argument is required.')
+        if args.calibrate and args.bias:
+            raise ConfigError('--calibrate cannot be combined with --bias.')
         self.election_instructions = args.election.lower()
         self.calibrate_pollsters = args.calibrate
         self.calibrate_bias = (not self.calibrate_pollsters and 
@@ -354,6 +712,12 @@ class Config:
             raise ConfigError(
                 '--cutoff cannot be combined with --calibrate, --bias or '
                 '--pure.'
+            )
+        if self.pure and (
+            self.calibrate_pollsters or self.calibrate_bias
+        ):
+            raise ConfigError(
+                '--pure cannot be combined with --calibrate or --bias.'
             )
         if self.calibration_traces and not (
             self.calibrate_pollsters or self.calibrate_bias
@@ -443,40 +807,127 @@ class Config:
 
 class ModellingData:
     def __init__(self):
-            
-        # Load the file containing a list of significant parties for each election
-        # and arrange the data for the rest of the program to efficiently use
-        with open('./Data/significant-parties.csv', 'r') as f:
-            self.parties = {
-                (a[0], a[1]): order_parties_for_model(a[2:]) for a in
-                [b.strip().split(',') for b in f.readlines()]}
+        # Load significant parties and arrange them in dependency order.
+        party_path = './Data/significant-parties.csv'
+        self.parties = unique_mapping(
+            [
+                (
+                    line_number,
+                    (row[0], row[1]),
+                    order_parties_for_model(row[2:]),
+                )
+                for line_number, row in load_authored_rows(party_path, 3)
+            ],
+            party_path,
+        )
 
-        with open('./Data/preference-estimates.csv', 'r') as f:
-            self.preference_flows = {
-                (a[0], a[1], a[2]): (float(a[3]) * 0.01,
-                float(a[4]) * 0.01 if len(a) > 4 and a[4][0] != "#" else 0)
-                for a in [b.strip().split(',') for b in f.readlines()]}
+        preference_path = './Data/preference-estimates.csv'
+        preference_items = []
+        for line_number, row in load_authored_rows(preference_path, 4):
+            survival = 0.0
+            if len(row) > 4 and row[4] and not row[4].startswith('#'):
+                survival_percent = finite_float(
+                    row[4],
+                    '{}:{} preference exhaustion'.format(
+                        preference_path, line_number
+                    ),
+                )
+                if not 0 <= survival_percent <= 100:
+                    raise ConfigError(
+                        '{}:{} preference exhaustion is outside 0–100'
+                        .format(preference_path, line_number)
+                    )
+                survival = survival_percent * 0.01
+            flow_percent = finite_float(
+                row[3],
+                '{}:{} preference flow'.format(
+                    preference_path, line_number
+                ),
+            )
+            if not 0 <= flow_percent <= 100:
+                raise ConfigError(
+                    '{}:{} preference flow is outside 0–100'.format(
+                        preference_path, line_number
+                    )
+                )
+            preference_items.append((
+                line_number,
+                (row[0], row[1], row[2]),
+                (
+                    flow_percent * 0.01,
+                    survival,
+                ),
+            ))
+        self.preference_flows = unique_mapping(
+            preference_items, preference_path
+        )
 
-        # Load the file containing prior results for each election
-        with open('./Data/prior-results.csv', 'r') as f:
-            self.prior_results = {((a[0], a[1]), a[2]): float(a[3]) for a in
-                            [b.strip().split(',') for b in
-                            f.readlines()]}
+        prior_path = './Data/prior-results.csv'
+        self.prior_results = unique_mapping(
+            [
+                (
+                    line_number,
+                    ((row[0], row[1]), row[2]),
+                    vote_share(
+                        row[3],
+                        '{}:{} prior result'.format(
+                            prior_path, line_number
+                        ),
+                    ),
+                )
+                for line_number, row in load_authored_rows(prior_path, 4)
+            ],
+            prior_path,
+        )
 
-        # Discontinuities for leader changes
-        # or other exceptionally significant events
-        with open('./Data/discontinuities.csv', 'r') as f:
-            self.discontinuities = {a[0]: a[1:] for a in [b.strip().split(',')
-                            for b in f.readlines()]}
+        # Discontinuities for leader changes or exceptionally significant events.
+        discontinuity_path = './Data/discontinuities.csv'
+        discontinuity_items = []
+        for line_number, row in load_authored_rows(discontinuity_path, 1):
+            for date_text in row[1:]:
+                try:
+                    parsed = pd.Timestamp(date_text)
+                except (TypeError, ValueError) as error:
+                    raise ConfigError(
+                        '{}:{} has invalid discontinuity date {}'.format(
+                            discontinuity_path, line_number, date_text
+                        )
+                    ) from error
+                if pd.isna(parsed):
+                    raise ConfigError(
+                        '{}:{} has an empty discontinuity date'.format(
+                            discontinuity_path, line_number
+                        )
+                    )
+            discontinuity_items.append((line_number, row[0], row[1:]))
+        self.discontinuities = unique_mapping(
+            discontinuity_items, discontinuity_path
+        )
 
-        # Number of iterations to run for each model
-        # (note: half of the iterations will be warm-up)
-        # At least 300 is recommended, more will make the
-        # path more consistent at the cost of taking more time
-        # Sparsely polled periods take more time as the model has more freedom
-        with open('./Data/desired-iterations.csv', 'r') as f:
-            self.desired_iterations = {(a[0], a[1]): int(a[2]) for a in [
-                                b.strip().split(',') for b in f.readlines()]}
+        # Number of iterations per model (half are warm-up).
+        iteration_path = './Data/desired-iterations.csv'
+        iteration_items = []
+        for line_number, row in load_authored_rows(iteration_path, 3):
+            try:
+                iterations = int(row[2])
+            except ValueError as error:
+                raise ConfigError(
+                    '{}:{} has invalid iteration count'.format(
+                        iteration_path, line_number
+                    )
+                ) from error
+            if iterations < 2:
+                raise ConfigError(
+                    '{}:{} iteration count must be at least two'.format(
+                        iteration_path, line_number
+                    )
+                )
+            iteration_items.append((
+                line_number, (row[0], row[1]), iterations
+            ))
+        self.desired_iterations = unique_mapping(
+            iteration_items, iteration_path
+        )
 
         # Load the dates of next and previous elections
         # We will only model polls between those two dates
@@ -498,20 +949,100 @@ class ElectionData:
         self.e_tuple = (str(desired_election.year()),
                           desired_election.region())           
         tup = self.e_tuple
+        self.expected_parties = tuple(m_data.parties[tup])
+        self.resolved_stan_seeds = {}
         self.others_medians = {}
+        self.calibration_federal_priors = {}
+        self.federal_prior_category = (
+            'federal_calibration_priors'
+            if config.calibrate_pollsters or config.calibrate_bias
+            else 'poll_trend_outputs'
+        )
 
         if not (config.calibrate_pollsters or config.calibrate_bias):
             self.get_pollster_analysis(desired_election)
 
-        # collect the model data
-        self.base_df = pd.read_csv(data_source[tup[1]])
+        # Collect and validate the model data before doing expensive work.
+        poll_path = data_source[tup[1]]
+        try:
+            self.base_df = pd.read_csv(poll_path)
+        except (OSError, ValueError) as error:
+            raise ConfigError(
+                'Could not read poll data from {}: {}'.format(
+                    poll_path, error
+                )
+            ) from error
+        required_columns = {
+            'MidDate', 'Firm', 'OTH FP', 'ALP FP', 'GRN FP', '@TPP',
+            *self.expected_parties,
+        }
+        if not ({'LIB FP', 'LNP FP'} & set(self.base_df.columns)):
+            required_columns.add('LNP FP or LIB FP')
+        missing_columns = sorted(
+            column for column in required_columns
+            if (
+                column == 'LNP FP or LIB FP'
+                or column not in self.base_df.columns
+            )
+        )
+        if missing_columns:
+            raise ConfigError(
+                '{} is missing required poll column(s): {}'.format(
+                    poll_path, ', '.join(missing_columns)
+                )
+            )
+        self.base_df.drop(
+            columns=['Comments'],
+            inplace=True,
+            errors='ignore',
+        )
+        try:
+            self.base_df['MidDate'] = pd.to_datetime(
+                self.base_df['MidDate'], errors='raise'
+            )
+        except (TypeError, ValueError) as error:
+            raise ConfigError(
+                '{} contains an invalid MidDate'.format(poll_path)
+            ) from error
+        if self.base_df['MidDate'].isna().any():
+            raise ConfigError(
+                '{} contains an empty MidDate'.format(poll_path)
+            )
+        if self.base_df['Firm'].apply(
+            lambda value: not isinstance(value, str) or not value.strip()
+        ).any():
+            raise ConfigError(
+                '{} contains an empty polling firm'.format(poll_path)
+            )
+        vote_columns = (
+            set(self.expected_parties)
+            | {'OTH FP', 'ALP FP', 'GRN FP', '@TPP'}
+            | ({'LIB FP'} if 'LIB FP' in self.base_df else {'LNP FP'})
+        )
+        for column in sorted(vote_columns):
+            try:
+                values = pd.to_numeric(
+                    self.base_df[column], errors='raise'
+                )
+            except (TypeError, ValueError) as error:
+                raise ConfigError(
+                    '{} column {} contains a non-numeric value'.format(
+                        poll_path, column
+                    )
+                ) from error
+            non_missing = values.dropna()
+            if (
+                not np.isfinite(non_missing).all()
+                or ((non_missing < 0) | (non_missing > 100)).any()
+            ):
+                raise ConfigError(
+                    '{} column {} contains a value outside 0–100'.format(
+                        poll_path, column
+                    )
+                )
+            self.base_df[column] = values
 
-        # Drop this column to make debug output more useful
-        self.base_df.drop('Comments', axis=1)
-
-        # drop data not in range of this election period
-        self.base_df['MidDate'] = [pd.Timestamp(date)
-                            for date in self.base_df['MidDate']]
+        # Drop data not in range of this election period.
         self.start_date = m_data.election_cycles[tup][0]
         self.end_date = (m_data.election_cycles[tup][1] - 
                     pd.to_timedelta(config.cutoff_days, unit="D"))
@@ -575,6 +1106,9 @@ class ElectionData:
                     fed_cycles=party_fed_cycles,
                     party=party,
                     pure=config.pure,
+                    calibration=(
+                        config.calibrate_pollsters or config.calibrate_bias
+                    ),
                     used_files=self.federal_prior_files_by_party.setdefault(
                         party, []
                     ),
@@ -748,20 +1282,25 @@ class ElectionData:
     
     def get_pollster_analysis(self, desired_election):
         code = desired_election.short()
-        with open(f'./Outputs/Calibration/variability-{code}.csv', 'r') as f:
-            self.pollster_sigmas = {(a[0], a[1]): float(a[2])
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
-
-        with open(f'./Outputs/Calibration/he_weighting-{code}.csv', 'r') as f:
-            self.pollster_he_weights = {(a[0], a[1]): float(a[2])
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
-
-        with open(f'./Outputs/Calibration/biases-{code}.csv', 'r') as f:
-            self.pollster_biases = {(a[0], a[1]): (float(a[2]), float(a[3]))
-                            for a in [b.strip().split(',')
-                            for b in f.readlines()]}
+        calibration_directory = './Outputs/Calibration'
+        self.pollster_sigmas = load_pollster_parameter_file(
+            '{}/variability-{}.csv'.format(calibration_directory, code),
+            ('poll sigma',),
+            (lambda value: value > 0,),
+        )
+        self.pollster_he_weights = load_pollster_parameter_file(
+            '{}/he_weighting-{}.csv'.format(calibration_directory, code),
+            ('house-effect weight',),
+            (lambda value: value >= 0,),
+        )
+        self.pollster_biases = load_pollster_parameter_file(
+            '{}/biases-{}.csv'.format(calibration_directory, code),
+            ('bias mean', 'bias standard deviation'),
+            (
+                lambda value: True,
+                lambda value: value >= 0,
+            ),
+        )
 
 
 @dataclass
@@ -790,6 +1329,8 @@ class ReducedSeries:
     tDayCount: int
     tDiscontinuities: List[int]
     tElectionDay: int
+    tCampaignStartDay: int
+    tFinalStartDay: int
     tPollDays: List[int]
     tHouseEffectNew: int
     tHouseEffectOld: int
@@ -839,8 +1380,17 @@ class ModelParams:
     def validate(self):
         if self.tFactor < 1:
             raise ValueError("tFactor must be >= 1")
-        if not (self.houseEffectOld > self.houseEffectNew >= 0):
-            raise ValueError("houseEffectOld must be > houseEffectNew >= 0")
+        if not (self.houseEffectOld > self.houseEffectNew >= self.tFactor):
+            raise ValueError(
+                "houseEffectOld must be > houseEffectNew >= tFactor"
+            )
+        if (
+            self.houseEffectOld // self.tFactor
+            <= self.houseEffectNew // self.tFactor
+        ):
+            raise ValueError(
+                "house-effect thresholds collapse after time compression"
+            )
         if self.min_observation <= 0:
             raise ValueError("min_observation must be > 0")
         if self.approval_sigma_min > self.approval_sigma_max:
@@ -852,6 +1402,10 @@ class ModelParams:
         ]:
             if getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be > 0")
+        if not 0 < self.stan_adapt_delta < 1:
+            raise ValueError("stan_adapt_delta must be between zero and one")
+        if self.stan_max_treedepth < 1:
+            raise ValueError("stan_max_treedepth must be positive")
 
 
 @dataclass
@@ -888,6 +1442,99 @@ class LoadFedTrendMedianInputs:
     party: str
     pure: bool
     used_files: list
+    calibration: bool = False
+
+
+def calibration_prior_path(election_year):
+    """Return the compact full-federal calibration prior for one term."""
+
+    return CALIBRATION_PRIOR_DIRECTORY / '{}fed.csv'.format(election_year)
+
+
+def load_fed_calibration_median(inputs: LoadFedTrendMedianInputs):
+    """Load a federal full-calibration prior for a state calibration run.
+
+    State calibration must not consume normal final trends: those forecasts
+    already depend on pollster calibration and create a feedback loop. New
+    calibration runs write a compact shared prior file. The detailed full
+    calibration trend remains a read-only compatibility fallback while old
+    archives are being migrated.
+    """
+
+    filename = calibration_prior_path(inputs.election_year)
+    if filename.is_file():
+        try:
+            frame = pd.read_csv(filename)
+            required_columns = {'Date', 'Party', '50%'}
+            if not required_columns.issubset(frame.columns):
+                raise ValueError(
+                    'missing {}'.format(
+                        ', '.join(sorted(required_columns - set(frame.columns)))
+                    )
+                )
+            frame = frame[frame['Party'] == inputs.party].copy()
+            if frame.empty:
+                raise ValueError('no rows for {}'.format(inputs.party))
+            frame['Date'] = pd.to_datetime(frame['Date'], errors='raise')
+            frame['50%'] = pd.to_numeric(frame['50%'], errors='raise')
+            if (
+                not np.isfinite(frame['50%']).all()
+                or ((frame['50%'] < 0) | (frame['50%'] > 100)).any()
+            ):
+                raise ValueError('non-finite or out-of-range median')
+            frame = frame.sort_values('Date')
+            if frame['Date'].duplicated().any():
+                raise ValueError('duplicate dates')
+        except (OSError, TypeError, ValueError) as error:
+            raise ConfigError(
+                'Invalid federal calibration prior {} for {}: {}'.format(
+                    filename, inputs.party, error
+                )
+            ) from error
+        inputs.used_files.append(str(filename))
+        return pd.Series(frame['50%'].values, index=frame['Date'])
+
+    # Completed pre-compaction calibration rounds wrote the full fit here.
+    # It remains a calibration-only fallback, never a normal final trend.
+    legacy_filename = (
+        './Outputs/Calibration/fp_trend_{}fed_{}.csv'.format(
+            inputs.election_year, inputs.party
+        )
+    )
+    if not os.path.exists(legacy_filename):
+        raise ConfigError(
+            'State calibration requires a federal calibration prior for {} '
+            'in {}. Run --calibrate for the overlapping federal election '
+            'first.'.format(inputs.party, '{}fed'.format(inputs.election_year))
+        )
+    try:
+        frame = pd.read_csv(legacy_filename, skiprows=2)
+        if 'Day' not in frame or '50%' not in frame:
+            raise ValueError('missing Day or 50% column')
+        days = pd.to_numeric(frame['Day'], errors='raise')
+        medians = pd.to_numeric(frame['50%'], errors='raise')
+        if (
+            not np.isfinite(days).all()
+            or days.duplicated().any()
+            or not np.isfinite(medians).all()
+            or ((medians < 0) | (medians > 100)).any()
+        ):
+            raise ValueError('invalid day or median')
+        with open(legacy_filename, 'r') as source:
+            source.readline()
+            start_day, start_month, start_year = [
+                int(value) for value in source.readline().strip().split(',')
+            ]
+    except (OSError, TypeError, ValueError) as error:
+        raise ConfigError(
+            'Invalid legacy federal calibration prior {} for {}: {}'.format(
+                legacy_filename, inputs.party, error
+            )
+        ) from error
+    inputs.used_files.append(legacy_filename)
+    start_date = pd.Timestamp(start_year, start_month, start_day)
+    dates = start_date + pd.to_timedelta(days, unit='D')
+    return pd.Series(medians.values, index=dates)
 
 
 def load_fed_cutoff_median(inputs: LoadFedTrendMedianInputs):
@@ -902,12 +1549,23 @@ def load_fed_cutoff_median(inputs: LoadFedTrendMedianInputs):
     selected = None
     with filename.open(newline='', encoding='utf-8-sig') as source:
         reader = csv.DictReader(source)
-        if reader.fieldnames is None or '50%' not in reader.fieldnames:
+        required_columns = {
+            'ScheduledCutoffDays',
+            'PollTrendEndDays',
+            'Party',
+            'StanSeed',
+            '50%',
+        }
+        if (
+            reader.fieldnames is None
+            or not required_columns.issubset(reader.fieldnames)
+        ):
             raise ConfigError(
-                'Federal cutoff file has no median column: {}'.format(
+                'Federal cutoff file is missing required columns: {}'.format(
                     filename
                 )
             )
+        seen_endpoints = set()
         for line_number, row in enumerate(reader, start=2):
             if row.get('Party') != inputs.party:
                 continue
@@ -920,8 +1578,12 @@ def load_fed_cutoff_median(inputs: LoadFedTrendMedianInputs):
                     )
                 )
                 median = float(row['50%'])
-                if not math.isfinite(median):
-                    raise ValueError('non-finite median')
+                endpoint_key = int(row['PollTrendEndDays'])
+                if endpoint_key in seen_endpoints:
+                    raise ValueError('duplicate party/endpoint row')
+                seen_endpoints.add(endpoint_key)
+                if not math.isfinite(median) or not 0 <= median <= 100:
+                    raise ValueError('non-finite or out-of-range median')
             except (TypeError, ValueError) as error:
                 raise ConfigError(
                     '{}:{} has invalid federal cutoff data for {}'.format(
@@ -952,6 +1614,9 @@ def load_fed_trend_median(inputs: LoadFedTrendMedianInputs):
     if inputs.available_through is not None:
         return load_fed_cutoff_median(inputs)
 
+    if inputs.calibration:
+        return load_fed_calibration_median(inputs)
+
     pure_suffix = '_pure' if inputs.pure else ''
     filename = (
         f'./Outputs/fp_trend_{election_year}fed_{party}'
@@ -961,18 +1626,42 @@ def load_fed_trend_median(inputs: LoadFedTrendMedianInputs):
         return None
     inputs.used_files.append(filename)
 
-    # read header lines
-    with open(filename, 'r') as f:
-        f.readline()  # "Start date day,Month,Year"
-        start_line = f.readline().strip()
-    start_day, start_month, start_year = [int(x) for x in start_line.split(',')]
-    start_date = pd.Timestamp(start_year, start_month, start_day)
-
-    # read the data rows
-    df = pd.read_csv(filename, skiprows=2)
-    # median is 51st percentile; column index 2 + 50 = 52
-    median = df.iloc[:, 52]
-    dates = start_date + pd.to_timedelta(df['Day'], unit='D')
+    try:
+        with open(filename, 'r', encoding='utf-8-sig') as source:
+            label = source.readline().strip()
+            start_line = source.readline().strip()
+        if label != 'Start date day,Month,Year':
+            raise ValueError('invalid start-date header')
+        start_parts = [int(value) for value in start_line.split(',')]
+        if len(start_parts) != 3:
+            raise ValueError('invalid start date')
+        start_day, start_month, start_year = start_parts
+        start_date = pd.Timestamp(start_year, start_month, start_day)
+        df = pd.read_csv(filename, skiprows=2)
+        required_columns = {'Day', '50%'}
+        if not required_columns.issubset(df.columns):
+            raise ValueError(
+                'missing {}'.format(
+                    ', '.join(sorted(required_columns - set(df.columns)))
+                )
+            )
+        day_values = pd.to_numeric(df['Day'], errors='raise')
+        median = pd.to_numeric(df['50%'], errors='raise')
+        if (
+            not np.isfinite(day_values).all()
+            or not np.isfinite(median).all()
+            or ((median < 0) | (median > 100)).any()
+        ):
+            raise ValueError('non-finite or out-of-range trend data')
+        if day_values.duplicated().any():
+            raise ValueError('duplicate trend days')
+    except (OSError, TypeError, ValueError) as error:
+        raise ConfigError(
+            'Invalid federal trend {} for {}: {}'.format(
+                filename, party, error
+            )
+        ) from error
+    dates = start_date + pd.to_timedelta(day_values, unit='D')
     return pd.Series(median.values, index=dates)
 
 
@@ -983,6 +1672,7 @@ class LoadFedTrendSeriesForPartyInputs:
     party: str
     pure: bool
     used_files: list
+    calibration: bool = False
 
 def load_fed_trend_series_for_party(inputs: LoadFedTrendSeriesForPartyInputs):
     fed_cycles = inputs.fed_cycles
@@ -998,6 +1688,7 @@ def load_fed_trend_series_for_party(inputs: LoadFedTrendSeriesForPartyInputs):
             party=party,
             pure=inputs.pure,
             used_files=inputs.used_files,
+            calibration=inputs.calibration,
         ))
         if series is None:
             continue
@@ -1110,9 +1801,12 @@ class StanDiagnosticsRecorder:
         self.issue_counts = {}
         self.issue_count = 0
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'w') as output:
+        with open(path, 'a') as output:
             output.write(
-                'Stan diagnostic failures for the current fp_model batch\n'
+                '\nStan diagnostic failures for fp_model batch starting '
+                '{} UTC\n'.format(
+                    datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+                )
             )
 
     def record(
@@ -1122,6 +1816,7 @@ class StanDiagnosticsRecorder:
         excluded_pollster,
         random_seed,
         checks,
+        mode=None,
     ):
         self.model_count += 1
         failed = {
@@ -1144,10 +1839,12 @@ class StanDiagnosticsRecorder:
         pollster = excluded_pollster or '<none>'
         with open(self.path, 'a') as output:
             output.write(
-                '{} | {} | excluded pollster {} | seed {} | failed: {}\n'
+                '{} | {} | mode {} | excluded pollster {} | seed {} | '
+                'failed: {}\n'
                 .format(
                     election,
                     party,
+                    mode or 'unknown',
                     pollster,
                     random_seed,
                     ', '.join(sorted(failed)),
@@ -1183,6 +1880,8 @@ class StanDiagnosticsRecorder:
 
 
 @dataclass
+# Per-party input preparation and Stan-data construction
+
 class ModelInputs:
     chains: int
     diagnostics_recorder: StanDiagnosticsRecorder
@@ -1190,6 +1889,7 @@ class ModelInputs:
     excluded_pollster: str
     iterations: int
     model_params: ModelParams
+    mode: str
     party: str
     random_seed: int
     stan_data: dict
@@ -1245,8 +1945,6 @@ def prepare_poll_df(party_context: PartyContext) -> Optional[PollPrepResult]:
     if excluded_pollster != '':
         exc_polls = df[df.Firm == excluded_pollster]
         if exc_polls.empty:
-            print(f'No polls by {excluded_pollster} for {party}'
-                  f', skipping round')
             return None
     elif config.calibrate_pollsters:
         exc_polls = df
@@ -1262,7 +1960,6 @@ def prepare_poll_df(party_context: PartyContext) -> Optional[PollPrepResult]:
     # It's possible for there to actually be no polls at all if
     # the party hasn't been polled before the cutoff date
     if n_polls == 0:
-        print(f'No polls for party {party} at all, skipping round')
         return None
     
     return PollPrepResult(df=df, exc_polls=exc_polls)
@@ -1505,13 +2202,6 @@ def filter_approvals_by_poll_range(
         if 1 <= day <= e_data.n_days
     ]
 
-    if len(approvals_in_range) < len(approvals):
-        skipped_approvals = len(approvals) - len(approvals_in_range)
-        print(
-            f'Skipping {skipped_approvals} approval entries outside '
-            'the poll range'
-        )
-
     return approvals_in_range, approval_days_in_range
 
 
@@ -1601,16 +2291,17 @@ def prepare_discontinuities(party_context: PartyContext) -> List[int]:
     m_data = party_context.m_data
     e_data = party_context.e_data
 
-    # Transform discontinuities from dates to raw numbers
+    # Transform discontinuities to zero-based calendar offsets. The reduced
+    # series later maps each event to the transition entering its date.
     discontinuities_filtered = m_data.discontinuities[e_data.e_tuple[1]]
     discontinuities_filtered = \
-        [(pd.Timestamp(date) - e_data.start).days + 1
+        [(pd.Timestamp(date) - e_data.start).days
             for date in discontinuities_filtered]
 
     # Remove discontinuities outside of the election period
     discontinuities_filtered = \
         [date for date in discontinuities_filtered
-            if 1 <= date <= e_data.n_days]
+            if 0 < date < e_data.n_days]
 
     # Stan doesn't like zero-length arrays so put in a dummy value
     # if there are no discontinuities
@@ -1732,9 +2423,21 @@ def build_reduced_series(inputs: ReducedSeriesInputs) -> ReducedSeries:
     # Calculate the number of days in the reduced series
     tDayCount = (inputs.e_data.n_days - 1) // model_params.tFactor + 1
     # Calculate the (reduced) day indices for the polls
-    tPollDays = [(day - 1) // model_params.tFactor + 1 for day in inputs.poll_vectors.pollDays]
-    # Calculate the (reduced) day indices for the discontinuities
-    tDiscontinuities = [(day - 1) // model_params.tFactor + 1 for day in inputs.discontinuities_filtered]
+    tPollDays = [
+        compressed_day_number(day, model_params.tFactor)
+        for day in inputs.poll_vectors.pollDays
+    ]
+    # Calculate the transitions entering each discontinuity date. Multiple
+    # dates can collapse onto one transition after time compression.
+    tDiscontinuities = sorted(set(
+        transition_entering_calendar_offset(day, model_params.tFactor)
+        for day in inputs.discontinuities_filtered
+        if day > 0
+    ))
+    tDiscontinuities = [
+        day for day in tDiscontinuities
+        if 1 <= day < tDayCount
+    ]
     # Stan doesn't like zero-length arrays so put in a dummy value
     # if there are no discontinuities
     if len(tDiscontinuities) == 0:
@@ -1742,8 +2445,16 @@ def build_reduced_series(inputs: ReducedSeriesInputs) -> ReducedSeries:
     # Calculate the (reduced) day index for the election day
     # (this determines when the lowered sigma for the campaign starts)
     # Raw day zero maps to Stan day one, matching the poll-day conversion.
-    tElectionDay = (
-        inputs.e_data.election_day // model_params.tFactor + 1
+    tElectionDay = compressed_calendar_offset(
+        inputs.e_data.election_day, model_params.tFactor
+    )
+    tCampaignStartDay = compressed_calendar_offset(
+        max(0, inputs.e_data.election_day - CAMPAIGN_WINDOW_DAYS),
+        model_params.tFactor,
+    )
+    tFinalStartDay = compressed_calendar_offset(
+        max(0, inputs.e_data.election_day - FINAL_WINDOW_DAYS),
+        model_params.tFactor,
     )
     # Calculate the thresholds between new and old house effects
     # (this determines when the house effects are mixed)
@@ -1764,6 +2475,8 @@ def build_reduced_series(inputs: ReducedSeriesInputs) -> ReducedSeries:
         tPollDays=tPollDays,
         tDiscontinuities=tDiscontinuities,
         tElectionDay=tElectionDay,
+        tCampaignStartDay=tCampaignStartDay,
+        tFinalStartDay=tFinalStartDay,
         tHouseEffectNew=tHouseEffectNew,
         tHouseEffectOld=tHouseEffectOld,
     )
@@ -1780,7 +2493,6 @@ def build_stan_data(run_context):
         'pollCount': poll_vectors.n_polls,
         'houseCount': poll_vectors.n_houses,
         'discontinuityCount': len(reduced_series.tDiscontinuities),
-        'priorResult': run_context.prior_result,
         'priorSeries': reduced_series.prior_series_t,
         'priorVoteShareSigma': reduced_series.prior_sigma_t,
 
@@ -1793,7 +2505,8 @@ def build_stan_data(run_context):
         'heWeights': house_effects.he_weights,
         'biases': house_effects.biases,
 
-        'electionDay': reduced_series.tElectionDay,
+        'campaignStartDay': reduced_series.tCampaignStartDay,
+        'finalStartDay': reduced_series.tFinalStartDay,
 
         # distributions for the daily change in vote share
         # higher values during campaigns, since it's more likely
@@ -1824,7 +2537,94 @@ def build_stan_data(run_context):
         'houseEffectNew': reduced_series.tHouseEffectNew
     }
 
+    validate_stan_data(stan_data)
     return stan_data
+
+
+def validate_stan_data(stan_data):
+    """Reject malformed derived vectors before starting an expensive fit."""
+
+    poll_count = stan_data['pollCount']
+    house_count = stan_data['houseCount']
+    day_count = stan_data['dayCount']
+    expected_lengths = {
+        'pollObservations': poll_count,
+        'missingObservations': poll_count,
+        'pollHouse': poll_count,
+        'pollDay': poll_count,
+        'sigmas': poll_count,
+        'heWeights': house_count,
+        'biases': house_count,
+        'priorSeries': day_count,
+        'priorVoteShareSigma': day_count,
+        'discontinuities': stan_data['discontinuityCount'],
+    }
+    for name, expected_length in expected_lengths.items():
+        if len(stan_data[name]) != expected_length:
+            raise ConfigError(
+                'Stan vector {} has length {}; expected {}.'.format(
+                    name, len(stan_data[name]), expected_length
+                )
+            )
+
+    finite_vectors = (
+        'pollObservations',
+        'sigmas',
+        'heWeights',
+        'biases',
+        'priorSeries',
+        'priorVoteShareSigma',
+    )
+    for name in finite_vectors:
+        if not all(math.isfinite(float(value)) for value in stan_data[name]):
+            raise ConfigError('Stan vector {} contains a non-finite value.'.format(
+                name
+            ))
+    if not all(0 <= value <= 100 for value in stan_data['pollObservations']):
+        raise ConfigError('Stan poll observations must be between 0 and 100.')
+    if not all(0 <= value <= 100 for value in stan_data['priorSeries']):
+        raise ConfigError('Stan prior series must be between 0 and 100.')
+    if not all(value > 0 for value in stan_data['sigmas']):
+        raise ConfigError('Stan poll sigmas must be positive.')
+    if not all(value > 0 for value in stan_data['priorVoteShareSigma']):
+        raise ConfigError('Stan prior sigmas must be positive.')
+    if not all(value >= 0 for value in stan_data['heWeights']):
+        raise ConfigError('Stan house-effect weights must not be negative.')
+    if not all(-100 <= value <= 100 for value in stan_data['biases']):
+        raise ConfigError('Stan bias values must be between -100 and 100.')
+    if not all(value in (0, 1) for value in stan_data['missingObservations']):
+        raise ConfigError('Stan missing-observation flags must be zero or one.')
+    if sum(stan_data['heWeights']) <= 0:
+        raise ConfigError('Stan house-effect weights must have positive total.')
+    if not all(
+        1 <= value <= house_count for value in stan_data['pollHouse']
+    ):
+        raise ConfigError('Stan poll-house indices are out of range.')
+    if not all(1 <= value <= day_count for value in stan_data['pollDay']):
+        raise ConfigError('Stan poll-day indices are out of range.')
+    if not all(
+        0 <= value <= day_count for value in stan_data['discontinuities']
+    ):
+        raise ConfigError('Stan discontinuity transitions are out of range.')
+    if not (
+        1 <= stan_data['campaignStartDay'] <= stan_data['finalStartDay']
+    ):
+        raise ConfigError('Stan campaign/final start days are inconsistent.')
+    if not (
+        stan_data['houseEffectOld'] > stan_data['houseEffectNew'] >= 1
+    ):
+        raise ConfigError(
+            'Compressed house-effect thresholds must be distinct and positive.'
+        )
+    for name in (
+        'dailySigma',
+        'campaignSigma',
+        'finalSigma',
+        'houseEffectSigma',
+        'houseEffectSumSigma',
+    ):
+        if not math.isfinite(stan_data[name]) or stan_data[name] <= 0:
+            raise ConfigError('{} must be positive and finite.'.format(name))
 
 
 def verify_timeline_consistency(party_context: PartyContext):
@@ -1837,16 +2637,24 @@ def verify_timeline_consistency(party_context: PartyContext):
         )
 
 
+# Core statistical processing: compile/cache and sample one Stan model
+
+def load_stan_model(path='./Models/fp_model.stan'):
+    """Load one compiled model per source text for the current process."""
+
+    with open(path, 'r') as source:
+        model_code = source.read()
+    if model_code not in _STAN_MODEL_CACHE:
+        _STAN_MODEL_CACHE[model_code] = stan_cache(model_code=model_code)
+    return _STAN_MODEL_CACHE[model_code]
+
+
 def run_stan_model(model_inputs: ModelInputs):
     e_data = model_inputs.e_data
     model_params = model_inputs.model_params
 
-    # get the Stan model code
-    with open("./Models/fp_model.stan", "r") as f:
-        model = f.read()
-
-    # encode the STAN model in C++ or retrieve it if already cached
-    sm = stan_cache(model_code=model)
+    # Encode the Stan model in C++ or retrieve it from the process/disk cache.
+    sm = load_stan_model()
 
     # Report dates for model, this means we can easily check if new
     # data has actually been saved without waiting for model to run
@@ -1878,6 +2686,7 @@ def run_stan_model(model_inputs: ModelInputs):
         excluded_pollster=model_inputs.excluded_pollster,
         random_seed=model_inputs.random_seed,
         checks=diagnostic_results,
+        mode=model_inputs.mode,
     )
 
     return fit
@@ -1899,17 +2708,23 @@ class WritingContext:
     output_probs_t: Tuple[float, ...]
     summary: Any
 
-def prepare_writing(fit: Any):
-    probs_list = [0.001]
-    for i in range(1, 100):
-        probs_list.append(i * 0.01)
-    probs_list.append(0.999)
-    output_probs_t = tuple(probs_list)
+def prepare_writing(fit: Any, median_only=False):
+    output_probs_t = output_probabilities(median_only)
     summary = fit.summary(probs=output_probs_t)['summary']
 
     return WritingContext(
         output_probs_t=output_probs_t,
         summary=summary,
+    )
+
+
+def output_probabilities(median_only=False):
+    if median_only:
+        return (0.5,)
+    return tuple(
+        [0.001]
+        + [index * 0.01 for index in range(1, 100)]
+        + [0.999]
     )
 
 
@@ -2035,6 +2850,97 @@ def collect_trend_outputs(output_context, writing_context):
         # Match legacy CSV compaction, which reads the rounded 50% column.
         final_median=round(days[-1].median_val, 3),
     )
+
+
+def retain_federal_calibration_prior(output_context, trend_outputs, writing_context):
+    """Retain the full-fit median series needed by later state calibration.
+
+    Leave-one-out variants are only used to reduce pollster variability. The
+    unexcluded federal fit is the stable prior for every overlapping state
+    calibration and is intentionally kept even when detailed traces are off.
+    """
+
+    if (
+        not output_context.config.calibrate_pollsters
+        or output_context.e_data.e_tuple[1] != 'fed'
+        or output_context.excluded_pollster
+    ):
+        return
+    median_index = writing_context.output_probs_t.index(0.5)
+    output_context.e_data.calibration_federal_priors[
+        output_context.party
+    ] = [
+        (
+            output_context.e_data.start + pd.to_timedelta(day, unit='D'),
+            round(values[median_index], 3),
+        )
+        for day, values in enumerate(trend_outputs.day_data)
+    ]
+
+
+def write_federal_calibration_priors(e_data):
+    """Atomically publish compact daily priors after one federal LOO batch."""
+
+    if e_data.e_tuple[1] != 'fed' or not e_data.calibration_federal_priors:
+        return None
+    expected_parties = set(e_data.expected_parties)
+    actual_parties = set(e_data.calibration_federal_priors)
+    if actual_parties != expected_parties:
+        raise ConfigError(
+            'Federal calibration prior for {} has incomplete party coverage '
+            '(missing: {}; unexpected: {}).'.format(
+                ''.join(e_data.e_tuple),
+                ', '.join(sorted(expected_parties - actual_parties)) or 'none',
+                ', '.join(sorted(actual_parties - expected_parties)) or 'none',
+            )
+        )
+    expected_dates = [
+        e_data.start + pd.to_timedelta(day, unit='D')
+        for day in range(e_data.n_days)
+    ]
+    for party, values in e_data.calibration_federal_priors.items():
+        dates = [date for date, _ in values]
+        medians = [median for _, median in values]
+        if dates != expected_dates:
+            raise ConfigError(
+                'Federal calibration prior for {} {} has incomplete or '
+                'misaligned daily coverage.'.format(
+                    ''.join(e_data.e_tuple), party
+                )
+            )
+        if (
+            not all(math.isfinite(value) for value in medians)
+            or any(value < 0 or value > 100 for value in medians)
+        ):
+            raise ConfigError(
+                'Federal calibration prior for {} {} has an invalid median.'
+                .format(''.join(e_data.e_tuple), party)
+            )
+    output = calibration_prior_path(e_data.e_tuple[0])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=output.parent,
+        prefix='.{}-'.format(output.stem),
+        suffix='.tmp',
+        text=True,
+    )
+    try:
+        with os.fdopen(descriptor, 'w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file, lineterminator='\n')
+            writer.writerow(['Date', 'Party', '50%'])
+            for party in sorted(e_data.calibration_federal_priors):
+                for date, median in e_data.calibration_federal_priors[party]:
+                    writer.writerow([date.strftime('%Y-%m-%d'), party, median])
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary_name, output)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+    return output
 
 
 @dataclass
@@ -2229,6 +3135,8 @@ def write_house_effects(inputs: WriteHouseEffectsInputs):
     return collected
 
 
+# Output serialization and calibration-evidence reduction
+
 def calibration_recent_poll_counts(df):
     """Match the legacy compactor's final-183-model-day pollster counts."""
 
@@ -2284,16 +3192,26 @@ def write_polls(inputs: WritePollsInputs):
         else:
             polls_file.write(str(df.loc[poll_index, 'Firm']))
         day = int(df.loc[poll_index, 'DayNum'])
-        days_ago = e_data.n_days - day
+        compressed_poll_day = compressed_day_number(
+            day, model_params.tFactor
+        )
+        days_ago = (
+            output_context.run_context.reduced_series.tDayCount
+            - compressed_poll_day
+        )
         polls_file.write(',' + str(day))
         fp = df.loc[poll_index, party]
         new_he = new_house_effects[df.loc[poll_index, 'House'] - 1]
         old_he = old_house_effects[df.loc[poll_index, 'House'] - 1]
-        old_factor = ((days_ago - model_params.houseEffectNew) /
-                        (model_params.houseEffectOld - model_params.houseEffectNew))
-        old_factor = max(min(old_factor, 1), 0)
-        mixed_he = (old_factor * old_he +
-                    (1 - old_factor) * new_he)
+        new_factor = house_effect_new_factor(
+            days_ago,
+            output_context.run_context.reduced_series.tHouseEffectNew,
+            output_context.run_context.reduced_series.tHouseEffectOld,
+        )
+        mixed_he = (
+            new_factor * new_he
+            + (1 - new_factor) * old_he
+        )
         adjusted_fp = fp - mixed_he
         polls_file.write(',' + str(round(fp, 3)))
         polls_file.write(',' + str(round(adjusted_fp, 3)))
@@ -2388,9 +3306,9 @@ class PollCalibration:
     vote: float
     trend_median: float
     adjusted_vote: float
-    percentile: float
+    percentile: Optional[float]
     deviation: float
-    prob_deviation: float
+    prob_deviation: Optional[float]
     neighbours: float
 
 @dataclass
@@ -2412,13 +3330,19 @@ def build_poll_calibration(inputs: BuildPollCalibrationInputs) -> PollCalibratio
 
     trend_median = day_data[poll.day_index][median_col]
     adjusted_vote = poll.vote - house_effects[poll.pollster]
-    percentile = interpolate_percentile(InterpolatePercentileInputs(
-        day_distribution=day_data[poll.day_index],
-        output_probs=output_probs,
-        value=adjusted_vote,
-    ))
+    percentile = (
+        None
+        if output_probs == (0.5,)
+        else interpolate_percentile(InterpolatePercentileInputs(
+            day_distribution=day_data[poll.day_index],
+            output_probs=output_probs,
+            value=adjusted_vote,
+        ))
+    )
     deviation = adjusted_vote - trend_median
-    prob_deviation = abs(percentile - 0.5)
+    prob_deviation = (
+        None if percentile is None else abs(percentile - 0.5)
+    )
     neighbours = sum(min(1, 2 ** (-abs(poll.day_index + 1 - other_day) / 20) * 0.5)
                     for other_day in df_daynum)
     return PollCalibration(
@@ -2498,12 +3422,19 @@ def calibrate_pollsters(inputs: CalibratePollstersInputs) -> None:
             cal=poll_calibration,
         ))
         deviations.append(poll_calibration.deviation)
-        prob_deviations.append(poll_calibration.prob_deviation)
+        if poll_calibration.prob_deviation is not None:
+            prob_deviations.append(poll_calibration.prob_deviation)
     std_dev = statistics.stdev(deviations)
-    prob_dev_avg = statistics.mean(prob_deviations)
-    print(f'Overall ({excluded_pollster}, {party}):'
-          f' standard deviation from trend median: {std_dev}'
-          f' average probability deviation: {prob_dev_avg}')
+    message = (
+        f'Overall ({excluded_pollster}, {party}):'
+        f' standard deviation from trend median: {std_dev}'
+    )
+    if prob_deviations:
+        message += (
+            ' average probability deviation: '
+            f'{statistics.mean(prob_deviations)}'
+        )
+    print(message)
 
 
 def write_outputs(output_context: OutputContext, fit):
@@ -2514,7 +3445,13 @@ def write_outputs(output_context: OutputContext, fit):
     df = output_context.poll_prep_result.df
     exc_polls = output_context.poll_prep_result.exc_polls
     
-    writing_context = prepare_writing(fit)
+    writing_context = prepare_writing(
+        fit,
+        median_only=(
+            (config.calibrate_pollsters or config.calibrate_bias)
+            and not config.calibration_traces
+        ),
+    )
 
     if config.cutoff_mode:
         prepare_others_medians(PrepareOthersMediansInputs(
@@ -2537,6 +3474,10 @@ def write_outputs(output_context: OutputContext, fit):
         ))
     else:
         trend_outputs = collect_trend_outputs(output_context, writing_context)
+
+    retain_federal_calibration_prior(
+        output_context, trend_outputs, writing_context
+    )
 
     prepare_others_medians(PrepareOthersMediansInputs(
         output_context=output_context,
@@ -2682,6 +3623,7 @@ def run_party(inputs: RunPartyInputs) -> Optional[OutputContext]:
         e_data=e_data,
         excluded_pollster=excluded_pollster,
         model_params=model_params,
+        mode=stan_seed_mode(config, e_data),
         random_seed=inputs.random_seed,
     )
 
@@ -2709,6 +3651,8 @@ def finalise_calibrations(e_data, trace_directory=None):
     total_weighted_dev = {}
     output_files = []
     summary_values = []
+    residual_evidence_rows = []
+    election_tag = ''.join(e_data.e_tuple)
     for key, val in e_data.poll_calibrations.items():
         if (key[0] != ''):
             full_val = e_data.poll_calibrations[('', key[1], key[2], key[3])]
@@ -2727,6 +3671,27 @@ def finalise_calibrations(e_data, trace_directory=None):
                 polls_string[new_key] = ''
             total_weight[new_key] += final_weight
             total_weighted_dev[new_key] += final_weight * abs(cal_deviation)
+            residual_evidence_rows.append(
+                calibration_summary.build_residual_evidence_row(
+                    election=election_tag,
+                    party=key[2],
+                    pollster=key[0],
+                    poll_day_index=key[1],
+                    poll_index=key[3],
+                    values=(
+                        val[0],
+                        val[1],
+                        val[2],
+                        val[3],
+                        val[4],
+                        val[5],
+                        val[6],
+                        full_val[4],
+                        quotient,
+                        final_weight,
+                    ),
+                )
+            )
             print(f'{key}: Calibrated deviation: {cal_deviation},'
                   f' full deviation: {full_deviation},'
                   f' difference: {difference}\n '
@@ -2754,7 +3719,7 @@ def finalise_calibrations(e_data, trace_directory=None):
                 f.write(f'{weighted_average_deviation},'
                         f'{weight},\n{polls_string[key]}')
             output_files.append(filename)
-    return output_files, summary_values
+    return output_files, summary_values, residual_evidence_rows
 
 
 def check_suspension(
@@ -2889,7 +3854,7 @@ def cutoff_work_items(config, m_data, schedule):
         if region not in poll_dates_by_region:
             poll_data = pd.read_csv(
                 data_source[region],
-                usecols=['MidDate'],
+                usecols=['MidDate', 'OTH FP'],
             )
             parsed_dates = pd.to_datetime(
                 poll_data['MidDate'],
@@ -2897,8 +3862,13 @@ def cutoff_work_items(config, m_data, schedule):
             )
             poll_dates_by_region[region] = [
                 poll_date.date()
-                for poll_date in parsed_dates
-                if not pd.isna(poll_date)
+                for poll_date, others_value in zip(
+                    parsed_dates, poll_data['OTH FP']
+                )
+                if (
+                    not pd.isna(poll_date)
+                    and not pd.isna(others_value)
+                )
             ]
 
         cycle_start, election_day = m_data.election_cycles[election_tuple]
@@ -2934,6 +3904,27 @@ def cutoff_work_items(config, m_data, schedule):
             )
 
 
+def promote_cutoff_output(store, recorder, election, federal_prior_files):
+    dependencies = recorder.dependencies_for_election(
+        election, sorted(set(federal_prior_files))
+    )
+    store.promote(
+        election,
+        certify=lambda output: recorder.record(
+            election=election,
+            output=output,
+            dependencies=dependencies,
+        ),
+    )
+    print(
+        'Completed and promoted consolidated cutoff file for {}.'.format(
+            election
+        )
+    )
+
+
+# Batch orchestration, suspension checks and provenance completion
+
 def run_models() -> None:
     # check version information
     print('Python version: {}'.format(sys.version))
@@ -2945,9 +3936,7 @@ def run_models() -> None:
 
         model_params = build_model_params()
         base_seed = (
-            config.seed
-            if config.seed is not None
-            else secrets.randbelow(2 ** 31 - 1) + 1
+            config.seed if config.seed is not None else DEFAULT_BASE_SEED
         )
         print('Base random seed: {}'.format(base_seed))
         if config.calibration_traces:
@@ -2998,6 +3987,11 @@ def run_models() -> None:
             if config.use_approvals() and config.cutoff_mode
             else None
         )
+        calibration_checkpoint_store = (
+            fp_model_checkpoints.CalibrationCheckpointStore()
+            if config.calibrate_pollsters and not config.calibration_traces
+            else None
+        )
 
         maybe_generate_approvals(config)
 
@@ -3012,15 +4006,29 @@ def run_models() -> None:
                 'trend_adjust.py.'
                 .format(len(cutoff_schedule))
             )
-            work_items = cutoff_work_items(
+            work_items = list(cutoff_work_items(
                 config,
                 m_data,
                 cutoff_schedule,
-            )
+            ))
+            cutoff_expected_endpoints = {}
+            for (
+                election,
+                scheduled_days,
+                poll_end_days,
+                _,
+            ) in work_items:
+                cutoff_expected_endpoints.setdefault(
+                    election.short(), []
+                ).append({
+                    'scheduled_cutoff_days': int(scheduled_days),
+                    'poll_trend_end_days': int(poll_end_days),
+                })
         else:
             work_items = (
                 (election, 0, 0, True) for election in config.elections
             )
+            cutoff_expected_endpoints = {}
 
         cutoff_elections_started = set()
         cutoff_federal_prior_files = {}
@@ -3043,13 +4051,46 @@ def run_models() -> None:
                 config.cutoff_mode
                 and election_tag not in cutoff_elections_started
             ):
-                # A cutoff invocation is one complete election batch. Never
-                # mix imported or older rows with newly generated fits.
-                config.cutoff_output_store.reset(election_tag)
+                cutoff_dependencies = None
+                if cutoff_provenance_recorder is not None:
+                    cutoff_dependencies = (
+                        cutoff_provenance_recorder
+                        .dependencies_for_election(
+                            election_tag,
+                            sorted(set(e_data.federal_prior_files)),
+                        )
+                    )
+                resume_metadata = {
+                    'schema_version': 1,
+                    'election': election_tag,
+                    'expected_endpoints': cutoff_expected_endpoints[
+                        desired_election.short()
+                    ],
+                    'parties': list(m_data.parties[e_data.e_tuple]),
+                    'probability_columns': [
+                        '{}%'.format(round(probability * 100))
+                        for probability in output_probabilities()
+                    ],
+                    'base_seed': base_seed,
+                    'seed_namespace': STAN_SEED_NAMESPACE,
+                    'dependencies': cutoff_dependencies,
+                    'source_fingerprint': (
+                        fp_model_checkpoints.fingerprint_files([
+                            Path(__file__),
+                            Path(fp_model_provenance.__file__),
+                            Path('./Models/fp_model.stan'),
+                        ])
+                    ),
+                }
+                resumed = config.cutoff_output_store.begin(
+                    election_tag, resume_metadata
+                )
                 cutoff_elections_started.add(election_tag)
                 print(
-                    'Started a fresh consolidated cutoff working file for {}.'
-                    .format(election_tag)
+                    '{} consolidated cutoff working file for {}.'.format(
+                        'Resumed' if resumed else 'Started a fresh',
+                        election_tag,
+                    )
                 )
             if (
                 config.cutoff_mode
@@ -3082,8 +4123,30 @@ def run_models() -> None:
                         desired_election.short(),
                     )
                 )
+                cutoff_federal_prior_files.setdefault(
+                    election_tag, set()
+                ).update(e_data.federal_prior_files)
+                if final_cutoff_for_election:
+                    promote_cutoff_output(
+                        config.cutoff_output_store,
+                        cutoff_provenance_recorder,
+                        election_tag,
+                        cutoff_federal_prior_files[election_tag],
+                    )
                 continue
             calibration_trace_files = []
+            expected_cutoff_parties = (
+                [
+                    party
+                    for party in m_data.parties[e_data.e_tuple]
+                    if (
+                        party in e_data.base_df
+                        and e_data.base_df[party].notna().any()
+                    )
+                ]
+                if config.cutoff_mode
+                else []
+            )
             for excluded_pollster in e_data.pollster_exclusions:
                 # Each exclusion is an independent fit. Never allow a skipped
                 # party to leave a median from the previous pollster round.
@@ -3098,7 +4161,33 @@ def run_models() -> None:
                 )):
                     continue
 
-                for party in m_data.parties[e_data.e_tuple]:
+                parties = m_data.parties[e_data.e_tuple]
+                checkpoint_identity = None
+                if calibration_checkpoint_store is not None:
+                    checkpoint_identity = calibration_checkpoint_identity(
+                        config,
+                        e_data,
+                        excluded_pollster,
+                        base_seed,
+                        parties,
+                    )
+                    checkpoint = calibration_checkpoint_store.load(
+                        checkpoint_identity
+                    )
+                    if checkpoint is not None:
+                        restore_calibration_checkpoint(
+                            e_data, checkpoint_identity, checkpoint
+                        )
+                        print(
+                            'Resumed completed calibration block for {} / {}.'
+                            .format(
+                                election_tag,
+                                excluded_pollster or 'full fit',
+                            )
+                        )
+                        continue
+
+                for party in parties:
                     
                     if should_skip_party_output(ShouldSkipPartyOutputInputs(
                         config=config,
@@ -3139,24 +4228,16 @@ def run_models() -> None:
                         party=party,
                     ))
 
-                    mode = (
-                        'pollster-bias'
-                        if config.calibrate_bias
-                        else 'pollster-calibration'
-                        if config.calibrate_pollsters
-                        else 'cutoff-{}d'.format(
-                            e_data.days_to_election
-                        )
-                        if config.cutoff_mode
-                        else 'poll-trend'
-                    )
+                    mode = stan_seed_mode(config, e_data)
                     random_seed = (
-                        calibration_provenance.derive_stan_seed(
+                        checkpoint_identity['party_seeds'][party]
+                        if checkpoint_identity is not None
+                        else calibration_provenance.derive_stan_seed(
                             base_seed,
                             election_tag,
                             party,
                             excluded_pollster,
-                            mode,
+                            '{}:{}'.format(STAN_SEED_NAMESPACE, mode),
                         )
                     )
                     output_context = run_party(RunPartyInputs(
@@ -3169,6 +4250,10 @@ def run_models() -> None:
                         party=party,
                         random_seed=random_seed,
                     ))
+                    if output_context is not None:
+                        e_data.resolved_stan_seeds[
+                            (mode, excluded_pollster, party)
+                        ] = random_seed
                     if (
                         provenance_recorder is not None
                         and output_context is not None
@@ -3192,6 +4277,7 @@ def run_models() -> None:
                             feedback_files=sorted(set(
                                 e_data.federal_prior_files
                             )),
+                            feedback_category=e_data.federal_prior_category,
                         )
                         if config.calibrate_pollsters:
                             calibration_trace_files.extend(output_files)
@@ -3250,13 +4336,34 @@ def run_models() -> None:
                             dependencies=final_dependencies,
                             random_seed=random_seed,
                         )
+                if calibration_checkpoint_store is not None:
+                    poll_records, federal_priors, stan_seeds = (
+                        calibration_checkpoint_payload(
+                            e_data, excluded_pollster
+                        )
+                    )
+                    checkpoint_path = calibration_checkpoint_store.write(
+                        checkpoint_identity,
+                        poll_records,
+                        federal_priors,
+                        stan_seeds,
+                    )
+                    print(
+                        'Saved calibration restart checkpoint at {}.'.format(
+                            checkpoint_path
+                        )
+                    )
                 # Preserve completed work-unit provenance if a later Stan fit
                 # or a later excluded-pollster block is interrupted.
                 if provenance_recorder is not None:
                     provenance_recorder.flush()
 
             if config.calibrate_pollsters:
-                trace_files, summary_values = finalise_calibrations(
+                (
+                    trace_files,
+                    summary_values,
+                    residual_evidence_rows,
+                ) = finalise_calibrations(
                     e_data=e_data,
                     trace_directory=(
                         config.calibration_trace_directory
@@ -3272,13 +4379,58 @@ def run_models() -> None:
                 calibration_summary.write_direct_staging_atomically(
                     staging_output, staging_rows
                 )
+                residual_evidence_output = (
+                    calibration_summary.residual_evidence_path(
+                        './Outputs/Calibration', election_tag
+                    )
+                )
+                calibration_summary.write_residual_evidence_atomically(
+                    residual_evidence_output,
+                    sorted(
+                        residual_evidence_rows,
+                        key=lambda row: (
+                            row['party'],
+                            row['pollster'],
+                            row['poll_day_index'],
+                            row['poll_index'],
+                        ),
+                    ),
+                )
+                calibration_seed_output = (
+                    calibration_summary.seed_manifest_path(
+                        './Outputs/Calibration',
+                        election_tag,
+                        'calibration',
+                    )
+                )
+                calibration_summary.write_seed_manifest_atomically(
+                    calibration_seed_output,
+                    calibration_summary.build_seed_rows(
+                        election_tag,
+                        'calibration',
+                        e_data.resolved_stan_seeds,
+                    ),
+                )
                 if provenance_recorder is not None:
                     provenance_recorder.record_summaries(
                         election=election_tag,
                         outputs=[staging_output],
                         trace_files=calibration_trace_files + trace_files,
+                        residual_evidence=residual_evidence_output,
                     )
+                    provenance_recorder.record_seed_manifest(
+                        election_tag,
+                        'calibration',
+                        calibration_seed_output,
+                    )
+                    federal_priors = write_federal_calibration_priors(e_data)
+                    if federal_priors is not None:
+                        provenance_recorder.record_federal_priors(
+                            election_tag, federal_priors
+                        )
                     provenance_recorder.flush()
+                if calibration_checkpoint_store is not None:
+                    calibration_checkpoint_store.clear_election(election_tag)
             if config.calibrate_bias:
                 staging_rows = calibration_summary.build_bias_rows(
                     election_tag,
@@ -3293,9 +4445,23 @@ def run_models() -> None:
                 calibration_summary.write_direct_staging_atomically(
                     staging_output, staging_rows
                 )
+                bias_seed_output = calibration_summary.seed_manifest_path(
+                    './Outputs/Calibration', election_tag, 'bias'
+                )
+                calibration_summary.write_seed_manifest_atomically(
+                    bias_seed_output,
+                    calibration_summary.build_seed_rows(
+                        election_tag,
+                        'bias',
+                        e_data.resolved_stan_seeds,
+                    ),
+                )
                 if provenance_recorder is not None:
                     provenance_recorder.record_bias_staging(
                         election_tag, staging_output
+                    )
+                    provenance_recorder.record_seed_manifest(
+                        election_tag, 'bias', bias_seed_output
                     )
                     provenance_recorder.flush()
                 loo_staging = calibration_summary.direct_staging_path(
@@ -3311,6 +4477,10 @@ def run_models() -> None:
                         election_tag,
                         summary_output,
                         [os.path.basename(sys.executable)] + sys.argv,
+                        feedback_files=sorted(set(
+                            e_data.federal_prior_files
+                        )),
+                        feedback_category=e_data.federal_prior_category,
                     )
                     print(
                         'Saved {} compact calibration rows for {}.'.format(
@@ -3328,33 +4498,17 @@ def run_models() -> None:
                     election_tag,
                     requested_cutoff_days,
                     e_data.days_to_election,
+                    expected_parties=expected_cutoff_parties,
                 )
                 cutoff_federal_prior_files.setdefault(
                     election_tag, set()
                 ).update(e_data.federal_prior_files)
                 if final_cutoff_for_election:
-                    cutoff_dependencies = (
-                        cutoff_provenance_recorder
-                        .dependencies_for_election(
-                            election_tag,
-                            sorted(
-                                cutoff_federal_prior_files[election_tag]
-                            ),
-                        )
-                    )
-                    config.cutoff_output_store.promote(
+                    promote_cutoff_output(
+                        config.cutoff_output_store,
+                        cutoff_provenance_recorder,
                         election_tag,
-                        certify=lambda output: (
-                            cutoff_provenance_recorder.record(
-                                election=election_tag,
-                                output=output,
-                                dependencies=cutoff_dependencies,
-                            )
-                        ),
-                    )
-                    print(
-                        'Completed and promoted consolidated cutoff file '
-                        'for {}.'.format(election_tag)
+                        cutoff_federal_prior_files[election_tag],
                     )
 
     # indicate completion (delete these lines if not the original author)
