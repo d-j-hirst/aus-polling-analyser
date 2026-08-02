@@ -5,9 +5,20 @@ import unittest
 import warnings
 from pathlib import Path
 
-import by_elections
+try:
+    import by_elections
+except ModuleNotFoundError as error:
+    OPTIONAL_IMPORT_ERROR = error
+else:
+    OPTIONAL_IMPORT_ERROR = None
 
 
+@unittest.skipIf(
+    OPTIONAL_IMPORT_ERROR is not None,
+    'by_elections tests require optional scientific Python dependencies: {}'.format(
+        OPTIONAL_IMPORT_ERROR.name if OPTIONAL_IMPORT_ERROR else ''
+    ),
+)
 class ByElectionTests(unittest.TestCase):
     def test_loads_boolean_strings_and_derives_report_columns(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

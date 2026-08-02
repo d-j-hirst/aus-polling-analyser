@@ -113,16 +113,19 @@ the authoritative source if this order changes.
 3. Generate seat, Coalition-allocation and federal regional statistics with
    `election_analysis.py`.
 4. Run leave-one-pollster-out calibration with
-   `fp_model.py --calibrate`.
-5. Run bias calibration with `fp_model.py --bias`.
-6. Reduce calibration output with `pollster_analysis.py`.
-7. Generate voting-intention-only trends with `fp_model.py --pure`.
-8. Generate normal poll trends with `fp_model.py`; this invokes the approval
+   `fp_model.py --calibrate`; this writes a small temporary compact component.
+5. Run bias calibration with `fp_model.py --bias`; it promotes the complete
+   compact summary and removes the temporary components.
+6. Use `calibration_summary.py` only to compact retained legacy detailed files
+   without rerunning Stan.
+7. Reduce calibration output with `pollster_analysis.py`.
+8. Generate voting-intention-only trends with `fp_model.py --pure`.
+9. Generate normal poll trends with `fp_model.py`; this invokes the approval
    analysis and passes synthetic TPP observations directly to the model.
-9. Generate historical point-in-time fits with
+10. Generate historical point-in-time fits with
     `fp_model.py --cutoff`.
-10. Generate adjustments and fundamentals with `trend_adjust.py`.
-11. Generate election-specific regional swing deviations with
+11. Generate adjustments and fundamentals with `trend_adjust.py`.
+12. Generate election-specific regional swing deviations with
     `region_model.py`.
 
 Steps 1-3, 4-10 and 11 are largely independent branches. A normal C++ forecast
@@ -148,11 +151,14 @@ Missing, corrupt or schema-incompatible data should eventually be classified as
 invalid. Valid but old data is a provenance warning, not automatically an
 error.
 
-The orchestration `calibration` profile deliberately stops after the raw
-leave-one-pollster-out and bias fits. Pollster analysis and pure/final trends
-are scheduled later through a regular profile scoped to the elections being
-updated. This avoids doing broad downstream work partway through a calibration
-refresh, when later calibration units would immediately invalidate it again.
+The orchestration `calibration` profile completes the leave-one-pollster-out
+and bias fits, directly promotes one compact summary per election, and also
+compacts any retained legacy inputs that lack one. Detailed calibration files
+are opt-in diagnostics via `--calibration-traces`, written below a unique
+`Outputs/Calibration/Diagnostics/` run directory. Pollster analysis and pure/final trends are scheduled
+later through a regular profile scoped to the elections being updated. This
+avoids doing broad downstream work partway through a calibration refresh, when
+later calibration units would immediately invalidate it again.
 
 Run that profile with:
 
@@ -160,7 +166,12 @@ Run that profile with:
 python3 pipeline.py run --election 2026sa --profile calibration
 ```
 
-Routine and historical profiles use the same interface:
+## Run Profiles
+
+Every executable profile starts from the named election code, follows only the
+dependencies relevant to that target, and records a resumable completed unit
+after each successful generator invocation. Use `plan` first when the scope is
+not obvious:
 
 ```bash
 python3 pipeline.py run --election 2026vic --profile regular
@@ -169,13 +180,36 @@ python3 pipeline.py run --election 2026vic \
 python3 pipeline.py run --election 2026vic --profile cutoffs
 ```
 
-`regular` regenerates the selected election's pure trend before its final
-trend, keeping the approval fit aligned with the same current polls and
-pollster parameters. `regular-with-approvals` additionally regenerates stale
-historical pure trends used to fit approval relationships. `cutoffs` also
-schedules any stale calibration, pollster-analysis and pure-trend prerequisites
-because expensive historical fits should not knowingly be built on stale
-inputs.
+* `regular` is the normal response to updated current inputs. It regenerates
+  the selected election's pollster analysis where needed, then its pure trend
+  and final trend. The same-election pure trend is always included so the
+  final approval fit is aligned with the current poll data. It deliberately
+  leaves older approval-reference pure trends and historical cutoffs alone.
+* `regular-with-approvals` is the more complete normal refresh. In addition to
+  `regular`, it regenerates stale historical pure trends used to fit the
+  approval relationship. Use it when those historical inputs have changed or
+  when a current final trend should use fully refreshed approval evidence.
+* `calibration` is the long-running historical fitting profile. It runs
+  leave-one-pollster-out and bias calibration units and compacts retained
+  detailed calibration inputs into summaries where necessary. It intentionally
+  does not run pollster analysis or pure/final trends: that downstream work is
+  better scheduled later for the elections currently being analysed.
+* `cutoffs` produces historical point-in-time trend files for trend-adjustment
+  work. It brings required calibration, pollster-analysis and pure-trend
+  inputs up to date first, because cutoffs should not knowingly be generated
+  from stale historical calibration evidence. This is the other long-running
+  profile.
+* `metadata` applies registered `provenance-only` upgrades without running
+  any data generator. Work units with data-affecting staleness are excluded,
+  because a subsequent regeneration replaces their metadata completely.
+* `all` is available for inspection through `plan`, but is intentionally not
+  executable. It exists to show the breadth of a complete rebuild without
+  making a single command accidentally start every expensive stage.
+
+The interactive interface exposes the same profiles. `regular` is the usual
+choice after a routine poll or current-election update; calibration and
+cutoffs are deliberately separate so they can run for long periods without
+unnecessarily expanding routine work.
 
 The complete plan is checked before execution. Commands then run sequentially
 with their output attached to the current terminal. After each command,
@@ -250,10 +284,49 @@ while recording the upgrade ID and application time. A work unit with any
 data-affecting staleness is excluded: regeneration supersedes all pending
 metadata upgrades and writes a complete current record.
 
-Detailed calibration trends currently dominate analysis storage. Downstream
-pollster analysis mostly consumes compact statistics, but some calculations
-still inspect detailed adjusted-poll and house-effect files. Those remaining
-uses must be migrated before detailed traces can become optional diagnostics.
+Detailed calibration trends currently dominate analysis storage. Compact
+election summaries now preserve the leave-one-out errors, bias-trend medians,
+house effects and recent poll counts needed for a later reducer migration.
+`pollster_analysis.py` now loads typed calibration evidence. It prefers a
+complete `Summaries/<election>.csv` unit where available and reads the detailed
+compatibility files only for elections without a compact unit. Detailed traces
+remain necessary as the legacy fallback until the historical archive has been
+fully compacted and validated.
+
+## Generated-Data Archive
+
+The repository may include `Archived/`, a validated snapshot of generated and
+cache data for a quick forecast setup. Restore it only through the interactive
+pipeline menu:
+
+```bash
+python3 pipeline.py
+```
+
+Choose **Restore validated generated-data archive** and type
+`RESTORE GENERATED DATA` exactly. Restoration checks an archive manifest of
+SHA-256 fingerprints before replacing local generated/cache outputs. It stages
+the payload first and preserves authored files in mixed directories, including
+regional poll inputs and federal/state booth mappings. There is deliberately
+no non-interactive restore command.
+
+The reverse action, **Build validated generated-data archive**, is also
+interactive-only and requires `BUILD GENERATED ARCHIVE`. Its preflight requires
+the complete generated graph to be current: stale, legacy, missing, altered,
+blocked and provenance-incomplete work units prevent publishing an archive.
+Temporary calibration staging files also prevent publication. The builder
+copies to a temporary sibling directory, verifies every copied file against its
+manifest and only then replaces `Archived/`.
+
+Archive payloads contain full generated/cache roots such as `Outputs`,
+`Adjustments`, `Fundamentals`, `Seat Statistics`, `Nationals` and `elections`.
+For the mixed `Regional` and `Federal-State` directories they contain only
+generated files, never authored regional polls or booth mappings. Diagnostic
+calibration traces, incomplete staging files and retained legacy calibration
+details are excluded. Compact `Outputs/Calibration/Summaries/` files are the
+only calibration evidence retained in a new archive. Archives created before
+this workflow lack the validation manifest and are legacy reference data, not
+reproducible restore inputs.
 
 ## Source Provenance
 
@@ -503,12 +576,14 @@ The resulting ignored bundle is
 `Outputs/Calibration/generated-provenance.json`. It groups the thousands of
 CSVs into work units rather than creating one sidecar per file:
 
-* one leave-one-pollster-out trace record per election, party and excluded
-  pollster, containing its trend, adjusted-poll and house-effect outputs;
-* one bias-calibration record per election and party, containing the
-  corresponding three `_biascal` files;
-* one compact-summary record per election, containing its `calib_*.csv`
-  files.
+* one leave-one-pollster-out compatibility record per election, party and
+  excluded pollster, containing its trend, adjusted-poll and house-effect
+  outputs plus the legacy `calib_*.csv` error file;
+* one bias-calibration compatibility record per election and party, containing
+  the corresponding three `_biascal` files;
+* one compact-summary record per election, containing
+  `Outputs/Calibration/Summaries/<election>.csv` and the exact compatibility
+  records used to build it.
 
 Future `fp_model.py --calibrate` and `--bias` runs replace successfully
 completed legacy work units with certified `generated` records. Each record

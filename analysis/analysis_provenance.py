@@ -79,6 +79,7 @@ IMPACT_LEVELS = (
 CALIBRATION_STAGES = {
     "calibrate_pollsters",
     "calibrate_pollster_bias",
+    "compact_calibration_summaries",
     "generate_cutoff_poll_trends",
 }
 SYNTHETIC_TPP_STAGES = {
@@ -609,6 +610,10 @@ def _selected_generated_records(
         if (
             record["category"] == "poll_calibration_summaries"
             and record["status"] == "generated"
+            and any(
+                output.startswith("Outputs/Calibration/Summaries/")
+                for output in record["outputs"]
+            )
         )
         for election in record["scope"]["elections"]
     }
@@ -618,6 +623,8 @@ def _selected_generated_records(
 
     def is_superseded_calibration_record(record):
         if record["category"] not in {
+            "poll_calibration_compatibility_inputs",
+            "bias_calibration_compatibility_inputs",
             "poll_calibration_traces",
             "bias_calibration_outputs",
         }:
@@ -653,7 +660,12 @@ def _selected_generated_records(
                 # schedule a command that no longer produces that party.
                 continue
             if (
-                record["category"] == "poll_calibration_traces"
+                record["category"] in {
+                    "poll_calibration_compatibility_inputs",
+                    "bias_calibration_compatibility_inputs",
+                    "poll_calibration_traces",
+                    "bias_calibration_outputs",
+                }
                 and completed_calibration_elections.intersection(
                     record["scope"]["elections"]
                 )
@@ -771,6 +783,49 @@ def _missing_cutoff_work_units(target_elections):
     else:
         recorded = set()
     return sorted(set(required) - recorded)
+
+
+def _missing_calibration_summary_work_units(target_elections):
+    """Return compact summaries missing from otherwise usable bias evidence.
+
+    A summary is an optional consumer optimisation, not a prerequisite for
+    pollster analysis.  Reporting it as a non-blocking work unit lets the
+    calibration and full profiles compact retained legacy files without
+    rerunning their still-current Stan work.
+    """
+
+    manifest_path = calibration_provenance.MANIFEST_PATH
+    if not manifest_path.is_file():
+        return []
+    manifest = generated_provenance.load_manifest(manifest_path)
+    elections_with_bias = {
+        record["scope"]["elections"][0]
+        for record in manifest["records"].values()
+        if (
+            record["category"] in {
+                "bias_calibration_compatibility_inputs",
+                "bias_calibration_outputs",
+            }
+            and len(record["scope"]["elections"]) == 1
+            and (
+                target_elections is None
+                or record["scope"]["elections"][0] in target_elections
+            )
+        )
+    }
+    elections_with_summary = {
+        record["scope"]["elections"][0]
+        for record in manifest["records"].values()
+        if (
+            record["category"] == "poll_calibration_summaries"
+            and len(record["scope"]["elections"]) == 1
+            and any(
+                output.startswith("Outputs/Calibration/Summaries/")
+                for output in record["outputs"]
+            )
+        )
+    }
+    return sorted(elections_with_bias - elections_with_summary)
 
 
 def audit_repository(
@@ -1235,6 +1290,53 @@ def audit_repository(
             impact_seeds.add(
                 ("cutoff_poll_outputs", PATH_CALIBRATION)
             )
+
+    missing_calibration_summaries = []
+    try:
+        missing_calibration_summaries = (
+            _missing_calibration_summary_work_units(target_elections)
+        )
+    except (generated_provenance.GeneratedProvenanceError, OSError) as error:
+        internal_errors.append(
+            "could not determine missing calibration summaries: {}".format(
+                error
+            )
+        )
+    for election in missing_calibration_summaries:
+        work_units.append(
+            {
+                "id": _generated_work_unit_id(
+                    calibration_provenance.MANIFEST_PATH,
+                    "poll_calibration_summaries:{}:compact".format(election),
+                ),
+                "record_key": "poll_calibration_summaries:{}:compact".format(
+                    election
+                ),
+                "category": "poll_calibration_summaries",
+                "stage": "compact_calibration_summaries",
+                "scope": generated_provenance.generation_scope(
+                    elections=[election]
+                ),
+                "manifest": _manifest_label(
+                    calibration_provenance.MANIFEST_PATH
+                ),
+                "target_match": True,
+                "dependencies": [],
+                "status": "missing",
+                "blocking": False,
+                "path_classes": [PATH_CALIBRATION],
+                "issues": [
+                    {
+                        "code": "missing_record",
+                        "root_category": "poll_calibration_summaries",
+                        "message": (
+                            "current detailed calibration evidence has no "
+                            "compact summary"
+                        ),
+                    }
+                ],
+            }
+        )
 
     impacts = _terminal_impacts(
         root_causes, registry, path_seeds=impact_seeds

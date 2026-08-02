@@ -4,8 +4,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import federal_state
-from bs4 import BeautifulSoup
+try:
+    import federal_state
+    from bs4 import BeautifulSoup
+except ModuleNotFoundError as error:
+    OPTIONAL_IMPORT_ERROR = error
+else:
+    OPTIONAL_IMPORT_ERROR = None
 
 
 def raw_results(booths):
@@ -18,6 +23,12 @@ def raw_results(booths):
     return results
 
 
+@unittest.skipIf(
+    OPTIONAL_IMPORT_ERROR is not None,
+    'federal_state tests require optional retrieval dependencies: {}'.format(
+        OPTIONAL_IMPORT_ERROR.name if OPTIONAL_IMPORT_ERROR else ''
+    ),
+)
 class FederalStateConfigTests(unittest.TestCase):
     def test_requires_a_known_election(self):
         with mock.patch.object(sys, 'argv', ['federal_state.py']):
@@ -29,6 +40,12 @@ class FederalStateConfigTests(unittest.TestCase):
                 federal_state.Config()
 
 
+@unittest.skipIf(
+    OPTIONAL_IMPORT_ERROR is not None,
+    'federal_state tests require optional retrieval dependencies: {}'.format(
+        OPTIONAL_IMPORT_ERROR.name if OPTIONAL_IMPORT_ERROR else ''
+    ),
+)
 class FederalStateResultsTests(unittest.TestCase):
     def test_fetches_raw_results_without_applying_local_adjustments(self):
         division_page = BeautifulSoup(
@@ -90,6 +107,12 @@ class FederalStateResultsTests(unittest.TestCase):
         self.assertEqual(processed.vote_totals[booth], 100)
 
 
+@unittest.skipIf(
+    OPTIONAL_IMPORT_ERROR is not None,
+    'federal_state tests require optional retrieval dependencies: {}'.format(
+        OPTIONAL_IMPORT_ERROR.name if OPTIONAL_IMPORT_ERROR else ''
+    ),
+)
 class FederalStateMappingTests(unittest.TestCase):
     def test_mapping_parser_rejects_malformed_or_duplicate_entries(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

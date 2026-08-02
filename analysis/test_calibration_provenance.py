@@ -93,9 +93,8 @@ class CalibrationProvenanceTests(unittest.TestCase):
                     for record in manifest["records"].values()
                 },
                 {
-                    "poll_calibration_traces",
-                    "bias_calibration_outputs",
-                    "poll_calibration_summaries",
+                    "poll_calibration_compatibility_inputs",
+                    "bias_calibration_compatibility_inputs",
                 },
             )
             self.assertTrue(

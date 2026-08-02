@@ -21,9 +21,11 @@ ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
 CALIBRATION_DIRECTORY = ANALYSIS_DIRECTORY / "Outputs" / "Calibration"
 MANIFEST_PATH = CALIBRATION_DIRECTORY / "generated-provenance.json"
 MANIFEST_DESCRIPTION = (
-    "Bundled provenance for Stan poll calibration traces, bias calibration "
-    "outputs and compact leave-one-pollster-out summaries."
+    "Bundled provenance for Stan calibration compatibility inputs and compact "
+    "election-level calibration summaries."
 )
+POLL_COMPATIBILITY_CATEGORY = "poll_calibration_compatibility_inputs"
+BIAS_COMPATIBILITY_CATEGORY = "bias_calibration_compatibility_inputs"
 SOURCE_DEPENDENCIES = {
     "election_catalogue": ANALYSIS_DIRECTORY / "Data" / "provenance.json",
     "raw_poll_data": ANALYSIS_DIRECTORY / "Data" / "provenance.json",
@@ -75,19 +77,15 @@ def configured_parties_by_election(path=None):
     return parties
 
 
-def _trace_record_key(election, party, excluded_pollster):
-    role = excluded_pollster if excluded_pollster else "full"
-    return "poll_calibration_traces:{}:{}:{}".format(
+def _compatibility_record_key(category, election, party, role):
+    return "{}:{}:{}:{}".format(
+        category,
         election, party, role
     )
 
 
-def _bias_record_key(election, party):
-    return "bias_calibration_outputs:{}:{}".format(election, party)
-
-
-def _summary_record_key(election):
-    return "poll_calibration_summaries:{}".format(election)
+def _loo_summary_record_key(election):
+    return "calibration_compatibility_inputs:{}:loo-summary".format(election)
 
 
 def _scope(election, party=None, excluded_pollster=None):
@@ -166,15 +164,23 @@ class CalibrationRecorder:
                 )
             )
         if bias_calibration:
-            record_key = _bias_record_key(election, party)
-            category = "bias_calibration_outputs"
+            record_key = _compatibility_record_key(
+                BIAS_COMPATIBILITY_CATEGORY,
+                election,
+                party,
+                "bias-calibration",
+            )
+            category = BIAS_COMPATIBILITY_CATEGORY
             stage = "calibrate_pollster_bias"
             scope = _scope(election, party)
         else:
-            record_key = _trace_record_key(
-                election, party, excluded_pollster
+            record_key = _compatibility_record_key(
+                POLL_COMPATIBILITY_CATEGORY,
+                election,
+                party,
+                excluded_pollster or "full",
             )
-            category = "poll_calibration_traces"
+            category = POLL_COMPATIBILITY_CATEGORY
             stage = "calibrate_pollsters"
             scope = _scope(election, party, excluded_pollster)
 
@@ -202,9 +208,9 @@ class CalibrationRecorder:
                     ANALYSIS_DIRECTORY,
                 )
             )
-        self.pending_records[_summary_record_key(election)] = (
+        self.pending_records[_loo_summary_record_key(election)] = (
             generated_provenance.generation_record(
-                category="poll_calibration_summaries",
+                category=POLL_COMPATIBILITY_CATEGORY,
                 stage="calibrate_pollsters",
                 scope=_scope(election),
                 run=self.run_id,
@@ -214,6 +220,26 @@ class CalibrationRecorder:
                 ),
                 random_seed=None,
             )
+        )
+
+    def record_bias_staging(self, election, output):
+        """Record the small direct-output hand-off from the bias pass."""
+
+        self.pending_records[_compatibility_record_key(
+            BIAS_COMPATIBILITY_CATEGORY,
+            election,
+            "summary",
+            "bias-staging",
+        )] = generated_provenance.generation_record(
+            category=BIAS_COMPATIBILITY_CATEGORY,
+            stage="calibrate_pollster_bias",
+            scope=_scope(election),
+            run=self.run_id,
+            dependencies=dict(self.dependencies),
+            outputs=generated_provenance.output_fingerprints(
+                [output], ANALYSIS_DIRECTORY
+            ),
+            random_seed=None,
         )
 
     def flush(self):
@@ -251,13 +277,23 @@ def _legacy_records():
         if parsed:
             kind, election, party, suffix = parsed
             if suffix == "biascal":
-                key = _bias_record_key(election, party)
-                category = "bias_calibration_outputs"
+                key = _compatibility_record_key(
+                    BIAS_COMPATIBILITY_CATEGORY,
+                    election,
+                    party,
+                    "bias-calibration",
+                )
+                category = BIAS_COMPATIBILITY_CATEGORY
                 stage = "calibrate_pollster_bias"
                 scope = _scope(election, party)
             else:
-                key = _trace_record_key(election, party, suffix)
-                category = "poll_calibration_traces"
+                key = _compatibility_record_key(
+                    POLL_COMPATIBILITY_CATEGORY,
+                    election,
+                    party,
+                    suffix or "full",
+                )
+                category = POLL_COMPATIBILITY_CATEGORY
                 stage = "calibrate_pollsters"
                 scope = _scope(election, party, suffix)
             model_groups[
@@ -274,7 +310,7 @@ def _legacy_records():
         key, category, stage, election, party, suffix = group
         scope = (
             _scope(election, party)
-            if category == "bias_calibration_outputs"
+            if stage == "calibrate_pollster_bias"
             else _scope(election, party, suffix)
         )
         records[key] = generated_provenance.generation_record(
@@ -290,9 +326,9 @@ def _legacy_records():
             status="legacy",
         )
     for election, outputs in summary_groups.items():
-        records[_summary_record_key(election)] = (
+        records[_loo_summary_record_key(election)] = (
             generated_provenance.generation_record(
-                category="poll_calibration_summaries",
+                category=POLL_COMPATIBILITY_CATEGORY,
                 stage="calibrate_pollsters",
                 scope=_scope(election),
                 run="legacy-calibration-baseline",
@@ -311,13 +347,18 @@ def baseline_existing_outputs():
     records = _legacy_records()
     if MANIFEST_PATH.exists():
         existing = generated_provenance.load_manifest(MANIFEST_PATH)
+        existing_outputs = {
+            output
+            for record in existing["records"].values()
+            for output in record["outputs"]
+        }
         records = {
             key: record
             for key, record in records.items()
             if (
                 key not in existing["records"]
                 or existing["records"][key]["status"] == "legacy"
-            )
+            ) and not set(record["outputs"]) & existing_outputs
         }
     run = {
         "generated_at_utc": generated_provenance.utc_now(),

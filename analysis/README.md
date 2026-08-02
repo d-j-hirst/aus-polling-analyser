@@ -323,8 +323,45 @@ sudo umount /mnt/c
 sudo mount -t drvfs C: /mnt/c -o metadata
 ```
 
-## Archived Inputs
+## Generated-Data Archive
 
-For a quick setup, copy the contents of `Archived/` into `analysis/`. Regenerating
-the full analysis remains preferable because archived outputs may not include
-recent data or methodology changes.
+### Restore For A New Clone
+
+When `Archived/generated-data-archive.json` is present, the archive is the
+fastest supported way to install the generated/cache data needed by the C++
+forecast pipeline. From `analysis/`, run:
+
+```bash
+python3 pipeline.py
+```
+
+Choose **Restore validated generated-data archive** and type
+`RESTORE GENERATED DATA` exactly. The action validates every archived payload
+file against its SHA-256 hash before replacing local generated/cache outputs.
+It preserves authored inputs in mixed directories, including `Regional/*-polls`
+and `Federal-State/booths-*.txt`. It is intentionally available only through
+the interactive menu, because restoration replaces local generated data.
+
+Do not copy archive files over the working tree manually. An archive created
+before this workflow has no validation manifest and is a legacy archive; it can
+be retained for reference but should be replaced by a newly generated archive
+before being used for a reproducible setup.
+
+### Build After Full Regeneration
+
+Only build a replacement archive once the generated graph is fully current.
+From the same interactive menu, choose **Build validated generated-data
+archive** and type `BUILD GENERATED ARCHIVE` exactly. The preflight rejects
+stale, legacy, missing, altered, blocked or provenance-incomplete work units,
+as well as unfinished calibration staging files. It then copies generated/cache
+data to a temporary sibling directory, validates its manifest and hashes, and
+replaces `Archived/` only after validation succeeds.
+
+The archive includes generated/cache roots such as `Outputs`, `Adjustments`,
+`Fundamentals`, `Seat Statistics`, `Nationals` and `elections`. It includes only
+the generated files from mixed `Regional` and `Federal-State` directories, not
+their authored inputs. Calibration diagnostic traces and incomplete staging
+files are deliberately excluded. Retained legacy `calib_*` and detailed
+calibration trend/poll/house-effect files are also excluded: compact
+`Outputs/Calibration/Summaries/` files are the only calibration evidence in a
+new archive.

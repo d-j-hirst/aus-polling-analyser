@@ -631,7 +631,14 @@ class AnalysisProvenanceTests(unittest.TestCase):
         )
         legacy_trace["random_seed"] = None
 
-        summary_output = self.output_directory / "summary.csv"
+        summary_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Summaries"
+            / "2028fed.csv"
+        )
+        summary_output.parent.mkdir(parents=True)
         summary_output.write_text("summary\n", encoding="utf-8")
         summary = json.loads(json.dumps(template))
         summary["category"] = "poll_calibration_summaries"
@@ -640,9 +647,9 @@ class AnalysisProvenanceTests(unittest.TestCase):
             elections=["2028fed"]
         )
         summary["dependencies"] = {
-            "poll_calibration_traces":
+            "poll_calibration_compatibility_inputs":
                 generated_provenance.file_dependency(
-                    "poll_calibration_traces",
+                    "poll_calibration_compatibility_inputs",
                     [current_output],
                     self.base,
                 )
@@ -674,6 +681,73 @@ class AnalysisProvenanceTests(unittest.TestCase):
             selected[self.generated_manifest_path.resolve()],
             {current_key, summary_key},
         )
+
+    def test_missing_compact_summary_is_discovered_from_bias_evidence(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        record = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        record["category"] = "bias_calibration_compatibility_inputs"
+        record["stage"] = "calibrate_pollster_bias"
+        record["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"], parties=["@TPP"]
+        )
+        record["random_seed"] = None
+        manifest["records"] = {
+            "bias_calibration_compatibility_inputs:2028fed:@TPP": record
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_calibration_summary_work_units(
+                    {"2028fed"}
+                ),
+                ["2028fed"],
+            )
+
+        summary_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Summaries"
+            / "2028fed.csv"
+        )
+        summary_output.parent.mkdir(parents=True)
+        summary_output.write_text("summary\n", encoding="utf-8")
+        summary = json.loads(json.dumps(record))
+        summary["category"] = "poll_calibration_summaries"
+        summary["stage"] = "compact_calibration_summaries"
+        summary["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        summary["outputs"] = generated_provenance.output_fingerprints(
+            [summary_output], self.base
+        )
+        manifest["records"]["poll_calibration_summaries:2028fed"] = summary
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_calibration_summary_work_units(
+                    {"2028fed"}
+                ),
+                [],
+            )
 
     def test_target_selection_ignores_superseded_bias_party(self):
         manifest = generated_provenance.load_manifest(

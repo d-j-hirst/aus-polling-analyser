@@ -44,11 +44,10 @@ OUTPUT_PATTERN = re.compile(
 )
 CALIBRATION_CATEGORIES = (
     "poll_calibration_summaries",
-    "bias_calibration_outputs",
+    "poll_calibration_compatibility_inputs",
+    "bias_calibration_compatibility_inputs",
 )
-OPTIONAL_CALIBRATION_CATEGORIES = {
-    "poll_calibration_summaries",
-}
+COMPACT_SUMMARY_PREFIX = "Outputs/Calibration/Summaries/"
 # This named migration is registered when legacy records need their overly
 # broad calibration-party dependencies corrected without rerunning reducers.
 CALIBRATION_DEPENDENCY_REFRESH_UPGRADE = (
@@ -96,12 +95,59 @@ def _calibration_record_keys(
         for party in (target_parties or ())
     }
     selected = {category: [] for category in CALIBRATION_CATEGORIES}
+    compact_elections = set()
     for record_key, record in manifest["records"].items():
-        category = record["category"]
-        if category not in selected:
+        if record["category"] != "poll_calibration_summaries":
             continue
         election = _scope_election(record)
         if not election or not include_election(election, target_election):
+            continue
+        if not any(
+            output.startswith(COMPACT_SUMMARY_PREFIX)
+            for output in record["outputs"]
+        ):
+            continue
+        if election in compact_elections:
+            raise generated_provenance.GeneratedProvenanceError(
+                "multiple compact calibration summaries apply to {}".format(
+                    election
+                )
+            )
+        compact_elections.add(election)
+        selected["poll_calibration_summaries"].append(record_key)
+
+    for record_key, record in manifest["records"].items():
+        category = record["category"]
+        is_legacy_loo_summary = (
+            category == "poll_calibration_summaries"
+            and (
+                not record.get("outputs")
+                or any(
+                    Path(output).name.startswith("calib_")
+                    for output in record["outputs"]
+                )
+            )
+        )
+        compatibility_category = None
+        if category in {
+            "poll_calibration_compatibility_inputs",
+            "poll_calibration_traces",
+        } or is_legacy_loo_summary:
+            compatibility_category = "poll_calibration_compatibility_inputs"
+        elif category in {
+            "bias_calibration_compatibility_inputs",
+            "bias_calibration_outputs",
+        }:
+            compatibility_category = "bias_calibration_compatibility_inputs"
+        if compatibility_category is None:
+            continue
+        election = _scope_election(record)
+        if not election or not include_election(election, target_election):
+            continue
+        # A compact unit contains every detailed calibration value the
+        # reducers use. It supersedes legacy files for that election only;
+        # other historical elections continue through the fallback path.
+        if election in compact_elections:
             continue
         record_parties = {
             _canonical_calibration_party(party)
@@ -113,19 +159,19 @@ def _calibration_record_keys(
             target_parties & record_parties
         ):
             continue
-        selected[category].append(record_key)
+        selected[compatibility_category].append(record_key)
     return selected
 
 
-def _calibration_input_filenames(manifest, selected):
-    """Return the exact active files represented by selected records."""
+def _calibration_input_paths(manifest, selected):
+    """Return the exact active evidence files represented by selected records."""
 
     return sorted({
-        Path(output).name
+        (ANALYSIS_DIRECTORY / output).resolve()
         for record_keys in selected.values()
         for record_key in record_keys
         for output in manifest["records"][record_key]["outputs"]
-    })
+    }, key=str)
 
 
 def _target_parties(election):
@@ -262,15 +308,15 @@ class PollsterAnalysisRecorder:
 
     def _dependencies_for_selected(self, target_election, selected):
         dependencies = dict(self.source_dependencies)
+        if not any(selected.values()):
+            raise generated_provenance.GeneratedProvenanceError(
+                "no calibration evidence records apply to {}".format(
+                    target_election
+                )
+            )
         for category, record_keys in selected.items():
             if not record_keys:
-                if category in OPTIONAL_CALIBRATION_CATEGORIES:
-                    continue
-                raise generated_provenance.GeneratedProvenanceError(
-                    "no {} records apply to {}".format(
-                        category, target_election
-                    )
-                )
+                continue
             dependencies[category] = (
                 generated_provenance.generated_manifest_dependency(
                     category,
@@ -293,7 +339,7 @@ class PollsterAnalysisRecorder:
         )
         return (
             self._dependencies_for_selected(target_election, selected),
-            _calibration_input_filenames(manifest, selected),
+            _calibration_input_paths(manifest, selected),
         )
 
     def dependencies_for(

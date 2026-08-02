@@ -1,5 +1,7 @@
 import argparse
 import calibration_provenance
+import calibration_summary
+import calibration_summary_provenance
 import csv
 import datetime
 import fp_model_provenance
@@ -297,6 +299,15 @@ class Config:
                             'the house effects in actual forecast runs. '
                             'Ignored if --calibrate is also used.')
         parser.add_argument(
+            '--calibration-traces',
+            action='store_true',
+            help=(
+                'Retain detailed calibration trend, poll and house-effect '
+                'CSVs under a run-specific diagnostics directory. Compact '
+                'summaries are always written for completed calibration.'
+            ),
+        )
+        parser.add_argument(
             '--cutoff',
             action='store_true',
             help=(
@@ -328,6 +339,8 @@ class Config:
         self.calibrate_pollsters = args.calibrate
         self.calibrate_bias = (not self.calibrate_pollsters and 
                                args.bias)
+        self.calibration_traces = args.calibration_traces
+        self.calibration_trace_directory = None
         self.cutoff_mode = args.cutoff
         self.cutoff_days = 0
         self.pure = args.pure
@@ -341,6 +354,12 @@ class Config:
             raise ConfigError(
                 '--cutoff cannot be combined with --calibrate, --bias or '
                 '--pure.'
+            )
+        if self.calibration_traces and not (
+            self.calibrate_pollsters or self.calibrate_bias
+        ):
+            raise ConfigError(
+                '--calibration-traces requires --calibrate or --bias.'
             )
         if args.seed is not None and not 1 <= args.seed < 2 ** 31:
             raise ConfigError('The --seed value must be between 1 and 2^31-1.')
@@ -599,6 +618,8 @@ class ElectionData:
             self.poll_calibrations = {}
         else:
             self.pollster_exclusions = ['']
+        if config.calibrate_bias:
+            self.calibration_bias_records = {}
 
         self.create_day_series()
 
@@ -1042,16 +1063,19 @@ def output_filename(inputs: OutputFilenameInputs):
         f'_biascal' if config.calibrate_bias else ''
     )
     e_tag = ''.join(e_data.e_tuple)
-    calib_str = (
-        "Calibration/" if config.calibrate_pollsters
-        or config.calibrate_bias else ""
-    )
+    if config.calibrate_pollsters or config.calibrate_bias:
+        if not config.calibration_traces:
+            raise ConfigError(
+                'Detailed calibration files require --calibration-traces.'
+            )
+        folder = config.calibration_trace_directory.rstrip('/') + '/'
+    else:
+        folder = './Outputs/'
     if config.cutoff_mode:
         raise ConfigError(
             'Cutoff mode writes through CutoffOutputStore, not legacy '
             'per-party output filenames.'
         )
-    folder = (f'./Outputs/{calib_str}')
     pure_append = f'_pure' if config.pure else ''
 
     return (
@@ -1201,6 +1225,7 @@ class OutputContext:
 @dataclass
 class TrendOutputs:
     day_data: List[List[float]]
+    final_median: float
 
 
 def prepare_poll_df(party_context: PartyContext) -> Optional[PollPrepResult]:
@@ -1985,7 +2010,30 @@ def write_trend(inputs: WriteTrendInputs):
     trend_file.close()
     print('Saved trend file at ' + output_trend)
     return TrendOutputs(
-        day_data=day_data
+        day_data=day_data,
+        final_median=round(day_data[-1][output_probs_t.index(0.5)], 3),
+    )
+
+
+def collect_trend_outputs(output_context, writing_context):
+    """Extract only the compact calibration values without serialising a trace."""
+
+    days = list(iter_trend_days(IterTrendDaysInputs(
+        e_data=output_context.e_data,
+        run_context=output_context.run_context,
+        summary=writing_context.summary,
+        output_probs_t=writing_context.output_probs_t,
+    )))
+    if not days:
+        raise ConfigError(
+            'Stan output contained no trend days for {}.'.format(
+                output_context.party
+            )
+        )
+    return TrendOutputs(
+        day_data=[day.day_infos for day in days],
+        # Match legacy CSV compaction, which reads the rounded 50% column.
+        final_median=round(days[-1].median_val, 3),
     )
 
 
@@ -2105,6 +2153,33 @@ class WriteHouseEffectsInputs:
 class WriteHouseEffectsOutputs:
     new_house_effects: List[float]
     old_house_effects: List[float]
+    new_house_effect_medians: Dict[str, float]
+
+
+def collect_house_effect_outputs(inputs: WriteHouseEffectsInputs):
+    """Extract the house-effect data required by poll adjustment and summary."""
+
+    output_probs_t = inputs.writing_context.output_probs_t
+    poll_vectors = inputs.run_context.poll_vectors
+    summary = inputs.writing_context.summary
+    offset = inputs.run_context.reduced_series.tDayCount
+    median_column = 3 + output_probs_t.index(0.5)
+    new_house_effects = []
+    old_house_effects = []
+    new_house_effect_medians = {}
+    for house in range(poll_vectors.n_houses):
+        new_house_effects.append(summary[offset + house, 0])
+        old_house_effects.append(
+            summary[offset + poll_vectors.n_houses + house, 0]
+        )
+        new_house_effect_medians[poll_vectors.houses[house]] = round(
+            summary[offset + house][median_column], 3
+        )
+    return WriteHouseEffectsOutputs(
+        new_house_effects=new_house_effects,
+        old_house_effects=old_house_effects,
+        new_house_effect_medians=new_house_effect_medians,
+    )
 
 def write_house_effects(inputs: WriteHouseEffectsInputs):
     output_context = inputs.output_context
@@ -2117,13 +2192,9 @@ def write_house_effects(inputs: WriteHouseEffectsInputs):
     
     output_house_effects = output_filename_ctx(inputs.output_context, 'house_effects')
 
-    # Extract house effect data from model summary
-    new_house_effects = []
-    old_house_effects = []
-    offset = tDayCount
-    for house in range(0, poll_vectors.n_houses):
-        new_house_effects.append(summary[offset + house, 0])
-        old_house_effects.append(summary[offset + poll_vectors.n_houses + house, 0])
+    collected = collect_house_effect_outputs(inputs)
+    new_house_effects = collected.new_house_effects
+    old_house_effects = collected.old_house_effects
 
     # Extract house effect data from model summary and write to file
     house_effects_file = open(output_house_effects, 'w')
@@ -2155,10 +2226,25 @@ def write_house_effects(inputs: WriteHouseEffectsInputs):
     house_effects_file.close()
     print('Saved house effects file at ' + output_house_effects)
     
-    return WriteHouseEffectsOutputs(
-        new_house_effects=new_house_effects,
-        old_house_effects=old_house_effects,
-    )
+    return collected
+
+
+def calibration_recent_poll_counts(df):
+    """Match the legacy compactor's final-183-model-day pollster counts."""
+
+    polls = [
+        (str(df.loc[index, 'Firm']), int(df.loc[index, 'DayNum']))
+        for index in df.index
+    ]
+    if not polls:
+        raise ConfigError('Bias calibration had no polls to summarise.')
+    final_day = max(day for _, day in polls)
+    start_day = final_day - calibration_summary.RECENT_POLL_WINDOW_DAYS
+    counts = {pollster: 0 for pollster, _ in polls}
+    for pollster, day in polls:
+        if day >= start_day:
+            counts[pollster] += 1
+    return counts
 
 
 @dataclass
@@ -2438,30 +2524,46 @@ def write_outputs(output_context: OutputContext, fit):
         write_cutoff_trend(output_context, writing_context)
         return
 
-    trend_outputs = write_trend(WriteTrendInputs(
-        output_context=output_context,
-        writing_context=writing_context,
-    ))
+    detailed_calibration_trace = (
+        (config.calibrate_pollsters or config.calibrate_bias)
+        and config.calibration_traces
+    )
+    if detailed_calibration_trace or not (
+        config.calibrate_pollsters or config.calibrate_bias
+    ):
+        trend_outputs = write_trend(WriteTrendInputs(
+            output_context=output_context,
+            writing_context=writing_context,
+        ))
+    else:
+        trend_outputs = collect_trend_outputs(output_context, writing_context)
 
     prepare_others_medians(PrepareOthersMediansInputs(
         output_context=output_context,
         writing_context=writing_context,
     ))
     
-    house_effects_outputs = write_house_effects(WriteHouseEffectsInputs(
+    house_effects_inputs = WriteHouseEffectsInputs(
         output_context=output_context,
         party=party,
         run_context=run_context,
         writing_context=writing_context,
-    ))
-
-    write_polls(WritePollsInputs(
-        df=df,
-        output_context=output_context,
-        party=party,
-        run_context=run_context,
-        write_house_effects_outputs=house_effects_outputs,
-    ))
+    )
+    if detailed_calibration_trace or not (
+        config.calibrate_pollsters or config.calibrate_bias
+    ):
+        house_effects_outputs = write_house_effects(house_effects_inputs)
+        write_polls(WritePollsInputs(
+            df=df,
+            output_context=output_context,
+            party=party,
+            run_context=run_context,
+            write_house_effects_outputs=house_effects_outputs,
+        ))
+    else:
+        house_effects_outputs = collect_house_effect_outputs(
+            house_effects_inputs
+        )
     
     if config.calibrate_pollsters:
         calibrate_pollsters(CalibratePollstersInputs(
@@ -2473,6 +2575,13 @@ def write_outputs(output_context: OutputContext, fit):
             trend_outputs=trend_outputs,
             writing_context=writing_context,
         ))
+    elif config.calibrate_bias:
+        e_data = output_context.e_data
+        e_data.calibration_bias_records[party] = (
+            trend_outputs.final_median,
+            house_effects_outputs.new_house_effect_medians,
+            calibration_recent_poll_counts(df),
+        )
 
 
 @dataclass
@@ -2594,11 +2703,12 @@ def run_party(inputs: RunPartyInputs) -> Optional[OutputContext]:
     return output_context
 
 
-def finalise_calibrations(e_data):
+def finalise_calibrations(e_data, trace_directory=None):
     polls_string = {}
     total_weight = {}
     total_weighted_dev = {}
     output_files = []
+    summary_values = []
     for key, val in e_data.poll_calibrations.items():
         if (key[0] != ''):
             full_val = e_data.poll_calibrations[('', key[1], key[2], key[3])]
@@ -2631,14 +2741,20 @@ def finalise_calibrations(e_data):
         weighted_average_deviation = val / max(weight / 2, weight - 1)
         print(f'{key}: weighted avg deviation: {weighted_average_deviation}, '
               f'total weight: {weight}')
-        filename = (f'./Outputs/Calibration/calib_'
-                    f'{e_data.e_tuple[0]}{e_data.e_tuple[1]}_'
-                    f'{key[0]}_{key[1]}.csv')
-        with open(filename, 'w') as f:
-            f.write(f'{weighted_average_deviation},'
-                    f'{weight},\n{polls_string[key]}')
-        output_files.append(filename)
-    return output_files
+        summary_values.append(
+            (key[1], key[0], weighted_average_deviation, weight)
+        )
+        if trace_directory is not None:
+            filename = (
+                f'{trace_directory}/calib_'
+                f'{e_data.e_tuple[0]}{e_data.e_tuple[1]}_'
+                f'{key[0]}_{key[1]}.csv'
+            )
+            with open(filename, 'w') as f:
+                f.write(f'{weighted_average_deviation},'
+                        f'{weight},\n{polls_string[key]}')
+            output_files.append(filename)
+    return output_files, summary_values
 
 
 def check_suspension(
@@ -2834,6 +2950,21 @@ def run_models() -> None:
             else secrets.randbelow(2 ** 31 - 1) + 1
         )
         print('Base random seed: {}'.format(base_seed))
+        if config.calibration_traces:
+            trace_run_id = '{}-{}-{}'.format(
+                datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ'),
+                os.getpid(),
+                base_seed,
+            )
+            config.calibration_trace_directory = (
+                './Outputs/Calibration/Diagnostics/{}/'.format(trace_run_id)
+            )
+            os.makedirs(config.calibration_trace_directory, exist_ok=True)
+            print(
+                'Writing optional calibration traces under {}.'.format(
+                    config.calibration_trace_directory
+                )
+            )
         provenance_recorder = (
             calibration_provenance.CalibrationRecorder(
                 [os.path.basename(sys.executable)] + sys.argv
@@ -3041,6 +3172,7 @@ def run_models() -> None:
                     if (
                         provenance_recorder is not None
                         and output_context is not None
+                        and config.calibration_traces
                     ):
                         output_files = [
                             output_filename_ctx(output_context, kind)
@@ -3124,14 +3256,73 @@ def run_models() -> None:
                     provenance_recorder.flush()
 
             if config.calibrate_pollsters:
-                summary_files = finalise_calibrations(e_data=e_data)
-                if provenance_recorder is not None and summary_files:
+                trace_files, summary_values = finalise_calibrations(
+                    e_data=e_data,
+                    trace_directory=(
+                        config.calibration_trace_directory
+                        if config.calibration_traces else None
+                    ),
+                )
+                staging_rows = calibration_summary.build_leave_one_out_rows(
+                    election_tag, summary_values
+                )
+                staging_output = calibration_summary.direct_staging_path(
+                    './Outputs/Calibration', election_tag, 'leave-one-out'
+                )
+                calibration_summary.write_direct_staging_atomically(
+                    staging_output, staging_rows
+                )
+                if provenance_recorder is not None:
                     provenance_recorder.record_summaries(
                         election=election_tag,
-                        outputs=summary_files,
-                        trace_files=calibration_trace_files,
+                        outputs=[staging_output],
+                        trace_files=calibration_trace_files + trace_files,
                     )
                     provenance_recorder.flush()
+            if config.calibrate_bias:
+                staging_rows = calibration_summary.build_bias_rows(
+                    election_tag,
+                    [
+                        (party, *values)
+                        for party, values in e_data.calibration_bias_records.items()
+                    ],
+                )
+                staging_output = calibration_summary.direct_staging_path(
+                    './Outputs/Calibration', election_tag, 'bias'
+                )
+                calibration_summary.write_direct_staging_atomically(
+                    staging_output, staging_rows
+                )
+                if provenance_recorder is not None:
+                    provenance_recorder.record_bias_staging(
+                        election_tag, staging_output
+                    )
+                    provenance_recorder.flush()
+                loo_staging = calibration_summary.direct_staging_path(
+                    './Outputs/Calibration', election_tag, 'leave-one-out'
+                )
+                if loo_staging.is_file():
+                    summary_output, row_count = (
+                        calibration_summary.promote_direct_summary(
+                            './Outputs/Calibration', election_tag
+                        )
+                    )
+                    calibration_summary_provenance.record_direct_summary(
+                        election_tag,
+                        summary_output,
+                        [os.path.basename(sys.executable)] + sys.argv,
+                    )
+                    print(
+                        'Saved {} compact calibration rows for {}.'.format(
+                            row_count, election_tag
+                        )
+                    )
+                else:
+                    print(
+                        'Bias calibration staging for {} is complete; run '
+                        '--calibrate before promoting its compact summary.'
+                        .format(election_tag)
+                    )
             if cutoff_provenance_recorder is not None:
                 config.cutoff_output_store.mark_complete(
                     election_tag,

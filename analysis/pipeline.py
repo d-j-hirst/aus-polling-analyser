@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import analysis_provenance
+import generated_data_archive
 import generated_provenance
 import pipeline_registry
 import provenance_maintenance
@@ -61,7 +62,7 @@ PROFILE_RUN_CLASSES = {
         "regular",
         "regular_with_approvals",
     },
-    "calibration": {"calibration"},
+    "calibration": {"calibration", "calibration_summary"},
     # Cutoffs are too expensive to knowingly generate from stale inputs.
     # Their plan therefore includes the calibration and pure-trend stages
     # needed to make every direct dependency current first.
@@ -77,7 +78,10 @@ PROFILE_ROOT_RUN_CLASSES = {
     "metadata": set(),
     "regular": {"regular", "regular_with_approvals"},
     "regular-with-approvals": {"regular", "regular_with_approvals"},
-    "calibration": {"calibration"},
+    # A compact summary can be created from already-current compatibility
+    # inputs. Treat it as a calibration root so a missing summary is repaired
+    # without needlessly rerunning the Stan calibration stages.
+    "calibration": {"calibration", "calibration_summary"},
     # Calibration and pure trends are prerequisites, not independent roots,
     # when planning historical cutoff work for a target adjustment.
     "cutoffs": {"cutoffs"},
@@ -546,7 +550,11 @@ def _reachable_work_unit_ids(
                 # historical work unit needed by the selected target. Those
                 # prerequisites, rather than their own election codes, are
                 # the executable roots for these profiles.
-                or run_class in {"cutoffs", "calibration"}
+                or run_class in {
+                    "cutoffs",
+                    "calibration",
+                    "calibration_summary",
+                }
             )
         ):
             select(work_unit)
@@ -1811,6 +1819,15 @@ def _interactive_confirm(message):
         return False
 
 
+def _interactive_typed_confirmation(message, phrase):
+    """Require an exact phrase for actions that replace generated data."""
+
+    response = _interactive_text(
+        "{}\nType {} exactly to continue.".format(message, repr(phrase))
+    )
+    return response == phrase
+
+
 def _interactive_elections(required):
     while True:
         response = _interactive_text(
@@ -1895,12 +1912,71 @@ def run_interactive():
                 ("Build regeneration plan", "plan"),
                 ("Run generation plan", "run-generation"),
                 ("Run metadata maintenance", "run-metadata"),
+                (
+                    "Restore validated generated-data archive",
+                    "restore-archive",
+                ),
+                (
+                    "Build validated generated-data archive",
+                    "build-archive",
+                ),
                 ("Exit", "exit"),
             ),
         )
         if action in {None, "exit"}:
             return 0
         try:
+            if action == "restore-archive":
+                manifest = generated_data_archive.validate_archive(
+                    ANALYSIS_DIRECTORY / "Archived"
+                )
+                print(
+                    "Validated archive with {} generated/cache files. "
+                    "Restoration replaces local generated data while "
+                    "preserving authored inputs in mixed directories."
+                    .format(len(manifest["files"]))
+                )
+                if _interactive_typed_confirmation(
+                    "Restore the validated generated-data archive now?",
+                    "RESTORE GENERATED DATA",
+                ):
+                    result = generated_data_archive.restore_archive(
+                        ANALYSIS_DIRECTORY
+                    )
+                    print(
+                        "Restored {} files across {} generated-data roots."
+                        .format(result["files"], len(result["roots"]))
+                    )
+                print()
+                continue
+            if action == "build-archive":
+                preflight = generated_data_archive.preflight_build(
+                    ANALYSIS_DIRECTORY
+                )
+                print(
+                    "Archive preflight passed for {} current work units and "
+                    "{} generated/cache files."
+                    .format(
+                        preflight["work_units"],
+                        len(preflight["managed_files"]),
+                    )
+                )
+                if _interactive_typed_confirmation(
+                    "Replace analysis/Archived with this validated "
+                    "generated-data archive now?",
+                    "BUILD GENERATED ARCHIVE",
+                ):
+                    result = generated_data_archive.build_archive(
+                        ANALYSIS_DIRECTORY
+                    )
+                    print(
+                        "Built validated archive with {} files at {}."
+                        .format(
+                            result["files"], result["archive_directory"]
+                        )
+                    )
+                print()
+                continue
             elections = (
                 []
                 if action == "run-metadata"
@@ -1988,6 +2064,7 @@ def run_interactive():
                 print_plan(build_plan(audit, registry, {profile}))
         except (
             PipelineError,
+            generated_data_archive.GeneratedDataArchiveError,
             analysis_provenance.AnalysisProvenanceError,
             pipeline_registry.RegistryError,
         ) as error:

@@ -2,7 +2,6 @@ import contextlib
 import importlib.util
 import io
 import sys
-import tempfile
 import types
 import unittest
 from pathlib import Path
@@ -59,20 +58,21 @@ class PollsterAnalysisTests(unittest.TestCase):
         )
 
     def test_poll_counts_canonicalise_liberal_party(self):
-        filename = "fp_polls_2025wa_LIB FP_biascal.csv"
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            path = Path(temporary_directory) / filename
-            path.write_text(
-                "Firm,Day,LIB FP\n"
-                "Example,10,30\n"
-                "Example,20,31\n",
-                encoding="utf-8",
-            )
-            with mock.patch.dict(
-                self.analysis.get_n_polls.__globals__,
-                {"directory": temporary_directory},
-            ):
-                counts = self.analysis.get_n_polls([filename])
+        evidence = self.analysis.CalibrationEvidence(
+            (),
+            (
+                self.analysis.BiasEvidence(
+                    ElectionCode(2025, "wa"),
+                    "LIB FP",
+                    50.0,
+                    {"Example": 0.25},
+                    {"Example": 2},
+                ),
+            ),
+        )
+        from pollster_analysis_house_effects import get_n_polls
+
+        counts = get_n_polls(evidence)
 
         election = ElectionCode(2025, "wa")
         self.assertEqual(
@@ -81,48 +81,6 @@ class PollsterAnalysisTests(unittest.TestCase):
         self.assertEqual(
             counts[(election, "all", "LNP FP")], 2
         )
-
-    def test_trend_median_is_selected_by_header(self):
-        trend = io.StringIO(
-            "Start date day,Month,Year\n"
-            "01,01,2020\n"
-            "Day,Party,0%,50%,100%\n"
-            "0,@TPP,45,51.25,56\n"
-        )
-        self.assertEqual(
-            self.analysis.load_final_trend_median(
-                trend, "trend.csv"
-            ),
-            51.25,
-        )
-
-    def test_house_effect_median_is_selected_by_header(self):
-        house_effects = io.StringIO(
-            "House,Party,0%,5%,50%,100%\n"
-            "New house effects\n"
-            "Example,@TPP,-2,-1.5,0.25,2\n"
-            "Old house effects\n"
-        )
-        self.assertEqual(
-            self.analysis.load_new_house_effects(
-                house_effects, "house-effects.csv"
-            ),
-            {"Example": 0.25},
-        )
-
-    def test_nonfinite_trend_median_is_rejected(self):
-        trend = io.StringIO(
-            "Start date day,Month,Year\n"
-            "01,01,2020\n"
-            "Day,Party,50%\n"
-            "0,@TPP,nan\n"
-        )
-        with self.assertRaisesRegex(
-            self.analysis.ConfigError, "not finite"
-        ):
-            self.analysis.load_final_trend_median(
-                trend, "trend.csv"
-            )
 
     def test_handled_failure_returns_nonzero(self):
         with mock.patch.object(

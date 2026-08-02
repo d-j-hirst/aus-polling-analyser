@@ -8,8 +8,6 @@ functions here intentionally preserve the former entry-point interfaces.
 import argparse
 import math
 
-import pandas as pd
-
 from election_code import ElectionCode
 
 
@@ -53,17 +51,6 @@ def parse_finite_float(value, context):
     if not math.isfinite(parsed):
         raise ConfigError('{} is not finite.'.format(context))
     return parsed
-
-
-def parse_poll_day(line, filename):
-    fields = line.rstrip('\r\n').split(',')
-    if len(fields) <= 1:
-        raise ConfigError(
-            '{} contains a short poll row.'.format(filename)
-        )
-    return parse_finite_float(
-        fields[1], '{} poll day'.format(filename)
-    )
 
 
 class Config:
@@ -121,6 +108,8 @@ class Config:
 def get_election_cycles():
     # Load the dates of each election cycle
     # to ensure that we don't use any data from the future
+    import pandas as pd
+
     with open('./Data/election-cycles.csv', 'r') as f:
         election_cycles = {
             (int(a[0]), a[1]):
@@ -185,5 +174,3 @@ def check_dates(election, target_election, cycles, equals=False):
             ][1]):
                 return False
     return True
-
-

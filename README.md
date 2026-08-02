@@ -23,6 +23,22 @@ The application uses paths relative to the repository root, so run it with the
 repository root as its working directory. See [analysis/README.md](analysis/README.md)
 for the Python environment and data-generation workflow.
 
+## Generated Data Archive
+
+The repository does not contain every generated analysis output required for a
+forecast. A validated archive under `analysis/Archived/` is the quickest way
+to prepare a new clone when one is supplied. From `analysis/`, run
+`python3 pipeline.py`, choose **Restore validated generated-data archive**,
+and type `RESTORE GENERATED DATA` exactly when prompted. The action verifies
+every archived file's SHA-256 hash before replacing local generated/cache
+outputs. It preserves authored inputs such as poll data, regional poll files,
+and federal/state booth mappings.
+
+Do not copy an archive over `analysis/` manually. The archive action is
+deliberately interactive and has no non-interactive command, because restore
+replaces existing generated data. See [analysis/README.md](analysis/README.md)
+for archive maintenance and legacy-archive notes.
+
 ## Command-Line Forecasts
 
 `polling-cli` runs the portable core forecast pipeline without wxWidgets,

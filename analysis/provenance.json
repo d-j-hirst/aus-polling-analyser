@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-02T02:03:48Z",
+  "updated_at_utc": "2026-08-02T07:57:21Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -675,9 +675,9 @@
       "semantic_revision": 7,
       "files": {
         "fp_model.py": {
-          "sha256": "5d050728ed81a7037618784cee19374918606789d17665bed2c31fe0b32e3a24",
-          "size_bytes": 115308,
-          "recorded_mtime_utc": "2026-07-26T12:06:15.422191Z"
+          "sha256": "220d9b61d1f03562a89500ba11d781065213dd6a29c89b2f89f80918d0f0c1e2",
+          "size_bytes": 123174,
+          "recorded_mtime_utc": "2026-08-02T05:10:15.234087Z"
         }
       },
       "events": [
@@ -1118,8 +1118,32 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T051324Z-correction-fp-model-script-5ba8f132",
+          "recorded_at_utc": "2026-08-02T05:13:24Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 7,
+          "summary": "Write future calibration results as compact staged summaries and make detailed traces opt-in.",
+          "files": [
+            "fp_model.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
         }
-      ]
+      ],
+      "provenance_revision": 7
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
@@ -1223,9 +1247,9 @@
       "semantic_revision": 1,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "654dae099287e081e8689746e1bcfd3ad9db6b11cea6eef98a5efa60acfa60f1",
-          "size_bytes": 12566,
-          "recorded_mtime_utc": "2026-07-31T15:46:13.855959Z"
+          "sha256": "2f6267aeda61fe52f78c2c70cc1a25a0dc9b16f65f94d8e3d9773960b4f833ad",
+          "size_bytes": 14021,
+          "recorded_mtime_utc": "2026-08-02T05:10:33.347774Z"
         }
       },
       "events": [
@@ -1283,46 +1307,91 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T034708Z-correction-calibration-provenance-script-24620b8e",
+          "recorded_at_utc": "2026-08-02T03:47:08Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Reclassified future detailed calibration records into explicit poll and bias compatibility categories without changing Stan output files.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T051325Z-other-calibration-provenance-script-b7b8b4d2",
+          "recorded_at_utc": "2026-08-02T05:13:25Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Record temporary direct calibration hand-off metadata.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 1
+      "provenance_revision": 2
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
       "file_patterns": [
         "pollster_analysis.py",
         "pollster_analysis_common.py",
+        "pollster_analysis_evidence.py",
         "pollster_analysis_variability.py",
         "pollster_analysis_house_effects.py",
         "pollster_analysis_bias.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 5,
       "files": {
         "pollster_analysis.py": {
-          "sha256": "30dda9bf84ddb945d5fb928803c723de485d9a7d0fca5c850c4bf1919674401d",
-          "size_bytes": 3540,
-          "recorded_mtime_utc": "2026-08-01T12:38:27.485528Z"
+          "sha256": "8e4f2ab0c1f157afed68058e3adce1fb28533b3b4d3751e32d55f7c41e00f754",
+          "size_bytes": 3836,
+          "recorded_mtime_utc": "2026-08-02T04:28:58.300063Z"
         },
         "pollster_analysis_bias.py": {
-          "sha256": "900625beddbb4b799d94b11527be6ed76fa34f02a070d78bded3dd7b6a870e0a",
-          "size_bytes": 8656,
-          "recorded_mtime_utc": "2026-08-01T12:39:35.721721Z"
+          "sha256": "3820179d0ee1754d31a8073aeff353468462a04070e342aa6aeffe8301584156",
+          "size_bytes": 7229,
+          "recorded_mtime_utc": "2026-08-02T04:32:27.532693Z"
         },
         "pollster_analysis_common.py": {
-          "sha256": "73663110a25cee5642e13de5b8713ad46b131af7d7cf8198fb56e471b941df24",
-          "size_bytes": 6672,
-          "recorded_mtime_utc": "2026-08-01T08:43:47.498714Z"
+          "sha256": "8ed06d49c60f702cedde26c3549eca8d32cc88c48d66d66dfb8406c3c4c059d1",
+          "size_bytes": 6382,
+          "recorded_mtime_utc": "2026-08-02T04:23:40.234817Z"
+        },
+        "pollster_analysis_evidence.py": {
+          "sha256": "3ff4cb0b5532c4cc3f1812f0deb5ecc6154c3188e59b405f46c71540e055d8c2",
+          "size_bytes": 12098,
+          "recorded_mtime_utc": "2026-08-02T04:28:55.255703Z"
         },
         "pollster_analysis_house_effects.py": {
-          "sha256": "ee72ed975478a30debc271e2a9e945c5569cc78bfa359c1cfefb70cc3170a9f7",
-          "size_bytes": 8733,
-          "recorded_mtime_utc": "2026-08-01T08:43:53.412080Z"
+          "sha256": "ce6dbb62f0384bc75cbc058c49abbc068e1ae52fed4ef73c9ceb7c77d0fedf58",
+          "size_bytes": 4710,
+          "recorded_mtime_utc": "2026-08-02T04:23:40.644156Z"
         },
         "pollster_analysis_variability.py": {
-          "sha256": "f704fd4506751c5afa768a61354f3a895cb767ae49c2695cb0e161a89b2ff546",
-          "size_bytes": 5905,
-          "recorded_mtime_utc": "2026-08-01T08:43:49.705850Z"
+          "sha256": "6ae4a8c57649a3bcd725ff733ffdb7f4a0aa7b911c47c55333790873805a6e6d",
+          "size_bytes": 4170,
+          "recorded_mtime_utc": "2026-08-02T04:09:49.050193Z"
         }
       },
       "events": [
@@ -1445,9 +1514,75 @@
             "stages": []
           },
           "provenance_upgrade": "refresh-source-dependency-v1"
+        },
+        {
+          "id": "20260802T042024Z-methodology-pollster-analysis-script-75bdf45d",
+          "recorded_at_utc": "2026-08-02T04:20:24Z",
+          "change_type": "methodology",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 7,
+          "summary": "Refactored pollster reducers behind typed compact-summary evidence with legacy detailed-file fallback.",
+          "files": [
+            "pollster_analysis.py",
+            "pollster_analysis_bias.py",
+            "pollster_analysis_common.py",
+            "pollster_analysis_evidence.py",
+            "pollster_analysis_house_effects.py",
+            "pollster_analysis_variability.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T042355Z-correction-pollster-analysis-script-e68f62ad",
+          "recorded_at_utc": "2026-08-02T04:23:55Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 7,
+          "summary": "Removed superseded direct calibration-file parsing helpers after routing reducers through typed evidence.",
+          "files": [
+            "pollster_analysis.py",
+            "pollster_analysis_common.py",
+            "pollster_analysis_house_effects.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T043308Z-correction-pollster-analysis-script-1fe431e5",
+          "recorded_at_utc": "2026-08-02T04:33:08Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 8,
+          "summary": "Prefer complete compact calibration evidence while safely falling back to matching legacy inputs when a compact summary is malformed or incomplete.",
+          "files": [
+            "pollster_analysis.py",
+            "pollster_analysis_bias.py",
+            "pollster_analysis_evidence.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 8
     },
     "pollster_analysis_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for pollster-analysis outputs.",
@@ -1455,12 +1590,12 @@
         "pollster_analysis_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "pollster_analysis_provenance.py": {
-          "sha256": "a3dcab0b5831e47661c8dc353dd31570c56b3da2694f7c89c4d32efff7a8d3d8",
-          "size_bytes": 14872,
-          "recorded_mtime_utc": "2026-08-01T13:01:34.528653Z"
+          "sha256": "80b7702b22f99b75fac0d543957b55e28dc0be4d97e7fb10131ac75ef4f53fd4",
+          "size_bytes": 16824,
+          "recorded_mtime_utc": "2026-08-02T04:11:25.669693Z"
         }
       },
       "events": [
@@ -1579,9 +1714,48 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T034708Z-correction-pollster-analysis-provenance-script-7b0a418a",
+          "recorded_at_utc": "2026-08-02T03:47:08Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 5,
+          "summary": "Selected legacy and new detailed calibration records through the explicit compatibility categories without changing pollster calculations.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T042024Z-correction-pollster-analysis-provenance-script-1b3d20e8",
+          "recorded_at_utc": "2026-08-02T04:20:24Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Select compact calibration summaries per election before falling back to detailed compatibility records.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 4
+      "provenance_revision": 6
     },
     "fp_model_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
@@ -2878,6 +3052,7 @@
       "description": "Pipeline registry, structured audit, planning, execution and metadata-maintenance tools.",
       "file_patterns": [
         "pipeline.py",
+        "generated_data_archive.py",
         "pipeline_registry.py",
         "pipeline_registry.json",
         "analysis_provenance.py",
@@ -2885,22 +3060,27 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 1,
-      "provenance_revision": 22,
+      "provenance_revision": 24,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "2093f1e6a01aec257e68bff68d58a01eb64715e963da7d917471de9a6d3d1030",
-          "size_bytes": 68467,
-          "recorded_mtime_utc": "2026-08-01T13:01:37.244806Z"
+          "sha256": "e30156aa8c7474b5a9e8ebfb69d4096fbbe32d00740aadf6908691b3edf507d3",
+          "size_bytes": 72352,
+          "recorded_mtime_utc": "2026-08-02T05:11:36.772996Z"
+        },
+        "generated_data_archive.py": {
+          "sha256": "98de3d2372effa1a2e04f721fa0cee8e15e00d2631e98913bbc3f5896e21ca42",
+          "size_bytes": 18529,
+          "recorded_mtime_utc": "2026-08-02T07:56:58.806372Z"
         },
         "pipeline.py": {
-          "sha256": "5d57aeff62572d97a645ad2e95067cbd4e45ba7b77215712b6ee941637c83ae0",
-          "size_bytes": 68126,
-          "recorded_mtime_utc": "2026-08-01T12:56:52.398431Z"
+          "sha256": "687ac4bd17fc6d0eaa8f966269f3717dcf0955a670af771909635f63ce822939",
+          "size_bytes": 71353,
+          "recorded_mtime_utc": "2026-08-02T07:38:44.419651Z"
         },
         "pipeline_registry.json": {
-          "sha256": "73f7085412971b7d68aa5e2d570eda4c16ab4f0314698c91de667f21354537e5",
-          "size_bytes": 37457,
-          "recorded_mtime_utc": "2026-08-02T02:01:44.040953Z"
+          "sha256": "c1fcf34a954bf2d570ac86995f22a5f57a87139f649f80c72cbeb453c46573c6",
+          "size_bytes": 39433,
+          "recorded_mtime_utc": "2026-08-02T05:12:58.322006Z"
         },
         "pipeline_registry.py": {
           "sha256": "72b52861f6cf73bae6dd0ca06101e5b062045a41ed03cba15d82659a330e0489",
@@ -3728,6 +3908,108 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T034708Z-correction-pipeline-orchestration-tools-0c64ed44",
+          "recorded_at_utc": "2026-08-02T03:47:08Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 23,
+          "summary": "Registered compact calibration-summary planning and compatibility-category graph metadata without changing generated numeric data.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T042024Z-schema-pipeline-orchestration-tools-268ea6cc",
+          "recorded_at_utc": "2026-08-02T04:20:24Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 24,
+          "summary": "Describe compact calibration summaries and detailed calibration fallbacks as alternative pollster-analysis inputs.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T051325Z-other-pipeline-orchestration-tools-ea4d3d3d",
+          "recorded_at_utc": "2026-08-02T05:13:25Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 24,
+          "summary": "Schedule missing compact calibration summaries without rerunning current Stan inputs.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T074037Z-other-pipeline-orchestration-tools-4492b0b8",
+          "recorded_at_utc": "2026-08-02T07:40:37Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 24,
+          "summary": "Add manual-only validated generated-data archive build and restore actions.",
+          "files": [
+            "generated_data_archive.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T075721Z-correction-pipeline-orchestration-tools-64e2388e",
+          "recorded_at_utc": "2026-08-02T07:57:21Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 24,
+          "summary": "Exclude retained detailed calibration traces from generated-data archives in favour of compact summaries.",
+          "files": [
+            "generated_data_archive.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },
@@ -4096,6 +4378,219 @@
         }
       ],
       "provenance_revision": 2
+    },
+    "calibration_summary_script": {
+      "description": "Strict compact CSV generation from detailed calibration outputs.",
+      "file_patterns": [
+        "calibration_summary.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 2,
+      "files": {
+        "calibration_summary.py": {
+          "sha256": "6bc3fda1e4f59132e6f739808c0315a8d96e51e3f1c2302fc54f706191852d5f",
+          "size_bytes": 32720,
+          "recorded_mtime_utc": "2026-08-02T05:07:34.156142Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260802T034707Z-baseline-calibration-summary-script-294e82bc",
+          "recorded_at_utc": "2026-08-02T03:47:07Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Initial baseline for calibration summary compaction.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T035452Z-correction-calibration-summary-script-7866fa66",
+          "recorded_at_utc": "2026-08-02T03:54:52Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 2,
+          "summary": "Exclude superseded legacy calibration files when compacting regenerated compatibility inputs.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T035753Z-correction-calibration-summary-script-9906cb47",
+          "recorded_at_utc": "2026-08-02T03:57:53Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Record only the calibration work units actually consumed by a compact summary.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T051325Z-correction-calibration-summary-script-0758942e",
+          "recorded_at_utc": "2026-08-02T05:13:25Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 3,
+          "summary": "Support atomic direct-calibration staging and compact summary promotion.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
+        }
+      ],
+      "provenance_revision": 3
+    },
+    "calibration_summary_provenance_script": {
+      "description": "Generated provenance recording for compact calibration summaries.",
+      "file_patterns": [
+        "calibration_summary_provenance.py"
+      ],
+      "exclude_patterns": [],
+      "semantic_revision": 1,
+      "files": {
+        "calibration_summary_provenance.py": {
+          "sha256": "5490d1e1ebfc02c05eecf974a567d94fd2a8e9c510ce9a82c423ef3a2c3fb01b",
+          "size_bytes": 12801,
+          "recorded_mtime_utc": "2026-08-02T05:10:36.812946Z"
+        }
+      },
+      "events": [
+        {
+          "id": "20260802T034707Z-baseline-calibration-summary-provenance-script-90ed8ce6",
+          "recorded_at_utc": "2026-08-02T03:47:07Z",
+          "change_type": "baseline",
+          "magnitude": "unknown",
+          "affects_outputs": true,
+          "semantic_revision": 1,
+          "summary": "Initial baseline for calibration-summary provenance recording.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T034843Z-correction-calibration-summary-provenance-script-b438bd04",
+          "recorded_at_utc": "2026-08-02T03:48:43Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 2,
+          "summary": "Preserved historical calib provenance records by assigning compact summaries a distinct compact record key.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T035452Z-correction-calibration-summary-provenance-script-d26acab7",
+          "recorded_at_utc": "2026-08-02T03:54:52Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 3,
+          "summary": "Prefer current compatibility records over legacy leftovers when deriving compact-summary provenance.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T035753Z-correction-calibration-summary-provenance-script-bd76741b",
+          "recorded_at_utc": "2026-08-02T03:57:53Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Restrict compact-summary ancestry to the detailed calibration records whose outputs were read.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T051325Z-other-calibration-summary-provenance-script-90062d7e",
+          "recorded_at_utc": "2026-08-02T05:13:25Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 4,
+          "summary": "Record source-backed summaries promoted from direct calibration data.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        }
+      ],
+      "provenance_revision": 4
     }
   }
 }

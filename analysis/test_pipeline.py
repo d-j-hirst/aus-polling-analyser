@@ -228,8 +228,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_calibration_profile_does_not_refresh_downstream(self):
         calibration = work_unit(
-            "bias_calibration_outputs:1987fed:@TPP",
-            "bias_calibration_outputs",
+            "bias_calibration_compatibility_inputs:1987fed:@TPP",
+            "bias_calibration_compatibility_inputs",
             "calibrate_pollster_bias",
             "legacy",
             "1987fed",
@@ -275,6 +275,37 @@ class PipelineTests(unittest.TestCase):
                 for task in plan["tasks"]
             ],
             [("calibrate_pollster_bias", "1987fed")],
+        )
+
+    def test_calibration_profile_compacts_current_legacy_inputs(self):
+        compatibility = work_unit(
+            "bias_calibration_compatibility_inputs:1987fed:@TPP",
+            "bias_calibration_compatibility_inputs",
+            "calibrate_pollster_bias",
+            "current",
+            "1987fed",
+            "@TPP",
+            target_match=False,
+        )
+        summary = work_unit(
+            "poll_calibration_summaries:1987fed:compact",
+            "poll_calibration_summaries",
+            "compact_calibration_summaries",
+            "missing",
+            "1987fed",
+            target_match=False,
+            dependencies=[compatibility["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([compatibility, summary]),
+            self.registry,
+            {"calibration"},
+        )
+
+        self.assertEqual(
+            [(task["stage"], task["election"]) for task in plan["tasks"]],
+            [("compact_calibration_summaries", "1987fed")],
         )
 
     def test_calibration_executor_runs_and_rechecks_each_task(self):
@@ -750,8 +781,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_all_profile_refreshes_downstream_of_planned_work(self):
         calibration = work_unit(
-            "bias_calibration_outputs:1987fed:@TPP",
-            "bias_calibration_outputs",
+            "bias_calibration_compatibility_inputs:1987fed:@TPP",
+            "bias_calibration_compatibility_inputs",
             "calibrate_pollster_bias",
             "legacy",
             "1987fed",
@@ -806,8 +837,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_regular_profile_refreshes_changed_target_pollster_analysis(self):
         calibration = work_unit(
-            "bias_calibration_outputs:1987fed:@TPP",
-            "bias_calibration_outputs",
+            "bias_calibration_compatibility_inputs:1987fed:@TPP",
+            "bias_calibration_compatibility_inputs",
             "calibrate_pollster_bias",
             "current",
             "1987fed",
@@ -988,8 +1019,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_cutoff_plan_refreshes_all_upstream_dependencies_first(self):
         calibration = work_unit(
-            "bias_calibration_outputs:1987fed:@TPP",
-            "bias_calibration_outputs",
+            "bias_calibration_compatibility_inputs:1987fed:@TPP",
+            "bias_calibration_compatibility_inputs",
             "calibrate_pollster_bias",
             "legacy",
             "1987fed",
@@ -1025,8 +1056,8 @@ class PipelineTests(unittest.TestCase):
             dependencies=[pollsters["id"], pure["id"]],
         )
         unrelated_target_calibration = work_unit(
-            "bias_calibration_outputs:2026vic:@TPP",
-            "bias_calibration_outputs",
+            "bias_calibration_compatibility_inputs:2026vic:@TPP",
+            "bias_calibration_compatibility_inputs",
             "calibrate_pollster_bias",
             "legacy",
             "2026vic",
@@ -1037,7 +1068,7 @@ class PipelineTests(unittest.TestCase):
             work["issues"] = [
                 {
                     "code": "stale_generated_dependency",
-                    "root_category": "bias_calibration_outputs",
+                    "root_category": "bias_calibration_compatibility_inputs",
                     "message": "stale calibration ancestry",
                 },
             ]
@@ -1385,6 +1416,104 @@ class PipelineTests(unittest.TestCase):
             pipeline, "_interactive_select", return_value="exit"
         ):
             self.assertEqual(pipeline.main([]), 0)
+
+    def test_typed_archive_confirmation_requires_the_exact_phrase(self):
+        with mock.patch.object(
+            pipeline,
+            "_interactive_text",
+            side_effect=["restore generated data", "RESTORE GENERATED DATA"],
+        ):
+            self.assertFalse(
+                pipeline._interactive_typed_confirmation(
+                    "Restore?", "RESTORE GENERATED DATA"
+                )
+            )
+            self.assertTrue(
+                pipeline._interactive_typed_confirmation(
+                    "Restore?", "RESTORE GENERATED DATA"
+                )
+            )
+
+    def test_interactive_archive_build_requires_typed_confirmation(self):
+        preflight = {"work_units": 8, "managed_files": ["Outputs/a.csv"]}
+        with mock.patch.object(
+            pipeline,
+            "_interactive_select",
+            side_effect=["build-archive", "exit"],
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "preflight_build",
+            return_value=preflight,
+        ), mock.patch.object(
+            pipeline,
+            "_interactive_typed_confirmation",
+            return_value=False,
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "build_archive",
+        ) as build:
+            self.assertEqual(pipeline.run_interactive(), 0)
+
+        build.assert_not_called()
+
+    def test_interactive_archive_restore_requires_typed_confirmation(self):
+        manifest = {"files": ["one", "two"]}
+        with mock.patch.object(
+            pipeline,
+            "_interactive_select",
+            side_effect=["restore-archive", "exit"],
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "validate_archive",
+            return_value=manifest,
+        ), mock.patch.object(
+            pipeline,
+            "_interactive_typed_confirmation",
+            return_value=False,
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "restore_archive",
+        ) as restore:
+            self.assertEqual(pipeline.run_interactive(), 0)
+
+        restore.assert_not_called()
+
+    def test_interactive_archive_actions_run_only_after_typed_confirmation(self):
+        preflight = {"work_units": 8, "managed_files": ["Outputs/a.csv"]}
+        archive_result = {
+            "archive_directory": pipeline.ANALYSIS_DIRECTORY / "Archived",
+            "files": 2,
+            "roots": ["Outputs"],
+        }
+        with mock.patch.object(
+            pipeline,
+            "_interactive_select",
+            side_effect=["build-archive", "restore-archive", "exit"],
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "preflight_build",
+            return_value=preflight,
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "build_archive",
+            return_value=archive_result,
+        ) as build, mock.patch.object(
+            pipeline.generated_data_archive,
+            "validate_archive",
+            return_value={"files": ["one", "two"]},
+        ), mock.patch.object(
+            pipeline.generated_data_archive,
+            "restore_archive",
+            return_value=archive_result,
+        ) as restore, mock.patch.object(
+            pipeline,
+            "_interactive_typed_confirmation",
+            return_value=True,
+        ):
+            self.assertEqual(pipeline.run_interactive(), 0)
+
+        build.assert_called_once_with(pipeline.ANALYSIS_DIRECTORY)
+        restore.assert_called_once_with(pipeline.ANALYSIS_DIRECTORY)
 
     def test_run_parser_accepts_each_generation_profile(self):
         parser = pipeline.build_parser()

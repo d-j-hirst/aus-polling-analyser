@@ -38,14 +38,17 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             }
         }
         selected = {
-            "poll_calibration_summaries": ["current-summary"],
-            "bias_calibration_outputs": ["bias"],
+            "poll_calibration_compatibility_inputs": [
+                "current-summary", "bias"
+            ],
         }
 
         self.assertEqual(
-            pollster_analysis_provenance._calibration_input_filenames(
-                manifest, selected
-            ),
+            [
+                path.name
+                for path in pollster_analysis_provenance
+                ._calibration_input_paths(manifest, selected)
+            ],
             [
                 "calib_2028fed_Fox & Hedgehog_@TPP.csv",
                 "fp_polls_2028fed_@TPP_biascal.csv",
@@ -106,6 +109,9 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
                 "summary-old": {
                     "category": "poll_calibration_summaries",
                     "scope": {"elections": ["2025fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/Summaries/2025fed.csv": {},
+                    },
                 },
                 "bias-target": {
                     "category": "bias_calibration_outputs",
@@ -138,7 +144,10 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             selected,
             {
                 "poll_calibration_summaries": ["summary-old"],
-                "bias_calibration_outputs": ["bias-target"],
+                "poll_calibration_compatibility_inputs": [
+                    "trace-target"
+                ],
+                "bias_calibration_compatibility_inputs": ["bias-target"],
             },
         )
 
@@ -162,6 +171,9 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
                 "summary-unscoped": {
                     "category": "poll_calibration_summaries",
                     "scope": {"elections": ["2025fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/Summaries/2025fed.csv": {},
+                    },
                 },
             }
         }
@@ -177,7 +189,8 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             selected,
             {
                 "poll_calibration_summaries": ["summary-unscoped"],
-                "bias_calibration_outputs": ["bias-alp"],
+                "poll_calibration_compatibility_inputs": [],
+                "bias_calibration_compatibility_inputs": [],
             },
         )
 
@@ -186,7 +199,7 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             "category": "pollster_parameters",
             "scope": {"elections": ["2028fed"]},
             "dependencies": {
-                "bias_calibration_outputs": {
+                "bias_calibration_compatibility_inputs": {
                     "manifest": "calibration-generated-provenance.json",
                     "records": ["bias-alp", "bias-uap"],
                 },
@@ -220,7 +233,7 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             issues,
             [
                 "obsolete calibration-party dependency "
-                "bias_calibration_outputs (bias-uap)"
+                    "bias_calibration_compatibility_inputs (bias-uap)"
             ],
         )
 
@@ -270,18 +283,18 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
                 recorder.record(
                     "2028fed",
                     outputs,
-                    {"bias_calibration_outputs": dependency},
+                    {"bias_calibration_compatibility_inputs": dependency},
                 )
 
             manifest = generated_provenance.load_manifest(manifest_path)
             record = manifest["records"]["pollster_parameters:2028fed"]
             self.assertEqual(record["status"], "generated")
             self.assertIn(
-                "bias_calibration_outputs", record["dependencies"]
+                "bias_calibration_compatibility_inputs", record["dependencies"]
             )
             self.assertIsNone(record["random_seed"])
 
-    def test_missing_summary_records_use_prior_only_analysis(self):
+    def test_missing_compatibility_records_fail(self):
         generated_dependency = {
             "kind": "generated_manifest",
             "digest": "a" * 64,
@@ -299,26 +312,22 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             "_calibration_record_keys",
             return_value={
                 "poll_calibration_summaries": [],
-                "bias_calibration_outputs": ["bias-record"],
+                "poll_calibration_compatibility_inputs": [],
+                "bias_calibration_compatibility_inputs": [],
             },
-        ), mock.patch.object(
-            generated_provenance,
-            "generated_manifest_dependency",
-            return_value=generated_dependency,
         ):
             recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
                 ["python3", "pollster_analysis.py"]
             )
-            dependencies = recorder.dependencies_for(
-                "1972fed", lambda candidate, target: True
-            )
+            with self.assertRaisesRegex(
+                generated_provenance.GeneratedProvenanceError,
+                "no calibration evidence records apply",
+            ):
+                recorder.dependencies_for(
+                    "1972fed", lambda candidate, target: True
+                )
 
-        self.assertNotIn(
-            "poll_calibration_summaries", dependencies
-        )
-        self.assertIn("bias_calibration_outputs", dependencies)
-
-    def test_missing_bias_calibration_still_fails(self):
+    def test_missing_calibration_evidence_still_fails(self):
         with mock.patch.object(
             pollster_analysis_provenance,
             "_source_dependencies",
@@ -328,7 +337,8 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             "_calibration_record_keys",
             return_value={
                 "poll_calibration_summaries": [],
-                "bias_calibration_outputs": [],
+                "poll_calibration_compatibility_inputs": [],
+                "bias_calibration_compatibility_inputs": [],
             },
         ):
             recorder = pollster_analysis_provenance.PollsterAnalysisRecorder(
@@ -336,7 +346,7 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(
                 generated_provenance.GeneratedProvenanceError,
-                "no bias_calibration_outputs records apply",
+                "no calibration evidence records apply",
             ):
                 recorder.dependencies_for(
                     "1972fed", lambda candidate, target: True

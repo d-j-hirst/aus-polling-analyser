@@ -116,7 +116,7 @@ class PipelineRegistryTests(unittest.TestCase):
             ["election_data_script", "election_code_script"],
         )
 
-    def test_pollster_analysis_uses_compact_calibration_boundary(self):
+    def test_pollster_analysis_prefers_compact_evidence_with_fallback(self):
         stages = {
             stage["id"]: stage for stage in self.registry["stages"]
         }
@@ -125,9 +125,20 @@ class PipelineRegistryTests(unittest.TestCase):
         self.assertIn(
             "poll_calibration_summaries", stage["optional_inputs"]
         )
-        self.assertIn("bias_calibration_outputs", stage["inputs"])
-        self.assertNotIn("poll_calibration_traces", stage["inputs"])
+        self.assertIn(
+            "poll_calibration_compatibility_inputs",
+            stage["optional_inputs"],
+        )
+        self.assertIn(
+            "bias_calibration_compatibility_inputs",
+            stage["optional_inputs"],
+        )
+        self.assertNotIn("poll_calibration_summaries", stage["inputs"])
         self.assertIn("pollster_analysis_script", stage["inputs"])
+        self.assertIn(
+            "pollster_analysis_evidence.py",
+            self.registry["categories"]["pollster_analysis_script"]["paths"],
+        )
         self.assertIn(
             "pollster_analysis_provenance_script", stage["inputs"]
         )
