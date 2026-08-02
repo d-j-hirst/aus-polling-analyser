@@ -5,29 +5,61 @@ Created on Sun Sep 13 00:51:38 2020
 @author: danny
 """
 
-import sys
-import re
 import gzip
-import pystan
+import os
 import pickle
+import re
+import sys
+import tempfile
 from hashlib import md5
 
-def stan_cache(model_code, m_name=None):
+
+import pystan
+
+
+CACHE_DIRECTORY = './stan-cache/'
+
+
+def _cache_filename(model_code):
+    """Return the legacy-compatible cache path for one compiled Stan model."""
+
     code_hash = md5(model_code.encode('ascii')).hexdigest()
-    
-    pre = './stan-cache/' # Cache home dir
-    fname = pre + m_name if m_name else pre
-    fname += ('-' + sys.version + '-' +pystan.__version__ + '-' + code_hash+ '.pkl.gz')
-    rex = re.compile('[^a-zA-Z0-9_ ,/\.\-]')
-    fname = rex.sub('', fname)
+    filename = CACHE_DIRECTORY + (
+        '-' + sys.version + '-' + pystan.__version__ + '-' + code_hash +
+        '.pkl.gz'
+    )
+    return re.sub('[^a-zA-Z0-9_ ,/\\.\\-]', '', filename)
+
+
+def _write_cache_atomically(filename, model):
+    """Publish only complete compressed pickles when processes share a cache."""
+
+    file_descriptor, temporary_filename = tempfile.mkstemp(
+        prefix='.stan-model-', suffix='.tmp', dir=CACHE_DIRECTORY
+    )
+    os.close(file_descriptor)
     try:
-        sm = pickle.load(gzip.open(fname, 'rb'))
-    except:
+        with gzip.open(temporary_filename, 'wb') as cache_file:
+            pickle.dump(model, cache_file)
+        os.replace(temporary_filename, filename)
+    finally:
+        if os.path.exists(temporary_filename):
+            os.unlink(temporary_filename)
+
+
+def stan_cache(model_code):
+    """Load a locally cached compiled model or compile and cache it."""
+
+    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+    filename = _cache_filename(model_code)
+    try:
+        with gzip.open(filename, 'rb') as cache_file:
+            sm = pickle.load(cache_file)
+    except Exception:
         print("About to compile model")
         sm = pystan.StanModel(model_code=model_code, verbose=False)
-        with gzip.open(fname, 'wb') as fh:
-            pickle.dump(sm, fh)
+        _write_cache_atomically(filename, sm)
     else:
         print("Using cached model")
-            
+
     return sm

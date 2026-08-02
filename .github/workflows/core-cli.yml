@@ -22,7 +22,7 @@ jobs:
 
       - name: Test analysis metadata tools
         working-directory: analysis
-        run: python3 -B -m unittest test_election_data.py test_election_store.py test_election_analysis.py test_region_model.py test_region_model_provenance.py test_pipeline_registry.py test_pipeline.py test_source_provenance.py test_generated_provenance.py test_provenance_maintenance.py test_calibration_provenance.py test_pollster_analysis.py test_pollster_analysis_provenance.py test_approvals.py test_approvals_provenance.py test_fp_model_provenance.py test_fp_model_cutoffs.py test_trend_adjust.py test_trend_adjust_cutoffs.py test_trend_adjust_provenance.py test_analysis_provenance.py test_run_fp_model.py test_sample_kurtosis.py
+        run: python3 -B -m unittest test_election_data.py test_election_store.py test_election_analysis.py test_region_model.py test_region_model_provenance.py test_pipeline_registry.py test_pipeline.py test_source_provenance.py test_generated_provenance.py test_provenance_maintenance.py test_calibration_provenance.py test_pollster_analysis.py test_pollster_analysis_provenance.py test_approvals.py test_approvals_provenance.py test_fp_model_provenance.py test_fp_model_cutoffs.py test_trend_adjust.py test_trend_adjust_cutoffs.py test_trend_adjust_provenance.py test_analysis_provenance.py test_run_fp_model.py test_sample_kurtosis.py test_stan_cache.py
 
       - name: Build CLI
         run: CXX=g++ sh build-polling-cli.sh
@@ -45,7 +45,7 @@ jobs:
       - name: Test analysis metadata tools
         working-directory: analysis
         shell: cmd
-        run: python -B -m unittest test_election_data.py test_election_store.py test_election_analysis.py test_region_model.py test_region_model_provenance.py test_pipeline_registry.py test_pipeline.py test_source_provenance.py test_generated_provenance.py test_provenance_maintenance.py test_calibration_provenance.py test_pollster_analysis.py test_pollster_analysis_provenance.py test_approvals.py test_approvals_provenance.py test_fp_model_provenance.py test_fp_model_cutoffs.py test_trend_adjust.py test_trend_adjust_cutoffs.py test_trend_adjust_provenance.py test_analysis_provenance.py test_run_fp_model.py test_sample_kurtosis.py
+        run: python -B -m unittest test_election_data.py test_election_store.py test_election_analysis.py test_region_model.py test_region_model_provenance.py test_pipeline_registry.py test_pipeline.py test_source_provenance.py test_generated_provenance.py test_provenance_maintenance.py test_calibration_provenance.py test_pollster_analysis.py test_pollster_analysis_provenance.py test_approvals.py test_approvals_provenance.py test_fp_model_provenance.py test_fp_model_cutoffs.py test_trend_adjust.py test_trend_adjust_cutoffs.py test_trend_adjust_provenance.py test_analysis_provenance.py test_run_fp_model.py test_sample_kurtosis.py test_stan_cache.py
 
       - name: Build CLI
         shell: cmd

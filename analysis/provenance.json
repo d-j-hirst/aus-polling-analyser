@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-01T22:23:18Z",
+  "updated_at_utc": "2026-08-02T00:00:11Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -1130,9 +1130,9 @@
       "semantic_revision": 1,
       "files": {
         "stan_cache.py": {
-          "sha256": "653f9225c5a88f2c2c363a505d3305bbee6d9e15d13aa5fb86cdf2d4d6d3e045",
-          "size_bytes": 853,
-          "recorded_mtime_utc": "2024-09-10T16:12:07.721599Z"
+          "sha256": "56f9f80a9fa8ede83e0de1b2a292103912d957e9dd1073cb719066c4873a7338",
+          "size_bytes": 1693,
+          "recorded_mtime_utc": "2026-08-01T23:59:40.756148Z"
         }
       },
       "events": [
@@ -1153,8 +1153,47 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260801T235157Z-correction-stan-cache-script-7b0085f8",
+          "recorded_at_utc": "2026-08-01T23:51:57Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Made Stan cache creation and publication robust while preserving cache keys and compiled-model behaviour.",
+          "files": [
+            "stan_cache.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260802T000011Z-correction-stan-cache-script-c8ba74d4",
+          "recorded_at_utc": "2026-08-02T00:00:11Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 1,
+          "summary": "Removed the unused Stan-cache name parameter while preserving the established cache filename format.",
+          "files": [
+            "stan_cache.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
-      ]
+      ],
+      "provenance_revision": 1
     },
     "calibration_provenance_script": {
       "description": "Work-unit seeds, calibration provenance recording and legacy calibration baselining.",
