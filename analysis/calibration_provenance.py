@@ -129,7 +129,7 @@ def required_federal_prior_elections(
                 str(error)
             ) from error
 
-    if not target_elections:
+    if target_elections is None:
         return {
             "{}{}".format(year, region)
             for (year, region) in election_cycles

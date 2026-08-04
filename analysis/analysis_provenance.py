@@ -776,7 +776,6 @@ def _selected_generated_records(
             is_superseded_calibration_record(record)
             or is_orphaned_precompact_summary(record)
             or is_superseded_detailed_bias_output(record)
-            or is_completed_calibration_detail(record)
         )
 
     def select(manifest_path, record_key, *, require_schedulable=True):
@@ -799,6 +798,10 @@ def _selected_generated_records(
     for manifest_path, manifest in manifests.items():
         for record_key, record in manifest["records"].items():
             if not _record_matches_elections(record, target_elections):
+                continue
+            if is_completed_calibration_detail(record):
+                # Completed detailed traces remain available via file
+                # dependencies, but are not primary regeneration roots.
                 continue
             if is_nonschedulable_retained_record(record):
                 # Keep old outputs and metadata for traceability, but do not
@@ -853,7 +856,13 @@ def _selected_generated_records(
                         owner_record = manifests[owner[0]]["records"][
                             owner[1]
                         ]
-                        if is_nonschedulable_retained_record(owner_record):
+                        if (
+                            is_superseded_calibration_record(owner_record)
+                            or is_orphaned_precompact_summary(owner_record)
+                            or is_superseded_detailed_bias_output(
+                                owner_record
+                            )
+                        ):
                             continue
                         dependencies[
                             work_unit_id(manifest_path, record_key)
@@ -886,7 +895,10 @@ def _selected_generated_records(
             },
             audit_only,
         )
-    return selected
+    return {
+        path: keys - audit_only[path]
+        for path, keys in selected.items()
+    }
 
 
 def _missing_regional_work_units(target_elections):
@@ -1023,10 +1035,13 @@ def _federal_prior_consumer_elections(work_units, target_elections):
             "calibrate_pollster_bias",
         }:
             continue
-        if work_unit["category"] == "federal_calibration_priors":
+        if work_unit["category"] in {
+            "federal_calibration_priors",
+            "poll_calibration_traces",
+        }:
             continue
         consumers.update(work_unit["scope"]["elections"])
-    return consumers or None
+    return consumers
 
 
 def _attach_federal_prior_dependencies(work_units):
@@ -1714,13 +1729,13 @@ def audit_repository(
 
     missing_federal_priors = []
     try:
-        missing_federal_priors = (
-            _missing_federal_calibration_prior_work_units(
-                _federal_prior_consumer_elections(
-                    work_units, target_elections
-                )
-            )
+        consumers = _federal_prior_consumer_elections(
+            work_units, target_elections
         )
+        if consumers:
+            missing_federal_priors = (
+                _missing_federal_calibration_prior_work_units(consumers)
+            )
     except (generated_provenance.GeneratedProvenanceError, OSError) as error:
         internal_errors.append(
             "could not determine missing federal calibration priors: {}"

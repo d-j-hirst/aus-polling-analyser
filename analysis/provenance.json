@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-04T00:17:48Z",
+  "updated_at_utc": "2026-08-04T00:54:27Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -1730,9 +1730,9 @@
       "semantic_revision": 3,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "cac239fd1172fe6873574c7945e432476f4fe6365480182eacf134a45e0b29a6",
-          "size_bytes": 19479,
-          "recorded_mtime_utc": "2026-08-03T09:36:01.509506Z"
+          "sha256": "39d7f52cfb5eba0329607b0ef40fafc165ef7097e8599880f9aba2b87e22a118",
+          "size_bytes": 19483,
+          "recorded_mtime_utc": "2026-08-04T00:50:04.490320Z"
         }
       },
       "events": [
@@ -1947,9 +1947,29 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T005426Z-correction-calibration-provenance-script-9d6f6199",
+          "recorded_at_utc": "2026-08-04T00:54:26Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Avoid inventing all missing federal priors on empty audits; restore completed-trace file-dep selection and metadata-plan selection return contracts.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 5
+      "provenance_revision": 6
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
@@ -4019,12 +4039,12 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 4,
-      "provenance_revision": 38,
+      "provenance_revision": 39,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "3297884a562e96845bbe35d506abbb35116e68fbf67a7b75035e18bbb7ece82a",
-          "size_bytes": 91141,
-          "recorded_mtime_utc": "2026-08-04T00:16:18.274030Z"
+          "sha256": "55a3adf937d955e3798605f91546fb2d1dcc7241bb3596339edf58287f3bd114",
+          "size_bytes": 91736,
+          "recorded_mtime_utc": "2026-08-04T00:50:36.641245Z"
         },
         "generated_data_archive.py": {
           "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
@@ -5437,6 +5457,26 @@
           "semantic_revision": 4,
           "provenance_revision": 38,
           "summary": "Reject pipeline and audit election targets that are absent from polled-elections.csv and future-elections.csv.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T005427Z-correction-pipeline-orchestration-tools-dae76406",
+          "recorded_at_utc": "2026-08-04T00:54:27Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 39,
+          "summary": "Avoid inventing all missing federal priors on empty audits; restore completed-trace file-dep selection and metadata-plan selection return contracts.",
           "files": [
             "analysis_provenance.py"
           ],

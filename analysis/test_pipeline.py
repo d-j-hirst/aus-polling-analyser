@@ -1062,7 +1062,7 @@ class PipelineTests(unittest.TestCase):
         ), mock.patch.object(
             pipeline.analysis_provenance,
             "_selected_generated_records",
-            return_value=(selected, {}),
+            return_value=(selected, {}, {}),
         ), mock.patch.object(
             pipeline.generated_provenance,
             "load_manifest",
@@ -1108,7 +1108,7 @@ class PipelineTests(unittest.TestCase):
         ), mock.patch.object(
             pipeline.analysis_provenance,
             "_selected_generated_records",
-            return_value=(selected, {}),
+            return_value=(selected, {}, {}),
         ), mock.patch.object(
             pipeline.generated_provenance,
             "load_manifest",

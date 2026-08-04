@@ -1267,6 +1267,21 @@ class AnalysisProvenanceTests(unittest.TestCase):
         )
         self.assertEqual(consumers, {"2028fed", "1988nsw"})
 
+        diagnostic = {
+            "category": "poll_calibration_traces",
+            "stage": "calibrate_pollsters",
+            "scope": generated_provenance.generation_scope(
+                elections=["2025fed"], parties=["@TPP"]
+            ),
+        }
+        self.assertEqual(
+            analysis_provenance._federal_prior_consumer_elections(
+                [diagnostic],
+                None,
+            ),
+            set(),
+        )
+
         with mock.patch.object(
             analysis_provenance.calibration_provenance,
             "required_federal_prior_work_units",

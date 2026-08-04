@@ -249,6 +249,13 @@ class CalibrationProvenanceTests(unittest.TestCase):
             ),
             {"federal_calibration_priors:1984fed"},
         )
+        self.assertEqual(
+            calibration_provenance.required_federal_prior_work_units(
+                set(),
+                election_cycles=cycles,
+            ),
+            set(),
+        )
 
     def test_residual_evidence_has_a_separate_generated_record(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
