@@ -217,7 +217,8 @@ class PipelineTests(unittest.TestCase):
                 "calibration",
             ],
             cwd=str(pipeline.ANALYSIS_DIRECTORY),
-            capture_output=True,
+            stdout=pipeline.subprocess.PIPE,
+            stderr=None,
             text=True,
             encoding="utf-8",
             errors="replace",
@@ -256,6 +257,41 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(
             task["command"][1:],
             ["run_fp_model.py", "--election", "2026-vic"],
+        )
+
+    def test_calibration_profile_schedules_missing_federal_prior_before_state_bias(self):
+        prior = work_unit(
+            "federal_calibration_priors:1984fed",
+            "federal_calibration_priors",
+            "calibrate_pollsters",
+            "missing",
+            "1984fed",
+        )
+        bias = work_unit(
+            "bias_calibration_compatibility_inputs:1988nsw:@TPP",
+            "bias_calibration_compatibility_inputs",
+            "calibrate_pollster_bias",
+            "stale",
+            "1988nsw",
+            "@TPP",
+            dependencies=[prior["id"]],
+        )
+
+        plan = pipeline.build_plan(
+            audit_result([bias, prior]),
+            self.registry,
+            {"calibration"},
+        )
+
+        self.assertEqual(
+            [
+                (task["stage"], task["election"])
+                for task in plan["tasks"]
+            ],
+            [
+                ("calibrate_pollsters", "1984fed"),
+                ("calibrate_pollster_bias", "1988nsw"),
+            ],
         )
 
     def test_calibration_profile_does_not_refresh_downstream(self):
@@ -1677,6 +1713,20 @@ class PipelineTests(unittest.TestCase):
             pipeline, "_interactive_select", return_value="exit"
         ):
             self.assertEqual(pipeline.main([]), 0)
+
+    def test_plan_rejects_unknown_election_targets(self):
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            return_code = pipeline.main([
+                "plan",
+                "--election",
+                "2026fed",
+                "--profile",
+                "regular",
+            ])
+
+        self.assertEqual(return_code, 2)
+        self.assertIn("unknown election", stderr.getvalue())
 
     def test_typed_archive_confirmation_requires_the_exact_phrase(self):
         with mock.patch.object(

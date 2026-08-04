@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-02T22:31:53Z",
+  "updated_at_utc": "2026-08-04T00:17:48Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -830,9 +830,9 @@
           "recorded_mtime_utc": "2026-08-02T15:53:45.364243Z"
         },
         "fp_model_data.py": {
-          "sha256": "fb7e78d32e39f06683e35e653a5e8e242fd7cdbfbac2b23981e87d7789b9482a",
-          "size_bytes": 62812,
-          "recorded_mtime_utc": "2026-08-02T16:23:19.950380Z"
+          "sha256": "f83ccbfe097ffa66861137d87a8b3f3e18b0f9951b146a6cdd19719ab186096d",
+          "size_bytes": 63767,
+          "recorded_mtime_utc": "2026-08-03T09:53:38.136761Z"
         },
         "fp_model_outputs.py": {
           "sha256": "895fb1f1dc210174818353f27d91080118e0c731dc747d1879196c5038dee27c",
@@ -845,9 +845,9 @@
           "recorded_mtime_utc": "2026-08-02T15:57:03.802512Z"
         },
         "fp_model_runner.py": {
-          "sha256": "8ddebb4ee9cb779610e1b9309f660f1538e0e10b651b16c1baee3a23616c2ef9",
-          "size_bytes": 34972,
-          "recorded_mtime_utc": "2026-08-02T16:30:35.856194Z"
+          "sha256": "5b038ff444e2b38b2a68750bac2a5fe232764ce763287b44ebc336b899a3be59",
+          "size_bytes": 36375,
+          "recorded_mtime_utc": "2026-08-03T10:08:06.111207Z"
         },
         "fp_model_stan.py": {
           "sha256": "04ca98e97a03b10cc4c0de984c17936befa0bf4d1fd3d21c13256131bf4c324e",
@@ -1504,9 +1504,110 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260803T072144Z-correction-fp-model-script-e2c767cb",
+          "recorded_at_utc": "2026-08-03T07:21:44Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 11,
+          "provenance_revision": 12,
+          "summary": "Accept the four-column variability CSV (sigma plus evidence weight) when loading pollster parameters.",
+          "files": [
+            "fp_model_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T090709Z-correction-fp-model-script-3e9fbcc5",
+          "recorded_at_utc": "2026-08-03T09:07:09Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 11,
+          "provenance_revision": 13,
+          "summary": "Keep the unexcluded federal calibrate fit when empty-LOO federals overlap a state election so Priors/{year}fed.csv is still published for state bias and calibrate runs.",
+          "files": [
+            "fp_model_data.py",
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T090727Z-correction-fp-model-script-42d3fc78",
+          "recorded_at_utc": "2026-08-03T09:07:27Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 11,
+          "provenance_revision": 14,
+          "summary": "Keep the unexcluded federal calibrate fit when empty-LOO federals overlap a state election so Priors/{year}fed.csv is still published for state bias and calibrate runs.",
+          "files": [
+            "fp_model_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T095400Z-correction-fp-model-script-2752e480",
+          "recorded_at_utc": "2026-08-03T09:54:00Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 11,
+          "provenance_revision": 15,
+          "summary": "Expose ModellingData election cycles on ElectionData so should_skip_pollster_calibration can detect state-overlapping federal priors.",
+          "files": [
+            "fp_model_data.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T100828Z-correction-fp-model-script-eadf421e",
+          "recorded_at_utc": "2026-08-03T10:08:28Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 11,
+          "provenance_revision": 16,
+          "summary": "Skip empty leave-one-out staging after single-pollster federal calibrate runs while still publishing federal priors and seeds.",
+          "files": [
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 11
+      "provenance_revision": 16
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
@@ -1629,9 +1730,9 @@
       "semantic_revision": 3,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "a3b54f0ad8e0a0e1b3054748398c7bcb337cdc11e879bb798a74d146ef0cf62e",
-          "size_bytes": 17506,
-          "recorded_mtime_utc": "2026-08-02T15:03:46.346089Z"
+          "sha256": "cac239fd1172fe6873574c7945e432476f4fe6365480182eacf134a45e0b29a6",
+          "size_bytes": 19479,
+          "recorded_mtime_utc": "2026-08-03T09:36:01.509506Z"
         }
       },
       "events": [
@@ -1826,9 +1927,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260803T093849Z-correction-calibration-provenance-script-4a4615c3",
+          "recorded_at_utc": "2026-08-03T09:38:49Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 5,
+          "summary": "Synthesize missing overlapping federal_calibration_priors as calibrate_pollsters work so state calibrate/bias plans can schedule upstream federal priors through pipeline.py.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 4
+      "provenance_revision": 5
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
@@ -2097,9 +2218,9 @@
       "semantic_revision": 2,
       "files": {
         "pollster_analysis_provenance.py": {
-          "sha256": "5280fad32552febd4a067d69f02dd571994f20ccc3cfdcc95d7fa14e5d1e9009",
-          "size_bytes": 17381,
-          "recorded_mtime_utc": "2026-08-02T08:14:09.284542Z"
+          "sha256": "9c6a893581d45f7f56c70fa9e8a40844f75636b5d646c5d67e47e93af608af41",
+          "size_bytes": 18082,
+          "recorded_mtime_utc": "2026-08-02T23:52:38.641430Z"
         }
       },
       "events": [
@@ -2276,9 +2397,29 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T235422Z-methodology-pollster-analysis-provenance-script-aabe61fa",
+          "recorded_at_utc": "2026-08-02T23:54:22Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 6,
+          "summary": "Reuse shared manifest context for obsolete calibration-party checks and cover stored bias_calibration_outputs edges.",
+          "files": [
+            "pollster_analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 5
+      "provenance_revision": 6
     },
     "fp_model_provenance_script": {
       "description": "Dependency selection and bundled provenance recording for voting-intention-only poll trends.",
@@ -3878,12 +4019,12 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 4,
-      "provenance_revision": 31,
+      "provenance_revision": 38,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "4d14ebdc90257a05eaef8aa8b1fea4d0382df158df183eef8f2ed83e5b01d450",
-          "size_bytes": 81791,
-          "recorded_mtime_utc": "2026-08-02T22:30:38.367651Z"
+          "sha256": "3297884a562e96845bbe35d506abbb35116e68fbf67a7b75035e18bbb7ece82a",
+          "size_bytes": 91141,
+          "recorded_mtime_utc": "2026-08-04T00:16:18.274030Z"
         },
         "generated_data_archive.py": {
           "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
@@ -3891,9 +4032,9 @@
           "recorded_mtime_utc": "2026-08-02T14:35:10.380217Z"
         },
         "pipeline.py": {
-          "sha256": "326ec1b74accd8717a93efa2a27e0e6314e0fb195425a5afae01d6b4434775f6",
-          "size_bytes": 85232,
-          "recorded_mtime_utc": "2026-08-02T12:27:53.283630Z"
+          "sha256": "5c90ed0bd1dfeae4a7e000e5f8d9e29280a1e4dfbf7cb21afcf6e3362726d743",
+          "size_bytes": 86067,
+          "recorded_mtime_utc": "2026-08-03T03:26:41.997154Z"
         },
         "pipeline_registry.json": {
           "sha256": "cef9957b089c790115b42d024b7250b7b6927c5f8807c46635a128602ae11641",
@@ -5164,6 +5305,148 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T231200Z-methodology-pipeline-orchestration-tools-b8a8ec0f",
+          "recorded_at_utc": "2026-08-02T23:12:00Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 32,
+          "summary": "Report provenance-audit progress and keep post-task JSON plan refreshes from swallowing stderr.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T233518Z-methodology-pipeline-orchestration-tools-6f866311",
+          "recorded_at_utc": "2026-08-02T23:35:18Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 33,
+          "summary": "Report audit progress from analysis_provenance interactive and CLI entry points.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T235422Z-methodology-pipeline-orchestration-tools-abf0e01e",
+          "recorded_at_utc": "2026-08-02T23:54:22Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 34,
+          "summary": "Reuse cached path resolution in selection and audit consumer-referenced superseded calibration records.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T032739Z-correction-pipeline-orchestration-tools-4ec5d0eb",
+          "recorded_at_utc": "2026-08-03T03:27:39Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 35,
+          "summary": "Keep consumer-referenced superseded calibration records audit-only so they no longer schedule regenerate tasks after modern bias runs.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T093849Z-correction-pipeline-orchestration-tools-293e7bac",
+          "recorded_at_utc": "2026-08-03T09:38:49Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 36,
+          "summary": "Synthesize missing overlapping federal_calibration_priors as calibrate_pollsters work so state calibrate/bias plans can schedule upstream federal priors through pipeline.py.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260803T094816Z-correction-pipeline-orchestration-tools-f3316384",
+          "recorded_at_utc": "2026-08-03T09:48:16Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 37,
+          "summary": "Synthesize missing federal priors for historical calibrate/bias work units pulled into a calibration audit, not only the explicit election target.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T001748Z-correction-pipeline-orchestration-tools-913073cd",
+          "recorded_at_utc": "2026-08-04T00:17:48Z",
+          "change_type": "correction",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 38,
+          "summary": "Reject pipeline and audit election targets that are absent from polled-elections.csv and future-elections.csv.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ]
     },
@@ -5179,9 +5462,9 @@
       "semantic_revision": 1,
       "files": {
         "generated_provenance.py": {
-          "sha256": "c7106ce2bbdcda7bc444e799052119bf0401e605d7f326df0ed109a239516dc0",
-          "size_bytes": 53603,
-          "recorded_mtime_utc": "2026-08-02T10:44:20.142708Z"
+          "sha256": "8d278c343b662ddaf7b7490b884a7c34d1f0f796561c2fdebb0d3ff3096c3f19",
+          "size_bytes": 60010,
+          "recorded_mtime_utc": "2026-08-02T23:52:05.567377Z"
         },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
@@ -5458,9 +5741,69 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260802T231340Z-methodology-provenance-core-tools-27e83ab0",
+          "recorded_at_utc": "2026-08-02T23:13:40Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 9,
+          "summary": "Speed WSL audits with POSIX abspath resolution and selected-record output fingerprint priming.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T233518Z-methodology-provenance-core-tools-a780f336",
+          "recorded_at_utc": "2026-08-02T23:35:18Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 10,
+          "summary": "Short-circuit cached generated checks and index outputs for faster file-dependency priming.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260802T235422Z-methodology-provenance-core-tools-a57b0824",
+          "recorded_at_utc": "2026-08-02T23:54:22Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 11,
+          "summary": "Defer output indexing out of selection loads and fragment-cache overlapping generated digests.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 8
+      "provenance_revision": 11
     },
     "trend_adjust_check_script": {
       "description": "Read-only historical diagnostics for saved trend adjustments.",

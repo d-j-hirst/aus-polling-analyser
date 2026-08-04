@@ -69,6 +69,15 @@ fp_model = SimpleNamespace(
     order_parties_for_model=fp_model_prepare.order_parties_for_model,
     os=fp_model_data.os,
     overlapping_federal_elections=fp_model_data.overlapping_federal_elections,
+    federal_prior_needed_for_states=(
+        fp_model_data.federal_prior_needed_for_states
+    ),
+    should_skip_pollster_calibration=(
+        fp_model_runner.should_skip_pollster_calibration
+    ),
+    ShouldSkipPollsterCalibrationInputs=(
+        fp_model_runner.ShouldSkipPollsterCalibrationInputs
+    ),
     prepare_poll_df=fp_model_prepare.prepare_poll_df,
     restore_calibration_checkpoint=fp_model_data.restore_calibration_checkpoint,
     stan_seed_mode=fp_model_data.stan_seed_mode,
@@ -931,6 +940,165 @@ class CalibrationSemanticsTests(unittest.TestCase):
             actual = fp_model.finalise_calibrations(resumed)[1:]
 
         self.assertEqual(actual, expected)
+
+
+class PollsterParameterLoadTests(unittest.TestCase):
+    def test_variability_file_keeps_sigma_and_validates_evidence_weight(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            calibration_directory = Path(temporary_directory)
+            (calibration_directory / 'variability-2028fed.csv').write_text(
+                'Firm A,@TPP,1.5,12.25\n'
+                'Firm B,ALP FP,2.0,0\n',
+                encoding='utf-8',
+            )
+            (calibration_directory / 'he_weighting-2028fed.csv').write_text(
+                'Firm A,@TPP,0.4\n'
+                'Firm B,ALP FP,1.2\n',
+                encoding='utf-8',
+            )
+            (calibration_directory / 'biases-2028fed.csv').write_text(
+                'Firm A,@TPP,0.1,1.5\n'
+                'Firm B,ALP FP,-0.2,2.0\n',
+                encoding='utf-8',
+            )
+            election_data = SimpleNamespace()
+            original_loader = fp_model_data.load_pollster_parameter_file
+
+            def load_from_temp(path, value_names, validators):
+                return original_loader(
+                    str(calibration_directory / Path(path).name),
+                    value_names,
+                    validators,
+                )
+
+            with mock.patch(
+                'fp_model_data.load_pollster_parameter_file',
+                side_effect=load_from_temp,
+            ):
+                fp_model_data.ElectionData.get_pollster_analysis(
+                    election_data, ElectionCode(2028, 'fed')
+                )
+
+        self.assertEqual(
+            election_data.pollster_sigmas,
+            {
+                ('Firm A', '@TPP'): 1.5,
+                ('Firm B', 'ALP FP'): 2.0,
+            },
+        )
+        self.assertEqual(
+            election_data.pollster_he_weights[('Firm A', '@TPP')],
+            0.4,
+        )
+        self.assertEqual(
+            election_data.pollster_biases[('Firm B', 'ALP FP')],
+            (-0.2, 2.0),
+        )
+
+    def test_variability_file_rejects_wrong_column_count(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / 'variability-2028fed.csv'
+            path.write_text('Firm A,@TPP,1.5\n', encoding='utf-8')
+            with self.assertRaisesRegex(
+                fp_model_data.ConfigError, 'expected at least 4'
+            ):
+                fp_model_data.load_pollster_parameter_file(
+                    str(path),
+                    ('poll sigma', 'evidence weight'),
+                    (
+                        lambda value: value > 0,
+                        lambda value: value >= 0,
+                    ),
+                )
+
+
+class FederalPriorSkipTests(unittest.TestCase):
+    def setUp(self):
+        self.cycles = {
+            ('1983', 'fed'): (
+                pd.Timestamp('1980-10-18'),
+                pd.Timestamp('1983-03-05'),
+            ),
+            ('1984', 'fed'): (
+                pd.Timestamp('1983-03-06'),
+                pd.Timestamp('1984-12-02'),
+            ),
+            ('1988', 'nsw'): (
+                pd.Timestamp('1984-03-25'),
+                pd.Timestamp('1988-03-19'),
+            ),
+        }
+
+    def _inputs(self, year, region, *, excluded='', calibrations=0):
+        config = SimpleNamespace(calibrate_pollsters=True)
+        e_data = SimpleNamespace(
+            e_tuple=(str(year), region),
+            poll_calibrations=[object()] * calibrations,
+            election_cycles=self.cycles,
+        )
+        return fp_model.ShouldSkipPollsterCalibrationInputs(
+            config=config,
+            e_data=e_data,
+            excluded_pollster=excluded,
+        )
+
+    def test_federal_prior_needed_when_state_overlaps(self):
+        self.assertTrue(
+            fp_model.federal_prior_needed_for_states(
+                fp_model.ElectionCode(1984, 'fed'),
+                self.cycles,
+            )
+        )
+        self.assertFalse(
+            fp_model.federal_prior_needed_for_states(
+                fp_model.ElectionCode(1983, 'fed'),
+                self.cycles,
+            )
+        )
+        self.assertFalse(
+            fp_model.federal_prior_needed_for_states(
+                fp_model.ElectionCode(1988, 'nsw'),
+                self.cycles,
+            )
+        )
+
+    def test_state_empty_loo_full_fit_is_skipped(self):
+        self.assertTrue(
+            fp_model.should_skip_pollster_calibration(
+                self._inputs(1988, 'nsw')
+            )
+        )
+
+    def test_federal_without_state_overlap_empty_loo_is_skipped(self):
+        self.assertTrue(
+            fp_model.should_skip_pollster_calibration(
+                self._inputs(1983, 'fed')
+            )
+        )
+
+    def test_federal_with_state_overlap_empty_loo_is_kept(self):
+        self.assertFalse(
+            fp_model.should_skip_pollster_calibration(
+                self._inputs(1984, 'fed')
+            )
+        )
+
+    def test_loo_exclusion_round_is_never_skipped(self):
+        self.assertFalse(
+            fp_model.should_skip_pollster_calibration(
+                self._inputs(1988, 'nsw', excluded='Morgan')
+            )
+        )
+        self.assertFalse(
+            fp_model.should_skip_pollster_calibration(
+                self._inputs(1983, 'fed', excluded='Morgan')
+            )
+        )
+        self.assertFalse(
+            fp_model.should_skip_pollster_calibration(
+                self._inputs(1984, 'fed', excluded='Morgan')
+            )
+        )
 
 
 class DiagnosticRecorderTests(unittest.TestCase):

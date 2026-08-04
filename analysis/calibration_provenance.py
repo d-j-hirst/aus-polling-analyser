@@ -22,6 +22,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import generated_provenance
+from election_code import ElectionCode
 
 
 ANALYSIS_DIRECTORY = Path(__file__).resolve().parent
@@ -103,6 +104,71 @@ def _compatibility_record_key(category, election, party, role):
 
 def _loo_summary_record_key(election):
     return "calibration_compatibility_inputs:{}:loo-summary".format(election)
+
+
+def _election_code_from_short(election):
+    election = str(election)
+    return ElectionCode(int(election[:4]), election[4:])
+
+
+def required_federal_prior_elections(
+    target_elections=None,
+    election_cycles=None,
+):
+    """Return federal elections whose calibration priors state runs need."""
+
+    import fp_model_data
+
+    if election_cycles is None:
+        try:
+            election_cycles = fp_model_data.load_election_cycles(
+                ANALYSIS_DIRECTORY / "Data" / "election-cycles.csv"
+            )
+        except fp_model_data.ConfigError as error:
+            raise generated_provenance.GeneratedProvenanceError(
+                str(error)
+            ) from error
+
+    if not target_elections:
+        return {
+            "{}{}".format(year, region)
+            for (year, region) in election_cycles
+            if region == "fed"
+            and fp_model_data.federal_prior_needed_for_states(
+                _election_code_from_short("{}{}".format(year, region)),
+                election_cycles,
+            )
+        }
+
+    needed = set()
+    for election in target_elections:
+        code = _election_code_from_short(election)
+        if code.region() == "fed":
+            if fp_model_data.federal_prior_needed_for_states(
+                code, election_cycles
+            ):
+                needed.add(code.short())
+            continue
+        for federal in fp_model_data.overlapping_federal_elections(
+            code, election_cycles
+        ):
+            needed.add(federal.short())
+    return needed
+
+
+def required_federal_prior_work_units(
+    target_elections=None,
+    election_cycles=None,
+):
+    """Return federal prior record keys needed by the selected targets."""
+
+    return {
+        "{}:{}".format(FEDERAL_PRIOR_CATEGORY, election)
+        for election in required_federal_prior_elections(
+            target_elections,
+            election_cycles=election_cycles,
+        )
+    }
 
 
 def _scope(election, party=None, excluded_pollster=None):

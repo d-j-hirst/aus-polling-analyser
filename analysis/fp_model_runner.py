@@ -34,6 +34,7 @@ from fp_model_data import (
     calibration_checkpoint_identity,
     calibration_checkpoint_payload,
     calibration_checkpoint_source_files,
+    federal_prior_needed_for_states,
     restore_calibration_checkpoint,
     stan_seed_mode,
 )
@@ -130,11 +131,27 @@ class ShouldSkipPollsterCalibrationInputs:
     excluded_pollster: str
 
 def should_skip_pollster_calibration(inputs: ShouldSkipPollsterCalibrationInputs) -> bool:
-    return (
+    """Skip empty-LOO full fits unless a federal prior is needed by a state."""
+
+    if not (
         inputs.config.calibrate_pollsters
         and inputs.excluded_pollster == ''
         and len(inputs.e_data.poll_calibrations) == 0
+    ):
+        return False
+    election = ElectionCode(
+        int(inputs.e_data.e_tuple[0]),
+        inputs.e_data.e_tuple[1],
     )
+    # Keep the unexcluded federal fit when a later state calibration will load
+    # Priors/{year}fed.csv from it (including single-pollster federals where
+    # LOO produced no residuals). Early federals with no overlapping state
+    # still skip this otherwise unused full fit.
+    if federal_prior_needed_for_states(
+        election, inputs.e_data.election_cycles
+    ):
+        return False
+    return True
 
 
 @dataclass
@@ -521,9 +538,10 @@ def run_models() -> None:
                 # Each exclusion is an independent fit. Never allow a skipped
                 # party to leave a median from the previous pollster round.
                 e_data.others_medians = {}
-                # Don't waste time calculating the no-pollster-excluded trend
-                # if there are no pollster-excluded trends to compare it to
-                # (and that is the only purpose for which it is calculated)
+                # Skip the unexcluded fit when LOO produced nothing and this
+                # election does not publish a federal prior for state use.
+                # Overlapping federal cycles still run the full fit so
+                # Priors/{year}fed.csv can be written for later state runs.
                 if should_skip_pollster_calibration(ShouldSkipPollsterCalibrationInputs(
                     config=config,
                     e_data=e_data,
@@ -746,26 +764,36 @@ def run_models() -> None:
                 staging_output = calibration_summary.direct_staging_path(
                     './Outputs/Calibration', election_tag, 'leave-one-out'
                 )
-                calibration_summary.write_direct_staging_atomically(
-                    staging_output, staging_rows
-                )
                 residual_evidence_output = (
                     calibration_summary.residual_evidence_path(
                         './Outputs/Calibration', election_tag
                     )
                 )
-                calibration_summary.write_residual_evidence_atomically(
-                    residual_evidence_output,
-                    sorted(
-                        residual_evidence_rows,
-                        key=lambda row: (
-                            row['party'],
-                            row['pollster'],
-                            row['poll_day_index'],
-                            row['poll_index'],
+                # Single-pollster / empty-LOO federals can still run the
+                # unexcluded fit to publish Priors/{year}fed.csv. There is no
+                # residual component to stage in that case.
+                if staging_rows:
+                    calibration_summary.write_direct_staging_atomically(
+                        staging_output, staging_rows
+                    )
+                    calibration_summary.write_residual_evidence_atomically(
+                        residual_evidence_output,
+                        sorted(
+                            residual_evidence_rows,
+                            key=lambda row: (
+                                row['party'],
+                                row['pollster'],
+                                row['poll_day_index'],
+                                row['poll_index'],
+                            ),
                         ),
-                    ),
-                )
+                    )
+                else:
+                    print(
+                        'No leave-one-out residuals for {}; skipping LOO '
+                        'staging and residual evidence.'
+                        .format(election_tag)
+                    )
                 calibration_seed_output = (
                     calibration_summary.seed_manifest_path(
                         './Outputs/Calibration',
@@ -781,19 +809,22 @@ def run_models() -> None:
                         e_data.resolved_stan_seeds,
                     ),
                 )
+                federal_priors = write_federal_calibration_priors(e_data)
                 if provenance_recorder is not None:
-                    provenance_recorder.record_summaries(
-                        election=election_tag,
-                        outputs=[staging_output],
-                        trace_files=calibration_trace_files + trace_files,
-                        residual_evidence=residual_evidence_output,
-                    )
+                    if staging_rows:
+                        provenance_recorder.record_summaries(
+                            election=election_tag,
+                            outputs=[staging_output],
+                            trace_files=(
+                                calibration_trace_files + trace_files
+                            ),
+                            residual_evidence=residual_evidence_output,
+                        )
                     provenance_recorder.record_seed_manifest(
                         election_tag,
                         'calibration',
                         calibration_seed_output,
                     )
-                    federal_priors = write_federal_calibration_priors(e_data)
                     if federal_priors is not None:
                         provenance_recorder.record_federal_priors(
                             election_tag, federal_priors

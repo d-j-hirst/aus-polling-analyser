@@ -17,6 +17,11 @@ executes regular, approval-refresh, calibration and historical-cutoff plans
 directly through the existing generators. The broad `all` profile remains
 planning-only.
 
+Provenance audits used by `status`, `plan`, `run` and post-task plan refreshes
+emit concise progress checkpoints. With `--format json`, and during
+post-task refreshes that invoke `plan --format json`, those lines go to
+stderr so stdout stays machine-readable.
+
 ## Inspecting the Registry
 
 Run these commands from `analysis/`:
@@ -665,6 +670,14 @@ State calibration reads compact full-fit federal calibration priors rather
 than normal final trends. Their uniqueness, configured party coverage, dates
 and medians are validated before atomic publication, and the precise files
 found at run time are recorded as `federal_calibration_priors` dependencies.
+When a required overlapping federal prior has no generated record, the
+repository audit synthesizes a `calibrate_pollsters` work unit for that
+federal election so state calibrate/bias plans can schedule it through
+`pipeline.py` without a manual pre-run. Synthesis covers both the explicit
+election target and any historical calibrate/bias work units already pulled
+into the audit as calibration-profile roots. Federals that keep an unexcluded
+fit only to publish those priors (no leave-one-out residuals) skip LOO staging
+and still write `Priors/{year}fed.csv`.
 
 The repository audit reports legacy or stale calibration records separately:
 

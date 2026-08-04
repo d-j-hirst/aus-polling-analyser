@@ -55,6 +55,11 @@ CALIBRATION_CATEGORIES = (
     "poll_calibration_compatibility_inputs",
     "bias_calibration_compatibility_inputs",
 )
+# Stored pollster records may still name the pre-compatibility bias category.
+OBSOLETE_CALIBRATION_CATEGORIES = CALIBRATION_CATEGORIES + (
+    "bias_calibration_outputs",
+)
+_TARGET_PARTIES_CACHE = {}
 COMPACT_SUMMARY_PREFIX = "Outputs/Calibration/Summaries/"
 # This named migration is registered when legacy records need their overly
 # broad calibration-party dependencies corrected without rerunning reducers.
@@ -187,6 +192,9 @@ def _calibration_input_paths(manifest, selected):
 def _target_parties(election):
     """Read the target's configured parties without importing reducers."""
 
+    cached = _TARGET_PARTIES_CACHE.get(election)
+    if cached is not None:
+        return set(cached)
     significant_parties_path = (
         ANALYSIS_DIRECTORY / "Data" / "significant-parties.csv"
     )
@@ -199,10 +207,12 @@ def _target_parties(election):
         for line in input_file:
             fields = [field.strip() for field in line.split(",")]
             if fields[:2] == [match.group(1), match.group(2)]:
-                return {
+                parties = {
                     _canonical_calibration_party(party)
                     for party in fields[2:]
                 }
+                _TARGET_PARTIES_CACHE[election] = frozenset(parties)
+                return parties
     raise generated_provenance.GeneratedProvenanceError(
         "no significant-party configuration exists for {}".format(election)
     )
@@ -262,7 +272,9 @@ def refresh_calibration_dependencies(record, base_directory):
     return changed
 
 
-def obsolete_calibration_dependency_issues(record, base_directory):
+def obsolete_calibration_dependency_issues(
+    record, base_directory, check_context=None
+):
     """Report party-specific calibration edges no longer used by a record.
 
     This is deliberately narrower than recomputing the complete historical
@@ -276,14 +288,24 @@ def obsolete_calibration_dependency_issues(record, base_directory):
         return []
     target_parties = _target_parties(election)
     issues = []
-    for category in CALIBRATION_CATEGORIES:
+    resolve_path = (
+        check_context.resolve_path
+        if check_context is not None
+        else (lambda path: Path(path).resolve())
+    )
+    load = (
+        check_context.load_manifest
+        if check_context is not None
+        else generated_provenance.load_manifest
+    )
+    for category in OBSOLETE_CALIBRATION_CATEGORIES:
         dependency = record["dependencies"].get(category)
         if dependency is None:
             continue
-        manifest_path = (
+        manifest_path = resolve_path(
             Path(base_directory) / dependency["manifest"]
-        ).resolve()
-        manifest = generated_provenance.load_manifest(manifest_path)
+        )
+        manifest = load(manifest_path)
         for record_key in dependency["records"]:
             calibration_record = manifest["records"].get(record_key)
             if calibration_record is None:

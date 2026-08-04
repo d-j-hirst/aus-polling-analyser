@@ -794,6 +794,208 @@ class GeneratedProvenanceTests(unittest.TestCase):
             ],
         )
 
+    def test_resolve_path_uses_abspath_on_posix(self):
+        context = generated_provenance.ManifestCheckContext()
+        with mock.patch("generated_provenance.os.name", "posix"), mock.patch(
+            "generated_provenance.Path.resolve",
+            side_effect=AssertionError(
+                "POSIX resolve_path must avoid resolve()"
+            ),
+        ):
+            resolved = context.resolve_path(self.output_path)
+            expected = os.path.abspath(str(self.output_path))
+            self.assertEqual(
+                os.path.normcase(str(resolved)),
+                os.path.normcase(expected),
+            )
+            self.assertIs(context.resolve_path(self.output_path), resolved)
+
+    def test_load_manifest_primes_expected_outputs_for_selected_records_only(
+        self,
+    ):
+        sa_output = self.output_directory / "results_2026sa.csv"
+        sa_output.write_text("South Australia results\n", encoding="utf-8")
+        self._write_manifest(
+            {
+                "election_result_exports:2025fed": self._record(),
+                "election_result_exports:2026sa": self._record(
+                    "2026sa", sa_output
+                ),
+            }
+        )
+        context = generated_provenance.ManifestCheckContext()
+        context.load_manifest(self.generated_manifest_path)
+        self.assertEqual(context.expected_output_fingerprints, {})
+
+        context.prime_expected_outputs(
+            self.generated_manifest_path,
+            ["election_result_exports:2025fed"],
+        )
+        primed_keys = set(context.expected_output_fingerprints)
+        self.assertEqual(len(primed_keys), 2)
+        self.assertIn(context.path_key(self.output_path), primed_keys)
+        self.assertIn(context.path_key(self.cache_path), primed_keys)
+        self.assertNotIn(context.path_key(sa_output), primed_keys)
+
+    def test_check_manifest_short_circuits_when_records_are_cached(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        context = generated_provenance.ManifestCheckContext()
+        first = generated_provenance.check_manifest(
+            self.generated_manifest_path,
+            _context=context,
+        )
+        with mock.patch.object(
+            context,
+            "prime_expected_outputs",
+            side_effect=AssertionError("cached check_manifest re-primed"),
+        ), mock.patch(
+            "generated_provenance.check_record",
+            side_effect=AssertionError("cached check_manifest rechecked"),
+        ):
+            second = generated_provenance.check_manifest(
+                self.generated_manifest_path,
+                record_keys=["election_result_exports:2025fed"],
+                _context=context,
+            )
+        self.assertEqual(second, first)
+
+    def test_load_manifest_defers_output_owner_indexing(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        context = generated_provenance.ManifestCheckContext()
+        context.load_manifest(self.generated_manifest_path)
+        self.assertEqual(context.output_owners, {})
+        self.assertEqual(context.indexed_manifests, set())
+
+        context.prime_expected_outputs(
+            self.generated_manifest_path,
+            ["election_result_exports:2025fed"],
+        )
+        output_key = context.path_key(self.output_path)
+        self.assertIn(output_key, context.output_owners)
+
+    def test_load_manifest_indexes_output_owners_for_file_dep_priming(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        context = generated_provenance.ManifestCheckContext()
+        context.load_manifest(self.generated_manifest_path)
+        output_key = context.path_key(self.output_path)
+        self.assertNotIn(output_key, context.output_owners)
+
+        downstream_manifest = (
+            self.output_directory / "downstream-generated-provenance.json"
+        )
+        downstream_output = self.output_directory / "downstream.csv"
+        downstream_output.write_text("downstream\n", encoding="utf-8")
+        generated_provenance.update_manifest(
+            downstream_manifest,
+            {
+                "downstream:2025fed": generated_provenance.generation_record(
+                    category="downstream",
+                    stage="test_downstream",
+                    scope=generated_provenance.generation_scope(
+                        elections=["2025fed"]
+                    ),
+                    run="test-run",
+                    dependencies={
+                        "election_result_exports":
+                            generated_provenance.file_dependency(
+                                "election_result_exports",
+                                [self.output_path],
+                                self.base,
+                            ),
+                    },
+                    outputs=generated_provenance.output_fingerprints(
+                        [downstream_output], self.base
+                    ),
+                    random_seed=None,
+                )
+            },
+            {
+                "test-run": {
+                    "generated_at_utc": "2026-01-01T00:00:00Z",
+                    "command": ["python3", "downstream.py"],
+                    "source_revision": {
+                        "system": "git",
+                        "revision": "a" * 40,
+                        "dirty": False,
+                    },
+                    "environment": {
+                        "python_version": "3.8.0",
+                        "python_implementation": "CPython",
+                        "platform": "test",
+                    },
+                }
+            },
+            path_base="..",
+            description="Downstream test outputs.",
+        )
+        context.load_manifest(downstream_manifest)
+        context.prime_expected_file_dependencies(
+            downstream_manifest, ["downstream:2025fed"]
+        )
+        self.assertIn(output_key, context.output_owners)
+        self.assertEqual(
+            context.expected_output_fingerprints[output_key],
+            context.output_owners[output_key],
+        )
+
+    def test_generated_records_digest_is_cached_on_context(self):
+        self._write_manifest(
+            {"election_result_exports:2025fed": self._record()}
+        )
+        context = generated_provenance.ManifestCheckContext()
+        manifest = context.load_manifest(self.generated_manifest_path)
+        record_keys = ["election_result_exports:2025fed"]
+        with mock.patch(
+            "generated_provenance._generated_records_digest",
+            wraps=generated_provenance._generated_records_digest,
+        ) as digest:
+            first = context.generated_records_digest(
+                self.generated_manifest_path, manifest, record_keys
+            )
+            second = context.generated_records_digest(
+                self.generated_manifest_path, manifest, record_keys
+            )
+        self.assertEqual(first, second)
+        digest.assert_called_once()
+
+    def test_digest_fragments_match_generated_records_digest(self):
+        sa_output = self.output_directory / "results_2026sa.csv"
+        sa_output.write_text("South Australia results\n", encoding="utf-8")
+        self._write_manifest(
+            {
+                "election_result_exports:2025fed": self._record(),
+                "election_result_exports:2026sa": self._record(
+                    "2026sa", sa_output
+                ),
+            }
+        )
+        context = generated_provenance.ManifestCheckContext()
+        manifest = context.load_manifest(self.generated_manifest_path)
+        record_keys = [
+            "election_result_exports:2025fed",
+            "election_result_exports:2026sa",
+        ]
+        expected = generated_provenance._generated_records_digest(
+            manifest, record_keys
+        )
+        assembled = context.generated_records_digest(
+            self.generated_manifest_path, manifest, record_keys
+        )
+        self.assertEqual(assembled, expected)
+        subset = ["election_result_exports:2026sa"]
+        self.assertEqual(
+            context.generated_records_digest(
+                self.generated_manifest_path, manifest, subset
+            ),
+            generated_provenance._generated_records_digest(manifest, subset),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

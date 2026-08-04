@@ -122,6 +122,27 @@ class AnalysisProvenanceTests(unittest.TestCase):
             "altered_output",
         )
 
+    def test_normalize_target_elections_rejects_unknown_catalogue_codes(self):
+        with mock.patch.object(
+            analysis_provenance.approvals_provenance,
+            "_configured_elections",
+            return_value={"2028fed", "2026vic"},
+        ):
+            with self.assertRaisesRegex(
+                analysis_provenance.AnalysisProvenanceError,
+                "unknown election code\\(s\\): 2026fed",
+            ):
+                analysis_provenance._normalize_target_elections({"2026fed"})
+            self.assertEqual(
+                analysis_provenance._normalize_target_elections(
+                    {"2028fed", "2026vic"}
+                ),
+                {"2028fed", "2026vic"},
+            )
+            self.assertIsNone(
+                analysis_provenance._normalize_target_elections([])
+            )
+
     def test_machine_status_reports_unregistered_sources_as_blocking(self):
         self.script_path.write_text("print('changed')\n", encoding="utf-8")
 
@@ -163,6 +184,39 @@ class AnalysisProvenanceTests(unittest.TestCase):
         decoded = json.loads(output.getvalue())
         self.assertEqual(decoded["target_elections"], [])
         self.assertIn("work_units", decoded)
+
+    def test_audit_cli_passes_progress_callback(self):
+        result = self._audit()
+        with mock.patch.object(
+            analysis_provenance,
+            "audit_repository",
+            return_value=result,
+        ) as audit:
+            return_code = analysis_provenance.main(
+                ["audit", "--election", "2025fed"]
+            )
+
+        self.assertEqual(return_code, 0)
+        self.assertIsNotNone(audit.call_args.kwargs.get("progress"))
+
+    def test_interactive_audit_passes_progress_callback(self):
+        result = self._audit()
+        with mock.patch.object(
+            analysis_provenance,
+            "_menu_select",
+            side_effect=["audit", "exit"],
+        ), mock.patch.object(
+            analysis_provenance,
+            "audit_repository",
+            return_value=result,
+        ) as audit, mock.patch.object(
+            analysis_provenance,
+            "_print_audit",
+        ):
+            return_code = analysis_provenance.run_interactive()
+
+        self.assertEqual(return_code, 0)
+        self.assertIs(audit.call_args.kwargs.get("progress"), print)
 
     def test_material_script_change_stales_existing_output(self):
         self.script_path.write_text("print('changed')\n", encoding="utf-8")
@@ -1081,6 +1135,173 @@ class AnalysisProvenanceTests(unittest.TestCase):
                 [],
             )
 
+    def test_missing_federal_prior_is_discovered_for_overlapping_state(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        manifest["records"] = {}
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        required = {"federal_calibration_priors:1984fed"}
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ), mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "required_federal_prior_work_units",
+            return_value=required,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_federal_calibration_prior_work_units(
+                    {"1988nsw"}
+                ),
+                ["federal_calibration_priors:1984fed"],
+            )
+
+        prior_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Priors"
+            / "1984fed.csv"
+        )
+        prior_output.parent.mkdir(parents=True)
+        prior_output.write_text("prior\n", encoding="utf-8")
+        manifest["records"]["federal_calibration_priors:1984fed"] = (
+            generated_provenance.generation_record(
+                category="federal_calibration_priors",
+                stage="calibrate_pollsters",
+                scope=generated_provenance.generation_scope(
+                    elections=["1984fed"]
+                ),
+                run="test-run",
+                dependencies={},
+                outputs=generated_provenance.output_fingerprints(
+                    [prior_output], self.base
+                ),
+                random_seed=None,
+            )
+        )
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ), mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "required_federal_prior_work_units",
+            return_value=required,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_federal_calibration_prior_work_units(
+                    {"1988nsw"}
+                ),
+                [],
+            )
+
+    def test_attach_federal_prior_dependencies_links_state_bias(self):
+        import pandas as pd
+
+        cycles = {
+            ("1984", "fed"): (
+                pd.Timestamp("1983-03-06"),
+                pd.Timestamp("1984-12-02"),
+            ),
+            ("1988", "nsw"): (
+                pd.Timestamp("1984-03-25"),
+                pd.Timestamp("1988-03-19"),
+            ),
+        }
+        prior = {
+            "id": "calib::federal_calibration_priors:1984fed",
+            "category": "federal_calibration_priors",
+            "stage": "calibrate_pollsters",
+            "scope": generated_provenance.generation_scope(
+                elections=["1984fed"]
+            ),
+            "dependencies": [],
+        }
+        bias = {
+            "id": "calib::bias_calibration_compatibility_inputs:1988nsw:@TPP",
+            "category": "bias_calibration_compatibility_inputs",
+            "stage": "calibrate_pollster_bias",
+            "scope": generated_provenance.generation_scope(
+                elections=["1988nsw"], parties=["@TPP"]
+            ),
+            "dependencies": [],
+        }
+        with mock.patch(
+            "fp_model_data.load_election_cycles",
+            return_value=cycles,
+        ):
+            analysis_provenance._attach_federal_prior_dependencies(
+                [prior, bias]
+            )
+
+        self.assertEqual(bias["dependencies"], [prior["id"]])
+
+    def test_federal_prior_consumers_include_audited_historical_bias(self):
+        bias = {
+            "category": "bias_calibration_compatibility_inputs",
+            "stage": "calibrate_pollster_bias",
+            "scope": generated_provenance.generation_scope(
+                elections=["1988nsw"], parties=["@TPP"]
+            ),
+        }
+        prior = {
+            "category": "federal_calibration_priors",
+            "stage": "calibrate_pollsters",
+            "scope": generated_provenance.generation_scope(
+                elections=["2028fed"]
+            ),
+        }
+        consumers = analysis_provenance._federal_prior_consumer_elections(
+            [bias, prior],
+            {"2028fed"},
+        )
+        self.assertEqual(consumers, {"2028fed", "1988nsw"})
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "required_federal_prior_work_units",
+            return_value={
+                "federal_calibration_priors:1984fed",
+                "federal_calibration_priors:2028fed",
+            },
+        ) as required:
+            manifest = generated_provenance.load_manifest(
+                self.generated_manifest_path
+            )
+            manifest["records"] = {}
+            self.generated_manifest_path.write_text(
+                json.dumps(manifest), encoding="utf-8"
+            )
+            with mock.patch.object(
+                analysis_provenance.calibration_provenance,
+                "MANIFEST_PATH",
+                self.generated_manifest_path,
+            ):
+                missing = (
+                    analysis_provenance._missing_federal_calibration_prior_work_units(
+                        consumers
+                    )
+                )
+
+        required.assert_called_once_with(consumers)
+        self.assertEqual(
+            missing,
+            [
+                "federal_calibration_priors:1984fed",
+                "federal_calibration_priors:2028fed",
+            ],
+        )
+
     def test_target_selection_ignores_superseded_bias_party(self):
         manifest = generated_provenance.load_manifest(
             self.generated_manifest_path
@@ -1191,6 +1412,100 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {consumer_key},
         )
 
+    def test_generated_manifest_deps_select_superseded_records_for_audit(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        legacy_output = self.output_directory / "legacy-uap-bias.csv"
+        legacy_output.write_text("legacy\n", encoding="utf-8")
+        seed_output = self.output_directory / "2025fed-bias-seed.csv"
+        seed_output.write_text("seed\n", encoding="utf-8")
+        consumer_output = self.output_directory / "consumer.csv"
+        consumer_output.write_text("consumer\n", encoding="utf-8")
+
+        legacy_key = "bias_calibration_outputs:2025fed:UAP FP"
+        modern_key = "bias_calibration_stan_seeds:2025fed"
+        consumer_key = "pollster_parameters:2028fed"
+
+        legacy = json.loads(json.dumps(template))
+        legacy["status"] = "legacy"
+        legacy["category"] = "bias_calibration_outputs"
+        legacy["stage"] = "calibrate_pollster_bias"
+        legacy["scope"] = generated_provenance.generation_scope(
+            elections=["2025fed"], parties=["UAP FP"]
+        )
+        legacy["dependencies"] = {}
+        legacy["outputs"] = generated_provenance.output_fingerprints(
+            [legacy_output], self.base
+        )
+        legacy["random_seed"] = None
+
+        modern = json.loads(json.dumps(template))
+        modern["status"] = "generated"
+        modern["category"] = "bias_calibration_stan_seeds"
+        modern["stage"] = "calibrate_pollster_bias"
+        modern["scope"] = generated_provenance.generation_scope(
+            elections=["2025fed"]
+        )
+        modern["dependencies"] = {}
+        modern["outputs"] = generated_provenance.output_fingerprints(
+            [seed_output], self.base
+        )
+
+        # Write the calib-side records first so the consumer digest can see them.
+        manifest["records"] = {
+            legacy_key: legacy,
+            modern_key: modern,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        consumer = json.loads(json.dumps(template))
+        consumer["category"] = "pollster_parameters"
+        consumer["stage"] = "analyse_pollsters"
+        consumer["scope"]["elections"] = ["2028fed"]
+        consumer["dependencies"] = {
+            "bias_calibration_outputs":
+                generated_provenance.generated_manifest_dependency(
+                    "bias_calibration_outputs",
+                    self.generated_manifest_path,
+                    [legacy_key],
+                    self.base,
+                    allow_stale=True,
+                )
+        }
+        consumer["outputs"] = generated_provenance.output_fingerprints(
+            [consumer_output], self.base
+        )
+        manifest["records"][consumer_key] = consumer
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "configured_parties_by_election",
+            return_value={"2025fed": {"@TPP"}},
+        ):
+            selected, _, audit_only = (
+                analysis_provenance._selected_generated_records(
+                    [self.generated_manifest_path],
+                    {"2028fed"},
+                    include_dependencies=True,
+                )
+            )
+
+        resolved = self.generated_manifest_path.resolve()
+        self.assertEqual(
+            selected[resolved],
+            {consumer_key, legacy_key},
+        )
+        self.assertEqual(audit_only[resolved], {legacy_key})
+
     def test_legacy_trend_infers_same_election_pollster_dependency(self):
         pollster_manifest_path = (
             self.output_directory
@@ -1252,7 +1567,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
             json.dumps(trend_manifest), encoding="utf-8"
         )
 
-        selected, dependencies = (
+        selected, dependencies, _audit_only = (
             analysis_provenance._selected_generated_records(
                 [
                     self.generated_manifest_path,
@@ -1664,6 +1979,33 @@ class AnalysisProvenanceTests(unittest.TestCase):
             analysis_provenance._interactive_register()
 
         register.assert_not_called()
+
+    def test_audit_repository_reports_progress_checkpoints(self):
+        messages = []
+
+        result = analysis_provenance.audit_repository(
+            source_manifest_paths=[self.source_manifest_path],
+            generated_manifest_paths=[self.generated_manifest_path],
+            progress=messages.append,
+        )
+
+        self.assertEqual(result["work_units"][0]["status"], "current")
+        expected_prefixes = [
+            "Starting provenance audit...",
+            "Checking authored source provenance...",
+            "Selecting generated records...",
+            "Loading generated manifests (",
+            "Statting selected outputs...",
+            "Checking generated freshness (",
+            "Building audit impacts...",
+            "Provenance audit complete (",
+        ]
+        self.assertEqual(len(messages), len(expected_prefixes))
+        for message, prefix in zip(messages, expected_prefixes):
+            self.assertTrue(
+                message.startswith(prefix),
+                msg="{!r} does not start with {!r}".format(message, prefix),
+            )
 
 
 if __name__ == "__main__":

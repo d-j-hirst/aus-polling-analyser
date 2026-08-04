@@ -237,6 +237,81 @@ class PollsterAnalysisProvenanceTests(unittest.TestCase):
             ],
         )
 
+    def test_obsolete_issues_reuse_check_context_manifest_cache(self):
+        record = {
+            "category": "pollster_parameters",
+            "scope": {"elections": ["2028fed"]},
+            "dependencies": {
+                "bias_calibration_outputs": {
+                    "manifest": "calibration-generated-provenance.json",
+                    "records": ["bias-alp", "bias-uap"],
+                },
+            },
+        }
+        calibration_manifest = {
+            "path_base": ".",
+            "records": {
+                "bias-alp": {
+                    "scope": {"parties": ["ALP FP"]},
+                    "outputs": {},
+                    "dependencies": {},
+                    "status": "generated",
+                    "category": "bias_calibration_outputs",
+                    "stage": "calibrate_pollster_bias",
+                },
+                "bias-uap": {
+                    "scope": {"parties": ["UAP FP"]},
+                    "outputs": {},
+                    "dependencies": {},
+                    "status": "generated",
+                    "category": "bias_calibration_outputs",
+                    "stage": "calibrate_pollster_bias",
+                },
+            },
+        }
+        context = generated_provenance.ManifestCheckContext()
+        with mock.patch.object(
+            pollster_analysis_provenance,
+            "_target_parties",
+            return_value={"ALP FP"},
+        ), mock.patch.object(
+            context,
+            "resolve_path",
+            side_effect=lambda path: Path(path),
+        ), mock.patch.object(
+            context,
+            "load_manifest",
+            return_value=calibration_manifest,
+        ) as load_manifest, mock.patch.object(
+            generated_provenance,
+            "load_manifest",
+            side_effect=AssertionError(
+                "obsolete check should use the shared context"
+            ),
+        ):
+            first = (
+                pollster_analysis_provenance
+                .obsolete_calibration_dependency_issues(
+                    record, Path("."), check_context=context
+                )
+            )
+            second = (
+                pollster_analysis_provenance
+                .obsolete_calibration_dependency_issues(
+                    record, Path("."), check_context=context
+                )
+            )
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            first,
+            [
+                "obsolete calibration-party dependency "
+                "bias_calibration_outputs (bias-uap)"
+            ],
+        )
+        self.assertEqual(load_manifest.call_count, 2)
+
     def test_completed_work_unit_records_stale_calibration_dependencies(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)

@@ -203,6 +203,53 @@ class CalibrationProvenanceTests(unittest.TestCase):
             self.assertEqual(record["stage"], "calibrate_pollsters")
             self.assertEqual(record["scope"]["elections"], ["2028fed"])
 
+    def test_required_federal_priors_follow_state_overlap(self):
+        import pandas as pd
+
+        cycles = {
+            ("1983", "fed"): (
+                pd.Timestamp("1980-10-18"),
+                pd.Timestamp("1983-03-05"),
+            ),
+            ("1984", "fed"): (
+                pd.Timestamp("1983-03-06"),
+                pd.Timestamp("1984-12-02"),
+            ),
+            ("1988", "nsw"): (
+                pd.Timestamp("1984-03-25"),
+                pd.Timestamp("1988-03-19"),
+            ),
+        }
+
+        self.assertEqual(
+            calibration_provenance.required_federal_prior_work_units(
+                {"1988nsw"},
+                election_cycles=cycles,
+            ),
+            {"federal_calibration_priors:1984fed"},
+        )
+        self.assertEqual(
+            calibration_provenance.required_federal_prior_work_units(
+                {"1983fed"},
+                election_cycles=cycles,
+            ),
+            set(),
+        )
+        self.assertEqual(
+            calibration_provenance.required_federal_prior_work_units(
+                {"1984fed"},
+                election_cycles=cycles,
+            ),
+            {"federal_calibration_priors:1984fed"},
+        )
+        self.assertEqual(
+            calibration_provenance.required_federal_prior_work_units(
+                None,
+                election_cycles=cycles,
+            ),
+            {"federal_calibration_priors:1984fed"},
+        )
+
     def test_residual_evidence_has_a_separate_generated_record(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)

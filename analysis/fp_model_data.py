@@ -513,6 +513,23 @@ def overlapping_federal_elections(election, election_cycles):
     return federal_elections
 
 
+def federal_prior_needed_for_states(election, election_cycles):
+    """Whether a federal term is used as a prior by any state election."""
+
+    if election.region() != 'fed':
+        return False
+    federal_key = (str(election.year()), election.region())
+    if federal_key not in election_cycles:
+        return False
+    federal_start, federal_end = election_cycles[federal_key]
+    return any(
+        region != 'fed'
+        and start <= federal_end
+        and federal_start <= end
+        for (_, region), (start, end) in election_cycles.items()
+    )
+
+
 def order_elections_by_federal_dependencies(
     elections,
     election_cycles,
@@ -870,6 +887,7 @@ class ElectionData:
         self.e_tuple = (str(desired_election.year()),
                           desired_election.region())           
         tup = self.e_tuple
+        self.election_cycles = m_data.election_cycles
         self.expected_parties = tuple(m_data.parties[tup])
         self.resolved_stan_seeds = {}
         self.others_medians = {}
@@ -1204,11 +1222,19 @@ class ElectionData:
     def get_pollster_analysis(self, desired_election):
         code = desired_election.short()
         calibration_directory = './Outputs/Calibration'
-        self.pollster_sigmas = load_pollster_parameter_file(
+        # Variability files store poll sigma plus the effective evidence weight
+        # used when estimating it. The model only consumes the sigma.
+        variability = load_pollster_parameter_file(
             '{}/variability-{}.csv'.format(calibration_directory, code),
-            ('poll sigma',),
-            (lambda value: value > 0,),
+            ('poll sigma', 'evidence weight'),
+            (
+                lambda value: value > 0,
+                lambda value: value >= 0,
+            ),
         )
+        self.pollster_sigmas = {
+            key: values[0] for key, values in variability.items()
+        }
         self.pollster_he_weights = load_pollster_parameter_file(
             '{}/he_weighting-{}.csv'.format(calibration_directory, code),
             ('house-effect weight',),

@@ -768,8 +768,42 @@ def source_manifest_dependency(
     }
 
 
-def _generated_records_digest(manifest, record_keys):
-    records = {}
+def _canonical_record_for_digest(record):
+    """Return the digest payload for one generated record."""
+
+    # Execution time and environment do not make an unchanged generated
+    # result stale. The record's inputs, scope and output hashes do.
+    payload = {
+        key: copy.deepcopy(value)
+        for key, value in record.items()
+        if key not in {"run", "outputs", "provenance_maintenance"}
+    }
+    for dependency in payload["dependencies"].values():
+        dependency.pop("provenance_revision", None)
+    payload["outputs"] = {
+        path: {
+            "sha256": fingerprint["sha256"],
+            "size_bytes": fingerprint["size_bytes"],
+        }
+        for path, fingerprint in record["outputs"].items()
+    }
+    return payload
+
+
+def _record_digest_fragment(record):
+    """Serialize one record the same way ``json.dumps`` would in a digest."""
+
+    return json.dumps(
+        _canonical_record_for_digest(record),
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _generated_records_digest(manifest, record_keys, fragment_cache=None):
+    """Digest selected records, optionally reusing per-record JSON fragments."""
+
+    parts = []
     for record_key in sorted(record_keys):
         try:
             record = manifest["records"][record_key]
@@ -777,24 +811,22 @@ def _generated_records_digest(manifest, record_keys):
             raise GeneratedProvenanceError(
                 "generated manifest has no record '{}'".format(record_key)
             ) from error
-        # Execution time and environment do not make an unchanged generated
-        # result stale. The record's inputs, scope and output hashes do.
-        records[record_key] = {
-            key: copy.deepcopy(value)
-            for key, value in record.items()
-            if key not in {"run", "outputs", "provenance_maintenance"}
-        }
-        for dependency in records[record_key]["dependencies"].values():
-            dependency.pop("provenance_revision", None)
-        records[record_key]["outputs"] = {
-            path: {
-                "sha256": fingerprint["sha256"],
-                "size_bytes": fingerprint["size_bytes"],
-            }
-            for path, fingerprint in record["outputs"].items()
-        }
-    serialized = json.dumps(
-        records, sort_keys=True, separators=(",", ":")
+        if fragment_cache is None:
+            fragment = _record_digest_fragment(record)
+        else:
+            fragment = fragment_cache.get(record_key)
+            if fragment is None:
+                fragment = _record_digest_fragment(record)
+                fragment_cache[record_key] = fragment
+        parts.append((record_key, fragment))
+    # Match json.dumps({key: payload}, sort_keys=True, separators=(",", ":")).
+    serialized = (
+        "{"
+        + ",".join(
+            "{}:{}".format(json.dumps(record_key), fragment)
+            for record_key, fragment in parts
+        )
+        + "}"
     ).encode("utf-8")
     return hashlib.sha256(serialized).hexdigest()
 
@@ -1079,19 +1111,33 @@ class ManifestCheckContext:
 
     def __init__(self):
         self.manifests = {}
+        self.manifest_bases = {}
         self.record_issues = {}
         self.records_in_progress = set()
         self.source_cache = {}
         self.file_fingerprints = {}
         self.expected_output_fingerprints = {}
+        self.output_owners = {}
+        self.indexed_manifests = set()
         self.output_stats = {}
         self.resolved_paths = {}
         self.path_keys = {}
+        self.generated_records_digests = {}
+        self.record_digest_fragments = {}
 
     def resolve_path(self, path):
+        """Return a stable absolute path without WSL resolve storms on POSIX."""
+
         path_key = str(Path(path))
         if path_key not in self.resolved_paths:
-            self.resolved_paths[path_key] = Path(path).resolve()
+            # Match _canonical_path_key: Windows needs resolve() for 8.3
+            # aliases; POSIX audits on mounted volumes must avoid traversal.
+            if os.name == "nt":
+                self.resolved_paths[path_key] = Path(path).resolve()
+            else:
+                self.resolved_paths[path_key] = Path(
+                    os.path.abspath(str(path))
+                )
         return self.resolved_paths[path_key]
 
     def path_key(self, path):
@@ -1100,27 +1146,111 @@ class ManifestCheckContext:
             self.path_keys[unresolved_key] = _canonical_path_key(path)
         return self.path_keys[unresolved_key]
 
+    def _index_manifest_outputs(self, manifest_key, manifest):
+        """Index owned outputs once so file-dep priming stays O(|wanted|)."""
+
+        base_directory = self.manifest_bases[manifest_key]
+        for record in manifest["records"].values():
+            for output_path, fingerprint in record["outputs"].items():
+                path_key = self.path_key(base_directory / output_path)
+                existing = self.output_owners.get(path_key)
+                if existing is None:
+                    self.output_owners[path_key] = fingerprint
+                elif existing != fingerprint:
+                    # Conflicting owners cannot provide a safe fast path.
+                    self.output_owners[path_key] = False
+        self.indexed_manifests.add(manifest_key)
+
+    def _ensure_outputs_indexed(self, manifest_key=None):
+        """Index outputs lazily; selection loads manifests without this cost."""
+
+        if manifest_key is not None:
+            if manifest_key not in self.indexed_manifests:
+                self._index_manifest_outputs(
+                    manifest_key, self.manifests[manifest_key]
+                )
+            return
+        for key, manifest in self.manifests.items():
+            if key not in self.indexed_manifests:
+                self._index_manifest_outputs(key, manifest)
+
     def load_manifest(self, path):
         resolved_path = str(self.resolve_path(path))
         manifest_key = os.path.normcase(resolved_path)
         if manifest_key not in self.manifests:
             manifest = load_manifest(resolved_path)
             self.manifests[manifest_key] = manifest
-            base_directory = self.resolve_path(
+            self.manifest_bases[manifest_key] = self.resolve_path(
                 Path(resolved_path).parent / manifest["path_base"]
             )
-            for record in manifest["records"].values():
-                for output_path, fingerprint in record["outputs"].items():
-                    path_key = self.path_key(base_directory / output_path)
-                    existing = self.expected_output_fingerprints.get(path_key)
-                    if existing is None:
-                        self.expected_output_fingerprints[path_key] = (
-                            fingerprint
-                        )
-                    elif existing != fingerprint:
-                        # Conflicting records cannot provide a safe fast path.
-                        self.expected_output_fingerprints[path_key] = False
         return self.manifests[manifest_key]
+
+    def _store_expected_output(self, path_key, fingerprint):
+        existing = self.expected_output_fingerprints.get(path_key)
+        if existing is None:
+            self.expected_output_fingerprints[path_key] = fingerprint
+        elif existing != fingerprint:
+            # Conflicting records cannot provide a safe fast path.
+            self.expected_output_fingerprints[path_key] = False
+
+    def prime_expected_outputs(self, path, record_keys):
+        """Prime output fingerprints for records that will be checked."""
+
+        resolved_path = self.resolve_path(path)
+        manifest_key = os.path.normcase(str(resolved_path))
+        manifest = self.load_manifest(resolved_path)
+        self._ensure_outputs_indexed(manifest_key)
+        base_directory = self.manifest_bases[manifest_key]
+        for record_key in record_keys:
+            record = manifest["records"].get(record_key)
+            if record is None:
+                continue
+            for output_path, fingerprint in record["outputs"].items():
+                self._store_expected_output(
+                    self.path_key(base_directory / output_path),
+                    fingerprint,
+                )
+
+    def prime_expected_file_dependencies(self, path, record_keys):
+        """Prime owners of file dependencies referenced by selected records."""
+
+        resolved_path = self.resolve_path(path)
+        manifest_key = os.path.normcase(str(resolved_path))
+        manifest = self.load_manifest(resolved_path)
+        self._ensure_outputs_indexed()
+        base_directory = self.manifest_bases[manifest_key]
+        wanted = set()
+        for record_key in record_keys:
+            record = manifest["records"].get(record_key)
+            if record is None:
+                continue
+            for dependency in record["dependencies"].values():
+                if dependency["kind"] != "files":
+                    continue
+                for relative_path in dependency["files"]:
+                    wanted.add(
+                        self.path_key(base_directory / relative_path)
+                    )
+        for path_key in wanted:
+            fingerprint = self.output_owners.get(path_key)
+            if fingerprint:
+                self._store_expected_output(path_key, fingerprint)
+
+    def generated_records_digest(self, manifest_path, manifest, record_keys):
+        """Return a cached digest of selected generated records."""
+
+        manifest_key = os.path.normcase(str(self.resolve_path(manifest_path)))
+        cache_key = (manifest_key, frozenset(record_keys))
+        if cache_key not in self.generated_records_digests:
+            fragment_cache = self.record_digest_fragments.setdefault(
+                manifest_key, {}
+            )
+            self.generated_records_digests[cache_key] = (
+                _generated_records_digest(
+                    manifest, record_keys, fragment_cache=fragment_cache
+                )
+            )
+        return self.generated_records_digests[cache_key]
 
     @staticmethod
     def _stat_output(path):
@@ -1165,6 +1295,11 @@ class ManifestCheckContext:
             return self.file_fingerprints[path_key]
         stat = self.output_stat(path)
         expected = self.expected_output_fingerprints.get(path_key)
+        if expected is None:
+            # Loaded manifests index their outputs lazily; use that when
+            # priming has not copied the owner fingerprint into the map.
+            self._ensure_outputs_indexed()
+            expected = self.output_owners.get(path_key)
         if (
             stat is not None
             and expected
@@ -1307,9 +1442,16 @@ def check_record(
                             category_id, ", ".join(stale_records)
                         )
                     )
-                current_digest = _generated_records_digest(
-                    generated_manifest, tracked_records
-                )
+                if check_context is not None:
+                    current_digest = check_context.generated_records_digest(
+                        manifest_path,
+                        generated_manifest,
+                        tracked_records,
+                    )
+                else:
+                    current_digest = _generated_records_digest(
+                        generated_manifest, tracked_records
+                    )
                 if current_digest != dependency["digest"]:
                     issues.append(
                         "changed dependency {}".format(category_id)
@@ -1415,6 +1557,7 @@ def check_manifest(path, record_keys=None, _context=None):
 
     context = _context or ManifestCheckContext()
     resolved_path = context.resolve_path(path)
+    resolved_path_key = str(resolved_path)
     manifest = context.load_manifest(resolved_path)
     base_directory = context.resolve_path(
         resolved_path.parent / manifest["path_base"]
@@ -1435,6 +1578,21 @@ def check_manifest(path, record_keys=None, _context=None):
                 )
             )
 
+    # Recursive generated deps often re-enter with already-checked records.
+    # Skip priming/statting when every selected key is already cached.
+    if selected_keys and all(
+        (resolved_path_key, record_key) in context.record_issues
+        for record_key in selected_keys
+    ):
+        return {
+            record_key: context.record_issues[
+                (resolved_path_key, record_key)
+            ]
+            for record_key in selected_keys
+        }
+
+    context.prime_expected_outputs(resolved_path, selected_keys)
+    context.prime_expected_file_dependencies(resolved_path, selected_keys)
     context.prime_output_stats(
         base_directory / output_path
         for record_key in selected_keys
@@ -1442,7 +1600,7 @@ def check_manifest(path, record_keys=None, _context=None):
     )
     checked_records = {}
     for record_key in selected_keys:
-        cache_key = (str(resolved_path), record_key)
+        cache_key = (resolved_path_key, record_key)
         if cache_key not in context.record_issues:
             if cache_key in context.records_in_progress:
                 raise GeneratedProvenanceError(

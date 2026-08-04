@@ -19,6 +19,7 @@ import fnmatch
 import json
 import re
 import sys
+import time
 from collections import Counter, defaultdict, deque
 from pathlib import Path
 
@@ -580,6 +581,17 @@ def _normalize_target_elections(target_elections):
             "invalid election code(s): {}; expected forms such as "
             "2028fed".format(", ".join(invalid))
         )
+    configured = {
+        str(election).casefold()
+        for election in approvals_provenance._configured_elections()
+    }
+    unknown = sorted(normalized - configured)
+    if unknown:
+        raise AnalysisProvenanceError(
+            "unknown election code(s): {}; expected a code listed in "
+            "Data/polled-elections.csv or Data/future-elections.csv"
+            .format(", ".join(unknown))
+        )
     return normalized
 
 
@@ -606,15 +618,20 @@ def _selected_generated_records(
     """Select target records and all generated work units they reference."""
 
     if target_elections is None:
-        return (None, {}) if include_dependencies else None
+        return (None, {}, {}) if include_dependencies else None
 
     manifests = {}
     manifest_labels = {}
     output_owners = {}
     record_locations = {}
+    resolve_path = (
+        check_context.resolve_path
+        if check_context is not None
+        else (lambda path: Path(path).resolve())
+    )
     for manifest_path in manifest_paths:
-        resolved_path = Path(manifest_path).resolve()
-        if not resolved_path.is_file():
+        resolved_path = resolve_path(manifest_path)
+        if not Path(resolved_path).is_file():
             continue
         manifest = (
             check_context.load_manifest(resolved_path)
@@ -623,9 +640,9 @@ def _selected_generated_records(
         )
         manifests[resolved_path] = manifest
         manifest_labels[resolved_path] = _manifest_label(resolved_path)
-        base_directory = (
+        base_directory = resolve_path(
             resolved_path.parent / manifest["path_base"]
-        ).resolve()
+        )
         for record_key, record in manifest["records"].items():
             record_locations[record_key] = (
                 resolved_path,
@@ -642,6 +659,7 @@ def _selected_generated_records(
                 )
 
     selected = {path: set() for path in manifests}
+    audit_only = {path: set() for path in manifests}
     dependencies = defaultdict(set)
     queue = deque()
     completed_calibration_elections = {
@@ -751,7 +769,17 @@ def _selected_generated_records(
             manifest_labels[manifest_path], record_key
         )
 
-    def select(manifest_path, record_key):
+    def is_nonschedulable_retained_record(record):
+        """Retained metadata that must not create regeneration tasks."""
+
+        return (
+            is_superseded_calibration_record(record)
+            or is_orphaned_precompact_summary(record)
+            or is_superseded_detailed_bias_output(record)
+            or is_completed_calibration_detail(record)
+        )
+
+    def select(manifest_path, record_key, *, require_schedulable=True):
         if (
             manifest_path not in manifests
             or record_key not in manifests[manifest_path]["records"]
@@ -759,31 +787,22 @@ def _selected_generated_records(
         ):
             return
         record = manifests[manifest_path]["records"][record_key]
-        if (
-            is_orphaned_precompact_summary(record)
-            or is_superseded_detailed_bias_output(record)
-        ):
+        nonschedulable = is_nonschedulable_retained_record(record)
+        if require_schedulable and nonschedulable:
             return
         selected[manifest_path].add(record_key)
+        if nonschedulable:
+            # Checked for consumer freshness / short-circuit, never planned.
+            audit_only[manifest_path].add(record_key)
         queue.append((manifest_path, record_key))
 
     for manifest_path, manifest in manifests.items():
         for record_key, record in manifest["records"].items():
             if not _record_matches_elections(record, target_elections):
                 continue
-            if is_superseded_calibration_record(record):
+            if is_nonschedulable_retained_record(record):
                 # Keep old outputs and metadata for traceability, but do not
-                # schedule a command that no longer produces that party.
-                continue
-            if is_orphaned_precompact_summary(record):
-                continue
-            if is_superseded_detailed_bias_output(record):
-                continue
-            if is_completed_calibration_detail(record):
-                # A generated summary names the exact traces used by the
-                # completed calibration batch. Follow those dependencies
-                # instead of treating superseded legacy trace names as active
-                # work forever.
+                # schedule commands that no longer produce those artifacts.
                 continue
             select(manifest_path, record_key)
 
@@ -791,37 +810,19 @@ def _selected_generated_records(
         manifest_path, record_key = queue.popleft()
         manifest = manifests[manifest_path]
         record = manifest["records"][record_key]
-        base_directory = (
+        base_directory = resolve_path(
             manifest_path.parent / manifest["path_base"]
-        ).resolve()
+        )
         for dependency in record["dependencies"].values():
             if dependency["kind"] == "generated_manifest":
-                dependency_manifest = (
+                dependency_manifest = resolve_path(
                     base_directory / dependency["manifest"]
-                ).resolve()
+                )
                 non_invalidating_records = set(
                     dependency.get("non_invalidating_records", [])
                 )
                 for dependency_record in dependency["records"]:
                     if dependency_record in non_invalidating_records:
-                        continue
-                    dependency_value = manifests.get(
-                        dependency_manifest, {}
-                    ).get("records", {}).get(dependency_record)
-                    if (
-                        dependency_value is not None
-                        and (
-                            is_superseded_calibration_record(
-                                dependency_value
-                            )
-                            or is_orphaned_precompact_summary(
-                                dependency_value
-                            )
-                            or is_superseded_detailed_bias_output(
-                                dependency_value
-                            )
-                        )
-                    ):
                         continue
                     if (
                         dependency_manifest in manifests
@@ -835,7 +836,14 @@ def _selected_generated_records(
                                 dependency_manifest, dependency_record
                             )
                         )
-                    select(dependency_manifest, dependency_record)
+                    # Always audit consumer-referenced keys that still exist,
+                    # even when superseded/orphaned filters exclude them from
+                    # regeneration scheduling.
+                    select(
+                        dependency_manifest,
+                        dependency_record,
+                        require_schedulable=False,
+                    )
             elif dependency["kind"] == "files":
                 for dependency_file in dependency["files"]:
                     owner = output_owners.get(
@@ -845,13 +853,7 @@ def _selected_generated_records(
                         owner_record = manifests[owner[0]]["records"][
                             owner[1]
                         ]
-                        if (
-                            is_superseded_calibration_record(owner_record)
-                            or is_orphaned_precompact_summary(owner_record)
-                            or is_superseded_detailed_bias_output(
-                                owner_record
-                            )
-                        ):
+                        if is_nonschedulable_retained_record(owner_record):
                             continue
                         dependencies[
                             work_unit_id(manifest_path, record_key)
@@ -876,10 +878,14 @@ def _selected_generated_records(
                     ].add(work_unit_id(*owner))
                     select(*owner)
     if include_dependencies:
-        return selected, {
-            work_unit_id: sorted(dependency_ids)
-            for work_unit_id, dependency_ids in dependencies.items()
-        }
+        return (
+            selected,
+            {
+                work_unit_id: sorted(dependency_ids)
+                for work_unit_id, dependency_ids in dependencies.items()
+            },
+            audit_only,
+        )
     return selected
 
 
@@ -987,6 +993,87 @@ def _missing_calibration_summary_work_units(target_elections):
     return sorted(elections_with_bias - elections_with_summary)
 
 
+def _missing_federal_calibration_prior_work_units(target_elections):
+    """Return federal prior records required by state calibration but absent."""
+
+    required = calibration_provenance.required_federal_prior_work_units(
+        target_elections
+    )
+    manifest_path = calibration_provenance.MANIFEST_PATH
+    if manifest_path.is_file():
+        manifest = generated_provenance.load_manifest(manifest_path)
+        recorded = set(manifest["records"])
+    else:
+        recorded = set()
+    return sorted(set(required) - recorded)
+
+
+def _federal_prior_consumer_elections(work_units, target_elections):
+    """Elections whose calibrate/bias work implies needed federal priors.
+
+    Calibration plans often include historical state bias units pulled in as
+    dependency roots even when the explicit target is a later federal. Those
+    consumers must be included when synthesizing missing priors.
+    """
+
+    consumers = set(target_elections or ())
+    for work_unit in work_units:
+        if work_unit["stage"] not in {
+            "calibrate_pollsters",
+            "calibrate_pollster_bias",
+        }:
+            continue
+        if work_unit["category"] == "federal_calibration_priors":
+            continue
+        consumers.update(work_unit["scope"]["elections"])
+    return consumers or None
+
+
+def _attach_federal_prior_dependencies(work_units):
+    """Link state calibrate/bias units to overlapping federal prior units."""
+
+    prior_ids_by_election = {
+        work_unit["scope"]["elections"][0]: work_unit["id"]
+        for work_unit in work_units
+        if (
+            work_unit["category"] == "federal_calibration_priors"
+            and len(work_unit["scope"]["elections"]) == 1
+        )
+    }
+    if not prior_ids_by_election:
+        return
+
+    import fp_model_data
+
+    try:
+        election_cycles = fp_model_data.load_election_cycles(
+            ANALYSIS_DIRECTORY / "Data" / "election-cycles.csv"
+        )
+    except fp_model_data.ConfigError:
+        return
+
+    for work_unit in work_units:
+        if work_unit["stage"] not in {
+            "calibrate_pollsters",
+            "calibrate_pollster_bias",
+        }:
+            continue
+        if work_unit["category"] == "federal_calibration_priors":
+            continue
+        if len(work_unit["scope"]["elections"]) != 1:
+            continue
+        election = work_unit["scope"]["elections"][0]
+        code = calibration_provenance._election_code_from_short(election)
+        if code.region() == "fed":
+            continue
+        for federal in fp_model_data.overlapping_federal_elections(
+            code, election_cycles
+        ):
+            prior_id = prior_ids_by_election.get(federal.short())
+            if prior_id and prior_id not in work_unit["dependencies"]:
+                work_unit["dependencies"].append(prior_id)
+
+
 # Core freshness audit and impact propagation
 
 def audit_repository(
@@ -994,9 +1081,16 @@ def audit_repository(
     generated_manifest_paths=GENERATED_MANIFEST_PATHS,
     registry=None,
     target_elections=None,
+    progress=None,
 ):
     """Return root provenance issues and their terminal C++ impacts."""
 
+    def report(message):
+        if progress is not None:
+            progress(message)
+
+    started = time.monotonic()
+    report("Starting provenance audit...")
     registry = registry or pipeline_registry.load_registry()
     target_elections = _normalize_target_elections(target_elections)
     root_causes = defaultdict(set)
@@ -1011,6 +1105,7 @@ def audit_repository(
     generated_check_context = (
         generated_provenance.ManifestCheckContext()
     )
+    report("Checking authored source provenance...")
     for manifest_path in source_manifest_paths:
         try:
             source_manifest = source_provenance.load_manifest(manifest_path)
@@ -1043,7 +1138,14 @@ def audit_repository(
                     internal_errors.append(message)
         for category_id, comparison in comparisons.items():
             generated_check_context.source_cache[
-                (str(Path(manifest_path).resolve()), category_id)
+                (
+                    str(
+                        generated_check_context.resolve_path(
+                            manifest_path
+                        )
+                    ),
+                    category_id,
+                )
             ] = (
                 source_manifest["categories"][category_id],
                 comparison,
@@ -1127,12 +1229,38 @@ def audit_repository(
                     )
                     - approvals_provenance.current_elections()
                 )
+    # State calibrate/bias needs overlapping federal priors. Expand selection
+    # so those federal records are audited even when the prior already exists.
+    if target_elections is not None:
+        try:
+            prior_elections = (
+                calibration_provenance.required_federal_prior_elections(
+                    target_elections
+                )
+            )
+        except (
+            generated_provenance.GeneratedProvenanceError,
+            OSError,
+        ) as error:
+            prior_elections = set()
+            internal_errors.append(
+                "could not determine required federal priors: {}".format(
+                    error
+                )
+            )
+        if prior_elections:
+            if not isinstance(selected_elections, set):
+                selected_elections = set(target_elections)
+            selected_elections.update(prior_elections)
     selected_generated_records = None
     generated_dependencies = {}
+    audit_only_generated_records = {}
+    report("Selecting generated records...")
     try:
         (
             selected_generated_records,
             generated_dependencies,
+            audit_only_generated_records,
         ) = _selected_generated_records(
             generated_manifest_paths,
             selected_elections,
@@ -1145,20 +1273,39 @@ def audit_repository(
             Path(path).resolve(): set()
             for path in generated_manifest_paths
         }
+        audit_only_generated_records = {
+            Path(path).resolve(): set()
+            for path in generated_manifest_paths
+        }
     audited_generated_paths = {
-        Path(path).resolve()
+        generated_check_context.resolve_path(path)
         for path in generated_manifest_paths
         if Path(path).is_file()
     }
     # File dependencies often point to outputs recorded in another manifest.
-    # Preload those fingerprints so unchanged dependencies need only a stat.
+    # Preload those manifests so selected-record fingerprint priming can see
+    # owner outputs without hashing every recorded path.
+    report(
+        "Loading generated manifests ({})...".format(
+            len(audited_generated_paths)
+        )
+    )
     for manifest_path in audited_generated_paths:
         try:
             generated_check_context.load_manifest(manifest_path)
         except generated_provenance.GeneratedProvenanceError:
             # The normal loop below reports invalid manifests in context.
             pass
-    for manifest_path in generated_manifest_paths:
+    checkable_manifests = [
+        Path(manifest_path)
+        for manifest_path in generated_manifest_paths
+        if Path(manifest_path).is_file()
+    ]
+    if checkable_manifests:
+        report("Statting selected outputs...")
+    for manifest_index, manifest_path in enumerate(
+        generated_manifest_paths, start=1
+    ):
         if not Path(manifest_path).is_file():
             message = "{} has no generated provenance manifest".format(
                 manifest_path
@@ -1194,6 +1341,19 @@ def audit_repository(
                     if selected_keys is None
                     else selected_keys & required_regional_keys
                 )
+            if selected_keys is None:
+                selected_count = len(manifest["records"])
+            else:
+                selected_count = len(selected_keys)
+            report(
+                "Checking generated freshness (manifest {}/{}: {}, {} "
+                "records)...".format(
+                    manifest_index,
+                    len(generated_manifest_paths),
+                    _manifest_label(manifest_path),
+                    selected_count,
+                )
+            )
             checked_records = generated_provenance.check_manifest(
                 manifest_path,
                 record_keys=selected_keys,
@@ -1213,18 +1373,29 @@ def audit_repository(
             continue
         records_by_root = defaultdict(list)
         manifest_label = _manifest_label(manifest_path)
+        audit_only_keys = set()
+        if audit_only_generated_records:
+            audit_only_keys = audit_only_generated_records.get(
+                Path(manifest_path).resolve(), set()
+            )
         for record_key, record_issues in checked_records.items():
             record = manifest["records"][record_key]
+            # Consumer-referenced superseded/orphaned records are checked so
+            # nested freshness can short-circuit, but they must not create
+            # regeneration tasks the current generators no longer refresh.
+            if record_key in audit_only_keys:
+                continue
             record_issues = list(record_issues)
             if record["category"] == "pollster_parameters":
                 record_issues.extend(
                     pollster_analysis_provenance
                     .obsolete_calibration_dependency_issues(
                         record,
-                        (
+                        generated_check_context.resolve_path(
                             Path(manifest_path).parent
                             / manifest["path_base"]
-                        ).resolve(),
+                        ),
+                        check_context=generated_check_context,
                     )
                 )
             direct_issues = [
@@ -1541,6 +1712,77 @@ def audit_repository(
             }
         )
 
+    missing_federal_priors = []
+    try:
+        missing_federal_priors = (
+            _missing_federal_calibration_prior_work_units(
+                _federal_prior_consumer_elections(
+                    work_units, target_elections
+                )
+            )
+        )
+    except (generated_provenance.GeneratedProvenanceError, OSError) as error:
+        internal_errors.append(
+            "could not determine missing federal calibration priors: {}"
+            .format(error)
+        )
+    if missing_federal_priors:
+        shown = missing_federal_priors[:WORK_UNIT_EXAMPLE_LIMIT]
+        suffix = ""
+        if len(missing_federal_priors) > len(shown):
+            suffix = ", ... (+{} more)".format(
+                len(missing_federal_priors) - len(shown)
+            )
+        root_causes["federal_calibration_priors"].add(
+            "{} required federal prior(s) have no generated record; "
+            "work units: {}{}".format(
+                len(missing_federal_priors),
+                ", ".join(
+                    work_unit.replace("federal_calibration_priors:", "")
+                    for work_unit in shown
+                ),
+                suffix,
+            )
+        )
+        root_path_modes["federal_calibration_priors"].add(PATH_CALIBRATION)
+        impact_seeds.add(("federal_calibration_priors", PATH_CALIBRATION))
+    for work_unit in missing_federal_priors:
+        _, election = work_unit.split(":", 1)
+        work_units.append(
+            {
+                "id": _generated_work_unit_id(
+                    calibration_provenance.MANIFEST_PATH,
+                    work_unit,
+                ),
+                "record_key": work_unit,
+                "category": "federal_calibration_priors",
+                "stage": "calibrate_pollsters",
+                "scope": generated_provenance.generation_scope(
+                    elections=[election],
+                ),
+                "manifest": _manifest_label(
+                    calibration_provenance.MANIFEST_PATH
+                ),
+                "target_match": True,
+                "dependencies": [],
+                "status": "missing",
+                "blocking": False,
+                "path_classes": [PATH_CALIBRATION],
+                "issues": [
+                    {
+                        "code": "missing_record",
+                        "root_category": "federal_calibration_priors",
+                        "message": (
+                            "required federal calibration prior has no "
+                            "generated record"
+                        ),
+                    }
+                ],
+            }
+        )
+    _attach_federal_prior_dependencies(work_units)
+
+    report("Building audit impacts...")
     impacts = _terminal_impacts(
         root_causes, registry, path_seeds=impact_seeds
     )
@@ -1599,6 +1841,11 @@ def audit_repository(
         )
         for category, records in sorted(diagnostic_work_units.items())
     }
+    report(
+        "Provenance audit complete ({:.1f}s).".format(
+            time.monotonic() - started
+        )
+    )
     return {
         "issues": issues,
         "root_causes": {
@@ -2161,7 +2408,10 @@ def run_interactive():
                     print()
                     continue
             _print_audit(
-                audit_repository(target_elections=target_elections)
+                audit_repository(
+                    target_elections=target_elections,
+                    progress=print,
+                )
             )
         except (
             AnalysisProvenanceError,
@@ -2227,7 +2477,15 @@ def main(argv=None):
         if args.command in {None, "interactive"}:
             return run_interactive()
         if args.command == "audit":
-            result = audit_repository(target_elections=args.election)
+            progress = (
+                (lambda message: print(message, file=sys.stderr, flush=True))
+                if args.format == "json"
+                else print
+            )
+            result = audit_repository(
+                target_elections=args.election,
+                progress=progress,
+            )
             if args.format == "json":
                 print(audit_json(result))
             else:
@@ -2262,7 +2520,11 @@ def main(argv=None):
                         event["provenance_revision"],
                     )
                 )
-            result = audit_repository()
+            result = audit_repository(
+                progress=lambda message: print(
+                    message, file=sys.stderr, flush=True
+                ),
+            )
             _print_audit(result)
             return 2 if result["issues"] else 0
     except (

@@ -1130,10 +1130,12 @@ def load_metadata_plan(target_elections, progress=None):
                 progress("Selecting provenance records for {}...".format(
                     ", ".join(sorted(target_elections))
                 ))
-            selected_records, _ = analysis_provenance._selected_generated_records(
-                analysis_provenance.GENERATED_MANIFEST_PATHS,
-                target_elections,
-                include_dependencies=True,
+            selected_records, _, _ = (
+                analysis_provenance._selected_generated_records(
+                    analysis_provenance.GENERATED_MANIFEST_PATHS,
+                    target_elections,
+                    include_dependencies=True,
+                )
             )
             selected_records = selected_records or {}
             for manifest_path, record_keys in selected_records.items():
@@ -2159,12 +2161,17 @@ def _interactive_elections(required):
         print("At least one election is required for a plan.")
 
 
-def _load_audit(target_elections):
+def _audit_progress(message, *, to_stderr=False):
+    print(message, file=sys.stderr if to_stderr else sys.stdout, flush=True)
+
+
+def _load_audit(target_elections, progress=None):
     registry = pipeline_registry.load_registry()
     pipeline_registry.validate_registry(registry)
     audit = analysis_provenance.audit_repository(
         registry=registry,
         target_elections=target_elections,
+        progress=progress,
     )
     return registry, audit
 
@@ -2172,6 +2179,11 @@ def _load_audit(target_elections):
 def _load_plan_fresh(target_elections, profiles):
     """Build a refreshed plan with the current on-disk Python modules."""
 
+    print(
+        "Refreshing plan provenance...",
+        file=sys.stderr,
+        flush=True,
+    )
     command = [
         sys.executable,
         str(Path(__file__).resolve()),
@@ -2183,10 +2195,12 @@ def _load_plan_fresh(target_elections, profiles):
         command.extend(("--election", election))
     for profile in sorted(profiles):
         command.extend(("--profile", profile))
+    # Capture stdout only so the child can emit audit progress on stderr.
     result = subprocess.run(
         command,
         cwd=str(ANALYSIS_DIRECTORY),
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=None,
         text=True,
         encoding="utf-8",
         errors="replace",
@@ -2194,7 +2208,7 @@ def _load_plan_fresh(target_elections, profiles):
     try:
         plan = json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        problem = result.stderr.strip() or result.stdout.strip()
+        problem = (result.stdout or "").strip()
         raise PipelineError(
             "fresh pipeline plan failed{}: {}".format(
                 " with exit code {}".format(result.returncode)
@@ -2207,7 +2221,7 @@ def _load_plan_fresh(target_elections, profiles):
         raise PipelineError(
             "fresh pipeline plan failed with exit code {}: {}".format(
                 result.returncode,
-                result.stderr.strip() or "no error output",
+                (result.stdout or "").strip() or "no error output",
             )
         )
     return plan
@@ -2349,7 +2363,9 @@ def run_interactive():
                     )
                     print()
                     continue
-            registry, audit = _load_audit(target_elections)
+            registry, audit = _load_audit(
+                target_elections, progress=print
+            )
             if action == "status":
                 print_status(build_status(audit, registry))
             elif action == "run-generation":
@@ -2507,7 +2523,18 @@ def main(argv=None):
                     print_plan(plan, include_details=args.details)
                 return 2 if plan["blockers"] else 0
 
-        registry, audit = _load_audit(target_elections)
+        audit_to_stderr = (
+            args.command in {"status", "plan"}
+            and getattr(args, "format", "text") == "json"
+        ) or args.command == "run"
+        progress = (
+            (lambda message: _audit_progress(message, to_stderr=True))
+            if audit_to_stderr
+            else _audit_progress
+        )
+        registry, audit = _load_audit(
+            target_elections, progress=progress
+        )
         if args.command == "status":
             status = build_status(
                 audit, registry, include_details=args.details
