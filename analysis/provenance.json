@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-04T00:54:27Z",
+  "updated_at_utc": "2026-08-05T00:14:05Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -4039,12 +4039,12 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 4,
-      "provenance_revision": 39,
+      "provenance_revision": 42,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "55a3adf937d955e3798605f91546fb2d1dcc7241bb3596339edf58287f3bd114",
-          "size_bytes": 91736,
-          "recorded_mtime_utc": "2026-08-04T00:50:36.641245Z"
+          "sha256": "8a9501ee50b968baf1c53ead5822ed53de71d4cc5ebacb0d93158ff6ceed7d71",
+          "size_bytes": 96738,
+          "recorded_mtime_utc": "2026-08-05T00:13:28.898978Z"
         },
         "generated_data_archive.py": {
           "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
@@ -5487,6 +5487,66 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T235033Z-methodology-pipeline-orchestration-tools-510c5776",
+          "recorded_at_utc": "2026-08-04T23:50:33Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 40,
+          "summary": "Allow path-scoped change registration so multi-file categories can assess a subset while leaving omitted siblings unregistered.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T235139Z-methodology-pipeline-orchestration-tools-1f379da8",
+          "recorded_at_utc": "2026-08-04T23:51:39Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 41,
+          "summary": "Allow path-scoped change registration so multi-file categories can assess a subset while leaving omitted siblings unregistered.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260805T001405Z-methodology-pipeline-orchestration-tools-60d4e121",
+          "recorded_at_utc": "2026-08-05T00:14:05Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 4,
+          "provenance_revision": 42,
+          "summary": "Exclude superseded and non-significant-party retained calibration records from untargeted audit root causes.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ]
     },
@@ -5512,9 +5572,9 @@
           "recorded_mtime_utc": "2026-07-27T00:11:25.197301Z"
         },
         "source_provenance.py": {
-          "sha256": "5ecbdd572637626872bf336098a883411523b8650fafaf23522b9fdc9e16c8f5",
-          "size_bytes": 43207,
-          "recorded_mtime_utc": "2026-08-02T08:12:44.408803Z"
+          "sha256": "1ad55993d725ba166cae9c9b2d17749518df5d1b27bf5d899cded9d9fa231ab8",
+          "size_bytes": 44612,
+          "recorded_mtime_utc": "2026-08-04T23:50:45.232086Z"
         },
         "source_provenance.schema.json": {
           "sha256": "a267c2576785975215a8b34f825209804e7fcbd5d73bfa458b44456639bfaa76",
@@ -5841,9 +5901,49 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T235033Z-methodology-provenance-core-tools-702eb601",
+          "recorded_at_utc": "2026-08-04T23:50:33Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 12,
+          "summary": "Allow path-scoped change registration so multi-file categories can assess a subset while leaving omitted siblings unregistered.",
+          "files": [
+            "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260804T235140Z-methodology-provenance-core-tools-80c18136",
+          "recorded_at_utc": "2026-08-04T23:51:40Z",
+          "change_type": "methodology",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 1,
+          "provenance_revision": 13,
+          "summary": "Allow path-scoped change registration so multi-file categories can assess a subset while leaving omitted siblings unregistered.",
+          "files": [
+            "source_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 11
+      "provenance_revision": 13
     },
     "trend_adjust_check_script": {
       "description": "Read-only historical diagnostics for saved trend adjustments.",

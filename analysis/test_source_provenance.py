@@ -143,6 +143,68 @@ class SourceProvenanceTests(unittest.TestCase):
         )
         self.assertEqual(event["semantic_revision"], 1)
 
+    def test_path_scoped_record_updates_only_selected_changed_files(self):
+        sibling_path = self.folder / "sibling.csv"
+        sibling_path.write_text(
+            "date,value\n2026-01-01,40\n", encoding="utf-8"
+        )
+        source_provenance.record_change(
+            self.manifest_path,
+            "raw_polls",
+            "Baseline the sibling file.",
+            "coverage_extension",
+            "negligible",
+            False,
+            source_provenance._build_scope(all_scopes=True),
+        )
+        original_stat = sibling_path.stat()
+        os.utime(
+            sibling_path,
+            (original_stat.st_atime + 5, original_stat.st_mtime + 5),
+        )
+        self.source_path.write_text(
+            "date,value\n2026-01-01,51\n", encoding="utf-8"
+        )
+        before = source_provenance.check_manifest(self.manifest_path)[
+            "raw_polls"
+        ]
+        self.assertEqual(before["modified"], ["polls.csv"])
+        self.assertEqual(before["touched"], ["sibling.csv"])
+        recorded_sibling = source_provenance.load_manifest(
+            self.manifest_path
+        )["categories"]["raw_polls"]["files"]["sibling.csv"]
+
+        event, _ = source_provenance.record_change(
+            self.manifest_path,
+            "raw_polls",
+            "Register only the timestamp-touched sibling.",
+            "formatting",
+            "negligible",
+            False,
+            source_provenance._build_scope(all_scopes=True),
+            paths=["sibling.csv"],
+        )
+
+        self.assertEqual(event["files"], ["sibling.csv"])
+        after = source_provenance.check_manifest(self.manifest_path)[
+            "raw_polls"
+        ]
+        self.assertEqual(after["modified"], ["polls.csv"])
+        self.assertEqual(after["touched"], [])
+        self.assertEqual(after["added"], [])
+        manifest = source_provenance.load_manifest(self.manifest_path)
+        self.assertNotEqual(
+            manifest["categories"]["raw_polls"]["files"]["sibling.csv"],
+            recorded_sibling,
+        )
+        current_polls = source_provenance._fingerprint_file(self.source_path)
+        self.assertNotEqual(
+            manifest["categories"]["raw_polls"]["files"]["polls.csv"][
+                "sha256"
+            ],
+            current_polls["sha256"],
+        )
+
     def test_new_matching_file_is_an_unrecorded_content_change(self):
         (self.folder / "new-polls.csv").write_text(
             "date,value\n2026-01-02,52\n", encoding="utf-8"

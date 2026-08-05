@@ -105,6 +105,56 @@ class AnalysisProvenanceTests(unittest.TestCase):
 
         self.assertEqual(self._audit()["issues"], [])
 
+    def test_subset_registration_requires_omitted_acknowledgment(self):
+        selected_path = self.base / "alpha.py"
+        omitted_path = self.base / "beta.py"
+        selected_path.write_text("print('alpha')\n", encoding="utf-8")
+        omitted_path.write_text("print('beta')\n", encoding="utf-8")
+        source_provenance.add_category(
+            self.source_manifest_path,
+            "pair_scripts",
+            "Two-file category under test.",
+            ["alpha.py", "beta.py"],
+            summary="Baseline pair.",
+        )
+        selected_path.write_text("print('alpha changed')\n", encoding="utf-8")
+        omitted_path.write_text("print('beta changed')\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            analysis_provenance.AnalysisProvenanceError,
+            "acknowledge leaving them for a later registration",
+        ):
+            analysis_provenance.register_changes(
+                [selected_path],
+                "Register only alpha.",
+                "negligible",
+                source_manifest_paths=[self.source_manifest_path],
+            )
+
+        events = analysis_provenance.register_changes(
+            [selected_path],
+            "Register only alpha.",
+            "negligible",
+            source_manifest_paths=[self.source_manifest_path],
+            acknowledge_omitted=True,
+        )
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0][2]["files"], ["alpha.py"])
+        comparison = source_provenance.check_manifest(
+            self.source_manifest_path
+        )["pair_scripts"]
+        self.assertEqual(comparison["modified"], ["beta.py"])
+        self.assertEqual(comparison["touched"], [])
+        unregistered = analysis_provenance._unregistered_files(
+            [self.source_manifest_path]
+        )
+        relative_paths = {
+            item["relative_path"]
+            for item in unregistered
+            if item["category"] == "pair_scripts"
+        }
+        self.assertEqual(relative_paths, {"beta.py"})
+
     def test_machine_status_reports_current_and_altered_work_units(self):
         current = self._audit()
         self.assertEqual(current["work_units"][0]["status"], "current")
@@ -1520,6 +1570,87 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {consumer_key, legacy_key},
         )
         self.assertEqual(audit_only[resolved], {legacy_key})
+
+    def test_untargeted_audit_ignores_obsolete_bias_party_unit(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        legacy_output = self.output_directory / "legacy-uap-bias.csv"
+        legacy_output.write_text("legacy\n", encoding="utf-8")
+        seed_output = self.output_directory / "2025fed-bias-seed.csv"
+        seed_output.write_text("seed\n", encoding="utf-8")
+
+        legacy_key = "bias_calibration_outputs:2025fed:UAP FP"
+        modern_key = "bias_calibration_stan_seeds:2025fed"
+
+        legacy = json.loads(json.dumps(template))
+        legacy["status"] = "legacy"
+        legacy["category"] = "bias_calibration_outputs"
+        legacy["stage"] = "calibrate_pollster_bias"
+        legacy["scope"] = generated_provenance.generation_scope(
+            elections=["2025fed"], parties=["UAP FP"]
+        )
+        legacy["dependencies"] = {}
+        legacy["outputs"] = generated_provenance.output_fingerprints(
+            [legacy_output], self.base
+        )
+        legacy["random_seed"] = None
+
+        modern = json.loads(json.dumps(template))
+        modern["status"] = "generated"
+        modern["category"] = "bias_calibration_stan_seeds"
+        modern["stage"] = "calibrate_pollster_bias"
+        modern["scope"] = generated_provenance.generation_scope(
+            elections=["2025fed"]
+        )
+        modern["dependencies"] = {}
+        modern["outputs"] = generated_provenance.output_fingerprints(
+            [seed_output], self.base
+        )
+        manifest["records"] = {
+            legacy_key: legacy,
+            modern_key: modern,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "configured_parties_by_election",
+            return_value={"2025fed": {"@TPP"}},
+        ):
+            selected, _, audit_only = (
+                analysis_provenance._selected_generated_records(
+                    [self.generated_manifest_path],
+                    None,
+                    include_dependencies=True,
+                )
+            )
+            result = analysis_provenance.audit_repository(
+                source_manifest_paths=[self.source_manifest_path],
+                generated_manifest_paths=[self.generated_manifest_path],
+            )
+
+        resolved = self.generated_manifest_path.resolve()
+        self.assertIsNone(selected)
+        self.assertEqual(audit_only[resolved], {legacy_key})
+        self.assertNotIn("bias_calibration_outputs", result["root_causes"])
+        work_unit_keys = {
+            work_unit["record_key"] for work_unit in result["work_units"]
+        }
+        self.assertNotIn(legacy_key, work_unit_keys)
+        self.assertNotIn(
+            "pre-provenance",
+            " ".join(
+                message
+                for messages in result["root_causes"].values()
+                for message in messages
+            ),
+        )
 
     def test_legacy_trend_infers_same_election_pollster_dependency(self):
         pollster_manifest_path = (

@@ -617,8 +617,8 @@ def _selected_generated_records(
 ):
     """Select target records and all generated work units they reference."""
 
-    if target_elections is None:
-        return (None, {}, {}) if include_dependencies else None
+    if target_elections is None and not include_dependencies:
+        return None
 
     manifests = {}
     manifest_labels = {}
@@ -777,6 +777,15 @@ def _selected_generated_records(
             or is_orphaned_precompact_summary(record)
             or is_superseded_detailed_bias_output(record)
         )
+
+    if target_elections is None:
+        # Untargeted audits still check every record, but superseded /
+        # non-significant-party leftovers must not become regeneration roots.
+        for manifest_path, manifest in manifests.items():
+            for record_key, record in manifest["records"].items():
+                if is_nonschedulable_retained_record(record):
+                    audit_only[manifest_path].add(record_key)
+        return (None, {}, audit_only)
 
     def select(manifest_path, record_key, *, require_schedulable=True):
         if (
@@ -1917,12 +1926,18 @@ def register_changes(
     scope=None,
     provenance_upgrade=None,
     source_manifest_paths=SOURCE_MANIFEST_PATHS,
+    acknowledge_omitted=False,
 ):
     """Register assessed changes to explicitly named tracked files.
 
     Negligible changes require no downstream action. Provenance-only changes
     schedule explicit metadata upgrades without invalidating generated data.
     Minor and higher changes require data regeneration.
+
+    When a selected subset omits other still-unregistered files in the same
+    category, pass ``acknowledge_omitted=True`` to leave those siblings
+    unregistered for a later registration. Without acknowledgment the call
+    fails so a partial selection cannot silently absorb sibling edits.
     """
 
     if impact not in IMPACT_LEVELS:
@@ -1965,8 +1980,9 @@ def register_changes(
     if not grouped_paths:
         raise AnalysisProvenanceError("at least one changed file is required")
 
-    # Preflight every category so one registration cannot silently absorb
-    # another edited file from the same category.
+    omitted_by_category = {}
+    # Preflight every category. Requested paths must have changed; omitted
+    # siblings require explicit acknowledgment before a partial registration.
     for (manifest_path, category_id), requested_paths in grouped_paths.items():
         comparison = source_provenance.check_manifest(manifest_path)[
             category_id
@@ -1979,21 +1995,31 @@ def register_changes(
         omitted = sorted(changed_paths - requested_paths)
         unchanged = sorted(requested_paths - changed_paths)
         if omitted:
-            raise AnalysisProvenanceError(
-                "{} also has unregistered changes; include: {}".format(
-                    category_id, ", ".join(omitted)
-                )
-            )
+            omitted_by_category[(manifest_path, category_id)] = omitted
         if unchanged:
             raise AnalysisProvenanceError(
                 "{} did not change: {}".format(
                     category_id, ", ".join(unchanged)
                 )
             )
+    if omitted_by_category and not acknowledge_omitted:
+        details = "; ".join(
+            "{}: {}".format(category_id, ", ".join(omitted))
+            for (_, category_id), omitted in sorted(
+                omitted_by_category.items(),
+                key=lambda item: item[0][1],
+            )
+        )
+        raise AnalysisProvenanceError(
+            "also has unregistered changes; include them or acknowledge "
+            "leaving them for a later registration ({})".format(details)
+        )
 
     events = []
     affects_outputs = impact in {"minor", "material", "major"}
-    for manifest_path, category_id in sorted(grouped_paths):
+    for (manifest_path, category_id), requested_paths in sorted(
+        grouped_paths.items()
+    ):
         event, _ = source_provenance.record_change(
             manifest_path,
             category_id,
@@ -2003,9 +2029,74 @@ def register_changes(
             affects_outputs,
             scope,
             provenance_upgrade=provenance_upgrade,
+            paths=sorted(requested_paths),
         )
         events.append((manifest_path, category_id, event))
     return events
+
+
+def _omitted_siblings_from_selection(changes, selected_files):
+    """Return detected changes omitted from a multi-file category selection."""
+
+    selected = {str(path) for path in selected_files}
+    selected_categories = {
+        change["category"]
+        for change in changes
+        if str(change["path"]) in selected
+    }
+    omitted = []
+    for change in changes:
+        if change["category"] not in selected_categories:
+            continue
+        if str(change["path"]) in selected:
+            continue
+        omitted.append(
+            {
+                "category": change["category"],
+                "relative_path": change["relative_path"],
+                "change_kind": change["change_kind"],
+            }
+        )
+    return omitted
+
+
+def _omitted_unregistered_siblings(
+    paths, source_manifest_paths=SOURCE_MANIFEST_PATHS
+):
+    """Return still-unregistered sibling paths omitted from a selection."""
+
+    grouped_paths = defaultdict(set)
+    for path in paths:
+        absolute_path = Path(path)
+        if not absolute_path.is_absolute():
+            absolute_path = ANALYSIS_DIRECTORY / absolute_path
+        manifest_path, category_id, relative_path = _category_for_path(
+            absolute_path, source_manifest_paths
+        )
+        grouped_paths[(manifest_path, category_id)].add(relative_path)
+
+    omitted = []
+    for (manifest_path, category_id), requested_paths in sorted(
+        grouped_paths.items()
+    ):
+        comparison = source_provenance.check_manifest(manifest_path)[
+            category_id
+        ]
+        changed_paths = set(source_provenance._changed_paths(comparison))
+        for change_kind in ("added", "removed", "modified", "touched"):
+            for relative_path in comparison[change_kind]:
+                if relative_path in requested_paths:
+                    continue
+                if relative_path not in changed_paths:
+                    continue
+                omitted.append(
+                    {
+                        "category": category_id,
+                        "relative_path": relative_path,
+                        "change_kind": change_kind,
+                    }
+                )
+    return omitted
 
 
 def _add_scope_arguments(parser):
@@ -2299,6 +2390,26 @@ def _confirm_all_election_scope(scope):
     )
 
 
+def _confirm_omitted_siblings(omitted):
+    """Confirm leaving unselected still-changed siblings unregistered."""
+
+    print(
+        "Leaving these unregistered for a later registration:"
+    )
+    for item in omitted:
+        print(
+            "  {}: {} ({})".format(
+                item["category"],
+                item["relative_path"],
+                item["change_kind"],
+            )
+        )
+    return _menu_confirm(
+        "Continue and leave the listed files unregistered?",
+        default=False,
+    )
+
+
 def _interactive_register():
     changes = _unregistered_files()
     if not changes:
@@ -2322,6 +2433,10 @@ def _interactive_register():
     )
     if not selected_files:
         print("No changes selected; registration cancelled.")
+        return
+    omitted = _omitted_siblings_from_selection(changes, selected_files)
+    if omitted and not _confirm_omitted_siblings(omitted):
+        print("Registration cancelled.")
         return
     impact = _menu_select(
         "Impact level",
@@ -2368,6 +2483,7 @@ def _interactive_register():
         change_type=change_type,
         scope=scope,
         provenance_upgrade=provenance_upgrade,
+        acknowledge_omitted=bool(omitted),
     )
     for manifest_path, category_id, event in events:
         print(
@@ -2482,6 +2598,14 @@ def build_parser():
         "--change-type",
         choices=sorted(source_provenance.RECORD_CHANGE_TYPES),
     )
+    register_parser.add_argument(
+        "--acknowledge-omitted",
+        action="store_true",
+        help=(
+            "Allow registering a subset of a multi-file category while "
+            "leaving other still-unregistered siblings for later."
+        ),
+    )
     _add_scope_arguments(register_parser)
     return parser
 
@@ -2517,6 +2641,14 @@ def main(argv=None):
                 parties=args.party,
                 stages=args.stage,
             )
+            acknowledge_omitted = args.acknowledge_omitted
+            omitted = _omitted_unregistered_siblings(args.files)
+            if omitted and not acknowledge_omitted:
+                if sys.stdin.isatty():
+                    if not _confirm_omitted_siblings(omitted):
+                        print("Registration cancelled.")
+                        return 1
+                    acknowledge_omitted = True
             events = register_changes(
                 args.files,
                 args.summary,
@@ -2524,6 +2656,7 @@ def main(argv=None):
                 change_type=args.change_type,
                 scope=scope,
                 provenance_upgrade=args.provenance_upgrade,
+                acknowledge_omitted=acknowledge_omitted,
             )
             for manifest_path, category_id, event in events:
                 print(

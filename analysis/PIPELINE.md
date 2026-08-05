@@ -553,6 +553,13 @@ defaults to selecting specific elections. An explicit all-work scope, or a
 party/stage-only scope that can affect every election, requires an additional
 all-election confirmation that defaults to `No`.
 
+Multi-file categories may register a selected subset after acknowledging that
+remaining still-unregistered siblings will be left for a later registration.
+Acknowledgment does not absorb those siblings under the current impact; their
+recorded fingerprints stay unchanged until assessed. Interactive registration
+prompts for that confirmation, and `register-change` accepts
+`--acknowledge-omitted` (or prompts when stdin is a TTY).
+
 ## Generated Provenance
 
 `generated_provenance.schema.json` and `generated_provenance.py` define bundled

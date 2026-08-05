@@ -8,7 +8,8 @@ Main functions:
 * ``snapshot_category`` and ``compare_snapshots`` calculate canonical
   source-file fingerprints and identify physical changes.
 * ``record_change`` validates a declared impact, advances provenance revisions
-  and atomically records the source event.
+  and atomically records the source event. Optional ``paths`` limits the event
+  and fingerprint refresh to a changed subset.
 * ``semantic_events_affecting`` and ``provenance_events_affecting`` select
   scoped changes relevant to a generated work unit.
 * ``check_manifest`` validates a committed manifest against its source folder.
@@ -925,6 +926,7 @@ def record_change(
     source=None,
     allow_empty=False,
     provenance_upgrade=None,
+    paths=None,
 ):
     manifest = load_manifest(manifest_path)
     try:
@@ -978,6 +980,40 @@ def record_change(
             )
         )
 
+    if paths is None:
+        recorded_paths = changed_paths
+        category["files"] = current_files
+    else:
+        selected_paths = {str(path) for path in paths}
+        if not selected_paths:
+            raise ProvenanceError(
+                "category '{}' paths must include at least one changed file"
+                .format(category_id)
+            )
+        unknown = sorted(selected_paths - set(changed_paths))
+        if unknown:
+            raise ProvenanceError(
+                "category '{}' did not change: {}".format(
+                    category_id, ", ".join(unknown)
+                )
+            )
+        recorded_paths = sorted(selected_paths)
+        # Refresh only selected changes. Unselected siblings keep their prior
+        # recorded fingerprints so they remain unregistered for later.
+        merged_files = dict(current_files)
+        old_files = category["files"]
+        for path in set(changed_paths) - selected_paths:
+            if path in old_files:
+                merged_files[path] = old_files[path]
+            else:
+                merged_files.pop(path, None)
+        for path in selected_paths:
+            if path in current_files:
+                merged_files[path] = current_files[path]
+            else:
+                merged_files.pop(path, None)
+        category["files"] = merged_files
+
     next_revision = category["semantic_revision"] + (1 if affects_outputs else 0)
     next_provenance_revision = (
         category_provenance_revision(category)
@@ -992,7 +1028,7 @@ def record_change(
         "semantic_revision": next_revision,
         "provenance_revision": next_provenance_revision,
         "summary": summary,
-        "files": changed_paths,
+        "files": recorded_paths,
         "scope": scope,
     }
     if source is not None:
@@ -1000,7 +1036,6 @@ def record_change(
     if provenance_upgrade is not None:
         event["provenance_upgrade"] = provenance_upgrade
 
-    category["files"] = current_files
     category["semantic_revision"] = next_revision
     category["provenance_revision"] = next_provenance_revision
     category["events"].append(event)

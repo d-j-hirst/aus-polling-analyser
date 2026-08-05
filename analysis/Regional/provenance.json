@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored election-specific regional polling inputs.",
   "created_at_utc": "2026-07-23T23:21:58Z",
-  "updated_at_utc": "2026-07-29T15:53:30Z",
+  "updated_at_utc": "2026-08-04T23:54:29Z",
   "categories": {
     "regional_poll_inputs": {
       "description": "Election-specific regional poll breakdowns used by region_model.py.",
@@ -48,12 +48,12 @@
         "2028fed-polls-ON.csv": {
           "sha256": "32cb8060784358a92908286d7abb42bc625e95834946ee601605f5f1e8261dcf",
           "size_bytes": 1855,
-          "recorded_mtime_utc": "2026-07-27T01:37:24.980900Z"
+          "recorded_mtime_utc": "2026-08-04T12:04:08.552011Z"
         },
         "2028fed-polls.csv": {
           "sha256": "c98083e83415e7fc1f91ad872c62761ca8f3bf0ebffc2ce1fad1646e33313299",
           "size_bytes": 2929,
-          "recorded_mtime_utc": "2026-07-27T01:34:46.260836Z"
+          "recorded_mtime_utc": "2026-08-04T12:04:12.595929Z"
         },
         "2028qld-polls-ON.csv": {
           "sha256": "948e26ac2d7c1b3f413d64aec71a58335881f830cea6224d892162a4984ea0c2",
@@ -164,6 +164,26 @@
             "stages": [
               "generate_regional_swings"
             ]
+          }
+        },
+        {
+          "id": "20260804T235429Z-other-regional-poll-inputs-14517409",
+          "recorded_at_utc": "2026-08-04T23:54:29Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Excel re-save",
+          "files": [
+            "2028fed-polls-ON.csv",
+            "2028fed-polls.csv"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
           }
         }
       ],
