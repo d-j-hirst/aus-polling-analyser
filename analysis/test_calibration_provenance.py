@@ -308,6 +308,64 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 ["Outputs/Calibration/Evidence/2028fed.csv"],
             )
 
+    def test_empty_loo_record_removes_residual_evidence_provenance(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            calibration_directory = base / "Outputs" / "Calibration"
+            component = (
+                calibration_directory
+                / "Components"
+                / "2028fed-leave-one-out.csv"
+            )
+            evidence = (
+                calibration_directory / "Evidence" / "2028fed.csv"
+            )
+            component.parent.mkdir(parents=True)
+            evidence.parent.mkdir(parents=True)
+            component.write_text("component\n", encoding="utf-8")
+            evidence.write_text("evidence\n", encoding="utf-8")
+            manifest_path = calibration_directory / "generated-provenance.json"
+
+            with mock.patch.object(
+                calibration_provenance, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                calibration_provenance, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(
+                calibration_provenance,
+                "_source_dependencies",
+                return_value={},
+            ):
+                recorder = calibration_provenance.CalibrationRecorder(
+                    ["python3", "fp_model.py", "--calibrate"]
+                )
+                recorder.record_summaries(
+                    "2028fed",
+                    [component],
+                    [],
+                    residual_evidence=evidence,
+                )
+                recorder.flush()
+                recorder = calibration_provenance.CalibrationRecorder(
+                    ["python3", "fp_model.py", "--calibrate"]
+                )
+                recorder.record_summaries(
+                    "2028fed",
+                    [component],
+                    [],
+                    residual_evidence=None,
+                )
+                recorder.flush()
+
+            manifest = generated_provenance.load_manifest(manifest_path)
+            self.assertNotIn(
+                "poll_calibration_residual_evidence:2028fed",
+                manifest["records"],
+            )
+            self.assertIn(
+                "calibration_compatibility_inputs:2028fed:loo-summary",
+                manifest["records"],
+            )
+
     def test_mode_specific_seed_manifest_has_separate_category(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             base = Path(temporary_directory)

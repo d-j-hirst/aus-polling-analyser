@@ -1043,9 +1043,11 @@ def update_manifest(
     path_base="..",
     description=None,
     expected_records=None,
+    remove_record_keys=(),
 ):
     path = Path(path)
     _validate_manifest_path(path)
+    remove_record_keys = sorted(set(remove_record_keys))
     with _ManifestWriteLock(path):
         if path.exists():
             manifest = load_manifest(path)
@@ -1059,6 +1061,12 @@ def update_manifest(
             if expected_records:
                 raise ConcurrentManifestUpdate(
                     "{} was created during a record update".format(path)
+                )
+            if remove_record_keys:
+                raise GeneratedProvenanceError(
+                    "cannot remove records from a missing manifest {}".format(
+                        path
+                    )
                 )
             if not description:
                 raise GeneratedProvenanceError(
@@ -1090,6 +1098,8 @@ def update_manifest(
             normalized_runs[run_id] = normalized_run
         manifest["runs"].update(normalized_runs)
         manifest["records"].update(records)
+        for record_key in remove_record_keys:
+            manifest["records"].pop(record_key, None)
         referenced_runs = {
             record["run"] for record in manifest["records"].values()
         }

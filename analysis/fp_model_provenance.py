@@ -34,7 +34,6 @@ import math
 import os
 import re
 import sys
-import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -175,26 +174,7 @@ def cutoff_working_metadata_path(election):
 
 
 def _write_json_atomically(path, payload):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=".{}-".format(path.stem),
-        suffix=".tmp",
-        text=True,
-    )
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(payload, output, indent=2, sort_keys=True)
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temporary_name, path)
-    except Exception:
-        try:
-            os.unlink(temporary_name)
-        except FileNotFoundError:
-            pass
-        raise
+    fp_model_checkpoints._write_json_atomically(path, payload)
 
 
 _CUTOFF_RESUME_EXCLUDED_KEYS = frozenset({

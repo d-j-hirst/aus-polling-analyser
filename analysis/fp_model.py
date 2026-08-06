@@ -8,8 +8,9 @@ data-preparation helpers; the model calculation itself starts with
 model, and reduce posterior draws.
 
 Implementation is split across ``fp_model_constants``, ``fp_model_data``,
-``fp_model_prepare``, ``fp_model_stan``, ``fp_model_outputs`` and
-``fp_model_runner``. This module is the command-line entry point.
+``fp_model_prepare``, ``fp_model_stan``, ``fp_model_outputs``,
+``fp_model_runner``, plus ``fp_model_checkpoints`` and ``fp_model_provenance``
+for restart and trend provenance. This module is the command-line entry point.
 """
 
 from fp_model_runner import run_models

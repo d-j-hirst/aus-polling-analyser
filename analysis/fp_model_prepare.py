@@ -2,11 +2,10 @@
 
 import math
 import numpy as np
-import os
 import pandas as pd
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from fp_model_constants import (
     CAMPAIGN_WINDOW_DAYS,

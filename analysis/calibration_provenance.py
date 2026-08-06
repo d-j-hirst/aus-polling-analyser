@@ -221,6 +221,7 @@ class CalibrationRecorder:
         if "--bias" in command:
             self.dependencies.pop("fp_model_checkpoint_script", None)
         self.pending_records = {}
+        self.pending_removals = set()
         self.run_id, self.run = generated_provenance.generation_run(
             command=command,
             source_revision=generated_provenance.current_source_revision(
@@ -332,23 +333,28 @@ class CalibrationRecorder:
                 random_seed=None,
             )
         )
+        residual_key = "{}:{}".format(RESIDUAL_EVIDENCE_CATEGORY, election)
         if residual_evidence is not None:
-            self.pending_records["{}:{}".format(
-                RESIDUAL_EVIDENCE_CATEGORY, election
-            )] = generated_provenance.generation_record(
-                category=RESIDUAL_EVIDENCE_CATEGORY,
-                stage="calibrate_pollsters",
-                scope=_scope(election),
-                run=self.run_id,
-                dependencies=dependencies,
-                outputs=generated_provenance.output_fingerprints(
-                    [residual_evidence], ANALYSIS_DIRECTORY
-                ),
-                random_seed=None,
+            self.pending_removals.discard(residual_key)
+            self.pending_records[residual_key] = (
+                generated_provenance.generation_record(
+                    category=RESIDUAL_EVIDENCE_CATEGORY,
+                    stage="calibrate_pollsters",
+                    scope=_scope(election),
+                    run=self.run_id,
+                    dependencies=dependencies,
+                    outputs=generated_provenance.output_fingerprints(
+                        [residual_evidence], ANALYSIS_DIRECTORY
+                    ),
+                    random_seed=None,
+                )
             )
+        else:
+            self.pending_records.pop(residual_key, None)
+            self.pending_removals.add(residual_key)
 
-    def record_bias_staging(self, election, output):
-        """Record the small direct-output hand-off from the bias pass."""
+    def record_bias_component(self, election, output):
+        """Record the durable abridged bias component for compact summaries."""
 
         self.pending_records[_compatibility_record_key(
             BIAS_COMPATIBILITY_CATEGORY,
@@ -366,6 +372,9 @@ class CalibrationRecorder:
             ),
             random_seed=None,
         )
+
+    # Transitional alias while call sites migrate.
+    record_bias_staging = record_bias_component
 
     def record_seed_manifest(self, election, mode, output):
         """Record the compact resolved-seed manifest for one calibration mode."""
@@ -397,7 +406,7 @@ class CalibrationRecorder:
         )
 
     def flush(self):
-        if not self.pending_records:
+        if not self.pending_records and not self.pending_removals:
             return
         generated_provenance.update_manifest(
             MANIFEST_PATH,
@@ -405,8 +414,10 @@ class CalibrationRecorder:
             {self.run_id: self.run},
             path_base="../..",
             description=MANIFEST_DESCRIPTION,
+            remove_record_keys=sorted(self.pending_removals),
         )
         self.pending_records = {}
+        self.pending_removals = set()
 
 
 def _parse_model_output(path):

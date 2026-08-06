@@ -8,10 +8,11 @@ certifying the smaller derived file as independently current.
 
 Main functions:
 * ``compatibility_record_keys`` and ``compatibility_input_paths`` select the
-  legacy calibration evidence used by each compact election summary.
+  abridged Components (or transitional Staging / detailed archive) evidence
+  used by each compact election summary.
 * ``CalibrationSummaryRecorder`` creates compact-summary provenance records.
 * ``record_summaries`` records a completed batch; ``record_direct_summary``
-  records a summary emitted directly by future calibration runs.
+  remains for helper/test publication paths.
 * ``baseline_existing_summaries`` preserves pre-provenance summaries as legacy.
 """
 
@@ -78,9 +79,42 @@ def _is_generated(record):
     return record.get("status", "generated") == "generated"
 
 
+def _record_outputs_exist(record, base_directory=None):
+    """Whether every recorded output still exists on disk."""
+
+    outputs = record.get("outputs") or {}
+    if not outputs:
+        return False
+    base_directory = Path(
+        ANALYSIS_DIRECTORY if base_directory is None else base_directory
+    )
+    return all((base_directory / output).is_file() for output in outputs)
+
+
 # Compatibility-input selection
 
-def compatibility_record_keys(election, category, manifest=None):
+def _is_abridged_component_output(relative_path):
+    """Whether a recorded output is a Components or Staging abridged CSV."""
+
+    normalised = Path(relative_path).as_posix()
+    return (
+        "/Components/" in normalised
+        or normalised.startswith("Components/")
+        or "/Staging/" in normalised
+        or normalised.startswith("Staging/")
+    )
+
+
+def _record_has_abridged_component(record):
+    return any(
+        _is_abridged_component_output(output)
+        for output in (record.get("outputs") or {})
+    )
+
+
+def compatibility_record_keys(
+    election, category, manifest=None, require_existing=False
+):
     """Return the authoritative calibration evidence for one election.
 
     Older completed runs wrote a generated election-level ``calib_*`` bundle
@@ -88,10 +122,21 @@ def compatibility_record_keys(election, category, manifest=None):
     used by pollster analysis, while traces are diagnostic remnants that may
     include superseded pollsters.  Prefer that bundle rather than inheriting
     stale trace provenance into a newly compacted summary.
+
+    When a current Components/Staging record exists for the category but its
+    files are missing on disk, fail closed rather than silently rebuilding
+    from older detailed traces. Detailed ``calib_*`` / ``biascal`` parents are
+    used only when no generated abridged-component record exists.
     """
 
     if manifest is None:
         manifest = generated_provenance.load_manifest(MANIFEST_PATH)
+
+    def accept(record):
+        if not require_existing:
+            return True
+        return _record_outputs_exist(record)
+
     current_keys = [
         record_key
         for record_key, record in manifest["records"].items()
@@ -105,7 +150,40 @@ def compatibility_record_keys(election, category, manifest=None):
     # Its files supersede same-named legacy leftovers which fp_model.py does
     # not delete when a pollster disappears from the configuration.
     if current_keys:
-        return sorted(current_keys)
+        if require_existing:
+            missing_keys = [
+                record_key
+                for record_key in current_keys
+                if not _record_outputs_exist(manifest["records"][record_key])
+            ]
+            if missing_keys:
+                if any(
+                    _record_has_abridged_component(
+                        manifest["records"][record_key]
+                    )
+                    for record_key in current_keys
+                ):
+                    raise generated_provenance.GeneratedProvenanceError(
+                        "{} {} component outputs are recorded but missing on "
+                        "disk; regenerate calibrate/bias or restore the "
+                        "files rather than rebuilding from older traces"
+                        .format(election, category)
+                    )
+                # Non-abridged current records with missing files: keep the
+                # historical fall-through to other durable parents.
+                current_keys = [
+                    record_key
+                    for record_key in current_keys
+                    if record_key not in missing_keys
+                ]
+                if not current_keys:
+                    pass
+                else:
+                    return sorted(current_keys)
+            else:
+                return sorted(current_keys)
+        else:
+            return sorted(current_keys)
 
     if category == "poll_calibration_compatibility_inputs":
         aggregate_keys = [
@@ -115,6 +193,7 @@ def compatibility_record_keys(election, category, manifest=None):
                 _scope_election(record) == election
                 and _is_generated(record)
                 and _is_loo_summary(record)
+                and accept(record)
             )
         ]
         if aggregate_keys:
@@ -136,14 +215,18 @@ def compatibility_record_keys(election, category, manifest=None):
             "bias_calibration_compatibility_inputs",
             "bias_calibration_outputs",
         }
-        if _is_generated(record) and (
-            (
-                category == "poll_calibration_compatibility_inputs"
-                and is_poll_compatibility
-            )
-            or (
-                category == "bias_calibration_compatibility_inputs"
-                and is_bias_compatibility
+        if (
+            _is_generated(record)
+            and accept(record)
+            and (
+                (
+                    category == "poll_calibration_compatibility_inputs"
+                    and is_poll_compatibility
+                )
+                or (
+                    category == "bias_calibration_compatibility_inputs"
+                    and is_bias_compatibility
+                )
             )
         ):
             keys.append(record_key)
@@ -157,6 +240,7 @@ def compatibility_record_keys(election, category, manifest=None):
         for record_key, record in manifest["records"].items()
         if (
             _scope_election(record) == election
+            and accept(record)
             and (
                 (
                     category == "poll_calibration_compatibility_inputs"
@@ -192,11 +276,19 @@ def compatibility_input_paths(election, manifest=None):
         "poll_calibration_compatibility_inputs",
         "bias_calibration_compatibility_inputs",
     ):
-        for record_key in compatibility_record_keys(election, category, manifest):
+        for record_key in compatibility_record_keys(
+            election,
+            category,
+            manifest,
+            require_existing=True,
+        ):
             paths.update(manifest["records"][record_key]["outputs"])
     return {
-        (ANALYSIS_DIRECTORY / path).resolve()
-        for path in paths
+        path
+        for path in (
+            (ANALYSIS_DIRECTORY / relative).resolve() for relative in paths
+        )
+        if path.is_file()
     }
 
 

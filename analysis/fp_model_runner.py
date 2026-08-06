@@ -2,7 +2,6 @@
 
 import calibration_provenance
 import calibration_summary
-import calibration_summary_provenance
 import datetime
 import fp_model_checkpoints
 import fp_model_provenance
@@ -33,7 +32,6 @@ from fp_model_data import (
     ModelParams,
     calibration_checkpoint_identity,
     calibration_checkpoint_payload,
-    calibration_checkpoint_source_files,
     federal_prior_needed_for_states,
     restore_calibration_checkpoint,
     stan_seed_mode,
@@ -94,7 +92,7 @@ def build_config() -> Config:
     try:
         return Config()
     except ConfigError as e:
-        with open(f'itsdone.txt', 'w') as f:
+        with open('itsdone.txt', 'w') as f:
             f.write('2')
         raise e
 
@@ -152,20 +150,6 @@ def should_skip_pollster_calibration(inputs: ShouldSkipPollsterCalibrationInputs
     ):
         return False
     return True
-
-
-@dataclass
-class ShouldSkipPartyOutputInputs:
-    config: Config
-    desired_election: ElectionCode
-    e_data: ElectionData
-    excluded_pollster: str
-    party: str
-
-def should_skip_party_output(inputs: ShouldSkipPartyOutputInputs) -> bool:
-    # Cutoff mode deliberately reruns every party after an interrupted cutoff:
-    # later party fits can depend on medians prepared by earlier fits.
-    return False
 
 
 @dataclass
@@ -295,7 +279,9 @@ def run_models() -> None:
         print('Base random seed: {}'.format(base_seed))
         if config.calibration_traces:
             trace_run_id = '{}-{}-{}'.format(
-                datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ'),
+                datetime.datetime.now(datetime.timezone.utc).strftime(
+                    '%Y%m%dT%H%M%SZ'
+                ),
                 os.getpid(),
                 base_seed,
             )
@@ -576,16 +562,6 @@ def run_models() -> None:
                         continue
 
                 for party in parties:
-                    
-                    if should_skip_party_output(ShouldSkipPartyOutputInputs(
-                        config=config,
-                        desired_election=desired_election,
-                        e_data=e_data,
-                        excluded_pollster=excluded_pollster,
-                        party=party,
-                    )):
-                        continue
-
                     if not config.priority:
                         check_suspension(
                             before_pause=(
@@ -758,10 +734,10 @@ def run_models() -> None:
                         if config.calibration_traces else None
                     ),
                 )
-                staging_rows = calibration_summary.build_leave_one_out_rows(
+                component_rows = calibration_summary.build_leave_one_out_rows(
                     election_tag, summary_values
                 )
-                staging_output = calibration_summary.direct_staging_path(
+                component_output = calibration_summary.direct_component_path(
                     './Outputs/Calibration', election_tag, 'leave-one-out'
                 )
                 residual_evidence_output = (
@@ -769,13 +745,14 @@ def run_models() -> None:
                         './Outputs/Calibration', election_tag
                     )
                 )
-                # Single-pollster / empty-LOO federals can still run the
-                # unexcluded fit to publish Priors/{year}fed.csv. There is no
-                # residual component to stage in that case.
-                if staging_rows:
-                    calibration_summary.write_direct_staging_atomically(
-                        staging_output, staging_rows
-                    )
+                # Always publish a durable LOO component so compact can depend
+                # on calibrate even for single-pollster / empty-LOO elections
+                # (header-only file). Residual evidence is only written when
+                # there are held-out residuals.
+                calibration_summary.write_component_atomically(
+                    component_output, component_rows
+                )
+                if component_rows:
                     calibration_summary.write_residual_evidence_atomically(
                         residual_evidence_output,
                         sorted(
@@ -789,9 +766,11 @@ def run_models() -> None:
                         ),
                     )
                 else:
+                    if residual_evidence_output.is_file():
+                        residual_evidence_output.unlink()
                     print(
-                        'No leave-one-out residuals for {}; skipping LOO '
-                        'staging and residual evidence.'
+                        'No leave-one-out residuals for {}; wrote empty LOO '
+                        'component for compact dependency.'
                         .format(election_tag)
                     )
                 calibration_seed_output = (
@@ -811,15 +790,17 @@ def run_models() -> None:
                 )
                 federal_priors = write_federal_calibration_priors(e_data)
                 if provenance_recorder is not None:
-                    if staging_rows:
-                        provenance_recorder.record_summaries(
-                            election=election_tag,
-                            outputs=[staging_output],
-                            trace_files=(
-                                calibration_trace_files + trace_files
-                            ),
-                            residual_evidence=residual_evidence_output,
-                        )
+                    provenance_recorder.record_summaries(
+                        election=election_tag,
+                        outputs=[component_output],
+                        trace_files=(
+                            calibration_trace_files + trace_files
+                        ),
+                        residual_evidence=(
+                            residual_evidence_output
+                            if component_rows else None
+                        ),
+                    )
                     provenance_recorder.record_seed_manifest(
                         election_tag,
                         'calibration',
@@ -833,18 +814,24 @@ def run_models() -> None:
                 if calibration_checkpoint_store is not None:
                     calibration_checkpoint_store.clear_election(election_tag)
             if config.calibrate_bias:
-                staging_rows = calibration_summary.build_bias_rows(
+                component_rows = calibration_summary.build_bias_rows(
                     election_tag,
                     [
                         (party, *values)
                         for party, values in e_data.calibration_bias_records.items()
                     ],
                 )
-                staging_output = calibration_summary.direct_staging_path(
+                if not component_rows:
+                    raise RuntimeError(
+                        'Bias calibration for {} produced no abridged component '
+                        'rows; refusing to publish an empty bias component.'
+                        .format(election_tag)
+                    )
+                component_output = calibration_summary.direct_component_path(
                     './Outputs/Calibration', election_tag, 'bias'
                 )
-                calibration_summary.write_direct_staging_atomically(
-                    staging_output, staging_rows
+                calibration_summary.write_component_atomically(
+                    component_output, component_rows
                 )
                 bias_seed_output = calibration_summary.seed_manifest_path(
                     './Outputs/Calibration', election_tag, 'bias'
@@ -858,42 +845,18 @@ def run_models() -> None:
                     ),
                 )
                 if provenance_recorder is not None:
-                    provenance_recorder.record_bias_staging(
-                        election_tag, staging_output
+                    provenance_recorder.record_bias_component(
+                        election_tag, component_output
                     )
                     provenance_recorder.record_seed_manifest(
                         election_tag, 'bias', bias_seed_output
                     )
                     provenance_recorder.flush()
-                loo_staging = calibration_summary.direct_staging_path(
-                    './Outputs/Calibration', election_tag, 'leave-one-out'
+                print(
+                    'Bias calibration component for {} is complete; run '
+                    'calibration_summary compact to publish its summary.'
+                    .format(election_tag)
                 )
-                if loo_staging.is_file():
-                    summary_output, row_count = (
-                        calibration_summary.promote_direct_summary(
-                            './Outputs/Calibration', election_tag
-                        )
-                    )
-                    calibration_summary_provenance.record_direct_summary(
-                        election_tag,
-                        summary_output,
-                        [os.path.basename(sys.executable)] + sys.argv,
-                        feedback_files=sorted(set(
-                            e_data.federal_prior_files
-                        )),
-                        feedback_category=e_data.federal_prior_category,
-                    )
-                    print(
-                        'Saved {} compact calibration rows for {}.'.format(
-                            row_count, election_tag
-                        )
-                    )
-                else:
-                    print(
-                        'Bias calibration staging for {} is complete; run '
-                        '--calibrate before promoting its compact summary.'
-                        .format(election_tag)
-                    )
             if cutoff_provenance_recorder is not None:
                 config.cutoff_output_store.mark_complete(
                     election_tag,
@@ -918,16 +881,16 @@ def run_models() -> None:
                         cutoff_federal_prior_files[election_tag],
                     )
 
-    # indicate completion (delete these lines if not the original author)
+    # Write a simple completion marker for external batch monitors.
     except Exception as e:
         diagnostics_recorder.report(completed=False)
         if 'config' in locals():
             config.unnamed_others_diagnostics.report(completed=False)
-        with open(f'itsdone.txt', 'w') as f:
+        with open('itsdone.txt', 'w') as f:
             f.write('2')
         raise
     
     diagnostics_recorder.report()
     config.unnamed_others_diagnostics.report()
-    with open(f'itsdone.txt', 'w') as f:
+    with open('itsdone.txt', 'w') as f:
         f.write('1')

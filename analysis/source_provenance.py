@@ -42,16 +42,35 @@ CHANGE_TYPES = {
     "other",
 }
 RECORD_CHANGE_TYPES = CHANGE_TYPES - {"baseline"}
-MAGNITUDES = {
-    "unknown",
-    "negligible",
-    "provenance-only",
+# Canonical data-affecting magnitude is data-modifying. minor/material/major
+# remain accepted aliases for historical manifests and CLI input.
+DATA_MODIFYING_MAGNITUDES = {
+    "data-modifying",
     "minor",
     "material",
     "major",
 }
+MAGNITUDES = {
+    "unknown",
+    "negligible",
+    "provenance-only",
+    *DATA_MODIFYING_MAGNITUDES,
+}
 RECORD_MAGNITUDES = MAGNITUDES - {"unknown"}
+CANONICAL_DATA_MODIFYING_MAGNITUDE = "data-modifying"
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+
+
+def normalize_magnitude(magnitude):
+    """Return the canonical magnitude stored for new registration events."""
+
+    if magnitude in DATA_MODIFYING_MAGNITUDES:
+        return CANONICAL_DATA_MODIFYING_MAGNITUDE
+    return magnitude
+
+
+def magnitude_affects_outputs(magnitude):
+    return magnitude in DATA_MODIFYING_MAGNITUDES
 
 
 # Manifest schema validation
@@ -348,8 +367,8 @@ def _validate_event(
             raise ProvenanceError(
                 "{} non-baseline magnitude must be assessed".format(context)
             )
-        if event["affects_outputs"] != (
-            event["magnitude"] in {"minor", "material", "major"}
+        if event["affects_outputs"] != magnitude_affects_outputs(
+            event["magnitude"]
         ):
             raise ProvenanceError(
                 "{} affects_outputs does not match its magnitude".format(
@@ -947,9 +966,8 @@ def record_change(
                 ", ".join(sorted(RECORD_MAGNITUDES))
             )
         )
-    if affects_outputs != (
-        magnitude in {"minor", "material", "major"}
-    ):
+    magnitude = normalize_magnitude(magnitude)
+    if affects_outputs != magnitude_affects_outputs(magnitude):
         raise ProvenanceError(
             "affects_outputs does not match the selected magnitude"
         )

@@ -155,6 +155,19 @@ class AnalysisProvenanceTests(unittest.TestCase):
         }
         self.assertEqual(relative_paths, {"beta.py"})
 
+    def test_register_changes_accepts_data_modifying_aliases(self):
+        self.script_path.write_text(
+            "print('data-modifying alias')\n", encoding="utf-8"
+        )
+        events = analysis_provenance.register_changes(
+            [self.script_path],
+            "Alias material becomes data-modifying.",
+            "material",
+            source_manifest_paths=[self.source_manifest_path],
+        )
+        self.assertEqual(events[0][2]["magnitude"], "data-modifying")
+        self.assertTrue(events[0][2]["affects_outputs"])
+
     def test_machine_status_reports_current_and_altered_work_units(self):
         current = self._audit()
         self.assertEqual(current["work_units"][0]["status"], "current")
@@ -279,7 +292,7 @@ class AnalysisProvenanceTests(unittest.TestCase):
 
         result = self._audit()
         self.assertIn(
-            "Changed export behaviour. [material; methodology]",
+            "Changed export behaviour. [data-modifying; methodology]",
             result["root_causes"]["election_store_script"],
         )
         self.assertIn(
@@ -974,9 +987,11 @@ class AnalysisProvenanceTests(unittest.TestCase):
             {"2028fed"},
         )
 
+        # Abridged Staging bias remains a schedulable root even when a compact
+        # Summary exists; only detailed leftovers are suppressed.
         self.assertEqual(
             selected[self.generated_manifest_path.resolve()],
-            {compact_key},
+            {compact_key, staging_key},
         )
 
     def test_detailed_bias_outputs_remain_selected_without_modern_bias(self):
@@ -1117,6 +1132,240 @@ class AnalysisProvenanceTests(unittest.TestCase):
             selected[self.generated_manifest_path.resolve()],
             {compact_key},
         )
+
+    def test_missing_abridged_loo_is_discovered_from_bias_evidence(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        record = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        bias_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Staging"
+            / "1988vic-bias.csv"
+        )
+        bias_output.parent.mkdir(parents=True, exist_ok=True)
+        bias_output.write_text("bias\n", encoding="utf-8")
+        record["category"] = "bias_calibration_compatibility_inputs"
+        record["stage"] = "calibrate_pollster_bias"
+        record["scope"] = generated_provenance.generation_scope(
+            elections=["1988vic"]
+        )
+        record["random_seed"] = None
+        record["outputs"] = generated_provenance.output_fingerprints(
+            [bias_output], self.base
+        )
+        manifest["records"] = {
+            "bias_calibration_compatibility_inputs:1988vic:summary:"
+            "bias-staging": record
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_abridged_loo_compatibility_work_units(
+                    {"1988vic"}
+                ),
+                ["calibration_compatibility_inputs:1988vic:loo-summary"],
+            )
+
+        loo_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Components"
+            / "1988vic-leave-one-out.csv"
+        )
+        loo_output.parent.mkdir(parents=True, exist_ok=True)
+        loo_output.write_text("loo\n", encoding="utf-8")
+        loo = json.loads(json.dumps(record))
+        loo["category"] = "poll_calibration_compatibility_inputs"
+        loo["stage"] = "calibrate_pollsters"
+        loo["outputs"] = generated_provenance.output_fingerprints(
+            [loo_output], self.base
+        )
+        manifest["records"][
+            "calibration_compatibility_inputs:1988vic:loo-summary"
+        ] = loo
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_abridged_loo_compatibility_work_units(
+                    {"1988vic"}
+                ),
+                [],
+            )
+
+    def test_detailed_traces_do_not_satisfy_abridged_loo_requirement(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        trace_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "fp_trend_1988vic_@TPP.csv"
+        )
+        trace_output.parent.mkdir(parents=True, exist_ok=True)
+        trace_output.write_text("trace\n", encoding="utf-8")
+        trace = json.loads(json.dumps(template))
+        trace["category"] = "poll_calibration_traces"
+        trace["stage"] = "calibrate_pollsters"
+        trace["scope"] = generated_provenance.generation_scope(
+            elections=["1988vic"], parties=["@TPP"]
+        )
+        trace["dependencies"] = {}
+        trace["outputs"] = generated_provenance.output_fingerprints(
+            [trace_output], self.base
+        )
+        calib_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "calib_1988vic_Newspoll_@TPP.csv"
+        )
+        calib_output.write_text("1.5,2.5,\n", encoding="utf-8")
+        detailed = json.loads(json.dumps(template))
+        detailed["category"] = "poll_calibration_compatibility_inputs"
+        detailed["stage"] = "calibrate_pollsters"
+        detailed["scope"] = generated_provenance.generation_scope(
+            elections=["1988vic"], parties=["@TPP"]
+        )
+        detailed["dependencies"] = {}
+        detailed["outputs"] = generated_provenance.output_fingerprints(
+            [calib_output], self.base
+        )
+        manifest["records"] = {
+            "poll_calibration_traces:1988vic:@TPP:full": trace,
+            "poll_calibration_compatibility_inputs:1988vic:@TPP:full":
+                detailed,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        with mock.patch.object(
+            analysis_provenance.calibration_provenance,
+            "MANIFEST_PATH",
+            self.generated_manifest_path,
+        ):
+            self.assertEqual(
+                analysis_provenance._missing_abridged_loo_compatibility_work_units(
+                    {"1988vic"}
+                ),
+                ["calibration_compatibility_inputs:1988vic:loo-summary"],
+            )
+
+    def test_abridged_loo_remains_selected_when_compact_summary_exists(self):
+        manifest = generated_provenance.load_manifest(
+            self.generated_manifest_path
+        )
+        template = manifest["records"].pop(
+            "election_result_exports:2025fed"
+        )
+        loo_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Components"
+            / "2028fed-leave-one-out.csv"
+        )
+        loo_output.parent.mkdir(parents=True, exist_ok=True)
+        loo_output.write_text("loo\n", encoding="utf-8")
+        loo = json.loads(json.dumps(template))
+        loo["category"] = "poll_calibration_compatibility_inputs"
+        loo["stage"] = "calibrate_pollsters"
+        loo["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        loo["dependencies"] = {}
+        loo["outputs"] = generated_provenance.output_fingerprints(
+            [loo_output], self.base
+        )
+        compact_output = (
+            self.base
+            / "Outputs"
+            / "Calibration"
+            / "Summaries"
+            / "2028fed.csv"
+        )
+        compact_output.parent.mkdir(parents=True, exist_ok=True)
+        compact_output.write_text("compact\n", encoding="utf-8")
+        compact = json.loads(json.dumps(template))
+        compact["category"] = "poll_calibration_summaries"
+        compact["stage"] = "compact_calibration_summaries"
+        compact["scope"] = generated_provenance.generation_scope(
+            elections=["2028fed"]
+        )
+        compact["dependencies"] = {}
+        compact["outputs"] = generated_provenance.output_fingerprints(
+            [compact_output], self.base
+        )
+        loo_key = "calibration_compatibility_inputs:2028fed:loo-summary"
+        compact_key = "poll_calibration_summaries:2028fed:compact"
+        manifest["records"] = {
+            loo_key: loo,
+            compact_key: compact,
+        }
+        self.generated_manifest_path.write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        selected = analysis_provenance._selected_generated_records(
+            [self.generated_manifest_path],
+            {"2028fed"},
+        )
+
+        self.assertEqual(
+            selected[self.generated_manifest_path.resolve()],
+            {loo_key, compact_key},
+        )
+
+    def test_attach_abridged_loo_dependencies_links_compact_summaries(self):
+        loo = {
+            "id": "calib::calibration_compatibility_inputs:1988vic:loo-summary",
+            "record_key": (
+                "calibration_compatibility_inputs:1988vic:loo-summary"
+            ),
+            "category": "poll_calibration_compatibility_inputs",
+            "stage": "calibrate_pollsters",
+            "scope": generated_provenance.generation_scope(
+                elections=["1988vic"]
+            ),
+            "dependencies": [],
+        }
+        summary = {
+            "id": "calib::poll_calibration_summaries:1988vic:compact",
+            "record_key": "poll_calibration_summaries:1988vic:compact",
+            "category": "poll_calibration_summaries",
+            "stage": "compact_calibration_summaries",
+            "scope": generated_provenance.generation_scope(
+                elections=["1988vic"]
+            ),
+            "dependencies": [],
+        }
+        work_units = [loo, summary]
+        analysis_provenance._attach_abridged_loo_dependencies(work_units)
+        self.assertEqual(summary["dependencies"], [loo["id"]])
 
     def test_missing_compact_summary_is_discovered_from_bias_evidence(self):
         manifest = generated_provenance.load_manifest(

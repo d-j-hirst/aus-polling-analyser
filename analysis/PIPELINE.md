@@ -118,11 +118,12 @@ the authoritative source if this order changes.
 3. Generate seat, Coalition-allocation and federal regional statistics with
    `election_analysis.py`.
 4. Run leave-one-pollster-out calibration with
-   `fp_model.py --calibrate`; this writes a small temporary compact component.
-5. Run bias calibration with `fp_model.py --bias`; it promotes the complete
-   compact summary and removes the temporary components.
-6. Use `calibration_summary.py` only to compact retained legacy detailed files
-   without rerunning Stan.
+   `fp_model.py --calibrate`; this writes a durable abridged leave-one-out
+   component under `Outputs/Calibration/Components/`.
+5. Run bias calibration with `fp_model.py --bias`; this writes a durable
+   abridged bias component. It does not publish Summaries.
+6. Merge Components into election Summaries with `calibration_summary.py`
+   (also used to compact retained detailed archives without rerunning Stan).
 7. Reduce calibration output with `pollster_analysis.py`.
 8. Generate voting-intention-only trends with `fp_model.py --pure`.
 9. Generate normal poll trends with `fp_model.py`; this invokes the approval
@@ -162,9 +163,10 @@ invalid. Valid but old data is a provenance warning, not automatically an
 error.
 
 The orchestration `calibration` profile completes the leave-one-pollster-out
-and bias fits, directly promotes one compact summary per election, and also
-compacts any retained legacy inputs that lack one. Detailed calibration files
-are opt-in diagnostics via `--calibration-traces`, written below a unique
+and bias fits (durable Components), then runs `compact_calibration_summaries`
+to publish one Summary per election. It also compacts any retained detailed
+archives that lack a Summary. Detailed calibration files are opt-in diagnostics
+via `--calibration-traces`, written below a unique
 `Outputs/Calibration/Diagnostics/` run directory. Ordinary calibration and
 bias fits request only the posterior median they consume. Each complete
 excluded-pollster block is saved atomically below
@@ -319,10 +321,18 @@ election-level working file and promotes it only after that election succeeds.
 Source change impact has separate data and provenance meanings:
 
 * `negligible` changes can be ignored by both generated data and metadata.
+  Use this for fixes that only change whether a task can emit expected files,
+  not the values of already-successful outputs.
 * `provenance-only` changes leave generated values valid but require an
   explicit metadata upgrade.
-* `minor`, `material` and `major` changes may affect generated values and
-  therefore increment the data semantic revision.
+* `data-modifying` changes would alter values for work that already succeeded,
+  or add entirely new generated file classes, and therefore increment the data
+  semantic revision. Aliases `minor`, `material` and `major` are accepted and
+  stored as `data-modifying`.
+
+Durable outputs must not be deleted by a different work unit than the one that
+produced them. Ephemeral hand-offs shared across work units leave downstream
+stages unable to reconstruct results after upstream work is marked complete.
 
 Categories track both a semantic revision and a provenance revision.
 Provenance-only events increment only the latter and must name an upgrade
@@ -541,8 +551,9 @@ python3 analysis_provenance.py register-change election_store.py \
 ```
 
 `negligible` changes retain the existing semantic revision and permit generated
-data to remain current. `minor`, `material` and `major` changes increment the
-revision and invalidate matching generated work units until regeneration.
+data to remain current. `data-modifying` changes (aliases: `minor`, `material`,
+`major`) increment the revision and invalidate matching generated work units
+until regeneration.
 Scopes can be supplied with `--election`, `--party` and `--stage`; without a
 scope the change is conservatively recorded as affecting all work.
 
@@ -683,8 +694,17 @@ federal election so state calibrate/bias plans can schedule it through
 `pipeline.py` without a manual pre-run. Synthesis covers both the explicit
 election target and any historical calibrate/bias work units already pulled
 into the audit as calibration-profile roots. Federals that keep an unexcluded
-fit only to publish those priors (no leave-one-out residuals) skip LOO staging
-and still write `Priors/{year}fed.csv`.
+fit only to publish those priors (no leave-one-out residuals) still write an
+empty abridged LOO component plus `Priors/{year}fed.csv`.
+
+When bias evidence or a compact summary exists for an election but no abridged
+leave-one-out Components/Staging record does, the audit likewise synthesizes a
+`poll_calibration_compatibility_inputs` / `calibrate_pollsters` work unit.
+Detailed `poll_calibration_traces` remain diagnostic and never satisfy that
+requirement. Compact-summary work units depend on the same-election abridged
+LOO unit so Calibration plans order calibrate before compact. Regular profiles
+do not select calibration run classes, so this synthesis does not force
+day-to-day Regular runs to wait on Stan.
 
 The repository audit reports legacy or stale calibration records separately:
 

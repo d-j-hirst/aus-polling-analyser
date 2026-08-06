@@ -170,6 +170,7 @@
             "unknown",
             "negligible",
             "provenance-only",
+            "data-modifying",
             "minor",
             "material",
             "major"
@@ -245,6 +246,7 @@
             "properties": {
               "magnitude": {
                 "enum": [
+                  "data-modifying",
                   "minor",
                   "material",
                   "major"

@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-05T00:14:05Z",
+  "updated_at_utc": "2026-08-06T03:33:26Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -817,42 +817,42 @@
         "fp_model_runner.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 11,
+      "semantic_revision": 13,
       "files": {
         "fp_model.py": {
-          "sha256": "43375a87cf1bf3f13a1a5dd5a300070ad4d7753d3bec785dacd4c990a8a67f64",
-          "size_bytes": 801,
-          "recorded_mtime_utc": "2026-08-02T16:22:14.952007Z"
+          "sha256": "c13812c8b2655ca38638941050f486bbf0d08391dc49f73247b40f689819a609",
+          "size_bytes": 890,
+          "recorded_mtime_utc": "2026-08-06T03:10:58.681050Z"
         },
         "fp_model_constants.py": {
-          "sha256": "7ef8dd26324d9e9b33cf342c82fe9c215cf9fe6275de0ca5944e75095c89ef0b",
-          "size_bytes": 3071,
-          "recorded_mtime_utc": "2026-08-02T15:53:45.364243Z"
+          "sha256": "d2341664709948e76913dbd0e3e5482d025c278f04c8bb397f03f22a6ad41839",
+          "size_bytes": 3180,
+          "recorded_mtime_utc": "2026-08-06T03:10:51.390407Z"
         },
         "fp_model_data.py": {
-          "sha256": "f83ccbfe097ffa66861137d87a8b3f3e18b0f9951b146a6cdd19719ab186096d",
-          "size_bytes": 63767,
-          "recorded_mtime_utc": "2026-08-03T09:53:38.136761Z"
+          "sha256": "0899b6442598a1a40475a3b1eadc09f5081c6e802c9de9f39b944a0cc7817910",
+          "size_bytes": 63910,
+          "recorded_mtime_utc": "2026-08-06T03:10:51.185414Z"
         },
         "fp_model_outputs.py": {
-          "sha256": "895fb1f1dc210174818353f27d91080118e0c731dc747d1879196c5038dee27c",
-          "size_bytes": 36522,
-          "recorded_mtime_utc": "2026-08-02T16:21:45.447053Z"
+          "sha256": "b675f1bfef1bfb41029942ece982f55c8c86e14c2894a91d842e3923c1b34f41",
+          "size_bytes": 36956,
+          "recorded_mtime_utc": "2026-08-06T03:11:08.877002Z"
         },
         "fp_model_prepare.py": {
-          "sha256": "bfaddd6b2668c6330139dc278d7aab9542df84c6b5f8592a59c1ff099fce7357",
-          "size_bytes": 29956,
-          "recorded_mtime_utc": "2026-08-02T15:57:03.802512Z"
+          "sha256": "400bb13398fa478a798d31d9b01db8c58e1809839b6280786f809426b7e0fda4",
+          "size_bytes": 29935,
+          "recorded_mtime_utc": "2026-08-06T03:08:37.578116Z"
         },
         "fp_model_runner.py": {
-          "sha256": "5b038ff444e2b38b2a68750bac2a5fe232764ce763287b44ebc336b899a3be59",
-          "size_bytes": 36375,
-          "recorded_mtime_utc": "2026-08-03T10:08:06.111207Z"
+          "sha256": "f420ecb988dd299c1f81b29bb1c9e8696f5c02ea9116522be270135c599d2f45",
+          "size_bytes": 34958,
+          "recorded_mtime_utc": "2026-08-06T03:10:13.058236Z"
         },
         "fp_model_stan.py": {
-          "sha256": "04ca98e97a03b10cc4c0de984c17936befa0bf4d1fd3d21c13256131bf4c324e",
-          "size_bytes": 5493,
-          "recorded_mtime_utc": "2026-08-02T15:57:04.315870Z"
+          "sha256": "204a5e9a76d73a3925f4691546f75555ce87ca4be0d7534ead800ee9efc65938",
+          "size_bytes": 5557,
+          "recorded_mtime_utc": "2026-08-06T03:10:13.074401Z"
         }
       },
       "events": [
@@ -1605,9 +1605,78 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260806T020740Z-methodology-fp-model-script-8eea0225",
+          "recorded_at_utc": "2026-08-06T02:07:40Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 12,
+          "provenance_revision": 17,
+          "summary": "Publish durable abridged calibration Components from calibrate/bias, make compact the sole Summary producer with fail-closed missing parents, and rename impact magnitude to data-modifying.",
+          "files": [
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T033127Z-correction-fp-model-script-e1b45fe7",
+          "recorded_at_utc": "2026-08-06T03:31:27Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 13,
+          "provenance_revision": 18,
+          "summary": "Reject empty bias Components; unlink stale residual Evidence on empty LOO; rename Staging locals to Components.",
+          "files": [
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters"
+            ]
+          }
+        },
+        {
+          "id": "20260806T033203Z-formatting-fp-model-script-2708ea54",
+          "recorded_at_utc": "2026-08-06T03:32:03Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 13,
+          "provenance_revision": 18,
+          "summary": "Comment/docs cleanup, dead-code removal, timezone-aware UTC timestamps, and ComputePollsterHouseEffectsInputs rename.",
+          "files": [
+            "fp_model.py",
+            "fp_model_constants.py",
+            "fp_model_data.py",
+            "fp_model_outputs.py",
+            "fp_model_prepare.py",
+            "fp_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 16
+      "provenance_revision": 18
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
@@ -1727,12 +1796,12 @@
         "calibration_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 3,
+      "semantic_revision": 5,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "39d7f52cfb5eba0329607b0ef40fafc165ef7097e8599880f9aba2b87e22a118",
-          "size_bytes": 19483,
-          "recorded_mtime_utc": "2026-08-04T00:50:04.490320Z"
+          "sha256": "eaad007c291f564ea0cd45f29dacaf90926b460b509fd09a06162b8e704f557f",
+          "size_bytes": 20016,
+          "recorded_mtime_utc": "2026-08-06T03:08:01.552359Z"
         }
       },
       "events": [
@@ -1967,9 +2036,53 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260806T020740Z-methodology-calibration-provenance-script-5ff2cc4d",
+          "recorded_at_utc": "2026-08-06T02:07:40Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 4,
+          "provenance_revision": 7,
+          "summary": "Publish durable abridged calibration Components from calibrate/bias, make compact the sole Summary producer with fail-closed missing parents, and rename impact magnitude to data-modifying.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T033050Z-correction-calibration-provenance-script-483018f5",
+          "recorded_at_utc": "2026-08-06T03:30:50Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 8,
+          "summary": "Clear residual-evidence provenance when empty LOO re-runs publish no Evidence file.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollsters"
+            ]
+          }
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 8
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
@@ -2450,9 +2563,9 @@
       "semantic_revision": 5,
       "files": {
         "fp_model_provenance.py": {
-          "sha256": "36c6616558ce3c7f5706871a301143c693f1762d7505b21de0083868d3c659ba",
-          "size_bytes": 53785,
-          "recorded_mtime_utc": "2026-08-02T16:31:27.063972Z"
+          "sha256": "e12fc7e7ec4fca285d6ab245779857eb989dd0d437ae3cf26d00fb62c41dc71b",
+          "size_bytes": 53198,
+          "recorded_mtime_utc": "2026-08-06T03:14:04.040240Z"
         }
       },
       "events": [
@@ -2837,6 +2950,25 @@
           "semantic_revision": 5,
           "provenance_revision": 6,
           "summary": "Preserve cutoff resume metadata across failed certification and validate accumulating federal prior digests separately from stable resume identity.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260806T033247Z-formatting-fp-model-provenance-script-1afac237",
+          "recorded_at_utc": "2026-08-06T03:32:47Z",
+          "change_type": "formatting",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Share atomic JSON writes with fp_model_checkpoints; drop unused tempfile import.",
           "files": [
             "fp_model_provenance.py"
           ],
@@ -4038,13 +4170,13 @@
         "provenance_maintenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 4,
-      "provenance_revision": 42,
+      "semantic_revision": 6,
+      "provenance_revision": 44,
       "files": {
         "analysis_provenance.py": {
-          "sha256": "8a9501ee50b968baf1c53ead5822ed53de71d4cc5ebacb0d93158ff6ceed7d71",
-          "size_bytes": 96738,
-          "recorded_mtime_utc": "2026-08-05T00:13:28.898978Z"
+          "sha256": "3ccfe1dbc5f57c064419713a3e2fb84b4da2748f4642aa8f9e29e4e73c75180e",
+          "size_bytes": 104861,
+          "recorded_mtime_utc": "2026-08-06T02:46:40.038058Z"
         },
         "generated_data_archive.py": {
           "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
@@ -4057,9 +4189,9 @@
           "recorded_mtime_utc": "2026-08-03T03:26:41.997154Z"
         },
         "pipeline_registry.json": {
-          "sha256": "cef9957b089c790115b42d024b7250b7b6927c5f8807c46635a128602ae11641",
-          "size_bytes": 42543,
-          "recorded_mtime_utc": "2026-08-02T16:30:21.965347Z"
+          "sha256": "0d9f1d2e766f91346c09f635ea218298ebfddf5546a9bb58890b4c3a8c0d635d",
+          "size_bytes": 42842,
+          "recorded_mtime_utc": "2026-08-06T02:03:12.916251Z"
         },
         "pipeline_registry.py": {
           "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
@@ -5547,6 +5679,52 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260806T020741Z-methodology-pipeline-orchestration-tools-82dfb9ef",
+          "recorded_at_utc": "2026-08-06T02:07:41Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 43,
+          "summary": "Publish durable abridged calibration Components from calibrate/bias, make compact the sole Summary producer with fail-closed missing parents, and rename impact magnitude to data-modifying.",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T024811Z-methodology-pipeline-orchestration-tools-fcdf42f7",
+          "recorded_at_utc": "2026-08-06T02:48:11Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 44,
+          "summary": "Synthesize missing abridged LOO Components as calibrate_pollsters work and keep them schedulable roots so Calibration plans regenerate LOO before compact.",
+          "files": [
+            "analysis_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
         }
       ]
     },
@@ -5559,12 +5737,12 @@
         "generated_provenance.schema.json"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 2,
       "files": {
         "generated_provenance.py": {
-          "sha256": "8d278c343b662ddaf7b7490b884a7c34d1f0f796561c2fdebb0d3ff3096c3f19",
-          "size_bytes": 60010,
-          "recorded_mtime_utc": "2026-08-02T23:52:05.567377Z"
+          "sha256": "cb09271b5caf1496ba592c27fd26fb12e850ae2db8fa96048f081c0791afebcf",
+          "size_bytes": 60425,
+          "recorded_mtime_utc": "2026-08-06T03:07:36.762907Z"
         },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
@@ -5572,14 +5750,14 @@
           "recorded_mtime_utc": "2026-07-27T00:11:25.197301Z"
         },
         "source_provenance.py": {
-          "sha256": "1ad55993d725ba166cae9c9b2d17749518df5d1b27bf5d899cded9d9fa231ab8",
-          "size_bytes": 44612,
-          "recorded_mtime_utc": "2026-08-04T23:50:45.232086Z"
+          "sha256": "e128020e25db9df06dfc6a0ecde0a8e7f3333fd6503542ccd597b1260c63bf93",
+          "size_bytes": 45238,
+          "recorded_mtime_utc": "2026-08-06T02:00:41.550761Z"
         },
         "source_provenance.schema.json": {
-          "sha256": "a267c2576785975215a8b34f825209804e7fcbd5d73bfa458b44456639bfaa76",
-          "size_bytes": 8699,
-          "recorded_mtime_utc": "2026-07-27T01:40:19.016930Z"
+          "sha256": "6d4f145bbc2a23372ec0a692cc202cc9351deb759ce7892549188c16f7a1e2b4",
+          "size_bytes": 8765,
+          "recorded_mtime_utc": "2026-08-06T02:00:44.115638Z"
         }
       },
       "events": [
@@ -5941,9 +6119,52 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260806T020741Z-methodology-provenance-core-tools-0df6e4aa",
+          "recorded_at_utc": "2026-08-06T02:07:41Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 14,
+          "summary": "Publish durable abridged calibration Components from calibrate/bias, make compact the sole Summary producer with fail-closed missing parents, and rename impact magnitude to data-modifying.",
+          "files": [
+            "source_provenance.py",
+            "source_provenance.schema.json"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T033326Z-other-provenance-core-tools-8544f942",
+          "recorded_at_utc": "2026-08-06T03:33:26Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 14,
+          "summary": "Add optional remove_record_keys to update_manifest for clearing stale generated records.",
+          "files": [
+            "generated_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 13
+      "provenance_revision": 14
     },
     "trend_adjust_check_script": {
       "description": "Read-only historical diagnostics for saved trend adjustments.",
@@ -6118,12 +6339,12 @@
         "calibration_summary.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 4,
+      "semantic_revision": 7,
       "files": {
         "calibration_summary.py": {
-          "sha256": "77612c38ba5701f0ad6d898e1890bfe903a7b93e94928a23763a88e6ce8e4611",
-          "size_bytes": 38144,
-          "recorded_mtime_utc": "2026-08-02T14:56:48.757826Z"
+          "sha256": "a875b0602eb9e92817ff78dc8e713a665a9c976a357d5a326db6eaf9cc11a766",
+          "size_bytes": 42695,
+          "recorded_mtime_utc": "2026-08-06T03:10:21.387007Z"
         }
       },
       "events": [
@@ -6263,9 +6484,74 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260805T214243Z-correction-calibration-summary-script-84ab2c3b",
+          "recorded_at_utc": "2026-08-05T21:42:43Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "Compact provenance-active Staging bias hand-off files, including bias-only elections with no leave-one-out stage.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T020740Z-methodology-calibration-summary-script-ee766ff0",
+          "recorded_at_utc": "2026-08-06T02:07:40Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 6,
+          "provenance_revision": 7,
+          "summary": "Publish durable abridged calibration Components from calibrate/bias, make compact the sole Summary producer with fail-closed missing parents, and rename impact magnitude to data-modifying.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T031521Z-correction-calibration-summary-script-1edc7035",
+          "recorded_at_utc": "2026-08-06T03:15:21Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 7,
+          "provenance_revision": 8,
+          "summary": "Require both abridged LOO and bias Components when either half is present; keep detailed archive compact path when neither exists.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "compact_calibration_summaries"
+            ]
+          }
         }
       ],
-      "provenance_revision": 5
+      "provenance_revision": 8
     },
     "calibration_summary_provenance_script": {
       "description": "Generated provenance recording for compact calibration summaries.",
@@ -6273,12 +6559,12 @@
         "calibration_summary_provenance.py"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 1,
+      "semantic_revision": 3,
       "files": {
         "calibration_summary_provenance.py": {
-          "sha256": "3b060571bd3478d3e5c3d49b83055abad51eb2b1f245d916b40bdb8c3dd79123",
-          "size_bytes": 16020,
-          "recorded_mtime_utc": "2026-08-02T11:43:51.380262Z"
+          "sha256": "225e8886b3399d1c9ae6d711de0733cb73a04f88a433a92ce7686e5ec36d33c9",
+          "size_bytes": 19137,
+          "recorded_mtime_utc": "2026-08-06T02:04:01.225381Z"
         }
       },
       "events": [
@@ -6418,9 +6704,53 @@
               "compact_calibration_summaries"
             ]
           }
+        },
+        {
+          "id": "20260805T232713Z-correction-calibration-summary-provenance-script-9495abae",
+          "recorded_at_utc": "2026-08-05T23:27:13Z",
+          "change_type": "correction",
+          "magnitude": "minor",
+          "affects_outputs": true,
+          "semantic_revision": 2,
+          "provenance_revision": 5,
+          "summary": "When Staging hand-off files are gone after promote, compact falls back to durable legacy calibration parents that still exist.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "compact_calibration_summaries"
+            ]
+          }
+        },
+        {
+          "id": "20260806T020740Z-methodology-calibration-summary-provenance-script-ad034c68",
+          "recorded_at_utc": "2026-08-06T02:07:40Z",
+          "change_type": "methodology",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Publish durable abridged calibration Components from calibrate/bias, make compact the sole Summary producer with fail-closed missing parents, and rename impact magnitude to data-modifying.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [],
+            "parties": [],
+            "stages": [
+              "calibrate_pollster_bias",
+              "calibrate_pollsters",
+              "compact_calibration_summaries"
+            ]
+          }
         }
       ],
-      "provenance_revision": 4
+      "provenance_revision": 6
     },
     "fp_model_checkpoint_script": {
       "description": "Atomic fingerprinted restart checkpoints used by fp_model calibration.",

@@ -34,7 +34,9 @@ class StanDiagnosticsRecorder:
             output.write(
                 '\nStan diagnostic failures for fp_model batch starting '
                 '{} UTC\n'.format(
-                    datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+                    datetime.datetime.now(datetime.timezone.utc).strftime(
+                        '%Y-%m-%dT%H:%M:%SZ'
+                    )
                 )
             )
 

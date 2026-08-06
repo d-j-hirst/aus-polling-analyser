@@ -1,19 +1,16 @@
-"""Compact legacy calibration outputs into one strict CSV per election.
+"""Compact calibration components into one strict CSV per election.
 
-The Stan calibration stages leave several large, detailed files in
-``Outputs/Calibration``.  Pollster analysis only needs a small subset of that
-information: leave-one-out error summaries, final trend medians, new
-house-effect medians, and the count of recent polls behind each house effect.
-This utility extracts that subset without modifying or deleting the existing
-files.  Later consumers can migrate to these summaries while retaining a
-legacy-file fallback.
+Calibrate and bias publish durable abridged Components under
+``Outputs/Calibration/Components``. This stage merges them into Summaries
+for pollster analysis. Detailed ``calib_*`` / ``fp_*_biascal`` archives remain
+readable when no Components or transitional Staging record exists.
 
 Main functions:
-* ``read_*`` functions load and strictly validate the legacy calibration
+* ``read_*`` functions load and strictly validate detailed calibration
   evidence required for a compact summary.
 * ``compact_election`` performs the actual reduction for one election.
-* ``write_summary_atomically`` and ``promote_direct_summary`` publish a
-  complete summary without exposing partial files.
+* ``write_summary_atomically`` and ``write_component_atomically`` publish
+  complete CSVs without exposing partial files.
 * ``compact`` selects requested elections and coordinates provenance-aware
   batch compaction.
 """
@@ -34,6 +31,7 @@ SCHEMA_VERSION = "1"
 RECENT_POLL_WINDOW_DAYS = 183
 SUMMARY_DIRECTORY_NAME = "Summaries"
 STAGING_DIRECTORY_NAME = "Staging"
+COMPONENT_DIRECTORY_NAME = "Components"
 RESIDUAL_EVIDENCE_DIRECTORY_NAME = "Evidence"
 SEED_DIRECTORY_NAME = "Seeds"
 SUMMARY_FIELDS = (
@@ -428,25 +426,58 @@ def _summary_row(record_type, election, party, pollster="", **values):
     return row
 
 
-def direct_staging_path(calibration_directory, election, component):
-    """Return the small hand-off file used between the two Stan passes.
-
-    Calibration deliberately runs leave-one-out and bias fits as independent
-    commands.  The compact summary is their permanent result; these files are
-    only retained until the second pass has promoted that complete result.
-    """
-
+def _calibration_component_name(component):
     if component not in {"leave-one-out", "bias"}:
         raise CalibrationSummaryError(
-            "{} is not a recognised calibration staging component".format(
-                component
-            )
+            "{} is not a recognised calibration component".format(component)
         )
+    return component
+
+
+def direct_staging_path(calibration_directory, election, component):
+    """Return the transitional Staging path (read fallback during migration)."""
+
+    component = _calibration_component_name(component)
     return (
         Path(calibration_directory)
         / STAGING_DIRECTORY_NAME
         / "{}-{}.csv".format(normalize_election(election), component)
     )
+
+
+def direct_component_path(calibration_directory, election, component):
+    """Return the durable abridged component path for one calibration half.
+
+    Calibrate and bias each publish one Components CSV. Compact merges them
+    into Summaries; components are never deleted by a different work unit.
+    """
+
+    component = _calibration_component_name(component)
+    return (
+        Path(calibration_directory)
+        / COMPONENT_DIRECTORY_NAME
+        / "{}-{}.csv".format(normalize_election(election), component)
+    )
+
+
+def write_component_atomically(path, rows):
+    """Publish one durable abridged component (header-only when empty LOO)."""
+
+    write_summary_atomically(path, rows)
+
+
+def active_component_path(
+    calibration_directory, election, component, allowed_paths=None
+):
+    """Prefer durable Components, then transitional Staging, when active."""
+
+    for path in (
+        direct_component_path(calibration_directory, election, component),
+        direct_staging_path(calibration_directory, election, component),
+    ):
+        if _path_is_active(path, allowed_paths):
+            return path
+    return None
 
 
 # Core calibration-evidence reduction
@@ -566,12 +597,79 @@ def _restrict_to_active_paths(discovered_files, allowed_paths):
     )
 
 
+def _path_is_active(path, allowed_paths):
+    """Return whether a file exists and is in the active provenance set."""
+
+    path = Path(path)
+    if not path.is_file():
+        return False
+    if allowed_paths is None:
+        return True
+    return path.resolve() in {Path(item).resolve() for item in allowed_paths}
+
+
+def _component_elections(calibration_directory, selected_elections=None):
+    """Return elections with durable Components or transitional Staging files."""
+
+    found = set()
+    for directory_name in (
+        COMPONENT_DIRECTORY_NAME,
+        STAGING_DIRECTORY_NAME,
+    ):
+        directory = Path(calibration_directory) / directory_name
+        if not directory.is_dir():
+            continue
+        for path in directory.glob("*.csv"):
+            name = path.name
+            if name.endswith("-bias.csv"):
+                election = name[: -len("-bias.csv")]
+            elif name.endswith("-leave-one-out.csv"):
+                election = name[: -len("-leave-one-out.csv")]
+            else:
+                continue
+            try:
+                found.add(normalize_election(election))
+            except CalibrationSummaryError:
+                continue
+    if selected_elections is not None:
+        return found & set(selected_elections)
+    return found
+
+
+# Backward-compatible alias used by older call sites/tests.
+_staging_elections = _component_elections
+
+
+def _sort_summary_rows(rows):
+    order = {
+        RECORD_LEAVE_ONE_OUT: 0,
+        RECORD_BIAS_TREND: 1,
+        RECORD_BIAS_POLLSTER: 2,
+    }
+    return sorted(
+        rows,
+        key=lambda row: (
+            order[row["record_type"]],
+            row["party"],
+            row["pollster"],
+        ),
+    )
+
+
 def compact_election(
     calibration_directory, election, discovered_files=None, allowed_paths=None
 ):
-    """Validate one election's legacy files and return its compact rows."""
+    """Validate one election's active inputs and return its compact rows.
+
+    Modern ``--bias`` / ``--calibrate`` runs publish durable Components CSVs
+    (with Staging retained only as a transitional read fallback). Empty LOO
+    Components yield bias-only summaries. When either abridged half is present,
+    both are required. Detailed ``fp_*_biascal.csv`` / ``calib_*`` triples
+    remain supported only for pre-component archives.
+    """
 
     calibration_directory = Path(calibration_directory)
+    election = normalize_election(election)
     if discovered_files is None:
         discovered_files = _discover_files(
             calibration_directory, selected_elections={election}
@@ -581,21 +679,72 @@ def compact_election(
             discovered_files, allowed_paths
         )
     leave_one_out_files, bias_files = discovered_files
-    leave_one_out = [
-        read_leave_one_out(path) for path in leave_one_out_files.get(election, [])
-    ]
-    if len({(record.party, record.pollster) for record in leave_one_out}) != len(
-        leave_one_out
-    ):
+
+    loo_component = active_component_path(
+        calibration_directory, election, "leave-one-out", allowed_paths
+    )
+    bias_component = active_component_path(
+        calibration_directory, election, "bias", allowed_paths
+    )
+    if (loo_component is None) != (bias_component is None):
+        missing = "leave-one-out" if loo_component is None else "bias"
+        present = "bias" if loo_component is None else "leave-one-out"
         raise CalibrationSummaryError(
-            "{} has duplicate leave-one-out election/party/pollster keys".format(
-                election
+            "{} has an abridged {} component but no abridged {} component; "
+            "run calibrate and bias (or restore both Components) before "
+            "compacting".format(election, present, missing)
+        )
+
+    rows = []
+    if loo_component is not None:
+        rows.extend(
+            _read_direct_staging(
+                loo_component,
+                election,
+                {RECORD_LEAVE_ONE_OUT},
+                allow_empty=True,
             )
         )
+    else:
+        leave_one_out = [
+            read_leave_one_out(path)
+            for path in leave_one_out_files.get(election, [])
+        ]
+        if len(
+            {(record.party, record.pollster) for record in leave_one_out}
+        ) != len(leave_one_out):
+            raise CalibrationSummaryError(
+                "{} has duplicate leave-one-out election/party/pollster "
+                "keys".format(election)
+            )
+        for record in leave_one_out:
+            rows.append(
+                _summary_row(
+                    RECORD_LEAVE_ONE_OUT,
+                    record.election,
+                    record.party,
+                    record.pollster,
+                    weighted_abs_error=record.weighted_abs_error,
+                    error_weight=record.error_weight,
+                )
+            )
+
+    if bias_component is not None:
+        rows.extend(
+            _read_direct_staging(
+                bias_component,
+                election,
+                {RECORD_BIAS_TREND, RECORD_BIAS_POLLSTER},
+            )
+        )
+        return _sort_summary_rows(rows)
 
     records_by_party = defaultdict(dict)
     for (file_election, party), files in bias_files.items():
         if file_election != election:
+            continue
+        if not files:
+            # Provenance filtering removed every legacy path for this party.
             continue
         missing = {"trend", "polls", "house_effects"} - set(files)
         if missing:
@@ -651,22 +800,9 @@ def compact_election(
             "poll_counts": poll_counts,
         }
 
-    if not leave_one_out and not records_by_party:
+    if not rows and not records_by_party:
         raise CalibrationSummaryError(
             "{} has no recognised calibration files".format(election)
-        )
-
-    rows = []
-    for record in leave_one_out:
-        rows.append(
-            _summary_row(
-                RECORD_LEAVE_ONE_OUT,
-                record.election,
-                record.party,
-                record.pollster,
-                weighted_abs_error=record.weighted_abs_error,
-                error_weight=record.error_weight,
-            )
         )
     for party in sorted(records_by_party):
         record = records_by_party[party]
@@ -689,17 +825,7 @@ def compact_election(
                     recent_poll_count=record["poll_counts"][pollster],
                 )
             )
-    rank = {
-        RECORD_LEAVE_ONE_OUT: 0,
-        RECORD_BIAS_TREND: 1,
-        RECORD_BIAS_POLLSTER: 2,
-    }
-    return sorted(
-        rows,
-        key=lambda row: (
-            rank[row["record_type"]], row["party"], row["pollster"]
-        ),
-    )
+    return _sort_summary_rows(rows)
 
 
 # Staging, atomic publication and direct-summary support
@@ -880,15 +1006,17 @@ def write_summary_atomically(path, rows):
 
 
 def write_direct_staging_atomically(path, rows):
-    """Write one validated direct-calibration component atomically."""
+    """Write one non-empty abridged component atomically (tests/transitional)."""
 
     if not rows:
         raise CalibrationSummaryError("direct calibration staging has no rows")
     write_summary_atomically(path, rows)
 
 
-def _read_direct_staging(path, election, expected_record_types):
-    """Read one temporary component and reject cross-election contamination."""
+def _read_abridged_component(
+    path, election, expected_record_types, allow_empty=False
+):
+    """Read one abridged component and reject cross-election contamination."""
 
     try:
         with Path(path).open(newline="", encoding="utf-8-sig") as source:
@@ -900,11 +1028,13 @@ def _read_direct_staging(path, election, expected_record_types):
             rows = list(reader)
     except OSError as error:
         raise CalibrationSummaryError(
-            "could not read direct calibration staging {}: {}".format(
+            "could not read calibration component {}: {}".format(
                 path, error
             )
         ) from error
     if not rows:
+        if allow_empty:
+            return []
         raise CalibrationSummaryError(
             "{} has no direct calibration rows".format(path)
         )
@@ -928,39 +1058,41 @@ def _read_direct_staging(path, election, expected_record_types):
     return rows
 
 
-def promote_direct_summary(calibration_directory, election):
-    """Promote the two direct-calibration components to one final summary.
+_read_direct_staging = _read_abridged_component
 
-    The source components remain intact if validation or promotion fails. They
-    are removed only after the replacement CSV has been written successfully.
+
+def promote_direct_summary(calibration_directory, election):
+    """Merge abridged components into one Summary (test/helper path).
+
+    Production Summaries are published by ``compact_calibration_summaries``.
+    Prefer durable Components, then transitional Staging. Only Staging files
+    are deleted after a successful write; Components are never removed.
     """
 
     election = normalize_election(election)
-    loo_path = direct_staging_path(
+    loo_path = active_component_path(
         calibration_directory, election, "leave-one-out"
     )
-    bias_path = direct_staging_path(calibration_directory, election, "bias")
+    bias_path = active_component_path(
+        calibration_directory, election, "bias"
+    )
+    if loo_path is None or bias_path is None:
+        raise CalibrationSummaryError(
+            "{} lacks leave-one-out or bias components for promotion".format(
+                election
+            )
+        )
     loo_rows = _read_direct_staging(
-        loo_path, election, {RECORD_LEAVE_ONE_OUT}
+        loo_path, election, {RECORD_LEAVE_ONE_OUT}, allow_empty=True
     )
     bias_rows = _read_direct_staging(
         bias_path, election, {RECORD_BIAS_TREND, RECORD_BIAS_POLLSTER}
     )
-    rows = sorted(
-        loo_rows + bias_rows,
-        key=lambda row: (
-            {
-                RECORD_LEAVE_ONE_OUT: 0,
-                RECORD_BIAS_TREND: 1,
-                RECORD_BIAS_POLLSTER: 2,
-            }[row["record_type"]],
-            row["party"],
-            row["pollster"],
-        ),
-    )
+    rows = _sort_summary_rows(loo_rows + bias_rows)
     write_summary_atomically(summary_path(calibration_directory, election), rows)
-    loo_path.unlink()
-    bias_path.unlink()
+    for path in (loo_path, bias_path):
+        if STAGING_DIRECTORY_NAME in Path(path).parts:
+            path.unlink()
     return summary_path(calibration_directory, election), len(rows)
 
 
@@ -994,7 +1126,7 @@ def compact(
         discovered_files = _discover_files(calibration_directory)
         available = set(discovered_files[0]) | {
             key[0] for key in discovered_files[1]
-        }
+        } | _staging_elections(calibration_directory)
         selected = sorted(available)
     else:
         selected = [normalize_election(election) for election in elections]
@@ -1003,7 +1135,9 @@ def compact(
         )
         available = set(discovered_files[0]) | {
             key[0] for key in discovered_files[1]
-        }
+        } | _staging_elections(
+            calibration_directory, selected_elections=set(selected)
+        )
     if not selected:
         raise CalibrationSummaryError("no elections were selected")
     results = []

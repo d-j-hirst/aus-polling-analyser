@@ -26,6 +26,7 @@ from pathlib import Path
 import generated_provenance
 import approvals_provenance
 import calibration_provenance
+import calibration_summary_provenance
 import pipeline_registry
 import pollster_analysis_provenance
 import provenance_maintenance
@@ -80,13 +81,19 @@ GENERATED_MANIFEST_PATHS = (
     / "Regional"
     / "generated-provenance.json",
 )
+# Canonical registration choices. Aliases minor/material/major are still
+# accepted by register_changes and normalized to data-modifying.
 IMPACT_LEVELS = (
     "negligible",
     "provenance-only",
-    "minor",
-    "material",
-    "major",
+    "data-modifying",
 )
+IMPACT_ALIASES = {
+    "minor": "data-modifying",
+    "material": "data-modifying",
+    "major": "data-modifying",
+}
+ACCEPTED_IMPACT_LEVELS = IMPACT_LEVELS + tuple(IMPACT_ALIASES)
 CALIBRATION_STAGES = {
     "calibrate_pollsters",
     "calibrate_pollster_bias",
@@ -687,8 +694,13 @@ def _selected_generated_records(
                     record["category"]
                     == "bias_calibration_compatibility_inputs"
                     and any(
-                        output.startswith(
-                            "Outputs/Calibration/Staging/"
+                        (
+                            output.startswith(
+                                "Outputs/Calibration/Components/"
+                            )
+                            or output.startswith(
+                                "Outputs/Calibration/Staging/"
+                            )
                         )
                         and output.endswith("-bias.csv")
                         for output in record["outputs"]
@@ -738,11 +750,11 @@ def _selected_generated_records(
         )
 
     def is_superseded_detailed_bias_output(record):
-        # Modern --bias writes Staging/*-bias.csv and Seeds/*-bias.csv. It no
-        # longer refreshes party-level fp_*_biascal.csv records. Once modern
-        # bias evidence exists, keep those detailed outputs for archives but
-        # do not schedule calibrate_pollster_bias forever via compact-summary
-        # dependency edges.
+        # Modern --bias writes Components/*-bias.csv (or transitional
+        # Staging/*-bias.csv) and Seeds/*-bias.csv. It no longer refreshes
+        # party-level fp_*_biascal.csv records. Once modern bias evidence
+        # exists, keep those detailed outputs for archives but do not schedule
+        # calibrate_pollster_bias forever via compact-summary dependency edges.
         if record["category"] != "bias_calibration_outputs":
             return False
         return bool(
@@ -752,17 +764,27 @@ def _selected_generated_records(
         )
 
     def is_completed_calibration_detail(record):
+        # Once a compact Summary exists, detailed traces and non-abridged
+        # compatibility leftovers are not regeneration roots. Abridged
+        # Components/Staging LOO and bias records remain schedulable so
+        # source changes can refresh the durable hand-offs compact needs.
         if record["category"] not in {
             "poll_calibration_compatibility_inputs",
             "bias_calibration_compatibility_inputs",
             "poll_calibration_traces",
         }:
             return False
-        return bool(
-            completed_calibration_elections.intersection(
-                record["scope"]["elections"]
-            )
-        )
+        if not completed_calibration_elections.intersection(
+            record["scope"]["elections"]
+        ):
+            return False
+        if record["category"] == "poll_calibration_traces":
+            return True
+        if calibration_summary_provenance._record_has_abridged_component(
+            record
+        ):
+            return False
+        return True
 
     def work_unit_id(manifest_path, record_key):
         return "{}::{}".format(
@@ -1029,6 +1051,77 @@ def _missing_federal_calibration_prior_work_units(target_elections):
     return sorted(set(required) - recorded)
 
 
+def _is_abridged_loo_output(relative_path):
+    """Whether a recorded output is a Components/Staging leave-one-out CSV."""
+
+    if not calibration_summary_provenance._is_abridged_component_output(
+        relative_path
+    ):
+        return False
+    return Path(relative_path).as_posix().endswith("-leave-one-out.csv")
+
+
+def _record_has_abridged_loo(record):
+    return any(
+        _is_abridged_loo_output(output)
+        for output in (record.get("outputs") or {})
+    )
+
+
+def _elections_with_abridged_loo_records(manifest):
+    """Return elections that already have an abridged LOO compatibility record."""
+
+    found = set()
+    for record in manifest["records"].values():
+        if record.get("category") != "poll_calibration_compatibility_inputs":
+            continue
+        if not _record_has_abridged_loo(record):
+            continue
+        elections = record.get("scope", {}).get("elections") or []
+        if len(elections) == 1:
+            found.add(elections[0])
+    return found
+
+
+def _abridged_loo_consumer_elections(work_units, selected_elections):
+    """Elections whose bias/summary work requires an abridged LOO component."""
+
+    consumers = set(selected_elections or ())
+    for work_unit in work_units:
+        if work_unit["category"] not in {
+            "bias_calibration_compatibility_inputs",
+            "bias_calibration_outputs",
+            "bias_calibration_stan_seeds",
+            "poll_calibration_summaries",
+        }:
+            continue
+        consumers.update(work_unit["scope"]["elections"])
+    return consumers
+
+
+def _missing_abridged_loo_compatibility_work_units(candidate_elections):
+    """Return abridged LOO record keys missing for calibration consumers.
+
+    Detailed traces and ``calib_*`` bundles do not satisfy this requirement.
+    Compact summaries and pollster variability need Components/Staging
+    ``*-leave-one-out.csv`` (including header-only empty-LOO files).
+    """
+
+    if not candidate_elections:
+        return []
+    manifest_path = calibration_provenance.MANIFEST_PATH
+    if manifest_path.is_file():
+        manifest = generated_provenance.load_manifest(manifest_path)
+        satisfied = _elections_with_abridged_loo_records(manifest)
+    else:
+        satisfied = set()
+    return sorted(
+        calibration_provenance._loo_summary_record_key(election)
+        for election in sorted(candidate_elections)
+        if election not in satisfied
+    )
+
+
 def _federal_prior_consumer_elections(work_units, target_elections):
     """Elections whose calibrate/bias work implies needed federal priors.
 
@@ -1096,6 +1189,36 @@ def _attach_federal_prior_dependencies(work_units):
             prior_id = prior_ids_by_election.get(federal.short())
             if prior_id and prior_id not in work_unit["dependencies"]:
                 work_unit["dependencies"].append(prior_id)
+
+
+def _attach_abridged_loo_dependencies(work_units):
+    """Link compact summary units to same-election abridged LOO components."""
+
+    loo_ids_by_election = {}
+    for work_unit in work_units:
+        if work_unit["category"] != "poll_calibration_compatibility_inputs":
+            continue
+        if len(work_unit["scope"]["elections"]) != 1:
+            continue
+        election = work_unit["scope"]["elections"][0]
+        expected_key = calibration_provenance._loo_summary_record_key(
+            election
+        )
+        if work_unit["record_key"] != expected_key:
+            continue
+        loo_ids_by_election[election] = work_unit["id"]
+    if not loo_ids_by_election:
+        return
+
+    for work_unit in work_units:
+        if work_unit["category"] != "poll_calibration_summaries":
+            continue
+        if len(work_unit["scope"]["elections"]) != 1:
+            continue
+        election = work_unit["scope"]["elections"][0]
+        loo_id = loo_ids_by_election.get(election)
+        if loo_id and loo_id not in work_unit["dependencies"]:
+            work_unit["dependencies"].append(loo_id)
 
 
 # Core freshness audit and impact propagation
@@ -1806,6 +1929,91 @@ def audit_repository(
         )
     _attach_federal_prior_dependencies(work_units)
 
+    missing_abridged_loo = []
+    try:
+        loo_consumers = _abridged_loo_consumer_elections(
+            work_units, selected_elections
+        )
+        if loo_consumers:
+            missing_abridged_loo = (
+                _missing_abridged_loo_compatibility_work_units(
+                    loo_consumers
+                )
+            )
+    except (generated_provenance.GeneratedProvenanceError, OSError) as error:
+        internal_errors.append(
+            "could not determine missing abridged leave-one-out "
+            "components: {}".format(error)
+        )
+    if missing_abridged_loo:
+        shown = missing_abridged_loo[:WORK_UNIT_EXAMPLE_LIMIT]
+        suffix = ""
+        if len(missing_abridged_loo) > len(shown):
+            suffix = ", ... (+{} more)".format(
+                len(missing_abridged_loo) - len(shown)
+            )
+        root_causes["poll_calibration_compatibility_inputs"].add(
+            "{} required abridged leave-one-out component(s) have no "
+            "generated record; work units: {}{}".format(
+                len(missing_abridged_loo),
+                ", ".join(
+                    work_unit.replace(
+                        "calibration_compatibility_inputs:", ""
+                    ).replace(":loo-summary", "")
+                    for work_unit in shown
+                ),
+                suffix,
+            )
+        )
+        root_path_modes["poll_calibration_compatibility_inputs"].add(
+            PATH_CALIBRATION
+        )
+        impact_seeds.add(
+            ("poll_calibration_compatibility_inputs", PATH_CALIBRATION)
+        )
+    existing_record_keys = {work_unit["record_key"] for work_unit in work_units}
+    for record_key in missing_abridged_loo:
+        if record_key in existing_record_keys:
+            continue
+        # calibration_compatibility_inputs:{election}:loo-summary
+        _, election, _ = record_key.split(":", 2)
+        work_units.append(
+            {
+                "id": _generated_work_unit_id(
+                    calibration_provenance.MANIFEST_PATH,
+                    record_key,
+                ),
+                "record_key": record_key,
+                "category": "poll_calibration_compatibility_inputs",
+                "stage": "calibrate_pollsters",
+                "scope": generated_provenance.generation_scope(
+                    elections=[election],
+                ),
+                "manifest": _manifest_label(
+                    calibration_provenance.MANIFEST_PATH
+                ),
+                "target_match": True,
+                "dependencies": [],
+                "status": "missing",
+                "blocking": False,
+                "path_classes": [PATH_CALIBRATION],
+                "issues": [
+                    {
+                        "code": "missing_record",
+                        "root_category": (
+                            "poll_calibration_compatibility_inputs"
+                        ),
+                        "message": (
+                            "abridged leave-one-out component required for "
+                            "compact summary / pollster variability has no "
+                            "generated record"
+                        ),
+                    }
+                ],
+            }
+        )
+    _attach_abridged_loo_dependencies(work_units)
+
     report("Building audit impacts...")
     impacts = _terminal_impacts(
         root_causes, registry, path_seeds=impact_seeds
@@ -1932,7 +2140,8 @@ def register_changes(
 
     Negligible changes require no downstream action. Provenance-only changes
     schedule explicit metadata upgrades without invalidating generated data.
-    Minor and higher changes require data regeneration.
+    Data-modifying changes (aliases: minor, material, major) require data
+    regeneration.
 
     When a selected subset omits other still-unregistered files in the same
     category, pass ``acknowledge_omitted=True`` to leave those siblings
@@ -1940,10 +2149,13 @@ def register_changes(
     fails so a partial selection cannot silently absorb sibling edits.
     """
 
-    if impact not in IMPACT_LEVELS:
+    if impact not in ACCEPTED_IMPACT_LEVELS:
         raise AnalysisProvenanceError(
-            "impact must be one of: {}".format(", ".join(IMPACT_LEVELS))
+            "impact must be one of: {}".format(
+                ", ".join(ACCEPTED_IMPACT_LEVELS)
+            )
         )
+    impact = IMPACT_ALIASES.get(impact, impact)
     if not summary or not summary.strip():
         raise AnalysisProvenanceError("summary must not be empty")
     if impact == "provenance-only":
@@ -2016,7 +2228,7 @@ def register_changes(
         )
 
     events = []
-    affects_outputs = impact in {"minor", "material", "major"}
+    affects_outputs = source_provenance.magnitude_affects_outputs(impact)
     for (manifest_path, category_id), requested_paths in sorted(
         grouped_paths.items()
     ):
@@ -2588,7 +2800,7 @@ def build_parser():
     register_parser.add_argument("files", nargs="+")
     register_parser.add_argument("--summary", required=True)
     register_parser.add_argument(
-        "--impact", required=True, choices=IMPACT_LEVELS
+        "--impact", required=True, choices=ACCEPTED_IMPACT_LEVELS
     )
     register_parser.add_argument(
         "--provenance-upgrade",

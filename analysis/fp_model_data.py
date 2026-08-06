@@ -3,23 +3,19 @@
 import argparse
 import calibration_provenance
 import csv
-import datetime
 import fp_model_checkpoints
 import fp_model_provenance
 import math
 import numpy as np
 import os
 import pandas as pd
-import sys
 from dataclasses import dataclass
-from datetime import timedelta
 from election_code import ElectionCode
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import fp_model_constants
 from fp_model_constants import (
-    DEFAULT_BASE_SEED,
     STAN_SEED_NAMESPACE,
     data_source,
     fp_model_source_files,
@@ -1086,6 +1082,9 @@ class ElectionData:
                 [a for a in self.all_houses if
                  list(self.base_df['Firm']).count(a) > 1]
             
+            # Full-fit sentinel '' must stay last: LOO exclusions run first so
+            # poll_calibrations is populated before should_skip_pollster_calibration
+            # decides whether the unexcluded fit is still needed.
             self.pollster_exclusions += ['']
 
             self.poll_calibrations = {}

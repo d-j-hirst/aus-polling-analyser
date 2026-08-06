@@ -1,4 +1,5 @@
 import csv
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -30,8 +31,8 @@ fp_model = SimpleNamespace(
     FINAL_WINDOW_DAYS=fp_model_constants.FINAL_WINDOW_DAYS,
     STAN_SEED_NAMESPACE=fp_model_constants.STAN_SEED_NAMESPACE,
     BuildPollCalibrationInputs=fp_model_outputs.BuildPollCalibrationInputs,
-    ComputerPollsterHouseEffectsInputs=(
-        fp_model_outputs.ComputerPollsterHouseEffectsInputs
+    ComputePollsterHouseEffectsInputs=(
+        fp_model_outputs.ComputePollsterHouseEffectsInputs
     ),
     Config=fp_model_data.Config,
     ConfigError=fp_model_data.ConfigError,
@@ -81,7 +82,7 @@ fp_model = SimpleNamespace(
     prepare_poll_df=fp_model_prepare.prepare_poll_df,
     restore_calibration_checkpoint=fp_model_data.restore_calibration_checkpoint,
     stan_seed_mode=fp_model_data.stan_seed_mode,
-    sys=fp_model_data.sys,
+    sys=sys,
     transition_entering_calendar_offset=(
         fp_model_data.transition_entering_calendar_offset
     ),
@@ -833,7 +834,7 @@ class CalibrationSemanticsTests(unittest.TestCase):
             fp_model.ExcludedPoll(1, 53.0, 2, 'Firm B'),
         ]
         result = fp_model.compute_pollster_house_effects(
-            fp_model.ComputerPollsterHouseEffectsInputs(
+            fp_model.ComputePollsterHouseEffectsInputs(
                 excluded_polls=excluded,
                 median_col=0,
                 parent_inputs=SimpleNamespace(

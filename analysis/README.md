@@ -115,16 +115,20 @@ follow-up pass.
 
 Source changes use these impact levels:
 
-* `negligible`: no generated data or generated metadata needs updating.
+* `negligible`: does not change already-successful generated outputs (including
+  fixes that only change whether a previously failing task can emit expected
+  files). No generated data or metadata needs updating.
 * `provenance-only`: data remains valid, but explicitly identified metadata
   maintenance is required.
-* `minor`: data generation may change modestly and affected work is stale.
-* `material` and `major`: increasingly substantial generation changes.
+* `data-modifying`: would change values for work that already succeeded, or
+  introduces entirely new generated file classes in this change. Affected work
+  is stale until regeneration. Aliases `minor`, `material` and `major` are
+  still accepted and recorded as `data-modifying`.
 
 Every `provenance-only` registration requires a registered metadata upgrade
 ID. The metadata profile applies pending upgrades in event order while
 preserving the original generation run, random seed and output fingerprints.
-If a work unit is also stale from a `minor` or larger change, metadata
+If a work unit is also stale from a `data-modifying` change, metadata
 maintenance skips it because regeneration will replace its metadata.
 
 For example:

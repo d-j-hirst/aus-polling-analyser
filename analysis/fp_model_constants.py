@@ -45,15 +45,19 @@ FP_MODEL_MODULE_PATHS = (
 
 
 def fp_model_source_files():
-    """Return paths to every fp_model implementation module."""
+    """Return paths to the core fp_model modules fingerprinted with Stan fits.
+
+    Checkpoint and trend-provenance helpers are tracked separately via
+    ``calibration_checkpoint_source_files`` / provenance recorders.
+    """
 
     base = Path(__file__).resolve().parent
     return [base / path for path in FP_MODEL_MODULE_PATHS]
 
 
 # DEFERRED_NEXT_CALIBRATION
-# The next calibration methodology revision is intentionally deferred until
-# after this module split lands. Planned work, in rough dependency order:
+# Planned methodological revisions for a future calibration cycle, in rough
+# dependency order:
 #
 # 1. Variable-prior endpoint boundary correction
 #    Align state/federal prior endpoints with the actual poll-trend end date

@@ -204,6 +204,131 @@ class CalibrationSummaryProvenanceTests(unittest.TestCase):
             ["current"],
         )
 
+    def test_missing_component_parents_fail_closed(self):
+        legacy_loo = (
+            self.calibration_directory / "calib_1987fed_F2F Morgan_@TPP.csv"
+        )
+        legacy_loo.write_text("1.5,2.5,\n", encoding="utf-8")
+        legacy_bias = (
+            self.calibration_directory
+            / "fp_trend_1987fed_@TPP_biascal.csv"
+        )
+        legacy_bias.write_text("trend\n", encoding="utf-8")
+        manifest = {
+            "records": {
+                "ghost-loo-component": {
+                    "category": "poll_calibration_compatibility_inputs",
+                    "status": "generated",
+                    "scope": {"elections": ["1987fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/Components/"
+                        "1987fed-leave-one-out.csv": {},
+                    },
+                },
+                "ghost-bias-component": {
+                    "category": "bias_calibration_compatibility_inputs",
+                    "status": "generated",
+                    "scope": {"elections": ["1987fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/Components/1987fed-bias.csv": {},
+                    },
+                },
+                "legacy-loo": {
+                    "category": "poll_calibration_summaries",
+                    "status": "generated",
+                    "scope": {"elections": ["1987fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/calib_1987fed_F2F Morgan_@TPP.csv":
+                            {},
+                    },
+                },
+                "legacy-bias": {
+                    "category": "bias_calibration_outputs",
+                    "status": "generated",
+                    "scope": {"elections": ["1987fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/fp_trend_1987fed_@TPP_biascal.csv":
+                            {},
+                    },
+                },
+            }
+        }
+
+        with mock.patch.object(
+            calibration_summary_provenance, "ANALYSIS_DIRECTORY", self.base
+        ):
+            with self.assertRaisesRegex(
+                generated_provenance.GeneratedProvenanceError,
+                "missing on disk",
+            ):
+                calibration_summary_provenance.compatibility_record_keys(
+                    "1987fed",
+                    "poll_calibration_compatibility_inputs",
+                    manifest,
+                    require_existing=True,
+                )
+            with self.assertRaisesRegex(
+                generated_provenance.GeneratedProvenanceError,
+                "missing on disk",
+            ):
+                calibration_summary_provenance.compatibility_input_paths(
+                    "1987fed", manifest
+                )
+
+    def test_precomponent_archives_still_use_detailed_parents(self):
+        legacy_loo = (
+            self.calibration_directory / "calib_1987fed_F2F Morgan_@TPP.csv"
+        )
+        legacy_loo.write_text("1.5,2.5,\n", encoding="utf-8")
+        legacy_bias = (
+            self.calibration_directory
+            / "fp_trend_1987fed_@TPP_biascal.csv"
+        )
+        legacy_bias.write_text("trend\n", encoding="utf-8")
+        manifest = {
+            "records": {
+                "legacy-loo": {
+                    "category": "poll_calibration_summaries",
+                    "status": "generated",
+                    "scope": {"elections": ["1987fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/calib_1987fed_F2F Morgan_@TPP.csv":
+                            {},
+                    },
+                },
+                "legacy-bias": {
+                    "category": "bias_calibration_outputs",
+                    "status": "generated",
+                    "scope": {"elections": ["1987fed"]},
+                    "outputs": {
+                        "Outputs/Calibration/fp_trend_1987fed_@TPP_biascal.csv":
+                            {},
+                    },
+                },
+            }
+        }
+
+        with mock.patch.object(
+            calibration_summary_provenance, "ANALYSIS_DIRECTORY", self.base
+        ):
+            self.assertEqual(
+                calibration_summary_provenance.compatibility_record_keys(
+                    "1987fed",
+                    "poll_calibration_compatibility_inputs",
+                    manifest,
+                    require_existing=True,
+                ),
+                ["legacy-loo"],
+            )
+            paths = calibration_summary_provenance.compatibility_input_paths(
+                "1987fed", manifest
+            )
+
+        self.assertEqual(
+            paths,
+            {legacy_loo.resolve(), legacy_bias.resolve()},
+        )
+
     def test_generated_loo_bundle_supersedes_trace_remnants(self):
         manifest = {
             "records": {

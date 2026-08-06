@@ -106,6 +106,7 @@ class SourceProvenanceTests(unittest.TestCase):
 
         self.assertEqual(comparison["modified"], ["polls.csv"])
         self.assertEqual(event["semantic_revision"], 2)
+        self.assertEqual(event["magnitude"], "data-modifying")
         manifest = source_provenance.load_manifest(self.manifest_path)
         self.assertEqual(
             manifest["categories"]["raw_polls"]["semantic_revision"], 2
@@ -116,6 +117,25 @@ class SourceProvenanceTests(unittest.TestCase):
             ],
             ["2028fed"],
         )
+
+    def test_data_modifying_aliases_normalize_on_record(self):
+        for alias in ("minor", "material", "major", "data-modifying"):
+            with self.subTest(alias=alias):
+                self.source_path.write_text(
+                    "date,value\n2026-01-01,{}\n".format(alias),
+                    encoding="utf-8",
+                )
+                event, _ = source_provenance.record_change(
+                    self.manifest_path,
+                    "raw_polls",
+                    "Alias {} registration.".format(alias),
+                    "correction",
+                    alias,
+                    True,
+                    source_provenance._build_scope(all_scopes=True),
+                )
+                self.assertEqual(event["magnitude"], "data-modifying")
+                self.assertTrue(event["affects_outputs"])
 
     def test_new_polling_is_a_supported_change_type(self):
         self.assertIn("new_polling", source_provenance.RECORD_CHANGE_TYPES)

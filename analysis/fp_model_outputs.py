@@ -33,7 +33,6 @@ from fp_model_prepare import (
     HouseEffectsInputs,
     OutputContext,
     PartyContext,
-    PollPrepResult,
     PollVectorInputs,
     ReducedSeriesInputs,
     TrendOutputs,
@@ -608,12 +607,12 @@ def build_excluded_polls(inputs: CalibratePollstersInputs) -> List[ExcludedPoll]
                     
 
 @dataclass
-class ComputerPollsterHouseEffectsInputs:
+class ComputePollsterHouseEffectsInputs:
     excluded_polls: List[ExcludedPoll]
     median_col: int
     parent_inputs: CalibratePollstersInputs
 
-def compute_pollster_house_effects(inputs: ComputerPollsterHouseEffectsInputs) -> Dict[str, float]:
+def compute_pollster_house_effects(inputs: ComputePollsterHouseEffectsInputs) -> Dict[str, float]:
     excluded_polls = inputs.excluded_polls
     median_col = inputs.median_col
     day_data = inputs.parent_inputs.trend_outputs.day_data
@@ -755,7 +754,7 @@ def calibrate_pollsters(inputs: CalibratePollstersInputs) -> None:
     if len(excluded_polls) <= 1: return
     print(f'Trend closeness statistics for {excluded_pollster}')
     median_col = output_probs.index(0.5)
-    house_effects = compute_pollster_house_effects(ComputerPollsterHouseEffectsInputs(
+    house_effects = compute_pollster_house_effects(ComputePollsterHouseEffectsInputs(
         excluded_polls=excluded_polls,
         median_col=median_col,
         parent_inputs=inputs,
@@ -1014,13 +1013,28 @@ def finalise_calibrations(e_data, trace_directory=None):
     for key, val in e_data.poll_calibrations.items():
         if (key[0] != ''):
             full_val = e_data.poll_calibrations[('', key[1], key[2], key[3])]
-            cal_deviation = val[4]
-            full_deviation = full_val[4]
+            (
+                vote,
+                trend_median,
+                adjusted_vote,
+                percentile,
+                cal_deviation,
+                prob_deviation,
+                neighbours_weight,
+            ) = val
+            (
+                _full_vote,
+                _full_trend_median,
+                _full_adjusted_vote,
+                _full_percentile,
+                full_deviation,
+                _full_prob_deviation,
+                _full_neighbours_weight,
+            ) = full_val
             difference = abs(cal_deviation) - abs(full_deviation)
             quotient = min(max(0.5, abs(full_deviation)) /
                            max(0.5, abs(cal_deviation)),
                            1)
-            neighbours_weight = val[6]
             final_weight = min(quotient, neighbours_weight)
             new_key = (key[0], key[2])
             if new_key not in total_weight:
@@ -1037,14 +1051,14 @@ def finalise_calibrations(e_data, trace_directory=None):
                     poll_day_index=key[1],
                     poll_index=key[3],
                     values=(
-                        val[0],
-                        val[1],
-                        val[2],
-                        val[3],
-                        val[4],
-                        val[5],
-                        val[6],
-                        full_val[4],
+                        vote,
+                        trend_median,
+                        adjusted_vote,
+                        percentile,
+                        cal_deviation,
+                        prob_deviation,
+                        neighbours_weight,
+                        full_deviation,
                         quotient,
                         final_weight,
                     ),

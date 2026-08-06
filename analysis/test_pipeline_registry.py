@@ -143,6 +143,32 @@ class PipelineRegistryTests(unittest.TestCase):
             "pollster_analysis_provenance_script", stage["inputs"]
         )
 
+    def test_compact_requires_both_calibration_component_categories(self):
+        stages = {
+            stage["id"]: stage for stage in self.registry["stages"]
+        }
+        stage = stages["compact_calibration_summaries"]
+        categories = self.registry["categories"]
+
+        self.assertIn(
+            "poll_calibration_compatibility_inputs", stage["inputs"]
+        )
+        self.assertIn(
+            "bias_calibration_compatibility_inputs", stage["inputs"]
+        )
+        self.assertNotIn(
+            "poll_calibration_compatibility_inputs",
+            stage.get("optional_inputs", []),
+        )
+        self.assertIn(
+            "Outputs/Calibration/Components/*-leave-one-out.csv",
+            categories["poll_calibration_compatibility_inputs"]["paths"],
+        )
+        self.assertIn(
+            "Outputs/Calibration/Components/*-bias.csv",
+            categories["bias_calibration_compatibility_inputs"]["paths"],
+        )
+
     def test_cutoff_generation_tracks_its_provenance_helpers(self):
         stages = {
             stage["id"]: stage for stage in self.registry["stages"]

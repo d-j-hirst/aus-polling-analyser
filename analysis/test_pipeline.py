@@ -376,6 +376,64 @@ class PipelineTests(unittest.TestCase):
             [("compact_calibration_summaries", "1987fed")],
         )
 
+    def test_calibration_profile_schedules_missing_abridged_loo_before_compact(
+        self,
+    ):
+        loo = work_unit(
+            "calibration_compatibility_inputs:1988vic:loo-summary",
+            "poll_calibration_compatibility_inputs",
+            "calibrate_pollsters",
+            "missing",
+            "1988vic",
+            target_match=False,
+        )
+        # Calibration path units must carry the calibration path class so
+        # profile reachability matches production audits.
+        loo["path_classes"] = ["calibration"]
+        bias = work_unit(
+            "bias_calibration_compatibility_inputs:1988vic:summary:"
+            "bias-staging",
+            "bias_calibration_compatibility_inputs",
+            "calibrate_pollster_bias",
+            "current",
+            "1988vic",
+            target_match=False,
+        )
+        bias["path_classes"] = ["calibration"]
+        summary = work_unit(
+            "poll_calibration_summaries:1988vic:compact",
+            "poll_calibration_summaries",
+            "compact_calibration_summaries",
+            "stale",
+            "1988vic",
+            target_match=False,
+            dependencies=[loo["id"], bias["id"]],
+        )
+        summary["path_classes"] = ["calibration"]
+
+        calibration_plan = pipeline.build_plan(
+            audit_result([loo, bias, summary]),
+            self.registry,
+            {"calibration"},
+        )
+        self.assertEqual(
+            [
+                (task["stage"], task["election"])
+                for task in calibration_plan["tasks"]
+            ],
+            [
+                ("calibrate_pollsters", "1988vic"),
+                ("compact_calibration_summaries", "1988vic"),
+            ],
+        )
+
+        regular_plan = pipeline.build_plan(
+            audit_result([loo, bias, summary]),
+            self.registry,
+            {"regular"},
+        )
+        self.assertEqual(regular_plan["tasks"], [])
+
     def test_calibration_executor_runs_and_rechecks_each_task(self):
         task_one = {
             "stage": "calibrate_pollsters",

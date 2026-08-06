@@ -159,6 +159,166 @@ class CalibrationSummaryTests(unittest.TestCase):
             rows = list(csv.DictReader(source))
         self.assertEqual(rows[0]["pollster"], "Current")
 
+    def test_provenance_restricted_compact_uses_bias_and_empty_loo_components(
+        self,
+    ):
+        # Legacy triples exist on disk but are not active provenance inputs.
+        # Empty LOO + bias Components is the modern single-pollster hand-off.
+        self.write_complete_bias_bundle("1972fed")
+        bias_rows = calibration_summary.build_bias_rows(
+            "1972fed",
+            [
+                (
+                    "@TPP",
+                    51.25,
+                    {"F2F Morgan": -0.25},
+                    {"F2F Morgan": 0},
+                )
+            ],
+        )
+        loo_path = calibration_summary.direct_component_path(
+            self.directory, "1972fed", "leave-one-out"
+        )
+        bias_path = calibration_summary.direct_component_path(
+            self.directory, "1972fed", "bias"
+        )
+        calibration_summary.write_component_atomically(loo_path, [])
+        calibration_summary.write_component_atomically(bias_path, bias_rows)
+
+        result = calibration_summary.compact(
+            self.directory,
+            ["1972fed"],
+            input_paths_for_election=lambda election: {
+                loo_path.resolve(),
+                bias_path.resolve(),
+            },
+        )
+
+        self.assertEqual(result, [("1972fed", 2)])
+        with calibration_summary.summary_path(
+            self.directory, "1972fed"
+        ).open(newline="", encoding="utf-8") as source:
+            rows = list(csv.DictReader(source))
+        self.assertEqual(
+            [row["record_type"] for row in rows],
+            ["bias_trend", "bias_pollster"],
+        )
+        self.assertEqual(rows[0]["final_trend_median"], "51.25")
+        self.assertEqual(rows[1]["pollster"], "F2F Morgan")
+
+    def test_compact_rejects_one_sided_abridged_components(self):
+        bias_rows = calibration_summary.build_bias_rows(
+            "1972fed",
+            [
+                (
+                    "@TPP",
+                    51.25,
+                    {"F2F Morgan": -0.25},
+                    {"F2F Morgan": 0},
+                )
+            ],
+        )
+        bias_path = calibration_summary.direct_component_path(
+            self.directory, "1972fed", "bias"
+        )
+        calibration_summary.write_component_atomically(bias_path, bias_rows)
+
+        with self.assertRaisesRegex(
+            calibration_summary.CalibrationSummaryError,
+            "no abridged leave-one-out component",
+        ):
+            calibration_summary.compact(self.directory, ["1972fed"])
+
+    def test_compacts_durable_components_preferring_over_staging(self):
+        loo_rows = calibration_summary.build_leave_one_out_rows(
+            "2028fed", [("@TPP", "DemosAU", 1.5, 2.5)]
+        )
+        bias_rows = calibration_summary.build_bias_rows(
+            "2028fed",
+            [
+                (
+                    "@TPP",
+                    51.25,
+                    {"DemosAU": -0.25},
+                    {"DemosAU": 2},
+                )
+            ],
+        )
+        component_loo = calibration_summary.direct_component_path(
+            self.directory, "2028fed", "leave-one-out"
+        )
+        component_bias = calibration_summary.direct_component_path(
+            self.directory, "2028fed", "bias"
+        )
+        calibration_summary.write_component_atomically(component_loo, loo_rows)
+        calibration_summary.write_component_atomically(
+            component_bias, bias_rows
+        )
+        # Transitional Staging with different values must not win.
+        staging_bias = calibration_summary.build_bias_rows(
+            "2028fed",
+            [
+                (
+                    "@TPP",
+                    40.0,
+                    {"DemosAU": 9.0},
+                    {"DemosAU": 1},
+                )
+            ],
+        )
+        calibration_summary.write_direct_staging_atomically(
+            calibration_summary.direct_staging_path(
+                self.directory, "2028fed", "bias"
+            ),
+            staging_bias,
+        )
+
+        result = calibration_summary.compact(self.directory, ["2028fed"])
+
+        self.assertEqual(result, [("2028fed", 3)])
+        with calibration_summary.summary_path(
+            self.directory, "2028fed"
+        ).open(newline="", encoding="utf-8") as source:
+            rows = list(csv.DictReader(source))
+        self.assertEqual(rows[1]["final_trend_median"], "51.25")
+        self.assertTrue(component_loo.is_file())
+        self.assertTrue(component_bias.is_file())
+
+    def test_empty_loo_component_yields_bias_only_summary(self):
+        empty_loo = calibration_summary.direct_component_path(
+            self.directory, "1972fed", "leave-one-out"
+        )
+        calibration_summary.write_component_atomically(empty_loo, [])
+        bias_rows = calibration_summary.build_bias_rows(
+            "1972fed",
+            [
+                (
+                    "@TPP",
+                    51.25,
+                    {"F2F Morgan": -0.25},
+                    {"F2F Morgan": 0},
+                )
+            ],
+        )
+        calibration_summary.write_component_atomically(
+            calibration_summary.direct_component_path(
+                self.directory, "1972fed", "bias"
+            ),
+            bias_rows,
+        )
+
+        result = calibration_summary.compact(self.directory, ["1972fed"])
+
+        self.assertEqual(result, [("1972fed", 2)])
+        with calibration_summary.summary_path(
+            self.directory, "1972fed"
+        ).open(newline="", encoding="utf-8") as source:
+            rows = list(csv.DictReader(source))
+        self.assertEqual(
+            [row["record_type"] for row in rows],
+            ["bias_trend", "bias_pollster"],
+        )
+
     def test_promotes_direct_staging_without_legacy_traces(self):
         loo_rows = calibration_summary.build_leave_one_out_rows(
             "2028fed", [("@TPP", "DemosAU", 1.5, 2.5)]
@@ -203,6 +363,39 @@ class CalibrationSummaryTests(unittest.TestCase):
                 self.directory, "2028fed", "bias"
             ).exists()
         )
+
+    def test_promote_does_not_delete_durable_components(self):
+        loo_rows = calibration_summary.build_leave_one_out_rows(
+            "2028fed", [("@TPP", "DemosAU", 1.5, 2.5)]
+        )
+        bias_rows = calibration_summary.build_bias_rows(
+            "2028fed",
+            [
+                (
+                    "@TPP",
+                    51.25,
+                    {"DemosAU": -0.25},
+                    {"DemosAU": 2},
+                )
+            ],
+        )
+        loo_path = calibration_summary.direct_component_path(
+            self.directory, "2028fed", "leave-one-out"
+        )
+        bias_path = calibration_summary.direct_component_path(
+            self.directory, "2028fed", "bias"
+        )
+        calibration_summary.write_component_atomically(loo_path, loo_rows)
+        calibration_summary.write_component_atomically(bias_path, bias_rows)
+
+        summary, row_count = calibration_summary.promote_direct_summary(
+            self.directory, "2028fed"
+        )
+
+        self.assertEqual(row_count, 3)
+        self.assertTrue(summary.is_file())
+        self.assertTrue(loo_path.is_file())
+        self.assertTrue(bias_path.is_file())
 
     def test_residual_evidence_round_trips_optional_percentiles(self):
         row = calibration_summary.build_residual_evidence_row(

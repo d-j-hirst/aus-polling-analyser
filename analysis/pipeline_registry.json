@@ -527,6 +527,7 @@
       "scope": "calibration-unit",
       "core": true,
       "paths": [
+        "Outputs/Calibration/Components/*-leave-one-out.csv",
         "Outputs/Calibration/Staging/*-leave-one-out.csv",
         "Outputs/Calibration/calib_*.csv",
         "Outputs/Calibration/fp_trend_*",
@@ -538,7 +539,7 @@
         "Outputs/Calibration/fp_polls_*_biascal.csv",
         "Outputs/Calibration/fp_house_effects_*_biascal.csv"
       ],
-      "description": "Temporary leave-one-out hand-off files plus legacy detailed calibration inputs retained for archive compatibility."
+      "description": "Durable abridged leave-one-out components plus detailed calibration inputs retained for archive compatibility. Staging globs remain only as a transitional read fallback."
     },
     "poll_calibration_traces": {
       "kind": "diagnostic",
@@ -561,12 +562,13 @@
       "scope": "calibration-unit",
       "core": true,
       "paths": [
+        "Outputs/Calibration/Components/*-bias.csv",
         "Outputs/Calibration/Staging/*-bias.csv",
         "Outputs/Calibration/fp_trend_*_biascal.csv",
         "Outputs/Calibration/fp_polls_*_biascal.csv",
         "Outputs/Calibration/fp_house_effects_*_biascal.csv"
       ],
-      "description": "Temporary bias-calibration hand-off files plus legacy detailed inputs retained for archive compatibility."
+      "description": "Durable abridged bias components plus detailed bias-calibration inputs retained for archive compatibility. Staging globs remain only as a transitional read fallback."
     },
     "federal_calibration_priors": {
       "kind": "generated",
@@ -817,7 +819,7 @@
     },
     {
       "id": "calibrate_pollsters",
-      "description": "Run leave-one-pollster-out trend models and write a compact staging component.",
+      "description": "Run leave-one-pollster-out trend models and write durable abridged leave-one-out components.",
       "command": "python3 fp_model.py --calibrate --election <election>",
       "execution": {
         "script": "run_fp_model.py",
@@ -861,7 +863,7 @@
     },
     {
       "id": "calibrate_pollster_bias",
-      "description": "Generate bias-calibration evidence and promote a compact summary when leave-one-out staging is available.",
+      "description": "Generate durable abridged bias-calibration components for compact summary publication.",
       "command": "python3 fp_model.py --bias --election <election>",
       "execution": {
         "script": "run_fp_model.py",
@@ -902,7 +904,7 @@
     },
     {
       "id": "compact_calibration_summaries",
-      "description": "Validate and compact retained legacy calibration files when a summary is absent.",
+      "description": "Merge durable calibrate and bias components into one election Summary CSV.",
       "command": "python3 calibration_summary.py --election <election>",
       "execution": {
         "script": "calibration_summary.py",
@@ -915,12 +917,10 @@
         "run_class": "calibration_summary"
       },
       "inputs": [
+        "poll_calibration_compatibility_inputs",
         "bias_calibration_compatibility_inputs",
         "calibration_summary_script",
         "calibration_summary_provenance_script"
-      ],
-      "optional_inputs": [
-        "poll_calibration_compatibility_inputs"
       ],
       "outputs": [
         "poll_calibration_summaries"
@@ -929,7 +929,7 @@
       "network": false,
       "cost": "minutes",
       "supports_partial": true,
-      "notes": "New fp_model.py runs promote summaries directly. This stage is retained solely to compact existing detailed archives without rerunning Stan."
+      "notes": "Summaries are produced only here, never inside fp_model. Requires both leave-one-out and bias component categories; empty LOO components yield bias-only summaries. Detailed calib_*/biascal archives remain readable when no Components/Staging record exists."
     },
     {
       "id": "analyse_pollsters",
