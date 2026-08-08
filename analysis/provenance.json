@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-06T03:33:26Z",
+  "updated_at_utc": "2026-08-08T07:55:02Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -822,37 +822,37 @@
         "fp_model.py": {
           "sha256": "c13812c8b2655ca38638941050f486bbf0d08391dc49f73247b40f689819a609",
           "size_bytes": 890,
-          "recorded_mtime_utc": "2026-08-06T03:10:58.681050Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.405449Z"
         },
         "fp_model_constants.py": {
           "sha256": "d2341664709948e76913dbd0e3e5482d025c278f04c8bb397f03f22a6ad41839",
           "size_bytes": 3180,
-          "recorded_mtime_utc": "2026-08-06T03:10:51.390407Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_data.py": {
           "sha256": "0899b6442598a1a40475a3b1eadc09f5081c6e802c9de9f39b944a0cc7817910",
           "size_bytes": 63910,
-          "recorded_mtime_utc": "2026-08-06T03:10:51.185414Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_outputs.py": {
           "sha256": "b675f1bfef1bfb41029942ece982f55c8c86e14c2894a91d842e3923c1b34f41",
           "size_bytes": 36956,
-          "recorded_mtime_utc": "2026-08-06T03:11:08.877002Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_prepare.py": {
           "sha256": "400bb13398fa478a798d31d9b01db8c58e1809839b6280786f809426b7e0fda4",
           "size_bytes": 29935,
-          "recorded_mtime_utc": "2026-08-06T03:08:37.578116Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "fp_model_runner.py": {
-          "sha256": "f420ecb988dd299c1f81b29bb1c9e8696f5c02ea9116522be270135c599d2f45",
-          "size_bytes": 34958,
-          "recorded_mtime_utc": "2026-08-06T03:10:13.058236Z"
+          "sha256": "e7abf7efcb899cb42246fc5d01d9324ed4533b63f90f3e1353040624cffa8044",
+          "size_bytes": 34659,
+          "recorded_mtime_utc": "2026-08-08T07:45:43.513440Z"
         },
         "fp_model_stan.py": {
           "sha256": "204a5e9a76d73a3925f4691546f75555ce87ca4be0d7534ead800ee9efc65938",
           "size_bytes": 5557,
-          "recorded_mtime_utc": "2026-08-06T03:10:13.074401Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         }
       },
       "events": [
@@ -1674,9 +1674,54 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260807T072416Z-other-fp-model-script-4c4ac65e",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 13,
+          "provenance_revision": 18,
+          "summary": "timestamp-only changes",
+          "files": [
+            "fp_model.py",
+            "fp_model_constants.py",
+            "fp_model_data.py",
+            "fp_model_outputs.py",
+            "fp_model_prepare.py",
+            "fp_model_runner.py",
+            "fp_model_stan.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T075500Z-schema-fp-model-script-b11c5479",
+          "recorded_at_utc": "2026-08-08T07:55:00Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 13,
+          "provenance_revision": 19,
+          "summary": "Stop attaching optional calibration-trace files to durable leave-one-out Component provenance.",
+          "files": [
+            "fp_model_runner.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 18
+      "provenance_revision": 19
     },
     "stan_cache_script": {
       "description": "Compilation and local caching of Stan model executables.",
@@ -1799,9 +1844,9 @@
       "semantic_revision": 5,
       "files": {
         "calibration_provenance.py": {
-          "sha256": "eaad007c291f564ea0cd45f29dacaf90926b460b509fd09a06162b8e704f557f",
-          "size_bytes": 20016,
-          "recorded_mtime_utc": "2026-08-06T03:08:01.552359Z"
+          "sha256": "7e6f533b319a2f5baeaf57dad8efa3026be55e836c58b428d5483c356b7172f2",
+          "size_bytes": 21676,
+          "recorded_mtime_utc": "2026-08-08T07:48:52.591889Z"
         }
       },
       "events": [
@@ -2080,9 +2125,48 @@
               "calibrate_pollsters"
             ]
           }
+        },
+        {
+          "id": "20260807T072416Z-other-calibration-provenance-script-dcfa7559",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 8,
+          "summary": "timestamp-only changes",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T075458Z-schema-calibration-provenance-script-e8507d8b",
+          "recorded_at_utc": "2026-08-08T07:54:58Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 9,
+          "summary": "Classify optional run-specific calibration traces as diagnostics and provide a one-time metadata repair for prior trace records.",
+          "files": [
+            "calibration_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 8
+      "provenance_revision": 9
     },
     "pollster_analysis_script": {
       "description": "Reduction of calibration evidence into compact election-level pollster parameters.",
@@ -2113,9 +2197,9 @@
           "recorded_mtime_utc": "2026-08-02T08:11:22.720202Z"
         },
         "pollster_analysis_evidence.py": {
-          "sha256": "d1178cb3201deed1616f4a6f169af65a055df090f8473f5f6dd7a424d2828ef6",
-          "size_bytes": 12543,
-          "recorded_mtime_utc": "2026-08-02T08:11:25.979865Z"
+          "sha256": "512ed9f52e3a595cd2f4d06e0b6fb8a1eafe1b5be0a1f88e1e8c6e1fb6acaf16",
+          "size_bytes": 12558,
+          "recorded_mtime_utc": "2026-08-08T07:46:46.109533Z"
         },
         "pollster_analysis_house_effects.py": {
           "sha256": "adb71d006baf389af5f0f8857458b86572c4334168f373aca3b0f518a76df861",
@@ -2331,6 +2415,25 @@
             "pollster_analysis_evidence.py",
             "pollster_analysis_house_effects.py",
             "pollster_analysis_variability.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T075502Z-correction-pollster-analysis-script-b96dbe19",
+          "recorded_at_utc": "2026-08-08T07:55:02Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "Reuse strict compact-calibration validation before pollster analysis loads summary evidence.",
+          "files": [
+            "pollster_analysis_evidence.py"
           ],
           "scope": {
             "all": true,
@@ -2565,7 +2668,7 @@
         "fp_model_provenance.py": {
           "sha256": "e12fc7e7ec4fca285d6ab245779857eb989dd0d437ae3cf26d00fb62c41dc71b",
           "size_bytes": 53198,
-          "recorded_mtime_utc": "2026-08-06T03:14:04.040240Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:41.961482Z"
         }
       },
       "events": [
@@ -2969,6 +3072,25 @@
           "semantic_revision": 5,
           "provenance_revision": 6,
           "summary": "Share atomic JSON writes with fp_model_checkpoints; drop unused tempfile import.",
+          "files": [
+            "fp_model_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260807T072416Z-other-fp-model-provenance-script-ad090a21",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 5,
+          "provenance_revision": 6,
+          "summary": "timestamp-only changes",
           "files": [
             "fp_model_provenance.py"
           ],
@@ -4171,12 +4293,12 @@
       ],
       "exclude_patterns": [],
       "semantic_revision": 6,
-      "provenance_revision": 44,
+      "provenance_revision": 45,
       "files": {
         "analysis_provenance.py": {
           "sha256": "3ccfe1dbc5f57c064419713a3e2fb84b4da2748f4642aa8f9e29e4e73c75180e",
           "size_bytes": 104861,
-          "recorded_mtime_utc": "2026-08-06T02:46:40.038058Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "generated_data_archive.py": {
           "sha256": "79e17f6b67a764e1389fdc0864929044e127a75b7349d73632e2d309d3ef8268",
@@ -4189,9 +4311,9 @@
           "recorded_mtime_utc": "2026-08-03T03:26:41.997154Z"
         },
         "pipeline_registry.json": {
-          "sha256": "0d9f1d2e766f91346c09f635ea218298ebfddf5546a9bb58890b4c3a8c0d635d",
-          "size_bytes": 42842,
-          "recorded_mtime_utc": "2026-08-06T02:03:12.916251Z"
+          "sha256": "ee4b62e7eac111f9b8270d66e1492c8d2958c1f14a477364d86db34db7452055",
+          "size_bytes": 43183,
+          "recorded_mtime_utc": "2026-08-08T07:48:07.247841Z"
         },
         "pipeline_registry.py": {
           "sha256": "7384ead0eb727880bde6e048eee280344c1ad8e8abc55b2aa235609e4ef81f9b",
@@ -5725,6 +5847,46 @@
               "compact_calibration_summaries"
             ]
           }
+        },
+        {
+          "id": "20260807T072416Z-other-pipeline-orchestration-tools-cbd4129d",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 44,
+          "summary": "timestamp-only changes",
+          "files": [
+            "analysis_provenance.py",
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T075502Z-schema-pipeline-orchestration-tools-06de00ea",
+          "recorded_at_utc": "2026-08-08T07:55:02Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Register run-specific calibration traces as diagnostic generated data rather than executable compatibility evidence.",
+          "files": [
+            "pipeline_registry.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ]
     },
@@ -5742,7 +5904,7 @@
         "generated_provenance.py": {
           "sha256": "cb09271b5caf1496ba592c27fd26fb12e850ae2db8fa96048f081c0791afebcf",
           "size_bytes": 60425,
-          "recorded_mtime_utc": "2026-08-06T03:07:36.762907Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:36.736979Z"
         },
         "generated_provenance.schema.json": {
           "sha256": "4bfa4612d5cb23717b5da23280e8997bf40ed0182f4c163ac504a41479e8e6b3",
@@ -5752,12 +5914,12 @@
         "source_provenance.py": {
           "sha256": "e128020e25db9df06dfc6a0ecde0a8e7f3333fd6503542ccd597b1260c63bf93",
           "size_bytes": 45238,
-          "recorded_mtime_utc": "2026-08-06T02:00:41.550761Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         },
         "source_provenance.schema.json": {
           "sha256": "6d4f145bbc2a23372ec0a692cc202cc9351deb759ce7892549188c16f7a1e2b4",
           "size_bytes": 8765,
-          "recorded_mtime_utc": "2026-08-06T02:00:44.115638Z"
+          "recorded_mtime_utc": "2026-08-06T22:50:45.543292Z"
         }
       },
       "events": [
@@ -6162,6 +6324,27 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260807T072416Z-other-provenance-core-tools-b0948cd0",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 2,
+          "provenance_revision": 14,
+          "summary": "timestamp-only changes",
+          "files": [
+            "generated_provenance.py",
+            "source_provenance.py",
+            "source_provenance.schema.json"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
       "provenance_revision": 14
@@ -6342,9 +6525,9 @@
       "semantic_revision": 7,
       "files": {
         "calibration_summary.py": {
-          "sha256": "a875b0602eb9e92817ff78dc8e713a665a9c976a357d5a326db6eaf9cc11a766",
-          "size_bytes": 42695,
-          "recorded_mtime_utc": "2026-08-06T03:10:21.387007Z"
+          "sha256": "ad372cce8d838f7db6a312a25b21de477891921edc92b07d9dc096f99ddf77b3",
+          "size_bytes": 50680,
+          "recorded_mtime_utc": "2026-08-08T07:50:06.739942Z"
         }
       },
       "events": [
@@ -6549,9 +6732,48 @@
               "compact_calibration_summaries"
             ]
           }
+        },
+        {
+          "id": "20260807T072416Z-other-calibration-summary-script-3dce328e",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 8,
+          "summary": "timestamp-only changes",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T075500Z-schema-calibration-summary-script-9b3d2629",
+          "recorded_at_utc": "2026-08-08T07:55:00Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 7,
+          "provenance_revision": 9,
+          "summary": "Strictly validate compact components and publish prevalidated summaries with immediate per-election provenance recording.",
+          "files": [
+            "calibration_summary.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 8
+      "provenance_revision": 9
     },
     "calibration_summary_provenance_script": {
       "description": "Generated provenance recording for compact calibration summaries.",
@@ -6562,9 +6784,9 @@
       "semantic_revision": 3,
       "files": {
         "calibration_summary_provenance.py": {
-          "sha256": "225e8886b3399d1c9ae6d711de0733cb73a04f88a433a92ce7686e5ec36d33c9",
-          "size_bytes": 19137,
-          "recorded_mtime_utc": "2026-08-06T02:04:01.225381Z"
+          "sha256": "65f64712eb21ac4a017954dbf62ea4a1227ea52f66dd72758061f0c93f3737f3",
+          "size_bytes": 19167,
+          "recorded_mtime_utc": "2026-08-08T07:47:55.464441Z"
         }
       },
       "events": [
@@ -6748,9 +6970,48 @@
               "compact_calibration_summaries"
             ]
           }
+        },
+        {
+          "id": "20260807T072416Z-other-calibration-summary-provenance-script-980cbd4e",
+          "recorded_at_utc": "2026-08-07T07:24:16Z",
+          "change_type": "other",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 6,
+          "summary": "timestamp-only changes",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T075501Z-schema-calibration-summary-provenance-script-72c530ee",
+          "recorded_at_utc": "2026-08-08T07:55:01Z",
+          "change_type": "schema",
+          "magnitude": "provenance-only",
+          "affects_outputs": false,
+          "semantic_revision": 3,
+          "provenance_revision": 7,
+          "summary": "Flush compact-summary provenance after each published election rather than after a complete batch.",
+          "files": [
+            "calibration_summary_provenance.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          },
+          "provenance_upgrade": "no-generated-metadata-change-v1"
         }
       ],
-      "provenance_revision": 6
+      "provenance_revision": 7
     },
     "fp_model_checkpoint_script": {
       "description": "Atomic fingerprinted restart checkpoints used by fp_model calibration.",

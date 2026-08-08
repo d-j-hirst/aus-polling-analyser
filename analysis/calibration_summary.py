@@ -1032,13 +1032,95 @@ def _read_abridged_component(
                 path, error
             )
         ) from error
+    return validate_abridged_rows(
+        path,
+        rows,
+        election,
+        expected_record_types,
+        allow_empty=allow_empty,
+    )
+
+
+def _required_component_value(row, field, path, row_number):
+    value = row.get(field)
+    if value is None or not value.strip():
+        raise CalibrationSummaryError(
+            "{}:{} has an empty {}".format(path, row_number, field)
+        )
+    if value != value.strip():
+        raise CalibrationSummaryError(
+            "{}:{} has whitespace around {}".format(path, row_number, field)
+        )
+    return value
+
+
+def _require_empty_component_fields(row, allowed, path, row_number):
+    if row.get(None):
+        raise CalibrationSummaryError(
+            "{}:{} has more fields than the direct-calibration schema".format(
+                path, row_number
+            )
+        )
+    for field in SUMMARY_FIELDS:
+        if field in allowed:
+            continue
+        if (row.get(field) or "").strip():
+            raise CalibrationSummaryError(
+                "{}:{} has an unexpected {} value".format(
+                    path, row_number, field
+                )
+            )
+
+
+def _nonnegative_component_float(row, field, path, row_number):
+    value = _finite_float(
+        _required_component_value(row, field, path, row_number),
+        "{}:{} {}".format(path, row_number, field),
+    )
+    if value < 0:
+        raise CalibrationSummaryError(
+            "{}:{} has a negative {}".format(path, row_number, field)
+        )
+    return value
+
+
+def _nonnegative_component_integer(row, field, path, row_number):
+    value = _nonnegative_component_float(row, field, path, row_number)
+    if int(value) != value:
+        raise CalibrationSummaryError(
+            "{}:{} has a non-integer {}".format(path, row_number, field)
+        )
+    return int(value)
+
+
+def validate_abridged_rows(
+    path,
+    rows,
+    election,
+    expected_record_types,
+    allow_empty=False,
+):
+    """Validate compact rows shared by Components and consumer summaries."""
+
+    expected_record_types = set(expected_record_types)
     if not rows:
         if allow_empty:
             return []
         raise CalibrationSummaryError(
             "{} has no direct calibration rows".format(path)
         )
+
+    seen_loo = set()
+    seen_trends = set()
+    seen_pollsters = set()
     for row_number, row in enumerate(rows, start=2):
+        unexpected_fields = set(row) - set(SUMMARY_FIELDS) - {None}
+        if unexpected_fields:
+            raise CalibrationSummaryError(
+                "{}:{} has unknown direct-calibration field(s): {}".format(
+                    path, row_number, ", ".join(sorted(unexpected_fields))
+                )
+            )
         if row["schema_version"] != SCHEMA_VERSION:
             raise CalibrationSummaryError(
                 "{}:{} has unsupported schema version".format(path, row_number)
@@ -1049,11 +1131,102 @@ def _read_abridged_component(
                     path, row_number, row["election"], election
                 )
             )
-        if row["record_type"] not in expected_record_types:
+        record_type = row["record_type"]
+        if record_type not in expected_record_types:
             raise CalibrationSummaryError(
                 "{}:{} has an unexpected record type {}".format(
-                    path, row_number, row["record_type"]
+                    path, row_number, record_type
                 )
+            )
+        party = _required_component_value(row, "party", path, row_number)
+        common = {"schema_version", "record_type", "election", "party"}
+        if record_type == RECORD_LEAVE_ONE_OUT:
+            pollster = _required_component_value(
+                row, "pollster", path, row_number
+            )
+            _nonnegative_component_float(
+                row, "weighted_abs_error", path, row_number
+            )
+            _nonnegative_component_float(
+                row, "error_weight", path, row_number
+            )
+            _require_empty_component_fields(
+                row,
+                common | {"pollster", "weighted_abs_error", "error_weight"},
+                path,
+                row_number,
+            )
+            key = (party, pollster)
+            if key in seen_loo:
+                raise CalibrationSummaryError(
+                    "{}:{} repeats leave-one-out evidence for {} {}".format(
+                        path, row_number, party, pollster
+                    )
+                )
+            seen_loo.add(key)
+        elif record_type == RECORD_BIAS_TREND:
+            final_median = _required_component_value(
+                row, "final_trend_median", path, row_number
+            )
+            _finite_float(
+                final_median,
+                "{}:{} final_trend_median".format(path, row_number),
+            )
+            _require_empty_component_fields(
+                row, common | {"final_trend_median"}, path, row_number
+            )
+            if party in seen_trends:
+                raise CalibrationSummaryError(
+                    "{}:{} repeats a bias trend for {}".format(
+                        path, row_number, party
+                    )
+                )
+            seen_trends.add(party)
+        elif record_type == RECORD_BIAS_POLLSTER:
+            pollster = _required_component_value(
+                row, "pollster", path, row_number
+            )
+            house_effect = _required_component_value(
+                row, "new_house_effect_median", path, row_number
+            )
+            _finite_float(
+                house_effect,
+                "{}:{} new_house_effect_median".format(path, row_number),
+            )
+            _nonnegative_component_integer(
+                row, "recent_poll_count", path, row_number
+            )
+            _require_empty_component_fields(
+                row,
+                common | {
+                    "pollster", "new_house_effect_median",
+                    "recent_poll_count",
+                },
+                path,
+                row_number,
+            )
+            key = (party, pollster)
+            if key in seen_pollsters:
+                raise CalibrationSummaryError(
+                    "{}:{} repeats a bias pollster for {} {}".format(
+                        path, row_number, party, pollster
+                    )
+                )
+            seen_pollsters.add(key)
+
+    if {
+        RECORD_BIAS_TREND,
+        RECORD_BIAS_POLLSTER,
+    }.issubset(expected_record_types):
+        pollster_parties = {party for party, _ in seen_pollsters}
+        if seen_trends != pollster_parties:
+            raise CalibrationSummaryError(
+                "{} has incomplete bias evidence: trend and pollster parties differ"
+                .format(path)
+            )
+        if not seen_trends:
+            raise CalibrationSummaryError(
+                "{} has no complete bias evidence".format(path)
             )
     return rows
 
@@ -1107,13 +1280,12 @@ def normalize_election(value):
     return normalized
 
 
-def compact(
+def prepare_compact_rows(
     calibration_directory,
     elections,
-    dry_run=False,
     input_paths_for_election=None,
 ):
-    """Compact the selected elections and return ``(election, row_count)``."""
+    """Validate every selected election before publishing any summary."""
 
     calibration_directory = Path(calibration_directory)
     if not calibration_directory.is_dir():
@@ -1140,7 +1312,7 @@ def compact(
         )
     if not selected:
         raise CalibrationSummaryError("no elections were selected")
-    results = []
+    prepared = []
     for election in selected:
         if election not in available:
             raise CalibrationSummaryError(
@@ -1156,10 +1328,50 @@ def compact(
                 else None
             ),
         )
-        if not dry_run:
-            write_summary_atomically(summary_path(calibration_directory, election), rows)
-        results.append((election, len(rows)))
-    return results
+        prepared.append((election, rows))
+    return prepared
+
+
+def compact(
+    calibration_directory,
+    elections,
+    dry_run=False,
+    input_paths_for_election=None,
+):
+    """Compact selected elections after validating the complete selection."""
+
+    prepared = prepare_compact_rows(
+        calibration_directory,
+        elections,
+        input_paths_for_election=input_paths_for_election,
+    )
+    calibration_directory = Path(calibration_directory)
+    if not dry_run:
+        for election, rows in prepared:
+            write_summary_atomically(
+                summary_path(calibration_directory, election), rows
+            )
+    return [(election, len(rows)) for election, rows in prepared]
+
+
+def publish_prepared_summaries(
+    calibration_directory, prepared, record_published=None
+):
+    """Publish prevalidated summaries and record each one before continuing."""
+
+    calibration_directory = Path(calibration_directory)
+    for election, rows in prepared:
+        output = summary_path(calibration_directory, election)
+        write_summary_atomically(output, rows)
+        if record_published is not None:
+            try:
+                record_published(election, output)
+            except Exception as error:
+                raise CalibrationSummaryError(
+                    "{} was published but provenance recording failed: {}"
+                    .format(election, error)
+                ) from error
+    return [(election, len(rows)) for election, rows in prepared]
 
 
 def parse_arguments(arguments):
@@ -1211,35 +1423,56 @@ def main(arguments=None):
                         election, manifest
                     )
                 )
-        results = compact(
+        prepared = prepare_compact_rows(
             args.calibration_directory,
             elections,
-            dry_run=args.dry_run,
             input_paths_for_election=input_paths_for_election,
         )
     except CalibrationSummaryError as error:
         print("Could not compact calibration data: {}".format(error), file=sys.stderr)
         return 2
+    results = [(election, len(rows)) for election, rows in prepared]
     if not args.dry_run:
-        # The standard command records the just-promoted summaries. Custom
-        # directories exist for maintenance/testing and intentionally do not
-        # write repository provenance.
-        if Path(args.calibration_directory).resolve() == default_directory:
-            try:
-                import calibration_summary_provenance
+        # Custom directories exist for maintenance/testing and intentionally
+        # do not write repository provenance. The standard path publishes one
+        # summary then immediately records it before moving to the next.
+        standard_directory = (
+            Path(args.calibration_directory).resolve() == default_directory
+        )
+        recorder = None
+        manifest = None
+        if standard_directory:
+            import calibration_summary_provenance
+            import generated_provenance
 
-                calibration_summary_provenance.record_summaries(
-                    [election for election, _ in results],
-                    [Path(sys.executable).name] + sys.argv,
-                    input_paths_for_election=input_paths_for_election,
-                )
-            except Exception as error:
-                print(
-                    "Calibration summaries were written but provenance "
-                    "recording failed: {}".format(error),
-                    file=sys.stderr,
-                )
-                return 2
+            recorder = calibration_summary_provenance.CalibrationSummaryRecorder(
+                [Path(sys.executable).name] + sys.argv
+            )
+            manifest = generated_provenance.load_manifest(
+                calibration_summary_provenance.MANIFEST_PATH
+            )
+
+        def record_published(election, output):
+            input_paths = (
+                input_paths_for_election(election)
+                if input_paths_for_election is not None
+                else None
+            )
+            recorder.record(election, output, input_paths, manifest)
+            recorder.flush()
+
+        try:
+            results = publish_prepared_summaries(
+                args.calibration_directory,
+                prepared,
+                record_published if recorder is not None else None,
+            )
+        except Exception as error:
+            print(
+                "Calibration summary publication failed: {}".format(error),
+                file=sys.stderr,
+            )
+            return 2
     action = "Validated" if args.dry_run else "Wrote"
     for election, row_count in results:
         print("{} {} calibration summary row(s) for {}.".format(

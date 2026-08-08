@@ -106,26 +106,26 @@ def _read_compact_summary(path):
     try:
         with path.open(newline="", encoding="utf-8-sig") as source:
             reader = csv.DictReader(source)
-            if reader.fieldnames is None:
-                raise ConfigError("{} lacks a summary header.".format(path))
-            missing = [
-                field
-                for field in calibration_summary.SUMMARY_FIELDS
-                if field not in reader.fieldnames
-            ]
-            if missing:
-                raise ConfigError(
-                    "{} lacks summary column(s): {}.".format(
-                        path, ", ".join(missing)
-                    )
-                )
+            if reader.fieldnames != list(calibration_summary.SUMMARY_FIELDS):
+                raise ConfigError("{} has an invalid summary header.".format(path))
             rows = list(reader)
     except OSError as error:
         raise ConfigError("could not read {}: {}".format(path, error)) from error
-    if not rows:
-        raise ConfigError("{} contains no calibration evidence.".format(path))
-
     expected_election = path.stem
+    try:
+        calibration_summary.validate_abridged_rows(
+            path,
+            rows,
+            expected_election,
+            {
+                calibration_summary.RECORD_LEAVE_ONE_OUT,
+                calibration_summary.RECORD_BIAS_TREND,
+                calibration_summary.RECORD_BIAS_POLLSTER,
+            },
+        )
+    except calibration_summary.CalibrationSummaryError as error:
+        raise ConfigError(str(error)) from error
+
     leave_one_out = []
     trends = {}
     pollsters = {}

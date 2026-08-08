@@ -507,7 +507,6 @@ def run_models() -> None:
                         cutoff_federal_prior_files[election_tag],
                     )
                 continue
-            calibration_trace_files = []
             expected_cutoff_parties = (
                 [
                     party
@@ -643,8 +642,6 @@ def run_models() -> None:
                             )),
                             feedback_category=e_data.federal_prior_category,
                         )
-                        if config.calibrate_pollsters:
-                            calibration_trace_files.extend(output_files)
                     if (
                         pure_provenance_recorder is not None
                         and output_context is not None
@@ -724,7 +721,7 @@ def run_models() -> None:
 
             if config.calibrate_pollsters:
                 (
-                    trace_files,
+                    _trace_files,
                     summary_values,
                     residual_evidence_rows,
                 ) = finalise_calibrations(
@@ -793,9 +790,6 @@ def run_models() -> None:
                     provenance_recorder.record_summaries(
                         election=election_tag,
                         outputs=[component_output],
-                        trace_files=(
-                            calibration_trace_files + trace_files
-                        ),
                         residual_evidence=(
                             residual_evidence_output
                             if component_rows else None

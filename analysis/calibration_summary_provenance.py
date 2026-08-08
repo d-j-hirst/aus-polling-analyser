@@ -11,8 +11,8 @@ Main functions:
   abridged Components (or transitional Staging / detailed archive) evidence
   used by each compact election summary.
 * ``CalibrationSummaryRecorder`` creates compact-summary provenance records.
-* ``record_summaries`` records a completed batch; ``record_direct_summary``
-  remains for helper/test publication paths.
+* ``record_summaries`` records each already-promoted summary immediately;
+  ``record_direct_summary`` remains for helper/test publication paths.
 * ``baseline_existing_summaries`` preserves pre-provenance summaries as legacy.
 """
 
@@ -393,7 +393,7 @@ class CalibrationSummaryRecorder:
 
 
 def record_summaries(elections, command, input_paths_for_election=None):
-    """Record already-promoted compact CSVs from one successful CLI run."""
+    """Record each already-promoted compact CSV before moving to the next."""
 
     recorder = CalibrationSummaryRecorder(command)
     manifest = generated_provenance.load_manifest(MANIFEST_PATH)
@@ -413,7 +413,7 @@ def record_summaries(elections, command, input_paths_for_election=None):
             else compatibility_input_paths(election, manifest)
         )
         recorder.record(election, output, input_paths, manifest)
-    recorder.flush()
+        recorder.flush()
 
 
 def record_direct_summary(

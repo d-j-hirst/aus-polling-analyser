@@ -158,6 +158,9 @@ class CalibrationProvenanceTests(unittest.TestCase):
             manifest = generated_provenance.load_manifest(manifest_path)
             record = next(iter(manifest["records"].values()))
             self.assertEqual(record["status"], "generated")
+            self.assertEqual(
+                record["category"], "calibration_diagnostics"
+            )
             self.assertEqual(record["random_seed"], 123456)
             self.assertEqual(
                 record["scope"]["qualifiers"]["excluded_pollster"],
@@ -166,6 +169,69 @@ class CalibrationProvenanceTests(unittest.TestCase):
             self.assertEqual(
                 generated_provenance.check_manifest(manifest_path),
                 {next(iter(manifest["records"])): []},
+            )
+
+    def test_optional_trace_metadata_repair_leaves_legacy_fallbacks_alone(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            base = Path(temporary_directory)
+            calibration_directory = base / "Outputs" / "Calibration"
+            diagnostics = calibration_directory / "Diagnostics" / "run"
+            diagnostics.mkdir(parents=True)
+            diagnostic = diagnostics / "fp_trend_2028fed_@TPP_Newspoll.csv"
+            legacy = calibration_directory / "fp_trend_2028fed_@TPP_Old.csv"
+            diagnostic.write_text("trace\n", encoding="utf-8")
+            legacy.write_text("legacy\n", encoding="utf-8")
+            manifest_path = calibration_directory / "generated-provenance.json"
+            records = {}
+            for key, output in (("diagnostic", diagnostic), ("legacy", legacy)):
+                records[key] = generated_provenance.generation_record(
+                    category="poll_calibration_compatibility_inputs",
+                    stage="calibrate_pollsters",
+                    scope=generated_provenance.generation_scope(
+                        elections=["2028fed"]
+                    ),
+                    run="test",
+                    dependencies={},
+                    outputs=generated_provenance.output_fingerprints(
+                        [output], base
+                    ),
+                    random_seed=None,
+                )
+            generated_provenance.update_manifest(
+                manifest_path,
+                records,
+                {
+                    "test": {
+                        "generated_at_utc": "2026-01-01T00:00:00Z",
+                        "command": ["test"],
+                        "source_revision": {
+                            "system": "git", "revision": None, "dirty": True
+                        },
+                        "environment": generated_provenance.current_environment(),
+                    }
+                },
+                path_base="../..",
+                description="Test calibration provenance.",
+            )
+
+            with mock.patch.object(
+                calibration_provenance, "ANALYSIS_DIRECTORY", base
+            ), mock.patch.object(
+                calibration_provenance, "MANIFEST_PATH", manifest_path
+            ):
+                self.assertEqual(
+                    calibration_provenance.reclassify_optional_trace_records(),
+                    1,
+                )
+
+            manifest = generated_provenance.load_manifest(manifest_path)
+            self.assertEqual(
+                manifest["records"]["diagnostic"]["category"],
+                "calibration_diagnostics",
+            )
+            self.assertEqual(
+                manifest["records"]["legacy"]["category"],
+                "poll_calibration_compatibility_inputs",
             )
 
     def test_federal_prior_is_recorded_as_calibration_output(self):
@@ -290,7 +356,6 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 recorder.record_summaries(
                     "2028fed",
                     [staging],
-                    [],
                     residual_evidence=evidence,
                 )
                 recorder.flush()
@@ -341,7 +406,6 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 recorder.record_summaries(
                     "2028fed",
                     [component],
-                    [],
                     residual_evidence=evidence,
                 )
                 recorder.flush()
@@ -351,7 +415,6 @@ class CalibrationProvenanceTests(unittest.TestCase):
                 recorder.record_summaries(
                     "2028fed",
                     [component],
-                    [],
                     residual_evidence=None,
                 )
                 recorder.flush()
@@ -364,6 +427,12 @@ class CalibrationProvenanceTests(unittest.TestCase):
             self.assertIn(
                 "calibration_compatibility_inputs:2028fed:loo-summary",
                 manifest["records"],
+            )
+            self.assertNotIn(
+                "poll_calibration_traces",
+                manifest["records"][
+                    "calibration_compatibility_inputs:2028fed:loo-summary"
+                ]["dependencies"],
             )
 
     def test_mode_specific_seed_manifest_has_separate_category(self):

@@ -319,6 +319,100 @@ class CalibrationSummaryTests(unittest.TestCase):
             ["bias_trend", "bias_pollster"],
         )
 
+    def test_component_validation_rejects_unsafe_record_shapes(self):
+        loo_path = calibration_summary.direct_component_path(
+            self.directory, "2028fed", "leave-one-out"
+        )
+        bias_path = calibration_summary.direct_component_path(
+            self.directory, "2028fed", "bias"
+        )
+        good_loo = calibration_summary.build_leave_one_out_rows(
+            "2028fed", [("@TPP", "DemosAU", 1.5, 2.5)]
+        )
+        good_bias = calibration_summary.build_bias_rows(
+            "2028fed",
+            [("@TPP", 51.25, {"DemosAU": -0.25}, {"DemosAU": 2})],
+        )
+
+        cases = []
+        duplicate_loo = good_loo + [dict(good_loo[0])]
+        cases.append((duplicate_loo, good_bias, "repeats leave-one-out"))
+        bad_shape = [dict(good_loo[0])]
+        bad_shape[0]["final_trend_median"] = "51.25"
+        cases.append((bad_shape, good_bias, "unexpected final_trend_median"))
+        non_integer_count = [dict(row) for row in good_bias]
+        non_integer_count[-1]["recent_poll_count"] = "1.5"
+        cases.append((good_loo, non_integer_count, "non-integer recent_poll_count"))
+        incomplete_bias = [
+            row for row in good_bias
+            if row["record_type"] == calibration_summary.RECORD_BIAS_TREND
+        ]
+        cases.append((good_loo, incomplete_bias, "incomplete bias evidence"))
+
+        for loo_rows, bias_rows, expected in cases:
+            with self.subTest(expected=expected):
+                calibration_summary.write_component_atomically(loo_path, loo_rows)
+                calibration_summary.write_component_atomically(bias_path, bias_rows)
+                with self.assertRaisesRegex(
+                    calibration_summary.CalibrationSummaryError, expected
+                ):
+                    calibration_summary.compact(self.directory, ["2028fed"])
+
+    def test_prevalidation_leaves_every_summary_untouched_on_failure(self):
+        self.write("calib_2028fed_DemosAU_@TPP.csv", "1.5,2.5,\n")
+        self.write("calib_2026vic_DemosAU_@TPP.csv", "nan,2.5,\n")
+        existing = calibration_summary.summary_path(self.directory, "2028fed")
+        existing.parent.mkdir()
+        existing.write_text("old summary\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            calibration_summary.CalibrationSummaryError, "not finite"
+        ):
+            calibration_summary.compact(
+                self.directory, ["2028fed", "2026vic"]
+            )
+
+        self.assertEqual(existing.read_text(encoding="utf-8"), "old summary\n")
+        self.assertFalse(
+            calibration_summary.summary_path(self.directory, "2026vic").exists()
+        )
+
+    def test_publication_stops_after_a_provenance_failure(self):
+        rows = calibration_summary.build_bias_rows(
+            "2028fed",
+            [("@TPP", 51.25, {"DemosAU": -0.25}, {"DemosAU": 2})],
+        )
+        prepared = [
+            ("2028fed", rows),
+            ("2026vic", rows),
+            ("2025wa", rows),
+        ]
+        calls = []
+
+        def record_published(election, _output):
+            calls.append(election)
+            if election == "2026vic":
+                raise RuntimeError("manifest unavailable")
+
+        with self.assertRaisesRegex(
+            calibration_summary.CalibrationSummaryError,
+            "2026vic was published but provenance recording failed",
+        ):
+            calibration_summary.publish_prepared_summaries(
+                self.directory, prepared, record_published
+            )
+
+        self.assertEqual(calls, ["2028fed", "2026vic"])
+        self.assertTrue(
+            calibration_summary.summary_path(self.directory, "2028fed").is_file()
+        )
+        self.assertTrue(
+            calibration_summary.summary_path(self.directory, "2026vic").is_file()
+        )
+        self.assertFalse(
+            calibration_summary.summary_path(self.directory, "2025wa").exists()
+        )
+
     def test_promotes_direct_staging_without_legacy_traces(self):
         loo_rows = calibration_summary.build_leave_one_out_rows(
             "2028fed", [("@TPP", "DemosAU", 1.5, 2.5)]

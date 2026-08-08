@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-08-05T02:14:21Z",
+  "updated_at_utc": "2026-08-08T07:49:53Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -68,12 +68,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 17,
+      "semantic_revision": 20,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "23023c9dc78ac3b3efabbdeb32e35a860dc2de225c5c7104ed47ebd063c94bc8",
-          "size_bytes": 284665,
-          "recorded_mtime_utc": "2026-08-04T23:56:08.391975Z"
+          "sha256": "400427d412668b31da5416f934c0db13ef1127c471aaa224fbe80efb789cc2fa",
+          "size_bytes": 284752,
+          "recorded_mtime_utc": "2026-08-08T07:49:09.377425Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "e369cee23374c45129778c67a22ac6a816a1bc2d74005ff8043d3b37841bf7ff",
@@ -91,9 +91,9 @@
           "recorded_mtime_utc": "2026-08-04T12:03:55.231029Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "e958f73dcdb94f0164374df3924bd57ee699681ac07eb1234a947a521653ffb3",
-          "size_bytes": 37581,
-          "recorded_mtime_utc": "2026-08-05T02:13:51.773759Z"
+          "sha256": "c827efeb927676e7dbbce2cdc7513c9a3c43a24329bf57dd9f43ac8b46346d10",
+          "size_bytes": 37641,
+          "recorded_mtime_utc": "2026-08-07T06:48:41.726444Z"
         },
         "poll-data-wa.csv": {
           "sha256": "368c226facac3b2c0436710969f2f1bdf2798ab120aa2f16200d72265baf7871",
@@ -540,9 +540,72 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260807T071525Z-new_polling-raw-poll-data-3c40a78e",
+          "recorded_at_utc": "2026-08-07T07:15:25Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 18,
+          "provenance_revision": 18,
+          "summary": "Victoria Morgan SMS",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T074817Z-new_polling-raw-poll-data-ff5a97fa",
+          "recorded_at_utc": "2026-08-08T07:48:17Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 19,
+          "provenance_revision": 19,
+          "summary": "New federal poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260808T074953Z-correction-raw-poll-data-a99fecd2",
+          "recorded_at_utc": "2026-08-08T07:49:53Z",
+          "change_type": "correction",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 20,
+          "provenance_revision": 20,
+          "summary": "DemosAU date tweak (+maybe other things)",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 17
+      "provenance_revision": 20
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

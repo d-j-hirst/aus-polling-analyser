@@ -34,6 +34,7 @@ MANIFEST_DESCRIPTION = (
 )
 POLL_COMPATIBILITY_CATEGORY = "poll_calibration_compatibility_inputs"
 BIAS_COMPATIBILITY_CATEGORY = "bias_calibration_compatibility_inputs"
+CALIBRATION_DIAGNOSTICS_CATEGORY = "calibration_diagnostics"
 FEDERAL_PRIOR_CATEGORY = "federal_calibration_priors"
 RESIDUAL_EVIDENCE_CATEGORY = "poll_calibration_residual_evidence"
 POLL_SEED_CATEGORY = "poll_calibration_stan_seeds"
@@ -104,6 +105,17 @@ def _compatibility_record_key(category, election, party, role):
 
 def _loo_summary_record_key(election):
     return "calibration_compatibility_inputs:{}:loo-summary".format(election)
+
+
+def _diagnostic_record_key(election, party, role):
+    """Keep optional trace records distinct from executable evidence."""
+
+    return "{}:{}:{}:{}".format(
+        CALIBRATION_DIAGNOSTICS_CATEGORY,
+        election,
+        party,
+        role,
+    )
 
 
 def _election_code_from_short(election):
@@ -252,26 +264,22 @@ class CalibrationRecorder:
                     ANALYSIS_DIRECTORY,
                 )
             )
-        if bias_calibration:
-            record_key = _compatibility_record_key(
-                BIAS_COMPATIBILITY_CATEGORY,
-                election,
-                party,
-                "bias-calibration",
-            )
-            category = BIAS_COMPATIBILITY_CATEGORY
-            stage = "calibrate_pollster_bias"
-            scope = _scope(election, party)
-        else:
-            record_key = _compatibility_record_key(
-                POLL_COMPATIBILITY_CATEGORY,
-                election,
-                party,
-                excluded_pollster or "full",
-            )
-            category = POLL_COMPATIBILITY_CATEGORY
-            stage = "calibrate_pollsters"
-            scope = _scope(election, party, excluded_pollster)
+        # Detailed output exists only when --calibration-traces was requested.
+        # Components are the executable hand-off; traces must never replace
+        # them as pollster-analysis or summary evidence.
+        role = "bias" if bias_calibration else (excluded_pollster or "full")
+        record_key = _diagnostic_record_key(election, party, role)
+        category = CALIBRATION_DIAGNOSTICS_CATEGORY
+        stage = (
+            "calibrate_pollster_bias"
+            if bias_calibration
+            else "calibrate_pollsters"
+        )
+        scope = (
+            _scope(election, party)
+            if bias_calibration
+            else _scope(election, party, excluded_pollster)
+        )
 
         self.pending_records[record_key] = (
             generated_provenance.generation_record(
@@ -308,18 +316,9 @@ class CalibrationRecorder:
         self,
         election,
         outputs,
-        trace_files,
         residual_evidence=None,
     ):
         dependencies = dict(self.dependencies)
-        if trace_files:
-            dependencies["poll_calibration_traces"] = (
-                generated_provenance.file_dependency(
-                    "poll_calibration_traces",
-                    trace_files,
-                    ANALYSIS_DIRECTORY,
-                )
-            )
         self.pending_records[_loo_summary_record_key(election)] = (
             generated_provenance.generation_record(
                 category=POLL_COMPATIBILITY_CATEGORY,
@@ -551,21 +550,67 @@ def baseline_existing_outputs():
     )
 
 
+def reclassify_optional_trace_records():
+    """Move prior run-specific trace records out of compatibility categories.
+
+    This is a one-time metadata repair for records written before optional
+    traces had their own diagnostic category. Root-level legacy files remain
+    untouched because they are still the fallback for pre-component archives.
+    """
+
+    manifest = generated_provenance.load_manifest(MANIFEST_PATH)
+    updates = {}
+    expected = {}
+    diagnostic_prefix = "Outputs/Calibration/Diagnostics/"
+    for record_key, original in manifest["records"].items():
+        outputs = original.get("outputs") or {}
+        if (
+            original.get("category") not in {
+                POLL_COMPATIBILITY_CATEGORY,
+                BIAS_COMPATIBILITY_CATEGORY,
+            }
+            or not outputs
+            or not all(path.startswith(diagnostic_prefix) for path in outputs)
+        ):
+            continue
+        record = dict(original)
+        record["category"] = CALIBRATION_DIAGNOSTICS_CATEGORY
+        updates[record_key] = record
+        expected[record_key] = original
+    if updates:
+        generated_provenance.update_manifest(
+            MANIFEST_PATH,
+            updates,
+            {},
+            path_base=manifest["path_base"],
+            expected_records=expected,
+        )
+    return len(updates)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Maintain provenance for poll calibration outputs."
     )
     parser.add_argument(
         "command",
-        choices=("baseline",),
+        choices=("baseline", "reclassify-optional-traces"),
         help=(
             "baseline fingerprints existing outputs without claiming they "
-            "were reproduced under the current sources"
+            "were reproduced; reclassify-optional-traces repairs old "
+            "run-specific trace metadata without changing files"
         ),
     )
     args = parser.parse_args(argv)
     if args.command == "baseline":
         baseline_existing_outputs()
+        return 0
+    if args.command == "reclassify-optional-traces":
+        print(
+            "Reclassified {} optional calibration trace record(s).".format(
+                reclassify_optional_trace_records()
+            )
+        )
         return 0
     raise AssertionError("unhandled command")
 

@@ -150,6 +150,40 @@ class CalibrationSummaryProvenanceTests(unittest.TestCase):
         self.assertEqual(record["stage"], "compact_calibration_summaries")
         self.assertEqual(record["dependencies"], {})
 
+    def test_batch_recording_flushes_each_published_summary(self):
+        summaries = self.calibration_directory / "Summaries"
+        summaries.mkdir()
+        for election in ("2028fed", "2026vic"):
+            (summaries / "{}.csv".format(election)).write_text(
+                "summary\n", encoding="utf-8"
+            )
+
+        with mock.patch.object(
+            calibration_summary_provenance,
+            "CALIBRATION_DIRECTORY",
+            self.calibration_directory,
+        ), mock.patch.object(
+            calibration_summary_provenance,
+            "MANIFEST_PATH",
+            self.manifest_path,
+        ), mock.patch.object(
+            calibration_summary_provenance.generated_provenance,
+            "load_manifest",
+            return_value={"records": {}},
+        ), mock.patch.object(
+            calibration_summary_provenance,
+            "CalibrationSummaryRecorder",
+        ) as recorder_class:
+            calibration_summary_provenance.record_summaries(
+                ["2028fed", "2026vic"],
+                ["python3", "calibration_summary.py"],
+                input_paths_for_election=lambda _election: set(),
+            )
+
+        recorder = recorder_class.return_value
+        self.assertEqual(recorder.record.call_count, 2)
+        self.assertEqual(recorder.flush.call_count, 2)
+
     def test_old_summary_category_is_a_compatibility_parent_only_for_calib_files(self):
         manifest = {
             "records": {

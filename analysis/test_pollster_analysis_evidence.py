@@ -95,7 +95,7 @@ class PollsterAnalysisEvidenceTests(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(
-            ValueError, "no complete party bundles"
+            ValueError, "no complete bias evidence"
         ):
             load_calibration_evidence([compact])
 

@@ -557,6 +557,15 @@
       ],
       "description": "Legacy detailed leave-one-out calibration traces retained for diagnosis and compatibility; compact summaries are the executable calibration evidence."
     },
+    "calibration_diagnostics": {
+      "kind": "diagnostic",
+      "scope": "calibration-unit",
+      "core": false,
+      "paths": [
+        "Outputs/Calibration/Diagnostics/**/*.csv"
+      ],
+      "description": "Optional run-specific detailed calibration traces. They support diagnosis only and are never compatibility evidence."
+    },
     "bias_calibration_compatibility_inputs": {
       "kind": "generated",
       "scope": "calibration-unit",
