@@ -463,6 +463,7 @@
     <ClInclude Include="FileOpeningState.h" />
     <ClInclude Include="Date.h" />
 	<ClInclude Include="LiveData.h" />
+	<ClInclude Include="LiveSimulationMath.h" />
 	<ClInclude Include="LivePreparationBridge.h" />
 	<ClInclude Include="WorkspacePaths.h" />
     <ClInclude Include="General.h" />

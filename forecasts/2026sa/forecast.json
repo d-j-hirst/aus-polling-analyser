@@ -106,9 +106,9 @@
     {
       "base_projection_id": "standard-projection",
       "id": "live-simulation",
-      "mode": "live_manual",
+      "mode": "live_automatic",
       "name": "Live Simulation",
-      "num_iterations": 25000,
+      "num_iterations": 200000,
       "report_mode": "live_forecast"
     }
   ]

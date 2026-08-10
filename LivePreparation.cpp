@@ -9,7 +9,9 @@
 #include "SpecialPartyCodes.h"
 #include "LatestResultsDataRetriever.h"
 #include "Utf16ToUtf8.h"
+#include "Date.h"
 
+#include <cctype>
 #include <filesystem>
 #include <queue>
 #include <random>
@@ -34,6 +36,27 @@ constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
 namespace {
 
+// Keep scans of the user's Downloads directory in the filesystem's native
+// encoding. Converting every unrelated filename to the active ANSI code page
+// fails on Windows when a folder contains arbitrary Unicode filenames.
+bool filenameContains(
+	std::filesystem::path const& path,
+	std::string const& marker)
+{
+	auto const nativeMarker = std::filesystem::path(marker).native();
+	auto const nativeFilename = path.filename().native();
+	return nativeFilename.find(nativeMarker) !=
+		decltype(nativeFilename)::npos;
+}
+
+bool filenameEquals(
+	std::filesystem::path const& path,
+	std::string const& expected)
+{
+	return path.filename().native() ==
+		std::filesystem::path(expected).native();
+}
+
 void requireLiveInputFile(std::filesystem::path const& path, std::vector<std::string>& missingFiles)
 {
 	std::error_code error;
@@ -48,7 +71,9 @@ void requireLiveInputFile(std::filesystem::path const& path, std::vector<std::st
 	}
 }
 
-bool hasCurrentResultsFile(std::string const& regionCode)
+bool hasCurrentResultsFile(
+	std::string const& regionCode,
+	std::string const& termCode)
 {
 	static std::map<std::string, std::string> const filenameMarkers = {
 		{"vic", "mediafilelitepplh_"},
@@ -64,12 +89,48 @@ bool hasCurrentResultsFile(std::string const& regionCode)
 	std::filesystem::directory_iterator entry(downloadsPath, error);
 	std::filesystem::directory_iterator const end;
 	while (!error && entry != end) {
-		if (entry->path().filename().string().find(filenameMarkers.at(regionCode)) != std::string::npos) {
+		bool const matches = regionCode == "sa" ?
+			filenameEquals(
+				entry->path(),
+				"el" + termCode.substr(0, 4) + filenameMarkers.at(regionCode) +
+					".xml") :
+			filenameContains(entry->path(), filenameMarkers.at(regionCode));
+		if (matches) {
 			return true;
 		}
 		entry.increment(error);
 	}
 	return false;
+}
+
+constexpr int LiveArchiveDaysBeforeElection = 14;
+constexpr int LiveArchiveDaysAfterElection = 42;
+
+bool isLiveArchiveDate(Date date, Date electionDate)
+{
+	return date.isValid() && electionDate.isValid() &&
+		date >= electionDate - LiveArchiveDaysBeforeElection &&
+		date <= electionDate + LiveArchiveDaysAfterElection;
+}
+
+std::optional<std::string> ecsaCompactUpdateTimestamp(
+	tinyxml2::XMLDocument const& document)
+{
+	auto const* root = document.FirstChildElement("HouseOfAssemblyDetail");
+	auto const* updateElement = root ?
+		root->FirstChildElement("last_updated") : nullptr;
+	char const* updateText = updateElement ? updateElement->GetText() : nullptr;
+	if (!updateText) return std::nullopt;
+
+	std::string digits;
+	for (unsigned char character : std::string(updateText)) {
+		if (std::isdigit(character)) digits.push_back(char(character));
+	}
+	if (digits.size() != 14 ||
+		!Timestamp::parseCompactLocal(digits).has_value()) {
+		return std::nullopt;
+	}
+	return digits;
 }
 
 nlohmann::json loadLiveJson(std::string const& filename)
@@ -168,7 +229,7 @@ void LivePreparation::validateAutomaticSetup(PollingProject const& project, Simu
 	}
 
 	if (regionCode != "fed" && settings.currentRealUrl.empty() &&
-		!hasCurrentResultsFile(regionCode)) {
+		!hasCurrentResultsFile(regionCode, termCode)) {
 		throw Exception("No current-results file for " + regionCode +
 			" was found in the Windows Downloads folder.");
 	}
@@ -431,10 +492,13 @@ void LivePreparation::acquireCurrentResults()
 		int bestDate = 0;
 		int bestTime = 0;
 		std::string bestFilename;
+		std::string const expectedSaFilename =
+			"el" + run.getTermCode().substr(0, 4) + "_ha_detail.xml";
 		for (const auto& entry : std::filesystem::directory_iterator(downloadsPath)) {
 			try {
-				auto entryStr = entry.path().string();
-				if (run.regionCode == "vic" && entryStr.find("mediafilelitepplh_") != std::string::npos) {
+				if (run.regionCode == "vic" &&
+					filenameContains(entry.path(), "mediafilelitepplh_")) {
+					auto entryStr = entry.path().string();
 					std::string dateStamp = splitString(entryStr, "_")[1];
 					std::string timeStamp = splitString(splitString(entryStr, "_")[2], ".")[0];
 					int date = std::stoi(dateStamp);
@@ -443,7 +507,9 @@ void LivePreparation::acquireCurrentResults()
 						bestFilename = entryStr;
 					}
 				}
-				else if (run.regionCode == "nsw" && entryStr.find("-SG") != std::string::npos) {
+				else if (run.regionCode == "nsw" &&
+					filenameContains(entry.path(), "-SG")) {
+					auto entryStr = entry.path().string();
 					// Strictly speaking not really dates and times in NSW's case but they serve the same function
 					std::string fileString = splitString(entryStr, "\\")[1];
 					std::string dateStamp = splitString(fileString, "-")[1].substr(2);
@@ -454,7 +520,9 @@ void LivePreparation::acquireCurrentResults()
 						bestFilename = entryStr;
 					}
 				}
-				else if (run.regionCode == "qld" && entryStr.find("_publicResults") != std::string::npos) {
+				else if (run.regionCode == "qld" &&
+					filenameContains(entry.path(), "_publicResults")) {
+					auto entryStr = entry.path().string();
 					std::string fileString = splitString(entryStr, "\\")[1];
 					std::string dateStamp = fileString.substr(0, 8);
 					std::string timeStamp = fileString.substr(8, 6);
@@ -464,7 +532,9 @@ void LivePreparation::acquireCurrentResults()
 						bestFilename = entryStr;
 					}
 				}
-				else if (run.regionCode == "wa" && entryStr.find("LA VERBOSE RESULTS") != std::string::npos) {
+				else if (run.regionCode == "wa" &&
+					filenameContains(entry.path(), "LA VERBOSE RESULTS")) {
+					auto entryStr = entry.path().string();
 					bestFilename = entryStr;
 					
 					// Archive the file with a timestamp
@@ -491,25 +561,40 @@ void LivePreparation::acquireCurrentResults()
 					logger << "Copied WA results file to: " << xmlFilename << "\n";
 					return; // Exit the function early since we've already copied the file
 				}
-				else if (run.regionCode == "sa" && entryStr.find("_ha_detail") != std::string::npos) {
+				else if (run.regionCode == "sa" &&
+					filenameEquals(entry.path(), expectedSaFilename)) {
+					auto entryStr = entry.path().string();
 					bestFilename = entryStr;
 
-					// Archive the file with a timestamp
-					auto now = std::chrono::system_clock::now();
-					auto time_t_now = std::chrono::system_clock::to_time_t(now);
-					std::tm tm_now;
-					localtime_s(&tm_now, &time_t_now);
-
-					char timestamp[13];
-					std::strftime(timestamp, sizeof(timestamp), "%y%m%d%H%M%S", &tm_now);
-
-					std::string archivedFilename = entryStr;
-					std::string searchStr = "_ha_detail";
-					size_t pos = archivedFilename.find(searchStr);
-					if (pos != std::string::npos) {
-						archivedFilename.replace(pos, searchStr.length(), timestamp);
-						std::filesystem::copy_file(entryStr, archivedFilename, std::filesystem::copy_options::overwrite_existing);
-						logger << "Archived SA results file as: " << archivedFilename << "\n";
+					// Archive only genuinely current live feeds. Replay snapshots are
+					// still copied below for simulation, but must not acquire a new
+					// wall-clock filename and masquerade as an at-the-time capture.
+					auto const electionDate = project.projections().view(
+						sim.settings.baseProjection).getSettings().endDate;
+					tinyxml2::XMLDocument archiveXml;
+					loadEcsaXmlDocument(archiveXml, entryStr);
+					auto const updateTimestamp =
+						ecsaCompactUpdateTimestamp(archiveXml);
+					bool const currentArchivePeriod = isLiveArchiveDate(
+						Date::todayLocal(), electionDate);
+					bool const feedArchivePeriod = updateTimestamp &&
+						isLiveArchiveDate(
+							Timestamp::parseCompactLocal(*updateTimestamp)
+								->localDate(),
+							electionDate);
+					if (currentArchivePeriod && feedArchivePeriod) {
+						auto const archivedFilename = downloadsPath /
+							("el" + run.getTermCode().substr(0, 4) +
+								updateTimestamp->substr(2) + ".xml");
+						if (!std::filesystem::exists(archivedFilename)) {
+							std::filesystem::copy_file(entry.path(), archivedFilename);
+							logger << "Archived SA results file as: " <<
+								archivedFilename.string() << "\n";
+						}
+					}
+					else {
+						logger <<
+							"Skipped SA snapshot archival outside the live-election period.\n";
 					}
 
 					// Then, copy the file directly to the downloads directory for immediate use

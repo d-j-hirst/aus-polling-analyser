@@ -67,6 +67,7 @@ artifacts/
 *.tmp_proj
 *.log
 /analysis/Logs/
+live_scripts/.sa-2026-live-replay-state.json
 *generated-provenance.json.lock
 *.vspscc
 *.vssscc

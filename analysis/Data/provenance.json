@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored polling, election, modelling and seat-analysis inputs.",
   "created_at_utc": "2026-07-23T23:19:50Z",
-  "updated_at_utc": "2026-08-08T07:49:53Z",
+  "updated_at_utc": "2026-08-10T06:55:49Z",
   "categories": {
     "election_catalogue": {
       "description": "Known elections and their polling periods.",
@@ -68,12 +68,12 @@
         "poll-data-*.csv"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 20,
+      "semantic_revision": 24,
       "files": {
         "poll-data-fed.csv": {
-          "sha256": "400427d412668b31da5416f934c0db13ef1127c471aaa224fbe80efb789cc2fa",
-          "size_bytes": 284752,
-          "recorded_mtime_utc": "2026-08-08T07:49:09.377425Z"
+          "sha256": "7f9acec9eba4b5372b9ae8770ca7b348762eba065c3f4ea97b97d55bef5f9701",
+          "size_bytes": 284896,
+          "recorded_mtime_utc": "2026-08-10T06:55:07.995246Z"
         },
         "poll-data-nsw.csv": {
           "sha256": "e369cee23374c45129778c67a22ac6a816a1bc2d74005ff8043d3b37841bf7ff",
@@ -91,9 +91,9 @@
           "recorded_mtime_utc": "2026-08-04T12:03:55.231029Z"
         },
         "poll-data-vic.csv": {
-          "sha256": "c827efeb927676e7dbbce2cdc7513c9a3c43a24329bf57dd9f43ac8b46346d10",
-          "size_bytes": 37641,
-          "recorded_mtime_utc": "2026-08-07T06:48:41.726444Z"
+          "sha256": "79b942045c93c4ce4b6e970cb487fd5c8bcb3b9c67fe369df35b130e168f7d4b",
+          "size_bytes": 37700,
+          "recorded_mtime_utc": "2026-08-09T07:42:03.302190Z"
         },
         "poll-data-wa.csv": {
           "sha256": "368c226facac3b2c0436710969f2f1bdf2798ab120aa2f16200d72265baf7871",
@@ -603,9 +603,114 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260809T025531Z-new_polling-raw-poll-data-e0c82d62",
+          "recorded_at_utc": "2026-08-09T02:55:31Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 21,
+          "provenance_revision": 21,
+          "summary": "Morgan SMS approvals",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260809T074238Z-new_polling-raw-poll-data-81c76d72",
+          "recorded_at_utc": "2026-08-09T07:42:38Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 22,
+          "provenance_revision": 22,
+          "summary": "YouGov (old) MRP",
+          "files": [
+            "poll-data-vic.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260809T114718Z-new_polling-raw-poll-data-9e4838e9",
+          "recorded_at_utc": "2026-08-09T11:47:18Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 23,
+          "provenance_revision": 23,
+          "summary": "Newspoll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260810T003216Z-correction-raw-poll-data-78718cad",
+          "recorded_at_utc": "2026-08-10T00:32:16Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 23,
+          "provenance_revision": 23,
+          "summary": "confirm approval estimate was accurate",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
+        },
+        {
+          "id": "20260810T065549Z-new_polling-raw-poll-data-97e1214a",
+          "recorded_at_utc": "2026-08-10T06:55:49Z",
+          "change_type": "new_polling",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 24,
+          "provenance_revision": 24,
+          "summary": "Morgan poll",
+          "files": [
+            "poll-data-fed.csv"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2028fed"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 20
+      "provenance_revision": 24
     },
     "poll_model_configuration": {
       "description": "Party coverage, discontinuities and sampling settings used by fp_model.py.",

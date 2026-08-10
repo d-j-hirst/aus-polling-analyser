@@ -453,6 +453,9 @@
 	<ClInclude Include="LiveData.h">
 	  <Filter>Header Files\Data Objects</Filter>
 	</ClInclude>
+	<ClInclude Include="LiveSimulationMath.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
 	<ClInclude Include="LivePreparationBridge.h">
 	  <Filter>Header Files\Process Objects</Filter>
 	</ClInclude>

@@ -3343,9 +3343,15 @@ int Election::mapPartyId(
 
   // Helper function to get next available ID
   auto getNextId = [this]() {
-    int maxId = -1;
+    // Dynamic live-only parties must not collide with configured project
+    // parties that happen to be absent from both election result files.
+    int maxId = project.parties().count() - 1;
     for (auto const& [_, mappedId] : ecPartyToInternalParty) {
       maxId = std::max(maxId, mappedId);
+    }
+    if (maxId + 1 >= IndependentPartyIdOffset) {
+      throw std::runtime_error(
+        "No internal party IDs remain below the independent-candidate range.");
     }
     return maxId + 1;
   };
