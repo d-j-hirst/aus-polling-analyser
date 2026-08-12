@@ -10,6 +10,7 @@ ForecastSpecificationIO.cpp
 ForecastSpecificationProjectAdapter.cpp
 General.cpp
 Log.cpp
+LiveResultsInput.cpp
 MacroTargetResolver.cpp
 ModelCollection.cpp
 OutcomeCollection.cpp

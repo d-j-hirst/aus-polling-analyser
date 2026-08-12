@@ -164,7 +164,8 @@ namespace {
 			first.previousResultsUrl == second.previousResultsUrl &&
 			first.preloadUrl == second.preloadUrl &&
 			first.currentTestUrl == second.currentTestUrl &&
-			first.currentRealUrl == second.currentRealUrl;
+			first.currentRealUrl == second.currentRealUrl &&
+			first.currentResultsDirectory == second.currentResultsDirectory;
 	}
 }
 

@@ -16,7 +16,7 @@ int main(int argc, char const* argv[])
 
 	// The project-file hint may point below the root and need not itself exist.
 	auto const workspaceRoot = argc > 1
-		? std::filesystem::path(argv[1])
+		? std::filesystem::absolute(std::filesystem::path(argv[1]))
 		: std::filesystem::current_path();
 	auto const discovered = WorkspacePaths::discover(
 		workspaceRoot / "tests/example.pol2");

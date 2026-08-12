@@ -107,6 +107,9 @@
     <ClCompile Include="LatestResultsDataRetriever.cpp">
       <Filter>Source Files\Data Processing</Filter>
     </ClCompile>
+	<ClCompile Include="LiveResultsInput.cpp">
+	  <Filter>Source Files\Utility</Filter>
+	</ClCompile>
     <ClCompile Include="LiveBoothFrame.cpp">
       <Filter>Source Files\Tabbed Frames</Filter>
     </ClCompile>
@@ -460,6 +463,9 @@
 	  <Filter>Header Files\Process Objects</Filter>
 	</ClInclude>
 	<ClInclude Include="WorkspacePaths.h">
+	  <Filter>Header Files\Utility</Filter>
+	</ClInclude>
+	<ClInclude Include="LiveResultsInput.h">
 	  <Filter>Header Files\Utility</Filter>
 	</ClInclude>
     <ClInclude Include="WxDateUtils.h">

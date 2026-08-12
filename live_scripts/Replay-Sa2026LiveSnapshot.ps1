@@ -1,25 +1,27 @@
 <#
 Replays archived 2026 South Australian ECSA live-result snapshots.
 
-The polling application looks for el2026_ha_detail.xml in the user's Windows
-Downloads folder. This script installs one timestamped archived snapshot under
-that name, then remembers the selection so a later run without arguments moves
-to the next available snapshot.
+The polling application looks for el2026_ha_detail.xml in the current-results
+directory configured for the simulation. This script installs one timestamped
+archived snapshot under that name, then remembers the selection so a later run
+without arguments moves to the next available snapshot.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter(Position = 0)]
     [string]$Timestamp,
 
-    [switch]$Interactive
+    [switch]$Interactive,
+
+    [string]$ResultsDirectory = (Join-Path $HOME 'Downloads')
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$DownloadsPath = Join-Path $HOME 'Downloads'
+$ResultsDirectory = [System.IO.Path]::GetFullPath($ResultsDirectory)
 $TargetFilename = 'el2026_ha_detail.xml'
-$TargetPath = Join-Path $DownloadsPath $TargetFilename
+$TargetPath = Join-Path $ResultsDirectory $TargetFilename
 $StatePath = Join-Path $PSScriptRoot '.sa-2026-live-replay-state.json'
 $SnapshotPattern = '^el2026(?<timestamp>\d{12})\.xml$'
 
@@ -52,11 +54,11 @@ function Get-EcsaLastUpdated {
 }
 
 function Get-Snapshots {
-    if (-not (Test-Path -LiteralPath $DownloadsPath -PathType Container)) {
-        throw "Windows Downloads folder was not found: $DownloadsPath"
+    if (-not (Test-Path -LiteralPath $ResultsDirectory -PathType Container)) {
+        throw "Current-results directory was not found: $ResultsDirectory"
     }
 
-    $snapshots = foreach ($file in Get-ChildItem -LiteralPath $DownloadsPath -File) {
+    $snapshots = foreach ($file in Get-ChildItem -LiteralPath $ResultsDirectory -File) {
         $match = [regex]::Match($file.Name, $SnapshotPattern,
             [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
         if ($match.Success) {
@@ -151,9 +153,10 @@ if ($Timestamp -and $Timestamp -notmatch '^\d{12}$') {
     throw 'Timestamp must contain exactly 12 digits, for example 260315004007.'
 }
 
-$snapshots = Get-Snapshots
+# PowerShell unwraps a single pipeline result; retain collection semantics for one snapshot.
+$snapshots = @(Get-Snapshots)
 if ($snapshots.Count -eq 0) {
-    throw "No archived snapshots matching el2026<timestamp>.xml were found in $DownloadsPath."
+    throw "No archived snapshots matching el2026<timestamp>.xml were found in $ResultsDirectory."
 }
 
 if ($Interactive) {
@@ -162,7 +165,7 @@ if ($Interactive) {
 elseif ($Timestamp) {
     $selectedSnapshot = $snapshots | Where-Object Timestamp -eq $Timestamp | Select-Object -First 1
     if (-not $selectedSnapshot) {
-        throw "No snapshot with timestamp $Timestamp was found in $DownloadsPath."
+        throw "No snapshot with timestamp $Timestamp was found in $ResultsDirectory."
     }
 }
 else {

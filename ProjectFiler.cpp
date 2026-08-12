@@ -1,6 +1,7 @@
 #include "ProjectFiler.h"
 
 #include "ForecastSpecificationImport.h"
+#include "LiveResultsInput.h"
 
 #include "ElectionCollection.h"
 #include "ElectionData.h"
@@ -73,7 +74,8 @@
 // Version 62: store election term code
 // Version 63: save seat live manual overrides
 // Version 64: save candidate names in simulation reports
-constexpr int VersionNum = 64;
+// Version 65: save each simulation's current-results input directory
+constexpr int VersionNum = 65;
 
 ProjectFiler::ProjectFiler(PollingProject & project)
 	: project(project)
@@ -878,6 +880,8 @@ void ProjectFiler::saveSimulations(SaveFileOutput& saveOutput)
 		saveOutput << thisSimulation.getSettings().preloadUrl;
 		saveOutput << thisSimulation.getSettings().currentTestUrl;
 		saveOutput << thisSimulation.getSettings().currentRealUrl;
+		saveOutput << LiveResultsInput::portableDirectory(
+			thisSimulation.getSettings().currentResultsDirectory);
 		saveOutput << thisSimulation.getSettings().fedElectionDate.toLegacyJulianDay();
 		saveOutput << thisSimulation.lastUpdated.toLegacyJulianDay();
 		saveReport(saveOutput, thisSimulation.latestReport);
@@ -918,6 +922,12 @@ void ProjectFiler::loadSimulations(SaveFileInput& saveInput, [[maybe_unused]] in
 			saveInput >> thisSettings.currentTestUrl;
 			saveInput >> thisSettings.currentRealUrl;
 		}
+		if (versionNum >= 65) {
+			saveInput >> thisSettings.currentResultsDirectory;
+		}
+		thisSettings.currentResultsDirectory =
+			LiveResultsInput::portableDirectory(
+				thisSettings.currentResultsDirectory);
 		if (versionNum >= 55) {
 			thisSettings.fedElectionDate =
 				Date::fromLegacyJulianDay(saveInput.extract<double>());

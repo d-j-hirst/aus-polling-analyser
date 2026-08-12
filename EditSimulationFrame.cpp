@@ -29,6 +29,7 @@ enum ControlId
 	PreloadUrl,
 	CurrentTestUrl,
 	CurrentRealUrl,
+	CurrentResultsDirectory,
 	FedElectionDate,
 	ForceTpp
 };
@@ -58,6 +59,7 @@ void EditSimulationFrame::createControls(int & y)
 	createPreloadUrlInput(y);
 	createCurrentTestUrlInput(y);
 	createCurrentRealUrlInput(y);
+	createCurrentResultsDirectoryInput(y);
 	createFedElectionDateInput(y);
 	createForceTppInput(y);
 
@@ -173,6 +175,19 @@ void EditSimulationFrame::createCurrentRealUrlInput(int& y)
 	auto callback = [this](std::string s) -> void {simulationSettings.currentRealUrl = s; };
 	currentRealUrlInput.reset(new TextInput(this, ControlId::CurrentRealUrl, "Current Real URL:", simulationSettings.currentRealUrl, wxPoint(2, y), callback));
 	y += nameInput->Height + ControlPadding;
+}
+
+void EditSimulationFrame::createCurrentResultsDirectoryInput(int& y)
+{
+	auto callback = [this](std::string value) {
+		simulationSettings.currentResultsDirectory = std::move(value);
+	};
+	currentResultsDirectoryInput.reset(new TextInput(
+		this, ControlId::CurrentResultsDirectory,
+		"Current results directory:",
+		simulationSettings.currentResultsDirectory,
+		wxPoint(2, y), callback));
+	y += currentResultsDirectoryInput->Height + ControlPadding;
 }
 
 void EditSimulationFrame::createFedElectionDateInput(int& y)

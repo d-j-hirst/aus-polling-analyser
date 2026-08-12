@@ -1,5 +1,8 @@
 # Polling Analyser
 
+Instructions for supplying and replaying automatic live-election result feeds
+are in [live_scripts/README.md](live_scripts/README.md).
+
 This README is under construction and may be incomplete.
 
 This project contains the analysis code used to produce polling trends and

@@ -5,6 +5,7 @@ DateTests
 ForecastSpecificationProjectAdapterTests
 ForecastSpecificationTests
 LiveDataTests
+LiveResultsInputTests
 MacroTargetResolverTests
 RandomGeneratorTests
 TerminalMacroFeedbackTests

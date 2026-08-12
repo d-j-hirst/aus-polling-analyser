@@ -61,13 +61,15 @@ call :run ForecastSpecificationTests
 if errorlevel 1 goto :failure
 call :run LiveDataTests
 if errorlevel 1 goto :failure
+call :run LiveResultsInputTests
+if errorlevel 1 goto :failure
 call :run MacroTargetResolverTests
 if errorlevel 1 goto :failure
 call :run RandomGeneratorTests
 if errorlevel 1 goto :failure
 call :run TerminalMacroFeedbackTests
 if errorlevel 1 goto :failure
-call :run WorkspacePathsTests "."
+call :run WorkspacePathsTests
 if errorlevel 1 goto :failure
 call :run CoreReportSummaryTests
 if errorlevel 1 goto :failure

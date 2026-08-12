@@ -2,6 +2,7 @@
 
 #include "Date.h"
 #include "LiveData.h"
+#include "LiveResultsInput.h"
 #include "Party.h"
 #include "Projection.h"
 #include "Seat.h"
@@ -72,6 +73,10 @@ public:
 		std::string preloadUrl;
 		std::string currentTestUrl; // used for testing, leave blank on the night
 		std::string currentRealUrl; // used on the night, leave blank for testing
+
+		// Machine-local directory scanned for state current-results feeds.
+		std::string currentResultsDirectory =
+			LiveResultsInput::defaultDirectory();
 	};
 
 	enum MajorParty {
