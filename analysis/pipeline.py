@@ -613,9 +613,33 @@ def _reachable_work_unit_ids(
                 # Old final-trend records point through the retained
                 # synthetic-TPP snapshot. Treat it as a transparent bridge
                 # to the pure trends that the current final stage consumes.
-                pending_dependencies.extend(
-                    dependency.get("dependencies", [])
-                )
+                bridged_dependencies = dependency.get("dependencies", [])
+                if _run_class(stage) == "cutoffs":
+                    # Older cutoff records also point through synthetic TPP
+                    # diagnostics. Match modern cutoff provenance by not
+                    # pulling active forecast-cycle pure trends into an
+                    # expensive historical rebuild: those inputs are
+                    # deliberately non-invalidating for cutoffs.
+                    current_elections = (
+                        analysis_provenance.approvals_provenance
+                        .current_elections()
+                    )
+                    bridged_dependencies = [
+                        dependency_id
+                        for dependency_id in bridged_dependencies
+                        if not (
+                            dependency_id in work_units_by_id
+                            and work_units_by_id[dependency_id]["category"]
+                            == "pure_poll_outputs"
+                            and bool(
+                                set(_scope_values(
+                                    work_units_by_id[dependency_id],
+                                    "elections",
+                                )) & current_elections
+                            )
+                        )
+                    ]
+                pending_dependencies.extend(bridged_dependencies)
                 continue
             if dependency["category"] not in accepted_categories:
                 continue

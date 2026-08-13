@@ -1416,6 +1416,79 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(plan["tasks"]), 1)
         self.assertEqual(plan["accepted_stale_work_units"], [])
 
+    def test_legacy_cutoff_bridge_skips_current_pure_trends(self):
+        current_pollsters = work_unit(
+            "pollster_parameters:2028fed",
+            "pollster_parameters",
+            "analyse_pollsters",
+            "stale",
+            "2028fed",
+        )
+        current_pure = work_unit(
+            "pure_poll_outputs:2028fed:@TPP",
+            "pure_poll_outputs",
+            "generate_pure_poll_trends",
+            "stale",
+            "2028fed",
+            "@TPP",
+            dependencies=[current_pollsters["id"]],
+        )
+        historical_pure = work_unit(
+            "pure_poll_outputs:1993sa:@TPP",
+            "pure_poll_outputs",
+            "generate_pure_poll_trends",
+            "stale",
+            "1993sa",
+            "@TPP",
+            target_match=False,
+        )
+        diagnostic = work_unit(
+            "synthetic_tpp_outputs:sa",
+            "synthetic_tpp_outputs",
+            "generate_synthetic_tpp",
+            "stale",
+            "1993sa",
+            target_match=False,
+            dependencies=[current_pure["id"], historical_pure["id"]],
+        )
+        cutoff = work_unit(
+            "cutoff_poll_outputs:1993sa",
+            "cutoff_poll_outputs",
+            "generate_cutoff_poll_trends",
+            "stale",
+            "1993sa",
+            target_match=False,
+            dependencies=[diagnostic["id"]],
+        )
+
+        with mock.patch.object(
+            pipeline.analysis_provenance.approvals_provenance,
+            "current_elections",
+            return_value={"2028fed"},
+        ):
+            plan = pipeline.build_plan(
+                audit_result([
+                    current_pollsters,
+                    current_pure,
+                    historical_pure,
+                    diagnostic,
+                    cutoff,
+                ]),
+                self.registry,
+                {"cutoffs"},
+            )
+
+        self.assertEqual(
+            [
+                (task["stage"], task["election"])
+                for task in plan["tasks"]
+            ],
+            [
+                ("generate_pure_poll_trends", "1993sa"),
+                ("generate_cutoff_poll_trends", "1993sa"),
+            ],
+        )
+
     def test_approval_profile_orders_pure_before_final(self):
         audit = audit_result(
             [

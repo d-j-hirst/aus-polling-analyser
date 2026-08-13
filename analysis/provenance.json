@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Monitored Python analysis code.",
   "created_at_utc": "2026-07-24T00:41:17Z",
-  "updated_at_utc": "2026-08-08T07:55:02Z",
+  "updated_at_utc": "2026-08-12T16:41:48Z",
   "categories": {
     "election_store_script": {
       "description": "Election-result export orchestration and serialization.",
@@ -4306,9 +4306,9 @@
           "recorded_mtime_utc": "2026-08-02T14:35:10.380217Z"
         },
         "pipeline.py": {
-          "sha256": "5c90ed0bd1dfeae4a7e000e5f8d9e29280a1e4dfbf7cb21afcf6e3362726d743",
-          "size_bytes": 86067,
-          "recorded_mtime_utc": "2026-08-03T03:26:41.997154Z"
+          "sha256": "426aaa410d35e15e277de2afe249d79018e7e2fcb5eed9bb345b317751ef2d85",
+          "size_bytes": 87380,
+          "recorded_mtime_utc": "2026-08-12T16:41:05.206318Z"
         },
         "pipeline_registry.json": {
           "sha256": "ee4b62e7eac111f9b8270d66e1492c8d2958c1f14a477364d86db34db7452055",
@@ -5887,6 +5887,25 @@
             "stages": []
           },
           "provenance_upgrade": "no-generated-metadata-change-v1"
+        },
+        {
+          "id": "20260812T164148Z-correction-pipeline-orchestration-tools-df042ae4",
+          "recorded_at_utc": "2026-08-12T16:41:48Z",
+          "change_type": "correction",
+          "magnitude": "negligible",
+          "affects_outputs": false,
+          "semantic_revision": 6,
+          "provenance_revision": 45,
+          "summary": "Prevent legacy synthetic-TPP cutoff dependencies from scheduling non-invalidating current-election pure trends.",
+          "files": [
+            "pipeline.py"
+          ],
+          "scope": {
+            "all": true,
+            "elections": [],
+            "parties": [],
+            "stages": []
+          }
         }
       ]
     },

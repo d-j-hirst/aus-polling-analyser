@@ -7,6 +7,17 @@ import requests
 
 def handle_response(response):
     decoded = response.content.decode()
+    try:
+        response_data = response.json()
+    except ValueError:
+        response_data = None
+    if isinstance(response_data, dict) and 'rebuilt' in response_data:
+        rebuilt = ', '.join(
+            f'{mode}: {count}'
+            for mode, count in response_data['rebuilt'].items()
+        )
+        print(f"Rebuilt {response_data['code']} timeseries ({rebuilt})")
+        return
     if len(decoded) < 200:
         print(decoded)
     else:
@@ -29,6 +40,10 @@ parser.add_argument('--all', action='store_true',
 parser.add_argument('--timeseries', action='store',
                     help='Update timeseries instead of uploading forecast. '
                          'Include argument e.g. 2022fed')
+parser.add_argument('--timeseries-mode', choices=['FC', 'NC', 'LF', 'all'],
+                    default='all',
+                    help='Forecast mode to rebuild when using --timeseries '
+                         '(default: all)')
 parser.add_argument('--results', action='store',
                     help='Update results instead of uploading forecast. '
                          'Include argument e.g. 2022fed')
@@ -38,13 +53,15 @@ parser.add_argument('--review', action='store',
 parser.add_argument('--clearcache', action='store_true',
                     help='Clear cache. Useful if an incorrect forecast '
                          'has been uploaded.')
-upload_local = parser.parse_args().local or parser.parse_args().all
-upload_test = parser.parse_args().test or parser.parse_args().all
-upload_remote = parser.parse_args().remote or parser.parse_args().all
-timeseries = parser.parse_args().timeseries
-results = parser.parse_args().results
-review = parser.parse_args().review
-clear_cache = parser.parse_args().clearcache
+args = parser.parse_args()
+upload_local = args.local or args.all
+upload_test = args.test or args.all
+upload_remote = args.remote or args.all
+timeseries = args.timeseries
+timeseries_mode = args.timeseries_mode
+results = args.results
+review = args.review
+clear_cache = args.clearcache
 if not (upload_local or upload_test or upload_remote):
     upload_local = True
 
@@ -57,7 +74,10 @@ AUTO_PASSWORD = env('AUTO_PASSWORD')
 print(f'Upload initiated: {datetime.datetime.now()}')
 
 if timeseries:
-    data = '{"termCode":"' + timeseries + '"}'
+    data = json.dumps({
+        'termCode': timeseries,
+        'mode': timeseries_mode,
+    })
     url_part = 'submit-timeseries-update'
 elif results:
     url_part = 'submit-results-update'
