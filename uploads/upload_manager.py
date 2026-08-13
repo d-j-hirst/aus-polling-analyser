@@ -11,6 +11,8 @@ def handle_response(response):
         response_data = response.json()
     except ValueError:
         response_data = None
+    # Rebuilds now return counts, while report and older-server responses keep
+    # using the existing generic response handling below.
     if isinstance(response_data, dict) and 'rebuilt' in response_data:
         rebuilt = ', '.join(
             f'{mode}: {count}'
@@ -42,6 +44,8 @@ parser.add_argument('--timeseries', action='store',
                          'Include argument e.g. 2022fed')
 parser.add_argument('--timeseries-mode', choices=['FC', 'NC', 'LF', 'all'],
                     default='all',
+                    # Reconstruction addresses stored history modes, where a
+                    # regular forecast is FC. Report JSON continues to use RF.
                     help='Forecast mode to rebuild when using --timeseries '
                          '(default: all)')
 parser.add_argument('--results', action='store',
