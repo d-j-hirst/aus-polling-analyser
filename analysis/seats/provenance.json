@@ -4,7 +4,7 @@
   "folder": ".",
   "description": "Authored seat configuration consumed by the C++ forecast pipeline.",
   "created_at_utc": "2026-07-23T23:22:01Z",
-  "updated_at_utc": "2026-07-30T14:16:05Z",
+  "updated_at_utc": "2026-08-14T01:45:07Z",
   "categories": {
     "forecast_seats": {
       "description": "Election-specific seat configuration used by forecast simulation.",
@@ -12,7 +12,7 @@
         "*.txt"
       ],
       "exclude_patterns": [],
-      "semantic_revision": 2,
+      "semantic_revision": 3,
       "files": {
         "2019fed.txt": {
           "sha256": "014946dc77548034140f78ad66a062f1c59a6d070122cea4c7dcb8bd4525b321",
@@ -65,9 +65,9 @@
           "recorded_mtime_utc": "2026-03-25T13:20:59.552516Z"
         },
         "2026vic.txt": {
-          "sha256": "703860d6e99fd2ce134b8fad64e362e9eea0db1d5857e3ee197bd758d39ebd04",
-          "size_bytes": 16513,
-          "recorded_mtime_utc": "2026-07-30T13:01:35.319717Z"
+          "sha256": "7035ea59b6c88dbd8d97b961f2945f5e57f56487eb27e6accbf94639666c5eea",
+          "size_bytes": 16509,
+          "recorded_mtime_utc": "2026-08-14T01:44:24.616863Z"
         },
         "2027nsw.txt": {
           "sha256": "3cd50ea2510b00263868659b59fcbbcbf23c30555b932b8db35a318cf2e5f47b",
@@ -131,9 +131,30 @@
             "parties": [],
             "stages": []
           }
+        },
+        {
+          "id": "20260814T014507Z-other-forecast-seats-db007edb",
+          "recorded_at_utc": "2026-08-14T01:45:07Z",
+          "change_type": "other",
+          "magnitude": "data-modifying",
+          "affects_outputs": true,
+          "semantic_revision": 3,
+          "provenance_revision": 3,
+          "summary": "Retirement in Bendigo East",
+          "files": [
+            "2026vic.txt"
+          ],
+          "scope": {
+            "all": false,
+            "elections": [
+              "2026vic"
+            ],
+            "parties": [],
+            "stages": []
+          }
         }
       ],
-      "provenance_revision": 2
+      "provenance_revision": 3
     }
   }
 }

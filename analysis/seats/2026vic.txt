@@ -58,7 +58,8 @@ sRegion=Ballarat & Bendigo
 fTppMargin=10.8
 fPreviousTppSwing=-1.3
 fTransposedFederalSwing=-11.3
-sCandidateNames=Jacinta Allan,ALP;Andrew Lethlean,NAT
+bRetirement=1
+sCandidateNames=Andrew Lethlean,NAT
 #Bendigo West
 sIncumbent=ALP
 sChallenger=LNP

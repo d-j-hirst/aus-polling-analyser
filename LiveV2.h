@@ -27,8 +27,6 @@ class Election;
  */
 class Node {
 public:
-  Node();
-
   void log() const;
 
   std::map<int, int> fpVotesCurrent;
@@ -97,6 +95,7 @@ public:
   int totalFpVotesCurrent() const;
   int totalVotesPrevious() const;
   int totalTcpVotesCurrent() const;
+  int totalTcpVotesPrevious() const;
   float totalFpVotesProjected() const;
   float totalTcpVotesProjected() const;
 };
@@ -148,7 +147,7 @@ public:
 
 class Seat {
 public:
-  Seat(Results2::Seat const& seat, int parentRegionId);
+  Seat(Results2::Seat const& seat, int parentRegionIndex);
 
   void log(Election const& election, bool includeBooths = false) const;
 
@@ -167,9 +166,9 @@ public:
   std::map<int, float> offsetSpecificFpDeviations; // offset to account for new booths, redistribution, etc
   std::optional<float> offsetSpecificTppDeviation; // offset to account for new booths, redistribution, etc
   std::map<int, float> fpAllBoothsStdDev; // variability of (transformed) fp votes across all remaining booths
-  float tppAllBoothsStdDev; // variability of (transformed) tpp votes across all remaining booths
+  float tppAllBoothsStdDev = 0.0f; // variability of (transformed) tpp votes across all remaining booths
   std::optional<float> tcpAllBoothsStdDev; // variability of (transformed) tcp votes across all remaining booths
-  float livePreferenceFlowDeviation; // deviations from the "expected" pre-election preference flows
+  float livePreferenceFlowDeviation = 0.0f; // deviations from the "expected" pre-election preference flows
   std::map<Results2::VoteType, float> tppVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::map<Results2::Booth::Type, float> tppBoothTypeSensitivity; // expected number of (entirely) uncounted votes in this category
   std::map<int, std::map<Results2::VoteType, float>> fpVoteTypeSensitivity; // expected number of (entirely) uncounted votes in this category
@@ -179,7 +178,8 @@ public:
   std::optional<float> tcpFocusPartyConfidence;
   std::optional<float> nationalsProportion;
 
-  const int parentRegionId;
+  // Index into Election::largeRegions, not the persistent project region ID.
+  const int parentRegionIndex;
 
   Node node;
 };
@@ -277,7 +277,7 @@ public:
       float baseline = seats[seatIndex].node.tppShareBaseline.value_or(50.0f);
       return { baseline, completion, confidence, deviation };
 		}
-    return {0.0f, 0.0f, 50.0f};
+    return {50.0f, 0.0f, 0.0f, 0.0f};
   }
 
   std::map<int, FloatBaselineInformation> getSeatFpInformation(std::string const& seatName) const override {
@@ -297,7 +297,7 @@ public:
     int seatIndex = std::find_if(seats.begin(), seats.end(), [&seatName](Seat const& s) { return s.name == seatName; }) - seats.begin();
 		if (seatIndex != int(seats.size())) {
       std::map<int, float> seatDeviations = seats[seatIndex].finalSpecificFpDeviations;
-      for (auto const& [partyId, deviation] : largeRegions[seats[seatIndex].parentRegionId].finalSpecificFpDeviations) {
+      for (auto const& [partyId, deviation] : largeRegions[seats[seatIndex].parentRegionIndex].finalSpecificFpDeviations) {
         if (seatDeviations.contains(partyId)) {
           seatDeviations[partyId] += deviation;
         }
@@ -356,7 +356,7 @@ public:
       auto const& seatNode = seats[seatIndex].node;
       totalPreferenceFlowDeviation += seatNode.specificPreferenceFlowDeviation.value_or(0.0f);
       totalPreferenceFlowConfidence += seatNode.preferenceFlowConfidence;
-      auto const& largeRegionNode = largeRegions[seats[seatIndex].parentRegionId].node;
+      auto const& largeRegionNode = largeRegions[seats[seatIndex].parentRegionIndex].node;
       totalPreferenceFlowDeviation += largeRegionNode.specificPreferenceFlowDeviation.value_or(0.0f);
       totalPreferenceFlowConfidence += largeRegionNode.preferenceFlowConfidence;
       totalPreferenceFlowDeviation += node.specificPreferenceFlowDeviation.value_or(0.0f);
@@ -572,8 +572,6 @@ private:
   std::vector<LiveV2::Seat> seats;
 
   std::map<int, int> ecPartyToInternalParty;
-  std::map<int, int> ecBoothToInternalBooth;
-
   std::map<std::string, int> ecAbbreviationToInternalParty;
 
   std::map<int, float> preferenceFlowMap; // preference flows as a percentage
